@@ -3149,6 +3149,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql2).ok();
   }
 
+
   // TODO: FIXME
 //  @Test void testMergeUpdateAlias() {
 //    // Tests a basic merge query with where the update includes the

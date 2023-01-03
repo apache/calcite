@@ -4598,12 +4598,15 @@ public class SqlToRelConverter {
     // The final input to the logicalTableModify we create will have the same number of columns
     // as the destination table, plus two additional columns. The additional columns will be
     // appended
-    // as the last final two columns. The second to last column is the tinyint enum which controls
+    // as the last final two columns. The last column is the tinyint enum which controls
     // which
     // operation
     // will be performed for the given row:
     // INSERT, DELETE or UPDATE.
-    // The last column will the bodo row id column, which will keep track of the original row id
+    // The second to last column will the bodo row id column,
+    // which will keep track of the original row id
+    // the order of these two additional columns is an invariant, and it's used by the
+    // BODOSQL code base
 
     // The other values in the input table will be the columns to write back to the destination
     // table if we have an update or insert.
@@ -4619,7 +4622,7 @@ public class SqlToRelConverter {
     // or UPDATE_ENUM) else INSERT_ENUM)
 
     //NOTE: there may be some rows that are no ops. These rows will be filled with NULL
-    // by the case statments constructed below.
+    // by the case statements constructed below.
     //NOTE2: Each of the conditions in the source select have already been filled with TRUE
     // if they are unconditional. This was handled in rewrite_merge
     SqlSelect sourceSelect = call.getSourceSelect();
@@ -4763,18 +4766,15 @@ public class SqlToRelConverter {
 
     // NOTE: there is a lot of repeated case logic. We should make sure that the
     // appropriate Rex Nodes are actually being cached/reused when possible
-    // +1 to allow us to handle ROW_ID column
-    for (int colIdx = 0; colIdx < targetTable.getRowType().getFieldCount() + 1; colIdx++) {
+    // NOTE2: We do not include the +1 to allow us to handle ROW_ID column,
+    // that's handled separately below. This is because we always want to select the ROW_ID column
+    // directly as an input ref, even in the case that it's always nullable.
+    // TODO: remove the ROW_ID column from the matched/not matched case nodes, since it's unused.
+    for (int colIdx = 0; colIdx < targetTable.getRowType().getFieldCount(); colIdx++) {
 
       RexNode colNullLiteral;
-      if (colIdx < targetTable.getRowType().getFieldCount()) {
-        colNullLiteral = relBuilder.getRexBuilder()
-            .makeNullLiteral(targetTable.getRowType().getFieldList().get(colIdx).getType());
-      } else {
-        //ROW_ID case
-        colNullLiteral = relBuilder.getRexBuilder()
-            .makeNullLiteral(typeFactory.createSqlType(SqlTypeName.BIGINT));
-      }
+      colNullLiteral = relBuilder.getRexBuilder()
+          .makeNullLiteral(targetTable.getRowType().getFieldList().get(colIdx).getType());
 
       // Default the update and insert expressions to be NULL literals.
       // They will be initialized to the appropriate values if we have a matched/insert expression
@@ -4825,7 +4825,9 @@ public class SqlToRelConverter {
       finalProjects.add(curColExpr);
     }
 
-
+    // Add Bodo Row ID to final projects
+    int row_id_index = mergeSourceRel.getRowType().getFieldNames().indexOf("_bodo_row_id");
+    finalProjects.add(relBuilder.getRexBuilder().makeInputRef(mergeSourceRel, row_id_index));
 
     // Finally, append the row that checks what operation we're performing
     // This will be NULL if the row is a no op. This row will be used when constructing
@@ -4847,9 +4849,6 @@ public class SqlToRelConverter {
         Arrays.asList(isUpdateRow, updateEnumLiteral, isDeleteRow, deleteEnumLiteral,
             isInsertRow, insertEnumLiteral, nullTinyIntLiteral)));
 
-    // Add Bodo Row ID to final projects
-    int row_id_index = mergeSourceRel.getRowType().getFieldNames().indexOf("_bodo_row_id");
-    finalProjects.add(relBuilder.getRexBuilder().makeInputRef(mergeSourceRel, row_id_index));
 
     relBuilder.project(finalProjects);
 
