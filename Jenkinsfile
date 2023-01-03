@@ -17,26 +17,24 @@
 
 node('ubuntu') {
   def JAVA_JDK_17=tool name: 'jdk_17_latest', type: 'hudson.model.JDK'
-  stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-      }
+  stage('Checkout') {
+    steps {
+      checkout scm
     }
-    stage('Code Quality') {
-      withEnv(["Path+JDK=$JAVA_JDK_17/bin","JAVA_HOME=$JAVA_JDK_17"]) {
-        sh "java -version"
-        sh "javac -version"
-      }
-      echo 'Checking Code Quality on SonarCloud'
-      if ( env.BRANCH_NAME.startsWith("PR-") ) {
-        sonarcloudParams="-Dsonar.pullrequest.branch=${CHANGE_BRANCH} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.key=${CHANGE_ID}"
-      } else {
-        sonarcloudParams="-Dsonar.branch.name=${BRANCH_NAME}"
-      }
-      withCredentials([string(credentialsId: 'SONARCLOUD_TOKEN', variable: 'SONAR_TOKEN')]) {
-          sh './gradlew --no-parallel --no-daemon sonar -Dsonar.login=${SONAR_TOKEN}'
-      }
+  }
+  stage('Code Quality') {
+    withEnv(["Path+JDK=$JAVA_JDK_17/bin","JAVA_HOME=$JAVA_JDK_17"]) {
+      sh "java -version"
+      sh "javac -version"
+    }
+    echo 'Checking Code Quality on SonarCloud'
+    if ( env.BRANCH_NAME.startsWith("PR-") ) {
+      sonarcloudParams="-Dsonar.pullrequest.branch=${CHANGE_BRANCH} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.key=${CHANGE_ID}"
+    } else {
+      sonarcloudParams="-Dsonar.branch.name=${BRANCH_NAME}"
+    }
+    withCredentials([string(credentialsId: 'SONARCLOUD_TOKEN', variable: 'SONAR_TOKEN')]) {
+        sh './gradlew --no-parallel --no-daemon sonar -Dsonar.login=${SONAR_TOKEN}'
     }
   }
 }
