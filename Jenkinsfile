@@ -25,6 +25,7 @@ node('ubuntu') {
       sh "java -version"
       sh "javac -version"
     }
+    def sonarcloudParams
     if ( env.BRANCH_NAME.startsWith("PR-") ) {
       sonarcloudParams="-Dsonar.pullrequest.branch=${CHANGE_BRANCH} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.key=${CHANGE_ID}"
     } else {
