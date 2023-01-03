@@ -1171,6 +1171,9 @@ public class SqlToRelConverter {
     final RexNode convertedWhere2 =
         RexUtil.removeNullabilityCast(typeFactory, convertedWhere);
 
+
+    //TODO: Support CSE in the where clause, https://bodo.atlassian.net/browse/BE-4092
+
     // only allocate filter if the condition is not TRUE
     if (convertedWhere2.isAlwaysTrue()) {
       return;
@@ -1180,6 +1183,7 @@ public class SqlToRelConverter {
         RelFactories.DEFAULT_FILTER_FACTORY;
     final RelNode filter =
         filterFactory.createFilter(bb.root(), convertedWhere2, ImmutableSet.of());
+
     final RelNode r;
     final CorrelationUse p = getCorrelationUse(bb, filter);
     if (p != null) {
@@ -3475,6 +3479,22 @@ public class SqlToRelConverter {
               .projectNamed(Pair.left(preExprs), Pair.right(preExprs), false)
               .build(),
           false);
+
+      // TODO: understanding how the groups expression pusher works will be necessary for
+      // handling CSE: https://bodo.atlassian.net/browse/BE-4092
+
+      // Current Notes:
+      // My assumption is that mapRootRelToFieldProjection in the blackboard updates
+      // the expression based on the pre-exprs when calling build?
+      // IE Select ... GROUP BY expr0, expr1, expr2
+      // and the pushed pre-projects look like:
+      // x, y, expr2, expr0, expr1
+      // then it would be a map of 0 -> 2, 1 -> 4, 2 -> 3
+      // IE, mapping the group by expressions to their index in the select list
+      // Maybe not? the only place I see this used is in getCorrelationUse (and register, to
+      // a smaller extent), and it's a private atribute, with no getters/setters, initialized to
+      // empty
+
       bb.mapRootRelToFieldProjection.put(bb.root(), r.groupExprProjection);
 
       // REVIEW jvs 31-Oct-2007:  doesn't the declaration of
@@ -3492,6 +3512,8 @@ public class SqlToRelConverter {
       bb.setRoot(
           createAggregate(bb, r.groupSet, r.groupSets.asList(),
               aggConverter.getAggCalls()), false);
+
+      // Why is this set again? I assume bb.set_root clears it?
       bb.mapRootRelToFieldProjection.put(bb.root(), r.groupExprProjection);
 
       // Replace sub-queries in having here and modify having to use
@@ -5124,6 +5146,7 @@ public class SqlToRelConverter {
     if (select.getQualify() != null) {
       selectList.add(select.getQualify());
     }
+
     selectList = validator().expandStar(selectList, select, false);
 
 
@@ -7225,7 +7248,5 @@ public class SqlToRelConverter {
     Config withHintStrategyTable(HintStrategyTable hintStrategyTable);
 
   }
-
-
 
 }

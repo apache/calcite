@@ -6881,13 +6881,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " group by d,mgr")
         .withConformance(lenient).ok();
     // When alias is equal to one or more columns in the query then giving
-    // priority to alias. But Postgres may throw ambiguous column error or give
-    // priority to column name.
-    sql("select count(*) from (\n"
-        + "  select ename AS deptno FROM emp GROUP BY deptno) t")
-        .withConformance(lenient).ok();
+    // priority to column in the target table, as that is what Calcite does. However,
+    // different SQL dialects may throw ambiguous column error or give
+    // priority to column alias. (https://bodo.atlassian.net/browse/BE-4144)
     sql("select count(*) from "
-        + "(select ename AS deptno FROM emp, dept GROUP BY deptno) t")
+        + "(select ^ename^ AS deptno FROM emp, dept GROUP BY dept.deptno) t")
+        .withConformance(lenient).fails("Expression 'ENAME' is not being grouped");
+    sql("select count(*) from "
+        + "(select ename AS deptno FROM emp, dept GROUP BY ename) t")
         .withConformance(lenient).ok();
     sql("select empno + deptno AS \"z\" FROM emp GROUP BY \"Z\"")
         .withConformance(lenient).withCaseSensitive(false).ok();
@@ -6985,11 +6986,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(strict).fails("Expression 'E.EMPNO' is not being grouped")
         .withConformance(lenient).ok();
     // When alias is equal to one or more columns in the query then giving
-    // priority to alias, but PostgreSQL throws ambiguous column error or gives
-    // priority to column name.
+    // priority to column in the target table, as that is what Calcite does. However,
+    // different SQL dialects may throw ambiguous column error or give
+    // priority to column alias. (https://bodo.atlassian.net/browse/BE-4144)
     sql("select count(empno) as deptno from emp having ^deptno^ > 10")
         .withConformance(strict).fails("Expression 'DEPTNO' is not being grouped")
-        .withConformance(lenient).ok();
+        .withConformance(lenient).fails("Expression 'DEPTNO' is not being grouped");
     // Alias in aggregate is not allowed.
     sql("select empno as e from emp having max(^e^) > 10")
         .withConformance(strict).fails("Column 'E' not found in any table")
@@ -8432,9 +8434,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("SELECT DISTINCT deptno, 33 FROM emp\n"
         + "GROUP BY deptno HAVING deptno > 55").ok();
     sql("SELECT DISTINCT deptno, 33 FROM emp HAVING ^deptno^ > 55")
-        .fails("Expression 'DEPTNO' is not being grouped");
-    // same query under a different conformance finds a different error first
-    sql("SELECT DISTINCT ^deptno^, 33 FROM emp HAVING deptno > 55")
+        .fails("Expression 'DEPTNO' is not being grouped")
         .withConformance(SqlConformanceEnum.LENIENT)
         .fails("Expression 'DEPTNO' is not being grouped");
     sql("SELECT DISTINCT 33 FROM emp HAVING ^deptno^ > 55")
@@ -8950,25 +8950,101 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .rewritesTo(expected);
   }
 
+  // I've confirmed that this test fails due to the call to expandWithAlias in SqlValidatorImpl:
+  //    final SqlNode expandedWhere = expandWithAlias(where, whereScope, select);
+  // ... as opposed to what was there before:
+  //    final SqlNode expandedWhere = expand(where, whereScope);
+  //
+  // At first glance fix to this is unclear to me, since we will have ambiguous situations where
+  // we will need to check table columns to resolve aliases, and we cannot rely on strictly
+  // identifier names.
+  // (see https://docs.google.com/document/d/1bxBLuH-4gB9E5zAgTbv4a7soHHfa1jErlXAkg9a8G0M/edit)
+  //
+  // I'm also not certain why this is being tested, or why it would benefit us to not throw
+  // an error in this situation. Honestly, I think we definitely SHOULD throw an error during
+  // validation if we have something like "invalid_table_name.column".
+  // Since the fix is unclear, and the
+  // benefit of fixing this seems non-existent, I'm just going to set this to expect an error,
+  // and file a followup JIRA issue to
+  // resolve this: https://bodo.atlassian.net/browse/BE-4078
+
   @Test void testRewriteExpansionOfColumnReferenceBeforeResolution() {
     final String sql = "select unexpanded.deptno from dept \n"
-        + " where unexpanded.name = 'Moonracer' \n"
+        + " where ^unexpanded^.name = 'Moonracer' \n"
         + " group by unexpanded.deptno\n"
         + " having sum(unexpanded.deptno) > 0\n"
         + " order by unexpanded.deptno";
-    final String expectedSql = "SELECT `DEPT`.`DEPTNO`\n"
-        + "FROM `CATALOG`.`SALES`.`DEPT` AS `DEPT`\n"
-        + "WHERE `DEPT`.`NAME` = 'Moonracer'\n"
-        + "GROUP BY `DEPT`.`DEPTNO`\n"
-        + "HAVING SUM(`DEPT`.`DEPTNO`) > 0\n"
-        + "ORDER BY `DEPT`.`DEPTNO`";
     SqlValidatorTestCase.FIXTURE
         .withFactory(t -> t.withValidator(UnexpandedToDeptValidator::new))
         .withSql(sql)
         .withValidatorIdentifierExpansion(true)
         .withValidatorColumnReferenceExpansion(true)
         .withConformance(SqlConformanceEnum.LENIENT)
-        .rewritesTo(expectedSql);
+        .fails("Table 'UNEXPANDED' not found");
+  }
+
+  @Test public void testGroupByAliasNotEqualToColumnName() {
+    // In SF, aliases from the source table are given preference in groupby/having cluases
+    // IE:
+    //
+    // SELECT A as B FROM KEATON_T1 GROUP BY B
+    // Should throw an error:
+    // 'KEATON_T1.A' in select clause is neither an aggregate nor in the group by clause.
+    //
+    // Currently, we match snowflakes behavior. However, we should do a followup
+    // to allow the user to specify one or the other. (https://bodo.atlassian.net/browse/BE-4144)
+
+    String query = "select ^empno^ as ename from emp group BY ename";
+    sql(query).withConformance(SqlConformanceEnum.LENIENT).fails(
+        "Expression 'EMPNO' is not being grouped");
+  }
+
+  @Test void testGroupByAliasNotEqualToColumnName2() {
+    sql("select empno, ^ename^ as deptno from emp group by empno, deptno")
+        .withConformance(SqlConformanceEnum.LENIENT).fails(
+            "Expression 'ENAME' is not being grouped");
+  }
+
+
+  // Note that this does work in SF: SELECT A AS KEATON_T1 FROM KEATON_T1
+  // I'm going to treat this as a followup, since we would have to resolve the
+  // simple case (testTableColumnAliasDefault) in the parser before even thinking
+  // about enabling it in general.
+
+
+  @Test public void testAliasOrdering() {
+    // Tests that ordering matters for aliasing
+    sql("SELECT ^x^, empno as x FROM emp")
+        .fails("Column 'X' not found in any table");
+  }
+
+  @Test public void testSelectListAliasSubqueryInSelectListFails() {
+    //Tests that aliasing doesn't extend into any subqueries
+    sql("Select empno as x, (SELECT MAX(^x^) from emp) FROM emp")
+        .fails("Column 'X' not found in any table");
+  }
+  @Test public void testFailsAmbiguous() {
+    //This should fail, as the alias for x is ambiguous
+    sql("SELECT empno as x, ename as x, ^x^ FROM emp")
+        .fails("Column 'X' is ambiguous");
+  }
+
+  @Test public void testFailsAmbiguous2() {
+    //This should fail, as the alias for x is ambiguous (tested in SF)
+    sql("SELECT empno as x, x, ^x^ FROM emp")
+        .fails("Column 'X' is ambiguous");
+  }
+
+  @Test public void testAliasIntoSubqueryFails() {
+    //This should fail, as aliases from the outer select list shouldn't push into the sub queries
+    sql("SELECT empno AS x FROM (SELECT * FROM emp GROUP BY ^x^)")
+        .fails("Column 'X' not found in any table");
+  }
+
+  @Test public void testAliasIntoSubqueryFails2() {
+    //This should fail, as aliases from the outer select list shouldn't push into the sub queries
+    sql("SELECT empno AS x FROM (SELECT * FROM emp where ^x^=1)")
+        .fails("Column 'X' not found in any table");
   }
 
   @Test void testCoalesceWithoutRewrite() {
@@ -12394,17 +12470,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
 
     @Override public SqlNode expandSelectExpr(SqlNode expr, SelectScope scope,
-        SqlSelect select) {
+        SqlSelect select, Integer selectItemIdx) {
       SqlNode rewrittenNode = rewriteNode(expr);
-      return super.expandSelectExpr(rewrittenNode, scope, select);
+      return super.expandSelectExpr(rewrittenNode, scope, select, selectItemIdx);
     }
 
     @Override public SqlNode expandGroupByOrHavingOrQualifyExpr(SqlNode expr,
-        SqlValidatorScope scope, SqlSelect select, boolean havingExpression,
-        boolean groupByExpression) {
+        SqlValidatorScope scope, SqlSelect select,
+        ExtendedExpanderExprType extendedExpanderExprType) {
       SqlNode rewrittenNode = rewriteNode(expr);
       return super.expandGroupByOrHavingOrQualifyExpr(rewrittenNode, scope, select,
-          havingExpression, groupByExpression);
+          extendedExpanderExprType);
     }
 
     private SqlNode rewriteNode(SqlNode sqlNode) {

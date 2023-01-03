@@ -341,10 +341,6 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .withConformance(SqlConformanceEnum.LENIENT).ok();
   }
 
-  @Test void testGroupByAliasEqualToColumnName() {
-    sql("select empno, ename as deptno from emp group by empno, deptno")
-        .withConformance(SqlConformanceEnum.LENIENT).ok();
-  }
 
   @Test void testGroupByOrdinal() {
     sql("select empno from emp group by 1")
@@ -5185,6 +5181,339 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     assertThat(parameters.get(0).getType().getSqlTypeName(), is(SqlTypeName.INTEGER));
     assertThat(parameters.get(1).getType().getSqlTypeName(), is(SqlTypeName.VARCHAR));
   }
+
+  //TODO: resolving in a followup issue: https://bodo.atlassian.net/browse/BE-4092
+//  @Test public void testAliasCommonExpressionPushDownWhere() {
+//    sql("SELECT rand() r FROM emp\n"
+//        + "WHERE r  > 0.4")
+//        .ok();
+//  }
+//
+//  //Here, rand needs to be pushed into both
+//  @Test public void testAliasCommonExpressionPushDownWhereGroupBy() {
+//    // Test that this DOES push down the rand() call from the select into the where clause
+//    // This will more relevant when we properly handle CSE:
+//    // https://bodo.atlassian.net/browse/BE-4092
+//    sql("SELECT rand() + empno as group_val FROM emp WHERE group_val > 0.4 GROUP BY group_val\n")
+//        .withConformance(SqlConformanceEnum.LENIENT)
+//        .ok();
+//  }
+//
+//
+//  @Test public void testAliasCommonExpressionNoPushDownWhere() {
+//    // Test that this DOES NOT push down the rand() call from the select into the where clause
+//    // This will more relevant when we properly handle CSE:
+//    // https://bodo.atlassian.net/browse/BE-4092
+//    sql("SELECT rand() r FROM emp\n"
+//        + "WHERE rand()  > 0.4")
+//        .ok();
+//  }
+//
+//  @Test public void testAliasCommonExpressionCantPushProject() {
+//    // Test that we don't just randomly push the projects. In this case, pushing the projectList
+//    // will remove ename, which will break the second where clause
+//    // This will more relevant when we handle CSE: https://bodo.atlassian.net/browse/BE-4092
+//    sql("SELECT empno * 10 as n FROM emp\n"
+//        + "WHERE n > 5 and ename = 'bob'")
+//        .ok();
+//  }
+
+  @Test public void testAliasInSelectWithGB() {
+    // Test that we don't just randomly push the projects. In this case, pushing the projectList
+    // will remove ename, which will break the second where clause
+    //SELECT MAX(B) as A, A + 2, C GROUP BY C FROM TABLE1
+    sql("SELECT MAX(empno) as A, A+2, ename FROM emp group by ename")
+        .ok();
+  }
+
+
+  @Test public void testAliasInSelectList() {
+    sql("SELECT 1 as X, X + 1 FROM emp\n")
+        .ok();
+  }
+
+  @Test public void testAliasInSelectList2() {
+    sql("SELECT ename AS x, lower(x) FROM emp\n")
+        .ok();
+  }
+
+  @Test public void testAliasInSelectList3() {
+    //Should be empno from the table emp
+    sql("SELECT ename AS empno, empno FROM emp\n")
+        .ok();
+  }
+
+  @Test public void testRepeatedSelect() {
+    //Tests that a repeated select of the same column is allowed
+    sql("SELECT ename, ename, ename, empno as ename FROM emp\n")
+        .ok();
+  }
+
+  @Test public void testRepeatedSelectGroupBy() {
+    //Tests that a repeated select of the same column is allowed
+    sql("SELECT ename, ename, ename FROM emp group by ename\n")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
+
+  @Test public void testAliasFrom() {
+    sql("SELECT a from (SELECT empno as a, ename as b FROM emp)\n")
+        .ok();
+  }
+
+
+  @Test public void testFromPriorityIdentifiersSelectList1() {
+    //Test that the from clause is given priority when resolving identifiers in the select list
+    // 'x' should resolve to ename, not 'Hello World'
+    sql("SELECT ename, empno, deptno, 'Hello World' AS x, lower(x) "
+        +
+        "FROM (SELECT ename, empno, deptno, ename AS x FROM emp)\n")
+        .ok();
+  }
+
+  @Test public void testFromPriorityIdentifiersSelectList2() {
+    //Test that the from clause is given priority when resolving identifiers in the select list
+    // 'x' should resolve to ename, not 'Hello World'
+    sql("SELECT empno, deptno, 'Hello World' AS ename, lower(ename) "
+        +
+        "FROM emp\n")
+        .ok();
+  }
+
+  @Test public void testFromPriorityIdentifiersWhereClause() {
+    //Test that the from clause is given priority when resolving identifiers in the select list
+    // and where clause
+    // 'n' should resolve to empno in all locations
+    sql("select deptno as n from (SELECT deptno, empno as n FROM emp) as MY_TABLE\n"
+        +
+        "  WHERE n > 10")
+        .ok();
+  }
+
+  @Test public void testFromPriorityAliasSelectAndWhereClauses() {
+    // Tests that the from clause is given priority when resolving identifiers in the select list
+    // and where clause
+    // 'n' should resolve to empno in all locations
+    sql("select deptno as n, n from (SELECT deptno, empno as n FROM emp) as MY_TABLE\n"
+        +
+        "  WHERE n > 10")
+        .ok();
+  }
+
+  @Test public void testAliasOnClause() {
+    // Test that aliases from the select list can push into the on clause
+    sql("select emp.deptno as x, dept.deptno as y  FROM dept JOIN emp ON x = y\n")
+        .ok();
+
+  }
+
+  @Test public void testAliasOnWhereClause() {
+    // Test that aliases from the select list can push into the on and where clauses
+    sql("select emp.deptno as x, dept.deptno as y FROM dept JOIN emp ON x = y\n"
+        +
+        "  WHERE x > 10")
+        .ok();
+
+  }
+
+  @Test public void testAliasOnWhereSelectClause() {
+    // Test that aliases from the select list can push into the on and where clauses
+    sql("select emp.deptno as x, dept.deptno as y, x + y FROM dept JOIN emp ON x = y\n"
+        +
+        "  WHERE x > 10")
+        .ok();
+
+  }
+
+  @Test public void testAliasOnWhereSelectClauseFromPriority() {
+    // Test that column names from the source table are given priority over aliases
+    // from the select list
+    sql("select emp.deptno as x, dept.deptno as y, 'hello world' as ename"
+        +
+        " FROM dept JOIN emp ON x = y and ename = 'BOB'\n"
+        +
+        "  WHERE x > 10 AND ename = 'John'")
+        .ok();
+  }
+
+  @Test public void testAliasChain() {
+    //Tests that alias chaining works
+    sql("SELECT empno as x, x as x2, x2 as x3, x3 as x4 FROM emp")
+        .ok();
+  }
+
+  @Test public void testAliasChain2() {
+    //Tests that alias chaining works
+    sql("SELECT empno as x, x + 10 as x2, x2 / 2 as x3, x3 * 3 as x4 FROM emp")
+        .ok();
+  }
+
+  @Test public void testAliasChainIntoWhereOnClauses() {
+    //Tests that alias chaining works even into the where and on clauses
+    sql("SELECT emp.empno as x, x + 10 as x2, x2 / 2 as x3, x3 * 3 as x4 "
+        +
+        "FROM dept JOIN emp ON x4 = dept.deptno "
+        +
+        "Where x4 > 10")
+        .ok();
+  }
+
+  @Test public void testSelectQueryAliasInWhereClauseAndGroupBy() {
+    //Confirm that group by aliasing still works fine with the new changes
+    String query = "select max(empno), ename as ename_2, upper(ename_2) "
+        +
+        "from emp "
+        +
+        "where ename_2 = 'bob' "
+        +
+        "group BY ename_2";
+    sql(query).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+
+  @Test public void testSelectQueryAliasInWhereClauseAndGroupByChained() {
+    //Confirm that group by aliasing works with chained aliases
+    String query = "select max(empno), ename as ename_2, ename_2 as ename_3, upper(ename_3) "
+        +
+        "FROM emp "
+        +
+        "WHERE ename_3 = 'bob' "
+        +
+        "GROUP BY ename_3";
+    sql(query).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test public void testSelectQueryAliasInWhereClauseAndGroupByAndHavingChained() {
+    //Confirm that group by aliasing works with chained aliases
+    String query = "select max(empno) as empno_max, empno_max as empno_max_2, "
+        +
+        "ename as ename_2, ename_2 as ename_3, upper(ename_3) "
+        +
+        "from emp "
+        +
+        "where ename_3 = 'bob' "
+        +
+        "group BY ename_3 "
+        +
+        "having empno_max_2 > 10 ";
+    sql(query).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+
+  @Test public void testSelectQueryAliasGroupByRand() {
+    //Confirm that group by aliasing with non-deterministic functions
+    String query = "select max(empno), rand() as r "
+        +
+        "from emp "
+        +
+        "where r > .5 "
+        +
+        "group BY r";
+    sql(query).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test public void testSelectQueryAliasGroupByRandWithChain() {
+    //Confirm that group by aliasing with non-deterministic functions and chainging
+    String query = "select max(empno), rand() as r, r + 1 as r_2 "
+        +
+        "from emp "
+        +
+        "where r_2 > .5 "
+        +
+        "group BY r_2";
+    sql(query).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test public void testSelectQueryAliasInWhereClauseAndGroupByAndHavingAndOrderByChained() {
+    //Confirm that group by aliasing works with chained aliases in several sub clauses
+    String query = "select max(empno) as empno_max, empno_max as empno_max_2, "
+        +
+        "ename as ename_2, ename_2 as ename_3, upper(ename_3) "
+        +
+        "from emp "
+        +
+        "where ename_3 = 'bob' "
+        +
+        "group BY ename_3 "
+        +
+        "having empno_max_2 > 10 "
+        +
+        "order by empno_max_2";
+    sql(query).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test public void
+  testSelectQueryAliasInWhereClauseAndGroupByAndHavingAndOrderByAndQualifyChained() {
+    //Confirm that group by aliasing works with chained aliases
+
+    String query = "select max(empno) as empno_max, empno_max as empno_max_2, "
+        +
+        "ROW_NUMBER() over (PARTITION BY deptno ORDER BY empno_max_2) as row_num, "
+        +
+        "row_num as row_num_2, row_num_2 as row_num_3, "
+        +
+        "ename as ename_2, ename_2 as ename_3, upper(ename_3) "
+        +
+        "from emp "
+        +
+        "where ename_3 = 'bob' "
+        +
+        "GROUP BY ename_3, deptno "
+        +
+        "having empno_max_2 > 10 "
+        +
+        "QUALIFY row_num_3 > 2 "
+        +
+        "order by empno_max_2 ";
+    sql(query).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test public void
+  testSelectQueryAliasE2E() {
+    // The mother of all alias tests, tests that aliasing works for every clause,
+    // with and without chaining
+
+    String query = "select max(empno) as empno_max, empno_max as empno_max_2,\n"
+        +
+        "emp.deptno as deptno_alias,\n"
+        +
+        "ROW_NUMBER() over (PARTITION BY deptno_alias ORDER BY empno_max_2) as row_num,\n"
+        +
+        "row_num as row_num_2, row_num_2 as row_num_3,\n"
+        +
+        "ename as ename_2, ename_2 as ename_3, upper(ename_3)\n"
+        +
+        "from emp\n"
+        +
+        "join dept on deptno_alias = dept.deptno\n"
+        +
+        "where ename_3 = 'bob'\n"
+        +
+        "GROUP BY ename_3, deptno_alias\n"
+        +
+        "having empno_max_2 > 10\n"
+        +
+        "QUALIFY row_num_3 > 2\n"
+        +
+        "order by empno_max_2 ";
+    sql(query).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+
+  @Test public void testXAsXEdgecase() {
+    //Tests that aliasing a column as the original identifier works fine
+    sql("SELECT empno as x, x as x FROM emp")
+        .ok();
+  }
+
+  @Test public void testCircularAlias() {
+    // Tests that circular aliasing works as intended
+    sql("SELECT empno as x, x as y, y as empno FROM emp")
+        .ok();
+  }
+
+
 
   /**
    * Test case for

@@ -170,18 +170,18 @@ class SqlValidatorUtilTest {
   }
 
   @Test void testQualifyNonBooleanError() {
-    final String sql = "SELECT ^deptno FROM emp GROUP BY deptno\n"
+    final String sql = "SELECT deptno FROM emp GROUP BY deptno\n"
         +
-        "QUALIFY SUM(deptno) OVER (PARTITION BY deptno)^";
+        "QUALIFY ^SUM(deptno) OVER (PARTITION BY deptno)^";
     Fixtures.forValidator().withSql(sql).fails(
         "QUALIFY clause must be a boolean condition");
   }
 
   @Test void testQualifyNonWindowError() {
 
-    final String sql = "SELECT ^deptno FROM emp GROUP BY deptno"
+    final String sql = "SELECT deptno FROM emp GROUP BY deptno"
         +
-        " QUALIFY deptno > 1^";
+        " QUALIFY ^deptno > 1^";
     Fixtures.forValidator().withSql(sql).fails(
         "QUALIFY clause must contain at least one windowed function");
   }

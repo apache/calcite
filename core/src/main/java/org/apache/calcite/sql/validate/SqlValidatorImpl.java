@@ -362,7 +362,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           list,
           catalogReader.nameMatcher().createSet(),
           types,
-          includeSystemVars);
+          includeSystemVars,
+          i);
     }
     getRawSelectScopeNonNull(select).setExpandedSelectList(list);
     return new SqlNodeList(list, SqlParserPos.ZERO);
@@ -427,7 +428,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       List<SqlNode> selectItems,
       Set<String> aliases,
       List<Map.Entry<String, RelDataType>> fields,
-      final boolean includeSystemVars) {
+      final boolean includeSystemVars,
+      Integer selectItemIdx) {
     final SelectScope scope = (SelectScope) getWhereScope(select);
     if (expandStar(selectItems, aliases, fields, includeSystemVars, scope,
         selectItem)) {
@@ -437,7 +439,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Expand the select item: fully-qualify columns, and convert
     // parentheses-free functions such as LOCALTIME into explicit function
     // calls.
-    SqlNode expanded = expandSelectExpr(selectItem, scope, select);
+    SqlNode expanded = expandSelectExpr(selectItem, scope, select, selectItemIdx);
     final String alias =
         deriveAliasNonNull(
             selectItem,
@@ -3709,9 +3711,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
     case ON:
       requireNonNull(condition, "join.getCondition()");
-      SqlNode expandedCondition = expand(condition, joinScope);
+
+      SqlNode expandedCondition;
+      if (scope.getNode() instanceof SqlSelect) {
+        expandedCondition = expandWithAlias(condition, joinScope, (SqlSelect) scope.getNode(),
+            ExtendedExpanderExprType.onExpr);
+      } else {
+        expandedCondition = expand(condition, joinScope);
+      }
       join.setOperand(5, expandedCondition);
       condition = getCondition(join);
+
+
       validateWhereOrOn(joinScope, condition, "ON");
       checkRollUp(null, join, condition, joinScope, "ON");
       break;
@@ -4527,8 +4538,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // expand the expression in group list.
     List<SqlNode> expandedList = new ArrayList<>();
     for (SqlNode groupItem : groupList) {
-      SqlNode expandedItem = expandGroupByOrHavingOrQualifyExpr(groupItem, groupScope, select,
-          false, true);
+      SqlNode expandedItem = expandGroupByOrHavingOrQualifyExpr(
+          groupItem, groupScope, select, ExtendedExpanderExprType.groupByExpr);
       expandedList.add(expandedItem);
     }
     groupList = new SqlNodeList(expandedList, groupList.getParserPosition());
@@ -4607,7 +4618,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return;
     }
     final SqlValidatorScope whereScope = getWhereScope(select);
-    final SqlNode expandedWhere = expand(where, whereScope);
+    final SqlNode expandedWhere = expandWithAlias(where, whereScope, select,
+        ExtendedExpanderExprType.whereExpr);
     select.setWhere(expandedWhere);
     validateWhereOrOn(whereScope, expandedWhere, "WHERE");
   }
@@ -4644,7 +4656,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         (AggregatingScope) getSelectScope(select);
     if (config.conformance().isHavingAlias()) {
       SqlNode newExpr = expandGroupByOrHavingOrQualifyExpr(having, havingScope, select,
-          true, false);
+          ExtendedExpanderExprType.havingExpr);
       if (having != newExpr) {
         having = newExpr;
         select.setHaving(newExpr);
@@ -4682,7 +4694,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
 
     SqlNode newExpr = expandGroupByOrHavingOrQualifyExpr(qualify, qualifyScope, select,
-        false, false);
+        ExtendedExpanderExprType.qualifyExpr);
 
     if (qualify != newExpr) {
       qualify = newExpr;
@@ -4730,7 +4742,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final Set<String> aliases = new HashSet<>();
     final List<Map.Entry<String, RelDataType>> fieldList = new ArrayList<>();
 
-    for (SqlNode selectItem : selectItems) {
+    for (int i = 0; i < selectItems.size(); i++) {
+      SqlNode selectItem = selectItems.get(i);
       if (selectItem instanceof SqlSelect) {
         handleScalarSubQuery(
             select,
@@ -4760,7 +4773,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             expandedSelectItems,
             aliases,
             fieldList,
-            false);
+            false,
+            i);
       }
     }
 
@@ -6368,8 +6382,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public SqlNode expandSelectExpr(SqlNode expr,
-      SelectScope scope, SqlSelect select) {
-    final Expander expander = new SelectExpander(this, scope, select);
+      SelectScope scope, SqlSelect select, Integer selectItemIdx) {
+    final Expander expander = new SelectExpander(this, scope, select, selectItemIdx);
     final SqlNode newExpr = expander.go(expr);
     if (expr != newExpr) {
       setOriginal(newExpr, expr);
@@ -6387,31 +6401,52 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * For several clauses in many SQL dialects, it is valid to use aliases from the select statement.
-   * IE:
-   * select MAX(ID) as tmp_val from my_table GROUP BY name HAVING tmp_val &gt; 1;
-   * This helper function expands the underlying expression, getting rid of the aliasing.
+   * This function handles expanding the
+   * expressions found within the group by, qualify, or having clauses.
    *
    * @param expr The expression for which aliases are to be expanded.
    * @param scope The base scope of the query, generally equivalent to the scope of the select.
    * @param select The select query.
-   * @param havingExpression Is the expression a having expression? Needed as some SQL dialects do
-   *                         not allow aliases in having expressions (Controlled by
-   *                         validator.config().conformance().isHavingAlias()). Cannot be true if
-   *                         groupByExpr is also set. If both havingExpression and groupByExpr
-   *                         are false, the expression must be a qualify Expression.
-   * @param groupByExpr Is the expression a group by expression? Needed as some SQL dialects do
-   *                    not allow aliases in group by expressions (Controlled by
-   *                    validator.config().conformance().isGroupByAlias()). Cannot be true if
-   *                    havingExpression is also set. If both havingExpression and groupByExpr
-   *                    are false, the expression must be a qualify Expression.
+   * @param extendedExpanderExprType Enum which indicates the type of expression to be expanded.
+   *                                 For this function, we only accept a group by, qualify,
+   *                                 or having expr.
    * @return The expanded SqlNode
    */
   public SqlNode expandGroupByOrHavingOrQualifyExpr(SqlNode expr,
-      SqlValidatorScope scope, SqlSelect select, boolean havingExpression, boolean groupByExpr) {
+      SqlValidatorScope scope, SqlSelect select,
+      ExtendedExpanderExprType extendedExpanderExprType) {
+
+    assert extendedExpanderExprType == ExtendedExpanderExprType.groupByExpr
+        ||
+        extendedExpanderExprType == ExtendedExpanderExprType.havingExpr
+        ||
+        extendedExpanderExprType == ExtendedExpanderExprType.qualifyExpr;
     final Expander expander = new ExtendedExpander(this, scope, select, expr,
-        havingExpression, groupByExpr);
+        extendedExpanderExprType);
     SqlNode newExpr = expander.go(expr);
+    if (expr != newExpr) {
+      setOriginal(newExpr, expr);
+    }
+    return newExpr;
+  }
+
+  /**
+   * Expands the given expression, expanding any identifiers that correspond to aliases
+   * in the select list. This is used to allow for propagating aliases from the select list
+   * to later expressions in the select list, or into the select clauses. IE:
+   * SELECT (A + B * C - D) as x, x + 1 FROM table1 WHERE x &gt; 1 JOIN table2 ON x = table2.foo
+   *
+   * @param expr The expression to be expanded.
+   * @param scope The scope of the current expression,
+   *              generally equivalent to the scope of the select.
+   * @param select The select query from which to locate aliases.
+   * @return returns the expanded expression
+   */
+  public SqlNode expandWithAlias(SqlNode expr,
+      SqlValidatorScope scope, SqlSelect select, ExtendedExpanderExprType exprType) {
+    final Expander expander = new ExtendedExpander(this, scope, select, select, exprType);
+    SqlNode newExpr = expr.accept(expander);
+    requireNonNull(newExpr, "newExpr");
     if (expr != newExpr) {
       setOriginal(newExpr, expr);
     }
@@ -7205,6 +7240,53 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
+   * Helper function called in ExtendedAliasExpander (used to expand identifiers in the Select list,
+   * and associated aliases).
+   * return information on the aliases to "name", in the select list (see return for more info)
+   *
+   *
+   * @param name The alias to search for in the select list
+   * @param nameMatcher The nameMatcher used to check if the aliases match.
+   * @param select The select to search.
+   * @param maxIdx The maximum idx into the select list to search.
+   * @return A nested pair containing the number of occurrences of the alias, the last expression
+   * in the select list to which the alias evaluates (if there are multiple)
+   * (null if no such expressions exist), and the index
+   * into the select list that said expression occurs at (if there are multiple)
+   * (-1 if no such expression exists).
+   *
+   * It is left to the caller function to properly handle the case that there are
+   * no aliases, or in the case that there are multiple aliases
+   *
+   * The information is arranged (numOccurrences, (expr, expr_idx))
+   */
+  protected static Pair<Integer, Pair<@Nullable SqlNode, Integer>> findAliasesInSelect(
+      String name, SqlNameMatcher nameMatcher, SqlSelect select, Integer maxIdx) {
+    SqlNode expr = null;
+    int numOccurrencesOfAlias = 0;
+    int idxOfOccurrence = -1;
+
+    for (int i = 0; i < maxIdx; i++) {
+      SqlNode s = select.getSelectList().get(i);
+      final String alias = SqlValidatorUtil.getAlias(s, -1);
+
+      if (alias != null && nameMatcher.matches(alias, name)) {
+        // Note: In the event that there are multiple matches,
+        // we return the final matching expr, so we may clobber
+        // idxOfOccurrence and expr. For example:
+        // Select expr1 as x, expr2 as x from ...
+        // should return <2, <expr2, 1>>
+        // As noted in the docstring, we leave it to the calling function to throw the error
+        expr = s;
+        idxOfOccurrence = i;
+        numOccurrencesOfAlias++;
+      }
+    }
+    return new Pair<>(numOccurrencesOfAlias, new Pair<>(expr, idxOfOccurrence));
+  }
+
+
+  /**
    * Shuttle which walks over an expression in the ORDER BY clause, replacing
    * usages of aliases with the underlying expression.
    */
@@ -7313,17 +7395,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * identifiers. For common columns in USING, it will be converted to
    * COALESCE(A.col, B.col) AS col.
    */
-  static class SelectExpander extends Expander {
-    final SqlSelect select;
+  static class SelectExpander extends ExtendedExpander {
 
     SelectExpander(SqlValidatorImpl validator, SelectScope scope,
-        SqlSelect select) {
-      super(validator, scope);
-      this.select = select;
+        SqlSelect select, Integer selectItemIdx) {
+      super(validator, scope, select, select, ExtendedExpanderExprType.selectListExpr,
+          selectItemIdx);
     }
 
     @Override public @Nullable SqlNode visit(SqlIdentifier id) {
-      final SqlNode node = expandCommonColumn(select, id, (SelectScope) getScope(), validator);
+      final SqlNode node = expandCommonColumn(this.select, id, (SelectScope) getScope(), validator);
       if (node != id) {
         return node;
       } else {
@@ -7333,79 +7414,202 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Shuttle which walks over an expression in the GROUP BY/HAVING/QUALIFY clause, replacing
+   * Expression type enum, used to indicate to the ExtendedExpander what type of expression we're
+   * expanding. Has to be defined outside ExtendedExpander due to access issues
+   */
+  public enum ExtendedExpanderExprType {
+    groupByExpr,
+    havingExpr,
+    qualifyExpr,
+    whereExpr,
+    selectListExpr,
+    onExpr,
+  }
+
+  /**
+   * For many SQL dialects, it is valid to use aliases from the select statement
+   * in later expression in the select list, or in any number of different clauses.
+   * This shuttle which walks over a given expression, replacing
    * usages of aliases or ordinals with the underlying expression.
    */
   static class ExtendedExpander extends Expander {
-    final SqlSelect select;
-    final SqlNode root;
-    final boolean havingExpr;
 
-    final boolean groupByExpr;
+    // The select from which to search for aliases
+    final SqlSelect select;
+
+    // The root expression
+    final SqlNode root;
+
+    // The expression type that is being expanded.
+    ExtendedExpanderExprType extendedExpanderExprType;
+    // This argument instructs the expander to only check elements in the select list
+    // up to but not including this index.
+    Integer maxNumCols;
 
     ExtendedExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
-        SqlSelect select, SqlNode root, boolean havingExpr, boolean groupByExpr) {
+        SqlSelect select, SqlNode root, ExtendedExpanderExprType extendedExpanderExprType) {
       super(validator, scope);
-      // Should never have both flags indicating the type of expression set.
-      assert !(havingExpr && groupByExpr);
       this.select = select;
       this.root = root;
-      this.havingExpr = havingExpr;
-      this.groupByExpr = groupByExpr;
+      this.extendedExpanderExprType = extendedExpanderExprType;
+      this.maxNumCols = select.getSelectList().size();
+    }
+
+    /**
+     * Creates an ExtendedExpander.
+     *
+     * @param validator The validator class.
+     * @param scope The scope of the current expression.
+     * @param select The select expression from which to derive aliases.
+     * @param root The root expression. Generally equivalent to the select for most applications.
+     * @param extendedExpanderExprType Enum which indicates the type of expression to be expanded.
+     *                                 We take slightly different paths depending on if the
+     *                                 expression is a groupby, qualify, or having expr. We may
+     *                                 also choose not to expand a particular expression
+     *                                 based on the validator
+     *                                 config (currently only supported for having and group by,
+     *                                 validator.config().conformance().isHavingAlias(), and
+     *                                 validator.config().conformance().isGroupByAlias().
+     *                                 see https://bodo.atlassian.net/browse/BE-4144)
+     * @param maxNumCols This argument instructs the expander to only check elements in the
+     *                   select list up to but not including this index when searching for
+     *                   aliases.
+     */
+    ExtendedExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
+        SqlSelect select, SqlNode root,
+        ExtendedExpanderExprType extendedExpanderExprType, Integer maxNumCols) {
+      super(validator, scope);
+      this.select = select;
+      this.root = root;
+      this.extendedExpanderExprType = extendedExpanderExprType;
+      this.maxNumCols = maxNumCols;
     }
 
     @Override public @Nullable SqlNode visit(SqlIdentifier id) {
 
-      // TODO: this currently assumes we always expand qualify clause
+      // TODO: this currently assumes we always expand all clauses that are not group by and having
       // This is true for our purposes, but if we want to merge this back into Calcite eventually,
       // we should likely allow for a validator.config() that controls this behavior, similarly
       // to the other two clauses.
+
+      // All aliases from originating from "as" clauses in the select list
+      // must be simple identifiers. Therefore, this visitor only trys to expand
+      // simple identifiers, and defer to the superclass to handle the rest
+      // of the needed expansion.
       if (id.isSimple()
-          && (havingExpr
-              ? validator.config().conformance().isHavingAlias()
-              : !groupByExpr || validator.config().conformance().isGroupByAlias())) {
-        String name = id.getSimple();
-        SqlNode expr = null;
-        final SqlNameMatcher nameMatcher =
-            validator.catalogReader.nameMatcher();
-        int n = 0;
-        for (SqlNode s : SqlNonNullableAccessors.getSelectList(select)) {
-          final String alias = SqlValidatorUtil.getAlias(s, -1);
-          if (alias != null && nameMatcher.matches(alias, name)) {
-            expr = s;
-            n++;
+          && ((this.isHaving() && validator.config().conformance().isHavingAlias())
+              ||
+              (this.isGroupby() && validator.config().conformance().isGroupByAlias())
+              ||
+              !this.isGroupbyOrHaving())) {
+
+        try {
+          // If we can resolve this in the regular scope, we should
+          // since we prioritize all id's that could reference columns in the "from/on" clauses
+          // before we look for aliases within the select list itself.
+          SqlNode sqlNode = super.visit(id);
+          return sqlNode;
+        } catch (Exception e) {
+
+          String name = id.getSimple();
+
+          final SqlNameMatcher nameMatcher =
+              validator.catalogReader.nameMatcher();
+          Pair<Integer, Pair<@Nullable SqlNode, Integer>> occurenceNumExprAndExprIdx =
+              findAliasesInSelect(
+                  name, nameMatcher,
+                  this.select, this.maxNumCols);
+
+          int n = occurenceNumExprAndExprIdx.left;
+          if (n == 0) {
+            // If we can't find any aliases in the select list, just throw
+            // the original error.
+            throw e;
+          } else if (n > 1) {
+            // More than one column has this alias.
+            throw validator.newValidationError(id,
+                RESOURCE.columnAmbiguous(name));
           }
+          if (this.isHaving() && validator.isAggregate(root)) {
+            return super.visit(id);
+          }
+
+          SqlNode expr = occurenceNumExprAndExprIdx.right.left;
+          // Returned expr is only null if the number of occurrences of the alias is 0
+          requireNonNull(expr, "expr");
+          expr = stripAs(expr);
+
+          int idxOfOccurence = occurenceNumExprAndExprIdx.right.right;
+
+          // set the maxIdx to the idx where we found the alias occurrence
+          // and attempt to recursively expand the alias.
+          // This is needed to resolve recursive aliasing in the select list,
+          // IE: SELECT A as x, x as y, y as z ...
+
+          // NOTE: I don't believe it is necessary to restore the original maxIdx/expression type,
+          // since we always go from expanding a clause --> the select list, and maxNumCols is
+          // never decreases when resolving nested aliases.
+          //
+          // However, restoring the original values doesn't hurt,
+          // in case we re-use this infrastructure at some point in the future
+          int origMaxIdx = this.maxNumCols;
+          ExtendedExpanderExprType origExtendedExpanderExprType = this.extendedExpanderExprType;
+          this.maxNumCols = idxOfOccurence;
+          this.extendedExpanderExprType = ExtendedExpanderExprType.selectListExpr;
+          SqlNode expandedExpr = expr.accept(this);
+          this.maxNumCols = origMaxIdx;
+          this.extendedExpanderExprType = origExtendedExpanderExprType;
+
+          requireNonNull(expandedExpr, "expandedExpr");
+
+          if (expandedExpr instanceof SqlIdentifier) {
+            SqlIdentifier sid = (SqlIdentifier) expandedExpr;
+            final SqlIdentifier fqId = getScope().fullyQualify(sid).identifier;
+            expandedExpr = expandDynamicStar(sid, fqId);
+          }
+
+          validator.setOriginal(expandedExpr, id);
+
+          return expandedExpr;
         }
-        if (n == 0) {
-          return super.visit(id);
-        } else if (n > 1) {
-          // More than one column has this alias.
-          throw validator.newValidationError(id,
-              RESOURCE.columnAmbiguous(name));
-        }
-        if (havingExpr && validator.isAggregate(root)) {
-          return super.visit(id);
-        }
-        expr = stripAs(expr);
-        if (expr instanceof SqlIdentifier) {
-          SqlIdentifier sid = (SqlIdentifier) expr;
-          final SqlIdentifier fqId = getScope().fullyQualify(sid).identifier;
-          expr = expandDynamicStar(sid, fqId);
-        }
-        return expr;
       }
-      if (id.isSimple()) {
+
+      if (isGroupbyHavingOrQualify() && id.isSimple()) {
         final SelectScope scope = validator.getRawSelectScope(select);
         SqlNode node = expandCommonColumn(select, id, scope, validator);
         if (node != id) {
           return node;
         }
       }
+
       return super.visit(id);
     }
 
+    private boolean isGroupby() {
+      return this.extendedExpanderExprType == extendedExpanderExprType.groupByExpr;
+    }
+
+    private boolean isHaving() {
+      return this.extendedExpanderExprType == extendedExpanderExprType.havingExpr;
+    }
+
+    private boolean isQualify() {
+      return this.extendedExpanderExprType == extendedExpanderExprType.qualifyExpr;
+    }
+
+    private boolean isGroupbyOrHaving() {
+      return this.isGroupby() || this.isHaving();
+    }
+
+    private boolean isGroupbyHavingOrQualify() {
+      return this.isQualify() || this.isGroupby() || this.isHaving();
+    }
+
     @Override public @Nullable SqlNode visit(SqlLiteral literal) {
-      if (havingExpr || !validator.config().conformance().isGroupByOrdinal()) {
+      if (!this.isGroupbyHavingOrQualify()) {
+        return super.visit(literal);
+      }
+      if (this.isHaving() || !validator.config().conformance().isGroupByOrdinal()) {
         return super.visit(literal);
       }
       boolean isOrdinalLiteral = literal == root;
