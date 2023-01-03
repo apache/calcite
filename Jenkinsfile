@@ -31,7 +31,7 @@ node('ubuntu') {
       echo sonarcloudParams
       withCredentials([string(credentialsId: 'SONARCLOUD_TOKEN', variable: 'SONAR_TOKEN')]) {
           echo sonarcloudParams
-          sh './gradlew --no-parallel --no-daemon build jacocoTestReport sonar -PenableJacoco ${sonarcloudParams} -Dsonar.login=${SONAR_TOKEN}'
+          sh './gradlew --no-parallel --no-daemon build jacocoTestReport sonar -PenableJacoco "${sonarcloudParams}" -Dsonar.login=${SONAR_TOKEN}'
       }
     }
   }
