@@ -18,11 +18,9 @@
 pipeline {
     agent { docker { image 'openjdk:17-alpine' } }
     stages {
-      stage('Checkout') {
-        checkout scm
-      }
       stage('Code Quality') {
         steps {
+          checkout scm
           echo 'Checking Code Quality on SonarCloud'
           if ( env.BRANCH_NAME.startsWith("PR-") ) {
             sonarcloudParams="-Dsonar.pullrequest.branch=${CHANGE_BRANCH} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.key=${CHANGE_ID}"
