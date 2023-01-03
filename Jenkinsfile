@@ -18,9 +18,7 @@
 node('ubuntu') {
   def JAVA_JDK_17=tool name: 'jdk_17_latest', type: 'hudson.model.JDK'
   stage('Checkout') {
-    steps {
-      checkout scm
-    }
+    checkout scm
   }
   stage('Code Quality') {
     withEnv(["Path+JDK=$JAVA_JDK_17/bin","JAVA_HOME=$JAVA_JDK_17"]) {
