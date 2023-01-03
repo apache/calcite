@@ -26,15 +26,13 @@ pipeline {
       stage('Code Quality') {
         steps {
           echo 'Checking Code Quality on SonarCloud'
-          step {
-            if ( env.BRANCH_NAME.startsWith("PR-") ) {
-              sonarcloudParams="-Dsonar.pullrequest.branch=${CHANGE_BRANCH} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.key=${CHANGE_ID}"
-            } else {
-              sonarcloudParams="-Dsonar.branch.name=${BRANCH_NAME}"
-            }
-            withCredentials([string(credentialsId: 'SONARCLOUD_TOKEN', variable: 'SONAR_TOKEN')]) {
-                sh './gradlew --no-parallel --no-daemon build jacocoTestReport sonar -PenableJacoco -Dsonar.login=${SONAR_TOKEN}'
-            }
+//           if ( env.BRANCH_NAME.startsWith("PR-") ) {
+//             sonarcloudParams="-Dsonar.pullrequest.branch=${CHANGE_BRANCH} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.key=${CHANGE_ID}"
+//           } else {
+//             sonarcloudParams="-Dsonar.branch.name=${BRANCH_NAME}"
+//           }
+          withCredentials([string(credentialsId: 'SONARCLOUD_TOKEN', variable: 'SONAR_TOKEN')]) {
+              sh './gradlew --no-parallel --no-daemon sonar -Dsonar.login=${SONAR_TOKEN}'
           }
         }
       }
