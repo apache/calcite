@@ -35,5 +35,6 @@ node('ubuntu') {
         sh './gradlew --no-parallel --no-daemon build jacocoTestReport sonar -PenableJacoco ${sonarcloudParams} -Dsonar.login=${SONAR_TOKEN}'
     }
   }
+  cleanWs()
 }
 
