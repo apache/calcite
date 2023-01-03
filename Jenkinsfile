@@ -22,17 +22,17 @@ node('ubuntu') {
   }
   stage('Code Quality') {
     withEnv(["Path+JDK=$JAVA_JDK_17/bin","JAVA_HOME=$JAVA_JDK_17"]) {
-      sh "java -version"
-      sh "javac -version"
-    }
-    def sonarcloudParams
-    if ( env.BRANCH_NAME.startsWith("PR-") ) {
-      sonarcloudParams="-Dsonar.pullrequest.branch=${CHANGE_BRANCH} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.key=${CHANGE_ID}"
-    } else {
-      sonarcloudParams="-Dsonar.branch.name=${BRANCH_NAME}"
-    }
-    withCredentials([string(credentialsId: 'SONARCLOUD_TOKEN', variable: 'SONAR_TOKEN')]) {
-        sh './gradlew --no-parallel --no-daemon build jacocoTestReport sonar -PenableJacoco ${sonarcloudParams} -Dsonar.login=${SONAR_TOKEN}'
+      def sonarcloudParams
+      if ( env.BRANCH_NAME.startsWith("PR-") ) {
+        sonarcloudParams="-Dsonar.pullrequest.branch=${CHANGE_BRANCH} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.key=${CHANGE_ID}"
+      } else {
+        sonarcloudParams="-Dsonar.branch.name=${BRANCH_NAME}"
+      }
+      echo $sonarcloudParams
+      withCredentials([string(credentialsId: 'SONARCLOUD_TOKEN', variable: 'SONAR_TOKEN')]) {
+          echo $sonarcloudParams
+          sh './gradlew --no-parallel --no-daemon build jacocoTestReport sonar -PenableJacoco ${sonarcloudParams} -Dsonar.login=${SONAR_TOKEN}'
+      }
     }
   }
   cleanWs()
