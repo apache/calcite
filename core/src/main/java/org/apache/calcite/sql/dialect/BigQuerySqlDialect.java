@@ -1094,14 +1094,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseRegexMatchCount(writer, call, leftPrec, rightPrec);
       break;
     case "REGEXP_SIMILAR":
-      SqlNode regexpContainsCall = REGEXP_CONTAINS.createCall(SqlParserPos.ZERO, call.operand(0),
-          call.operand(1));
-      SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
-      SqlNumericLiteral zeroLiteral = SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO);
-      SqlParserPos pos = call.getParserPosition();
-      SqlNode[] ifOperands = new SqlNode[]{regexpContainsCall, oneLiteral, zeroLiteral};
-      SqlCall ifCall = new SqlBasicCall(SqlLibraryOperators.IF, ifOperands, pos);
-      super.unparseCall(writer, ifCall, leftPrec, rightPrec);
+      unParseRegexpSimilar(writer, call, leftPrec, rightPrec);
       break;
     case "COT":
       unparseCot(writer, call, leftPrec, rightPrec);
@@ -1201,6 +1194,24 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unParseRegexpSimilar(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame ifFrame = writer.startFunCall("IF");
+    unParseRegexpContains(writer, call, leftPrec, rightPrec);
+    writer.sep(",");
+    writer.literal("1");
+    writer.sep(",");
+    writer.literal("0");
+    writer.endFunCall(ifFrame);
+  }
+
+  private void unParseRegexpContains(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame regexContainsFrame = writer.startFunCall("REGEXP_CONTAINS");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(", r");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(regexContainsFrame);
   }
 
   private void unParseInStr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

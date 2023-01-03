@@ -206,6 +206,7 @@ public class SparkSqlDialect extends SqlDialect {
   private static final String AND = "&";
   private static final String OR = "|";
   private static final String XOR = "^";
+  private static final String RLIKE = "rlike";
 
   /**
    * Creates a SparkSqlDialect.
@@ -723,14 +724,7 @@ public class SparkSqlDialect extends SqlDialect {
       writer.endFunCall(piFrame);
       break;
     case "REGEXP_SIMILAR":
-      SqlCall rLikeCall = SqlStdOperatorTable.RLIKE.createCall(SqlParserPos.ZERO,
-          call.getOperandList());
-      SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
-      SqlNumericLiteral zeroLiteral = SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO);
-      SqlParserPos pos = call.getParserPosition();
-      SqlNode[] ifOperands = new SqlNode[]{rLikeCall, oneLiteral, zeroLiteral};
-      SqlCall ifCall = new SqlBasicCall(SqlLibraryOperators.IF, ifOperands, pos);
-      super.unparseCall(writer, ifCall, leftPrec, rightPrec);
+      unParseRegexpSimilar(writer, call, leftPrec, rightPrec);
       break;
     case "TRUNC":
       String truncFunctionName = getTruncFunctionName(call);
@@ -761,6 +755,19 @@ public class SparkSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unParseRegexpSimilar(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame ifFrame = writer.startFunCall("IF");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.literal(RLIKE);
+    writer.print("r");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    writer.literal("1");
+    writer.print(",");
+    writer.literal("0");
+    writer.endFunCall(ifFrame);
   }
 
   public void unparseToDate(
