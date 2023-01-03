@@ -31,6 +31,7 @@ pipeline {
           }
           withCredentials([string(credentialsId: 'SONARCLOUD_TOKEN', variable: 'SONAR_TOKEN')]) {
               sh './gradlew --no-parallel --no-daemon build jacocoTestReport sonar -PenableJacoco -Dsonar.login=${SONAR_TOKEN}'
+          }
         }
       }
     }
