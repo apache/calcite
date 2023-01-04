@@ -11087,4 +11087,22 @@ class RelToSqlConverterTest {
         "AS array_contains\n" + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test public void RowNumberOverFunctionAsWhereClauseInJoin() {
+    String query = " select \"A\".\"product_id\"\n"
+        + "    from (select \"product_id\", ROW_NUMBER() OVER (ORDER BY \"product_id\") AS RNK from \"product\") A\n"
+        + "    cross join \"sales_fact_1997\"\n"
+        + "    where \"RNK\" =1 \n"
+        + "    group by \"A\".\"product_id\"\n";
+    final String expectedBQ = "SELECT t.product_id\n"
+        + "FROM (SELECT product_id, ROW_NUMBER() OVER (ORDER BY product_id IS NULL, product_id) AS "
+        + "RNK\n"
+        + "FROM foodmart.product) AS t\n"
+        + "INNER JOIN foodmart.sales_fact_1997 ON TRUE\n"
+        + "WHERE t.RNK = 1\n"
+        + "GROUP BY t.product_id";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQ);
+  }
 }

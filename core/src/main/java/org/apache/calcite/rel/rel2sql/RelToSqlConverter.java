@@ -341,7 +341,9 @@ public class RelToSqlConverter extends SqlImplementor
   public Result visit(Filter e) {
     RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
     final RelNode input = e.getInput();
-    if (dialect.supportsQualifyClause() && relToSqlUtils.hasAnalyticalFunctionInFilter(e)) {
+    if (dialect.supportsQualifyClause() && relToSqlUtils.hasAnalyticalFunctionInFilter(e)
+        && !(input instanceof LogicalJoin)) {
+      // need to keep where clause as is if input rel of the filter rel is a LogicalJoin
       // ignoreClauses will always be true because in case of false, new select wrap gets applied
       // with this current Qualify filter e. So, the input query won't remain as it is.
       final Result x = visitInput(e, 0, isAnon(), true,
