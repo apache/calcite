@@ -692,9 +692,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       break;
     case IN:
-      if (call.operand(0) instanceof SqlLiteral &&
-          call.operand(1) instanceof SqlNodeList &&
-          ((SqlNodeList) call.operand(1)).get(0).getKind() == SqlKind.UNNEST) {
+      if (call.operand(0) instanceof SqlLiteral
+          && call.operand(1) instanceof SqlNodeList
+          && ((SqlNodeList) call.operand(1)).get(0).getKind() == SqlKind.UNNEST) {
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         writer.print("IN");
         writer.setNeedWhitespace(true);

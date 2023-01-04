@@ -11069,10 +11069,8 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
-  /*
-   * Unparsing "ABC" IN(UNNEST(ARRAY("ABC", "XYZ"))) --> "ABC" IN UNNEST(ARRAY["ABC", "XYZ"])
-   * */
-  @Test public void InUnnestSqlNode() {
+  @Test public void inUnnestSqlNode() {
+    // Unparsing "ABC" IN(UNNEST(ARRAY("ABC", "XYZ"))) --> "ABC" IN UNNEST(ARRAY["ABC", "XYZ"])
     final RelBuilder builder = relBuilder();
     RexNode arrayRex = builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
         builder.literal("ABC"), builder.literal("XYZ"));
@@ -11083,12 +11081,13 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(builder.alias(createRexNode, "array_contains"))
         .build();
-    final String expectedBiqQuery = "SELECT 'ABC' IN UNNEST(ARRAY['ABC', 'XYZ']) " +
-        "AS array_contains\n" + "FROM scott.EMP";
+    final String expectedBiqQuery = "SELECT 'ABC' IN UNNEST(ARRAY['ABC', 'XYZ']) "
+        + "AS array_containsn"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void RowNumberOverFunctionAsWhereClauseInJoin() {
+  @Test public void rowNumberOverFunctionAsWhereClauseInJoin() {
     String query = " select \"A\".\"product_id\"\n"
         + "    from (select \"product_id\", ROW_NUMBER() OVER (ORDER BY \"product_id\") AS RNK from \"product\") A\n"
         + "    cross join \"sales_fact_1997\"\n"
