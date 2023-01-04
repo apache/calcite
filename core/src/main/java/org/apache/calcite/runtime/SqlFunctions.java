@@ -270,7 +270,7 @@ public class SqlFunctions {
     return flags;
   }
 
-  /** SQL {@code LPAD(original_value, return_length, pattern)} function. */
+  /** SQL {@code LPAD(original_value, return_length[, pattern])} function. */
   public static String lpad(String originalValue, int returnLength, String pattern) {
     if (returnLength < 0) {
       throw RESOURCE.illegalNegativePadLength().ex();
@@ -297,7 +297,7 @@ public class SqlFunctions {
     return lpad(originalValue, returnLength, " ");
   }
 
-  /** SQL {@code LPAD(original_value, return_length, pattern)} function. */
+  /** SQL {@code LPAD(original_value, return_length[, pattern])} function. */
   public static ByteString lpad(ByteString originalValue, int returnLength, ByteString pattern) {
     if (returnLength < 0) {
       throw RESOURCE.illegalNegativePadLength().ex();
