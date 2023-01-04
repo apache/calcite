@@ -46,7 +46,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 
 import org.immutables.value.Value;
 
@@ -527,7 +526,7 @@ public class SubQueryRemoveRule
         .filter(
             builder.greaterThan(last(builder.fields()), builder.literal(1)));
     RelNode relNode = builder.build();
-    return builder.call(SqlStdOperatorTable.NOT, RexSubQuery.exists(relNode));
+    return builder.call(SqlStdOperatorTable.NOT, RexSubQuery.exists(relNode, e.correlationId));
   }
 
   /**
@@ -819,8 +818,7 @@ public class SubQueryRemoveRule
     builder.push(project.getInput());
     final int fieldCount = builder.peek().getRowType().getFieldCount();
     //[CALCITE-5420] Blocks fixing [CALCITE-5418] since SqlToRel does not populate the variableSet
-    final Set<CorrelationId>  variablesSet =
-        RelOptUtil.getVariablesUsed(e.rel);
+    final Set<CorrelationId> variablesSet = RelOptUtil.findUsedCorrelatedVariable(e);
     final RexNode target = rule.apply(e, variablesSet,
         logic, builder, 1, fieldCount);
     final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
@@ -845,8 +843,7 @@ public class SubQueryRemoveRule
       ++count;
       final RelOptUtil.Logic logic =
           LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(c), e);
-      final Set<CorrelationId>  variablesSet = Sets.intersection(
-          RelOptUtil.getVariablesUsed(e.rel), filter.getVariablesSet());
+      final Set<CorrelationId> variablesSet = RelOptUtil.findUsedCorrelatedVariable(e);
       final RexNode target = rule.apply(e, variablesSet, logic,
           builder, 1, builder.peek().getRowType().getFieldCount());
       final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
@@ -870,8 +867,7 @@ public class SubQueryRemoveRule
     builder.push(join.getRight());
     final int fieldCount = join.getRowType().getFieldCount();
     //[CALCITE-4792] Blocks fixing [CALCITE-5418] since SqlToRel does not populate join.variableSet
-    final Set<CorrelationId>  variablesSet =
-        RelOptUtil.getVariablesUsed(e.rel);
+    final Set<CorrelationId> variablesSet = RelOptUtil.findUsedCorrelatedVariable(e);
     final RexNode target = rule.apply(e, variablesSet,
         logic, builder, 2, fieldCount);
     final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);

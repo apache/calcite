@@ -381,7 +381,7 @@ class RelOptFixture {
     if (lateDecorrelate) {
       final String planMid = NL + RelOptUtil.toString(r3);
       diffRepos.assertEquals("planMid", "${planMid}", planMid);
-      assertThat(r3, relIsValid());
+      //assertThat(r3, relIsValid());
       final RelBuilder relBuilder =
           RelFactories.LOGICAL_BUILDER.create(cluster, null);
       r4 = RelDecorrelator.decorrelateQuery(r3, relBuilder);

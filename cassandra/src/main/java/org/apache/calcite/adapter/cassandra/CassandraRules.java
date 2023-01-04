@@ -273,7 +273,7 @@ public class CassandraRules {
           return false;
         }
       }
-      return project.getVariablesSet().isEmpty();
+      return true;
     }
 
     @Override public RelNode convert(RelNode rel) {

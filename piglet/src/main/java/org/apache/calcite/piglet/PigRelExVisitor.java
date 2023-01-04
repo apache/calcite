@@ -445,6 +445,6 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
     List<RexNode> projectCol = Lists.newArrayList(builder.field(index));
     builder.project(projectCol);
 
-    stack.push(RexSubQuery.scalar(builder.build()));
+    stack.push(RexSubQuery.scalar(builder.build(), null));
   }
 }

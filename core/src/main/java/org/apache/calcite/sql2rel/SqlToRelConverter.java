@@ -44,7 +44,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.CorrelationId;
-import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -57,7 +56,6 @@ import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
-import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMatch;
@@ -266,6 +264,7 @@ public class SqlToRelConverter {
   private int explainParamCount;
   public final SqlToRelConverter.Config config;
   private final RelBuilder relBuilder;
+  private final ColumnResolver columnResolver;
 
   /**
    * Fields used in name resolution for correlated sub-queries.
@@ -350,6 +349,8 @@ public class SqlToRelConverter {
 
     cluster.setHintStrategies(this.hintStrategies);
     this.cluster = requireNonNull(cluster, "cluster");
+    this.columnResolver = new ColumnResolver(validator.getCatalogReader().nameMatcher(),
+        cluster);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -1113,23 +1114,10 @@ public class SqlToRelConverter {
     if (convertedWhere2.isAlwaysTrue()) {
       return;
     }
+    final RelNode filter = RelFactories.DEFAULT_FILTER_FACTORY.createFilter(bb.root(),
+        convertedWhere2, RexUtil.findSubQueryCorrelationIds(convertedWhere2));
 
-    final RelFactories.FilterFactory filterFactory =
-        RelFactories.DEFAULT_FILTER_FACTORY;
-    final RelNode filter =
-        filterFactory.createFilter(bb.root(), convertedWhere2, ImmutableSet.of());
-    final RelNode r;
-    final CorrelationUse p = getCorrelationUse(bb, filter);
-    if (p != null) {
-      assert p.r instanceof Filter;
-      Filter f = (Filter) p.r;
-      r = LogicalFilter.create(f.getInput(), f.getCondition(),
-          ImmutableSet.of(p.id));
-    } else {
-      r = filter;
-    }
-
-    bb.setRoot(r, false);
+    bb.setRoot(filter, false);
   }
 
   private void replaceSubQueries(
@@ -4299,13 +4287,33 @@ public class SqlToRelConverter {
     } else {
       qualified = SqlQualified.create(null, 1, null, identifier);
     }
-    final Pair<RexNode, @Nullable BiFunction<RexNode, String, RexNode>> e0 =
-        bb.lookupExp(qualified);
-    RexNode e = e0.left;
-    for (String name : qualified.suffix()) {
-      if (e == e0.left && e0.right != null) {
-        e = e0.right.apply(e, name);
-      } else {
+
+    final RexNode base;
+    RexNode e;
+
+    if (config.isExpand()) {
+      final Pair<RexNode, @Nullable BiFunction<RexNode, String, RexNode>> e0 =
+          bb.lookupExp(qualified);
+      e = e0.left;
+      base = e0.left;
+      for (String name : qualified.suffix()) {
+        if (e == e0.left && e0.right != null) {
+          e = e0.right.apply(e, name);
+        } else {
+          final boolean caseSensitive = true; // name already fully-qualified
+          if (identifier.isStar() && bb.scope instanceof MatchRecognizeScope) {
+            e = rexBuilder.makeFieldAccess(e, 0);
+          } else {
+            e = rexBuilder.makeFieldAccess(e, name, caseSensitive);
+          }
+        }
+      }
+    } else {
+      assert !identifier.isStar();
+      e = columnResolver.resolveTable(bb.scope, qualified, bb.inputs, leaves);
+      base = null;
+      List<String> suffix = qualified.suffix();
+      for (String name : suffix.subList(1, suffix.size())) {
         final boolean caseSensitive = true; // name already fully-qualified
         if (identifier.isStar() && bb.scope instanceof MatchRecognizeScope) {
           e = rexBuilder.makeFieldAccess(e, 0);
@@ -4322,10 +4330,10 @@ public class SqlToRelConverter {
       }
     }
 
-    if (e0.left instanceof RexCorrelVariable) {
+    if (base instanceof RexCorrelVariable) {
       assert e instanceof RexFieldAccess;
       final RexNode prev =
-          bb.mapCorrelateToRex.put(((RexCorrelVariable) e0.left).id,
+          bb.mapCorrelateToRex.put(((RexCorrelVariable) base).id,
               (RexFieldAccess) e);
       assert prev == null;
     }
@@ -4536,26 +4544,13 @@ public class SqlToRelConverter {
     fieldNames = SqlValidatorUtil.uniquify(fieldNames,
         catalogReader.nameMatcher().isCaseSensitive());
 
+    Set<CorrelationId> correlationIds = RexUtil.findSubQueryCorrelationIds(exprs);
     relBuilder.push(bb.root())
-        .projectNamed(exprs, fieldNames, true);
+        .projectNamed(exprs, fieldNames, true, correlationIds);
 
     RelNode project = relBuilder.build();
 
-    final RelNode r;
-    final CorrelationUse p = getCorrelationUse(bb, project);
-    if (p != null) {
-      assert p.r instanceof Project;
-      // correlation variables have been normalized in p.r, we should use expressions
-      // in p.r instead of the original exprs
-      Project project1 = (Project) p.r;
-      r = relBuilder.push(bb.root())
-          .projectNamed(project1.getProjects(), fieldNames, true, ImmutableSet.of(p.id))
-          .build();
-    } else {
-      r = project;
-    }
-
-    bb.setRoot(r, false);
+    bb.setRoot(project, false);
 
     assert bb.columnMonotonicities.isEmpty();
     bb.columnMonotonicities.addAll(columnMonotonicityList);
@@ -5200,6 +5195,7 @@ public class SqlToRelConverter {
       // expressions.
       final SqlKind kind = expr.getKind();
       final SubQuery subQuery;
+      final ColumnResolver.CorrelateResolver correlateResolver;
       if (!config.isExpand()) {
         final SqlCall call;
         final SqlNode query;
@@ -5212,6 +5208,7 @@ public class SqlToRelConverter {
           call = (SqlCall) expr;
           query = call.operand(1);
           if (!(query instanceof SqlNodeList)) {
+            correlateResolver = columnResolver.addResolver(scope, inputs);
             root = convertQueryRecursive(query, false, null);
             final SqlNode operand = call.operand(0);
             List<SqlNode> nodes;
@@ -5228,19 +5225,21 @@ public class SqlToRelConverter {
               builder.add(convertExpression(node));
             }
             final ImmutableList<RexNode> list = builder.build();
+
             switch (kind) {
             case IN:
-              return RexSubQuery.in(root.rel, list);
+              return RexSubQuery.in(root.rel, list, correlateResolver.correlationId);
             case NOT_IN:
               return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
-                  RexSubQuery.in(root.rel, list));
+                  RexSubQuery.in(root.rel, list, correlateResolver.correlationId));
             case SOME:
               return RexSubQuery.some(root.rel, list,
-                  (SqlQuantifyOperator) call.getOperator());
+                  (SqlQuantifyOperator) call.getOperator(), correlateResolver.correlationId);
             case ALL:
               return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
                   RexSubQuery.some(root.rel, list,
-                      negate((SqlQuantifyOperator) call.getOperator())));
+                      negate((SqlQuantifyOperator) call.getOperator()),
+                      correlateResolver.correlationId));
             default:
               throw new AssertionError(kind);
             }
@@ -5248,6 +5247,7 @@ public class SqlToRelConverter {
           break;
 
         case EXISTS:
+          correlateResolver = columnResolver.addResolver(scope, inputs);
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
           root = convertQueryRecursive(query, false, null);
@@ -5258,37 +5258,42 @@ public class SqlToRelConverter {
               && ((Sort) rel).offset == null) {
             rel = ((SingleRel) rel).getInput();
           }
-          return RexSubQuery.exists(rel);
+          return RexSubQuery.exists(rel, correlateResolver.correlationId);
 
         case UNIQUE:
+          correlateResolver = columnResolver.addResolver(scope, inputs);
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
           root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.unique(root.rel);
+          return RexSubQuery.unique(root.rel, correlateResolver.correlationId);
 
         case SCALAR_QUERY:
+          correlateResolver = columnResolver.addResolver(scope, inputs);
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
           root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.scalar(root.rel);
+          return RexSubQuery.scalar(root.rel, correlateResolver.correlationId);
 
         case ARRAY_QUERY_CONSTRUCTOR:
+          correlateResolver = columnResolver.addResolver(scope, inputs);
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
           root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.array(root.rel);
+          return RexSubQuery.array(root.rel, correlateResolver.correlationId);
 
         case MAP_QUERY_CONSTRUCTOR:
+          correlateResolver = columnResolver.addResolver(scope, inputs);
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
           root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.map(root.rel);
+          return RexSubQuery.map(root.rel, correlateResolver.correlationId);
 
         case MULTISET_QUERY_CONSTRUCTOR:
+          correlateResolver = columnResolver.addResolver(scope, inputs);
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
           root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.multiset(root.rel);
+          return RexSubQuery.multiset(root.rel, correlateResolver.correlationId);
 
         default:
           break;
@@ -5580,7 +5585,7 @@ public class SqlToRelConverter {
   }
 
   /** Deferred lookup. */
-  private static class DeferredLookup {
+  public static class DeferredLookup {
     Blackboard bb;
     String originalRelName;
 
@@ -5592,7 +5597,7 @@ public class SqlToRelConverter {
     }
 
     public RexFieldAccess getFieldAccess(CorrelationId name) {
-      return (RexFieldAccess) requireNonNull(
+      return requireNonNull(
           bb.mapCorrelateToRex.get(name),
           () -> "Correlation " + name + " is not found");
     }
@@ -6551,6 +6556,12 @@ public class SqlToRelConverter {
 
     /** Sets {@link #isExpand()}. */
     Config withExpand(boolean expand);
+
+    @Value.Default default boolean isRexSubQueryCorrelate() {
+      return true;
+    }
+
+    Config withRexSubQueryCorrelate(boolean rexSubQueryCorrelate);
 
     /** Returns the {@code inSubQueryThreshold} option,
      * default {@link #DEFAULT_IN_SUB_QUERY_THRESHOLD}. Controls the list size

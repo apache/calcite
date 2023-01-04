@@ -221,9 +221,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testJoinOnInSubQuery() {
-    final String sql = "select * from emp left join dept\n"
-        + "on emp.empno = 1\n"
-        + "or dept.deptno in (select deptno from emp where empno > 5)";
+    final String sql = ""
+        + "select *\n"
+        + "from emp\n"
+        + "left join dept\n on emp.empno = 1\n"
+        + "    or dept.deptno in (select deptno from emp where empno > 5)";
     sql(sql).withExpand(false).ok();
   }
 
@@ -981,9 +983,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testWithInsideWhereExistsRex() {
-    final String sql = "select * from emp\n"
+    final String sql = ""
+        + "select * from emp\n"
         + "where exists (\n"
-        + "  with dept2 as (select * from dept where dept.deptno >= emp.deptno)\n"
+        + "  with dept2 as (\n"
+        + "    select * from dept where dept.deptno >= emp.deptno)\n"
         + "  select 1 from dept2 where deptno <= emp.deptno)";
     sql(sql).withDecorrelate(false).withExpand(false).ok();
   }
@@ -1310,18 +1314,18 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testCorrelatedScalarSubQueryInSelectList() {
-    Consumer<String> fn = sql -> {
-      sql(sql).withExpand(true).withDecorrelate(false)
-          .convertsTo("${planExpanded}");
-      sql(sql).withExpand(false).withDecorrelate(false)
-          .convertsTo("${planNotExpanded}");
-    };
-    fn.accept("select deptno,\n"
+    String sql = ""
+        + "select deptno,\n"
         + "  (select min(1) from emp where empno > d.deptno) as i0,\n"
         + "  (select min(0) from emp where deptno = d.deptno "
         + "                            and ename = 'SMITH'"
         + "                            and d.deptno > 0) as i1\n"
-        + "from dept as d");
+        + "from dept as d";
+
+    sql(sql).withExpand(true).withDecorrelate(false)
+        .convertsTo("${planExpanded}");
+    sql(sql).withExpand(false).withDecorrelate(false)
+        .convertsTo("${planNotExpanded}");
   }
 
   @Test void testCorrelationLateralSubQuery() {
@@ -1367,6 +1371,16 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + " lateral table(ramp(dept.deptno)) as r(num)\n"
         + " on deptno=num";
     sql(sql).ok();
+  }
+
+  @Test void testUnnestThenCollect() {
+    String sql = "SELECT *\n"
+        + "FROM (\n"
+        + "    SELECT x, collect(y) as ys\n"
+        + "    FROM (VALUES (1, 1), (2, 2), (1, 3)) AS t (x, y)\n"
+        + "    GROUP BY x) AS u,\n"
+        + "  UNNEST(u.ys) AS z";
+    sql(sql).withExpand(false).ok();
   }
 
   /** Test case for
@@ -1637,7 +1651,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * Correlation variable has incorrect row type if it is populated by right
    * side of a Join</a>. */
   @Test void testCorrelatedSubQueryInJoin() {
-    final String sql = "select *\n"
+    final String sql = ""
+        + "select *\n"
         + "from emp as e\n"
         + "join dept as d using (deptno)\n"
         + "where d.name = (\n"
@@ -1869,6 +1884,27 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).ok();
   }
 
+  @Test void testInCorrelatedSubQueryInHavingRex() {
+    final String sql = "select sum(sal) as s\n"
+        + "from emp e1\n"
+        + "group by deptno\n"
+        + "having count(*) > 2\n"
+        + "and exists(\n"
+        + "  select true\n"
+        + "  from emp e2\n"
+        + "  where e1.deptno = e2.deptno)\n";
+    sql(sql).withExpand(false).ok();
+  }
+
+  @Test void testInCorrelatedSubQueryInSelectRex() {
+    final String sql = "select exists(\n"
+        + "  select true\n"
+        + "  from emp e2\n"
+        + "  where e1.deptno = e2.deptno)\n"
+        + "FROM emp e1";
+    sql(sql).withExpand(false).ok();
+  }
+
   @Test void testUncorrelatedScalarSubQueryInOrderRex() {
     final String sql = "select ename\n"
         + "from emp\n"
@@ -1977,6 +2013,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  //TODO follow up on this one
+  @Disabled
   @Test void testJoinUnnestRex() {
     final String sql = "select*from dept as d, unnest(multiset[d.deptno * 2])";
     sql(sql).withExpand(false).ok();

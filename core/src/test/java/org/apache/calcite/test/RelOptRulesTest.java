@@ -4462,7 +4462,6 @@ class RelOptRulesTest extends RelOptTestBase {
    * correlated variable from the inner subquery is correctly bound to the outer scope and can
    * be decorrelated.
    */
-  @Disabled("[CALCITE-5413]")
   @Test void testNestedCorrelatedQueriesUsingOuterContext() {
     final String sql = ""
         + "SELECT deptno\n"
@@ -4520,7 +4519,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Disabled("[CALCITE-5420]")
   @Test void testCorrelatedQueryInSelectWithAgg() {
     String sql = "\n"
         + "SELECT SUM(\n"
@@ -4540,7 +4538,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Disabled("[CALCITE-5420],[CALCITE-5418]")
   @Test void testNestedCorrelatedQueriesUsingBothContextWith2InnerQueriesInSelectClause() {
     final String sql = ""
         + "SELECT e.deptno\n"
@@ -4572,7 +4569,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Disabled("[CALCITE-4792],[CALCITE-5418]")
+  @Disabled("[CALCITE-4792]")
   @Test void testNestedCorrelatedQueriesUsingBothContextWith2InnerQueriesInJoinClause() {
     final String sql = ""
         + "SELECT deptno\n"

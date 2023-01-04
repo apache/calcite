@@ -278,6 +278,17 @@ public abstract class RelOptUtil {
     return visitor.vuv.variables;
   }
 
+  @Experimental
+  public static Set<CorrelationId> findUsedCorrelatedVariable(RexSubQuery rexSubQuery) {
+    if (rexSubQuery.correlationId == null) {
+      return ImmutableSet.of();
+    } else if (getVariablesUsed(rexSubQuery.rel).contains(rexSubQuery.correlationId)) {
+      return ImmutableSet.of(rexSubQuery.correlationId);
+    } else {
+      return ImmutableSet.of();
+    }
+  }
+
   /** Finds which columns of a correlation variable are used within a
    * relational expression. */
   public static ImmutableBitSet correlationColumns(CorrelationId id,
@@ -4365,6 +4376,7 @@ public abstract class RelOptUtil {
       if (relShuttle != null) {
         subQuery.rel.accept(relShuttle); // look inside sub-queries
       }
+      variables.remove(subQuery.correlationId);
       return super.visitSubQuery(subQuery);
     }
   }

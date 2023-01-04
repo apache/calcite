@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
@@ -2698,6 +2699,44 @@ public class RexUtil {
   /** Transforms a list of expressions to the list of digests. */
   public static List<String> strings(List<RexNode> list) {
     return Util.transform(list, Object::toString);
+  }
+
+  /**
+   * Finds all {@link CorrelationId} used in {@link RexSubQuery}.
+   *
+   * @param rexNode node to traverse
+   * @return A set of all {@link CorrelationId} used
+   */
+  public static Set<CorrelationId> findSubQueryCorrelationIds(RexNode rexNode) {
+    Set<CorrelationId> correlationIds = new HashSet<>();
+    findSubQueryCorrelationIds(correlationIds, rexNode);
+    return correlationIds;
+  }
+
+  /**
+   * Finds all {@link CorrelationId} used in {@link RexSubQuery}.
+   *
+   * @param rexNode node to traverse
+   * @return A set of all {@link CorrelationId} used
+   */
+  public static Set<CorrelationId> findSubQueryCorrelationIds(List<RexNode> rexNodes) {
+    Set<CorrelationId> correlationIds = new HashSet<>();
+    for (RexNode rexNode : rexNodes) {
+      findSubQueryCorrelationIds(correlationIds, rexNode);
+    }
+    return correlationIds;
+  }
+
+  private static void findSubQueryCorrelationIds(Set<CorrelationId> correlationIds,
+      RexNode rexNode) {
+    rexNode.accept(new RexVisitorImpl<Void>(true) {
+      @Override public Void visitSubQuery(RexSubQuery subQuery) {
+        if (subQuery.correlationId != null) {
+          correlationIds.add(subQuery.correlationId);
+        }
+        return super.visitSubQuery(subQuery);
+      }
+    });
   }
 
   /** Helps {@link org.apache.calcite.rex.RexUtil#toDnf}. */
