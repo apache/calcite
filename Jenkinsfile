@@ -18,7 +18,26 @@
 node('ubuntu') {
   def JAVA_JDK_17=tool name: 'jdk_17_latest', type: 'hudson.model.JDK'
   stage('Checkout') {
-    checkout scm
+    if(env.CHANGE_ID) {
+      // By default checkout on PRs will fetch only that branch and nothing else. However, in order for the Sonar plugin
+      // to function properly we need to fetch also the target branch ${CHANGE_TARGET} so we need to customize the
+      // refspec. If the target branch of the PR is not present warnings like the following may appear:
+      // Could not find ref 'main' in refs/heads, refs/remotes/upstream or refs/remotes/origin
+      checkout([
+        $class: 'GitSCM',
+        branches: scm.branches,
+        doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
+        extensions: scm.extensions,
+        userRemoteConfigs: scm.userRemoteConfigs + [[
+          name: 'origin',
+          refspec: scm.userRemoteConfigs[0].refspec+ " +refs/heads/${CHANGE_TARGET}:refs/remotes/origin/${CHANGE_TARGET}",
+          url: scm.userRemoteConfigs[0].url,
+          credentialsId: scm.userRemoteConfigs[0].credentialsId
+        ]],
+      ])
+    } else {
+      checkout scm
+    }
   }
   stage('Code Quality') {
     withEnv(["Path+JDK=$JAVA_JDK_17/bin","JAVA_HOME=$JAVA_JDK_17"]) {
