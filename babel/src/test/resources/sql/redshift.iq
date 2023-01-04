@@ -1789,7 +1789,7 @@ eeriness
 
 select rpad('cat', 7);
 EXPR$0
-cat
+cat    
 !ok
 
 # LTRIM
