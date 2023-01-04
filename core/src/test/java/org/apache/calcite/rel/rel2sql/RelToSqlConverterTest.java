@@ -11082,7 +11082,7 @@ class RelToSqlConverterTest {
         .project(builder.alias(createRexNode, "array_contains"))
         .build();
     final String expectedBiqQuery = "SELECT 'ABC' IN UNNEST(ARRAY['ABC', 'XYZ']) "
-        + "AS array_contains"
+        + "AS array_contains\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
