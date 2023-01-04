@@ -11069,8 +11069,8 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
+  // Unparsing "ABC" IN(UNNEST(ARRAY("ABC", "XYZ"))) --> "ABC" IN UNNEST(ARRAY["ABC", "XYZ"])
   @Test public void inUnnestSqlNode() {
-    // Unparsing "ABC" IN(UNNEST(ARRAY("ABC", "XYZ"))) --> "ABC" IN UNNEST(ARRAY["ABC", "XYZ"])
     final RelBuilder builder = relBuilder();
     RexNode arrayRex = builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
         builder.literal("ABC"), builder.literal("XYZ"));
@@ -11082,7 +11082,7 @@ class RelToSqlConverterTest {
         .project(builder.alias(createRexNode, "array_contains"))
         .build();
     final String expectedBiqQuery = "SELECT 'ABC' IN UNNEST(ARRAY['ABC', 'XYZ']) "
-        + "AS array_containsn"
+        + "AS array_contains\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
