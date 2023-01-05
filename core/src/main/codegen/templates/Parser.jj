@@ -671,7 +671,7 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
         // SQL:2008-style syntax. "OFFSET ... FETCH ...".
         // If you specify both LIMIT and FETCH, FETCH wins.
         <FETCH> ( <FIRST> | <NEXT> ) count = UnsignedNumericLiteralOrParam()
-        ( <ROW> | <ROWS> ) <ONLY>
+        ( <ROW> | <ROWS> ) (<ONLY>)?
     ]
     {
         if (orderBy != null || start != null || count != null) {
