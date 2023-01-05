@@ -4902,10 +4902,18 @@ SqlLiteral IntervalLiteral() :
         <PLUS> { sign = 1; }
     ]
     <QUOTED_STRING> { p = token.image; }
-    intervalQualifier = IntervalQualifier() {
-        return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
-            sign, p, intervalQualifier);
-    }
+    (
+        intervalQualifier = IntervalQualifier() {
+            return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
+                sign, p, intervalQualifier);
+        }
+    |
+        {
+            return SqlParserUtil.parseSnowflakeIntervalLiteral(s.end(this), sign, p);
+        }
+    )
+
+
 }
 
 /** Parses an interval literal (e.g. {@code INTERVAL '2:3' HOUR TO MINUTE})
@@ -4929,10 +4937,16 @@ SqlNode IntervalLiteralOrExpression() :
     (
         // literal (with quoted string)
         <QUOTED_STRING> { p = token.image; }
-        intervalQualifier = IntervalQualifier() {
-            return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
-                sign, p, intervalQualifier);
-        }
+        (
+            intervalQualifier = IntervalQualifier() {
+                return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
+                    sign, p, intervalQualifier);
+            }
+        |
+           {
+                return SqlParserUtil.parseSnowflakeIntervalLiteral(s.end(this), sign, p);
+           }
+        )
     |
         // To keep parsing simple, any expressions besides numeric literal and
         // identifiers must be enclosed in parentheses.

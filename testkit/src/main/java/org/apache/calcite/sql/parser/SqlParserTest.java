@@ -7144,24 +7144,6 @@ public class SqlParserTest {
   }
 
   @Test void testUnparseableIntervalQualifiers() {
-    // No qualifier
-    expr("interval '1^'^")
-        .fails("Encountered \"<EOF>\" at line 1, column 12\\.\n"
-            + "Was expecting one of:\n"
-            + "    \"DAY\" \\.\\.\\.\n"
-            + "    \"DAYS\" \\.\\.\\.\n"
-            + "    \"HOUR\" \\.\\.\\.\n"
-            + "    \"HOURS\" \\.\\.\\.\n"
-            + "    \"MINUTE\" \\.\\.\\.\n"
-            + "    \"MINUTES\" \\.\\.\\.\n"
-            + "    \"MONTH\" \\.\\.\\.\n"
-            + "    \"MONTHS\" \\.\\.\\.\n"
-            + "    \"SECOND\" \\.\\.\\.\n"
-            + "    \"SECONDS\" \\.\\.\\.\n"
-            + "    \"YEAR\" \\.\\.\\.\n"
-            + "    \"YEARS\" \\.\\.\\.\n"
-            + "    ");
-
     // illegal qualifiers, no precision in either field
     expr("interval '1' year ^to^ year")
         .fails("(?s)Encountered \"to year\" at line 1, column 19.\n"
@@ -7516,7 +7498,7 @@ public class SqlParserTest {
     // Invalid units
     expr("INTERVAL '2' ^MILLENNIUM^")
         .fails(ANY);
-    expr("INTERVAL '1-2' ^MILLENNIUM^ TO CENTURY")
+    expr("^INTERVAL '1-2'^ MILLENNIUM TO CENTURY")
         .fails(ANY);
     expr("INTERVAL '10' ^CENTURY^")
         .fails(ANY);
@@ -7611,8 +7593,8 @@ public class SqlParserTest {
         .ok("INTERVAL -'1' DAY");
     expr("interval '-1' day")
         .ok("INTERVAL '-1' DAY");
-    expr("interval 'wael was here^'^")
-        .fails("(?s)Encountered \"<EOF>\".*");
+    expr("^interval 'wael was here'^")
+        .fails("Illegal INTERVAL literal 'wael was here'.*");
 
     // ok in parser, not in validator
     expr("interval 'wael was here' HOUR")

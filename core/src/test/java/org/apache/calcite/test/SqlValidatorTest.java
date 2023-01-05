@@ -2876,6 +2876,95 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /**
+   * Test generating an interval literal in Snowflake syntax where
+   * a literal and its unit are inside the quoted string.
+   */
+  void subTestIntervalStringLiterals() {
+    expr("INTERVAL '1 Year'")
+        .columnType("INTERVAL YEAR NOT NULL");
+    expr("INTERVAL '1 YEARS'")
+        .columnType("INTERVAL YEAR NOT NULL");
+    expr("INTERVAL '1 y'")
+        .columnType("INTERVAL YEAR NOT NULL");
+    expr("INTERVAL '1 yy'")
+        .columnType("INTERVAL YEAR NOT NULL");
+    expr("INTERVAL '1 yyy'")
+        .columnType("INTERVAL YEAR NOT NULL");
+    expr("INTERVAL '1 yyyy'")
+        .columnType("INTERVAL YEAR NOT NULL");
+    expr("INTERVAL '1 yr'")
+        .columnType("INTERVAL YEAR NOT NULL");
+    expr("INTERVAL '1 yrs'")
+        .columnType("INTERVAL YEAR NOT NULL");
+    expr("-INTERVAL '5 MONTH'")
+        .columnType("INTERVAL MONTH NOT NULL");
+    expr("+INTERVAL '3 MONTHS'")
+        .columnType("INTERVAL MONTH NOT NULL");
+    expr("-INTERVAL '5 mm'")
+        .columnType("INTERVAL MONTH NOT NULL");
+    expr("+INTERVAL '3 mon'")
+        .columnType("INTERVAL MONTH NOT NULL");
+    expr("+INTERVAL '3 mons'")
+        .columnType("INTERVAL MONTH NOT NULL");
+    expr("INTERVAL '1 DAY'")
+        .columnType("INTERVAL DAY NOT NULL");
+    expr("INTERVAL '1 DAYS'")
+        .columnType("INTERVAL DAY NOT NULL");
+    expr("INTERVAL '1 d'")
+        .columnType("INTERVAL DAY NOT NULL");
+    expr("INTERVAL '1 dd'")
+        .columnType("INTERVAL DAY NOT NULL");
+    expr("INTERVAL '1 dayofmonth'")
+        .columnType("INTERVAL DAY NOT NULL");
+    expr("INTERVAL '1 HOUR'")
+        .columnType("INTERVAL HOUR NOT NULL");
+    expr("INTERVAL '1 HOURS'")
+        .columnType("INTERVAL HOUR NOT NULL");
+    expr("INTERVAL '1 hrs'")
+        .columnType("INTERVAL HOUR NOT NULL");
+    expr("INTERVAL '1 h'")
+        .columnType("INTERVAL HOUR NOT NULL");
+    expr("INTERVAL '1 hh'")
+        .columnType("INTERVAL HOUR NOT NULL");
+    expr("INTERVAL '1 hr'")
+        .columnType("INTERVAL HOUR NOT NULL");
+    expr("-INTERVAL '5 MINUTE'")
+        .columnType("INTERVAL MINUTE NOT NULL");
+    expr("+INTERVAL '3 MINUTES'")
+        .columnType("INTERVAL MINUTE NOT NULL");
+    expr("-INTERVAL '5 m'")
+        .columnType("INTERVAL MINUTE NOT NULL");
+    expr("+INTERVAL '3 mi'")
+        .columnType("INTERVAL MINUTE NOT NULL");
+    expr("-INTERVAL '5 min'")
+        .columnType("INTERVAL MINUTE NOT NULL");
+    expr("+INTERVAL '3 mins'")
+        .columnType("INTERVAL MINUTE NOT NULL");
+    expr("INTERVAL '1 SECOND'")
+        .columnType("INTERVAL SECOND NOT NULL");
+    expr("INTERVAL '1 SECONDS'")
+        .columnType("INTERVAL SECOND NOT NULL");
+    expr("INTERVAL '1 sec'")
+        .columnType("INTERVAL SECOND NOT NULL");
+    expr("INTERVAL '1 s'")
+        .columnType("INTERVAL SECOND NOT NULL");
+    expr("INTERVAL '1 secs'")
+        .columnType("INTERVAL SECOND NOT NULL");
+    // Test multiple spaces
+    expr("INTERVAL '1    SECOND'")
+        .columnType("INTERVAL SECOND NOT NULL");
+    // Test no space
+    expr("INTERVAL '1SECOND'")
+        .columnType("INTERVAL SECOND NOT NULL");
+    // Test defaults
+    expr("-INTERVAL '5 '")
+        .columnType("INTERVAL SECOND NOT NULL");
+    expr("INTERVAL '3'")
+        .columnType("INTERVAL SECOND NOT NULL");
+
+  }
+
+  /**
    * Runs tests for INTERVAL... YEAR that should pass parser but fail
    * validator. A substantially identical set of tests exists in
    * SqlParserTest, and any changes here should be synchronized there.
@@ -3833,6 +3922,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " INTERVAL SECOND\\(1, 0\\)");
   }
 
+  /**
+   * Test generating an interval literal in Snowflake syntax where
+   * the entire literal is delimited in quotes. This tests the comma
+   * syntax, which is not yet supported.
+   */
+  void subTestIntervalStringLiteralComma() {
+    expr("^INTERVAL '1 Year, 1 Month'^").fails(
+        "Unsupported Snowflake style INTERVAL literal '1 Year, 1 Month'; at line 1, column 9. Commas are not supported yet in interval literals"
+    );
+    // Test default
+    expr("-^INTERVAL '5, 1 month'^").fails(
+        "Unsupported Snowflake style INTERVAL literal '5, 1 month'; at line 1, column 10. Commas are not supported yet in interval literals"
+    );
+    expr("^INTERVAL '3, 4 Days'^").fails(
+        "Unsupported Snowflake style INTERVAL literal '3, 4 Days'; at line 1, column 9. Commas are not supported yet in interval literals"
+    );
+  }
+
   @Test void testDatetimePlusNullInterval() {
     expr("TIME '8:8:8' + cast(NULL AS interval hour)").columnType("TIME(0)");
     expr("TIME '8:8:8' + cast(NULL AS interval YEAR)").columnType("TIME(0)");
@@ -3879,6 +3986,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     subTestIntervalMinutePositive();
     subTestIntervalMinuteToSecondPositive();
     subTestIntervalSecondPositive();
+    subTestIntervalStringLiterals();
 
     // Tests that should pass parser but fail validator
     subTestIntervalYearNegative();
@@ -3894,6 +4002,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     subTestIntervalMinuteNegative();
     subTestIntervalMinuteToSecondNegative();
     subTestIntervalSecondNegative();
+    subTestIntervalStringLiteralComma();
 
     // Miscellaneous
     // fractional value is not OK, even if it is 0

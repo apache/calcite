@@ -18,6 +18,7 @@ package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
@@ -203,6 +204,129 @@ public final class SqlParserUtil {
               + intervalQualifier.toString(), pos.toString()));
     }
     return SqlLiteral.createInterval(sign, intervalStr, intervalQualifier, pos);
+  }
+
+  /**
+   * Parses an interval literal that is accepted by Snowflake:
+   * https://docs.snowflake.com/en/sql-reference/data-types-datetime.html#interval-constants
+   *
+   * TODO: Add proper comma support
+   */
+  public static SqlIntervalLiteral parseSnowflakeIntervalLiteral(
+      SqlParserPos pos, int sign, String s) {
+    // Collect all the interval strings/qualifiers found in the string
+    List<String> intervalStrings = new ArrayList<>();
+    List<SqlIntervalQualifier> intervalQualifiers = new ArrayList<>();
+    // Remove the quotes
+    final String parsedString = parseString(s);
+    // Parse the Snowflake interval literal string. This is a comma separated
+    // series of <integer> [ <date_time_part> ]. If any date_time_part is omitted this
+    // defaults to seconds.
+    String[] splitStrings = parsedString.split(",");
+    if (splitStrings.length > 1) {
+      // TODO: Support multiple commas. We currently can't represent the
+      // Interval properly.
+      throw SqlUtil.newContextException(pos,
+          RESOURCE.unsupportedSnowflakeIntervalLiteral(s, pos.toString()));
+    }
+    for (String intervalInfo: splitStrings) {
+      String trimmedStr = intervalInfo.trim();
+      String[] intervalParts = trimmedStr.split("\\s+");
+      if (intervalParts.length == 1 || intervalParts.length == 2) {
+        final String intervalAmountStr;
+        final String timeUnitStr;
+        if (intervalParts.length == 1) {
+          // If we have only 1 part then it may not be space separated (rare but possible).
+          // For example: Interval '30d'.
+          // If we so we look for the first non-numeric character and split on that.
+          int endIdx = -1;
+          final String baseStr = intervalParts[0];
+          for (int i = 0; i < baseStr.length(); i++) {
+            if (!Character.isDigit(baseStr.charAt(i))) {
+              endIdx = i;
+              break;
+            }
+          }
+          if (endIdx == -1) {
+            // If we only have 1 part the default Interval is seconds.
+            intervalAmountStr = baseStr;
+            timeUnitStr = "second";
+          } else {
+            intervalAmountStr = baseStr.substring(0, endIdx);
+            timeUnitStr = baseStr.substring(endIdx).toLowerCase(Locale.ROOT);
+          }
+        } else {
+          intervalAmountStr = intervalParts[0];
+          timeUnitStr = intervalParts[1].toLowerCase(Locale.ROOT);
+        }
+        intervalStrings.add(intervalAmountStr);
+        // Parse the second string into the valid time units.
+        // Here we support the time units supported by the other interval syntax only.
+        // TODO: Support all interval values supported by Snowflake in both interval paths.
+        final TimeUnit unit;
+        switch (timeUnitStr) {
+        case "year":
+        case "years":
+        case "y":
+        case "yy":
+        case "yyy":
+        case "yyyy":
+        case "yr":
+        case "yrs":
+          unit = TimeUnit.YEAR;
+          break;
+        case "month":
+        case "months":
+        case "mm":
+        case "mon":
+        case "mons":
+          unit = TimeUnit.MONTH;
+          break;
+        case "day":
+        case "days":
+        case "d":
+        case "dd":
+        case "dayofmonth":
+          unit = TimeUnit.DAY;
+          break;
+        case "hour":
+        case "hours":
+        case "h":
+        case "hh":
+        case "hr":
+        case "hrs":
+          unit = TimeUnit.HOUR;
+          break;
+        case "minute":
+        case "minutes":
+        case "m":
+        case "mi":
+        case "min":
+        case "mins":
+          unit = TimeUnit.MINUTE;
+          break;
+        case "second":
+        case "seconds":
+        case "s":
+        case "sec":
+        case "secs":
+          unit = TimeUnit.SECOND;
+          break;
+        default:
+          throw SqlUtil.newContextException(pos,
+              RESOURCE.illegalIntervalLiteral(s, pos.toString()));
+        }
+        intervalQualifiers.add(new SqlIntervalQualifier(unit, null, pos));
+      } else {
+        throw SqlUtil.newContextException(pos,
+            RESOURCE.illegalIntervalLiteral(s, pos.toString()));
+      }
+    }
+    if (intervalStrings.size() == 0) {
+      throw SqlUtil.newContextException(pos,
+            RESOURCE.illegalIntervalLiteral(s, pos.toString()));
+    }
+    return SqlLiteral.createInterval(sign, intervalStrings.get(0), intervalQualifiers.get(0), pos);
   }
 
   /**
