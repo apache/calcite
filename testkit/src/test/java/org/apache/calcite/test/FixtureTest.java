@@ -53,10 +53,6 @@ public class FixtureTest {
     f.sql("select ^as^ from t")
         .fails("(?s)Encountered \"as\".*");
 
-    // Postgres cast is invalid with core parser
-    f.sql("select 1 ^:^: integer as x")
-        .fails("(?s).*Encountered \":\" at .*");
-
     // Backtick fails
     f.sql("select ^`^foo` from `bar``")
         .fails("(?s)Lexical error at line 1, column 8.  "

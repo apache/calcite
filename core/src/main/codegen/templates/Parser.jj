@@ -3833,6 +3833,8 @@ List<Object> Expression2(ExprContext exprContext) :
                     }
                 ]
             |
+               InfixCast(list, exprContext, s)
+            |
             <#list (parser.extraBinaryExpressions!default.parser.extraBinaryExpressions) as extra >
                 ${extra}(list, exprContext, s)
             |
@@ -5601,7 +5603,11 @@ SqlDataTypeSpec DataType() :
         s = Span.of(typeName.getParserPos());
     }
     (
-        typeName = CollectionsTypeName(typeName)
+        // Adding a LOOKAHEAD(2) because the parser emits a warning
+        // that MultiSet is ambiguous. This is due to the InfixCast
+        // changes allowing DataType() to be found at the same location
+        // as the MultiSet operator (as infix cast is an operator).
+        LOOKAHEAD(2) typeName = CollectionsTypeName(typeName)
     )*
     {
         return new SqlDataTypeSpec(typeName, s.add(typeName.getParserPos()).pos());
@@ -6022,6 +6028,24 @@ SqlNode CursorExpression(ExprContext exprContext) :
     }
     e = Expression(ExprContext.ACCEPT_QUERY) {
         return SqlStdOperatorTable.CURSOR.createCall(s.end(e), e);
+    }
+}
+
+
+/** Parses the infix "::" cast operator used in PostgreSQL. */
+void InfixCast(List<Object> list, ExprContext exprContext, Span s) :
+{
+    final SqlDataTypeSpec dt;
+}
+{
+    <INFIX_CAST> {
+        checkNonQueryExpression(exprContext);
+    }
+    dt = DataType() {
+        list.add(
+            new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.INFIX_CAST,
+                s.pos()));
+        list.add(dt);
     }
 }
 
@@ -8447,6 +8471,7 @@ void NonReservedKeyWord2of3() :
 |   < VERTICAL_BAR: "|" >
 |   < CARET: "^" >
 |   < DOLLAR: "$" >
+|   < INFIX_CAST: "::" >
 <#list (parser.binaryOperatorsTokens!default.parser.binaryOperatorsTokens) as operator>
 |   ${operator}
 </#list>

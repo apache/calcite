@@ -125,9 +125,6 @@ class BabelTest {
         .ok("SELECT `AS`\n"
             + "FROM `T`");
 
-    // Postgres cast is invalid with core parser
-    p.sql("select 1 ^:^: integer as x")
-        .fails("(?s).*Encountered \":\" at .*");
   }
 
 //  @Test void testNullSafeEqual() {

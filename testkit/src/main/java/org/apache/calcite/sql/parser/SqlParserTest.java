@@ -1678,6 +1678,66 @@ public class SqlParserTest {
         .ok("CAST('foo' AS `BAR`)");
   }
 
+  @Test void testInFixCast() {
+    expr("x::boolean")
+        .ok("`X` :: BOOLEAN");
+    expr("x::integer")
+        .ok("`X` :: INTEGER");
+    expr("x::varchar(1)")
+        .ok("`X` :: VARCHAR(1)");
+    expr("x::date")
+        .ok("`X` :: DATE");
+    expr("x::time")
+        .ok("`X` :: TIME");
+    expr("x::time without time zone")
+        .ok("`X` :: TIME");
+    expr("x::time with local time zone")
+        .ok("`X` :: TIME WITH LOCAL TIME ZONE");
+    expr("x::timestamp without time zone")
+        .ok("`X` :: TIMESTAMP");
+    expr("x::timestamp with local time zone")
+        .ok("`X` :: TIMESTAMP WITH LOCAL TIME ZONE");
+    expr("x::time(0)")
+        .ok("`X` :: TIME(0)");
+    expr("x::time(0) without time zone")
+        .ok("`X` :: TIME(0)");
+    expr("x::time(0) with local time zone")
+        .ok("`X` :: TIME(0) WITH LOCAL TIME ZONE");
+    expr("x::timestamp(0)")
+        .ok("`X` :: TIMESTAMP(0)");
+    expr("x::timestamp(0) without time zone")
+        .ok("`X` :: TIMESTAMP(0)");
+    expr("x::timestamp(0) with local time zone")
+        .ok("`X` :: TIMESTAMP(0) WITH LOCAL TIME ZONE");
+    expr("x::timestamp")
+        .ok("`X` :: TIMESTAMP");
+    expr("x::decimal(1,1)")
+        .ok("`X` :: DECIMAL(1, 1)");
+    expr("x::char(1)")
+        .ok("`X` :: CHAR(1)");
+    expr("x::binary(1)")
+        .ok("`X` :: BINARY(1)");
+    expr("x::varbinary(1)")
+        .ok("`X` :: VARBINARY(1)");
+    expr("x::tinyint")
+        .ok("`X` :: TINYINT");
+    expr("x::smallint")
+        .ok("`X` :: SMALLINT");
+    expr("x::bigint")
+        .ok("`X` :: BIGINT");
+    expr("x::real")
+        .ok("`X` :: REAL");
+    expr("x::double")
+        .ok("`X` :: DOUBLE");
+    expr("x::decimal")
+        .ok("`X` :: DECIMAL");
+    expr("x::decimal(0)")
+        .ok("`X` :: DECIMAL(0)");
+    expr("x::decimal(1,2)")
+        .ok("`X` :: DECIMAL(1, 2)");
+
+  }
+
   @Test void testCastFails() {
     expr("cast(x as time with ^time^ zone)")
         .fails("(?s).*Encountered \"time\" at .*");

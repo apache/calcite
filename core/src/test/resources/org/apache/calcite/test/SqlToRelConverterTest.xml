@@ -6850,6 +6850,10 @@ LogicalProject(ENAME=[$1], ENAME0=[$1], ENAME1=[$1], ENAME2=[$0])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
+    <Resource name="sql">
+      <![CDATA[SELECT ename, ename, ename, empno as ename FROM emp
+]]>
+    </Resource>
   </TestCase>
   <TestCase name="testRepeatedSelectGroupBy">
     <Resource name="plan">
@@ -6858,6 +6862,10 @@ LogicalProject(ENAME=[$0], ENAME0=[$0], ENAME1=[$0])
   LogicalAggregate(group=[{0}])
     LogicalProject(ENAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[SELECT ename, ename, ename FROM emp group by ename
 ]]>
     </Resource>
   </TestCase>
@@ -7094,6 +7102,157 @@ LogicalProject(N_NATIONKEY=[$0], N_NAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSelectInfixCastColumnIntString">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[CAST($0):VARCHAR NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select empno::varchar from emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectInfixCastColumnSameType">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[$0])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select empno::integer from emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectInfixCastColumnStringInt">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[CAST($1):INTEGER NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select ename::integer from emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectInfixCastDateString">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=['2000-01-01':VARCHAR])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select (DATE '2000-01-01')::varchar from emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectInfixCastFloatInt">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[123.21:TINYINT])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectInfixCastFloatString">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=['123.411':VARCHAR])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select 123.411::varchar from emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectInfixCastIntFloat">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[12321:FLOAT])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select 12321::float from emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectInfixCastScalarIntString">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=['123':VARCHAR])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select 123::varchar from emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectInfixCastScalarSameType">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[123])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select 123::integer from emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectInfixCastScalarStringInt">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[123], EXPR$1=[CAST('abc'):INTEGER NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select '123'::integer, 'abc'::integer from emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectInfixCastStringDate">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[CAST('2020-02-14 10:59:03.399029'):DATE NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select '2020-02-14 10:59:03.399029'::DATE from emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectInfixCastStringFloat">
+    <Resource name="sql">
+      <![CDATA[select '2020.21232'::float from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[2.020212E3:FLOAT])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectInfixCastStringTimestamp">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[2023-01-04 10:59:03])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select '2023-01-04 10:59:03.399029'::TIMESTAMP from emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectInfixCastTimestampString">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=['1997-01-31 09:26:50':VARCHAR])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select (TIMESTAMP '1997-01-31 09:26:50.124')::varchar from emp]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSelectModifiableViewConstraint">
     <Resource name="sql">
       <![CDATA[select deptno from EMP_MODIFIABLEVIEW2
@@ -7167,6 +7326,28 @@ LogicalProject(DUMMY=[null:NULL])
 LogicalProject(DUMMY=[null:TIMESTAMP(0)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectNullWithInfixCast">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DUMMY=[null:VARCHAR])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select null::varchar dummy from emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSelectNullWithInfixCast2">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DUMMY=[null:INTEGER])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select null::integer dummy from emp]]>
     </Resource>
   </TestCase>
   <TestCase name="testSelectOverDistinct">

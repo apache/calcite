@@ -178,22 +178,22 @@ SqlCreate SqlCreateTable(Span s, boolean replace) :
 |   < TILDE: "~" >
 }
 
-/** Parses the infix "::" cast operator used in PostgreSQL. */
-void InfixCast(List<Object> list, ExprContext exprContext, Span s) :
-{
-    final SqlDataTypeSpec dt;
-}
-{
-    <INFIX_CAST> {
-        checkNonQueryExpression(exprContext);
-    }
-    dt = DataType() {
-        list.add(
-            new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.INFIX_CAST,
-                s.pos()));
-        list.add(dt);
-    }
-}
+// /** Parses the infix "::" cast operator used in PostgreSQL. */
+// void InfixCast(List<Object> list, ExprContext exprContext, Span s) :
+// {
+//     final SqlDataTypeSpec dt;
+// }
+// {
+//     <INFIX_CAST> {
+//         checkNonQueryExpression(exprContext);
+//     }
+//     dt = DataType() {
+//         list.add(
+//             new SqlParserUtil.ToTreeListItem(SqlLibraryOperators.INFIX_CAST,
+//                 s.pos()));
+//         list.add(dt);
+//     }
+// }
 
 /** Parses the NULL-safe "<=>" equal operator used in MySQL. */
 // void NullSafeEqual(List<Object> list, ExprContext exprContext, Span s):

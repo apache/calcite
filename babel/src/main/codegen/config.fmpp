@@ -544,16 +544,16 @@ data: {
     # Binary operators tokens.
     # Example: "< INFIX_CAST: \"::\" >".
     binaryOperatorsTokens: [
-      "< INFIX_CAST: \"::\" >"
-# Temporary reversion for the Bodo version
+# Temporary reversions for the Bodo version
+#      "< INFIX_CAST: \"::\" >",
 #      "< NULL_SAFE_EQUAL: \"<=>\" >"
     ]
 
     # Binary operators initialization.
     # Example: "InfixCast".
     extraBinaryExpressions: [
-      "InfixCast"
-# Temporary reversion for the Bodo version
+# Temporary reversions for the Bodo version
+#      "InfixCast",
 #      "NullSafeEqual"
     ]
 
