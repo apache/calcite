@@ -1416,5 +1416,5 @@ public abstract class SqlLibraryOperators {
                   SqlTypeFamily.STRING),
               // Third operand optional (operand index 0, 1, 2)
               number -> number == 2),
-          SqlFunctionCategory.NUMERIC);
+          SqlFunctionCategory.STRING);
 }
