@@ -11069,6 +11069,42 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
+  // Unparsing "ABC" IN(UNNEST(ARRAY("ABC", "XYZ"))) --> "ABC" IN UNNEST(ARRAY["ABC", "XYZ"])
+  @Test public void inUnnestSqlNode() {
+    final RelBuilder builder = relBuilder();
+    RexNode arrayRex = builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+        builder.literal("ABC"), builder.literal("XYZ"));
+    RexNode unnestRex = builder.call(SqlStdOperatorTable.UNNEST, arrayRex);
+    final RexNode createRexNode = builder.call(SqlStdOperatorTable.IN, builder.literal("ABC"),
+        unnestRex);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "array_contains"))
+        .build();
+    final String expectedBiqQuery = "SELECT 'ABC' IN UNNEST(ARRAY['ABC', 'XYZ']) "
+        + "AS array_contains\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void rowNumberOverFunctionAsWhereClauseInJoin() {
+    String query = " select \"A\".\"product_id\"\n"
+        + "    from (select \"product_id\", ROW_NUMBER() OVER (ORDER BY \"product_id\") AS RNK from \"product\") A\n"
+        + "    cross join \"sales_fact_1997\"\n"
+        + "    where \"RNK\" =1 \n"
+        + "    group by \"A\".\"product_id\"\n";
+    final String expectedBQ = "SELECT t.product_id\n"
+        + "FROM (SELECT product_id, ROW_NUMBER() OVER (ORDER BY product_id IS NULL, product_id) AS "
+        + "RNK\n"
+        + "FROM foodmart.product) AS t\n"
+        + "INNER JOIN foodmart.sales_fact_1997 ON TRUE\n"
+        + "WHERE t.RNK = 1\n"
+        + "GROUP BY t.product_id";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQ);
+  }
+
   @Test public void testForRegexpSimilarFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,

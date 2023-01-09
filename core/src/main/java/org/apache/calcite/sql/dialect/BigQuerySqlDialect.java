@@ -691,6 +691,19 @@ public class BigQuerySqlDialect extends SqlDialect {
         call.getOperator().unparse(writer, call, leftPrec, rightPrec);
       }
       break;
+    case IN:
+      if (call.operand(0) instanceof SqlLiteral
+          && call.operand(1) instanceof SqlNodeList
+          && ((SqlNodeList) call.operand(1)).get(0).getKind() == SqlKind.UNNEST) {
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.print("IN");
+        writer.setNeedWhitespace(true);
+        writer.print(call.operand(1).toSqlString(writer.getDialect()).toString());
+        break;
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+        break;
+      }
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
