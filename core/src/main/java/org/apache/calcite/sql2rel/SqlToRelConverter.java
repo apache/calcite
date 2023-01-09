@@ -4501,6 +4501,8 @@ public class SqlToRelConverter {
     selectList = validator().expandStar(selectList, select, false);
 
     replaceSubQueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+    replaceSubQueries(bb, new SqlNodeList(orderList, SqlParserPos.ZERO),
+        RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     List<String> fieldNames = new ArrayList<>();
     final List<RexNode> exprs = new ArrayList<>();

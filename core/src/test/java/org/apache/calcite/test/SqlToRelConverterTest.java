@@ -836,6 +836,27 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5468">[CALCITE-5468]
+   * SqlToRelConverter throws if ORDER BY contains IN</a>.
+   */
+  @Test void testOrderByWithIn() {
+    String sql = "SELECT empno\n"
+        + "FROM emp\n"
+        + "ORDER BY\n"
+        + "CASE WHEN empno IN (1,2) THEN 0 ELSE 1 END";
+    sql(sql).ok();
+  }
+
+  @Test void testOrderByWithSubQuery() {
+    String sql = "SELECT empno\n"
+        + "FROM emp\n"
+        + "ORDER BY\n"
+        + "(SELECT empno FROM emp LIMIT 1)";
+    sql(sql).ok();
+  }
+
   @Test void testOrderUnion() {
     final String sql = "select empno, sal from emp\n"
         + "union all\n"
