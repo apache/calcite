@@ -1405,7 +1405,7 @@ public abstract class SqlLibraryOperators {
         }
       };
 
-  @LibraryOperator(libraries = {ORACLE, MSSQL, SNOWFLAKE})
+  @LibraryOperator(libraries = {ORACLE, MYSQL, SNOWFLAKE})
   public static final SqlFunction REGEXP_LIKE =
       new SqlFunction("REGEXP_LIKE",
           SqlKind.OTHER_FUNCTION,

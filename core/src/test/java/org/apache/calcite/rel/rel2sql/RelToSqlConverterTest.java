@@ -11105,7 +11105,7 @@ class RelToSqlConverterTest {
         .ok(expectedBQ);
   }
 
-  @Test public void testForRegexpSimilarFunction() {
+  @Test public void testForRegexpLikeFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
         builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
