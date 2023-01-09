@@ -1405,12 +1405,16 @@ public abstract class SqlLibraryOperators {
         }
       };
 
-  @LibraryOperator(libraries = {TERADATA})
-  public static final SqlFunction REGEXP_SIMILAR =
-      new SqlFunction("REGEXP_SIMILAR",
+  @LibraryOperator(libraries = {ORACLE, MSSQL, SNOWFLAKE})
+  public static final SqlFunction REGEXP_LIKE =
+      new SqlFunction("REGEXP_LIKE",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER,
           null,
-          OperandTypes.STRING_STRING_OPTIONAL_INTEGER,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+                  SqlTypeFamily.STRING),
+              // Third operand optional (operand index 0, 1, 2)
+              number -> number == 2),
           SqlFunctionCategory.NUMERIC);
 }

@@ -206,7 +206,6 @@ public class SparkSqlDialect extends SqlDialect {
   private static final String AND = "&";
   private static final String OR = "|";
   private static final String XOR = "^";
-  private static final String RLIKE = "rlike";
 
   /**
    * Creates a SparkSqlDialect.
@@ -723,8 +722,8 @@ public class SparkSqlDialect extends SqlDialect {
       SqlWriter.Frame piFrame = writer.startFunCall("PI");
       writer.endFunCall(piFrame);
       break;
-    case "REGEXP_SIMILAR":
-      unParseRegexpSimilar(writer, call, leftPrec, rightPrec);
+    case "REGEXP_LIKE":
+      unParseRegexpLike(writer, call, leftPrec, rightPrec);
       break;
     case "TRUNC":
       String truncFunctionName = getTruncFunctionName(call);
@@ -757,10 +756,10 @@ public class SparkSqlDialect extends SqlDialect {
     }
   }
 
-  private void unParseRegexpSimilar(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  private void unParseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlWriter.Frame ifFrame = writer.startFunCall("IF");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.literal(RLIKE);
+    writer.literal("rlike");
     writer.print("r");
     call.operand(1).unparse(writer, leftPrec, rightPrec);
     writer.print(",");

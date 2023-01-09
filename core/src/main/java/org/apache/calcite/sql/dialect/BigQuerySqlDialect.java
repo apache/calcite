@@ -1093,9 +1093,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "REGEXP_MATCH_COUNT":
       unparseRegexMatchCount(writer, call, leftPrec, rightPrec);
       break;
-    case "REGEXP_SIMILAR":
-      unParseRegexpSimilar(writer, call, leftPrec, rightPrec);
-      break;
     case "COT":
       unparseCot(writer, call, leftPrec, rightPrec);
       break;
@@ -1122,7 +1119,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseOctetLength(writer, call, leftPrec, rightPrec);
       break;
     case "REGEXP_LIKE":
-      unparseRegexpLike(writer, call, leftPrec, rightPrec);
+      unParseRegexpLike(writer, call, leftPrec, rightPrec);
       break;
     case "DATE_DIFF":
       final SqlWriter.Frame date_diff = writer.startFunCall("DATE_DIFF");
@@ -1196,7 +1193,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
-  private void unParseRegexpSimilar(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  private void unParseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlWriter.Frame ifFrame = writer.startFunCall("IF");
     unParseRegexpContains(writer, call, leftPrec, rightPrec);
     writer.sep(",");
@@ -1385,12 +1382,6 @@ public class BigQuerySqlDialect extends SqlDialect {
             SqlLiteral.createExactNumeric("9", SqlParserPos.ZERO));
 
     roundCall.unparse(writer, leftPrec, rightPrec);
-  }
-
-  private void unparseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlCall regexpContainsCall = REGEXP_CONTAINS.createCall(call.getParserPosition(),
-        call.getOperandList());
-    unparseCall(writer, regexpContainsCall, leftPrec, rightPrec);
   }
 
   private void unparseRegexMatchCount(SqlWriter writer, SqlCall call,
