@@ -866,7 +866,7 @@ LogicalProject(NAME=[$0])
     </Resource>
     <Resource name="sql">
       <![CDATA[select e.deptno,
-  (select * from lateral table(DEDUP(e.deptno, e.deptno)))
+  (select * from table(DEDUP(e.deptno, e.deptno)))
 from emp e]]>
     </Resource>
   </TestCase>
@@ -1082,7 +1082,7 @@ LogicalProject(DEPTNO=[$0], ENAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalSort(sort0=[$1], dir0=[DESC], fetch=[3])
       LogicalProject(ENAME=[$1], SAL=[$5])
-        LogicalFilter(condition=[AND(OR(=($7, $cor0.DEPTNO), =($7, $cor0.DEPTNO)), =($7, $cor0.DEPTNO))])
+        LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), =($7, $cor0.DEPTNO))])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -1312,7 +1312,7 @@ cross join lateral (
       <![CDATA[
 LogicalDelta
   LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], PRODUCTID0=[$3], NAME=[$4], SUPPLIERID=[$5], SYS_START=[$6], SYS_END=[$7])
-    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalJoin(condition=[true], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
       LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], SYS_START=[$3], SYS_END=[$4])
         LogicalFilter(condition=[>($0, 1)])
@@ -7806,6 +7806,27 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
     </Resource>
     <Resource name="sql">
       <![CDATA[select*from unnest(multiset(select*from dept))]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestThenCollect">
+    <Resource name="sql">
+      <![CDATA[WITH t1 AS (
+    SELECT x, collect(y) as ys
+    FROM (VALUES (1, 1), (2, 2), (1, 3)) AS t (x, y)
+    GROUP BY x)
+SELECT *
+FROM t1 AS u, UNNEST(u.ys) AS z]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(X=[$0], YS=[$1], Z=[$2])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])
+    LogicalAggregate(group=[{0}], YS=[COLLECT($1)])
+      LogicalValues(tuples=[[{ 1, 1 }, { 2, 2 }, { 1, 3 }]])
+    Uncollect
+      LogicalProject(YS=[$cor0.YS])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
     </Resource>
   </TestCase>
   <TestCase name="testUnnestWithOrdinality">

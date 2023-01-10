@@ -45,15 +45,15 @@ public class RexSubQuery extends RexCall {
   @Nullable public final CorrelationId correlationId;
 
   private RexSubQuery(RelDataType type, SqlOperator op,
-      ImmutableList<RexNode> operands, RelNode rel, @Nullable CorrelationId correlationId) {
+      List<RexNode> operands, RelNode rel, @Nullable CorrelationId correlationId) {
     super(type, op, operands);
     this.rel = rel;
     this.correlationId = correlationId;
   }
 
   /** Creates an IN sub-query. */
-  public static RexSubQuery in(RelNode rel, ImmutableList<RexNode> nodes,
-      CorrelationId correlationId) {
+  public static RexSubQuery in(RelNode rel, List<RexNode> nodes,
+      @Nullable CorrelationId correlationId) {
     final RelDataType type = type(rel, nodes);
     return new RexSubQuery(type, SqlStdOperatorTable.IN, nodes, rel, correlationId);
   }
@@ -66,8 +66,8 @@ public class RexSubQuery extends RexCall {
    * then {@code negated-comparison} is {@code <=}, and so forth.
    *
    * <p>Also =SOME is rewritten into IN</p> */
-  public static RexSubQuery some(RelNode rel, ImmutableList<RexNode> nodes,
-      SqlQuantifyOperator op, CorrelationId correlationId) {
+  public static RexSubQuery some(RelNode rel, List<RexNode> nodes,
+      SqlQuantifyOperator op, @Nullable CorrelationId correlationId) {
     assert op.kind == SqlKind.SOME;
 
     if (op == SqlStdOperatorTable.SOME_EQ) {
@@ -77,7 +77,7 @@ public class RexSubQuery extends RexCall {
     return new RexSubQuery(type, op, nodes, rel, correlationId);
   }
 
-  static RelDataType type(RelNode rel, ImmutableList<RexNode> nodes) {
+  static RelDataType type(RelNode rel, List<RexNode> nodes) {
     assert rel.getRowType().getFieldCount() == nodes.size();
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     boolean nullable = false;

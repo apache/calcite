@@ -1124,9 +1124,11 @@ public class SqlToRelConverter {
       final Blackboard bb,
       final SqlNode expr,
       RelOptUtil.Logic logic) {
-    findSubQueries(bb, expr, logic, false);
-    for (SubQuery node : bb.subQueryList) {
-      substituteSubQuery(bb, node);
+    if (config.isExpand()) {
+      findSubQueries(bb, expr, logic, false);
+      for (SubQuery node : bb.subQueryList) {
+        substituteSubQuery(bb, node);
+      }
     }
   }
 
@@ -2797,7 +2799,7 @@ public class SqlToRelConverter {
     // LogicalTableFunctionScan.
     final SqlCallBinding callBinding =
         new SqlCallBinding(bb.scope().getValidator(), bb.scope, call);
-    if (operator instanceof SqlUserDefinedTableMacro) {
+    if (operator instanceof SqlUserDefinedTableMacro && config.isExpand()) {
       final SqlUserDefinedTableMacro udf =
           (SqlUserDefinedTableMacro) operator;
       final TranslatableTable table = udf.getTable(callBinding);
@@ -2902,40 +2904,43 @@ public class SqlToRelConverter {
       RelNode leftRel,
       RelNode rightRel,
       RexNode joinCond,
-      JoinRelType joinType) {
+      JoinRelType joinType,
+      Set<CorrelationId> correlationId) {
     assert joinCond != null;
+    if (config.isExpand()) {
+      final CorrelationUse p = getCorrelationUse(bb, rightRel);
+      if (p != null) {
+        RelNode innerRel = p.r;
+        ImmutableBitSet requiredCols = p.requiredColumns;
 
-    final CorrelationUse p = getCorrelationUse(bb, rightRel);
-    if (p != null) {
-      RelNode innerRel = p.r;
-      ImmutableBitSet requiredCols = p.requiredColumns;
+        if (!joinCond.isAlwaysTrue()) {
+          final RelFactories.FilterFactory factory =
+              RelFactories.DEFAULT_FILTER_FACTORY;
+          final RexCorrelVariable rexCorrel =
+              (RexCorrelVariable) rexBuilder.makeCorrel(
+                  leftRel.getRowType(), p.id);
+          final RexAccessShuttle shuttle =
+              new RexAccessShuttle(rexBuilder, rexCorrel);
 
-      if (!joinCond.isAlwaysTrue()) {
-        final RelFactories.FilterFactory factory =
-            RelFactories.DEFAULT_FILTER_FACTORY;
-        final RexCorrelVariable rexCorrel =
-            (RexCorrelVariable) rexBuilder.makeCorrel(
-                leftRel.getRowType(), p.id);
-        final RexAccessShuttle shuttle =
-            new RexAccessShuttle(rexBuilder, rexCorrel);
+          // Replace outer RexInputRef with RexFieldAccess,
+          // and push lateral join predicate into inner child
+          final RexNode newCond = joinCond.accept(shuttle);
+          innerRel = factory.createFilter(p.r, newCond, ImmutableSet.of());
+          requiredCols = ImmutableBitSet
+              .fromBitSet(shuttle.varCols)
+              .union(p.requiredColumns);
+        }
 
-        // Replace outer RexInputRef with RexFieldAccess,
-        // and push lateral join predicate into inner child
-        final RexNode newCond = joinCond.accept(shuttle);
-        innerRel = factory.createFilter(p.r, newCond, ImmutableSet.of());
-        requiredCols = ImmutableBitSet
-            .fromBitSet(shuttle.varCols)
-            .union(p.requiredColumns);
+
+        return LogicalCorrelate.create(leftRel, innerRel, ImmutableList.of(),
+            p.id, requiredCols, joinType);
       }
-
-      return LogicalCorrelate.create(leftRel, innerRel, ImmutableList.of(),
-          p.id, requiredCols, joinType);
     }
 
     final RelNode node =
         relBuilder.push(leftRel)
             .push(rightRel)
-            .join(joinType, joinCond)
+            .join(joinType, joinCond, correlationId)
             .build();
 
     // If join conditions are pushed down, update the leaves.
@@ -3139,6 +3144,11 @@ public class SqlToRelConverter {
         createBlackboard(rightScope, null, false);
     convertFrom(leftBlackboard, left);
     final RelNode leftRel = requireNonNull(leftBlackboard.root, "leftBlackboard.root");
+    SqlValidatorScope lateralScope = validator.getLateralScope(join);
+    ColumnResolver.CorrelateResolver leftCorrelateResolver = null;
+    if (null != lateralScope) {
+      leftCorrelateResolver = columnResolver.addResolver(lateralScope, ImmutableList.of(leftRel));
+    }
     convertFrom(rightBlackboard, right);
     final RelNode tempRightRel = requireNonNull(rightBlackboard.root, "rightBlackboard.root");
 
@@ -3178,10 +3188,20 @@ public class SqlToRelConverter {
         leftRel,
         rightRel,
         condition,
-        convertJoinType(join.getJoinType()));
+        convertJoinType(join.getJoinType()),
+        getCorrelateId(leftCorrelateResolver));
     relBuilder.push(joinRel);
     final RelNode newProjectRel = relBuilder.project(relBuilder.fields()).build();
     bb.setRoot(newProjectRel, false);
+  }
+
+  private Set<CorrelationId> getCorrelateId(
+      ColumnResolver.CorrelateResolver correlateResolver) {
+    if (null != correlateResolver && null != correlateResolver.correlationId) {
+      return ImmutableSet.of(correlateResolver.correlationId);
+    } else {
+      return ImmutableSet.of();
+    }
   }
 
   private RexNode convertNaturalCondition(
@@ -4871,7 +4891,8 @@ public class SqlToRelConverter {
               root(),
               rel,
               joinCond,
-              joinType);
+              joinType,
+              ImmutableSet.of());
 
       setRoot(join, false);
 
@@ -5206,46 +5227,48 @@ public class SqlToRelConverter {
         case SOME:
         case ALL:
           call = (SqlCall) expr;
-          query = call.operand(1);
-          if (!(query instanceof SqlNodeList)) {
-            correlateResolver = columnResolver.addResolver(scope, inputs);
-            root = convertQueryRecursive(query, false, null);
-            final SqlNode operand = call.operand(0);
-            List<SqlNode> nodes;
-            switch (operand.getKind()) {
-            case ROW:
-              nodes = ((SqlCall) operand).getOperandList();
-              break;
-            default:
-              nodes = ImmutableList.of(operand);
-            }
-            final ImmutableList.Builder<RexNode> builder =
-                ImmutableList.builder();
-            for (SqlNode node : nodes) {
-              builder.add(convertExpression(node));
-            }
-            final ImmutableList<RexNode> list = builder.build();
+          assert call.getOperandList().size() == 2;
+          SqlNode leftKeyNode = call.getOperandList().get(0);
+          SqlNode rightKeyNode = call.getOperandList().get(1);
 
-            switch (kind) {
+          final List<RexNode> leftKeys;
+          switch (leftKeyNode.getKind()) {
+          case ROW:
+            leftKeys = new ArrayList<>();
+            for (SqlNode sqlExpr : ((SqlBasicCall) leftKeyNode).getOperandList()) {
+              leftKeys.add(convertExpression(sqlExpr));
+            }
+            break;
+          default:
+            leftKeys = ImmutableList.of(convertExpression(leftKeyNode));
+          }
+          if (rightKeyNode instanceof SqlNodeList) {
+            return requireNonNull(convertInToOr(this, leftKeys, (SqlNodeList) rightKeyNode,
+                (SqlInOperator) call.getOperator()));
+          } else {
+            assert scope != null;
+            assert inputs != null;
+            correlateResolver = columnResolver.addResolver(scope, inputs);
+            //TODO provide target row type
+            root = convertQueryRecursive(rightKeyNode, false, null);
+            switch (call.getKind()) {
             case IN:
-              return RexSubQuery.in(root.rel, list, correlateResolver.correlationId);
+              return RexSubQuery.in(root.rel, leftKeys, correlateResolver.correlationId);
             case NOT_IN:
               return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
-                  RexSubQuery.in(root.rel, list, correlateResolver.correlationId));
+                  RexSubQuery.in(root.rel, leftKeys, correlateResolver.correlationId));
             case SOME:
-              return RexSubQuery.some(root.rel, list,
+              return RexSubQuery.some(root.rel, leftKeys,
                   (SqlQuantifyOperator) call.getOperator(), correlateResolver.correlationId);
             case ALL:
               return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
-                  RexSubQuery.some(root.rel, list,
+                  RexSubQuery.some(root.rel, leftKeys,
                       negate((SqlQuantifyOperator) call.getOperator()),
                       correlateResolver.correlationId));
             default:
               throw new AssertionError(kind);
             }
           }
-          break;
-
         case EXISTS:
           correlateResolver = columnResolver.addResolver(scope, inputs);
           call = (SqlCall) expr;

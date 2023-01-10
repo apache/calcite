@@ -27,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.validate.LateralScope;
 import org.apache.calcite.sql.validate.ListScope;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlQualified;
@@ -45,6 +46,7 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
@@ -84,7 +86,7 @@ public class ColumnResolver {
     final SqlValidatorScope.Resolve resolve = resolved.only();
     String fieldName = Iterables.getFirst(qualified.suffix(), null);
     assert fieldName != null;
-    if (resolve.scope == scope) {
+    if (!(scope instanceof LateralScope) && resolve.scope == scope) {
       assert childrenRel != null && !childrenRel.isEmpty();
       return resolveCurrentScope(resolve, fieldName, childrenRel, leaves);
     }
@@ -133,7 +135,7 @@ public class ColumnResolver {
     public CorrelateResolver(RelOptCluster relOptCluster,
         SqlValidatorScope sqlValidatorScope, List<RelNode> relNodeList) {
       this.relOptCluster = relOptCluster;
-      this.sqlValidatorScope = sqlValidatorScope;
+      this.sqlValidatorScope = Objects.requireNonNull(sqlValidatorScope, "sqlValidatorScope");
       this.relNodeList = relNodeList;
       this.typeFactory = relOptCluster.getTypeFactory();
       this.rexBuilder = relOptCluster.getRexBuilder();
@@ -218,10 +220,6 @@ public class ColumnResolver {
 
     /**
      * Creates a LookupContext with multiple input relational expressions.
-     *
-     * @param bb               Context for translating this sub-query
-     * @param rels             Relational expressions
-     * @param systemFieldCount Number of system fields
      */
     LookupContext(List<RelNode> rels, int systemFieldCount, Map<RelNode, Integer> leaves) {
       flatten(rels, systemFieldCount, new int[]{0}, relOffsetList, leaves);

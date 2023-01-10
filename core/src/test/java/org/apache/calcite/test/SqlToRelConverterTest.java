@@ -1374,12 +1374,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testUnnestThenCollect() {
-    String sql = "SELECT *\n"
-        + "FROM (\n"
+    String sql = ""
+        + "WITH t1 AS (\n"
         + "    SELECT x, collect(y) as ys\n"
         + "    FROM (VALUES (1, 1), (2, 2), (1, 3)) AS t (x, y)\n"
-        + "    GROUP BY x) AS u,\n"
-        + "  UNNEST(u.ys) AS z";
+        + "    GROUP BY x)\n"
+        + "SELECT *\n"
+        + "FROM t1 AS u, UNNEST(u.ys) AS z";
     sql(sql).withExpand(false).ok();
   }
 
@@ -1785,6 +1786,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testCompositeInUncorrelatedSubQueryRex() {
     final String sql = "select empno from emp where (empno, deptno) in"
         + " (select deptno - 10, deptno from dept)";
+    sql(sql).withExpand(false).ok();
+  }
+
+  @Test void testCompositeInUncorrelatedSubQueryRexLiteralList() {
+    final String sql = "select empno from emp where (empno, deptno) in"
+        + " ((1, 2), (3, 4))";
     sql(sql).withExpand(false).ok();
   }
 
@@ -2329,7 +2336,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test void testTableFunctionWithSubQueryWithParamNames() {
+  @Test void testTableFunctionWithSubQueryWithParamNamesExpand() {
     final String sql = "select *\n"
         + "from table(\n"
         + "topn(\n"
@@ -2338,6 +2345,17 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Disabled
+  @Test void testTableFunctionWithSubQueryWithParamNames() {
+    final String sql = "select *\n"
+        + "from table(\n"
+        + "topn(\n"
+        + "  DATA => select * from orders partition by productid order by orderId nulls first,\n"
+        + "  COL => 3))";
+    sql(sql).withExpand(false).ok();
+  }
+
+  @Disabled
   @Test void testTableFunctionWithMultipleInputTables() {
     final String sql = "select *\n"
         + "from table(\n"

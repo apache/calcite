@@ -580,6 +580,8 @@ public interface SqlValidator {
    */
   @Nullable SqlValidatorScope getJoinScope(SqlNode node);
 
+  @Nullable SqlValidatorScope getLateralScope(SqlNode node);
+
   /**
    * Returns a scope containing the objects visible from the GROUP BY clause
    * of a query.
