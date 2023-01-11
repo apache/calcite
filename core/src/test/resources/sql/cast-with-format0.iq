@@ -847,8 +847,7 @@ assert result.data == ["2010-03-01 00:00:00\t2010-03-01"]
 result = self.execute_query("select cast('2010-Monday-09' as timestamp FORMAT 'FXIYYY-FMDAY-IW'), "
     "       cast('2010-Monday09' as timestamp FORMAT 'FXIYYY-FMDAYIW'), "
     "       cast('2010Monday09' as date FORMAT 'FXIYYYFMDAYIW')")
-assert result.data == ["2010-03-01 00:00:00\t2010-03-01 00:00:00\t"
-                       "2010-03-01"]
+assert result.data == ["2010-03-01 00:00:00\t2010-03-01 00:00:00\t2010-03-01"]
 
 # Datetime to string: Different lowercase and uppercase scenarios.
 result = self.execute_query("select cast(date'2019-11-13' as string "
