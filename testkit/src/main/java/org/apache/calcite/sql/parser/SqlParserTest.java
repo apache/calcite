@@ -5954,8 +5954,12 @@ public class SqlParserTest {
             + "    \"MINUTES\" \\.\\.\\.\n"
             + "    \"MONTH\" \\.\\.\\.\n"
             + "    \"MONTHS\" \\.\\.\\.\n"
+            + "    \"QUARTER\" \\.\\.\\.\n"
+            + "    \"QUARTERS\" \\.\\.\\.\n"
             + "    \"SECOND\" \\.\\.\\.\n"
             + "    \"SECONDS\" \\.\\.\\.\n"
+            + "    \"WEEK\" \\.\\.\\.\n"
+            + "    \"WEEKS\" \\.\\.\\.\n"
             + "    \"YEAR\" \\.\\.\\.\n"
             + "    \"YEARS\" \\.\\.\\.\n"
             + "    ");
@@ -6319,8 +6323,6 @@ public class SqlParserTest {
     expr("INTERVAL '10' ^CENTURY^")
         .fails(ANY);
     expr("INTERVAL '10' ^DECADE^")
-        .fails(ANY);
-    expr("INTERVAL '4' ^QUARTER^")
         .fails(ANY);
   }
 

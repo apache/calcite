@@ -44,6 +44,9 @@ public class IntervalTest {
     subTestIntervalMinutePositive();
     subTestIntervalMinuteToSecondPositive();
     subTestIntervalSecondPositive();
+    subTestIntervalWeekPositive();
+    subTestIntervalQuarterPositive();
+    subTestIntervalPlural();
 
     // Tests that should pass parser but fail validator
     subTestIntervalYearNegative();
@@ -958,6 +961,138 @@ public class IntervalTest {
     f.expr("INTERVAL '0-0' ^YEAR(0) TO MONTH^")
         .fails("Interval leading field precision '0' out of range for "
             + "INTERVAL YEAR\\(0\\) TO MONTH");
+  }
+
+  /**
+   * Runs tests for INTERVAL... WEEK that should pass both parser and
+   * validator. A substantially identical set of tests exists in
+   * SqlValidatorTest, and any changes here should be synchronized there.
+   * Similarly, any changes to tests here should be echoed appropriately to
+   * each of the other 12 subTestIntervalXXXPositive() tests.
+   */
+  public void subTestIntervalWeekPositive() {
+    // default precision
+    f.expr("INTERVAL '1' WEEK")
+        .columnType("INTERVAL WEEK NOT NULL");
+    f.expr("INTERVAL '99' WEEK")
+        .columnType("INTERVAL WEEK NOT NULL");
+
+    // explicit precision equal to default
+    f.expr("INTERVAL '1' WEEK(2)")
+        .columnType("INTERVAL WEEK(2) NOT NULL");
+    f.expr("INTERVAL '99' WEEK(2)")
+        .columnType("INTERVAL WEEK(2) NOT NULL");
+
+    // max precision
+    f.expr("INTERVAL '2147483647' WEEK(10)")
+        .columnType("INTERVAL WEEK(10) NOT NULL");
+
+    // min precision
+    f.expr("INTERVAL '0' WEEK(1)")
+        .columnType("INTERVAL WEEK(1) NOT NULL");
+
+    // alternate precision
+    f.expr("INTERVAL '1234' WEEK(4)")
+        .columnType("INTERVAL WEEK(4) NOT NULL");
+
+    // sign
+    f.expr("INTERVAL '+1' WEEK")
+        .columnType("INTERVAL WEEK NOT NULL");
+    f.expr("INTERVAL '-1' WEEK")
+        .columnType("INTERVAL WEEK NOT NULL");
+    f.expr("INTERVAL +'1' WEEK")
+        .assertParse("INTERVAL '1' WEEK")
+        .columnType("INTERVAL WEEK NOT NULL");
+    f.expr("INTERVAL +'+1' WEEK")
+        .assertParse("INTERVAL '+1' WEEK")
+        .columnType("INTERVAL WEEK NOT NULL");
+    f.expr("INTERVAL +'-1' WEEK")
+        .assertParse("INTERVAL '-1' WEEK")
+        .columnType("INTERVAL WEEK NOT NULL");
+    f.expr("INTERVAL -'1' WEEK")
+        .columnType("INTERVAL WEEK NOT NULL");
+    f.expr("INTERVAL -'+1' WEEK")
+        .columnType("INTERVAL WEEK NOT NULL");
+    f.expr("INTERVAL -'-1' WEEK")
+        .columnType("INTERVAL WEEK NOT NULL");
+  }
+
+  /**
+   * Runs tests for INTERVAL... QUARTER that should pass both parser and
+   * validator. A substantially identical set of tests exists in
+   * SqlValidatorTest, and any changes here should be synchronized there.
+   * Similarly, any changes to tests here should be echoed appropriately to
+   * each of the other 12 subTestIntervalXXXPositive() tests.
+   */
+  public void subTestIntervalQuarterPositive() {
+    // default precision
+    f.expr("INTERVAL '1' QUARTER")
+        .columnType("INTERVAL QUARTER NOT NULL");
+    f.expr("INTERVAL '99' QUARTER")
+        .columnType("INTERVAL QUARTER NOT NULL");
+
+    // explicit precision equal to default
+    f.expr("INTERVAL '1' QUARTER(2)")
+        .columnType("INTERVAL QUARTER(2) NOT NULL");
+    f.expr("INTERVAL '99' QUARTER(2)")
+        .columnType("INTERVAL QUARTER(2) NOT NULL");
+
+    // max precision
+    f.expr("INTERVAL '2147483647' QUARTER(10)")
+        .columnType("INTERVAL QUARTER(10) NOT NULL");
+
+    // min precision
+    f.expr("INTERVAL '0' QUARTER(1)")
+        .columnType("INTERVAL QUARTER(1) NOT NULL");
+
+    // alternate precision
+    f.expr("INTERVAL '1234' QUARTER(4)")
+        .columnType("INTERVAL QUARTER(4) NOT NULL");
+
+    // sign
+    f.expr("INTERVAL '+1' QUARTER")
+        .columnType("INTERVAL QUARTER NOT NULL");
+    f.expr("INTERVAL '-1' QUARTER")
+        .columnType("INTERVAL QUARTER NOT NULL");
+    f.expr("INTERVAL +'1' QUARTER")
+        .assertParse("INTERVAL '1' QUARTER")
+        .columnType("INTERVAL QUARTER NOT NULL");
+    f.expr("INTERVAL +'+1' QUARTER")
+        .assertParse("INTERVAL '+1' QUARTER")
+        .columnType("INTERVAL QUARTER NOT NULL");
+    f.expr("INTERVAL +'-1' QUARTER")
+        .assertParse("INTERVAL '-1' QUARTER")
+        .columnType("INTERVAL QUARTER NOT NULL");
+    f.expr("INTERVAL -'1' QUARTER")
+        .columnType("INTERVAL QUARTER NOT NULL");
+    f.expr("INTERVAL -'+1' QUARTER")
+        .columnType("INTERVAL QUARTER NOT NULL");
+    f.expr("INTERVAL -'-1' QUARTER")
+        .columnType("INTERVAL QUARTER NOT NULL");
+  }
+
+  public void subTestIntervalPlural() {
+    f.expr("INTERVAL '+2' SECONDS")
+        .assertParse("INTERVAL '+2' SECOND")
+        .columnType("INTERVAL SECOND NOT NULL");
+    f.expr("INTERVAL '+2' HOURS")
+        .assertParse("INTERVAL '+2' HOUR")
+        .columnType("INTERVAL HOUR NOT NULL");
+    f.expr("INTERVAL '+2' DAYS")
+        .assertParse("INTERVAL '+2' DAY")
+        .columnType("INTERVAL DAY NOT NULL");
+    f.expr("INTERVAL '+2' WEEKS")
+        .assertParse("INTERVAL '+2' WEEK")
+        .columnType("INTERVAL WEEK NOT NULL");
+    f.expr("INTERVAL '+2' QUARTERS")
+        .assertParse("INTERVAL '+2' QUARTER")
+        .columnType("INTERVAL QUARTER NOT NULL");
+    f.expr("INTERVAL '+2' MONTHS")
+        .assertParse("INTERVAL '+2' MONTH")
+        .columnType("INTERVAL MONTH NOT NULL");
+    f.expr("INTERVAL '+2' YEARS")
+        .assertParse("INTERVAL '+2' YEAR")
+        .columnType("INTERVAL YEAR NOT NULL");
   }
 
   /**
