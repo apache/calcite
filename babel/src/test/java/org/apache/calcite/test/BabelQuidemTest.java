@@ -17,7 +17,6 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.Contexts;
@@ -27,7 +26,6 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
@@ -102,23 +100,6 @@ class BabelQuidemTest extends QuidemTest {
               .with(CalciteConnectionProperty.CONFORMANCE,
                   SqlConformanceEnum.BABEL)
               .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
-              .connect();
-        case "scott-big-query":
-          return CalciteAssert.that()
-              .with(CalciteAssert.Config.SCOTT)
-              .with(CalciteConnectionProperty.FUN, "standard,bigquery")
-              .with(CalciteConnectionProperty.LEX, Lex.BIG_QUERY)
-              .with(CalciteConnectionProperty.PARSER_FACTORY,
-                  SqlBabelParserImpl.class.getName() + "#FACTORY")
-              .with(CalciteConnectionProperty.CONFORMANCE,
-                  SqlConformanceEnum.BABEL)
-              .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
-              .with(
-                  ConnectionFactories.addType("DATETIME", typeFactory ->
-                  typeFactory.createSqlType(SqlTypeName.TIMESTAMP)))
-              .with(
-                  ConnectionFactories.addType("TIMESTAMP", typeFactory ->
-                  typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)))
               .connect();
         case "scott-postgresql":
           return CalciteAssert.that()
