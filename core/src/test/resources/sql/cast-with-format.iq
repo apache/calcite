@@ -1161,10 +1161,9 @@ select cast('2010-08-Tuesday' as timestamp FORMAT 'IYYY-IW-DAY'),
            cast('2010 08 saturday' as timestamp FORMAT 'IYYY IW DAY'),
            cast('sUnDay 2010 08' as date FORMAT 'DAY IYYY IW'),
            cast('Monday 2010 09' as date FORMAT 'DAY IYYY IW');
-assert result.data == [
-    "2010-02-23 00:00:00\t2010-02-22 00:00:00\t2010-02-24\t"
-    "2010-02-25 00:00:00\t2010-02-26\t2010-02-27 00:00:00\t"
-    "2010-02-28\t2010-03-01"]
+EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5, EXPR$6, EXPR$7
+2010-02-23 00:00:00, 2010-02-22 00:00:00, 2010-02-24, 2010-02-25 00:00:00, 2010-02-26, 2010-02-27 00:00:00, 2010-02-28, 2010-03-01
+!ok
 # And now with short day names.
 select cast('2010-08-Tue' as timestamp FORMAT 'IYYY-IW-DY'),
            cast('2010-mon-08' as timestamp FORMAT 'IYYY-DY-IW'),
@@ -1174,10 +1173,9 @@ select cast('2010-08-Tue' as timestamp FORMAT 'IYYY-IW-DY'),
            cast('2010 08 sat' as timestamp FORMAT 'IYYY IW DY'),
            cast('sUn 2010 08' as date FORMAT 'DY IYYY IW'),
            cast('Mon 2010 09' as date FORMAT 'DY IYYY IW');
-assert result.data == [
-    "2010-02-23 00:00:00\t2010-02-22 00:00:00\t2010-02-24\t"
-    "2010-02-25 00:00:00\t2010-02-26\t2010-02-27 00:00:00\t"
-    "2010-02-28\t2010-03-01"]
+EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5, EXPR$6, EXPR$7
+2010-02-23 00:00:00, 2010-02-22 00:00:00, 2010-02-24, 2010-02-25 00:00:00, 2010-02-26, 2010-02-27 00:00:00, 2010-02-28, 2010-03-01
+!ok
 
 # String to datetime: Incorrect day name.
 select cast('2010 09 Mondau' as timestamp FORMAT
@@ -1189,27 +1187,27 @@ NULL
 # String to datetime: DAY token without surrounding separators.
 select cast('2010MONDAY09' as date FORMAT 'IYYYDAYIW'),
            cast('2010WEDNESDAY9' as timestamp FORMAT 'IYYYDAYIW');
-EXPR$0
-2010-03-01\t2010-03-03 00:00:00
+EXPR$0, EXPR$1
+2010-03-01, 2010-03-03 00:00:00
 !ok
 # And now with short day names.
 select cast('2010MON09' as date FORMAT 'IYYYDYIW'),
            cast('2010WED9' as timestamp FORMAT 'IYYYDYIW');
-EXPR$0
-2010-03-01\t2010-03-03 00:00:00
+EXPR$0, EXPR$1
+2010-03-01, 2010-03-03 00:00:00
 !ok
 
 # String to datetime: FX and FM modifiers.
 select cast('2010-Monday-09' as timestamp FORMAT 'FXIYYY-DAY-IW'),
            cast('2010-Monday  X-09' as timestamp FORMAT 'FXIYYY-DAY-IW');
-EXPR$0
-NULL\tNULL
+EXPR$0, EXPR$1
+NULL, NULL
 !ok
 
 select cast('2010-Monday   -09' as timestamp FORMAT 'FXIYYY-DAY-IW'),
            cast('2010-Monday   09' as date FORMAT 'FXIYYY-DAYIW');
-EXPR$0
-2010-03-01 00:00:00\t2010-03-01
+EXPR$0, EXPR$1
+2010-03-01 00:00:00, 2010-03-01
 !ok
 
 select cast('2010-Monday-09' as timestamp FORMAT 'FXIYYY-FMDAY-IW'),
@@ -1958,39 +1956,57 @@ EXPR$0
 # Datetime to string path: Text token containing a double quote.
 select cast(cast('1985-12-03' as date) as string
     format 'YYYY-"some \"text"MM-DD');
-assert result.data == ['1985-some "text12-03']
+EXPR$0
+1985-some "text12-03
+!ok
 select cast(cast('1985-12-03' as timestamp) as
     string format 'YYYY-"some \"text"MM-DD');
-assert result.data == ['1985-some "text12-03']
+EXPR$0
+1985-some "text12-03
+!ok
 
 # Datetime to string path: Text token containing a double quote where the text token
 # itself is covered by escaped double quotes.
 select cast(cast("1985-12-04" as date) as string
     format "YYYY-\"some \\\"text\"MM-DD");
-assert result.data == ['1985-some "text12-04']
+EXPR$0
+1985-some "text12-04
+!ok
 select cast(cast("1985-12-04" as timestamp) as
     string format "YYYY-\"some \\\"text\"MM-DD");
-assert result.data == ['1985-some "text12-04']
+EXPR$0
+1985-some "text12-04
+!ok
 
 # Backslash in format that escapes non-special chars.
 select cast("1985- some \ text12-05" as date
     format 'YYYY-"some \ text"MM-DD');
-assert result.data == ['1985-12-05']
+EXPR$0
+1985-12-05
+!ok
 select cast(cast("1985-12-06" as date) as string
     format 'YYYY-"some \ text"MM-DD');
-assert result.data == ['1985-some  text12-06']
+EXPR$0
+1985-some  text12-06
+!ok
 
 select cast("1985-some text12-07" as date
     format 'YYYY-"\some text"MM-DD');
-assert result.data == ['1985-12-07']
+EXPR$0
+1985-12-07
+!ok
 select cast(cast("1985-12-08" as date) as string
     format 'YYYY-"\some text"MM-DD');
-assert result.data == ['1985-some text12-08']
+EXPR$0
+1985-some text12-08
+!ok
 
 # Backslash in format that escapes special chars.
 select cast("1985-\b\n\r\t12-09" as
     date format 'YYYY-"\b\n\r\t"MM-DD');
-assert result.data == ['1985-12-09']
+EXPR$0
+1985-12-09
+!ok
 select cast(cast("1985-12-10" as date) as string
     format 'YYYY"\ttext\n"MM-DD');
 assert result.data == [r'''1985	text
@@ -2023,7 +2039,8 @@ assert result.data == [r'''1985-12-14 01:12:10''']
 # taken as a double escaped quote.
 select cast(cast("1985-12-16" as timestamp) as string format
     "YYYY\"\\\"MM\"\\\"DD");
-assert "Bad date/time conversion format" in str(err)
+Bad date/time conversion format
+!error
 
 # Free text token where an escaped backslash precedes an escaped single quote.
 select cast("2010-\\'-02-01" as date format
@@ -2044,15 +2061,15 @@ assert (r'''String to Date parse failed. Input '1985-AB"CD11-23' doesn't match '
 # 9999-12-31 is Friday, belongs to the 52nd week of year 9999.
 select cast(date'0001-01-01' as string format 'IYYY/IW/ID'),
            cast(date'9999-12-31' as string format 'IYYY/IW/ID');
-EXPR$0
-0001/01/01\t9999/52/05
+EXPR$0, EXPR$1
+0001/01/01, 9999/52/05
 !ok
 
 # Parse 0001-01-01 and 9999-12-31 dates.
 select cast('0001/01/01' as date format 'IYYY/IW/ID'),
            cast('9999/52/05' as date format 'IYYY/IW/ID');
-EXPR$0
-0001-01-01\t9999-12-31
+EXPR$0, EXPR$1
+0001-01-01, 9999-12-31
 !ok
 
 # Parse out-of-range dates.
@@ -2069,15 +2086,15 @@ assert (r'''String to Date parse failed. Input '9999/53/01' doesn't match with '
 # 9999-12-31 is Friday, belongs to the 52nd week of year 9999.
 select cast(cast('1400-01-01' as timestamp) as string format 'IYYY/IW/ID'),
            cast(cast('9999-12-31' as timestamp) as string format 'IYYY/IW/ID');
-EXPR$0
-1400/01/03\t9999/52/05
+EXPR$0, EXPR$1
+1400/01/03, 9999/52/05
 !ok
 
 # Parse 1400-01-01 and 9999-12-31 timestamps.
 select cast('1400/01/03' as timestamp format 'IYYY/IW/ID'),
            cast('9999/52/05' as timestamp format 'IYYY/IW/ID');
-EXPR$0
-1400-01-01 00:00:00\t9999-12-31 00:00:00
+EXPR$0, EXPR$1
+1400-01-01 00:00:00, 9999-12-31 00:00:00
 !ok
 
 # Parse out-of-range timestamps.
@@ -2087,8 +2104,8 @@ EXPR$0
 select cast('1400/01/02' as timestamp format 'IYYY/IW/ID'),
            cast('9999/52/06' as timestamp format 'IYYY/IW/ID'),
            cast('9999/53/01' as timestamp format 'IYYY/IW/ID');
-EXPR$0
-NULL\tNULL\tNULL
+EXPR$0, EXPR$1, EXPR$2
+NULL, NULL, NULL
 !ok
 
 # Formatting dates arond Dec 31.
@@ -2100,8 +2117,9 @@ select cast(date'2019-12-29' as string format 'IYYY/IW/ID'),
            cast(date'2020-01-01' as string format 'IYYY/IW/ID'),
            cast(date'2020-12-31' as string format 'IYYY/IW/ID'),
            cast(date'2021-01-01' as string format 'IYYY/IW/ID');
-assert result.data == [
-    "2019/52/07\t2020/01/01\t2020/01/02\t2020/01/03\t2020/53/04\t2020/53/05"]
+EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5
+2019/52/07, 2020/01/01, 2020/01/02, 2020/01/03, 2020/53/04, 2020/53/05
+!ok
 
 # Parsing dates around Dec 31.
 select cast('2019/52/07' as date format 'IYYY/IW/ID'),
@@ -2110,8 +2128,9 @@ select cast('2019/52/07' as date format 'IYYY/IW/ID'),
            cast('2020/01/03' as date format 'IYYY/IW/ID'),
            cast('2020/53/04' as date format 'IYYY/IW/ID'),
            cast('2020/53/05' as date format 'IYYY/IW/ID');
-assert result.data == [
-    "2019-12-29\t2019-12-30\t2019-12-31\t2020-01-01\t2020-12-31\t2021-01-01"]
+EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5
+2019-12-29, 2019-12-30, 2019-12-31, 2020-01-01, 2020-12-31, 2021-01-01
+!ok
 
 select cast('2019/53/01' as date format 'IYYY/IW/ID');
 assert (r'''String to Date parse failed. Input '2019/53/01' doesn't match with '''
@@ -2125,8 +2144,8 @@ select cast(date'2020-01-01' as string format 'IYYY/IW/ID'),
            cast(date'2020-01-01' as string format 'IYY/IW/ID'),
            cast(date'2020-01-01' as string format 'IY/IW/ID'),
            cast(date'2020-01-01' as string format 'I/IW/ID');
-EXPR$0
-2020/01/03\t020/01/03\t20/01/03\t0/01/03
+EXPR$0, EXPR$1, EXPR$2, EXPR$3
+2020/01/03, 020/01/03, 20/01/03, 0/01/03
 !ok
 
 # Parse 4, 3, 2, 1-digit week numbering year.
@@ -2140,10 +2159,9 @@ select cast('2020/01/03' as date format 'IYYY/IW/ID'),
            cast('20/01/03' as date format 'IY/IW/ID'),
            cast('0/01/03' as date format 'IY/IW/ID'),
            cast('0/01/03' as date format 'I/IW/ID');
-assert result.data == ['2020-01-01\t2020-01-01\t2020-01-01\t2010-01-06\t'
-                       '2020-01-01\t2020-01-01\t2010-01-06\t'
-                       '2020-01-01\t2010-01-06\t'
-                       '2010-01-06']
+EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5, EXPR$6, EXPR$7, EXPR$8, EXPR$9
+2020-01-01, 2020-01-01, 2020-01-01, 2010-01-06, 2020-01-01, 2020-01-01, 2010-01-06, 2020-01-01, 2010-01-06, 2010-01-06
+!ok
 
 # 2000-01-01 is Saturday, so it belongs to the 1999 ISO 8601 week-numbering year.
 # Test that 1999 is used for prefixing 3, 2, 1-digit week numbering year.
@@ -2156,17 +2174,17 @@ select cast('2005/01/01' as date format 'IYYY/IW/ID'),
            cast('05/01/01' as date format 'IY/IW/ID'),
            cast('5/01/01' as date format 'IY/IW/ID'),
            cast('5/01/01' as date format 'I/IW/ID');
-assert result.data == ['2005-01-03\t1004-12-31\t1905-01-02\t1995-01-02\t'
-                       '1905-01-02\t1995-01-02\t'
-                       '1995-01-02']
+EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5, EXPR$6
+2005-01-03, 1004-12-31, 1905-01-02, 1995-01-02, 1905-01-02, 1995-01-02, 1995-01-02
+!ok
 
 !set now_string null
 
 # Parse 1-digit week of year and 1-digit week day.
 select cast('2020/53/4' as date format 'IYYY/IW/ID'),
            cast('2020/1/3' as date format 'IYYY/IW/ID');
-EXPR$0
-2020-12-31\t2020-01-01
+EXPR$0, EXPR$1
+2020-12-31, 2020-01-01
 !ok
 
 # Parse dayname with week-based tokens
@@ -2178,8 +2196,9 @@ select cast('2020/wed/1' as date format 'IYYY/DY/IW'),
            cast('2020/wednesday1' as date format 'iyyy/dayiw'),
            cast('2020wednesday1' as date format 'IYYYDAYIW'),
            cast('2020wEdnESday1' as date format 'iyyydayiw');
-assert result.data == ["2020-01-01\t2020-01-01\t2020-01-01\t2020-01-01\t"
-                       "2020-01-01\t2020-01-01\t2020-01-01\t2020-01-01"]
+EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5, EXPR$6, EXPR$7
+2020-01-01, 2020-01-01, 2020-01-01, 2020-01-01, 2020-01-01, 2020-01-01, 2020-01-01, 2020-01-01
+!ok
 
 ### fm_fx_modifiers #################################################
 #
@@ -2288,8 +2307,8 @@ select cast('2015/3/05' as timestamp format 'FXIYYY/IW/ID'),
            cast('015/03/05' as timestamp format 'FXIYYY/IW/ID'),
            cast('15/03/05' as timestamp format 'FXIYYY/IW/ID'),
            cast('5/03/05' as timestamp format 'FXIYYY/IW/ID');
-EXPR$0
-NULL\tNULL\tNULL\tNULL\tNULL
+EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4
+NULL, NULL, NULL, NULL, NULL
 !ok
 select cast('2015/3/05' as date format 'FXIYYY/IW/ID');
 assert (r'''String to Date parse failed. Input '2015/3/05' doesn't match with '''
@@ -2304,9 +2323,9 @@ select cast('2015/03/05' as timestamp format 'FXIYYY/IW/ID'),
            cast('015/03/05' as date format 'FXIYY/IW/ID'),
            cast('15/03/05' as date format 'FXIY/IW/ID'),
            cast('5/03/05' as date format 'FXI/IW/ID');
-assert result.data == ["2015-01-16 00:00:00\t2015-01-16 00:00:00\t"
-    "2015-01-16 00:00:00\t2015-01-16 00:00:00\t"
-    "2015-01-16\t2015-01-16\t2015-01-16\t2015-01-16"]
+EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5, EXPR$6, EXPR$7
+2015-01-16 00:00:00, 2015-01-16 00:00:00, 2015-01-16 00:00:00, 2015-01-16 00:00:00, 2015-01-16, 2015-01-16, 2015-01-16, 2015-01-16
+!ok
 !set now_string null
 
 # Strict token length matching with text token containing escaped double quote.
@@ -2393,8 +2412,8 @@ EXPR$0
 
 select cast(date'0001-01-10' as string format 'FXIYYY-IW-ID'),
            cast(date'0001-10-10' as string format 'FXIYYY-IW-ID');
-EXPR$0
-0001-02-03\t0001-41-03
+EXPR$0, EXPR$1
+0001-02-03, 0001-41-03
 !ok
 
 # Datetime to string path: Tokens with FM modifier don't pad output to a given
@@ -2419,8 +2438,8 @@ EXPR$0
 
 select cast(date'0001-01-10' as string format 'FMIYYY-FMIW-FMID'),
            cast(date'0001-10-10' as string format 'FMIYYY-FMIW-FMID');
-EXPR$0
-1-2-3\t1-41-3
+EXPR$0, EXPR$1
+1-2-3, 1-41-3
 !ok
 
 # Datetime to string path: FM modifier is effective even if FX modifier is also
@@ -2445,8 +2464,8 @@ EXPR$0
 
 select cast(date'0001-01-10' as string format 'FXFMIYYY-FMIW-FMID'),
            cast(date'0001-10-10' as string format 'FXFMIYYY-FMIW-FMID');
-EXPR$0
-1-2-3\t1-41-3
+EXPR$0, EXPR$1
+1-2-3, 1-41-3
 !ok
 
 # FX and FM modifiers are case-insensitive.
@@ -2511,280 +2530,356 @@ EXPR$0
 #
 # Invalid format
 select cast('2017-05-01' as timestamp format 'XXXX-dd-MM');
-assert "Bad date/time conversion format: XXXX-dd-MM" in str(err)
+Bad date/time conversion format: XXXX-dd-MM
+!error
 
 # Invalid use of SimpleDateFormat
 select cast('2017-05-01 15:10' as timestamp format 'yyyy-MM-dd +hh:mm');
-assert "Bad date/time conversion format: yyyy-MM-dd +hh:mm" in str(err)
+Bad date/time conversion format: yyyy-MM-dd +hh:mm
+!error
 
 # Duplicate format element
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD MM');
-assert "Invalid duplication of format element" in str(err)
+Invalid duplication of format element
+!error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-YYYY');
-assert "Invalid duplication of format element" in str(err)
+Invalid duplication of format element
+!error
 
 # Multiple year tokens provided
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-YY');
-assert "Multiple year tokens provided" in str(err)
+Multiple year tokens provided
+!error
 
 select cast('2017-05-01' as timestamp format 'YYY-MM-DD-Y');
-assert "Multiple year tokens provided" in str(err)
+Multiple year tokens provided
+!error
 
 # Year and round year conflict
 select cast('2017-05-01' as timestamp format 'YY-MM-DD-RRRR');
-assert "Both year and round year are provided" in str(err)
+Both year and round year are provided
+!error
 
 select cast('2017-05-01' as timestamp format 'RR-MM-DD-YYY');
-assert "Both year and round year are provided" in str(err)
+Both year and round year are provided
+!error
 
 # Quarter token not allowed in a string to datetime conversion.
 select cast('2017-1-01' as timestamp format 'YYYY-Q-DDD');
-assert "Quarter token is not allowed in a string to datetime conversion" in str(err)
+Quarter token is not allowed in a string to datetime conversion
+!error
 
 # Conflict between MM, MONTH and MON tokens
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-MONTH');
-assert "Multiple month tokens provided" in str(err)
+Multiple month tokens provided
+!error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-MON');
-assert "Multiple month tokens provided" in str(err)
+Multiple month tokens provided
+!error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MONTH-DD-MON');
-assert "Multiple month tokens provided" in str(err)
+Multiple month tokens provided
+!error
 
 # Conflict between DAY, DY and ID tokens.
 select cast('2017-05-01-Monday' as timestamp format 'IYYY-IW-ID-DAY');
-assert "Multiple day of week tokens provided" in str(err)
+Multiple day of week tokens provided
+!error
 
 select cast('2017-05-01-Mon' as timestamp format 'IYYY-IW-ID-DY');
-assert "Multiple day of week tokens provided" in str(err)
+Multiple day of week tokens provided
+!error
 
 select cast('2017-05-Monday-Mon' as timestamp format 'IYYY-IW-DAY-DY');
-assert "Multiple day of week tokens provided" in str(err)
+Multiple day of week tokens provided
+!error
 
 # Week of year token not allowed in a string to datetime conversion.
 select cast('2017-1-01' as timestamp format 'YYYY-WW-DD');
-assert "Week number token is not allowed in a string to datetime conversion" in str(err)
+Week number token is not allowed in a string to datetime conversion
+!error
 
 # Week of month token not allowed in a string to datetime conversion.
 select cast('2017-1-01' as timestamp format 'YYYY-W-DD');
-assert "Week number token is not allowed in a string to datetime conversion" in str(err)
+Week number token is not allowed in a string to datetime conversion
+!error
 
 # Day of year conflict
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DDD');
-assert "Day of year provided with day or month token" in str(err)
+Day of year provided with day or month token
+!error
 
 select cast('2017-05-01' as timestamp format 'YYYY-DD-DDD');
-assert "Day of year provided with day or month token" in str(err)
+Day of year provided with day or month token
+!error
 
 select cast('2017-MAY-01' as timestamp format 'YYYY-MONTH-DDD');
-assert "Day of year provided with day or month token" in str(err)
+Day of year provided with day or month token
+!error
 
 select cast('2017-JUN-01' as timestamp format 'YYYY-MON-DDD');
-assert "Day of year provided with day or month token" in str(err)
+Day of year provided with day or month token
+!error
 
 # Day of week token not allowed in a string to datetime conversion.
 select cast('2017-1-02' as timestamp format 'YYYY-D-MM');
-assert "Day of week token is not allowed in a string to datetime conversion" in str(err)
+Day of week token is not allowed in a string to datetime conversion
+!error
 
 # Day name token not allowed in a string to datetime conversion.
 select cast('2017-1-02 Monday' as timestamp format 'YYYY-DD-MM DAY');
-assert "Day name token is not allowed in a string to datetime conversion except with IYYY|IYY|IY|I and IW tokens" in str(err)
+Day name token is not allowed in a string to datetime conversion except with IYYY|IYY|IY|I and IW tokens
+!error
 
 # Conflict between hour tokens
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH:HH24');
-assert "Multiple hour tokens provided" in str(err)
+Multiple hour tokens provided
+!error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH12:HH24');
-assert "Multiple hour tokens provided" in str(err)
+Multiple hour tokens provided
+!error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH12:HH');
-assert "Multiple hour tokens provided" in str(err)
+Multiple hour tokens provided
+!error
 
 # Conflict with median indicator
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD AM HH:MI A.M.');
-assert "Multiple median indicator tokens provided" in str(err)
+Multiple median indicator tokens provided
+!error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD PM HH:MI am');
-assert "Multiple median indicator tokens provided" in str(err)
+Multiple median indicator tokens provided
+!error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH24:MI a.m.');
-assert "Conflict between median indicator and hour token" in str(err)
+Conflict between median indicator and hour token
+!error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD p.m.');
-assert "Missing hour token" in str(err)
+Missing hour token
+!error
 
 # Conflict with second of day
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD SSSSS HH');
-assert "Second of day token conflicts with other token(s)" in str(err)
+Second of day token conflicts with other token(s)
+!error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH12:SSSSS');
-assert "Second of day token conflicts with other token(s)" in str(err)
+Second of day token conflicts with other token(s)
+!error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH24SSSSS');
-assert "Second of day token conflicts with other token(s)" in str(err)
+Second of day token conflicts with other token(s)
+!error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD MI SSSSS');
-assert "Second of day token conflicts with other token(s)" in str(err)
+Second of day token conflicts with other token(s)
+!error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD SS SSSSS');
-assert "Second of day token conflicts with other token(s)" in str(err)
+Second of day token conflicts with other token(s)
+!error
 
 # Too long format
 # (Format string consists of 's' 101 times)
 select cast('2017-05-01' as timestamp
     format 'sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss');
-assert "The input format is too long" in str(err)
+The input format is too long
+!error
 
 # Timezone offsets in a datetime to string formatting
 select cast(cast('2017-05-01 01:15' as timestamp format 'YYYY-MM-DD TZH:TZM')
     as string format 'TZH');
-assert "Timezone offset not allowed in a datetime to string conversion" in str(err)
+Timezone offset not allowed in a datetime to string conversion
+!error
 
 select cast(cast('2017-05-01 01:15' as timestamp format 'YYYY-MM-DD TZH:TZM')
     as string format 'TZM');
-assert "Timezone offset not allowed in a datetime to string conversion" in str(err)
+Timezone offset not allowed in a datetime to string conversion
+!error
 
 select cast(cast('2017-05-01 01:15' as timestamp format 'YYYY-MM-DD TZH:TZM')
     as string format 'YYYY-MM-DD HH24:MI:SS TZH:TZM');
-assert "Timezone offset not allowed in a datetime to string conversion" in str(err)
+Timezone offset not allowed in a datetime to string conversion
+!error
 
 # TZM requires TZH
 select cast('2018-12-31 08:00 AM 59' as timestamp FORMAT
     'YYYY-MM-DD HH12:MI A.M. TZM');
-assert "TZH token is required for TZM" in str(err)
+TZH token is required for TZM
+!error
 
 select cast('2018-12-31 08:00 AM -59' as timestamp FORMAT
     'YYYY-MM-DD HH12:MI A.M. TZM');
-assert "TZH token is required for TZM" in str(err)
+TZH token is required for TZM
+!error
 
 # Multiple fraction second token conflict
 select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF FF1');
-assert "Multiple fractional second tokens provided." in str(err)
+Multiple fractional second tokens provided.
+!error
 
 select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF2 FF3');
-assert "Multiple fractional second tokens provided." in str(err)
+Multiple fractional second tokens provided.
+!error
 
 select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF4 FF5');
-assert "Multiple fractional second tokens provided." in str(err)
+Multiple fractional second tokens provided.
+!error
 
 select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF6 FF7');
-assert "Multiple fractional second tokens provided." in str(err)
+Multiple fractional second tokens provided.
+!error
 
 select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF8 FF9');
-assert "Multiple fractional second tokens provided." in str(err)
+Multiple fractional second tokens provided.
+!error
 
 # No date token
 select cast('2020-05-05' as timestamp format 'FF1');
-assert "No date tokens provided." in str(err)
+No date tokens provided.
+!error
 
 select cast('2020-05-05' as timestamp format 'SSSSS');
-assert "No date tokens provided." in str(err)
+No date tokens provided.
+!error
 
 select cast('2020-05-05' as timestamp format 'HH:MI:SS');
-assert "No date tokens provided." in str(err)
+No date tokens provided.
+!error
 
 # ISO 8601 Week-based and normal date pattern tokens must not be mixed.
 select cast('2018-10-01' as date format 'IYYY-MM-ID');
-assert "ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are not allowed to be used with regular date tokens." in str(err)
+ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are not allowed to be used with regular date tokens.
+!error
 select cast('2018-10-01 01:00' as timestamp format 'IYYY-MM-ID HH24:MI');
-assert "ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are not allowed to be used with regular date tokens." in str(err)
+ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are not allowed to be used with regular date tokens.
+!error
 
 select cast('2018-10-01' as date format 'YYYY-IW-DD');
-assert "ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are not allowed to be used with regular date tokens." in str(err)
+ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are not allowed to be used with regular date tokens.
+!error
 select cast('2018-10-01' as timestamp format 'IYYY-IW-DD');
-assert "ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are not allowed to be used with regular date tokens." in str(err)
+ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are not allowed to be used with regular date tokens.
+!error
 
 # Missing ISO 8601 week-based pattern tokens.
 select cast('2018-10' as date format 'IYYY-IW');
-assert "One or more required ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are missing." in str(err)
+One or more required ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are missing.
+!error
 select cast('2018-10 01:00' as timestamp format 'IYYY-IW HH24:MI');
-assert "One or more required ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are missing." in str(err)
+One or more required ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are missing.
+!error
 
 select cast('18-07' as date format 'IY-ID');
-assert "One or more required ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are missing." in str(err)
+One or more required ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are missing.
+!error
 select cast('18-07 01:00' as timestamp format 'IY-ID HH24:MI');
-assert "One or more required ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are missing." in str(err)
+One or more required ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are missing.
+!error
 
 # ISO 8601 Week numbering year conflict
 select cast('2018-018-10-01' as date format 'IYYY-IYY-IW-DD');
-assert "Multiple year tokens provided" in str(err)
+Multiple year tokens provided
+!error
 err = self.execute_query_expect_failure(self.client,
     "select cast('2018-018-10-01 01:00' as timestamp format "
     "'IYYY-IYY-IW-DD HH24:MI')")
-assert "Multiple year tokens provided" in str(err)
+Multiple year tokens provided
+!error
 
 err = self.execute_query_expect_failure(self.client,
     "select cast('018-8-10-01' as date format 'IYY-I-IW-DD')")
-assert "Multiple year tokens provided" in str(err)
+Multiple year tokens provided
+!error
 err = self.execute_query_expect_failure(self.client,
     "select cast('018-8-10-01 01:00' as timestamp format 'IYY-I-IW-DD HH24:MI')")
-assert "Multiple year tokens provided" in str(err)
+Multiple year tokens provided
+!error
 
 # Verify that conflict check is not skipped when format ends with separators.
 err = self.execute_query_expect_failure(self.client,
     "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-RR--')")
-assert "Both year and round year are provided" in str(err)
+Both year and round year are provided
+!error
 
 # Unclosed quotation in text pattern
 err = self.execute_query_expect_failure(self.client,
     r'''select cast('1985-11-20text' as timestamp format 'YYYY-MM-DD"text')''')
-assert "Missing closing quotation mark." in str(err)
+Missing closing quotation mark.
+!error
 
 err = self.execute_query_expect_failure(self.client,
     r'''select cast('1985-11-21text' as timestamp format 'YYYY-MM-DD\"text"')''')
-assert "Missing closing quotation mark." in str(err)
+Missing closing quotation mark.
+!error
 
 err = self.execute_query_expect_failure(self.client,
     r'''select cast(date"1985-12-08" as string format 'YYYY-MM-DD \"X"');''')
-assert "Missing closing quotation mark." in str(err)
+Missing closing quotation mark.
+!error
 
 err = self.execute_query_expect_failure(self.client,
     r'''select cast(date"1985-12-09" as string format 'YYYY-MM-DD "X');''')
-assert "Missing closing quotation mark." in str(err)
+Missing closing quotation mark.
+!error
 
 # Format containing text token only.
 err = self.execute_query_expect_failure(self.client,
     r'''select cast("1985-11-29" as date format '" some text "')''')
-assert "No datetime tokens provided." in str(err)
+No datetime tokens provided.
+!error
 
 err = self.execute_query_expect_failure(self.client,
     r'''select cast(cast("1985-12-02" as date) as string format "\"free text\"")''')
-assert "No datetime tokens provided." in str(err)
+No datetime tokens provided.
+!error
 
 # FX modifier not at the begining of the format.
 err = self.execute_query_expect_failure(self.client,
     'select cast("2001-03-01 00:10:02" as timestamp format '
     '"YYYY-MM-DD FXHH12:MI:SS")')
-assert "FX modifier should be at the beginning of the format string." in str(err)
+FX modifier should be at the beginning of the format string.
+!error
 
 err = self.execute_query_expect_failure(self.client,
     'select cast("2001-03-01 00:10:02" as timestamp format '
     '"YYYY-MM-DD HH12:MI:SS FX")')
-assert "FX modifier should be at the beginning of the format string." in str(err)
+FX modifier should be at the beginning of the format string.
+!error
 
 err = self.execute_query_expect_failure(self.client,
     'select cast(date"2001-03-01" as string format "YYYYFX-MM-DD")')
-assert "FX modifier should be at the beginning of the format string." in str(err)
+FX modifier should be at the beginning of the format string.
+!error
 
 err = self.execute_query_expect_failure(self.client,
     'select cast(date"2001-03-02" as string format "FXFMFXYYYY-MM-DD")')
-assert "FX modifier should be at the beginning of the format string." in str(err)
+FX modifier should be at the beginning of the format string.
+!error
 
 err = self.execute_query_expect_failure(self.client,
     'select cast(date"2001-03-03" as string format "FXFXYYYY-MM-DD")')
-assert "FX modifier should be at the beginning of the format string." in str(err)
+FX modifier should be at the beginning of the format string.
+!error
 
 err = self.execute_query_expect_failure(self.client,
     'select cast(date"2001-03-04" as string format "FMFXYYYY-MM-DD")')
-assert "FX modifier should be at the beginning of the format string." in str(err)
+FX modifier should be at the beginning of the format string.
+!error
 
 err = self.execute_query_expect_failure(self.client,
     'select cast(date"2001-03-03" as string format "-FXYYYY-MM-DD")')
-assert "FX modifier should be at the beginning of the format string." in str(err)
+FX modifier should be at the beginning of the format string.
+!error
 
 err = self.execute_query_expect_failure(self.client,
     r'''select cast(date"2001-03-03" as string format '"text"FXYYYY-MM-DD')''')
-assert "FX modifier should be at the beginning of the format string." in str(err)
+FX modifier should be at the beginning of the format string.
+!error
 
 # End cast-with-format.iq

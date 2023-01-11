@@ -809,10 +809,7 @@ result = self.execute_query("select cast('2010-08-Tuesday' as timestamp FORMAT '
     "       cast('2010 08 saturday' as timestamp FORMAT 'IYYY IW DAY'), "
     "       cast('sUnDay 2010 08' as date FORMAT 'DAY IYYY IW'), "
     "       cast('Monday 2010 09' as date FORMAT 'DAY IYYY IW')")
-assert result.data == [
-    "2010-02-23 00:00:00\t2010-02-22 00:00:00\t2010-02-24\t"
-    "2010-02-25 00:00:00\t2010-02-26\t2010-02-27 00:00:00\t"
-    "2010-02-28\t2010-03-01"]
+assert result.data == ["2010-02-23 00:00:00\t2010-02-22 00:00:00\t2010-02-24\t2010-02-25 00:00:00\t2010-02-26\t2010-02-27 00:00:00\t2010-02-28\t2010-03-01"]
 # And now with short day names.
 result = self.execute_query("select cast('2010-08-Tue' as timestamp FORMAT 'IYYY-IW-DY'), "
     "       cast('2010-mon-08' as timestamp FORMAT 'IYYY-DY-IW'), "
@@ -822,10 +819,7 @@ result = self.execute_query("select cast('2010-08-Tue' as timestamp FORMAT 'IYYY
     "       cast('2010 08 sat' as timestamp FORMAT 'IYYY IW DY'), "
     "       cast('sUn 2010 08' as date FORMAT 'DY IYYY IW'), "
     "       cast('Mon 2010 09' as date FORMAT 'DY IYYY IW')")
-assert result.data == [
-    "2010-02-23 00:00:00\t2010-02-22 00:00:00\t2010-02-24\t"
-    "2010-02-25 00:00:00\t2010-02-26\t2010-02-27 00:00:00\t"
-    "2010-02-28\t2010-03-01"]
+assert result.data == ["2010-02-23 00:00:00\t2010-02-22 00:00:00\t2010-02-24\t2010-02-25 00:00:00\t2010-02-26\t2010-02-27 00:00:00\t2010-02-28\t2010-03-01"]
 
 # String to datetime: Incorrect day name.
 result = self.execute_query("select cast('2010 09 Mondau' as timestamp FORMAT "
@@ -1508,8 +1502,7 @@ result = self.client.execute("select cast(date'2019-12-29' as string format 'IYY
     "       cast(date'2020-01-01' as string format 'IYYY/IW/ID'), "
     "       cast(date'2020-12-31' as string format 'IYYY/IW/ID'), "
     "       cast(date'2021-01-01' as string format 'IYYY/IW/ID')")
-assert result.data == [
-    "2019/52/07\t2020/01/01\t2020/01/02\t2020/01/03\t2020/53/04\t2020/53/05"]
+assert result.data == ["2019/52/07\t2020/01/01\t2020/01/02\t2020/01/03\t2020/53/04\t2020/53/05"]
 
 # Parsing dates around Dec 31.
 result = self.client.execute("select cast('2019/52/07' as date format 'IYYY/IW/ID'), "
@@ -1518,8 +1511,7 @@ result = self.client.execute("select cast('2019/52/07' as date format 'IYYY/IW/I
     "       cast('2020/01/03' as date format 'IYYY/IW/ID'), "
     "       cast('2020/53/04' as date format 'IYYY/IW/ID'), "
     "       cast('2020/53/05' as date format 'IYYY/IW/ID')")
-assert result.data == [
-    "2019-12-29\t2019-12-30\t2019-12-31\t2020-01-01\t2020-12-31\t2021-01-01"]
+assert result.data == ["2019-12-29\t2019-12-30\t2019-12-31\t2020-01-01\t2020-12-31\t2021-01-01"]
 
 err = self.execute_query_expect_failure(self.client, "select cast('2019/53/01' as date format 'IYYY/IW/ID')")
 assert (r'''String to Date parse failed. Input '2019/53/01' doesn't match with '''
@@ -1546,10 +1538,7 @@ result = self.execute_query("select cast('2020/01/03' as date format 'IYYY/IW/ID
     "       cast('20/01/03' as date format 'IY/IW/ID'), "
     "       cast('0/01/03' as date format 'IY/IW/ID'), "
     "       cast('0/01/03' as date format 'I/IW/ID')")
-assert result.data == ['2020-01-01\t2020-01-01\t2020-01-01\t2010-01-06\t'
-                       '2020-01-01\t2020-01-01\t2010-01-06\t'
-                       '2020-01-01\t2010-01-06\t'
-                       '2010-01-06']
+assert result.data == ['2020-01-01\t2020-01-01\t2020-01-01\t2010-01-06\t2020-01-01\t2020-01-01\t2010-01-06\t2020-01-01\t2010-01-06\t2010-01-06']
 
 # 2000-01-01 is Saturday, so it belongs to the 1999 ISO 8601 week-numbering year.
 # Test that 1999 is used for prefixing 3, 2, 1-digit week numbering year.
@@ -1562,9 +1551,7 @@ result = self.execute_query("select cast('2005/01/01' as date format 'IYYY/IW/ID
     "       cast('05/01/01' as date format 'IY/IW/ID'), "
     "       cast('5/01/01' as date format 'IY/IW/ID'), "
     "       cast('5/01/01' as date format 'I/IW/ID')")
-assert result.data == ['2005-01-03\t1004-12-31\t1905-01-02\t1995-01-02\t'
-                       '1905-01-02\t1995-01-02\t'
-                       '1995-01-02']
+assert result.data == ['2005-01-03\t1004-12-31\t1905-01-02\t1995-01-02\t1905-01-02\t1995-01-02\t1995-01-02']
 
 !set now_string null
 
@@ -1582,8 +1569,7 @@ result = self.client.execute("select cast('2020/wed/1' as date format 'IYYY/DY/I
     "       cast('2020/wednesday1' as date format 'iyyy/dayiw'), "
     "       cast('2020wednesday1' as date format 'IYYYDAYIW'), "
     "       cast('2020wEdnESday1' as date format 'iyyydayiw')")
-assert result.data == ["2020-01-01\t2020-01-01\t2020-01-01\t2020-01-01\t"
-                       "2020-01-01\t2020-01-01\t2020-01-01\t2020-01-01"]
+assert result.data == ["2020-01-01\t2020-01-01\t2020-01-01\t2020-01-01\t2020-01-01\t2020-01-01\t2020-01-01\t2020-01-01"]
 
 ### fm_fx_modifiers #################################################
 #
@@ -1674,9 +1660,7 @@ result = self.execute_query("select cast('2015/03/05' as timestamp format 'FXIYY
     "       cast('015/03/05' as date format 'FXIYY/IW/ID'), "
     "       cast('15/03/05' as date format 'FXIY/IW/ID'), "
     "       cast('5/03/05' as date format 'FXI/IW/ID')")
-assert result.data == ["2015-01-16 00:00:00\t2015-01-16 00:00:00\t"
-    "2015-01-16 00:00:00\t2015-01-16 00:00:00\t"
-    "2015-01-16\t2015-01-16\t2015-01-16\t2015-01-16"]
+assert result.data == ["2015-01-16 00:00:00\t2015-01-16 00:00:00\t2015-01-16 00:00:00\t2015-01-16 00:00:00\t2015-01-16\t2015-01-16\t2015-01-16\t2015-01-16"]
 !set now_string null
 
 # Strict token length matching with text token containing escaped double quote.
