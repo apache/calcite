@@ -46,4 +46,12 @@ mode == 3 {
 mode == 3 && /'\)$/ {
     gsub(/'\)$/, ";", s); mode = 0;
 }
+mode == 0 && s ~ /assert result.data == \[".*"\]/ {
+    gsub(/assert result[.]data == \["/, "", s)
+    gsub(/"\]/, "", s)
+    print "EXPR$0"
+    print s
+    print "!ok"
+    next
+}
 { print s}

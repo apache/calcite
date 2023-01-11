@@ -28,109 +28,155 @@
 # Cast without format clause to cover the default format
 select cast('2017-05-01 01:23:45.678912345' as
     timestamp);
-assert result.data == ["2017-05-01 01:23:45.678912345"]
+EXPR$0
+2017-05-01 01:23:45.678912345
+!ok
 
 # Basic input to cover a datetime with timezone scenario
 select cast('2017-05-03 08:59:01.123456789PM 01:30'
     as timestamp FORMAT 'YYYY-MM-DD HH12:MI:SS.FF9PM TZH:TZM');
-assert result.data == ["2017-05-03 20:59:01.123456789"]
+EXPR$0
+2017-05-03 20:59:01.123456789
+!ok
 
 # Input that contains shuffled date without time
 select cast('12-2010-05' as timestamp format
     'DD-YYYY-MM');
-assert result.data == ["2010-05-12 00:00:00"]
+EXPR$0
+2010-05-12 00:00:00
+!ok
 
 # Shuffle the input timestamp and the format clause
 select cast('59 04-30-2017-05 01PM 01:08.123456789'
     as timestamp FORMAT 'MI DD-TZM-YYYY-MM TZHPM SS:HH12.FF9');
-assert result.data == ["2017-05-04 20:59:01.123456789"]
+EXPR$0
+2017-05-04 20:59:01.123456789
+!ok
 
 # Input and format without separators
 # Note, 12:01 HH12 AM is 00:01 with the internal 0-23 representation.
 select cast('20170501120159123456789AM-0130' as
     timestamp FORMAT 'YYYYDDMMHH12MISSFFAMTZHTZM');
-assert result.data == ["2017-01-05 00:01:59.123456789"]
+EXPR$0
+2017-01-05 00:01:59.123456789
+!ok
 
 # Shuffled input without separators
 select cast('59043020170501PM0108123456789'
     as timestamp FORMAT 'MIDDTZMYYYYMMTZHPMSSHH12FF9');
-assert result.data == ["2017-05-04 20:59:01.123456789"]
+EXPR$0
+2017-05-04 20:59:01.123456789
+!ok
 
 # Separator section lengths differ between input and format
 select cast('--2017----05-01-' as
     timestamp FORMAT '-YYYY--MM---DD---');
-assert result.data == ["2017-05-01 00:00:00"]
+EXPR$0
+2017-05-01 00:00:00
+!ok
 
 # Loose separator type matching. Checking if the input/format is surrounded by
 # either single or double quotes.
 select cast("2017-./,';: 06-01" as
     timestamp FORMAT "YYYY', -MM;:.DD");
-assert result.data == ["2017-06-01 00:00:00"]
+EXPR$0
+2017-06-01 00:00:00
+!ok
 
 select cast('2017-./,\';: 07-01' as
     timestamp FORMAT "YYYY', -MM;:.DD");
-assert result.data == ["2017-07-01 00:00:00"]
+EXPR$0
+2017-07-01 00:00:00
+!ok
 
 select cast("2017-./,';: 08-01" as
     timestamp FORMAT 'YYYY\', -MM;:.DD');
-assert result.data == ["2017-08-01 00:00:00"]
+EXPR$0
+2017-08-01 00:00:00
+!ok
 
 select cast('2017-./,\';: 09-01' as
     timestamp FORMAT 'YYYY\', -MM;:.DD');
-assert result.data == ["2017-09-01 00:00:00"]
+EXPR$0
+2017-09-01 00:00:00
+!ok
 
 # Escaped double quotes in the input are not taken as the escaping character for the
 # following single quote.
 select cast("2013\\'09-01" as
     timestamp FORMAT "YYYY'MM-DD");
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast("2013\\\'09-02" as
     timestamp FORMAT "YYYY'MM-DD");
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast("2013\\\\'09-03" as
     timestamp FORMAT "YYYY'MM-DD");
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # If the input string has unprocessed tokens
 select cast('2017-05-01 12:30' as
     timestamp FORMAT 'YYYY-MM-DD');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 select cast('2017-05-01-12:30' as
     timestamp FORMAT 'YYYY-MM-DD-');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # If the format string has unprocessed tokens
 select cast('2017-05-01' as
     timestamp FORMAT 'YYYY-MM-DD HH12:MI');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 select cast('2017-05-01-' as
     timestamp FORMAT 'YYYY-MM-DD-HH12');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # Timestamp to string types formatting
 select cast(cast('2012-11-04 13:02:59.123456' as timestamp)
     as string format 'DD-MM-YYYY MI:HH12:SS A.M. FF9 DDD SSSSS HH12 HH24');
-assert result.data == ["04-11-2012 02:01:59 P.M. 123456000 309 46979 01 13"]
+EXPR$0
+04-11-2012 02:01:59 P.M. 123456000 309 46979 01 13
+!ok
 
 select cast(cast('2012-11-04 13:02:59.123456' as timestamp)
     as varchar format 'DD-MM-YYYY MI:HH12:SS A.M. FF9 DDD SSSSS HH12 HH24');
-assert result.data == ["04-11-2012 02:01:59 P.M. 123456000 309 46979 01 13"]
+EXPR$0
+04-11-2012 02:01:59 P.M. 123456000 309 46979 01 13
+!ok
 
 select cast(cast('2012-11-04 13:02:59.123456' as timestamp)
     as char(50) format 'DD-MM-YYYY MI:HH12:SS A.M. FF9 DDD SSSSS HH12 HH24');
-assert result.data == ["04-11-2012 02:01:59 P.M. 123456000 309 46979 01 13"]
+EXPR$0
+04-11-2012 02:01:59 P.M. 123456000 309 46979 01 13
+!ok
 
 # Cast NULL string to timestamp
 select cast(cast(NULL as string) as timestamp
     FORMAT 'YYYY-MM-DD');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # Cast NULL timestamp to string
 select cast(cast(NULL as timestamp) as string
     FORMAT 'YYYY-MM-DD');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 ### iso8601_format #################################################
 #
@@ -138,105 +184,149 @@ assert result.data == ["NULL"]
 # Basic string to timestamp scenario
 select cast('2018-11-10T15:11:04Z' as
     timestamp FORMAT 'YYYY-MM-DDTHH24:MI:SSZ');
-assert result.data == ["2018-11-10 15:11:04"]
+EXPR$0
+2018-11-10 15:11:04
+!ok
 
 # ISO 8601 format elements are case-insensitive
 select cast('2018-11-09t15:11:04Z' as
     timestamp FORMAT 'YYYY-MM-DDTHH24:MI:SSz');
-assert result.data == ["2018-11-09 15:11:04"]
+EXPR$0
+2018-11-09 15:11:04
+!ok
 
 select cast('2018-11-08T15:11:04z' as
     timestamp FORMAT 'YYYY-MM-DDtHH24:MI:SSZ');
-assert result.data == ["2018-11-08 15:11:04"]
+EXPR$0
+2018-11-08 15:11:04
+!ok
 
 # Format path
 select cast(cast('2018-11-10 15:11:04' as
     timestamp) as string format 'YYYY-MM-DDTHH24:MI:SSZ');
-assert result.data == ["2018-11-10T15:11:04Z"]
+EXPR$0
+2018-11-10T15:11:04Z
+!ok
 
 ### lowercase_format_elements #################################################
 #
 select cast('2019-11-20 15:59:44.123456789 01:01' as
     timestamp format 'yyyy-mm-dd hh24:mi:ss.ff9 tzh-tzm');
-assert result.data == ["2019-11-20 15:59:44.123456789"]
+EXPR$0
+2019-11-20 15:59:44.123456789
+!ok
 
 select cast('2019-300 15:59:44.123456789 01:01' as
     timestamp format 'yyyy-ddd hh24:mi:ss.ff9 tzh-tzm');
-assert result.data == ["2019-10-27 15:59:44.123456789"]
+EXPR$0
+2019-10-27 15:59:44.123456789
+!ok
 
 select cast('2019-11-21 11:59:44.123456789 p.m. 01:01'
     as timestamp format 'yyyy-mm-dd hh12:mi:ss.ff9 am tzh-tzm');
-assert result.data == ["2019-11-21 23:59:44.123456789"]
+EXPR$0
+2019-11-21 23:59:44.123456789
+!ok
 
 select cast('2019-11-22 10000.123456789 02:02'
     as timestamp format 'yyyy-mm-dd sssss ff9 tzh-tzm');
-assert result.data == ["2019-11-22 02:46:40.123456789"]
+EXPR$0
+2019-11-22 02:46:40.123456789
+!ok
 
 ### year #################################################
 #
 # Test lower boundary of year
 select cast('1399-05-01' as
     timestamp FORMAT 'YYYY-MM-DD');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # YYYY with less than 4 digits in the input
 !set now_string '2019-01-01 11:11:11'
 
 select cast('095-01-31' as
     timestamp FORMAT 'YYYY-MM-DD');
-assert result.data == ["2095-01-31 00:00:00"]
+EXPR$0
+2095-01-31 00:00:00
+!ok
 
 select cast('95-02-28' as
     timestamp FORMAT 'YYYY-MM-DD');
-assert result.data == ["2095-02-28 00:00:00"]
+EXPR$0
+2095-02-28 00:00:00
+!ok
 
 select cast('5-03-31' as
     timestamp FORMAT 'YYYY-MM-DD');
-assert result.data == ["2015-03-31 00:00:00"]
+EXPR$0
+2015-03-31 00:00:00
+!ok
 
 # YYY with less than 3 digits in the input
 select cast('95-04-30' as
     timestamp FORMAT 'YYY-MM-DD');
-assert result.data == ["2095-04-30 00:00:00"]
+EXPR$0
+2095-04-30 00:00:00
+!ok
 
 select cast('5-05-31' as
     timestamp FORMAT 'YYY-MM-DD');
-assert result.data == ["2015-05-31 00:00:00"]
+EXPR$0
+2015-05-31 00:00:00
+!ok
 
 # YY with 1 digits in the input
 select cast('5-06-30' as
     timestamp FORMAT 'YY-MM-DD');
-assert result.data == ["2015-06-30 00:00:00"]
+EXPR$0
+2015-06-30 00:00:00
+!ok
 
 # YYY, YY, Y tokens without separators
 select cast('0950731' as
     timestamp FORMAT 'YYYMMDD');
-assert result.data == ["2095-07-31 00:00:00"]
+EXPR$0
+2095-07-31 00:00:00
+!ok
 
 select cast('950831' as
     timestamp FORMAT 'YYMMDD');
-assert result.data == ["2095-08-31 00:00:00"]
+EXPR$0
+2095-08-31 00:00:00
+!ok
 
 select cast('50930' as
     timestamp FORMAT 'YMMDD');
-assert result.data == ["2015-09-30 00:00:00"]
+EXPR$0
+2015-09-30 00:00:00
+!ok
 
 # Timestamp to string formatting
 select cast(cast('2019-01-01' as timestamp) as string
     format 'YYYY');
-assert result.data == ["2019"]
+EXPR$0
+2019
+!ok
 
 select cast(cast('2019-01-01' as timestamp) as string
     format 'YYY');
-assert result.data == ["019"]
+EXPR$0
+019
+!ok
 
 select cast(cast('2019-01-01' as timestamp) as string
     format 'YY');
-assert result.data == ["19"]
+EXPR$0
+19
+!ok
 
 select cast(cast('2019-01-01' as timestamp) as string
     format 'Y');
-assert result.data == ["9"]
+EXPR$0
+9
+!ok
 !set now_string null
 
 ### round_year #################################################
@@ -245,79 +335,111 @@ assert result.data == ["9"]
 # Test lower boundar of round year
 select cast('1399-05-01' as
     timestamp FORMAT 'RRRR-MM-DD');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('1400-05-21' as
     timestamp FORMAT 'RRRR-MM-DD');
-assert result.data == ["1400-05-21 00:00:00"]
+EXPR$0
+1400-05-21 00:00:00
+!ok
 
 # RRRR with 4-digit year falls back to YYYY
 !set now_string '2019-01-01 11:11:11'
 select cast('2017-05-31' as
     timestamp FORMAT 'RRRR-MM-DD');
-assert result.data == ["2017-05-31 00:00:00"]
+EXPR$0
+2017-05-31 00:00:00
+!ok
 
 # RRRR with 3-digit year fills digits from current year
 select cast('017-01-31' as
     timestamp FORMAT 'RRRR-MM-DD');
-assert result.data == ["2017-01-31 00:00:00"]
+EXPR$0
+2017-01-31 00:00:00
+!ok
 
 # RRRR wit 1-digit year fills digits from current year
 select cast('0-07-31' as
     timestamp FORMAT 'RRRR-MM-DD');
-assert result.data == ["2010-07-31 00:00:00"]
+EXPR$0
+2010-07-31 00:00:00
+!ok
 
 # RR with 1-digit year fills digits from current year
 select cast('9-08-31' as
     timestamp FORMAT 'RR-MM-DD');
-assert result.data == ["2019-08-31 00:00:00"]
+EXPR$0
+2019-08-31 00:00:00
+!ok
 
 # Round year when last 2 digits of current year is less than 50
 !set now_string '2049-01-01 11:11:11'
 select cast('49-03-31' as
     timestamp FORMAT 'RRRR-MM-DD');
-assert result.data == ["2049-03-31 00:00:00"]
+EXPR$0
+2049-03-31 00:00:00
+!ok
 
 select cast('50-03-31' as
     timestamp FORMAT 'RRRR-MM-DD');
-assert result.data == ["1950-03-31 00:00:00"]
+EXPR$0
+1950-03-31 00:00:00
+!ok
 
 !set now_string '2000-01-01 11:11:11'
 select cast('49-03-31' as
     timestamp FORMAT 'RR-MM-DD');
-assert result.data == ["2049-03-31 00:00:00"]
+EXPR$0
+2049-03-31 00:00:00
+!ok
 
 select cast('50-03-31' as
     timestamp FORMAT 'RR-MM-DD');
-assert result.data == ["1950-03-31 00:00:00"]
+EXPR$0
+1950-03-31 00:00:00
+!ok
 
 # Round year when last 2 digits of current year is greater than 49
 !set now_string '2050-01-01 11:11:11'
 select cast('49-03-31' as
     timestamp FORMAT 'RRRR-MM-DD');
-assert result.data == ["2149-03-31 00:00:00"]
+EXPR$0
+2149-03-31 00:00:00
+!ok
 
 select cast('50-03-31' as
     timestamp FORMAT 'RRRR-MM-DD');
-assert result.data == ["2050-03-31 00:00:00"]
+EXPR$0
+2050-03-31 00:00:00
+!ok
 
 !set now_string '2099-01-01 11:11:11'
 select cast('49-03-31' as
     timestamp FORMAT 'RR-MM-DD');
-assert result.data == ["2149-03-31 00:00:00"]
+EXPR$0
+2149-03-31 00:00:00
+!ok
 
 select cast('50-03-31' as
     timestamp FORMAT 'RR-MM-DD');
-assert result.data == ["2050-03-31 00:00:00"]
+EXPR$0
+2050-03-31 00:00:00
+!ok
 
 # In a datetime to sting cast round year act like regular 'YYYY' or 'YY' tokens.
 select cast(cast('2019-01-01' as timestamp) as string
     format 'RRRR');
-assert result.data == ["2019"]
+EXPR$0
+2019
+!ok
 
 select cast(cast('2019-01-01' as timestamp) as string
     format 'RR');
-assert result.data == ["19"]
+EXPR$0
+19
+!ok
 !set now_string null
 
 ### month_name #################################################
@@ -325,478 +447,708 @@ assert result.data == ["19"]
 # Test different lowercase vs uppercase scenarios with the string to datetime path.
 select cast('2010-February-11' as timestamp FORMAT
     'YYYY-MONTH-DD');
-assert result.data == ["2010-02-11 00:00:00"]
+EXPR$0
+2010-02-11 00:00:00
+!ok
 
 select cast('2010-march-12' as timestamp FORMAT
     'YYYY-MONTH-DD');
-assert result.data == ["2010-03-12 00:00:00"]
+EXPR$0
+2010-03-12 00:00:00
+!ok
 
 select cast('APRIL 13 2010' as date FORMAT
     'MONTH DD YYYY');
-assert result.data == ["2010-04-13"]
+EXPR$0
+2010-04-13
+!ok
 
 select cast('2010 14 MAY' as timestamp FORMAT
     'YYYY DD MONTH');
-assert result.data == ["2010-05-14 00:00:00"]
+EXPR$0
+2010-05-14 00:00:00
+!ok
 
 select cast('2010 14 June' as timestamp FORMAT
     'YYYY DD MONTH');
-assert result.data == ["2010-06-14 00:00:00"]
+EXPR$0
+2010-06-14 00:00:00
+!ok
 
 select cast('2010 14 july' as timestamp FORMAT
     'YYYY DD MONTH');
-assert result.data == ["2010-07-14 00:00:00"]
+EXPR$0
+2010-07-14 00:00:00
+!ok
 
 select cast('2010 14 AUGUST' as timestamp FORMAT
     'YYYY DD MONTH');
-assert result.data == ["2010-08-14 00:00:00"]
+EXPR$0
+2010-08-14 00:00:00
+!ok
 
 select cast('2010 14 September' as date FORMAT
     'YYYY DD month');
-assert result.data == ["2010-09-14"]
+EXPR$0
+2010-09-14
+!ok
 
 select cast('2010 14 october' as date FORMAT
     'YYYY DD month');
-assert result.data == ["2010-10-14"]
+EXPR$0
+2010-10-14
+!ok
 
 select cast('2010 14 NOVEMBER' as date FORMAT
     'YYYY DD month');
-assert result.data == ["2010-11-14"]
+EXPR$0
+2010-11-14
+!ok
 
 select cast('2010 14 December' as date FORMAT
     'YYYY DD month');
-assert result.data == ["2010-12-14"]
+EXPR$0
+2010-12-14
+!ok
 
 select cast('2010 14 january' as date FORMAT
     'YYYY DD month');
-assert result.data == ["2010-01-14"]
+EXPR$0
+2010-01-14
+!ok
 
 # Test different lowercase vs uppercase scenarios with the datetime to string path.
 select cast(date'2010-10-18' as string FORMAT
     'MONTH Month month');
-assert result.data == ["OCTOBER   October   october  "]
+EXPR$0
+OCTOBER   October   october  
+!ok
 
 select cast(cast('2010-11-18' as timestamp) as string
     FORMAT 'MONTH Month month');
-assert result.data == ["NOVEMBER  November  november "]
+EXPR$0
+NOVEMBER  November  november 
+!ok
 
 select cast(date'2010-12-19' as string FORMAT
     'MONTH Month month');
-assert result.data == ["DECEMBER  December  december "]
+EXPR$0
+DECEMBER  December  december 
+!ok
 
 select cast(date'2010-01-19' as string FORMAT
     'MONTH Month month');
-assert result.data == ["JANUARY   January   january  "]
+EXPR$0
+JANUARY   January   january  
+!ok
 
 select cast(date'2010-02-19' as string FORMAT
     'MONTH Month month');
-assert result.data == ["FEBRUARY  February  february "]
+EXPR$0
+FEBRUARY  February  february 
+!ok
 
 select cast(date'2010-03-19' as string FORMAT
     'MONTH Month month');
-assert result.data == ["MARCH     March     march    "]
+EXPR$0
+MARCH     March     march    
+!ok
 
 select cast(date'2010-04-19' as string FORMAT
     'MONTH Month month');
-assert result.data == ["APRIL     April     april    "]
+EXPR$0
+APRIL     April     april    
+!ok
 
 select cast(date'2010-05-19' as string FORMAT
     'MONTH Month month');
-assert result.data == ["MAY       May       may      "]
+EXPR$0
+MAY       May       may      
+!ok
 
 select cast(date'2010-06-19' as string FORMAT
     'MONTH Month month');
-assert result.data == ["JUNE      June      june     "]
+EXPR$0
+JUNE      June      june     
+!ok
 
 select cast(date'2010-07-19' as string FORMAT
     'MONTH Month month');
-assert result.data == ["JULY      July      july     "]
+EXPR$0
+JULY      July      july     
+!ok
 
 select cast(date'2010-08-19' as string FORMAT
     'MONTH Month month');
-assert result.data == ["AUGUST    August    august   "]
+EXPR$0
+AUGUST    August    august   
+!ok
 
 select cast(date'2010-09-19' as string FORMAT
     'MONTH Month month');
-assert result.data == ["SEPTEMBER September september"]
+EXPR$0
+SEPTEMBER September september
+!ok
 
 # Test odd casing of month token.
 select cast(date'2010-09-20' as string FORMAT
     'MOnth MONth MONTh');
-assert result.data == ["SEPTEMBER SEPTEMBER SEPTEMBER"]
+EXPR$0
+SEPTEMBER SEPTEMBER SEPTEMBER
+!ok
 
 select cast(date'2010-09-21' as string FORMAT
     'montH monTH moNTH moNTH');
-assert result.data == ["september september september september"]
+EXPR$0
+september september september september
+!ok
 
 # Test different lowercase vs uppercase scenarios with the datetime to string path
 # when FM is provided.
 select cast(date'2010-10-18' as string FORMAT
     'FMMONTH FMMonth FMmonth');
-assert result.data == ["OCTOBER October october"]
+EXPR$0
+OCTOBER October october
+!ok
 
 select cast(cast('2010-11-18' as timestamp) as string
     FORMAT 'FMMONTH FMMonth FMmonth');
-assert result.data == ["NOVEMBER November november"]
+EXPR$0
+NOVEMBER November november
+!ok
 
 select cast(date'2010-12-19' as string FORMAT
     'FMMONTH FMMonth FMmonth');
-assert result.data == ["DECEMBER December december"]
+EXPR$0
+DECEMBER December december
+!ok
 
 select cast(date'2010-01-19' as string FORMAT
     'FMMONTH FMMonth FMmonth');
-assert result.data == ["JANUARY January january"]
+EXPR$0
+JANUARY January january
+!ok
 
 select cast(date'2010-02-19' as string FORMAT
     'FMMONTH FMMonth FMmonth');
-assert result.data == ["FEBRUARY February february"]
+EXPR$0
+FEBRUARY February february
+!ok
 
 select cast(date'2010-03-19' as string FORMAT
     'FMMONTH FMMonth FMmonth');
-assert result.data == ["MARCH March march"]
+EXPR$0
+MARCH March march
+!ok
 
 select cast(date'2010-04-19' as string FORMAT
     'FMMONTH FMMonth FMmonth');
-assert result.data == ["APRIL April april"]
+EXPR$0
+APRIL April april
+!ok
 
 select cast(date'2010-05-19' as string FORMAT
     'FMMONTH FMMonth FMmonth');
-assert result.data == ["MAY May may"]
+EXPR$0
+MAY May may
+!ok
 
 select cast(date'2010-06-19' as string FORMAT
     'FMMONTH FMMonth FMmonth');
-assert result.data == ["JUNE June june"]
+EXPR$0
+JUNE June june
+!ok
 
 select cast(date'2010-07-19' as string FORMAT
     'FMMONTH FMMonth FMmonth');
-assert result.data == ["JULY July july"]
+EXPR$0
+JULY July july
+!ok
 
 select cast(date'2010-08-19' as string FORMAT
     'FMMONTH FMMonth FMmonth');
-assert result.data == ["AUGUST August august"]
+EXPR$0
+AUGUST August august
+!ok
 
 select cast(date'2010-09-19' as string FORMAT
     'FMMONTH FMMonth FMmonth');
-assert result.data == ["SEPTEMBER September september"]
+EXPR$0
+SEPTEMBER September september
+!ok
 
 # Incorrect month name.
 select cast('2010 15 JU' as timestamp FORMAT
     'YYYY DD MONTH');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # MONTH token without surrounding separators.
 select cast('2010SEPTEMBER17' as date FORMAT
     'YYYYMONTHDD');
-assert result.data == ["2010-09-17"]
+EXPR$0
+2010-09-17
+!ok
 
 select cast('2010OCTOBER17' as timestamp FORMAT
     'YYYYMONTHDD');
-assert result.data == ["2010-10-17 00:00:00"]
+EXPR$0
+2010-10-17 00:00:00
+!ok
 
 # Applying FX and FM modifiers on Month token.
 select cast(cast('2010-07-20' as timestamp) as string
     FORMAT 'YYYYmonthDD');
-assert result.data == ["2010july     20"]
+EXPR$0
+2010july     20
+!ok
 
 select cast(date'2010-09-20' as string
     FORMAT 'YYYYmonthDD');
-assert result.data == ["2010september20"]
+EXPR$0
+2010september20
+!ok
 
 select cast(cast('2010-08-20' as timestamp) as string
     FORMAT 'YYYYFMMonthDD');
-assert result.data == ["2010August20"]
+EXPR$0
+2010August20
+!ok
 
 select cast(cast('2010-10-20' as timestamp) as string
     FORMAT 'FXYYYYFMMONTHDD');
-assert result.data == ["2010OCTOBER20"]
+EXPR$0
+2010OCTOBER20
+!ok
 
 select cast('2010-February-19' as timestamp FORMAT
     'FXYYYY-MONTH-DD');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('2010-February -21' as timestamp FORMAT
     'FXYYYY-MONTH-DD');
-assert result.data == ["2010-02-21 00:00:00"]
+EXPR$0
+2010-02-21 00:00:00
+!ok
 
 select cast('2010-February 22' as date FORMAT
     'FXYYYY-MONTHDD');
-assert result.data == ["2010-02-22"]
+EXPR$0
+2010-02-22
+!ok
 
 select cast('2010-February-20' as timestamp FORMAT
     'FXYYYY-FMMONTH-DD');
-assert result.data == ["2010-02-20 00:00:00"]
+EXPR$0
+2010-02-20 00:00:00
+!ok
 
 ### short_month_name #################################################
 #
 # Test different lowercase vs uppercase scenarios with the string to datetime path.
 select cast('2015-Feb-11' as timestamp FORMAT
     'YYYY-MON-DD');
-assert result.data == ["2015-02-11 00:00:00"]
+EXPR$0
+2015-02-11 00:00:00
+!ok
 
 select cast('2015-mar-12' as timestamp FORMAT
     'YYYY-MON-DD');
-assert result.data == ["2015-03-12 00:00:00"]
+EXPR$0
+2015-03-12 00:00:00
+!ok
 
 select cast('APR 13 2015' as timestamp FORMAT
     'MON DD YYYY');
-assert result.data == ["2015-04-13 00:00:00"]
+EXPR$0
+2015-04-13 00:00:00
+!ok
 
 select cast('2015 14 MAY' as timestamp FORMAT
     'YYYY DD MON');
-assert result.data == ["2015-05-14 00:00:00"]
+EXPR$0
+2015-05-14 00:00:00
+!ok
 
 select cast('2015 14 jun' as timestamp FORMAT
     'YYYY DD MON');
-assert result.data == ["2015-06-14 00:00:00"]
+EXPR$0
+2015-06-14 00:00:00
+!ok
 
 select cast('2015 14 Jul' as timestamp FORMAT
     'YYYY DD MON');
-assert result.data == ["2015-07-14 00:00:00"]
+EXPR$0
+2015-07-14 00:00:00
+!ok
 
 select cast('2015 14 AUG' as timestamp FORMAT
     'YYYY DD MON');
-assert result.data == ["2015-08-14 00:00:00"]
+EXPR$0
+2015-08-14 00:00:00
+!ok
 
 select cast('2015 14 Sep' as timestamp FORMAT
     'YYYY DD mon');
-assert result.data == ["2015-09-14 00:00:00"]
+EXPR$0
+2015-09-14 00:00:00
+!ok
 
 select cast('2015 14 oct' as timestamp FORMAT
     'YYYY DD mon');
-assert result.data == ["2015-10-14 00:00:00"]
+EXPR$0
+2015-10-14 00:00:00
+!ok
 
 select cast('2015 14 nov' as timestamp FORMAT
     'YYYY DD mon');
-assert result.data == ["2015-11-14 00:00:00"]
+EXPR$0
+2015-11-14 00:00:00
+!ok
 
 select cast('2015 14 DEC' as timestamp FORMAT
     'YYYY DD mon');
-assert result.data == ["2015-12-14 00:00:00"]
+EXPR$0
+2015-12-14 00:00:00
+!ok
 
 select cast('2015 14 Jan' as timestamp FORMAT
     'YYYY DD mon');
-assert result.data == ["2015-01-14 00:00:00"]
+EXPR$0
+2015-01-14 00:00:00
+!ok
 
 # Test different lowercase vs uppercase scenarios with the datetime to string path.
 select cast(date'2015-10-18' as string FORMAT
     'MON Mon mon');
-assert result.data == ["OCT Oct oct"]
+EXPR$0
+OCT Oct oct
+!ok
 
 select cast(cast('2015-11-18' as timestamp) as string
     FORMAT 'MON Mon mon');
-assert result.data == ["NOV Nov nov"]
+EXPR$0
+NOV Nov nov
+!ok
 
 select cast(date'2015-12-19' as string FORMAT
     'MON Mon mon');
-assert result.data == ["DEC Dec dec"]
+EXPR$0
+DEC Dec dec
+!ok
 
 select cast(date'2015-01-19' as string FORMAT
     'MON Mon mon');
-assert result.data == ["JAN Jan jan"]
+EXPR$0
+JAN Jan jan
+!ok
 
 select cast(date'2015-02-19' as string FORMAT
     'MON Mon mon');
-assert result.data == ["FEB Feb feb"]
+EXPR$0
+FEB Feb feb
+!ok
 
 select cast(date'2015-03-19' as string FORMAT
     'MON Mon mon');
-assert result.data == ["MAR Mar mar"]
+EXPR$0
+MAR Mar mar
+!ok
 
 select cast(date'2015-04-19' as string FORMAT
     'MON Mon mon');
-assert result.data == ["APR Apr apr"]
+EXPR$0
+APR Apr apr
+!ok
 
 select cast(date'2015-05-19' as string FORMAT
     'MON Mon mon');
-assert result.data == ["MAY May may"]
+EXPR$0
+MAY May may
+!ok
 
 select cast(date'2015-06-19' as string FORMAT
     'MON Mon mon');
-assert result.data == ["JUN Jun jun"]
+EXPR$0
+JUN Jun jun
+!ok
 
 select cast(date'2015-07-19' as string FORMAT
     'MON Mon mon');
-assert result.data == ["JUL Jul jul"]
+EXPR$0
+JUL Jul jul
+!ok
 
 select cast(date'2015-08-19' as string FORMAT
     'MON Mon mon');
-assert result.data == ["AUG Aug aug"]
+EXPR$0
+AUG Aug aug
+!ok
 
 select cast(date'2015-09-19' as string FORMAT
     'MON Mon mon');
-assert result.data == ["SEP Sep sep"]
+EXPR$0
+SEP Sep sep
+!ok
 
 # Test odd casing of short month token.
 select cast(date'2010-09-22' as string FORMAT
     'MOn mON moN');
-assert result.data == ["SEP sep sep"]
+EXPR$0
+SEP sep sep
+!ok
 
 # Incorrect month name.
 select cast('2015 15 JU' as timestamp FORMAT
     'YYYY DD MON');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # MON token without separators in the format.
 select cast('2015AUG17' as date FORMAT
     'YYYYMONDD');
-assert result.data == ["2015-08-17"]
+EXPR$0
+2015-08-17
+!ok
 
 select cast(cast('2015-07-20' as timestamp) as string
     FORMAT 'YYYYmonDD');
-assert result.data == ["2015jul20"]
+EXPR$0
+2015jul20
+!ok
 
 # FX/FM has no effect on MON.
 select cast(cast('2015-08-21' as timestamp) as string
     FORMAT 'FXYYYYmonDD');
-assert result.data == ["2015aug21"]
+EXPR$0
+2015aug21
+!ok
 
 select cast(date'2015-09-22' as string
     FORMAT 'FXYYYYFMMonDD');
-assert result.data == ["2015Sep22"]
+EXPR$0
+2015Sep22
+!ok
 
 ### week_of_year #################################################
 #
 select cast(cast('2019-01-01' as timestamp) as string
     FORMAT 'WW');
-assert result.data == ["01"]
+EXPR$0
+01
+!ok
 
 select cast(date'2019-01-07' as string
     FORMAT 'WW');
-assert result.data == ["01"]
+EXPR$0
+01
+!ok
 
 select cast(cast('2019-01-08' as timestamp) as string
     FORMAT 'WW');
-assert result.data == ["02"]
+EXPR$0
+02
+!ok
 
 select cast(date'2019-02-01' as string
     FORMAT 'WW');
-assert result.data == ["05"]
+EXPR$0
+05
+!ok
 
 select cast(cast('2019-02-05' as timestamp) as string
     FORMAT 'WW');
-assert result.data == ["06"]
+EXPR$0
+06
+!ok
 
 select cast(date'2019-12-01' as string
     FORMAT 'WW');
-assert result.data == ["48"]
+EXPR$0
+48
+!ok
 
 select cast(cast('2019-12-02' as timestamp) as string
     FORMAT 'WW');
-assert result.data == ["48"]
+EXPR$0
+48
+!ok
 
 select cast(date'2019-12-03' as string
     FORMAT 'WW');
-assert result.data == ["49"]
+EXPR$0
+49
+!ok
 
 select cast(cast('2019-12-30' as timestamp) as string
     FORMAT 'WW');
-assert result.data == ["52"]
+EXPR$0
+52
+!ok
 
 select cast(date'2019-12-31' as string
     FORMAT 'WW');
-assert result.data == ["53"]
+EXPR$0
+53
+!ok
 
 select cast(cast('2020-01-01' as timestamp) as string
     FORMAT 'WW');
-assert result.data == ["01"]
+EXPR$0
+01
+!ok
 
 ### week_of_month #################################################
 #
 select cast(cast('2019-01-01' as timestamp) as string
     FORMAT 'W');
-assert result.data == ["1"]
+EXPR$0
+1
+!ok
 
 select cast(date'2019-01-07' as string
     FORMAT 'W');
-assert result.data == ["1"]
+EXPR$0
+1
+!ok
 
 select cast(cast('2019-01-08' as timestamp) as string
     FORMAT 'W');
-assert result.data == ["2"]
+EXPR$0
+2
+!ok
 
 select cast(date'2019-01-14' as string
     FORMAT 'W');
-assert result.data == ["2"]
+EXPR$0
+2
+!ok
 
 select cast(cast('2019-01-15' as timestamp) as string
     FORMAT 'W');
-assert result.data == ["3"]
+EXPR$0
+3
+!ok
 
 select cast(date'2019-01-21' as string
     FORMAT 'W');
-assert result.data == ["3"]
+EXPR$0
+3
+!ok
 
 select cast(cast('2019-01-22' as timestamp) as string
     FORMAT 'W');
-assert result.data == ["4"]
+EXPR$0
+4
+!ok
 
 select cast(date'2019-01-28' as string
     FORMAT 'W');
-assert result.data == ["4"]
+EXPR$0
+4
+!ok
 
 select cast(cast('2019-01-29' as timestamp) as string
     FORMAT 'W');
-assert result.data == ["5"]
+EXPR$0
+5
+!ok
 
 select cast(date'2019-02-01' as string
     FORMAT 'W');
-assert result.data == ["1"]
+EXPR$0
+1
+!ok
 
 ### day_in_year #################################################
 #
 # Test "day in year" token in a non leap year scenario
 select cast('2019 1' as timestamp FORMAT 'YYYY DDD');
-assert result.data == ["2019-01-01 00:00:00"]
+EXPR$0
+2019-01-01 00:00:00
+!ok
 
 select cast('2019 31' as timestamp FORMAT 'YYYY DDD');
-assert result.data == ["2019-01-31 00:00:00"]
+EXPR$0
+2019-01-31 00:00:00
+!ok
 
 select cast('2019 32' as timestamp FORMAT 'YYYY DDD');
-assert result.data == ["2019-02-01 00:00:00"]
+EXPR$0
+2019-02-01 00:00:00
+!ok
 
 select cast('2019 60' as timestamp FORMAT 'YYYY DDD');
-assert result.data == ["2019-03-01 00:00:00"]
+EXPR$0
+2019-03-01 00:00:00
+!ok
 
 select cast('2019 365' as timestamp FORMAT 'YYYY DDD');
-assert result.data == ["2019-12-31 00:00:00"]
+EXPR$0
+2019-12-31 00:00:00
+!ok
 
 select cast('2019 366' as timestamp FORMAT 'YYYY DDD');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # Test "day in year" token in a leap year scenario
 select cast('2000 60' as timestamp FORMAT 'YYYY DDD');
-assert result.data == ["2000-02-29 00:00:00"]
+EXPR$0
+2000-02-29 00:00:00
+!ok
 
 select cast('2000 61' as timestamp FORMAT 'YYYY DDD');
-assert result.data == ["2000-03-01 00:00:00"]
+EXPR$0
+2000-03-01 00:00:00
+!ok
 
 select cast('2000 366' as timestamp FORMAT 'YYYY DDD');
-assert result.data == ["2000-12-31 00:00:00"]
+EXPR$0
+2000-12-31 00:00:00
+!ok
 
 select cast('2000 367' as timestamp FORMAT 'YYYY DDD');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # Test "day in year" token without separators
 select cast('20190011120' as timestamp
     FORMAT 'YYYYDDDHH12MI');
-assert result.data == ["2019-01-01 11:20:00"]
+EXPR$0
+2019-01-01 11:20:00
+!ok
 
 # Timestamp to string formatting
 select cast(cast('2019-01-01' as timestamp) as string
     format'DDD');
-assert result.data == ["001"]
+EXPR$0
+001
+!ok
 
 select cast(cast('2019-12-31' as timestamp) as string
     format'DDD');
-assert result.data == ["365"]
+EXPR$0
+365
+!ok
 
 select cast(cast('2000-12-31' as timestamp) as string
     format'DDD');
-assert result.data == ["366"]
+EXPR$0
+366
+!ok
 
 select cast(cast('2019 123' as timestamp
     format 'YYYY DDD') as string format'DDD');
-assert result.data == ["123"]
+EXPR$0
+123
+!ok
 
 ### day_name #################################################
 #
@@ -830,25 +1182,35 @@ assert result.data == [
 # String to datetime: Incorrect day name.
 select cast('2010 09 Mondau' as timestamp FORMAT
     'IYYY IW DAY');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # String to datetime: DAY token without surrounding separators.
 select cast('2010MONDAY09' as date FORMAT 'IYYYDAYIW'),
            cast('2010WEDNESDAY9' as timestamp FORMAT 'IYYYDAYIW');
-assert result.data == ["2010-03-01\t2010-03-03 00:00:00"]
+EXPR$0
+2010-03-01\t2010-03-03 00:00:00
+!ok
 # And now with short day names.
 select cast('2010MON09' as date FORMAT 'IYYYDYIW'),
            cast('2010WED9' as timestamp FORMAT 'IYYYDYIW');
-assert result.data == ["2010-03-01\t2010-03-03 00:00:00"]
+EXPR$0
+2010-03-01\t2010-03-03 00:00:00
+!ok
 
 # String to datetime: FX and FM modifiers.
 select cast('2010-Monday-09' as timestamp FORMAT 'FXIYYY-DAY-IW'),
            cast('2010-Monday  X-09' as timestamp FORMAT 'FXIYYY-DAY-IW');
-assert result.data == ["NULL\tNULL"]
+EXPR$0
+NULL\tNULL
+!ok
 
 select cast('2010-Monday   -09' as timestamp FORMAT 'FXIYYY-DAY-IW'),
            cast('2010-Monday   09' as date FORMAT 'FXIYYY-DAYIW');
-assert result.data == ["2010-03-01 00:00:00\t2010-03-01"]
+EXPR$0
+2010-03-01 00:00:00\t2010-03-01
+!ok
 
 select cast('2010-Monday-09' as timestamp FORMAT 'FXIYYY-FMDAY-IW'),
            cast('2010-Monday09' as timestamp FORMAT 'FXIYYY-FMDAYIW'),
@@ -859,189 +1221,273 @@ assert result.data == ["2010-03-01 00:00:00\t2010-03-01 00:00:00\t"
 # Datetime to string: Different lowercase and uppercase scenarios.
 select cast(date'2019-11-13' as string
     format 'DAY Day day DY Dy dy');
-assert result.data == ["WEDNESDAY Wednesday wednesday WED Wed wed"]
+EXPR$0
+WEDNESDAY Wednesday wednesday WED Wed wed
+!ok
 
 select cast(cast('2019-11-14' as timestamp) as string
     format 'DAY Day day DY Dy dy');
-assert result.data == ["THURSDAY  Thursday  thursday  THU Thu thu"]
+EXPR$0
+THURSDAY  Thursday  thursday  THU Thu thu
+!ok
 
 select cast(date'2019-11-15' as string
     format 'DAY Day day DY Dy dy');
-assert result.data == ["FRIDAY    Friday    friday    FRI Fri fri"]
+EXPR$0
+FRIDAY    Friday    friday    FRI Fri fri
+!ok
 
 select cast(cast('2019-11-16' as timestamp) as string
     format 'DAY Day day DY Dy dy');
-assert result.data == ["SATURDAY  Saturday  saturday  SAT Sat sat"]
+EXPR$0
+SATURDAY  Saturday  saturday  SAT Sat sat
+!ok
 
 select cast(date'2019-11-17' as string
     format 'DAY Day day DY Dy dy');
-assert result.data == ["SUNDAY    Sunday    sunday    SUN Sun sun"]
+EXPR$0
+SUNDAY    Sunday    sunday    SUN Sun sun
+!ok
 
 select cast(cast('2019-11-18' as timestamp) as string
     format 'DAY Day day DY Dy dy');
-assert result.data == ["MONDAY    Monday    monday    MON Mon mon"]
+EXPR$0
+MONDAY    Monday    monday    MON Mon mon
+!ok
 
 select cast(date'2019-11-19' as string
     format 'DAY Day day DY Dy dy');
-assert result.data == ["TUESDAY   Tuesday   tuesday   TUE Tue tue"]
+EXPR$0
+TUESDAY   Tuesday   tuesday   TUE Tue tue
+!ok
 
 # Datetime to string: Different lowercase and uppercase scenarios when FM is provided.
 select cast(cast('2019-11-13' as timestamp) as string
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
-assert result.data == ["WEDNESDAY Wednesday wednesday WED Wed wed"]
+EXPR$0
+WEDNESDAY Wednesday wednesday WED Wed wed
+!ok
 
 select cast(date'2019-11-14' as string
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
-assert result.data == ["THURSDAY Thursday thursday THU Thu thu"]
+EXPR$0
+THURSDAY Thursday thursday THU Thu thu
+!ok
 
 select cast(cast('2019-11-15' as timestamp) as string
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
-assert result.data == ["FRIDAY Friday friday FRI Fri fri"]
+EXPR$0
+FRIDAY Friday friday FRI Fri fri
+!ok
 
 select cast(date'2019-11-16' as string
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
-assert result.data == ["SATURDAY Saturday saturday SAT Sat sat"]
+EXPR$0
+SATURDAY Saturday saturday SAT Sat sat
+!ok
 
 select cast(cast('2019-11-17' as timestamp) as string
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
-assert result.data == ["SUNDAY Sunday sunday SUN Sun sun"]
+EXPR$0
+SUNDAY Sunday sunday SUN Sun sun
+!ok
 
 select cast(date'2019-11-18' as string
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
-assert result.data == ["MONDAY Monday monday MON Mon mon"]
+EXPR$0
+MONDAY Monday monday MON Mon mon
+!ok
 
 select cast(cast('2019-11-19' as timestamp) as string
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
-assert result.data == ["TUESDAY Tuesday tuesday TUE Tue tue"]
+EXPR$0
+TUESDAY Tuesday tuesday TUE Tue tue
+!ok
 
 # Datetime to string: Test odd casing of day token.
 select cast(date'2010-01-20' as string FORMAT
     'DAy dAY daY dY');
-assert result.data == ["WEDNESDAY wednesday wednesday wed"]
+EXPR$0
+WEDNESDAY wednesday wednesday wed
+!ok
 
 # Datetime to string: Day token without surrounding separators.
 select cast(date'2019-11-11' as string
     format 'YYYYDayMonth');
-assert result.data == ["2019Monday   November "]
+EXPR$0
+2019Monday   November 
+!ok
 
 select cast(cast('2019-11-12' as timestamp) as string
     format 'YYYYDYDD');
-assert result.data == ["2019TUE12"]
+EXPR$0
+2019TUE12
+!ok
 
 select cast(date'2019-11-11' as string
     format 'YYYYDayMonth');
-assert result.data == ["2019Monday   November "]
+EXPR$0
+2019Monday   November 
+!ok
 
 select cast(cast('2019-11-12' as timestamp) as string
     format 'YYYYDYDD');
-assert result.data == ["2019TUE12"]
+EXPR$0
+2019TUE12
+!ok
 
 # Datetime to string: Day token with FM and FX modifiers.
 select cast(cast('2019-01-01' as timestamp) as string
     format 'FXYYYY DAY DD');
-assert result.data == ["2019 TUESDAY   01"]
+EXPR$0
+2019 TUESDAY   01
+!ok
 
 select cast(date'2019-01-01' as string
     format 'FXYYYY FMDAY DD');
-assert result.data == ["2019 TUESDAY 01"]
+EXPR$0
+2019 TUESDAY 01
+!ok
 
 select cast(cast('2019-02-02' as timestamp) as string
     format 'FXYYYY DY DD');
-assert result.data == ["2019 SAT 02"]
+EXPR$0
+2019 SAT 02
+!ok
 
 select cast(date'2019-02-02' as string
     format 'FXYYYY FMDY DD');
-assert result.data == ["2019 SAT 02"]
+EXPR$0
+2019 SAT 02
+!ok
 
 ### second_of_day #################################################
 #
 # Check boundaries
 select cast('2019-11-10 86399.11' as
     timestamp FORMAT 'YYYY-MM-DD SSSSS.FF2');
-assert result.data == ["2019-11-10 23:59:59.110000000"]
+EXPR$0
+2019-11-10 23:59:59.110000000
+!ok
 
 select cast('2019-11-10 0' as
     timestamp FORMAT 'YYYY-MM-DD SSSSS');
-assert result.data == ["2019-11-10 00:00:00"]
+EXPR$0
+2019-11-10 00:00:00
+!ok
 
 # Without separators full 5-digit "second of day" has to be given
 select cast('11-10 036612019' as
     timestamp FORMAT 'MM-DD SSSSSYYYY');
-assert result.data == ["2019-11-10 01:01:01"]
+EXPR$0
+2019-11-10 01:01:01
+!ok
 
 # Check timezone offsets with "second of day"
 select cast('2019-11-10 036611010' as
     timestamp FORMAT 'YYYY-MM-DD SSSSSTZHTZM');
-assert result.data == ["2019-11-10 01:01:01"]
+EXPR$0
+2019-11-10 01:01:01
+!ok
 
 # Timestamp to string formatting
 select cast(cast('2019-01-01 01:01:01' as timestamp)
     as string format 'SSSSS');
-assert result.data == ["03661"]
+EXPR$0
+03661
+!ok
 
 select cast(cast('2019-01-01' as timestamp) as string
     format 'SSSSS');
-assert result.data == ["00000"]
+EXPR$0
+00000
+!ok
 
 select cast(cast('2019-01-01 23:59:59' as timestamp)
     as string format 'SSSSS');
-assert result.data == ["86399"]
+EXPR$0
+86399
+!ok
 
 ### day_of_week #################################################
 #
 # Sunday is 1
 select cast(cast('2019-11-03' as timestamp) as string
     FORMAT 'D');
-assert result.data == ["1"]
+EXPR$0
+1
+!ok
 
 select cast(cast('2019-11-03' as date) as string
     FORMAT 'D');
-assert result.data == ["1"]
+EXPR$0
+1
+!ok
 
 # Wednesday is 4
 select cast(cast('2019-11-06' as timestamp) as string
     FORMAT 'D');
-assert result.data == ["4"]
+EXPR$0
+4
+!ok
 
 select cast(cast('2019-11-06' as date) as string
     FORMAT 'D');
-assert result.data == ["4"]
+EXPR$0
+4
+!ok
 
 # Saturday is 7
 select cast(cast('2019-11-09' as timestamp) as string
     FORMAT 'D');
-assert result.data == ["7"]
+EXPR$0
+7
+!ok
 
 select cast(cast('2019-11-09' as date) as string
     FORMAT 'D');
-assert result.data == ["7"]
+EXPR$0
+7
+!ok
 
 # FX and FM modifier does not pad day of week values with zeros.
 select cast(cast('2019-12-01' as date) as string
     FORMAT 'FXD');
-assert result.data == ["1"]
+EXPR$0
+1
+!ok
 
 select cast(cast('2019-12-02' as date) as string
     FORMAT 'FXFMD');
-assert result.data == ["2"]
+EXPR$0
+2
+!ok
 
 ### fraction_seconds #################################################
 #
 select cast('2019-11-08 123456789' as
     timestamp FORMAT 'YYYY-MM-DD FF9');
-assert result.data == ["2019-11-08 00:00:00.123456789"]
+EXPR$0
+2019-11-08 00:00:00.123456789
+!ok
 
 select cast('2019-11-08 1' as
     timestamp FORMAT 'YYYY-MM-DD FF');
-assert result.data == ["2019-11-08 00:00:00.100000000"]
+EXPR$0
+2019-11-08 00:00:00.100000000
+!ok
 
 select cast('2019-11-08 1234567890' as
     timestamp FORMAT 'YYYY-MM-DD FF');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('2019-11-08' as
     timestamp FORMAT 'YYYY-MM-DD FF');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 self.run_fraction_test(1)
 self.run_fraction_test(2)
@@ -1067,250 +1513,358 @@ assert result.data == [expected]
 
 input2_str = template_input % (fraction_part + str(length + 1), length)
 result = self.execute_query(input2_str)
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 ### meridiem_indicator #################################################
 #
 # Check 12 hour diff between AM and PM
 select cast('2017-05-03 08 AM' as
     timestamp FORMAT 'YYYY-MM-DD HH12 AM');
-assert result.data == ["2017-05-03 08:00:00"]
+EXPR$0
+2017-05-03 08:00:00
+!ok
 
 select cast('2017-05-04 08 PM' as
     timestamp FORMAT 'YYYY-MM-DD HH12 PM');
-assert result.data == ["2017-05-04 20:00:00"]
+EXPR$0
+2017-05-04 20:00:00
+!ok
 
 # Check that any meridiem indicator in the pattern matches any meridiem indicator in
 # the input
 select cast('2017-05-05 12AM' as
     timestamp FORMAT 'YYYY-MM-DD HH12PM');
-assert result.data == ["2017-05-05 00:00:00"]
+EXPR$0
+2017-05-05 00:00:00
+!ok
 
 select cast('2017-05-06 P.M.12' as
     timestamp FORMAT 'YYYY-MM-DD AMHH12');
-assert result.data == ["2017-05-06 12:00:00"]
+EXPR$0
+2017-05-06 12:00:00
+!ok
 
 select cast('2017-05-07 PM 01' as
     timestamp FORMAT 'YYYY-MM-DD A.M. HH12');
-assert result.data == ["2017-05-07 13:00:00"]
+EXPR$0
+2017-05-07 13:00:00
+!ok
 
 # Test lowercase indicator in input
 select cast('2017-05-08 pm09' as
     timestamp FORMAT 'YYYY-MM-DD P.M.HH12');
-assert result.data == ["2017-05-08 21:00:00"]
+EXPR$0
+2017-05-08 21:00:00
+!ok
 
 select cast('2017-05-09 10a.m.' as
     timestamp FORMAT 'YYYY-MM-DD HH12PM');
-assert result.data == ["2017-05-09 10:00:00"]
+EXPR$0
+2017-05-09 10:00:00
+!ok
 
 # Test that '.' in indicator doesn't conflict with '.' as separator
 select cast('2017-05-11 9.AM.10' as
     timestamp FORMAT 'YYYY-MM-DD HH12.P.M..MI');
-assert result.data == ["2017-05-11 09:10:00"]
+EXPR$0
+2017-05-11 09:10:00
+!ok
 
 select cast('2017-05-10.P.M..10' as
     timestamp FORMAT 'YYYY-MM-DD.AM.HH12');
-assert result.data == ["2017-05-10 22:00:00"]
+EXPR$0
+2017-05-10 22:00:00
+!ok
 
 # Timestamp to string formatting
 select cast(cast('2019-01-01 00:15:10' as timestamp)
     as string format 'HH12 P.M.');
-assert result.data == ["12 A.M."]
+EXPR$0
+12 A.M.
+!ok
 
 select cast(cast('2019-01-01 12:15:10' as timestamp)
     as string format 'HH12 AM');
-assert result.data == ["12 PM"]
+EXPR$0
+12 PM
+!ok
 
 select cast(cast('2019-01-01 13:15:10' as timestamp)
     as string format 'HH12 a.m.');
-assert result.data == ["01 p.m."]
+EXPR$0
+01 p.m.
+!ok
 
 select cast(cast('2019-01-01 23:15:10' as timestamp)
     as string format 'HH12 p.m.');
-assert result.data == ["11 p.m."]
+EXPR$0
+11 p.m.
+!ok
 
 ### timezone_offsets #################################################
 #
 # Test positive timezone offset.
 select cast('2018-01-01 10:00 AM +15:59' as
     timestamp FORMAT 'YYYY-MM-DD HH12:MI A.M. TZH:TZM');
-assert result.data == ["2018-01-01 10:00:00"]
+EXPR$0
+2018-01-01 10:00:00
+!ok
 
 # Test negative timezone offset.
 select cast('2018-12-31 08:00 PM -15:59' as
     timestamp FORMAT 'YYYY-MM-DD HH12:MI A.M. TZH:TZM');
-assert result.data == ["2018-12-31 20:00:00"]
+EXPR$0
+2018-12-31 20:00:00
+!ok
 
 # Minus sign before TZM.
 select cast('2018-12-31 08:00 AM 01:-59' as
     timestamp FORMAT 'YYYY-MM-DD HH12:MI A.M. TZH:TZM');
-assert result.data == ["2018-12-31 08:00:00"]
+EXPR$0
+2018-12-31 08:00:00
+!ok
 
 # Minus sign right before one digit TZH.
 select cast('2018-12-31 08:00 AM--1:10' as
     timestamp FORMAT 'YYYY-MM-DD HH12:MI A.M. TZH:TZM');
-assert result.data == ["2018-12-31 08:00:00"]
+EXPR$0
+2018-12-31 08:00:00
+!ok
 
 select cast('2018-12-31 08:00 AM-5:00' as
     timestamp FORMAT 'YYYY-MM-DD HH12:MI A.M.TZH:TZM');
-assert result.data == ["2018-12-31 08:00:00"]
+EXPR$0
+2018-12-31 08:00:00
+!ok
 
 select cast('2018-12-31 08:00 AM-+1:10' as
     timestamp FORMAT 'YYYY-MM-DD HH12:MI A.M. TZH:TZM');
-assert result.data == ["2018-12-31 08:00:00"]
+EXPR$0
+2018-12-31 08:00:00
+!ok
 
 # Invalid TZH and TZM
 select cast('2016-01-01 10:00 AM +16:00' as
     timestamp FORMAT 'YYYY-MM-DD HH12:MI A.M. TZH:TZM');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('2016-01-01 11:00 AM -16:00' as
     timestamp FORMAT 'YYYY-MM-DD HH12:MI A.M. TZH:TZM');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('2016-01-01 10:00 AM 16:00' as
     timestamp FORMAT 'YYYY-MM-DD HH12:MI A.M. TZH:TZM');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('2016-01-01 10:00 AM +15:60' as
     timestamp FORMAT 'YYYY-MM-DD HH12:MI A.M. TZH:TZM');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # One digit negative TZH at the end of the input string.
 select cast('2018-12-31 12:01 -1' as timestamp
     FORMAT 'YYYY-MM-DD HH24:MI TZH');
-assert result.data == ["2018-12-31 12:01:00"]
+EXPR$0
+2018-12-31 12:01:00
+!ok
 
 # Test timezone offset parsing without separators
 select cast('201812310800AM+0515' as
     timestamp FORMAT 'YYYYMMDDHH12MIA.M.TZHTZM');
-assert result.data == ["2018-12-31 08:00:00"]
+EXPR$0
+2018-12-31 08:00:00
+!ok
 
 select cast('201812310800AM0515' as
     timestamp FORMAT 'YYYYMMDDHH12MIA.M.TZHTZM');
-assert result.data == ["2018-12-31 08:00:00"]
+EXPR$0
+2018-12-31 08:00:00
+!ok
 
 select cast('201812310800AM-0515' as
     timestamp FORMAT 'YYYYMMDDHH12MIA.M.TZHTZM');
-assert result.data == ["2018-12-31 08:00:00"]
+EXPR$0
+2018-12-31 08:00:00
+!ok
 
 # Test signed zero TZH with not null TZM
 select cast('2018-01-01 10:00 AM +00:59' as
     timestamp FORMAT 'YYYY-MM-DD HH12:MI A.M. TZH:TZM');
-assert result.data == ["2018-01-01 10:00:00"]
+EXPR$0
+2018-01-01 10:00:00
+!ok
 
 select cast('2018-01-01 10:00 AM -00:59' as
     timestamp FORMAT 'YYYY-MM-DD HH12:MI A.M. TZH:TZM');
-assert result.data == ["2018-01-01 10:00:00"]
+EXPR$0
+2018-01-01 10:00:00
+!ok
 
 # Shuffle TZH and TZM into other elements
 select cast('2018-01-01 15 10:00 1 AM' as
     timestamp FORMAT 'YYYY-MM-DD TZM HH12:MI TZH A.M.');
-assert result.data == ["2018-01-01 10:00:00"]
+EXPR$0
+2018-01-01 10:00:00
+!ok
 
 select cast('2018-01-011510:00-01AM' as
     timestamp FORMAT 'YYYY-MM-DDTZMHH12:MITZHA.M.');
-assert result.data == ["2018-01-01 10:00:00"]
+EXPR$0
+2018-01-01 10:00:00
+!ok
 
 # Timezone offset with default time
 select cast('2018-01-01 01:30' as timestamp
     FORMAT 'YYYY-MM-DD TZH:TZM');
-assert result.data == ["2018-01-01 00:00:00"]
+EXPR$0
+2018-01-01 00:00:00
+!ok
 
 # Single minus sign before two digit TZH.
 select cast('2018-09-11 15:30:10-10' as timestamp
     FORMAT 'YYYY-MM-DD HH24:MI:SS-TZH');
-assert result.data == ["2018-09-11 15:30:10"]
+EXPR$0
+2018-09-11 15:30:10
+!ok
 
 # Non-digit TZH and TZM.
 select cast('2018-09-11 17:30:10 ab:10' as timestamp
     FORMAT 'YYYY-MM-DD HH24:MI:SS TZH:TZM');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('2018-09-11 17:30:10 -ab:10' as timestamp
     FORMAT 'YYYY-MM-DD HH24:MI:SS TZH:TZM');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('2018-09-11 17:30:10 +ab:10' as timestamp
     FORMAT 'YYYY-MM-DD HH24:MI:SS TZH:TZM');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('2018-09-11 18:30:10 10:ab' as timestamp
     FORMAT 'YYYY-MM-DD HH24:MI:SS TZH:TZM');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 ### text_token #################################################
 #
 # Parse ISO:8601 tokens using the text token.
 select cast('1985-11-19T01:02:03Z' as timestamp
     format 'YYYY-MM-DD"T"HH24:MI:SS"Z"');
-assert result.data == ["1985-11-19 01:02:03"]
+EXPR$0
+1985-11-19 01:02:03
+!ok
 
 # Free text at the end of the input
 select cast('1985-11-19text' as timestamp
     format 'YYYY-MM-DD"text"');
-assert result.data == ["1985-11-19 00:00:00"]
+EXPR$0
+1985-11-19 00:00:00
+!ok
 
 # Free text at the beginning of the input
 select cast('19801985-11-20' as timestamp
     format '"1980"YYYY-MM-DD');
-assert result.data == ["1985-11-20 00:00:00"]
+EXPR$0
+1985-11-20 00:00:00
+!ok
 
 # Empty text in format
 select cast('1985-11-21' as timestamp
     format '""YYYY""-""MM""-""DD""');
-assert result.data == ["1985-11-21 00:00:00"]
+EXPR$0
+1985-11-21 00:00:00
+!ok
 
 select cast('1985-11-22' as timestamp
     format 'YYYY-MM-DD""""""');
-assert result.data == ["1985-11-22 00:00:00"]
+EXPR$0
+1985-11-22 00:00:00
+!ok
 
 select cast('1985-12-09-' as timestamp
     format 'YYYY-MM-DD-""');
-assert result.data == ["1985-12-09 00:00:00"]
+EXPR$0
+1985-12-09 00:00:00
+!ok
 
 select cast('1985-12-10-' as date
     format 'FXYYYY-MM-DD-""');
-assert result.data == ["1985-12-10"]
+EXPR$0
+1985-12-10
+!ok
 
 select cast('1985-11-23' as timestamp
     format 'YYYY-MM-DD""""""HH24');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # Text in input doesn't match with the text in format
 select cast('1985-11-24Z01:02:03Z' as timestamp
     format 'YYYY-MM-DD"T"HH24:MI:SS"Z"');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('1985-11-24T01:02:04T' as timestamp
     format 'YYYY-MM-DD"T"HH24:MI:SS"Z"');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('1985-11-2401:02:05Z' as timestamp
     format 'YYYY-MM-DD"T"HH24:MI:SS"Z"');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('1985-11-24T01:02:06' as timestamp
     format 'YYYY-MM-DD"T"HH24:MI:SS"Z"');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('1985-11-24 01:02:07te' as timestamp
     format 'YYYY-MM-DD HH24:MI:SS"text"');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('1985-11-24 01:02:08text' as
     timestamp format 'YYYY-MM-DD HH24:MI:SS"te"');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # Consecutive text tokens
 select cast('1985-11text1text2-25' as timestamp
     format 'YYYY-MM"text1""text2"-DD');
-assert result.data == ["1985-11-25 00:00:00"]
+EXPR$0
+1985-11-25 00:00:00
+!ok
 
 # Separators in text token
 select cast("1985-11 -'./,:-25" as date
     format "YYYY-MM\" -'./,:\"-DD");
-assert result.data == ["1985-11-25"]
+EXPR$0
+1985-11-25
+!ok
 
 # Known limitation: If a text token containing separator characters at the beginning
 # is right after a separator token sequence then parsing can't find where to stop when
@@ -1318,62 +1872,88 @@ assert result.data == ["1985-11-25"]
 # matching.
 select cast("1986-11'25" as date
     format "YYYY-MM\"'\"DD");
-assert result.data == ["1986-11-25"]
+EXPR$0
+1986-11-25
+!ok
 
 select cast("1986-11-'25" as timestamp
     format "YYYY-MM-\"'\"DD");
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast("1986-10-'25" as timestamp
     format "FXYYYY-MM-\"'\"DD");
-assert result.data == ["1986-10-25 00:00:00"]
+EXPR$0
+1986-10-25 00:00:00
+!ok
 
 # Escaped quotation mark is in the text token.
 select cast('1985-11a"b26' as timestamp
     format 'YYYY-MM"a\"b"DD');
-assert result.data == ["1985-11-26 00:00:00"]
+EXPR$0
+1985-11-26 00:00:00
+!ok
 
 # Format part is surrounded by double quotes so the quotes indicating the start and
 # end of the text token has to be escaped.
 select cast("year: 1985, month: 11, day: 27" as date
     r''' format "\"year: \"YYYY\", month: \"MM\", day: \"DD")'';
-assert result.data == ["1985-11-27"]
+EXPR$0
+1985-11-27
+!ok
 
 # Scenario when there is an escaped double quote inside a text token that is itself
 # surrounded by escaped double quotes.
 select cast("1985 some \"text 11-28" as date
      format "YYYY\" some \\\"text \"MM-DD");
-assert result.data == ["1985-11-28"]
+EXPR$0
+1985-11-28
+!ok
 
 # When format is surrounded by single quotes and there is a single quote inside the
 # text token that has to be escaped.
 select cast("1985 some 'text 11-29" as date
      format 'YYYY" some \'text "MM-DD');
-assert result.data == ["1985-11-29"]
+EXPR$0
+1985-11-29
+!ok
 select cast("1985 some 'text 11-29" as timestamp
      format 'YYYY" some \'text "MM-DD');
-assert result.data == ["1985-11-29 00:00:00"]
+EXPR$0
+1985-11-29 00:00:00
+!ok
 
 # Datetime to string path: Simple text token.
 select cast(cast("1985-11-30" as date) as string
     format "YYYY-\"text\"MM-DD");
-assert result.data == ["1985-text11-30"]
+EXPR$0
+1985-text11-30
+!ok
 
 # Datetime to string path: Consecutive text tokens.
 select cast(cast("1985-12-01" as date) as string
     format "YYYY-\"text1\"\"text2\"MM-DD");
-assert result.data == ["1985-text1text212-01"]
+EXPR$0
+1985-text1text212-01
+!ok
 select cast(cast("1985-12-01" as timestamp) as
     string format "YYYY-\"text1\"\"text2\"MM-DD");
-assert result.data == ["1985-text1text212-01"]
+EXPR$0
+1985-text1text212-01
+!ok
 
 # Datetime to string path: Text token containing separators.
 select cast(cast("1985-12-02" as date) as
     string format "YYYY-\" -'./,:\"MM-DD");
-assert result.data == ["1985- -'./,:12-02"]
+EXPR$0
+1985- -'./,:12-02
+!ok
 select cast(cast("1985-12-02" as timestamp) as
     string format "YYYY-\" -'./,:\"MM-DD");
-assert result.data == ["1985- -'./,:12-02"]
+EXPR$0
+1985- -'./,:12-02
+!ok
 
 # Datetime to string path: Text token containing a double quote.
 select cast(cast('1985-12-03' as date) as string
@@ -1448,7 +2028,9 @@ assert "Bad date/time conversion format" in str(err)
 # Free text token where an escaped backslash precedes an escaped single quote.
 select cast("2010-\\'-02-01" as date format
      'FXYYYY-"\\\'"-MM-DD') ;
-assert result.data == ["2010-02-01"]
+EXPR$0
+2010-02-01
+!ok
 
 # Test error message where format contains text token with escaped double quote.
 select cast('1985-AB"CD11-23' as date format 'YYYY-"AB\"C"MM-DD');
@@ -1462,12 +2044,16 @@ assert (r'''String to Date parse failed. Input '1985-AB"CD11-23' doesn't match '
 # 9999-12-31 is Friday, belongs to the 52nd week of year 9999.
 select cast(date'0001-01-01' as string format 'IYYY/IW/ID'),
            cast(date'9999-12-31' as string format 'IYYY/IW/ID');
-assert result.data == ["0001/01/01\t9999/52/05"]
+EXPR$0
+0001/01/01\t9999/52/05
+!ok
 
 # Parse 0001-01-01 and 9999-12-31 dates.
 select cast('0001/01/01' as date format 'IYYY/IW/ID'),
            cast('9999/52/05' as date format 'IYYY/IW/ID');
-assert result.data == ["0001-01-01\t9999-12-31"]
+EXPR$0
+0001-01-01\t9999-12-31
+!ok
 
 # Parse out-of-range dates.
 # Year 9999 has 52 weeks. 9999-12-31 is Friday.
@@ -1483,12 +2069,16 @@ assert (r'''String to Date parse failed. Input '9999/53/01' doesn't match with '
 # 9999-12-31 is Friday, belongs to the 52nd week of year 9999.
 select cast(cast('1400-01-01' as timestamp) as string format 'IYYY/IW/ID'),
            cast(cast('9999-12-31' as timestamp) as string format 'IYYY/IW/ID');
-assert result.data == ["1400/01/03\t9999/52/05"]
+EXPR$0
+1400/01/03\t9999/52/05
+!ok
 
 # Parse 1400-01-01 and 9999-12-31 timestamps.
 select cast('1400/01/03' as timestamp format 'IYYY/IW/ID'),
            cast('9999/52/05' as timestamp format 'IYYY/IW/ID');
-assert result.data == ["1400-01-01 00:00:00\t9999-12-31 00:00:00"]
+EXPR$0
+1400-01-01 00:00:00\t9999-12-31 00:00:00
+!ok
 
 # Parse out-of-range timestamps.
 # - Tuesday of the 1st week of year 1400 is 1399-12-31, which is out of the valid
@@ -1497,7 +2087,9 @@ assert result.data == ["1400-01-01 00:00:00\t9999-12-31 00:00:00"]
 select cast('1400/01/02' as timestamp format 'IYYY/IW/ID'),
            cast('9999/52/06' as timestamp format 'IYYY/IW/ID'),
            cast('9999/53/01' as timestamp format 'IYYY/IW/ID');
-assert result.data == ["NULL\tNULL\tNULL"]
+EXPR$0
+NULL\tNULL\tNULL
+!ok
 
 # Formatting dates arond Dec 31.
 # 2019-12-31 is Tuesday, belongs to 1st week of year 2020.
@@ -1533,7 +2125,9 @@ select cast(date'2020-01-01' as string format 'IYYY/IW/ID'),
            cast(date'2020-01-01' as string format 'IYY/IW/ID'),
            cast(date'2020-01-01' as string format 'IY/IW/ID'),
            cast(date'2020-01-01' as string format 'I/IW/ID');
-assert result.data == ["2020/01/03\t020/01/03\t20/01/03\t0/01/03"]
+EXPR$0
+2020/01/03\t020/01/03\t20/01/03\t0/01/03
+!ok
 
 # Parse 4, 3, 2, 1-digit week numbering year.
 select cast('2020/01/03' as date format 'IYYY/IW/ID'),
@@ -1571,7 +2165,9 @@ assert result.data == ['2005-01-03\t1004-12-31\t1905-01-02\t1995-01-02\t'
 # Parse 1-digit week of year and 1-digit week day.
 select cast('2020/53/4' as date format 'IYYY/IW/ID'),
            cast('2020/1/3' as date format 'IYYY/IW/ID');
-assert result.data == ["2020-12-31\t2020-01-01"]
+EXPR$0
+2020-12-31\t2020-01-01
+!ok
 
 # Parse dayname with week-based tokens
 select cast('2020/wed/1' as date format 'IYYY/DY/IW'),
@@ -1590,69 +2186,101 @@ assert result.data == ["2020-01-01\t2020-01-01\t2020-01-01\t2020-01-01\t"
 # Exact mathcing for the whole format.
 select cast('2001-03-01 03:10:15.123456 -01:30' as
     timestamp format 'FXYYYY-MM-DD HH12:MI:SS.FF6 TZH:TZM');
-assert result.data == ["2001-03-01 03:10:15.123456000"]
+EXPR$0
+2001-03-01 03:10:15.123456000
+!ok
 
 # Strict separator matching.
 select cast('2001-03-02 03:10:15' as timestamp format
     'FXYYYY MM-DD HH12:MI:SS');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('2001-03-03 03:10:15' as timestamp format
     'FXYYYY-MM-DD HH12::MI:SS');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('2001-03-04    ' as timestamp format
     'FXYYYY-MM-DD ');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # Strict matching of single quote separator.
 select cast('2001\'04-01' as timestamp format
      'FXYYYY\'MM-DD');
-assert result.data == ["2001-04-01 00:00:00"]
+EXPR$0
+2001-04-01 00:00:00
+!ok
 
 select cast("2001'04-02" as date format
      'FXYYYY\'MM-DD');
-assert result.data == ["2001-04-02"]
+EXPR$0
+2001-04-02
+!ok
 
 select cast('2001\'04-03' as timestamp format
      "FXYYYY'MM-DD");
-assert result.data == ["2001-04-03 00:00:00"]
+EXPR$0
+2001-04-03 00:00:00
+!ok
 
 select cast("2001'04-04" as date format
      "FXYYYY'MM-DD");
-assert result.data == ["2001-04-04"]
+EXPR$0
+2001-04-04
+!ok
 
 # Strict token length matching.
 select cast('2001-3-05' as timestamp format
     'FXYYYY-MM-DD');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('15-03-06' as timestamp format
     'FXYYYY-MM-DD');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('15-03-07' as date format 'FXYY-MM-DD');
-assert result.data == ["2015-03-07"]
+EXPR$0
+2015-03-07
+!ok
 
 select cast('2001-03-08 03:15:00 AM' as timestamp
     format 'FXYYYY-MM-DD HH12:MI:SS PM');
-assert result.data == ["2001-03-08 03:15:00"]
+EXPR$0
+2001-03-08 03:15:00
+!ok
 
 select cast('2001-03-08 03:15:00 AM' as timestamp
     format 'FXYYYY-MM-DD HH12:MI:SS P.M.');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('2001-03-09 03:15:00.1234' as timestamp
     format 'FXYYYY-MM-DD HH12:MI:SS.FF4');
-assert result.data == ["2001-03-09 03:15:00.123400000"]
+EXPR$0
+2001-03-09 03:15:00.123400000
+!ok
 
 select cast('2001-03-09 03:15:00.12345' as timestamp
     format 'FXYYYY-MM-DD HH12:MI:SS.FF4');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 select cast('2001-03-09 03:15:00.12345' as timestamp
     format 'FXYYYY-MM-DD HH12:MI:SS.FF');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # Strict week-based token length matching.
 select cast('2015/3/05' as timestamp format 'FXIYYY/IW/ID'),
@@ -1660,7 +2288,9 @@ select cast('2015/3/05' as timestamp format 'FXIYYY/IW/ID'),
            cast('015/03/05' as timestamp format 'FXIYYY/IW/ID'),
            cast('15/03/05' as timestamp format 'FXIYYY/IW/ID'),
            cast('5/03/05' as timestamp format 'FXIYYY/IW/ID');
-assert result.data == ["NULL\tNULL\tNULL\tNULL\tNULL"]
+EXPR$0
+NULL\tNULL\tNULL\tNULL\tNULL
+!ok
 select cast('2015/3/05' as date format 'FXIYYY/IW/ID');
 assert (r'''String to Date parse failed. Input '2015/3/05' doesn't match with '''
     r'''format 'FXIYYY/IW/ID''' in str(err))
@@ -1682,140 +2312,200 @@ assert result.data == ["2015-01-16 00:00:00\t2015-01-16 00:00:00\t"
 # Strict token length matching with text token containing escaped double quote.
 select cast('2001-03-09 some "text03:25:00'
     as timestamp format "FXYYYY-MM-DD \"some \\\"text\"HH12:MI:SS");
-assert result.data == ["2001-03-09 03:25:00"]
+EXPR$0
+2001-03-09 03:25:00
+!ok
 
 # Use FM to ignore FX modifier for some of the tokens.
 select cast('2001-03-10 03:15:00.12345' as timestamp
     format 'FXYYYY-MM-DD HH12:MI:SS.FMFF');
-assert result.data == ["2001-03-10 03:15:00.123450000"]
+EXPR$0
+2001-03-10 03:15:00.123450000
+!ok
 
 select cast('019-03-10 04:15:00' as timestamp
     format 'FXFMYYYY-MM-DD HH12:MI:SS');
-assert result.data == ["2019-03-10 04:15:00"]
+EXPR$0
+2019-03-10 04:15:00
+!ok
 
 select cast('2004-03-08 03:15:00 AM' as timestamp
     format 'FXYYYY-MM-DD HH12:MI:SS FMP.M.');
-assert result.data == ["2004-03-08 03:15:00"]
+EXPR$0
+2004-03-08 03:15:00
+!ok
 
 # Multiple FM modifiers in a format.
 select cast('2001-3-11 3:15:00.12345' as timestamp
     format 'FXYYYY-FMMM-DD FMHH12:MI:SS.FMFF');
-assert result.data == ["2001-03-11 03:15:00.123450000"]
+EXPR$0
+2001-03-11 03:15:00.123450000
+!ok
 
 select cast('2001-3-11 3:15:30' as timestamp
     format 'FXYYYY-FMMM-DD FMFMHH12:MI:SS');
-assert result.data == ["2001-03-11 03:15:30"]
+EXPR$0
+2001-03-11 03:15:30
+!ok
 
 # FM modifier effects only the next token.
 select cast('2001-3-12 3:1:00.12345' as timestamp
     format 'FXYYYY-FMMM-DD FMHH12:MI:SS.FMFF');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # FM modifier before text token is valid for the text token and not for the token
 # right after the text token.
 select cast('1999-10text1' as timestamp format
     ''' 'FXYYYY-MMFM"text"DD');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # FM modifier skips the separators and affects the next non-separator token.
 select cast('1999-10-2' as timestamp format
     ''' 'FXYYYY-MMFM-DD');
-assert result.data == ["1999-10-02 00:00:00"]
+EXPR$0
+1999-10-02 00:00:00
+!ok
 
 # FM modifier at the end has no effect.
 select cast('2001-03-13 03:01:00' as timestamp
     format 'FXYYYY-MM-DD HH12:MI:SSFM');
-assert result.data == ["2001-03-13 03:01:00"]
+EXPR$0
+2001-03-13 03:01:00
+!ok
 
 select cast('2001-03-13 03:01:0' as timestamp
     format 'FXYYYY-MM-DD HH12:MI:SSFM');
-assert result.data == ["NULL"]
+EXPR$0
+NULL
+!ok
 
 # In a datetime to string path FX is the default so it works with FX as it would
 # without.
 select cast(cast('2001-03-05 03:10:15.123456' as
     timestamp) as string format 'FXYYYY-MM-DD HH24:MI:SS.FF7');
-assert result.data == ["2001-03-05 03:10:15.1234560"]
+EXPR$0
+2001-03-05 03:10:15.1234560
+!ok
 
 select cast(date'0001-01-10' as string format 'FXIYYY-IW-ID'),
            cast(date'0001-10-10' as string format 'FXIYYY-IW-ID');
-assert result.data == ["0001-02-03\t0001-41-03"]
+EXPR$0
+0001-02-03\t0001-41-03
+!ok
 
 # Datetime to string path: Tokens with FM modifier don't pad output to a given
 # length.
 select cast(cast('2001-03-14 03:06:08' as timestamp)
     as string format 'YYYY-MM-DD FMHH24:FMMI:FMSS');
-assert result.data == ["2001-03-14 3:6:8"]
+EXPR$0
+2001-03-14 3:6:8
+!ok
 
 select cast(cast('0001-03-09' as date)
     as string format 'FMYYYY-FMMM-FMDD');
-assert result.data == ["1-3-9"]
+EXPR$0
+1-3-9
+!ok
 
 select cast(date'0001-03-10' as string format
     'FMYY-FMMM-FMDD');
-assert result.data == ["1-3-10"]
+EXPR$0
+1-3-10
+!ok
 
 select cast(date'0001-01-10' as string format 'FMIYYY-FMIW-FMID'),
            cast(date'0001-10-10' as string format 'FMIYYY-FMIW-FMID');
-assert result.data == ["1-2-3\t1-41-3"]
+EXPR$0
+1-2-3\t1-41-3
+!ok
 
 # Datetime to string path: FM modifier is effective even if FX modifier is also
 # given.
 select cast(cast('2001-03-15 03:06:08' as
     timestamp) as string format 'FXYYYY-MM-DD FMHH24:FMMI:FMSS');
-assert result.data == ["2001-03-15 3:6:8"]
+EXPR$0
+2001-03-15 3:6:8
+!ok
 
 select cast(cast('0001-04-09' as date)
     as string format 'FXYYYY-FMMM-FMDD');
-assert result.data == ["0001-4-9"]
+EXPR$0
+0001-4-9
+!ok
 
 select cast(cast('0001-04-10' as date)
     as string format 'FXFMYYYY-FMMM-FMDD');
-assert result.data == ["1-4-10"]
+EXPR$0
+1-4-10
+!ok
 
 select cast(date'0001-01-10' as string format 'FXFMIYYY-FMIW-FMID'),
            cast(date'0001-10-10' as string format 'FXFMIYYY-FMIW-FMID');
-assert result.data == ["1-2-3\t1-41-3"]
+EXPR$0
+1-2-3\t1-41-3
+!ok
 
 # FX and FM modifiers are case-insensitive.
 select cast('2019-5-10' as date format
     'fxYYYY-fmMM-DD');
-assert result.data == ["2019-05-10"]
+EXPR$0
+2019-05-10
+!ok
 
 
 ### quarter #################################################
 #
 select cast(date'2001-01-01' as string
     FORMAT 'YYYY Q MM');
-assert result.data == ["2001 1 01"]
+EXPR$0
+2001 1 01
+!ok
 
 select cast(date'2001-03-31' as string
     FORMAT 'YYYY Q MM');
-assert result.data == ["2001 1 03"]
+EXPR$0
+2001 1 03
+!ok
 
 select cast(date'2001-4-1' as string
     FORMAT 'YYYY Q MM');
-assert result.data == ["2001 2 04"]
+EXPR$0
+2001 2 04
+!ok
 
 select cast(date'2001-6-30' as string
     FORMAT 'YYYY Q MM');
-assert result.data == ["2001 2 06"]
+EXPR$0
+2001 2 06
+!ok
 
 select cast(date'2001-7-1' as string
     FORMAT 'YYYY Q MM');
-assert result.data == ["2001 3 07"]
+EXPR$0
+2001 3 07
+!ok
 
 select cast(date'2001-9-30' as string
     FORMAT 'YYYY Q MM');
-assert result.data == ["2001 3 09"]
+EXPR$0
+2001 3 09
+!ok
 
 select cast(date'2001-10-1' as string
     FORMAT 'YYYY Q MM');
-assert result.data == ["2001 4 10"]
+EXPR$0
+2001 4 10
+!ok
 
 select cast(date'2001-12-31' as string
     FORMAT 'YYYY Q MM');
-assert result.data == ["2001 4 12"]
+EXPR$0
+2001 4 12
+!ok
 
 ### format_parse_errors #################################################
 #
