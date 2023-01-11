@@ -2706,20 +2706,16 @@ public class SqlOperatorTest {
         "Bang equal '!=' is not allowed under the current SQL conformance level",
         false);
 
-    // "!=" is allowed under ORACLE_10 SQL conformance level
-    final SqlOperatorFixture f1 =
-        f.withConformance(SqlConformanceEnum.ORACLE_10);
-    f1.checkBoolean("1 <> 1", false);
-    f1.checkBoolean("1 != 1", false);
-    f1.checkBoolean("1 != null", null);
+    final Consumer<SqlOperatorFixture> consumer = f1 -> {
+      f1.checkBoolean("1 <> 1", false);
+      f1.checkBoolean("1 != 1", false);
+      f1.checkBoolean("2 != 1", true);
+      f1.checkBoolean("1 != null", null);
+    };
 
-    // "!=" is allowed under BIG_QUERY SQL conformance level
-    final SqlOperatorFixture f2 =
-        f.withConformance(SqlConformanceEnum.BIG_QUERY);
-    f2.checkBoolean("1 <> 1", false);
-    f2.checkBoolean("1 != 1", false);
-    f2.checkBoolean("2 != 1", true);
-    f2.checkBoolean("1 != null", null);
+    final List<SqlConformanceEnum> conformances =
+        ImmutableList.of(SqlConformanceEnum.BIG_QUERY, SqlConformanceEnum.ORACLE_10);
+    f.forEachConformance(conformances, consumer);
   }
 
   @Test void testNotEqualsOperatorIntervals() {
