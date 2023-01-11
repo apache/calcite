@@ -17,7 +17,10 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.TryThreadLocal;
 
 import net.hydromatic.quidem.Quidem;
@@ -65,6 +68,20 @@ class CoreQuidemTest extends QuidemTest {
               .with(CalciteConnectionProperty.PARSER_FACTORY,
                   ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
               .with(CalciteAssert.Config.SCOTT)
+              .connect();
+        case "scott-big-query":
+          return CalciteAssert.that()
+              .with(CalciteAssert.Config.SCOTT)
+              .with(CalciteConnectionProperty.FUN, "standard,bigquery")
+              .with(CalciteConnectionProperty.LEX, Lex.BIG_QUERY)
+              .with(CalciteConnectionProperty.CONFORMANCE, SqlConformanceEnum.BIG_QUERY)
+              .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
+              .with(
+                  ConnectionFactories.addType("DATETIME", typeFactory ->
+                      typeFactory.createSqlType(SqlTypeName.TIMESTAMP)))
+              .with(
+                  ConnectionFactories.addType("TIMESTAMP", typeFactory ->
+                      typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)))
               .connect();
         default:
           return super.connect(name, reference);
