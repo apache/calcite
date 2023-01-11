@@ -190,7 +190,10 @@ public abstract class SqlLibraryOperators {
 
   /** The "IFNULL(value, value)" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction IFNULL = new SqlIfNullFunction();
+  public static final SqlFunction IFNULL = SqlBasicFunction.create("IFNULL",
+      ReturnTypes.LEAST_RESTRICTIVE
+          .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
+      OperandTypes.SAME_SAME);
 
   /** The "LTRIM(string)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE})

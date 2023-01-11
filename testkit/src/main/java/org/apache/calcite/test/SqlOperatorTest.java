@@ -6322,15 +6322,15 @@ public class SqlOperatorTest {
         .setFor(SqlLibraryOperators.IFNULL, VM_EXPAND);
 
     f.checkString("ifnull('a','b')", "a", "CHAR(1) NOT NULL");
-    f.checkString("ifnull(null,'b')", "b", "CHAR(1)");
+    f.checkString("ifnull(null,'b')", "b", "CHAR(1) NOT NULL");
     f.checkScalar("ifnull(4,3)", 4, "INTEGER NOT NULL");
-    f.checkScalar("ifnull(null, 4)", 4, "INTEGER");
+    f.checkScalar("ifnull(null, 4)", 4, "INTEGER NOT NULL");
     f.enableTypeCoercion(false)
-        .checkFails("1 + ^ifnull('a', 1)^ + 2",
-            "Illegal mixing of types in CASE or COALESCE statement",
+        .checkFails("1 + ifnull('a', 1) + 2",
+            "Cannot infer return type for IFNULL; operand types: \\[CHAR\\(1\\), INTEGER\\]",
             false);
     f.checkType("1 + ifnull(1, null) + 2",
-        "INTEGER");
+        "INTEGER NOT NULL");
     f.checkFails("^ifnull(1,2,3)^",
         "Invalid number of arguments to function 'IFNULL'. Was expecting 2 arguments",
         false);
