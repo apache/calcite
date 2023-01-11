@@ -195,8 +195,7 @@ public abstract class SqlLibraryOperators {
           "LPAD",
           ReturnTypes.ARG0_NULLABLE_VARYING,
           OperandTypes.STRING_NUMERIC_OPTIONAL_STRING,
-          SqlFunctionCategory.STRING
-      );
+          SqlFunctionCategory.STRING);
 
   /**The "RPAD(original_value, return_length[, pattern])" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
@@ -205,8 +204,7 @@ public abstract class SqlLibraryOperators {
           "RPAD",
           ReturnTypes.ARG0_NULLABLE_VARYING,
           OperandTypes.STRING_NUMERIC_OPTIONAL_STRING,
-          SqlFunctionCategory.STRING
-      );
+          SqlFunctionCategory.STRING);
 
   /** The "LTRIM(string)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
