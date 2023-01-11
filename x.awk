@@ -1,3 +1,22 @@
+#!/bin/gawk
+
+function header(s, c, i, h) {
+    c = 0;
+    for (i = 1; i < length(s); i++) {
+        if (substr(s, i, 2) == "\\t") {
+            ++c;
+        }
+    }
+    h = ""
+    for (i = 0; i < c + 1; i++) {
+        if (i > 0) {
+            h = h ", "
+        }
+        h = h "EXPR$"
+        h = h ("" + i)
+    }
+    return h
+}
 
 {s=$0}
 /err = self.execute_query_expect_failure\(self.client, / {
@@ -49,9 +68,26 @@ mode == 3 && /'\)$/ {
 mode == 0 && s ~ /assert result.data == \[".*"\]/ {
     gsub(/assert result[.]data == \["/, "", s)
     gsub(/"\]/, "", s)
-    print "EXPR$0"
+    print header(s)
+    gsub(/\\t/, ", ", s)
     print s
     print "!ok"
+    next
+}
+mode == 0 && s ~ /assert result.data == \['.*'\]/ {
+    gsub(/assert result[.]data == \['/, "", s)
+    gsub(/'\]/, "", s)
+    print header(s)
+    gsub(/\\t/, ", ", s)
+    print s
+    print "!ok"
+    next
+}
+mode == 0 && s ~ /assert ".*" in str\(err\)/ {
+    gsub(/assert "/, "", s)
+    gsub(/" in str\(err\)/, "", s)
+    print s
+    print "!error"
     next
 }
 { print s}
