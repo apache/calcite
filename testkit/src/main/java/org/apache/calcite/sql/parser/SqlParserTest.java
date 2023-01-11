@@ -5866,6 +5866,108 @@ public class SqlParserTest {
   }
 
   /**
+   * Runs tests for INTERVAL... WEEK that should pass both parser and
+   * validator. A substantially identical set of tests exists in
+   * SqlValidatorTest, and any changes here should be synchronized there.
+   * Similarly, any changes to tests here should be echoed appropriately to
+   * each of the other 12 subTestIntervalXXXPositive() tests.
+   */
+  public void subTestIntervalWeekPositive() {
+    // default precision
+    expr("interval '1' week")
+        .ok("INTERVAL '1' WEEK");
+    expr("interval '99' week")
+        .ok("INTERVAL '99' WEEK");
+
+    // explicit precision equal to default
+    expr("interval '1' week(2)")
+        .ok("INTERVAL '1' WEEK(2)");
+    expr("interval '99' week(2)")
+        .ok("INTERVAL '99' WEEK(2)");
+
+    // max precision
+    expr("interval '2147483647' week(10)")
+        .ok("INTERVAL '2147483647' WEEK(10)");
+
+    // min precision
+    expr("interval '0' week(1)")
+        .ok("INTERVAL '0' WEEK(1)");
+
+    // alternate precision
+    expr("interval '1234' week(4)")
+        .ok("INTERVAL '1234' WEEK(4)");
+
+    // sign
+    expr("interval '+1' week")
+        .ok("INTERVAL '+1' WEEK");
+    expr("interval '-1' week")
+        .ok("INTERVAL '-1' WEEK");
+    expr("interval +'1' week")
+        .ok("INTERVAL '1' WEEK");
+    expr("interval +'+1' week")
+        .ok("INTERVAL '+1' WEEK");
+    expr("interval +'-1' week")
+        .ok("INTERVAL '-1' WEEK");
+    expr("interval -'1' week")
+        .ok("INTERVAL -'1' WEEK");
+    expr("interval -'+1' week")
+        .ok("INTERVAL -'+1' WEEK");
+    expr("interval -'-1' week")
+        .ok("INTERVAL -'-1' WEEK");
+  }
+
+  /**
+   * Runs tests for INTERVAL... QUARTER that should pass both parser and
+   * validator. A substantially identical set of tests exists in
+   * SqlValidatorTest, and any changes here should be synchronized there.
+   * Similarly, any changes to tests here should be echoed appropriately to
+   * each of the other 12 subTestIntervalXXXPositive() tests.
+   */
+  public void subTestIntervalQuarterPositive() {
+    // default precision
+    expr("interval '1' quarter")
+        .ok("INTERVAL '1' QUARTER");
+    expr("interval '99' quarter")
+        .ok("INTERVAL '99' QUARTER");
+
+    // explicit precision equal to default
+    expr("interval '1' quarter(2)")
+        .ok("INTERVAL '1' QUARTER(2)");
+    expr("interval '99' quarter(2)")
+        .ok("INTERVAL '99' QUARTER(2)");
+
+    // max precision
+    expr("interval '2147483647' quarter(10)")
+        .ok("INTERVAL '2147483647' QUARTER(10)");
+
+    // min precision
+    expr("interval '0' quarter(1)")
+        .ok("INTERVAL '0' QUARTER(1)");
+
+    // alternate precision
+    expr("interval '1234' quarter(4)")
+        .ok("INTERVAL '1234' QUARTER(4)");
+
+    // sign
+    expr("interval '+1' quarter")
+        .ok("INTERVAL '+1' QUARTER");
+    expr("interval '-1' quarter")
+        .ok("INTERVAL '-1' QUARTER");
+    expr("interval +'1' quarter")
+        .ok("INTERVAL '1' QUARTER");
+    expr("interval +'+1' quarter")
+        .ok("INTERVAL '+1' QUARTER");
+    expr("interval +'-1' quarter")
+        .ok("INTERVAL '-1' QUARTER");
+    expr("interval -'1' quarter")
+        .ok("INTERVAL -'1' QUARTER");
+    expr("interval -'+1' quarter")
+        .ok("INTERVAL -'+1' QUARTER");
+    expr("interval -'-1' quarter")
+        .ok("INTERVAL -'-1' QUARTER");
+  }
+
+  /**
    * Runs tests for INTERVAL... YEAR that should pass both parser and
    * validator. A substantially identical set of tests exists in
    * SqlValidatorTest, and any changes here should be synchronized there.
@@ -7553,6 +7655,8 @@ public class SqlParserTest {
     subTestIntervalMinutePositive();
     subTestIntervalMinuteToSecondPositive();
     subTestIntervalSecondPositive();
+    subTestIntervalWeekPositive();
+    subTestIntervalQuarterPositive();
 
     subTestIntervalYearFailsValidation();
     subTestIntervalYearToMonthFailsValidation();
@@ -7582,8 +7686,12 @@ public class SqlParserTest {
             + "    \"MINUTES\" \\.\\.\\.\n"
             + "    \"MONTH\" \\.\\.\\.\n"
             + "    \"MONTHS\" \\.\\.\\.\n"
+            + "    \"QUARTER\" \\.\\.\\.\n"
+            + "    \"QUARTERS\" \\.\\.\\.\n"
             + "    \"SECOND\" \\.\\.\\.\n"
             + "    \"SECONDS\" \\.\\.\\.\n"
+            + "    \"WEEK\" \\.\\.\\.\n"
+            + "    \"WEEKS\" \\.\\.\\.\n"
             + "    \"YEAR\" \\.\\.\\.\n"
             + "    \"YEARS\" \\.\\.\\.\n"
             + "    ");
@@ -7947,8 +8055,6 @@ public class SqlParserTest {
     expr("INTERVAL '10' ^CENTURY^")
         .fails(ANY);
     expr("INTERVAL '10' ^DECADE^")
-        .fails(ANY);
-    expr("INTERVAL '4' ^QUARTER^")
         .fails(ANY);
   }
 
