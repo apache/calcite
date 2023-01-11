@@ -2787,99 +2787,81 @@ One or more required ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are mis
 select cast('2018-018-10-01' as date format 'IYYY-IYY-IW-DD');
 Multiple year tokens provided
 !error
-err = self.execute_query_expect_failure(self.client,
-    "select cast('2018-018-10-01 01:00' as timestamp format "
-    "'IYYY-IYY-IW-DD HH24:MI')")
+select cast('2018-018-10-01 01:00' as timestamp format
+    'IYYY-IYY-IW-DD HH24:MI');
 Multiple year tokens provided
 !error
 
-err = self.execute_query_expect_failure(self.client,
-    "select cast('018-8-10-01' as date format 'IYY-I-IW-DD')")
+select cast('018-8-10-01' as date format 'IYY-I-IW-DD');
 Multiple year tokens provided
 !error
-err = self.execute_query_expect_failure(self.client,
-    "select cast('018-8-10-01 01:00' as timestamp format 'IYY-I-IW-DD HH24:MI')")
+select cast('018-8-10-01 01:00' as timestamp format 'IYY-I-IW-DD HH24:MI');
 Multiple year tokens provided
 !error
 
 # Verify that conflict check is not skipped when format ends with separators.
-err = self.execute_query_expect_failure(self.client,
-    "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-RR--')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-RR--');
 Both year and round year are provided
 !error
 
 # Unclosed quotation in text pattern
-err = self.execute_query_expect_failure(self.client,
-    r'''select cast('1985-11-20text' as timestamp format 'YYYY-MM-DD"text')''')
+select cast('1985-11-20text' as timestamp format 'YYYY-MM-DD"text');
 Missing closing quotation mark.
 !error
 
-err = self.execute_query_expect_failure(self.client,
-    r'''select cast('1985-11-21text' as timestamp format 'YYYY-MM-DD\"text"')''')
+select cast('1985-11-21text' as timestamp format 'YYYY-MM-DD\"text"');
 Missing closing quotation mark.
 !error
 
-err = self.execute_query_expect_failure(self.client,
-    r'''select cast(date"1985-12-08" as string format 'YYYY-MM-DD \"X"');''')
+select cast(date"1985-12-08" as string format 'YYYY-MM-DD \"X"');;
 Missing closing quotation mark.
 !error
 
-err = self.execute_query_expect_failure(self.client,
-    r'''select cast(date"1985-12-09" as string format 'YYYY-MM-DD "X');''')
+select cast(date"1985-12-09" as string format 'YYYY-MM-DD "X');;
 Missing closing quotation mark.
 !error
 
 # Format containing text token only.
-err = self.execute_query_expect_failure(self.client,
-    r'''select cast("1985-11-29" as date format '" some text "')''')
+select cast("1985-11-29" as date format '" some text "');
 No datetime tokens provided.
 !error
 
-err = self.execute_query_expect_failure(self.client,
-    r'''select cast(cast("1985-12-02" as date) as string format "\"free text\"")''')
+select cast(cast("1985-12-02" as date) as string format "\"free text\"");
 No datetime tokens provided.
 !error
 
 # FX modifier not at the begining of the format.
-err = self.execute_query_expect_failure(self.client,
-    'select cast("2001-03-01 00:10:02" as timestamp format '
-    '"YYYY-MM-DD FXHH12:MI:SS")')
+select cast("2001-03-01 00:10:02" as timestamp format
+    "YYYY-MM-DD FXHH12:MI:SS");
 FX modifier should be at the beginning of the format string.
 !error
 
-err = self.execute_query_expect_failure(self.client,
-    'select cast("2001-03-01 00:10:02" as timestamp format '
-    '"YYYY-MM-DD HH12:MI:SS FX")')
+select cast("2001-03-01 00:10:02" as timestamp format
+    "YYYY-MM-DD HH12:MI:SS FX");
 FX modifier should be at the beginning of the format string.
 !error
 
-err = self.execute_query_expect_failure(self.client,
-    'select cast(date"2001-03-01" as string format "YYYYFX-MM-DD")')
+select cast(date"2001-03-01" as string format "YYYYFX-MM-DD");
 FX modifier should be at the beginning of the format string.
 !error
 
-err = self.execute_query_expect_failure(self.client,
-    'select cast(date"2001-03-02" as string format "FXFMFXYYYY-MM-DD")')
+select cast(date"2001-03-02" as string format "FXFMFXYYYY-MM-DD");
 FX modifier should be at the beginning of the format string.
 !error
 
-err = self.execute_query_expect_failure(self.client,
-    'select cast(date"2001-03-03" as string format "FXFXYYYY-MM-DD")')
+select cast(date"2001-03-03" as string format "FXFXYYYY-MM-DD");
 FX modifier should be at the beginning of the format string.
 !error
 
-err = self.execute_query_expect_failure(self.client,
-    'select cast(date"2001-03-04" as string format "FMFXYYYY-MM-DD")')
+select cast(date"2001-03-04" as string format "FMFXYYYY-MM-DD");
 FX modifier should be at the beginning of the format string.
 !error
 
-err = self.execute_query_expect_failure(self.client,
-    'select cast(date"2001-03-03" as string format "-FXYYYY-MM-DD")')
+select cast(date"2001-03-03" as string format "-FXYYYY-MM-DD");
 FX modifier should be at the beginning of the format string.
 !error
 
-err = self.execute_query_expect_failure(self.client,
-    r'''select cast(date"2001-03-03" as string format '"text"FXYYYY-MM-DD')''')
+select cast(date"2001-03-03" as string format '"text"FXYYYY-MM-DD');
 FX modifier should be at the beginning of the format string.
 !error
 
