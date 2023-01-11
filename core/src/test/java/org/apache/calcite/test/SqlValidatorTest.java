@@ -2708,6 +2708,36 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     invalidCodes.forEach(invalidConsumer);
   }
 
+  /** Checks parsing of built-in functions that accept time unit
+   *  Checks WEEK(WEEKDAY)
+   * <p>Override if your parser supports more such functions. */
+  @Test void checkWeekdayCustomTimeFrames() {
+    SqlValidatorFixture f = fixture()
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY));
+
+    // Check that each valid code passes each query that it should.
+    final String ds = "DATE '2022-12-25'";
+    Consumer<String> validConsumer = weekday -> {
+      f.withSql("select date_trunc(" + ds + ", " + weekday + ")").ok();
+    };
+    validConsumer.accept("WEEK");
+    validConsumer.accept("WEEK(SUNDAY)");
+    validConsumer.accept("WEEK(MONDAY)");
+    validConsumer.accept("WEEK(TUESDAY)");
+    validConsumer.accept("WEEK(WEDNESDAY)");
+    validConsumer.accept("WEEK(THURSDAY)");
+    validConsumer.accept("WEEK(FRIDAY)");
+    validConsumer.accept("WEEK(SUNDAY)");
+
+    // Check that each invalid code fails each query that it should.
+    Consumer<String> invalidConsumer = weekday -> {
+      String errorMessage = "'" + weekday + "' is not a valid time frame";
+      f.withSql("select date_trunc(" + ds + ", ^" + weekday + "^)")
+          .fails(errorMessage);
+    };
+    invalidConsumer.accept("A");
+  }
+
   public void checkWinFuncExpWithWinClause(
       String sql,
       String expectedMsgPattern) {

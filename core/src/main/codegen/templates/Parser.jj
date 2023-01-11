@@ -5023,57 +5023,73 @@ SqlIntervalQualifier IntervalQualifierStart() :
     }
 }
 
-/**
- * Parses time unit for CEIL and FLOOR functions.
+/** Parses a built-in time unit (e.g. "YEAR")
+ * or user-defined time frame (e.g. "MINUTE15")
+ * and in each case returns a {@link SqlIntervalQualifier}.
  *
- * <p>Includes NANOSECOND, MILLISECOND, which were previously only allowed in
- * the EXTRACT function.
+ * <p>The units are used in several functions, incuding CEIL, FLOOR, EXTRACT.
+ * Includes NANOSECOND, MILLISECOND, which were previously allowed in EXTRACT
+ * but not CEIL, FLOOR.
+ *
+ * <p>Includes {@code WEEK} and {@code WEEK(SUNDAY)} through
+  {@code WEEK(SATURDAY)}.
  *
  * <p>Does not include SQL_TSI_DAY, SQL_TSI_FRAC_SECOND etc. These will be
  * parsed as identifiers and can be resolved in the validator if they are
  * registered as abbreviations in your time frame set.
  */
-TimeUnit TimeUnit() :
-{
-}
-{
-    <NANOSECOND> { return TimeUnit.NANOSECOND; }
-|   <MICROSECOND> { return TimeUnit.MICROSECOND; }
-|   <MILLISECOND> { return TimeUnit.MILLISECOND; }
-|   <SECOND> { return TimeUnit.SECOND; }
-|   <MINUTE> { return TimeUnit.MINUTE; }
-|   <HOUR> { return TimeUnit.HOUR; }
-|   <DAY> { return TimeUnit.DAY; }
-|   <DOW> { return TimeUnit.DOW; }
-|   <DOY> { return TimeUnit.DOY; }
-|   <ISODOW> { return TimeUnit.ISODOW; }
-|   <ISOYEAR> { return TimeUnit.ISOYEAR; }
-|   <WEEK> { return TimeUnit.WEEK; }
-|   <MONTH> { return TimeUnit.MONTH; }
-|   <QUARTER> { return TimeUnit.QUARTER; }
-|   <YEAR> { return TimeUnit.YEAR; }
-|   <EPOCH> { return TimeUnit.EPOCH; }
-|   <DECADE> { return TimeUnit.DECADE; }
-|   <CENTURY> { return TimeUnit.CENTURY; }
-|   <MILLENNIUM> { return TimeUnit.MILLENNIUM; }
-}
-
-/** Parses a built-in time unit (e.g. "YEAR")
- * or user-defined time frame (e.g. "MINUTE15")
- * and in each case returns a {@link SqlIntervalQualifier}. */
 SqlIntervalQualifier TimeUnitOrName() : {
+    final Span span;
+    final String w;
     final TimeUnit unit;
     final SqlIdentifier unitName;
 }
 {
-    LOOKAHEAD(1)
-    unit = TimeUnit() {
-        return new SqlIntervalQualifier(unit, null, getPos());
-    }
+    LOOKAHEAD(2)
+    <NANOSECOND> { return new SqlIntervalQualifier(TimeUnit.NANOSECOND, null, getPos()); }
+|   <MICROSECOND> { return new SqlIntervalQualifier(TimeUnit.MICROSECOND, null, getPos()); }
+|   <MILLISECOND> { return new SqlIntervalQualifier(TimeUnit.MILLISECOND, null, getPos()); }
+|   <SECOND> { return new SqlIntervalQualifier(TimeUnit.SECOND, null, getPos()); }
+|   <MINUTE> { return new SqlIntervalQualifier(TimeUnit.MINUTE, null, getPos()); }
+|   <HOUR> { return new SqlIntervalQualifier(TimeUnit.HOUR, null, getPos()); }
+|   <DAY> { return new SqlIntervalQualifier(TimeUnit.DAY, null, getPos()); }
+|   <DOW> { return new SqlIntervalQualifier(TimeUnit.DOW, null, getPos()); }
+|   <DOY> { return new SqlIntervalQualifier(TimeUnit.DOY, null, getPos()); }
+|   <ISODOW> { return new SqlIntervalQualifier(TimeUnit.ISODOW, null, getPos()); }
+|   <ISOYEAR> { return new SqlIntervalQualifier(TimeUnit.ISOYEAR, null, getPos()); }
+|   <WEEK> { span = span(); }
+    (
+        LOOKAHEAD(2)
+        <LPAREN> w = weekdayName() <RPAREN> {
+            return new SqlIntervalQualifier(w, span.end(this));
+        }
+    |
+        { return new SqlIntervalQualifier(TimeUnit.WEEK, null, getPos()); }
+    )
+|   <MONTH> { return new SqlIntervalQualifier(TimeUnit.MONTH, null, getPos()); }
+|   <QUARTER> { return new SqlIntervalQualifier(TimeUnit.QUARTER, null, getPos()); }
+|   <YEAR> { return new SqlIntervalQualifier(TimeUnit.YEAR, null, getPos()); }
+|   <EPOCH> { return new SqlIntervalQualifier(TimeUnit.EPOCH, null, getPos()); }
+|   <DECADE> { return new SqlIntervalQualifier(TimeUnit.DECADE, null, getPos()); }
+|   <CENTURY> { return new SqlIntervalQualifier(TimeUnit.CENTURY, null, getPos()); }
+|   <MILLENNIUM> { return new SqlIntervalQualifier(TimeUnit.MILLENNIUM, null, getPos()); }
 |   unitName = SimpleIdentifier() {
         return new SqlIntervalQualifier(unitName.getSimple(),
             unitName.getParserPosition());
     }
+}
+
+String weekdayName() :
+{
+}
+{
+    <SUNDAY> { return "WEEK_SUNDAY"; }
+|   <MONDAY> { return "WEEK_MONDAY"; }
+|   <TUESDAY> { return "WEEK_TUESDAY"; }
+|   <WEDNESDAY> { return "WEEK_WEDNESDAY"; }
+|   <THURSDAY> { return "WEEK_THURSDAY"; }
+|   <FRIDAY> { return "WEEK_FRIDAY"; }
+|   <SATURDAY> { return "WEEK_SATURDAY"; }
 }
 
 /**
@@ -7712,6 +7728,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < FRAC_SECOND: "FRAC_SECOND" >
 |   < FRAME_ROW: "FRAME_ROW" >
 |   < FREE: "FREE" >
+|   < FRIDAY: "FRIDAY" >
 |   < FROM: "FROM" > { beforeTableName(); }
 |   < FULL: "FULL" >
 |   < FUNCTION: "FUNCTION" >
@@ -7830,6 +7847,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < MOD: "MOD" >
 |   < MODIFIES: "MODIFIES" >
 |   < MODULE: "MODULE" >
+|   < MONDAY: "MONDAY" >
 |   < MONTH: "MONTH" >
 |   < MONTHS: "MONTHS" >
 |   < MORE_: "MORE" >
@@ -7977,6 +7995,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < ROW_NUMBER: "ROW_NUMBER" >
 |   < ROWS: "ROWS" >
 |   < RUNNING: "RUNNING" >
+|   < SATURDAY: "SATURDAY" >
 |   < SAVEPOINT: "SAVEPOINT" >
 |   < SCALAR: "SCALAR" >
 |   < SCALE: "SCALE" >
@@ -8090,6 +8109,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SUBSTRING_REGEX: "SUBSTRING_REGEX" >
 |   < SUCCEEDS: "SUCCEEDS" >
 |   < SUM: "SUM" >
+|   < SUNDAY: "SUNDAY" >
 |   < SYMMETRIC: "SYMMETRIC" >
 |   < SYSTEM: "SYSTEM" >
 |   < SYSTEM_TIME: "SYSTEM_TIME" >
@@ -8099,6 +8119,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < TABLESAMPLE: "TABLESAMPLE" >
 |   < TEMPORARY: "TEMPORARY" >
 |   < THEN: "THEN" >
+|   < THURSDAY: "THURSDAY" >
 |   < TIES: "TIES" >
 |   < TIME: "TIME" >
 |   < TIME_DIFF: "TIME_DIFF" >
@@ -8132,6 +8153,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < TRIM_ARRAY: "TRIM_ARRAY" >
 |   < TRUE: "TRUE" >
 |   < TRUNCATE: "TRUNCATE" >
+|   < TUESDAY: "TUESDAY" >
 |   < TUMBLE: "TUMBLE" >
 |   < TYPE: "TYPE" >
 |   < UESCAPE: "UESCAPE" >
@@ -8169,6 +8191,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < VERSION: "VERSION" >
 |   < VERSIONING: "VERSIONING" >
 |   < VIEW: "VIEW" >
+|   < WEDNESDAY: "WEDNESDAY" >
 |   < WEEK: "WEEK" >
 |   < WEEKS: "WEEKS" >
 |   < WHEN: "WHEN" >

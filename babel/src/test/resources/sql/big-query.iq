@@ -1827,22 +1827,34 @@ SELECT TIMESTAMP_DIFF("2001-02-01 01:00:00", "2001-02-01 00:00:01", HOUR) AS neg
 # Returns DATE
 WITH Dates AS (
   SELECT DATE_TRUNC(DATE '2008-12-25', YEAR) as d , "year" as frame UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', ISOYEAR), "isoyear" UNION ALL
   SELECT DATE_TRUNC(DATE '2008-12-25', QUARTER), "quarter" UNION ALL
   SELECT DATE_TRUNC(DATE '2008-12-25', MONTH), "month" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', WEEK), "week" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', WEEK(SUNDAY)), "week(sunday)" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', WEEK(MONDAY)), "week(monday)" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', WEEK(TUESDAY)), "week(tuesday)" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', ISOWEEK), "isoweek" UNION ALL
   SELECT DATE_TRUNC(DATE '2008-12-25', DAY), "day"
 )
 SELECT
   *
 FROM Dates;
-+------------+---------+
-| d          | frame   |
-+------------+---------+
-| 2008-01-01 | year    |
-| 2008-10-01 | quarter |
-| 2008-12-01 | month   |
-| 2008-12-25 | day     |
-+------------+---------+
-(4 rows)
++------------+---------------+
+| d          | frame         |
++------------+---------------+
+| 2008-01-01 | year          |
+| 2007-12-31 | isoyear       |
+| 2008-10-01 | quarter       |
+| 2008-12-01 | month         |
+| 2008-12-21 | week          |
+| 2008-12-21 | week(sunday)  |
+| 2008-12-22 | week(monday)  |
+| 2008-12-23 | week(tuesday) |
+| 2008-12-22 | isoweek       |
+| 2008-12-25 | day           |
++------------+---------------+
+(10 rows)
 
 !ok
 

@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.TimeFrames;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -39,6 +40,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -66,6 +68,39 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * @see org.apache.calcite.sql.type.InferTypes
  */
 public abstract class OperandTypes {
+  private static final Set<TimeUnitRange> TIME_UNITS =
+      ImmutableSet.of(TimeUnitRange.HOUR,
+          TimeUnitRange.MINUTE,
+          TimeUnitRange.SECOND);
+
+  private static final Set<TimeUnitRange> MONTH_UNITS =
+      ImmutableSet.of(TimeUnitRange.MILLENNIUM,
+          TimeUnitRange.CENTURY,
+          TimeUnitRange.DECADE,
+          TimeUnitRange.YEAR,
+          TimeUnitRange.ISOYEAR,
+          TimeUnitRange.QUARTER,
+          TimeUnitRange.MONTH);
+
+  private static final Set<TimeUnitRange> DAY_UNITS =
+      ImmutableSet.of(TimeUnitRange.WEEK,
+          TimeUnitRange.DAY);
+
+  private static final Set<TimeUnitRange> DATE_UNITS =
+      ImmutableSet.<TimeUnitRange>builder()
+          .addAll(MONTH_UNITS).addAll(DAY_UNITS).build();
+
+  private static final Set<TimeUnitRange> TIMESTAMP_UNITS =
+      ImmutableSet.<TimeUnitRange>builder()
+          .addAll(DATE_UNITS).addAll(TIME_UNITS).build();
+
+  private static final Set<String> WEEK_FRAMES =
+      ImmutableSet.<String>builder()
+          .addAll(TimeFrames.WEEK_FRAME_NAMES)
+          .add("ISOWEEK")
+          .add("WEEK")
+          .build();
+
   private OperandTypes() {
   }
 
@@ -102,7 +137,37 @@ public abstract class OperandTypes {
    */
   public static SqlSingleOperandTypeChecker interval(
       Iterable<TimeUnitRange> ranges) {
-    return new IntervalOperandTypeChecker(ImmutableSet.copyOf(ranges));
+    final Set<TimeUnitRange> set = ImmutableSet.copyOf(ranges);
+    return new IntervalOperandTypeChecker(intervalQualifier ->
+        set.contains(intervalQualifier.timeUnitRange));
+  }
+
+  /**
+   * Creates a checker for DATE intervals (YEAR, WEEK, ISOWEEK,
+   * WEEK_WEDNESDAY, etc.)
+   */
+  public static SqlSingleOperandTypeChecker dateInterval() {
+    return new IntervalOperandTypeChecker(intervalQualifier ->
+        DATE_UNITS.contains(intervalQualifier.timeUnitRange)
+            || WEEK_FRAMES.contains(intervalQualifier.timeFrameName));
+  }
+
+  /**
+   * Creates a checker for TIME intervals (HOUR, SECOND, etc.)
+   */
+  public static SqlSingleOperandTypeChecker timeInterval() {
+    return new IntervalOperandTypeChecker(intervalQualifier ->
+        TIME_UNITS.contains(intervalQualifier.timeUnitRange));
+  }
+
+  /**
+   * Creates a checker for TIMESTAMP intervals (YEAR, WEEK, ISOWEEK,
+   * WEEK_WEDNESDAY, HOUR, SECOND, etc.)
+   */
+  public static SqlSingleOperandTypeChecker timestampInterval() {
+    return new IntervalOperandTypeChecker(intervalQualifier ->
+        TIMESTAMP_UNITS.contains(intervalQualifier.timeUnitRange)
+            || WEEK_FRAMES.contains(intervalQualifier.timeFrameName));
   }
 
   /**
@@ -796,7 +861,6 @@ public abstract class OperandTypes {
           return "UNNEST(<MULTISET>)";
         }
       };
-
 
   /**
    * Checker for record just has one field.

@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.type;
 
-import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlNode;
@@ -24,17 +23,17 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.util.Static;
 import org.apache.calcite.util.Util;
 
-import com.google.common.collect.ImmutableSet;
+import java.util.function.Predicate;
 
 /**
  * Parameter type-checking strategy whether the operand must be an interval.
  */
 public class IntervalOperandTypeChecker implements SqlSingleOperandTypeChecker {
 
-  private final ImmutableSet<TimeUnitRange> unitSet;
+  private final Predicate<SqlIntervalQualifier> predicate;
 
-  IntervalOperandTypeChecker(ImmutableSet<TimeUnitRange> unitSet) {
-    this.unitSet = unitSet;
+  IntervalOperandTypeChecker(Predicate<SqlIntervalQualifier> predicate) {
+    this.predicate = predicate;
   }
 
   @Override public boolean checkSingleOperandType(SqlCallBinding callBinding,
@@ -42,7 +41,7 @@ public class IntervalOperandTypeChecker implements SqlSingleOperandTypeChecker {
     final SqlNode operand = callBinding.operand(iFormalOperand);
     if (operand instanceof SqlIntervalQualifier) {
       final SqlIntervalQualifier interval = (SqlIntervalQualifier) operand;
-      if (unitSet.contains(interval.timeUnitRange)) {
+      if (predicate.test(interval)) {
         return true;
       }
       if (throwOnFailure) {

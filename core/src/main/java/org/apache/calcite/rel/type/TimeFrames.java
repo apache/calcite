@@ -19,12 +19,14 @@ package org.apache.calcite.rel.type;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.util.MonotonicSupplier;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TimestampString;
 
 import org.apache.commons.math3.fraction.BigFraction;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
@@ -36,6 +38,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -51,8 +54,19 @@ public class TimeFrames {
   private TimeFrames() {
   }
 
+  /** The names of the frames that are WEEK starting on each week day.
+   * Entry 0 is "WEEK_SUNDAY" and entry 6 is "WEEK_SATURDAY". */
+  public static final List<String> WEEK_FRAME_NAMES =
+      ImmutableList.of("WEEK_SUNDAY",
+          "WEEK_MONDAY",
+          "WEEK_TUESDAY",
+          "WEEK_WEDNESDAY",
+          "WEEK_THURSDAY",
+          "WEEK_FRIDAY",
+          "WEEK_SATURDAY");
+
   /** The core time frame set. Includes the time frames for all Avatica time
-   * units plus ISOWEEK:
+   * units plus ISOWEEK and week offset for each week day:
    *
    * <ul>
    *   <li>SECOND, and multiples MINUTE, HOUR, DAY, WEEK (starts on a Sunday),
@@ -60,6 +74,8 @@ public class TimeFrames {
    *   quotients DOY, DOW;
    *   <li>MONTH, and multiples QUARTER, YEAR, DECADE, CENTURY, MILLENNIUM;
    *   <li>ISOYEAR, and sub-unit ISOWEEK (starts on a Monday), quotient ISODOW;
+   *   <li>WEEK(<i>weekday</i>) with <i>weekday</i> being one of
+   *   SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY.
    * </ul>
    *
    * <p>Does not include EPOCH.
@@ -94,12 +110,18 @@ public class TimeFrames {
     b.addSub("ISOWEEK", false, 7, TimeUnit.DAY.name(),
         new TimestampString(1970, 1, 5, 0, 0, 0)); // a monday
 
+    // Add "WEEK(SUNDAY)" through "WEEK(SATURDAY)"
+    Ord.forEach(WEEK_FRAME_NAMES, (frameName, i) ->
+        b.addSub(frameName, false, 7,
+            "DAY", new TimestampString(1970, 1, 4 + i, 0, 0, 0)));
+
     b.addQuotient(TimeUnit.DOY, TimeUnit.DAY, TimeUnit.YEAR);
     b.addQuotient(TimeUnit.DOW, TimeUnit.DAY, TimeUnit.WEEK);
     b.addQuotient(TimeUnit.ISODOW.name(), TimeUnit.DAY.name(), "ISOWEEK");
 
     b.addRollup(TimeUnit.DAY, TimeUnit.MONTH);
     b.addRollup("ISOWEEK", TimeUnit.ISOYEAR.name());
+
     return b;
   }
 
