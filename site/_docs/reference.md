@@ -545,6 +545,8 @@ DATABASE,
 **DATETIME**,
 DATETIME_INTERVAL_CODE,
 DATETIME_INTERVAL_PRECISION,
+DATE_ADD,
+DATE_DIFF,
 DATE_TRUNC,
 **DAY**,
 DAYS,
@@ -2624,7 +2626,9 @@ semantics.
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | b | DATE(string)                                   | Equivalent to `CAST(string AS DATE)`
 | p q | DATEADD(timeUnit, integer, datetime)         | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
+| b | DATE_ADD(date, interval)                       | Adds *interval* to *date*, independent of any time zone.
 | p q | DATEDIFF(timeUnit, datetime, datetime2)      | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
+| b | DATE_DIFF(date, date2, timeUnit)               | Returns the whole number of *timeUnit* between *date* and *date2*.
 | q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
 | p | DATE_PART(timeUnit, datetime)                  | Equivalent to `EXTRACT(timeUnit FROM  datetime)`

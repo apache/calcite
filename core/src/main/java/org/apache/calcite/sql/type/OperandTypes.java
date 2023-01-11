@@ -771,6 +771,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker INTERVAL_NUMERIC =
       family(SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.NUMERIC);
 
+  public static SqlSingleOperandTypeChecker DATE_INTERVAL =
+      family(SqlTypeFamily.DATE, SqlTypeFamily.DATETIME_INTERVAL);
+
   public static final SqlSingleOperandTypeChecker TIME_INTERVAL =
       family(SqlTypeFamily.TIME, SqlTypeFamily.DATETIME_INTERVAL);
 

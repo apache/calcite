@@ -89,6 +89,21 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DATE_NULLABLE, OperandTypes.CHARACTER_CHARACTER_DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
+  /** THE "DATE_ADD(date, interval)" function
+   * (BigQuery) adds the interval to the date. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_ADD =
+      SqlBasicFunction.create(SqlKind.DATE_ADD, ReturnTypes.ARG0_NULLABLE,
+              OperandTypes.DATE_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** THE "DATE_DIFF(date, date2, timeUnit)" function
+   * (BigQuery) returns the number of timeUnit in (date - date2) */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_DIFF =
+      new SqlTimestampDiffFunction("DATE_DIFF",
+          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE, SqlTypeFamily.ANY));
+
   /** The "DATEADD(timeUnit, numeric, datetime)" function
    * (Microsoft SQL Server, Redshift, Snowflake). */
   @LibraryOperator(libraries = {MSSQL, POSTGRESQL})

@@ -6087,6 +6087,8 @@ SqlNode BuiltinFunctionCall() :
             return SqlStdOperatorTable.TRIM.createCall(s.end(this), args);
         }
     |
+        node = DateDiffFunctionCall() { return node; }
+    |
         node = DateTruncFunctionCall() { return node; }
     |
         node = TimestampAddFunctionCall() { return node; }
@@ -6596,6 +6598,28 @@ SqlCall JsonArrayAggFunctionCall() :
         }
         return SqlStdOperatorTable.JSON_ARRAYAGG.with(nullClause)
             .createCall(span.end(this), valueExpr, orderList);
+    }
+}
+
+/**
+ * Parses a call to BigQuery's DATE_DIFF.
+ */
+SqlCall DateDiffFunctionCall() :
+{
+    final List<SqlNode> args = new ArrayList<SqlNode>();
+    final Span s;
+    final SqlIntervalQualifier unit;
+}
+{
+    <DATE_DIFF> { s = span(); }
+    <LPAREN>
+    AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+    <COMMA>
+    AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+    <COMMA>
+    unit = TimeUnitOrName() { args.add(unit); }
+    <RPAREN> {
+        return SqlLibraryOperators.DATE_DIFF.createCall(s.end(this), args);
     }
 }
 
@@ -7249,6 +7273,12 @@ SqlNode JdbcFunctionCall() :
     }
     (
         LOOKAHEAD(1)
+        call = DateDiffFunctionCall() {
+            name = call.getOperator().getName();
+            args = new SqlNodeList(call.getOperandList(), getPos());
+        }
+    |
+        LOOKAHEAD(1)
         call = TimestampAddFunctionCall() {
             name = call.getOperator().getName();
             args = new SqlNodeList(call.getOperandList(), getPos());
@@ -7656,6 +7686,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < DATETIME: "DATETIME" >
 |   < DATETIME_INTERVAL_CODE: "DATETIME_INTERVAL_CODE" >
 |   < DATETIME_INTERVAL_PRECISION: "DATETIME_INTERVAL_PRECISION" >
+|   < DATE_DIFF: "DATE_DIFF" >
 |   < DAY: "DAY" >
 |   < DAYS: "DAYS" >
 |   < DEALLOCATE: "DEALLOCATE" >

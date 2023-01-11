@@ -170,6 +170,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     registerOp(SqlLibraryOperators.SUBSTR_POSTGRESQL,
         new SubstrConvertlet(SqlLibrary.POSTGRESQL));
 
+    registerOp(SqlLibraryOperators.DATE_ADD,
+        new TimestampAddConvertlet());
     registerOp(SqlLibraryOperators.DATE_SUB,
         new TimestampSubConvertlet());
     registerOp(SqlLibraryOperators.TIME_ADD,
@@ -180,6 +182,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         new TimestampSubConvertlet());
     registerOp(SqlLibraryOperators.TIMESTAMP_ADD2,
         new TimestampAddConvertlet());
+    registerOp(SqlLibraryOperators.DATE_DIFF,
+        new TimestampDiffConvertlet());
     registerOp(SqlLibraryOperators.TIMESTAMP_DIFF3,
         new TimestampDiffConvertlet());
     registerOp(SqlLibraryOperators.TIMESTAMP_SUB,
