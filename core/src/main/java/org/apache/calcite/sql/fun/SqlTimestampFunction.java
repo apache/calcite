@@ -32,14 +32,17 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import java.util.Locale;
 
 /**
- * <p>The Google BigQuery {@code TIMESTAMP} function returns a timestamp object
- * and can be invoked in one of three ways:</p>
+ * <p>The Google BigQuery {@code TIMESTAMP} function returns a Calcite
+ * {@code TIMESTAMP WITH LOCAL TIME ZONE} and can be invoked in one of three ways.</p>
  *
  * <ul>
  *   <li>TIMESTAMP(string_expression[, time_zone])</li>
  *   <li>TIMESTAMP(date_expression[, time_zone])</li>
  *   <li>TIMESTAMP(datetime_expression[, time_zone])</li>
  * </ul>
+ *
+ * <p>For a BigQuery function that returns a Calcite {@code TIMESTAMP},
+ * see {@link SqlDatetimeFunction}.</p>
  *
  * @see <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/timestamp_functions#timestamp">Documentation</a>
  */
@@ -56,7 +59,7 @@ public class SqlTimestampFunction extends SqlFunction {
     final boolean isNullable = opBinding.getOperandType(0).isNullable()
         || (opBinding.getOperandCount() > 1 && opBinding.getOperandType(1).isNullable());
     return typeFactory.createTypeWithNullability(
-        typeFactory.createSqlType(SqlTypeName.TIMESTAMP), isNullable);
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE), isNullable);
   }
 
   /** Operand type checker for {@link SqlTimestampFunction}. */
@@ -67,13 +70,13 @@ public class SqlTimestampFunction extends SqlFunction {
       case CHAR:
       case VARCHAR:
       case DATE:
+      case TIMESTAMP:
         // No matter what the first operand is, the second is an optional string.
         return callBinding.getOperandCount() == 1
             || (callBinding.getOperandCount() == 2
                 && SqlTypeName.CHAR_TYPES
                     .contains(callBinding.getOperandType(1).getSqlTypeName()));
       default:
-        // TODO: Support TIMESTAMP(datetime_expression[, time_zone]).
         return false;
       }
     }

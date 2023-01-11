@@ -124,6 +124,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEADD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FROM_UNIX_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
@@ -553,6 +554,7 @@ public class RexImpTable {
       defineMethod(UNIX_DATE, "unixDate", NullPolicy.STRICT);
 
       defineMethod(DATE, "date", NullPolicy.STRICT);
+      defineMethod(DATETIME, "datetime", NullPolicy.STRICT);
       defineMethod(TIMESTAMP, "timestamp", NullPolicy.STRICT);
       defineMethod(TIME, "time", NullPolicy.STRICT);
 

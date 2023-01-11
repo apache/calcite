@@ -491,11 +491,11 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DATE = new SqlDateFunction();
 
   /**
-   * BigQuery's {@code TIMESTAMP} function can take various operands.
-   * See {@link SqlTimestampFunction}.
+   * BigQuery's {@code DATETIME} function can take various operands.
+   * See {@link SqlDatetimeFunction}.
    */
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TIMESTAMP = new SqlTimestampFunction();
+  public static final SqlFunction DATETIME = new SqlDatetimeFunction();
 
   /**
    * BigQuery's {@code TIME} function can take various operands.
@@ -503,6 +503,13 @@ public abstract class SqlLibraryOperators {
    */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIME = new SqlTimeFunction();
+
+  /**
+   * BigQuery's {@code TIMESTAMP} function can take various operands.
+   * See {@link SqlTimestampFunction}.
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP = new SqlTimestampFunction();
 
   /** The "CURRENT_DATETIME([timezone])" function. */
   @LibraryOperator(libraries = {BIG_QUERY})

@@ -33,7 +33,7 @@ import java.util.Locale;
 
 /**
  * <p>The Google BigQuery {@code DATE} function returns a date object
- * and can be invoked in one of three ways:</p>
+ * and can be invoked in one of three ways.</p>
  *
  * <ul>
  *   <li>DATE(year, month, day)</li>
@@ -70,14 +70,16 @@ public class SqlDateFunction extends SqlFunction {
         return callBinding.getOperandCount() == 3
             && callBinding.getOperandType(1).getSqlTypeName() == SqlTypeName.INTEGER
             && callBinding.getOperandType(2).getSqlTypeName() == SqlTypeName.INTEGER;
-      case TIMESTAMP:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         // Must be DATE(timestamp_expression[, time_zone]).
         return callBinding.getOperandCount() == 1
             || (callBinding.getOperandCount() == 2
                 && SqlTypeName.CHAR_TYPES
                     .contains(callBinding.getOperandType(1).getSqlTypeName()));
+      case TIMESTAMP:
+        // Must be DATE(datetime_expression).
+        return callBinding.getOperandCount() == 1;
       default:
-        // TODO: Support DATE(datetime_expression).
         return false;
       }
     }

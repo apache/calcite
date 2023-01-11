@@ -1158,12 +1158,74 @@ select unix_date(datetime '2008-12-25') as d;
 #
 # Return Data Type: DATE
 
-select date(2022, 11, 15) as d;
-+------------+
-| d          |
-+------------+
-| 2022-11-15 |
-+------------+
+select date(2022, 11, 15) as d1,
+       date(datetime "2008-01-01 01:03:05") as d2,
+       date(datetime(2008, 1, 1, 1, 3, 5)) as d3;
++------------+------------+------------+
+| d1         | d2         | d3         |
++------------+------------+------------+
+| 2022-11-15 | 2008-01-01 | 2008-01-01 |
++------------+------------+------------+
+(1 row)
+
+!ok
+
+# Test timezone conversion when converting TIMESTAMP to DATE.
+# Denver observes DST whereas Phoenix does not.
+# Both cities have a -07:00 offset in winter, but Denver has -06:00 in summer.
+select date(timestamp("2008-06-21 06:30:00")) as sum_utc,
+       date(timestamp("2008-06-21 06:30:00"), "America/Denver") as sum_dst,
+       date(timestamp("2008-06-21 06:30:00"), "America/Phoenix") as sum_std,
+       date(timestamp("2008-12-21 06:30:00")) as win_utc,
+       date(timestamp("2008-12-21 06:30:00"), "America/Denver") as win_dst,
+       date(timestamp("2008-12-21 06:30:00"), "America/Phoenix") as win_std;
++------------+------------+------------+------------+------------+------------+
+| sum_utc    | sum_dst    | sum_std    | win_utc    | win_dst    | win_std    |
++------------+------------+------------+------------+------------+------------+
+| 2008-06-21 | 2008-06-21 | 2008-06-20 | 2008-12-21 | 2008-12-20 | 2008-12-20 |
++------------+------------+------------+------------+------------+------------+
+(1 row)
+
+!ok
+
+#####################################################################
+# DATETIME
+#
+# 1. DATETIME(year, month, day, hour, minute, second)
+# 2. DATETIME(date_expression[, time_expression])
+# 3. DATETIME(timestamp_expression[, time_zone])
+#
+# 1. Constructs a DATETIME object using INT64 values representing the year,
+#    month, day, hour, minute, and second.
+# 2. Constructs a DATETIME object using a DATE object and an optional TIME
+#    object.
+# 3. Constructs a DATETIME object using a TIMESTAMP object. It supports an
+#    optional parameter to specify a time zone. If no time zone is specified,
+#    the default time zone, UTC, is used.
+#
+# Return Data Type: DATETIME
+
+select datetime(2003, 05, 25, 12, 30, 59) as dt1,
+       datetime(date(2003, 05, 25)) as d2,
+       datetime(date(2003, 05, 25), time(12, 30, 59)) as d3;
++---------------------+---------------------+---------------------+
+| dt1                 | d2                  | d3                  |
++---------------------+---------------------+---------------------+
+| 2003-05-25 12:30:59 | 2003-05-25 00:00:00 | 2003-05-25 12:30:59 |
++---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
+
+# This tests time zone conversion from a timestamp.
+select datetime(timestamp "2008-01-01 01:03:05") as t_winter,
+       datetime(timestamp "2008-01-01 01:03:05", "America/Los_Angeles") as t_winter_offs,
+       datetime(timestamp "2008-07-01 01:03:05", "America/Los_Angeles") as t_summer_offs;
++---------------------+---------------------+---------------------+
+| t_winter            | t_winter_offs       | t_summer_offs       |
++---------------------+---------------------+---------------------+
+| 2008-01-01 01:03:05 | 2007-12-31 17:03:05 | 2008-06-30 18:03:05 |
++---------------------+---------------------+---------------------+
 (1 row)
 
 !ok
@@ -1205,6 +1267,19 @@ select timestamp("2008-01-01 01:03:05+00") as t_space,
 
 !ok
 
+# This tests time zone conversion from a datetime.
+select timestamp(datetime "2008-01-01 01:03:05") as t_winter,
+       timestamp(datetime "2008-01-01 01:03:05", "America/Los_Angeles") as t_winter_offs,
+       timestamp(datetime "2008-07-01 01:03:05", "America/Los_Angeles") as t_summer_offs;
++---------------------+---------------------+---------------------+
+| t_winter            | t_winter_offs       | t_summer_offs       |
++---------------------+---------------------+---------------------+
+| 2008-01-01 01:03:05 | 2008-01-01 09:03:05 | 2008-07-01 08:03:05 |
++---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
+
 #####################################################################
 # TIME
 #
@@ -1219,32 +1294,16 @@ select timestamp("2008-01-01 01:03:05+00") as t_space,
 #    time zone, UTC, is used.
 # 3. Constructs a TIME object using a DATETIME object.
 #
-# Return Data Type: TIMESTAMP
+# Return Data Type: TIME
 
-select time(12, 30, 59) as t;
-+----------+
-| t        |
-+----------+
-| 12:30:59 |
-+----------+
-(1 row)
-
-!ok
-
-# Test timezone conversion when converting TIMESTAMP to DATE.
-# Denver observes DST whereas Phoenix does not.
-# Both cities have a -07:00 offset in winter, but Denver has -06:00 in summer.
-select date(timestamp("2008-06-21 06:30:00")) as sum_utc,
-       date(timestamp("2008-06-21 06:30:00"), "America/Denver") as sum_dst,
-       date(timestamp("2008-06-21 06:30:00"), "America/Phoenix") as sum_std,
-       date(timestamp("2008-12-21 06:30:00")) as win_utc,
-       date(timestamp("2008-12-21 06:30:00"), "America/Denver") as win_dst,
-       date(timestamp("2008-12-21 06:30:00"), "America/Phoenix") as win_std;
-+------------+------------+------------+------------+------------+------------+
-| sum_utc    | sum_dst    | sum_std    | win_utc    | win_dst    | win_std    |
-+------------+------------+------------+------------+------------+------------+
-| 2008-06-21 | 2008-06-21 | 2008-06-20 | 2008-12-21 | 2008-12-20 | 2008-12-20 |
-+------------+------------+------------+------------+------------+------------+
+select time(12, 30, 59) as t1,
+       time(datetime(2008, 01, 01, 12, 30, 59)) as t2,
+       time(datetime(2008, 07, 01, 12, 30, 59)) as t3;
++----------+----------+----------+
+| t1       | t2       | t3       |
++----------+----------+----------+
+| 12:30:59 | 12:30:59 | 12:30:59 |
++----------+----------+----------+
 (1 row)
 
 !ok

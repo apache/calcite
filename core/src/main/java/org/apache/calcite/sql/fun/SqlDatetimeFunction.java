@@ -25,73 +25,100 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
-import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.Locale;
 
 /**
- * <p>The Google BigQuery {@code TIME} function returns a time object
+ * <p>The Google BigQuery {@code DATETIME} function returns a Calcite {@code TIMESTAMP}
  * and can be invoked in one of three ways.</p>
  *
  * <ul>
- *   <li>TIME(hour, minute, second)</li>
- *   <li>TIME(timestamp, [time_zone])</li>
- *   <li>TIME(datetime)</li>
+ *   <li>DATETIME(year, month, day, hour, minute, second)</li>
+ *   <li>DATETIME(date_expression[, time_expression])</li>
+ *   <li>DATETIME(timestamp_expression[, time_zone])</li>
  * </ul>
  *
- * @see <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/time_functions#time">Documentation</a>
+ * <p>For a BigQuery function that returns a Calcite {@code TIMESTAMP WITH LOCAL TIME ZONE},
+ * see {@link SqlTimestampFunction}.</p>
+ *
+ * @see <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/timestamp_functions#timestamp">Documentation</a>
  */
-public class SqlTimeFunction extends SqlFunction {
+public class SqlDatetimeFunction extends SqlFunction {
 
-  SqlTimeFunction() {
-    super("TIME", SqlKind.OTHER_FUNCTION, SqlTimeFunction::deduceReturnType, null,
-        new TimeOperandTypeChecker(), SqlFunctionCategory.TIMEDATE);
+  SqlDatetimeFunction() {
+    super("DATETIME", SqlKind.OTHER_FUNCTION, SqlDatetimeFunction::deduceReturnType, null,
+        new DatetimeOperandTypeChecker(), SqlFunctionCategory.TIMEDATE);
   }
 
   private static RelDataType deduceReturnType(SqlOperatorBinding opBinding) {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    // The time object is nullable if any of its operands are nullable.
-    final boolean isNullable = opBinding.getOperandType(0).isNullable()
-        || (opBinding.getOperandCount() > 1 && opBinding.getOperandType(1).isNullable())
-        || (opBinding.getOperandCount() > 2 && opBinding.getOperandType(2).isNullable());
     return typeFactory.createTypeWithNullability(
-        typeFactory.createSqlType(SqlTypeName.TIME), isNullable);
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP), areAnyOperandsNullable(opBinding));
   }
 
-  /** Operand type checker for {@link SqlTimeFunction}. */
-  private static class TimeOperandTypeChecker implements SqlOperandTypeChecker {
+  private static boolean areAnyOperandsNullable(SqlOperatorBinding opBinding) {
+    final int operandCount = opBinding.getOperandCount();
+    for (int i = 0; i < operandCount; i++) {
+      if (opBinding.getOperandType(i).isNullable()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Operand type checker for {@link SqlDatetimeFunction}. */
+  private static class DatetimeOperandTypeChecker implements SqlOperandTypeChecker {
 
     @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
       switch (callBinding.getOperandType(0).getSqlTypeName()) {
       case INTEGER:
-        // Must be TIME(hour, minute, second) where all operands are integers.
-        return callBinding.getOperandCount() == 3
+        // Must be DATETIME(year, month, day, hour, minute, second).
+        return callBinding.getOperandCount() == 6
             && callBinding.getOperandType(1).getSqlTypeName() == SqlTypeName.INTEGER
-            && callBinding.getOperandType(2).getSqlTypeName() == SqlTypeName.INTEGER;
+            && callBinding.getOperandType(2).getSqlTypeName() == SqlTypeName.INTEGER
+            && callBinding.getOperandType(3).getSqlTypeName() == SqlTypeName.INTEGER
+            && callBinding.getOperandType(4).getSqlTypeName() == SqlTypeName.INTEGER
+            && callBinding.getOperandType(5).getSqlTypeName() == SqlTypeName.INTEGER;
+      case DATE:
+        // Must be DATETIME(date_expression[, time_expression]).
+        return callBinding.getOperandCount() == 1
+            || (callBinding.getOperandCount() == 2
+                && callBinding.getOperandType(1).getSqlTypeName() == SqlTypeName.TIME);
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        // Must be TIME(timestamp[, time_zone]).
+        // Must be DATETIME(timestamp_expression[, time_zone]).
         return callBinding.getOperandCount() == 1
             || (callBinding.getOperandCount() == 2
                 && SqlTypeName.CHAR_TYPES
                     .contains(callBinding.getOperandType(1).getSqlTypeName()));
-      case TIMESTAMP:
-        // Must be TIME(datetime).
-        return callBinding.getOperandCount() == 1;
       default:
         return false;
       }
     }
 
     @Override public SqlOperandCountRange getOperandCountRange() {
-      return SqlOperandCountRanges.between(1, 3); // Takes 1, 2, or 3 parameters.
+      return OPERAND_COUNT_RANGE;
     }
+
+    private static final SqlOperandCountRange OPERAND_COUNT_RANGE = new SqlOperandCountRange() {
+      @Override public boolean isValidCount(int count) {
+        return count == 1 || count == 2 || count == 6;
+      }
+
+      @Override public int getMin() {
+        return 1;
+      }
+
+      @Override public int getMax() {
+        return 6;
+      }
+    };
 
     @Override public String getAllowedSignatures(SqlOperator op, String opName) {
       return String.format(
           Locale.ROOT,
-          "%s(INTEGER, INTEGER, INTEGER) | %s(TIMESTAMP[, STRING]) | %s(DATETIME)",
+          "%s(INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER) | %s(DATE[, TIME]) | %s(TIMESTAMP[, STRING])",
           opName, opName, opName);
     }
 
