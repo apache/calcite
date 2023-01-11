@@ -1874,13 +1874,11 @@ assert "Multiple day of week tokens provided" in str(err)
 
 # Week of year token not allowed in a string to datetime conversion.
 err = self.execute_query_expect_failure(self.client, "select cast('2017-1-01' as timestamp format 'YYYY-WW-DD')")
-assert "Week number token is not allowed in a string to datetime conversion" in \
-    str(err)
+assert "Week number token is not allowed in a string to datetime conversion" in str(err)
 
 # Week of month token not allowed in a string to datetime conversion.
 err = self.execute_query_expect_failure(self.client, "select cast('2017-1-01' as timestamp format 'YYYY-W-DD')")
-assert "Week number token is not allowed in a string to datetime conversion" in \
-    str(err)
+assert "Week number token is not allowed in a string to datetime conversion" in str(err)
 
 # Day of year conflict
 err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DDD')")
@@ -1897,13 +1895,11 @@ assert "Day of year provided with day or month token" in str(err)
 
 # Day of week token not allowed in a string to datetime conversion.
 err = self.execute_query_expect_failure(self.client, "select cast('2017-1-02' as timestamp format 'YYYY-D-MM')")
-assert "Day of week token is not allowed in a string to datetime conversion" in \
-    str(err)
+assert "Day of week token is not allowed in a string to datetime conversion" in str(err)
 
 # Day name token not allowed in a string to datetime conversion.
 err = self.execute_query_expect_failure(self.client, "select cast('2017-1-02 Monday' as timestamp format 'YYYY-DD-MM DAY')")
-assert "Day name token is not allowed in a string to datetime conversion except " \
-    "with IYYY|IYY|IY|I and IW tokens" in str(err)
+assert "Day name token is not allowed in a string to datetime conversion except with IYYY|IYY|IY|I and IW tokens" in str(err)
 
 # Conflict between hour tokens
 err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH:HH24')")
