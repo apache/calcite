@@ -48,7 +48,7 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 public class SqlDatetimeSubtractionOperator extends SqlSpecialOperator {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlDatetimeSubtractionOperator(SqlReturnTypeInference returnTypeInference) {
+  public SqlDatetimeSubtractionOperator(String name, SqlReturnTypeInference returnTypeInference) {
     super(
         "-",
         SqlKind.MINUS,

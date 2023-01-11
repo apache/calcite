@@ -1278,7 +1278,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * additional interval qualifier specification.</p>
    */
   public static final SqlDatetimeSubtractionOperator MINUS_DATE =
-      new SqlDatetimeSubtractionOperator(ReturnTypes.ARG2_NULLABLE);
+      new SqlDatetimeSubtractionOperator("-", ReturnTypes.ARG2_NULLABLE);
 
   /**
    * The MULTISET Value Constructor. e.g. "<code>MULTISET[1,2,3]</code>".
