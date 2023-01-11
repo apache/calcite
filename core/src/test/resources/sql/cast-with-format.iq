@@ -1441,8 +1441,8 @@ assert result.data == [r'''1985-12-14 01:12:10''']
 # Known limitation: When the format token is surrounded by escaped quotes then an
 # escaped backslash at the end of the token together with the closing double quote is
 # taken as a double escaped quote.
-err = self.execute_query_expect_failure(self.client, r'''select cast(cast("1985-12-16" as timestamp) as string format '''
-    r'''"YYYY\"\\\"MM\"\\\"DD")''')
+select cast(cast("1985-12-16" as timestamp) as string format
+    "YYYY\"\\\"MM\"\\\"DD");
 assert "Bad date/time conversion format" in str(err)
 
 # Free text token where an escaped backslash precedes an escaped single quote.
@@ -1451,7 +1451,7 @@ select cast("2010-\\'-02-01" as date format
 assert result.data == ["2010-02-01"]
 
 # Test error message where format contains text token with escaped double quote.
-err = self.execute_query_expect_failure(self.client, r'''select cast('1985-AB"CD11-23' as date format 'YYYY-"AB\"C"MM-DD')''')
+select cast('1985-AB"CD11-23' as date format 'YYYY-"AB\"C"MM-DD');
 assert (r'''String to Date parse failed. Input '1985-AB"CD11-23' doesn't match '''
     r'''with format 'YYYY-"AB\"C"MM-DD''' in str(err))
 
@@ -1471,10 +1471,10 @@ assert result.data == ["0001-01-01\t9999-12-31"]
 
 # Parse out-of-range dates.
 # Year 9999 has 52 weeks. 9999-12-31 is Friday.
-err = self.execute_query_expect_failure(self.client, "select cast('9999/52/06' as date format 'IYYY/IW/ID')")
+select cast('9999/52/06' as date format 'IYYY/IW/ID');
 assert (r'''String to Date parse failed. Input '9999/52/06' doesn't match with '''
     r'''format 'IYYY/IW/ID''' in str(err))
-err = self.execute_query_expect_failure(self.client, "select cast('9999/53/01' as date format 'IYYY/IW/ID')")
+select cast('9999/53/01' as date format 'IYYY/IW/ID');
 assert (r'''String to Date parse failed. Input '9999/53/01' doesn't match with '''
     r'''format 'IYYY/IW/ID''' in str(err))
 
@@ -1521,7 +1521,7 @@ select cast('2019/52/07' as date format 'IYYY/IW/ID'),
 assert result.data == [
     "2019-12-29\t2019-12-30\t2019-12-31\t2020-01-01\t2020-12-31\t2021-01-01"]
 
-err = self.execute_query_expect_failure(self.client, "select cast('2019/53/01' as date format 'IYYY/IW/ID')")
+select cast('2019/53/01' as date format 'IYYY/IW/ID');
 assert (r'''String to Date parse failed. Input '2019/53/01' doesn't match with '''
     r'''format 'IYYY/IW/ID''' in str(err))
 
@@ -1661,7 +1661,7 @@ select cast('2015/3/05' as timestamp format 'FXIYYY/IW/ID'),
            cast('15/03/05' as timestamp format 'FXIYYY/IW/ID'),
            cast('5/03/05' as timestamp format 'FXIYYY/IW/ID');
 assert result.data == ["NULL\tNULL\tNULL\tNULL\tNULL"]
-err = self.execute_query_expect_failure(self.client, "select cast('2015/3/05' as date format 'FXIYYY/IW/ID')")
+select cast('2015/3/05' as date format 'FXIYYY/IW/ID');
 assert (r'''String to Date parse failed. Input '2015/3/05' doesn't match with '''
     r'''format 'FXIYYY/IW/ID''' in str(err))
 
@@ -1820,208 +1820,204 @@ assert result.data == ["2001 4 12"]
 ### format_parse_errors #################################################
 #
 # Invalid format
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'XXXX-dd-MM')")
+select cast('2017-05-01' as timestamp format 'XXXX-dd-MM');
 assert "Bad date/time conversion format: XXXX-dd-MM" in str(err)
 
 # Invalid use of SimpleDateFormat
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01 15:10' as timestamp format 'yyyy-MM-dd +hh:mm')")
+select cast('2017-05-01 15:10' as timestamp format 'yyyy-MM-dd +hh:mm');
 assert "Bad date/time conversion format: yyyy-MM-dd +hh:mm" in str(err)
 
 # Duplicate format element
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD MM')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD MM');
 assert "Invalid duplication of format element" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-YYYY')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-YYYY');
 assert "Invalid duplication of format element" in str(err)
 
 # Multiple year tokens provided
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-YY')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-YY');
 assert "Multiple year tokens provided" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYY-MM-DD-Y')")
+select cast('2017-05-01' as timestamp format 'YYY-MM-DD-Y');
 assert "Multiple year tokens provided" in str(err)
 
 # Year and round year conflict
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YY-MM-DD-RRRR')")
+select cast('2017-05-01' as timestamp format 'YY-MM-DD-RRRR');
 assert "Both year and round year are provided" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'RR-MM-DD-YYY')")
+select cast('2017-05-01' as timestamp format 'RR-MM-DD-YYY');
 assert "Both year and round year are provided" in str(err)
 
 # Quarter token not allowed in a string to datetime conversion.
-err = self.execute_query_expect_failure(self.client, "select cast('2017-1-01' as timestamp format 'YYYY-Q-DDD')")
+select cast('2017-1-01' as timestamp format 'YYYY-Q-DDD');
 assert "Quarter token is not allowed in a string to datetime conversion" in str(err)
 
 # Conflict between MM, MONTH and MON tokens
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-MONTH')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-MONTH');
 assert "Multiple month tokens provided" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-MON')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-MON');
 assert "Multiple month tokens provided" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MONTH-DD-MON')")
+select cast('2017-05-01' as timestamp format 'YYYY-MONTH-DD-MON');
 assert "Multiple month tokens provided" in str(err)
 
 # Conflict between DAY, DY and ID tokens.
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01-Monday' as timestamp format 'IYYY-IW-ID-DAY')")
+select cast('2017-05-01-Monday' as timestamp format 'IYYY-IW-ID-DAY');
 assert "Multiple day of week tokens provided" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01-Mon' as timestamp format 'IYYY-IW-ID-DY')")
+select cast('2017-05-01-Mon' as timestamp format 'IYYY-IW-ID-DY');
 assert "Multiple day of week tokens provided" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-Monday-Mon' as timestamp format 'IYYY-IW-DAY-DY')")
+select cast('2017-05-Monday-Mon' as timestamp format 'IYYY-IW-DAY-DY');
 assert "Multiple day of week tokens provided" in str(err)
 
 # Week of year token not allowed in a string to datetime conversion.
-err = self.execute_query_expect_failure(self.client, "select cast('2017-1-01' as timestamp format 'YYYY-WW-DD')")
-assert "Week number token is not allowed in a string to datetime conversion" in \
-    str(err)
+select cast('2017-1-01' as timestamp format 'YYYY-WW-DD');
+assert "Week number token is not allowed in a string to datetime conversion" in str(err)
 
 # Week of month token not allowed in a string to datetime conversion.
-err = self.execute_query_expect_failure(self.client, "select cast('2017-1-01' as timestamp format 'YYYY-W-DD')")
-assert "Week number token is not allowed in a string to datetime conversion" in \
-    str(err)
+select cast('2017-1-01' as timestamp format 'YYYY-W-DD');
+assert "Week number token is not allowed in a string to datetime conversion" in str(err)
 
 # Day of year conflict
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DDD')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DDD');
 assert "Day of year provided with day or month token" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-DD-DDD')")
+select cast('2017-05-01' as timestamp format 'YYYY-DD-DDD');
 assert "Day of year provided with day or month token" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-MAY-01' as timestamp format 'YYYY-MONTH-DDD')")
+select cast('2017-MAY-01' as timestamp format 'YYYY-MONTH-DDD');
 assert "Day of year provided with day or month token" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-JUN-01' as timestamp format 'YYYY-MON-DDD')")
+select cast('2017-JUN-01' as timestamp format 'YYYY-MON-DDD');
 assert "Day of year provided with day or month token" in str(err)
 
 # Day of week token not allowed in a string to datetime conversion.
-err = self.execute_query_expect_failure(self.client, "select cast('2017-1-02' as timestamp format 'YYYY-D-MM')")
-assert "Day of week token is not allowed in a string to datetime conversion" in \
-    str(err)
+select cast('2017-1-02' as timestamp format 'YYYY-D-MM');
+assert "Day of week token is not allowed in a string to datetime conversion" in str(err)
 
 # Day name token not allowed in a string to datetime conversion.
-err = self.execute_query_expect_failure(self.client, "select cast('2017-1-02 Monday' as timestamp format 'YYYY-DD-MM DAY')")
-assert "Day name token is not allowed in a string to datetime conversion except " \
-    "with IYYY|IYY|IY|I and IW tokens" in str(err)
+select cast('2017-1-02 Monday' as timestamp format 'YYYY-DD-MM DAY');
+assert "Day name token is not allowed in a string to datetime conversion except with IYYY|IYY|IY|I and IW tokens" in str(err)
 
 # Conflict between hour tokens
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH:HH24')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH:HH24');
 assert "Multiple hour tokens provided" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH12:HH24')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH12:HH24');
 assert "Multiple hour tokens provided" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH12:HH')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH12:HH');
 assert "Multiple hour tokens provided" in str(err)
 
 # Conflict with median indicator
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD AM HH:MI A.M.')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD AM HH:MI A.M.');
 assert "Multiple median indicator tokens provided" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD PM HH:MI am')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD PM HH:MI am');
 assert "Multiple median indicator tokens provided" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH24:MI a.m.')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH24:MI a.m.');
 assert "Conflict between median indicator and hour token" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD p.m.')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD p.m.');
 assert "Missing hour token" in str(err)
 
 # Conflict with second of day
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD SSSSS HH')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD SSSSS HH');
 assert "Second of day token conflicts with other token(s)" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH12:SSSSS')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH12:SSSSS');
 assert "Second of day token conflicts with other token(s)" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH24SSSSS')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH24SSSSS');
 assert "Second of day token conflicts with other token(s)" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD MI SSSSS')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD MI SSSSS');
 assert "Second of day token conflicts with other token(s)" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp format 'YYYY-MM-DD SS SSSSS')")
+select cast('2017-05-01' as timestamp format 'YYYY-MM-DD SS SSSSS');
 assert "Second of day token conflicts with other token(s)" in str(err)
 
 # Too long format
 # (Format string consists of 's' 101 times)
-err = self.execute_query_expect_failure(self.client, "select cast('2017-05-01' as timestamp"
-    "format 'sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss')")
+select cast('2017-05-01' as timestamp
+    format 'sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss');
 assert "The input format is too long" in str(err)
 
 # Timezone offsets in a datetime to string formatting
-err = self.execute_query_expect_failure(self.client, "select cast(cast('2017-05-01 01:15' as timestamp format 'YYYY-MM-DD TZH:TZM') "
-    "as string format 'TZH')")
+select cast(cast('2017-05-01 01:15' as timestamp format 'YYYY-MM-DD TZH:TZM')
+    as string format 'TZH');
 assert "Timezone offset not allowed in a datetime to string conversion" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast(cast('2017-05-01 01:15' as timestamp format 'YYYY-MM-DD TZH:TZM') "
-    "as string format 'TZM')")
+select cast(cast('2017-05-01 01:15' as timestamp format 'YYYY-MM-DD TZH:TZM')
+    as string format 'TZM');
 assert "Timezone offset not allowed in a datetime to string conversion" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast(cast('2017-05-01 01:15' as timestamp format 'YYYY-MM-DD TZH:TZM') "
-    "as string format 'YYYY-MM-DD HH24:MI:SS TZH:TZM')")
+select cast(cast('2017-05-01 01:15' as timestamp format 'YYYY-MM-DD TZH:TZM')
+    as string format 'YYYY-MM-DD HH24:MI:SS TZH:TZM');
 assert "Timezone offset not allowed in a datetime to string conversion" in str(err)
 
 # TZM requires TZH
-err = self.execute_query_expect_failure(self.client, "select cast('2018-12-31 08:00 AM 59' as timestamp FORMAT "
-    "'YYYY-MM-DD HH12:MI A.M. TZM')")
+select cast('2018-12-31 08:00 AM 59' as timestamp FORMAT
+    'YYYY-MM-DD HH12:MI A.M. TZM');
 assert "TZH token is required for TZM" in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2018-12-31 08:00 AM -59' as timestamp FORMAT "
-    "'YYYY-MM-DD HH12:MI A.M. TZM')")
+select cast('2018-12-31 08:00 AM -59' as timestamp FORMAT
+    'YYYY-MM-DD HH12:MI A.M. TZM');
 assert "TZH token is required for TZM" in str(err)
 
 # Multiple fraction second token conflict
-err = self.execute_query_expect_failure(self.client, "select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF FF1')")
+select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF FF1');
 assert "Multiple fractional second tokens provided." in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF2 FF3')")
+select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF2 FF3');
 assert "Multiple fractional second tokens provided." in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF4 FF5')")
+select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF4 FF5');
 assert "Multiple fractional second tokens provided." in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF6 FF7')")
+select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF6 FF7');
 assert "Multiple fractional second tokens provided." in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF8 FF9')")
+select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF8 FF9');
 assert "Multiple fractional second tokens provided." in str(err)
 
 # No date token
-err = self.execute_query_expect_failure(self.client, "select cast('2020-05-05' as timestamp format 'FF1')")
+select cast('2020-05-05' as timestamp format 'FF1');
 assert "No date tokens provided." in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2020-05-05' as timestamp format 'SSSSS')")
+select cast('2020-05-05' as timestamp format 'SSSSS');
 assert "No date tokens provided." in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2020-05-05' as timestamp format 'HH:MI:SS')")
+select cast('2020-05-05' as timestamp format 'HH:MI:SS');
 assert "No date tokens provided." in str(err)
 
 # ISO 8601 Week-based and normal date pattern tokens must not be mixed.
-err = self.execute_query_expect_failure(self.client, "select cast('2018-10-01' as date format 'IYYY-MM-ID')")
+select cast('2018-10-01' as date format 'IYYY-MM-ID');
 assert "ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are not allowed to be used with regular date tokens." in str(err)
-err = self.execute_query_expect_failure(self.client, "select cast('2018-10-01 01:00' as timestamp format 'IYYY-MM-ID HH24:MI')")
+select cast('2018-10-01 01:00' as timestamp format 'IYYY-MM-ID HH24:MI');
 assert "ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are not allowed to be used with regular date tokens." in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('2018-10-01' as date format 'YYYY-IW-DD')")
+select cast('2018-10-01' as date format 'YYYY-IW-DD');
 assert "ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are not allowed to be used with regular date tokens." in str(err)
-err = self.execute_query_expect_failure(self.client, "select cast('2018-10-01' as timestamp format 'IYYY-IW-DD')")
+select cast('2018-10-01' as timestamp format 'IYYY-IW-DD');
 assert "ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are not allowed to be used with regular date tokens." in str(err)
 
 # Missing ISO 8601 week-based pattern tokens.
-err = self.execute_query_expect_failure(self.client, "select cast('2018-10' as date format 'IYYY-IW')")
+select cast('2018-10' as date format 'IYYY-IW');
 assert "One or more required ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are missing." in str(err)
-err = self.execute_query_expect_failure(self.client, "select cast('2018-10 01:00' as timestamp format 'IYYY-IW HH24:MI')")
+select cast('2018-10 01:00' as timestamp format 'IYYY-IW HH24:MI');
 assert "One or more required ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are missing." in str(err)
 
-err = self.execute_query_expect_failure(self.client, "select cast('18-07' as date format 'IY-ID')")
+select cast('18-07' as date format 'IY-ID');
 assert "One or more required ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are missing." in str(err)
-err = self.execute_query_expect_failure(self.client, "select cast('18-07 01:00' as timestamp format 'IY-ID HH24:MI')")
+select cast('18-07 01:00' as timestamp format 'IY-ID HH24:MI');
 assert "One or more required ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are missing." in str(err)
 
 # ISO 8601 Week numbering year conflict
-err = self.execute_query_expect_failure(self.client, "select cast('2018-018-10-01' as date format 'IYYY-IYY-IW-DD')")
+select cast('2018-018-10-01' as date format 'IYYY-IYY-IW-DD');
 assert "Multiple year tokens provided" in str(err)
 err = self.execute_query_expect_failure(self.client,
     "select cast('2018-018-10-01 01:00' as timestamp format "
