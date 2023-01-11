@@ -58,6 +58,7 @@ import org.apache.calcite.sql.fun.SqlBetweenOperator;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator;
 import org.apache.calcite.sql.fun.SqlExtractFunction;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlJsonValueFunction;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -1910,9 +1911,10 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       final RexNode op1 = cx.convertExpression(operandCall.operand(0));
       final RexNode op2 = cx.convertExpression(call.operand(0));
       final TimeFrame timeFrame = cx.getValidator().validateTimeFrame(qualifier);
-      final TimeUnit unit = timeFrame.unit();
-      RexNode interval2Sub;
+      final TimeUnit unit = first(timeFrame.unit(), TimeUnit.EPOCH);
+      final RexNode interval2Sub;
       switch (unit) {
+      //Fractional second units are converted to seconds using their associated multiplier.
       case MICROSECOND:
       case NANOSECOND:
         interval2Sub =
@@ -1927,7 +1929,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             rexBuilder.makeIntervalLiteral(unit.multiplier, qualifier), op1);
       }
 
-      return rexBuilder.makeCall(SqlLibraryOperators.MINUS_DATE2,
+      return rexBuilder.makeCall(SqlInternalOperators.MINUS_DATE2,
           op2, interval2Sub);
     }
   }

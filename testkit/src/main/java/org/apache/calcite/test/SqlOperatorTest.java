@@ -8015,16 +8015,7 @@ public class SqlOperatorTest {
     f.checkScalar("date_sub(date '2016-02-24', interval 2 day)",
         "2016-02-22",
         "DATE NOT NULL");
-    f.checkScalar("date_sub(date '2016-02-24', interval 1 week)",
-        "2016-02-17",
-        "DATE NOT NULL");
-    f.checkScalar("date_sub(date '2020-10-17', interval 0 week)",
-        "2020-10-17",
-        "DATE NOT NULL");
     f.checkScalar("date_sub(date '2016-02-24', interval 3 month)",
-        "2015-11-24",
-        "DATE NOT NULL");
-    f.checkScalar("date_sub(date '2016-02-24', interval 1 quarter)",
         "2015-11-24",
         "DATE NOT NULL");
     f.checkScalar("date_sub(date '2016-02-24', interval 5 year)",

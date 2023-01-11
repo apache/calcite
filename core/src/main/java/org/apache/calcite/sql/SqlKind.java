@@ -424,7 +424,7 @@ public enum SqlKind {
   /** {@code LEAST} function (Oracle). */
   LEAST,
 
-  /** {@code DATE_SUB} function (BigQuery Semantics). */
+  /** {@code DATE_SUB} function (BigQuery). */
   DATE_SUB,
 
   /** {@code TIMESTAMP_ADD} function (ODBC, SQL Server, MySQL). */
@@ -433,10 +433,10 @@ public enum SqlKind {
   /** {@code TIMESTAMP_DIFF} function (ODBC, SQL Server, MySQL). */
   TIMESTAMP_DIFF,
 
-  /** {@code TIMESTAMP_SUB} function (BigQuery Semantics). */
+  /** {@code TIMESTAMP_SUB} function (BigQuery). */
   TIMESTAMP_SUB,
 
-  /** {@code TIME_SUB} function (BigQuery Semantics). */
+  /** {@code TIME_SUB} function (BigQuery). */
   TIME_SUB,
   // prefix operators
 

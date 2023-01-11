@@ -1319,12 +1319,13 @@ SELECT
 # Returns TIME
 
 SELECT
+  TIME "15:30:00" as original_date,
   TIME_SUB(TIME "15:30:00", INTERVAL 10 MINUTE) as earlier;
-+----------+
-| earlier  |
-+----------+
-| 15:20:00 |
-+----------+
++---------------+----------+
+| original_date | earlier  |
++---------------+----------+
+| 15:30:00      | 15:20:00 |
++---------------+----------+
 (1 row)
 
 !ok
@@ -1349,12 +1350,13 @@ SELECT
 # time zone where this query was executed.
 
 SELECT
-  TIMESTAMP_SUB(TIMESTAMP "2008-12-25 15:30:00", INTERVAL 10 MINUTE);
-+---------------------+
-| EXPR$0              |
-+---------------------+
-| 2008-12-25 15:20:00 |
-+---------------------+
+  TIMESTAMP "2008-12-25 15:30:00" AS original,
+  TIMESTAMP_SUB(TIMESTAMP "2008-12-25 15:30:00", INTERVAL 10 MINUTE) AS earlier;
++---------------------+---------------------+
+| original            | earlier             |
++---------------------+---------------------+
+| 2008-12-25 15:30:00 | 2008-12-25 15:20:00 |
++---------------------+---------------------+
 (1 row)
 
 !ok

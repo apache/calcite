@@ -2619,7 +2619,7 @@ semantics.
 | p q | DATEADD(timeUnit, integer, datetime)         | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
 | p q | DATEDIFF(timeUnit, datetime, datetime2)      | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
 | q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
-| b | DATE_SUB(date, interval int64 date_part)       | Subtracts int64_expression units of date_part from the date, independent of any time zone.
+| b | DATE_SUB(date, interval)                       | Returns the DATE that occurs *interval* before *date*.
 | b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
 | p | DATE_PART(timeUnit, datetime)                  | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
@@ -2662,13 +2662,13 @@ semantics.
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
 | b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | b o | TANH(numeric)                                | Returns the hyperbolic tangent of *numeric*
-| b | TIMESTAMP_ADD(timestamp, interval int64 date_part) | Adds int64_expression units of date_part to the timestamp, independent of any time zone.
+| b | TIMESTAMP_ADD(timestamp, interval)             | Returns the TIMESTAMP that occurs *interval* after *timestamp*.
 | b | TIMESTAMP_MICROS(integer)                      | Returns the TIMESTAMP that is *integer* microseconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_MILLIS(integer)                      | Returns the TIMESTAMP that is *integer* milliseconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_SECONDS(integer)                     | Returns the TIMESTAMP that is *integer* seconds after 1970-01-01 00:00:00
-| b | TIMESTAMP_SUB(timestamp, interval int65 date_part) | Subtracts int64_expression units of date_part from the timestamp, independent of any time zone.
+| b | TIMESTAMP_SUB(timestamp, interval)             | Returns the TIMESTAMP that is *interval* before *timestamp*.
 | b | TIMESTAMP_TRUNC(timestamp, timeUnit)           | Truncates a *timestamp* value to the granularity of *timeUnit*. The *timestamp* value is always rounded to the beginning of the *timeUnit*.
-| b | TIME_SUB(time, interval int64 date_part)       | Subtracts int64_expression units of date_part from the time, independent of any time zone.
+| b | TIME_SUB(time, interval)                       | Returns the TIME that is *interval* before *time*.
 | b | TIME_TRUNC(time, timeUnit)                     | Truncates a *time* value to the granularity of *timeUnit*. The *time* value is always rounded to the beginning of timeUnit, which can be one of the following: MILLISECOND, SECOND, MINUTE, HOUR.
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
