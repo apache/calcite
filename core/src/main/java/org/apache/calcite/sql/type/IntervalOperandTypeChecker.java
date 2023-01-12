@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.util.Static;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -45,8 +46,10 @@ public class IntervalOperandTypeChecker implements SqlSingleOperandTypeChecker {
         return true;
       }
       if (throwOnFailure) {
+        final String name =
+            Util.first(interval.timeFrameName, interval.timeUnitRange.name());
         throw callBinding.getValidator().newValidationError(operand,
-            Static.RESOURCE.invalidTimeFrame(interval.timeUnitRange.name()));
+            Static.RESOURCE.invalidTimeFrame(name));
       }
     }
     return false;

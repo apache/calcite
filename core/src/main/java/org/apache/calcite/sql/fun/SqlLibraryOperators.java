@@ -656,15 +656,20 @@ public abstract class SqlLibraryOperators {
           TimeUnitRange.CENTURY,
           TimeUnitRange.DECADE,
           TimeUnitRange.YEAR,
+          TimeUnitRange.QUARTER,
           TimeUnitRange.MONTH);
 
-  private static final Set<TimeUnitRange> DATE_UNITS =
+  private static final Set<TimeUnitRange> DAY_UNITS =
       ImmutableSet.of(TimeUnitRange.WEEK,
           TimeUnitRange.DAY);
 
+  private static final Set<TimeUnitRange> DATE_UNITS =
+      ImmutableSet.<TimeUnitRange>builder()
+          .addAll(MONTH_UNITS).addAll(DAY_UNITS).build();
+
   private static final Set<TimeUnitRange> TIMESTAMP_UNITS =
       ImmutableSet.<TimeUnitRange>builder()
-          .addAll(MONTH_UNITS).addAll(DATE_UNITS).addAll(TIME_UNITS).build();
+          .addAll(DATE_UNITS).addAll(TIME_UNITS).build();
 
   /** The "TIMESTAMP_ADD(timestamp, interval)" function (BigQuery), the
    * two-argument variant of the built-in
@@ -706,6 +711,16 @@ public abstract class SqlLibraryOperators {
       new SqlTimestampDiffFunction("TIME_DIFF",
           OperandTypes.family(SqlTypeFamily.TIME, SqlTypeFamily.TIME,
               SqlTypeFamily.ANY));
+
+  /** The "DATE_TRUNC(date, timeUnit)" function (BigQuery);
+   * truncates a DATE value to the beginning of a timeUnit. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_TRUNC =
+      SqlBasicFunction.create("DATE_TRUNC",
+          ReturnTypes.DATE_NULLABLE,
+          OperandTypes.sequence("'DATE_TRUNC(<DATE>, <DATETIME_INTERVAL>)'",
+              OperandTypes.DATE, OperandTypes.interval(DATE_UNITS)),
+          SqlFunctionCategory.TIMEDATE);
 
   /** The "TIME_TRUNC(time, timeUnit)" function (BigQuery);
    * truncates a TIME value to the beginning of a timeUnit. */

@@ -1752,16 +1752,26 @@ SELECT TIMESTAMP_DIFF("2001-02-01 01:00:00", "2001-02-01 00:00:01", HOUR) AS neg
 #     corresponding Gregorian calendar year.
 #
 # Returns DATE
+WITH Dates AS (
+  SELECT DATE_TRUNC(DATE '2008-12-25', YEAR) as d , "year" as frame UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', QUARTER), "quarter" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', MONTH), "month" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', DAY), "day"
+)
+SELECT
+  *
+FROM Dates;
++------------+---------+
+| d          | frame   |
++------------+---------+
+| 2008-01-01 | year    |
+| 2008-10-01 | quarter |
+| 2008-12-01 | month   |
+| 2008-12-25 | day     |
++------------+---------+
+(4 rows)
 
-!if (false) {
-SELECT DATE_TRUNC(DATE '2008-12-25', MONTH) AS month;
-+------------+
-| month      |
-+------------+
-| 2008-12-01 |
-+------------+
 !ok
-!}
 
 # In the following example, the original date falls on a
 # Sunday. Because the date_part is WEEK(MONDAY), DATE_TRUNC returns
