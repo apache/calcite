@@ -544,6 +544,7 @@ DATABASE,
 **DATE**,
 DATETIME_INTERVAL_CODE,
 DATETIME_INTERVAL_PRECISION,
+DATE_TRUNC,
 **DAY**,
 DAYS,
 **DEALLOCATE**,
@@ -2616,6 +2617,7 @@ semantics.
 | q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
 | p | DATE_PART(timeUnit, datetime)                  | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
+| b | DATE_TRUNC(dateExpression, datePart)           | Truncates *dateExpression* to the granularity of *datePart*. *dateExpression* is always rounded to the beginning of *datePart*
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
 | b | ENDS_WITH(string1, string2)                    | Returns whether *string2* is a suffix of *string1*

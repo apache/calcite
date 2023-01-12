@@ -704,6 +704,12 @@ public abstract class SqlLibraryOperators {
               OperandTypes.TIMESTAMP, OperandTypes.interval(TIMESTAMP_UNITS)),
           SqlFunctionCategory.TIMEDATE);
 
+  /** The "DATE_TRUNC(date_expression, date_part)" function (BigQuery);
+   *  Truncates a DATE value to the granularity of date_part part. The DATE value is always
+   *  rounded to the beginning of the date_part. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_TRUNC = new SqlDateTruncFunction();
+
   /** The "TIMESTAMP_SECONDS(bigint)" function; returns a TIMESTAMP value
    * a given number of seconds after 1970-01-01 00:00:00. */
   @LibraryOperator(libraries = {BIG_QUERY})

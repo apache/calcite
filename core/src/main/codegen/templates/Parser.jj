@@ -5050,6 +5050,26 @@ SqlIntervalQualifier TimeUnitOrName() : {
     }
 }
 
+  SqlIntervalQualifier TimeUnitOrNameForDateTrunc() : {
+    final TimeUnit timeUnit;
+}
+{
+    timeUnit = TimeUnitForDateTrunc() {
+        return new SqlIntervalQualifier(timeUnit, null, getPos());
+    }
+}
+
+/** Parses time unit for the DATE_TRUNC function.
+* This is a subset of time units appropriate for DATE data type.
+*/
+TimeUnit TimeUnitForDateTrunc() : {}
+{
+    <DAY> { return TimeUnit.DAY; }
+|   <MONTH> { return TimeUnit.MONTH; }
+|   <QUARTER> { return TimeUnit.QUARTER; }
+|   <YEAR> { return TimeUnit.YEAR; }
+}
+
 /**
  * Parses a dynamic parameter marker.
  */
@@ -6046,6 +6066,8 @@ SqlNode BuiltinFunctionCall() :
     |
         node = TimeTruncFunctionCall() { return node; }
     |
+        node = DateTruncFunctionCall() { return node; }
+    |
 <#list (parser.builtinFunctionCallMethods!default.parser.builtinFunctionCallMethods) as method>
         node = ${method} { return node; }
     |
@@ -6658,6 +6680,32 @@ SqlCall TimeTruncFunctionCall() :
 }
 
 /**
+ * Parses a call to DATE_TRUNC.
+ */
+SqlCall DateTruncFunctionCall() :
+{
+    final List<SqlNode> args = new ArrayList<SqlNode>();
+    final Span s;
+    final SqlIntervalQualifier unit;
+}
+{
+    <DATE_TRUNC> { s = span(); }
+    <LPAREN>
+      AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+        <COMMA>
+      (
+        unit = TimeUnitOrNameForDateTrunc() {
+         args.add(unit);
+        }
+      |
+        AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+      )
+    <RPAREN> {
+        return SqlLibraryOperators.DATE_TRUNC.createCall(s.end(this), args);
+    }
+}
+
+/**
  * Parses a call to a grouping function inside the GROUP BY clause,
  * for example {@code TUMBLE(rowtime, INTERVAL '1' MINUTE)}.
  */
@@ -7163,6 +7211,12 @@ SqlNode JdbcFunctionCall() :
         }
     |
         LOOKAHEAD(1)
+                call = DateTruncFunctionCall() {
+                    name = call.getOperator().getName();
+                    args = new SqlNodeList(call.getOperandList(), getPos());
+                }
+    |
+        LOOKAHEAD(1)
         call = TimestampDiff3FunctionCall() {
             name = call.getOperator().getName();
             args = new SqlNodeList(call.getOperandList(), getPos());
@@ -7536,6 +7590,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < DATA: "DATA" >
 |   < DATABASE: "DATABASE" >
 |   < DATE: "DATE" >
+|   < DATE_TRUNC: "DATE_TRUNC" >
 |   < DATETIME_INTERVAL_CODE: "DATETIME_INTERVAL_CODE" >
 |   < DATETIME_INTERVAL_PRECISION: "DATETIME_INTERVAL_PRECISION" >
 |   < DAY: "DAY" >
