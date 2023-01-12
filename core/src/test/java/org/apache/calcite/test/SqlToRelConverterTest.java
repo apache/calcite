@@ -5754,4 +5754,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
                         SqlLibrary.POSTGRESQL))
             ));
   }
+
+  /**
+   * Test that +/- can be done between a date and integer.
+   */
+  @Test void testDateAddSub() {
+    String sql = "Select DATE '2022-1-1' + 5, 7 + DATE '2023-12-25', DATE '2023-1-15' - 2";
+    sql(sql).ok();
+  }
 }
