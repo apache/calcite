@@ -6315,8 +6315,8 @@ public class SqlOperatorTest {
     f12.checkNull("nvl(CAST(NULL AS VARCHAR(6)), cast(NULL AS VARCHAR(4)))");
   }
 
-
-  @Test void testIfNullCoalesceFunc() {
+  // IFNULL is a synonym for NVL, and related to COALESCE but requires precisely two arguments.
+  @Test void testIfnullFunc() {
     final SqlOperatorFixture f = fixture()
         .withLibrary(SqlLibrary.BIG_QUERY)
         .setFor(SqlLibraryOperators.IFNULL, VM_EXPAND);

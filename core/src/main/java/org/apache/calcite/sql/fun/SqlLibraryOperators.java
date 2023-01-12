@@ -182,7 +182,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "NVL(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction NVL =
+  public static final SqlBasicFunction NVL =
       SqlBasicFunction.create(SqlKind.NVL,
           ReturnTypes.LEAST_RESTRICTIVE
               .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
@@ -190,10 +190,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "IFNULL(value, value)" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction IFNULL = SqlBasicFunction.create("IFNULL",
-      ReturnTypes.LEAST_RESTRICTIVE
-          .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
-      OperandTypes.SAME_SAME);
+  public static final SqlFunction IFNULL = NVL.withName("IFNULL");
 
   /** The "LTRIM(string)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE})

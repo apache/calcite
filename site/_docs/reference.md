@@ -2625,7 +2625,7 @@ semantics.
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
 | b o | GREATEST(expr [, expr ]*)                    | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
-| b | IFNULL(expr, null_result)                            | If expr evaluates to NULL, returns null_result. Otherwise, returns expr. If expr doesn't evaluate to NULL, null_result isn't evaluated.
+| b | IFNULL(expr, null_result)                      | Synonym for `NVL`
 | p | string1 ILIKE string2 [ ESCAPE string3 ]       | Whether *string1* matches pattern *string2*, ignoring case (similar to `LIKE`)
 | p | string1 NOT ILIKE string2 [ ESCAPE string3 ]   | Whether *string1* does not match pattern *string2*, ignoring case (similar to `NOT LIKE`)
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of *jsonValue*
