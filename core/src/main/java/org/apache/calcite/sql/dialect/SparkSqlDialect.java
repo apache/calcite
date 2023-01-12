@@ -783,23 +783,27 @@ public class SparkSqlDialect extends SqlDialect {
     switch (matchArgument) {
     case "i":
       String caseInsensitiveLiteral = "(?i)";
-      String modifiedRegexForI = caseInsensitiveLiteral.concat(call.operand(1).toString()
-          .replaceAll("^'|'$", ""));
+      String modifiedRegexForI = caseInsensitiveLiteral.concat(
+          removeLeadingAndTrailingSingleQuotes(call.operand(1).toString()));
       return SqlLiteral.createCharString(modifiedRegexForI, SqlParserPos.ZERO);
     case "x":
       String removeWhiteSpaceLiteral = "(?x)";
-      String modifiedRegexForX = removeWhiteSpaceLiteral.concat(call.operand(1).toString()
-          .replaceAll("'", ""));
+      String modifiedRegexForX = removeWhiteSpaceLiteral.concat(
+          removeLeadingAndTrailingSingleQuotes(call.operand(1).toString()));
       return SqlLiteral.createCharString(modifiedRegexForX, SqlParserPos.ZERO);
     case "m":
       String mArgumentRegexLiteral = "(?m)";
-      String modifiedRegexForM = mArgumentRegexLiteral.concat(call.operand(1).toString()
-          .replaceAll("^'|'$", ""));
+      String modifiedRegexForM = mArgumentRegexLiteral.concat(
+          removeLeadingAndTrailingSingleQuotes(call.operand(1).toString()));
       return SqlLiteral.createCharString(modifiedRegexForM, SqlParserPos.ZERO);
     case "n":
     default:
       return call.operand(1);
     }
+  }
+
+  private String removeLeadingAndTrailingSingleQuotes(String regexString) {
+    return regexString.replaceAll("^'|'$", "");
   }
 
   public void unparseToDate(

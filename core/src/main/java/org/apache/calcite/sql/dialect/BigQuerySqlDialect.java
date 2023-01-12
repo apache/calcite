@@ -1237,16 +1237,20 @@ public class BigQuerySqlDialect extends SqlDialect {
     switch (matchArgument) {
     case "i":
       String caseInsensitiveLiteral = "(?i)";
-      String updatedRegexForI = caseInsensitiveLiteral.concat(call.operand(1).toString()
-          .replaceAll("^'|'$", ""));
+      String updatedRegexForI = caseInsensitiveLiteral.concat(
+          removeLeadingAndTrailingSingleQuotes(call.operand(1).toString()));
       return SqlLiteral.createCharString(updatedRegexForI, SqlParserPos.ZERO);
     case "x":
-      String updatedRegexForX = call.operand(1).toString().replaceAll("\\s+", "")
-          .replaceAll("^'|'$", "");
+      String updatedRegexForX = removeLeadingAndTrailingSingleQuotes
+          (call.operand(1).toString().replaceAll("\\s+", ""));
       return SqlLiteral.createCharString(updatedRegexForX, SqlParserPos.ZERO);
     default:
       return call.operand(1);
     }
+  }
+
+  private String removeLeadingAndTrailingSingleQuotes(String regexString) {
+    return regexString.replaceAll("^'|'$", "");
   }
 
   private void unParseInStr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
