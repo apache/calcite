@@ -1219,8 +1219,34 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlWriter.Frame regexContainsFrame = writer.startFunCall("REGEXP_CONTAINS");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(", r");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    unParseRegexString(writer, call, leftPrec, rightPrec);
     writer.endFunCall(regexContainsFrame);
+  }
+
+  private void unParseRegexString(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.getOperandList().size() == 3) {
+      SqlCharStringLiteral modifiedRegexString = getModifiedRegexString(call);
+      modifiedRegexString.unparse(writer, leftPrec, rightPrec);
+    } else {
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+    }
+  }
+
+  private SqlCharStringLiteral getModifiedRegexString(SqlCall call) {
+    String matchArgument = call.operand(2).toString().replaceAll("'", "");
+    switch (matchArgument) {
+    case "i":
+      String caseInsensitiveLiteral = "(?i)";
+      String updatedRegexForI = caseInsensitiveLiteral.concat(call.operand(1).toString()
+          .replaceAll("^'|'$", ""));
+      return SqlLiteral.createCharString(updatedRegexForI, SqlParserPos.ZERO);
+    case "x":
+      String updatedRegexForX = call.operand(1).toString().replaceAll("\\s+", "")
+          .replaceAll("^'|'$", "");
+      return SqlLiteral.createCharString(updatedRegexForX, SqlParserPos.ZERO);
+    default:
+      return call.operand(1);
+    }
   }
 
   private void unParseInStr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

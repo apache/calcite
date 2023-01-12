@@ -761,12 +761,45 @@ public class SparkSqlDialect extends SqlDialect {
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.literal("rlike");
     writer.print("r");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    unParseRegexString(writer, call, leftPrec, rightPrec);
     writer.print(",");
     writer.literal("1");
     writer.print(",");
     writer.literal("0");
     writer.endFunCall(ifFrame);
+  }
+
+  private void unParseRegexString(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.getOperandList().size() == 3) {
+      SqlCharStringLiteral modifiedRegexString = getModifiedRegexString(call);
+      modifiedRegexString.unparse(writer, leftPrec, rightPrec);
+    } else {
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+    }
+  }
+
+  private SqlCharStringLiteral getModifiedRegexString(SqlCall call) {
+    String matchArgument = call.operand(2).toString().replaceAll("'", "");
+    switch (matchArgument) {
+    case "i":
+      String caseInsensitiveLiteral = "(?i)";
+      String modifiedRegexForI = caseInsensitiveLiteral.concat(call.operand(1).toString()
+          .replaceAll("^'|'$", ""));
+      return SqlLiteral.createCharString(modifiedRegexForI, SqlParserPos.ZERO);
+    case "x":
+      String removeWhiteSpaceLiteral = "(?x)";
+      String modifiedRegexForX = removeWhiteSpaceLiteral.concat(call.operand(1).toString()
+          .replaceAll("'", ""));
+      return SqlLiteral.createCharString(modifiedRegexForX, SqlParserPos.ZERO);
+    case "m":
+      String mArgumentRegexLiteral = "(?m)";
+      String modifiedRegexForM = mArgumentRegexLiteral.concat(call.operand(1).toString()
+          .replaceAll("^'|'$", ""));
+      return SqlLiteral.createCharString(modifiedRegexForM, SqlParserPos.ZERO);
+    case "n":
+    default:
+      return call.operand(1);
+    }
   }
 
   public void unparseToDate(
