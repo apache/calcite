@@ -39,6 +39,7 @@ plugins {
     checkstyle
     calcite.buildext
     jacoco
+    id("jacoco-report-aggregation")
     id("org.checkerframework") apply false
     id("com.github.autostyle")
     id("org.nosphere.apache.rat")
@@ -171,6 +172,16 @@ releaseParams {
     }
 }
 
+reporting {
+    reports {
+        if (enableJacoco) {
+            val jacocoAggregateTestReport by creating(JacocoCoverageReport::class) {
+                testType.set(TestSuiteType.UNIT_TEST)
+            }
+        }
+    }
+}
+
 val javadocAggregate by tasks.registering(Javadoc::class) {
     group = JavaBasePlugin.DOCUMENTATION_GROUP
     description = "Generates aggregate javadoc for all the artifacts"
@@ -228,6 +239,11 @@ dependencies {
     }
     for (m in dataSetsForSqlline) {
         sqllineClasspath(module(m))
+    }
+    if (enableJacoco) {
+        for (p in subprojects) {
+            jacocoAggregation(p)
+        }
     }
 }
 
@@ -300,6 +316,7 @@ fun com.github.autostyle.gradle.BaseFormatExtension.license() {
 sonarqube {
     properties {
         property("sonar.test.inclusions", "**/*Test*/**")
+        property("sonar.coverage.jacoco.xmlReportPaths", "$buildDir/reports/jacoco/jacocoAggregateTestReport/jacocoAggregateTestReport.xml")
     }
 }
 
