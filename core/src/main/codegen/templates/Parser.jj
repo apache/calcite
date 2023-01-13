@@ -4678,6 +4678,28 @@ SqlNode DatetimeFunctionCall() :
 }
 
 /**
+ * Parses BigQuery's built-in DATETIME_DIFF() function.
+ */
+SqlNode DatetimeDiffFunctionCall() :
+{
+    final List<SqlNode> args = new ArrayList<SqlNode>();
+    final Span s;
+    final SqlIntervalQualifier unit;
+}
+{
+    <DATETIME_DIFF> { s = span(); }
+    <LPAREN>
+    AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+    <COMMA>
+    AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+    <COMMA>
+    unit = TimeUnitOrName() { args.add(unit); }
+    <RPAREN> {
+        return SqlLibraryOperators.DATETIME_DIFF.createCall(s.end(this), args);
+    }
+}
+
+/**
  * Parses BigQuery's built-in TIMESTAMP() function.
  */
 SqlNode TimestampFunctionCall() :
@@ -6141,6 +6163,8 @@ SqlNode BuiltinFunctionCall() :
         node = DateFunctionCall() { return node; }
     |
         node = DatetimeFunctionCall() { return node; }
+    |
+        node = DatetimeDiffFunctionCall() { return node; }
     |
         node = TimeFunctionCall() { return node; }
     |
@@ -7647,6 +7671,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < DATABASE: "DATABASE" >
 |   < DATE: "DATE" >
 |   < DATETIME: "DATETIME" >
+|   < DATETIME_DIFF: "DATETIME_DIFF" >
 |   < DATETIME_INTERVAL_CODE: "DATETIME_INTERVAL_CODE" >
 |   < DATETIME_INTERVAL_PRECISION: "DATETIME_INTERVAL_PRECISION" >
 |   < DAY: "DAY" >

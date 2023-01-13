@@ -543,6 +543,8 @@ DATA,
 DATABASE,
 **DATE**,
 **DATETIME**,
+**DATETIME_ADD**,
+**DATETIME_DIFF**,
 DATETIME_INTERVAL_CODE,
 DATETIME_INTERVAL_PRECISION,
 **DAY**,
@@ -2620,6 +2622,8 @@ semantics.
 | b | DATETIME(date, time)                           | Returns a datetime object, given a date and a time.
 | b | DATETIME(timestamp)                            | Converts a timestamp object to a datetime, assuming UTC.
 | b | DATETIME(timestamp, timezone)                  | Converts a timestamp object to a datetime, in a given time zone.
+| b | DATETIME_ADD(timestamp, interval)              | Synonym for TIMESTAMP_ADD.
+| b | DATETIME_DIFF(timestamp, timestamp2, interval) | Synonym for TIMESTAMP_DIFF.
 | p q | DATEADD(timeUnit, integer, datetime)         | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
 | p q | DATEDIFF(timeUnit, datetime, datetime2)      | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
 | q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`

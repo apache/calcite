@@ -678,7 +678,7 @@ public abstract class SqlLibraryOperators {
    * int64_expression date_part)" but in Calcite the second argument can be any
    * interval expression, not just an interval literal. */
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TIMESTAMP_ADD2 =
+  public static final SqlBasicFunction TIMESTAMP_ADD2 =
       SqlBasicFunction.create(SqlKind.TIMESTAMP_ADD, ReturnTypes.ARG0_NULLABLE,
           OperandTypes.TIMESTAMP_INTERVAL)
           .withFunctionType(SqlFunctionCategory.TIMEDATE);
@@ -763,6 +763,22 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("UNIX_MICROS",
           ReturnTypes.BIGINT_NULLABLE, OperandTypes.TIMESTAMP,
           SqlFunctionCategory.TIMEDATE);
+
+  /** BigQuery's "DATETIME_ADD(timestamp, interval) function; Behaves similarly
+   * to BigQuery's TIMESTAMP_ADD because in Calcite, datetime is a type alias
+   * for timestamp. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_ADD =
+      TIMESTAMP_ADD2.withName("DATETIME_ADD");
+
+  /** BigQuery's "DATETIME_DIFF(timestamp, timestamp, timeUnit) function; Behaves
+   * similarly to BigQuery's TIMESTAMP_DIFF because in Calcite, datetime is a type
+   * alias for timestamp. Returns the whole number of timeUnit between datetime
+   * and datetime2, with the result being negative if datetime occurs before datetime2. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_DIFF =
+      new SqlTimestampDiffFunction("DATETIME_DIFF",
+          OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.ANY));
 
   /** The "CHAR(n)" function; returns the character whose ASCII code is
    * {@code n} % 256, or null if {@code n} &lt; 0. */

@@ -1341,17 +1341,29 @@ SELECT DATE_ADD(DATE "2008-12-25", INTERVAL 5 DAY) AS five_days_later;
 #
 # Returns DATETIME
 
-!if (false) {
 SELECT
   DATETIME "2008-12-25 15:30:00" as original_date,
   DATETIME_ADD(DATETIME "2008-12-25 15:30:00", INTERVAL 10 MINUTE) as later;
-+-----------------------------+------------------------+
-| original_date               | later                  |
-+-----------------------------+------------------------+
-| 2008-12-25T15:30:00         | 2008-12-25T15:40:00    |
-+-----------------------------+------------------------+
++---------------------+---------------------+
+| original_date       | later               |
++---------------------+---------------------+
+| 2008-12-25 15:30:00 | 2008-12-25 15:40:00 |
++---------------------+---------------------+
+(1 row)
+
 !ok
-!}
+
+SELECT
+  DATETIME "2008-12-25 15:30:00" as original_date,
+  DATETIME_ADD(TIMESTAMP "2008-12-25 15:30:00", INTERVAL 20 MINUTE) as later;
++---------------------+---------------------+
+| original_date       | later               |
++---------------------+---------------------+
+| 2008-12-25 15:30:00 | 2008-12-25 15:50:00 |
++---------------------+---------------------+
+(1 row)
+
+!ok
 
 #####################################################################
 # TIME_ADD
@@ -1694,21 +1706,20 @@ SELECT
 #
 # Returns INT64
 
-!if (false) {
 SELECT
   DATETIME "2010-07-07 10:20:00" as first_datetime,
   DATETIME "2008-12-25 15:30:00" as second_datetime,
   DATETIME_DIFF(DATETIME "2010-07-07 10:20:00",
     DATETIME "2008-12-25 15:30:00", DAY) as difference;
-+----------------------------+------------------------+------------------------+
-| first_datetime             | second_datetime        | difference             |
-+----------------------------+------------------------+------------------------+
-| 2010-07-07T10:20:00        | 2008-12-25T15:30:00    | 559                    |
-+----------------------------+------------------------+------------------------+
-!ok
-!}
++---------------------+---------------------+------------+
+| first_datetime      | second_datetime     | difference |
++---------------------+---------------------+------------+
+| 2010-07-07 10:20:00 | 2008-12-25 15:30:00 |        558 |
++---------------------+---------------------+------------+
+(1 row)
 
-!if (false) {
+!ok
+
 SELECT
   DATETIME_DIFF(DATETIME '2017-10-15 00:00:00',
     DATETIME '2017-10-14 00:00:00', DAY) as days_diff,
@@ -1717,10 +1728,11 @@ SELECT
 +-----------+------------+
 | days_diff | weeks_diff |
 +-----------+------------+
-| 1         | 1          |
+|         1 |          1 |
 +-----------+------------+
+(1 row)
+
 !ok
-!}
 
 # The example above shows the result of DATETIME_DIFF for two
 # DATETIMEs that are 24 hours apart. DATETIME_DIFF with the part WEEK
@@ -1738,7 +1750,6 @@ SELECT
 # 2015-01-01, so the ISO year 2015 begins on the preceding Monday,
 # 2014-12-29.
 
-!if (false) {
 SELECT
   DATETIME_DIFF('2017-12-30 00:00:00',
     '2014-12-30 00:00:00', YEAR) AS year_diff,
@@ -1747,10 +1758,11 @@ SELECT
 +-----------+--------------+
 | year_diff | isoyear_diff |
 +-----------+--------------+
-| 3         | 2            |
+|         3 |            2 |
 +-----------+--------------+
+(1 row)
+
 !ok
-!}
 
 # The following example shows the result of DATETIME_DIFF for two days
 # in succession. The first date falls on a Monday and the second date
@@ -1760,7 +1772,6 @@ SELECT
 # 1. DATETIME_DIFF with the date part ISOWEEK also returns 1 because
 # ISO weeks begin on Monday.
 
-!if (false) {
 SELECT
   DATETIME_DIFF('2017-12-18', '2017-12-17', WEEK) AS week_diff,
   DATETIME_DIFF('2017-12-18', '2017-12-17', WEEK(MONDAY)) AS week_weekday_diff,
@@ -1770,8 +1781,9 @@ SELECT
 +-----------+-------------------+--------------+
 | 0         | 1                 | 1            |
 +-----------+-------------------+--------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # TIME_DIFF
