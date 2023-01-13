@@ -1638,7 +1638,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         throw new AssertionError();
       }
       final List<RexNode> exprs =
-          convertOperands(cx, call, SqlOperandTypeChecker.Consistency.NONE);
+          convertOperands(cx, call, SqlOperandTypeChecker.Consistency.COMPARE);
       final List<RexNode> list = new ArrayList<>();
       final List<RexNode> orList = new ArrayList<>();
       for (RexNode expr : exprs) {
