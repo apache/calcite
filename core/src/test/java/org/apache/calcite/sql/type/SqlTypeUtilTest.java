@@ -120,10 +120,10 @@ class SqlTypeUtilTest {
 
     // Initialize a SqlTypeCoercionRules with the new builder mappings.
     SqlTypeCoercionRule typeCoercionRules = SqlTypeCoercionRule.instance(builder.map);
-    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestamp, f.sqlBoolean, true),
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, true),
         is(false));
     SqlTypeCoercionRule.THREAD_PROVIDERS.set(typeCoercionRules);
-    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestamp, f.sqlBoolean, true),
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, true),
         is(true));
     // Recover the mappings to default.
     SqlTypeCoercionRule.THREAD_PROVIDERS.set(defaultRules);
