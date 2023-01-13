@@ -183,6 +183,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     registerOp(SqlLibraryOperators.SUBSTR_POSTGRESQL,
         new SubstrConvertlet(SqlLibrary.POSTGRESQL));
 
+    registerOp(SqlLibraryOperators.DATE_ADD,
+        new TimestampAddConvertlet());
     registerOp(SqlLibraryOperators.DATE_SUB,
         new TimestampSubConvertlet());
     registerOp(SqlLibraryOperators.TIME_ADD,
@@ -191,8 +193,14 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         new TimestampDiffConvertlet());
     registerOp(SqlLibraryOperators.TIME_SUB,
         new TimestampSubConvertlet());
+    registerOp(SqlLibraryOperators.DATETIME_ADD,
+        new TimestampAddConvertlet());
     registerOp(SqlLibraryOperators.TIMESTAMP_ADD2,
         new TimestampAddConvertlet());
+    registerOp(SqlLibraryOperators.DATETIME_DIFF,
+        new TimestampDiffConvertlet());
+    registerOp(SqlLibraryOperators.DATE_DIFF,
+        new TimestampDiffConvertlet());
     registerOp(SqlLibraryOperators.TIMESTAMP_DIFF3,
         new TimestampDiffConvertlet());
     registerOp(SqlLibraryOperators.TIMESTAMP_SUB,
@@ -1974,27 +1982,42 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlIntervalQualifier qualifier;
       final RexNode op1;
       final RexNode op2;
-      if (call.operand(0).getKind() == SqlKind.INTERVAL_QUALIFIER) {
-        qualifier = call.operand(0);
-        op1 = cx.convertExpression(call.operand(1));
-        op2 = cx.convertExpression(call.operand(2));
-      } else {
+      final boolean isBigQuery = !(call.operand(0).getKind() == SqlKind.INTERVAL_QUALIFIER);
+      if (isBigQuery) {
         qualifier = call.operand(2);
         op1 = cx.convertExpression(call.operand(1));
         op2 = cx.convertExpression(call.operand(0));
+      } else {
+        qualifier = call.operand(0);
+        op1 = cx.convertExpression(call.operand(1));
+        op2 = cx.convertExpression(call.operand(2));
       }
       final RexBuilder rexBuilder = cx.getRexBuilder();
       final TimeFrame timeFrame = cx.getValidator().validateTimeFrame(qualifier);
       final TimeUnit unit = first(timeFrame.unit(), TimeUnit.EPOCH);
-
+      RexCall truncCall1;
+      RexCall truncCall2;
       if (unit == TimeUnit.EPOCH && qualifier.timeFrameName != null) {
         // Custom time frames have a different path. They are kept as names, and
         // then handled by Java functions.
         final RexLiteral timeFrameName =
             rexBuilder.makeLiteral(qualifier.timeFrameName);
-        return rexBuilder.makeCall(cx.getValidator().getValidatedNodeType(call),
-            SqlStdOperatorTable.TIMESTAMP_DIFF,
-            ImmutableList.of(timeFrameName, op1, op2));
+        if (isBigQuery) {
+          truncCall1 = (RexCall) rexBuilder.makeCall(
+              op1.getType(), SqlLibraryOperators.TIMESTAMP_TRUNC,
+              ImmutableList.of(op1, timeFrameName));
+          truncCall2 = (RexCall) rexBuilder.makeCall(
+              op1.getType(), SqlLibraryOperators.TIMESTAMP_TRUNC,
+              ImmutableList.of(op2, timeFrameName));
+          return rexBuilder.makeCall(cx.getValidator().getValidatedNodeType(call),
+              SqlStdOperatorTable.TIMESTAMP_DIFF,
+              ImmutableList.of(timeFrameName, truncCall1, truncCall2));
+        } else {
+          return rexBuilder.makeCall(cx.getValidator().getValidatedNodeType(call),
+              SqlStdOperatorTable.TIMESTAMP_DIFF,
+              ImmutableList.of(timeFrameName, op1, op2));
+        }
+
       }
 
       BigDecimal multiplier = BigDecimal.ONE;
@@ -2027,13 +2050,38 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
                 qualifier.getParserPosition());
         break;
       }
-      final RelDataType intervalType =
-          cx.getTypeFactory().createTypeWithNullability(
-              cx.getTypeFactory().createSqlIntervalType(qualifier),
-              op1.getType().isNullable() || op2.getType().isNullable());
-      final RexCall rexCall = (RexCall) rexBuilder.makeCall(
-          intervalType, SqlStdOperatorTable.MINUS_DATE,
-          ImmutableList.of(op2, op1));
+
+      RelDataType intervalType;
+      RexCall rexCall;
+      /* This additional logic handles the differing definitions of 'WEEK' between BigQuery
+      *  and Calcite. BigQuery considers Sunday as the start of the week, so two dates whose
+      *  day difference is <7 may have a week difference of 1 if they occur on two different
+      * Sunday-anchored weeks. In this case, the issue can be solved by truncating each date
+      * to the most recent Sunday. Similar logic is used for ISOYEAR as well. */
+      if ((unit == TimeUnit.WEEK || unit == TimeUnit.ISOYEAR) && isBigQuery) {
+        final RexNode timeUnit = cx.convertExpression(call.operand(2));
+        intervalType =
+            cx.getTypeFactory().createTypeWithNullability(
+                cx.getTypeFactory().createSqlIntervalType(qualifier),
+                op1.getType().isNullable() || op2.getType().isNullable());
+        truncCall1 = (RexCall) rexBuilder.makeCall(
+            op1.getType(), SqlLibraryOperators.TIMESTAMP_TRUNC,
+            ImmutableList.of(op1, timeUnit));
+        truncCall2 = (RexCall) rexBuilder.makeCall(
+            op2.getType(), SqlLibraryOperators.TIMESTAMP_TRUNC,
+            ImmutableList.of(op2, timeUnit));
+        rexCall = (RexCall) rexBuilder.makeCall(
+            intervalType, SqlStdOperatorTable.MINUS_DATE,
+            ImmutableList.of(truncCall2, truncCall1));
+      } else {
+        intervalType =
+            cx.getTypeFactory().createTypeWithNullability(
+                cx.getTypeFactory().createSqlIntervalType(qualifier),
+                op1.getType().isNullable() || op2.getType().isNullable());
+        rexCall = (RexCall) rexBuilder.makeCall(
+            intervalType, SqlStdOperatorTable.MINUS_DATE,
+            ImmutableList.of(op2, op1));
+      }
       final RelDataType intType =
           cx.getTypeFactory().createTypeWithNullability(
               cx.getTypeFactory().createSqlType(sqlTypeName),
