@@ -30,7 +30,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
@@ -57,7 +56,7 @@ public abstract class SetOp extends AbstractRelNode implements Hintable {
   protected SetOp(RelOptCluster cluster, RelTraitSet traits, List<RelHint> hints,
       List<RelNode> inputs, SqlKind kind, boolean all) {
     super(cluster, traits);
-    Preconditions.checkArgument(kind == SqlKind.UNION
+    Util.checkArgument(kind == SqlKind.UNION
         || kind == SqlKind.INTERSECT
         || kind == SqlKind.EXCEPT);
     this.kind = kind;

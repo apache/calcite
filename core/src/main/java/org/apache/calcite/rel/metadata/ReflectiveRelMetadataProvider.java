@@ -25,7 +25,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectiveVisitor;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
@@ -87,7 +86,7 @@ public class ReflectiveRelMetadataProvider
       Class<? extends Metadata> metadataClass0,
       Multimap<Method, MetadataHandler<?>> handlerMap,
       Class<? extends MetadataHandler<?>> handlerClass) {
-    Preconditions.checkArgument(!map.isEmpty(), "ReflectiveRelMetadataProvider "
+    Util.checkArgument(!map.isEmpty(), "ReflectiveRelMetadataProvider "
         + "methods map is empty; are your methods named wrong?");
     this.map = map;
     this.metadataClass0 = metadataClass0;

@@ -45,7 +45,6 @@ import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.immutables.value.Value;
@@ -253,7 +252,7 @@ public abstract class ProjectToWindowRule
 
           @Override protected RelNode makeRel(RelOptCluster cluster, RelTraitSet traitSet,
               RelBuilder relBuilder, RelNode input, RexProgram program) {
-            Preconditions.checkArgument(program.getCondition() == null,
+            Util.checkArgument(program.getCondition() == null,
                 "WindowedAggregateRel cannot accept a condition");
             return LogicalWindow.create(cluster, traitSet, relBuilder, input,
                 program);

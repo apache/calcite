@@ -32,8 +32,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
-
-import com.google.common.base.Preconditions;
+import org.apache.calcite.util.Util;
 
 /**
  * Definition of the "FLOOR" and "CEIL" built-in SQL functions.
@@ -50,7 +49,7 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
                 OperandTypes.DATETIME,
                 OperandTypes.ANY)),
         SqlFunctionCategory.NUMERIC);
-    Preconditions.checkArgument(kind == SqlKind.FLOOR || kind == SqlKind.CEIL);
+    Util.checkArgument(kind == SqlKind.FLOOR || kind == SqlKind.CEIL);
   }
 
   //~ Methods ----------------------------------------------------------------

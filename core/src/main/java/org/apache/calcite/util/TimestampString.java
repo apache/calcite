@@ -18,7 +18,6 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -49,7 +48,7 @@ public class TimestampString implements Comparable<TimestampString> {
   /** Creates a TimeString. */
   public TimestampString(String v) {
     this.v = v;
-    Preconditions.checkArgument(PATTERN.matcher(v).matches(), v);
+    Util.checkArgument(PATTERN.matcher(v).matches(), v);
   }
 
   /** Creates a TimestampString for year, month, day, hour, minute, second,
@@ -65,7 +64,7 @@ public class TimestampString implements Comparable<TimestampString> {
    * {@code new TimestampString(1970, 1, 1, 2, 3, 4).withMillis(56)}
    * yields {@code TIMESTAMP '1970-01-01 02:03:04.056'}. */
   public TimestampString withMillis(int millis) {
-    Preconditions.checkArgument(millis >= 0 && millis < 1000);
+    Util.checkArgument(millis >= 0 && millis < 1000);
     return withFraction(DateTimeStringUtils.pad(3, millis));
   }
 
@@ -76,7 +75,7 @@ public class TimestampString implements Comparable<TimestampString> {
    * {@code new TimestampString(1970, 1, 1, 2, 3, 4).withNanos(56789)}
    * yields {@code TIMESTAMP '1970-01-01 02:03:04.000056789'}. */
   public TimestampString withNanos(int nanos) {
-    Preconditions.checkArgument(nanos >= 0 && nanos < 1000000000);
+    Util.checkArgument(nanos >= 0 && nanos < 1000000000);
     return withFraction(DateTimeStringUtils.pad(9, nanos));
   }
 
@@ -134,7 +133,7 @@ public class TimestampString implements Comparable<TimestampString> {
   }
 
   public TimestampString round(int precision) {
-    Preconditions.checkArgument(precision >= 0);
+    Util.checkArgument(precision >= 0);
     int targetLength = 20 + precision;
     if (v.length() <= targetLength) {
       return this;
@@ -191,7 +190,7 @@ public class TimestampString implements Comparable<TimestampString> {
   /** Converts this TimestampString to a string, truncated or padded with
    * zeros to a given precision. */
   public String toString(int precision) {
-    Preconditions.checkArgument(precision >= 0);
+    Util.checkArgument(precision >= 0);
     final int p = precision();
     if (precision < p) {
       return round(precision).toString(precision);

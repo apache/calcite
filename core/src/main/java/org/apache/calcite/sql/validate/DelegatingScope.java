@@ -34,7 +34,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
@@ -601,7 +600,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
   }
 
   private AggregatingSelectScope.Resolved resolve() {
-    Preconditions.checkArgument(groupAnalyzer == null,
+    Util.checkArgument(groupAnalyzer == null,
         "resolve already in progress");
     SqlValidatorUtil.GroupAnalyzer groupAnalyzer = new SqlValidatorUtil.GroupAnalyzer();
     this.groupAnalyzer = groupAnalyzer;

@@ -46,8 +46,6 @@ import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import org.hamcrest.Matcher;
 
 import java.nio.charset.Charset;
@@ -181,7 +179,7 @@ public class SqlValidatorFixture {
   }
 
   SqlValidatorFixture withWhole(boolean whole) {
-    Preconditions.checkArgument(sap.cursor < 0);
+    Util.checkArgument(sap.cursor < 0);
     final StringAndPos sap = StringAndPos.of("^" + this.sap.sql + "^");
     return new SqlValidatorFixture(tester, factory, sap, expression, whole);
   }

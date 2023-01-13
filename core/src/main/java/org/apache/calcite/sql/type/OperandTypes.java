@@ -44,9 +44,8 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import static org.apache.calcite.util.Static.RESOURCE;
+import static org.apache.calcite.util.Util.checkArgument;
 
 /**
  * Strategies for checking operand types.

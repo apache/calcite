@@ -23,8 +23,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.Optionality;
-
-import com.google.common.base.Preconditions;
+import org.apache.calcite.util.Util;
 
 /**
  * <code>Avg</code> is an aggregator which returns the average of the values
@@ -54,7 +53,7 @@ public class SqlAvgAggFunction extends SqlAggFunction {
         false,
         false,
         Optionality.FORBIDDEN);
-    Preconditions.checkArgument(SqlKind.AVG_AGG_FUNCTIONS.contains(kind),
+    Util.checkArgument(SqlKind.AVG_AGG_FUNCTIONS.contains(kind),
         "unsupported sql kind");
   }
 

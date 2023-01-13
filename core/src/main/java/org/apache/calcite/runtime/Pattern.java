@@ -16,7 +16,8 @@
  */
 package org.apache.calcite.runtime;
 
-import com.google.common.base.Preconditions;
+import org.apache.calcite.util.Util;
+
 import com.google.common.collect.ImmutableList;
 
 import java.util.Objects;
@@ -181,8 +182,8 @@ public interface Pattern {
 
     OpPattern(Op op, Pattern... patterns) {
       super(op);
-      Preconditions.checkArgument(patterns.length >= op.minArity);
-      Preconditions.checkArgument(op.maxArity == -1
+      Util.checkArgument(patterns.length >= op.minArity);
+      Util.checkArgument(op.maxArity == -1
           || patterns.length <= op.maxArity);
       this.patterns = ImmutableList.copyOf(patterns);
     }

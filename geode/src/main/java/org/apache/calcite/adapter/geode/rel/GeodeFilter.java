@@ -37,8 +37,6 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
@@ -219,7 +217,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
 
     /** Creates OQL {@code IN SET} predicate string. */
     private String translateInSet(List<RexNode> disjunctions) {
-      Preconditions.checkArgument(
+      Util.checkArgument(
           !disjunctions.isEmpty(), "empty disjunctions");
 
       RexNode firstNode = disjunctions.get(0);

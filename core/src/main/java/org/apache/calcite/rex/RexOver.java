@@ -22,8 +22,6 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
@@ -70,7 +68,7 @@ public class RexOver extends RexCall {
       boolean distinct,
       boolean ignoreNulls) {
     super(type, op, operands);
-    Preconditions.checkArgument(op.isAggregator());
+    Util.checkArgument(op.isAggregator());
     this.window = Objects.requireNonNull(window, "window");
     this.distinct = distinct;
     this.ignoreNulls = ignoreNulls;

@@ -24,7 +24,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.RangeSet;
 
@@ -409,7 +408,7 @@ public class Matchers {
     private final double epsilon;
 
     public IsWithin(T expectedValue, double epsilon) {
-      Preconditions.checkArgument(epsilon >= 0D);
+      Util.checkArgument(epsilon >= 0D);
       this.expectedValue = expectedValue;
       this.epsilon = epsilon;
     }

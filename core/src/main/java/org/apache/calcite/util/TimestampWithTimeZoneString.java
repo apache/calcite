@@ -18,8 +18,6 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.text.SimpleDateFormat;
@@ -53,7 +51,7 @@ public class TimestampWithTimeZoneString
   public TimestampWithTimeZoneString(String v) {
     this.localDateTime = new TimestampString(v.substring(0, v.indexOf(' ', 11)));
     String timeZoneString = v.substring(v.indexOf(' ', 11) + 1);
-    Preconditions.checkArgument(DateTimeStringUtils.isValidTimeZone(timeZoneString));
+    Util.checkArgument(DateTimeStringUtils.isValidTimeZone(timeZoneString));
     this.timeZone = TimeZone.getTimeZone(timeZoneString);
     this.v = v;
   }
@@ -73,7 +71,7 @@ public class TimestampWithTimeZoneString
    * {@code new TimestampWithTimeZoneString(1970, 1, 1, 2, 3, 4, "GMT").withMillis(56)}
    * yields {@code TIMESTAMP WITH LOCAL TIME ZONE '1970-01-01 02:03:04.056 GMT'}. */
   public TimestampWithTimeZoneString withMillis(int millis) {
-    Preconditions.checkArgument(millis >= 0 && millis < 1000);
+    Util.checkArgument(millis >= 0 && millis < 1000);
     return withFraction(DateTimeStringUtils.pad(3, millis));
   }
 
@@ -84,7 +82,7 @@ public class TimestampWithTimeZoneString
    * {@code new TimestampWithTimeZoneString(1970, 1, 1, 2, 3, 4, "GMT").withNanos(56789)}
    * yields {@code TIMESTAMP WITH LOCAL TIME ZONE '1970-01-01 02:03:04.000056789 GMT'}. */
   public TimestampWithTimeZoneString withNanos(int nanos) {
-    Preconditions.checkArgument(nanos >= 0 && nanos < 1000000000);
+    Util.checkArgument(nanos >= 0 && nanos < 1000000000);
     return withFraction(DateTimeStringUtils.pad(9, nanos));
   }
 
@@ -161,7 +159,7 @@ public class TimestampWithTimeZoneString
   }
 
   public TimestampWithTimeZoneString round(int precision) {
-    Preconditions.checkArgument(precision >= 0);
+    Util.checkArgument(precision >= 0);
     return new TimestampWithTimeZoneString(
         localDateTime.round(precision), timeZone);
   }
@@ -177,7 +175,7 @@ public class TimestampWithTimeZoneString
   /** Converts this TimestampWithTimeZoneString to a string, truncated or padded with
    * zeros to a given precision. */
   public String toString(int precision) {
-    Preconditions.checkArgument(precision >= 0);
+    Util.checkArgument(precision >= 0);
     return localDateTime.toString(precision) + " " + timeZone.getID();
   }
 

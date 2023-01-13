@@ -22,8 +22,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
-
-import com.google.common.base.Preconditions;
+import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -82,11 +81,11 @@ public class SqlMatchRecognize extends SqlCall {
     this.strictStart = strictStart;
     this.strictEnd = strictEnd;
     this.patternDefList = Objects.requireNonNull(patternDefList, "patternDefList");
-    Preconditions.checkArgument(patternDefList.size() > 0);
+    Util.checkArgument(patternDefList.size() > 0);
     this.measureList = Objects.requireNonNull(measureList, "measureList");
     this.after = after;
     this.subsetList = subsetList;
-    Preconditions.checkArgument(rowsPerMatch == null
+    Util.checkArgument(rowsPerMatch == null
         || rowsPerMatch.value instanceof RowsPerMatchOption);
     this.rowsPerMatch = rowsPerMatch;
     this.partitionList = Objects.requireNonNull(partitionList, "partitionList");
@@ -137,7 +136,7 @@ public class SqlMatchRecognize extends SqlCall {
       break;
     case OPERAND_PATTERN_DEFINES:
       patternDefList = Objects.requireNonNull((SqlNodeList) operand);
-      Preconditions.checkArgument(patternDefList.size() > 0);
+      Util.checkArgument(patternDefList.size() > 0);
       break;
     case OPERAND_MEASURES:
       measureList = Objects.requireNonNull((SqlNodeList) operand);
@@ -150,7 +149,7 @@ public class SqlMatchRecognize extends SqlCall {
       break;
     case OPERAND_ROWS_PER_MATCH:
       rowsPerMatch = (SqlLiteral) operand;
-      Preconditions.checkArgument(rowsPerMatch == null
+      Util.checkArgument(rowsPerMatch == null
           || rowsPerMatch.value instanceof RowsPerMatchOption);
       break;
     case OPERAND_PARTITION_BY:

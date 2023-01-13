@@ -75,8 +75,8 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -219,7 +219,7 @@ public class Bindables {
       super(cluster, traitSet, ImmutableList.of(), table);
       this.filters = Objects.requireNonNull(filters, "filters");
       this.projects = Objects.requireNonNull(projects, "projects");
-      Preconditions.checkArgument(canHandle(table));
+      Util.checkArgument(canHandle(table));
     }
 
     /** Creates a BindableTableScan. */

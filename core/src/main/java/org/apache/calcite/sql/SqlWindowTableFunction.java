@@ -28,8 +28,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -124,7 +124,7 @@ public class SqlWindowTableFunction extends SqlFunction
         int mandatoryParamCount) {
       this.paramNames = ImmutableList.copyOf(paramNames);
       this.mandatoryParamCount = mandatoryParamCount;
-      Preconditions.checkArgument(mandatoryParamCount >= 0
+      Util.checkArgument(mandatoryParamCount >= 0
           && mandatoryParamCount <= paramNames.size());
     }
 

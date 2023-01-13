@@ -17,8 +17,7 @@
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.sql.SqlOperandCountRange;
-
-import com.google.common.base.Preconditions;
+import org.apache.calcite.util.Util;
 
 /**
  * Helpers for {@link SqlOperandCountRange}.
@@ -48,8 +47,8 @@ public abstract class SqlOperandCountRanges {
     RangeImpl(int min, int max) {
       this.min = min;
       this.max = max;
-      Preconditions.checkArgument(min <= max || max == -1);
-      Preconditions.checkArgument(min >= 0);
+      Util.checkArgument(min <= max || max == -1);
+      Util.checkArgument(min >= 0);
     }
 
     @Override public boolean isValidCount(int count) {

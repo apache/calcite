@@ -24,8 +24,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -152,10 +152,10 @@ public class Hoist {
       end = SqlParserUtil.lineColToIndex(originalSql,
           pos.getEndLineNum(), pos.getEndColumnNum()) + 1;
 
-      Preconditions.checkArgument(ordinal >= 0);
-      Preconditions.checkArgument(start >= 0);
-      Preconditions.checkArgument(start <= end);
-      Preconditions.checkArgument(end <= originalSql.length());
+      Util.checkArgument(ordinal >= 0);
+      Util.checkArgument(start >= 0);
+      Util.checkArgument(start <= end);
+      Util.checkArgument(end <= originalSql.length());
     }
 
     /** Returns SQL text of the region of the statement covered by this

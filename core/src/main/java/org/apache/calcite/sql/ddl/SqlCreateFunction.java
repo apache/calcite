@@ -29,8 +29,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -54,7 +52,7 @@ public class SqlCreateFunction extends SqlCreate {
     this.name = Objects.requireNonNull(name, "name");
     this.className = className;
     this.usingList = Objects.requireNonNull(usingList, "usingList");
-    Preconditions.checkArgument(usingList.size() % 2 == 0);
+    Util.checkArgument(usingList.size() % 2 == 0);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec,

@@ -2094,6 +2094,23 @@ public class Util {
     return v0 != null ? v0 : v1;
   }
 
+  /** Equivalent to {@link Preconditions#checkArgument(boolean)}. */
+  public static void checkArgument(boolean test) {
+    Unsafe.checkArgument(test);
+  }
+
+  /** Equivalent to {@link Preconditions#checkArgument(boolean, Object)}. */
+  public static void checkArgument(boolean test, Object message) {
+    Unsafe.checkArgument(test, message);
+  }
+
+  /** Equivalent to {@link Preconditions#checkArgument(boolean, String, Object...)}.
+   * Assists in compatibility with Guava versions prior to 20.0, where many new overloads were
+   * introduced. */
+  public static void checkArgument(boolean test, String messageTemplate, Object... parameters) {
+    Unsafe.checkArgument(test, messageTemplate, parameters);
+  }
+
   public static <T> Iterable<T> orEmpty(@Nullable Iterable<T> v0) {
     return v0 != null ? v0 : ImmutableList.of();
   }

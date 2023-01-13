@@ -22,8 +22,6 @@ import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
@@ -75,7 +73,7 @@ public class SqlJoin extends SqlCall {
     this.conditionType = requireNonNull(conditionType, "conditionType");
     this.condition = condition;
 
-    Preconditions.checkArgument(natural.getTypeName() == SqlTypeName.BOOLEAN);
+    Util.checkArgument(natural.getTypeName() == SqlTypeName.BOOLEAN);
     conditionType.getValueAs(JoinConditionType.class);
     joinType.getValueAs(JoinType.class);
   }

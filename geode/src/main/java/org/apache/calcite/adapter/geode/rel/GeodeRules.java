@@ -39,8 +39,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-
-import com.google.common.base.Preconditions;
+import org.apache.calcite.util.Util;
 
 import org.immutables.value.Value;
 
@@ -152,7 +151,7 @@ public class GeodeRules {
 
     @Override public RelNode convert(RelNode rel) {
       final LogicalProject project = (LogicalProject) rel;
-      Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
+      Util.checkArgument(project.getVariablesSet().isEmpty(),
           "GeodeProject does now allow variables");
       final RelTraitSet traitSet =
           project.getTraitSet().replace(getOutConvention());

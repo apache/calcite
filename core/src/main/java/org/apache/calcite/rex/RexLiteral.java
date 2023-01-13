@@ -42,7 +42,6 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
@@ -228,9 +227,9 @@ public class RexLiteral extends RexNode {
     this.value = value;
     this.type = requireNonNull(type, "type");
     this.typeName = requireNonNull(typeName, "typeName");
-    Preconditions.checkArgument(valueMatchesType(value, typeName, true));
-    Preconditions.checkArgument((value == null) == type.isNullable());
-    Preconditions.checkArgument(typeName != SqlTypeName.ANY);
+    Util.checkArgument(valueMatchesType(value, typeName, true));
+    Util.checkArgument((value == null) == type.isNullable());
+    Util.checkArgument(typeName != SqlTypeName.ANY);
     this.digest = computeDigest(RexDigestIncludeType.OPTIONAL);
   }
 

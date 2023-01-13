@@ -1875,7 +1875,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return ns.getType();
     }
     type = deriveTypeImpl(scope, expr);
-    Preconditions.checkArgument(
+    Util.checkArgument(
         type != null,
         "SqlValidator.deriveTypeInternal returned null");
     setValidatedNodeType(expr, type);
@@ -2692,7 +2692,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode enclosingNode,
       @Nullable String alias,
       boolean forceNullable) {
-    Preconditions.checkArgument(usingScope == null || alias != null);
+    Util.checkArgument(usingScope == null || alias != null);
     registerQuery(
         parentScope,
         usingScope,
@@ -2725,7 +2725,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       boolean checkUpdate) {
     requireNonNull(node, "node");
     requireNonNull(enclosingNode, "enclosingNode");
-    Preconditions.checkArgument(usingScope == null || alias != null);
+    Util.checkArgument(usingScope == null || alias != null);
 
     SqlCall call;
     List<SqlNode> operands;
@@ -3521,7 +3521,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Validate condition.
     switch (conditionType) {
     case NONE:
-      Preconditions.checkArgument(join.getCondition() == null);
+      Util.checkArgument(join.getCondition() == null);
       break;
     case ON:
       final SqlNode condition = expand(getCondition(join), joinScope);
@@ -3534,7 +3534,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           (List) getCondition(join);
 
       // Parser ensures that using clause is not empty.
-      Preconditions.checkArgument(!list.isEmpty(), "Empty USING clause");
+      Util.checkArgument(!list.isEmpty(), "Empty USING clause");
       for (SqlIdentifier id : list) {
         validateCommonJoinColumn(id, left, right, scope, natural);
       }
@@ -3638,7 +3638,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private RelDataType checkAndDeriveDataType(SqlIdentifier id, SqlNode node) {
-    Preconditions.checkArgument(id.names.size() == 1);
+    Util.checkArgument(id.names.size() == 1);
     String name = id.names.get(0);
     SqlNameMatcher nameMatcher = getCatalogReader().nameMatcher();
     RelDataType rowType = getNamespaceOrThrow(node).getRowType();
@@ -3652,7 +3652,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * NATURAL join, in the left or right input to the join. */
   private RelDataType validateCommonInputJoinColumn(SqlIdentifier id,
       SqlNode leftOrRight, SqlValidatorScope scope, boolean natural) {
-    Preconditions.checkArgument(id.names.size() == 1);
+    Util.checkArgument(id.names.size() == 1);
     final String name = id.names.get(0);
     final SqlValidatorNamespace namespace = getNamespaceOrThrow(leftOrRight);
     final RelDataType rowType = namespace.getRowType();
@@ -6411,7 +6411,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public Void visit(SqlIdentifier id) {
-      Preconditions.checkArgument(id.isSimple());
+      Util.checkArgument(id.isSimple());
       scope.addPatternVar(id.getSimple());
       return null;
     }

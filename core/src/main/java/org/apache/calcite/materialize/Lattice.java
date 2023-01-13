@@ -57,7 +57,6 @@ import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
 import org.apache.calcite.util.mapping.IntPair;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -130,7 +129,7 @@ public class Lattice {
       // [CALCITE-429] Add statistics SPI for lattice optimization algorithm
       rowCountEstimate = 1000d;
     }
-    Preconditions.checkArgument(rowCountEstimate > 0d);
+    Util.checkArgument(rowCountEstimate > 0d);
     this.rowCountEstimate = rowCountEstimate;
     @SuppressWarnings("argument.type.incompatible")
     LatticeStatisticProvider statisticProvider =
@@ -798,7 +797,7 @@ public class Lattice {
 
     public Builder(LatticeSpace space, CalciteSchema schema, String sql) {
       this.rootSchema = requireNonNull(schema.root());
-      Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
+      Util.checkArgument(rootSchema.isRoot(), "must be root schema");
       CalcitePrepare.ConvertResult parsed =
           Schemas.convert(MaterializedViewTable.MATERIALIZATION_CONNECTION,
               schema, schema.path(null), sql);
@@ -934,7 +933,7 @@ public class Lattice {
                   LatticeStatisticProvider.Factory.class,
                   this.statisticProvider)
               : Lattices.CACHED_SQL;
-      Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
+      Util.checkArgument(rootSchema.isRoot(), "must be root schema");
       final ImmutableList.Builder<Column> columnBuilder =
           ImmutableList.<Column>builder()
           .addAll(baseColumns)

@@ -28,8 +28,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.RelToSqlConverterUtil;
-
-import com.google.common.base.Preconditions;
+import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -72,7 +71,7 @@ public class PrestoSqlDialect extends SqlDialect {
   /** Unparses offset/fetch using "OFFSET offset LIMIT fetch " syntax. */
   private static void unparseUsingLimit(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    Preconditions.checkArgument(fetch != null || offset != null);
+    Util.checkArgument(fetch != null || offset != null);
     unparseOffset(writer, offset);
     unparseLimit(writer, fetch);
   }

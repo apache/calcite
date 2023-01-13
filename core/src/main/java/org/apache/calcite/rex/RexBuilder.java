@@ -50,7 +50,6 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
@@ -346,7 +345,7 @@ public class RexBuilder {
       boolean indicator, List<AggregateCall> aggCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
       final @Nullable List<RelDataType> aggArgTypes) {
-    Preconditions.checkArgument(!indicator,
+    Util.checkArgument(!indicator,
         "indicator is deprecated, use GROUPING function instead");
     return addAggCall(aggCall, groupCount, aggCalls,
         aggCallMapping, aggArgTypes);
@@ -425,7 +424,7 @@ public class RexBuilder {
           makeNullLiteral(type));
     }
     if (!allowPartial) {
-      Preconditions.checkArgument(rows, "DISALLOW PARTIAL over RANGE");
+      Util.checkArgument(rows, "DISALLOW PARTIAL over RANGE");
       final RelDataType bigintType =
           typeFactory.createSqlType(SqlTypeName.BIGINT);
       // todo: read bound

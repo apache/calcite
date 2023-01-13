@@ -59,8 +59,8 @@ import org.apache.calcite.testlib.annotations.LocaleEnUs;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
@@ -12757,7 +12757,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
 
     private SqlIdentifier rewriteIdentifier(SqlIdentifier sqlIdentifier) {
-      Preconditions.checkArgument(sqlIdentifier.names.size() == 2);
+      Util.checkArgument(sqlIdentifier.names.size() == 2);
       if (sqlIdentifier.names.get(0).equals("UNEXPANDED")) {
         return new SqlIdentifier(asList("DEPT", sqlIdentifier.names.get(1)),
             null, sqlIdentifier.getParserPosition(),

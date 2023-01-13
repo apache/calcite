@@ -19,8 +19,7 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.util.SerializableCharset;
-
-import com.google.common.base.Preconditions;
+import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -140,7 +139,7 @@ public class BasicSqlType extends AbstractSqlType {
    */
   BasicSqlType createWithCharsetAndCollation(Charset charset,
       SqlCollation collation) {
-    Preconditions.checkArgument(SqlTypeUtil.inCharFamily(this));
+    Util.checkArgument(SqlTypeUtil.inCharFamily(this));
     return new BasicSqlType(this.typeSystem, this.typeName, this.isNullable,
         this.precision, this.scale, collation,
         SerializableCharset.forCharset(charset));

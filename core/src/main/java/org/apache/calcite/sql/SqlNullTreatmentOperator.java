@@ -22,8 +22,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
-
-import com.google.common.base.Preconditions;
+import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -41,7 +40,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public class SqlNullTreatmentOperator extends SqlSpecialOperator {
   public SqlNullTreatmentOperator(SqlKind kind) {
     super(kind.sql, kind, 20, true, ReturnTypes.ARG0, null, OperandTypes.ANY);
-    Preconditions.checkArgument(kind == SqlKind.RESPECT_NULLS
+    Util.checkArgument(kind == SqlKind.RESPECT_NULLS
         || kind == SqlKind.IGNORE_NULLS);
   }
 

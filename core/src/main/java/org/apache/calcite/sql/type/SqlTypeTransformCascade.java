@@ -18,8 +18,8 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -46,7 +46,7 @@ public class SqlTypeTransformCascade implements SqlReturnTypeInference {
   public SqlTypeTransformCascade(
       SqlReturnTypeInference rule,
       SqlTypeTransform... transforms) {
-    Preconditions.checkArgument(transforms.length > 0);
+    Util.checkArgument(transforms.length > 0);
     this.rule = Objects.requireNonNull(rule, "rule");
     this.transforms = ImmutableList.copyOf(transforms);
   }

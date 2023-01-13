@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import com.google.common.base.Preconditions;
+
 import java.io.StringWriter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -86,5 +88,28 @@ public class Unsafe {
     matcher.appendTail(sb);
 
     return sb.toString();
+  }
+
+  /** Equivalent to {@link Preconditions#checkArgument(boolean)}.
+   * Unlike {@link #checkArgument(boolean, String, Object...)}, this one is not required
+   * for compatibility with Guava prior to 20.0. However, it's nice to make all checkArgument
+   * calls in a consistent way. */
+  public static void checkArgument(boolean test) {
+    Preconditions.checkArgument(test);
+  }
+
+  /** Equivalent to {@link Preconditions#checkArgument(boolean, Object)}.
+   * Unlike {@link #checkArgument(boolean, String, Object...)}, this one is not required
+   * for compatibility with Guava prior to 20.0. However, it's nice to make all checkArgument
+   * calls in a consistent way. */
+  public static void checkArgument(boolean test, Object message) {
+    Preconditions.checkArgument(test, message);
+  }
+
+  /** Equivalent to {@link Preconditions#checkArgument(boolean, String, Object...)}.
+   * Assists in compatibility with Guava versions prior to 20.0, where many new overloads were
+   * introduced. */
+  public static void checkArgument(boolean test, String messageTemplate, Object... parameters) {
+    Preconditions.checkArgument(test, messageTemplate, parameters);
   }
 }

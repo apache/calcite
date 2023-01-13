@@ -71,7 +71,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -98,7 +97,7 @@ public class JdbcRules {
 
   static final RelFactories.ProjectFactory PROJECT_FACTORY =
       (input, hints, projects, fieldNames, variablesSet) -> {
-        Preconditions.checkArgument(variablesSet.isEmpty(),
+        Util.checkArgument(variablesSet.isEmpty(),
             "JdbcProject does not allow variables");
         final RelOptCluster cluster = input.getCluster();
         final RelDataType rowType =
@@ -110,7 +109,7 @@ public class JdbcRules {
 
   static final RelFactories.FilterFactory FILTER_FACTORY =
       (input, condition, variablesSet) -> {
-        Preconditions.checkArgument(variablesSet.isEmpty(),
+        Util.checkArgument(variablesSet.isEmpty(),
             "JdbcFilter does not allow variables");
         return new JdbcFilter(input.getCluster(),
             input.getTraitSet(), input, condition);

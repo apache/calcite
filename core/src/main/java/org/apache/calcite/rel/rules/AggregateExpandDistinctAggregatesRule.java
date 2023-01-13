@@ -281,7 +281,7 @@ public final class AggregateExpandDistinctAggregatesRule
 
     // In this case, we are assuming that there is a single distinct function.
     // So make sure that argLists is of size one.
-    Preconditions.checkArgument(argLists.size() == 1);
+    Util.checkArgument(argLists.size() == 1);
 
     // For example,
     //    SELECT deptno, COUNT(*), SUM(bonus), MIN(DISTINCT sal)

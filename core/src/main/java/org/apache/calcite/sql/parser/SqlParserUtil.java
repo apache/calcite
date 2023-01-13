@@ -47,7 +47,6 @@ import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -415,7 +414,7 @@ public final class SqlParserUtil {
   public static long intervalToMillis(
       String literal,
       SqlIntervalQualifier intervalQualifier) {
-    Preconditions.checkArgument(!intervalQualifier.isYearMonth(),
+    Util.checkArgument(!intervalQualifier.isYearMonth(),
         "interval must be day time");
     int[] ret;
     try {
@@ -456,7 +455,7 @@ public final class SqlParserUtil {
   public static long intervalToMonths(
       String literal,
       SqlIntervalQualifier intervalQualifier) {
-    Preconditions.checkArgument(intervalQualifier.isYearMonth(),
+    Util.checkArgument(intervalQualifier.isYearMonth(),
         "interval must be year month");
     int[] ret;
     try {
@@ -795,7 +794,7 @@ public final class SqlParserUtil {
       int end,
       T o) {
     requireNonNull(list, "list");
-    Preconditions.checkArgument(start < end);
+    Util.checkArgument(start < end);
     for (int i = end - 1; i > start; --i) {
       list.remove(i);
     }

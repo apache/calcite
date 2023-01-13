@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.util;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
@@ -52,7 +50,7 @@ enum JdbcTypeImpl implements JdbcType {
     @Override public Boolean get(int column,
         ResultSet resultSet) throws SQLException {
       boolean v = resultSet.getBoolean(column);
-      Preconditions.checkArgument(v || !resultSet.wasNull());
+      Util.checkArgument(v || !resultSet.wasNull());
       return v;
     }
   },
@@ -69,7 +67,7 @@ enum JdbcTypeImpl implements JdbcType {
     @Override public Double get(int column,
         ResultSet resultSet) throws SQLException {
       double v = resultSet.getDouble(column);
-      Preconditions.checkArgument(v != 0 || !resultSet.wasNull());
+      Util.checkArgument(v != 0 || !resultSet.wasNull());
       return v;
     }
   },
@@ -86,7 +84,7 @@ enum JdbcTypeImpl implements JdbcType {
     @Override public Integer get(int column,
         ResultSet resultSet) throws SQLException {
       int v = resultSet.getInt(column);
-      Preconditions.checkArgument(v != 0 || !resultSet.wasNull());
+      Util.checkArgument(v != 0 || !resultSet.wasNull());
       return v;
     }
   },

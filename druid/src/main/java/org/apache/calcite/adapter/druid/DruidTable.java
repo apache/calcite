@@ -36,8 +36,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -232,8 +232,8 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     final RelDataType rowType = protoRowType.apply(typeFactory);
     final List<String> fieldNames = rowType.getFieldNames();
-    Preconditions.checkArgument(fieldNames.contains(timestampFieldName));
-    Preconditions.checkArgument(fieldNames.containsAll(metricFieldNames));
+    Util.checkArgument(fieldNames.contains(timestampFieldName));
+    Util.checkArgument(fieldNames.containsAll(metricFieldNames));
     return rowType;
   }
 

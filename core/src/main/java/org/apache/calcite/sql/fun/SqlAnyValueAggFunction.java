@@ -23,8 +23,7 @@ import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.Optionality;
-
-import com.google.common.base.Preconditions;
+import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -50,7 +49,7 @@ public class SqlAnyValueAggFunction extends SqlAggFunction {
         false,
         false,
         Optionality.FORBIDDEN);
-    Preconditions.checkArgument(kind == SqlKind.ANY_VALUE);
+    Util.checkArgument(kind == SqlKind.ANY_VALUE);
   }
 
   //~ Methods ----------------------------------------------------------------

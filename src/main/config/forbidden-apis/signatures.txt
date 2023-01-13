@@ -61,12 +61,40 @@ java.lang.Enum#equals(java.lang.Object)
 @defaultMessage It does not handle encoded URLs, use Sources.of(URL).file() instead
 java.net.URL#getPath()
 
-# Preconditions.checkArgument,
-# Preconditions.checkPositionIndex, and
+# Preconditions.checkPositionIndex and
 # Preconditions.checkState are still OK
 @defaultMessage Use Objects.requireNonNull
 com.google.common.base.Preconditions#checkNotNull(java.lang.Object)
 com.google.common.base.Preconditions#checkNotNull(java.lang.Object, java.lang.Object)
+
+# Preconditions.checkArgument gained new overloads in Guava 20.0, which prevents code built using
+# Guava 20.0 from running properly with earlier versions of Guava
+@defaultMessage Use Util.checkArgument
+com.google.common.base.Preconditions#checkArgument(boolean)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.Object)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,java.lang.Object[])
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,char)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,int)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,long)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,java.lang.Object)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,char,char)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,char,int)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,char,long)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,char,java.lang.Object)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,int,char)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,int,int)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,int,long)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,int,java.lang.Object)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,long,char)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,long,int)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,long,long)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,long,java.lang.Object)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,java.lang.Object,char)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,java.lang.Object,int)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,java.lang.Object,long)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,java.lang.Object,java.lang.Object)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,java.lang.Object,java.lang.Object,java.lang.Object)
+com.google.common.base.Preconditions#checkArgument(boolean,java.lang.String,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object)
 
 @defaultMessage Use java.util.Objects.equals
 com.google.common.base.Objects#equal(java.lang.Object, java.lang.Object)

@@ -19,8 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.TimestampString;
-
-import com.google.common.base.Preconditions;
+import org.apache.calcite.util.Util;
 
 import java.util.Objects;
 
@@ -36,7 +35,7 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
   SqlTimestampLiteral(TimestampString ts, int precision,
       boolean hasTimeZone, SqlParserPos pos) {
     super(ts, hasTimeZone, SqlTypeName.TIMESTAMP, precision, pos);
-    Preconditions.checkArgument(this.precision >= 0);
+    Util.checkArgument(this.precision >= 0);
   }
 
   //~ Methods ----------------------------------------------------------------

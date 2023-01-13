@@ -27,8 +27,8 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -60,7 +60,7 @@ public class SqlCreateForeignSchema extends SqlCreate {
     this.name = Objects.requireNonNull(name, "name");
     this.type = type;
     this.library = library;
-    Preconditions.checkArgument((type == null) != (library == null),
+    Util.checkArgument((type == null) != (library == null),
         "of type and library, exactly one must be specified");
     this.optionList = optionList; // may be null
   }

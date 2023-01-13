@@ -34,8 +34,6 @@ import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import java.util.AbstractList;
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -721,7 +719,7 @@ public abstract class ReturnTypes {
             && !containsNullType
             && !(SqlTypeUtil.inCharOrBinaryFamilies(argType0)
             && SqlTypeUtil.inCharOrBinaryFamilies(argType1))) {
-          Preconditions.checkArgument(
+          Util.checkArgument(
               SqlTypeUtil.sameNamedType(argType0, argType1));
         }
         SqlCollation pickedCollation = null;

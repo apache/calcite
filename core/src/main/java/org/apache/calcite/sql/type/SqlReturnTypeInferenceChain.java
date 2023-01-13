@@ -18,8 +18,8 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -44,7 +44,7 @@ public class SqlReturnTypeInferenceChain implements SqlReturnTypeInference {
    * Use {@link org.apache.calcite.sql.type.ReturnTypes#chain}.</p>
    */
   SqlReturnTypeInferenceChain(SqlReturnTypeInference... rules) {
-    Preconditions.checkArgument(rules.length > 1);
+    Util.checkArgument(rules.length > 1);
     this.rules = ImmutableList.copyOf(rules);
   }
 

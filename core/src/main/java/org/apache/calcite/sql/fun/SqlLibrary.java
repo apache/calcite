@@ -17,8 +17,8 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -79,7 +79,7 @@ public enum SqlLibrary {
   SqlLibrary(String abbrev, String fun) {
     this.abbrev = Objects.requireNonNull(abbrev, "abbrev");
     this.fun = Objects.requireNonNull(fun, "fun");
-    Preconditions.checkArgument(
+    Util.checkArgument(
         fun.equals(name().toLowerCase(Locale.ROOT).replace("_", "")));
   }
 

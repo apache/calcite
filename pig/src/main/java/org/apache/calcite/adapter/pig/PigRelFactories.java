@@ -31,7 +31,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -78,7 +77,7 @@ public class PigRelFactories {
 
     @Override public RelNode createFilter(RelNode input, RexNode condition,
         Set<CorrelationId> variablesSet) {
-      Preconditions.checkArgument(variablesSet.isEmpty(),
+      Util.checkArgument(variablesSet.isEmpty(),
           "PigFilter does not allow variables");
       final RelTraitSet traitSet =
           input.getTraitSet().replace(PigRel.CONVENTION);

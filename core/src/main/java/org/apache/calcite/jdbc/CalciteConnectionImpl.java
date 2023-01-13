@@ -69,7 +69,6 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -148,7 +147,7 @@ abstract class CalciteConnectionImpl
         requireNonNull(rootSchema != null
             ? rootSchema
             : CalciteSchema.createRootSchema(true));
-    Preconditions.checkArgument(this.rootSchema.isRoot(), "must be root schema");
+    Util.checkArgument(this.rootSchema.isRoot(), "must be root schema");
     this.properties.put(InternalProperty.CASE_SENSITIVE, cfg.caseSensitive());
     this.properties.put(InternalProperty.UNQUOTED_CASING, cfg.unquotedCasing());
     this.properties.put(InternalProperty.QUOTED_CASING, cfg.quotedCasing());

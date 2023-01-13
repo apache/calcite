@@ -119,6 +119,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -1699,6 +1700,24 @@ class UtilTest {
     assertThat(Util.commaList(ImmutableList.of(2, 3)), equalTo("2, 3"));
     assertThat(Util.commaList(Arrays.asList(2, null, 3)),
         equalTo("2, null, 3"));
+  }
+
+  /** Tests {@link Util#checkArgument(boolean)}. */
+  @Test void testCheckArgument1() {
+    Util.checkArgument(true); // Does nothing
+    assertThrows(IllegalArgumentException.class, () -> Util.checkArgument(false));
+  }
+
+  /** Tests {@link Util#checkArgument(boolean, Object)}. */
+  @Test void testCheckArgument2() {
+    Util.checkArgument(true, "message"); // Does nothing
+    assertThrows(IllegalArgumentException.class, () -> Util.checkArgument(false, "message"));
+  }
+
+  /** Tests {@link Util#checkArgument(boolean, Object)}. */
+  @Test void testCheckArgument3() {
+    Util.checkArgument(true, "%s", "message"); // Does nothing
+    assertThrows(IllegalArgumentException.class, () -> Util.checkArgument(false, "%s", "message"));
   }
 
   /** Unit test for {@link Util#firstDuplicate(java.util.List)}. */

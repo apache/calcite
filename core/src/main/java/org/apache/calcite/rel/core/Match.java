@@ -34,8 +34,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumAggFunction;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -105,7 +105,7 @@ public abstract class Match extends SingleRel {
     super(cluster, traitSet, input);
     this.rowType = Objects.requireNonNull(rowType, "rowType");
     this.pattern = Objects.requireNonNull(pattern, "pattern");
-    Preconditions.checkArgument(patternDefinitions.size() > 0);
+    Util.checkArgument(patternDefinitions.size() > 0);
     this.strictStart = strictStart;
     this.strictEnd = strictEnd;
     this.patternDefinitions = ImmutableMap.copyOf(patternDefinitions);

@@ -35,8 +35,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-
-import com.google.common.base.Preconditions;
+import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -126,15 +125,15 @@ public abstract class TableModify extends SingleRel {
     if (operation == Operation.UPDATE) {
       requireNonNull(updateColumnList, "updateColumnList");
       requireNonNull(sourceExpressionList, "sourceExpressionList");
-      Preconditions.checkArgument(sourceExpressionList.size()
+      Util.checkArgument(sourceExpressionList.size()
           == updateColumnList.size());
     } else {
       if (operation == Operation.MERGE) {
         requireNonNull(updateColumnList, "updateColumnList");
       } else {
-        Preconditions.checkArgument(updateColumnList == null);
+        Util.checkArgument(updateColumnList == null);
       }
-      Preconditions.checkArgument(sourceExpressionList == null);
+      Util.checkArgument(sourceExpressionList == null);
     }
     RelOptSchema relOptSchema = table.getRelOptSchema();
     if (relOptSchema != null) {

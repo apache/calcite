@@ -22,7 +22,6 @@ import org.apache.calcite.runtime.Automaton.SymbolTransition;
 import org.apache.calcite.runtime.Automaton.Transition;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
@@ -209,9 +208,9 @@ public class AutomatonBuilder {
     // fromState ---> state0 ---> state1 ---> state2 ---> state3 ---> toState
     //            e        pattern     pattern     pattern        e
     //
-    Preconditions.checkArgument(0 <= minRepeat);
-    Preconditions.checkArgument(minRepeat <= maxRepeat);
-    Preconditions.checkArgument(1 <= maxRepeat);
+    Util.checkArgument(0 <= minRepeat);
+    Util.checkArgument(minRepeat <= maxRepeat);
+    Util.checkArgument(1 <= maxRepeat);
     State prevState = fromState;
     for (int i = 0; i <= maxRepeat; i++) {
       final State s = createState();

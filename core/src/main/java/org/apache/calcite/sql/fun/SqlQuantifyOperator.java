@@ -17,8 +17,7 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.sql.SqlKind;
-
-import com.google.common.base.Preconditions;
+import org.apache.calcite.util.Util;
 
 import java.util.Objects;
 
@@ -50,13 +49,13 @@ public class SqlQuantifyOperator extends SqlInOperator {
   SqlQuantifyOperator(SqlKind kind, SqlKind comparisonKind) {
     super(comparisonKind.sql + " " + kind, kind);
     this.comparisonKind = Objects.requireNonNull(comparisonKind, "comparisonKind");
-    Preconditions.checkArgument(comparisonKind == SqlKind.EQUALS
+    Util.checkArgument(comparisonKind == SqlKind.EQUALS
         || comparisonKind == SqlKind.NOT_EQUALS
         || comparisonKind == SqlKind.LESS_THAN_OR_EQUAL
         || comparisonKind == SqlKind.LESS_THAN
         || comparisonKind == SqlKind.GREATER_THAN_OR_EQUAL
         || comparisonKind == SqlKind.GREATER_THAN);
-    Preconditions.checkArgument(kind == SqlKind.SOME
+    Util.checkArgument(kind == SqlKind.SOME
         || kind == SqlKind.ALL);
   }
 }

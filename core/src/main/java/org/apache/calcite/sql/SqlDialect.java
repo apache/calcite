@@ -38,8 +38,8 @@ import org.apache.calcite.sql.type.AbstractSqlType;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 
@@ -949,7 +949,7 @@ public class SqlDialect {
    * fetch ROWS ONLY" syntax. */
   protected static void unparseFetchUsingAnsi(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    Preconditions.checkArgument(fetch != null || offset != null);
+    Util.checkArgument(fetch != null || offset != null);
     if (offset != null) {
       writer.newlineAndIndent();
       final SqlWriter.Frame offsetFrame =
@@ -975,7 +975,7 @@ public class SqlDialect {
   /** Unparses offset/fetch using "LIMIT fetch OFFSET offset" syntax. */
   protected static void unparseFetchUsingLimit(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    Preconditions.checkArgument(fetch != null || offset != null);
+    Util.checkArgument(fetch != null || offset != null);
     unparseLimit(writer, fetch);
     unparseOffset(writer, offset);
   }

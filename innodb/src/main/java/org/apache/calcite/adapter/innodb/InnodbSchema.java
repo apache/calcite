@@ -39,7 +39,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.calcite.util.Util.checkArgument;
 
 import static java.util.stream.Collectors.toList;
 

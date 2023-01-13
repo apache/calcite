@@ -18,8 +18,7 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
-
-import com.google.common.base.Preconditions;
+import org.apache.calcite.util.Util;
 
 /**
  * Definition of the SQL <code>REGR_COUNT</code> aggregation function.
@@ -30,6 +29,6 @@ import com.google.common.base.Preconditions;
 public class SqlRegrCountAggFunction extends SqlCountAggFunction {
   public SqlRegrCountAggFunction(SqlKind kind) {
     super("REGR_COUNT", OperandTypes.NUMERIC_NUMERIC);
-    Preconditions.checkArgument(SqlKind.REGR_COUNT == kind, "unsupported sql kind: " + kind);
+    Util.checkArgument(SqlKind.REGR_COUNT == kind, "unsupported sql kind: " + kind);
   }
 }

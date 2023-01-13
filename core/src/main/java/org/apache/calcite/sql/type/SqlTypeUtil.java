@@ -42,7 +42,6 @@ import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
@@ -1174,7 +1173,7 @@ public abstract class SqlTypeUtil {
    * two fields. */
   public static RelDataType createMapTypeFromRecord(
       RelDataTypeFactory typeFactory, RelDataType type) {
-    Preconditions.checkArgument(type.getFieldCount() == 2,
+    Util.checkArgument(type.getFieldCount() == 2,
         "MAP requires exactly two fields, got %s; row type %s",
         type.getFieldCount(), type);
     return createMapType(typeFactory, type.getFieldList().get(0).getType(),
@@ -1282,9 +1281,9 @@ public abstract class SqlTypeUtil {
       RelDataTypeFactory factory,
       RelDataType type1,
       RelDataType type2) {
-    Preconditions.checkArgument(isCollection(type1),
+    Util.checkArgument(isCollection(type1),
         "Input type1 must be collection type");
-    Preconditions.checkArgument(isCollection(type2),
+    Util.checkArgument(isCollection(type2),
         "Input type2 must be collection type");
 
     return (type1 == type2)
@@ -1307,8 +1306,8 @@ public abstract class SqlTypeUtil {
       RelDataTypeFactory factory,
       RelDataType type1,
       RelDataType type2) {
-    Preconditions.checkArgument(isMap(type1), "Input type1 must be map type");
-    Preconditions.checkArgument(isMap(type2), "Input type2 must be map type");
+    Util.checkArgument(isMap(type1), "Input type1 must be map type");
+    Util.checkArgument(isMap(type2), "Input type2 must be map type");
 
     MapSqlType mType1 = (MapSqlType) type1;
     MapSqlType mType2 = (MapSqlType) type2;
@@ -1335,8 +1334,8 @@ public abstract class SqlTypeUtil {
       RelDataType type1,
       RelDataType type2,
       @Nullable SqlNameMatcher nameMatcher) {
-    Preconditions.checkArgument(type1.isStruct(), "Input type1 must be struct type");
-    Preconditions.checkArgument(type2.isStruct(), "Input type2 must be struct type");
+    Util.checkArgument(type1.isStruct(), "Input type1 must be struct type");
+    Util.checkArgument(type2.isStruct(), "Input type2 must be struct type");
 
     if (type1 == type2) {
       return true;

@@ -23,7 +23,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -83,10 +82,10 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     case UNVALIDATED:
       try {
         status = SqlValidatorImpl.Status.IN_PROGRESS;
-        Preconditions.checkArgument(rowType == null,
+        Util.checkArgument(rowType == null,
             "Namespace.rowType must be null before validate has been called");
         RelDataType type = validateImpl(targetRowType);
-        Preconditions.checkArgument(type != null,
+        Util.checkArgument(type != null,
             "validateImpl() returned null");
         setType(type);
       } finally {

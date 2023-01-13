@@ -31,6 +31,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Sarg;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -280,7 +281,7 @@ class PredicateAnalyzer {
 
     private static String convertQueryString(List<Expression> fields, Expression query) {
       int index = 0;
-      Preconditions.checkArgument(query instanceof LiteralExpression,
+      Util.checkArgument(query instanceof LiteralExpression,
           "Query string must be a string literal");
       String queryString = ((LiteralExpression) query).stringValue();
       @SuppressWarnings("ModifiedButNotUsed")
@@ -300,7 +301,7 @@ class PredicateAnalyzer {
     }
 
     private QueryExpression prefix(RexCall call) {
-      Preconditions.checkArgument(call.getKind() == SqlKind.NOT,
+      Util.checkArgument(call.getKind() == SqlKind.NOT,
           "Expected %s got %s", SqlKind.NOT, call.getKind());
 
       if (call.getOperands().size() != 1) {
@@ -313,7 +314,7 @@ class PredicateAnalyzer {
     }
 
     private QueryExpression postfix(RexCall call) {
-      Preconditions.checkArgument(call.getKind() == SqlKind.IS_NULL
+      Util.checkArgument(call.getKind() == SqlKind.IS_NULL
           || call.getKind() == SqlKind.IS_NOT_NULL);
       if (call.getOperands().size() != 1) {
         String message = String.format(Locale.ROOT, "Unsupported operator: [%s]", call);

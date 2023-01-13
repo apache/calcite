@@ -27,7 +27,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.PartiallyOrderedSet;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
@@ -96,8 +95,8 @@ public class ProfilerImpl implements Profiler {
    */
   ProfilerImpl(int combinationsPerPass,
       int interestingCount, Predicate<Pair<Space, Column>> predicate) {
-    Preconditions.checkArgument(combinationsPerPass > 2);
-    Preconditions.checkArgument(interestingCount > 2);
+    Util.checkArgument(combinationsPerPass > 2);
+    Util.checkArgument(interestingCount > 2);
     this.combinationsPerPass = combinationsPerPass;
     this.interestingCount = interestingCount;
     this.predicate = predicate;
@@ -763,8 +762,8 @@ public class ProfilerImpl implements Profiler {
     SurpriseQueue(int warmUpCount, int size) {
       this.warmUpCount = warmUpCount;
       this.size = size;
-      Preconditions.checkArgument(warmUpCount > 3);
-      Preconditions.checkArgument(size > 0);
+      Util.checkArgument(warmUpCount > 3);
+      Util.checkArgument(size > 0);
     }
 
     @Override public String toString() {

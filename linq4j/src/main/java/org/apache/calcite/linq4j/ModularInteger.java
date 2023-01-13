@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -32,7 +30,10 @@ class ModularInteger {
 
   /** Creates a ModularInteger. */
   ModularInteger(int value, int modulus) {
-    Preconditions.checkArgument(value >= 0 && value < modulus);
+    // Ordinarily would use Util.checkArgument, but linq4j does not depend on core.
+    if (value < 0 || value >= modulus) {
+      throw new IllegalArgumentException("value >= 0 && value < modulus");
+    }
     this.value = value;
     this.modulus = modulus;
   }

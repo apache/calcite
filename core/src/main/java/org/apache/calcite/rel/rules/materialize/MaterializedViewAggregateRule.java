@@ -54,11 +54,11 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
@@ -744,7 +744,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       BiMap<RelTableRef, RelTableRef> tableMapping,
       EquivalenceClasses sourceEC,
       List<RexNode> additionalExprs) {
-    Preconditions.checkArgument(additionalExprs.isEmpty());
+    Util.checkArgument(additionalExprs.isEmpty());
     Multimap<Integer, Integer> m = ArrayListMultimap.create();
     Map<RexTableInputRef, Set<RexTableInputRef>> equivalenceClassesMap =
         sourceEC.getEquivalenceClassesMap();

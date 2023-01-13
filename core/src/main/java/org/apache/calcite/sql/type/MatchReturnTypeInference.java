@@ -18,8 +18,8 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -53,10 +53,10 @@ public class MatchReturnTypeInference implements SqlReturnTypeInference {
    * position start (zero based).
    */
   public MatchReturnTypeInference(int start, Iterable<SqlTypeName> typeNames) {
-    Preconditions.checkArgument(start >= 0);
+    Util.checkArgument(start >= 0);
     this.start = start;
     this.typeNames = ImmutableList.copyOf(typeNames);
-    Preconditions.checkArgument(!this.typeNames.isEmpty());
+    Util.checkArgument(!this.typeNames.isEmpty());
   }
 
   //~ Methods ----------------------------------------------------------------

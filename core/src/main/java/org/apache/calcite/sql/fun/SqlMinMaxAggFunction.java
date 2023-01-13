@@ -26,8 +26,8 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.util.Optionality;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -89,7 +89,7 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
         Optionality.FORBIDDEN);
     this.argTypes = ImmutableList.of();
     this.minMaxKind = MINMAX_COMPARABLE;
-    Preconditions.checkArgument(kind == SqlKind.MIN
+    Util.checkArgument(kind == SqlKind.MIN
         || kind == SqlKind.MAX);
   }
 
