@@ -82,6 +82,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
+import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
 
 import static  org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_MONTH;
@@ -782,28 +783,15 @@ public class SparkSqlDialect extends SqlDialect {
     String matchArgument = call.operand(2).toString().replaceAll("'", "");
     switch (matchArgument) {
     case "i":
-      String caseInsensitiveLiteral = "(?i)";
-      String modifiedRegexForI = caseInsensitiveLiteral.concat(
-          removeLeadingAndTrailingSingleQuotes(call.operand(1).toString()));
-      return SqlLiteral.createCharString(modifiedRegexForI, SqlParserPos.ZERO);
+      return modifyRegexStringForMatchArgument(call, "(?i)");
     case "x":
-      String removeWhiteSpaceLiteral = "(?x)";
-      String modifiedRegexForX = removeWhiteSpaceLiteral.concat(
-          removeLeadingAndTrailingSingleQuotes(call.operand(1).toString()));
-      return SqlLiteral.createCharString(modifiedRegexForX, SqlParserPos.ZERO);
+      return modifyRegexStringForMatchArgument(call, "(?x)");
     case "m":
-      String mArgumentRegexLiteral = "(?m)";
-      String modifiedRegexForM = mArgumentRegexLiteral.concat(
-          removeLeadingAndTrailingSingleQuotes(call.operand(1).toString()));
-      return SqlLiteral.createCharString(modifiedRegexForM, SqlParserPos.ZERO);
+      return modifyRegexStringForMatchArgument(call, "(?m)");
     case "n":
     default:
       return call.operand(1);
     }
-  }
-
-  private String removeLeadingAndTrailingSingleQuotes(String regexString) {
-    return regexString.replaceAll("^'|'$", "");
   }
 
   public void unparseToDate(

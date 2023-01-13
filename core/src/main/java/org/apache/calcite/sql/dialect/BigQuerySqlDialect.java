@@ -167,6 +167,8 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
+import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
+import static org.apache.calcite.util.Util.removeLeadingAndTrailingSingleQuotes;
 
 import static java.util.Objects.requireNonNull;
 
@@ -1236,10 +1238,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     String matchArgument = call.operand(2).toString().replaceAll("'", "");
     switch (matchArgument) {
     case "i":
-      String caseInsensitiveLiteral = "(?i)";
-      String updatedRegexForI = caseInsensitiveLiteral.concat(
-          removeLeadingAndTrailingSingleQuotes(call.operand(1).toString()));
-      return SqlLiteral.createCharString(updatedRegexForI, SqlParserPos.ZERO);
+      return modifyRegexStringForMatchArgument(call, "(?i)");
     case "x":
       String updatedRegexForX = removeLeadingAndTrailingSingleQuotes
           (call.operand(1).toString().replaceAll("\\s+", ""));
@@ -1247,10 +1246,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       return call.operand(1);
     }
-  }
-
-  private String removeLeadingAndTrailingSingleQuotes(String regexString) {
-    return regexString.replaceAll("^'|'$", "");
   }
 
   private void unParseInStr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
