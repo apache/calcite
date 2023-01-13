@@ -269,6 +269,7 @@ public class SqlParserTest {
       "FOUND",                         "92", "99",
       "FRAME_ROW",                                                 "2014", "c",
       "FREE",                                "99", "2003", "2011", "2014", "c",
+      "FRIDAY",                                                            "c",
       "FROM",                          "92", "99", "2003", "2011", "2014", "c",
       "FULL",                          "92", "99", "2003", "2011", "2014", "c",
       "FUNCTION",                      "92", "99", "2003", "2011", "2014", "c",
@@ -360,6 +361,7 @@ public class SqlParserTest {
       "MOD",                                               "2011", "2014", "c",
       "MODIFIES",                            "99", "2003", "2011", "2014", "c",
       "MODULE",                        "92", "99", "2003", "2011", "2014", "c",
+      "MONDAY",                                                            "c",
       "MONTH",                         "92", "99", "2003", "2011", "2014", "c",
       "MULTISET",                                  "2003", "2011", "2014", "c",
       "NAMES",                         "92", "99",
@@ -464,6 +466,7 @@ public class SqlParserTest {
       "ROWS",                          "92", "99", "2003", "2011", "2014", "c",
       "ROW_NUMBER",                                        "2011", "2014", "c",
       "RUNNING",                                                   "2014", "c",
+      "SATURDAY",                                                          "c",
       "SAVEPOINT",                           "99", "2003", "2011", "2014", "c",
       "SCHEMA",                        "92", "99",
       "SCOPE",                               "99", "2003", "2011", "2014", "c",
@@ -508,6 +511,7 @@ public class SqlParserTest {
       "SUBSTRING_REGEX",                                   "2011", "2014", "c",
       "SUCCEEDS",                                                  "2014", "c",
       "SUM",                           "92",               "2011", "2014", "c",
+      "SUNDAY",                                                            "c",
       "SYMMETRIC",                           "99", "2003", "2011", "2014", "c",
       "SYSTEM",                              "99", "2003", "2011", "2014", "c",
       "SYSTEM_TIME",                                               "2014", "c",
@@ -516,6 +520,7 @@ public class SqlParserTest {
       "TABLESAMPLE",                               "2003", "2011", "2014", "c",
       "TEMPORARY",                     "92", "99",
       "THEN",                          "92", "99", "2003", "2011", "2014", "c",
+      "THURSDAY",                                                          "c",
       "TIME",                          "92", "99", "2003", "2011", "2014", "c",
       "TIMESTAMP",                     "92", "99", "2003", "2011", "2014", "c",
       "TIMEZONE_HOUR",                 "92", "99", "2003", "2011", "2014", "c",
@@ -533,6 +538,7 @@ public class SqlParserTest {
       "TRIM_ARRAY",                                        "2011", "2014", "c",
       "TRUE",                          "92", "99", "2003", "2011", "2014", "c",
       "TRUNCATE",                                          "2011", "2014", "c",
+      "TUESDAY",                                                           "c",
       "UESCAPE",                                           "2011", "2014", "c",
       "UNDER",                               "99",
       "UNDO",                          "92", "99", "2003",
@@ -559,6 +565,7 @@ public class SqlParserTest {
       "VERSIONING",                                        "2011", "2014", "c",
       "VERSIONS",                                          "2011",
       "VIEW",                          "92", "99",
+      "WEDNESDAY",                                                         "c",
       "WHEN",                          "92", "99", "2003", "2011", "2014", "c",
       "WHENEVER",                      "92", "99", "2003", "2011", "2014", "c",
       "WHERE",                         "92", "99", "2003", "2011", "2014", "c",
@@ -8094,7 +8101,7 @@ public class SqlParserTest {
         .fails("(?s)Encountered \"to\".*");
   }
 
-  /** Tests that EXTRACT, FLOOR, CEIL functions accept abbreviations for
+  /** Tests that EXTRACT, FLOOR, CEIL, DATE_TRUNC functions accept abbreviations for
    * time units (such as "Y" for "YEAR") when configured via
    * {@link Config#timeUnitCodes()}. */
   @Test protected void testTimeUnitCodes() {
@@ -8128,6 +8135,11 @@ public class SqlParserTest {
     expr("ceiling(d to microsecond)").ok("CEIL(`D` TO MICROSECOND)");
     expr("extract(nanosecond from d)").ok("EXTRACT(NANOSECOND FROM `D`)");
     expr("extract(microsecond from d)").ok("EXTRACT(MICROSECOND FROM `D`)");
+
+    // As for FLOOR, so for DATE_TRUNC.
+    expr("date_trunc(d , year)").ok("DATE_TRUNC(`D`, YEAR)");
+    expr("date_trunc(d , y)").ok("DATE_TRUNC(`D`, `Y`)");
+    expr("date_trunc(d , week(tuesday))").ok("DATE_TRUNC(`D`, `WEEK_TUESDAY`)");
   }
 
   @Test void testGeometry() {

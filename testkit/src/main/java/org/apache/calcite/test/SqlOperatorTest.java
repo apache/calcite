@@ -8188,6 +8188,10 @@ public class SqlOperatorTest {
         "2015-02-19", "DATE NOT NULL");
     f.checkScalar("date_trunc(date '2015-02-19', week)",
         "2015-02-15", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', week(sunday))",
+        "2015-02-15", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', week(monday))",
+        "2015-02-16", "DATE NOT NULL");
     f.checkScalar("date_trunc(date '2015-02-19', month)",
         "2015-02-01", "DATE NOT NULL");
     f.checkScalar("date_trunc(date '2015-02-19', quarter)",

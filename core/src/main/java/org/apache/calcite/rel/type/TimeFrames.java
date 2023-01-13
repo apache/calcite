@@ -52,7 +52,8 @@ public class TimeFrames {
   }
 
   /** The core time frame set. Includes the time frames for all Avatica time
-   * units plus ISOWEEK:
+   * units plus ISOWEEK, WEEK(WEEKDAY) with WEEKDAY being one of
+   * SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY:
    *
    * <ul>
    *   <li>SECOND, and multiples MINUTE, HOUR, DAY, WEEK (starts on a Sunday),
@@ -100,6 +101,21 @@ public class TimeFrames {
 
     b.addRollup(TimeUnit.DAY, TimeUnit.MONTH);
     b.addRollup("ISOWEEK", TimeUnit.ISOYEAR.name());
+    b.addSub("WEEK_SUNDAY", false, 7,
+        "DAY", new TimestampString(1970, 1, 4, 0, 0, 0));
+    b.addSub("WEEK_MONDAY", false, 7,
+        "DAY", new TimestampString(1970, 1, 5, 0, 0, 0));
+    b.addSub("WEEK_TUESDAY", false, 7,
+        "DAY", new TimestampString(1970, 1, 6, 0, 0, 0));
+    b.addSub("WEEK_WEDNESDAY", false, 7,
+        "DAY", new TimestampString(1970, 1, 7, 0, 0, 0));
+    b.addSub("WEEK_THURSDAY", false, 7,
+        "DAY", new TimestampString(1970, 1, 8, 0, 0, 0));
+    b.addSub("WEEK_FRIDAY", false, 7,
+        "DAY", new TimestampString(1970, 1, 9, 0, 0, 0));
+    b.addSub("WEEK_SATURDAY", false, 7,
+        "DAY", new TimestampString(1970, 1, 10, 0, 0, 0));
+
     return b;
   }
 

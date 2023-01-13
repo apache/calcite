@@ -5052,10 +5052,22 @@ SqlIntervalQualifier TimeUnitOrName() : {
 
   SqlIntervalQualifier TimeUnitOrNameForDateTrunc() : {
     final TimeUnit timeUnit;
+    final SqlIntervalQualifier weekdayIntervalQualifier;
+    final SqlIdentifier unitName;
 }
 {
+    LOOKAHEAD(1)
     timeUnit = TimeUnitForDateTrunc() {
         return new SqlIntervalQualifier(timeUnit, null, getPos());
+    }
+|
+    weekdayIntervalQualifier = WeekWeekdaySqlIntervalQualifier() {
+      return weekdayIntervalQualifier;
+    }
+|
+    unitName = SimpleIdentifier() {
+      return new SqlIntervalQualifier(unitName.getSimple(),
+          unitName.getParserPosition());
     }
 }
 
@@ -5068,6 +5080,48 @@ TimeUnit TimeUnitForDateTrunc() : {}
 |   <MONTH> { return TimeUnit.MONTH; }
 |   <QUARTER> { return TimeUnit.QUARTER; }
 |   <YEAR> { return TimeUnit.YEAR; }
+}
+
+SqlIntervalQualifier WeekWeekdaySqlIntervalQualifier() : {
+    final String weekdayName;
+}
+{
+    weekdayName = WeekWeekday() {
+        return new SqlIntervalQualifier(weekdayName, getPos());
+    }
+}
+
+String WeekWeekday() :
+{
+    final String w;
+}
+{
+    <WEEK>
+    (
+    <LPAREN> w = Weekday() <RPAREN> { return w; }
+    |
+      /* empty */ { return "WEEK"; }
+    )
+}
+
+String Weekday() :
+{
+}
+{
+    <SUNDAY> { return "WEEK_SUNDAY" ; }
+|
+    <MONDAY> { return "WEEK_MONDAY" ; }
+|
+    <TUESDAY> { return "WEEK_TUESDAY" ; }
+|
+    <WEDNESDAY> { return "WEEK_WEDNESDAY" ; }
+|
+    <THURSDAY> { return "WEEK_THURSDAY" ; }
+|
+    <FRIDAY> { return "WEEK_FRIDAY" ; }
+|
+    <SATURDAY> { return "WEEK_SATURDAY" ; }
+
 }
 
 /**
@@ -7675,6 +7729,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < FRAC_SECOND: "FRAC_SECOND" >
 |   < FRAME_ROW: "FRAME_ROW" >
 |   < FREE: "FREE" >
+|   < FRIDAY: "FRIDAY" >
 |   < FROM: "FROM" > { beforeTableName(); }
 |   < FULL: "FULL" >
 |   < FUNCTION: "FUNCTION" >
@@ -7793,6 +7848,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < MOD: "MOD" >
 |   < MODIFIES: "MODIFIES" >
 |   < MODULE: "MODULE" >
+|   < MONDAY: "MONDAY" >
 |   < MONTH: "MONTH" >
 |   < MONTHS: "MONTHS" >
 |   < MORE_: "MORE" >
@@ -7939,6 +7995,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < ROW_NUMBER: "ROW_NUMBER" >
 |   < ROWS: "ROWS" >
 |   < RUNNING: "RUNNING" >
+|   < SATURDAY: "SATURDAY" >
 |   < SAVEPOINT: "SAVEPOINT" >
 |   < SCALAR: "SCALAR" >
 |   < SCALE: "SCALE" >
@@ -8052,6 +8109,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SUBSTRING_REGEX: "SUBSTRING_REGEX" >
 |   < SUCCEEDS: "SUCCEEDS" >
 |   < SUM: "SUM" >
+|   < SUNDAY: "SUNDAY" >
 |   < SYMMETRIC: "SYMMETRIC" >
 |   < SYSTEM: "SYSTEM" >
 |   < SYSTEM_TIME: "SYSTEM_TIME" >
@@ -8061,6 +8119,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < TABLESAMPLE: "TABLESAMPLE" >
 |   < TEMPORARY: "TEMPORARY" >
 |   < THEN: "THEN" >
+|   < THURSDAY: "THURSDAY" >
 |   < TIES: "TIES" >
 |   < TIME: "TIME" >
 |   < TIME_TRUNC: "TIME_TRUNC" >
@@ -8093,6 +8152,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < TRIM_ARRAY: "TRIM_ARRAY" >
 |   < TRUE: "TRUE" >
 |   < TRUNCATE: "TRUNCATE" >
+|   < TUESDAY: "TUESDAY" >
 |   < TUMBLE: "TUMBLE" >
 |   < TYPE: "TYPE" >
 |   < UESCAPE: "UESCAPE" >
@@ -8130,6 +8190,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < VERSION: "VERSION" >
 |   < VERSIONING: "VERSIONING" >
 |   < VIEW: "VIEW" >
+|   < WEDNESDAY: "WEDNESDAY" >
 |   < WEEK: "WEEK" >
 |   < WHEN: "WHEN" >
 |   < WHENEVER: "WHENEVER" >
