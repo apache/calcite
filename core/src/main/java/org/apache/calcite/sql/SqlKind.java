@@ -424,6 +424,9 @@ public enum SqlKind {
   /** {@code LEAST} function (Oracle). */
   LEAST,
 
+  /** {@code DATE_DIFF} function (BigQuery Semantics). */
+  DATE_ADD,
+
   /** {@code DATE_SUB} function (BigQuery). */
   DATE_SUB,
 
@@ -1215,7 +1218,7 @@ public enum SqlKind {
                   FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS, SEPARATOR,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
                   SELECT, JOIN, OTHER_FUNCTION, POSITION, CAST, TRIM, FLOOR, CEIL,
-                  DATE_SUB, TIME_ADD, TIME_SUB,
+                  DATE_ADD, DATE_SUB, TIME_ADD, TIME_SUB,
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, TIMESTAMP_SUB,
                   EXTRACT, INTERVAL,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,

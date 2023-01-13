@@ -90,6 +90,21 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DATE_NULLABLE, OperandTypes.CHARACTER_CHARACTER_DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
+  /** THE "DATE_ADD(date, interval)" function
+   * (BigQuery) adds the interval to the date. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_ADD =
+      SqlBasicFunction.create(SqlKind.DATE_ADD, ReturnTypes.ARG0_NULLABLE,
+              OperandTypes.DATE_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** THE "DATE_DIFF(date, date2, timeUnit)" function
+   * (BigQuery) returns the number of timeUnit in (date - date2). */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_DIFF =
+      new SqlTimestampDiffFunction("DATE_DIFF",
+          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE, SqlTypeFamily.ANY));
+
   /** The "DATEADD(timeUnit, numeric, datetime)" function
    * (Microsoft SQL Server, Redshift, Snowflake). */
   @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
@@ -846,7 +861,7 @@ public abstract class SqlLibraryOperators {
    * int64_expression date_part)" but in Calcite the second argument can be any
    * interval expression, not just an interval literal. */
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TIMESTAMP_ADD2 =
+  public static final SqlBasicFunction TIMESTAMP_ADD2 =
       SqlBasicFunction.create(SqlKind.TIMESTAMP_ADD, ReturnTypes.ARG0_NULLABLE,
           OperandTypes.TIMESTAMP_INTERVAL)
           .withFunctionType(SqlFunctionCategory.TIMEDATE);
@@ -987,6 +1002,20 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("UNIX_MICROS",
           ReturnTypes.BIGINT_NULLABLE, OperandTypes.TIMESTAMP,
           SqlFunctionCategory.TIMEDATE);
+
+  /** The "DATETIME_ADD(timestamp, interval)" function (BigQuery).
+   * As {@code TIMESTAMP_ADD}, returns a Calcite {@code TIMESTAMP}
+   * (which BigQuery calls a {@code DATETIME}). */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_ADD =
+      TIMESTAMP_ADD2.withName("DATETIME_ADD");
+
+  /** The "DATETIME_DIFF(timestamp, timestamp2, timeUnit)" function (BigQuery). */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_DIFF =
+      new SqlTimestampDiffFunction("DATETIME_DIFF",
+          OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP,
+              SqlTypeFamily.ANY));
 
   /** The "CHAR(n)" function; returns the character whose ASCII code is
    * {@code n} % 256, or null if {@code n} &lt; 0. */

@@ -544,8 +544,10 @@ DATA,
 DATABASE,
 **DATE**,
 **DATETIME**,
+DATETIME_DIFF,
 DATETIME_INTERVAL_CODE,
 DATETIME_INTERVAL_PRECISION,
+DATE_DIFF,
 DATE_TRUNC,
 **DAY**,
 DAYS,
@@ -2649,9 +2651,13 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | DATETIME(date)                                 | Converts *date* to a TIMESTAMP value (at midnight)
 | b | DATETIME(date, timeZone)                       | Converts *date* to a TIMESTAMP value (at midnight), in *timeZone*
 | b | DATETIME(year, month, day, hour, minute, second) | Creates a TIMESTAMP for *year*, *month*, *day*, *hour*, *minute*, *second* (all of type INTEGER)
+| b | DATETIME_ADD(timestamp, interval)              | Returns the TIMESTAMP value that occurs *interval* after *timestamp*
+| b | DATETIME_DIFF(timestamp, timestamp2, timeUnit) | Returns the whole number of *timeUnit* between *timestamp* and *timestamp2*
 | b | DATETIME_SUB(timestamp, interval)              | Returns the TIMESTAMP that occurs *interval* before *timestamp*
 | b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
 | p | DATE_PART(timeUnit, datetime)                  | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
+| b | DATE_ADD(date, interval)                       | Returns the DATE value that occurs *interval* after *date*
+| b | DATE_DIFF(date, date2, timeUnit)               | Returns the whole number of *timeUnit* between *date* and *date2*
 | b | DATE_SUB(date, interval)                       | Returns the DATE value that occurs *interval* before *date*
 | b | DATE_TRUNC(date, timeUnit)                     | Truncates *date* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified

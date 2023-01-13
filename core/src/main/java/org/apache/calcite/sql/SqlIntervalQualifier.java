@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.TimeFrames;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -29,9 +30,12 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -92,6 +96,52 @@ public class SqlIntervalQualifier extends SqlNode {
   private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
   private static final BigDecimal INT_MAX_VALUE_PLUS_ONE =
       BigDecimal.valueOf(Integer.MAX_VALUE).add(BigDecimal.ONE);
+
+  private static final Set<TimeUnitRange> TIME_UNITS =
+      ImmutableSet.of(TimeUnitRange.HOUR,
+          TimeUnitRange.MINUTE,
+          TimeUnitRange.SECOND);
+
+  private static final Set<TimeUnitRange> MONTH_UNITS =
+      ImmutableSet.of(TimeUnitRange.MILLENNIUM,
+          TimeUnitRange.CENTURY,
+          TimeUnitRange.DECADE,
+          TimeUnitRange.YEAR,
+          TimeUnitRange.ISOYEAR,
+          TimeUnitRange.QUARTER,
+          TimeUnitRange.MONTH);
+
+  private static final Set<TimeUnitRange> DAY_UNITS =
+      ImmutableSet.of(TimeUnitRange.WEEK,
+          TimeUnitRange.DAY);
+
+  private static final Set<TimeUnitRange> DATE_UNITS =
+      ImmutableSet.<TimeUnitRange>builder()
+          .addAll(MONTH_UNITS).addAll(DAY_UNITS).build();
+
+  private static final Set<String> WEEK_FRAMES =
+      ImmutableSet.<String>builder()
+          .addAll(TimeFrames.WEEK_FRAME_NAMES)
+          .add("ISOWEEK")
+          .add("WEEK")
+          .add("SQL_TSI_WEEK")
+          .build();
+
+  private static final Set<String> TSI_TIME_FRAMES =
+      ImmutableSet.of(
+          "SQL_TSI_FRAC_SECOND",
+          "SQL_TSI_MICROSECOND",
+          "SQL_TSI_SECOND",
+          "SQL_TSI_MINUTE",
+          "SQL_TSI_HOUR");
+
+  private static final Set<String> TSI_DATE_FRAMES =
+      ImmutableSet.of(
+          "SQL_TSI_DAY",
+          "SQL_TSI_WEEK",
+          "SQL_TSI_MONTH",
+          "SQL_TSI_QUARTER",
+          "SQL_TSI_YEAR");
 
   //~ Instance fields --------------------------------------------------------
 
@@ -195,6 +245,32 @@ public class SqlIntervalQualifier extends SqlNode {
     default:
       throw new AssertionError(timeUnitRange);
     }
+  }
+
+  /** Whether this is a DATE interval (including all week intervals). */
+  public boolean isDate() {
+    return DATE_UNITS.contains(timeUnitRange)
+        || timeFrameName != null && TSI_DATE_FRAMES.contains(timeFrameName)
+        || isWeek();
+  }
+
+  /** Whether this is a TIME interval. */
+  public boolean isTime() {
+    return TIME_UNITS.contains(timeUnitRange)
+        || timeFrameName != null && TSI_TIME_FRAMES.contains(timeFrameName);
+  }
+
+  /** Whether this is a TIMESTAMP interval (including all week intervals). */
+  public boolean isTimestamp() {
+    return isDate() || isTime();
+  }
+
+  /** Whether this qualifier represents {@code WEEK}, {@code ISOWEEK},
+   *  or {@code WEEK(}<i>weekday</i>{@code )}
+   * (for <i>weekday</i> in {@code SUNDAY} .. {@code SATURDAY}). */
+  public boolean isWeek() {
+    return timeUnitRange == TimeUnitRange.WEEK
+        || timeFrameName != null && WEEK_FRAMES.contains(timeFrameName);
   }
 
   @Override public void validate(

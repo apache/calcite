@@ -2289,6 +2289,13 @@ public class RexImpTable {
 
     private Expression call(Expression operand, Type type,
         TimeUnit timeUnit) {
+      if (timeUnit.multiplier.compareTo(BigDecimal.ONE) < 0) {
+        // MICROSECOND has a multiplier of 0.001,
+        // NANOSECOND has a multiplier of 0.000001.
+        // In integer arithmetic, these underflow to zero, so we get a
+        // divide-by-zero exception. FLOOR and CEIL on these units should no-op.
+        return EnumUtils.convert(operand, type);
+      }
       return Expressions.call(SqlFunctions.class, methodName,
           EnumUtils.convert(operand, type),
           EnumUtils.convert(
