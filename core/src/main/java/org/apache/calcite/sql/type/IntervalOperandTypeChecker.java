@@ -37,8 +37,7 @@ public class IntervalOperandTypeChecker implements SqlSingleOperandTypeChecker {
   }
 
   @Override public boolean checkSingleOperandType(SqlCallBinding callBinding,
-      SqlNode node, int iFormalOperand, boolean throwOnFailure) {
-    final SqlNode operand = callBinding.operand(iFormalOperand);
+      SqlNode operand, int iFormalOperand, boolean throwOnFailure) {
     if (operand instanceof SqlIntervalQualifier) {
       final SqlIntervalQualifier interval = (SqlIntervalQualifier) operand;
       if (predicate.test(interval)) {

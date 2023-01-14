@@ -312,7 +312,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
         if (!((SqlSingleOperandTypeChecker) rule).checkSingleOperandType(
             callBinding,
             callBinding.getCall().operand(ord.i),
-            rule.getClass() == FamilyOperandTypeChecker.class ? 0 : ord.i,
+            ord.i,
             throwOnFailure)) {
           if (callBinding.isTypeCoercionEnabled()) {
             return coerceOperands(callBinding, false);

@@ -539,6 +539,7 @@ public abstract class OperandTypes {
             SqlCallBinding callBinding,
             SqlNode operand,
             int iFormalOperand,
+            SqlTypeFamily family,
             boolean throwOnFailure) {
           if (!LITERAL.checkSingleOperandType(
               callBinding,
@@ -552,6 +553,7 @@ public abstract class OperandTypes {
               callBinding,
               operand,
               iFormalOperand,
+              family,
               throwOnFailure)) {
             return false;
           }
@@ -583,14 +585,15 @@ public abstract class OperandTypes {
           i -> false) {
         @Override public boolean checkSingleOperandType(
             SqlCallBinding callBinding, SqlNode operand,
-            int iFormalOperand, boolean throwOnFailure) {
+            int iFormalOperand, SqlTypeFamily family,
+            boolean throwOnFailure) {
           if (iFormalOperand == 0) {
             return super.checkSingleOperandType(callBinding, operand,
-                iFormalOperand, throwOnFailure);
+                iFormalOperand, family, throwOnFailure);
           }
 
           return BOOLEAN_LITERAL.checkSingleOperandType(
-              callBinding, operand, 0, throwOnFailure);
+              callBinding, operand, iFormalOperand, throwOnFailure);
         }
       };
 
@@ -605,6 +608,7 @@ public abstract class OperandTypes {
             SqlCallBinding callBinding,
             SqlNode operand,
             int iFormalOperand,
+            SqlTypeFamily family,
             boolean throwOnFailure) {
           if (!LITERAL.checkSingleOperandType(
               callBinding,
@@ -618,6 +622,7 @@ public abstract class OperandTypes {
               callBinding,
               operand,
               iFormalOperand,
+              family,
               throwOnFailure)) {
             return false;
           }
@@ -660,14 +665,14 @@ public abstract class OperandTypes {
           i -> false) {
         @Override public boolean checkSingleOperandType(
             SqlCallBinding callBinding, SqlNode operand,
-            int iFormalOperand, boolean throwOnFailure) {
+            int iFormalOperand, SqlTypeFamily family, boolean throwOnFailure) {
           if (!LITERAL.checkSingleOperandType(callBinding, operand,
-              iFormalOperand, throwOnFailure)) {
+              0, throwOnFailure)) {
             return false;
           }
 
           if (!super.checkSingleOperandType(callBinding, operand,
-              iFormalOperand, throwOnFailure)) {
+              iFormalOperand, family, throwOnFailure)) {
             return false;
           }
 
@@ -698,14 +703,14 @@ public abstract class OperandTypes {
           i -> false) {
         @Override public boolean checkSingleOperandType(
             SqlCallBinding callBinding, SqlNode operand,
-            int iFormalOperand, boolean throwOnFailure) {
+            int iFormalOperand, SqlTypeFamily family, boolean throwOnFailure) {
           if (iFormalOperand == 0) {
             return super.checkSingleOperandType(callBinding, operand,
-                iFormalOperand, throwOnFailure);
+                iFormalOperand, family, throwOnFailure);
           }
 
           return UNIT_INTERVAL_NUMERIC_LITERAL.checkSingleOperandType(
-              callBinding, operand, 0, throwOnFailure);
+              callBinding, operand, iFormalOperand, throwOnFailure);
         }
       };
 
@@ -888,14 +893,14 @@ public abstract class OperandTypes {
       new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.ANY),
           i -> false) {
         @Override public boolean checkSingleOperandType(
-            SqlCallBinding callBinding, SqlNode node,
-            int iFormalOperand, boolean throwOnFailure) {
-          if (!super.checkSingleOperandType(callBinding, node, iFormalOperand,
+            SqlCallBinding callBinding, SqlNode operand,
+            int iFormalOperand, SqlTypeFamily family, boolean throwOnFailure) {
+          if (!super.checkSingleOperandType(callBinding, operand, iFormalOperand, family,
               throwOnFailure)) {
             return false;
           }
           final SqlValidatorScope scope = callBinding.getScope();
-          if (!scope.isMeasureRef(node)) {
+          if (!scope.isMeasureRef(operand)) {
             if (throwOnFailure) {
               throw callBinding.newValidationError(
                   RESOURCE.argumentMustBeMeasure(
@@ -994,6 +999,15 @@ public abstract class OperandTypes {
             SqlCallBinding callBinding,
             boolean throwOnFailure) {
           if (!super.checkOperandTypes(callBinding, throwOnFailure)) {
+            return false;
+          }
+          return SAME_SAME.checkOperandTypes(callBinding, throwOnFailure);
+        }
+
+        @Override public boolean checkOperandTypesWithoutTypeCoercion(
+            final SqlCallBinding callBinding,
+            final boolean throwOnFailure) {
+          if (!super.checkOperandTypesWithoutTypeCoercion(callBinding, throwOnFailure)) {
             return false;
           }
           return SAME_SAME.checkOperandTypes(callBinding, throwOnFailure);

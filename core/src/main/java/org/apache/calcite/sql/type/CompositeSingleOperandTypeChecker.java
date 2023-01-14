@@ -64,7 +64,7 @@ public class CompositeSingleOperandTypeChecker
         getRules();
     if (composition == Composition.SEQUENCE) {
       return rules.get(iFormalOperand).checkSingleOperandType(
-          callBinding, node, 0, throwOnFailure);
+          callBinding, node, iFormalOperand, throwOnFailure);
     }
 
     int typeErrorCount = 0;
