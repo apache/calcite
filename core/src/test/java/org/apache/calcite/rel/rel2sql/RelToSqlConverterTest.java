@@ -11118,11 +11118,11 @@ class RelToSqlConverterTest {
         + "r'^\\d\\d-\\w{2}-\\d{4}$'), 1, 0) AS A\n"
         + "FROM scott.EMP";
 
-    final String expectedSql = "SELECT IF('12-12-2000' rlike r'^\\d\\d-\\w{2}-\\d{4}$', 1, 0)"
+    final String expectedSparkSql = "SELECT IF('12-12-2000' rlike r'^\\d\\d-\\w{2}-\\d{4}$', 1, 0)"
         + " A\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
   @Test public void testForRegexpLikeFunctionWithThirdArgumentAsI() {
@@ -11139,11 +11139,11 @@ class RelToSqlConverterTest {
         + "r'(?i)MikE B(i|y)RD'), 1, 0) AS A\n"
         + "FROM scott.EMP";
 
-    final String expectedSql = "SELECT IF('Mike BIrd' rlike r'(?i)MikE B(i|y)RD', 1, 0)"
+    final String expectedSparkSql = "SELECT IF('Mike BIrd' rlike r'(?i)MikE B(i|y)RD', 1, 0)"
         + " A\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
   @Test public void testForRegexpLikeFunctionWithThirdArgumentAsX() {
@@ -11158,10 +11158,10 @@ class RelToSqlConverterTest {
     final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike' , r'Mike'), 1, 0) AS A\n"
         + "FROM scott.EMP";
 
-    final String expectedSql = "SELECT IF('Mike' rlike r'(?x)M i k e', 1, 0)"
+    final String expectedSparkSql = "SELECT IF('Mike' rlike r'(?x)M i k e', 1, 0)"
         + " A\nFROM scott.EMP";
 
-    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
@@ -11180,11 +11180,11 @@ class RelToSqlConverterTest {
         + "r'Mike B(i|y)RD'), 1, 0) AS A\n"
         + "FROM scott.EMP";
 
-    final String expectedSql = "SELECT IF('Mike Bird' rlike r'Mike B(i|y)RD', 1, 0)"
+    final String expectedSparkSql = "SELECT IF('Mike Bird' rlike r'Mike B(i|y)RD', 1, 0)"
         + " A\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
   @Test public void testForRegexpLikeFunctionWithThirdArgumentAsN() {
@@ -11197,11 +11197,11 @@ class RelToSqlConverterTest {
         .project(builder.alias(regexp_similar, "A"))
         .build();
 
-    final String expectedSql = "SELECT IF('abcd\n"
+    final String expectedSparkSql = "SELECT IF('abcd\n"
         + "e' rlike r'.*e', 1, 0)"
         + " A\nFROM scott.EMP";
 
-    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
   @Test public void testForRegexpLikeFunctionWithThirdArgumentAsM() {
@@ -11216,12 +11216,12 @@ class RelToSqlConverterTest {
         .project(builder.alias(regexp_similar, "A"))
         .build();
 
-    final String expectedSql = "SELECT IF('MikeBira\n"
+    final String expectedSparkSql = "SELECT IF('MikeBira\n"
         + "aaa\n"
         + "bb\n"
         + "MikeBird' rlike r'(?m)^MikeBird$', 1, 0)"
         + " A\nFROM scott.EMP";
 
-    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 }
