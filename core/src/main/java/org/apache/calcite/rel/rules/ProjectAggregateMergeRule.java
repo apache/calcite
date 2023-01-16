@@ -33,6 +33,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.MappingType;
@@ -99,7 +100,8 @@ public class ProjectAggregateMergeRule
               && operands.get(1).getKind() == SqlKind.CAST
               && ((RexCall) operands.get(1)).operands.get(0).getKind()
               == SqlKind.INPUT_REF
-              && operands.get(2).getKind() == SqlKind.LITERAL) {
+              && operands.get(2).getKind() == SqlKind.LITERAL
+              && operands.get(2).getType().getFamily() == SqlTypeFamily.NUMERIC) {
             final RexCall isNotNull = (RexCall) operands.get(0);
             final RexInputRef ref0 = (RexInputRef) isNotNull.operands.get(0);
             final RexCall cast = (RexCall) operands.get(1);
