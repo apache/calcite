@@ -11104,4 +11104,124 @@ class RelToSqlConverterTest {
         .withBigQuery()
         .ok(expectedBQ);
   }
+
+  @Test public void testForRegexpLikeFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+        builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexp_similar, "A"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('12-12-2000' , "
+        + "r'^\\d\\d-\\w{2}-\\d{4}$'), 1, 0) AS A\n"
+        + "FROM scott.EMP";
+
+    final String expectedSparkSql = "SELECT IF('12-12-2000' rlike r'^\\d\\d-\\w{2}-\\d{4}$', 1, 0)"
+        + " A\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
+  }
+
+  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsI() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+        builder.literal("Mike BIrd"), builder.literal("MikE B(i|y)RD"),
+        builder.literal("i"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexp_similar, "A"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike BIrd' , "
+        + "r'(?i)MikE B(i|y)RD'), 1, 0) AS A\n"
+        + "FROM scott.EMP";
+
+    final String expectedSparkSql = "SELECT IF('Mike BIrd' rlike r'(?i)MikE B(i|y)RD', 1, 0)"
+        + " A\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
+  }
+
+  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsX() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+        builder.literal("Mike"), builder.literal("M i k e"), builder.literal("x"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexp_similar, "A"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike' , r'Mike'), 1, 0) AS A\n"
+        + "FROM scott.EMP";
+
+    final String expectedSparkSql = "SELECT IF('Mike' rlike r'(?x)M i k e', 1, 0)"
+        + " A\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+
+  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsC() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+        builder.literal("Mike Bird"), builder.literal("Mike B(i|y)RD"),
+        builder.literal("c"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexp_similar, "A"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike Bird' , "
+        + "r'Mike B(i|y)RD'), 1, 0) AS A\n"
+        + "FROM scott.EMP";
+
+    final String expectedSparkSql = "SELECT IF('Mike Bird' rlike r'Mike B(i|y)RD', 1, 0)"
+        + " A\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
+  }
+
+  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsN() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+        builder.literal("abcd\n"
+            + "e"), builder.literal(".*e"), builder.literal("n"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexp_similar, "A"))
+        .build();
+
+    final String expectedSparkSql = "SELECT IF('abcd\n"
+        + "e' rlike r'.*e', 1, 0)"
+        + " A\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
+  }
+
+  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsM() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+        builder.literal("MikeBira\n"
+            + "aaa\n"
+            + "bb\n"
+            + "MikeBird"), builder.literal("^MikeBird$"), builder.literal("m"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexp_similar, "A"))
+        .build();
+
+    final String expectedSparkSql = "SELECT IF('MikeBira\n"
+        + "aaa\n"
+        + "bb\n"
+        + "MikeBird' rlike r'(?m)^MikeBird$', 1, 0)"
+        + " A\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
+  }
 }

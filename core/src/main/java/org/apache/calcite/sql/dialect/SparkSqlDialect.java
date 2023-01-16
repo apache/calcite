@@ -82,6 +82,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
+import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
 
 import static  org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_MONTH;
@@ -722,6 +723,9 @@ public class SparkSqlDialect extends SqlDialect {
       SqlWriter.Frame piFrame = writer.startFunCall("PI");
       writer.endFunCall(piFrame);
       break;
+    case "REGEXP_LIKE":
+      unParseRegexpLike(writer, call, leftPrec, rightPrec);
+      break;
     case "TRUNC":
       String truncFunctionName = getTruncFunctionName(call);
       switch (truncFunctionName) {
@@ -750,6 +754,43 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void unParseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame ifFrame = writer.startFunCall("IF");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.literal("rlike");
+    writer.print("r");
+    unParseRegexString(writer, call, leftPrec, rightPrec);
+    writer.print(",");
+    writer.literal("1");
+    writer.print(",");
+    writer.literal("0");
+    writer.endFunCall(ifFrame);
+  }
+
+  private void unParseRegexString(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.getOperandList().size() == 3) {
+      SqlCharStringLiteral modifiedRegexString = getModifiedRegexString(call);
+      modifiedRegexString.unparse(writer, leftPrec, rightPrec);
+    } else {
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+    }
+  }
+
+  private SqlCharStringLiteral getModifiedRegexString(SqlCall call) {
+    String matchArgument = call.operand(2).toString().replaceAll("'", "");
+    switch (matchArgument) {
+    case "i":
+      return modifyRegexStringForMatchArgument(call, "(?i)");
+    case "x":
+      return modifyRegexStringForMatchArgument(call, "(?x)");
+    case "m":
+      return modifyRegexStringForMatchArgument(call, "(?m)");
+    case "n":
+    default:
+      return call.operand(1);
     }
   }
 

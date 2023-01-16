@@ -1404,4 +1404,17 @@ public abstract class SqlLibraryOperators {
           writer.endList(parenthesisFrame);
         }
       };
+
+  @LibraryOperator(libraries = {ORACLE, MYSQL, SNOWFLAKE})
+  public static final SqlFunction REGEXP_LIKE =
+      new SqlFunction("REGEXP_LIKE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+                  SqlTypeFamily.STRING),
+              // Third operand optional (operand index 0, 1, 2)
+              number -> number == 2),
+          SqlFunctionCategory.STRING);
 }
