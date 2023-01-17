@@ -5218,10 +5218,11 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Tests that ProjectAggregateMergeRule does nothing with non-numeric literals
    * and does not throw an exception. */
   @Test void testProjectAggregateMergeNonNumericLiteral() {
-    final String sql = "select coalesce(sum_sal, {ts '1969-12-31 00:00:00'}) as ss0\n"
+    final String sql = "select c1, coalesce(c1, {ts '1969-12-31 00:00:00'}) as c2\n"
         + "from (\n"
-        + "  select sum(sal) as sum_sal\n"
-        + "  from sales.emp)";
+        + "  select cast(NULL as timestamp) as c1\n"
+        + "  from sales.emp)\n"
+        + "group by c1";
     sql(sql).withRule(CoreRules.PROJECT_AGGREGATE_MERGE)
         .checkUnchanged();
   }

@@ -6334,16 +6334,17 @@ LogicalProject(EXPR$0=[+(+($1, $3), $2)])
   </TestCase>
   <TestCase name="testProjectAggregateMergeNonNumericLiteral">
     <Resource name="sql">
-      <![CDATA[select coalesce(sum_sal, {ts '1969-12-31 00:00:00'}) as ss0
+      <![CDATA[select c1, coalesce(c1, {ts '1969-12-31 00:00:00'}) as c2
 from (
-  select sum(sal) as sum_sal
-  from sales.emp)]]>
+  select cast(NULL as timestamp) as c1
+  from sales.emp)
+group by c1]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(SS0=[CASE(IS NOT NULL($0), CAST($0):TIMESTAMP(0) NOT NULL, 1969-12-31 00:00:00)])
-  LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)])
-    LogicalProject(SAL=[$5])
+LogicalProject(C1=[$0], C2=[CASE(IS NOT NULL($0), CAST($0):TIMESTAMP(0) NOT NULL, 1969-12-31 00:00:00)])
+  LogicalAggregate(group=[{0}])
+    LogicalProject(C1=[null:TIMESTAMP(0)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
