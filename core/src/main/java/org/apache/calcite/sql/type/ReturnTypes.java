@@ -644,10 +644,43 @@ public abstract class ReturnTypes {
   /**
    * Type-inference strategy whereby the result type of a call is
    * {@link #DECIMAL_SUM_NULLABLE} with a fallback to {@link #LEAST_RESTRICTIVE}
-   * These rules are used for addition and subtraction.
+   * These rules are used for addition.
    */
   public static final SqlReturnTypeInference NULLABLE_SUM =
       new SqlReturnTypeInferenceChain(DECIMAL_SUM_NULLABLE, LEAST_RESTRICTIVE);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is an integer
+   * if both operands ares.
+   */
+  public static final SqlReturnTypeInference DATE_SUB = opBinding -> {
+    RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    RelDataType type1 = opBinding.getOperandType(0);
+    RelDataType type2 = opBinding.getOperandType(1);
+    if (type1.getSqlTypeName() == SqlTypeName.DATE
+        && type2.getSqlTypeName() == SqlTypeName.DATE) {
+      return typeFactory.createSqlType(SqlTypeName.INTEGER);
+    }
+    // This rule doesn't apply
+    return null;
+  };
+
+  /**
+   * Same as {@link #DATE_SUB} but returns with nullability if any
+   * of the operands is nullable by using
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
+   */
+  public static final SqlReturnTypeInference DATE_SUB_NULLABLE =
+      DATE_SUB.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is
+   * {@link #DECIMAL_SUM_NULLABLE} with a fallback to date - date, and
+   * finally with a fallback to {@link #LEAST_RESTRICTIVE}
+   * These rules are used for subtraction.
+   */
+  public static final SqlReturnTypeInference NULLABLE_SUB =
+      new SqlReturnTypeInferenceChain(DECIMAL_SUM_NULLABLE, DATE_SUB_NULLABLE, LEAST_RESTRICTIVE);
 
   public static final SqlReturnTypeInference DECIMAL_MOD = opBinding -> {
     RelDataTypeFactory typeFactory = opBinding.getTypeFactory();

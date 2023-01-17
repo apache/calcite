@@ -523,7 +523,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           true,
 
           // Same type inference strategy as sum
-          ReturnTypes.NULLABLE_SUM,
+          ReturnTypes.NULLABLE_SUB,
           InferTypes.FIRST_KNOWN,
           OperandTypes.MINUS_OPERATOR);
 
