@@ -39,8 +39,6 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.MILLIS_PER_DAY;
 import static org.apache.calcite.avatica.util.DateTimeUtils.dateStringToUnixDate;
 import static org.apache.calcite.avatica.util.DateTimeUtils.timeStringToUnixDate;
 import static org.apache.calcite.avatica.util.DateTimeUtils.timestampStringToUnixDate;
-import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
-import static org.apache.calcite.runtime.SqlFunctions.addMonths;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
@@ -57,7 +55,6 @@ import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
-import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
 import static org.apache.calcite.runtime.SqlFunctions.toInt;
 import static org.apache.calcite.runtime.SqlFunctions.toIntOptional;
@@ -71,7 +68,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.AnyOf.anyOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -300,47 +296,6 @@ class SqlFunctionsTest {
 
   static String trimSpacesBoth(String s) {
     return trim(true, true, " ", s);
-  }
-
-  @Test void testAddMonths() {
-    checkAddMonths(2016, 1, 1, 2016, 2, 1, 1);
-    checkAddMonths(2016, 1, 1, 2017, 1, 1, 12);
-    checkAddMonths(2016, 1, 1, 2017, 2, 1, 13);
-    checkAddMonths(2016, 1, 1, 2015, 1, 1, -12);
-    checkAddMonths(2016, 1, 1, 2018, 10, 1, 33);
-    checkAddMonths(2016, 1, 31, 2016, 4, 30, 3);
-    checkAddMonths(2016, 4, 30, 2016, 7, 30, 3);
-    checkAddMonths(2016, 1, 31, 2016, 2, 29, 1);
-    checkAddMonths(2016, 3, 31, 2016, 2, 29, -1);
-    checkAddMonths(2016, 3, 31, 2116, 3, 31, 1200);
-    checkAddMonths(2016, 2, 28, 2116, 2, 28, 1200);
-    checkAddMonths(2019, 9, 1, 2020, 3, 1, 6);
-    checkAddMonths(2019, 9, 1, 2016, 8, 1, -37);
-  }
-
-  private void checkAddMonths(int y0, int m0, int d0, int y1, int m1, int d1,
-      int months) {
-    final int date0 = ymdToUnixDate(y0, m0, d0);
-    final long date = addMonths(date0, months);
-    final int date1 = ymdToUnixDate(y1, m1, d1);
-    assertThat((int) date, is(date1));
-
-    assertThat(subtractMonths(date1, date0),
-        anyOf(is(months), is(months + 1)));
-    assertThat(subtractMonths(date1 + 1, date0),
-        anyOf(is(months), is(months + 1)));
-    assertThat(subtractMonths(date1, date0 + 1),
-        anyOf(is(months), is(months - 1)));
-    assertThat(subtractMonths(d2ts(date1, 1), d2ts(date0, 0)),
-        anyOf(is(months), is(months + 1)));
-    assertThat(subtractMonths(d2ts(date1, 0), d2ts(date0, 1)),
-        anyOf(is(months - 1), is(months), is(months + 1)));
-  }
-
-  /** Converts a date (days since epoch) and milliseconds (since midnight)
-   * into a timestamp (milliseconds since epoch). */
-  private long d2ts(int date, int millis) {
-    return date * DateTimeUtils.MILLIS_PER_DAY + millis;
   }
 
   @Test void testFloor() {

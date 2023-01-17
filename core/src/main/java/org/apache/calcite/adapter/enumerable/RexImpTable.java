@@ -527,7 +527,8 @@ public class RexImpTable {
       map.put(TIMESTAMP_TRUNC, map.get(FLOOR));
       map.put(TIME_TRUNC, map.get(FLOOR));
 
-      defineMethod(LAST_DAY, "lastDay", NullPolicy.STRICT);
+      map.put(LAST_DAY,
+          new LastDayImplementor("lastDay", BuiltInMethod.LAST_DAY));
       map.put(DAYNAME,
           new PeriodNameImplementor("dayName",
               BuiltInMethod.DAYNAME_WITH_TIMESTAMP,
@@ -2078,6 +2079,37 @@ public class RexImpTable {
           Expressions.call(BuiltInMethod.LOCALE.method, translator.getRoot());
       return Expressions.call(builtInMethod.method.getDeclaringClass(),
           builtInMethod.method.getName(), operand, locale);
+    }
+  }
+
+  /** Implementor for the {@code LAST_DAY} function. */
+  private static class LastDayImplementor extends MethodNameImplementor {
+    private final BuiltInMethod dateMethod;
+
+    LastDayImplementor(String methodName, BuiltInMethod dateMethod) {
+      super(methodName, NullPolicy.STRICT, false);
+      this.dateMethod = dateMethod;
+    }
+
+    @Override String getVariableName() {
+      return methodName;
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      Expression operand = argValueList.get(0);
+      final RelDataType type = call.operands.get(0).getType();
+      switch (type.getSqlTypeName()) {
+      case TIMESTAMP:
+        operand =
+            Expressions.call(BuiltInMethod.TIMESTAMP_TO_DATE.method, operand);
+        // fall through
+      case DATE:
+        return Expressions.call(dateMethod.method.getDeclaringClass(),
+            dateMethod.method.getName(), operand);
+      default:
+        throw new AssertionError("unknown type " + type);
+      }
     }
   }
 
