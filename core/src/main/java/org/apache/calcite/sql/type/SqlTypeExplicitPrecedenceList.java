@@ -82,6 +82,8 @@ public class SqlTypeExplicitPrecedenceList
               list(SqlTypeName.YEAR_INTERVAL_TYPES))
           .put(SqlTypeName.INTERVAL_MONTH,
               list(SqlTypeName.YEAR_INTERVAL_TYPES))
+          .put(SqlTypeName.INTERVAL_WEEK,
+              list(SqlTypeName.WEEK_INTERVAL_TYPES))
           .put(SqlTypeName.INTERVAL_DAY,
               list(SqlTypeName.DAY_INTERVAL_TYPES))
           .put(SqlTypeName.INTERVAL_DAY_HOUR,

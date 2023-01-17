@@ -1064,6 +1064,7 @@ VERSION,
 **VERSIONING**,
 VIEW,
 WEEK,
+**WEEKS**,
 **WHEN**,
 **WHENEVER**,
 **WHERE**,
@@ -1148,7 +1149,7 @@ Note:
 * Interval literals may only use time units
   YEAR, MONTH, DAY, HOUR, MINUTE and SECOND. In certain
   [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowPluralTimeUnits--),
-  we also allow their plurals, YEARS, MONTHS, DAYS, HOURS, MINUTES and SECONDS.
+  we also allow their plurals, YEARS, MONTHS, WEEKS, DAYS, HOURS, MINUTES and SECONDS.
 
 ### Non-scalar types
 

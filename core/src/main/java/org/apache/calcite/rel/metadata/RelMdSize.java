@@ -306,6 +306,7 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     case FLOAT: // sic
     case TIMESTAMP:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case INTERVAL_WEEK:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -368,6 +369,7 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     case DOUBLE:
     case TIMESTAMP:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case INTERVAL_WEEK:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:

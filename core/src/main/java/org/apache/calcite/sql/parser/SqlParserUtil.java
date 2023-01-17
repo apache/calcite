@@ -282,6 +282,15 @@ public final class SqlParserUtil {
         case "mons":
           unit = TimeUnit.MONTH;
           break;
+        case "week":
+        case "weeks":
+        case "w":
+        case "wk":
+        case "weekofyear":
+        case "woy":
+        case "wy":
+          unit = TimeUnit.WEEK;
+          break;
         case "day":
         case "days":
         case "d":
@@ -367,6 +376,12 @@ public final class SqlParserUtil {
       throw new RuntimeException("while parsing day-to-second interval "
           + literal, e);
     }
+
+    if (intervalQualifier.timeUnitRange.toString().equals("WEEK")) {
+      long millisecondsInWeek = 604800000;
+      return ret[0] * ret[2] * millisecondsInWeek;
+    }
+
     long l = 0;
     long[] conv = new long[5];
     conv[4] = 1; // millisecond

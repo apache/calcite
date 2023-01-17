@@ -77,6 +77,8 @@ public enum SqlTypeName {
       SqlTypeFamily.INTERVAL_YEAR_MONTH),
   INTERVAL_MONTH(PrecScale.NO_NO, false, Types.OTHER,
       SqlTypeFamily.INTERVAL_YEAR_MONTH),
+  INTERVAL_WEEK(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
+      false, Types.OTHER, SqlTypeFamily.INTERVAL_WEEK),
   INTERVAL_DAY(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
       false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
   INTERVAL_DAY_HOUR(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
@@ -154,7 +156,7 @@ public enum SqlTypeName {
           BOOLEAN, INTEGER, VARCHAR, DATE, TIME, TIMESTAMP, NULL, DECIMAL,
           ANY, CHAR, BINARY, VARBINARY, TINYINT, SMALLINT, BIGINT, REAL,
           DOUBLE, SYMBOL, INTERVAL_YEAR, INTERVAL_YEAR_MONTH, INTERVAL_MONTH,
-          INTERVAL_DAY, INTERVAL_DAY_HOUR, INTERVAL_DAY_MINUTE,
+          INTERVAL_WEEK, INTERVAL_DAY, INTERVAL_DAY_HOUR, INTERVAL_DAY_MINUTE,
           INTERVAL_DAY_SECOND, INTERVAL_HOUR, INTERVAL_HOUR_MINUTE,
           INTERVAL_HOUR_SECOND, INTERVAL_MINUTE, INTERVAL_MINUTE_SECOND,
           INTERVAL_SECOND, TIME_WITH_LOCAL_TIME_ZONE, TIMESTAMP_WITH_LOCAL_TIME_ZONE,
@@ -196,6 +198,9 @@ public enum SqlTypeName {
           SqlTypeName.INTERVAL_YEAR_MONTH,
           SqlTypeName.INTERVAL_MONTH);
 
+  public static final Set<SqlTypeName> WEEK_INTERVAL_TYPES =
+      Sets.immutableEnumSet(SqlTypeName.INTERVAL_WEEK);
+
   public static final Set<SqlTypeName> DAY_INTERVAL_TYPES =
       Sets.immutableEnumSet(SqlTypeName.INTERVAL_DAY,
           SqlTypeName.INTERVAL_DAY_HOUR,
@@ -210,7 +215,7 @@ public enum SqlTypeName {
 
   public static final Set<SqlTypeName> INTERVAL_TYPES =
       Sets.immutableEnumSet(
-          Iterables.concat(YEAR_INTERVAL_TYPES, DAY_INTERVAL_TYPES));
+          Iterables.concat(YEAR_INTERVAL_TYPES, WEEK_INTERVAL_TYPES, DAY_INTERVAL_TYPES));
 
   private static final Map<Integer, SqlTypeName> JDBC_TYPE_TO_NAME =
       ImmutableMap.<Integer, SqlTypeName>builder()
@@ -368,6 +373,7 @@ public enum SqlTypeName {
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
+    case INTERVAL_WEEK:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -763,6 +769,7 @@ public enum SqlTypeName {
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
+    case INTERVAL_WEEK:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -792,6 +799,7 @@ public enum SqlTypeName {
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
+    case INTERVAL_WEEK:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -817,6 +825,8 @@ public enum SqlTypeName {
       return TimeUnit.YEAR;
     case INTERVAL_MONTH:
       return TimeUnit.MONTH;
+    case INTERVAL_WEEK:
+      return TimeUnit.WEEK;
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -845,6 +855,8 @@ public enum SqlTypeName {
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
       return TimeUnit.MONTH;
+    case INTERVAL_WEEK:
+      return TimeUnit.WEEK;
     case INTERVAL_DAY:
       return TimeUnit.DAY;
     case INTERVAL_DAY_HOUR:

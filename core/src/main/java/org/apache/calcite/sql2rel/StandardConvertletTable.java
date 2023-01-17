@@ -1055,6 +1055,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         case INTERVAL_YEAR:
         case INTERVAL_YEAR_MONTH:
         case INTERVAL_MONTH:
+        case INTERVAL_WEEK:
         case INTERVAL_DAY:
         case INTERVAL_DAY_HOUR:
         case INTERVAL_DAY_MINUTE:

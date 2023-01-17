@@ -2438,6 +2438,7 @@ public class RexImpTable {
         case INTERVAL_YEAR:
         case INTERVAL_YEAR_MONTH:
         case INTERVAL_MONTH:
+        case INTERVAL_WEEK:
         case INTERVAL_DAY:
         case INTERVAL_DAY_HOUR:
         case INTERVAL_DAY_MINUTE:
@@ -2496,6 +2497,7 @@ public class RexImpTable {
         case INTERVAL_YEAR:
         case INTERVAL_YEAR_MONTH:
         case INTERVAL_MONTH:
+        case INTERVAL_WEEK:
         case INTERVAL_DAY:
         case INTERVAL_DAY_HOUR:
         case INTERVAL_DAY_MINUTE:
@@ -2876,6 +2878,7 @@ public class RexImpTable {
           break;
         default:
           switch (typeName1) {
+          case INTERVAL_WEEK:
           case INTERVAL_DAY:
           case INTERVAL_DAY_HOUR:
           case INTERVAL_DAY_MINUTE:
@@ -2924,6 +2927,7 @@ public class RexImpTable {
           return Expressions.call(method.method, trop0, trop1);
         }
 
+      case INTERVAL_WEEK:
       case INTERVAL_DAY:
       case INTERVAL_DAY_HOUR:
       case INTERVAL_DAY_MINUTE:

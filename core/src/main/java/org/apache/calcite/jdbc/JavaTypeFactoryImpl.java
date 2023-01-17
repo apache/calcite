@@ -188,6 +188,7 @@ public class JavaTypeFactoryImpl
       case TIMESTAMP:
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       case BIGINT:
+      case INTERVAL_WEEK:
       case INTERVAL_DAY:
       case INTERVAL_DAY_HOUR:
       case INTERVAL_DAY_MINUTE:

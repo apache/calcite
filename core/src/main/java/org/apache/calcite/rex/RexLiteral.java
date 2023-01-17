@@ -344,6 +344,7 @@ public class RexLiteral extends RexNode {
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
+    case INTERVAL_WEEK:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -701,6 +702,7 @@ public class RexLiteral extends RexNode {
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
+    case INTERVAL_WEEK:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -813,6 +815,12 @@ public class RexLiteral extends RexNode {
       return new RexLiteral(new ByteString(bytes), type, typeName);
     case NULL:
       return new RexLiteral(null, type, typeName);
+    case INTERVAL_WEEK:
+      long weekMillis =
+          SqlParserUtil.intervalToMillis(
+              literal,
+              castNonNull(type.getIntervalQualifier()));
+      return new RexLiteral(BigDecimal.valueOf(weekMillis), type, typeName);
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -1116,6 +1124,7 @@ public class RexLiteral extends RexNode {
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
+    case INTERVAL_WEEK:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:

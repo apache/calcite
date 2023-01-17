@@ -59,6 +59,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   BOOLEAN,
   INTERVAL_YEAR_MONTH,
   INTERVAL_DAY_TIME,
+  INTERVAL_WEEK,
 
   // Secondary families.
 
@@ -140,7 +141,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
    * between two {@code empno} values is also NUMERIC.
    *
    * <p>Example 2. For {@code ORDER BY hireDate}, a DATE, the difference
-   * between two {@code hireDate} values might be an INTERVAL_DAY_TIME
+   * between two {@code hireDate} values might be an INTERVAL_DAY_TIME,
    * or INTERVAL_YEAR_MONTH.
    *
    * <p>The result determines whether a {@link SqlWindow} with a {@code RANGE}
@@ -158,7 +159,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
     case DATE:
     case TIME:
     case TIMESTAMP:
-      return ImmutableList.of(INTERVAL_DAY_TIME, INTERVAL_YEAR_MONTH);
+      return ImmutableList.of(INTERVAL_DAY_TIME, INTERVAL_WEEK, INTERVAL_YEAR_MONTH);
     default:
       return ImmutableList.of();
     }
@@ -185,6 +186,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return SqlTypeName.BOOLEAN_TYPES;
     case INTERVAL_YEAR_MONTH:
       return SqlTypeName.YEAR_INTERVAL_TYPES;
+    case INTERVAL_WEEK:
+      return SqlTypeName.WEEK_INTERVAL_TYPES;
     case INTERVAL_DAY_TIME:
       return SqlTypeName.DAY_INTERVAL_TYPES;
     case STRING:
@@ -252,6 +255,9 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
     case INTERVAL_DAY_TIME:
       return factory.createSqlIntervalType(
           new SqlIntervalQualifier(TimeUnit.DAY, TimeUnit.SECOND, SqlParserPos.ZERO));
+    case INTERVAL_WEEK:
+      return factory.createSqlIntervalType(
+          new SqlIntervalQualifier(TimeUnit.WEEK, TimeUnit.WEEK, SqlParserPos.ZERO));
     case INTERVAL_YEAR_MONTH:
       return factory.createSqlIntervalType(
           new SqlIntervalQualifier(TimeUnit.YEAR, TimeUnit.MONTH, SqlParserPos.ZERO));

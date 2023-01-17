@@ -43,6 +43,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
+    case INTERVAL_WEEK:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -73,6 +74,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
+    case INTERVAL_WEEK:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -132,6 +134,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
+    case INTERVAL_WEEK:
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -168,6 +171,8 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
       return isPrefix ? "TIMESTAMP '" : "'";
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return isPrefix ? "TIMESTAMP WITH LOCAL TIME ZONE '" : "'";
+    case INTERVAL_WEEK:
+      return isPrefix ? "INTERVAL '" : "' WEEK";
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:

@@ -60,6 +60,9 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     for (SqlTypeName interval : SqlTypeName.YEAR_INTERVAL_TYPES) {
       rules.add(interval, SqlTypeName.YEAR_INTERVAL_TYPES);
     }
+    for (SqlTypeName interval : SqlTypeName.WEEK_INTERVAL_TYPES) {
+      rules.add(interval, SqlTypeName.WEEK_INTERVAL_TYPES);
+    }
     for (SqlTypeName interval : SqlTypeName.DAY_INTERVAL_TYPES) {
       rules.add(interval, SqlTypeName.DAY_INTERVAL_TYPES);
     }
