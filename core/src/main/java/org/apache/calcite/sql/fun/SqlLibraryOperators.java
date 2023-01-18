@@ -697,6 +697,22 @@ public abstract class SqlLibraryOperators {
       ImmutableSet.<TimeUnitRange>builder()
           .addAll(DATE_UNITS).addAll(TIME_UNITS).build();
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_TIME =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_TIME", SqlTypeName.TIME);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_DATE =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_DATE", SqlTypeName.DATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_TIMESTAMP =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_TIMESTAMP", SqlTypeName.TIMESTAMP);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_DATETIME =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_DATETIME", SqlTypeName.TIMESTAMP);
+
   /** The "TIMESTAMP_ADD(timestamp, interval)" function (BigQuery), the
    * two-argument variant of the built-in
    * {@link SqlStdOperatorTable#TIMESTAMP_ADD TIMESTAMPADD} function, which has
