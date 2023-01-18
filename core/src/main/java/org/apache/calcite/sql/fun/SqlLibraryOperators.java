@@ -757,10 +757,17 @@ public abstract class SqlLibraryOperators {
    * INTERVAL int64 date_part)" but in Calcite the second argument can be any
    * interval expression, not just an interval literal. */
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TIMESTAMP_SUB =
+  public static final SqlBasicFunction TIMESTAMP_SUB =
       SqlBasicFunction.create(SqlKind.TIMESTAMP_SUB, ReturnTypes.ARG0_NULLABLE,
           OperandTypes.TIMESTAMP_INTERVAL)
           .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** BigQuery's {@code DATETIME_SUB(timestamp, interval)} function
+   * is a synonym for TIMESTAMP_SUB because in Calcite, DATETIME
+   * is an alias for TIMESTAMP. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_SUB =
+      TIMESTAMP_SUB.withName("DATETIME_SUB");
 
   /** The "TIMESTAMP_TRUNC(timestamp_expression, date_time_part[, time_zone])"
    * function (BigQuery); truncates a TIMESTAMP value to the granularity of

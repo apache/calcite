@@ -545,6 +545,7 @@ DATABASE,
 **DATETIME**,
 DATETIME_INTERVAL_CODE,
 DATETIME_INTERVAL_PRECISION,
+**DATETIME_SUB**,
 **DAY**,
 DAYS,
 **DEALLOCATE**,
@@ -2620,6 +2621,7 @@ semantics.
 | b | DATETIME(date, time)                           | Returns a datetime object, given a date and a time.
 | b | DATETIME(timestamp)                            | Converts a timestamp object to a datetime, assuming UTC.
 | b | DATETIME(timestamp, timezone)                  | Converts a timestamp object to a datetime, in a given time zone.
+| b | DATETME_SUB(datetime, interval)                | Returns the datetime that is *interval* after *datetime*.
 | p q | DATEADD(timeUnit, integer, datetime)         | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
 | p q | DATEDIFF(timeUnit, datetime, datetime2)      | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
 | q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
