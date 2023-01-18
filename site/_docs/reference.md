@@ -2649,6 +2649,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | DATETIME(date)                                 | Converts *date* to a TIMESTAMP value (at midnight)
 | b | DATETIME(date, timeZone)                       | Converts *date* to a TIMESTAMP value (at midnight), in *timeZone*
 | b | DATETIME(year, month, day, hour, minute, second) | Creates a TIMESTAMP for *year*, *month*, *day*, *hour*, *minute*, *second* (all of type INTEGER)
+| b | DATETIME_SUB(timestamp, interval)              | Returns the TIMESTAMP that occurs *interval* before *timestamp*
 | b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
 | p | DATE_PART(timeUnit, datetime)                  | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | b | DATE_SUB(date, interval)                       | Returns the DATE value that occurs *interval* before *date*
