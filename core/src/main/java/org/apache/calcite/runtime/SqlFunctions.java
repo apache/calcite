@@ -41,6 +41,8 @@ import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.format.FormatElement;
+import org.apache.calcite.util.format.FormatModels;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
@@ -88,6 +90,7 @@ import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -2569,6 +2572,26 @@ public class SqlFunctions {
     return TimeWithTimeZoneString.fromMillisOfDay(v)
         .withTimeZone(timeZone)
         .toString();
+  }
+
+  private static String internalFormatDatetime(String fmtString, java.util.Date date) {
+    List<FormatElement> elements =
+        FormatModels.BIG_QUERY.parse(fmtString);
+    return elements.stream()
+        .map(ele -> ele.format(date))
+        .collect(Collectors.joining());
+  }
+
+  public static String formatTimestamp(DataContext ctx, String fmtString, long timestamp) {
+    return internalFormatDatetime(fmtString, internalToTimestamp(timestamp));
+  }
+
+  public static String formatDate(DataContext ctx, String fmtString, int date) {
+    return internalFormatDatetime(fmtString, internalToDate(date));
+  }
+
+  public static String formatTime(DataContext ctx, String fmtString, int time) {
+    return internalFormatDatetime(fmtString, internalToTime(time));
   }
 
   /**

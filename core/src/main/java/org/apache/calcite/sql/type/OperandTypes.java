@@ -468,6 +468,12 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker CHARACTER_CHARACTER_DATETIME =
       family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME);
 
+  public static final SqlSingleOperandTypeChecker CHARACTER_DATE =
+      family(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATE);
+
+  public static final SqlSingleOperandTypeChecker CHARACTER_TIME =
+      family(SqlTypeFamily.CHARACTER, SqlTypeFamily.TIME);
+
   public static final SqlSingleOperandTypeChecker PERIOD =
       new PeriodOperandTypeChecker();
 

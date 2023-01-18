@@ -2445,35 +2445,35 @@ SELECT * FROM items;
 #
 # Returns STRING
 
-!if (false) {
 SELECT FORMAT_DATE("%x", DATE "2008-12-25") AS US_format;
-+------------+
-| US_format  |
-+------------+
-| 12/25/08   |
-+------------+
-!ok
-!}
++-----------+
+| US_format |
++-----------+
+| 12/25/08  |
++-----------+
+(1 row)
 
-!if (false) {
+!ok
+
 SELECT FORMAT_DATE("%b-%d-%Y", DATE "2008-12-25") AS formatted;
 +-------------+
 | formatted   |
 +-------------+
 | Dec-25-2008 |
 +-------------+
-!ok
-!}
+(1 row)
 
-!if (false) {
-SELECT FORMAT_DATE("%b %Y", DATE "2008-12-25") AS formatted;
-+-------------+
-| formatted   |
-+-------------+
-| Dec 2008    |
-+-------------+
 !ok
-!}
+
+SELECT FORMAT_DATE("%b %Y", DATE "2008-12-25") AS formatted;
++-----------+
+| formatted |
++-----------+
+| Dec 2008  |
++-----------+
+(1 row)
+
+!ok
 
 #####################################################################
 # FORMAT_DATETIME
@@ -2485,7 +2485,6 @@ SELECT FORMAT_DATE("%b %Y", DATE "2008-12-25") AS formatted;
 #
 # Returns STRING
 
-!if (false) {
 SELECT
   FORMAT_DATETIME("%c", DATETIME "2008-12-25 15:30:00")
   AS formatted;
@@ -2494,10 +2493,10 @@ SELECT
 +--------------------------+
 | Thu Dec 25 15:30:00 2008 |
 +--------------------------+
-!ok
-!}
+(1 row)
 
-!if (false) {
+!ok
+
 SELECT
   FORMAT_DATETIME("%b-%d-%Y", DATETIME "2008-12-25 15:30:00")
   AS formatted;
@@ -2506,20 +2505,21 @@ SELECT
 +-------------+
 | Dec-25-2008 |
 +-------------+
-!ok
-!}
+(1 row)
 
-!if (false) {
+!ok
+
 SELECT
   FORMAT_DATETIME("%b %Y", DATETIME "2008-12-25 15:30:00")
   AS formatted;
-+-------------+
-| formatted   |
-+-------------+
-| Dec 2008    |
-+-------------+
++-----------+
+| formatted |
++-----------+
+| Dec 2008  |
++-----------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # FORMAT_TIME
@@ -2532,15 +2532,15 @@ SELECT
 #
 # Returns STRING
 
-!if (false) {
 SELECT FORMAT_TIME("%R", TIME "15:30:00") as formatted_time;
 +----------------+
 | formatted_time |
 +----------------+
 | 15:30          |
 +----------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # FORMAT_TIMESTAMP
@@ -2553,36 +2553,36 @@ SELECT FORMAT_TIME("%R", TIME "15:30:00") as formatted_time;
 # See Supported Format Elements For TIMESTAMP for a list of format
 # elements that this function supports.
 
-!if (false) {
-SELECT FORMAT_TIMESTAMP("%c", TIMESTAMP "2008-12-25 15:30:00+00", "UTC") AS formatted;
+SELECT FORMAT_TIMESTAMP("%c", TIMESTAMP "2008-12-25 15:30:00" /* TODO should be "2008-12-25 15:30:00+00" */, "UTC") AS formatted;
 +--------------------------+
 | formatted                |
 +--------------------------+
 | Thu Dec 25 15:30:00 2008 |
 +--------------------------+
-!ok
-!}
+(1 row)
 
-!if (false) {
-SELECT FORMAT_TIMESTAMP("%b-%d-%Y", TIMESTAMP "2008-12-25 15:30:00+00") AS formatted;
+!ok
+
+SELECT FORMAT_TIMESTAMP("%b-%d-%Y", TIMESTAMP "2008-12-25 15:30:00" /* TODO should be "2008-12-25 15:30:00+00" */) AS formatted;
 +-------------+
 | formatted   |
 +-------------+
 | Dec-25-2008 |
 +-------------+
-!ok
-!}
+(1 row)
 
-!if (false) {
-SELECT FORMAT_TIMESTAMP("%b %Y", TIMESTAMP "2008-12-25 15:30:00+00")
-  AS formatted;
-+-------------+
-| formatted   |
-+-------------+
-| Dec 2008    |
-+-------------+
 !ok
-!}
+
+SELECT FORMAT_TIMESTAMP("%b %Y", TIMESTAMP "2008-12-25 15:30:00" /* TODO should be "2008-12-25 15:30:00+00" */)
+  AS formatted;
++-----------+
+| formatted |
++-----------+
+| Dec 2008  |
++-----------+
+(1 row)
+
+!ok
 
 #####################################################################
 # PARSE_DATE
