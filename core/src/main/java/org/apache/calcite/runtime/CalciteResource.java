@@ -869,6 +869,12 @@ public interface CalciteResource {
   @BaseMessage("Dialect does not support feature: ''{0}''")
   ExInst<SqlValidatorException> dialectDoesNotSupportFeature(String featureName);
 
+  @BaseMessage("Second argument for LPAD/RPAD must not be negative")
+  ExInst<CalciteException> illegalNegativePadLength();
+
+  @BaseMessage("Third argument (pad pattern) for LPAD/RPAD must not be empty")
+  ExInst<CalciteException> illegalEmptyPadPattern();
+
   @BaseMessage("Substring error: negative substring length not allowed")
   ExInst<CalciteException> illegalNegativeSubstringLength();
 

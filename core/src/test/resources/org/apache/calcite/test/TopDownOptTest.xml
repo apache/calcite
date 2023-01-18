@@ -933,16 +933,18 @@ EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalSort(sort0=[$1], dir0=[DESC])
-  LogicalProject(EXPR$0=[CAST($7):FLOAT NOT NULL], DEPTNO=[$7])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[$0])
+  LogicalSort(sort0=[$1], dir0=[DESC])
+    LogicalProject(EXPR$0=[CAST($7):FLOAT NOT NULL], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableSort(sort0=[$1], dir0=[DESC])
-  EnumerableCalc(expr#0..8=[{inputs}], expr#9=[CAST($t7):FLOAT NOT NULL], EXPR$0=[$t9], DEPTNO=[$t7])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t0])
+  EnumerableSort(sort0=[$1], dir0=[DESC])
+    EnumerableCalc(expr#0..8=[{inputs}], expr#9=[CAST($t7):FLOAT NOT NULL], EXPR$0=[$t9], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -952,16 +954,18 @@ EnumerableSort(sort0=[$1], dir0=[DESC])
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalSort(sort0=[$1], dir0=[DESC])
-  LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($7):VARCHAR NOT NULL])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(DEPTNO=[$0])
+  LogicalSort(sort0=[$1], dir0=[DESC])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($7):VARCHAR NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableSort(sort0=[$1], dir0=[DESC])
-  EnumerableCalc(expr#0..8=[{inputs}], expr#9=[CAST($t7):VARCHAR NOT NULL], DEPTNO=[$t7], EXPR$1=[$t9])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+EnumerableCalc(expr#0..1=[{inputs}], DEPTNO=[$t0])
+  EnumerableSort(sort0=[$1], dir0=[DESC])
+    EnumerableCalc(expr#0..8=[{inputs}], expr#9=[CAST($t7):VARCHAR NOT NULL], DEPTNO=[$t7], EXPR$1=[$t9])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -1564,16 +1568,18 @@ EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalSort(sort0=[$1], dir0=[DESC])
-  LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($7):FLOAT NOT NULL])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(DEPTNO=[$0])
+  LogicalSort(sort0=[$1], dir0=[DESC])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($7):FLOAT NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableSort(sort0=[$1], dir0=[DESC])
-  EnumerableProject(DEPTNO=[$7], EXPR$1=[CAST($7):FLOAT NOT NULL])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+EnumerableProject(DEPTNO=[$0])
+  EnumerableSort(sort0=[$1], dir0=[DESC])
+    EnumerableProject(DEPTNO=[$7], EXPR$1=[CAST($7):FLOAT NOT NULL])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -1583,16 +1589,18 @@ EnumerableSort(sort0=[$1], dir0=[DESC])
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalSort(sort0=[$1], dir0=[DESC])
-  LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($7):VARCHAR NOT NULL])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(DEPTNO=[$0])
+  LogicalSort(sort0=[$1], dir0=[DESC])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($7):VARCHAR NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-EnumerableSort(sort0=[$1], dir0=[DESC])
-  EnumerableProject(DEPTNO=[$7], EXPR$1=[CAST($7):VARCHAR NOT NULL])
-    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+EnumerableProject(DEPTNO=[$0])
+  EnumerableSort(sort0=[$1], dir0=[DESC])
+    EnumerableProject(DEPTNO=[$7], EXPR$1=[CAST($7):VARCHAR NOT NULL])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

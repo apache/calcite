@@ -13011,16 +13011,18 @@ order by cast(d.deptno as integer) offset 1]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
-  LogicalProject(DEPTNO=[$0], EXPR$1=[$0])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(DEPTNO=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
+    LogicalProject(DEPTNO=[$0], EXPR$1=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], EXPR$1=[$0])
-  LogicalSort(sort0=[$0], dir0=[ASC], offset=[1])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$0], EXPR$1=[$0])
+    LogicalSort(sort0=[$0], dir0=[ASC], offset=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
@@ -13031,16 +13033,18 @@ order by cast(d.deptno as double) offset 1]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
-  LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):DOUBLE NOT NULL])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(DEPTNO=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
+    LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):DOUBLE NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):DOUBLE NOT NULL])
-  LogicalSort(sort0=[$0], dir0=[ASC], offset=[1])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):DOUBLE NOT NULL])
+    LogicalSort(sort0=[$0], dir0=[ASC], offset=[1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
@@ -13051,9 +13055,10 @@ order by cast(d.deptno as varchar(10)) offset 1]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
-  LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):VARCHAR(10) NOT NULL])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(DEPTNO=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC], offset=[1])
+    LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($0):VARCHAR(10) NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
     <Resource name="planAfter">
@@ -13074,21 +13079,23 @@ order by deptno desc nulls last]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])
+LogicalProject(C=[$0])
+  LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])
+    LogicalProject(C=[$2], DEPTNO=[$0])
+      LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+        LogicalProject(DEPTNO=[$7], SAL=[$5])
+          LogicalFilter(condition=[=($7, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(C=[$0])
   LogicalProject(C=[$2], DEPTNO=[$0])
     LogicalAggregate(group=[{0, 1}], C=[COUNT()])
       LogicalProject(DEPTNO=[$7], SAL=[$5])
         LogicalFilter(condition=[=($7, 10)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(C=[$2], DEPTNO=[$0])
-  LogicalAggregate(group=[{0, 1}], C=[COUNT()])
-    LogicalProject(DEPTNO=[$7], SAL=[$5])
-      LogicalFilter(condition=[=($7, 10)])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -13102,22 +13109,24 @@ order by deptno, sal desc nulls first]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalSort(sort0=[$1], sort1=[$2], dir0=[ASC], dir1=[DESC])
-  LogicalProject(C=[$2], DEPTNO=[$0], SAL=[$1])
-    LogicalAggregate(group=[{0, 1}], C=[COUNT()])
-      LogicalProject(DEPTNO=[$7], SAL=[$5])
-        LogicalFilter(condition=[=($7, 10)])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(C=[$0])
+  LogicalSort(sort0=[$1], sort1=[$2], dir0=[ASC], dir1=[DESC])
+    LogicalProject(C=[$2], DEPTNO=[$0], SAL=[$1])
+      LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+        LogicalProject(DEPTNO=[$7], SAL=[$5])
+          LogicalFilter(condition=[=($7, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalSort(sort0=[$2], dir0=[DESC])
-  LogicalProject(C=[$2], DEPTNO=[$0], SAL=[$1])
-    LogicalAggregate(group=[{0, 1}], C=[COUNT()])
-      LogicalProject(DEPTNO=[$7], SAL=[$5])
-        LogicalFilter(condition=[=($7, 10)])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+LogicalProject(C=[$0])
+  LogicalSort(sort0=[$2], dir0=[DESC])
+    LogicalProject(C=[$2], DEPTNO=[$0], SAL=[$1])
+      LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+        LogicalProject(DEPTNO=[$7], SAL=[$5])
+          LogicalFilter(condition=[=($7, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

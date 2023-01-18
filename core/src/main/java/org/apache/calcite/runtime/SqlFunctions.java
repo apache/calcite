@@ -149,6 +149,11 @@ public class SqlFunctions {
 
   private static final Pattern PATTERN_0_STAR_E = Pattern.compile("0*E");
 
+  /** A byte string consisting of a single byte that is the ASCII space
+   * character (0x20). */
+  private static final ByteString SINGLE_SPACE_BYTE_STRING =
+      ByteString.of("20", 16);
+
   private SqlFunctions() {
   }
 
@@ -268,6 +273,126 @@ public class SqlFunctions {
       }
     }
     return flags;
+  }
+
+  /** SQL {@code LPAD(string, integer, string)} function. */
+  public static String lpad(String originalValue, int returnLength,
+      String pattern) {
+    if (returnLength < 0) {
+      throw RESOURCE.illegalNegativePadLength().ex();
+    }
+    if (pattern.isEmpty()) {
+      throw RESOURCE.illegalEmptyPadPattern().ex();
+    }
+    if (returnLength <= originalValue.length()) {
+      return originalValue.substring(0, returnLength);
+    }
+    int paddingLengthRequired = returnLength - originalValue.length();
+    int patternLength = pattern.length();
+    final StringBuilder paddedS = new StringBuilder();
+    for (int i = 0; i < paddingLengthRequired; i++) {
+      char curChar = pattern.charAt(i % patternLength);
+      paddedS.append(curChar);
+    }
+    paddedS.append(originalValue);
+    return paddedS.toString();
+  }
+
+  /** SQL {@code LPAD(string, integer)} function. */
+  public static String lpad(String originalValue, int returnLength) {
+    return lpad(originalValue, returnLength, " ");
+  }
+
+  /** SQL {@code LPAD(binary, integer, binary)} function. */
+  public static ByteString lpad(ByteString originalValue, int returnLength,
+      ByteString pattern) {
+    if (returnLength < 0) {
+      throw RESOURCE.illegalNegativePadLength().ex();
+    }
+    if (pattern.length() == 0) {
+      throw RESOURCE.illegalEmptyPadPattern().ex();
+    }
+    if (returnLength <= originalValue.length()) {
+      return originalValue.substring(0, returnLength);
+    }
+    int paddingLengthRequired = returnLength - originalValue.length();
+    int patternLength = pattern.length();
+    byte[] bytes = new byte[returnLength];
+    for (int i = 0; i < paddingLengthRequired; i++) {
+      byte curByte = pattern.byteAt(i % patternLength);
+      bytes[i] = curByte;
+    }
+    for (int i = paddingLengthRequired; i < returnLength; i++) {
+      bytes[i] = originalValue.byteAt(i - paddingLengthRequired);
+    }
+
+    return new ByteString(bytes);
+  }
+
+  /** SQL {@code LPAD(binary, integer, binary)} function. */
+  public static ByteString lpad(ByteString originalValue, int returnLength) {
+    // 0x20 is the hexadecimal character for space ' '
+    return lpad(originalValue, returnLength, SINGLE_SPACE_BYTE_STRING);
+  }
+
+  /** SQL {@code RPAD(string, integer, string)} function. */
+  public static String rpad(String originalValue, int returnLength,
+      String pattern) {
+    if (returnLength < 0) {
+      throw RESOURCE.illegalNegativePadLength().ex();
+    }
+    if (pattern.isEmpty()) {
+      throw RESOURCE.illegalEmptyPadPattern().ex();
+    }
+    if (returnLength <= originalValue.length()) {
+      return originalValue.substring(0, returnLength);
+    }
+    int paddingLengthRequired = returnLength - originalValue.length();
+    int patternLength = pattern.length();
+    final StringBuilder paddedS = new StringBuilder();
+    paddedS.append(originalValue);
+    for (int i = 0; i < paddingLengthRequired; i++) {
+      char curChar = pattern.charAt(i % patternLength);
+      paddedS.append(curChar);
+    }
+    return paddedS.toString();
+  }
+
+  /** SQL {@code RPAD(string, integer)} function. */
+  public static String rpad(String originalValue, int returnLength) {
+    return rpad(originalValue, returnLength, " ");
+  }
+
+  /** SQL {@code RPAD(binary, integer, binary)} function. */
+  public static ByteString rpad(ByteString originalValue, int returnLength,
+      ByteString pattern) {
+    if (returnLength < 0) {
+      throw RESOURCE.illegalNegativePadLength().ex();
+    }
+    if (pattern.length() == 0) {
+      throw RESOURCE.illegalEmptyPadPattern().ex();
+    }
+    int originalLength = originalValue.length();
+    if (returnLength <= originalLength) {
+      return originalValue.substring(0, returnLength);
+    }
+
+    int paddingLengthRequired = returnLength - originalLength;
+    int patternLength = pattern.length();
+    byte[] bytes = new byte[returnLength];
+    for (int i = 0; i < originalLength; i++) {
+      bytes[i] = originalValue.byteAt(i);
+    }
+    for (int i = returnLength - paddingLengthRequired; i < returnLength; i++) {
+      byte curByte = pattern.byteAt(i % patternLength);
+      bytes[i] = curByte;
+    }
+    return new ByteString(bytes);
+  }
+
+  /** SQL {@code RPAD(binary, integer)} function. */
+  public static ByteString rpad(ByteString originalValue, int returnLength) {
+    return rpad(originalValue, returnLength, SINGLE_SPACE_BYTE_STRING);
   }
 
   /** SQL {@code ENDS_WITH(string, string)} function. */

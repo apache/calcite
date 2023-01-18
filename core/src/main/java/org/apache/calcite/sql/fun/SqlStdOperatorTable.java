@@ -1278,7 +1278,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * additional interval qualifier specification.</p>
    */
   public static final SqlDatetimeSubtractionOperator MINUS_DATE =
-      new SqlDatetimeSubtractionOperator();
+      new SqlDatetimeSubtractionOperator("-", ReturnTypes.ARG2_NULLABLE);
 
   /**
    * The MULTISET Value Constructor. e.g. "<code>MULTISET[1,2,3]</code>".
@@ -1395,34 +1395,37 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction JSON_ARRAY = new SqlJsonArrayFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_TYPE = SqlLibraryOperators.JSON_TYPE;
+  public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_DEPTH = SqlLibraryOperators.JSON_DEPTH;
+  public static final SqlFunction JSON_DEPTH = new SqlJsonDepthFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_LENGTH = SqlLibraryOperators.JSON_LENGTH;
+  public static final SqlFunction JSON_LENGTH = new SqlJsonLengthFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_KEYS = SqlLibraryOperators.JSON_KEYS;
+  public static final SqlFunction JSON_KEYS = new SqlJsonKeysFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_PRETTY = SqlLibraryOperators.JSON_PRETTY;
+  public static final SqlFunction JSON_PRETTY = new SqlJsonPrettyFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_REMOVE = SqlLibraryOperators.JSON_REMOVE;
+  public static final SqlFunction JSON_REMOVE = new SqlJsonRemoveFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_STORAGE_SIZE = SqlLibraryOperators.JSON_STORAGE_SIZE;
+  public static final SqlFunction JSON_STORAGE_SIZE = new SqlJsonStorageSizeFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_INSERT = SqlLibraryOperators.JSON_INSERT;
+  public static final SqlFunction JSON_INSERT =
+      new SqlJsonModifyFunction("JSON_INSERT");
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_REPLACE = SqlLibraryOperators.JSON_REPLACE;
+  public static final SqlFunction JSON_REPLACE =
+      new SqlJsonModifyFunction("JSON_REPLACE");
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_SET = SqlLibraryOperators.JSON_SET;
+  public static final SqlFunction JSON_SET =
+      new SqlJsonModifyFunction("JSON_SET");
 
   public static final SqlJsonArrayAggAggFunction JSON_ARRAYAGG =
       new SqlJsonArrayAggAggFunction(SqlKind.JSON_ARRAYAGG,
@@ -1607,10 +1610,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * example {@code POWER(INTEGER, INTEGER)} can return a non-INTEGER if the
    * second operand is negative.
    */
-  public static final SqlFunction POWER =
+  public static final SqlBasicFunction POWER =
       SqlBasicFunction.create("POWER",
           ReturnTypes.DOUBLE_NULLABLE,
-          OperandTypes.NUMERIC_NUMERIC);
+          OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
 
   /** The {@code SQRT(numeric)} function. */
   public static final SqlFunction SQRT =
@@ -1751,7 +1755,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlFunctionCategory.NUMERIC);
 
   /** The {@code TRUNCATE(numeric [, numeric])} function. */
-  public static final SqlFunction TRUNCATE =
+  public static final SqlBasicFunction TRUNCATE =
       SqlBasicFunction.create("TRUNCATE",
           ReturnTypes.ARG0_NULLABLE,
           OperandTypes.NUMERIC_OPTIONAL_INTEGER,
@@ -1899,7 +1903,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** The <code>TIMESTAMPDIFF</code> function. */
   public static final SqlFunction TIMESTAMP_DIFF =
       new SqlTimestampDiffFunction("TIMESTAMPDIFF",
-          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP));
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP,
+              SqlTypeFamily.TIMESTAMP));
 
   /**
    * Use of the <code>IN_FENNEL</code> operator forces the argument to be

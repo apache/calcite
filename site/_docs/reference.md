@@ -544,6 +544,7 @@ DATABASE,
 **DATE**,
 DATETIME_INTERVAL_CODE,
 DATETIME_INTERVAL_PRECISION,
+DATE_TRUNC,
 **DAY**,
 DAYS,
 **DEALLOCATE**,
@@ -1021,6 +1022,7 @@ TIMESTAMP_DIFF,
 TIMESTAMP_TRUNC,
 **TIMEZONE_HOUR**,
 **TIMEZONE_MINUTE**,
+TIME_DIFF,
 TIME_TRUNC,
 **TINYINT**,
 **TO**,
@@ -1241,7 +1243,7 @@ completeness.
 |:------------------------------------------------- |:-----------
 | value1 = value2                                   | Equals
 | value1 <> value2                                  | Not equal
-| value1 != value2                                  | Not equal (only available at some conformance levels)
+| value1 != value2                                  | Not equal (only in certain [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isBangEqualAllowed--))
 | value1 > value2                                   | Greater than
 | value1 >= value2                                  | Greater than or equal
 | value1 < value2                                   | Less than
@@ -2608,7 +2610,7 @@ semantics.
 | b m p | CONCAT(string [, string ]*)                | Concatenates two or more strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string.
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
-| b | CURRENT_DATETIME([timezone])                   | Returns the current time as a TIMESTAMP from *timezone*
+| b | CURRENT_DATETIME([ timeZone ])                 | Returns the current time as a TIMESTAMP from *timezone*
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | b | DATE(string)                                   | Equivalent to `CAST(string AS DATE)`
 | p q | DATEADD(timeUnit, integer, datetime)         | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
@@ -2616,6 +2618,8 @@ semantics.
 | q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
 | p | DATE_PART(timeUnit, datetime)                  | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
+| b | DATE_SUB(date, interval)                       | Returns the DATE value that occurs *interval* before *date*
+| b | DATE_TRUNC(date, timeUnit)                     | Truncates *date* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
 | b | ENDS_WITH(string1, string2)                    | Returns whether *string2* is a suffix of *string1*
@@ -2624,6 +2628,7 @@ semantics.
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
 | b o | GREATEST(expr [, expr ]*)                    | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
+| b | IFNULL(value1, value2)                         | Equivalent to `NVL(value1, value2)`
 | p | string1 ILIKE string2 [ ESCAPE string3 ]       | Whether *string1* matches pattern *string2*, ignoring case (similar to `LIKE`)
 | p | string1 NOT ILIKE string2 [ ESCAPE string3 ]   | Whether *string1* does not match pattern *string2*, ignoring case (similar to `NOT LIKE`)
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of *jsonValue*
@@ -2638,18 +2643,22 @@ semantics.
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of *jsonValue*
 | b o | LEAST(expr [, expr ]* )                      | Returns the least of the expressions
 | b m p | LEFT(string, length)                       | Returns the leftmost *length* characters from the *string*
+| b | LENGTH(string)                                 | Equivalent to `CHAR_LENGTH(string)`
+| b o | LPAD(string, length[, pattern ])             | Returns a string or bytes value that consists of *string* prepended to *length* with *pattern*
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
 | b m | FROM_BASE64(string)                          | Returns the decoded result of a base-64 *string* as a string
 | b o | LTRIM(string)                                | Returns *string* with all blanks removed from the start
 | b m p | MD5(string)                                | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
+| b | POW(numeric1, numeric2)                        | Returns *numeric1* raised to the power *numeric2*
 | m o | REGEXP_REPLACE(string, regexp, rep, [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* means which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
 | b m p | REPEAT(string, integer)                    | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | b m | REVERSE(string)                              | Returns *string* with the order of the characters reversed
 | b m p | RIGHT(string, length)                      | Returns the rightmost *length* characters from the *string*
 | h s | string1 RLIKE string2                        | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
 | h s | string1 NOT RLIKE string2                    | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
+| b o | RPAD(string, length[, pattern ])             | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
 | b o | RTRIM(string)                                | Returns *string* with all blanks removed from the end
 | b m p | SHA1(string)                               | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | b o | SINH(numeric)                                | Returns the hyperbolic sine of *numeric*
@@ -2659,16 +2668,21 @@ semantics.
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
 | b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | b o | TANH(numeric)                                | Returns the hyperbolic tangent of *numeric*
-| b | TIMESTAMP_ADD(timestamp, interval)             | Adds *interval* to *timestamp*, independent of any time zone
+| b | TIMESTAMP_ADD(timestamp, interval)             | Returns the TIMESTAMP value that occurs *interval* after *timestamp*
 | b | TIMESTAMP_DIFF(timestamp, timestamp2, timeUnit) | Returns the whole number of *timeUnit* between *timestamp* and *timestamp2*. Equivalent to `TIMESTAMPDIFF(timeUnit, timestamp2, timestamp)` and `(timestamp - timestamp2) timeUnit`
 | b | TIMESTAMP_MICROS(integer)                      | Returns the TIMESTAMP that is *integer* microseconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_MILLIS(integer)                      | Returns the TIMESTAMP that is *integer* milliseconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_SECONDS(integer)                     | Returns the TIMESTAMP that is *integer* seconds after 1970-01-01 00:00:00
-| b | TIMESTAMP_TRUNC(timestamp, timeUnit)           | Truncates a *timestamp* value to the granularity of *timeUnit*. The *timestamp* value is always rounded to the beginning of the *timeUnit*.
-| b | TIME_TRUNC(time, timeUnit)                     | Truncates a *time* value to the granularity of *timeUnit*. The *time* value is always rounded to the beginning of timeUnit, which can be one of the following: MILLISECOND, SECOND, MINUTE, HOUR.
+| b | TIMESTAMP_SUB(timestamp, interval)             | Returns the TIMESTAMP value that is *interval* before *timestamp*
+| b | TIMESTAMP_TRUNC(timestamp, timeUnit)           | Truncates *timestamp* to the granularity of *timeUnit*, rounding to the beginning of the unit
+| b | TIME_ADD(time, interval)                       | Adds *interval* to *time*, independent of any time zone
+| b | TIME_DIFF(time, time2, timeUnit)               | Returns the whole number of *timeUnit* between *time* and *time2*
+| b | TIME_SUB(time, interval)                       | Returns the TIME value that is *interval* before *time*
+| b | TIME_TRUNC(time, timeUnit)                     | Truncates *time* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | b o p | TRANSLATE(expr, fromString, toString)      | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| b | TRUNC(numeric1 [, numeric2 ])                  | Truncates *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point
 | b | UNIX_MICROS(timestamp)                         | Returns the number of microseconds since 1970-01-01 00:00:00
 | b | UNIX_MILLIS(timestamp)                         | Returns the number of milliseconds since 1970-01-01 00:00:00
 | b | UNIX_SECONDS(timestamp)                        | Returns the number of seconds since 1970-01-01 00:00:00

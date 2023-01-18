@@ -125,6 +125,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FROM_UNIX_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ENDS_WITH;
@@ -146,13 +147,16 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_TYPE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEFT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.POW;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
@@ -167,6 +171,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MICROS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MILLIS;
@@ -398,6 +403,8 @@ public class RexImpTable {
       defineMethod(SUBSTRING, BuiltInMethod.SUBSTRING.method, NullPolicy.STRICT);
       defineMethod(LEFT, BuiltInMethod.LEFT.method, NullPolicy.ANY);
       defineMethod(RIGHT, BuiltInMethod.RIGHT.method, NullPolicy.ANY);
+      defineMethod(LPAD, BuiltInMethod.LPAD.method, NullPolicy.STRICT);
+      defineMethod(RPAD, BuiltInMethod.RPAD.method, NullPolicy.STRICT);
       defineMethod(STARTS_WITH, BuiltInMethod.STARTS_WITH.method, NullPolicy.STRICT);
       defineMethod(ENDS_WITH, BuiltInMethod.ENDS_WITH.method, NullPolicy.STRICT);
       defineMethod(REPLACE, BuiltInMethod.REPLACE.method, NullPolicy.STRICT);
@@ -470,6 +477,7 @@ public class RexImpTable {
       defineMethod(COSH, "cosh", NullPolicy.STRICT);
       defineMethod(COT, "cot", NullPolicy.STRICT);
       defineMethod(DEGREES, "degrees", NullPolicy.STRICT);
+      defineMethod(POW, "power", NullPolicy.STRICT);
       defineMethod(RADIANS, "radians", NullPolicy.STRICT);
       defineMethod(ROUND, "sround", NullPolicy.STRICT);
       defineMethod(SIGN, "sign", NullPolicy.STRICT);
@@ -477,6 +485,7 @@ public class RexImpTable {
       defineMethod(SINH, "sinh", NullPolicy.STRICT);
       defineMethod(TAN, "tan", NullPolicy.STRICT);
       defineMethod(TANH, "tanh", NullPolicy.STRICT);
+      defineMethod(TRUNC, "struncate", NullPolicy.STRICT);
       defineMethod(TRUNCATE, "struncate", NullPolicy.STRICT);
 
       map.put(PI, new PiImplementor());
@@ -514,9 +523,9 @@ public class RexImpTable {
 
       // TIMESTAMP_TRUNC and TIME_TRUNC methods are syntactic sugar for standard
       // datetime FLOOR.
+      map.put(DATE_TRUNC, map.get(FLOOR));
       map.put(TIMESTAMP_TRUNC, map.get(FLOOR));
       map.put(TIME_TRUNC, map.get(FLOOR));
-
 
       defineMethod(LAST_DAY, "lastDay", NullPolicy.STRICT);
       map.put(DAYNAME,
@@ -1907,7 +1916,7 @@ public class RexImpTable {
 
     @Override protected Expression implementNotNullResult(
         WinAggContext info, WinAggResultContext result) {
-      // Window cannot be empty since ROWS/RANGE is not possible for ROW_NUMBER
+      // Window must not be empty since ROWS/RANGE is not possible for ROW_NUMBER
       return Expressions.add(
           Expressions.subtract(result.index(), result.startIndex()),
           Expressions.constant(1));

@@ -60,9 +60,9 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 class SqlTimestampDiffFunction extends SqlFunction {
   private static RelDataType inferReturnType2(SqlOperatorBinding opBinding) {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    TimeUnit timeUnit;
-    RelDataType type1;
-    RelDataType type2;
+    final TimeUnit timeUnit;
+    final RelDataType type1;
+    final RelDataType type2;
     if (opBinding.isOperandLiteral(0, true)) {
       type1 = opBinding.getOperandType(0);
       type2 = opBinding.getOperandType(1);
@@ -85,8 +85,7 @@ class SqlTimestampDiffFunction extends SqlFunction {
   /** Creates a SqlTimestampDiffFunction. */
   SqlTimestampDiffFunction(String name, SqlOperandTypeChecker operandTypeChecker) {
     super(name, SqlKind.TIMESTAMP_DIFF,
-        SqlTimestampDiffFunction::inferReturnType2, null,
-        operandTypeChecker,
+        SqlTimestampDiffFunction::inferReturnType2, null, operandTypeChecker,
         SqlFunctionCategory.TIMEDATE);
   }
 
@@ -96,20 +95,21 @@ class SqlTimestampDiffFunction extends SqlFunction {
 
     // This is either a time unit or a time frame:
     //
-    //  * In "TIMESTAMPDIFF(YEAR, timestamp1, timestamp2)" operand 0 is a SqlIntervalQualifier
-    //    with startUnit = YEAR and timeFrameName = null. The same is true for BigQuery's
-    //    TIMESTAMP_DIFF() however the SqlIntervalQualifier is operand 2 due to differing
-    //    parameter orders.
+    //  * In "TIMESTAMPDIFF(YEAR, timestamp1, timestamp2)" operand 0 is a
+    //    SqlIntervalQualifier with startUnit = YEAR and timeFrameName = null.
+    //    The same is true for BigQuery's TIMESTAMP_DIFF(), however the
+    //    SqlIntervalQualifier is operand 2 due to differing parameter orders.
     //
-    //  * In "TIMESTAMP_ADD(MINUTE15, timestamp1, timestamp2) operand 0 is a SqlIntervalQualifier
-    //    with startUnit = EPOCH and timeFrameName = 'MINUTE15'. As above, for BigQuery's
-    //    TIMESTAMP_DIFF() the SqlIntervalQualifier is found in operand 2 instead.
+    //  * In "TIMESTAMP_ADD(MINUTE15, timestamp1, timestamp2) operand 0 is a
+    //    SqlIntervalQualifier with startUnit = EPOCH and timeFrameName =
+    //    'MINUTE15'. As above, for BigQuery's TIMESTAMP_DIFF() the
+    //    SqlIntervalQualifier is found in operand 2 instead.
     //
     // If the latter, check that timeFrameName is valid.
     if (call.operand(2) instanceof SqlIntervalQualifier) {
-      validator.validateTimeFrame((SqlIntervalQualifier) call.operand(2));
+      validator.validateTimeFrame(call.operand(2));
     } else {
-      validator.validateTimeFrame((SqlIntervalQualifier) call.operand(0));
+      validator.validateTimeFrame(call.operand(0));
     }
   }
 }

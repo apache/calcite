@@ -1777,17 +1777,25 @@ manhattan
 
 # LPAD and RPAD
 select lpad('cat', 7);
-SELECT "LPAD"('cat', 7)
-!explain-validated-on calcite
+EXPR$0
+    cat
+!ok
 
 -- returns 'eeriness'
 select rpad(lpad('rine', 6, 'e'), 8, 's');
-SELECT "RPAD"("LPAD"('rine', 6, 'e'), 8, 's')
-!explain-validated-on calcite
+EXPR$0
+eeriness
+!ok
 
-select rpad('cat', 7);
-SELECT "RPAD"('cat', 7)
-!explain-validated-on calcite
+select rpad('cat', 7) || '!';
+EXPR$0
+cat    !
+!ok
+
+select rpad('cat', 7, '!');
+EXPR$0
+cat!!!!
+!ok
 
 # LTRIM
 -- returns 'kery'

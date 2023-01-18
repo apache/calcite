@@ -346,7 +346,16 @@ public abstract class OperandTypes {
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING);
 
   public static final FamilyOperandTypeChecker STRING_STRING_OPTIONAL_STRING =
-      family(ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+      family(
+          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+              SqlTypeFamily.STRING),
+          // Third operand optional (operand index 0, 1, 2)
+          number -> number == 2);
+
+  public static final FamilyOperandTypeChecker STRING_NUMERIC_OPTIONAL_STRING =
+      family(
+          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.STRING),
           // Third operand optional (operand index 0, 1, 2)
           number -> number == 2);
 
@@ -702,6 +711,9 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker TIMESTAMP_INTERVAL =
       family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATETIME_INTERVAL);
+
+  public static final SqlSingleOperandTypeChecker DATE_INTERVAL =
+      family(SqlTypeFamily.DATE, SqlTypeFamily.DATETIME_INTERVAL);
 
   public static final SqlSingleOperandTypeChecker DATETIME_INTERVAL =
       family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL);

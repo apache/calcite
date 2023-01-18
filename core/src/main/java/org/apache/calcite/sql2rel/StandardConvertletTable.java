@@ -61,6 +61,7 @@ import org.apache.calcite.sql.fun.SqlBigQueryFormatDatetimeFunction;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator;
 import org.apache.calcite.sql.fun.SqlExtractFunction;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlJsonValueFunction;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -119,14 +120,18 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     // Register aliases (operators which have a different name but
     // identical behavior to other operators).
+    addAlias(SqlLibraryOperators.LENGTH,
+        SqlStdOperatorTable.CHAR_LENGTH);
     addAlias(SqlStdOperatorTable.CHARACTER_LENGTH,
         SqlStdOperatorTable.CHAR_LENGTH);
     addAlias(SqlStdOperatorTable.IS_UNKNOWN,
         SqlStdOperatorTable.IS_NULL);
     addAlias(SqlStdOperatorTable.IS_NOT_UNKNOWN,
         SqlStdOperatorTable.IS_NOT_NULL);
-    addAlias(SqlLibraryOperators.NULL_SAFE_EQUAL, SqlStdOperatorTable.IS_NOT_DISTINCT_FROM);
+    addAlias(SqlLibraryOperators.NULL_SAFE_EQUAL,
+        SqlStdOperatorTable.IS_NOT_DISTINCT_FROM);
     addAlias(SqlStdOperatorTable.PERCENT_REMAINDER, SqlStdOperatorTable.MOD);
+    addAlias(SqlLibraryOperators.IFNULL, SqlLibraryOperators.NVL);
 
     // Register convertlets for specific objects.
     registerOp(SqlStdOperatorTable.CAST, this::convertCast);
@@ -169,10 +174,20 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     registerOp(SqlLibraryOperators.SUBSTR_POSTGRESQL,
         new SubstrConvertlet(SqlLibrary.POSTGRESQL));
 
+    registerOp(SqlLibraryOperators.DATE_SUB,
+        new TimestampSubConvertlet());
+    registerOp(SqlLibraryOperators.TIME_ADD,
+        new TimestampAddConvertlet());
+    registerOp(SqlLibraryOperators.TIME_DIFF,
+        new TimestampDiffConvertlet());
+    registerOp(SqlLibraryOperators.TIME_SUB,
+        new TimestampSubConvertlet());
     registerOp(SqlLibraryOperators.TIMESTAMP_ADD2,
         new TimestampAddConvertlet());
     registerOp(SqlLibraryOperators.TIMESTAMP_DIFF3,
         new TimestampDiffConvertlet());
+    registerOp(SqlLibraryOperators.TIMESTAMP_SUB,
+        new TimestampSubConvertlet());
 
     registerOp(SqlLibraryOperators.NVL, StandardConvertletTable::convertNvl);
     registerOp(SqlLibraryOperators.DECODE,
@@ -312,7 +327,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
   }
 
-  /** Converts a call to the NVL function. */
+  /** Converts a call to the {@code NVL} function (and also its synonym,
+   * {@code IFNULL}). */
   private static RexNode convertNvl(SqlRexContext cx, SqlCall call) {
     final RexBuilder rexBuilder = cx.getRexBuilder();
     final RexNode operand0 =
@@ -607,10 +623,14 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       return cx.convertExpression(left);
     }
     if (null != dataType.getCollectionsTypeName()) {
-      final RelDataType argComponentType =
-          requireNonNull(
-              arg.getType().getComponentType(),
-              () -> "componentType of " + arg);
+      RelDataType argComponentType = arg.getType().getComponentType();
+
+      // arg.getType() may be ANY
+      if (argComponentType == null) {
+        argComponentType = dataType.getComponentTypeSpec().deriveType(cx.getValidator());
+      }
+
+      requireNonNull(argComponentType, () -> "componentType of " + arg);
 
       RelDataType typeFinal = type;
       final RelDataType componentType = requireNonNull(
@@ -1919,6 +1939,40 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
       return rexBuilder.makeCall(SqlStdOperatorTable.DATETIME_PLUS,
           op2, interval2Add);
+    }
+  }
+
+  /** Convertlet that handles the BigQuery {@code TIMESTAMP_SUB} function. */
+  private static class TimestampSubConvertlet implements SqlRexConvertlet {
+    @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+      // TIMESTAMP_SUB(timestamp, interval)
+      //  => timestamp - count * INTERVAL '1' UNIT
+      final RexBuilder rexBuilder = cx.getRexBuilder();
+      final SqlBasicCall operandCall = call.operand(1);
+      SqlIntervalQualifier qualifier = operandCall.operand(1);
+      final RexNode op1 = cx.convertExpression(operandCall.operand(0));
+      final RexNode op2 = cx.convertExpression(call.operand(0));
+      final TimeFrame timeFrame = cx.getValidator().validateTimeFrame(qualifier);
+      final TimeUnit unit = first(timeFrame.unit(), TimeUnit.EPOCH);
+      final RexNode interval2Sub;
+      switch (unit) {
+      //Fractional second units are converted to seconds using their associated multiplier.
+      case MICROSECOND:
+      case NANOSECOND:
+        interval2Sub =
+            divide(rexBuilder,
+                multiply(rexBuilder,
+                    rexBuilder.makeIntervalLiteral(BigDecimal.ONE, qualifier), op1),
+                BigDecimal.ONE.divide(unit.multiplier,
+                    RoundingMode.UNNECESSARY));
+        break;
+      default:
+        interval2Sub = multiply(rexBuilder,
+            rexBuilder.makeIntervalLiteral(unit.multiplier, qualifier), op1);
+      }
+
+      return rexBuilder.makeCall(SqlInternalOperators.MINUS_DATE2,
+          op2, interval2Sub);
     }
   }
 
