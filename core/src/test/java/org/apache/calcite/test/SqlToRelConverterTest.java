@@ -993,6 +993,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /**
+   * Test casting to a TZ_Aware type implicitly.
+   */
+  @Test void testImplicitCastTimestamp() {
+    String sql = "Select ename from emp WHERE\n"
+        + "CURRENT_TIMESTAMP BETWEEN DATE '2022-1-1' AND DATE '2023-12-25'";
+    sql(sql).ok();
+  }
+
   /** As {@link #testSelectOverDistinct()} but for streaming queries. */
   @Test void testSelectStreamPartitionDistinct() {
     final String sql = "select stream\n"
