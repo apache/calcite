@@ -38,6 +38,8 @@ import org.apache.calcite.sql.type.AbstractSqlType;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.format.FormatElementEnum;
+import org.apache.calcite.util.format.FormatModelElement;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
@@ -1000,6 +1002,18 @@ public class SqlDialect {
       offset.unparse(writer, -1, -1);
       writer.endList(offsetFrame);
     }
+  }
+
+  /**
+   * Returns the String that maps to an entry in {@link FormatElementEnum}.
+   *
+   * <p>Dialects may need to override this element mapping if they differ from
+   * <a href="https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Format-Models.html">
+   * Oracle's format elements.</a> By default this returns the value of {@link
+   * FormatModelElement#getLiteral()}
+   */
+  public String getFormatElement(FormatElementEnum fmtElement) {
+    return fmtElement.getLiteral();
   }
 
   /**

@@ -47,6 +47,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.format.FormatElementEnum;
 
 import com.google.common.collect.ImmutableList;
 
@@ -184,6 +185,46 @@ public class MysqlSqlDialect extends SqlDialect {
     return super.getCastSpec(type);
   }
 
+  /** {@inheritDoc}
+   *
+   * <p>MySQL format element reference:
+   * <a href="https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-format">
+   * MySQL Date and Time Functions</a>.
+   */
+  @Override public String getFormatElement(FormatElementEnum fmtElement) {
+    switch (fmtElement) {
+    case D:
+      return "%w";
+    case DAY:
+      return "%W";
+    case DD:
+      return "%d";
+    case DDD:
+      return "%j";
+    case DY:
+      return "%a";
+    case HH24:
+      return "%k";
+    case IW:
+      return "%V";
+    case MI:
+      return "%i";
+    case MM:
+      return "%m";
+    case MON:
+      return "%b";
+    case MONTH:
+      return "%M";
+    case SS:
+      return "%S";
+    case WW:
+      return "%v";
+    case YYYY:
+      return "%Y";
+    }
+    return super.getFormatElement(fmtElement);
+  }
+
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
     final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
@@ -239,6 +280,17 @@ public class MysqlSqlDialect extends SqlDialect {
     case LISTAGG:
       unparseListAggCall(writer, call, null, leftPrec, rightPrec);
       break;
+
+    case FORMAT_DATE:
+    case FORMAT_TIME:
+    case FORMAT_TIMESTAMP:
+    case FORMAT_DATETIME:
+      writer.print("DATE_FORMAT(");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.print(",");
+      call.operand(0).unparse(writer, 0, 0);
+      writer.print(")");
+      return;
 
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

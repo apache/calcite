@@ -1859,6 +1859,49 @@ class RelToSqlConverterTest {
     sql(timeTrunc).withLibrary(SqlLibrary.BIG_QUERY).ok(expectedTimeTrunc);
   }
 
+  @Test void testBigQueryDatetimeFormatFunctions() {
+    final String formatTime = "select format_time('%H', time '12:45:30')\n"
+        + "from \"foodmart\".\"product\"\n";
+    final String formatDate = "select format_date('%b-%d-%Y', date '2012-02-03')\n"
+        + "from \"foodmart\".\"product\"\n";
+    final String formatTimestamp =
+        "select format_timestamp('%b-%d-%Y', TIMESTAMP '2012-02-03 12:30:40')\n"
+            + "from \"foodmart\".\"product\"\n";
+    final String formatDatetime = "select format_datetime('%R', timestamp '2012-02-03 12:34:34')\n"
+        + "from \"foodmart\".\"product\"\n";
+
+    final String expectedBqFormatTime =
+        "SELECT FORMAT_TIME('%H', TIME '12:45:30')\nFROM foodmart.product";
+    final String expectedBqFormatDate =
+        "SELECT FORMAT_DATE('%b-%d-%Y', DATE '2012-02-03')\nFROM foodmart.product";
+    final String expectedBqFormatTimestamp =
+        "SELECT FORMAT_TIMESTAMP('%b-%d-%Y', TIMESTAMP '2012-02-03 12:30:40')\nFROM foodmart"
+            + ".product";
+    final String expectedBqFormatDatetime =
+        "SELECT FORMAT_DATETIME('%H:%M', TIMESTAMP '2012-02-03 12:34:34')\nFROM foodmart.product";
+    sql(formatTime).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expectedBqFormatTime);
+    sql(formatDate).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expectedBqFormatDate);
+    sql(formatTimestamp).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY)
+        .ok(expectedBqFormatTimestamp);
+    sql(formatDatetime).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY)
+        .ok(expectedBqFormatDatetime);
+
+    final String expectedMySqlFormatTime = "SELECT DATE_FORMAT(TIME '12:45:30', '%k')\nFROM "
+        + "`foodmart`.`product`";
+    final String expectedMySqlFormatDate = "SELECT DATE_FORMAT(DATE '2012-02-03', '%b-%d-%Y')"
+        + "\nFROM `foodmart`.`product`";
+    final String expectedMySqlFormatTimestamp = "SELECT DATE_FORMAT(TIMESTAMP '2012-02-03 "
+        + "12:30:40', '%b-%d-%Y')\nFROM `foodmart`.`product`";
+    final String expectedMySqlFormatDatetime = "SELECT DATE_FORMAT(TIMESTAMP '2012-02-03 "
+        + "12:34:34', '%k:%i')\nFROM `foodmart`.`product`";
+    sql(formatTime).withMysql().withLibrary(SqlLibrary.BIG_QUERY).ok(expectedMySqlFormatTime);
+    sql(formatDate).withMysql().withLibrary(SqlLibrary.BIG_QUERY).ok(expectedMySqlFormatDate);
+    sql(formatTimestamp).withMysql().withLibrary(SqlLibrary.BIG_QUERY)
+        .ok(expectedMySqlFormatTimestamp);
+    sql(formatDatetime).withMysql().withLibrary(SqlLibrary.BIG_QUERY)
+        .ok(expectedMySqlFormatDatetime);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3220">[CALCITE-3220]
    * HiveSqlDialect should transform the SQL-standard TRIM function to TRIM,

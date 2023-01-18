@@ -680,6 +680,22 @@ public abstract class SqlLibraryOperators {
       new SqlTimestampDiffFunction("TIMESTAMP_DIFF",
           OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.ANY));
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_TIME =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_TIME", SqlTypeName.TIME);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_DATE =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_DATE", SqlTypeName.DATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_TIMESTAMP =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_TIMESTAMP", SqlTypeName.TIMESTAMP);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_DATETIME =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_DATETIME", SqlTypeName.TIMESTAMP);
+
   /** The "TIME_TRUNC(time_expression, time_part)" function (BigQuery);
    * truncates a TIME value to the granularity of time_part. The TIME value is
    * always rounded to the beginning of time_part. */
