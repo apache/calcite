@@ -32,10 +32,12 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.sql.FormatModel;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -55,6 +57,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
 import org.apache.calcite.sql.fun.SqlBetweenOperator;
+import org.apache.calcite.sql.fun.SqlBigQueryFormatDatetimeFunction;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator;
 import org.apache.calcite.sql.fun.SqlExtractFunction;
@@ -94,6 +97,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 import static org.apache.calcite.util.Util.first;
@@ -790,6 +794,29 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       returnType = cx.getRexBuilder().deriveReturnType(fun, exprs);
     }
     return cx.getRexBuilder().makeCall(returnType, fun, exprs);
+  }
+
+  public RexNode convertFormatDatetimeFunction(
+      SqlRexContext cx,
+      SqlBigQueryFormatDatetimeFunction fun,
+      SqlCall call) {
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    final List<RexNode> exprs =
+        IntStream.range(0, call.getOperandList().size())
+            .mapToObj(i -> {
+              SqlNode op = call.operand(i);
+              // convert the first char literal arg to a format model
+              if (i == 0 && op.getClass() == SqlCharStringLiteral.class) {
+                SqlLibrary lib = cx.getValidator().config().conformance().semantics();
+                String fmtStr = ((SqlCharStringLiteral) op).toValue();
+                return rexBuilder.makeCall(new FormatModel(fmtStr, lib));
+              }
+              return cx.convertExpression(op);
+            })
+            .collect(Collectors.toList());
+    RelDataType returnType = cx.getValidator().getValidatedNodeTypeIfKnown(call);
+    requireNonNull(returnType, () -> "Unable to get type of " + call);
+    return rexBuilder.makeCall(returnType, fun, exprs);
   }
 
   public RexNode convertJsonValueFunction(

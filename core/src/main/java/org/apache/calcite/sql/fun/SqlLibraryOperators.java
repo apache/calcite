@@ -788,6 +788,47 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
+  private static final Set<TimeUnitRange> TIME_UNITS =
+      ImmutableSet.of(TimeUnitRange.HOUR,
+          TimeUnitRange.MINUTE,
+          TimeUnitRange.SECOND);
+
+  private static final Set<TimeUnitRange> MONTH_UNITS =
+      ImmutableSet.of(TimeUnitRange.MILLENNIUM,
+          TimeUnitRange.CENTURY,
+          TimeUnitRange.DECADE,
+          TimeUnitRange.YEAR,
+          TimeUnitRange.QUARTER,
+          TimeUnitRange.MONTH);
+
+  private static final Set<TimeUnitRange> DAY_UNITS =
+      ImmutableSet.of(TimeUnitRange.WEEK,
+          TimeUnitRange.DAY);
+
+  private static final Set<TimeUnitRange> DATE_UNITS =
+      ImmutableSet.<TimeUnitRange>builder()
+          .addAll(MONTH_UNITS).addAll(DAY_UNITS).build();
+
+  private static final Set<TimeUnitRange> TIMESTAMP_UNITS =
+      ImmutableSet.<TimeUnitRange>builder()
+          .addAll(DATE_UNITS).addAll(TIME_UNITS).build();
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_TIME =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_TIME", SqlTypeName.TIME);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_DATE =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_DATE", SqlTypeName.DATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_TIMESTAMP =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_TIMESTAMP", SqlTypeName.TIMESTAMP);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_DATETIME =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_DATETIME", SqlTypeName.TIMESTAMP);
+
   /** The "TIMESTAMP_ADD(timestamp, interval)" function (BigQuery), the
    * two-argument variant of the built-in
    * {@link SqlStdOperatorTable#TIMESTAMP_ADD TIMESTAMPADD} function, which has

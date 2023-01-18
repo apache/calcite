@@ -18,6 +18,7 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.util.format.FormatElementEnum;
 
 /**
  * A <code>SqlDialect</code> implementation for the Snowflake database.
@@ -38,5 +39,19 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   @Override public boolean supportsApproxCountDistinct() {
     return true;
+  }
+
+  /** {@inheritDoc}
+   *
+   * <p>Snowflake format element reference:
+   * <a href="https://docs.snowflake.com/en/user-guide/date-time-input-output.html">
+   * Snowflake Date and Time Input/Output</a>.
+   */
+  @Override public String getFormatElement(FormatElementEnum fmtElement) {
+    switch (fmtElement) {
+    case MONTH:
+      return "MMMM";
+    }
+    return super.getFormatElement(fmtElement);
   }
 }

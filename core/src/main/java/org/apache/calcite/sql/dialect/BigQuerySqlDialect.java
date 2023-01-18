@@ -43,6 +43,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.format.FormatElementEnum;
 
 import com.google.common.collect.ImmutableList;
 
@@ -269,6 +270,50 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       throw new RuntimeException("Time unit " + timeUnit + " is not supported for BigQuery.");
     }
+  }
+
+  /** {@inheritDoc}
+   *
+   * <p>BigQuery format element reference:
+   * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/format-elements">
+   * BigQuery Standard SQL Format Elements</a>.
+   */
+  @Override public String getFormatElement(FormatElementEnum fmtElement) {
+    switch (fmtElement) {
+    case D:
+      return "%u";
+    case DAY:
+      return "%A";
+    case DD:
+      return "%d";
+    case DDD:
+      return "%j";
+    case DY:
+      return "%a";
+    case HH24:
+      return "%H";
+    case IW:
+      return "%V";
+    case MI:
+      return "%M";
+    case MM:
+      return "%m";
+    case MON:
+      return "%b";
+    case MONTH:
+      return "%B";
+    case Q:
+      return "%Q";
+    case SS:
+      return "%S";
+    case TZR:
+      return "%Z";
+    case WW:
+      return "%W";
+    case YYYY:
+      return "%Y";
+    }
+    return super.getFormatElement(fmtElement);
   }
 
   /** {@inheritDoc}
