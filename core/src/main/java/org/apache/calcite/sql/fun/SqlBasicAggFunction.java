@@ -128,6 +128,15 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
     return requireNonNull(super.getOperandTypeChecker(), "operandTypeChecker");
   }
 
+  /** Sets {@link #getName()}. */
+  public SqlAggFunction withName(String name) {
+    return new SqlBasicAggFunction(name, getSqlIdentifier(), kind,
+        getReturnTypeInference(), getOperandTypeInference(),
+        getOperandTypeChecker(), getFunctionType(), requiresOrder(),
+        requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
+        allowsNullTreatment, allowsSeparator, percentile);
+  }
+
   /** Sets {@link #getDistinctOptionality()}. */
   SqlBasicAggFunction withDistinct(Optionality distinctOptionality) {
     return new SqlBasicAggFunction(getName(), getSqlIdentifier(), kind,

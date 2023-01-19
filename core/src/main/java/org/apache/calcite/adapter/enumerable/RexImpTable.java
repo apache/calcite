@@ -148,7 +148,9 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEFT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAX_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MIN_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.POW;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
@@ -737,6 +739,8 @@ public class RexImpTable {
       aggMap.put(MAX, minMax);
       aggMap.put(ARG_MIN, constructorSupplier(ARGMinMaxImplementor.class));
       aggMap.put(ARG_MAX, constructorSupplier(ARGMinMaxImplementor.class));
+      aggMap.put(MIN_BY, constructorSupplier(ARGMinMaxImplementor.class));
+      aggMap.put(MAX_BY, constructorSupplier(ARGMinMaxImplementor.class));
       aggMap.put(ANY_VALUE, minMax);
       aggMap.put(SOME, minMax);
       aggMap.put(EVERY, minMax);

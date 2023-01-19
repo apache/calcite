@@ -474,6 +474,18 @@ public abstract class SqlLibraryOperators {
           .withAllowsSeparator(true)
           .withSyntax(SqlSyntax.ORDERED_FUNCTION);
 
+  /** The "MAX_BY(value, comp)" aggregate function, Spark's
+   * equivalent to {@link SqlStdOperatorTable#ARG_MAX}. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlAggFunction MAX_BY =
+      SqlStdOperatorTable.ARG_MAX.withName("MAX_BY");
+
+  /** The "MIN_BY(condition)" aggregate function, Spark's
+   * equivalent to {@link SqlStdOperatorTable#ARG_MIN}. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlAggFunction MIN_BY =
+      SqlStdOperatorTable.ARG_MIN.withName("MIN_BY");
+
   /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE =

@@ -3592,4 +3592,18 @@ group by deptno;
 
 !ok
 
+# ARG_MIN, ARG_MAX applied to an integer.
+select arg_min(deptno, empno) as mi,
+  arg_max(deptno, empno) as ma,
+  arg_max(deptno, empno) filter (where gender = 'm') as gen
+from EMPS;
++----+----+-----+
+| MI | MA | GEN |
++----+----+-----+
+| 10 | 40 |     |
++----+----+-----+
+(1 row)
+
+!ok
+
 # End agg.iq

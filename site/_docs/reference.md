@@ -2732,6 +2732,8 @@ Dialect-specific aggregate functions.
 | m | GROUP_CONCAT( [ ALL &#124; DISTINCT ] value [, value ]* [ ORDER BY orderItem [, orderItem ]* ] [ SEPARATOR separator ] ) | MySQL-specific variant of `LISTAGG`
 | b | LOGICAL_AND(condition)                         | Synonym for `EVERY`
 | b | LOGICAL_OR(condition)                          | Synonym for `SOME`
+| s | MAX_BY(value, comp)                            | Synonym for `ARG_MAX`
+| s | MIN_BY(value, comp)                            | Synonym for `ARG_MIN`
 | b p | STRING_AGG( [ ALL &#124; DISTINCT ] value [, separator] [ ORDER BY orderItem [, orderItem ]* ] ) | Synonym for `LISTAGG`
 
 Usage Examples:

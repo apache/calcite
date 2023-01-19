@@ -9376,6 +9376,24 @@ public class SqlOperatorTest {
         isSingle("02"));
   }
 
+  @Test void testArgMin() {
+    final SqlOperatorFixture f0 = fixture().withTester(t -> TESTER);
+    final String[] xValues = {"2", "3", "4", "4", "5", "7"};
+
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkAgg("arg_min(mod(x, 3), x)", xValues, isSingle("2"));
+      f.checkAgg("arg_max(mod(x, 3), x)", xValues, isSingle("1"));
+    };
+
+    final Consumer<SqlOperatorFixture> consumer2 = f -> {
+      f.checkAgg("min_by(mod(x, 3), x)", xValues, isSingle("2"));
+      f.checkAgg("max_by(mod(x, 3), x)", xValues, isSingle("1"));
+    };
+
+    consumer.accept(f0);
+    consumer2.accept(f0.withLibrary(SqlLibrary.SPARK));
+  }
+
   /**
    * Tests that CAST fails when given a value just outside the valid range for
    * that type. For example,

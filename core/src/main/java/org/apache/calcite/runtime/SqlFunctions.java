@@ -1974,16 +1974,79 @@ public class SqlFunctions {
     return b0 == null || b1 != null && b0.compareTo(b1) < 0 ? b1 : b0;
   }
 
-  /** Less than. */
-  public static <T extends Comparable<T>> boolean lessThan(T b0, T b1) {
-    return b1 == null || b0 != null && b0.compareTo(b1) < 0;
-  }
-
   /** Grater than. */
   public static <T extends Comparable<T>> boolean greaterThan(T b0, T b1) {
     return b1 == null || b0 != null && b0.compareTo(b1) > 0;
   }
 
+  /** Less than. */
+  public static <T extends Comparable<T>> boolean lessThan(T b0, T b1) {
+    return b1 == null || b0 != null && b0.compareTo(b1) < 0;
+  }
+
+  public static boolean greaterThan(boolean b0, boolean b1) {
+    return b0 && !b1;
+  }
+
+  public static boolean lessThan(boolean b0, boolean b1) {
+    return !b0 && b1;
+  }
+
+  public static boolean greaterThan(byte b0, byte b1) {
+    return b0 > b1;
+  }
+
+  public static boolean lessThan(byte b0, byte b1) {
+    return b0 < b1;
+  }
+
+  public static boolean greaterThan(char b0, char b1) {
+    return b0 > b1;
+  }
+
+  public static boolean lessThan(char b0, char b1) {
+    return b0 < b1;
+  }
+
+  public static boolean greaterThan(short b0, short b1) {
+    return b0 > b1;
+  }
+
+  public static boolean lessThan(short b0, short b1) {
+    return b0 < b1;
+  }
+
+  public static boolean greaterThan(int b0, int b1) {
+    return b0 > b1;
+  }
+
+  public static boolean lessThan(int b0, int b1) {
+    return b0 < b1;
+  }
+
+  public static boolean greaterThan(long b0, long b1) {
+    return b0 > b1;
+  }
+
+  public static boolean lessThan(long b0, long b1) {
+    return b0 < b1;
+  }
+
+  public static boolean greaterThan(float b0, float b1) {
+    return b0 > b1;
+  }
+
+  public static boolean lessThan(float b0, float b1) {
+    return b0 < b1;
+  }
+
+  public static boolean greaterThan(double b0, double b1) {
+    return b0 > b1;
+  }
+
+  public static boolean lessThan(double b0, double b1) {
+    return b0 < b1;
+  }
 
   /** Boolean comparison. */
   public static int compare(boolean x, boolean y) {

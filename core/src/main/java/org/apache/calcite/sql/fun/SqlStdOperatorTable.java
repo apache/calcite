@@ -17,15 +17,12 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.avatica.util.TimeUnit;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlDescriptorOperator;
 import org.apache.calcite.sql.SqlFilterOperator;
 import org.apache.calcite.sql.SqlFunction;
@@ -66,7 +63,6 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
-import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -1012,46 +1008,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>ARG_MAX</code> aggregate function.
    */
-  public static final SqlAggFunction ARG_MAX =
-      SqlBasicAggFunction
-          .create("ARG_MAX", SqlKind.ARG_MAX, ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
-              new SqlOperandTypeChecker() {
-                @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
-                    boolean throwOnFailure) {
-                  getOperandCountRange().isValidCount(callBinding.getOperandCount());
-                  RelDataType type = callBinding.getOperandType(1);
-                  return type.getComparability() == RelDataTypeComparability.ALL;
-                }
-                @Override public SqlOperandCountRange getOperandCountRange() {
-                  return SqlOperandCountRanges.of(2);
-                }
-                @Override public String getAllowedSignatures(SqlOperator op, String opName) {
-                  return "ARG_MAX(<ANY>, <COMPARABLE_TYPE>)";
-                }
-              })
+  public static final SqlBasicAggFunction ARG_MAX =
+      SqlBasicAggFunction.create("ARG_MAX", SqlKind.ARG_MAX,
+          ReturnTypes.ARG0_NULLABLE_IF_EMPTY, OperandTypes.ANY_COMPARABLE)
           .withGroupOrder(Optionality.FORBIDDEN)
           .withFunctionType(SqlFunctionCategory.SYSTEM);
 
   /**
    * <code>ARG_MIN</code> aggregate function.
    */
-  public static final SqlAggFunction ARG_MIN =
-      SqlBasicAggFunction
-          .create("ARG_MIN", SqlKind.ARG_MIN, ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
-              new SqlOperandTypeChecker() {
-                @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
-                    boolean throwOnFailure) {
-                  getOperandCountRange().isValidCount(callBinding.getOperandCount());
-                  RelDataType type = callBinding.getOperandType(1);
-                  return type.getComparability() == RelDataTypeComparability.ALL;
-                }
-                @Override public SqlOperandCountRange getOperandCountRange() {
-                  return SqlOperandCountRanges.of(2);
-                }
-                @Override public String getAllowedSignatures(SqlOperator op, String opName) {
-                  return "ARG_MIN(<ANY>, <COMPARABLE_TYPE>)";
-                }
-              })
+  public static final SqlBasicAggFunction ARG_MIN =
+      SqlBasicAggFunction.create("ARG_MIN", SqlKind.ARG_MIN,
+              ReturnTypes.ARG0_NULLABLE_IF_EMPTY, OperandTypes.ANY_COMPARABLE)
           .withGroupOrder(Optionality.FORBIDDEN)
           .withFunctionType(SqlFunctionCategory.SYSTEM);
 
