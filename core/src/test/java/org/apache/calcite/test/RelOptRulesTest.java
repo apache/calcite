@@ -3002,7 +3002,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .withProgram(program).check();
   }
 
-  @Test void testReducingConstantsInferedFromCorrelate() {
+  @Test void testReducingConstantsInferredFromCorrelate() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
         .build();

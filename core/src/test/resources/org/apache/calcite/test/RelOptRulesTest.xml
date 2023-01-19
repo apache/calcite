@@ -11378,7 +11378,7 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testReducingConstantsInferedFromCorrelate">
+  <TestCase name="testReducingConstantsInferredFromCorrelate">
     <Resource name="sql">
       <![CDATA[SELECT ename,
   empno,
