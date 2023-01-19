@@ -11378,43 +11378,6 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testReducingConstantsInferredFromCorrelate">
-    <Resource name="sql">
-      <![CDATA[SELECT ename,
-  empno,
-  T.empno_r,
-  CASE
-    WHEN __source__type__ = 'bounded'
-      THEN 1
-    ELSE 2
-    END AS type
-FROM (
-  SELECT ename,
-    empno,
-    'bounded' AS __source__type__
-  FROM emp
-  ) a,
-  lateral TABLE (ramp(empno)) AS T(empno_r)]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(ENAME=[$0], EMPNO=[$1], EMPNO_R=[$3], TYPE=[CASE(=($2, 'bounded'), 1, 2)])
-  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])
-    LogicalProject(ENAME=[$1], EMPNO=[$0], __SOURCE__TYPE__=['bounded'])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableFunctionScan(invocation=[RAMP($cor0.EMPNO)], rowType=[RecordType(INTEGER I)])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(ENAME=[$0], EMPNO=[$1], EMPNO_R=[$3], TYPE=[1])
-  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])
-    LogicalProject(ENAME=[$1], EMPNO=[$0], __SOURCE__TYPE__=['bounded'])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalTableFunctionScan(invocation=[RAMP($cor0.EMPNO)], rowType=[RecordType(INTEGER I)])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testReduceConstantsProjectNullable">
     <Resource name="sql">
       <![CDATA[select mgr from emp where mgr=10]]>
@@ -11788,6 +11751,43 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[CAST(/($1, $2)):INTEGER])
     LogicalAggregate(group=[{}], EXPR$0=[AVG($0)], agg#1=[$SUM0($0) WITHIN DISTINCT ($1)], agg#2=[COUNT() WITHIN DISTINCT ($1)])
       LogicalProject(SAL=[$5], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testReducingConstantsInferredFromCorrelate">
+    <Resource name="sql">
+      <![CDATA[SELECT ename,
+  empno,
+  T.empno_r,
+  CASE
+    WHEN __source__type__ = 'bounded'
+      THEN 1
+    ELSE 2
+    END AS type
+FROM (
+  SELECT ename,
+    empno,
+    'bounded' AS __source__type__
+  FROM emp
+  ) a,
+  lateral TABLE (ramp(empno)) AS T(empno_r)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], EMPNO=[$1], EMPNO_R=[$3], TYPE=[CASE(=($2, 'bounded'), 1, 2)])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])
+    LogicalProject(ENAME=[$1], EMPNO=[$0], __SOURCE__TYPE__=['bounded'])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableFunctionScan(invocation=[RAMP($cor0.EMPNO)], rowType=[RecordType(INTEGER I)])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ENAME=[$0], EMPNO=[$1], EMPNO_R=[$3], TYPE=[1])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])
+    LogicalProject(ENAME=[$1], EMPNO=[$0], __SOURCE__TYPE__=['bounded'])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableFunctionScan(invocation=[RAMP($cor0.EMPNO)], rowType=[RecordType(INTEGER I)])
 ]]>
     </Resource>
   </TestCase>
