@@ -3002,6 +3002,32 @@ class RelOptRulesTest extends RelOptTestBase {
         .withProgram(program).check();
   }
 
+  @Test void testReducingConstantsInferedFromCorrelate() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .build();
+
+    final String sql = "SELECT ename,\n"
+        + "  empno,\n"
+        + "  T.empno_r,\n"
+        + "  CASE\n"
+        + "    WHEN __source__type__ = 'bounded'\n"
+        + "      THEN 1\n"
+        + "    ELSE 2\n"
+        + "    END AS type\n"
+        + "FROM (\n"
+        + "  SELECT ename,\n"
+        + "    empno,\n"
+        + "    'bounded' AS __source__type__\n"
+        + "  FROM emp\n"
+        + "  ) a,\n"
+        + "  lateral TABLE (ramp(empno)) AS T(empno_r)";
+    sql(sql)
+        .withRelBuilderConfig(c -> c.withSimplifyValues(false))
+        .withProgram(program).check();
+  }
+
+
   @Test void testRemoveSemiJoin() {
     final String sql = "select e.ename from emp e, dept d\n"
         + "where e.deptno = d.deptno";
