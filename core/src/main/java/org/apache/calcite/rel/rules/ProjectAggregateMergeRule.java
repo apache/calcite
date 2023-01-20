@@ -33,6 +33,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.MappingType;
@@ -99,25 +100,27 @@ public class ProjectAggregateMergeRule
               && operands.get(1).getKind() == SqlKind.CAST
               && ((RexCall) operands.get(1)).operands.get(0).getKind()
               == SqlKind.INPUT_REF
-              && operands.get(2).getKind() == SqlKind.LITERAL) {
+              && operands.get(2).getKind() == SqlKind.LITERAL
+              && operands.get(2).getType().getFamily() == SqlTypeFamily.NUMERIC) {
             final RexCall isNotNull = (RexCall) operands.get(0);
             final RexInputRef ref0 = (RexInputRef) isNotNull.operands.get(0);
             final RexCall cast = (RexCall) operands.get(1);
             final RexInputRef ref1 = (RexInputRef) cast.operands.get(0);
+            if (ref0.getIndex() != ref1.getIndex()) {
+              break;
+            }
+            final int aggCallIndex = ref1.getIndex() - aggregate.getGroupCount();
+            if (aggCallIndex < 0) {
+              break;
+            }
+            final AggregateCall aggCall = aggregate.getAggCallList().get(aggCallIndex);
+            if (aggCall.getAggregation().getKind() != SqlKind.SUM) {
+              break;
+            }
             final RexLiteral literal = (RexLiteral) operands.get(2);
-            if (ref0.getIndex() == ref1.getIndex()
-                && Objects.equals(literal.getValueAs(BigDecimal.class), BigDecimal.ZERO)) {
-              final int aggCallIndex =
-                  ref1.getIndex() - aggregate.getGroupCount();
-              if (aggCallIndex >= 0) {
-                final AggregateCall aggCall =
-                    aggregate.getAggCallList().get(aggCallIndex);
-                if (aggCall.getAggregation().getKind() == SqlKind.SUM) {
-                  int j =
-                      findSum0(cluster.getTypeFactory(), aggCall, aggCallList);
-                  return cluster.getRexBuilder().makeInputRef(call.type, j);
-                }
-              }
+            if (Objects.equals(literal.getValueAs(BigDecimal.class), BigDecimal.ZERO)) {
+              int j = findSum0(cluster.getTypeFactory(), aggCall, aggCallList);
+              return cluster.getRexBuilder().makeInputRef(call.type, j);
             }
           }
           break;
