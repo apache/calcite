@@ -61,8 +61,4 @@ public class SqlUnknownLiteral extends SqlLiteral {
       throw Util.unexpected(typeName);
     }
   }
-
-  @Override public <T> T getValueAs(Class<T> clazz) {
-    return super.getValueAs(clazz);
-  }
 }
