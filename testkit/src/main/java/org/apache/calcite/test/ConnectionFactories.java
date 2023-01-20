@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.avatica.ConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -81,6 +82,12 @@ public abstract class ConnectionFactories {
   public static CalciteAssert.ConnectionPostProcessor setDefault(
       String schema) {
     return new DefaultSchemaPostProcessor(schema);
+  }
+
+  /** Returns a post-processor that adds a type. */
+  public static CalciteAssert.ConnectionPostProcessor addType(String name,
+      RelProtoDataType protoDataType) {
+    return new AddTypePostProcessor(name, protoDataType);
   }
 
   /** Connection factory that uses a given map of (name, value) pairs and
@@ -158,6 +165,25 @@ public abstract class ConnectionFactories {
       SchemaPlus rootSchema = con.getRootSchema();
       rootSchema.add(name, schema);
       connection.setSchema(name);
+      return connection;
+    }
+  }
+
+  /** Post-processor that adds a {@link Schema} and sets it as default. */
+  private static class AddTypePostProcessor
+      implements CalciteAssert.ConnectionPostProcessor {
+    private final String name;
+    private final RelProtoDataType protoDataType;
+
+    AddTypePostProcessor(String name, RelProtoDataType protoDataType) {
+      this.name = requireNonNull(name, "name");
+      this.protoDataType = requireNonNull(protoDataType, "protoDataType");
+    }
+
+    @Override public Connection apply(Connection connection) throws SQLException {
+      CalciteConnection con = connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = con.getRootSchema();
+      rootSchema.add(name, protoDataType);
       return connection;
     }
   }

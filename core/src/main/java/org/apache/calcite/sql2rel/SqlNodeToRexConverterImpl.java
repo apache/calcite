@@ -112,6 +112,10 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
       return rexBuilder.makeTimestampLiteral(
           literal.getValueAs(TimestampString.class),
           ((SqlTimestampLiteral) literal).getPrec());
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      return rexBuilder.makeTimestampWithLocalTimeZoneLiteral(
+          literal.getValueAs(TimestampString.class),
+          ((SqlTimestampLiteral) literal).getPrec());
     case TIME:
       return rexBuilder.makeTimeLiteral(
           literal.getValueAs(TimeString.class),
