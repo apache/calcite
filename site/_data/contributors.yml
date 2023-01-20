@@ -237,7 +237,7 @@
   apacheId: rubenql
   githubId: rubenada
   org: TIBCO
-  role: PMC Chair
+  role: PMC
 - name: Rui Wang
   apacheId: amaliujia
   githubId: amaliujia
@@ -263,7 +263,7 @@
   githubId: zabetak
   pronouns: he/him
   org: Cloudera
-  role: PMC
+  role: PMC Chair
   homepage: https://people.apache.org/~zabetak/
 - name: Steven Noels
   apacheId: stevenn
