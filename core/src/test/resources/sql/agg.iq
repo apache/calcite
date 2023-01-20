@@ -3529,7 +3529,7 @@ from emp;
 +-------+-------+
 | MI    | MA    |
 +-------+-------+
-| Jane  | Grace |
+| CLARK | ALLEN |
 +-------+-------+
 (1 row)
 
@@ -3541,7 +3541,7 @@ from emp;
 +-------+-------+
 | MI    | MA    |
 +-------+-------+
-| Jane  | Grace |
+| CLARK | ALLEN |
 +-------+-------+
 (1 row)
 
@@ -3554,7 +3554,7 @@ where deptno <= 20;
 +-------+-------+
 | MI    | MA    |
 +-------+-------+
-| Jane  | Eric  |
+| CLARK | SMITH |
 +-------+-------+
 (1 row)
 
@@ -3578,32 +3578,28 @@ where deptno > 60;
 select deptno, arg_min(ename, ename) as mi, arg_max(ename, ename) as ma
 from emp
 group by deptno;
-+--------+-------+-------+
-| DEPTNO | MI    | MA    |
-+--------+-------+-------+
-|     10 | Bob   | Jane  |
-|     20 | Eric  | Eric  |
-|     30 | Alice | Susan |
-|     50 | Adam  | Eve   |
-|     60 | Grace | Grace |
-|        | Wilma | Wilma |
-+--------+-------+-------+
-(6 rows)
++--------+-------+--------+
+| DEPTNO | MI    | MA     |
++--------+-------+--------+
+|     10 | CLARK | MILLER |
+|     20 | ADAMS | SMITH  |
+|     30 | ALLEN | WARD   |
++--------+-------+--------+
+(3 rows)
 
 !ok
 
 # ARG_MIN, ARG_MAX applied to an integer.
 select arg_min(deptno, empno) as mi,
   arg_max(deptno, empno) as ma,
-  arg_max(deptno, empno) filter (where gender = 'm') as gen
-from EMPS;
-+----+----+-----+
-| MI | MA | GEN |
-+----+----+-----+
-| 10 | 40 |     |
-+----+----+-----+
+  arg_max(deptno, empno) filter (where job = 'MANAGER') as mamgr
+from emp;
++----+----+-------+
+| MI | MA | MAMGR |
++----+----+-------+
+| 20 | 10 |    10 |
++----+----+-------+
 (1 row)
 
 !ok
-
 # End agg.iq
