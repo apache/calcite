@@ -580,22 +580,22 @@ FROM t;
 # NOT EQUAL Operator (value1 != value2)
 #
 # Compares value1 and value2 and returns TRUE if not equal.
-SELECT (5 != 3) as result;
-+--------+
-| result |
-+--------+
-| true   |
-+--------+
+SELECT (5 != 3) as test;
++------+
+| test |
++------+
+| true |
++------+
 (1 row)
 
 !ok
 
-SELECT (5 != 5) as result;
-+--------+
-| result |
-+--------+
-| false  |
-+--------+
+SELECT (5 != 5) as test;
++-------+
+| test  |
++-------+
+| false |
++-------+
 (1 row)
 
 !ok
@@ -604,22 +604,22 @@ SELECT (5 != 5) as result;
 # MODULO % OPERATOR (value1 % value2)
 #
 # Returns the remainder of dividing value1 by value2.
-SELECT (5 % 3) as result;
-+--------+
-| result |
-+--------+
-|      2 |
-+--------+
+SELECT (5 % 3) as test;
++------+
+| test |
++------+
+|    2 |
++------+
 (1 row)
 
 !ok
 
-SELECT (19 % 19) as result;
-+--------+
-| result |
-+--------+
-|      0 |
-+--------+
+SELECT (19 % 19) as test;
++------+
+| test |
++------+
+|    0 |
++------+
 (1 row)
 
 !ok
@@ -1503,7 +1503,7 @@ SELECT
 #
 # This function supports specifying collation.
 WITH Examples AS (
-  SELECT LPAD('12345', 8, 'a') as result, "8" as pad_length, "a" as p UNION ALL
+  SELECT LPAD('12345', 8, 'a') as test, "8" as pad_length, "a" as p UNION ALL
   SELECT LPAD('12345', 8), "8", " " UNION ALL
   SELECT LPAD('12345', 8, 'aba'), "8", "aba" UNION ALL
   SELECT LPAD('12345', 3), "3", " " UNION ALL
@@ -1516,7 +1516,7 @@ SELECT
   *
 FROM Examples;
 +----------+------------+-------+
-| result   | pad_length | p     |
+| test     | pad_length | p     |
 +----------+------------+-------+
 | aaa12345 | 8          | a     |
 |    12345 | 8          |       |
@@ -1539,7 +1539,7 @@ FROM Examples;
 #
 # This function supports specifying collation.
 WITH Examples AS (
-  SELECT RPAD('12345', 8, 'a') as result, "8" as pad_length, "a" as p UNION ALL
+  SELECT RPAD('12345', 8, 'a') as test, "8" as pad_length, "a" as p UNION ALL
   SELECT RPAD('12345', 8), "8", " " UNION ALL
   SELECT RPAD('12345', 8, 'aba'), "8", "aba" UNION ALL
   SELECT RPAD('12345', 3), "3", " " UNION ALL
@@ -1552,7 +1552,7 @@ SELECT
   *
 FROM Examples;
 +----------+------------+-------+
-| result   | pad_length | p     |
+| test     | pad_length | p     |
 +----------+------------+-------+
 | 12345aaa | 8          | a     |
 | 12345    | 8          |       |
