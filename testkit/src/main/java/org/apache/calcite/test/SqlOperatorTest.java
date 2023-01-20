@@ -9752,8 +9752,8 @@ public class SqlOperatorTest {
         return SqlLiteral.createCharString(value.toString(), SqlParserPos.ZERO);
       case TIMESTAMP:
         TimestampString ts = TimestampString.fromMillisSinceEpoch((Long) value);
-        return SqlLiteral.createTimestamp(ts, type.getPrecision(),
-            SqlParserPos.ZERO);
+        return SqlLiteral.createTimestamp(type.getSqlTypeName(), ts,
+            type.getPrecision(), SqlParserPos.ZERO);
       default:
         throw new AssertionError(type);
       }
