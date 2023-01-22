@@ -1867,7 +1867,7 @@ class RelToSqlConverterTest {
     final String formatDate = "select format_date('%b-%d-%Y', date '2012-02-03')\n"
         + "from \"foodmart\".\"product\"\n";
     final String formatTimestamp =
-        "select format_timestamp('%b-%d-%Y', TIMESTAMP '2012-02-03 12:30:40')\n"
+        "select format_timestamp('%b-%d-%Y', timestamp '2012-02-03 12:30:40')\n"
             + "from \"foodmart\".\"product\"\n";
     final String formatDatetime = "select format_datetime('%R', timestamp '2012-02-03 12:34:34')\n"
         + "from \"foodmart\".\"product\"\n";

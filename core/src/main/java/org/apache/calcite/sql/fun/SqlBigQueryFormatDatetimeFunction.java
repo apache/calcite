@@ -82,7 +82,9 @@ public class SqlBigQueryFormatDatetimeFunction extends SqlFunction {
     case TIME:
       return FORMAT_TIME;
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      return FORMAT_TIMESTAMP;
+      // TODO(tjbanghart) when support for TIMESTAMP WITH LOCAL TIME ZONE literals
+      // is merged remove the call to `withType()`
+      return FORMAT_TIMESTAMP.withType(TIMESTAMP);
     case TIMESTAMP:
       return FORMAT_DATETIME;
     default:
