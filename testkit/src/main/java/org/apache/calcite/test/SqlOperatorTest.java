@@ -7014,6 +7014,14 @@ public class SqlOperatorTest {
     }
   }
 
+  @Test void testDay() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.DAYOFMONTH, VM_FENNEL, VM_JAVA);
+    f.checkScalar("day(date '2008-1-23')", "23",
+        "BIGINT NOT NULL");
+    f.checkNull("day(cast(null as date))");
+  }
+
   @Test void testDayOfYear() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DAYOFYEAR, VM_FENNEL, VM_JAVA);
