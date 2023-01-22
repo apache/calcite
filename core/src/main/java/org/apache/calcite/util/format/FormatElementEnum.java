@@ -42,7 +42,7 @@ public enum FormatElementEnum implements FormatModelElement {
       + "number (00-53)"),
   YYYY("The year with century as a decimal number");
 
-  private String description;
+  private final String description;
 
   FormatElementEnum(String description) {
     this.description = description;

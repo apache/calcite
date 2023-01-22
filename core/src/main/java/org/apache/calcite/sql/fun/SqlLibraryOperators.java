@@ -813,21 +813,31 @@ public abstract class SqlLibraryOperators {
       ImmutableSet.<TimeUnitRange>builder()
           .addAll(DATE_UNITS).addAll(TIME_UNITS).build();
 
+  /** The "FORMAT_TIME(string, time)" function (BigQuery);
+   * Formats a time object according to the specified string. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FORMAT_TIME =
-      new SqlBigQueryFormatDatetimeFunction("FORMAT_TIME", SqlTypeName.TIME);
+      SqlBigQueryFormatDatetimeFunction.create(SqlTypeName.TIME);
 
+  /** The "FORMAT_DATE(string, date)" function (BigQuery);
+   * Formats a date object according to the specified string. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FORMAT_DATE =
-      new SqlBigQueryFormatDatetimeFunction("FORMAT_DATE", SqlTypeName.DATE);
+      SqlBigQueryFormatDatetimeFunction.create(SqlTypeName.DATE);
 
+  /** The "FORMAT_TIMESTAMP(string, timestamp)" function (BigQuery);
+   * Formats a timestamp object according to the specified string.
+   *
+   * <p>In BigQuery, the "TIMESTAMP" datatype maps to Calcite's TIMESTAMP_WITH_LOCAL_TIME_ZONE */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FORMAT_TIMESTAMP =
-      new SqlBigQueryFormatDatetimeFunction("FORMAT_TIMESTAMP", SqlTypeName.TIMESTAMP);
+      SqlBigQueryFormatDatetimeFunction.create(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
 
+  /** The "FORMAT_DATETIME(string, timestamp)" function (BigQuery);
+   * Formats a timestamp object according to the specified string. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FORMAT_DATETIME =
-      new SqlBigQueryFormatDatetimeFunction("FORMAT_DATETIME", SqlTypeName.TIMESTAMP);
+      SqlBigQueryFormatDatetimeFunction.create(SqlTypeName.TIMESTAMP);
 
   /** The "TIMESTAMP_ADD(timestamp, interval)" function (BigQuery), the
    * two-argument variant of the built-in

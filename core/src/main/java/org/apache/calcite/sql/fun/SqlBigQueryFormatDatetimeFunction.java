@@ -32,6 +32,8 @@ import java.util.Locale;
 
 import static org.apache.calcite.sql.type.SqlTypeName.DATE;
 import static org.apache.calcite.sql.type.SqlTypeName.TIME;
+import static org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP;
+import static org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE;
 
 /**
  * <p> The Google BigQuery style datetime formatting functions. This is a generic type representing
@@ -50,9 +52,63 @@ import static org.apache.calcite.sql.type.SqlTypeName.TIME;
  */
 public class SqlBigQueryFormatDatetimeFunction extends SqlFunction {
 
-  SqlBigQueryFormatDatetimeFunction(String name, SqlTypeName type) {
+  private SqlTypeName typeName;
+  private String name;
+
+  private SqlBigQueryFormatDatetimeFunction(String name, SqlTypeName typeName) {
     super(name, SqlKind.valueOf(name), ReturnTypes.VARCHAR_2000_NULLABLE, null,
-        new FormatDatetimeOperandTypeChecker(type), SqlFunctionCategory.TIMEDATE);
+        new FormatDatetimeOperandTypeChecker(typeName), SqlFunctionCategory.TIMEDATE);
+    this.name = name;
+    this.typeName = typeName;
+  }
+
+  private static final SqlBigQueryFormatDatetimeFunction FORMAT_DATE =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_DATE", DATE);
+  private static final SqlBigQueryFormatDatetimeFunction FORMAT_TIME =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_TIME", TIME);
+  private static final SqlBigQueryFormatDatetimeFunction FORMAT_TIMESTAMP =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_TIMESTAMP", TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+  private static final SqlBigQueryFormatDatetimeFunction FORMAT_DATETIME =
+      new SqlBigQueryFormatDatetimeFunction("FORMAT_DATETIME", TIMESTAMP);
+
+  /**
+   * Creates a {@code SqlBigQueryFormatDatetimeFunction} appropriate for the given
+   * {@link SqlTypeName}.
+   */
+  public static SqlBigQueryFormatDatetimeFunction create(SqlTypeName typeName) {
+    switch (typeName) {
+    case DATE:
+      return FORMAT_DATE;
+    case TIME:
+      return FORMAT_TIME;
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      return FORMAT_TIMESTAMP;
+    case TIMESTAMP:
+      return FORMAT_DATETIME;
+    default:
+      throw new IllegalArgumentException("Invalid type: " + typeName);
+    }
+  }
+
+  /**
+   * Returns a copy of this function with a given name.
+   */
+  public SqlBigQueryFormatDatetimeFunction withName(String name) {
+    return new SqlBigQueryFormatDatetimeFunction(name, this.typeName);
+  }
+
+  /**
+   * Returns a copy of this function with a given {@link SqlTypeName}.
+   */
+  public SqlBigQueryFormatDatetimeFunction withType(SqlTypeName type) {
+    return new SqlBigQueryFormatDatetimeFunction(this.name, type);
+  }
+
+  /**
+   * Returns the {@link SqlTypeName} of this function.
+   */
+  public SqlTypeName getType() {
+    return this.typeName;
   }
 
   /**

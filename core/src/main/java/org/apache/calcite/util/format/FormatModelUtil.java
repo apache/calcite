@@ -18,8 +18,10 @@ package org.apache.calcite.util.format;
 
 import com.google.common.collect.ImmutableMap;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Stack;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Utility class used to convert format strings into {@link FormatModelElement}s.
@@ -30,44 +32,34 @@ public class FormatModelUtil {
 
   /**
    * Parses the {@code fmtString} using element identifiers supplied by {@code fmtModel}.
-   *
-   * TODO(CALCITE-2980): make this configurable for multiple parse maps. Currently this only works
-   * for BigQuery and MySQL style format strings where elements begin with '%'
    */
-  public static List<FormatModelElement> parse(String fmtString,
-      ImmutableMap<String, FormatModelElement> fmtModel) {
-    char ch;
-    int idx = 0;
-    StringBuilder buf = new StringBuilder();
-    Stack elements = new Stack();
-    while (idx < fmtString.length()) {
-      switch (ch = fmtString.charAt(idx)) {
-      case '%':
-        String key = buf.append(fmtString, idx, idx + 2).toString();
-        FormatModelElement element = fmtModel.get(key);
-        if (element == null) {
-          elements.push(new FormatModelElementLiteral(buf.toString()));
-        } else {
-          elements.push(element);
-        }
-        buf.setLength(0);
-        idx += 2;
-        break;
-      default:
-        buf.append(ch);
-        // consume literal elements up to end of string or next '%'
-        while (idx < fmtString.length() - 1) {
-          ch = fmtString.charAt(++idx);
-          if (ch == '%') {
-            --idx;
-            break;
-          }
-          buf.append(ch);
-        }
-        elements.push(new FormatModelElementLiteral(buf.toString()));
-        buf.setLength(0);
-        ++idx;
+  public static List<FormatModelElement> parse(String format,
+      ImmutableMap<String, FormatModelElement> fmtModelMap) {
+    List<FormatModelElement> elements = new ArrayList<>();
+    // TODO(CALCITE-2980): make these regex patterns static and tied to a library or dialect.
+    StringBuilder regex = new StringBuilder();
+    for (String key : fmtModelMap.keySet()) {
+      regex.append("(").append(Pattern.quote(key)).append(")|");
+    }
+    // remove the last '|'
+    regex.setLength(regex.length() - 1);
+    Matcher matcher = Pattern.compile(regex.toString()).matcher(format);
+    int i = 0;
+    while (matcher.find()) {
+      // Add any leading literal text before next element match
+      String literal = format.substring(i, matcher.start());
+      if (!literal.isEmpty()) {
+        elements.add(new FormatModelElementLiteral(literal));
       }
+      // add the element match
+      String key = matcher.group();
+      elements.add(fmtModelMap.get(key));
+      i = matcher.end();
+    }
+    // add any remaining literal text after last element match
+    String literal = format.substring(i);
+    if (!literal.isEmpty()) {
+      elements.add(new FormatModelElementLiteral(literal));
     }
     return elements;
   }

@@ -16,23 +16,6 @@
  */
 package org.apache.calcite.sql;
 
-import static org.apache.calcite.util.format.FormatElementEnum.D;
-import static org.apache.calcite.util.format.FormatElementEnum.DAY;
-import static org.apache.calcite.util.format.FormatElementEnum.DD;
-import static org.apache.calcite.util.format.FormatElementEnum.DDD;
-import static org.apache.calcite.util.format.FormatElementEnum.DY;
-import static org.apache.calcite.util.format.FormatElementEnum.HH24;
-import static org.apache.calcite.util.format.FormatElementEnum.IW;
-import static org.apache.calcite.util.format.FormatElementEnum.MI;
-import static org.apache.calcite.util.format.FormatElementEnum.MM;
-import static org.apache.calcite.util.format.FormatElementEnum.MON;
-import static org.apache.calcite.util.format.FormatElementEnum.MONTH;
-import static org.apache.calcite.util.format.FormatElementEnum.Q;
-import static org.apache.calcite.util.format.FormatElementEnum.SS;
-import static org.apache.calcite.util.format.FormatElementEnum.TZR;
-import static org.apache.calcite.util.format.FormatElementEnum.WW;
-import static org.apache.calcite.util.format.FormatElementEnum.YYYY;
-
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -50,6 +33,22 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.apache.calcite.util.format.FormatElementEnum.D;
+import static org.apache.calcite.util.format.FormatElementEnum.DAY;
+import static org.apache.calcite.util.format.FormatElementEnum.DD;
+import static org.apache.calcite.util.format.FormatElementEnum.DDD;
+import static org.apache.calcite.util.format.FormatElementEnum.DY;
+import static org.apache.calcite.util.format.FormatElementEnum.HH24;
+import static org.apache.calcite.util.format.FormatElementEnum.IW;
+import static org.apache.calcite.util.format.FormatElementEnum.MI;
+import static org.apache.calcite.util.format.FormatElementEnum.MM;
+import static org.apache.calcite.util.format.FormatElementEnum.MON;
+import static org.apache.calcite.util.format.FormatElementEnum.MONTH;
+import static org.apache.calcite.util.format.FormatElementEnum.Q;
+import static org.apache.calcite.util.format.FormatElementEnum.SS;
+import static org.apache.calcite.util.format.FormatElementEnum.TZR;
+import static org.apache.calcite.util.format.FormatElementEnum.WW;
+import static org.apache.calcite.util.format.FormatElementEnum.YYYY;
 
 /** A <a href="https://docs.oracle.com/en/database/oracle/oracle-database/21/sqlqr/Format-Models.html">
  * format model</a> is a character literal that describes the format of {@code DATETIME} or {@code
@@ -62,8 +61,8 @@ import java.util.List;
  */
 public class FormatModel extends SqlInternalOperator {
 
-  private List<FormatModelElement> elements;
-  private ImmutableMap<String, FormatModelElement> fmtModelParseMap;
+  private final List<FormatModelElement> elements;
+  private final ImmutableMap<String, FormatModelElement> fmtModelParseMap;
 
   /**
    * TODO(CALCITE-2980): This should live elsewhere and be associated with {@link SqlLibrary}
@@ -102,6 +101,7 @@ public class FormatModel extends SqlInternalOperator {
     super("FORMAT_MODEL", SqlKind.FORMAT_MODEL, MDX_PRECEDENCE, true,
         ReturnTypes.explicit(SqlTypeName.ANY).andThen(SqlTypeTransforms.TO_NULLABLE), null,
         OperandTypes.IGNORE_ANY);
+    assert fmtString != null;
     this.fmtModelParseMap = formatModelParseMapFromLibrary(library);
     this.elements = FormatModelUtil.parse(fmtString, fmtModelParseMap);
   }
@@ -110,7 +110,7 @@ public class FormatModel extends SqlInternalOperator {
    * Returns a map of element patterns to be used by
    * {@link FormatModelUtil#parse(String, ImmutableMap)}.
    */
-  private ImmutableMap formatModelParseMapFromLibrary(SqlLibrary library) {
+  private static ImmutableMap formatModelParseMapFromLibrary(SqlLibrary library) {
     switch (library) {
     default:
       return BIG_QUERY_FORMAT_ELEMENT_PARSE_MAP;

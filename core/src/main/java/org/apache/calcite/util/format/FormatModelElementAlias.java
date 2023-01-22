@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.util.format;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -45,7 +43,7 @@ public class FormatModelElementAlias implements FormatModelElement {
   }
 
   public static FormatModelElementAlias create(String alias, List<FormatModelElement> fmtElements,
-      @Nullable String description) {
+      String description) {
     return new FormatModelElementAlias(alias, fmtElements, description);
   }
 

@@ -33,22 +33,36 @@ public interface FormatModelElement {
 
   /**
    * Returns the literal value of an element.
+   *
+   * <p>For example, {@code %H} in MySQL represents the hour in 24-hour format (e.g., 00..23). This
+   * method returns the string literal "%H".
    */
   String getLiteral();
 
   /**
-   * Returns the token representing the element.
+   * Returns the {@link FormatElementEnum} token representing the element.
+   *
+   * <p>For example, {@code %H} in MySQL represents the hour in 24-hour format (e.g., 00..23). This
+   * method returns the string "HH24" which is the name of the FormatElementEnum {@code HH24}
    */
   String getToken();
 
   /**
    * Returns the description of an element.
+   *
+   * <p>For example, {@code %H} in MySQL represents the hour in 24-hour format (e.g., 00..23). This
+   * method returns the string "The hour (24-hour clock) as a decimal number (00-23)" which is the
+   * description of the FormatElementEnum {@code HH24}
    */
   String getDescription();
 
   /**
-   * Whether this element is an alias for one or more other elements declared in
-   * {@link FormatElementEnum}.
+   * Whether this element is a {@link FormatModelElementAlias}. An alias comprises one or
+   * more standard elements declared in {@link FormatElementEnum}.
+   *
+   * <p>For example, {@code %R} in Google SQL represents the hour in 24-hour format (e.g., 00..23)
+   * followed by the minute as a decimal number. This method would return {@code true} as "%R" is
+   * an alias for the standard elements {@code HH24} and {@code MI}.
    */
   default boolean isAlias() {
     return false;
@@ -56,6 +70,9 @@ public interface FormatModelElement {
 
   /**
    * Returns the composite format elements for an alias. If not an alias, returns itself as a list.
+   *
+   * <p>For example, {@code %R} in Google SQL represents the hour in 24-hour format (e.g., 00..23)
+   * followed by the minute as a decimal number. This method would return [HH24, ":", MI].
    */
   default List<FormatModelElement> getElements() {
     return Arrays.asList(this);
@@ -64,7 +81,7 @@ public interface FormatModelElement {
   /**
    * Convenience method to generate a parse map from a list of {@link FormatModelElement}.
    *
-   * <p>Keys are the value of {@link FormatModelElement#getLiteral()} and values are of the
+   * <p>Keys are the value of {@link FormatModelElement#getLiteral()} and values are the
    * FormatModelElement they represent.</p>
    */
   static ImmutableMap<String, FormatModelElement> listToMap(List<FormatModelElement> elementList) {
