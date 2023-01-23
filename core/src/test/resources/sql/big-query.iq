@@ -1254,8 +1254,8 @@ select datetime(timestamp "2008-01-01 01:03:05") as t_winter,
 # All these timestamps should be equal.
 # This tests the BQ timestamp literal string formatter
 # (optional 'T', optional leading zeros, optional offset with conversion).
-select timestamp("2008-01-01 01:03:05+00") as t_space,
-       timestamp("2008-01-01T01:03:05+00") as t_iso,
+select timestamp("2008-01-01 01:03:05+00:00") as t_space,
+       timestamp("2008-01-01T01:03:05+00:00") as t_iso,
        timestamp("2008-01-01 01:03:05") as t_no_offset,
        timestamp("2008-1-1 3:5:7+02:02:02") as t_offset;
 +---------------------+---------------------+---------------------+---------------------+
