@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
@@ -63,7 +64,11 @@ class SqlTimestampDiffFunction extends SqlFunction {
     final TimeUnit timeUnit;
     final RelDataType type1;
     final RelDataType type2;
-    if (opBinding.isOperandLiteral(0, true)) {
+    final Object literal = opBinding.getOperandLiteralValue(2, Object.class);
+    if (opBinding.isOperandLiteral(0, true)
+        && (literal == null
+        || literal instanceof TimeUnit
+        || literal instanceof SqlIntervalLiteral.IntervalValue)) {
       type1 = opBinding.getOperandType(0);
       type2 = opBinding.getOperandType(1);
       timeUnit = opBinding.getOperandLiteralValue(2, TimeUnit.class);

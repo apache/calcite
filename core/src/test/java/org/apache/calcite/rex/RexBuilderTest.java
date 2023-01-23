@@ -17,6 +17,7 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -31,6 +32,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.RexImplicationCheckerFixtures;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
@@ -849,5 +851,17 @@ class RexBuilderTest {
     // when the space before "NOT NULL" is missing, the digest is not correct
     // and the suffix should not be removed.
     assertThat(literal.digest, is("0L:(udt)NOT NULL"));
+  }
+
+  @Test void testTimestampDiffCall() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    final RexImplicationCheckerFixtures.Fixture f = new RexImplicationCheckerFixtures.Fixture();
+    final TimestampString ts =
+        TimestampString.fromCalendarFields(Util.calendar());
+
+    rexBuilder.makeCall(SqlStdOperatorTable.TIMESTAMP_DIFF,
+        ImmutableList.of(rexBuilder.makeFlag(TimeUnit.QUARTER),
+            f.timestampLiteral(ts), f.timestampLiteral(ts)));
   }
 }
