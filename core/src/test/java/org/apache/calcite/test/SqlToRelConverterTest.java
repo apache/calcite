@@ -1350,18 +1350,16 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testCorrelatedScalarSubQueryInSelectList() {
-    Consumer<String> fn = sql -> {
-      sql(sql).withExpand(true).withDecorrelate(false)
-          .convertsTo("${planExpanded}");
-      sql(sql).withExpand(false).withDecorrelate(false)
-          .convertsTo("${planNotExpanded}");
-    };
-    fn.accept("select deptno,\n"
+    String sql = "select deptno,\n"
         + "  (select min(1) from emp where empno > d.deptno) as i0,\n"
         + "  (select min(0) from emp where deptno = d.deptno "
         + "                            and ename = 'SMITH'"
         + "                            and d.deptno > 0) as i1\n"
-        + "from dept as d");
+        + "from dept as d";
+    sql(sql).withExpand(true).withDecorrelate(false)
+        .convertsTo("${planExpanded}");
+    sql(sql).withExpand(false).withDecorrelate(false)
+        .convertsTo("${planNotExpanded}");
   }
 
   @Test void testCorrelationLateralSubQuery() {
@@ -1541,6 +1539,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExtendedTester().ok();
   }
 
+  @Test void testUnnestArrayPlanRex() {
+    final String sql = "select d.deptno, e2.empno\n"
+        + "from dept_nested as d,\n"
+        + " UNNEST(d.employees) e2";
+    sql(sql).withExtendedTester().withExpand(false).ok();
+  }
+
   @Test void testUnnestArrayPlanAs() {
     final String sql = "select d.deptno, e2.empno\n"
         + "from dept_nested as d,\n"
@@ -1582,6 +1587,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testUnnestArray() {
     sql("select*from unnest(array(select*from dept))").ok();
+  }
+
+  @Test void testUnnestArrayRex() {
+    sql("select * from unnest(array(select*from dept))")
+        .withExpand(false).ok();
   }
 
   @Test void testUnnestArrayNoExpand() {
@@ -1677,7 +1687,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * Correlation variable has incorrect row type if it is populated by right
    * side of a Join</a>. */
   @Test void testCorrelatedSubQueryInJoin() {
-    final String sql = "select *\n"
+    final String sql = ""
+        + "select *\n"
         + "from emp as e\n"
         + "join dept as d using (deptno)\n"
         + "where d.name = (\n"

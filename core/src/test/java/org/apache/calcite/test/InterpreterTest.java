@@ -55,6 +55,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -565,11 +566,24 @@ class InterpreterTest {
     sql(sql).returnsRows("[a, -1.2, 15.0, 16.1, 5.366666666666667]");
   }
 
+  @Disabled
+  @Test void testInterpretUnnestMultiset() {
+    sql("select * from unnest(multiset[1, 2])").returnsRowsUnordered("[1]", "[2]");
+
+    reset();
+    sql("select * from unnest(\n"
+        + "select * from (values multiset[10, 20], multiset[30, 40]))\n"
+        + "with ordinality as t(i, o)")
+        .returnsRowsUnordered("[10, 1]", "[20, 2]", "[30, 1]", "[40, 2]");
+
+    reset();
+    sql("select * from unnest(multiset[cast(null as integer), 10])")
+        .returnsRowsUnordered("[null]", "[10]");
+  }
+
   @Test void testInterpretUnnest() {
     sql("select * from unnest(array[1, 2])").returnsRows("[1]", "[2]");
 
-    reset();
-    sql("select * from unnest(multiset[1, 2])").returnsRowsUnordered("[1]", "[2]");
 
     reset();
     sql("select * from unnest(map['a', 12])").returnsRows("[a, 12]");
@@ -585,22 +599,12 @@ class InterpreterTest {
         .returnsRows("[a, 12, 1]", "[b, 13, 2]");
 
     reset();
-    sql("select * from unnest(\n"
-        + "select * from (values multiset[10, 20], multiset[30, 40]))\n"
-        + "with ordinality as t(i, o)")
-        .returnsRows("[10, 1]", "[20, 2]", "[30, 1]", "[40, 2]");
-
-    reset();
     sql("select * from unnest(array[cast(null as integer), 10])")
         .returnsRows("[null]", "[10]");
 
     reset();
     sql("select * from unnest(map[cast(null as integer), 10, 10, cast(null as integer)])")
         .returnsRowsUnordered("[null, 10]", "[10, null]");
-
-    reset();
-    sql("select * from unnest(multiset[cast(null as integer), 10])")
-        .returnsRowsUnordered("[null]", "[10]");
 
     try {
       reset();

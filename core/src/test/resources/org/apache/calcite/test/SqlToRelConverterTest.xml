@@ -750,7 +750,7 @@ from dept]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[ARRAY({
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[ARRAY($cor0, {
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -807,7 +807,7 @@ from dept]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], NAME=[$1], JOBMAP=[MAP({
+LogicalProject(DEPTNO=[$0], NAME=[$1], JOBMAP=[MAP($cor0, {
 LogicalProject(EMPNO=[$0], JOB=[$2])
   LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -819,15 +819,15 @@ LogicalProject(EMPNO=[$0], JOB=[$2])
   <TestCase name="testCorrelatedScalarSubQueryInSelectList">
     <Resource name="planNotExpanded">
       <![CDATA[
-LogicalProject(variablesSet=[[$cor0]], DEPTNO=[$0], I0=[$SCALAR_QUERY({
+LogicalProject(variablesSet=[[$cor0, $cor1]], DEPTNO=[$0], I0=[$SCALAR_QUERY($cor0, {
 LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
   LogicalProject($f0=[1])
     LogicalFilter(condition=[>($0, $cor0.DEPTNO)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-})], I1=[$SCALAR_QUERY({
+})], I1=[$SCALAR_QUERY($cor1, {
 LogicalAggregate(group=[{}], EXPR$0=[MIN($0)])
   LogicalProject($f0=[0])
-    LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), =($1, 'SMITH'), >($cor0.DEPTNO, 0))])
+    LogicalFilter(condition=[AND(=($7, $cor1.DEPTNO), =($1, 'SMITH'), >($cor1.DEPTNO, 0))])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -866,7 +866,7 @@ FROM emp]]>
     <Resource name="plan">
       <![CDATA[
 LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
-  LogicalProject($f0=[$SCALAR_QUERY({
+  LogicalProject($f0=[$SCALAR_QUERY($cor0, {
 LogicalProject(EXPR$0=[CHAR_LENGTH($1)])
   LogicalFilter(condition=[=($0, $cor0.EMPNO)])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -888,7 +888,7 @@ where d.name = (
     <Resource name="plan">
       <![CDATA[
 LogicalProject(DEPTNO=[$7], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], SLACKER=[$8], NAME=[$10])
-  LogicalFilter(condition=[=($10, $SCALAR_QUERY({
+  LogicalFilter(condition=[=($10, $SCALAR_QUERY($cor0, {
 LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
   LogicalProject(NAME=[$1])
     LogicalFilter(condition=[=($0, $cor0.DEPTNO0)])
@@ -939,7 +939,7 @@ LogicalProject(DEPTNO=[$7], EXPR$1=[$9])
     </Resource>
     <Resource name="planNotExpanded">
       <![CDATA[
-LogicalProject(variablesSet=[[$cor0]], DEPTNO=[$7], EXPR$1=[$SCALAR_QUERY({
+LogicalProject(variablesSet=[[$cor0]], DEPTNO=[$7], EXPR$1=[$SCALAR_QUERY($cor0, {
 LogicalProject(NAME=[$0])
   LogicalTableFunctionScan(invocation=[DEDUP($cor0.DEPTNO, $cor0.DEPTNO)], rowType=[RecordType(VARCHAR(1024) NAME)])
 })])
@@ -1033,10 +1033,10 @@ LogicalProject(EMPNO=[$0])
     <Resource name="plan">
       <![CDATA[
 LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
-  LogicalFilter(condition=[EXISTS({
-LogicalFilter(condition=[AND(=($7, $cor2.DEPTNO0), =($7, $cor2.DEPTNO0), OR(=($7, $cor2.DEPTNO0), =($7, $cor2.DEPTNO0)))])
+  LogicalFilter(condition=[EXISTS($cor0, {
+LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO0), =($7, $cor0.DEPTNO0), =($7, $cor0.DEPTNO0))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-})], variablesSet=[[$cor2]])
+})], variablesSet=[[$cor0]])
     LogicalJoin(condition=[true], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -1059,7 +1059,7 @@ where exists (select * from emp
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(variablesSet=[[$cor0]], EXPR$0=[CARDINALITY(ARRAY({
+LogicalProject(variablesSet=[[$cor0]], EXPR$0=[CARDINALITY(ARRAY($cor0, {
 LogicalProject(DEPTNO=[$cor0.DEPTNO])
   LogicalValues(tuples=[[{ 0 }]])
 }))])
@@ -1075,7 +1075,7 @@ from (select deptno, ename from emp) e]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(variablesSet=[[$cor0]], EXPR$0=[ARRAY({
+LogicalProject(variablesSet=[[$cor0]], EXPR$0=[ARRAY($cor0, {
 LogicalProject(DEPTNO=[$cor0.DEPTNO])
   LogicalValues(tuples=[[{ 0 }]])
 })])
@@ -1090,7 +1090,7 @@ LogicalProject(DEPTNO=[$cor0.DEPTNO])
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(variablesSet=[[$cor0]], EXPR$0=[ARRAY({
+LogicalProject(variablesSet=[[$cor0]], EXPR$0=[ARRAY($cor0, {
 LogicalProject(DEPTNO=[$cor0.DEPTNO])
   LogicalValues(tuples=[[{ 0 }]])
 })])
@@ -1102,7 +1102,7 @@ LogicalProject(DEPTNO=[$cor0.DEPTNO])
     <Resource name="plan">
       <![CDATA[
 LogicalProject(DEPTNO=[$7])
-  LogicalFilter(condition=[IN($7, {
+  LogicalFilter(condition=[IN($cor0, $7, {
 LogicalProject(DEPTNO=[$0])
   LogicalFilter(condition=[AND(=($cor0.DEPTNO, $0), =($cor0.DEPTNO, $0))])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -1145,7 +1145,7 @@ from dept]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[MULTISET({
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPSET=[MULTISET($cor0, {
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -1164,7 +1164,7 @@ LogicalProject(DEPTNO=[$0], ENAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalSort(sort0=[$1], dir0=[DESC], fetch=[3])
       LogicalProject(ENAME=[$1], SAL=[$5])
-        LogicalFilter(condition=[AND(OR(=($7, $cor0.DEPTNO), =($7, $cor0.DEPTNO)), =($7, $cor0.DEPTNO))])
+        LogicalFilter(condition=[AND(=($7, $cor0.DEPTNO), =($7, $cor0.DEPTNO))])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -1260,7 +1260,7 @@ and e1.sal > (select avg(sal) from emp e2 where e1.empno = e2.empno)]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0])
-  LogicalFilter(condition=[AND(=($7, $9), <($7, 10), <($9, 15), >($5, $SCALAR_QUERY({
+  LogicalFilter(condition=[AND(=($7, $9), <($7, 10), <($9, 15), >($5, $SCALAR_QUERY($cor0, {
 LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
   LogicalProject(SAL=[$5])
     LogicalFilter(condition=[=($cor0.EMPNO, $0)])
@@ -1850,7 +1850,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalFilter(condition=[EXISTS({
+  LogicalFilter(condition=[EXISTS($cor0, {
 LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 })], variablesSet=[[$cor0]])
@@ -1907,7 +1907,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalFilter(condition=[EXISTS({
+  LogicalFilter(condition=[EXISTS($cor0, {
 LogicalSort(fetch=[1])
   LogicalProject(EXPR$0=[1])
     LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
@@ -2706,7 +2706,7 @@ LogicalProject(DEPTNO=[$9], SAL=[$7])
     <Resource name="planNotExpanded">
       <![CDATA[
 LogicalProject(DEPTNO=[$9], SAL=[$7])
-  LogicalFilter(condition=[AND(=($9, $0), <($7, $SCALAR_QUERY({
+  LogicalFilter(condition=[AND(=($9, $0), <($7, $SCALAR_QUERY($cor0, {
 LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
   LogicalProject(SAL=[$5])
     LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
@@ -3305,12 +3305,12 @@ LogicalProject(DEPTNO=[$9], SAL=[$7])
     <Resource name="planNotExpanded">
       <![CDATA[
 LogicalProject(DEPTNO=[$9], SAL=[$7])
-  LogicalJoin(condition=[AND(=($9, $0), <($7, $SCALAR_QUERY({
+  LogicalJoin(condition=[AND(=($9, $0), <($7, $SCALAR_QUERY($cor0, {
 LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])
   LogicalProject(SAL=[$5])
     LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-})))], joinType=[inner])
+})))], joinType=[inner], variablesSet=[[$cor0]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -3408,10 +3408,10 @@ or exists (select deptno from emp where empno > dept.deptno + 5)]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
-  LogicalJoin(condition=[OR(=($0, 1), EXISTS({
+  LogicalJoin(condition=[OR(=($0, 1), EXISTS($cor0, {
 LogicalFilter(condition=[>($0, +($cor0.DEPTNO0, 5))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-}))], joinType=[left])
+}))], joinType=[left], variablesSet=[[$cor0]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -3569,16 +3569,15 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2])
     <Resource name="plan">
       <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$2])
-  LogicalProject(DEPTNO=[$0], NAME=[$1], EXPR$0=[$3])
-    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}])
-      LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[*($0, 2)])
-        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-      Uncollect
-        LogicalProject(EXPR$0=[$SLICE($0)])
-          Collect(field=[EXPR$0])
-            LogicalUnion(all=[true])
-              LogicalProject(EXPR$0=[$cor0.$f2])
-                LogicalValues(tuples=[[{ 0 }]])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    Uncollect
+      LogicalProject(EXPR$0=[MULTISET({
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[*($cor0.DEPTNO, 2)])
+    LogicalValues(tuples=[[{ 0 }]])
+})])
+        LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
   </TestCase>
@@ -4545,11 +4544,11 @@ from (select deptno, ename from emp) e]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(variablesSet=[[$cor0]], EXPR$0=[CARDINALITY(ARRAY({
+LogicalProject(variablesSet=[[$cor0, $cor1]], EXPR$0=[CARDINALITY(ARRAY($cor0, {
 LogicalProject(DEPTNO=[$cor0.DEPTNO])
   LogicalValues(tuples=[[{ 0 }]])
-}))], EXPR$1=[ITEM(ARRAY({
-LogicalProject(ENAME=[$cor0.ENAME])
+}))], EXPR$1=[ITEM(ARRAY($cor1, {
+LogicalProject(ENAME=[$cor1.ENAME])
   LogicalValues(tuples=[[{ 0 }]])
 }), 0)])
   LogicalProject(DEPTNO=[$7], ENAME=[$1])
@@ -5086,7 +5085,7 @@ where not unique (select 1 from dept where deptno=55)]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalFilter(condition=[NOT(UNIQUE({
+  LogicalFilter(condition=[NOT(UNIQUE($cor0, {
 LogicalProject(EXPR$0=[1])
   LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -8006,17 +8005,17 @@ from dept]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(NAME=[$1], EMP_ARRAY=[ARRAY({
+LogicalProject(NAME=[$1], EMP_ARRAY=[ARRAY($cor0, {
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-})], EMP_MULTISET=[MULTISET({
+})], EMP_MULTISET=[MULTISET($cor1, {
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+  LogicalFilter(condition=[=($7, $cor1.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-})], JOB_MAP=[MAP({
+})], JOB_MAP=[MAP($cor2, {
 LogicalProject(EMPNO=[$0], JOB=[$2])
-  LogicalFilter(condition=[=($7, $cor0.DEPTNO)])
+  LogicalFilter(condition=[=($7, $cor2.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 })])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -8060,6 +8059,40 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$7])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUnnestArrayPlanRex">
+    <Resource name="sql">
+      <![CDATA[select d.deptno, e2.empno
+from dept_nested as d,
+ UNNEST(d.employees) e2]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EMPNO=[$7])
+  LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{6}])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], TYPE=[$2.TYPE], DESC=[$2.DESC], A=[$2.OTHERS.A], B=[$2.OTHERS.B], EMPLOYEES=[$3])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    Uncollect
+      LogicalProject(EMPLOYEES=[$cor0.EMPLOYEES])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUnnestArrayRex">
+    <Resource name="sql">
+      <![CDATA[select * from unnest(array(select*from dept))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  Uncollect
+    LogicalProject(EXPR$0=[ARRAY({
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+      LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUnnestSelect">
     <Resource name="plan">
       <![CDATA[
@@ -8086,13 +8119,12 @@ LogicalProject(EXPR$0=[$0])
       <![CDATA[
 LogicalProject(EXPR$0=[$0])
   Uncollect
-    LogicalProject(EXPR$0=[$SLICE($2)])
-      LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
-        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-        Collect(field=[EXPR$0])
-          LogicalUnion(all=[true])
-            LogicalProject(EXPR$0=[$cor0.DEPTNO])
-              LogicalValues(tuples=[[{ 0 }]])
+    LogicalProject(EXPR$0=[MULTISET($cor0, {
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[$cor0.DEPTNO])
+    LogicalValues(tuples=[[{ 0 }]])
+})])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
@@ -8505,7 +8537,7 @@ where e.sal in (
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0])
-  LogicalFilter(condition=[IN($5, {
+  LogicalFilter(condition=[IN($cor0, $5, {
 LogicalProject(SAL=[$5])
   LogicalFilter(condition=[>($7, $cor0.DEPTNO)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -8786,12 +8818,12 @@ where exists (
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalFilter(condition=[EXISTS({
-LogicalFilter(condition=[<=($0, $cor1.DEPTNO)])
+  LogicalFilter(condition=[EXISTS($cor0, {
+LogicalFilter(condition=[<=($0, $cor0.DEPTNO)])
   LogicalProject(DEPTNO=[$0], NAME=[$1])
-    LogicalFilter(condition=[>=($0, $cor1.DEPTNO)])
+    LogicalFilter(condition=[>=($0, $cor0.DEPTNO)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-})], variablesSet=[[$cor1]])
+})], variablesSet=[[$cor0]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -8806,12 +8838,12 @@ where exists (
     <Resource name="plan">
       <![CDATA[
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-  LogicalFilter(condition=[EXISTS({
-LogicalFilter(condition=[<=($0, $cor1.DEPTNO)])
+  LogicalFilter(condition=[EXISTS($cor0, {
+LogicalFilter(condition=[<=($0, $cor0.DEPTNO)])
   LogicalProject(DEPTNO=[$0], NAME=[$1])
-    LogicalFilter(condition=[>=($0, $cor1.DEPTNO)])
+    LogicalFilter(condition=[>=($0, $cor0.DEPTNO)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-})], variablesSet=[[$cor1]])
+})], variablesSet=[[$cor0]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>

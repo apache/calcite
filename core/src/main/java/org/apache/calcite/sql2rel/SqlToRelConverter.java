@@ -156,6 +156,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.AggregatingSelectScope;
 import org.apache.calcite.sql.validate.CollectNamespace;
 import org.apache.calcite.sql.validate.DelegatingScope;
+import org.apache.calcite.sql.validate.LateralTableScope;
 import org.apache.calcite.sql.validate.ListScope;
 import org.apache.calcite.sql.validate.MatchRecognizeScope;
 import org.apache.calcite.sql.validate.ParameterScope;
@@ -185,7 +186,6 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
@@ -206,6 +206,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.BiFunction;
@@ -269,6 +270,8 @@ public class SqlToRelConverter {
   private int explainParamCount;
   public final SqlToRelConverter.Config config;
   private final RelBuilder relBuilder;
+  private final List<CorrelationContext> scopeToCorrelationContext =
+      new ArrayList<>();
 
   /**
    * Fields used in name resolution for correlated sub-queries.
@@ -1121,8 +1124,8 @@ public class SqlToRelConverter {
 
     final RelFactories.FilterFactory filterFactory =
         RelFactories.DEFAULT_FILTER_FACTORY;
-    final RelNode filter =
-        filterFactory.createFilter(bb.root(), convertedWhere2, ImmutableSet.of());
+    final RelNode filter = filterFactory.createFilter(bb.root(), convertedWhere2,
+        RexUtil.findSubQueryCorrelationIds(convertedWhere2));
     final RelNode r;
     final CorrelationUse p = getCorrelationUse(bb, filter);
     if (p != null) {
@@ -1133,6 +1136,7 @@ public class SqlToRelConverter {
     } else {
       r = filter;
     }
+
 
     bb.setRoot(r, false);
   }
@@ -1174,11 +1178,10 @@ public class SqlToRelConverter {
     case ARRAY_QUERY_CONSTRUCTOR:
     case MAP_QUERY_CONSTRUCTOR:
     case MULTISET_QUERY_CONSTRUCTOR:
+    case MULTISET_VALUE_CONSTRUCTOR:
       if (!config.isExpand()) {
         return;
       }
-      // fall through
-    case MULTISET_VALUE_CONSTRUCTOR:
       rel = convertMultisets(ImmutableList.of(subQuery.node), bb);
       subQuery.expr = bb.register(rel, JoinRelType.INNER);
       return;
@@ -2929,7 +2932,9 @@ public class SqlToRelConverter {
       RelNode leftRel,
       RelNode rightRel,
       RexNode joinCond,
-      JoinRelType joinType) {
+      JoinRelType joinType,
+      Set<CorrelationId> lateralCorrelationIdSet,
+      Set<CorrelationId> correlationIdSet) {
     assert joinCond != null;
 
     final CorrelationUse p = getCorrelationUse(bb, rightRel);
@@ -2958,11 +2963,10 @@ public class SqlToRelConverter {
       return LogicalCorrelate.create(leftRel, innerRel, ImmutableList.of(),
           p.id, requiredCols, joinType);
     }
-
     final RelNode node =
         relBuilder.push(leftRel)
             .push(rightRel)
-            .join(joinType, joinCond)
+            .join(joinType, joinCond, correlationIdSet)
             .build();
 
     // If join conditions are pushed down, update the leaves.
@@ -2997,84 +3001,85 @@ public class SqlToRelConverter {
       DeferredLookup lookup = requireNonNull(
           mapCorrelToDeferred.get(correlName),
           () -> "correlation variable is not found: " + correlName);
-      RexFieldAccess fieldAccess = lookup.getFieldAccess(correlName);
-      String originalRelName = lookup.getOriginalRelName();
-      String originalFieldName = fieldAccess.getField().getName();
+      for (RexFieldAccess fieldAccess : lookup.getFieldAccess(correlName)) {
+        String originalRelName = lookup.getOriginalRelName();
+        String originalFieldName = fieldAccess.getField().getName();
 
-      final SqlNameMatcher nameMatcher =
-          bb.getValidator().getCatalogReader().nameMatcher();
-      final SqlValidatorScope.ResolvedImpl resolved =
-          new SqlValidatorScope.ResolvedImpl();
-      lookup.bb.scope().resolve(ImmutableList.of(originalRelName),
-          nameMatcher, false, resolved);
-      assert resolved.count() == 1;
-      final SqlValidatorScope.Resolve resolve = resolved.only();
-      final SqlValidatorNamespace foundNs = resolve.namespace;
-      final RelDataType rowType = resolve.rowType();
-      final int childNamespaceIndex = resolve.path.steps().get(0).i;
-      final SqlValidatorScope ancestorScope = resolve.scope;
-      boolean correlInCurrentScope = bb.scope().isWithin(ancestorScope);
+        final SqlNameMatcher nameMatcher =
+            bb.getValidator().getCatalogReader().nameMatcher();
+        final SqlValidatorScope.ResolvedImpl resolved =
+            new SqlValidatorScope.ResolvedImpl();
+        lookup.bb.scope().resolve(ImmutableList.of(originalRelName),
+            nameMatcher, false, resolved);
+        assert resolved.count() == 1;
+        final SqlValidatorScope.Resolve resolve = resolved.only();
+        final SqlValidatorNamespace foundNs = resolve.namespace;
+        final RelDataType rowType = resolve.rowType();
+        final int childNamespaceIndex = resolve.path.steps().get(0).i;
+        final SqlValidatorScope ancestorScope = castNonNull(resolve.scope);
+        boolean correlInCurrentScope = ancestorScope.isWithin(bb.scope());
 
-      if (!correlInCurrentScope) {
-        continue;
-      }
-
-      if (prevNs == null) {
-        prevNs = foundNs;
-      } else {
-        assert prevNs == foundNs : "All correlation variables should resolve"
-            + " to the same namespace."
-            + " Prev ns=" + prevNs
-            + ", new ns=" + foundNs;
-      }
-
-      int namespaceOffset = 0;
-      if (childNamespaceIndex > 0) {
-        // If not the first child, need to figure out the width
-        // of output types from all the preceding namespaces
-        assert ancestorScope instanceof ListScope;
-        List<SqlValidatorNamespace> children =
-            ((ListScope) ancestorScope).getChildren();
-
-        for (int i = 0; i < childNamespaceIndex; i++) {
-          SqlValidatorNamespace child = children.get(i);
-          namespaceOffset +=
-              child.getRowType().getFieldCount();
+        if (!correlInCurrentScope) {
+          continue;
         }
-      }
 
-      RexFieldAccess topLevelFieldAccess = fieldAccess;
-      while (topLevelFieldAccess.getReferenceExpr() instanceof RexFieldAccess) {
-        topLevelFieldAccess = (RexFieldAccess) topLevelFieldAccess.getReferenceExpr();
-      }
-      final RelDataTypeField field = rowType.getFieldList()
-          .get(topLevelFieldAccess.getField().getIndex() - namespaceOffset);
-      int pos = namespaceOffset + field.getIndex();
-
-      assert field.getType()
-          == topLevelFieldAccess.getField().getType();
-
-      assert pos != -1;
-
-      // bb.root is an aggregate and only projects group by
-      // keys.
-      Map<Integer, Integer> exprProjection =
-          bb.mapRootRelToFieldProjection.get(bb.root);
-      if (exprProjection != null) {
-        // sub-query can reference group by keys projected from
-        // the root of the outer relation.
-        Integer projection = exprProjection.get(pos);
-        if (projection != null) {
-          pos = projection;
+        if (prevNs == null) {
+          prevNs = foundNs;
         } else {
-          // correl not grouped
-          throw new AssertionError("Identifier '" + originalRelName + "."
-              + originalFieldName + "' is not a group expr");
+          assert prevNs == foundNs : "All correlation variables should resolve"
+              + " to the same namespace."
+              + " Prev ns=" + prevNs
+              + ", new ns=" + foundNs;
         }
-      }
 
-      requiredColumns.set(pos);
-      correlNames.add(correlName);
+        int namespaceOffset = 0;
+        if (childNamespaceIndex > 0) {
+          // If not the first child, need to figure out the width
+          // of output types from all the preceding namespaces
+          assert ancestorScope instanceof ListScope;
+          List<SqlValidatorNamespace> children =
+              ((ListScope) ancestorScope).getChildren();
+
+          for (int i = 0; i < childNamespaceIndex; i++) {
+            SqlValidatorNamespace child = children.get(i);
+            namespaceOffset +=
+                child.getRowType().getFieldCount();
+          }
+        }
+
+        RexFieldAccess topLevelFieldAccess = fieldAccess;
+        while (topLevelFieldAccess.getReferenceExpr() instanceof RexFieldAccess) {
+          topLevelFieldAccess = (RexFieldAccess) topLevelFieldAccess.getReferenceExpr();
+        }
+        final RelDataTypeField field = rowType.getFieldList()
+            .get(topLevelFieldAccess.getField().getIndex() - namespaceOffset);
+        int pos = namespaceOffset + field.getIndex();
+
+        assert field.getType()
+            == topLevelFieldAccess.getField().getType();
+
+        assert pos != -1;
+
+        // bb.root is an aggregate and only projects group by
+        // keys.
+        Map<Integer, Integer> exprProjection =
+            bb.mapRootRelToFieldProjection.get(bb.root);
+        if (exprProjection != null) {
+          // sub-query can reference group by keys projected from
+          // the root of the outer relation.
+          Integer projection = exprProjection.get(pos);
+          if (projection != null) {
+            pos = projection;
+          } else {
+            // correl not grouped
+            throw new AssertionError("Identifier '" + originalRelName + "."
+                + originalFieldName + "' is not a group expr");
+          }
+        }
+
+        requiredColumns.set(pos);
+        correlNames.add(correlName);
+      }
     }
 
     if (correlNames.isEmpty()) {
@@ -3151,6 +3156,7 @@ public class SqlToRelConverter {
   private void convertJoin(Blackboard bb, SqlJoin join) {
     SqlValidator validator = validator();
     final SqlValidatorScope scope = validator.getJoinScope(join);
+    final SqlValidatorScope lateralScope = validator.getLateralScope(join);
     final Blackboard fromBlackboard = createBlackboard(scope, null, false);
     SqlNode left = join.getLeft();
     SqlNode right = join.getRight();
@@ -3166,8 +3172,12 @@ public class SqlToRelConverter {
         createBlackboard(rightScope, null, false);
     convertFrom(leftBlackboard, left);
     final RelNode leftRel = requireNonNull(leftBlackboard.root, "leftBlackboard.root");
+    final CorrelationContext lateralCorrelationContext =
+        findCorrelationContext(lateralScope, leftRel);
+
     convertFrom(rightBlackboard, right);
     final RelNode tempRightRel = requireNonNull(rightBlackboard.root, "rightBlackboard.root");
+    scopeToCorrelationContext.remove(lateralCorrelationContext);
 
     final JoinConditionType conditionType = join.getConditionType();
     final RexNode condition;
@@ -3205,7 +3215,9 @@ public class SqlToRelConverter {
         leftRel,
         rightRel,
         condition,
-        convertJoinType(join.getJoinType()));
+        convertJoinType(join.getJoinType()),
+        lateralCorrelationContext.correlationIdSet(rightRel),
+        RexUtil.findSubQueryCorrelationIds(condition));
     relBuilder.push(joinRel);
     final RelNode newProjectRel = relBuilder.project(relBuilder.fields()).build();
     bb.setRoot(newProjectRel, false);
@@ -3776,6 +3788,8 @@ public class SqlToRelConverter {
     }
   }
 
+
+
   /**
    * Converts a set operation (UNION, INTERSECT, MINUS) into relational
    * expressions.
@@ -4080,6 +4094,30 @@ public class SqlToRelConverter {
     return null;
   }
 
+  private CorrelationContext findCorrelationContext(SqlValidatorScope sqlValidatorScope,
+      RelNode relNode) {
+    return findCorrelationContext(sqlValidatorScope, ImmutableList.of(relNode));
+  }
+
+
+  private CorrelationContext findCorrelationContext(SqlValidatorScope sqlValidatorScope,
+      List<RelNode> relNodes) {
+    Optional<CorrelationContext> correlationContext = scopeToCorrelationContext.stream()
+        .filter(cc
+            -> cc.sqlValidatorScope.isWithin(sqlValidatorScope))
+        .findFirst();
+    if (correlationContext.isPresent()) {
+      CorrelationContext correlationContext2 = correlationContext.get();
+      assert correlationContext2.sqlValidatorScope == sqlValidatorScope;
+      assert correlationContext2.relNodes.equals(relNodes);
+      return correlationContext2;
+    } else {
+      CorrelationContext correlationContext2 = new CorrelationContext(sqlValidatorScope, relNodes);
+      scopeToCorrelationContext.add(correlationContext2);
+      return correlationContext2;
+    }
+  }
+
   private RexNode castNullLiteralIfNeeded(RexNode node, RelDataType type) {
     if (!RexLiteral.isNullLiteral(node)) {
       return node;
@@ -4338,12 +4376,12 @@ public class SqlToRelConverter {
       }
     }
 
+    //if (config.isExpand() && e0.left instanceof RexCorrelVariable) {
     if (e0.left instanceof RexCorrelVariable) {
       assert e instanceof RexFieldAccess;
-      final RexNode prev =
-          bb.mapCorrelateToRex.put(((RexCorrelVariable) e0.left).id,
-              (RexFieldAccess) e);
-      assert prev == null;
+      CorrelationId correlationId = ((RexCorrelVariable) e0.left).id;
+      bb.mapCorrelateToRex.computeIfAbsent(correlationId, cid -> new ArrayList<>())
+          .add((RexFieldAccess) e);
     }
     return e;
   }
@@ -4400,6 +4438,30 @@ public class SqlToRelConverter {
             iCursor,
             converted.getRowType());
     return converted;
+  }
+
+  private RelNode convertValueConstructorList(Blackboard bb, final SqlCall call) {
+    assert call.getKind() == SqlKind.MULTISET_VALUE_CONSTRUCTOR;
+
+    final SqlNodeList list =
+        new SqlNodeList(call.getOperandList(), call.getParserPosition());
+    CollectNamespace nss = getNamespaceOrNull(call);
+    Blackboard usedBb;
+    if (null != nss) {
+      usedBb = createBlackboard(nss.getScope(), null, false);
+    } else {
+      usedBb =
+          createBlackboard(new ListScope(bb.scope()) {
+            @Override public SqlNode getNode() {
+              return call;
+            }
+          }, null, false);
+    }
+    RelDataType multisetType = validator().getValidatedNodeType(call);
+    validator().setValidatedNodeType(list,
+        requireNonNull(multisetType.getComponentType(),
+            () -> "componentType for multisetType " + multisetType));
+    return castNonNull(convertQueryOrInList(usedBb, list, null));
   }
 
   private RelNode convertMultisets(final List<SqlNode> operands,
@@ -4515,7 +4577,6 @@ public class SqlToRelConverter {
       List<SqlNode> orderList) {
     SqlNodeList selectList = select.getSelectList();
     selectList = validator().expandStar(selectList, select, false);
-
     replaceSubQueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
     replaceSubQueries(bb, new SqlNodeList(orderList, SqlParserPos.ZERO),
         RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
@@ -4554,24 +4615,11 @@ public class SqlToRelConverter {
     fieldNames = SqlValidatorUtil.uniquify(fieldNames,
         catalogReader.nameMatcher().isCaseSensitive());
 
-    relBuilder.push(bb.root())
-        .projectNamed(exprs, fieldNames, true);
+    RelNode r = relBuilder.push(bb.root())
+        .projectNamed(exprs, fieldNames, true, RexUtil.findSubQueryCorrelationIds(exprs))
+        .build();
 
-    RelNode project = relBuilder.build();
-
-    final RelNode r;
-    final CorrelationUse p = getCorrelationUse(bb, project);
-    if (p != null) {
-      assert p.r instanceof Project;
-      // correlation variables have been normalized in p.r, we should use expressions
-      // in p.r instead of the original exprs
-      Project project1 = (Project) p.r;
-      r = relBuilder.push(bb.root())
-          .projectNamed(project1.getProjects(), fieldNames, true, ImmutableSet.of(p.id))
-          .build();
-    } else {
-      r = project;
-    }
+    getCorrelationUse(bb, r);
 
     bb.setRoot(r, false);
 
@@ -4843,7 +4891,7 @@ public class SqlToRelConverter {
     private final @Nullable Map<String, RexNode> nameToNodeMap;
     public @Nullable RelNode root;
     private @Nullable List<RelNode> inputs;
-    private final Map<CorrelationId, RexFieldAccess> mapCorrelateToRex =
+    private final Map<CorrelationId, List<RexFieldAccess>> mapCorrelateToRex =
         new HashMap<>();
     private List<RegisterArgs> registered = new ArrayList<>();
 
@@ -5001,7 +5049,9 @@ public class SqlToRelConverter {
               root(),
               rel,
               joinCond,
-              joinType);
+              joinType,
+              ImmutableSet.of(),
+              ImmutableSet.of());
 
       setRoot(join, false);
 
@@ -5148,9 +5198,10 @@ public class SqlToRelConverter {
       // Found in current query's from list.  Find which from item.
       // We assume that the order of the from clause items has been
       // preserved.
-      final SqlValidatorScope ancestorScope = resolve.scope;
-      boolean isParent = ancestorScope != scope;
+      final SqlValidatorScope resolveScope = resolve.scope;
+      boolean isParent = resolveScope != scope;
       if ((inputs != null) && !isParent) {
+        assert !(resolveScope instanceof LateralTableScope);
         final LookupContext rels =
             new LookupContext(this, inputs, systemFieldList.size());
         final RexNode node = lookup(resolve.path.steps().get(0).i, rels);
@@ -5162,14 +5213,26 @@ public class SqlToRelConverter {
           return rexBuilder.makeFieldAccess(e, field.getIndex());
         });
       } else {
+        assert resolveScope != null;
+        final CorrelationId correlId;
+        if (config.isExpand()) {
+          correlId = cluster.createCorrel();
+        } else {
+          CorrelationContext correlScope = Util.getOnlyElement(
+              scopeToCorrelationContext.stream()
+                  .filter(cc -> cc.sqlValidatorScope.isWithin(resolveScope))
+                  .collect(Collectors.toList()));
+          correlId = correlScope.getOrCreateCorrelationId();
+        }
+
         // We're referencing a relational expression which has not been
         // converted yet. This occurs when from items are correlated,
         // e.g. "select from emp as emp join emp.getDepts() as dept".
         // Create a temporary expression.
         DeferredLookup lookup =
             new DeferredLookup(this, qualified.identifier.names.get(0));
-        final CorrelationId correlId = cluster.createCorrel();
         mapCorrelToDeferred.put(correlId, lookup);
+
         if (resolve.path.steps().get(0).i < 0) {
           return Pair.of(rexBuilder.makeCorrel(rowType, correlId), null);
         } else {
@@ -5332,7 +5395,7 @@ public class SqlToRelConverter {
       if (!config.isExpand()) {
         final SqlCall call;
         final SqlNode query;
-        final RelRoot root;
+        final RelAndCorrelationContext relAndCorrelationContext;
         switch (kind) {
         case IN:
         case NOT_IN:
@@ -5341,7 +5404,7 @@ public class SqlToRelConverter {
           call = (SqlCall) expr;
           query = call.operand(1);
           if (!(query instanceof SqlNodeList)) {
-            root = convertQueryRecursive(query, false, null);
+            relAndCorrelationContext = convertSubQuery(query);
             final SqlNode operand = call.operand(0);
             List<SqlNode> nodes;
             switch (operand.getKind()) {
@@ -5357,68 +5420,84 @@ public class SqlToRelConverter {
               builder.add(convertExpression(node));
             }
             final ImmutableList<RexNode> list = builder.build();
-            switch (kind) {
+            switch (call.getKind()) {
             case IN:
-              return RexSubQuery.in(root.rel, list);
+              return RexSubQuery.in(relAndCorrelationContext.relNode, list,
+                  relAndCorrelationContext.correlationContext.correlationId);
             case NOT_IN:
               return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
-                  RexSubQuery.in(root.rel, list));
+                  RexSubQuery.in(relAndCorrelationContext.relNode, list,
+                      relAndCorrelationContext.correlationContext.correlationId));
             case SOME:
-              return RexSubQuery.some(root.rel, list,
-                  (SqlQuantifyOperator) call.getOperator());
+              return RexSubQuery.some(relAndCorrelationContext.relNode, list,
+                  (SqlQuantifyOperator) call.getOperator(),
+                  relAndCorrelationContext.correlationContext.correlationId);
             case ALL:
               return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
-                  RexSubQuery.some(root.rel, list,
-                      negate((SqlQuantifyOperator) call.getOperator())));
+                  RexSubQuery.some(relAndCorrelationContext.relNode, list,
+                      negate((SqlQuantifyOperator) call.getOperator()),
+                      relAndCorrelationContext.correlationContext.correlationId));
             default:
               throw new AssertionError(kind);
             }
           }
           break;
-
         case EXISTS:
           call = (SqlCall) expr;
-          query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
-          RelNode rel = root.rel;
+          query = Util.getOnlyElement(call.getOperandList());
+          relAndCorrelationContext = convertSubQuery(query);
+          RelNode rel = relAndCorrelationContext.relNode;
           while (rel instanceof Project
               || rel instanceof Sort
               && ((Sort) rel).fetch == null
               && ((Sort) rel).offset == null) {
             rel = ((SingleRel) rel).getInput();
           }
-          return RexSubQuery.exists(rel);
+          return RexSubQuery.exists(rel,
+              relAndCorrelationContext.correlationContext.correlationId);
 
         case UNIQUE:
           call = (SqlCall) expr;
-          query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.unique(root.rel);
+          query = Util.getOnlyElement(call.getOperandList());
+          relAndCorrelationContext = convertSubQuery(query);
+          return RexSubQuery.unique(relAndCorrelationContext.relNode,
+              relAndCorrelationContext.correlationContext.correlationId);
 
         case SCALAR_QUERY:
           call = (SqlCall) expr;
-          query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.scalar(root.rel);
+          query = Util.getOnlyElement(call.getOperandList());
+          relAndCorrelationContext = convertSubQuery(query);
+          return RexSubQuery.scalar(relAndCorrelationContext.relNode,
+              relAndCorrelationContext.correlationContext.correlationId);
 
         case ARRAY_QUERY_CONSTRUCTOR:
           call = (SqlCall) expr;
-          query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.array(root.rel);
+          query = Util.getOnlyElement(call.getOperandList());
+          relAndCorrelationContext = convertSubQuery(query);
+          return RexSubQuery.array(relAndCorrelationContext.relNode,
+              relAndCorrelationContext.correlationContext.correlationId);
 
         case MAP_QUERY_CONSTRUCTOR:
           call = (SqlCall) expr;
-          query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.map(root.rel);
+          query = Util.getOnlyElement(call.getOperandList());
+          relAndCorrelationContext = convertSubQuery(query);
+          return RexSubQuery.map(relAndCorrelationContext.relNode,
+              relAndCorrelationContext.correlationContext.correlationId);
 
+        case MULTISET_VALUE_CONSTRUCTOR: {
+          call = (SqlCall) expr;
+          CorrelationContext correlationContext = findCorrelationContext(scope(),
+              Util.first(inputs, ImmutableList.of()));
+          rel = convertValueConstructorList(this, call);
+          scopeToCorrelationContext.remove(correlationContext);
+          return RexSubQuery.multiset(rel, correlationContext.correlationId);
+        }
         case MULTISET_QUERY_CONSTRUCTOR:
           call = (SqlCall) expr;
-          query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.multiset(root.rel);
-
+          query = Util.getOnlyElement(call.getOperandList());
+          relAndCorrelationContext = convertSubQuery(query);
+          return RexSubQuery.multiset(relAndCorrelationContext.relNode,
+              relAndCorrelationContext.correlationContext.correlationId);
         default:
           break;
         }
@@ -5488,6 +5567,15 @@ public class SqlToRelConverter {
       // Apply standard conversions.
       rex = expr.accept(this);
       return requireNonNull(rex, "rex");
+    }
+
+
+    private RelAndCorrelationContext convertSubQuery(SqlNode node) {
+      CorrelationContext correlationContext = findCorrelationContext(scope(),
+          Util.first(inputs, ImmutableList.of()));
+      RelRoot relRoot = convertQueryRecursive(node, false, null);
+      scopeToCorrelationContext.remove(correlationContext);
+      return new RelAndCorrelationContext(relRoot.rel, correlationContext);
     }
 
     /**
@@ -5720,8 +5808,8 @@ public class SqlToRelConverter {
       this.originalRelName = originalRelName;
     }
 
-    public RexFieldAccess getFieldAccess(CorrelationId name) {
-      return (RexFieldAccess) requireNonNull(
+    public List<RexFieldAccess> getFieldAccess(CorrelationId name) {
+      return requireNonNull(
           bb.mapCorrelateToRex.get(name),
           () -> "Correlation " + name + " is not found");
     }
@@ -6607,6 +6695,34 @@ public class SqlToRelConverter {
     }
   }
 
+  /** Contains the context for resolving correlate variables. */
+  private class CorrelationContext {
+    final SqlValidatorScope sqlValidatorScope;
+    final List<RelNode> relNodes;
+    @Nullable CorrelationId correlationId = null;
+
+    CorrelationContext(SqlValidatorScope sqlValidatorScope, List<RelNode> relNodes) {
+      this.sqlValidatorScope = sqlValidatorScope;
+      this.relNodes = relNodes;
+    }
+
+    CorrelationId getOrCreateCorrelationId() {
+      if (null == correlationId) {
+        correlationId = cluster.createCorrel();
+      }
+      return correlationId;
+    }
+
+    Set<CorrelationId> correlationIdSet(RelNode relNode) {
+      if (null != correlationId
+          && RelOptUtil.getVariablesUsed(relNode).contains(correlationId)) {
+        return ImmutableSet.of(castNonNull(correlationId));
+      } else {
+        return ImmutableSet.of();
+      }
+    }
+  }
+
   /** Use of a row as a correlating variable by a given relational
    * expression. */
   private static class CorrelationUse {
@@ -6883,4 +6999,15 @@ public class SqlToRelConverter {
     }
   }
 
+  /** RelNode and CorrelationContext for parsing a sub query. */
+  private static class RelAndCorrelationContext {
+    final RelNode relNode;
+    final CorrelationContext correlationContext;
+
+    private RelAndCorrelationContext(RelNode relNode,
+        CorrelationContext correlationContext) {
+      this.relNode = relNode;
+      this.correlationContext = correlationContext;
+    }
+  }
 }

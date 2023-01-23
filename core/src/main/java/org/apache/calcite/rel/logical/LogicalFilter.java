@@ -47,7 +47,7 @@ import java.util.Set;
  * not targeted at any particular engine or calling convention.
  */
 public final class LogicalFilter extends Filter {
-  private final ImmutableSet<CorrelationId> variablesSet;
+  private final Set<CorrelationId> variablesSet;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -69,9 +69,9 @@ public final class LogicalFilter extends Filter {
       List<RelHint> hints,
       RelNode child,
       RexNode condition,
-      ImmutableSet<CorrelationId> variablesSet) {
+      Set<CorrelationId> variablesSet) {
     super(cluster, traitSet, hints, child, condition);
-    this.variablesSet = Objects.requireNonNull(variablesSet, "variablesSet");
+    this.variablesSet = ImmutableSet.copyOf(variablesSet);
   }
 
   /**
@@ -91,7 +91,7 @@ public final class LogicalFilter extends Filter {
       RelTraitSet traitSet,
       RelNode child,
       RexNode condition,
-      ImmutableSet<CorrelationId> variablesSet) {
+      Set<CorrelationId> variablesSet) {
     this(cluster, traitSet, ImmutableList.of(), child, condition, variablesSet);
   }
 
@@ -128,7 +128,7 @@ public final class LogicalFilter extends Filter {
 
   /** Creates a LogicalFilter. */
   public static LogicalFilter create(final RelNode input, RexNode condition,
-      ImmutableSet<CorrelationId> variablesSet) {
+      Set<CorrelationId> variablesSet) {
     final RelOptCluster cluster = input.getCluster();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE)

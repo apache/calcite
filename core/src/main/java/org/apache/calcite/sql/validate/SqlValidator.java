@@ -33,6 +33,7 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
@@ -608,6 +609,14 @@ public interface SqlValidator {
    * @return naming scope for ORDER BY clause
    */
   SqlValidatorScope getOrderScope(SqlSelect select);
+
+  /**
+   * Returns scope for lateral varaibles.
+   * @param sqlJoin join for lateral scope
+   * @return scope for resolving variables
+   */
+  SqlValidatorScope getLateralScope(SqlJoin sqlJoin);
+
 
   /**
    * Returns a scope match recognize clause.
