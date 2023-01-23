@@ -1903,8 +1903,23 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** The <code>TIMESTAMPDIFF</code> function. */
   public static final SqlFunction TIMESTAMP_DIFF =
       new SqlTimestampDiffFunction("TIMESTAMPDIFF",
-          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP,
-              SqlTypeFamily.TIMESTAMP));
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP)
+              .or(
+                  OperandTypes.family(
+                  SqlTypeFamily.ANY, SqlTypeFamily.DATE, SqlTypeFamily.TIMESTAMP))
+              .or(
+                  OperandTypes.family(
+                  SqlTypeFamily.ANY, SqlTypeFamily.TIME, SqlTypeFamily.TIMESTAMP))
+              .or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIME, SqlTypeFamily.TIME))
+              .or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATE, SqlTypeFamily.TIME))
+              .or(
+                  OperandTypes.family(
+                  SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIME))
+              .or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIME, SqlTypeFamily.DATE))
+              .or(OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATE, SqlTypeFamily.DATE))
+              .or(
+                  OperandTypes.family(
+                  SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATE)));
 
   /**
    * Use of the <code>IN_FENNEL</code> operator forces the argument to be
