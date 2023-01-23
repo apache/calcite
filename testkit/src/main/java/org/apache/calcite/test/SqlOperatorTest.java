@@ -78,6 +78,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
@@ -8129,8 +8131,11 @@ public class SqlOperatorTest {
             isNullValue(), "INTEGER"));
   }
 
-  @Test void testTimestampDiff() {
-    final SqlOperatorFixture f = fixture();
+  @ValueSource(booleans = {true, false})
+  @ParameterizedTest(name = "CoercionEnabled: {0}")
+  void testTimestampDiff(boolean coercionEnabled) {
+    final SqlOperatorFixture f = fixture()
+        .withValidatorConfig(c -> c.withTypeCoercionEnabled(coercionEnabled));
     f.setFor(SqlStdOperatorTable.TIMESTAMP_DIFF, VmName.EXPAND);
     HOUR_VARIANTS.forEach(s ->
         f.checkScalar("timestampdiff(" + s + ", "
@@ -8211,6 +8216,18 @@ public class SqlOperatorTest {
         f.checkScalar("timestampdiff(" + s + ", "
                 + "date '2019-09-01', date '2016-08-01')",
             "-37", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "time '12:42:25', time '12:42:25')",
+            "0", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "time '12:42:25', date '2016-06-14')",
+            "-1502389", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "date '2016-06-14', time '12:42:25')",
+            "1502389", "INTEGER NOT NULL"));
     DAY_VARIANTS.forEach(s ->
         f.checkScalar("timestampdiff(" + s + ", "
                 + "date '2016-06-15', date '2016-06-14')",
