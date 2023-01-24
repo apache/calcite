@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql2rel;
 
+import com.sun.tools.javac.comp.Todo;
+
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.plan.RelOptUtil;
@@ -1975,7 +1977,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       final RexBuilder rexBuilder = cx.getRexBuilder();
       final TimeFrame timeFrame = cx.getValidator().validateTimeFrame(qualifier);
       final TimeUnit unit = first(timeFrame.unit(), TimeUnit.EPOCH);
-
       if (unit == TimeUnit.EPOCH && qualifier.timeFrameName != null) {
         // Custom time frames have a different path. They are kept as names, and
         // then handled by Java functions.
@@ -2016,13 +2017,33 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
                 qualifier.getParserPosition());
         break;
       }
-      final RelDataType intervalType =
-          cx.getTypeFactory().createTypeWithNullability(
-              cx.getTypeFactory().createSqlIntervalType(qualifier),
-              op1.getType().isNullable() || op2.getType().isNullable());
-      final RexCall rexCall = (RexCall) rexBuilder.makeCall(
-          intervalType, SqlStdOperatorTable.MINUS_DATE,
-          ImmutableList.of(op2, op1));
+
+      RelDataType intervalType;
+      RexCall rexCall;
+      if (unit == TimeUnit.WEEK && !(call.operand(0).getKind() == SqlKind.INTERVAL_QUALIFIER)) {
+        final RexNode timeUnit = cx.convertExpression(call.operand(2));
+        intervalType =
+            cx.getTypeFactory().createTypeWithNullability(
+                cx.getTypeFactory().createSqlIntervalType(qualifier),
+                op1.getType().isNullable() || op2.getType().isNullable());
+        final RexCall truncCall1 = (RexCall) rexBuilder.makeCall(
+            op1.getType(), SqlLibraryOperators.TIMESTAMP_TRUNC,
+            ImmutableList.of(op1, timeUnit));
+        final RexCall truncCall2 = (RexCall) rexBuilder.makeCall(
+            op2.getType(), SqlLibraryOperators.TIMESTAMP_TRUNC,
+            ImmutableList.of(op2, timeUnit));
+        rexCall = (RexCall) rexBuilder.makeCall(
+            intervalType, SqlStdOperatorTable.MINUS_DATE,
+            ImmutableList.of(truncCall2, truncCall1));
+      } else {
+        intervalType =
+            cx.getTypeFactory().createTypeWithNullability(
+                cx.getTypeFactory().createSqlIntervalType(qualifier),
+                op1.getType().isNullable() || op2.getType().isNullable());
+        rexCall = (RexCall) rexBuilder.makeCall(
+            intervalType, SqlStdOperatorTable.MINUS_DATE,
+            ImmutableList.of(op2, op1));
+      }
       final RelDataType intType =
           cx.getTypeFactory().createTypeWithNullability(
               cx.getTypeFactory().createSqlType(sqlTypeName),
