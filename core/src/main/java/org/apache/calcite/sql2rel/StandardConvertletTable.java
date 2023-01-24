@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.sql2rel;
 
-import com.sun.tools.javac.comp.Todo;
-
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.plan.RelOptUtil;
