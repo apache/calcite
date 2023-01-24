@@ -63,7 +63,7 @@ class SqlTimestampDiffFunction extends SqlFunction {
     final TimeUnit timeUnit;
     final RelDataType type1;
     final RelDataType type2;
-    if (opBinding.isOperandLiteral(0, true)) {
+    if (SqlTypeName.DATETIME_TYPES.contains(opBinding.getOperandType(0).getSqlTypeName())) {
       type1 = opBinding.getOperandType(0);
       type2 = opBinding.getOperandType(1);
       timeUnit = opBinding.getOperandLiteralValue(2, TimeUnit.class);

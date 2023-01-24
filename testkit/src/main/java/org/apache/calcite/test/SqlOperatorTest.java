@@ -8132,6 +8132,10 @@ public class SqlOperatorTest {
   @Test void testTimestampDiff() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.TIMESTAMP_DIFF, VmName.EXPAND);
+    f.checkScalar("timestampdiff(\"quarter\", "
+        + "timestamp '2016-02-24 12:42:25', "
+        + "timestamp '2016-02-24 15:42:25')",
+        "0", "INTEGER NOT NULL");
     HOUR_VARIANTS.forEach(s ->
         f.checkScalar("timestampdiff(" + s + ", "
                 + "timestamp '2016-02-24 12:42:25', "
