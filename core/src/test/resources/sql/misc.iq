@@ -2116,6 +2116,17 @@ select
 
 !ok
 
+# TIMESTAMPDIFF with 'flag' literal as time unit argument
+SELECT TIMESTAMPDIFF(quarter, TIMESTAMP '2008-12-25', TIMESTAMP '2008-09-25');
++--------+
+| EXPR$0 |
++--------+
+|     -1 |
++--------+
+(1 row)
+
+! ok
+
 # ARRAY and MULTISET
 select array[1,2] as a from (values (1));
 +--------+

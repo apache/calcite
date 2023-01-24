@@ -1792,6 +1792,17 @@ SELECT TIMESTAMP_DIFF("2001-02-01 01:00:00", "2001-02-01 00:00:01", HOUR) AS neg
 (1 row)
 
 !ok
+
+# In this example, the time unit is a 'flag' literal.
+SELECT TIMESTAMP_DIFF(TIMESTAMP '2008-12-25', TIMESTAMP '2008-09-25', `quarter`) as diff;
++------+
+| diff |
++------+
+|    1 |
++------+
+(1 row)
+
+!ok
 #####################################################################
 # DATE_TRUNC
 #

@@ -216,6 +216,12 @@ public enum SqlTypeName {
       Sets.immutableEnumSet(
           Iterables.concat(YEAR_INTERVAL_TYPES, DAY_INTERVAL_TYPES));
 
+  /** The possible types of a time frame argument to a function such as
+   * {@code TIMESTAMP_DIFF}. */
+  public static final Set<SqlTypeName> TIME_FRAME_TYPES =
+      Sets.immutableEnumSet(
+          Iterables.concat(INTERVAL_TYPES, ImmutableList.of(SYMBOL)));
+
   private static final Map<Integer, SqlTypeName> JDBC_TYPE_TO_NAME =
       ImmutableMap.<Integer, SqlTypeName>builder()
           .put(Types.TINYINT, TINYINT)
