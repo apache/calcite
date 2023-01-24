@@ -1023,11 +1023,11 @@ class SqlFunctionsTest {
     final java.sql.Date epoch = java.sql.Date.valueOf("1970-01-01");
 
     final TimeZone minusDayZone = TimeZone.getDefault();
-    minusDayZone.setRawOffset((int) (minusDayZone.getOffset(0L) - MILLIS_PER_DAY));
+    minusDayZone.setRawOffset((int) (minusDayZone.getRawOffset() - MILLIS_PER_DAY));
     assertThat(toInt(epoch, minusDayZone), is(-1));
 
     final TimeZone plusDayZone = TimeZone.getDefault();
-    plusDayZone.setRawOffset((int) (plusDayZone.getOffset(0L) + MILLIS_PER_DAY));
+    plusDayZone.setRawOffset((int) (plusDayZone.getRawOffset() + MILLIS_PER_DAY));
     assertThat(toInt(epoch, plusDayZone), is(1));
   }
 
