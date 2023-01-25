@@ -2038,7 +2038,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       *  and Calcite. BigQuery considers Sunday as the start of the week, so two dates whose
       *  day difference is <7 may have a week difference of 1 if they occur on two different
       * Sunday-anchored weeks. In this case, the issue can be solved by truncating each date
-      * to the most recent Sunday. */
+      * to the most recent Sunday. Similar logic is used for ISOYEAR as well. */
       if ((unit == TimeUnit.WEEK || unit == TimeUnit.ISOYEAR) && isBigQuery) {
         final RexNode timeUnit = cx.convertExpression(call.operand(2));
         intervalType =
