@@ -1555,19 +1555,17 @@ SELECT
 # Thursday of the 2015 calendar year was 2015-01-01, so the ISO year
 # 2015 begins on the preceding Monday, 2014-12-29.
 
-!if (false) {
 SELECT
   DATE_DIFF('2017-12-30', '2014-12-30', YEAR) AS year_diff,
   DATE_DIFF('2017-12-30', '2014-12-30', ISOYEAR) AS isoyear_diff;
 +-----------+--------------+
 | year_diff | isoyear_diff |
 +-----------+--------------+
-| 3         | 2            |
+|         3 |            2 |
 +-----------+--------------+
 (1 row)
 
 !ok
-!}
 
 # The following example shows the result of DATE_DIFF for two days in
 # succession. The first date falls on a Monday and the second date
@@ -1576,7 +1574,6 @@ SELECT
 # with the date part WEEK(MONDAY) returns 1. DATE_DIFF with the date
 # part ISOWEEK also returns 1 because ISO weeks begin on Monday.
 
-!if (false) {
 SELECT
   DATE_DIFF('2017-12-18', '2017-12-17', WEEK) AS week_diff,
   DATE_DIFF('2017-12-18', '2017-12-17', WEEK(MONDAY)) AS week_weekday_diff,
@@ -1584,12 +1581,11 @@ SELECT
 +-----------+-------------------+--------------+
 | week_diff | week_weekday_diff | isoweek_diff |
 +-----------+-------------------+--------------+
-| 0         | 1                 | 1            |
+|         0 |                 1 |            1 |
 +-----------+-------------------+--------------+
 (1 row)
 
 !ok
-!}
 
 #####################################################################
 # DATETIME_DIFF

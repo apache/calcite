@@ -1963,26 +1963,42 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlIntervalQualifier qualifier;
       final RexNode op1;
       final RexNode op2;
-      if (call.operand(0).getKind() == SqlKind.INTERVAL_QUALIFIER) {
-        qualifier = call.operand(0);
-        op1 = cx.convertExpression(call.operand(1));
-        op2 = cx.convertExpression(call.operand(2));
-      } else {
+      final boolean isBigQuery = !(call.operand(0).getKind() == SqlKind.INTERVAL_QUALIFIER);
+      if (isBigQuery) {
         qualifier = call.operand(2);
         op1 = cx.convertExpression(call.operand(1));
         op2 = cx.convertExpression(call.operand(0));
+      } else {
+        qualifier = call.operand(0);
+        op1 = cx.convertExpression(call.operand(1));
+        op2 = cx.convertExpression(call.operand(2));
       }
       final RexBuilder rexBuilder = cx.getRexBuilder();
       final TimeFrame timeFrame = cx.getValidator().validateTimeFrame(qualifier);
       final TimeUnit unit = first(timeFrame.unit(), TimeUnit.EPOCH);
+      RexCall truncCall1;
+      RexCall truncCall2;
       if (unit == TimeUnit.EPOCH && qualifier.timeFrameName != null) {
         // Custom time frames have a different path. They are kept as names, and
         // then handled by Java functions.
         final RexLiteral timeFrameName =
             rexBuilder.makeLiteral(qualifier.timeFrameName);
-        return rexBuilder.makeCall(cx.getValidator().getValidatedNodeType(call),
-            SqlStdOperatorTable.TIMESTAMP_DIFF,
-            ImmutableList.of(timeFrameName, op1, op2));
+        if (isBigQuery) {
+          truncCall1 = (RexCall) rexBuilder.makeCall(
+              op1.getType(), SqlLibraryOperators.TIMESTAMP_TRUNC,
+              ImmutableList.of(op1, timeFrameName));
+          truncCall2 = (RexCall) rexBuilder.makeCall(
+              op1.getType(), SqlLibraryOperators.TIMESTAMP_TRUNC,
+              ImmutableList.of(op2, timeFrameName));
+          return rexBuilder.makeCall(cx.getValidator().getValidatedNodeType(call),
+              SqlStdOperatorTable.TIMESTAMP_DIFF,
+              ImmutableList.of(timeFrameName, truncCall1, truncCall2));
+        } else {
+          return rexBuilder.makeCall(cx.getValidator().getValidatedNodeType(call),
+              SqlStdOperatorTable.TIMESTAMP_DIFF,
+              ImmutableList.of(timeFrameName, op1, op2));
+        }
+
       }
 
       BigDecimal multiplier = BigDecimal.ONE;
@@ -2023,16 +2039,16 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       *  day difference is <7 may have a week difference of 1 if they occur on two different
       * Sunday-anchored weeks. In this case, the issue can be solved by truncating each date
       * to the most recent Sunday. */
-      if (unit == TimeUnit.WEEK && !(call.operand(0).getKind() == SqlKind.INTERVAL_QUALIFIER)) {
+      if ((unit == TimeUnit.WEEK || unit == TimeUnit.ISOYEAR) && isBigQuery) {
         final RexNode timeUnit = cx.convertExpression(call.operand(2));
         intervalType =
             cx.getTypeFactory().createTypeWithNullability(
                 cx.getTypeFactory().createSqlIntervalType(qualifier),
                 op1.getType().isNullable() || op2.getType().isNullable());
-        final RexCall truncCall1 = (RexCall) rexBuilder.makeCall(
+        truncCall1 = (RexCall) rexBuilder.makeCall(
             op1.getType(), SqlLibraryOperators.TIMESTAMP_TRUNC,
             ImmutableList.of(op1, timeUnit));
-        final RexCall truncCall2 = (RexCall) rexBuilder.makeCall(
+        truncCall2 = (RexCall) rexBuilder.makeCall(
             op2.getType(), SqlLibraryOperators.TIMESTAMP_TRUNC,
             ImmutableList.of(op2, timeUnit));
         rexCall = (RexCall) rexBuilder.makeCall(
