@@ -3430,6 +3430,33 @@ public class SqlParserTest {
         .fails("(?s).*Encountered \"all\" at line 1.*");
   }
 
+  @Test void testTop() {
+    sql("select top 4 a from foo order by b, c asc")
+        .ok("SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "ORDER BY `B`, `C`\n"
+            + "FETCH NEXT 4 ROWS ONLY");
+    // Top without a number can be treated as a field name.
+    sql("select top, bottom from foo")
+        .ok("SELECT `TOP`, `BOTTOM`\n"
+            + "FROM `FOO`");
+    // Works with binary operators (order by is not allowed, but snowflake allows
+    // this even if the semantics are kind of iffy).
+    sql("select top 4 a from foo union select top 4 a from bar")
+        .ok("((SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "FETCH NEXT 4 ROWS ONLY)\n"
+            + "UNION\n"
+            + "(SELECT `A`\n"
+            + "FROM `BAR`\n"
+            + "FETCH NEXT 4 ROWS ONLY))");
+    // Specifying TOP with any other kind of limit results in an error.
+    sql("select top 4 a from foo order by b ^limit^ 4")
+        .fails("Duplicate LIMIT: LIMIT");
+    sql("select top 4 a from foo order by b ^fetch^ first 4 rows only")
+        .fails("Duplicate LIMIT: FETCH");
+  }
+
   @Test void testSqlInlineComment() {
     sql("select 1 from t --this is a comment\n")
         .ok("SELECT 1\n"

@@ -1028,4 +1028,7 @@ public interface CalciteResource {
   @BaseMessage("No operator for ''{0}'' with kind: ''{1}'', syntax: ''{2}'' during JSON deserialization")
   ExInst<CalciteException> noOperator(String name, String kind, String syntax);
 
+  @BaseMessage("Duplicate LIMIT: {0}")
+  ExInst<CalciteException> duplicateLimit(String kind);
+
 }

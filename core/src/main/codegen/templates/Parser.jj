@@ -633,10 +633,16 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
     SqlNodeList orderBy = null;
     SqlNode start = null;
     SqlNode count = null;
+    boolean hasLimit = false;
 }
 {
     (
-        e = QueryOrExpr(exprContext)
+        e = QueryOrExpr(exprContext) {
+            if (e instanceof SqlOrderBy) {
+                SqlOrderBy o = (SqlOrderBy) e;
+                hasLimit = o.fetch != null;
+            }
+        }
     )
     [
         // use the syntactic type of the expression we just parsed
@@ -645,7 +651,7 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
     ]
     [
         // Postgres-style syntax. "LIMIT ... OFFSET ..."
-        <LIMIT>
+        <LIMIT> { final SqlParserPos startPos = getPos(); }
         (
             // MySQL-style syntax. "LIMIT start, count"
             LOOKAHEAD(2)
@@ -659,7 +665,11 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
             count = UnsignedNumericLiteralOrParam()
         |
             <ALL>
-        )
+        ) {
+            if (hasLimit) {
+                throw SqlUtil.newContextException(startPos, RESOURCE.duplicateLimit("LIMIT"));
+            }
+        }
     ]
     [
         // ROW or ROWS is required in SQL:2008 but we make it optional
@@ -670,16 +680,39 @@ SqlNode OrderedQueryOrExpr(ExprContext exprContext) :
     [
         // SQL:2008-style syntax. "OFFSET ... FETCH ...".
         // If you specify both LIMIT and FETCH, FETCH wins.
-        <FETCH> ( <FIRST> | <NEXT> ) count = UnsignedNumericLiteralOrParam()
+        <FETCH> {final SqlParserPos startPos = getPos(); }
+        ( <FIRST> | <NEXT> ) count = UnsignedNumericLiteralOrParam()
         ( <ROW> | <ROWS> ) (<ONLY>)?
+        {
+            if (hasLimit) {
+                throw SqlUtil.newContextException(startPos, RESOURCE.duplicateLimit("FETCH"));
+            }
+        }
     ]
     {
         if (orderBy != null || start != null || count != null) {
+            // We may be wrapping another SqlOrderBy because other syntax,
+            // such as TOP, can create ordering nodes. Syntactically, these
+            // TOP is treated as if LIMIT was present so we want to merge
+            // these nodes into one.
+            if (e instanceof SqlOrderBy) {
+                // Merge orderings if compatible.
+                SqlOrderBy o = (SqlOrderBy) e;
+                if (count == null) {
+                    count = o.fetch;
+                }
+                if (start == null) {
+                    start = o.offset;
+                }
+                if (orderBy == null) {
+                    orderBy = o.orderList;
+                }
+                e = o.query;
+            }
             if (orderBy == null) {
                 orderBy = SqlNodeList.EMPTY;
             }
             e = new SqlOrderBy(getPos(), e, orderBy, start, count);
-
         }
         return e;
     }
@@ -1311,7 +1344,7 @@ SqlNode TargetTableRefWithHintsOpt() :
 /**
  * Parses a leaf SELECT expression without ORDER BY.
  */
-SqlSelect SqlSelect() :
+SqlNode SqlSelect() :
 {
     final List<SqlLiteral> keywords = new ArrayList<SqlLiteral>();
     final SqlLiteral keyword;
@@ -1323,6 +1356,8 @@ SqlSelect SqlSelect() :
     final SqlNode having;
     final SqlNode qualify;
     final SqlNodeList windowDecls;
+    SqlParserPos fetchPos = null;
+    SqlLiteral fetch = null;
     final List<SqlNode> hints = new ArrayList<SqlNode>();
     final Span s;
 }
@@ -1341,6 +1376,10 @@ SqlSelect SqlSelect() :
         <STREAM> {
             keywords.add(SqlSelectKeyword.STREAM.symbol(getPos()));
         }
+    )?
+    (
+        LOOKAHEAD(2)
+        <TOP> fetch = UnsignedNumericLiteral() { fetchPos = getPos(); }
     )?
     (
         keyword = AllOrDistinct() { keywords.add(keyword); }
@@ -1367,10 +1406,16 @@ SqlSelect SqlSelect() :
         }
     )
     {
-        return new SqlSelect(s.end(this), keywordList,
+        SqlNode e = new SqlSelect(s.end(this), keywordList,
             new SqlNodeList(selectList, Span.of(selectList).pos()),
             fromClause, where, groupBy, having, qualify, windowDecls, null, null, null,
             new SqlNodeList(hints, getPos()));
+        if (fetch != null) {
+            // A limit was set with TOP. Wrap the select node in an order by.
+            // This may be merged with the ORDER BY that follows this SELECT.
+            e = new SqlOrderBy(fetchPos, e, SqlNodeList.EMPTY, null, fetch);
+        }
+        return e;
     }
 }
 
@@ -8208,6 +8253,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < TIMEZONE_MINUTE: "TIMEZONE_MINUTE" >
 |   < TINYINT: "TINYINT" >
 |   < TO: "TO" >
+|   < TOP: "TOP" >
 |   < TOP_LEVEL_COUNT: "TOP_LEVEL_COUNT" >
 |   < TRAILING: "TRAILING" >
 |   < TRANSACTION: "TRANSACTION" >
