@@ -37,6 +37,7 @@ dependencies {
     compileOnly("org.immutables:value-annotations")
     implementation("org.incava:java-diff")
     implementation("org.junit.jupiter:junit-jupiter")
+    implementation("org.xmlunit:xmlunit-matchers:2.9.1")
 
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))

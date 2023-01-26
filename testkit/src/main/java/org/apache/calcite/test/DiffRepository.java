@@ -41,12 +41,18 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.Text;
 import org.xml.sax.SAXException;
+import org.xmlunit.builder.DiffBuilder;
+import org.xmlunit.diff.Diff;
+import org.xmlunit.diff.Difference;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
@@ -261,6 +267,44 @@ public class DiffRepository {
           + diff);
     }
   }
+
+  public void checkActualAndReferenceXMLFiles() {
+    if (!logFile.exists()) {
+      return;
+    }
+
+    final String resourceFile = Sources.of(refFile).file().getPath().replace(
+        String.join(File.separator, "build", "resources", "test"),
+        String.join(File.separator, "src", "test", "resources"));
+
+    try {
+      final String xmlTest = new String(Files.readAllBytes(logFile.toPath()),// CHECKSTYLE: IGNORE 0
+          StandardCharsets.UTF_8);
+
+      final File refFile = new File(resourceFile);
+      final String xmlRef = new String(Files.readAllBytes(refFile.toPath()), // CHECKSTYLE: IGNORE 0
+          StandardCharsets.UTF_8);
+
+      final Diff diff = DiffBuilder.compare(xmlRef)
+          .withTest(xmlTest)
+          .build();
+
+      if (diff.hasDifferences()) {
+        final StringBuilder allDiff = new StringBuilder();
+        diff.getDifferences().forEach(
+            (Difference d) -> allDiff.append(d.toString()).append(System.lineSeparator())
+        );
+        throw new IllegalArgumentException("Actual and reference files differ. "
+            + "If you are adding new tests, replace the reference file with the "
+            + "current actual file, after checking its content."
+            + "\ndiff " + logFile.getAbsolutePath() + " " + resourceFile + "\n"
+            + allDiff);
+      }
+    } catch (IOException ex) {
+      throw new UncheckedIOException("Can't read XML file for test : " + ex.getMessage(), ex);
+    }
+  }
+
 
   private static URL findFile(Class<?> clazz, final String suffix) {
     // The reference file for class "com.foo.Bar" is "com/foo/Bar.xml"

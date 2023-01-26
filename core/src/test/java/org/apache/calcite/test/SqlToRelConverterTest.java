@@ -85,7 +85,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @AfterAll
   public static void checkActualAndReferenceFiles() {
     if (diffRepos != null) {
-      diffRepos.checkActualAndReferenceFiles();
+      diffRepos.checkActualAndReferenceXMLFiles();
     }
   }
 
