@@ -280,6 +280,11 @@
   githubId: tdunning
   org: MapR
   role: PMC
+- name: Thomas Rebele
+  appacheId: thomas.rebele
+  githubId: thomasrebele
+  org: TIBCO
+  role: Committer
 - name: Vineet Garg
   apacheId: vgarg
   githubId: vineetgarg02
