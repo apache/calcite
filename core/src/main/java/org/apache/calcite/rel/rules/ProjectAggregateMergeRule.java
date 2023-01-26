@@ -100,8 +100,7 @@ public class ProjectAggregateMergeRule
               && operands.get(1).getKind() == SqlKind.CAST
               && ((RexCall) operands.get(1)).operands.get(0).getKind()
               == SqlKind.INPUT_REF
-              && operands.get(2).getKind() == SqlKind.LITERAL
-              && operands.get(2).getType().getFamily() == SqlTypeFamily.NUMERIC) {
+              && operands.get(2).getKind() == SqlKind.LITERAL) {
             final RexCall isNotNull = (RexCall) operands.get(0);
             final RexInputRef ref0 = (RexInputRef) isNotNull.operands.get(0);
             final RexCall cast = (RexCall) operands.get(1);
