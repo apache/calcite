@@ -1902,7 +1902,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** The <code>TIMESTAMPDIFF</code> function. */
   public static final SqlFunction TIMESTAMP_DIFF =
-      new SqlTimestampDiffFunction("TIMESTAMPDIFF",
+      new SqlTimestampDiffFunction("TIMESTAMPDIFF", SqlKind.TIMESTAMP_DIFF,
           OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIMESTAMP,
               SqlTypeFamily.TIMESTAMP));
 

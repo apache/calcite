@@ -439,6 +439,9 @@ public enum SqlKind {
   /** {@code TIMESTAMP_DIFF} function (ODBC, SQL Server, MySQL). */
   TIMESTAMP_DIFF,
 
+  /** {@code TIMESTAMP_DIFF} function (BigQuery). */
+  BIG_QUERY_TIMESTAMP_DIFF,
+
   /** {@code TIMESTAMP_SUB} function (BigQuery). */
   TIMESTAMP_SUB,
 
@@ -1210,7 +1213,7 @@ public enum SqlKind {
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
                   SELECT, JOIN, OTHER_FUNCTION, POSITION, CAST, TRIM, FLOOR, CEIL,
                   DATE_SUB, TIME_ADD, TIME_SUB,
-                  TIMESTAMP_ADD, TIMESTAMP_DIFF, TIMESTAMP_SUB,
+                  TIMESTAMP_ADD, TIMESTAMP_DIFF, BIG_QUERY_TIMESTAMP_DIFF, TIMESTAMP_SUB,
                   EXTRACT, INTERVAL,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,

@@ -107,7 +107,7 @@ public abstract class SqlLibraryOperators {
    * argument. */
   @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
   public static final SqlFunction DATEDIFF =
-      new SqlTimestampDiffFunction("DATEDIFF",
+      new SqlTimestampDiffFunction("DATEDIFF", SqlKind.TIMESTAMP_DIFF,
           OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATE,
               SqlTypeFamily.DATE));
 
@@ -718,7 +718,7 @@ public abstract class SqlLibraryOperators {
    * {@code TIMESTAMPDIFF(unit, t2, t1)} and {@code (t1 - t2) unit}. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_DIFF3 =
-      new SqlTimestampDiffFunction("TIMESTAMP_DIFF",
+      new SqlTimestampDiffFunction("TIMESTAMP_DIFF", SqlKind.BIG_QUERY_TIMESTAMP_DIFF,
           OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP,
               SqlTypeFamily.ANY));
 
@@ -734,7 +734,7 @@ public abstract class SqlLibraryOperators {
    * returns the number of timeUnit between the two time expressions. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIME_DIFF =
-      new SqlTimestampDiffFunction("TIME_DIFF",
+      new SqlTimestampDiffFunction("TIME_DIFF", SqlKind.BIG_QUERY_TIMESTAMP_DIFF,
           OperandTypes.family(SqlTypeFamily.TIME, SqlTypeFamily.TIME,
               SqlTypeFamily.ANY));
 

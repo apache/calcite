@@ -1959,7 +1959,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlIntervalQualifier qualifier;
       final RexNode op1;
       final RexNode op2;
-      if (call.operand(0).getKind() == SqlKind.INTERVAL_QUALIFIER) {
+    /* To correctly assign the operands, check the operator to determine whether
+      it is BigQuery TIMESTAMP_DIFF or standard TIMESTAMPDIFF */
+      if (call.getOperator().getKind().name() == "TIMESTAMP_DIFF") {
         qualifier = call.operand(0);
         op1 = cx.convertExpression(call.operand(1));
         op2 = cx.convertExpression(call.operand(2));

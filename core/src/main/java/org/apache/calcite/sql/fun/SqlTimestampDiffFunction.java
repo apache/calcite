@@ -63,7 +63,9 @@ class SqlTimestampDiffFunction extends SqlFunction {
     final TimeUnit timeUnit;
     final RelDataType type1;
     final RelDataType type2;
-    if (SqlTypeName.DATETIME_TYPES.contains(opBinding.getOperandType(0).getSqlTypeName())) {
+    /* To correctly assign the operands, check the operator to determine whether
+      it is BigQuery TIMESTAMP_DIFF or standard TIMESTAMPDIFF */
+    if (opBinding.getOperator().getKind().name() == "BIG_QUERY_TIMESTAMP_DIFF") {
       type1 = opBinding.getOperandType(0);
       type2 = opBinding.getOperandType(1);
       timeUnit = opBinding.getOperandLiteralValue(2, TimeUnit.class);
@@ -83,8 +85,8 @@ class SqlTimestampDiffFunction extends SqlFunction {
   }
 
   /** Creates a SqlTimestampDiffFunction. */
-  SqlTimestampDiffFunction(String name, SqlOperandTypeChecker operandTypeChecker) {
-    super(name, SqlKind.TIMESTAMP_DIFF,
+  SqlTimestampDiffFunction(String name, SqlKind sqlKind, SqlOperandTypeChecker operandTypeChecker) {
+    super(name, sqlKind,
         SqlTimestampDiffFunction::inferReturnType2, null, operandTypeChecker,
         SqlFunctionCategory.TIMEDATE);
   }
