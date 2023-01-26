@@ -45,6 +45,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexSlot;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
@@ -66,6 +67,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
@@ -93,6 +96,8 @@ public class RelJson {
   private final Map<String, Constructor> constructorMap = new HashMap<>();
   private final @Nullable JsonBuilder jsonBuilder;
   private final InputTranslator inputTranslator;
+  private @NotOnlyInitialized @Nullable RelJsonWriter relJsonWriter;
+  private @NotOnlyInitialized @Nullable RelJsonReader relJsonReader;
 
   public static final List<String> PACKAGES =
       ImmutableList.of(
@@ -122,8 +127,30 @@ public class RelJson {
     return new RelJson(jsonBuilder, inputTranslator);
   }
 
+  /** Returns a RelJson with a given RelJsonReader. */
+  @SuppressWarnings("initialization.invalid.field.write.initialized")
+  public RelJson withRelJsonReader(@UnknownInitialization RelJsonReader relJsonReader) {
+    this.relJsonReader = relJsonReader;
+    return this;
+  }
+
+  /** Returns a RelJson with a given RelJsonWriter. */
+  @SuppressWarnings("initialization.invalid.field.write.initialized")
+  public RelJson withRelJsonWriter(@UnknownInitialization RelJsonWriter relJsonWriter) {
+    this.relJsonWriter = relJsonWriter;
+    return this;
+  }
+
   private JsonBuilder jsonBuilder() {
     return requireNonNull(jsonBuilder, "jsonBuilder");
+  }
+
+  private RelJsonWriter relJsonWriter() {
+    return requireNonNull(relJsonWriter, "relJsonWriter");
+  }
+
+  private RelJsonReader relJsonReader() {
+    return requireNonNull(relJsonReader, "relJsonReader");
   }
 
   @SuppressWarnings("unchecked")
@@ -540,6 +567,14 @@ public class RelJson {
           map.put("type", toJson(node.getType()));
           map.put("window", toJson(over.getWindow()));
         }
+        if (call instanceof RexSubQuery) {
+          RexSubQuery subQuery = (RexSubQuery) node;
+          List<@Nullable Object> inputs = relJsonWriter()
+              .explainRelNodes(ImmutableList.of(subQuery.rel));
+          assert inputs.size() == 1;
+          map.put("rel", inputs.get(0));
+          map.put("type", toJson(node.getType()));
+        }
         return map;
       }
       throw new UnsupportedOperationException("unknown rex " + node);
@@ -659,6 +694,11 @@ public class RelJson {
             type = toType(typeFactory, jsonType);
           } else {
             type = rexBuilder.deriveReturnType(operator, rexOperands);
+          }
+
+          if (map.get("rel") != null) {
+            final RelNode rel = relJsonReader().readRel((String) requireNonNull(map.get("rel")));
+            return new RexSubQuery(type, operator, ImmutableList.copyOf(rexOperands), rel);
           }
           return rexBuilder.makeCall(type, operator, rexOperands);
         }

@@ -37,12 +37,20 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Scalar expression that represents an IN, EXISTS or scalar sub-query.
+ * Scalar expression that represents a sub-query such as IN, EXISTS or scalar sub-query.
  */
 public class RexSubQuery extends RexCall {
   public final RelNode rel;
 
-  private RexSubQuery(RelDataType type, SqlOperator op,
+  /**
+   * The constructor is mainly used when the RexNode is deserialized from JSON
+   * in {@link org.apache.calcite.rel.externalize.RelJsonReader}.
+   *
+   * <p> For other purposes, you should use the static methods, e.g.
+   * {@link RexSubQuery#in(RelNode, ImmutableList)}, {@link RexSubQuery#exists(RelNode)},
+   * {@link RexSubQuery#scalar(RelNode)}.
+   */
+  public RexSubQuery(RelDataType type, SqlOperator op,
       ImmutableList<RexNode> operands, RelNode rel) {
     super(type, op, operands);
     this.rel = rel;

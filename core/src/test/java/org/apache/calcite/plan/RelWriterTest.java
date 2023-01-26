@@ -1025,15 +1025,28 @@ class RelWriterTest {
   }
 
   @Test void testProjectionWithCorrelationVariables() {
+    // Equivalent SQL:
+    // SELECT ename, (SELECT ename) FROM emp
+    final Holder<RexCorrelVariable> v = Holder.empty();
     final Function<RelBuilder, RelNode> relFn = b -> b.scan("EMP")
+        .variable(v)
         .project(
-            ImmutableList.of(b.field("ENAME")),
+            ImmutableList.of(
+                b.field("ENAME"), b.scalarQuery(b1 ->
+                b1.values(new String[]{"col"}, 1)
+                    .project(b.field(v.get(), "ENAME"))
+                    .build()
+            )),
             ImmutableList.of("ename"),
             true,
-            ImmutableSet.of(b.getCluster().createCorrel()))
+            ImmutableSet.of(v.get().id))
         .build();
 
-    final String expected = "LogicalProject(variablesSet=[[$cor0]], ename=[$1])\n"
+    final String expected = "LogicalProject(variablesSet=[[$cor0]], "
+        + "ename=[$1], $f1=[$SCALAR_QUERY({\n"
+        + "LogicalProject($f0=[$cor0.ENAME])\n"
+        + "  LogicalValues(tuples=[[{ 1 }]])\n"
+        + "})])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     relFn(relFn)
         .assertThatPlan(isLinux(expected));
