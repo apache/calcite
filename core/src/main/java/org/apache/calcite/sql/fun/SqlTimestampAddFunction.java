@@ -78,27 +78,19 @@ public class SqlTimestampAddFunction extends SqlFunction {
     final RelDataType type;
     TimeUnit timeUnit2 = first(timeUnit, TimeUnit.EPOCH);
     switch (timeUnit2) {
+    case MILLISECOND:
+      type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
+          MILLISECOND_PRECISION);
+      break;
+    case MICROSECOND:
+      type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
+          MICROSECOND_PRECISION);
+      break;
     case HOUR:
     case MINUTE:
     case SECOND:
-    case MILLISECOND:
-    case MICROSECOND:
-      switch (timeUnit2) {
-      case MILLISECOND:
-        type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
-            MILLISECOND_PRECISION);
-        break;
-      case MICROSECOND:
-        type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
-            MICROSECOND_PRECISION);
-        break;
-      default:
-        if (operandType2.getSqlTypeName() == SqlTypeName.TIME) {
-          type = typeFactory.createSqlType(SqlTypeName.TIME);
-        } else {
-          type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
-        }
-      }
+      final SqlTypeName typeName = sanitize(operandType2.getSqlTypeName());
+      type = typeFactory.createSqlType(typeName);
       break;
     default:
     case EPOCH:
@@ -108,7 +100,15 @@ public class SqlTimestampAddFunction extends SqlFunction {
         operandType1.isNullable()
             || operandType2.isNullable());
   }
-
+  private static SqlTypeName sanitize(SqlTypeName typeName) {
+    switch (typeName) {
+    case TIME:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      return typeName;
+    default: // usually DATE or TIMESTAMP
+      return SqlTypeName.TIMESTAMP;
+    }
+  }
   @Override public void validateCall(SqlCall call, SqlValidator validator,
       SqlValidatorScope scope, SqlValidatorScope operandScope) {
     super.validateCall(call, validator, scope, operandScope);
