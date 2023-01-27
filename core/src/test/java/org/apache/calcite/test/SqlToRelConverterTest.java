@@ -56,6 +56,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -73,6 +74,7 @@ import static org.hamcrest.core.Is.isA;
  * Unit test for {@link org.apache.calcite.sql2rel.SqlToRelConverter}.
  * See {@link RelOptRulesTest} for an explanation of how to add tests;
  */
+@ResourceLock(value = "SqlToRelConverterTest.xml")
 class SqlToRelConverterTest extends SqlToRelTestBase {
 
   private static final SqlToRelFixture LOCAL_FIXTURE =
