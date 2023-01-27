@@ -2804,6 +2804,10 @@ LogicalProject(ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
+    <Resource name="sql">
+      <![CDATA[Select ename from emp WHERE
+CURRENT_TIMESTAMP BETWEEN DATE '2022-1-1' AND DATE '2023-12-25']]>
+    </Resource>
   </TestCase>
   <TestCase name="testImplicitJoinExpandAndDecorrelation">
     <Resource name="planExpanded">
@@ -3402,6 +3406,236 @@ LogicalProject(EXPR$0=[OR(AND(IS NULL($0), IS NULL($1)), IS TRUE(=($0, $1)))])
       <![CDATA[select empno is not distinct from deptno
 from (values (cast(null as int), 1),
              (2, cast(null as int))) as emp(empno, deptno)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionSubQuery">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(PRODUCT_ID=[$1])
+  LogicalJoin(condition=[=($11, $1)], joinType=[left])
+    LogicalJoin(condition=[AND(=($1, $2), =($3, $0))], joinType=[left])
+      LogicalValues(tuples=[[{ 1, 2 }]])
+      LogicalJoin(condition=[true], joinType=[left])
+        LogicalValues(tuples=[[{ 1, null }]])
+        LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+          LogicalProject(DS=[$1])
+            LogicalValues(tuples=[[{ 1, null }]])
+    LogicalValues(tuples=[[{ 1, null, null, null, 2, null, 3, 4, null, false }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionSubQuery2">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(PRODUCT_ID=[$1])
+  LogicalJoin(condition=[=($11, $1)], joinType=[left])
+    LogicalJoin(condition=[AND(=($1, $2), =($3, $0))], joinType=[left])
+      LogicalValues(tuples=[[{ 1, 2 }]])
+      LogicalJoin(condition=[true], joinType=[left])
+        LogicalValues(tuples=[[{ 1, null }]])
+        LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+          LogicalProject(DS=[$1])
+            LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+              LogicalValues(tuples=[[{ 1, null }]])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalValues(tuples=[[{ 1, null, null, null, 2, null, 3, 4, null, false }]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[with dummy_table as (select 1 as A),
+
+product_options as (
+         select 1 as brand_id
+              , 2 as product_id
+         from dummy_table
+     ),
+
+products_daily_summary_spoof as (
+        select
+            1 as product_id,
+            null::date as ds
+        from dummy_table
+),
+
+etl_datascience_products_daily_summary_spoof as (
+        select
+            1 as product_id,
+            null::date as ds
+        from dummy_table
+),
+
+production_product_videos_spoof as (
+        select
+            1 as id,
+            null::timestamp as updated_at,
+            null::varchar as token,
+            null::varchar as state,
+            2 as brand_id,
+            null::timestamp as first_published_at,
+            3 as product_id,
+            4 as video_id,
+            null::timestamp as created_at,
+            false as is_deleted
+        from dummy_table
+)
+
+
+select
+             po.product_id
+
+             from product_options po
+                      left join etl_datascience_products_daily_summary_spoof pds on po.product_id = pds.product_id
+                 and pds.ds::date = (select max(ds) from (         select * from etl_datascience_products_daily_summary_spoof etl_spoof join emp on          emp.deptno = etl_spoof.product_id))
+                      left join production_product_videos_spoof pv on pv.product_id = po.product_id]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionSubQuery3">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(PRODUCT_ID=[$3])
+  LogicalJoin(condition=[=($11, $3)], joinType=[left])
+    LogicalJoin(condition=[AND(=($3, $0), =($1, $0))], joinType=[right])
+      LogicalValues(tuples=[[{ 1, null }]])
+      LogicalJoin(condition=[true], joinType=[left])
+        LogicalValues(tuples=[[{ 1, 2 }]])
+        LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+          LogicalProject(DS=[$1])
+            LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+              LogicalValues(tuples=[[{ 1, null }]])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalValues(tuples=[[{ 1, null, null, null, 2, null, 3, 4, null, false }]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[with dummy_table as (select 1 as A),
+
+product_options as (
+         select 1 as brand_id
+              , 2 as product_id
+         from dummy_table
+     ),
+
+products_daily_summary_spoof as (
+        select
+            1 as product_id,
+            null::date as ds
+        from dummy_table
+),
+
+etl_datascience_products_daily_summary_spoof as (
+        select
+            1 as product_id,
+            null::date as ds
+        from dummy_table
+),
+
+production_product_videos_spoof as (
+        select
+            1 as id,
+            null::timestamp as updated_at,
+            null::varchar as token,
+            null::varchar as state,
+            2 as brand_id,
+            null::timestamp as first_published_at,
+            3 as product_id,
+            4 as video_id,
+            null::timestamp as created_at,
+            false as is_deleted
+        from dummy_table
+)
+
+
+select
+             po.product_id
+             from etl_datascience_products_daily_summary_spoof pds  right join product_options po
+on po.product_id = pds.product_id
+                 and pds.ds::date = (select max(ds) from (         select * from etl_datascience_products_daily_summary_spoof etl_spoof join emp on          emp.deptno = etl_spoof.product_id))
+                      left join production_product_videos_spoof pv
+on pv.product_id = po.product_id]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionSubQuery4">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(PRODUCT_ID=[$4])
+  LogicalJoin(condition=[=($25, $27)], joinType=[inner])
+    LogicalJoin(condition=[=($25, $4)], joinType=[inner])
+      LogicalJoin(condition=[AND(=($13, $4), <=(CAST($8):DATE, $0))], joinType=[left])
+        LogicalJoin(condition=[AND(=($4, $0), =($1, $0), =($2, $1))], joinType=[right])
+          LogicalValues(tuples=[[{ 1, null, 2 }]])
+          LogicalJoin(condition=[true], joinType=[left])
+            LogicalJoin(condition=[true], joinType=[left])
+              LogicalValues(tuples=[[{ 1, 2 }]])
+              LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+                LogicalProject(DS=[$1])
+                  LogicalJoin(condition=[=($10, $0)], joinType=[inner])
+                    LogicalValues(tuples=[[{ 1, null, 2 }]])
+                    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+              LogicalProject(SECONDARY_PRODUCT_ID=[$2])
+                LogicalValues(tuples=[[{ 1, null, 2 }]])
+        LogicalJoin(condition=[true], joinType=[left])
+          LogicalValues(tuples=[[{ 1, null, null, null, 2, null, 3, 4, null, false }]])
+          LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+            LogicalProject(DS=[$1])
+              LogicalJoin(condition=[=($10, $0)], joinType=[inner])
+                LogicalValues(tuples=[[{ 1, null, 2 }]])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[with dummy_table as (select 1 as A),
+
+product_options as (
+         select 1 as brand_id
+              , 2 as product_id
+         from dummy_table
+     ),
+
+products_daily_summary_spoof as (
+        select
+            1 as product_id,
+            null::date as ds
+        from dummy_table
+),
+
+etl_datascience_products_daily_summary_spoof as (
+        select
+            1 as product_id,
+            null::date as ds,
+            2 as secondary_product_id
+        from dummy_table
+),
+
+production_product_videos_spoof as (
+        select
+            1 as id,
+            null::timestamp as updated_at,
+            null::varchar as token,
+            null::varchar as state,
+            2 as brand_id,
+            null::timestamp as first_published_at,
+            3 as product_id,
+            4 as video_id,
+            null::timestamp as created_at,
+            false as is_deleted
+        from dummy_table
+)
+
+
+select
+             po.product_id
+             from etl_datascience_products_daily_summary_spoof pds  right join product_options po
+on po.product_id = pds.product_id
+                 and pds.ds::date = (select max(ds) from (         select * from etl_datascience_products_daily_summary_spoof etl_spoof join emp on          emp.deptno = etl_spoof.product_id))
+                 and pds.secondary_product_id = (select max(secondary_product_id) from etl_datascience_products_daily_summary_spoof)
+                      left join production_product_videos_spoof pv
+on pv.product_id = po.product_id and pv.updated_at::date <= (select max(ds) from (         select * from etl_datascience_products_daily_summary_spoof etl_spoof join emp on          emp.deptno = etl_spoof.product_id))
+         join emp on emp.deptno = po.product_id
+         join dept on emp.deptno = dept.deptno
+]]>
     </Resource>
   </TestCase>
   <TestCase name="testJoinExpandAndDecorrelation">
@@ -7205,6 +7439,9 @@ LogicalProject(EXPR$0=['2000-01-01':VARCHAR])
 LogicalProject(EXPR$0=[123.21:TINYINT])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select 123.21::tinyint from emp]]>
     </Resource>
   </TestCase>
   <TestCase name="testSelectInfixCastFloatString">

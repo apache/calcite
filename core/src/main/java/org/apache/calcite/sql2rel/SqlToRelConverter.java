@@ -3187,6 +3187,20 @@ public class SqlToRelConverter {
     convertFrom(rightBlackboard, right);
     final RelNode tempRightRel = requireNonNull(rightBlackboard.root, "rightBlackboard.root");
 
+
+    // Append tracking of any added sub query nodes in either side of a join
+    for (int offset: leftBlackboard.offsetNodes) {
+      fromBlackboard.offsetNodes.add(offset);
+    }
+
+    final int num_left_rels = new LookupContext(
+        bb, ImmutableList.of(leftRel), bb.systemFieldList.size()).relOffsetList.size();
+
+    for (int offset: rightBlackboard.offsetNodes) {
+      fromBlackboard.offsetNodes.add(offset + num_left_rels);
+    }
+
+
     final JoinConditionType conditionType = join.getConditionType();
     final RexNode condition;
     final RelNode rightRel;
@@ -3218,6 +3232,13 @@ public class SqlToRelConverter {
         throw Util.unexpected(conditionType);
       }
     }
+
+    // Finally, append the offsets to the parent blackboard to handle the recursive
+    // case
+    for (int offset: fromBlackboard.offsetNodes) {
+      bb.offsetNodes.add(offset);
+    }
+
     final RelNode joinRel = createJoin(
         fromBlackboard,
         leftRel,
@@ -3278,16 +3299,44 @@ public class SqlToRelConverter {
       SqlJoin join,
       RelNode leftRel,
       RelNode rightRel) {
+
     SqlNode condition = requireNonNull(join.getCondition(),
         () -> "getCondition for join " + join);
 
     bb.setRoot(ImmutableList.of(leftRel, rightRel));
+
+    final LookupContext old_right_rels = new LookupContext(
+        bb, ImmutableList.of(rightRel), bb.systemFieldList.size());
+
     replaceSubQueries(bb, condition, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
-    final RelNode newRightRel = bb.root == null || bb.registered.size() == 0
+    boolean newRight = bb.root == null || bb.registered.size() == 0;
+    final RelNode newRightRel = newRight
         ? rightRel
         : bb.reRegister(rightRel);
+
+    /**
+     * Logic needed to update the offset list, which tracks at what offsets in the
+     * relnode list we insert sub queries
+     * can be found in the flattened rel list. (see the variable for more information)
+     */
+    final LookupContext left_rels = new LookupContext(
+        bb, ImmutableList.of(leftRel), bb.systemFieldList.size());
+
+    final LookupContext right_rels = new LookupContext(
+        bb, ImmutableList.of(newRightRel), bb.systemFieldList.size());
+
+    // This variable is confusingly named, we've added sub-queries to the right rel
+    // if newRight is false
+    if (!newRight) {
+      for (int i = 0;
+           i < right_rels.relOffsetList.size() - old_right_rels.relOffsetList.size(); i++) {
+        bb.offsetNodes.add(
+            left_rels.relOffsetList.size() + old_right_rels.relOffsetList.size() + i);
+      }
+    }
+
     bb.setRoot(ImmutableList.of(leftRel, newRightRel));
-    RexNode conditionExp =  bb.convertExpression(condition);
+    RexNode conditionExp = bb.convertExpression(condition);
     return Pair.of(conditionExp, newRightRel);
   }
 
@@ -5361,6 +5410,23 @@ public class SqlToRelConverter {
     final List<RelNode> cursors = new ArrayList<>();
 
     /**
+     * This variable is used specifically for handling sub-queries in the "on" condition of joins.
+     *
+     * Normally, the list of children in the scope of a join and the flattened list of rels
+     * for a given join node have the same indices. We use this information to properly resolve
+     * identifiers into input Refs with the correct offsets.
+     *
+     * However, when converting the on conditions of a join, Calcite must
+     * get the information from the sub-queries via joining them with the appropriate tables.
+     * This results in additional rels being inserted
+     * into the flattened list, which breaks the above assumption.
+     *
+     * In order to resolve this, we keep track of the indices into which we insert sub queries,
+     * which allows us to properly handle this when creating input refs.
+     */
+    List<Integer> offsetNodes = new ArrayList<>();
+
+    /**
      * List of <code>IN</code> and <code>EXISTS</code> nodes inside this
      * <code>SELECT</code> statement (but not inside sub-queries).
      */
@@ -5652,7 +5718,18 @@ public class SqlToRelConverter {
       if ((inputs != null) && !isParent) {
         final LookupContext rels =
             new LookupContext(this, inputs, systemFieldList.size());
-        final RexNode node = lookup(resolve.path.steps().get(0).i, rels);
+
+
+        int initial_index = resolve.path.steps().get(0).i;
+        int actual_index = initial_index;
+        for (int offset: offsetNodes) {
+          // Need to use actual_index here, to account for multiple sub-queries
+          // being inlined in the same on clause
+          if (actual_index >= offset) {
+            actual_index++;
+          }
+        }
+        final RexNode node = lookup(actual_index, rels);
         assert node != null;
         return Pair.of(node, (e, fieldName) -> {
           final RelDataTypeField field =
@@ -6190,7 +6267,7 @@ public class SqlToRelConverter {
   private static SqlQuantifyOperator negate(SqlQuantifyOperator operator) {
     assert operator.kind == SqlKind.ALL;
     if (operator.comparisonKind == SqlKind.LIKE || operator.comparisonKind == SqlKind.NULL_EQUALS) {
-      throw new AssertionError("TODO! Needed for full subquerry support, See BS-552");
+      throw new AssertionError("TODO! Needed for full subquery support, See BS-552");
     }
     return SqlStdOperatorTable.some(operator.comparisonKind.negateNullSafe());
   }
