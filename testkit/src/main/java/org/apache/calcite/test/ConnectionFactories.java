@@ -169,7 +169,7 @@ public abstract class ConnectionFactories {
     }
   }
 
-  /** Post-processor that adds a {@link Schema} and sets it as default. */
+  /** Post-processor that adds a {@link RelProtoDataType} and sets it as default. */
   private static class AddTypePostProcessor
       implements CalciteAssert.ConnectionPostProcessor {
     private final String name;
