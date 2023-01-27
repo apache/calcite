@@ -28,12 +28,14 @@ import org.apache.calcite.util.TestUtil;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.io.IOException;
 
 /**
  * Runs {@link org.apache.calcite.test.SqlToRelConverterTest} with extensions.
  */
+@ResourceLock(value = "SqlToRelConverterTest.xml")
 class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
   Hook.Closeable closeable;
 
