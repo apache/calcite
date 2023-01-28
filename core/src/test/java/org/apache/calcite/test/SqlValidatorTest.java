@@ -5709,6 +5709,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(lenient).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5486">[CALCITE-5486]
+   * SubQuery not support HAVING alias in where condition</a>. */
+  @Test void testHavingAliasInCondition() {
+    sql("select * from emp where sal >\n"
+        + " (select avg(sal) as s"
+        + "    from emp having ^s^ > 0"
+        + "  )")
+        .fails("Column 'S' not found in any table")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
   /**
    * Tests validation of the ORDER BY clause when DISTINCT is present.
    */

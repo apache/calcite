@@ -4474,6 +4474,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode condition,
       String clause) {
     validateNoAggs(aggOrOverOrGroupFinder, condition, clause);
+    //  SqlSelect need to expand alias
+    condition.accept(new SqlShuttle() {
+      @Override public @Nullable SqlNode visit(SqlCall call) {
+        call.getOperandList()
+            .stream()
+            .filter(node -> node != null)
+            .forEach(node -> node.accept(this));
+        if (call.getKind() == SqlKind.SELECT) {
+          SqlSelect select = (SqlSelect) call;
+          validateHavingClause(select);
+          return select;
+        }
+        return call;
+      }
+    });
     inferUnknownTypes(
         booleanType,
         scope,
