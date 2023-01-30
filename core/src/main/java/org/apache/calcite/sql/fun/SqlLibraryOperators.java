@@ -764,21 +764,18 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BIGINT_NULLABLE, OperandTypes.TIMESTAMP,
           SqlFunctionCategory.TIMEDATE);
 
-  /** BigQuery's "DATETIME_ADD(timestamp, interval) function; Behaves similarly
-   * to BigQuery's TIMESTAMP_ADD because in Calcite, datetime is a type alias
-   * for timestamp. */
+  /** DATETIME_ADD(timestamp, interval) function; Adds interval to timestamp. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATETIME_ADD =
       TIMESTAMP_ADD2.withName("DATETIME_ADD");
 
-  /** BigQuery's "DATETIME_DIFF(timestamp, timestamp, timeUnit) function; Behaves
-   * similarly to BigQuery's TIMESTAMP_DIFF because in Calcite, datetime is a type
-   * alias for timestamp. Returns the whole number of timeUnit between datetime
-   * and datetime2, with the result being negative if datetime occurs before datetime2. */
+  /** DATETIME_DIFF(timestamp, timestamp, timeUnit) function; Returns the
+   * whole number of timeUnit between datetime and datetime2, with the result being
+   * negative if datetime occurs before datetime2. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATETIME_DIFF =
       new SqlTimestampDiffFunction("DATETIME_DIFF",
-          OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.ANY));
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME, SqlTypeFamily.ANY));
 
   /** The "CHAR(n)" function; returns the character whose ASCII code is
    * {@code n} % 256, or null if {@code n} &lt; 0. */

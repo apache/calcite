@@ -2622,7 +2622,7 @@ semantics.
 | b | DATETIME(date, time)                           | Returns a datetime object, given a date and a time.
 | b | DATETIME(timestamp)                            | Converts a timestamp object to a datetime, assuming UTC.
 | b | DATETIME(timestamp, timezone)                  | Converts a timestamp object to a datetime, in a given time zone.
-| b | DATETIME_ADD(timestamp, interval)              | Synonym for TIMESTAMP_ADD.
+| b | DATETIME_ADD(timestamp, interval)              | Adds *interval* to *timestamp*
 | b | DATETIME_DIFF(timestamp, timestamp2, interval) | Synonym for TIMESTAMP_DIFF.
 | p q | DATEADD(timeUnit, integer, datetime)         | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
 | p q | DATEDIFF(timeUnit, datetime, datetime2)      | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`

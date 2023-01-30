@@ -4678,7 +4678,7 @@ SqlNode DatetimeFunctionCall() :
 }
 
 /**
- * Parses BigQuery's built-in DATETIME_DIFF() function.
+ * Parses the DATETIME_DIFF() function.
  */
 SqlNode DatetimeDiffFunctionCall() :
 {
