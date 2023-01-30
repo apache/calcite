@@ -385,6 +385,23 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .withConformance(SqlConformanceEnum.LENIENT).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5507">[CALCITE-5507]
+   * HAVING alias failed when aggregate function in condition</a>. */
+  @Test void testAggregateFunAndAliasInHaving1() {
+    sql("select count(empno) as e\n"
+        + "from emp\n"
+        + "having e > 10 and count(empno) > 10")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test void testAggregateFunAndAliasInHaving2() {
+    sql("select count(empno) as e\n"
+        + "from emp\n"
+        + "having e > 10 or count(empno) < 5")
+        .withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
   @Test void testGroupJustOneAgg() {
     // just one agg
     final String sql =

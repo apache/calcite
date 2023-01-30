@@ -5673,6 +5673,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(strict).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5507">[CALCITE-5507]
+   * HAVING alias failed when aggregate function in condition</a>. */
+  @Test void testAggregateFunAndAliasInHaving() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    final SqlConformanceEnum strict = SqlConformanceEnum.STRICT_2003;
+
+    sql("select count(empno) as e from emp having ^e^ > 10 and count(empno) > 10 ")
+        .withConformance(strict).fails("Column 'E' not found in any table")
+        .withConformance(lenient).ok();
+    sql("select count(empno) as e from emp having count(empno) > 10 and count(^e^) > 10")
+        .withConformance(strict).fails("Column 'E' not found in any table")
+        .withConformance(lenient).fails("Column 'E' not found in any table");
+  }
+
   /**
    * Tests validation of the aliases in HAVING.
    *

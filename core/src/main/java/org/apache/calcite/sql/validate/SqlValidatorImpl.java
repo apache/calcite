@@ -6822,8 +6822,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           throw validator.newValidationError(id,
               RESOURCE.columnAmbiguous(name));
         }
-        if (havingExpr && validator.isAggregate(root)) {
-          return super.visit(id);
+        Iterable<SqlCall> allAggList = validator.aggFinder.findAll(ImmutableList.of(root));
+        for (SqlCall agg : allAggList) {
+          if (havingExpr && containsIdentifier(agg, id)) {
+            return super.visit(id);
+          }
         }
         expr = stripAs(expr);
         if (expr instanceof SqlIdentifier) {
@@ -6887,6 +6890,31 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
       return super.visit(literal);
+    }
+
+    /**
+     * Returns whether a given node contains a {@link SqlIdentifier}.
+     *
+     * @param sqlNode a SqlNode
+     * @param target a SqlIdentifier
+     */
+    private boolean containsIdentifier(SqlNode sqlNode, SqlIdentifier target) {
+      try {
+        SqlVisitor<Void> visitor =
+            new SqlBasicVisitor<Void>() {
+              @Override public Void visit(SqlIdentifier identifier) {
+                if (identifier.equalsDeep(target, Litmus.IGNORE)) {
+                  throw new Util.FoundOne(target);
+                }
+                return super.visit(identifier);
+              }
+            };
+        sqlNode.accept(visitor);
+        return false;
+      } catch (Util.FoundOne e) {
+        Util.swallow(e, null);
+        return true;
+      }
     }
   }
 
