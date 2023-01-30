@@ -50,6 +50,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -597,6 +598,7 @@ public class RelSubset extends AbstractRelNode {
    */
   static class CheapestPlanReplacer {
     VolcanoPlanner planner;
+    final Map<Integer, RelNode> visited = new HashMap<>();
 
     CheapestPlanReplacer(VolcanoPlanner planner) {
       super();
@@ -615,6 +617,13 @@ public class RelSubset extends AbstractRelNode {
         RelNode p,
         int ordinal,
         @Nullable RelNode parent) {
+      final int pId = p.getId();
+      RelNode prevVisit = visited.get(pId);
+      if (prevVisit != null) {
+        // return memoized result of previous visit if available
+        return prevVisit;
+      }
+
       if (p instanceof RelSubset) {
         RelSubset subset = (RelSubset) p;
         RelNode cheapest = subset.best;
@@ -729,6 +738,7 @@ public class RelSubset extends AbstractRelNode {
         planner.provenanceMap.put(
             p, new VolcanoPlanner.DirectProvenance(pOld));
       }
+      visited.put(pId, p); // memoize result for pId
       return p;
     }
   }
