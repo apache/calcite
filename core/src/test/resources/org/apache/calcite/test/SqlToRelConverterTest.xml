@@ -164,6 +164,36 @@ LogicalProject(DEPTNO=[$0], B=[>($1, $2)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateFunAndAliasInHaving1">
+    <Resource name="sql">
+      <![CDATA[select count(empno) as e
+from emp
+having e > 10 and count(empno) > 10]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalFilter(condition=[>($0, 10)])
+  LogicalAggregate(group=[{}], E=[COUNT()])
+    LogicalProject(EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAggregateFunAndAliasInHaving2">
+    <Resource name="sql">
+      <![CDATA[select count(empno) as e
+from emp
+having e > 10 or count(empno) < 5]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalFilter(condition=[SEARCH($0, Sarg[(-∞..5), (10..+∞)])])
+  LogicalAggregate(group=[{}], E=[COUNT()])
+    LogicalProject(EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateFunctionForStructInput">
     <Resource name="sql">
       <![CDATA[select collect(skill) as collect_skill,
