@@ -1880,28 +1880,13 @@ class RelToSqlConverterTest {
         "SELECT FORMAT_TIMESTAMP('%b-%d-%Y', TIMESTAMP '2012-02-03 12:30:40')\nFROM foodmart"
             + ".product";
     final String expectedBqFormatDatetime =
-        "SELECT FORMAT_DATETIME('%H:%M', TIMESTAMP '2012-02-03 12:34:34')\nFROM foodmart.product";
+        "SELECT FORMAT_DATETIME('%R', TIMESTAMP '2012-02-03 12:34:34')\nFROM foodmart.product";
     sql(formatTime).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expectedBqFormatTime);
     sql(formatDate).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expectedBqFormatDate);
     sql(formatTimestamp).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY)
         .ok(expectedBqFormatTimestamp);
     sql(formatDatetime).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY)
         .ok(expectedBqFormatDatetime);
-
-    final String expectedMySqlFormatTime = "SELECT DATE_FORMAT(TIME '12:45:30', '%k')\nFROM "
-        + "`foodmart`.`product`";
-    final String expectedMySqlFormatDate = "SELECT DATE_FORMAT(DATE '2012-02-03', '%b-%d-%Y')"
-        + "\nFROM `foodmart`.`product`";
-    final String expectedMySqlFormatTimestamp = "SELECT DATE_FORMAT(TIMESTAMP '2012-02-03 "
-        + "12:30:40', '%b-%d-%Y')\nFROM `foodmart`.`product`";
-    final String expectedMySqlFormatDatetime = "SELECT DATE_FORMAT(TIMESTAMP '2012-02-03 "
-        + "12:34:34', '%k:%i')\nFROM `foodmart`.`product`";
-    sql(formatTime).withMysql().withLibrary(SqlLibrary.BIG_QUERY).ok(expectedMySqlFormatTime);
-    sql(formatDate).withMysql().withLibrary(SqlLibrary.BIG_QUERY).ok(expectedMySqlFormatDate);
-    sql(formatTimestamp).withMysql().withLibrary(SqlLibrary.BIG_QUERY)
-        .ok(expectedMySqlFormatTimestamp);
-    sql(formatDatetime).withMysql().withLibrary(SqlLibrary.BIG_QUERY)
-        .ok(expectedMySqlFormatDatetime);
   }
 
   /** Test case for

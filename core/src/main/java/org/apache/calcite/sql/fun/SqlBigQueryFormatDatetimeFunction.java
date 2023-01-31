@@ -22,11 +22,13 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.format.FormatModels;
 
 import java.util.Locale;
 
@@ -52,8 +54,11 @@ import static org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_
  */
 public class SqlBigQueryFormatDatetimeFunction extends SqlFunction {
 
-  private SqlTypeName typeName;
-  private String name;
+  private final SqlTypeName typeName;
+  private final String name;
+
+  public static final FormatModels BQ_FORMAT_MODEL =
+      FormatModels.create(BigQuerySqlDialect.DEFAULT.getFormatElementMap());
 
   private SqlBigQueryFormatDatetimeFunction(String name, SqlTypeName typeName) {
     super(name, SqlKind.valueOf(name), ReturnTypes.VARCHAR_2000_NULLABLE, null,
@@ -75,7 +80,7 @@ public class SqlBigQueryFormatDatetimeFunction extends SqlFunction {
    * Creates a {@code SqlBigQueryFormatDatetimeFunction} appropriate for the given
    * {@link SqlTypeName}.
    */
-  public static SqlBigQueryFormatDatetimeFunction create(SqlTypeName typeName) {
+  public static SqlBigQueryFormatDatetimeFunction get(SqlTypeName typeName) {
     switch (typeName) {
     case DATE:
       return FORMAT_DATE;
@@ -134,7 +139,7 @@ public class SqlBigQueryFormatDatetimeFunction extends SqlFunction {
       boolean validOpCount = (this.typeName == TIME || this.typeName == DATE)
           ? opCount == 2
           // TIMESTAMP and DATETIME allow a third optional timezone operand
-          : opCount == 2 || (opCount == 3 && isCharType(callBinding, 3));
+          : opCount == 2 || (opCount == 3 && isCharType(callBinding, 2));
       boolean valid = validOpCount
           && isCharType(callBinding, 0)
           && callBinding.getOperandType(1).getSqlTypeName() == this.typeName;

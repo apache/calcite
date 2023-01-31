@@ -43,16 +43,37 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.util.format.FormatElementEnum;
+import org.apache.calcite.util.format.FormatElement;
+import org.apache.calcite.util.format.FormatModels;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
+
+import static org.apache.calcite.util.format.FormatElementEnum.D;
+import static org.apache.calcite.util.format.FormatElementEnum.DAY;
+import static org.apache.calcite.util.format.FormatElementEnum.DD;
+import static org.apache.calcite.util.format.FormatElementEnum.DDD;
+import static org.apache.calcite.util.format.FormatElementEnum.DY;
+import static org.apache.calcite.util.format.FormatElementEnum.HH24;
+import static org.apache.calcite.util.format.FormatElementEnum.IW;
+import static org.apache.calcite.util.format.FormatElementEnum.MI;
+import static org.apache.calcite.util.format.FormatElementEnum.MM;
+import static org.apache.calcite.util.format.FormatElementEnum.MON;
+import static org.apache.calcite.util.format.FormatElementEnum.MONTH;
+import static org.apache.calcite.util.format.FormatElementEnum.Q;
+import static org.apache.calcite.util.format.FormatElementEnum.SS;
+import static org.apache.calcite.util.format.FormatElementEnum.TZR;
+import static org.apache.calcite.util.format.FormatElementEnum.WW;
+import static org.apache.calcite.util.format.FormatElementEnum.YY;
+import static org.apache.calcite.util.format.FormatElementEnum.YYYY;
 
 import static java.util.Objects.requireNonNull;
 
@@ -91,6 +112,43 @@ public class BigQuerySqlDialect extends SqlDialect {
               "STRUCT", "TABLESAMPLE", "THEN", "TO", "TREAT", "TRUE",
               "UNBOUNDED", "UNION", "UNNEST", "USING", "WHEN", "WHERE",
               "WINDOW", "WITH", "WITHIN"));
+
+  private static final Map<String, FormatElement> BIG_QUERY_FORMAT_ELEMENT_MAP =
+      new ImmutableMap.Builder<String, FormatElement>()
+          .put("%A", DAY)
+          .put("%a", DY)
+          .put("%B", MONTH)
+          .put("%b", MON)
+          .put(
+              "%c", FormatModels.compositeElement(
+              Arrays.asList(DY, FormatModels.literalElement(" "), MON,
+                  FormatModels.literalElement(" "), DD, FormatModels.literalElement(" "), HH24,
+                  FormatModels.literalElement(":"), MI, FormatModels.literalElement(":"), SS,
+                  FormatModels.literalElement(" "), YYYY),
+              "The date and time representation (English)."))
+          .put("%d", DD)
+          .put("%H", HH24)
+          .put("%j", DDD)
+          .put("%M", MI)
+          .put("%m", MM)
+          .put("%Q", Q)
+          .put(
+              "%R", FormatModels.compositeElement(
+              Arrays.asList(HH24, FormatModels.literalElement(":"), MI),
+              "The time in the format %H:%M"))
+          .put("%S", SS)
+          .put("%u", D)
+          .put("%V", IW)
+          .put("%W", WW)
+          .put(
+              "%x", FormatModels.compositeElement(
+              Arrays.asList(MM, FormatModels.literalElement("/"), DD,
+                  FormatModels.literalElement("/"), YY),
+              "The date representation in MM/DD/YY format."))
+          .put("%Y", YYYY)
+          .put("%y", YY)
+          .put("%Z", TZR)
+          .build();
 
   /** An unquoted BigQuery identifier must start with a letter and be followed
    * by zero or more letters, digits or _. */
@@ -272,48 +330,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
-  /** {@inheritDoc}
+  /**
+   * {@inheritDoc}
    *
    * <p>BigQuery format element reference:
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/format-elements">
    * BigQuery Standard SQL Format Elements</a>.
    */
-  @Override public String getFormatElement(FormatElementEnum fmtElement) {
-    switch (fmtElement) {
-    case D:
-      return "%u";
-    case DAY:
-      return "%A";
-    case DD:
-      return "%d";
-    case DDD:
-      return "%j";
-    case DY:
-      return "%a";
-    case HH24:
-      return "%H";
-    case IW:
-      return "%V";
-    case MI:
-      return "%M";
-    case MM:
-      return "%m";
-    case MON:
-      return "%b";
-    case MONTH:
-      return "%B";
-    case Q:
-      return "%Q";
-    case SS:
-      return "%S";
-    case TZR:
-      return "%Z";
-    case WW:
-      return "%W";
-    case YYYY:
-      return "%Y";
-    }
-    return super.getFormatElement(fmtElement);
+  @Override public Map<String, FormatElement> getFormatElementMap() {
+    return BIG_QUERY_FORMAT_ELEMENT_MAP;
   }
 
   /** {@inheritDoc}

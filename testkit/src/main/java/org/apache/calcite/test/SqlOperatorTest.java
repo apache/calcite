@@ -8568,6 +8568,81 @@ public class SqlOperatorTest {
         "2014-12-29", "DATE NOT NULL");
   }
 
+  @Test
+  void testFormatTime() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.FORMAT_TIME);
+    f.checkFails("^FORMAT_TIME('%x', timestamp '2008-12-25 15:30:00')^",
+        "Cannot apply 'FORMAT_TIME' to arguments of type "
+            + "'FORMAT_TIME\\(<CHAR\\(2\\)>, <TIMESTAMP\\(0\\)>\\)'\\. "
+            + "Supported form\\(s\\): FORMAT_TIME\\(STRING, TIME\\)",
+        false);
+    f.checkScalar("FORMAT_TIME('%H', TIME '12:34:33')",
+        "12",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_TIME('%R', TIME '12:34:33')",
+        "12:34",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_TIME('The time is %M-%S', TIME '12:34:33')",
+        "The time is 34-33",
+        "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test
+  void testFormatDate() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.FORMAT_DATE);
+    f.checkFails("^FORMAT_DATE('%x', timestamp '2008-12-25 15:30:00')^",
+        "Cannot apply 'FORMAT_DATE' to arguments of type "
+            + "'FORMAT_DATE\\(<CHAR\\(2\\)>, <TIMESTAMP\\(0\\)>\\)'\\. "
+            + "Supported form\\(s\\): "
+            + "FORMAT_DATE\\(STRING, DATE\\)",
+        false);
+    f.checkScalar("FORMAT_DATE('%b-%d-%Y', DATE '2008-12-25')",
+        "Dec-25-2008",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_DATE('%b %Y', DATE '2008-12-25')",
+        "Dec 2008",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_DATE('%x', DATE '2008-12-25')",
+        "12/25/08",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_DATE('The date is: %x', DATE '2008-12-25')",
+        "The date is: 12/25/08",
+        "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test
+  void testFormatTimestamp() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.FORMAT_TIMESTAMP);
+    f.checkFails("^FORMAT_TIMESTAMP('%x', date '2015-02-19')^",
+        "Cannot apply 'FORMAT_TIMESTAMP' to arguments of type "
+            + "'FORMAT_TIMESTAMP\\(<CHAR\\(2\\)>, <DATE>\\)'\\. "
+            + "Supported form\\(s\\): "
+            + "FORMAT_TIMESTAMP\\(STRING, TIMESTAMP \\[, STRING\\]\\)",
+        false);
+    f.checkScalar("FORMAT_TIMESTAMP('%c', TIMESTAMP '2008-12-25 15:30:00')",
+        "Thu Dec 25 15:30:00 2008",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_TIMESTAMP('%b-%d-%Y', TIMESTAMP '2008-12-25 15:30:00')",
+        "Dec-25-2008",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_TIMESTAMP('%b %Y', TIMESTAMP '2008-12-25 15:30:00')",
+        "Dec 2008",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_TIMESTAMP('%x', TIMESTAMP '2008-12-25 15:30:00')",
+        "12/25/08",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_TIMESTAMP('The time is: %R', TIMESTAMP '2008-12-25 15:30:00')",
+        "The time is: 15:30",
+        "VARCHAR(2000) NOT NULL");
+  }
+
+
   @Test void testDenseRankFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DENSE_RANK, VM_FENNEL, VM_JAVA);

@@ -133,6 +133,10 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ENDS_WITH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXISTS_NODE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_VALUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_XML;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_DATETIME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ILIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
@@ -553,11 +557,20 @@ public class RexImpTable {
       defineMethod(DATE_FROM_UNIX_DATE, "dateFromUnixDate", NullPolicy.STRICT);
       defineMethod(UNIX_DATE, "unixDate", NullPolicy.STRICT);
 
+      // Datetime constructors
       defineMethod(DATE, "date", NullPolicy.STRICT);
       defineMethod(DATETIME, "datetime", NullPolicy.STRICT);
       defineMethod(TIMESTAMP, "timestamp", NullPolicy.STRICT);
       defineMethod(TIME, "time", NullPolicy.STRICT);
 
+      // Datetime formatting methods
+      final FormatDatetimeImplementor datetimeFormatImpl = new FormatDatetimeImplementor();
+      map.put(FORMAT_TIMESTAMP, datetimeFormatImpl);
+      map.put(FORMAT_DATE, datetimeFormatImpl);
+      map.put(FORMAT_TIME, datetimeFormatImpl);
+      map.put(FORMAT_DATETIME, datetimeFormatImpl);
+
+      // Boolean operators
       map.put(IS_NULL, new IsNullImplementor());
       map.put(IS_NOT_NULL, new IsNotNullImplementor());
       map.put(IS_TRUE, new IsTrueImplementor());
@@ -2347,6 +2360,35 @@ public class RexImpTable {
       default:
         return customDateMethod;
       }
+    }
+  }
+
+  /**
+   * Implementor for the {@code FORMAT_TIMESTAMP, FORMAT_DATE, FORMAT_TIME} and
+   * {@code FORMAT_DATETIME} functions.
+   */
+  private static class FormatDatetimeImplementor extends MethodNameImplementor {
+
+    FormatDatetimeImplementor() {
+      super("formatDatetime", NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      final Expression operand0 = argValueList.get(0);
+      final Expression operand1 = argValueList.get(1);
+      Method method;
+      switch (call.operands.get(1).getType().getSqlTypeName()) {
+      case TIME:
+        method = BuiltInMethod.FORMAT_TIME.method;
+        break;
+      case DATE:
+        method = BuiltInMethod.FORMAT_DATE.method;
+        break;
+      default:
+        method = BuiltInMethod.FORMAT_TIMESTAMP.method;
+      }
+      return Expressions.call(method, translator.getRoot(), operand0, operand1);
     }
   }
 
