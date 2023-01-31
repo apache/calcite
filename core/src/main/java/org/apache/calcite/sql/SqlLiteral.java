@@ -361,7 +361,7 @@ public class SqlLiteral extends SqlNode {
         return clazz.cast(valMonth.getSign()
             * SqlParserUtil.intervalToMonths(valMonth, typeSystem));
       } else if (clazz == BigDecimal.class) {
-        return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
+        return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class, typeSystem)));
       } else if (clazz == TimeUnitRange.class) {
         return clazz.cast(valMonth.getIntervalQualifier().timeUnitRange);
       } else if (clazz == SqlIntervalQualifier.class) {
@@ -385,7 +385,7 @@ public class SqlLiteral extends SqlNode {
         return clazz.cast(valTime.getSign()
             * SqlParserUtil.intervalToMillis(valTime, typeSystem));
       } else if (clazz == BigDecimal.class) {
-        return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
+        return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class, typeSystem)));
       } else if (clazz == TimeUnitRange.class) {
         return clazz.cast(valTime.getIntervalQualifier().timeUnitRange);
       } else if (clazz == SqlIntervalQualifier.class) {
