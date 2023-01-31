@@ -1622,7 +1622,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     // eg: TRIM(BOTH 'A' from 'ABCD'
     // Output Query: TRIM('ABC', 'A')
     String value = requireNonNull(Util.removeLeadingAndTrailingSingleQuotes(valueToTrim.toString()),
-        "valueToTrim.toValue()");
+        "valueToTrim.toString()");
     if (!value.matches("\\s+")) {
       writer.literal(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
