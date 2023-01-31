@@ -356,21 +356,22 @@ public final class SqlParserUtil {
    * interval value.
    */
   public static long intervalToMillis(
-      SqlIntervalLiteral.IntervalValue interval) {
+      SqlIntervalLiteral.IntervalValue interval, RelDataTypeSystem typeSystem) {
     return intervalToMillis(
         interval.getIntervalLiteral(),
-        interval.getIntervalQualifier());
+        interval.getIntervalQualifier(),
+        typeSystem);
   }
 
   public static long intervalToMillis(
       String literal,
-      SqlIntervalQualifier intervalQualifier) {
+      SqlIntervalQualifier intervalQualifier, RelDataTypeSystem typeSystem) {
     Preconditions.checkArgument(!intervalQualifier.isYearMonth(),
         "interval must be day time");
     int[] ret;
     try {
       ret = intervalQualifier.evaluateIntervalLiteral(literal,
-          intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
+          intervalQualifier.getParserPosition(), typeSystem);
       assert ret != null;
     } catch (CalciteContextException e) {
       throw new RuntimeException("while parsing day-to-second interval "
@@ -403,21 +404,23 @@ public final class SqlParserUtil {
    * value.
    */
   public static long intervalToMonths(
-      SqlIntervalLiteral.IntervalValue interval) {
+      SqlIntervalLiteral.IntervalValue interval, RelDataTypeSystem typeSystem) {
     return intervalToMonths(
         interval.getIntervalLiteral(),
-        interval.getIntervalQualifier());
+        interval.getIntervalQualifier(),
+        typeSystem);
   }
 
   public static long intervalToMonths(
       String literal,
-      SqlIntervalQualifier intervalQualifier) {
+      SqlIntervalQualifier intervalQualifier,
+      RelDataTypeSystem typeSystem) {
     Preconditions.checkArgument(intervalQualifier.isYearMonth(),
         "interval must be year month");
     int[] ret;
     try {
       ret = intervalQualifier.evaluateIntervalLiteral(literal,
-          intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
+          intervalQualifier.getParserPosition(), typeSystem);
       assert ret != null;
     } catch (CalciteContextException e) {
       throw new RuntimeException("Error while parsing year-to-month interval "

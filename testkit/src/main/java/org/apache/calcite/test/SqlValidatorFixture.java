@@ -22,6 +22,7 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalLiteral;
@@ -340,15 +341,16 @@ public class SqlValidatorFixture {
             }
           }
 
+          RelDataTypeSystem typeSystem = factory.getTypeFactory().getTypeSystem();
           assertNotNull(node);
           SqlIntervalLiteral intervalLiteral = (SqlIntervalLiteral) node;
           SqlIntervalLiteral.IntervalValue interval =
               intervalLiteral.getValueAs(
-                  SqlIntervalLiteral.IntervalValue.class);
+                  SqlIntervalLiteral.IntervalValue.class, typeSystem);
           long l =
               interval.getIntervalQualifier().isYearMonth()
-                  ? SqlParserUtil.intervalToMonths(interval)
-                  : SqlParserUtil.intervalToMillis(interval);
+                  ? SqlParserUtil.intervalToMonths(interval, typeSystem)
+                  : SqlParserUtil.intervalToMillis(interval, typeSystem);
           assertThat(l, matcher);
         });
   }

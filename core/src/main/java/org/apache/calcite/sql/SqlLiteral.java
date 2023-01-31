@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -288,6 +289,9 @@ public class SqlLiteral extends SqlNode {
    * @throws AssertionError if the value type is not supported
    */
   public <T extends Object> T getValueAs(Class<T> clazz) {
+    return getValueAs(clazz, RelDataTypeSystem.DEFAULT);
+  }
+  public <T extends Object> T getValueAs(Class<T> clazz, RelDataTypeSystem typeSystem) {
     Object value = this.value;
     if (clazz.isInstance(value)) {
       return clazz.cast(value);
@@ -355,7 +359,7 @@ public class SqlLiteral extends SqlNode {
           (SqlIntervalLiteral.IntervalValue) value;
       if (clazz == Long.class) {
         return clazz.cast(valMonth.getSign()
-            * SqlParserUtil.intervalToMonths(valMonth));
+            * SqlParserUtil.intervalToMonths(valMonth, typeSystem));
       } else if (clazz == BigDecimal.class) {
         return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
       } else if (clazz == TimeUnitRange.class) {
@@ -379,7 +383,7 @@ public class SqlLiteral extends SqlNode {
           (SqlIntervalLiteral.IntervalValue) value;
       if (clazz == Long.class) {
         return clazz.cast(valTime.getSign()
-            * SqlParserUtil.intervalToMillis(valTime));
+            * SqlParserUtil.intervalToMillis(valTime, typeSystem));
       } else if (clazz == BigDecimal.class) {
         return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
       } else if (clazz == TimeUnitRange.class) {
@@ -447,6 +451,8 @@ public class SqlLiteral extends SqlNode {
    */
   public static @Nullable Comparable value(SqlNode node)
       throws IllegalArgumentException {
+    // We don't have typeSystem information so we use the default.
+    RelDataTypeSystem typeSystem = RelDataTypeSystem.DEFAULT;
     if (node instanceof SqlLiteral) {
       final SqlLiteral literal = (SqlLiteral) node;
       if (literal.getTypeName() == SqlTypeName.SYMBOL) {
@@ -461,11 +467,11 @@ public class SqlLiteral extends SqlNode {
       case INTERVAL_YEAR_MONTH:
         final SqlIntervalLiteral.IntervalValue valMonth =
             literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
-        return valMonth.getSign() * SqlParserUtil.intervalToMonths(valMonth);
+        return valMonth.getSign() * SqlParserUtil.intervalToMonths(valMonth, typeSystem);
       case INTERVAL_DAY_TIME:
         final SqlIntervalLiteral.IntervalValue valTime =
             literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
-        return valTime.getSign() * SqlParserUtil.intervalToMillis(valTime);
+        return valTime.getSign() * SqlParserUtil.intervalToMillis(valTime, typeSystem);
       default:
         break;
       }

@@ -24,6 +24,7 @@ import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.runtime.Geometries;
@@ -793,6 +794,9 @@ public class RexLiteral extends RexNode {
       return null;
     }
 
+    // We don't have a type system yet so use the default
+    RelDataTypeSystem typeSystem = RelDataTypeSystem.DEFAULT;
+
     switch (typeName) {
     case CHAR:
       Charset charset = requireNonNull(type.getCharset(), () -> "charset for " + type);
@@ -819,7 +823,8 @@ public class RexLiteral extends RexNode {
       long weekMillis =
           SqlParserUtil.intervalToMillis(
               literal,
-              castNonNull(type.getIntervalQualifier()));
+              castNonNull(type.getIntervalQualifier()),
+              typeSystem);
       return new RexLiteral(BigDecimal.valueOf(weekMillis), type, typeName);
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
@@ -834,7 +839,8 @@ public class RexLiteral extends RexNode {
       long millis =
           SqlParserUtil.intervalToMillis(
               literal,
-              castNonNull(type.getIntervalQualifier()));
+              castNonNull(type.getIntervalQualifier()),
+              typeSystem);
       return new RexLiteral(BigDecimal.valueOf(millis), type, typeName);
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
@@ -842,7 +848,8 @@ public class RexLiteral extends RexNode {
       long months =
           SqlParserUtil.intervalToMonths(
               literal,
-              castNonNull(type.getIntervalQualifier()));
+              castNonNull(type.getIntervalQualifier()),
+              typeSystem);
       return new RexLiteral(BigDecimal.valueOf(months), type, typeName);
     case DATE:
     case TIME:

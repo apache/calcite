@@ -19,6 +19,7 @@ package org.apache.calcite.sql2rel;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -80,6 +81,7 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
       SqlLiteral literal) {
     RexBuilder rexBuilder = cx.getRexBuilder();
     RelDataTypeFactory typeFactory = cx.getTypeFactory();
+    RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
     SqlValidator validator = cx.getValidator();
     if (literal.getValue() == null) {
       // Since there is no eq. RexLiteral of SqlLiteral.Unknown we
@@ -98,7 +100,7 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
     switch (literal.getTypeName()) {
     case DECIMAL:
       // exact number
-      BigDecimal bd = literal.getValueAs(BigDecimal.class);
+      BigDecimal bd = literal.getValueAs(BigDecimal.class, typeSystem);
       return rexBuilder.makeExactLiteral(
           bd,
           literal.createSqlType(typeFactory));
@@ -106,14 +108,14 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
     case DOUBLE:
       // approximate type
       // TODO:  preserve fixed-point precision and large integers
-      return rexBuilder.makeApproxLiteral(literal.getValueAs(BigDecimal.class));
+      return rexBuilder.makeApproxLiteral(literal.getValueAs(BigDecimal.class, typeSystem));
 
     case CHAR:
-      return rexBuilder.makeCharLiteral(literal.getValueAs(NlsString.class));
+      return rexBuilder.makeCharLiteral(literal.getValueAs(NlsString.class, typeSystem));
     case BOOLEAN:
-      return rexBuilder.makeLiteral(literal.getValueAs(Boolean.class));
+      return rexBuilder.makeLiteral(literal.getValueAs(Boolean.class, typeSystem));
     case BINARY:
-      bitString = literal.getValueAs(BitString.class);
+      bitString = literal.getValueAs(BitString.class, typeSystem);
       Preconditions.checkArgument((bitString.getBitCount() % 8) == 0,
           "incomplete octet");
 
@@ -122,17 +124,17 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
       ByteString byteString = new ByteString(bitString.getAsByteArray());
       return rexBuilder.makeBinaryLiteral(byteString);
     case SYMBOL:
-      return rexBuilder.makeFlag(literal.getValueAs(Enum.class));
+      return rexBuilder.makeFlag(literal.getValueAs(Enum.class, typeSystem));
     case TIMESTAMP:
       return rexBuilder.makeTimestampLiteral(
-          literal.getValueAs(TimestampString.class),
+          literal.getValueAs(TimestampString.class, typeSystem),
           ((SqlTimestampLiteral) literal).getPrec());
     case TIME:
       return rexBuilder.makeTimeLiteral(
-          literal.getValueAs(TimeString.class),
+          literal.getValueAs(TimeString.class, typeSystem),
           ((SqlTimeLiteral) literal).getPrec());
     case DATE:
-      return rexBuilder.makeDateLiteral(literal.getValueAs(DateString.class));
+      return rexBuilder.makeDateLiteral(literal.getValueAs(DateString.class, typeSystem));
 
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
@@ -149,9 +151,9 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
       SqlIntervalQualifier sqlIntervalQualifier =
-          literal.getValueAs(SqlIntervalQualifier.class);
+          literal.getValueAs(SqlIntervalQualifier.class, typeSystem);
       return rexBuilder.makeIntervalLiteral(
-          literal.getValueAs(BigDecimal.class),
+          literal.getValueAs(BigDecimal.class, typeSystem),
           sqlIntervalQualifier);
     default:
       throw Util.unexpected(literal.getTypeName());
