@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 /**
@@ -42,12 +43,12 @@ public class FormatModelsTest {
       FormatModels.create(PARSE_MAP);
 
   private void assertThatFormatElementParse(String fmtStr, Matcher<List<String>> expected) {
-    List<FormatElement> result = PARSER.parse(fmtStr);
+    List<FormatElement> parseResult = PARSER.parse(fmtStr);
     List<String> stringResults = new ArrayList<>();
-    for (FormatElement ele : result) {
+    for (FormatElement ele : parseResult) {
       ele.flatten(i -> stringResults.add(i.toString()));
     }
-    expected.matches(result);
+    assertThat(stringResults, expected);
   }
 
   @Test void testSingleElement() {

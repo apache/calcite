@@ -43,6 +43,10 @@ public class FormatModels {
     this.elementMap = elementMap;
   }
 
+  /**
+   * Generates a {@link Pattern} using the keys of a {@link FormatModels} element map. This pattern
+   * is used in {@link #parse(String)} to help locate known format elements in a string.
+   */
   private static Pattern regexFromMap(Map<String, FormatElement> elementMap) {
     StringBuilder regex = new StringBuilder();
     for (String key : elementMap.keySet()) {
@@ -53,11 +57,6 @@ public class FormatModels {
     return Pattern.compile(regex.toString());
   }
 
-  public static FormatModels create(Map<String, FormatElement> elementMap) {
-    final Pattern regex = regexFromMap(elementMap);
-    return new FormatModels(regex, elementMap);
-  }
-
   private FormatElement internalLiteralElement(String literal) {
     return new FormatModelElementLiteral(literal);
   }
@@ -65,6 +64,15 @@ public class FormatModels {
   private FormatElement internalCompositeElement(List<FormatElement> fmtElements,
       String description) {
     return new CompositeFormatElement(fmtElements, description);
+  }
+
+  /**
+   * Creates a {@link FormatModels} that uses the provided map to identify {@link FormatElement}s
+   * while parsing a format string.
+   */
+  public static FormatModels create(Map<String, FormatElement> elementMap) {
+    final Pattern regex = regexFromMap(elementMap);
+    return new FormatModels(regex, elementMap);
   }
 
   /**
@@ -83,10 +91,16 @@ public class FormatModels {
     return DEFAULT.internalCompositeElement(fmtElements, description);
   }
 
+  /**
+   * Returns the keys of a {@link FormatModels} parse map as a {@link Pattern}.
+   */
   public Pattern getElementRegex() {
     return this.fmtRegex;
   }
 
+  /**
+   * Returns the map used to create the {@link FormatModels} instance.
+   */
   public Map<String, FormatElement> getElementMap() {
     return this.elementMap;
   }
@@ -102,9 +116,9 @@ public class FormatModels {
       if (!literal.isEmpty()) {
         elements.add(literalElement(literal));
       }
-      // add the element match
+      // add the element match - use literal as default to be safe.
       String key = matcher.group();
-      elements.add(getElementMap().get(key));
+      elements.add(getElementMap().getOrDefault(key, literalElement(key)));
       i = matcher.end();
     }
     // add any remaining literal text after last element match
@@ -125,7 +139,7 @@ public class FormatModels {
   /**
    * Represents literal text in a format string.
    */
-  private class FormatModelElementLiteral implements FormatElement {
+  private static class FormatModelElementLiteral implements FormatElement {
 
     private final String literal;
 
@@ -149,7 +163,7 @@ public class FormatModels {
   /**
    * Represents a format element comprised of one or more {@link FormatElementEnum} entries.
    */
-  private class CompositeFormatElement implements FormatElement {
+  private static class CompositeFormatElement implements FormatElement {
 
     private final String description;
     private final List<FormatElement> formatElements;

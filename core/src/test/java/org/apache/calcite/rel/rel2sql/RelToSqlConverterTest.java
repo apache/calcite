@@ -1873,14 +1873,17 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"product\"\n";
 
     final String expectedBqFormatTime =
-        "SELECT FORMAT_TIME('%H', TIME '12:45:30')\nFROM foodmart.product";
+        "SELECT FORMAT_TIME('%H', TIME '12:45:30')\n"
+            + "FROM foodmart.product";
     final String expectedBqFormatDate =
-        "SELECT FORMAT_DATE('%b-%d-%Y', DATE '2012-02-03')\nFROM foodmart.product";
+        "SELECT FORMAT_DATE('%b-%d-%Y', DATE '2012-02-03')\n"
+            + "FROM foodmart.product";
     final String expectedBqFormatTimestamp =
-        "SELECT FORMAT_TIMESTAMP('%b-%d-%Y', TIMESTAMP '2012-02-03 12:30:40')\nFROM foodmart"
-            + ".product";
+        "SELECT FORMAT_TIMESTAMP('%b-%d-%Y', TIMESTAMP '2012-02-03 12:30:40')\n"
+            + "FROM foodmart.product";
     final String expectedBqFormatDatetime =
-        "SELECT FORMAT_DATETIME('%R', TIMESTAMP '2012-02-03 12:34:34')\nFROM foodmart.product";
+        "SELECT FORMAT_DATETIME('%R', TIMESTAMP '2012-02-03 12:34:34')\n"
+            + "FROM foodmart.product";
     sql(formatTime).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expectedBqFormatTime);
     sql(formatDate).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expectedBqFormatDate);
     sql(formatTimestamp).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY)

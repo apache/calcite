@@ -61,7 +61,7 @@ public class SqlBigQueryFormatDatetimeFunction extends SqlFunction {
       FormatModels.create(BigQuerySqlDialect.DEFAULT.getFormatElementMap());
 
   private SqlBigQueryFormatDatetimeFunction(String name, SqlTypeName typeName) {
-    super(name, SqlKind.valueOf(name), ReturnTypes.VARCHAR_2000_NULLABLE, null,
+    super(name, SqlKind.OTHER_FUNCTION, ReturnTypes.VARCHAR_2000_NULLABLE, null,
         new FormatDatetimeOperandTypeChecker(typeName), SqlFunctionCategory.TIMEDATE);
     this.name = name;
     this.typeName = typeName;
@@ -87,7 +87,7 @@ public class SqlBigQueryFormatDatetimeFunction extends SqlFunction {
     case TIME:
       return FORMAT_TIME;
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      // TODO(tjbanghart) when support for TIMESTAMP WITH LOCAL TIME ZONE literals
+      // TODO: when support for TIMESTAMP WITH LOCAL TIME ZONE literals
       // is merged remove the call to `withType()`
       return FORMAT_TIMESTAMP.withType(TIMESTAMP);
     case TIMESTAMP:

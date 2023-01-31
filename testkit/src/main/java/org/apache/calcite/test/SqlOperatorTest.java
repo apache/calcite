@@ -8568,15 +8568,15 @@ public class SqlOperatorTest {
         "2014-12-29", "DATE NOT NULL");
   }
 
-  @Test
-  void testFormatTime() {
+  @Test void testFormatTime() {
     final SqlOperatorFixture f = fixture()
         .withLibrary(SqlLibrary.BIG_QUERY)
         .setFor(SqlLibraryOperators.FORMAT_TIME);
     f.checkFails("^FORMAT_TIME('%x', timestamp '2008-12-25 15:30:00')^",
         "Cannot apply 'FORMAT_TIME' to arguments of type "
             + "'FORMAT_TIME\\(<CHAR\\(2\\)>, <TIMESTAMP\\(0\\)>\\)'\\. "
-            + "Supported form\\(s\\): FORMAT_TIME\\(STRING, TIME\\)",
+            + "Supported form\\(s\\): "
+            + "FORMAT_TIME\\(STRING, TIME\\)",
         false);
     f.checkScalar("FORMAT_TIME('%H', TIME '12:34:33')",
         "12",
@@ -8589,8 +8589,7 @@ public class SqlOperatorTest {
         "VARCHAR(2000) NOT NULL");
   }
 
-  @Test
-  void testFormatDate() {
+  @Test void testFormatDate() {
     final SqlOperatorFixture f = fixture()
         .withLibrary(SqlLibrary.BIG_QUERY)
         .setFor(SqlLibraryOperators.FORMAT_DATE);
@@ -8614,8 +8613,7 @@ public class SqlOperatorTest {
         "VARCHAR(2000) NOT NULL");
   }
 
-  @Test
-  void testFormatTimestamp() {
+  @Test void testFormatTimestamp() {
     final SqlOperatorFixture f = fixture()
         .withLibrary(SqlLibrary.BIG_QUERY)
         .setFor(SqlLibraryOperators.FORMAT_TIMESTAMP);

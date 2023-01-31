@@ -23,6 +23,9 @@ import java.util.function.Consumer;
  */
 public interface FormatElement {
 
+  /**
+   * Formats a date to its appropriate string representation for the element.
+   */
   String format(java.util.Date date);
 
   /**
@@ -36,9 +39,6 @@ public interface FormatElement {
 
   /**
    * Applies a consumer to a format element.
-   *
-   * <p>For example, {@code %R} in Google SQL represents the hour in 24-hour format (e.g., 00..23)
-   * followed by the minute as a decimal number. This method would return [HH24, ":", MI].
    */
   default void flatten(Consumer<FormatElement> consumer) {
     consumer.accept(this);

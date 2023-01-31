@@ -121,11 +121,14 @@ public class BigQuerySqlDialect extends SqlDialect {
           .put("%b", MON)
           .put(
               "%c", FormatModels.compositeElement(
-              Arrays.asList(DY, FormatModels.literalElement(" "), MON,
-                  FormatModels.literalElement(" "), DD, FormatModels.literalElement(" "), HH24,
-                  FormatModels.literalElement(":"), MI, FormatModels.literalElement(":"), SS,
-                  FormatModels.literalElement(" "), YYYY),
-              "The date and time representation (English)."))
+              Arrays.asList(
+                  DY, FormatModels.literalElement(" "),
+                  MON, FormatModels.literalElement(" "),
+                  DD, FormatModels.literalElement(" "),
+                  HH24, FormatModels.literalElement(":"),
+                  MI, FormatModels.literalElement(":"),
+                  SS, FormatModels.literalElement(" "),
+                  YYYY), "The date and time representation (English)"))
           .put("%d", DD)
           .put("%H", HH24)
           .put("%j", DDD)
@@ -134,17 +137,19 @@ public class BigQuerySqlDialect extends SqlDialect {
           .put("%Q", Q)
           .put(
               "%R", FormatModels.compositeElement(
-              Arrays.asList(HH24, FormatModels.literalElement(":"), MI),
-              "The time in the format %H:%M"))
+              Arrays.asList(
+                  HH24, FormatModels.literalElement(":"),
+                  MI), "The time in the format %H:%M"))
           .put("%S", SS)
           .put("%u", D)
           .put("%V", IW)
           .put("%W", WW)
           .put(
               "%x", FormatModels.compositeElement(
-              Arrays.asList(MM, FormatModels.literalElement("/"), DD,
-                  FormatModels.literalElement("/"), YY),
-              "The date representation in MM/DD/YY format."))
+              Arrays.asList(
+                  MM, FormatModels.literalElement("/"),
+                  DD, FormatModels.literalElement("/"),
+                  YY), "The date representation in MM/DD/YY format"))
           .put("%Y", YYYY)
           .put("%y", YY)
           .put("%Z", TZR)

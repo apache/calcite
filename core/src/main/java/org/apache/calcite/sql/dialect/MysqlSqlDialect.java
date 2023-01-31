@@ -242,17 +242,6 @@ public class MysqlSqlDialect extends SqlDialect {
       unparseListAggCall(writer, call, null, leftPrec, rightPrec);
       break;
 
-    case FORMAT_DATE:
-    case FORMAT_TIME:
-    case FORMAT_TIMESTAMP:
-    case FORMAT_DATETIME:
-      writer.print("DATE_FORMAT(");
-      call.operand(1).unparse(writer, 0, 0);
-      writer.print(",");
-      call.operand(0).unparse(writer, 0, 0);
-      writer.print(")");
-      return;
-
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

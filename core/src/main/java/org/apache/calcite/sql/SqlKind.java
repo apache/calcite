@@ -673,18 +673,6 @@ public enum SqlKind {
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
 
-  /** The {@code FORMAT_TIME} function (BigQuery semantics). */
-  FORMAT_TIME,
-
-  /** The {@code FORMAT_DATE} function (BigQuery semantics). */
-  FORMAT_DATE,
-
-  /** The {@code FORMAT_DATETIME} function (BigQuery semantics). */
-  FORMAT_DATETIME,
-
-  /** The {@code FORMAT_TIMESTAMP} function (BigQuery semantics). */
-  FORMAT_TIMESTAMP,
-
   /** {@code SUBSTR} function (BigQuery semantics). */
   SUBSTR_BIG_QUERY,
 
@@ -807,12 +795,6 @@ public enum SqlKind {
   /** The special patterns to exclude enclosing pattern from output in a
    * MATCH_RECOGNIZE clause. */
   PATTERN_EXCLUDED,
-
-  /**
-   * The internal {@link FormatModel} operator used to hold a format string in formatting functions.
-   * An internal operator that does not appear in SQL syntax.
-   */
-  FORMAT_MODEL,
 
   // Aggregate functions
 
