@@ -97,6 +97,16 @@ public class SparkSqlDialect extends SqlDialect {
       SqlUtil.unparseFunctionSyntax(SPARKSQL_SUBSTRING, writer, call, false);
     } else {
       switch (call.getKind()) {
+      case ARRAY_VALUE_CONSTRUCTOR:
+        writer.keyword("array");
+        final SqlWriter.Frame frame = writer.startList("(", ")");
+        for (SqlNode operand : call.getOperandList()) {
+          writer.sep(",");
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endList(frame);
+        break;
+
       case FLOOR:
         if (call.operandCount() != 2) {
           super.unparseCall(writer, call, leftPrec, rightPrec);
