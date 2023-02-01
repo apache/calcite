@@ -1604,6 +1604,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     final String operatorName;
     SqlLiteral trimFlag = call.operand(0);
     SqlNode valueToTrim = call.operand(1);
+    requireNonNull(valueToTrim, "valueToTrim in unparseTrim() must not be null");
+    String value = Util.removeLeadingAndTrailingSingleQuotes(valueToTrim.toString());
     switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
     case LEADING:
       operatorName = "LTRIM";
@@ -1621,8 +1623,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     // If the trimmed character is a non-space character, add it to the target SQL.
     // eg: TRIM(BOTH 'A' from 'ABCD'
     // Output Query: TRIM('ABC', 'A')
-    String value = requireNonNull(Util.removeLeadingAndTrailingSingleQuotes(valueToTrim.toString()),
-        "valueToTrim.toString()");
     if (!value.matches("\\s+")) {
       writer.literal(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
