@@ -983,7 +983,6 @@ group by rollup(1);
 select deptno, group_id() as g, count(*) as c
 from "scott".emp
 group by grouping sets (deptno, (), ());
-
 +--------+---+----+
 | DEPTNO | G | C  |
 +--------+---+----+
@@ -1014,7 +1013,6 @@ select deptno
    order by deptno
        , job
        , empno;
-
 +--------+-----------+-------+--------+----------+-----------------------------------+
 | DEPTNO | JOB       | EMPNO | ENAME  | SUMSAL   | GR_TEXT                           |
 +--------+-----------+-------+--------+----------+-----------------------------------+
@@ -1074,7 +1072,6 @@ select deptno
    order by deptno
        , job
        , empno;
-
 +--------+-----------+-------+--------+----------+-----------------------------------+
 | DEPTNO | JOB       | EMPNO | ENAME  | SUMSAL   | GR_TEXT                           |
 +--------+-----------+-------+--------+----------+-----------------------------------+
@@ -2151,7 +2148,6 @@ from
 ) sq(x,y,z)
 group by z
 order by sum_cnt;
-
 +---------+----------+
 | SUM_CNT | CNT_DIST |
 +---------+----------+
@@ -2818,7 +2814,6 @@ group by MONTH(HIREDATE);
 select deptno, collect(empno) within group (order by empno asc) as empnos
 from "scott".emp
 group by deptno;
-
 +--------+--------------------------------------+
 | DEPTNO | EMPNOS                               |
 +--------+--------------------------------------+
@@ -2836,7 +2831,6 @@ EnumerableAggregate(group=[{7}], EMPNOS=[COLLECT($0) WITHIN GROUP ([0])])
 select deptno, collect(empno) within group (order by empno desc) as empnos
 from "scott".emp
 group by deptno;
-
 +--------+--------------------------------------+
 | DEPTNO | EMPNOS                               |
 +--------+--------------------------------------+
@@ -2857,7 +2851,6 @@ collect(empno) as empnos_1,
 collect(empno) within group (order by empno desc) as empnos_2
 from "scott".emp
 group by deptno;
-
 +--------+--------------------------------------+--------------------------------------+
 | DEPTNO | EMPNOS_1                             | EMPNOS_2                             |
 +--------+--------------------------------------+--------------------------------------+
@@ -2876,7 +2869,6 @@ select deptno, collect(empno) within group (order by empno desc)
 filter (where empno > 7500) as empnos
 from "scott".emp
 group by deptno;
-
 +--------+--------------------------------+
 | DEPTNO | EMPNOS                         |
 +--------+--------------------------------+
@@ -2896,7 +2888,6 @@ select deptno, collect(empno) within group (order by empno desc) as empnos1,
 collect(empno) within group (order by empno asc) as empnos2
 from "scott".emp
 group by deptno;
-
 +--------+--------------------------------------+--------------------------------------+
 | DEPTNO | EMPNOS1                              | EMPNOS2                              |
 +--------+--------------------------------------+--------------------------------------+
@@ -2919,7 +2910,6 @@ select dept.deptno,
 from "scott".emp
 join "scott".dept using (deptno)
 group by dept.deptno;
-
 +--------+-------------------------------------------------------+-------------------------------------------------------+-----------------------------+
 | DEPTNO | S                                                     | S1                                                    | S2                          |
 +--------+-------------------------------------------------------+-------------------------------------------------------+-----------------------------+
@@ -2942,7 +2932,6 @@ EnumerableAggregate(group=[{0}], S=[COLLECT($1) WITHIN GROUP ([1 DESC])], S1=[CO
 select deptno, collect(empno + 1) within group (order by 1) as empnos
 from "scott".emp
 group by deptno;
-
 +--------+--------------------------------------+
 | DEPTNO | EMPNOS                               |
 +--------+--------------------------------------+
@@ -2960,7 +2949,6 @@ EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT($1) WITHIN GROUP ([2])])
 
 # BIT_AND, BIT_OR, BIT_XOR aggregate functions
 select bit_and(deptno), bit_or(deptno), bit_xor(deptno) from "scott".emp;
-
 +--------+--------+--------+
 | EXPR$0 | EXPR$1 | EXPR$2 |
 +--------+--------+--------+
@@ -2971,7 +2959,6 @@ select bit_and(deptno), bit_or(deptno), bit_xor(deptno) from "scott".emp;
 !ok
 
 select deptno, bit_and(empno), bit_or(empno), bit_xor(empno) from "scott".emp group by deptno;
-
 +--------+--------+--------+--------+
 | DEPTNO | EXPR$1 | EXPR$2 | EXPR$3 |
 +--------+--------+--------+--------+
@@ -3474,7 +3461,6 @@ select
 from emp
 group by
     case when deptno in (1, 2, 3, 4, 5) THEN 1 else 0 end;
-
 +--------+
 | EXPR$0 |
 +--------+
@@ -3490,7 +3476,6 @@ select
 from emp
 group by
     case when deptno in (1, 2, 3, 4, 5) THEN 1 else 0 end;
-
 +--------+
 | EXPR$0 |
 +--------+
@@ -3510,7 +3495,6 @@ from
     CTE1,CTE2
 where
     CTE1.val1 = CTE2.val2;
-
 +--------+------+--------+------+
 | ROWNR1 | VAL1 | ROWNR2 | VAL2 |
 +--------+------+--------+------+

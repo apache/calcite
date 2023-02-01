@@ -83,7 +83,6 @@ from emp;
 select gender,deptno,
   count(*) over (partition by gender,deptno) as count1
 from emp;
-
 +--------+--------+--------+
 | GENDER | DEPTNO | COUNT1 |
 +--------+--------+--------+
@@ -106,7 +105,6 @@ from emp;
 select gender,deptno,
   count(*) over (partition by gender,gender) as count1
 from emp;
-
 +--------+--------+--------+
 | GENDER | DEPTNO | COUNT1 |
 +--------+--------+--------+
@@ -400,7 +398,6 @@ select min(deptno) as x, rank() over (order by ename) as y,
   max(ename) over (partition by deptno) as z
 from emp
 group by deptno, ename;
-
 +----+---+-------+
 | X  | Y | Z     |
 +----+---+-------+
@@ -447,7 +444,6 @@ select * from (
   select "empid", count(*) over () c
     from "hr"."emps"
 ) where "empid"=100;
-
 +-------+---+
 | empid | C |
 +-------+---+
@@ -469,7 +465,6 @@ join (
   window w as (partition by "deptno" order by "commission")) b
 on a."deptno" = b."deptno"
 order by "deptno", ar, br limit 5;
-
 +--------+-----+-----+
 | deptno | AR  | BR  |
 +--------+-----+-----+
@@ -494,7 +489,6 @@ join (
   window w as (partition by "deptno" order by "commission")) b
 on a."empid" = b."empid"
 limit 5;
-
 +-------+--------+------------+-----+-----+
 | empid | deptno | commission | AR  | BR  |
 +-------+--------+------------+-----+-----+
@@ -526,7 +520,6 @@ from
   from
    unnest(map[2,2]) k
  ) t2 on (t1.l = t2.l and t1.key + 1 = t2.key);
-
 +---+------+------+
 | L | KEY1 | KEY2 |
 +---+------+------+
