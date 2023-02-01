@@ -63,7 +63,6 @@ select(...)
 # [CALCITE-5410] Assertion error on PERCENT_REMAINDER operator with DECIMAL type
 
 select 1.0 % 2;
-
 +--------+
 | EXPR$0 |
 +--------+
