@@ -133,10 +133,9 @@ public interface SaffronProperties {
         }
       } catch (IOException e) {
         throw new RuntimeException("while reading from saffron.properties file", e);
-      } catch (RuntimeException e) {
-        if (!"java.security.AccessControlException".equals(e.getClass().getName())) {
-          throw e;
-        }
+      } catch (SecurityException ignore) {
+        // Ignore SecurityException on purpose because if
+        // we can't get to the file we fall through.
       }
 
       // copy in all system properties which start with "saffron."

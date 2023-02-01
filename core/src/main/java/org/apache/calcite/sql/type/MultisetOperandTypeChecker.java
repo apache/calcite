@@ -36,10 +36,6 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean isOptional(int i) {
-    return false;
-  }
-
   @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
@@ -87,9 +83,5 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
 
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return "<MULTISET> " + opName + " <MULTISET>";
-  }
-
-  @Override public Consistency getConsistency() {
-    return Consistency.NONE;
   }
 }

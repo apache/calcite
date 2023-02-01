@@ -38,6 +38,7 @@ here to appease testAllFunctionsAreDocumented:
 | JSON_OBJECTAGG_NULL_ON_NULL() | Covered by JSON_OBJECTAGG
 | JSON_VALUE_ANY() | Covered by JSON_VALUE
 | LAST()         | TODO: document with MATCH_RECOGNIZE
+| MATCH_NUMBER() | Documented with MATCH_RECOGNIZE
 | NEW            | TODO: document
 | NEXT()         | Documented with MATCH_RECOGNIZE
 | OVERLAPS       | Documented as a period operator
@@ -49,6 +50,12 @@ here to appease testAllFunctionsAreDocumented:
 | SUCCEEDS       | Documented as a period operator
 | TABLE          | Documented as part of FROM syntax
 | VARIANCE()     | In SqlStdOperatorTable, but not fully implemented
+
+Dialect-specific:
+
+| C | Function       | Reason not documented
+|:--|:-------------- |:---------------------
+
 {% endcomment %}
 -->
 
@@ -305,7 +312,7 @@ unpivotValue:
   |   '(' column [, column ]* ')' [ AS '(' literal [, literal ]* ')' ]
 
 values:
-      VALUES expression [, expression ]*
+      { VALUES | VALUE } expression [, expression ]*
 
 groupItem:
       expression
@@ -393,6 +400,10 @@ but is only allowed in certain
 
 "OFFSET start" may occur before "LIMIT count" in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isOffsetLimitAllowed--).
+
+VALUE is equivalent to VALUES,
+but is not standard SQL and is only allowed in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isValueAllowed--).
 
 ## Keywords
 
@@ -532,8 +543,10 @@ CURSOR_NAME,
 DATA,
 DATABASE,
 **DATE**,
+**DATETIME**,
 DATETIME_INTERVAL_CODE,
 DATETIME_INTERVAL_PRECISION,
+DATE_TRUNC,
 **DAY**,
 DAYS,
 **DEALLOCATE**,
@@ -616,6 +629,7 @@ FOUND,
 FRAC_SECOND,
 **FRAME_ROW**,
 **FREE**,
+**FRIDAY**,
 **FROM**,
 **FULL**,
 **FUNCTION**,
@@ -735,6 +749,7 @@ MINVALUE,
 **MOD**,
 **MODIFIES**,
 **MODULE**,
+**MONDAY**,
 **MONTH**,
 MONTHS,
 MORE,
@@ -833,6 +848,7 @@ PRIVILEGES,
 PUBLIC,
 QUALIFY,
 QUARTER,
+QUARTERS,
 **RANGE**,
 **RANK**,
 READ,
@@ -882,6 +898,7 @@ ROUTINE_SCHEMA,
 ROW_COUNT,
 **ROW_NUMBER**,
 **RUNNING**,
+**SATURDAY**,
 **SAVEPOINT**,
 SCALAR,
 SCALE,
@@ -994,6 +1011,7 @@ SUBSTITUTE,
 **SUBSTRING_REGEX**,
 **SUCCEEDS**,
 **SUM**,
+**SUNDAY**,
 **SYMMETRIC**,
 **SYSTEM**,
 **SYSTEM_TIME**,
@@ -1003,14 +1021,17 @@ SUBSTITUTE,
 TABLE_NAME,
 TEMPORARY,
 **THEN**,
+**THURSDAY**,
 TIES,
 **TIME**,
 **TIMESTAMP**,
 TIMESTAMPADD,
 TIMESTAMPDIFF,
+TIMESTAMP_DIFF,
 TIMESTAMP_TRUNC,
 **TIMEZONE_HOUR**,
 **TIMEZONE_MINUTE**,
+TIME_DIFF,
 TIME_TRUNC,
 **TINYINT**,
 **TO**,
@@ -1034,6 +1055,7 @@ TRIGGER_SCHEMA,
 **TRIM_ARRAY**,
 **TRUE**,
 **TRUNCATE**,
+**TUESDAY**,
 TUMBLE,
 TYPE,
 **UESCAPE**,
@@ -1071,7 +1093,9 @@ UTF8,
 VERSION,
 **VERSIONING**,
 VIEW,
+**WEDNESDAY**,
 WEEK,
+WEEKS,
 **WHEN**,
 **WHENEVER**,
 **WHERE**,
@@ -1154,9 +1178,9 @@ Note:
 * GEOMETRY is allowed only in certain
   [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowGeometry--).
 * Interval literals may only use time units
-  YEAR, MONTH, DAY, HOUR, MINUTE and SECOND. In certain
+  YEAR, QUARTER, MONTH, WEEK, DAY, HOUR, MINUTE and SECOND. In certain
   [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowPluralTimeUnits--),
-  we also allow their plurals, YEARS, MONTHS, DAYS, HOURS, MINUTES and SECONDS.
+  we also allow their plurals, YEARS, QUARTERS, MONTHS, WEEKS, DAYS, HOURS, MINUTES and SECONDS.
 
 ### Non-scalar types
 
@@ -1231,7 +1255,7 @@ completeness.
 |:------------------------------------------------- |:-----------
 | value1 = value2                                   | Equals
 | value1 <> value2                                  | Not equal
-| value1 != value2                                  | Not equal (only available at some conformance levels)
+| value1 != value2                                  | Not equal (only in certain [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isBangEqualAllowed--))
 | value1 > value2                                   | Greater than
 | value1 >= value2                                  | Greater than or equal
 | value1 < value2                                   | Less than
@@ -1517,24 +1541,25 @@ Calcite type conversions. The table shows all possible conversions,
 without regard to the context in which it is made. The rules governing
 these details follow the table.
 
-| FROM - TO           | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | DECIMAL | FLOAT or REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | CHAR or VARCHAR | BINARY or VARBINARY | GEOMETRY
-|:--------------------|:---- |:------- |:------- |:-------- |:--- |:------ |:------- |:------------- |:------ |:-------- |:-----|:-----|:----------|:--------------- |:--------------------|:--------
-| NULL                | i    | i       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i
-| BOOLEAN             | x    | i       | e       | e        | e   | e      | e       | e             | e      | x        | x    | x    | x         | i               | x                   | x
-| TINYINT             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x
-| SMALLINT            | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x
-| INT                 | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x
-| BIGINT              | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x
-| DECIMAL             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x
-| FLOAT/REAL          | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x
-| DOUBLE              | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x
-| INTERVAL            | x    | x       | e       | e        | e   | e      | e       | x             | x      | i        | x    | x    | x         | e               | x                   | x
-| DATE                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | i    | x    | i         | i               | x                   | x
-| TIME                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | i    | e         | i               | x                   | x
-| TIMESTAMP           | x    | x       | e       | e        | e   | e      | e       | e             | e      | x        | i    | e    | i         | i               | x                   | x
-| CHAR or VARCHAR     | x    | e       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i
-| BINARY or VARBINARY | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | e    | e    | e         | i               | i                   | x
-| GEOMETRY            | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | i               | x                   | i
+| FROM - TO           | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | DECIMAL | FLOAT or REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | CHAR or VARCHAR | BINARY or VARBINARY | GEOMETRY | ARRAY |
+|:--------------------|:-----|:--------|:--------|:---------|:----|:-------|:--------|:--------------|:-------|:---------|:-----|:-----|:----------|:----------------|:--------------------|:---------|:------|
+| NULL                | i    | i       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | x     |
+| BOOLEAN             | x    | i       | e       | e        | e   | e      | e       | e             | e      | x        | x    | x    | x         | i               | x                   | x        | x     |
+| TINYINT             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
+| SMALLINT            | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
+| INT                 | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
+| BIGINT              | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
+| DECIMAL             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
+| FLOAT/REAL          | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     |
+| DOUBLE              | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     |
+| INTERVAL            | x    | x       | e       | e        | e   | e      | e       | x             | x      | i        | x    | x    | x         | e               | x                   | x        | x     |
+| DATE                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | i    | x    | i         | i               | x                   | x        | x     |
+| TIME                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | i    | e         | i               | x                   | x        | x     |
+| TIMESTAMP           | x    | x       | e       | e        | e   | e      | e       | e             | e      | x        | i    | e    | i         | i               | x                   | x        | x     |
+| CHAR or VARCHAR     | x    | e       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | i     |
+| BINARY or VARBINARY | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | e    | e    | e         | i               | i                   | x        | x     |
+| GEOMETRY            | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | i               | x                   | i        | x     |
+| ARRAY               | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | i     |
 
 i: implicit cast / e: explicit cast / x: not allowed
 
@@ -1839,6 +1864,8 @@ and `LISTAGG`).
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
 | ANY_VALUE( [ ALL &#124; DISTINCT ] value)     | Returns one of the values of *value* across all input values; this is NOT specified in the SQL standard
+| ARG_MAX(value, comp)                          | Returns *value* for the maximum value of *comp* in the group
+| ARG_MIN(value, comp)                          | Returns *value* for the minimum value of *comp* in the group
 | APPROX_COUNT_DISTINCT(value [, value ]*)      | Returns the approximate number of distinct values of *value*; the database is allowed to use an approximation but is not required to
 | AVG( [ ALL &#124; DISTINCT ] numeric)         | Returns the average (arithmetic mean) of *numeric* across all input values
 | BIT_AND( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise AND of all non-null input values, or null if none; integer and binary types are supported
@@ -2379,18 +2406,20 @@ Not implemented:
 
 #### Geometry measurement functions (2D)
 
-Not implemented:
+The following functions measure geometries.
 
-* ST_Area(geom) Returns the area of *geom* (which may be a GEOMETRYCOLLECTION)
-* ST_ClosestCoordinate(geom, point) Returns the coordinate(s) of *geom* closest to *point*
-* ST_ClosestPoint(geom1, geom2) Returns the point of *geom1* closest to *geom2*
-* ST_FurthestCoordinate(geom, point) Returns the coordinate(s) of *geom* that are furthest from *point*
-* ST_Length(lineString) Returns the length of *lineString*
-* ST_LocateAlong(geom, segmentLengthFraction, offsetDistance) Returns a MULTIPOINT containing points along the line segments of *geom* at *segmentLengthFraction* and *offsetDistance*
-* ST_LongestLine(geom1, geom2) Returns the 2-dimensional longest line-string between the points of *geom1* and *geom2*
-* ST_MaxDistance(geom1, geom2) Computes the maximum distance between *geom1* and *geom2*
-* ST_Perimeter(polygon) Returns the length of the perimeter of *polygon* (which may be a MULTIPOLYGON)
-* ST_ProjectPoint(point, lineString) Projects *point* onto a *lineString* (which may be a MULTILINESTRING)
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_Area(geom) | Returns the area of *geom* (which may be a GEOMETRYCOLLECTION)
+| h | ST_ClosestCoordinate(point, geom) | Returns the coordinate(s) of *geom* closest to *point*
+| h | ST_ClosestPoint(geom1, geom2) | Returns the point of *geom1* closest to *geom2*
+| h | ST_FurthestCoordinate(geom, point) | Returns the coordinate(s) of *geom* that are furthest from *point*
+| h | ST_Length(geom) | Returns the length of *geom*
+| h | ST_LocateAlong(geom, segmentLengthFraction, offsetDistance) | Returns a MULTIPOINT containing points along the line segments of *geom* at *segmentLengthFraction* and *offsetDistance*
+| h | ST_LongestLine(geom1, geom2) | Returns the 2-dimensional longest line-string between the points of *geom1* and *geom2*
+| h | ST_MaxDistance(geom1, geom2) | Computes the maximum distance between *geom1* and *geom2*
+| h | ST_Perimeter(polygon) | Returns the length of the perimeter of *polygon* (which may be a MULTIPOLYGON)
+| h | ST_ProjectPoint(point, lineString) | Projects *point* onto a *lineString* (which may be a MULTILINESTRING)
 
 #### Geometry measurement functions (3D)
 
@@ -2425,6 +2454,11 @@ Not implemented:
 * ST_Split(geom1, geom2 [, tolerance]) Splits *geom1* by *geom2* using *tolerance* (default 1E-6) to determine where the point splits the line
 
 #### Geometry projection functions
+
+The EPSG dataset is released separately from Proj4J due
+to its restrictive [terms of use](https://epsg.org/terms-of-use.html).
+In order to use the projection functions in Apache Calcite,
+users must include the EPSG dataset in their dependencies.
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
@@ -2565,8 +2599,10 @@ connect string parameter.
 
 The 'C' (compatibility) column contains value:
 * 'b' for Google BigQuery ('fun=bigquery' in the connect string),
+* 'c' for Apache Calcite ('fun=calcite' in the connect string),
 * 'h' for Apache Hive ('fun=hive' in the connect string),
 * 'm' for MySQL ('fun=mysql' in the connect string),
+* 'q' for Microsoft SQL Server ('fun=mssql' in the connect string),
 * 'o' for Oracle ('fun=oracle' in the connect string),
 * 'p' for PostgreSQL ('fun=postgresql' in the connect string),
 * 's' for Apache Spark ('fun=spark' in the connect string).
@@ -2583,61 +2619,84 @@ semantics.
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
 | m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
 | o p | CHR(integer)                                 | Returns the character whose UTF-8 code is *integer*
-| o | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
+| b o | COSH(numeric)                                | Returns the hyperbolic cosine of *numeric*
 | o | CONCAT(string, string)                         | Concatenates two strings
-| m p | CONCAT(string [, string ]*)                  | Concatenates two or more strings
+| b m p | CONCAT(string [, string ]*)                | Concatenates two or more strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string.
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
-| b | CURRENT_DATETIME([timezone])                   | Returns the current time as a TIMESTAMP from *timezone*
+| b | CURRENT_DATETIME([ timeZone ])                 | Returns the current time as a TIMESTAMP from *timezone*
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | b | DATE(string)                                   | Equivalent to `CAST(string AS DATE)`
+| p q | DATEADD(timeUnit, integer, datetime)         | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
+| p q | DATEDIFF(timeUnit, datetime, datetime2)      | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
+| q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
+| p | DATE_PART(timeUnit, datetime)                  | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
+| b | DATE_SUB(date, interval)                       | Returns the DATE value that occurs *interval* before *date*
+| b | DATE_TRUNC(date, timeUnit)                     | Truncates *date* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
+| b | ENDS_WITH(string1, string2)                    | Returns whether *string2* is a suffix of *string1*
 | o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the xml fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
 | o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
-| o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
+| b o | GREATEST(expr [, expr ]*)                    | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
+| b | IFNULL(value1, value2)                         | Equivalent to `NVL(value1, value2)`
 | p | string1 ILIKE string2 [ ESCAPE string3 ]       | Whether *string1* matches pattern *string2*, ignoring case (similar to `LIKE`)
 | p | string1 NOT ILIKE string2 [ ESCAPE string3 ]   | Whether *string1* does not match pattern *string2*, ignoring case (similar to `NOT LIKE`)
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of *jsonValue*
 | m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of *jsonValue*
 | m | JSON_PRETTY(jsonValue)                         | Returns a pretty-printing of *jsonValue*
 | m | JSON_LENGTH(jsonValue [, path ])               | Returns a integer indicating the length of *jsonValue*
+| m | JSON_INSERT(jsonValue, path, val[, path, val]*)  | Returns a JSON document insert a data of *jsonValue*, *path*, *val*
 | m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
 | m | JSON_REMOVE(jsonValue, path[, path])           | Removes data from *jsonValue* using a series of *path* expressions and returns the result
+| m | JSON_REPLACE(jsonValue, path, val[, path, val]*)  | Returns a JSON document replace a data of *jsonValue*, *path*, *val*
+| m | JSON_SET(jsonValue, path, val[, path, val]*)  | Returns a JSON document set a data of *jsonValue*, *path*, *val*
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of *jsonValue*
-| o | LEAST(expr [, expr ]* )                        | Returns the least of the expressions
-| m p | LEFT(string, length)                         | Returns the leftmost *length* characters from the *string*
+| b o | LEAST(expr [, expr ]* )                      | Returns the least of the expressions
+| b m p | LEFT(string, length)                       | Returns the leftmost *length* characters from the *string*
+| b | LENGTH(string)                                 | Equivalent to `CHAR_LENGTH(string)`
+| b o | LPAD(string, length[, pattern ])             | Returns a string or bytes value that consists of *string* prepended to *length* with *pattern*
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
-| m | FROM_BASE64(string)                            | Returns the decoded result of a base-64 *string* as a string
-| o | LTRIM(string)                                  | Returns *string* with all blanks removed from the start
-| m p | MD5(string)                                  | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
+| b m | FROM_BASE64(string)                          | Returns the decoded result of a base-64 *string* as a string
+| b o | LTRIM(string)                                | Returns *string* with all blanks removed from the start
+| b m p | MD5(string)                                | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
+| b | POW(numeric1, numeric2)                        | Returns *numeric1* raised to the power *numeric2*
 | m o | REGEXP_REPLACE(string, regexp, rep, [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* means which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
-| m p | REPEAT(string, integer)                      | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
-| m | REVERSE(string)                                | Returns *string* with the order of the characters reversed
-| m p | RIGHT(string, length)                        | Returns the rightmost *length* characters from the *string*
+| b m p | REPEAT(string, integer)                    | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
+| b m | REVERSE(string)                              | Returns *string* with the order of the characters reversed
+| b m p | RIGHT(string, length)                      | Returns the rightmost *length* characters from the *string*
 | h s | string1 RLIKE string2                        | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
 | h s | string1 NOT RLIKE string2                    | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
-| o | RTRIM(string)                                  | Returns *string* with all blanks removed from the end
-| m p | SHA1(string)                                 | Calculates a SHA-1 hash value of *string* and returns it as a hex string
-| o | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
-| m o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
+| b o | RPAD(string, length[, pattern ])             | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
+| b o | RTRIM(string)                                | Returns *string* with all blanks removed from the end
+| b m p | SHA1(string)                               | Calculates a SHA-1 hash value of *string* and returns it as a hex string
+| b o | SINH(numeric)                                | Returns the hyperbolic sine of *numeric*
+| b m o p | SOUNDEX(string)                          | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
-| b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| b | STARTS_WITH(string1, string2)                  | Returns whether *string2* is a prefix of *string1*
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
-| o | TANH(numeric)                                  | Returns the hyperbolic tangent of *numeric*
+| b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| b o | TANH(numeric)                                | Returns the hyperbolic tangent of *numeric*
+| b | TIMESTAMP_ADD(timestamp, interval)             | Returns the TIMESTAMP value that occurs *interval* after *timestamp*
+| b | TIMESTAMP_DIFF(timestamp, timestamp2, timeUnit) | Returns the whole number of *timeUnit* between *timestamp* and *timestamp2*. Equivalent to `TIMESTAMPDIFF(timeUnit, timestamp2, timestamp)` and `(timestamp - timestamp2) timeUnit`
 | b | TIMESTAMP_MICROS(integer)                      | Returns the TIMESTAMP that is *integer* microseconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_MILLIS(integer)                      | Returns the TIMESTAMP that is *integer* milliseconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_SECONDS(integer)                     | Returns the TIMESTAMP that is *integer* seconds after 1970-01-01 00:00:00
-| b | TIMESTAMP_TRUNC(timestamp, timeUnit)           | Truncates a *timestamp* value to the granularity of *timeUnit*. The *timestamp* value is always rounded to the beginning of the *timeUnit*.
-| b | TIME_TRUNC(time, timeUnit)                     | Truncates a *time* value to the granularity of *timeUnit*. The *time* value is always rounded to the beginning of timeUnit, which can be one of the following: MILLISECOND, SECOND, MINUTE, HOUR.
+| b | TIMESTAMP_SUB(timestamp, interval)             | Returns the TIMESTAMP value that is *interval* before *timestamp*
+| b | TIMESTAMP_TRUNC(timestamp, timeUnit)           | Truncates *timestamp* to the granularity of *timeUnit*, rounding to the beginning of the unit
+| b | TIME_ADD(time, interval)                       | Adds *interval* to *time*, independent of any time zone
+| b | TIME_DIFF(time, time2, timeUnit)               | Returns the whole number of *timeUnit* between *time* and *time2*
+| b | TIME_SUB(time, interval)                       | Returns the TIME value that is *interval* before *time*
+| b | TIME_TRUNC(time, timeUnit)                     | Truncates *time* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
-| o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| b o p | TRANSLATE(expr, fromString, toString)      | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| b | TRUNC(numeric1 [, numeric2 ])                  | Truncates *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point
 | b | UNIX_MICROS(timestamp)                         | Returns the number of microseconds since 1970-01-01 00:00:00
 | b | UNIX_MILLIS(timestamp)                         | Returns the number of milliseconds since 1970-01-01 00:00:00
 | b | UNIX_SECONDS(timestamp)                        | Returns the number of seconds since 1970-01-01 00:00:00
@@ -2646,6 +2705,11 @@ semantics.
 
 Note:
 
+* Calcite has no Redshift library, so the Postgres library
+  is used instead. The functions `DATEADD`, `DATEDIFF` are
+  implemented in Redshift and not Postgres but nevertheless
+  appear in Calcite's Postgres library
+* Functions `DATEADD`, `DATEDIFF`, `DATE_PART` require the Babel parser
 * `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` / `JSON_STORAGE_SIZE` return null if the argument is null
 * `JSON_LENGTH` / `JSON_KEYS` / `JSON_REMOVE` return null if the first argument is null
 * `JSON_TYPE` generally returns an upper-case string flag indicating the type of the JSON input. Currently supported supported type flags are:
@@ -2671,6 +2735,7 @@ Dialect-specific aggregate functions.
 
 | C | Operator syntax                                | Description
 |:- |:-----------------------------------------------|:-----------
+| c | AGGREGATE(m)                                   | Computes measure *m* in the context of the current GROUP BY key
 | b p | ARRAY_AGG( [ ALL &#124; DISTINCT ] value [ RESPECT NULLS &#124; IGNORE NULLS ] [ ORDER BY orderItem [, orderItem ]* ] ) | Gathers values into arrays
 | b p | ARRAY_CONCAT_AGG( [ ALL &#124; DISTINCT ] value [ ORDER BY orderItem [, orderItem ]* ] ) | Concatenates arrays into arrays
 | p | BOOL_AND(condition)                            | Synonym for `EVERY`
@@ -2679,6 +2744,8 @@ Dialect-specific aggregate functions.
 | m | GROUP_CONCAT( [ ALL &#124; DISTINCT ] value [, value ]* [ ORDER BY orderItem [, orderItem ]* ] [ SEPARATOR separator ] ) | MySQL-specific variant of `LISTAGG`
 | b | LOGICAL_AND(condition)                         | Synonym for `EVERY`
 | b | LOGICAL_OR(condition)                          | Synonym for `SOME`
+| s | MAX_BY(value, comp)                            | Synonym for `ARG_MAX`
+| s | MIN_BY(value, comp)                            | Synonym for `ARG_MIN`
 | b p | STRING_AGG( [ ALL &#124; DISTINCT ] value [, separator] [ ORDER BY orderItem [, orderItem ]* ] ) | Synonym for `LISTAGG`
 
 Usage Examples:
@@ -2740,6 +2807,23 @@ Result
 |:------:|:-----:|:-------:|:-------:|
 | 1      | 2     | 1       | 1       |
 
+##### JSON_INSERT example
+
+SQL
+
+```SQL
+SELECT JSON_INSERT(v, '$.a', 10, '$.c', '[1]') AS c1,
+  JSON_INSERT(v, '$', 10, '$.c', '[1]') AS c2
+FROM (VALUES ('{"a": [10, true]}')) AS t(v)
+LIMIT 10;
+```
+
+Result
+
+| c1                             | c2                            |
+| ------------------------------ | ----------------------------- |
+| {"a":1 , "b":[2] , "c":"[1]"}  | {"a":1 , "b":[2] , "c":"[1]"} |
+
 ##### JSON_KEYS example
 
 SQL
@@ -2776,6 +2860,41 @@ LIMIT 10;
 |:----------:|
 | ["a", "d"] |
 
+##### JSON_REPLACE example
+
+SQL
+
+ ```SQL
+SELECT
+JSON_REPLACE(v, '$.a', 10, '$.c', '[1]') AS c1,
+JSON_REPLACE(v, '$', 10, '$.c', '[1]') AS c2
+FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)
+limit 10;
+```
+
+ Result
+
+| c1                             | c2                              |
+| ------------------------------ | ------------------------------- |
+| {"a":1 , "b":[2] , "c":"[1]"}  | {"a":1 , "b":[2] , "c":"[1]"}") |
+
+##### JSON_SET example
+
+SQL
+
+ ```SQL
+SELECT
+JSON_SET(v, '$.a', 10, '$.c', '[1]') AS c1,
+JSON_SET(v, '$', 10, '$.c', '[1]') AS c2
+FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)
+limit 10;
+```
+
+ Result
+
+| c1                 | c2 |
+| -------------------| -- |
+| {"a":10, "b":[2]}  | 10 |
 
 ##### JSON_STORAGE_SIZE example
 
@@ -2833,12 +2952,6 @@ Result
 | c1          | c2          | c3          | c4          |
 |:-----------:|:-----------:|:-----------:|:-----------:|
 | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d |
-
-Not implemented:
-
-* JSON_INSERT
-* JSON_SET
-* JSON_REPLACE
 
 ## User-defined functions
 

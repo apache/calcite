@@ -927,10 +927,9 @@ public abstract class SqlTypeUtil {
     RelDataType c1 = toType.getComponentType();
     if (c1 != null) {
       RelDataType c2 = fromType.getComponentType();
-      if (c2 == null) {
-        return false;
+      if (c2 != null) {
+        return canCastFrom(c1, c2, coerce);
       }
-      return canCastFrom(c1, c2, coerce);
     }
     if ((isInterval(fromType) && isExactNumeric(toType))
         || (isInterval(toType) && isExactNumeric(fromType))) {

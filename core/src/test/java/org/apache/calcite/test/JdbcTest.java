@@ -7878,6 +7878,36 @@ public class JdbcTest {
         .returns("A=29; B=35; C=37; D=36\n");
   }
 
+  @Test public void testJsonInsert() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.FUN, "mysql")
+        .query("SELECT JSON_INSERT(v, '$.a', 10, '$.c', '[1]') AS c1\n"
+            + ",JSON_INSERT(v, '$', 10, '$.c', '[1]') AS c2\n"
+            + "FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1={\"a\":1,\"b\":[2],\"c\":\"[1]\"}; C2={\"a\":1,\"b\":[2],\"c\":\"[1]\"}\n");
+  }
+
+  @Test public void testJsonReplace() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.FUN, "mysql")
+        .query("SELECT JSON_REPLACE(v, '$.a', 10, '$.c', '[1]') AS c1\n"
+            + ",JSON_REPLACE(v, '$', 10, '$.c', '[1]') AS c2\n"
+            + "FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1={\"a\":10,\"b\":[2]}; C2=10\n");
+  }
+
+  @Test public void testJsonSet() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.FUN, "mysql")
+        .query("SELECT JSON_SET(v, '$.a', 10, '$.c', '[1]') AS c1\n"
+            + ",JSON_SET(v, '$', 10, '$.c', '[1]') AS c2\n"
+            + "FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1={\"a\":10,\"b\":[2],\"c\":\"[1]\"}; C2=10\n");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]
@@ -7998,6 +8028,90 @@ public class JdbcTest {
     CalciteAssert.that()
         .query("select array[1, 1.1]")
         .returns("EXPR$0=[0E+1, 1.1]\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]</a>
+   * Convert between standard Gregorian and proleptic Gregorian calendars for
+   * literal dates in local time zone. */
+  @Test void testLiteralDateToSqlTimestamp() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.TIME_ZONE, TimeZone.getDefault().getID())
+        .query("select cast('1500-04-30' as date)")
+        .returns(resultSet -> {
+          try {
+            assertTrue(resultSet.next());
+            assertEquals("1500-04-30", resultSet.getString(1));
+            assertEquals(Date.valueOf("1500-04-30"), resultSet.getDate(1));
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]</a>
+   * Convert between standard Gregorian and proleptic Gregorian calendars for
+   * literal timestamps in local time zone. */
+  @Test void testLiteralTimestampToSqlTimestamp() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.TIME_ZONE, TimeZone.getDefault().getID())
+        .query("select cast('1500-04-30 12:00:00' as timestamp)")
+        .returns(resultSet -> {
+          try {
+            assertTrue(resultSet.next());
+            assertEquals("1500-04-30 12:00:00", resultSet.getString(1));
+            assertEquals(Timestamp.valueOf("1500-04-30 12:00:00"), resultSet.getTimestamp(1));
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]</a>
+   * Convert between standard Gregorian and proleptic Gregorian calendars for
+   * dynamic dates in local time zone. */
+  @Test void testDynamicDateToSqlTimestamp() {
+    final Date date = Date.valueOf("1500-04-30");
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.TIME_ZONE, TimeZone.getDefault().getID())
+        .query("select cast(? as date)")
+        .consumesPreparedStatement(statement -> statement.setDate(1, date))
+        .returns(resultSet -> {
+          try {
+            assertTrue(resultSet.next());
+            assertEquals("1500-04-30", resultSet.getString(1));
+            assertEquals(date, resultSet.getDate(1));
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]</a>
+   * Convert between standard Gregorian and proleptic Gregorian calendars for
+   * dynamic timestamps in local time zone. */
+  @Test void testDynamicTimestampToSqlTimestamp() {
+    final Timestamp timestamp = Timestamp.valueOf("1500-04-30 12:00:00");
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.TIME_ZONE, TimeZone.getDefault().getID())
+        .query("select cast(? as timestamp)")
+        .consumesPreparedStatement(statement -> statement.setTimestamp(1, timestamp))
+        .returns(resultSet -> {
+          try {
+            assertTrue(resultSet.next());
+            assertEquals("1500-04-30 12:00:00", resultSet.getString(1));
+            assertEquals(timestamp, resultSet.getTimestamp(1));
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   private static String sums(int n, boolean c) {

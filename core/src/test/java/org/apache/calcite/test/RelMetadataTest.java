@@ -92,11 +92,12 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.test.SqlTestFactory;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
@@ -2258,6 +2259,17 @@ public class RelMetadataTest {
         String.valueOf(r), is(expected));
   }
 
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5392">[CALCITE-5392]
+   * Support Snapshot in RelMdExpressionLineage</a>. */
+  @Test void testExpressionLineageSnapshot() {
+    String expected = "[[CATALOG, SALES, PRODUCTS_TEMPORAL].#0.$0]";
+    String comment = "'productid' is column 0 in 'catalog.sales.products_temporal'";
+    assertExpressionLineage("select productid from products_temporal\n"
+        + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'", 0, expected, comment);
+  }
+
   @Test void testExpressionLineageStar() {
     // All columns in output
     final RelNode tableRel = sql("select * from emp").toRel();
@@ -3210,17 +3222,9 @@ public class RelMetadataTest {
         is(mq.getPopulationSize(rel, bitSetOf(0))));
   }
 
-  private static final SqlOperator NONDETERMINISTIC_OP = new SqlSpecialOperator(
-          "NDC",
-          SqlKind.OTHER_FUNCTION,
-          0,
-          false,
-          ReturnTypes.BOOLEAN,
-          null, null) {
-    @Override public boolean isDeterministic() {
-      return false;
-    }
-  };
+  private static final SqlOperator NONDETERMINISTIC_OP =
+      SqlBasicFunction.create("NDC", ReturnTypes.BOOLEAN, OperandTypes.VARIADIC)
+          .withDeterministic(false);
 
   /** Tests calling {@link RelMetadataQuery#getTableOrigin} for
    * an aggregate with no columns. Previously threw. */

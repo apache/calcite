@@ -210,6 +210,8 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
               "call to wrong operator");
           final SqlCall newCall =
               target.createCall(SqlParserPos.ZERO, call.getOperandList());
+          cx.getValidator().setValidatedNodeType(newCall,
+              cx.getValidator().getValidatedNodeType(call));
           return cx.convertExpression(newCall);
         });
   }

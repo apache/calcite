@@ -189,12 +189,17 @@ public class RelToSqlConverter extends SqlImplementor
     }
 
     @Override public SqlNode visit(SqlIdentifier id) {
+      SqlNodeList source = requireNonNull(replaceSource, "replaceSource");
+      SqlNode firstItem = source.get(0);
+      if (firstItem instanceof SqlIdentifier && ((SqlIdentifier) firstItem).isStar()) {
+        return id;
+      }
       if (tableAlias.equals(id.names.get(0))) {
         int index = requireNonNull(
             tableType.getField(id.names.get(1), false, false),
             () -> "field " + id.names.get(1) + " is not found in " + tableType)
             .getIndex();
-        SqlNode selectItem = requireNonNull(replaceSource, "replaceSource").get(index);
+        SqlNode selectItem = source.get(index);
         if (selectItem.getKind() == SqlKind.AS) {
           selectItem = ((SqlCall) selectItem).operand(0);
         }
@@ -293,7 +298,7 @@ public class RelToSqlConverter extends SqlImplementor
     final SqlNode resultNode =
         leftResult.neededAlias == null ? sqlSelect
             : as(sqlSelect, leftResult.neededAlias);
-    return result(resultNode, leftResult, rightResult);
+    return result(resultNode,  ImmutableList.of(Clause.FROM), e, null);
   }
 
   /** Returns whether this join should be unparsed as a {@link JoinType#COMMA}.
@@ -1182,7 +1187,7 @@ public class RelToSqlConverter extends SqlImplementor
   @Override public void addSelect(List<SqlNode> selectList, SqlNode node,
       RelDataType rowType) {
     String name = rowType.getFieldNames().get(selectList.size());
-    String alias = SqlValidatorUtil.getAlias(node, -1);
+    @Nullable String alias = SqlValidatorUtil.alias(node);
     if (alias == null || !alias.equals(name)) {
       node = as(node, name);
     }

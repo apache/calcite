@@ -24,6 +24,8 @@ import java.util.TimeZone;
 
 /**
  * Utility methods to manipulate String representation of DateTime values.
+ *
+ * @see DateTimeUtils
  */
 public class DateTimeStringUtils {
 

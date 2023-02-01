@@ -40,10 +40,6 @@ public class ExplicitOperandTypeChecker implements SqlOperandTypeChecker {
     this.type = Objects.requireNonNull(type, "type");
   }
 
-  @Override public boolean isOptional(int i) {
-    return false;
-  }
-
   @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
@@ -72,9 +68,5 @@ public class ExplicitOperandTypeChecker implements SqlOperandTypeChecker {
 
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return "<TYPE> " + opName + " <TYPE>";
-  }
-
-  @Override public Consistency getConsistency() {
-    return Consistency.NONE;
   }
 }

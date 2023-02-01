@@ -38,6 +38,7 @@ import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryComponentFilter;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.GeometryFilter;
+import org.locationtech.jts.geom.LineSegment;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.MultiLineString;
@@ -49,9 +50,12 @@ import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.geom.util.AffineTransformation;
 import org.locationtech.jts.geom.util.GeometryFixer;
+import org.locationtech.jts.linearref.LengthIndexedLine;
+import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.jts.operation.linemerge.LineMerger;
 import org.locationtech.jts.operation.overlay.snap.GeometrySnapper;
 import org.locationtech.jts.operation.polygonize.Polygonizer;
+import org.locationtech.jts.operation.union.UnaryUnionOp;
 import org.locationtech.jts.precision.GeometryPrecisionReducer;
 import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
@@ -60,6 +64,7 @@ import org.locationtech.jts.util.GeometricShapeFactory;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -76,6 +81,7 @@ import static org.apache.calcite.runtime.SpatialTypeUtils.fromGeoJson;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromGml;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkb;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkt;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Helper methods to implement spatial type (ST) functions in generated code.
@@ -290,7 +296,7 @@ public class SpatialTypeFunctions {
   /**
    * Converts the coordinates of a {@code geom} into a MULTIPOINT.
    */
-  public static Geometry ST_ToMultiPoint(Geometry geom) {
+  public static @Nullable Geometry ST_ToMultiPoint(Geometry geom) {
     CoordinateSequence coordinateSequence = GEOMETRY_FACTORY
         .getCoordinateSequenceFactory().create(geom.getCoordinates());
     return GEOMETRY_FACTORY.createMultiPoint(coordinateSequence);
@@ -299,7 +305,7 @@ public class SpatialTypeFunctions {
   /**
    * Converts the a {@code geom} into a MULTILINESTRING.
    */
-  public static Geometry ST_ToMultiLine(Geometry geom) {
+  public static @Nullable Geometry ST_ToMultiLine(Geometry geom) {
     GeometryFactory factory = geom.getFactory();
     ArrayList<LineString> lines = new ArrayList<>();
     geom.apply((GeometryComponentFilter) inputGeom -> {
@@ -317,7 +323,7 @@ public class SpatialTypeFunctions {
   /**
    * Converts a {@code geom} into a set of distinct segments stored in a MULTILINESTRING.
    */
-  public static Geometry ST_ToMultiSegments(Geometry geom) {
+  public static @Nullable Geometry ST_ToMultiSegments(Geometry geom) {
     GeometryFactory factory = geom.getFactory();
     ArrayList<LineString> lines = new ArrayList<>();
     geom.apply((GeometryComponentFilter) inputGeom -> {
@@ -994,6 +1000,15 @@ public class SpatialTypeFunctions {
     return geom.getEnvelope();
   }
 
+  /**
+   * Explodes the {@code geom} into multiple geometries.
+   */
+  private static void ST_Explode(final Geometry geom) {
+    // This is a dummy function. We cannot include table functions in this
+    // package, because they have too many dependencies. See the real definition
+    // in SqlSpatialTypeFunctions.
+  }
+
   // Geometry predicates ======================================================
 
   /**
@@ -1169,14 +1184,14 @@ public class SpatialTypeFunctions {
   /**
    * Computes the union of {@code geom1} and {@code geom2}.
    */
-  public static Geometry ST_Union(Geometry geom1, Geometry geom2) {
+  public static Geometry ST_UnaryUnion(Geometry geom1, Geometry geom2) {
     return geom1.union(geom2);
   }
 
   /**
    * Computes the union of the geometries in {@code geomCollection}.
    */
-  @SemiStrict public static Geometry ST_Union(Geometry geomCollection) {
+  @SemiStrict public static Geometry ST_UnaryUnion(Geometry geomCollection) {
     return geomCollection.union();
   }
 
@@ -1187,9 +1202,12 @@ public class SpatialTypeFunctions {
    * {@code srid}.
    */
   public static Geometry ST_Transform(Geometry geom, int srid) {
-    ProjectionTransformer projectionTransformer =
-        new ProjectionTransformer(geom.getSRID(), srid);
-    return projectionTransformer.transform(geom);
+    try {
+      ProjectionTransformer projectionTransformer = new ProjectionTransformer(geom.getSRID(), srid);
+      return projectionTransformer.transform(geom);
+    } catch (IllegalStateException e) {
+      throw RESOURCE.proj4jEpsgIsMissing().ex();
+    }
   }
 
   /**
@@ -1318,6 +1336,168 @@ public class SpatialTypeFunctions {
     return transformation.transform(geom);
   }
 
+  // Geometry measurement functions
+
+  /**
+   * Returns the area of the {@code geom}.
+   */
+  public static @Nullable Double ST_Area(Geometry geom) {
+    return geom.getArea();
+  }
+
+  /**
+   * Returns the coordinate(s) of {@code geom} closest to {@code point}.
+   */
+  public static @Nullable Geometry ST_ClosestCoordinate(Geometry point, Geometry geom) {
+    List<Coordinate> closestCoordinates = new ArrayList<>();
+    double minDistance = Double.MAX_VALUE;
+    for (Coordinate coordinate : geom.getCoordinates()) {
+      double distance = point.getCoordinate().distance(coordinate);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestCoordinates.clear();
+        closestCoordinates.add(coordinate);
+      } else if (distance == minDistance && !closestCoordinates.contains(coordinate)) {
+        closestCoordinates.add(coordinate);
+      }
+    }
+    if (closestCoordinates.size() == 1) {
+      return GEOMETRY_FACTORY.createPoint(closestCoordinates.get(0));
+    } else {
+      Coordinate[] coordinates = closestCoordinates.toArray(new Coordinate[0]);
+      return GEOMETRY_FACTORY.createMultiPointFromCoords(coordinates);
+    }
+  }
+
+  /**
+   * Returns the point of {@code geom1} closest to {@code geom2}.
+   */
+  public static @Nullable Geometry ST_ClosestPoint(Geometry geom1, Geometry geom2) {
+    return GEOMETRY_FACTORY.createPoint(DistanceOp.nearestPoints(geom1, geom2)[0]);
+  }
+
+  /**
+   * Returns the coordinate(s) of {@code geom} furthest from {@code point}.
+   */
+  public static @Nullable Geometry ST_FurthestCoordinate(Geometry point, Geometry geom) {
+    List<Coordinate> closestCoordinates = new ArrayList<>();
+    double maxDistance = Double.MIN_VALUE;
+    for (Coordinate coordinate : geom.getCoordinates()) {
+      double distance = point.getCoordinate().distance(coordinate);
+      if (distance > maxDistance) {
+        maxDistance = distance;
+        closestCoordinates.clear();
+        closestCoordinates.add(coordinate);
+      } else if (distance == maxDistance && !closestCoordinates.contains(coordinate)) {
+        closestCoordinates.add(coordinate);
+      }
+    }
+    if (closestCoordinates.size() == 1) {
+      return GEOMETRY_FACTORY.createPoint(closestCoordinates.get(0));
+    } else {
+      Coordinate[] coordinates = closestCoordinates.toArray(new Coordinate[0]);
+      return GEOMETRY_FACTORY.createMultiPointFromCoords(coordinates);
+    }
+  }
+
+  /**
+   * Returns the length of the {@code geom}.
+   */
+  public static @Nullable Double ST_Length(Geometry geom) {
+    return geom.getLength();
+  }
+
+  /**
+   * Returns a MULTIPOINT containing points along the line segments of {@code geom}
+   * at {@code segmentLengthFraction} and {@code offsetDistance}.
+   */
+  public static @Nullable Geometry ST_LocateAlong(Geometry geom, BigDecimal segmentLengthFraction,
+      BigDecimal offsetDistance) {
+    List<Coordinate> coordinates = new ArrayList<>();
+    for (int i = 0; i < geom.getNumGeometries(); i++) {
+      Geometry geometry = geom.getGeometryN(i);
+      Coordinate[] geometryCoordinates = geometry.getCoordinates();
+      for (int j = 0; j < geometryCoordinates.length - 1; j++) {
+        Coordinate c1 = geometryCoordinates[j];
+        Coordinate c2 = geometryCoordinates[j + 1];
+        LineSegment lineSegment = new LineSegment(c1, c2);
+        coordinates.add(
+            lineSegment.pointAlongOffset(
+            segmentLengthFraction.doubleValue(),
+            offsetDistance.doubleValue()));
+      }
+    }
+    Coordinate[] coordinateArray = coordinates.toArray(new Coordinate[0]);
+    return GEOMETRY_FACTORY.createMultiPointFromCoords(coordinateArray);
+  }
+
+  /**
+   * Returns the 2-dimensional longest line-string between the points
+   * of {@code geom1} and {@code geom2}.
+   */
+  public static @Nullable Geometry ST_LongestLine(Geometry geom1, Geometry geom2) {
+    double maxDistance = Double.MIN_VALUE;
+    Coordinate c1 = null;
+    Coordinate c2 = null;
+    for (Coordinate coordinate1 : geom1.getCoordinates()) {
+      for (Coordinate coordinate2 : geom2.getCoordinates()) {
+        double distance = coordinate1.distance(coordinate2);
+        if (distance > maxDistance) {
+          maxDistance = distance;
+          c1 = coordinate1;
+          c2 = coordinate2;
+        }
+      }
+    }
+    if (c1 == null || c2 == null) {
+      return null;
+    }
+    return GEOMETRY_FACTORY.createLineString(new Coordinate[] {c1, c2});
+  }
+
+  /**
+   * Computes the maximum distance between {@code geom1} and {@code geom2}.
+   */
+  public static @Nullable Double ST_MaxDistance(Geometry geom1, Geometry geom2) {
+    double maxDistance = Double.MIN_VALUE;
+    for (Coordinate coordinate1 : geom1.getCoordinates()) {
+      for (Coordinate coordinate2 : geom2.getCoordinates()) {
+        double distance = coordinate1.distance(coordinate2);
+        if (distance > maxDistance) {
+          maxDistance = distance;
+        }
+      }
+    }
+    return maxDistance;
+  }
+
+  /**
+   * Returns the length of the perimeter of *polygon* (which may be a MULTIPOLYGON).
+   */
+  public static @Nullable Double ST_Perimeter(Geometry geom) {
+    double perimeter = 0;
+    for (int i = 0; i < geom.getNumGeometries(); i++) {
+      Geometry geometry = geom.getGeometryN(i);
+      if (geometry instanceof Polygon) {
+        perimeter += geometry.getLength();
+      }
+    }
+    return perimeter;
+  }
+
+  /**
+   * Projects {@code point} onto a {@code lineString} (which may be a MULTILINESTRING).
+   */
+  public static @Nullable Geometry ST_ProjectPoint(Geometry point, Geometry lineString) {
+    if (lineString.getDimension() > 1) {
+      return null;
+    }
+    LengthIndexedLine lengthIndexedLine = new LengthIndexedLine(lineString);
+    double index = lengthIndexedLine.project(point.getCoordinate());
+    Coordinate projectedCoordinate = lengthIndexedLine.extractPoint(index);
+    return GEOMETRY_FACTORY.createPoint(projectedCoordinate);
+  }
+
   // Space-filling curves
 
   /**
@@ -1428,4 +1608,61 @@ public class SpatialTypeFunctions {
     }
   }
 
+  /**
+   * Used at run time by the ST_Union function.
+   */
+  public static class Union {
+
+    public List<Geometry> init() {
+      return new ArrayList<>();
+    }
+
+    public List<Geometry> add(List<Geometry> accumulator, Geometry geometry) {
+      accumulator.add(geometry);
+      return accumulator;
+    }
+
+    public Geometry result(List<Geometry> accumulator) {
+      return new UnaryUnionOp(accumulator).union();
+    }
+  }
+
+  /**
+   * Used at run time by the ST_Accum function.
+   */
+  public static class Accum {
+
+    public List<Geometry> init() {
+      return new ArrayList<>();
+    }
+
+    public List<Geometry> add(List<Geometry> accumulator, Geometry geometry) {
+      accumulator.add(geometry);
+      return accumulator;
+    }
+
+    public List<Geometry> result(List<Geometry> accumulator) {
+      return accumulator;
+    }
+  }
+
+  /**
+   * Used at run time by the ST_Collect function.
+   */
+  public static class Collect {
+
+    public List<Geometry> init() {
+      return new ArrayList<>();
+    }
+
+    public List<Geometry> add(List<Geometry> accumulator, Geometry geometry) {
+      accumulator.add(geometry);
+      return accumulator;
+    }
+
+    public Geometry result(List<Geometry> accumulator) {
+      Geometry[] array = accumulator.toArray(new Geometry[accumulator.size()]);
+      return GEOMETRY_FACTORY.createGeometryCollection(array);
+    }
+  }
 }

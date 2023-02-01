@@ -237,6 +237,15 @@ public class PlannerImpl implements Planner, ViewExpander {
     return Pair.of(validatedNode, type);
   }
 
+  @Override public RelDataType getParameterRowType() {
+    if (state.ordinal() < State.STATE_4_VALIDATED.ordinal()) {
+      throw new RuntimeException("Need to call #validate() first");
+    }
+
+    return requireNonNull(validator, "validator")
+        .getParameterRowType(requireNonNull(validatedSqlNode, "validatedSqlNode"));
+  }
+
   @SuppressWarnings("deprecation")
   @Override public final RelNode convert(SqlNode sql) {
     return rel(sql).rel;

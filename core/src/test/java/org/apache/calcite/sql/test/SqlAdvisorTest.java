@@ -162,6 +162,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(CURRENT_USER)",
           "KEYWORD(CURSOR)",
           "KEYWORD(DATE)",
+          "KEYWORD(DATETIME)",
           "KEYWORD(DENSE_RANK)",
           "KEYWORD(ELEMENT)",
           "KEYWORD(EVERY)",

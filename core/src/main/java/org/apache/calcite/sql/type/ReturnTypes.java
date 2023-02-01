@@ -1001,4 +1001,7 @@ public abstract class ReturnTypes {
       return relDataType;
     }
   };
+
+  public static final SqlReturnTypeInference PERCENTILE_DISC_CONT = opBinding ->
+      opBinding.getCollationType();
 }

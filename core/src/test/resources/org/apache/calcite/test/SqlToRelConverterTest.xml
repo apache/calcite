@@ -366,6 +366,58 @@ LogicalAggregate(group=[{}], ANYEMPNO=[ANY_VALUE($0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testArgMaxFunction">
+    <Resource name="sql">
+      <![CDATA[select arg_max(ename, deptno)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[ARG_MAX($0, $1)])
+  LogicalProject(ENAME=[$1], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArgMaxFunctionWithWinAgg">
+    <Resource name="sql">
+      <![CDATA[select job,
+  arg_max(ename, deptno) over (partition by job order by sal)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(JOB=[$2], EXPR$1=[ARG_MAX($1, $7) OVER (PARTITION BY $2 ORDER BY $5)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArgMinFunction">
+    <Resource name="sql">
+      <![CDATA[select arg_min(ename, deptno)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[ARG_MIN($0, $1)])
+  LogicalProject(ENAME=[$1], DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArgMinFunctionWithWinAgg">
+    <Resource name="sql">
+      <![CDATA[select job,
+  arg_min(ename, deptno) over (partition by job order by sal)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(JOB=[$2], EXPR$1=[ARG_MIN($1, $7) OVER (PARTITION BY $2 ORDER BY $5)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testArrayElementDoublyNestedPrimitive">
     <Resource name="sql">
       <![CDATA[select dn.employees[0]['detail']['skills'][0]['type']
@@ -971,8 +1023,9 @@ where exists (select * from emp
   </TestCase>
   <TestCase name="testCorrelationInProjectionWithCorrelatedProjection">
     <Resource name="sql">
-      <![CDATA[select cardinality(arr) from(select array(select e.deptno) arr
-from (select deptno, ename from emp) e)]]>
+      <![CDATA[select cardinality(arr) from (
+  select array(select e.deptno) arr from (
+    select deptno, ename from emp) e)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -1615,6 +1668,19 @@ LogicalProject(FAKE2=[ITEM($0, 'fake_col2')])
       <![CDATA[
 LogicalProject(EXPR$0=[CAST(?0):CHAR(1)])
   LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testDynamicParameterSortWithTrim">
+    <Resource name="sql">
+      <![CDATA[select ename from (select * from emp order by sal limit ? offset ?) a]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ENAME=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC], offset=[?1], fetch=[?0])
+    LogicalProject(ENAME=[$1], SAL=[$5])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -4337,6 +4403,20 @@ LogicalProject(START_MGR=[$0], BOTTOM_MGR=[$1], END_MGR=[$2])
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalMatch(partition=[[]], order=[[]], outputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]], allRows=[false], after=[SKIP TO LAST('DOWN')], pattern=[(('STRT', PATTERN_QUANTIFIER('DOWN', 1, -1, false)), PATTERN_QUANTIFIER('UP', 1, -1, false))], isStrictStarts=[false], isStrictEnds=[false], subsets=[[[DOWN, STRT]]], patternDefinitions=[[<(PREV(DOWN.$3, 0), PREV(DOWN.$3, 1)), >(PREV(UP.$3, 0), NEXT(PREV(UP.$3, 0), 1))]], inputFields=[[EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, SLACKER]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMeasureRef">
+    <Resource name="sql">
+      <![CDATA[select deptno, aggregate(count_plus_100) as c
+from empm
+group by deptno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalAggregate(group=[{0}], C=[AGGREGATE($1)])
+  LogicalProject(DEPTNO=[$7], COUNT_PLUS_100=[$9])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPM]])
 ]]>
     </Resource>
   </TestCase>
@@ -8224,18 +8304,66 @@ LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[UPDATE], updateColum
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testUserDefinedOrderByOver">
+  <TestCase name="testUserDefinedOrderByOverFirst">
     <Resource name="sql">
       <![CDATA[select deptno,
-  rank() over(partition by empno order by deptno)
+  rank() over (partition by empno order by comm desc)
 from emp
-order by row_number() over(partition by empno order by deptno)]]>
+order by row_number() over (partition by empno order by comm)]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
   LogicalSort(sort0=[$2], dir0=[ASC-nulls-first])
-    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $7)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $7)])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $6 DESC)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $6 NULLS FIRST)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUserDefinedOrderByOverHigh">
+    <Resource name="sql">
+      <![CDATA[select deptno,
+  rank() over (partition by empno order by comm desc)
+from emp
+order by row_number() over (partition by empno order by comm)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  LogicalSort(sort0=[$2], dir0=[ASC])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $6 DESC)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $6)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUserDefinedOrderByOverLast">
+    <Resource name="sql">
+      <![CDATA[select deptno,
+  rank() over (partition by empno order by comm desc)
+from emp
+order by row_number() over (partition by empno order by comm)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  LogicalSort(sort0=[$2], dir0=[ASC])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $6 DESC NULLS LAST)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $6)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testUserDefinedOrderByOverLow">
+    <Resource name="sql">
+      <![CDATA[select deptno,
+  rank() over (partition by empno order by comm desc)
+from emp
+order by row_number() over (partition by empno order by comm)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  LogicalSort(sort0=[$2], dir0=[ASC-nulls-first])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $6 DESC NULLS LAST)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $6 NULLS FIRST)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>

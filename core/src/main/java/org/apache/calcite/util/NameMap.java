@@ -62,7 +62,7 @@ public class NameMap<V> {
   }
 
   /** Creates a NameMap that is an immutable copy of a given map. */
-  public static <V> NameMap immutableCopyOf(Map<String, V> names) {
+  public static <V> NameMap<V> immutableCopyOf(Map<String, V> names) {
     return new NameMap<>(ImmutableSortedMap.copyOf(names, COMPARATOR));
   }
 

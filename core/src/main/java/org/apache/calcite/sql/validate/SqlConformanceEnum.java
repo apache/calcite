@@ -217,6 +217,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     switch (this) {
     case LENIENT:
     case BABEL:
+    case BIG_QUERY:
     case MYSQL_5:
     case ORACLE_10:
     case ORACLE_12:
@@ -243,6 +244,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     switch (this) {
     case BABEL:
     case LENIENT:
+    case BIG_QUERY:
     case MYSQL_5:
     case PRESTO:
       return true;
@@ -404,6 +406,17 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean isValueAllowed() {
+    switch (this) {
+    case BABEL:
+    case LENIENT:
+    case MYSQL_5:
+      return true;
+    default:
+      return false;
+    }
+  }
+
   @Override public SqlLibrary semantics() {
     switch (this) {
     case BIG_QUERY:
@@ -418,4 +431,12 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean allowCoercionStringToArray() {
+    switch (this) {
+    case BABEL:
+      return true;
+    default:
+      return false;
+    }
+  }
 }

@@ -169,10 +169,10 @@ public class Lattice {
       populateAliases(join.getRight(), aliases, null);
     } else if (from.getKind() == SqlKind.AS) {
       populateAliases(SqlUtil.stripAs(from), aliases,
-          SqlValidatorUtil.getAlias(from, -1));
+          SqlValidatorUtil.alias(from));
     } else {
       if (current == null) {
-        current = SqlValidatorUtil.getAlias(from, -1);
+        current = SqlValidatorUtil.alias(from);
       }
       aliases.add(current);
     }

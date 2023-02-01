@@ -38,6 +38,8 @@ plugins {
     // Verification
     checkstyle
     calcite.buildext
+    jacoco
+    id("jacoco-report-aggregation")
     id("org.checkerframework") apply false
     id("com.github.autostyle")
     id("org.nosphere.apache.rat")
@@ -47,6 +49,7 @@ plugins {
     id("com.github.vlsi.jandex") apply false
     id("org.owasp.dependencycheck")
     id("com.github.johnrengelman.shadow") apply false
+    id("org.sonarqube")
     // IDE configuration
     id("org.jetbrains.gradle.plugin.idea-ext")
     id("com.github.vlsi.ide")
@@ -81,6 +84,7 @@ val enableSpotBugs = props.bool("spotbugs")
 val enableCheckerframework by props()
 val enableErrorprone by props()
 val enableDependencyAnalysis by props()
+val enableJacoco by props()
 val skipJandex by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
@@ -168,6 +172,16 @@ releaseParams {
     }
 }
 
+reporting {
+    reports {
+        if (enableJacoco) {
+            val jacocoAggregateTestReport by creating(JacocoCoverageReport::class) {
+                testType.set(TestSuiteType.UNIT_TEST)
+            }
+        }
+    }
+}
+
 val javadocAggregate by tasks.registering(Javadoc::class) {
     group = JavaBasePlugin.DOCUMENTATION_GROUP
     description = "Generates aggregate javadoc for all the artifacts"
@@ -225,6 +239,11 @@ dependencies {
     }
     for (m in dataSetsForSqlline) {
         sqllineClasspath(module(m))
+    }
+    if (enableJacoco) {
+        for (p in subprojects) {
+            jacocoAggregation(p)
+        }
     }
 }
 
@@ -294,6 +313,13 @@ fun com.github.autostyle.gradle.BaseFormatExtension.license() {
     endWithNewline()
 }
 
+sonarqube {
+    properties {
+        property("sonar.test.inclusions", "**/*Test*/**")
+        property("sonar.coverage.jacoco.xmlReportPaths", "$buildDir/reports/jacoco/jacocoAggregateTestReport/jacocoAggregateTestReport.xml")
+    }
+}
+
 allprojects {
     group = "org.apache.calcite"
     version = buildVersion
@@ -332,6 +358,9 @@ allprojects {
                 testImplementation("junit:junit")
                 testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
             }
+        }
+        if (enableJacoco) {
+            apply(plugin = "jacoco")
         }
     }
 
@@ -442,7 +471,7 @@ allprojects {
                 noTimestamp.value = true
                 showFromProtected()
                 // javadoc: error - The code being documented uses modules but the packages
-                // defined in https://docs.oracle.com/javase/9/docs/api/ are in the unnamed module
+                // defined in https://docs.oracle.com/en/java/javase/17/docs/api/ are in the unnamed module
                 source = "1.8"
                 docEncoding = "UTF-8"
                 charSet = "UTF-8"
@@ -454,7 +483,7 @@ allprojects {
                     "Copyright &copy; 2012-$lastEditYear Apache Software Foundation. All Rights Reserved."
                 if (JavaVersion.current() >= JavaVersion.VERSION_1_9) {
                     addBooleanOption("html5", true)
-                    links("https://docs.oracle.com/javase/9/docs/api/")
+                    links("https://docs.oracle.com/en/java/javase/17/docs/api/")
                 } else {
                     links("https://docs.oracle.com/javase/8/docs/api/")
                 }
@@ -762,6 +791,14 @@ allprojects {
                     xml.isEnabled = !reportsForHumans()
                 }
                 enabled = enableSpotBugs
+            }
+            configureEach<JacocoReport> {
+                reports {
+                    // The reports are mainly consumed by Sonar, which only uses the XML format
+                    xml.required.set(true)
+                    html.required.set(false)
+                    csv.required.set(false)
+                }
             }
 
             afterEvaluate {

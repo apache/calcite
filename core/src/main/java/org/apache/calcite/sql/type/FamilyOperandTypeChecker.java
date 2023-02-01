@@ -189,8 +189,4 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return SqlUtil.getAliasedSignature(op, opName, families);
   }
-
-  @Override public Consistency getConsistency() {
-    return Consistency.NONE;
-  }
 }

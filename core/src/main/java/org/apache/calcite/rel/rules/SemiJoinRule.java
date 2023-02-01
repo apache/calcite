@@ -283,7 +283,7 @@ public abstract class SemiJoinRule
         default:
           throw new AssertionError(join.getJoinType());
         }
-        builder.project(project.getProjects());
+        builder.project(project.getProjects(), project.getRowType().getFieldNames());
         call.transformTo(builder.build());
       }
     }

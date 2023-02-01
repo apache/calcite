@@ -565,6 +565,54 @@ FROM t;
 !}
 
 #####################################################################
+# NOT EQUAL Operator (value1 != value2)
+#
+# Compares value1 and value2 and returns TRUE if not equal.
+SELECT (5 != 3) as result;
++--------+
+| result |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+SELECT (5 != 5) as result;
++--------+
+| result |
++--------+
+| false  |
++--------+
+(1 row)
+
+!ok
+
+#####################################################################
+# MODULO % OPERATOR (value1 % value2)
+#
+# Returns the remainder of dividing value1 by value2.
+SELECT (5 % 3) as result;
++--------+
+| result |
++--------+
+|      2 |
++--------+
+(1 row)
+
+!ok
+
+SELECT (19 % 19) as result;
++--------+
+| result |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+#####################################################################
 # STRING
 #
 # STRING(timestamp_expression[, time_zone])
@@ -582,6 +630,19 @@ SELECT STRING(TIMESTAMP "2008-12-25 15:30:00+00", "UTC") AS string;
 !ok
 !}
 
+#####################################################################
+# LENGTH(string)
+#
+# Returns the number of characters in the provided string.
+SELECT LENGTH("hello") as length;
++--------+
+| length |
++--------+
+|      5 |
++--------+
+(1 row)
+
+!ok
 
 #####################################################################
 # DATE
@@ -1166,17 +1227,17 @@ SELECT
 #
 # Returns TIME
 
-!if (false) {
 SELECT
   TIME "15:30:00" as original_time,
   TIME_ADD(TIME "15:30:00", INTERVAL 10 MINUTE) as later;
-+-----------------------------+------------------------+
-| original_time               | later                  |
-+-----------------------------+------------------------+
-| 15:30:00                    | 15:40:00               |
-+-----------------------------+------------------------+
++---------------+----------+
+| original_time | later    |
++---------------+----------+
+| 15:30:00      | 15:40:00 |
++---------------+----------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # TIMESTAMP_ADD
@@ -1197,6 +1258,8 @@ SELECT
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
 !if (false) {
+# Enable when we have TIMESTAMP() function,
+# and when we allow "+00" timezone offset in timestamp values.
 SELECT
   TIMESTAMP("2008-12-25 15:30:00+00") AS original,
   TIMESTAMP_ADD(TIMESTAMP "2008-12-25 15:30:00+00", INTERVAL 10 MINUTE) AS later;
@@ -1205,8 +1268,96 @@ SELECT
 +-------------------------+-------------------------+
 | 2008-12-25 15:30:00 UTC | 2008-12-25 15:40:00 UTC |
 +-------------------------+-------------------------+
+(1 row)
+
 !ok
 !}
+
+# As previous, but uses TIMESTAMP literal rather than function,
+# and "+00" timezone offsets have been removed.
+SELECT
+  TIMESTAMP "2008-12-25 15:30:00" AS original,
+  TIMESTAMP_ADD(TIMESTAMP "2008-12-25 15:30:00", INTERVAL 10 MINUTE) AS later;
++---------------------+---------------------+
+| original            | later               |
++---------------------+---------------------+
+| 2008-12-25 15:30:00 | 2008-12-25 15:40:00 |
++---------------------+---------------------+
+(1 row)
+
+!ok
+
+#####################################################################
+# LPAD(original_value, return_length, pattern)
+#
+# Returns a STRING or BYTES value that consists of original_value prepended
+# with pattern.
+#
+# This function supports specifying collation.
+WITH Examples AS (
+  SELECT LPAD('12345', 8, 'a') as result, "8" as pad_length, "a" as p UNION ALL
+  SELECT LPAD('12345', 8), "8", " " UNION ALL
+  SELECT LPAD('12345', 8, 'aba'), "8", "aba" UNION ALL
+  SELECT LPAD('12345', 3), "3", " " UNION ALL
+  SELECT LPAD(x'aa', 4, x'bb'), "4", "x'bb'" UNION ALL
+  SELECT LPAD(x'aa', 4), "4", "20" UNION ALL
+  SELECT LPAD(x'aaaaaa', 2), "2", "20" UNION ALL
+  SELECT LPAD(x'aaaaaa', 2, x'bb'), "2", "x'bb'"
+)
+SELECT
+  *
+FROM Examples;
++----------+------------+-------+
+| result   | pad_length | p     |
++----------+------------+-------+
+| aaa12345 | 8          | a     |
+|    12345 | 8          |       |
+| aba12345 | 8          | aba   |
+| 123      | 3          |       |
+| bbbbbbaa | 4          | x'bb' |
+| 202020aa | 4          | 20    |
+| aaaa     | 2          | 20    |
+| aaaa     | 2          | x'bb' |
++----------+------------+-------+
+(8 rows)
+
+!ok
+
+#####################################################################
+# RPAD(original_value, return_length, pattern)
+#
+# Returns a STRING or BYTES value that consists of original_value prepended
+# with pattern.
+#
+# This function supports specifying collation.
+WITH Examples AS (
+  SELECT RPAD('12345', 8, 'a') as result, "8" as pad_length, "a" as p UNION ALL
+  SELECT RPAD('12345', 8), "8", " " UNION ALL
+  SELECT RPAD('12345', 8, 'aba'), "8", "aba" UNION ALL
+  SELECT RPAD('12345', 3), "3", " " UNION ALL
+  SELECT RPAD(x'aa', 4, x'bb'), "4", "x'bb'" UNION ALL
+  SELECT RPAD(x'aa', 4), "4", "20" UNION ALL
+  SELECT RPAD(x'aaaaaa', 2), "2", "20" UNION ALL
+  SELECT RPAD(x'aaaaaa', 2, x'bb'), "2", "x'bb'"
+)
+SELECT
+  *
+FROM Examples;
++----------+------------+-------+
+| result   | pad_length | p     |
++----------+------------+-------+
+| 12345aaa | 8          | a     |
+| 12345    | 8          |       |
+| 12345aba | 8          | aba   |
+| 123      | 3          |       |
+| aabbbbbb | 4          | x'bb' |
+| aa202020 | 4          | 20    |
+| aaaa     | 2          | 20    |
+| aaaa     | 2          | x'bb' |
++----------+------------+-------+
+(8 rows)
+
+!ok
 
 #####################################################################
 # DATE_SUB
@@ -1230,15 +1381,15 @@ SELECT
 #
 # Returns DATE
 
-!if (false) {
 SELECT DATE_SUB(DATE "2008-12-25", INTERVAL 5 DAY) AS five_days_ago;
 +---------------+
 | five_days_ago |
 +---------------+
 | 2008-12-20    |
 +---------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # DATETIME_SUB
@@ -1300,17 +1451,17 @@ SELECT
 #
 # Returns TIME
 
-!if (false) {
 SELECT
   TIME "15:30:00" as original_date,
   TIME_SUB(TIME "15:30:00", INTERVAL 10 MINUTE) as earlier;
-+-----------------------------+------------------------+
-| original_date               | earlier                |
-+-----------------------------+------------------------+
-| 15:30:00                    | 15:20:00               |
-+-----------------------------+------------------------+
++---------------+----------+
+| original_date | earlier  |
++---------------+----------+
+| 15:30:00      | 15:20:00 |
++---------------+----------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # TIMESTAMP_SUB
@@ -1330,17 +1481,18 @@ SELECT
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
+
 SELECT
-  TIMESTAMP("2008-12-25 15:30:00+00") AS original,
-  TIMESTAMP_SUB(TIMESTAMP "2008-12-25 15:30:00+00", INTERVAL 10 MINUTE) AS earlier;
-+-------------------------+-------------------------+
-| original                | earlier                 |
-+-------------------------+-------------------------+
-| 2008-12-25 15:30:00 UTC | 2008-12-25 15:20:00 UTC |
-+-------------------------+-------------------------+
+  TIMESTAMP "2008-12-25 15:30:00" AS original,
+  TIMESTAMP_SUB(TIMESTAMP "2008-12-25 15:30:00", INTERVAL 10 MINUTE) AS earlier;
++---------------------+---------------------+
+| original            | earlier             |
++---------------------+---------------------+
+| 2008-12-25 15:30:00 | 2008-12-25 15:20:00 |
++---------------------+---------------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # DATE_DIFF
@@ -1568,18 +1720,18 @@ SELECT
 #
 # Returns INT64
 
-!if (false) {
 SELECT
   TIME "15:30:00" as first_time,
   TIME "14:35:00" as second_time,
   TIME_DIFF(TIME "15:30:00", TIME "14:35:00", MINUTE) as difference;
-+----------------------------+------------------------+------------------------+
-| first_time                 | second_time            | difference             |
-+----------------------------+------------------------+------------------------+
-| 15:30:00                   | 14:35:00               | 55                     |
-+----------------------------+------------------------+------------------------+
++------------+-------------+------------+
+| first_time | second_time | difference |
++------------+-------------+------------+
+| 15:30:00   | 14:35:00    |         55 |
++------------+-------------+------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # TIMESTAMP_DIFF
@@ -1604,43 +1756,53 @@ SELECT
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
 SELECT
-  TIMESTAMP("2010-07-07 10:20:00+00") AS later_timestamp,
-  TIMESTAMP("2008-12-25 15:30:00+00") AS earlier_timestamp,
-  TIMESTAMP_DIFF(TIMESTAMP "2010-07-07 10:20:00+00", TIMESTAMP "2008-12-25 15:30:00+00", HOUR) AS hours;
-+-------------------------+-------------------------+-------+
-| later_timestamp         | earlier_timestamp       | hours |
-+-------------------------+-------------------------+-------+
-| 2010-07-07 10:20:00 UTC | 2008-12-25 15:30:00 UTC | 13410 |
-+-------------------------+-------------------------+-------+
+  TIMESTAMP "2010-07-07 10:20:00" AS later_timestamp,
+  TIMESTAMP "2008-12-25 15:30:00" AS earlier_timestamp,
+  TIMESTAMP_DIFF(TIMESTAMP "2010-07-07 10:20:00", TIMESTAMP "2008-12-25 15:30:00", HOUR) AS hours;
++---------------------+---------------------+-------+
+| later_timestamp     | earlier_timestamp   | hours |
++---------------------+---------------------+-------+
+| 2010-07-07 10:20:00 | 2008-12-25 15:30:00 | 13410 |
++---------------------+---------------------+-------+
+(1 row)
+
 !ok
-!}
 
 # In the following example, the first timestamp occurs
 # before the second timestamp, resulting in a negative output.
-!if (false) {
-SELECT TIMESTAMP_DIFF(TIMESTAMP "2018-08-14", TIMESTAMP "2018-10-14", DAY);
+SELECT TIMESTAMP_DIFF(TIMESTAMP "2018-08-14", TIMESTAMP "2018-10-14", DAY) AS negative_diff;
 +---------------+
 | negative_diff |
 +---------------+
-| -61           |
+|           -61 |
 +---------------+
+(1 row)
+
 !ok
-!}
 
 # In this example, the result is 0 because only the number
 # of whole specified HOUR intervals are included.
-!if (false) {
-SELECT TIMESTAMP_DIFF("2001-02-01 01:00:00", "2001-02-01 00:00:01", HOUR);
+SELECT TIMESTAMP_DIFF("2001-02-01 01:00:00", "2001-02-01 00:00:01", HOUR) AS negative_diff;
 +---------------+
 | negative_diff |
 +---------------+
-| 0             |
+|             0 |
 +---------------+
-!ok
-!}
+(1 row)
 
+!ok
+
+# In this example, the time unit is a 'flag' literal.
+SELECT TIMESTAMP_DIFF(TIMESTAMP '2008-12-25', TIMESTAMP '2008-09-25', `quarter`) as diff;
++------+
+| diff |
++------+
+|    1 |
++------+
+(1 row)
+
+!ok
 #####################################################################
 # DATE_TRUNC
 #
@@ -1674,16 +1836,38 @@ SELECT TIMESTAMP_DIFF("2001-02-01 01:00:00", "2001-02-01 00:00:01", HOUR);
 #     corresponding Gregorian calendar year.
 #
 # Returns DATE
+WITH Dates AS (
+  SELECT DATE_TRUNC(DATE '2008-12-25', YEAR) as d , "year" as frame UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', ISOYEAR), "isoyear" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', QUARTER), "quarter" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', MONTH), "month" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', WEEK), "week" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', WEEK(SUNDAY)), "week(sunday)" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', WEEK(MONDAY)), "week(monday)" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', WEEK(TUESDAY)), "week(tuesday)" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', ISOWEEK), "isoweek" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', DAY), "day"
+)
+SELECT
+  *
+FROM Dates;
++------------+---------------+
+| d          | frame         |
++------------+---------------+
+| 2008-01-01 | year          |
+| 2007-12-31 | isoyear       |
+| 2008-10-01 | quarter       |
+| 2008-12-01 | month         |
+| 2008-12-21 | week          |
+| 2008-12-21 | week(sunday)  |
+| 2008-12-22 | week(monday)  |
+| 2008-12-23 | week(tuesday) |
+| 2008-12-22 | isoweek       |
+| 2008-12-25 | day           |
++------------+---------------+
+(10 rows)
 
-!if (false) {
-SELECT DATE_TRUNC(DATE '2008-12-25', MONTH) AS month;
-+------------+
-| month      |
-+------------+
-| 2008-12-01 |
-+------------+
 !ok
-!}
 
 # In the following example, the original date falls on a
 # Sunday. Because the date_part is WEEK(MONDAY), DATE_TRUNC returns
@@ -2045,6 +2229,31 @@ SELECT LAST_DAY(DATETIME '2008-11-10 15:30:00', WEEK(MONDAY)) AS last_day;
 +------------+
 !ok
 !}
+
+#####################################################################
+#
+# IFNULL(value1, value2)
+#
+# Returns value1 if not NULL, else value2
+#
+WITH items AS (
+  SELECT 'IFNULL(null, 5)' question, IFNULL(null, 5) AS answer UNION ALL
+  SELECT 'IFNULL(2, 1)', IFNULL(2, 1) UNION ALL
+  SELECT "IFNULL('b', null)", IFNULL('b', null) UNION ALL
+  SELECT 'IFNULL(null, null)', IFNULL(null, null)
+)
+SELECT * FROM items;
++--------------------+--------+
+| question           | answer |
++--------------------+--------+
+| IFNULL(null, 5)    | 5      |
+| IFNULL(2, 1)       | 2      |
+| IFNULL('b', null)  | b      |
+| IFNULL(null, null) |        |
++--------------------+--------+
+(4 rows)
+
+!ok
 
 #####################################################################
 # FORMAT_DATE
@@ -2518,5 +2727,65 @@ SELECT PARSE_TIMESTAMP("%c", "Thu Dec 25 07:30:00 2008") AS parsed;
 +-------------------------+
 !ok
 !}
+
+#####################################################################
+# STRING and BYTES functions ########################################
+
+#####################################################################
+# ENDS_WITH(value1, value2)
+#
+# Takes two STRING or BYTES values. Returns TRUE if the second
+# value is a suffix of the first.
+#
+# This function supports specifying collation.
+WITH items AS (
+  SELECT '1234' as item UNION ALL
+  SELECT '123' UNION ALL
+  SELECT '' UNION ALL
+  SELECT NULL
+)
+SELECT
+  item, ENDS_WITH(item, '34') as example
+FROM items;
++------+---------+
+| item | example |
++------+---------+
+|      | false   |
+| 123  | false   |
+| 1234 | true    |
+|      |         |
++------+---------+
+(4 rows)
+
+!ok
+
+#####################################################################
+# STARTS_WITH(value1, value2)
+#
+# Takes two STRING or BYTES values. Returns TRUE if the second
+# value is a prefix of the first.
+#
+# This function supports specifying collation.
+WITH items AS (
+  SELECT 'foo' as item UNION ALL
+  SELECT 'bar' UNION ALL
+  SELECT 'baz' UNION ALL
+  SELECT NULL
+)
+SELECT
+  item, STARTS_WITH(item, 'b') as example
+FROM items;
++------+---------+
+| item | example |
++------+---------+
+| bar  | true    |
+| baz  | true    |
+| foo  | false   |
+|      |         |
++------+---------+
+(4 rows)
+
+!ok
+
 
 # End big-query.iq

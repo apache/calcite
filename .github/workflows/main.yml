@@ -119,7 +119,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TZ: 'America/New_York' # flips between −05:00 and −04:00
-      GUAVA: '19.0' # oldest supported Guava version
+      GUAVA: '16.0.1' # oldest supported Guava version
     steps:
       - uses: actions/checkout@v3
         with:
@@ -410,13 +410,13 @@ jobs:
 
   linux-druid:
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 8) Druid Tests'
+    name: 'Druid Tests'
     runs-on: ubuntu-latest
     steps:
-    - name: 'Set up JDK 8'
+    - name: 'Set up JDK 17'
       uses: actions/setup-java@v2
       with:
-        java-version: 8
+        java-version: 17
         distribution: 'zulu'
     - name: 'Checkout Druid dataset'
       uses: actions/checkout@v3

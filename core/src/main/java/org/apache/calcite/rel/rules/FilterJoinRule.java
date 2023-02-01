@@ -318,7 +318,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
    * @param equalSets the equal sets
    * @return the newly constructed conditions from equal sets
    */
-  private List<RexNode> constructConditionFromEqualSets(Join join,
+  private static List<RexNode> constructConditionFromEqualSets(Join join,
       List<Set<RexInputRef>> equalSets) {
     final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
     final List<RexNode> result = new ArrayList<>();

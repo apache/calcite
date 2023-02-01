@@ -125,6 +125,13 @@ public abstract class SqlInternalOperators {
       SqlBasicOperator.create("FETCH")
           .withPrecedence(SqlStdOperatorTable.UNION.getLeftPrec() - 2, true);
 
+  /** 2-argument form of the special minus-date operator
+   * to be used with BigQuery subtraction functions. It differs from
+   * the standard MINUS_DATE operator in that it has 2 arguments,
+   * and subtracts an interval from a datetime. */
+  public static final SqlDatetimeSubtractionOperator MINUS_DATE2 =
+      new SqlDatetimeSubtractionOperator("MINUS_DATE2", ReturnTypes.ARG0_NULLABLE);
+
   /** Offset operator is ONLY used for its precedence during unparsing. */
   public static final SqlOperator OFFSET =
       SqlBasicOperator.create("OFFSET")

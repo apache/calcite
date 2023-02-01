@@ -39,6 +39,8 @@ import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.PrecedenceClimbingParser;
 import org.apache.calcite.util.TimeString;
@@ -52,6 +54,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -336,6 +339,17 @@ public final class SqlParserUtil {
 
   public static SqlTimestampLiteral parseTimestampLiteral(String s,
       SqlParserPos pos) {
+    return parseTimestampLiteral(SqlTypeName.TIMESTAMP, s, pos);
+  }
+
+  public static SqlTimestampLiteral parseTimestampWithLocalTimeZoneLiteral(
+      String s, SqlParserPos pos) {
+    return parseTimestampLiteral(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, s,
+        pos);
+  }
+
+  private static SqlTimestampLiteral parseTimestampLiteral(SqlTypeName typeName,
+      String s, SqlParserPos pos) {
     final Format format = Format.get();
     DateTimeUtils.PrecisionTime pt = null;
     // Allow timestamp literals with and without time fields (as does
@@ -350,13 +364,13 @@ public final class SqlParserUtil {
     }
     if (pt == null) {
       throw SqlUtil.newContextException(pos,
-          RESOURCE.illegalLiteral("TIMESTAMP", s,
+          RESOURCE.illegalLiteral(typeName.getName().replace('_', ' '), s,
               RESOURCE.badFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING).str()));
     }
     final TimestampString ts =
         TimestampString.fromCalendarFields(pt.getCalendar())
             .withFraction(pt.getFraction());
-    return SqlLiteral.createTimestamp(ts, pt.getPrecision(), pos);
+    return SqlLiteral.createTimestamp(typeName, ts, pt.getPrecision(), pos);
   }
 
   public static SqlIntervalLiteral parseIntervalLiteral(SqlParserPos pos,
@@ -367,6 +381,23 @@ public final class SqlParserUtil {
               + intervalQualifier.toString(), pos.toString()));
     }
     return SqlLiteral.createInterval(sign, s, intervalQualifier, pos);
+  }
+
+  /**
+   * Parses string to array literal
+   * using {@link org.apache.calcite.sql.parser.impl.SqlParserImpl} parser.
+   * String format description can be found at the
+   * <a href="https://www.postgresql.org/docs/current/arrays.html#ARRAYS-INPUT">link</a>
+   *
+   * @param s a string to parse
+   * @return a array value
+   *
+   * @throws SqlParseException if there is a parse error
+   */
+  public static SqlNode parseArrayLiteral(String s) throws SqlParseException {
+    SqlAbstractParserImpl parser = SqlParserImpl.FACTORY.getParser(
+        new StringReader(s));
+    return parser.parseArray();
   }
 
   /**

@@ -17,6 +17,7 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -27,10 +28,12 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.RexImplicationCheckerFixtures;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
@@ -849,5 +852,35 @@ class RexBuilderTest {
     // when the space before "NOT NULL" is missing, the digest is not correct
     // and the suffix should not be removed.
     assertThat(literal.digest, is("0L:(udt)NOT NULL"));
+  }
+
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5489">[CALCITE-5489]
+   * RexCall to TIMESTAMP_DIFF function fails to convert a TIMESTAMP literal to
+   * a org.apache.calcite.avatica.util.TimeUnit</a>. */
+  @Test void testTimestampDiffCall() {
+    final RexImplicationCheckerFixtures.Fixture f =
+        new RexImplicationCheckerFixtures.Fixture();
+    final TimestampString ts =
+        TimestampString.fromCalendarFields(Util.calendar());
+    final RexNode literal = f.timestampLiteral(ts);
+    final RexLiteral flag = f.rexBuilder.makeFlag(TimeUnit.QUARTER);
+    assertThat(
+        f.rexBuilder.makeCall(SqlLibraryOperators.DATEDIFF,
+            flag, literal, literal),
+        notNullValue());
+    assertThat(
+        f.rexBuilder.makeCall(SqlStdOperatorTable.TIMESTAMP_DIFF,
+            flag, literal, literal),
+        notNullValue());
+    assertThat(
+        f.rexBuilder.makeCall(SqlLibraryOperators.TIMESTAMP_DIFF3,
+            literal, literal, flag),
+        notNullValue());
+    assertThat(
+        f.rexBuilder.makeCall(SqlLibraryOperators.TIME_DIFF,
+            literal, literal, flag),
+        notNullValue());
   }
 }

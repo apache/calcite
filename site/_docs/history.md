@@ -50,7 +50,7 @@ z.
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 18;
-Guava versions 19.0 to 31.1-jre;
+Guava versions 16.0.1 to 31.1-jre;
 other software versions as specified in gradle.properties.
 
 #### New features

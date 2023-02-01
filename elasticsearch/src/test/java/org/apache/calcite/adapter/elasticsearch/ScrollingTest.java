@@ -108,7 +108,8 @@ class ScrollingTest {
     try (InputStream is = response.getEntity().getContent()) {
       final ObjectNode node = NODE.mapper().readValue(is, ObjectNode.class);
       final String path = "/indices/search/scroll_current";
-      final JsonNode scrollCurrent = node.with("nodes").elements().next().at(path);
+      final JsonNode scrollCurrent =
+          node.get("nodes").elements().next().at(path);
       if (scrollCurrent.isMissingNode()) {
         throw new IllegalStateException("Couldn't find node at " + path);
       }

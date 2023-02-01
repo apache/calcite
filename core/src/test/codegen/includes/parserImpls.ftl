@@ -53,7 +53,22 @@ SqlCreate SqlCreateTable(Span s, boolean replace) :
     |   { query = null; }
     )
     {
-        return new SqlCreateTable(s.end(this), id, columnList, query);
+        return new ExtensionSqlCreateTable(s.end(this), id, columnList, query);
+    }
+}
+
+SqlCreate SqlCreateView(Span s, boolean replace) :
+{
+    final SqlIdentifier id;
+    SqlNodeList columnList = null;
+    final SqlNode query;
+}
+{
+    <VIEW> id = CompoundIdentifier()
+    [ columnList = ParenthesizedSimpleIdentifierList() ]
+    <AS> query = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY) {
+        return SqlDdlNodes.createView(s.end(this), replace, id, columnList,
+            query);
     }
 }
 

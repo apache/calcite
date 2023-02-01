@@ -99,6 +99,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.TableFunctionReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
@@ -475,6 +476,8 @@ public class RelBuilder {
     } else if (value instanceof Enum) {
       return rexBuilder.makeLiteral(value,
           getTypeFactory().createSqlType(SqlTypeName.SYMBOL));
+    } else if (value instanceof DateString) {
+      return rexBuilder.makeDateLiteral((DateString) value);
     } else {
       throw new IllegalArgumentException("cannot convert " + value
           + " (" + value.getClass() + ") to a constant");
@@ -1149,7 +1152,7 @@ public class RelBuilder {
    *
    * @see #project
    */
-  public RexNode alias(RexNode expr, @Nullable String alias) {
+  public RexNode alias(RexNode expr, String alias) {
     final RexNode aliasLiteral = literal(alias);
     switch (expr.getKind()) {
     case AS:
@@ -1845,7 +1848,7 @@ public class RelBuilder {
 
   /** Creates a {@link Project} of all original fields, plus the given list of
    * expressions. */
-  public RelBuilder projectPlus(Iterable<RexNode> nodes) {
+  public RelBuilder projectPlus(Iterable<? extends RexNode> nodes) {
     return project(Iterables.concat(fields(), nodes));
   }
 

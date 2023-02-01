@@ -44,6 +44,9 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.SpatialTypeFunctions;
+import org.apache.calcite.runtime.SpatialTypeFunctions.Accum;
+import org.apache.calcite.runtime.SpatialTypeFunctions.Collect;
+import org.apache.calcite.runtime.SpatialTypeFunctions.Union;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
@@ -53,6 +56,7 @@ import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
@@ -823,6 +827,9 @@ public class CalciteAssert {
           SpatialTypeFunctions.class.getName(), "*", true);
       ModelHandler.addFunctions(rootSchema, null, emptyPath,
           SqlSpatialTypeFunctions.class.getName(), "*", true);
+      rootSchema.add("ST_UNION", AggregateFunctionImpl.create(Union.class));
+      rootSchema.add("ST_ACCUM", AggregateFunctionImpl.create(Accum.class));
+      rootSchema.add("ST_COLLECT", AggregateFunctionImpl.create(Collect.class));
       ModelHandler.addFunctions(rootSchema, "roundGeom", emptyPath,
           TestUtil.class.getName(), "roundGeom", true);
       final SchemaPlus s =
@@ -833,7 +840,6 @@ public class CalciteAssert {
       final ViewTableMacro viewMacro = ViewTable.viewMacro(rootSchema, sql,
           ImmutableList.of("GEO"), emptyPath, false);
       s.add("countries", viewMacro);
-
       ModelHandler.addFunctions(s, "states", emptyPath,
           StatesTableFunction.class.getName(), "states", false);
       final String sql2 = "select \"name\",\n"

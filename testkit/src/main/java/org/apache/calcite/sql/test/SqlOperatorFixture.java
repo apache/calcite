@@ -29,6 +29,7 @@ import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.test.SqlTester.ResultChecker;
 import org.apache.calcite.sql.test.SqlTester.TypeChecker;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.ConnectionFactories;
@@ -38,6 +39,7 @@ import org.apache.calcite.util.Bug;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
@@ -559,6 +561,30 @@ public interface SqlOperatorFixture extends AutoCloseable {
         .withConnectionFactory(cf ->
             cf.with(ConnectionFactories.add(CalciteAssert.SchemaSpec.HR))
                 .with(CalciteConnectionProperty.FUN, library.fun));
+  }
+
+  /** Applies this fixture to some code for each of the given libraries. */
+  default void forEachLibrary(Iterable<? extends SqlLibrary> libraries,
+      Consumer<SqlOperatorFixture> consumer) {
+    libraries.forEach(library -> {
+      try {
+        consumer.accept(this.withLibrary(library));
+      } catch (Exception e) {
+        throw new RuntimeException("for library " + library, e);
+      }
+    });
+  }
+
+  /** Applies this fixture to some code for each of the given conformances. */
+  default void forEachConformance(Iterable<? extends SqlConformanceEnum> conformances,
+      Consumer<SqlOperatorFixture> consumer) {
+    conformances.forEach(conformance -> {
+      try {
+        consumer.accept(this.withConformance(conformance));
+      } catch (Exception e) {
+        throw new RuntimeException("for conformance " + conformance, e);
+      }
+    });
   }
 
   default SqlOperatorFixture forOracle(SqlConformance conformance) {

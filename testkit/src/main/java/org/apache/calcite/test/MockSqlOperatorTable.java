@@ -39,7 +39,6 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
-import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -273,14 +272,6 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       @Override public String getAllowedSignatures(SqlOperator op, String opName) {
         return "Score(TABLE table_name)";
       };
-
-      @Override public SqlOperandTypeChecker.Consistency getConsistency() {
-        return Consistency.NONE;
-      }
-
-      @Override public boolean isOptional(int i) {
-        return false;
-      }
     }
   }
 
@@ -367,14 +358,6 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       @Override public String getAllowedSignatures(SqlOperator op, String opName) {
         return "TopN(TABLE table_name, BIGINT rows)";
       }
-
-      @Override public Consistency getConsistency() {
-        return Consistency.NONE;
-      }
-
-      @Override public boolean isOptional(int i) {
-        return false;
-      }
     }
   }
 
@@ -442,15 +425,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       }
 
       @Override public String getAllowedSignatures(SqlOperator op, String opName) {
-        return "SIMILARLITY(TABLE table_name, TABLE table_name)";
-      }
-
-      @Override public Consistency getConsistency() {
-        return Consistency.NONE;
-      }
-
-      @Override public boolean isOptional(int i) {
-        return false;
+        return "SIMILARITY(TABLE table_name, TABLE table_name)";
       }
     }
   }
@@ -637,9 +612,8 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
           SqlKind.OTHER_FUNCTION,
           null,
           null,
-          OperandTypes.or(
-              OperandTypes.variadic(SqlOperandCountRanges.from(1)),
-              OperandTypes.variadic(SqlOperandCountRanges.from(2))),
+          OperandTypes.variadic(SqlOperandCountRanges.from(1))
+              .or(OperandTypes.variadic(SqlOperandCountRanges.from(2))),
           SqlFunctionCategory.USER_DEFINED_FUNCTION);
     }
 

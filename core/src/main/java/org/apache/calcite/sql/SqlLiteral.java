@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.rel.type.RelDataType;
@@ -204,6 +205,7 @@ public class SqlLiteral extends SqlNode {
     case TIME:
       return value instanceof TimeString;
     case TIMESTAMP:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return value instanceof TimestampString;
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
@@ -228,6 +230,8 @@ public class SqlLiteral extends SqlNode {
           || (value instanceof SqlSampleSpec);
     case MULTISET:
       return true;
+    case UNKNOWN:
+      return value instanceof String;
     case INTEGER: // not allowed -- use Decimal
     case VARCHAR: // not allowed -- use Char
     case VARBINARY: // not allowed -- use Binary
@@ -288,6 +292,7 @@ public class SqlLiteral extends SqlNode {
       return clazz.cast(NullSentinel.INSTANCE);
     }
     requireNonNull(value, "value");
+    final SqlIntervalQualifier qualifier;
     switch (typeName) {
     case CHAR:
       if (clazz == String.class) {
@@ -345,15 +350,18 @@ public class SqlLiteral extends SqlNode {
     case INTERVAL_MONTH:
       final SqlIntervalLiteral.IntervalValue valMonth =
           (SqlIntervalLiteral.IntervalValue) value;
+      qualifier = valMonth.getIntervalQualifier();
       if (clazz == Long.class) {
         return clazz.cast(valMonth.getSign()
             * SqlParserUtil.intervalToMonths(valMonth));
       } else if (clazz == BigDecimal.class) {
         return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
       } else if (clazz == TimeUnitRange.class) {
-        return clazz.cast(valMonth.getIntervalQualifier().timeUnitRange);
+        return clazz.cast(qualifier.timeUnitRange);
+      } else if (clazz == TimeUnit.class) {
+        return clazz.cast(qualifier.timeUnitRange.startUnit);
       } else if (clazz == SqlIntervalQualifier.class) {
-        return clazz.cast(valMonth.getIntervalQualifier());
+        return clazz.cast(qualifier);
       }
       break;
     case INTERVAL_DAY:
@@ -368,15 +376,18 @@ public class SqlLiteral extends SqlNode {
     case INTERVAL_SECOND:
       final SqlIntervalLiteral.IntervalValue valTime =
           (SqlIntervalLiteral.IntervalValue) value;
+      qualifier = valTime.getIntervalQualifier();
       if (clazz == Long.class) {
         return clazz.cast(valTime.getSign()
             * SqlParserUtil.intervalToMillis(valTime));
       } else if (clazz == BigDecimal.class) {
         return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
       } else if (clazz == TimeUnitRange.class) {
-        return clazz.cast(valTime.getIntervalQualifier().timeUnitRange);
+        return clazz.cast(qualifier.timeUnitRange);
+      } else if (clazz == TimeUnit.class) {
+        return clazz.cast(qualifier.timeUnitRange.startUnit);
       } else if (clazz == SqlIntervalQualifier.class) {
-        return clazz.cast(valTime.getIntervalQualifier());
+        return clazz.cast(qualifier);
       }
       break;
     default:
@@ -818,6 +829,28 @@ public class SqlLiteral extends SqlNode {
     }
   }
 
+  /** Creates a literal whose type is unknown until validation time.
+   * The literal has a tag that looks like a type name, but the tag cannot be
+   * resolved until validation time, when we have the mapping from type aliases
+   * to types.
+   *
+   * <p>For example,
+   * <blockquote>{@code
+   * TIMESTAMP '1969-07-20 22:56:00'
+   * }</blockquote>
+   * calls {@code createUnknown("TIMESTAMP", "1969-07-20 22:56:00")}; at
+   * validate time, we may discover that "TIMESTAMP" maps to the type
+   * "TIMESTAMP WITH LOCAL TIME ZONE".
+   *
+   * @param tag Type name, e.g. "TIMESTAMP", "TIMESTAMP WITH LOCAL TIME ZONE"
+   * @param value String encoding of the value
+   * @param pos Parser position
+   */
+  public static SqlLiteral createUnknown(String tag, String value,
+      SqlParserPos pos) {
+    return new SqlUnknownLiteral(tag, value, pos);
+  }
+
   @Deprecated // to be removed before 2.0
   public static SqlDateLiteral createDate(
       Calendar calendar,
@@ -836,15 +869,25 @@ public class SqlLiteral extends SqlNode {
       Calendar calendar,
       int precision,
       SqlParserPos pos) {
-    return createTimestamp(TimestampString.fromCalendarFields(calendar),
-        precision, pos);
+    return createTimestamp(SqlTypeName.TIMESTAMP,
+        TimestampString.fromCalendarFields(calendar), precision, pos);
   }
 
+  @Deprecated // to be removed before 2.0
   public static SqlTimestampLiteral createTimestamp(
       TimestampString ts,
       int precision,
       SqlParserPos pos) {
-    return new SqlTimestampLiteral(ts, precision, false, pos);
+    return createTimestamp(SqlTypeName.TIMESTAMP, ts, precision, pos);
+  }
+
+  /** Creates a TIMESTAMP or TIMESTAMP WITH TIME ZONE literal. */
+  public static SqlTimestampLiteral createTimestamp(
+      SqlTypeName typeName,
+      TimestampString ts,
+      int precision,
+      SqlParserPos pos) {
+    return new SqlTimestampLiteral(ts, precision, typeName, pos);
   }
 
   @Deprecated // to be removed before 2.0

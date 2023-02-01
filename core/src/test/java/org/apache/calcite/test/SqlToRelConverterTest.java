@@ -40,10 +40,12 @@ import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
+import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -2597,6 +2599,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5377">[CALCITE-5377]
+   * RelFieldTrimmer support Sort with dynamic param</a>. */
+  @Test void testDynamicParameterSortWithTrim() {
+    final String sql = "select ename from "
+        + "(select * from emp order by sal limit ? offset ?) a";
+    sql(sql).withTrim(true).ok();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3183">[CALCITE-3183]
    * Trimming method for Filter rel uses wrong traitSet</a>. */
   @SuppressWarnings("rawtypes")
@@ -3415,9 +3426,9 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test void testCorrelationInProjectionWithCorrelatedProjection() {
-    final String sql = "select cardinality(arr) from"
-        + "(select array(select e.deptno) arr\n"
-        + "from (select deptno, ename from emp) e)";
+    final String sql = "select cardinality(arr) from (\n"
+        + "  select array(select e.deptno) arr from (\n"
+        + "    select deptno, ename from emp) e)";
     sql(sql).withExpand(false).withDecorrelate(false).ok();
   }
 
@@ -4034,15 +4045,31 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2323">[CALCITE-2323]
    * Validator should allow alternative nullCollations for ORDER BY in
    * OVER</a>. */
-  @Test void testUserDefinedOrderByOver() {
+  @Test void testUserDefinedOrderByOverLow() {
+    checkUserDefinedOrderByOver(NullCollation.LOW);
+  }
+
+  @Test void testUserDefinedOrderByOverHigh() {
+    checkUserDefinedOrderByOver(NullCollation.HIGH);
+  }
+
+  @Test void testUserDefinedOrderByOverFirst() {
+    checkUserDefinedOrderByOver(NullCollation.FIRST);
+  }
+
+  @Test void testUserDefinedOrderByOverLast() {
+    checkUserDefinedOrderByOver(NullCollation.LAST);
+  }
+
+  void checkUserDefinedOrderByOver(NullCollation nullCollation) {
     String sql = "select deptno,\n"
-        + "  rank() over(partition by empno order by deptno)\n"
+        + "  rank() over (partition by empno order by comm desc)\n"
         + "from emp\n"
-        + "order by row_number() over(partition by empno order by deptno)";
+        + "order by row_number() over (partition by empno order by comm)";
     Properties properties = new Properties();
     properties.setProperty(
         CalciteConnectionProperty.DEFAULT_NULL_COLLATION.camelName(),
-        NullCollation.LOW.name());
+        nullCollation.name());
     CalciteConnectionConfigImpl connectionConfig =
         new CalciteConnectionConfigImpl(properties);
     sql(sql)
@@ -4250,6 +4277,32 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testArgMinFunction() {
+    final String sql = "select arg_min(ename, deptno)\n"
+        + "from emp";
+    sql(sql).withTrim(true).ok();
+  }
+
+  @Test void testArgMinFunctionWithWinAgg() {
+    final String sql = "select job,\n"
+        + "  arg_min(ename, deptno) over (partition by job order by sal)\n"
+        + "from emp";
+    sql(sql).withTrim(true).ok();
+  }
+
+  @Test void testArgMaxFunction() {
+    final String sql = "select arg_max(ename, deptno)\n"
+        + "from emp";
+    sql(sql).withTrim(true).ok();
+  }
+
+  @Test void testArgMaxFunctionWithWinAgg() {
+    final String sql = "select job,\n"
+        + "  arg_max(ename, deptno) over (partition by job order by sal)\n"
+        + "from emp";
+    sql(sql).withTrim(true).ok();
+  }
+
   @Test void testModeFunction() {
     final String sql = "select mode(deptno)\n"
         + "from emp";
@@ -4392,6 +4445,22 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "select avg(empno) within distinct (deptno)\n"
         + "from emp";
     sql(sql).ok();
+  }
+
+  /** Tests a reference to a measure column in an underlying table. The measure
+   * is treated as a black box: it is not expanded, just wrapped in a call to
+   * AGGREGATE. */
+  @Test void testMeasureRef() {
+    final String sql = "select deptno, aggregate(count_plus_100) as c\n"
+        + "from empm\n"
+        + "group by deptno";
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t ->
+                SqlValidatorTest.operatorTableFor(SqlLibrary.CALCITE)))
+        .withCatalogReader(MockCatalogReaderExtended::create)
+        .withSql(sql)
+        .ok();
   }
 
   /** Test case for:

@@ -48,6 +48,9 @@ public interface CalciteResource {
   @BaseMessage("APPLY operator is not allowed under the current SQL conformance level")
   ExInst<CalciteException> applyNotAllowed();
 
+  @BaseMessage("VALUE is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> valueNotAllowed();
+
   @BaseMessage("Illegal {0} literal ''{1}'': {2}")
   ExInst<CalciteException> illegalLiteral(String a0, String a1, String a2);
 
@@ -62,6 +65,9 @@ public interface CalciteResource {
 
   @BaseMessage("Geo-spatial extensions and the GEOMETRY data type are not enabled")
   ExInst<SqlValidatorException> geometryDisabled();
+
+  @BaseMessage("Proj4J EPSG is missing from the classpath; to resolve this problem, download the EPSG data set and agree to its terms of use")
+  ExInst<CalciteException> proj4jEpsgIsMissing();
 
   @BaseMessage("Illegal INTERVAL literal {0}; at {1}")
   @Property(name = "SQLSTATE", value = "42000")
@@ -93,6 +99,9 @@ public interface CalciteResource {
 
   @BaseMessage("Illegal binary string {0}")
   ExInst<CalciteException> illegalBinaryString(String a0);
+
+  @BaseMessage("Illegal array expression ''{0}''")
+  ExInst<CalciteException> illegalArrayExpression(String a0);
 
   @BaseMessage("''FROM'' without operands preceding it is illegal")
   ExInst<CalciteException> illegalFromEmpty();
@@ -326,6 +335,9 @@ public interface CalciteResource {
   @BaseMessage("OVER clause is necessary for window functions")
   ExInst<SqlValidatorException> absentOverClause();
 
+  @BaseMessage("Argument to function ''{0}'' must be a measure")
+  ExInst<SqlValidatorException> argumentMustBeMeasure(String functionName);
+
   @BaseMessage("Window ''{0}'' not found")
   ExInst<SqlValidatorException> windowNotFound(String a0);
 
@@ -355,6 +367,12 @@ public interface CalciteResource {
 
   @BaseMessage("Aggregate expressions cannot be nested")
   ExInst<SqlValidatorException> nestedAggIllegal();
+
+  @BaseMessage("Measure expressions can only occur within AGGREGATE function")
+  ExInst<SqlValidatorException> measureIllegal();
+
+  @BaseMessage("Measure expressions can only occur within a GROUP BY query")
+  ExInst<SqlValidatorException> measureMustBeInAggregateQuery();
 
   @BaseMessage("FILTER must not contain aggregate expression")
   ExInst<SqlValidatorException> aggregateInFilterIllegal();
@@ -584,8 +602,8 @@ public interface CalciteResource {
   @BaseMessage("Cannot call table function here: ''{0}''")
   ExInst<CalciteException> cannotCallTableFunctionHere(String a0);
 
-  @BaseMessage("''{0}'' is not a valid datetime format")
-  ExInst<CalciteException> invalidDatetimeFormat(String a0);
+  @BaseMessage("''{0}'' is not a valid time frame")
+  ExInst<SqlValidatorException> invalidTimeFrame(String a0);
 
   @BaseMessage("Cannot INSERT into generated column ''{0}''")
   ExInst<SqlValidatorException> insertIntoAlwaysGenerated(String a0);
@@ -851,6 +869,12 @@ public interface CalciteResource {
   @BaseMessage("Dialect does not support feature: ''{0}''")
   ExInst<SqlValidatorException> dialectDoesNotSupportFeature(String featureName);
 
+  @BaseMessage("Second argument for LPAD/RPAD must not be negative")
+  ExInst<CalciteException> illegalNegativePadLength();
+
+  @BaseMessage("Third argument (pad pattern) for LPAD/RPAD must not be empty")
+  ExInst<CalciteException> illegalEmptyPadPattern();
+
   @BaseMessage("Substring error: negative substring length not allowed")
   ExInst<CalciteException> illegalNegativeSubstringLength();
 
@@ -932,29 +956,38 @@ public interface CalciteResource {
   @BaseMessage("While executing SQL [{0}] on JDBC sub-schema")
   ExInst<RuntimeException> exceptionWhilePerformingQueryOnJdbcSubSchema(String sql);
 
-  @BaseMessage("Not a valid input for JSON_TYPE: ''{0}''")
+  @BaseMessage("Invalid input for JSON_TYPE: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonType(String value);
 
-  @BaseMessage("Not a valid input for JSON_DEPTH: ''{0}''")
+  @BaseMessage("Invalid input for JSON_DEPTH: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonDepth(String value);
 
   @BaseMessage("Cannot serialize object to JSON: ''{0}''")
   ExInst<CalciteException> exceptionWhileSerializingToJson(String value);
 
-  @BaseMessage("Not a valid input for JSON_LENGTH: ''{0}''")
+  @BaseMessage("Invalid input for JSON_LENGTH: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonLength(String value);
 
-  @BaseMessage("Not a valid input for JSON_KEYS: ''{0}''")
+  @BaseMessage("Invalid input for JSON_KEYS: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonKeys(String value);
 
   @BaseMessage("Invalid input for JSON_REMOVE: document: ''{0}'', jsonpath expressions: ''{1}''")
   ExInst<CalciteException> invalidInputForJsonRemove(String value, String pathSpecs);
 
-  @BaseMessage("Not a valid input for JSON_STORAGE_SIZE: ''{0}''")
+  @BaseMessage("Invalid input for JSON_STORAGE_SIZE: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonStorageSize(String value);
 
-  @BaseMessage("Not a valid input for REGEXP_REPLACE: ''{0}''")
+  @BaseMessage("Invalid input for REGEXP_REPLACE: ''{0}''")
   ExInst<CalciteException> invalidInputForRegexpReplace(String value);
+
+  @BaseMessage("Invalid input for JSON_INSERT: jsonDoc: ''{0}'', kvs: ''{1}''")
+  ExInst<CalciteException> invalidInputForJsonInsert(String jsonDoc, String kvs);
+
+  @BaseMessage("Invalid input for JSON_REPLACE: jsonDoc: ''{0}'', kvs: ''{1}''")
+  ExInst<CalciteException> invalidInputForJsonReplace(String jsonDoc, String kvs);
+
+  @BaseMessage("Invalid input for JSON_SET: jsonDoc: ''{0}'', kvs: ''{1}''")
+  ExInst<CalciteException> invalidInputForJsonSet(String jsonDoc, String kvs);
 
   @BaseMessage("Illegal xslt specified : ''{0}''")
   ExInst<CalciteException> illegalXslt(String xslt);

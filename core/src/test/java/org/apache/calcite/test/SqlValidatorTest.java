@@ -20,9 +20,11 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -60,6 +62,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
 
 import org.junit.jupiter.api.Disabled;
@@ -77,6 +80,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import static org.apache.calcite.test.Matchers.isCharset;
@@ -245,6 +249,37 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("BOOLEAN NOT NULL");
     expr("unknown")
         .columnType("BOOLEAN");
+  }
+
+  /** Tests that date-time literals with invalid strings are considered invalid.
+   * Originally the parser did that checking, but now the parser creates a
+   * {@link org.apache.calcite.sql.SqlUnknownLiteral} and the checking is
+   * deferred to the validator. */
+  @Test void testLiteral() {
+    expr("^DATE '12/21/99'^")
+        .fails("(?s).*Illegal DATE literal.*");
+    expr("^TIME '1230:33'^")
+        .fails("(?s).*Illegal TIME literal.*");
+    expr("^TIME '12:00:00 PM'^")
+        .fails("(?s).*Illegal TIME literal.*");
+    expr("^TIMESTAMP '12-21-99, 12:30:00'^")
+        .fails("(?s).*Illegal TIMESTAMP literal.*");
+    expr("^TIMESTAMP WITH LOCAL TIME ZONE '12-21-99, 12:30:00'^")
+        .fails("(?s).*Illegal TIMESTAMP WITH LOCAL TIME ZONE literal.*");
+  }
+
+  /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
+   * date part. */
+  @Test void testShortTimestampLiteral() {
+    sql("select timestamp '1969-07-20'")
+        .ok();
+    // PostgreSQL allows the following. We should too.
+    sql("select ^timestamp '1969-07-20 1:2'^")
+        .fails("Illegal TIMESTAMP literal '1969-07-20 1:2': not in format "
+            + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 01:02:00
+    sql("select ^timestamp '1969-07-20:23:'^")
+        .fails("Illegal TIMESTAMP literal '1969-07-20:23:': not in format "
+            + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 23:00:00
   }
 
   @Test void testBooleans() {
@@ -497,6 +532,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     expr("mod(5.1, 3)").ok();
     expr("mod(2,5.1)").ok();
+    expr("5.1 % 3")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .columnType("DECIMAL(2, 1) NOT NULL");
+    expr("2 % 5.1")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .columnType("DECIMAL(2, 1) NOT NULL");
     expr("exp(3.67)").ok();
   }
 
@@ -783,10 +824,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(ANY);
   }
 
-  // FIXME jvs 2-Feb-2005: all collation-related tests are disabled due to
-  // dtbug 280
+  // FIXME jvs 2-Feb-2005:
 
-  public void _testSimpleCollate() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testSimpleCollate() {
     expr("'s' collate latin1$en$1").ok();
     expr("'s' collate latin1$en$1")
         .columnType("CHAR(1)");
@@ -798,19 +839,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             is(SqlCollation.Coercibility.EXPLICIT));
   }
 
-  public void _testCharsetAndCollateMismatch() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testCharsetAndCollateMismatch() {
     // todo
     expr("_UTF16's' collate latin1$en$1")
         .fails("?");
   }
 
-  public void _testDyadicCollateCompare() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testDyadicCollateCompare() {
     expr("'s' collate latin1$en$1 < 't'").ok();
     expr("'t' > 's' collate latin1$en$1").ok();
     expr("'s' collate latin1$en$1 <> 't' collate latin1$en$1").ok();
   }
 
-  public void _testDyadicCompareCollateFails() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testDyadicCompareCollateFails() {
     // two different explicit collations. difference in strength
     expr("'s' collate latin1$en$1 <= 't' collate latin1$en$2")
         .fails("(?s).*Two explicit different collations.*are illegal.*");
@@ -820,7 +864,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Two explicit different collations.*are illegal.*");
   }
 
-  public void _testDyadicCollateOperator() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testDyadicCollateOperator() {
     sql("'a' || 'b'")
         .assertCollation(is("ISO-8859-1$en_US$primary"),
             is(SqlCollation.Coercibility.COERCIBLE));
@@ -901,7 +946,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*not comparable to each other.*");
   }
 
-  public void _testConvertAndTranslate() {
+  @Disabled
+  void testConvertAndTranslate() {
     expr("convert('abc' using conversion)").ok();
     expr("translate('abc' using translation)").ok();
   }
@@ -1043,7 +1089,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("BOOLEAN NOT NULL");
   }
 
-  public void _testLikeAndSimilarFails() {
+  @Disabled
+  void testLikeAndSimilarFails() {
     expr("'a' like _UTF16'b'  escape 'c'")
         .fails("(?s).*Operands _ISO-8859-1.a. COLLATE ISO-8859-1.en_US.primary,"
             + " _SHIFT_JIS.b..*");
@@ -2171,1700 +2218,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .assertInterval(is(3_903_123L));
   }
 
-  /**
-   * Runs tests for INTERVAL... YEAR that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalYearPositive() {
-    // default precision
-    expr("INTERVAL '1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL '99' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1' YEAR(2)")
-        .columnType("INTERVAL YEAR(2) NOT NULL");
-    expr("INTERVAL '99' YEAR(2)")
-        .columnType("INTERVAL YEAR(2) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647' YEAR(10)")
-        .columnType("INTERVAL YEAR(10) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0' YEAR(1)")
-        .columnType("INTERVAL YEAR(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '1234' YEAR(4)")
-        .columnType("INTERVAL YEAR(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '+1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL '-1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL +'1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL +'+1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL +'-1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL -'1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL -'+1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL -'-1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... YEAR TO MONTH that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalYearToMonthPositive() {
-    // default precision
-    expr("INTERVAL '1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL '99-11' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL '99-0' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1-2' YEAR(2) TO MONTH")
-        .columnType("INTERVAL YEAR(2) TO MONTH NOT NULL");
-    expr("INTERVAL '99-11' YEAR(2) TO MONTH")
-        .columnType("INTERVAL YEAR(2) TO MONTH NOT NULL");
-    expr("INTERVAL '99-0' YEAR(2) TO MONTH")
-        .columnType("INTERVAL YEAR(2) TO MONTH NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647-11' YEAR(10) TO MONTH")
-        .columnType("INTERVAL YEAR(10) TO MONTH NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0-0' YEAR(1) TO MONTH")
-        .columnType("INTERVAL YEAR(1) TO MONTH NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '2006-2' YEAR(4) TO MONTH")
-        .columnType("INTERVAL YEAR(4) TO MONTH NOT NULL");
-
-    // sign
-    expr("INTERVAL '-1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL '+1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL +'1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL +'-1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL +'+1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL -'1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL -'-1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL -'+1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... MONTH that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalMonthPositive() {
-    // default precision
-    expr("INTERVAL '1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL '99' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1' MONTH(2)")
-        .columnType("INTERVAL MONTH(2) NOT NULL");
-    expr("INTERVAL '99' MONTH(2)")
-        .columnType("INTERVAL MONTH(2) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647' MONTH(10)")
-        .columnType("INTERVAL MONTH(10) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0' MONTH(1)")
-        .columnType("INTERVAL MONTH(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '1234' MONTH(4)")
-        .columnType("INTERVAL MONTH(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '+1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL '-1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL +'1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL +'+1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL +'-1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL -'1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL -'+1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL -'-1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... DAY that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalDayPositive() {
-    // default precision
-    expr("INTERVAL '1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL '99' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1' DAY(2)")
-        .columnType("INTERVAL DAY(2) NOT NULL");
-    expr("INTERVAL '99' DAY(2)")
-        .columnType("INTERVAL DAY(2) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647' DAY(10)")
-        .columnType("INTERVAL DAY(10) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0' DAY(1)")
-        .columnType("INTERVAL DAY(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '1234' DAY(4)")
-        .columnType("INTERVAL DAY(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '+1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL '-1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL +'1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL +'+1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL +'-1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL -'1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL -'+1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL -'-1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-  }
-
-  void subTestIntervalDayToHourPositive() {
-    // default precision
-    expr("INTERVAL '1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL '99 23' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL '99 0' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1 2' DAY(2) TO HOUR")
-        .columnType("INTERVAL DAY(2) TO HOUR NOT NULL");
-    expr("INTERVAL '99 23' DAY(2) TO HOUR")
-        .columnType("INTERVAL DAY(2) TO HOUR NOT NULL");
-    expr("INTERVAL '99 0' DAY(2) TO HOUR")
-        .columnType("INTERVAL DAY(2) TO HOUR NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647 23' DAY(10) TO HOUR")
-        .columnType("INTERVAL DAY(10) TO HOUR NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0 0' DAY(1) TO HOUR")
-        .columnType("INTERVAL DAY(1) TO HOUR NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '2345 2' DAY(4) TO HOUR")
-        .columnType("INTERVAL DAY(4) TO HOUR NOT NULL");
-
-    // sign
-    expr("INTERVAL '-1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL '+1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL +'1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL +'-1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL +'+1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL -'1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL -'-1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL -'+1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... DAY TO MINUTE that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalDayToMinutePositive() {
-    // default precision
-    expr("INTERVAL '1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL '99 23:59' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL '99 0:0' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1 2:3' DAY(2) TO MINUTE")
-        .columnType("INTERVAL DAY(2) TO MINUTE NOT NULL");
-    expr("INTERVAL '99 23:59' DAY(2) TO MINUTE")
-        .columnType("INTERVAL DAY(2) TO MINUTE NOT NULL");
-    expr("INTERVAL '99 0:0' DAY(2) TO MINUTE")
-        .columnType("INTERVAL DAY(2) TO MINUTE NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647 23:59' DAY(10) TO MINUTE")
-        .columnType("INTERVAL DAY(10) TO MINUTE NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0 0:0' DAY(1) TO MINUTE")
-        .columnType("INTERVAL DAY(1) TO MINUTE NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '2345 6:7' DAY(4) TO MINUTE")
-        .columnType("INTERVAL DAY(4) TO MINUTE NOT NULL");
-
-    // sign
-    expr("INTERVAL '-1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL '+1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL +'1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL +'-1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL +'+1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL -'1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL -'-1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL -'+1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... DAY TO SECOND that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalDayToSecondPositive() {
-    // default precision
-    expr("INTERVAL '1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL '99 23:59:59' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL '99 0:0:0' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL '99 23:59:59.999999' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL '99 0:0:0.0' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1 2:3:4' DAY(2) TO SECOND")
-        .columnType("INTERVAL DAY(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99 23:59:59' DAY(2) TO SECOND")
-        .columnType("INTERVAL DAY(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99 0:0:0' DAY(2) TO SECOND")
-        .columnType("INTERVAL DAY(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99 23:59:59.999999' DAY TO SECOND(6)")
-        .columnType("INTERVAL DAY TO SECOND(6) NOT NULL");
-    expr("INTERVAL '99 0:0:0.0' DAY TO SECOND(6)")
-        .columnType("INTERVAL DAY TO SECOND(6) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647 23:59:59' DAY(10) TO SECOND")
-        .columnType("INTERVAL DAY(10) TO SECOND NOT NULL");
-    expr("INTERVAL '2147483647 23:59:59.999999999' DAY(10) TO SECOND(9)")
-        .columnType("INTERVAL DAY(10) TO SECOND(9) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0 0:0:0' DAY(1) TO SECOND")
-        .columnType("INTERVAL DAY(1) TO SECOND NOT NULL");
-    expr("INTERVAL '0 0:0:0.0' DAY(1) TO SECOND(1)")
-        .columnType("INTERVAL DAY(1) TO SECOND(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '2345 6:7:8' DAY(4) TO SECOND")
-        .columnType("INTERVAL DAY(4) TO SECOND NOT NULL");
-    expr("INTERVAL '2345 6:7:8.9012' DAY(4) TO SECOND(4)")
-        .columnType("INTERVAL DAY(4) TO SECOND(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '-1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL '+1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL +'1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL +'-1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL +'+1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL -'1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL -'-1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL -'+1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... HOUR that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalHourPositive() {
-    // default precision
-    expr("INTERVAL '1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL '99' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1' HOUR(2)")
-        .columnType("INTERVAL HOUR(2) NOT NULL");
-    expr("INTERVAL '99' HOUR(2)")
-        .columnType("INTERVAL HOUR(2) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647' HOUR(10)")
-        .columnType("INTERVAL HOUR(10) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0' HOUR(1)")
-        .columnType("INTERVAL HOUR(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '1234' HOUR(4)")
-        .columnType("INTERVAL HOUR(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '+1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL '-1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL +'1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL +'+1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL +'-1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL -'1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL -'+1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL -'-1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... HOUR TO MINUTE that should pass both parser
-   * and validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalHourToMinutePositive() {
-    // default precision
-    expr("INTERVAL '2:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL '23:59' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL '99:0' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '2:3' HOUR(2) TO MINUTE")
-        .columnType("INTERVAL HOUR(2) TO MINUTE NOT NULL");
-    expr("INTERVAL '23:59' HOUR(2) TO MINUTE")
-        .columnType("INTERVAL HOUR(2) TO MINUTE NOT NULL");
-    expr("INTERVAL '99:0' HOUR(2) TO MINUTE")
-        .columnType("INTERVAL HOUR(2) TO MINUTE NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647:59' HOUR(10) TO MINUTE")
-        .columnType("INTERVAL HOUR(10) TO MINUTE NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0:0' HOUR(1) TO MINUTE")
-        .columnType("INTERVAL HOUR(1) TO MINUTE NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '2345:7' HOUR(4) TO MINUTE")
-        .columnType("INTERVAL HOUR(4) TO MINUTE NOT NULL");
-
-    // sign
-    expr("INTERVAL '-1:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL '+1:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL +'2:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL +'-2:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL +'+2:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL -'2:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL -'-2:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL -'+2:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... HOUR TO SECOND that should pass both parser
-   * and validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalHourToSecondPositive() {
-    // default precision
-    expr("INTERVAL '2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL '23:59:59' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL '99:0:0' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL '23:59:59.999999' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL '99:0:0.0' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '2:3:4' HOUR(2) TO SECOND")
-        .columnType("INTERVAL HOUR(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99:59:59' HOUR(2) TO SECOND")
-        .columnType("INTERVAL HOUR(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99:0:0' HOUR(2) TO SECOND")
-        .columnType("INTERVAL HOUR(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99:59:59.999999' HOUR TO SECOND(6)")
-        .columnType("INTERVAL HOUR TO SECOND(6) NOT NULL");
-    expr("INTERVAL '99:0:0.0' HOUR TO SECOND(6)")
-        .columnType("INTERVAL HOUR TO SECOND(6) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647:59:59' HOUR(10) TO SECOND")
-        .columnType("INTERVAL HOUR(10) TO SECOND NOT NULL");
-    expr("INTERVAL '2147483647:59:59.999999999' HOUR(10) TO SECOND(9)")
-        .columnType("INTERVAL HOUR(10) TO SECOND(9) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0:0:0' HOUR(1) TO SECOND")
-        .columnType("INTERVAL HOUR(1) TO SECOND NOT NULL");
-    expr("INTERVAL '0:0:0.0' HOUR(1) TO SECOND(1)")
-        .columnType("INTERVAL HOUR(1) TO SECOND(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '2345:7:8' HOUR(4) TO SECOND")
-        .columnType("INTERVAL HOUR(4) TO SECOND NOT NULL");
-    expr("INTERVAL '2345:7:8.9012' HOUR(4) TO SECOND(4)")
-        .columnType("INTERVAL HOUR(4) TO SECOND(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '-2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL '+2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL +'2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL +'-2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL +'+2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL -'2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL -'-2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL -'+2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... MINUTE that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalMinutePositive() {
-    // default precision
-    expr("INTERVAL '1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL '99' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1' MINUTE(2)")
-        .columnType("INTERVAL MINUTE(2) NOT NULL");
-    expr("INTERVAL '99' MINUTE(2)")
-        .columnType("INTERVAL MINUTE(2) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647' MINUTE(10)")
-        .columnType("INTERVAL MINUTE(10) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0' MINUTE(1)")
-        .columnType("INTERVAL MINUTE(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '1234' MINUTE(4)")
-        .columnType("INTERVAL MINUTE(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '+1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL '-1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL +'1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL +'+1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL +'-1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL -'1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL -'+1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL -'-1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... MINUTE TO SECOND that should pass both parser
-   * and validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalMinuteToSecondPositive() {
-    // default precision
-    expr("INTERVAL '2:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL '59:59' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL '99:0' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL '59:59.999999' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL '99:0.0' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '2:4' MINUTE(2) TO SECOND")
-        .columnType("INTERVAL MINUTE(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99:59' MINUTE(2) TO SECOND")
-        .columnType("INTERVAL MINUTE(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99:0' MINUTE(2) TO SECOND")
-        .columnType("INTERVAL MINUTE(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99:59.999999' MINUTE TO SECOND(6)")
-        .columnType("INTERVAL MINUTE TO SECOND(6) NOT NULL");
-    expr("INTERVAL '99:0.0' MINUTE TO SECOND(6)")
-        .columnType("INTERVAL MINUTE TO SECOND(6) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647:59' MINUTE(10) TO SECOND")
-        .columnType("INTERVAL MINUTE(10) TO SECOND NOT NULL");
-    expr("INTERVAL '2147483647:59.999999999' MINUTE(10) TO SECOND(9)")
-        .columnType("INTERVAL MINUTE(10) TO SECOND(9) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0:0' MINUTE(1) TO SECOND")
-        .columnType("INTERVAL MINUTE(1) TO SECOND NOT NULL");
-    expr("INTERVAL '0:0.0' MINUTE(1) TO SECOND(1)")
-        .columnType("INTERVAL MINUTE(1) TO SECOND(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '2345:8' MINUTE(4) TO SECOND")
-        .columnType("INTERVAL MINUTE(4) TO SECOND NOT NULL");
-    expr("INTERVAL '2345:7.8901' MINUTE(4) TO SECOND(4)")
-        .columnType("INTERVAL MINUTE(4) TO SECOND(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '-3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL '+3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL +'3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL +'-3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL +'+3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL -'3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL -'-3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL -'+3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... SECOND that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalSecondPositive() {
-    // default precision
-    expr("INTERVAL '1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL '99' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1' SECOND(2)")
-        .columnType("INTERVAL SECOND(2) NOT NULL");
-    expr("INTERVAL '99' SECOND(2)")
-        .columnType("INTERVAL SECOND(2) NOT NULL");
-    expr("INTERVAL '1' SECOND(2, 6)")
-        .columnType("INTERVAL SECOND(2, 6) NOT NULL");
-    expr("INTERVAL '99' SECOND(2, 6)")
-        .columnType("INTERVAL SECOND(2, 6) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647' SECOND(10)")
-        .columnType("INTERVAL SECOND(10) NOT NULL");
-    expr("INTERVAL '2147483647.999999999' SECOND(10, 9)")
-        .columnType("INTERVAL SECOND(10, 9) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0' SECOND(1)")
-        .columnType("INTERVAL SECOND(1) NOT NULL");
-    expr("INTERVAL '0.0' SECOND(1, 1)")
-        .columnType("INTERVAL SECOND(1, 1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '1234' SECOND(4)")
-        .columnType("INTERVAL SECOND(4) NOT NULL");
-    expr("INTERVAL '1234.56789' SECOND(4, 5)")
-        .columnType("INTERVAL SECOND(4, 5) NOT NULL");
-
-    // sign
-    expr("INTERVAL '+1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL '-1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL +'1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL +'+1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL +'-1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL -'1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL -'+1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL -'-1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... YEAR that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalYearNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '-' YEAR")
-        .fails("Illegal interval literal format '-' for INTERVAL YEAR.*");
-    wholeExpr("INTERVAL '1-2' YEAR")
-        .fails("Illegal interval literal format '1-2' for INTERVAL YEAR.*");
-    wholeExpr("INTERVAL '1.2' YEAR")
-        .fails("Illegal interval literal format '1.2' for INTERVAL YEAR.*");
-    wholeExpr("INTERVAL '1 2' YEAR")
-        .fails("Illegal interval literal format '1 2' for INTERVAL YEAR.*");
-    wholeExpr("INTERVAL '1-2' YEAR(2)")
-        .fails("Illegal interval literal format '1-2' for INTERVAL YEAR\\(2\\)");
-    wholeExpr("INTERVAL 'bogus text' YEAR")
-        .fails("Illegal interval literal format 'bogus text' for INTERVAL YEAR.*");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1' YEAR")
-        .fails("Illegal interval literal format '--1' for INTERVAL YEAR.*");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    wholeExpr("INTERVAL '100' YEAR")
-        .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
-    wholeExpr("INTERVAL '100' YEAR(2)")
-        .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000' YEAR(3)")
-        .fails("Interval field value 1,000 exceeds precision of YEAR\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000' YEAR(3)")
-        .fails("Interval field value -1,000 exceeds precision of YEAR\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648' YEAR(10)")
-        .fails("Interval field value 2,147,483,648 exceeds precision of "
-            + "YEAR\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648' YEAR(10)")
-        .fails("Interval field value -2,147,483,648 exceeds precision of "
-            + "YEAR\\(10\\) field");
-
-    // precision > maximum
-    expr("INTERVAL '1' ^YEAR(11)^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL YEAR\\(11\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0' ^YEAR(0)^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL YEAR\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... YEAR TO MONTH that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalYearToMonthNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '-' YEAR TO MONTH")
-        .fails("Illegal interval literal format '-' for INTERVAL YEAR TO MONTH");
-    wholeExpr("INTERVAL '1' YEAR TO MONTH")
-        .fails("Illegal interval literal format '1' for INTERVAL YEAR TO MONTH");
-    wholeExpr("INTERVAL '1:2' YEAR TO MONTH")
-        .fails("Illegal interval literal format '1:2' for INTERVAL YEAR TO MONTH");
-    wholeExpr("INTERVAL '1.2' YEAR TO MONTH")
-        .fails("Illegal interval literal format '1.2' for INTERVAL YEAR TO MONTH");
-    wholeExpr("INTERVAL '1 2' YEAR TO MONTH")
-        .fails("Illegal interval literal format '1 2' for INTERVAL YEAR TO MONTH");
-    wholeExpr("INTERVAL '1:2' YEAR(2) TO MONTH")
-        .fails("Illegal interval literal format '1:2' for "
-            + "INTERVAL YEAR\\(2\\) TO MONTH");
-    wholeExpr("INTERVAL 'bogus text' YEAR TO MONTH")
-        .fails("Illegal interval literal format 'bogus text' for "
-            + "INTERVAL YEAR TO MONTH");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1-2' YEAR TO MONTH")
-        .fails("Illegal interval literal format '--1-2' for "
-            + "INTERVAL YEAR TO MONTH");
-    wholeExpr("INTERVAL '1--2' YEAR TO MONTH")
-        .fails("Illegal interval literal format '1--2' for "
-            + "INTERVAL YEAR TO MONTH");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    //  plus >max value for mid/end fields
-    wholeExpr("INTERVAL '100-0' YEAR TO MONTH")
-        .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
-    wholeExpr("INTERVAL '100-0' YEAR(2) TO MONTH")
-        .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000-0' YEAR(3) TO MONTH")
-        .fails("Interval field value 1,000 exceeds precision of YEAR\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000-0' YEAR(3) TO MONTH")
-        .fails("Interval field value -1,000 exceeds precision of YEAR\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648-0' YEAR(10) TO MONTH")
-        .fails("Interval field value 2,147,483,648 exceeds precision of YEAR\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648-0' YEAR(10) TO MONTH")
-        .fails("Interval field value -2,147,483,648 exceeds precision of YEAR\\(10\\) field.*");
-    wholeExpr("INTERVAL '1-12' YEAR TO MONTH")
-        .fails("Illegal interval literal format '1-12' for INTERVAL YEAR TO MONTH.*");
-
-    // precision > maximum
-    expr("INTERVAL '1-1' ^YEAR(11) TO MONTH^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL YEAR\\(11\\) TO MONTH");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0-0' ^YEAR(0) TO MONTH^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL YEAR\\(0\\) TO MONTH");
-  }
-
-  /**
-   * Runs tests for INTERVAL... MONTH that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalMonthNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '-' MONTH")
-        .fails("Illegal interval literal format '-' for INTERVAL MONTH.*");
-    wholeExpr("INTERVAL '1-2' MONTH")
-        .fails("Illegal interval literal format '1-2' for INTERVAL MONTH.*");
-    wholeExpr("INTERVAL '1.2' MONTH")
-        .fails("Illegal interval literal format '1.2' for INTERVAL MONTH.*");
-    wholeExpr("INTERVAL '1 2' MONTH")
-        .fails("Illegal interval literal format '1 2' for INTERVAL MONTH.*");
-    wholeExpr("INTERVAL '1-2' MONTH(2)")
-        .fails("Illegal interval literal format '1-2' for INTERVAL MONTH\\(2\\)");
-    wholeExpr("INTERVAL 'bogus text' MONTH")
-        .fails("Illegal interval literal format 'bogus text' for INTERVAL MONTH.*");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1' MONTH")
-        .fails("Illegal interval literal format '--1' for INTERVAL MONTH.*");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    wholeExpr("INTERVAL '100' MONTH")
-        .fails("Interval field value 100 exceeds precision of MONTH\\(2\\) field.*");
-    wholeExpr("INTERVAL '100' MONTH(2)")
-        .fails("Interval field value 100 exceeds precision of MONTH\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000' MONTH(3)")
-        .fails("Interval field value 1,000 exceeds precision of MONTH\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000' MONTH(3)")
-        .fails("Interval field value -1,000 exceeds precision of MONTH\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648' MONTH(10)")
-        .fails("Interval field value 2,147,483,648 exceeds precision of MONTH\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648' MONTH(10)")
-        .fails("Interval field value -2,147,483,648 exceeds precision of MONTH\\(10\\) field.*");
-
-    // precision > maximum
-    expr("INTERVAL '1' ^MONTH(11)^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL MONTH\\(11\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0' ^MONTH(0)^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL MONTH\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... DAY that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalDayNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '-' DAY")
-        .fails("Illegal interval literal format '-' for INTERVAL DAY.*");
-    wholeExpr("INTERVAL '1-2' DAY")
-        .fails("Illegal interval literal format '1-2' for INTERVAL DAY.*");
-    wholeExpr("INTERVAL '1.2' DAY")
-        .fails("Illegal interval literal format '1.2' for INTERVAL DAY.*");
-    wholeExpr("INTERVAL '1 2' DAY")
-        .fails("Illegal interval literal format '1 2' for INTERVAL DAY.*");
-    wholeExpr("INTERVAL '1:2' DAY")
-        .fails("Illegal interval literal format '1:2' for INTERVAL DAY.*");
-    wholeExpr("INTERVAL '1-2' DAY(2)")
-        .fails("Illegal interval literal format '1-2' for INTERVAL DAY\\(2\\)");
-    wholeExpr("INTERVAL 'bogus text' DAY")
-        .fails("Illegal interval literal format 'bogus text' for INTERVAL DAY.*");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1' DAY")
-        .fails("Illegal interval literal format '--1' for INTERVAL DAY.*");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    wholeExpr("INTERVAL '100' DAY")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
-    wholeExpr("INTERVAL '100' DAY(2)")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000' DAY(3)")
-        .fails("Interval field value 1,000 exceeds precision of DAY\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000' DAY(3)")
-        .fails("Interval field value -1,000 exceeds precision of DAY\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648' DAY(10)")
-        .fails("Interval field value 2,147,483,648 exceeds precision of "
-            + "DAY\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648' DAY(10)")
-        .fails("Interval field value -2,147,483,648 exceeds precision of "
-            + "DAY\\(10\\) field.*");
-
-    // precision > maximum
-    expr("INTERVAL '1' ^DAY(11)^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL DAY\\(11\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0' ^DAY(0)^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL DAY\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... DAY TO HOUR that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalDayToHourNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '-' DAY TO HOUR")
-        .fails("Illegal interval literal format '-' for INTERVAL DAY TO HOUR");
-    wholeExpr("INTERVAL '1' DAY TO HOUR")
-        .fails("Illegal interval literal format '1' for INTERVAL DAY TO HOUR");
-    wholeExpr("INTERVAL '1:2' DAY TO HOUR")
-        .fails("Illegal interval literal format '1:2' for INTERVAL DAY TO HOUR");
-    wholeExpr("INTERVAL '1.2' DAY TO HOUR")
-        .fails("Illegal interval literal format '1.2' for INTERVAL DAY TO HOUR");
-    wholeExpr("INTERVAL '1 x' DAY TO HOUR")
-        .fails("Illegal interval literal format '1 x' for INTERVAL DAY TO HOUR");
-    wholeExpr("INTERVAL ' ' DAY TO HOUR")
-        .fails("Illegal interval literal format ' ' for INTERVAL DAY TO HOUR");
-    wholeExpr("INTERVAL '1:2' DAY(2) TO HOUR")
-        .fails("Illegal interval literal format '1:2' for "
-            + "INTERVAL DAY\\(2\\) TO HOUR");
-    wholeExpr("INTERVAL 'bogus text' DAY TO HOUR")
-        .fails("Illegal interval literal format 'bogus text' for "
-            + "INTERVAL DAY TO HOUR");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1 1' DAY TO HOUR")
-        .fails("Illegal interval literal format '--1 1' for INTERVAL DAY TO HOUR");
-    wholeExpr("INTERVAL '1 -1' DAY TO HOUR")
-        .fails("Illegal interval literal format '1 -1' for INTERVAL DAY TO HOUR");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    //  plus >max value for mid/end fields
-    wholeExpr("INTERVAL '100 0' DAY TO HOUR")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
-    wholeExpr("INTERVAL '100 0' DAY(2) TO HOUR")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000 0' DAY(3) TO HOUR")
-        .fails("Interval field value 1,000 exceeds precision of DAY\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000 0' DAY(3) TO HOUR")
-        .fails("Interval field value -1,000 exceeds precision of DAY\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648 0' DAY(10) TO HOUR")
-        .fails("Interval field value 2,147,483,648 exceeds precision of DAY\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648 0' DAY(10) TO HOUR")
-        .fails("Interval field value -2,147,483,648 exceeds precision of "
-            + "DAY\\(10\\) field.*");
-    wholeExpr("INTERVAL '1 24' DAY TO HOUR")
-        .fails("Illegal interval literal format '1 24' for INTERVAL DAY TO HOUR.*");
-
-    // precision > maximum
-    expr("INTERVAL '1 1' ^DAY(11) TO HOUR^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL DAY\\(11\\) TO HOUR");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0 0' ^DAY(0) TO HOUR^")
-        .fails("Interval leading field precision '0' out of range for INTERVAL DAY\\(0\\) TO HOUR");
-  }
-
-  /**
-   * Runs tests for INTERVAL... DAY TO MINUTE that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalDayToMinuteNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL ' :' DAY TO MINUTE")
-        .fails("Illegal interval literal format ' :' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 2' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 2' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1:2' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1:2' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1.2' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1.2' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL 'x 1:1' DAY TO MINUTE")
-        .fails("Illegal interval literal format 'x 1:1' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 x:1' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 x:1' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 1:x' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 1:x' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 1:2:3' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 1:2:3' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 1:1:1.2' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 1:1:1.2' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 1:2:3' DAY(2) TO MINUTE")
-        .fails("Illegal interval literal format '1 1:2:3' for "
-            + "INTERVAL DAY\\(2\\) TO MINUTE");
-    wholeExpr("INTERVAL '1 1' DAY(2) TO MINUTE")
-        .fails("Illegal interval literal format '1 1' for "
-            + "INTERVAL DAY\\(2\\) TO MINUTE");
-    wholeExpr("INTERVAL 'bogus text' DAY TO MINUTE")
-        .fails("Illegal interval literal format 'bogus text' for "
-            + "INTERVAL DAY TO MINUTE");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1 1:1' DAY TO MINUTE")
-        .fails("Illegal interval literal format '--1 1:1' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 -1:1' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 -1:1' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 1:-1' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 1:-1' for INTERVAL DAY TO MINUTE");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    //  plus >max value for mid/end fields
-    wholeExpr("INTERVAL '100 0:0' DAY TO MINUTE")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
-    wholeExpr("INTERVAL '100 0:0' DAY(2) TO MINUTE")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000 0:0' DAY(3) TO MINUTE")
-        .fails("Interval field value 1,000 exceeds precision of DAY\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000 0:0' DAY(3) TO MINUTE")
-        .fails("Interval field value -1,000 exceeds precision of DAY\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648 0:0' DAY(10) TO MINUTE")
-        .fails("Interval field value 2,147,483,648 exceeds precision of "
-            + "DAY\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648 0:0' DAY(10) TO MINUTE")
-        .fails("Interval field value -2,147,483,648 exceeds precision of "
-            + "DAY\\(10\\) field.*");
-    wholeExpr("INTERVAL '1 24:1' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 24:1' for "
-            + "INTERVAL DAY TO MINUTE.*");
-    wholeExpr("INTERVAL '1 1:60' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 1:60' for INTERVAL DAY TO MINUTE.*");
-
-    // precision > maximum
-    expr("INTERVAL '1 1:1' ^DAY(11) TO MINUTE^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL DAY\\(11\\) TO MINUTE");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0 0' ^DAY(0) TO MINUTE^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL DAY\\(0\\) TO MINUTE");
-  }
-
-  /**
-   * Runs tests for INTERVAL... DAY TO SECOND that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalDayToSecondNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL ' ::' DAY TO SECOND")
-        .fails("Illegal interval literal format ' ::' for INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL ' ::.' DAY TO SECOND")
-        .fails("Illegal interval literal format ' ::\\.' for INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1' DAY TO SECOND")
-        .fails("Illegal interval literal format '1' for INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 2' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 2' for INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1:2' DAY TO SECOND")
-        .fails("Illegal interval literal format '1:2' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1.2' DAY TO SECOND")
-        .fails("Illegal interval literal format '1\\.2' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 1:2' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:2' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 1:2:x' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:2:x' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1:2:3' DAY TO SECOND")
-        .fails("Illegal interval literal format '1:2:3' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1:1:1.2' DAY TO SECOND")
-        .fails("Illegal interval literal format '1:1:1\\.2' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 1:2' DAY(2) TO SECOND")
-        .fails("Illegal interval literal format '1 1:2' for "
-            + "INTERVAL DAY\\(2\\) TO SECOND");
-    wholeExpr("INTERVAL '1 1' DAY(2) TO SECOND")
-        .fails("Illegal interval literal format '1 1' for "
-            + "INTERVAL DAY\\(2\\) TO SECOND");
-    wholeExpr("INTERVAL 'bogus text' DAY TO SECOND")
-        .fails("Illegal interval literal format 'bogus text' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '2345 6:7:8901' DAY TO SECOND(4)")
-        .fails("Illegal interval literal format '2345 6:7:8901' for "
-            + "INTERVAL DAY TO SECOND\\(4\\)");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1 1:1:1' DAY TO SECOND")
-        .fails("Illegal interval literal format '--1 1:1:1' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 -1:1:1' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 -1:1:1' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 1:-1:1' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:-1:1' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 1:1:-1' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:1:-1' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 1:1:1.-1' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:1:1.-1' for "
-            + "INTERVAL DAY TO SECOND");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    //  plus >max value for mid/end fields
-    wholeExpr("INTERVAL '100 0' DAY TO SECOND")
-        .fails("Illegal interval literal format '100 0' for "
-            + "INTERVAL DAY TO SECOND.*");
-    wholeExpr("INTERVAL '100 0' DAY(2) TO SECOND")
-        .fails("Illegal interval literal format '100 0' for "
-            + "INTERVAL DAY\\(2\\) TO SECOND.*");
-    wholeExpr("INTERVAL '1000 0' DAY(3) TO SECOND")
-        .fails("Illegal interval literal format '1000 0' for "
-            + "INTERVAL DAY\\(3\\) TO SECOND.*");
-    wholeExpr("INTERVAL '-1000 0' DAY(3) TO SECOND")
-        .fails("Illegal interval literal format '-1000 0' for "
-            + "INTERVAL DAY\\(3\\) TO SECOND.*");
-    wholeExpr("INTERVAL '2147483648 1:1:0' DAY(10) TO SECOND")
-        .fails("Interval field value 2,147,483,648 exceeds precision of "
-            + "DAY\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648 1:1:0' DAY(10) TO SECOND")
-        .fails("Interval field value -2,147,483,648 exceeds precision of "
-            + "DAY\\(10\\) field.*");
-    wholeExpr("INTERVAL '2147483648 0' DAY(10) TO SECOND")
-        .fails("Illegal interval literal format '2147483648 0' for "
-            + "INTERVAL DAY\\(10\\) TO SECOND.*");
-    wholeExpr("INTERVAL '-2147483648 0' DAY(10) TO SECOND")
-        .fails("Illegal interval literal format '-2147483648 0' for "
-            + "INTERVAL DAY\\(10\\) TO SECOND.*");
-    wholeExpr("INTERVAL '1 24:1:1' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 24:1:1' for "
-            + "INTERVAL DAY TO SECOND.*");
-    wholeExpr("INTERVAL '1 1:60:1' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:60:1' for "
-            + "INTERVAL DAY TO SECOND.*");
-    wholeExpr("INTERVAL '1 1:1:60' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:1:60' for "
-            + "INTERVAL DAY TO SECOND.*");
-    wholeExpr("INTERVAL '1 1:1:1.0000001' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:1:1\\.0000001' for "
-            + "INTERVAL DAY TO SECOND.*");
-    wholeExpr("INTERVAL '1 1:1:1.0001' DAY TO SECOND(3)")
-        .fails("Illegal interval literal format '1 1:1:1\\.0001' for "
-            + "INTERVAL DAY TO SECOND\\(3\\).*");
-
-    // precision > maximum
-    expr("INTERVAL '1 1' ^DAY(11) TO SECOND^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL DAY\\(11\\) TO SECOND");
-    expr("INTERVAL '1 1' ^DAY TO SECOND(10)^")
-        .fails("Interval fractional second precision '10' out of range for "
-            + "INTERVAL DAY TO SECOND\\(10\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0 0:0:0' ^DAY(0) TO SECOND^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL DAY\\(0\\) TO SECOND");
-    expr("INTERVAL '0 0:0:0' ^DAY TO SECOND(0)^")
-        .fails("Interval fractional second precision '0' out of range for "
-            + "INTERVAL DAY TO SECOND\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... HOUR that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalHourNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '-' HOUR")
-        .fails("Illegal interval literal format '-' for INTERVAL HOUR.*");
-    wholeExpr("INTERVAL '1-2' HOUR")
-        .fails("Illegal interval literal format '1-2' for INTERVAL HOUR.*");
-    wholeExpr("INTERVAL '1.2' HOUR")
-        .fails("Illegal interval literal format '1.2' for INTERVAL HOUR.*");
-    wholeExpr("INTERVAL '1 2' HOUR")
-        .fails("Illegal interval literal format '1 2' for INTERVAL HOUR.*");
-    wholeExpr("INTERVAL '1:2' HOUR")
-        .fails("Illegal interval literal format '1:2' for INTERVAL HOUR.*");
-    wholeExpr("INTERVAL '1-2' HOUR(2)")
-        .fails("Illegal interval literal format '1-2' for INTERVAL HOUR\\(2\\)");
-    wholeExpr("INTERVAL 'bogus text' HOUR")
-        .fails("Illegal interval literal format 'bogus text' for "
-            + "INTERVAL HOUR.*");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1' HOUR")
-        .fails("Illegal interval literal format '--1' for INTERVAL HOUR.*");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    wholeExpr("INTERVAL '100' HOUR")
-        .fails("Interval field value 100 exceeds precision of "
-            + "HOUR\\(2\\) field.*");
-    wholeExpr("INTERVAL '100' HOUR(2)")
-        .fails("Interval field value 100 exceeds precision of "
-            + "HOUR\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000' HOUR(3)")
-        .fails("Interval field value 1,000 exceeds precision of "
-            + "HOUR\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000' HOUR(3)")
-        .fails("Interval field value -1,000 exceeds precision of "
-            + "HOUR\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648' HOUR(10)")
-        .fails("Interval field value 2,147,483,648 exceeds precision of "
-            + "HOUR\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648' HOUR(10)")
-        .fails("Interval field value -2,147,483,648 exceeds precision of "
-            + "HOUR\\(10\\) field.*");
-
-    // precision > maximum
-    expr("INTERVAL '1' ^HOUR(11)^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL HOUR\\(11\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0' ^HOUR(0)^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL HOUR\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... HOUR TO MINUTE that should pass parser but
-   * fail validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalHourToMinuteNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL ':' HOUR TO MINUTE")
-        .fails("Illegal interval literal format ':' for INTERVAL HOUR TO MINUTE");
-    wholeExpr("INTERVAL '1' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '1' for INTERVAL HOUR TO MINUTE");
-    wholeExpr("INTERVAL '1:x' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '1:x' for INTERVAL HOUR TO MINUTE");
-    wholeExpr("INTERVAL '1.2' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '1.2' for INTERVAL HOUR TO MINUTE");
-    wholeExpr("INTERVAL '1 2' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '1 2' for INTERVAL HOUR TO MINUTE");
-    wholeExpr("INTERVAL '1:2:3' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '1:2:3' for INTERVAL HOUR TO MINUTE");
-    wholeExpr("INTERVAL '1 2' HOUR(2) TO MINUTE")
-        .fails("Illegal interval literal format '1 2' for "
-            + "INTERVAL HOUR\\(2\\) TO MINUTE");
-    wholeExpr("INTERVAL 'bogus text' HOUR TO MINUTE")
-        .fails("Illegal interval literal format 'bogus text' for "
-            + "INTERVAL HOUR TO MINUTE");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1:1' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '--1:1' for INTERVAL HOUR TO MINUTE");
-    wholeExpr("INTERVAL '1:-1' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '1:-1' for INTERVAL HOUR TO MINUTE");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    //  plus >max value for mid/end fields
-    wholeExpr("INTERVAL '100:0' HOUR TO MINUTE")
-        .fails("Interval field value 100 exceeds precision of HOUR\\(2\\) field.*");
-    wholeExpr("INTERVAL '100:0' HOUR(2) TO MINUTE")
-        .fails("Interval field value 100 exceeds precision of HOUR\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000:0' HOUR(3) TO MINUTE")
-        .fails("Interval field value 1,000 exceeds precision of HOUR\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000:0' HOUR(3) TO MINUTE")
-        .fails("Interval field value -1,000 exceeds precision of HOUR\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648:0' HOUR(10) TO MINUTE")
-        .fails("Interval field value 2,147,483,648 exceeds precision of HOUR\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648:0' HOUR(10) TO MINUTE")
-        .fails("Interval field value -2,147,483,648 exceeds precision of HOUR\\(10\\) field.*");
-    wholeExpr("INTERVAL '1:60' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '1:60' for INTERVAL HOUR TO MINUTE.*");
-
-    // precision > maximum
-    expr("INTERVAL '1:1' ^HOUR(11) TO MINUTE^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL HOUR\\(11\\) TO MINUTE");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0:0' ^HOUR(0) TO MINUTE^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL HOUR\\(0\\) TO MINUTE");
-  }
-
-  /**
-   * Runs tests for INTERVAL... HOUR TO SECOND that should pass parser but
-   * fail validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalHourToSecondNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '::' HOUR TO SECOND")
-        .fails("Illegal interval literal format '::' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '::.' HOUR TO SECOND")
-        .fails("Illegal interval literal format '::\\.' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1 2' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1 2' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1:2' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:2' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1.2' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1\\.2' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1 1:2' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1 1:2' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1:2:x' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:2:x' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1:x:3' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:x:3' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1:1:1.x' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:1:1\\.x' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1 1:2' HOUR(2) TO SECOND")
-        .fails("Illegal interval literal format '1 1:2' for INTERVAL HOUR\\(2\\) TO SECOND");
-    wholeExpr("INTERVAL '1 1' HOUR(2) TO SECOND")
-        .fails("Illegal interval literal format '1 1' for INTERVAL HOUR\\(2\\) TO SECOND");
-    wholeExpr("INTERVAL 'bogus text' HOUR TO SECOND")
-        .fails("Illegal interval literal format 'bogus text' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '6:7:8901' HOUR TO SECOND(4)")
-        .fails("Illegal interval literal format '6:7:8901' for INTERVAL HOUR TO SECOND\\(4\\)");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1:1:1' HOUR TO SECOND")
-        .fails("Illegal interval literal format '--1:1:1' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1:-1:1' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:-1:1' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1:1:-1' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:1:-1' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1:1:1.-1' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:1:1\\.-1' for INTERVAL HOUR TO SECOND");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    //  plus >max value for mid/end fields
-    wholeExpr("INTERVAL '100:0:0' HOUR TO SECOND")
-        .fails("Interval field value 100 exceeds precision of "
-            + "HOUR\\(2\\) field.*");
-    wholeExpr("INTERVAL '100:0:0' HOUR(2) TO SECOND")
-        .fails("Interval field value 100 exceeds precision of "
-            + "HOUR\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000:0:0' HOUR(3) TO SECOND")
-        .fails("Interval field value 1,000 exceeds precision of "
-            + "HOUR\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000:0:0' HOUR(3) TO SECOND")
-        .fails("Interval field value -1,000 exceeds precision of "
-            + "HOUR\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648:0:0' HOUR(10) TO SECOND")
-        .fails("Interval field value 2,147,483,648 exceeds precision of "
-            + "HOUR\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648:0:0' HOUR(10) TO SECOND")
-        .fails("Interval field value -2,147,483,648 exceeds precision of "
-            + "HOUR\\(10\\) field.*");
-    wholeExpr("INTERVAL '1:60:1' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:60:1' for "
-            + "INTERVAL HOUR TO SECOND.*");
-    wholeExpr("INTERVAL '1:1:60' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:1:60' for "
-            + "INTERVAL HOUR TO SECOND.*");
-    wholeExpr("INTERVAL '1:1:1.0000001' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:1:1\\.0000001' for "
-            + "INTERVAL HOUR TO SECOND.*");
-    wholeExpr("INTERVAL '1:1:1.0001' HOUR TO SECOND(3)")
-        .fails("Illegal interval literal format '1:1:1\\.0001' for "
-            + "INTERVAL HOUR TO SECOND\\(3\\).*");
-
-    // precision > maximum
-    expr("INTERVAL '1:1:1' ^HOUR(11) TO SECOND^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL HOUR\\(11\\) TO SECOND");
-    expr("INTERVAL '1:1:1' ^HOUR TO SECOND(10)^")
-        .fails("Interval fractional second precision '10' out of range for "
-            + "INTERVAL HOUR TO SECOND\\(10\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0:0:0' ^HOUR(0) TO SECOND^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL HOUR\\(0\\) TO SECOND");
-    expr("INTERVAL '0:0:0' ^HOUR TO SECOND(0)^")
-        .fails("Interval fractional second precision '0' out of range for "
-            + "INTERVAL HOUR TO SECOND\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... MINUTE that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalMinuteNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '-' MINUTE")
-        .fails("Illegal interval literal format '-' for INTERVAL MINUTE.*");
-    wholeExpr("INTERVAL '1-2' MINUTE")
-        .fails("Illegal interval literal format '1-2' for INTERVAL MINUTE.*");
-    wholeExpr("INTERVAL '1.2' MINUTE")
-        .fails("Illegal interval literal format '1.2' for INTERVAL MINUTE.*");
-    wholeExpr("INTERVAL '1 2' MINUTE")
-        .fails("Illegal interval literal format '1 2' for INTERVAL MINUTE.*");
-    wholeExpr("INTERVAL '1:2' MINUTE")
-        .fails("Illegal interval literal format '1:2' for INTERVAL MINUTE.*");
-    wholeExpr("INTERVAL '1-2' MINUTE(2)")
-        .fails("Illegal interval literal format '1-2' for INTERVAL MINUTE\\(2\\)");
-    wholeExpr("INTERVAL 'bogus text' MINUTE")
-        .fails("Illegal interval literal format 'bogus text' for INTERVAL MINUTE.*");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1' MINUTE")
-        .fails("Illegal interval literal format '--1' for INTERVAL MINUTE.*");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    wholeExpr("INTERVAL '100' MINUTE")
-        .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
-    wholeExpr("INTERVAL '100' MINUTE(2)")
-        .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000' MINUTE(3)")
-        .fails("Interval field value 1,000 exceeds precision of MINUTE\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000' MINUTE(3)")
-        .fails("Interval field value -1,000 exceeds precision of MINUTE\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648' MINUTE(10)")
-        .fails("Interval field value 2,147,483,648 exceeds precision of MINUTE\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648' MINUTE(10)")
-        .fails("Interval field value -2,147,483,648 exceeds precision of MINUTE\\(10\\) field.*");
-
-    // precision > maximum
-    expr("INTERVAL '1' ^MINUTE(11)^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL MINUTE\\(11\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0' ^MINUTE(0)^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL MINUTE\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... MINUTE TO SECOND that should pass parser but
-   * fail validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalMinuteToSecondNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL ':' MINUTE TO SECOND")
-        .fails("Illegal interval literal format ':' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL ':.' MINUTE TO SECOND")
-        .fails("Illegal interval literal format ':\\.' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1 2' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1 2' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1.2' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1\\.2' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1 1:2' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1 1:2' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1:x' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1:x' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL 'x:3' MINUTE TO SECOND")
-        .fails("Illegal interval literal format 'x:3' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1:1.x' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1:1\\.x' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1 1:2' MINUTE(2) TO SECOND")
-        .fails("Illegal interval literal format '1 1:2' for INTERVAL MINUTE\\(2\\) TO SECOND");
-    wholeExpr("INTERVAL '1 1' MINUTE(2) TO SECOND")
-        .fails("Illegal interval literal format '1 1' for INTERVAL MINUTE\\(2\\) TO SECOND");
-    wholeExpr("INTERVAL 'bogus text' MINUTE TO SECOND")
-        .fails("Illegal interval literal format 'bogus text' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '7:8901' MINUTE TO SECOND(4)")
-        .fails("Illegal interval literal format '7:8901' for INTERVAL MINUTE TO SECOND\\(4\\)");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1:1' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '--1:1' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1:-1' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1:-1' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1:1.-1' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1:1.-1' for INTERVAL MINUTE TO SECOND");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    //  plus >max value for mid/end fields
-    wholeExpr("INTERVAL '100:0' MINUTE TO SECOND")
-        .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
-    wholeExpr("INTERVAL '100:0' MINUTE(2) TO SECOND")
-        .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000:0' MINUTE(3) TO SECOND")
-        .fails("Interval field value 1,000 exceeds precision of MINUTE\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000:0' MINUTE(3) TO SECOND")
-        .fails("Interval field value -1,000 exceeds precision of MINUTE\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648:0' MINUTE(10) TO SECOND")
-        .fails("Interval field value 2,147,483,648 exceeds precision of MINUTE\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648:0' MINUTE(10) TO SECOND")
-        .fails("Interval field value -2,147,483,648 exceeds precision of MINUTE\\(10\\) field.*");
-    wholeExpr("INTERVAL '1:60' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1:60' for"
-            + " INTERVAL MINUTE TO SECOND.*");
-    wholeExpr("INTERVAL '1:1.0000001' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1:1\\.0000001' for"
-            + " INTERVAL MINUTE TO SECOND.*");
-    wholeExpr("INTERVAL '1:1:1.0001' MINUTE TO SECOND(3)")
-        .fails("Illegal interval literal format '1:1:1\\.0001' for"
-            + " INTERVAL MINUTE TO SECOND\\(3\\).*");
-
-    // precision > maximum
-    expr("INTERVAL '1:1' ^MINUTE(11) TO SECOND^")
-        .fails("Interval leading field precision '11' out of range for"
-            + " INTERVAL MINUTE\\(11\\) TO SECOND");
-    expr("INTERVAL '1:1' ^MINUTE TO SECOND(10)^")
-        .fails("Interval fractional second precision '10' out of range for"
-            + " INTERVAL MINUTE TO SECOND\\(10\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0:0' ^MINUTE(0) TO SECOND^")
-        .fails("Interval leading field precision '0' out of range for"
-            + " INTERVAL MINUTE\\(0\\) TO SECOND");
-    expr("INTERVAL '0:0' ^MINUTE TO SECOND(0)^")
-        .fails("Interval fractional second precision '0' out of range for"
-            + " INTERVAL MINUTE TO SECOND\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... SECOND that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalSecondNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL ':' SECOND")
-        .fails("Illegal interval literal format ':' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '.' SECOND")
-        .fails("Illegal interval literal format '\\.' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '1-2' SECOND")
-        .fails("Illegal interval literal format '1-2' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '1.x' SECOND")
-        .fails("Illegal interval literal format '1\\.x' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL 'x.1' SECOND")
-        .fails("Illegal interval literal format 'x\\.1' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '1 2' SECOND")
-        .fails("Illegal interval literal format '1 2' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '1:2' SECOND")
-        .fails("Illegal interval literal format '1:2' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '1-2' SECOND(2)")
-        .fails("Illegal interval literal format '1-2' for INTERVAL SECOND\\(2\\)");
-    wholeExpr("INTERVAL 'bogus text' SECOND")
-        .fails("Illegal interval literal format 'bogus text' for INTERVAL SECOND.*");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1' SECOND")
-        .fails("Illegal interval literal format '--1' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '1.-1' SECOND")
-        .fails("Illegal interval literal format '1.-1' for INTERVAL SECOND.*");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    wholeExpr("INTERVAL '100' SECOND")
-        .fails("Interval field value 100 exceeds precision of SECOND\\(2\\) field.*");
-    wholeExpr("INTERVAL '100' SECOND(2)")
-        .fails("Interval field value 100 exceeds precision of SECOND\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000' SECOND(3)")
-        .fails("Interval field value 1,000 exceeds precision of SECOND\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000' SECOND(3)")
-        .fails("Interval field value -1,000 exceeds precision of SECOND\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648' SECOND(10)")
-        .fails("Interval field value 2,147,483,648 exceeds precision of SECOND\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648' SECOND(10)")
-        .fails("Interval field value -2,147,483,648 exceeds precision of SECOND\\(10\\) field.*");
-    wholeExpr("INTERVAL '1.0000001' SECOND")
-        .fails("Illegal interval literal format '1\\.0000001' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '1.0000001' SECOND(2)")
-        .fails("Illegal interval literal format '1\\.0000001' for INTERVAL SECOND\\(2\\).*");
-    wholeExpr("INTERVAL '1.0001' SECOND(2, 3)")
-        .fails("Illegal interval literal format '1\\.0001' for INTERVAL SECOND\\(2, 3\\).*");
-    wholeExpr("INTERVAL '1.0000000001' SECOND(2, 9)")
-        .fails("Illegal interval literal format '1\\.0000000001' for"
-            + " INTERVAL SECOND\\(2, 9\\).*");
-
-    // precision > maximum
-    expr("INTERVAL '1' ^SECOND(11)^")
-        .fails("Interval leading field precision '11' out of range for"
-            + " INTERVAL SECOND\\(11\\)");
-    expr("INTERVAL '1.1' ^SECOND(1, 10)^")
-        .fails("Interval fractional second precision '10' out of range for"
-            + " INTERVAL SECOND\\(1, 10\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0' ^SECOND(0)^")
-        .fails("Interval leading field precision '0' out of range for"
-            + " INTERVAL SECOND\\(0\\)");
-    expr("INTERVAL '0' ^SECOND(1, 0)^")
-        .fails("Interval fractional second precision '0' out of range for"
-            + " INTERVAL SECOND\\(1, 0\\)");
-  }
-
   @Test void testDatetimePlusNullInterval() {
     expr("TIME '8:8:8' + cast(NULL AS interval hour)").columnType("TIME(0)");
     expr("TIME '8:8:8' + cast(NULL AS interval YEAR)").columnType("TIME(0)");
@@ -3897,46 +2250,34 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       assertThat(typeName.getDefaultScale(), is(6));
     }
 
-    // Tests that should pass both parser and validator
-    subTestIntervalYearPositive();
-    subTestIntervalYearToMonthPositive();
-    subTestIntervalMonthPositive();
-    subTestIntervalDayPositive();
-    subTestIntervalDayToHourPositive();
-    subTestIntervalDayToMinutePositive();
-    subTestIntervalDayToSecondPositive();
-    subTestIntervalHourPositive();
-    subTestIntervalHourToMinutePositive();
-    subTestIntervalHourToSecondPositive();
-    subTestIntervalMinutePositive();
-    subTestIntervalMinuteToSecondPositive();
-    subTestIntervalSecondPositive();
+    final SqlValidatorFixture f = fixture();
+    final IntervalTest.Fixture intervalFixture = new IntervalTest.Fixture() {
+      @Override public IntervalTest.Fixture2 expr(String s) {
+        return getFixture2(f.withExpr(s));
+      }
 
-    // Tests that should pass parser but fail validator
-    subTestIntervalYearNegative();
-    subTestIntervalYearToMonthNegative();
-    subTestIntervalMonthNegative();
-    subTestIntervalDayNegative();
-    subTestIntervalDayToHourNegative();
-    subTestIntervalDayToMinuteNegative();
-    subTestIntervalDayToSecondNegative();
-    subTestIntervalHourNegative();
-    subTestIntervalHourToMinuteNegative();
-    subTestIntervalHourToSecondNegative();
-    subTestIntervalMinuteNegative();
-    subTestIntervalMinuteToSecondNegative();
-    subTestIntervalSecondNegative();
+      @Override public IntervalTest.Fixture2 wholeExpr(String s) {
+        return getFixture2(f.withExpr(s).withWhole(true));
+      }
 
-    // Miscellaneous
-    // fractional value is not OK, even if it is 0
-    wholeExpr("INTERVAL '1.0' HOUR")
-        .fails("Illegal interval literal format '1.0' for INTERVAL HOUR");
-    // only seconds are allowed to have a fractional part
-    expr("INTERVAL '1.0' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    // leading zeros do not cause precision to be exceeded
-    expr("INTERVAL '0999' MONTH(3)")
-        .columnType("INTERVAL MONTH(3) NOT NULL");
+      private IntervalTest.Fixture2 getFixture2(SqlValidatorFixture f2) {
+        return new IntervalTest.Fixture2() {
+          @Override public void fails(String message) {
+            f2.fails(message);
+          }
+
+          @Override public void columnType(String expectedType) {
+            f2.columnType(expectedType);
+          }
+
+          @Override public IntervalTest.Fixture2 assertParse(String expected) {
+            return this;
+          }
+        };
+      }
+    };
+
+    new IntervalTest(intervalFixture).testAll();
   }
 
   @Test void testIntervalExpression() {
@@ -4079,9 +2420,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("INTEGER");
 
     expr("timestampadd(^incorrect^, 1, current_timestamp)")
-        .fails("(?s).*Was expecting one of.*");
+        .fails("'INCORRECT' is not a valid time frame");
     expr("timestampdiff(^incorrect^, current_timestamp, current_timestamp)")
-        .fails("(?s).*Was expecting one of.*");
+        .fails("'INCORRECT' is not a valid time frame");
   }
 
   @Test void testTimestampAddNullInterval() {
@@ -4297,6 +2638,137 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("INTERVAL SECOND NOT NULL");
   }
 
+  /** Tests that EXTRACT, FLOOR, CEIL functions accept abbreviations for
+   * time units (such as "Y" for "YEAR").
+   *
+   * <p>This used to be accomplished via the now deprecated
+   * {@code timeUnitCodes} method in {@link SqlParser.Config}, and is now
+   * accomplished via
+   * {@link RelDataTypeSystem#deriveTimeFrameSet(TimeFrameSet)}. */
+  @Test void testTimeUnitCodes() {
+    final Map<String, TimeUnit> simpleCodes =
+        ImmutableMap.<String, TimeUnit>builder()
+            .put("Y", TimeUnit.YEAR)
+            .put("M", TimeUnit.MONTH)
+            .put("D", TimeUnit.DAY)
+            .put("H", TimeUnit.HOUR)
+            .put("N", TimeUnit.MINUTE)
+            .put("S", TimeUnit.SECOND)
+            .build();
+
+    // Time unit abbreviations for Microsoft SQL Server
+    final Map<String, TimeUnit> mssqlCodes =
+        ImmutableMap.<String, TimeUnit>builder()
+            .put("Y", TimeUnit.YEAR)
+            .put("YY", TimeUnit.YEAR)
+            .put("YYYY", TimeUnit.YEAR)
+            .put("Q", TimeUnit.QUARTER)
+            .put("QQ", TimeUnit.QUARTER)
+            .put("M", TimeUnit.MONTH)
+            .put("MM", TimeUnit.MONTH)
+            .put("W", TimeUnit.WEEK)
+            .put("WK", TimeUnit.WEEK)
+            .put("WW", TimeUnit.WEEK)
+            .put("DY", TimeUnit.DOY)
+            .put("DW", TimeUnit.DOW)
+            .put("D", TimeUnit.DAY)
+            .put("DD", TimeUnit.DAY)
+            .put("H", TimeUnit.HOUR)
+            .put("HH", TimeUnit.HOUR)
+            .put("N", TimeUnit.MINUTE)
+            .put("MI", TimeUnit.MINUTE)
+            .put("S", TimeUnit.SECOND)
+            .put("SS", TimeUnit.SECOND)
+            .put("MS", TimeUnit.MILLISECOND)
+            .build();
+
+    checkTimeUnitCodes(ImmutableMap.of());
+    checkTimeUnitCodes(simpleCodes);
+    checkTimeUnitCodes(mssqlCodes);
+  }
+
+  /** Checks parsing of built-in functions that accept time unit
+   * abbreviations.
+   *
+   * <p>For example, {@code EXTRACT(Y FROM orderDate)} is using
+   * "Y" as an abbreviation for "YEAR".
+   *
+   * <p>Override if your parser supports more such functions. */
+  protected void checkTimeUnitCodes(Map<String, TimeUnit> timeUnitCodes) {
+    SqlValidatorFixture f = fixture()
+        .withFactory(tf ->
+            tf.withTypeSystem(typeSystem ->
+                new DelegatingTypeSystem(typeSystem) {
+                  @Override public TimeFrameSet deriveTimeFrameSet(
+                      TimeFrameSet frameSet) {
+                    TimeFrameSet.Builder b = TimeFrameSet.builder();
+                    b.addAll(frameSet);
+                    timeUnitCodes.forEach((name, unit) ->
+                        b.addAlias(name, unit.name()));
+                    return b.build();
+                  }
+                }));
+    final String ts = "TIMESTAMP '2020-08-27 18:16:43'";
+    BiConsumer<String, TimeUnit> validConsumer = (abbrev, timeUnit) -> {
+      f.withSql("select extract(" + abbrev + " from " + ts + ")").ok();
+      f.withSql("select floor(" + ts + " to " + abbrev + ")").ok();
+      f.withSql("select ceil(" + ts + " to " + abbrev + ")").ok();
+    };
+    BiConsumer<String, TimeUnit> invalidConsumer = (abbrev, timeUnit) -> {
+      final String upAbbrev = abbrev.toUpperCase(Locale.ROOT);
+      String message = "'" + upAbbrev + "' is not a valid time frame";
+      f.withSql("select extract(^" + abbrev + "^ from " + ts + ")")
+          .fails(message);
+      f.withSql("SELECT FLOOR(" + ts + " to ^" + abbrev + "^)")
+          .fails(message);
+      f.withSql("SELECT CEIL(" + ts + " to ^" + abbrev + "^)")
+          .fails(message);
+    };
+
+    // Check that each valid code passes each query that it should.
+    timeUnitCodes.forEach(validConsumer);
+
+    // If "M" is a valid code then "m" should be also.
+    timeUnitCodes.forEach((abbrev, timeUnit) ->
+        validConsumer.accept(abbrev.toLowerCase(Locale.ROOT), timeUnit));
+
+    // Check that invalid codes generate the right error messages.
+    final Map<String, TimeUnit> invalidCodes =
+        ImmutableMap.of("A", TimeUnit.YEAR,
+            "a", TimeUnit.YEAR);
+    invalidCodes.forEach(invalidConsumer);
+  }
+
+  /** Checks parsing of built-in functions that accept time unit
+   *  Checks WEEK(WEEKDAY)
+   * <p>Override if your parser supports more such functions. */
+  @Test void checkWeekdayCustomTimeFrames() {
+    SqlValidatorFixture f = fixture()
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY));
+
+    // Check that each valid code passes each query that it should.
+    final String ds = "DATE '2022-12-25'";
+    Consumer<String> validConsumer = weekday -> {
+      f.withSql("select date_trunc(" + ds + ", " + weekday + ")").ok();
+    };
+    validConsumer.accept("WEEK");
+    validConsumer.accept("WEEK(SUNDAY)");
+    validConsumer.accept("WEEK(MONDAY)");
+    validConsumer.accept("WEEK(TUESDAY)");
+    validConsumer.accept("WEEK(WEDNESDAY)");
+    validConsumer.accept("WEEK(THURSDAY)");
+    validConsumer.accept("WEEK(FRIDAY)");
+    validConsumer.accept("WEEK(SUNDAY)");
+
+    // Check that each invalid code fails each query that it should.
+    Consumer<String> invalidConsumer = weekday -> {
+      String errorMessage = "'" + weekday + "' is not a valid time frame";
+      f.withSql("select date_trunc(" + ds + ", ^" + weekday + "^)")
+          .fails(errorMessage);
+    };
+    invalidConsumer.accept("A");
+  }
+
   public void checkWinFuncExpWithWinClause(
       String sql,
       String expectedMsgPattern) {
@@ -4304,7 +2776,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   // test window partition clause. See SQL 2003 specification for detail
-  public void _testWinPartClause() {
+  @Disabled
+  void testWinPartClause() {
     win("window w as (w2 order by deptno), w2 as (^rang^e 100 preceding)")
         .fails("Referenced window cannot have framing declarations");
     // Test specified collation, window clause syntax rule 4,5.
@@ -5265,6 +3738,96 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type("RecordType(INTEGER NOT NULL A, VARCHAR(10) NOT NULL B) NOT NULL");
     sql("select * from (values ('a', 1), ('bc', 2)) t (a, b)")
         .type("RecordType(CHAR(2) NOT NULL A, INTEGER NOT NULL B) NOT NULL");
+  }
+
+  @Test void testMeasureRef() {
+    // A measure can be used in the SELECT clause of a GROUP BY query even
+    // though it is not a GROUP BY key.
+    SqlValidatorFixture f =
+        fixture().withExtendedCatalog()
+            .withOperatorTable(operatorTableFor(SqlLibrary.CALCITE));
+    SqlValidatorFixture f2 =
+        f.withValidatorConfig(c -> c.withNakedMeasures(false));
+
+    final String measureIllegal =
+        "Measure expressions can only occur within AGGREGATE function";
+    final String measureIllegal2 =
+        "Measure expressions can only occur within a GROUP BY query";
+
+    final String sql0 = "select deptno, ^count_plus_100^\n"
+        + "from empm\n"
+        + "group by deptno";
+    f.withSql(sql0)
+        .isAggregate(is(true))
+        .ok();
+
+    // Same SQL is invalid if naked measures are not enabled
+    f2.withSql(sql0).fails(measureIllegal);
+
+    // Similarly, with alias
+    final String sql1b = "select deptno, ^count_plus_100^ as x\n"
+        + "from empm\n"
+        + "group by deptno";
+    f.withSql(sql1b).isAggregate(is(true)).ok();
+    f2.withSql(sql1b).fails(measureIllegal);
+
+    // Similarly, in an expression
+    final String sql1c = "select deptno, deptno + ^count_plus_100^ * 2 as x\n"
+        + "from empm\n"
+        + "group by deptno";
+    f.withSql(sql1c).isAggregate(is(true)).ok();
+    f2.withSql(sql1c).fails(measureIllegal);
+
+    // Similarly, for a query that is an aggregate query because of another
+    // aggregate function.
+    final String sql1 = "select count(*), ^count_plus_100^\n"
+        + "from empm";
+    f.withSql(sql1).isAggregate(is(true)).ok();
+    f2.withSql(sql1).fails(measureIllegal);
+
+    // A measure in a non-aggregate query.
+    // Using a measure should not make it an aggregate query.
+    // The type of the measure should be the result type of the COUNT aggregate
+    // function (BIGINT), not type of the un-aggregated argument type (VARCHAR).
+    final String sql2 = "select deptno, ^count_plus_100^, ename\n"
+        + "from empm";
+    f.withSql(sql2)
+        .type("RecordType(INTEGER NOT NULL DEPTNO, "
+            + "MEASURE<INTEGER NOT NULL> NOT NULL COUNT_PLUS_100, "
+            + "VARCHAR(20) NOT NULL ENAME) NOT NULL")
+        .isAggregate(is(false));
+    f2.withSql(sql2).fails(measureIllegal2);
+
+    // as above, wrapping the measure in AGGREGATE
+    final String sql3 = "select deptno, aggregate(count_plus_100) as x, ename\n"
+        + "from empm\n"
+        + "group by deptno, ename";
+    f.withSql(sql3)
+        .type("RecordType(INTEGER NOT NULL DEPTNO, "
+            + "MEASURE<INTEGER NOT NULL> NOT NULL X, "
+            + "VARCHAR(20) NOT NULL ENAME) NOT NULL");
+
+    // you can apply the AGGREGATE function only to measures
+    f.withSql("select deptno, aggregate(count_plus_100), ^aggregate(ename)^\n"
+            + "from empm\n"
+            + "group by deptno, ename")
+        .fails("Argument to function 'AGGREGATE' must be a measure");
+
+    f.withSql("select deptno, ^aggregate(count_plus_100 + 1)^\n"
+            + "from empm\n"
+            + "group by deptno, ename")
+        .fails("Argument to function 'AGGREGATE' must be a measure");
+
+    // A query with AGGREGATE is an aggregate query, even without GROUP BY,
+    // and even if it is inside an expression.
+    f.withSql("select aggregate(count_plus_100) + 1\n"
+            + "from empm")
+        .isAggregate(is(true));
+
+    // Including a measure in a query does not make it an aggregate query
+    f.withSql("select count_plus_100\n"
+            + "from empm")
+        .isAggregate(is(false));
   }
 
   @Test void testAmbiguousColumnInIn() {
@@ -7495,8 +6058,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Expression 'EMP\\.EMPNO' is not being grouped");
   }
 
-  // todo: enable when correlating variables work
-  public void _testGroupExpressionEquivalenceCorrelated() {
+  @Disabled("todo: enable when correlating variables work")
+  void testGroupExpressionEquivalenceCorrelated() {
     // dname comes from dept, so it is constant within the sub-query, and
     // is so is a valid expr in a group-by query
     sql("select * from dept where exists ("
@@ -7505,8 +6068,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "select dname + empno + 1 from emp group by empno, dept.deptno)").ok();
   }
 
-  // todo: enable when params are implemented
-  public void _testGroupExpressionEquivalenceParams() {
+  @Disabled("todo: enable when params are implemented")
+  void testGroupExpressionEquivalenceParams() {
     sql("select cast(? as integer) from emp group by cast(? as integer)").ok();
   }
 
@@ -7841,7 +6404,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from emp\n"
         + "group by deptno";
     sql(sql)
-        .type("RecordType(DOUBLE NOT NULL C, DOUBLE NOT NULL D) NOT NULL");
+        .type("RecordType(INTEGER NOT NULL C, INTEGER NOT NULL D) NOT NULL");
   }
 
   /** Tests that {@code PERCENTILE_CONT} only allows numeric fields. */
@@ -8643,6 +7206,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("SELECT MAX(ename) FROM emp").ok();
     sql("SELECT MIN(5.5) FROM emp").ok();
     sql("SELECT MAX(5) FROM emp").ok();
+  }
+
+  @Test void testArgMinMaxFunctions() {
+    sql("SELECT ARG_MIN(1, true) from emp").ok();
+    sql("SELECT ARG_MAX(2, false) from emp").ok();
+
+    sql("SELECT ARG_MIN(sal, deptno) FROM emp").ok();
+    sql("SELECT ARG_MAX(deptno, sal) FROM emp").ok();
+    sql("SELECT ARG_MIN('a', 5.5) FROM emp").ok();
+    sql("SELECT ARG_MAX('b', 5) FROM emp").ok();
   }
 
   @Test void testModeFunction() {
@@ -12434,6 +11007,30 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("^100 is json value^")
         .withTypeCoercion(false)
         .fails("(?s).*Cannot apply.*");
+  }
+
+  @Test public void testJsonInsert() {
+    expr("json_insert('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')").ok();
+    expr("json_insert('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')")
+        .columnType("VARCHAR(2000)");
+    expr("select ^json_insert('{\"foo\":\"bar\"}')^")
+        .fails("(?s).*Invalid number of arguments.*");
+  }
+
+  @Test public void testJsonReplace() {
+    expr("json_replace('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')").ok();
+    expr("json_replace('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')")
+        .columnType("VARCHAR(2000)");
+    expr("select ^json_replace('{\"foo\":\"bar\"}')^")
+        .fails("(?s).*Invalid number of arguments.*");
+  }
+
+  @Test public void testJsonSet() {
+    expr("json_set('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')").ok();
+    expr("json_set('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')")
+        .columnType("VARCHAR(2000)");
+    expr("select ^json_set('{\"foo\":\"bar\"}')^")
+        .fails("(?s).*Invalid number of arguments.*");
   }
 
   @Test void testRegexpReplace() {

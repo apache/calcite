@@ -463,8 +463,10 @@ data: {
       "TEMPORARY"
 #     "THEN"
 #     "TIME"
+      "TIME_DIFF"
       "TIME_TRUNC"
 #     "TIMESTAMP"
+      "TIMESTAMP_DIFF"
       "TIMESTAMP_TRUNC"
       "TIMEZONE_HOUR"
       "TIMEZONE_MINUTE"
@@ -567,6 +569,7 @@ data: {
     ]
 
     includePosixOperators: true
+    includeParsingStringLiteralAsArrayLiteral: true
   }
 }
 

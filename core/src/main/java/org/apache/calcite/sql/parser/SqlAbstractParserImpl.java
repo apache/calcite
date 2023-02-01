@@ -19,6 +19,7 @@ package org.apache.calcite.sql.parser;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.CharLiteralStyle;
+import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
@@ -547,12 +548,19 @@ public abstract class SqlAbstractParserImpl {
   /**
    * Sets the map from identifier to time unit.
    */
-  public abstract void setTimeUnitCodes(Map<String, TimeUnit> timeUnitCodes);
+  @Deprecated // to be removed before 2.0
+  public void setTimeUnitCodes(Map<String, TimeUnit> timeUnitCodes) {
+  }
 
   /**
    * Sets the SQL language conformance level.
    */
   public abstract void setConformance(SqlConformance conformance);
+
+  /**
+   * Parses string to array literal.
+   */
+  public abstract SqlNode parseArray() throws SqlParseException;
 
   /**
    * Sets the SQL text that is being parsed.

@@ -54,6 +54,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -68,6 +69,7 @@ import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.TimestampString;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -461,7 +463,7 @@ class RelWriterTest {
           .nullableRecord(false)
           .build();
       final JsonBuilder jsonBuilder = new JsonBuilder();
-      final RelJson json = new RelJson(jsonBuilder);
+      final RelJson json = RelJson.create().withJsonBuilder(jsonBuilder);
       final Object o = json.toJson(type);
       assertThat(o, notNullValue());
       final String s = jsonBuilder.toJsonString(o);
@@ -867,6 +869,30 @@ class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4804">[CALCITE-4804]
+   * Support Snapshot operator serialization and deserizalization</a>. */
+  @Test void testSnapshot() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM products_temporal FOR SYSTEM_TIME AS OF TIMESTAMP '2011-07-20 12:34:56'
+    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
+    RelNode root =
+        builder.scan("products_temporal")
+            .snapshot(
+                builder.getRexBuilder().makeTimestampLiteral(
+                    new TimestampString("2011-07-20 12:34:56"), 0))
+            .build();
+
+    RelJsonWriter jsonWriter = new RelJsonWriter();
+    root.explain(jsonWriter);
+    String relJson = jsonWriter.asString();
+    String s = deserializeAndDumpToTextFormat(getSchema(root), relJson);
+    String expected = "LogicalSnapshot(period=[2011-07-20 12:34:56])\n"
+        + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
   @Test void testDeserializeInvalidOperatorName() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
@@ -891,6 +917,31 @@ class RelWriterTest {
         () -> deserializeAndDumpToTextFormat(getSchema(rel), relJson),
         "org.apache.calcite.runtime.CalciteException: "
             + "No operator for 'MAXS' with kind: 'MAX', syntax: 'FUNCTION' during JSON deserialization");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5349">[CALCITE-5349]
+   * RelJson deserialization should support SqlLibraryOperators</a>. Before the
+   * fix, non-standard operators such as BigQuery's
+   * {@link SqlLibraryOperators#CURRENT_DATETIME} would throw during
+   * deserialization. */
+  @Test void testDeserializeNonStandardOperator() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RelNode rel = builder
+        .scan("EMP")
+        .project(builder.field("JOB"),
+            builder.call(SqlLibraryOperators.CURRENT_DATETIME))
+        .build();
+    final RelJsonWriter jsonWriter =
+        new RelJsonWriter(new JsonBuilder(), RelJson::withLibraryOperatorTable);
+    rel.explain(jsonWriter);
+    String relJson = jsonWriter.asString();
+    String result = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
+    final String expected = ""
+        + "LogicalProject(JOB=[$2], $f1=[CURRENT_DATETIME()])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(result, isLinux(expected));
   }
 
   @Test void testAggregateWithoutAlias() {
@@ -1142,7 +1193,8 @@ class RelWriterTest {
       SqlExplainFormat format) {
     return Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
       final RelJsonReader reader =
-          new RelJsonReader(cluster, schema, rootSchema);
+          new RelJsonReader(cluster, schema, rootSchema,
+              RelJson::withLibraryOperatorTable);
       RelNode node;
       try {
         node = reader.read(relJson);

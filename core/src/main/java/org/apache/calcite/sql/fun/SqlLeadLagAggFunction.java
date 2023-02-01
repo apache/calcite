@@ -23,18 +23,13 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransform;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-
-import java.util.List;
 
 /**
  * <code>LEAD</code> and <code>LAG</code> aggregate functions
@@ -42,19 +37,10 @@ import java.util.List;
  */
 public class SqlLeadLagAggFunction extends SqlAggFunction {
   private static final SqlSingleOperandTypeChecker OPERAND_TYPES =
-      OperandTypes.or(
-          OperandTypes.ANY,
-          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC),
-          OperandTypes.and(
-              OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC,
-                  SqlTypeFamily.ANY),
-              // Arguments 1 and 3 must have same type
-              new SameOperandTypeChecker(3) {
-                @Override protected List<Integer>
-                getOperandList(int operandCount) {
-                  return ImmutableList.of(0, 2);
-                }
-              }));
+      OperandTypes.ANY
+          .or(OperandTypes.ANY_NUMERIC)
+          .or(OperandTypes.ANY_NUMERIC_ANY
+              .and(OperandTypes.same(3, 0, 2)));
 
   private static final SqlReturnTypeInference RETURN_TYPE =
       ReturnTypes.ARG0.andThen(SqlLeadLagAggFunction::transformType);

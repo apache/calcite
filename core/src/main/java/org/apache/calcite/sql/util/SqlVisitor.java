@@ -98,4 +98,9 @@ public interface SqlVisitor<R> {
    * @see SqlIntervalQualifier#accept(SqlVisitor)
    */
   R visit(SqlIntervalQualifier intervalQualifier);
+
+  /** Asks a {@code SqlNode} to accept this visitor. */
+  default R visitNode(SqlNode n) {
+    return n.accept(this);
+  }
 }

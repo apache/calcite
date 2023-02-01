@@ -50,6 +50,11 @@
   githubId: libenchao
   pronouns: he/him
   org: ByteDance
+  role: PMC
+- name: Bertil Chapuis
+  apacheId: bchapuis
+  githubId: bchapuis
+  org: HEIG-VD
   role: Committer
 - name: Chris Baynes
   apacheId: cbaynes
@@ -71,6 +76,11 @@
   githubId: danny0405
   org: Alibaba
   role: PMC
+- name: Dmitry Sysolyatin
+  apacheId: dmsysolyatin
+  githubId: dssysolyatin
+  org: Intertrust Technologies
+  role: Committer
 - name: Edmon Begoli
   apacheId: ebegoli
   githubId: ebegoli
@@ -106,6 +116,11 @@
   apacheId: hongze
   githubId: zhztheplayer
   org: Tencent
+  role: Committer
+- name: Istvan Toth
+  apacheId: stoty
+  githubId: stoty
+  org: Cloudera
   role: Committer
 - name: James R. Taylor
   apacheId: jamestaylor
@@ -227,7 +242,7 @@
   apacheId: rubenql
   githubId: rubenada
   org: TIBCO
-  role: PMC Chair
+  role: PMC
 - name: Rui Wang
   apacheId: amaliujia
   githubId: amaliujia
@@ -253,7 +268,7 @@
   githubId: zabetak
   pronouns: he/him
   org: Cloudera
-  role: PMC
+  role: PMC Chair
   homepage: https://people.apache.org/~zabetak/
 - name: Steven Noels
   apacheId: stevenn
