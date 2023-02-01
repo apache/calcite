@@ -6886,7 +6886,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (!id.isSimple()) {
         return super.visit(id);
       }
-      
+
       boolean replaceAliases;
       switch (clause) {
       case GROUP_BY:
@@ -6927,6 +6927,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           n++;
         }
       }
+
       if (n == 0) {
         return super.visit(id);
       } else if (n > 1) {
@@ -6934,15 +6935,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         throw validator.newValidationError(id,
             RESOURCE.columnAmbiguous(name));
       }
-      if (havingExpr && validator.isAggregate(root)) {
+
+      if ((clause == ExpansionClause.HAVING) && validator.isAggregate(root)) {
         return super.visit(id);
       }
+
       expr = stripAs(expr);
       if (expr instanceof SqlIdentifier) {
         SqlIdentifier sid = (SqlIdentifier) expr;
         final SqlIdentifier fqId = getScope().fullyQualify(sid).identifier;
         expr = expandDynamicStar(sid, fqId);
       }
+
       return expr;
     }
 
