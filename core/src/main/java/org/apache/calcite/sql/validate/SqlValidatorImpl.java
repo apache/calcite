@@ -6951,10 +6951,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public @Nullable SqlNode visit(SqlLiteral literal) {
-      if (clause == ExpansionClause.HAVING
-          || !validator.config().conformance().isGroupByOrdinal()) {
+      boolean expandGroupByOrdinal = (clause == ExpansionClause.GROUP_BY) && validator.config().conformance().isGroupByOrdinal();
+      if (!expandGroupByOrdinal) {
         return super.visit(literal);
       }
+
       boolean isOrdinalLiteral = literal == root;
       switch (root.getKind()) {
       case GROUPING_SETS:
