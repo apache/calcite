@@ -62,8 +62,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
-import org.apache.calcite.util.Pair;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -6460,6 +6458,113 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select deptno from emp group by deptno having deptno + 5 > 10").ok();
   }
 
+  /** Tests the {@code QUALIFY} clause. */
+  @Test void testQualifyPositive() {
+    final SqlValidatorFixture f =
+        fixture().withConformance(SqlConformanceEnum.LENIENT);
+
+    final String qualifyWithoutAlias = "SELECT\n"
+        + "empno, ename\n"
+        + "FROM emp\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by deptno) = 1";
+    f.withSql(qualifyWithoutAlias).ok();
+
+    final String qualifyWithAlias = "SELECT empno, ename, deptno,\n"
+        + "   ROW_NUMBER() over (partition by ename order by deptno) as row_num\n"
+        + "FROM emp\n"
+        + "QUALIFY row_num = 1";
+    f.withSql(qualifyWithAlias).ok();
+
+    final String qualifyWithWindowClause = "SELECT empno, ename,\n"
+        + " SUM(deptno) OVER myWindow as sumDeptNo\n"
+        + "FROM emp\n"
+        + "WINDOW myWindow AS (PARTITION BY ename ORDER BY empno)\n"
+        + "QUALIFY sumDeptNo = 1";
+    f.withSql(qualifyWithWindowClause).ok();
+
+    final String qualifyWithEverything = "SELECT DISTINCT empno, ename, deptno,\n"
+        + "    RANK() OVER (PARTITION BY ename ORDER BY deptno DESC) as rank_val\n"
+        + "FROM emp\n"
+        + "WHERE sal > 1000\n"
+        + "QUALIFY rank_val = (SELECT COUNT(*) FROM emp)\n"
+        + "ORDER BY deptno\n"
+        + "LIMIT 5";
+    f.withSql(qualifyWithEverything).ok();
+
+    final String qualifyReferencingCommonColumnInJoin = "SELECT * \n"
+        + "FROM emp\n"
+        + "NATURAL JOIN dept\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by emp.deptno) = 1";
+    f.withSql(qualifyReferencingCommonColumnInJoin).ok();
+
+    final String qualifyOnMultipleWindowFunctions = "SELECT"
+        + "   AVG(deptno) OVER (PARTITION BY ename) avgDeptNo,"
+        + "   RANK() OVER (PARTITION BY deptno ORDER BY ename) as myRank\n"
+        + "FROM emp\n"
+        + "QUALIFY avgDeptNo = 1 AND myRank = 1";
+    f.withSql(qualifyOnMultipleWindowFunctions).ok();
+  }
+
+  /** Negative tests for the {@code QUALIFY} clause. */
+  @Test void testQualifyNegative() {
+    final SqlValidatorFixture f =
+        fixture().withConformance(SqlConformanceEnum.LENIENT);
+
+    // The predicate in the QUALIFY clause expression must be a boolean, since
+    // we use it as a filter.
+    final String qualifyWithNonBooleanExpression = "SELECT\n"
+        + "empno, ename\n"
+        + "FROM emp\n"
+        + "QUALIFY ^1 + 1^";
+    f.withSql(qualifyWithNonBooleanExpression)
+        .fails("QUALIFY clause must be a condition");
+
+    // We don't allow for using ordinal column references in QUALIFY.
+    final String qualifyWithOrdinal = "SELECT\n"
+        + "empno, ename, ROW_NUMBER() over (partition by ename order by deptno) = 1\n"
+        + "FROM emp\n"
+        + "QUALIFY ^3^";
+    f.withSql(qualifyWithOrdinal)
+        .fails("QUALIFY clause must be a condition");
+
+    // 'deptno' is a common column in both the emp and dept table.
+    // We need to use emp.deptno or dept.deptno to make it unambiguous
+    final String qualifyReferencingAmbiguousCommonColumnInJoin = "SELECT *\n"
+        + "FROM emp\n"
+        + "NATURAL JOIN dept\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by ^deptno^) = 1";
+    f.withSql(qualifyReferencingAmbiguousCommonColumnInJoin)
+        .fails("Column 'DEPTNO' is ambiguous");
+
+    // Qualify must contain a window function. This matches the behavior where
+    // HAVING needs to have an aggregate or reference a group column.
+    final String qualifyOnNonWindowFunction = "SELECT * \n"
+        + "FROM emp\n"
+        + "QUALIFY ^SUM(deptno) = 1^";
+    f.withSql(qualifyOnNonWindowFunction)
+        .fails("QUALIFY expression 'SUM\\(`EMP`\\.`DEPTNO`\\) = 1' "
+            + "must contain a window function\\.");
+
+    final String qualifyOnAliasedNonWindowFunction = ""
+        + "SELECT ^SUM(deptno) as sumDeptNo\n"
+        + "FROM emp\n"
+        + "QUALIFY sumDeptNo = 1^";
+    f.withSql(qualifyOnAliasedNonWindowFunction)
+        .fails("QUALIFY expression 'SUM\\(`EMP`\\.`DEPTNO`\\) = 1' "
+            + "must contain a window function\\.");
+
+    // This query fails, since it's a mix of regular aggregates and window
+    // functions. This query needs to fail, since we assume that qualify filters
+    // on the result of a window function in SqlToRelConverter and that the
+    // input Rel is a LogicalProject and not a LogicalAggregate.
+    final String mixedNonAggregateAndWindowAggregate = "SELECT\n"
+        + "   SUM(deptno) as sumDeptNo, "
+        + "   RANK() OVER (PARTITION BY ^ename^ ORDER BY deptno) myRank\n"
+        + "FROM emp\n";
+    f.withSql(mixedNonAggregateAndWindowAggregate)
+        .fails("Expression 'ENAME' is not being grouped");
+  }
+
   /** Tests the {@code WITH} clause, also called common table expressions. */
   @Test void testWith() {
     // simplest possible
@@ -12496,116 +12601,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * FROM TABLE(ROW_FUNC()) AS T(a, b)")
         .withOperatorTable(operatorTable)
         .type("RecordType(BIGINT NOT NULL A, BIGINT B) NOT NULL");
-  }
-
-  @Test void testQualifyPositive() {
-    final String qualifyWithoutAlias = "SELECT\n"
-        + "empno, ename\n"
-        + "FROM emp\n"
-        + "QUALIFY ROW_NUMBER() over (partition by ename order by deptno) = 1";
-    final String qualifyWithAlias = "SELECT empno, ename, deptno,\n"
-        + "   ROW_NUMBER() over (partition by ename order by deptno) as row_num\n"
-        + "FROM emp\n"
-        + "QUALIFY row_num = 1";
-    final String qualifyWithWindowClause = "SELECT empno, ename, SUM(deptno) OVER myWindow as sumDeptNo\n"
-        + "FROM emp\n"
-        + "WINDOW myWindow AS (PARTITION BY ename ORDER BY empno)\n"
-        + "QUALIFY sumDeptNo = 1";
-    final String qualifyWithEverything = "SELECT DISTINCT empno, ename, deptno,\n"
-        + "    RANK() OVER (PARTITION BY ename ORDER BY deptno DESC) as rank_val\n"
-        + "FROM emp\n"
-        + "WHERE sal > 1000\n"
-        + "QUALIFY rank_val = (SELECT COUNT(*) FROM emp)\n"
-        + "ORDER BY deptno\n"
-        + "LIMIT 5";
-    final String qualifyReferencingCommonColumnInJoin = "SELECT * \n"
-        + "FROM emp\n"
-        + "NATURAL JOIN dept\n"
-        + "QUALIFY ROW_NUMBER() over (partition by ename order by emp.deptno) = 1";
-    final String qualifyOnMultipleWindowFunctions = "SELECT"
-        + "   AVG(deptno) OVER (PARTITION BY ename) avgDeptNo,"
-        + "   RANK() OVER (PARTITION BY deptno ORDER BY ename) as myRank\n"
-        + "FROM emp\n"
-        + "QUALIFY avgDeptNo = 1 AND myRank = 1";
-
-    List<String> queries = ImmutableList.of(
-        qualifyWithoutAlias,
-        qualifyWithAlias,
-        qualifyWithWindowClause,
-        qualifyWithEverything,
-        qualifyReferencingCommonColumnInJoin,
-        qualifyOnMultipleWindowFunctions);
-
-    for (String query : queries) {
-      sql(query)
-          .withConformance(SqlConformanceEnum.LENIENT)
-          .ok();
-    }
-  }
-
-  @Test void testQualifyNegative() {
-    // The qualify expression must be a boolean, since we use it as a filter.
-    final Pair<String, String> qualifyWithNonBooleanExpression = Pair.of(
-        "SELECT\n"
-          + "empno, ename\n"
-          + "FROM emp\n"
-          + "QUALIFY ^1 + 1^",
-        "QUALIFY clause must be a condition");
-
-    // We don't allow for using ordinal column references in QUALIFY.
-    final Pair<String, String> qualifyWithOrdinal = Pair.of(
-        "SELECT\n"
-            + "empno, ename, ROW_NUMBER() over (partition by ename order by deptno) = 1\n"
-            + "FROM emp\n"
-            + "QUALIFY ^3^",
-        "QUALIFY clause must be a condition");
-
-    // 'deptno' is a common column in both the emp and dept table.
-    // We need to use emp.deptno or dept.deptno to make it unambiguous
-    final Pair<String, String> qualifyReferencingAmbiguousCommonColumnInJoin = Pair.of(
-        "SELECT * \n"
-        + "FROM emp\n"
-        + "NATURAL JOIN dept\n"
-        + "QUALIFY ROW_NUMBER() over (partition by ename order by ^deptno^) = 1",
-        "Column 'DEPTNO' is ambiguous");
-
-    // Qualify must contain a window function.
-    // This matches the behavior where HAVING needs to have an aggregate or reference a group column.
-    final Pair<String, String> qualifyOnNonWindowFunction = Pair.of(
-        "SELECT * \n"
-            + "FROM emp\n"
-            + "QUALIFY ^SUM(deptno) = 1^",
-        "QUALIFY expression 'SUM\\(`EMP`\\.`DEPTNO`\\) = 1' must contain a window function\\.");
-    final Pair<String, String> qualifyOnAliasedNonWindowFunction = Pair.of(
-        "SELECT ^SUM(deptno) as sumDeptNo \n"
-            + "FROM emp\n"
-            + "QUALIFY sumDeptNo = 1^",
-        "QUALIFY expression 'SUM\\(`EMP`\\.`DEPTNO`\\) = 1' must contain a window function\\.");
-
-    // This query fails, since it's a mix of regular aggregates and window functions.
-    // This query needs to fail, since we assume that qualify filters on the result of
-    // a window function in SqlToRelConveter and that the input Rel is a LogicalProject and not a
-    // LogicalAggregate.
-    final Pair<String, String> mixedNonAggregateAndWindowAggregate = Pair.of(
-        "SELECT "
-            + "   SUM(deptno) as sumDeptNo, "
-            + "   RANK() OVER (PARTITION BY ^ename^ ORDER BY deptno) myRank\n"
-            + "FROM emp\n",
-        "Expression 'ENAME' is not being grouped");
-
-    ImmutableList<Pair<String, String>> tests = ImmutableList.of(
-        qualifyWithNonBooleanExpression,
-        qualifyWithOrdinal,
-        qualifyReferencingAmbiguousCommonColumnInJoin,
-        qualifyOnNonWindowFunction,
-        qualifyOnAliasedNonWindowFunction,
-        mixedNonAggregateAndWindowAggregate);
-
-    for (Pair<String, String> test : tests) {
-      sql(test.left)
-          .withConformance(SqlConformanceEnum.LENIENT)
-          .fails(test.right);
-    }
   }
 
   /** Validator that rewrites columnar sql identifiers 'UNEXPANDED'.'Something'

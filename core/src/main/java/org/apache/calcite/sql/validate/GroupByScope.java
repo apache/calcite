@@ -56,11 +56,9 @@ public class GroupByScope extends DelegatingScope {
   }
 
   @Override public void validateExpr(SqlNode expr) {
-    SqlNode expanded = validator.extendedExpand(
-        expr,
-        this,
-        select,
-        SqlValidatorImpl.ExpansionClause.GROUPBY);
+    SqlNode expanded =
+        validator.extendedExpand(expr, this, select,
+            SqlValidatorImpl.ExpansionClause.GROUP_BY);
 
     // expression needs to be valid in parent scope too
     parent.validateExpr(expanded);
