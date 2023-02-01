@@ -6886,7 +6886,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (!id.isSimple()) {
         return super.visit(id);
       }
-
+      
       boolean replaceAliases;
       switch (clause) {
       case GROUP_BY:
@@ -6934,7 +6934,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         throw validator.newValidationError(id,
             RESOURCE.columnAmbiguous(name));
       }
-      if (clause == ExpansionClause.HAVING && validator.isAggregate(root)) {
+      if (havingExpr && validator.isAggregate(root)) {
         return super.visit(id);
       }
       expr = stripAs(expr);
