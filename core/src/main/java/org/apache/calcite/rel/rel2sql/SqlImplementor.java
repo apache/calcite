@@ -1906,12 +1906,17 @@ public abstract class SqlImplementor {
       return aliases;
     }
 
-    private boolean hasAnalyticalFunctionInWhenClauseOfCase(SqlBasicCall call) {
+    private boolean hasAnalyticalFunctionInWhenClauseOfCase(SqlCall call) {
       SqlNode sqlNode = call.operand(0);
       if (sqlNode instanceof SqlCall) {
         if (((SqlCall) sqlNode).getOperator() instanceof SqlCaseOperator) {
           for (SqlNode whenOperand : ((SqlCase) sqlNode).getWhenOperands()) {
-            boolean present = hasAnalyticalFunction((SqlBasicCall) whenOperand);
+            boolean present;
+            if (whenOperand instanceof SqlCase) {
+              present = hasAnalyticalFunctionInWhenClauseOfCase((SqlCall) whenOperand);
+            } else {
+              present = hasAnalyticalFunction((SqlBasicCall) whenOperand);
+            }
             if (present) {
               return true;
             }

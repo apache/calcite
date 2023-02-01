@@ -816,6 +816,35 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testNestedCaseClauseInAggregateFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode innerWhenClauseRex = builder.call(
+        SqlStdOperatorTable.EQUALS, builder.call(
+            SqlStdOperatorTable.COALESCE, builder.field(
+        "DEPTNO"), builder.literal(0)), builder.literal(4));
+    final RexNode innerCaseRex = builder.call(
+        SqlStdOperatorTable.CASE, innerWhenClauseRex, builder.call(TRUE),
+        builder.call(FALSE));
+    final RexNode outerCaseRex = builder.call(SqlStdOperatorTable.CASE, innerCaseRex,
+        builder.field("DEPTNO"),
+        builder.literal(100));
+    final RelNode root = builder
+        .scan("EMP")
+        .aggregate(
+            builder.groupKey(), builder.aggregateCall(SqlStdOperatorTable.MAX,
+            outerCaseRex).as("val"))
+        .build();
+
+    final String expectedSql = "SELECT MAX(CASE WHEN CASE WHEN COALESCE(\"DEPTNO\", 0) = 4 "
+        + "THEN TRUE() ELSE FALSE() END THEN \"DEPTNO\" ELSE 100 END) AS \"val\"\nFROM "
+        + "\"scott\".\"EMP\"";
+    final String expectedBigQuery = "SELECT MAX(CASE WHEN CASE WHEN COALESCE(DEPTNO, 0) = 4 THEN "
+        + "TRUE ELSE FALSE END THEN DEPTNO ELSE 100 END) AS val\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
   @Test void testSelectQueryWithGroupByAndProjectList() {
     String query = "select \"product_class_id\", \"product_id\", count(*) "
         + "from \"product\" group by \"product_class_id\", \"product_id\"  ";
@@ -2052,6 +2081,17 @@ class RelToSqlConverterTest {
         .ok(expected)
         .withSnowflake()
         .ok(expectedSnowFlake);
+  }
+
+  @Test public void testTrimWithColumnsAsOperands() {
+    final String query = "SELECT TRIM(LEADING \"first_name\" from \"full_name\")\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT LTRIM(full_name, first_name)\n"
+        + "FROM foodmart.reserve_employee";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expected);
   }
 
   @Test public void testTrimWithTrailingCharacter() {
