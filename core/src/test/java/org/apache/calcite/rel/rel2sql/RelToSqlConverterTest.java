@@ -61,6 +61,7 @@ import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
+import org.apache.calcite.sql.dialect.PrestoSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -626,7 +627,7 @@ class RelToSqlConverterTest {
         + "GROUP BY GROUPING SETS((\"EMPNO\", \"ENAME\", \"JOB\"),"
         + " (\"EMPNO\", \"ENAME\"), \"EMPNO\")\n"
         + "HAVING GROUPING(\"EMPNO\", \"ENAME\", \"JOB\") <> 0\n"
-        + "ORDER BY COUNT(*)";
+        + "ORDER BY 4";
     relFn(relFn).ok(expectedSql);
   }
 
@@ -761,17 +762,17 @@ class RelToSqlConverterTest {
     final String expected = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
-        + "ORDER BY \"product_class_id\", COUNT(*)";
+        + "ORDER BY \"product_class_id\", 2";
     final String expectedMysql = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id` WITH ROLLUP\n"
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
-        + " COUNT(*) IS NULL, COUNT(*)";
+        + " COUNT(*) IS NULL, 2";
     final String expectedPresto = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
         + "ORDER BY \"product_class_id\" IS NULL, \"product_class_id\", "
-        + "COUNT(*) IS NULL, COUNT(*)";
+        + "COUNT(*) IS NULL, 2";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
@@ -811,14 +812,14 @@ class RelToSqlConverterTest {
         + " COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\", \"brand_name\")\n"
-        + "ORDER BY \"product_class_id\", \"brand_name\", COUNT(*)";
+        + "ORDER BY \"product_class_id\", \"brand_name\", 3";
     final String expectedMysql = "SELECT `product_class_id`, `brand_name`,"
         + " COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id`, `brand_name` WITH ROLLUP\n"
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
         + " `brand_name` IS NULL, `brand_name`,"
-        + " COUNT(*) IS NULL, COUNT(*)";
+        + " COUNT(*) IS NULL, 3";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql);
@@ -1756,6 +1757,35 @@ class RelToSqlConverterTest {
     // Default dialect keep numeric constant keys in the over of order-by.
     sql(query).ok("SELECT ROW_NUMBER() OVER (ORDER BY 1)\n"
         + "FROM \"foodmart\".\"employee\"");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5510">[CALCITE-5510]
+   * RelToSqlConverter don't support sort by ordinal when sort by column is an expression</a>.
+   */
+  @Test void testOrderByOrdinalWithExpression() {
+    final String query = "select \"product_id\", count(*) as \"c\"\n"
+        + "from \"product\"\n"
+        + "group by \"product_id\"\n"
+        + "order by 2";
+    final String ordinalExpected = "SELECT \"product_id\", COUNT(*) AS \"c\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_id\"\n"
+        + "ORDER BY 2";
+    final String nonOrdinalExpected = "SELECT product_id, COUNT(*) AS c\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_id\n"
+        + "ORDER BY COUNT(*)";
+    final String prestoExpected = "SELECT \"product_id\", COUNT(*) AS \"c\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_id\"\n"
+        + "ORDER BY COUNT(*) IS NULL, 2";
+    sql(query)
+        .ok(ordinalExpected)
+        .dialect(nonOrdinalDialect())
+        .ok(nonOrdinalExpected)
+        .dialect(PrestoSqlDialect.DEFAULT)
+        .ok(prestoExpected);
   }
 
   /** Test case for
@@ -6691,7 +6721,7 @@ class RelToSqlConverterTest {
         + "FROM SCOTT.EMP\n"
         + "GROUP BY DEPTNO\n"
         + "HAVING COUNT(DISTINCT EMPNO) > 0\n"
-        + "ORDER BY COUNT(DISTINCT EMPNO) IS NULL DESC, COUNT(DISTINCT EMPNO) DESC";
+        + "ORDER BY COUNT(DISTINCT EMPNO) IS NULL DESC, 2 DESC";
 
     // Convert rel node to SQL with BigQuery dialect,
     // in which "isHavingAlias" is true.

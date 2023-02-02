@@ -615,6 +615,13 @@ public abstract class SqlImplementor {
         final String strValue = ((SqlNumericLiteral) node).toValue();
         return SqlLiteral.createCharString(strValue, node.getParserPosition());
       }
+      if (node instanceof SqlCall
+          && dialect.getConformance().isSortByOrdinal()) {
+        // If the field is expression and sort by ordinal is set in dialect,
+        // convert it to ordinal.
+        return SqlLiteral.createExactNumeric(
+            Integer.toString(ordinal + 1), SqlParserPos.ZERO);
+      }
       return node;
     }
 
@@ -1809,6 +1816,13 @@ public abstract class SqlImplementor {
         return true;
       }
 
+      if (rel instanceof Project
+          && clauses.contains(Clause.ORDER_BY)
+          && dialect.getConformance().isSortByOrdinal()) {
+        // Cannot merge a Project that contains sort by ordinal under it.
+        return hasSortByOrdinal();
+      }
+
       if (rel instanceof Aggregate) {
         final Aggregate agg = (Aggregate) rel;
         final boolean hasNestedAgg =
@@ -1826,6 +1840,30 @@ public abstract class SqlImplementor {
         }
       }
 
+      return false;
+    }
+
+    /**
+     * Return whether the current {@link SqlNode} in {@link Result} contains sort by column
+     * in ordinal format.
+     */
+    private boolean hasSortByOrdinal(@UnknownInitialization Result this) {
+      if (node instanceof SqlSelect) {
+        final SqlNodeList orderList = ((SqlSelect) node).getOrderList();
+        if (orderList == null) {
+          return false;
+        }
+        for (SqlNode sqlNode : orderList) {
+          if (!(sqlNode instanceof SqlBasicCall)) {
+            return false;
+          }
+          for (SqlNode operand : ((SqlBasicCall) sqlNode).getOperandList()) {
+            if (operand instanceof SqlNumericLiteral) {
+              return true;
+            }
+          }
+        }
+      }
       return false;
     }
 
