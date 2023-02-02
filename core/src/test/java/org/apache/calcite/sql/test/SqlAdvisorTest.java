@@ -341,7 +341,8 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(INTERSECT)",
           "KEYWORD(ORDER)",
           "KEYWORD(UNION)",
-          "KEYWORD(WINDOW)");
+          "KEYWORD(WINDOW)",
+          "KEYWORD(QUALIFY)");
 
   private static final List<String> A_TABLE =
       Collections.singletonList(
@@ -363,6 +364,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(USING)",
           "KEYWORD(OUTER)",
           "KEYWORD(RIGHT)",
+          "KEYWORD(QUALIFY)",
           "KEYWORD(GROUP)",
           "KEYWORD(CROSS)",
           "KEYWORD(,)",
