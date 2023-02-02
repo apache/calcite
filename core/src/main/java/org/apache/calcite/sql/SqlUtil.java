@@ -52,9 +52,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
+import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
@@ -1233,6 +1235,65 @@ public abstract class SqlUtil {
     SqlNode leftNode = createBalancedCall(op, pos, operands, start, mid);
     SqlNode rightNode = createBalancedCall(op, pos, operands, mid, end);
     return op.createCall(pos, leftNode, rightNode);
+  }
+
+  /**
+   * Creates a table sample spec from the parser information.
+   *
+   * NOTE(jsternberg): This function is really misplaced. I suspect that
+   * this logic doesn't belong in the parser at all and instead should be
+   * in the SQL validator, but that's too large of a refactor to move that
+   * code from the parser to the validator without properly understanding
+   * the consequences for error handling. It might be worth bringing it up
+   * with upstream if/when we try to get our code more compatible with theirs,
+   * but it's not really worth doing that refactor unless we're planning
+   * to contribute the changes back to upstream.
+   *
+   * The parser references the above note. If this code changes, remember to
+   * update the parser comments too.
+   */
+  public static @Nullable SqlSampleSpec createTableSample(@NonNull SqlParserPos pos,
+      boolean isBernoulli, @NonNull SqlNumericLiteral sampleRate, boolean sampleByRows,
+      boolean isRepeatable, int repeatableSeed) {
+    BigDecimal rate = sampleRate.bigDecimalValue();
+    if (rate == null) {
+      return null;
+    }
+
+    if (sampleByRows) {
+      final BigDecimal maxRows = BigDecimal.valueOf(1000000L);
+      if (rate.compareTo(BigDecimal.ZERO) < 0 || rate.compareTo(maxRows) > 0) {
+        throw SqlUtil.newContextException(
+            pos, RESOURCE.invalidSampleSize(BigDecimal.ZERO, maxRows));
+      }
+
+      return isRepeatable
+          ? SqlSampleSpec.createTableSampleRowLimit(
+              isBernoulli, rate, repeatableSeed)
+          : SqlSampleSpec.createTableSampleRowLimit(isBernoulli, rate);
+    }
+
+    final BigDecimal oneHundred = BigDecimal.valueOf(100L);
+    if (rate.compareTo(BigDecimal.ZERO) < 0
+        || rate.compareTo(oneHundred) > 0) {
+      throw SqlUtil.newContextException(
+          pos, RESOURCE.invalidSampleSize(BigDecimal.ZERO, oneHundred));
+    }
+
+    // Treat TABLESAMPLE(0) and TABLESAMPLE(100) as no table
+    // sampling at all.  Not strictly correct: TABLESAMPLE(0)
+    // should produce no output, but it simplifies implementation
+    // to know that some amount of sampling will occur.
+    // In practice values less than ~1E-43% are treated as 0.0 and
+    // values greater than ~99.999997% are treated as 1.0
+    float fRate = rate.divide(oneHundred).floatValue();
+    if (fRate <= 0.0f || fRate >= 1.0f) {
+      return null;
+    }
+    return isRepeatable
+        ? SqlSampleSpec.createTableSample(
+        isBernoulli, fRate, repeatableSeed)
+        : SqlSampleSpec.createTableSample(isBernoulli, fRate);
   }
 
   //~ Inner Classes ----------------------------------------------------------

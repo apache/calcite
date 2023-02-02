@@ -376,6 +376,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(JOIN)",
           "KEYWORD(WINDOW)",
           "KEYWORD(.)",
+          "KEYWORD(SAMPLE)",
           "KEYWORD(TABLESAMPLE)",
           "KEYWORD(ON)",
           "KEYWORD(INTERSECT)",

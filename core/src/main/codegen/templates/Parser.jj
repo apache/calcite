@@ -2314,6 +2314,7 @@ SqlNode TableRef2(boolean lateral) :
     SqlNode sample;
     boolean isBernoulli;
     SqlNumericLiteral samplePercentage;
+    boolean sampleByRows = false;
     boolean isRepeatable = false;
     int repeatableSeed = 0;
     SqlNodeList columnAliasList = null;
@@ -2410,7 +2411,7 @@ SqlNode TableRef2(boolean lateral) :
         }
     ]
     [
-        <TABLESAMPLE> { s2 = span(); }
+        TableSample() { s2 = span(); }
         (
             <SUBSTITUTE> <LPAREN> sample = StringLiteral() <RPAREN>
             {
@@ -2423,47 +2424,34 @@ SqlNode TableRef2(boolean lateral) :
                     s2.add(tableRef).end(this), tableRef, sampleLiteral);
             }
         |
-            (
-                <BERNOULLI>
-                {
-                    isBernoulli = true;
-                }
-            |
-                <SYSTEM>
-                {
-                    isBernoulli = false;
-                }
-            )
-            <LPAREN> samplePercentage = UnsignedNumericLiteral() <RPAREN>
+            isBernoulli = TableSamplingMethod()
+            <LPAREN>
+            samplePercentage = UnsignedNumericLiteral()
             [
-                <REPEATABLE> <LPAREN> repeatableSeed = IntLiteral() <RPAREN>
+                <ROWS> { sampleByRows = true; }
+            ]
+            <RPAREN>
+            [
+                (<REPEATABLE> | <SEED>) <LPAREN> repeatableSeed = IntLiteral() <RPAREN>
                 {
                     isRepeatable = true;
                 }
             ]
             {
-                final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100L);
-                BigDecimal rate = samplePercentage.bigDecimalValue();
-                if (rate.compareTo(BigDecimal.ZERO) < 0
-                    || rate.compareTo(ONE_HUNDRED) > 0)
-                {
-                    throw SqlUtil.newContextException(getPos(), RESOURCE.invalidSampleSize());
-                }
+                // NOTE(jsternberg): The original for this had a lot of code for the parser
+                // that is just not parsing code. This has been migrated to SqlUtil
+                // temporarily to accomodate the changes. See the note there about future plans.
+                SqlSampleSpec tableSampleSpec = SqlUtil.createTableSample(getPos(),
+                    isBernoulli, samplePercentage, sampleByRows,
+                    isRepeatable, repeatableSeed);
 
-                // Treat TABLESAMPLE(0) and TABLESAMPLE(100) as no table
-                // sampling at all.  Not strictly correct: TABLESAMPLE(0)
+                // Certain arguments get treated as if there was no table
+                // sampling at all. This is not strictly correct: TABLESAMPLE(0)
                 // should produce no output, but it simplifies implementation
                 // to know that some amount of sampling will occur.
                 // In practice values less than ~1E-43% are treated as 0.0 and
                 // values greater than ~99.999997% are treated as 1.0
-                float fRate = rate.divide(ONE_HUNDRED).floatValue();
-                if (fRate > 0.0f && fRate < 1.0f) {
-                    SqlSampleSpec tableSampleSpec =
-                    isRepeatable
-                        ? SqlSampleSpec.createTableSample(
-                            isBernoulli, fRate, repeatableSeed)
-                        : SqlSampleSpec.createTableSample(isBernoulli, fRate);
-
+                if (tableSampleSpec != null) {
                     SqlLiteral tableSampleLiteral =
                         SqlLiteral.createSample(tableSampleSpec, s2.end(this));
                     tableRef = SqlStdOperatorTable.TABLESAMPLE.createCall(
@@ -2475,6 +2463,33 @@ SqlNode TableRef2(boolean lateral) :
     {
         return tableRef;
     }
+}
+
+void TableSample() :
+{
+}
+{
+    (<TABLESAMPLE> | <SAMPLE>)
+}
+
+boolean TableSamplingMethod() :
+{
+    final boolean isBernoulli;
+}
+{
+    // TODO(jsternberg): Only BERNOULLI and SYSTEM should be allowed by default.
+    // Modify the parser to allow additional keywords to be used through freemarker.
+    // Similarly, the empty expression is not part of the default and we should
+    // confirm with the SqlConformance to see if we allow it. Needs to be integrated
+    // properly with upstream calcite.
+    (
+        (<BERNOULLI> | <ROW>) { isBernoulli = true; }
+    |
+        (<SYSTEM> | <BLOCK>) { isBernoulli = false; }
+    |
+        E() { isBernoulli = true; }
+    )
+    { return isBernoulli; }
 }
 
 SqlNodeList ExtendList() :
@@ -7674,6 +7689,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < BINARY: "BINARY" >
 |   < BIT: "BIT" >
 |   < BLOB: "BLOB" >
+|   < BLOCK: "BLOCK" >
 |   < BOOLEAN: "BOOLEAN" >
 |   < BOTH: "BOTH" >
 |   < BREADTH: "BREADTH" >
@@ -8122,6 +8138,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < ROW_NUMBER: "ROW_NUMBER" >
 |   < ROWS: "ROWS" >
 |   < RUNNING: "RUNNING" >
+|   < SAMPLE: "SAMPLE" >
 |   < SAVEPOINT: "SAVEPOINT" >
 |   < SCALAR: "SCALAR" >
 |   < SCALE: "SCALE" >
@@ -8137,6 +8154,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SECONDS: "SECONDS" >
 |   < SECTION: "SECTION" >
 |   < SECURITY: "SECURITY" >
+|   < SEED: "SEED" >
 |   < SEEK: "SEEK" >
 |   < SELECT: "SELECT" > { afterTableName(); }
 |   < SELF: "SELF" >

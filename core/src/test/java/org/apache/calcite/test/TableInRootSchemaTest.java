@@ -64,7 +64,7 @@ class TableInRootSchemaTest {
     calciteConnection.getRootSchema().add("SAMPLE", new SimpleTable());
     Statement statement = calciteConnection.createStatement();
     ResultSet resultSet =
-        statement.executeQuery("select A, SUM(B) from SAMPLE group by A");
+        statement.executeQuery("select A, SUM(B) from \"SAMPLE\" group by A");
 
     assertThat(
         ImmutableMultiset.of(
