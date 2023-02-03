@@ -30,6 +30,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.locationtech.jts.algorithm.InteriorPoint;
 import org.locationtech.jts.algorithm.MinimumBoundingCircle;
 import org.locationtech.jts.algorithm.MinimumDiameter;
+import org.locationtech.jts.densify.Densifier;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateSequence;
 import org.locationtech.jts.geom.Envelope;
@@ -49,21 +50,29 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.geom.util.AffineTransformation;
+import org.locationtech.jts.geom.util.GeometryEditor;
 import org.locationtech.jts.geom.util.GeometryFixer;
 import org.locationtech.jts.linearref.LengthIndexedLine;
+import org.locationtech.jts.operation.buffer.BufferOp;
+import org.locationtech.jts.operation.buffer.BufferParameters;
+import org.locationtech.jts.operation.buffer.OffsetCurve;
 import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.jts.operation.linemerge.LineMerger;
 import org.locationtech.jts.operation.overlay.snap.GeometrySnapper;
 import org.locationtech.jts.operation.polygonize.Polygonizer;
-import org.locationtech.jts.operation.union.UnaryUnionOp;
 import org.locationtech.jts.precision.GeometryPrecisionReducer;
 import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
+import org.locationtech.jts.triangulate.DelaunayTriangulationBuilder;
+import org.locationtech.jts.triangulate.polygon.ConstrainedDelaunayTriangulator;
+import org.locationtech.jts.triangulate.quadedge.QuadEdgeSubdivision;
+import org.locationtech.jts.triangulate.tri.Tri;
 import org.locationtech.jts.util.GeometricShapeFactory;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -291,6 +300,16 @@ public class SpatialTypeFunctions {
   public static @Nullable Geometry ST_PolyFromWKB(ByteString wkb, int srid) {
     Geometry geometry = ST_GeomFromWKB(wkb, srid);
     return geometry instanceof Polygon ? geometry : null;
+  }
+
+  /**
+   * Reduces the precision of a {@code geom} to the provided {@code gridSize}.
+   */
+  public static Geometry ST_ReducePrecision(Geometry geom, BigDecimal gridSize) {
+    PrecisionModel precisionModel = new PrecisionModel(1 / gridSize.doubleValue());
+    GeometryPrecisionReducer reducer = new GeometryPrecisionReducer(precisionModel);
+    reducer.setPointwise(true);
+    return reducer.reduce(geom);
   }
 
   /**
@@ -698,7 +717,7 @@ public class SpatialTypeFunctions {
     if (!(geom instanceof GeometryCollection)) {
       return null;
     }
-    return geom.getGeometryN(n);
+    return geom.getGeometryN(n - 1);
   }
 
   /**
@@ -913,7 +932,6 @@ public class SpatialTypeFunctions {
     } else {
       return Double.NaN;
     }
-
   }
 
   /**
@@ -1083,7 +1101,17 @@ public class SpatialTypeFunctions {
    * Geometries are listed in the same order.
    */
   public static boolean ST_OrderingEquals(Geometry geom1, Geometry geom2) {
-    return geom1.equals(geom2);
+    if (!geom1.equals(geom2)) {
+      return false;
+    }
+    Coordinate[] coordinates1 = geom1.getCoordinates();
+    Coordinate[] coordinates2 = geom2.getCoordinates();
+    for (int i = 0; i < coordinates1.length; i++) {
+      if (!coordinates1[i].equals(coordinates2[i])) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -1117,6 +1145,17 @@ public class SpatialTypeFunctions {
   }
 
   // Geometry operators (2D and 3D) ===========================================
+
+  /**
+   * Computes a buffer around {@code geom}.
+   */
+  public static Geometry ST_Buffer(Geometry geom, double distance, String bufferStyle) {
+    BufferStyle style = new BufferStyle(bufferStyle);
+    BufferParameters params = style.asBufferParameters();
+    double sidedDistance = style.asSidedDistance(distance);
+    Geometry result = new BufferOp(geom, params).getResultGeometry(sidedDistance);
+    return result;
+  }
 
   /**
    * Computes a buffer around {@code geom}.
@@ -1168,6 +1207,21 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Computes an offset line for {@code linestring}.
+   */
+  public static Geometry ST_OffsetCurve(Geometry linestring, double distance, String bufferStyle) {
+    if (!(linestring instanceof LineString)) {
+      throw new IllegalArgumentException("ST_OffsetCurve only accepts LineString");
+    }
+    BufferStyle style = new BufferStyle(bufferStyle);
+    BufferParameters params = style.asBufferParameters();
+    double sidedDistance = style.asSidedDistance(distance);
+    Coordinate[] coordinates =
+        OffsetCurve.rawOffset((LineString) linestring, sidedDistance, params);
+    return GEOMETRY_FACTORY.createLineString(coordinates);
+  }
+
+  /**
    * Returns the DE-9IM intersection matrix for geom1 and geom2.
    */
   public static String ST_Relate(Geometry geom1, Geometry geom2) {
@@ -1191,7 +1245,8 @@ public class SpatialTypeFunctions {
   /**
    * Computes the union of the geometries in {@code geomCollection}.
    */
-  @SemiStrict public static Geometry ST_UnaryUnion(Geometry geomCollection) {
+  @SemiStrict
+  public static Geometry ST_UnaryUnion(Geometry geomCollection) {
     return geomCollection.union();
   }
 
@@ -1284,6 +1339,14 @@ public class SpatialTypeFunctions {
     return snapper.snapTo(geom2, snapTolerance.doubleValue());
   }
 
+  /**
+   * Splits {@code geom} by {@code blade}.
+   */
+  public static Geometry ST_Split(Geometry geom, Geometry blade) {
+    return new SplitOperation(geom, blade).split();
+  }
+
+
   // Affine transformation functions (3D and 2D)
 
   /**
@@ -1333,7 +1396,138 @@ public class SpatialTypeFunctions {
   public static Geometry ST_Translate(Geometry geom, BigDecimal x, BigDecimal y) {
     AffineTransformation transformation = new AffineTransformation();
     transformation.translate(x.doubleValue(), y.doubleValue());
-    return transformation.transform(geom);
+    Geometry translated = transformation.transform(geom);
+    return translated;
+  }
+
+  // Geometry editing functions (2D)
+
+  /**
+   * Adds {@code point} to {@code linestring} at the end.
+   */
+  public static Geometry ST_AddPoint(Geometry linestring, Geometry point) {
+    if (!(linestring instanceof LineString)) {
+      throw new RuntimeException("Only supports LINESTRING.");
+    }
+    if (!(point instanceof Point)) {
+      throw new RuntimeException("Only supports POINT.");
+    }
+    LineString lineString = (LineString) linestring;
+    int numPoints = lineString.getNumPoints();
+    return new GeometryEditor().edit(linestring, new AddPointOperation(point, numPoints));
+  }
+
+  /**
+   * Adds {@code point} to {@code linestring} at a given {@code index}.
+   */
+  public static Geometry ST_AddPoint(Geometry linestring, Geometry point, int index) {
+    if (!(linestring instanceof LineString)) {
+      throw new RuntimeException("Only supports LINESTRING.");
+    }
+    if (!(point instanceof Point)) {
+      throw new RuntimeException("Only supports POINT.");
+    }
+    return new GeometryEditor().edit(linestring, new AddPointOperation(point, index));
+  }
+
+  /**
+   * Densifies a {@code geom} by inserting extra vertices along the line segments.
+   */
+  public static Geometry ST_Densify(Geometry geom, BigDecimal tolerance) {
+    return Densifier.densify(geom, tolerance.doubleValue());
+  }
+
+  /**
+   * Flips the X and Y coordinates of the {@code geom}.
+   */
+  public static Geometry ST_FlipCoordinates(Geometry geom) {
+    FlipCoordinatesTransformer transformer = new FlipCoordinatesTransformer();
+    return transformer.transform(geom);
+  }
+
+  /**
+   * Returns the holes in the {@code geom} (which may be a GEOMETRYCOLLECTION).
+   */
+  public static Geometry ST_Holes(Geometry geom) {
+    List<Geometry> acc = new ArrayList<>();
+    extractGeometryHoles(geom, acc);
+    Geometry[] array = acc.toArray(new Geometry[acc.size()]);
+    return GEOMETRY_FACTORY.createGeometryCollection(array);
+  }
+
+  private static void extractGeometryHoles(Geometry geom, List<Geometry> acc) {
+    if (geom instanceof GeometryCollection) {
+      GeometryCollection geometryCollection = (GeometryCollection) geom;
+      for (int i = 0; i < geometryCollection.getNumGeometries(); i++) {
+        Geometry child = geometryCollection.getGeometryN(i);
+        extractGeometryHoles(child, acc);
+      }
+    } else if (geom instanceof Polygon) {
+      Polygon polygon = (Polygon) geom;
+      extractPolygonHoles(polygon, acc);
+    }
+  }
+
+  private static void extractPolygonHoles(Polygon polygon, List<Geometry> acc) {
+    int size = polygon.getNumInteriorRing();
+    for (int i = 0; i < size; i++) {
+      acc.add(polygon.getInteriorRingN(i));
+    }
+  }
+
+  /**
+   * Converts the {@code geom} to normal form.
+   */
+  public static Geometry ST_Normalize(Geometry geom) {
+    return geom.norm();
+  }
+
+  /**
+   * Removes duplicated coordinates from the {@code geom}.
+   */
+  public static Geometry ST_RemoveRepeatedPoints(Geometry geom) {
+    return new RemoveRepeatedPointsTransformer().transform(geom);
+  }
+
+  /**
+   * Removes duplicated coordinates from the {@code geom}.
+   */
+  public static Geometry ST_RemoveRepeatedPoints(Geometry geom, BigDecimal tolerance) {
+    return new RemoveRepeatedPointsTransformer(tolerance.doubleValue()).transform(geom);
+  }
+
+  /**
+   * Removes the holes of the {@code geom}.
+   */
+  public static Geometry ST_RemoveHoles(Geometry geom) {
+    RemoveHoleTransformer transformer = new RemoveHoleTransformer();
+    return transformer.transform(geom);
+  }
+
+  /**
+   * Remove {@code point} at given {@code index} in {@code linestring}.
+   */
+  public static Geometry ST_RemovePoint(Geometry linestring, int index) {
+    if (!(linestring instanceof LineString)) {
+      throw new RuntimeException("Only supports LINESTRING.");
+    }
+    return new GeometryEditor().edit(linestring, new RemovePointOperation(index));
+  }
+
+  /**
+   * Reverses the order of the coordinates of the {@code geom}.
+   */
+  public static Geometry ST_Reverse(Geometry geom) {
+    return geom.reverse();
+  }
+
+  // Geometry editing functions (3D)
+
+  /**
+   * Adds {@code zToAdd} to the z-coordinate of the {@code geom}.
+   */
+  public static Geometry ST_AddZ(Geometry geom, BigDecimal zToAdd) {
+    return new AddZTransformer(zToAdd.doubleValue()).transform(geom);
   }
 
   // Geometry measurement functions
@@ -1423,8 +1617,8 @@ public class SpatialTypeFunctions {
         LineSegment lineSegment = new LineSegment(c1, c2);
         coordinates.add(
             lineSegment.pointAlongOffset(
-            segmentLengthFraction.doubleValue(),
-            offsetDistance.doubleValue()));
+                segmentLengthFraction.doubleValue(),
+                offsetDistance.doubleValue()));
       }
     }
     Coordinate[] coordinateArray = coordinates.toArray(new Coordinate[0]);
@@ -1452,7 +1646,7 @@ public class SpatialTypeFunctions {
     if (c1 == null || c2 == null) {
       return null;
     }
-    return GEOMETRY_FACTORY.createLineString(new Coordinate[] {c1, c2});
+    return GEOMETRY_FACTORY.createLineString(new Coordinate[]{c1, c2});
   }
 
   /**
@@ -1496,6 +1690,82 @@ public class SpatialTypeFunctions {
     double index = lengthIndexedLine.project(point.getCoordinate());
     Coordinate projectedCoordinate = lengthIndexedLine.extractPoint(index);
     return GEOMETRY_FACTORY.createPoint(projectedCoordinate);
+  }
+
+  // Triangulation functions
+
+  /**
+   * Computes a constrained Delaunay triangulation based on points in {@code geom}.
+   */
+  public static Geometry ST_ConstrainedDelaunay(Geometry geom) {
+    return ST_ConstrainedDelaunay(geom, 0);
+  }
+
+  /**
+   * Computes a constrained Delaunay triangulation based on points in {@code geom}.
+   */
+  public static Geometry ST_ConstrainedDelaunay(Geometry geom, int flag) {
+    GeometryFactory factory = geom.getFactory();
+    ConstrainedDelaunayTriangulator cdt = new ConstrainedDelaunayTriangulator(geom);
+    List<Tri> tris = cdt.getTriangles();
+    Polygon[] polygons = new Polygon[tris.size()];
+    int i = 0;
+    for (Tri tri : tris) {
+      polygons[i++] = tri.toPolygon(factory);
+    }
+    MultiPolygon multiPolygon = factory.createMultiPolygon(polygons);
+    if (flag == 0) {
+      return multiPolygon;
+    } else {
+      return asTriangleEdges(multiPolygon);
+    }
+  }
+
+  /**
+   * Computes a Delaunay triangulation based on points in {@code geom}.
+   */
+  public static Geometry ST_Delaunay(Geometry geom) {
+    return ST_Delaunay(geom, 0);
+  }
+
+  /**
+   * Computes a Delaunay triangulation based on points in {@code geom}.
+   */
+  public static Geometry ST_Delaunay(Geometry geom, int flag) {
+    GeometryFactory factory = geom.getFactory();
+    DelaunayTriangulationBuilder builder = new DelaunayTriangulationBuilder();
+    builder.setSites(geom);
+    QuadEdgeSubdivision subdivision = builder.getSubdivision();
+    List triPtsList = subdivision.getTriangleCoordinates(false);
+    Polygon[] tris = new Polygon[triPtsList.size()];
+    int i = 0;
+    for (Iterator it = triPtsList.iterator(); it.hasNext();) {
+      Coordinate[] triPt = (Coordinate[]) it.next();
+      tris[i++] = factory.createPolygon(factory.createLinearRing(triPt));
+    }
+    MultiPolygon multiPolygon = factory.createMultiPolygon(tris);
+    if (flag == 0) {
+      return multiPolygon;
+    } else {
+      return asTriangleEdges(multiPolygon);
+    }
+  }
+
+  private static Geometry asTriangleEdges(MultiPolygon multiPolygon) {
+    GeometryFactory factory = multiPolygon.getFactory();
+    List<LineString> edges = new ArrayList<>();
+    for (int i = 0; i < multiPolygon.getNumGeometries(); i++) {
+      Polygon polygon = (Polygon) multiPolygon.getGeometryN(i);
+      Coordinate[] coordinates = polygon.getCoordinates();
+      for (int j = 1; j < coordinates.length; j++) {
+        Coordinate c1 = coordinates[j - 1].copy();
+        Coordinate c2 = coordinates[j].copy();
+        LineString line = factory.createLineString(new Coordinate[]{c1, c2});
+        edges.add(line);
+      }
+    }
+    Geometry geometry = factory.createMultiLineString(edges.toArray(new LineString[0]));
+    return geometry.union().norm();
   }
 
   // Space-filling curves
@@ -1606,64 +1876,6 @@ public class SpatialTypeFunctions {
         @Override public void close() {
         }
       };
-    }
-  }
-
-  /**
-   * Used at run time by the ST_Union function.
-   */
-  public static class Union {
-
-    public List<Geometry> init() {
-      return new ArrayList<>();
-    }
-
-    public List<Geometry> add(List<Geometry> accumulator, Geometry geometry) {
-      accumulator.add(geometry);
-      return accumulator;
-    }
-
-    public Geometry result(List<Geometry> accumulator) {
-      return new UnaryUnionOp(accumulator).union();
-    }
-  }
-
-  /**
-   * Used at run time by the ST_Accum function.
-   */
-  public static class Accum {
-
-    public List<Geometry> init() {
-      return new ArrayList<>();
-    }
-
-    public List<Geometry> add(List<Geometry> accumulator, Geometry geometry) {
-      accumulator.add(geometry);
-      return accumulator;
-    }
-
-    public List<Geometry> result(List<Geometry> accumulator) {
-      return accumulator;
-    }
-  }
-
-  /**
-   * Used at run time by the ST_Collect function.
-   */
-  public static class Collect {
-
-    public List<Geometry> init() {
-      return new ArrayList<>();
-    }
-
-    public List<Geometry> add(List<Geometry> accumulator, Geometry geometry) {
-      accumulator.add(geometry);
-      return accumulator;
-    }
-
-    public Geometry result(List<Geometry> accumulator) {
-      Geometry[] array = accumulator.toArray(new Geometry[accumulator.size()]);
-      return GEOMETRY_FACTORY.createGeometryCollection(array);
     }
   }
 }

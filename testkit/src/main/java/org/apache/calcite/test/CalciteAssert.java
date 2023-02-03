@@ -41,12 +41,12 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.runtime.AccumOperation;
 import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.CollectOperation;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.SpatialTypeFunctions;
-import org.apache.calcite.runtime.SpatialTypeFunctions.Accum;
-import org.apache.calcite.runtime.SpatialTypeFunctions.Collect;
-import org.apache.calcite.runtime.SpatialTypeFunctions.Union;
+import org.apache.calcite.runtime.UnionOperation;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
@@ -827,11 +827,9 @@ public class CalciteAssert {
           SpatialTypeFunctions.class.getName(), "*", true);
       ModelHandler.addFunctions(rootSchema, null, emptyPath,
           SqlSpatialTypeFunctions.class.getName(), "*", true);
-      rootSchema.add("ST_UNION", AggregateFunctionImpl.create(Union.class));
-      rootSchema.add("ST_ACCUM", AggregateFunctionImpl.create(Accum.class));
-      rootSchema.add("ST_COLLECT", AggregateFunctionImpl.create(Collect.class));
-      ModelHandler.addFunctions(rootSchema, "roundGeom", emptyPath,
-          TestUtil.class.getName(), "roundGeom", true);
+      rootSchema.add("ST_UNION", AggregateFunctionImpl.create(UnionOperation.class));
+      rootSchema.add("ST_ACCUM", AggregateFunctionImpl.create(AccumOperation.class));
+      rootSchema.add("ST_COLLECT", AggregateFunctionImpl.create(CollectOperation.class));
       final SchemaPlus s =
           rootSchema.add(schema.schemaName, new AbstractSchema());
       ModelHandler.addFunctions(s, "countries", emptyPath,
