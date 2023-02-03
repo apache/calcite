@@ -231,7 +231,6 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(SYSTEM_USER)",
           "KEYWORD(TIME)",
           "KEYWORD(TRANSLATE)",
-          "KEYWORD(TRIM)",
           "KEYWORD(TRUE)",
           "KEYWORD(TRUNCATE)",
           "KEYWORD(UNIQUE)",
