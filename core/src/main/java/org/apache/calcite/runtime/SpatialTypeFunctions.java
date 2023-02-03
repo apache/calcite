@@ -1346,6 +1346,16 @@ public class SpatialTypeFunctions {
     return transformation.transform(geom);
   }
 
+  // Geometry editing functions
+
+  /**
+   * Flips the X and Y coordinates of the {@code geom}.
+   */
+  public static Geometry ST_FlipCoordinates(Geometry geom) {
+    FlipCoordinatesTransformer transformer = new FlipCoordinatesTransformer();
+    return transformer.transform(geom);
+  }
+
   // Geometry measurement functions
 
   /**

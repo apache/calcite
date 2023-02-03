@@ -2375,12 +2375,15 @@ Not implemented:
 
 The following functions modify 2D geometries.
 
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| h | ST_FlipCoordinates(geom) | Flips the X and Y coordinates of the *geom*
+
 Not implemented:
 
 * ST_AddPoint(geom, point [, tolerance ]) Adds *point* to *geom* with a given *tolerance* (default 0)
 * ST_CollectionExtract(geom, dimension) Filters *geom*, returning a multi-geometry of those members with a given *dimension* (1 = point, 2 = line-string, 3 = polygon)
 * ST_Densify(geom, tolerance) Inserts extra vertices every *tolerance* along the line segments of *geom*
-* ST_FlipCoordinates(geom) Flips the X and Y coordinates of *geom*
 * ST_Holes(geom) Returns the holes in *geom* (which may be a GEOMETRYCOLLECTION)
 * ST_Normalize(geom) Converts *geom* to normal form
 * ST_RemoveDuplicatedCoordinates(geom) Removes duplicated coordinates from *geom*
