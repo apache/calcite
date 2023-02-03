@@ -769,7 +769,7 @@ class RelWriterTest {
     final ObjectMapper mapper = new ObjectMapper();
     final TypeReference<LinkedHashMap<String, Object>> typeRef =
         new TypeReference<LinkedHashMap<String, Object>>() {
-    };
+        };
     final Map<String, Object> o;
     try {
       o = mapper
@@ -778,8 +778,9 @@ class RelWriterTest {
     } catch (JsonProcessingException e) {
       throw TestUtil.rethrow(e);
     }
-    RexNode e =
-        RelJson.readExpression(cluster, RelWriterTest::translateInput, o);
+    final RelJson relJson = RelJson.create()
+        .withInputTranslator(RelWriterTest::translateInput);
+    final RexNode e = relJson.toRex(cluster, o);
     assertThat(e.toString(), is(matcher));
   }
 
