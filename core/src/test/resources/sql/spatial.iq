@@ -236,7 +236,20 @@ LINESTRING (1 2, 3 4), null
 !ok
 
 # ST_LineFromWKB(wkb [, srid ]) Well Known Binary to LINESTRING
-# Not implemented
+SELECT ST_LineFromWKB(ST_AsWKB('LINESTRING (4 3, 6 5, 8 12)'));
+EXPR$0
+LINESTRING (4 3, 6 5, 8 12)
+!ok
+
+SELECT ST_LineFromWKB(ST_AsWKB('LINESTRING (5 5, 1 2, 3 4, 99 3)'));
+EXPR$0
+LINESTRING (5 5, 1 2, 3 4, 99 3)
+!ok
+
+SELECT ST_LineFromWKB(ST_AsWKB('POINT(2 3)'));
+EXPR$0
+null
+!ok
 
 # ST_MLineFromText(wkt [, srid ]) Well Known Text to MULTILINESTRING
 SELECT ST_MLineFromText('MULTILINESTRING((1 2, 3 4), (4 5, 6 7))');
