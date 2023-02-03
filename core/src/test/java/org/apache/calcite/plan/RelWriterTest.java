@@ -779,7 +779,7 @@ class RelWriterTest {
       throw TestUtil.rethrow(e);
     }
     RexNode e =
-        RelJson.readExpression(cluster, RelWriterTest::translateInput, o);
+        RelJson.create().withInputTranslator(RelWriterTest::translateInput).toRex(cluster, o);
     assertThat(e.toString(), is(matcher));
   }
 

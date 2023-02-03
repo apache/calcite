@@ -637,6 +637,20 @@ public class RelJson {
     return map;
   }
 
+  /**
+   * Translates a JSON expression into a RexNode,
+   * using a given {@link InputTranslator} to transform JSON objects that
+   * represent input references into RexNodes.
+   *
+   * @param cluster The optimization environment
+   * @param o JSON object
+   * @return the transformed RexNode
+   */
+  public @PolyNull RexNode toRex(RelOptCluster cluster, @PolyNull Object o) {
+    RelInput input = new RelInputForCluster(cluster);
+    return toRex(input, o);
+  }
+
   @SuppressWarnings({"rawtypes", "unchecked"})
   @PolyNull RexNode toRex(RelInput relInput, @PolyNull Object o) {
     final RelOptCluster cluster = relInput.getCluster();
@@ -857,7 +871,10 @@ public class RelJson {
    * @param translator Input translator
    * @param o JSON object
    * @return the transformed RexNode
+   *
+   * @deprecated Use {@link #toRex(RelOptCluster, Object)}
    */
+  @Deprecated // to be removed before 2.0
   public static RexNode readExpression(RelOptCluster cluster,
       InputTranslator translator, Map<String, Object> o) {
     RelInput relInput = new RelInputForCluster(cluster);
