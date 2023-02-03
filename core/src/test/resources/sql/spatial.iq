@@ -295,7 +295,20 @@ srid:4326;POINT (-71.064544 42.28787)
 !ok
 
 # ST_PointFromWKB(wkb [, srid ]) Well Known Binary to POINT
-# Not implemented
+SELECT ST_PointFromWKB(ST_AsWKB('POINT (1 1)'));
+EXPR$0
+POINT (1 1)
+!ok
+
+SELECT ST_PointFromWKB(ST_AsWKB('POINT (5 5)'));
+EXPR$0
+POINT (5 5)
+!ok
+
+SELECT ST_PointFromWKB(ST_AsWKB('LINESTRING (4 3, 6 5, 8 12)'));
+EXPR$0
+null
+!ok
 
 # ST_PolyFromText(wkt [, srid ]) Well Known Text to POLYGON
 SELECT ST_AsWKT(ST_PolyFromText('POLYGON Z((0 0 1,20 0 1,20 20 1,0 20 1,0 0 1))'));
