@@ -8378,6 +8378,7 @@ String NonReservedKeyWord() :
     |   <CONTAINS>
     |   <INSERT>
     |   <DAY>
+    |   <TRIM>
     )
     {
         return unquotedIdentifier();
