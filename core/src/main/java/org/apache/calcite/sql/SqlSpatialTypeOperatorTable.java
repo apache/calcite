@@ -21,7 +21,10 @@ import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.prepare.CalciteCatalogReader;
+import org.apache.calcite.runtime.AccumOperation;
+import org.apache.calcite.runtime.CollectOperation;
 import org.apache.calcite.runtime.SpatialTypeFunctions;
+import org.apache.calcite.runtime.UnionOperation;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.fun.SqlSpatialTypeFunctions;
@@ -59,13 +62,13 @@ public class SqlSpatialTypeOperatorTable implements SqlOperatorTable {
     // Register the spatial aggregate functions.
     schema.add(
         "ST_UNION", Objects.requireNonNull(
-        AggregateFunctionImpl.create(SpatialTypeFunctions.Union.class)));
+        AggregateFunctionImpl.create(UnionOperation.class)));
     schema.add(
         "ST_ACCUM", Objects.requireNonNull(
-        AggregateFunctionImpl.create(SpatialTypeFunctions.Accum.class)));
+        AggregateFunctionImpl.create(AccumOperation.class)));
     schema.add(
         "ST_COLLECT", Objects.requireNonNull(
-        AggregateFunctionImpl.create(SpatialTypeFunctions.Collect.class)));
+        AggregateFunctionImpl.create(CollectOperation.class)));
 
     // Create a catalog reader to retrieve the operators.
     CalciteCatalogReader catalogReader =

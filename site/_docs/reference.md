@@ -2222,6 +2222,7 @@ implements the OpenGIS Simple Features Implementation Specification for SQL,
 | o | ST_PointFromWKB(wkt [, srid ]) | Converts WKB → POINT
 | o | ST_PolyFromText(wkt [, srid ]) | Converts WKT → POLYGON
 | o | ST_PolyFromWKB(wkt [, srid ]) | Converts WKB → POLYGON
+| p | ST_ReducePrecision(geom, gridSize) | Reduces the precision of a *geom* to the provided *gridSize*
 | h | ST_ToMultiPoint(geom) | Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTIPOINT
 | h | ST_ToMultiLine(geom) | Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTILINESTRING
 | h | ST_ToMultiSegments(geom) | Converts *geom* (which may be a GEOMETRYCOLLECTION) into a set of distinct segments stored in a MULTILINESTRING
@@ -2354,11 +2355,13 @@ The following functions combine 2D geometries.
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
-| o | ST_Buffer(geom, distance [, quadSegs \| style ]) | Computes a buffer around *geom*
+| p | ST_Buffer(geom, distance [, quadSegs, endCapStyle ]) | Computes a buffer around *geom*
+| p | ST_Buffer(geom, distance [, bufferStyle ]) | Computes a buffer around *geom*
 | o | ST_ConvexHull(geom) | Computes the smallest convex polygon that contains all the points in *geom*
 | o | ST_Difference(geom1, geom2) | Computes the difference between two geometries
 | o | ST_SymDifference(geom1, geom2) | Computes the symmetric difference between two geometries
 | o | ST_Intersection(geom1, geom2) | Computes the intersection of *geom1* and *geom2*
+| p | ST_OffsetCurve(geom, distance, bufferStyle) | Computes an offset line for *linestring*
 | o | ST_Union(geom1, geom2) | Computes the union of *geom1* and *geom2*
 | o | ST_Union(geomCollection) | Computes the union of the geometries in *geomCollection*
 
@@ -2383,27 +2386,33 @@ Not implemented:
 
 The following functions modify 2D geometries.
 
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| p | ST_AddPoint(linestring, point [, index]) | Adds *point* to *linestring* at a given *index* (or at the end if *index* is not specified)
+| h | ST_Densify(geom, tolerance) | Densifies a *geom* by inserting extra vertices along the line segments
+| h | ST_FlipCoordinates(geom) | Flips the X and Y coordinates of the *geom*
+| h | ST_Holes(geom) | Returns the holes in the *geom* (which may be a GEOMETRYCOLLECTION)
+| h | ST_Normalize(geom) | Converts the *geom* to normal form
+| p | ST_RemoveRepeatedPoints(geom [, tolerance]) | Removes duplicated coordinates from the *geom*
+| h | ST_RemoveHoles(geom) | Removes the holes of the *geom*
+| p | ST_RemovePoint(linestring, index) | Remove *point* at given *index* in *linestring*
+| h | ST_Reverse(geom) | Reverses the order of the coordinates of the *geom*
+
 Not implemented:
 
-* ST_AddPoint(geom, point [, tolerance ]) Adds *point* to *geom* with a given *tolerance* (default 0)
 * ST_CollectionExtract(geom, dimension) Filters *geom*, returning a multi-geometry of those members with a given *dimension* (1 = point, 2 = line-string, 3 = polygon)
-* ST_Densify(geom, tolerance) Inserts extra vertices every *tolerance* along the line segments of *geom*
-* ST_FlipCoordinates(geom) Flips the X and Y coordinates of *geom*
-* ST_Holes(geom) Returns the holes in *geom* (which may be a GEOMETRYCOLLECTION)
-* ST_Normalize(geom) Converts *geom* to normal form
-* ST_RemoveDuplicatedCoordinates(geom) Removes duplicated coordinates from *geom*
-* ST_RemoveHoles(geom) Removes a *geom*'s holes
-* ST_RemovePoints(geom, poly) Removes all coordinates of *geom* located within *poly*; null if all coordinates are removed
-* ST_RemoveRepeatedPoints(geom, tolerance) Removes from *geom* all repeated points (or points within *tolerance* of another point)
-* ST_Reverse(geom) Reverses the vertex order of *geom*
 
 #### Geometry editing functions (3D)
 
 The following functions modify 3D geometries.
 
+
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| h | ST_AddZ(geom, zToAdd) | Adds *zToAdd* to the z-coordinate of *geom*
+
 Not implemented:
 
-* ST_AddZ(geom, zToAdd) Adds *zToAdd* to the z-coordinate of *geom*
 * ST_Interpolate3DLine(geom) Returns *geom* with an interpolation of z values, or null if it is not a line-string or MULTILINESTRING
 * ST_MultiplyZ(geom, zFactor) Returns *geom* with its z-values multiplied by *zFactor*
 * ST_Reverse3DLine(geom [, sortOrder ]) Potentially reverses *geom* according to the z-values of its first and last coordinates
@@ -2449,6 +2458,7 @@ The following functions process geometries.
 | o | ST_Simplify(geom, distance)  | Simplifies *geom* using the [Douglas-Peuker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) with a *distance* tolerance
 | o | ST_SimplifyPreserveTopology(geom, distance) | Simplifies *geom*, preserving its topology
 | o | ST_Snap(geom1, geom2, tolerance) | Snaps *geom1* and *geom2* together
+| p | ST_Split(geom, blade) | Splits *geom* by *blade*
 
 Not implemented:
 
@@ -2457,7 +2467,6 @@ Not implemented:
 * ST_MakeValid(geom [, preserveGeomDim [, preserveDuplicateCoord [, preserveCoordDim]]]) Makes *geom* valid
 * ST_RingSideBuffer(geom, distance, bufferCount [, endCapStyle [, doDifference]]) Computes a ring buffer on one side
 * ST_SideBuffer(geom, distance [, bufferStyle ]) Compute a single buffer on one side
-* ST_Split(geom1, geom2 [, tolerance]) Splits *geom1* by *geom2* using *tolerance* (default 1E-6) to determine where the point splits the line
 
 #### Geometry projection functions
 
@@ -2489,19 +2498,22 @@ Not implemented:
 
 #### Triangulation functions
 
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| h | ST_ConstrainedDelaunay(geom [, flag]) | Computes a constrained Delaunay triangulation based on *geom*
+| h | ST_Delaunay(geom [, flag]) | Computes a Delaunay triangulation based on points in *geom*
+
 Not implemented:
 
-* ST_ConstrainedDelaunay(geom [, flag [, quality ]]) Computes a constrained Delaunay triangulation based on *geom*
-* ST_Delaunay(geom [, flag [, quality ]]) Computes a Delaunay triangulation based on points
 * ST_Tessellate(polygon) Tessellates *polygon* (may be MULTIPOLYGON) with adaptive triangles
 
 #### Geometry aggregate functions
 
-Not implemented:
-
-* ST_Accum(geom) Accumulates *geom* into a GEOMETRYCOLLECTION (or MULTIPOINT, MULTILINESTRING or MULTIPOLYGON if possible)
-* ST_Collect(geom) Synonym for `ST_Accum`
-* ST_Union(geom) Computes the union of geometries
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| h | ST_Accum(geom) | Accumulates *geom* into an array
+| h | ST_Collect(geom) | Collects *geom* into a GeometryCollection
+| h | ST_Union(geom) | Computes the union of the geometries in *geom*
 
 ### JSON Functions
 
