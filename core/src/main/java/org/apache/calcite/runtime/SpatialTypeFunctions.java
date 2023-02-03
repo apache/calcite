@@ -1083,7 +1083,17 @@ public class SpatialTypeFunctions {
    * Geometries are listed in the same order.
    */
   public static boolean ST_OrderingEquals(Geometry geom1, Geometry geom2) {
-    return geom1.equals(geom2);
+    if (!geom1.equals(geom2)) {
+      return false;
+    }
+    Coordinate[] coordinates1 = geom1.getCoordinates();
+    Coordinate[] coordinates2 = geom2.getCoordinates();
+    for (int i = 0; i < coordinates1.length; i++) {
+      if (!coordinates1[i].equals(coordinates2[i])) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**

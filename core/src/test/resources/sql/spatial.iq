@@ -1001,7 +1001,7 @@ false
 # Not implemented
 
 # ST_NPoints(geom) Returns the number of points in *geom*
-# Not implemented
+# Alias: ST_NumPoints
 
 # ST_NumGeometries(geom) Returns the number of geometries in *geom* (1 if it is not a geometry-collection)
 
@@ -1398,7 +1398,20 @@ true
 !ok
 
 # ST_OrderingEquals(geom1, geom2) Returns whether *geom1* equals *geom2* and their coordinates and component Geometries are listed in the same order
-# Not implemented
+SELECT ST_OrderingEquals('LINESTRING(0 0 1, 0 0, 10 10 3)', 'LINESTRING(0 0 1, 0 0, 10 10 3)');
+EXPR$0
+true
+!ok
+
+SELECT ST_OrderingEquals('LINESTRING(0 0, 10 10)', 'LINESTRING(0 0, 5 5, 10 10)');
+EXPR$0
+false
+!ok
+
+SELECT ST_OrderingEquals('POLYGON ((0 0, 10 10, 10 5, 0 0))', 'POLYGON ((0 0, 10 5, 10 10, 0 0))');
+EXPR$0
+false
+!ok
 
 # ST_Overlaps(geom1, geom2) Returns whether *geom1* overlaps *geom2*
 
