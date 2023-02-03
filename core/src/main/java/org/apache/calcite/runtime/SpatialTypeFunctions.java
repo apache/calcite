@@ -1357,6 +1357,13 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Converts the {@code geom} to normal form.
+   */
+  public static Geometry ST_Normalize(Geometry geom) {
+    return geom.norm();
+  }
+
+  /**
    * Reverses the order of the coordinates of the {@code geom}.
    */
   public static Geometry ST_Reverse(Geometry geom) {

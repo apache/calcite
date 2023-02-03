@@ -1690,7 +1690,20 @@ POLYGON ((1 0, 3 2, 2 3, 1 2, 1 0))
 # Not implemented
 
 # ST_Normalize(geom) Converts *geom* to normal form
-# Not implemented
+SELECT ST_Normalize('POLYGON((2 4, 1 3, 2 1, 6 1, 6 3, 4 4, 2 4))');
+EXPR$0
+POLYGON ((1 3, 2 4, 4 4, 6 3, 6 1, 2 1, 1 3))
+!ok
+
+SELECT ST_Normalize('MULTIPOINT((2 2), (2 5), (10 3), (7 1), (5 1), (5 3))');
+EXPR$0
+MULTIPOINT ((2 2), (2 5), (5 1), (5 3), (7 1), (10 3))
+!ok
+
+SELECT ST_Normalize('LINESTRING(3 1, 6 1, 6 3, 3 3, 1 1)');
+EXPR$0
+LINESTRING (1 1, 3 3, 6 3, 6 1, 3 1)
+!ok
 
 # ST_RemoveDuplicatedCoordinates(geom) Removes duplicated coordinates from *geom*
 # Not implemented
