@@ -1356,6 +1356,13 @@ public class SpatialTypeFunctions {
     return transformer.transform(geom);
   }
 
+  /**
+   * Reverses the order of the coordinates of the {@code geom}.
+   */
+  public static Geometry ST_Reverse(Geometry geom) {
+    return geom.reverse();
+  }
+
   // Geometry measurement functions
 
   /**

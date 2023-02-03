@@ -2378,6 +2378,7 @@ The following functions modify 2D geometries.
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
 | h | ST_FlipCoordinates(geom) | Flips the X and Y coordinates of the *geom*
+| h | ST_Reverse(geom) | Reverses the order of the coordinates of the *geom*.
 
 Not implemented:
 
@@ -2390,7 +2391,6 @@ Not implemented:
 * ST_RemoveHoles(geom) Removes a *geom*'s holes
 * ST_RemovePoints(geom, poly) Removes all coordinates of *geom* located within *poly*; null if all coordinates are removed
 * ST_RemoveRepeatedPoints(geom, tolerance) Removes from *geom* all repeated points (or points within *tolerance* of another point)
-* ST_Reverse(geom) Reverses the vertex order of *geom*
 
 #### Geometry editing functions (3D)
 
