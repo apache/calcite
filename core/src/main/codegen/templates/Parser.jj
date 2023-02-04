@@ -7348,6 +7348,7 @@ SqlIdentifier ReservedFunctionName() :
     |   <STDDEV_SAMP>
     |   <SUM>
     |   <UPPER>
+    |   <TRIM>
     |   <TRUNCATE>
     |   <USER>
     |   <VAR_POP>
