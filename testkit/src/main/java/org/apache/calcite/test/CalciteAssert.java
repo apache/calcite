@@ -830,8 +830,6 @@ public class CalciteAssert {
       rootSchema.add("ST_UNION", AggregateFunctionImpl.create(Union.class));
       rootSchema.add("ST_ACCUM", AggregateFunctionImpl.create(Accum.class));
       rootSchema.add("ST_COLLECT", AggregateFunctionImpl.create(Collect.class));
-      ModelHandler.addFunctions(rootSchema, "roundGeom", emptyPath,
-          TestUtil.class.getName(), "roundGeom", true);
       final SchemaPlus s =
           rootSchema.add(schema.schemaName, new AbstractSchema());
       ModelHandler.addFunctions(s, "countries", emptyPath,
