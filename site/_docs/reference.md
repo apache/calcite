@@ -2378,20 +2378,19 @@ The following functions modify 2D geometries.
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
+| p | ST_AddPoint(linestring, point [, index]) | Adds *point* to *linestring* at a given *index* (or at the end if *index* is not specified)
 | h | ST_Densify(geom, tolerance) | Densifies a *geom* by inserting extra vertices along the line segments
 | h | ST_FlipCoordinates(geom) | Flips the X and Y coordinates of the *geom*
 | h | ST_Holes(geom) | Returns the holes in the *geom* (which may be a GEOMETRYCOLLECTION)
 | h | ST_Normalize(geom) | Converts the *geom* to normal form
 | h | ST_RemoveHoles(geom) | Removes the holes of the *geom*
+| p | ST_RemovePoint(linestring, index) | Remove *point* at given *index* in *linestring*
 | h | ST_Reverse(geom) | Reverses the order of the coordinates of the *geom*
 
 Not implemented:
 
-* ST_AddPoint(geom, point [, tolerance ]) Adds *point* to *geom* with a given *tolerance* (default 0)
 * ST_CollectionExtract(geom, dimension) Filters *geom*, returning a multi-geometry of those members with a given *dimension* (1 = point, 2 = line-string, 3 = polygon)
-* (geom) Inserts extra vertices every *tolerance* along the line segments of *geom*
 * ST_RemoveDuplicatedCoordinates(geom) Removes duplicated coordinates from *geom*
-* ST_RemovePoints(geom, poly) Removes all coordinates of *geom* located within *poly*; null if all coordinates are removed
 * ST_RemoveRepeatedPoints(geom, tolerance) Removes from *geom* all repeated points (or points within *tolerance* of another point)
 
 #### Geometry editing functions (3D)

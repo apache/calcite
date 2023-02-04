@@ -50,6 +50,7 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.geom.util.AffineTransformation;
+import org.locationtech.jts.geom.util.GeometryEditor;
 import org.locationtech.jts.geom.util.GeometryFixer;
 import org.locationtech.jts.linearref.LengthIndexedLine;
 import org.locationtech.jts.operation.distance.DistanceOp;
@@ -1360,6 +1361,34 @@ public class SpatialTypeFunctions {
   // Geometry editing functions
 
   /**
+   * Adds {@code point} to {@code linestring} at the end.
+   */
+  public static Geometry ST_AddPoint(Geometry linestring, Geometry point) {
+    if (!(linestring instanceof LineString)) {
+      throw new RuntimeException("Only supports LINESTRING.");
+    }
+    if (!(point instanceof Point)) {
+      throw new RuntimeException("Only supports POINT.");
+    }
+    LineString lineString = (LineString) linestring;
+    int numPoints = lineString.getNumPoints();
+    return new GeometryEditor().edit(linestring, new AddPointOperation(point, numPoints));
+  }
+
+  /**
+   * Adds {@code point} to {@code linestring} at a given {@code index}.
+   */
+  public static Geometry ST_AddPoint(Geometry linestring, Geometry point, int index) {
+    if (!(linestring instanceof LineString)) {
+      throw new RuntimeException("Only supports LINESTRING.");
+    }
+    if (!(point instanceof Point)) {
+      throw new RuntimeException("Only supports POINT.");
+    }
+    return new GeometryEditor().edit(linestring, new AddPointOperation(point, index));
+  }
+
+  /**
    * Densifies a {@code geom} by inserting extra vertices along the line segments.
    */
   public static Geometry ST_Densify(Geometry geom, BigDecimal tolerance) {
@@ -1417,6 +1446,16 @@ public class SpatialTypeFunctions {
   public static Geometry ST_RemoveHoles(Geometry geom) {
     RemoveHoleTransformer transformer = new RemoveHoleTransformer();
     return transformer.transform(geom);
+  }
+
+  /**
+   * Remove {@code point} at given {@code index} in {@code linestring}.
+   */
+  public static Geometry ST_RemovePoint(Geometry linestring, int index) {
+    if (!(linestring instanceof LineString)) {
+      throw new RuntimeException("Only supports LINESTRING.");
+    }
+    return new GeometryEditor().edit(linestring, new RemovePointOperation(index));
   }
 
   /**
