@@ -2214,6 +2214,7 @@ implements the OpenGIS Simple Features Implementation Specification for SQL,
 | o | ST_PointFromWKB(wkt [, srid ]) | Converts WKB → POINT
 | o | ST_PolyFromText(wkt [, srid ]) | Converts WKT → POLYGON
 | o | ST_PolyFromWKB(wkt [, srid ]) | Converts WKB → POLYGON
+| p | ST_ReducePrecision(geom, gridSize) | Reduces the precision of a *geom* to the provided *gridSize*
 | h | ST_ToMultiPoint(geom) | Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTIPOINT
 | h | ST_ToMultiLine(geom) | Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTILINESTRING
 | h | ST_ToMultiSegments(geom) | Converts *geom* (which may be a GEOMETRYCOLLECTION) into a set of distinct segments stored in a MULTILINESTRING
@@ -2377,6 +2378,7 @@ The following functions modify 2D geometries.
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
+| h | ST_Densify(geom, tolerance) | Densifies a *geom* by inserting extra vertices along the line segments
 | h | ST_FlipCoordinates(geom) | Flips the X and Y coordinates of the *geom*
 | h | ST_Holes(geom) | Returns the holes in the *geom* (which may be a GEOMETRYCOLLECTION)
 | h | ST_Normalize(geom) | Converts the *geom* to normal form
@@ -2387,8 +2389,7 @@ Not implemented:
 
 * ST_AddPoint(geom, point [, tolerance ]) Adds *point* to *geom* with a given *tolerance* (default 0)
 * ST_CollectionExtract(geom, dimension) Filters *geom*, returning a multi-geometry of those members with a given *dimension* (1 = point, 2 = line-string, 3 = polygon)
-* ST_Densify(geom, tolerance) Inserts extra vertices every *tolerance* along the line segments of *geom*
-* (geom)
+* (geom) Inserts extra vertices every *tolerance* along the line segments of *geom*
 * ST_RemoveDuplicatedCoordinates(geom) Removes duplicated coordinates from *geom*
 * ST_RemovePoints(geom, poly) Removes all coordinates of *geom* located within *poly*; null if all coordinates are removed
 * ST_RemoveRepeatedPoints(geom, tolerance) Removes from *geom* all repeated points (or points within *tolerance* of another point)

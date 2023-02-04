@@ -30,6 +30,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.locationtech.jts.algorithm.InteriorPoint;
 import org.locationtech.jts.algorithm.MinimumBoundingCircle;
 import org.locationtech.jts.algorithm.MinimumDiameter;
+import org.locationtech.jts.densify.Densifier;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateSequence;
 import org.locationtech.jts.geom.Envelope;
@@ -291,6 +292,16 @@ public class SpatialTypeFunctions {
   public static @Nullable Geometry ST_PolyFromWKB(ByteString wkb, int srid) {
     Geometry geometry = ST_GeomFromWKB(wkb, srid);
     return geometry instanceof Polygon ? geometry : null;
+  }
+
+  /**
+   * Reduces the precision of a {@code geom} to the provided {@code gridSize}.
+   */
+  public static Geometry ST_ReducePrecision(Geometry geom, BigDecimal gridSize) {
+    PrecisionModel precisionModel = new PrecisionModel(1 / gridSize.doubleValue());
+    GeometryPrecisionReducer reducer = new GeometryPrecisionReducer(precisionModel);
+    reducer.setPointwise(true);
+    return reducer.reduce(geom);
   }
 
   /**
@@ -1347,6 +1358,13 @@ public class SpatialTypeFunctions {
   }
 
   // Geometry editing functions
+
+  /**
+   * Densifies a {@code geom} by inserting extra vertices along the line segments.
+   */
+  public static Geometry ST_Densify(Geometry geom, BigDecimal tolerance) {
+    return Densifier.densify(geom, tolerance.doubleValue());
+  }
 
   /**
    * Flips the X and Y coordinates of the {@code geom}.
