@@ -1687,7 +1687,25 @@ POLYGON ((1 0, 3 2, 2 3, 1 2, 1 0))
 !ok
 
 # ST_Holes(geom) Returns the holes in *geom* (which may be a geometry-collection)
-# Not implemented
+SELECT ST_Holes('POLYGON((0 0, 10 0, 10 5, 0 5, 0 0))');
+EXPR$0
+GEOMETRYCOLLECTION EMPTY
+!ok
+
+SELECT ST_Holes('POLYGON((0 0, 10 0, 10 5, 0 5, 0 0), (1 1, 2 1, 2 4, 1 4, 1 1))');
+EXPR$0
+GEOMETRYCOLLECTION (LINEARRING (1 1, 2 1, 2 4, 1 4, 1 1))
+!ok
+
+SELECT ST_Holes('GEOMETRYCOLLECTION(POLYGON((0 0, 10 0, 10 5, 0 5, 0 0), (1 1, 2 1, 2 4, 1 4, 1 1)), POLYGON((11 6, 14 6, 14 9, 11 9, 11 6), (12 7, 14 7, 14 8, 12 8, 12 7)))');
+EXPR$0
+GEOMETRYCOLLECTION (LINEARRING (1 1, 2 1, 2 4, 1 4, 1 1), LINEARRING (12 7, 14 7, 14 8, 12 8, 12 7))
+!ok
+
+SELECT ST_Holes('LINESTRING(5 5, 1 2, 3 4, 9 3)');
+EXPR$0
+GEOMETRYCOLLECTION EMPTY
+!ok
 
 # ST_Normalize(geom) Converts *geom* to normal form
 SELECT ST_Normalize('POLYGON((2 4, 1 3, 2 1, 6 1, 6 3, 4 4, 2 4))');

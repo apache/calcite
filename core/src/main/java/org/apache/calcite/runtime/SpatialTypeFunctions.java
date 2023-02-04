@@ -1357,6 +1357,36 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Returns the holes in the {@code geom} (which may be a GEOMETRYCOLLECTION).
+   */
+  public static Geometry ST_Holes(Geometry geom) {
+    List<Geometry> acc = new ArrayList<>();
+    extractGeometryHoles(geom, acc);
+    Geometry[] array = acc.toArray(new Geometry[acc.size()]);
+    return GEOMETRY_FACTORY.createGeometryCollection(array);
+  }
+
+  private static void extractGeometryHoles(Geometry geom, List<Geometry> acc) {
+    if (geom instanceof GeometryCollection) {
+      GeometryCollection geometryCollection = (GeometryCollection) geom;
+      for (int i = 0; i < geometryCollection.getNumGeometries(); i++) {
+        Geometry child = geometryCollection.getGeometryN(i);
+        extractGeometryHoles(child, acc);
+      }
+    } else if (geom instanceof Polygon) {
+      Polygon polygon = (Polygon) geom;
+      extractPolygonHoles(polygon, acc);
+    }
+  }
+
+  private static void extractPolygonHoles(Polygon polygon, List<Geometry> acc) {
+    int size = polygon.getNumInteriorRing();
+    for (int i = 0; i < size; i++) {
+      acc.add(polygon.getInteriorRingN(i));
+    }
+  }
+
+  /**
    * Converts the {@code geom} to normal form.
    */
   public static Geometry ST_Normalize(Geometry geom) {
