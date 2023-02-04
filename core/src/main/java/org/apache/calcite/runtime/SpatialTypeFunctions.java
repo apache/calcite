@@ -1394,6 +1394,14 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Removes the holes of the {@code geom}.
+   */
+  public static Geometry ST_RemoveHoles(Geometry geom) {
+    RemoveHoleTransformer transformer = new RemoveHoleTransformer();
+    return transformer.transform(geom);
+  }
+
+  /**
    * Reverses the order of the coordinates of the {@code geom}.
    */
   public static Geometry ST_Reverse(Geometry geom) {
