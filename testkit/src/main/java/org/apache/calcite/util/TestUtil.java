@@ -248,28 +248,6 @@ public abstract class TestUtil {
     return s;
   }
 
-  /** Increments the last digit of a decimal number in a StringBuilder, and if
-   * that digit was a '9', carries on going. */
-  private static void carry(StringBuilder b) {
-    for (int i = b.length() - 1; i >= 0; i--) {
-      char c = b.charAt(i);
-      switch (c) {
-      case '.':
-        continue; // continue to the left of decimal point
-      case '0': case '1': case '2': case '3': case '4':
-      case '5': case '6': case '7': case '8':
-        b.setCharAt(i, (char) (c + 1)); // carry, and we're done
-        return;
-      case '9':
-        b.setCharAt(i, '0'); // '9' becomes '0', and continue carrying
-        continue;
-      default:
-        b.insert(i + 1, '1');
-        return;
-      }
-    }
-  }
-
   /**
    * Returns the Java major version: 7 for JDK 1.7, 8 for JDK 8, 10 for
    * JDK 10, etc. depending on current system property {@code java.version}.
