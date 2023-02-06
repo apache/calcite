@@ -4479,7 +4479,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       @Override public @Nullable SqlNode visit(SqlCall call) {
         call.getOperandList()
             .stream()
-            .filter(node -> node != null)
+            .filter(Objects::nonNull)
             .forEach(node -> node.accept(this));
         if (call.getKind() == SqlKind.SELECT) {
           SqlSelect select = (SqlSelect) call;
