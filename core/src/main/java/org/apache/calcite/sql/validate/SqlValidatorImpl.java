@@ -4217,7 +4217,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throw newValidationError(qualifyNode, RESOURCE.condMustBeBoolean("QUALIFY"));
     }
 
-    if (!qualifyNode.accept(WindowFunctionDetector.INSTANCE)) {
+    boolean qualifyContainsWindowFunction = qualifyNode.accept(WindowFunctionDetector.INSTANCE);
+    if (!qualifyContainsWindowFunction) {
       throw newValidationError(qualifyNode,
           RESOURCE.qualifyExpressionMustContainWindowFunction(qualifyNode.toString()));
     }
@@ -4240,7 +4241,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return call
           .getOperandList()
           .stream()
-          .filter(operand -> operand != null)
+          .filter(Objects::nonNull)
           .anyMatch(operand -> operand.accept(this));
     }
 
@@ -4248,7 +4249,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return nodeList
           .getList()
           .stream()
-          .filter(node -> node != null)
+          .filter(Objects::nonNull)
           .anyMatch(node -> node.accept(this));
     }
 
