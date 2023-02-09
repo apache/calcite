@@ -976,8 +976,14 @@ public class SqlDialect {
   protected static void unparseFetchUsingLimit(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     Preconditions.checkArgument(fetch != null || offset != null);
-    unparseLimit(writer, fetch);
-    unparseOffset(writer, offset);
+    if (writer.getDialect().getDatabaseProduct() == DatabaseProduct.PRESTO){
+      unparseOffset(writer, offset);
+      unparseLimit(writer, fetch);
+    }else {
+      unparseLimit(writer, fetch);
+      unparseOffset(writer, offset);
+    }
+  }
   }
 
   protected static void unparseLimit(SqlWriter writer, @Nullable SqlNode fetch) {
