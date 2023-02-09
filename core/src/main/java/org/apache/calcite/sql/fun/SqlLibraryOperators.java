@@ -98,7 +98,7 @@ public abstract class SqlLibraryOperators {
           .withFunctionType(SqlFunctionCategory.TIMEDATE);
 
   /** THE "DATE_DIFF(date, date2, timeUnit)" function
-   * (BigQuery) returns the number of timeUnit in (date - date2) */
+   * (BigQuery) returns the number of timeUnit in (date - date2). */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE_DIFF =
       new SqlTimestampDiffFunction("DATE_DIFF",
