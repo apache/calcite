@@ -193,6 +193,15 @@ public class SqlUpdate extends SqlCall {
     writer.endList(frame);
   }
 
+  private SqlIdentifier getFromAlias() {
+    if (sourceSelect != null && sourceSelect.from != null) {
+      if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS) {
+        return (SqlIdentifier) ((SqlBasicCall) sourceSelect.from).operands[1];
+      }
+    }
+    return null;
+  }
+
   private SqlJoin getJoinFromSourceSelect() {
     SqlJoin join = null;
     if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS
@@ -213,7 +222,7 @@ public class SqlUpdate extends SqlCall {
       setTargetAndSources((SqlIdentifier) node, sources);
       break;
     case AS:
-      setTargetAndsources((SqlBasicCall) node, sources);
+      setTargetAndSources((SqlBasicCall) node, sources);
       break;
     case WITH:
       setTargetAndSources((SqlWith) node, sources);
@@ -232,7 +241,7 @@ public class SqlUpdate extends SqlCall {
     }
   }
 
-  private void setTargetAndsources(SqlBasicCall node, List<SqlNode> sources) {
+  private void setTargetAndSources(SqlBasicCall node, List<SqlNode> sources) {
     if (isTargetTable(node)) {
       setTargetTable(node);
     } else {
@@ -277,6 +286,14 @@ public class SqlUpdate extends SqlCall {
       source.unparse(writer, opLeft, opRight);
       if (sources.size() - 1 != index) {
         writer.keyword(",");
+      }
+    }
+
+    if (sources.size() == 1) {
+      SqlIdentifier fromAlias = getFromAlias();
+      if (fromAlias != null) {
+        writer.keyword("AS");
+        fromAlias.unparse(writer, opLeft, opRight);
       }
     }
   }
