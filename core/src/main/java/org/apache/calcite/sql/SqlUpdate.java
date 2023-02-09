@@ -16,17 +16,22 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import static org.apache.calcite.rel.rel2sql.SqlImplementor.POS;
 
 /**
  * A <code>SqlUpdate</code> is a node of a parse tree which represents an UPDATE
@@ -110,6 +115,10 @@ public class SqlUpdate extends SqlCall {
     return targetTable;
   }
 
+  public void setTargetTable(SqlNode targetTable) {
+    this.targetTable = targetTable;
+  }
+
   /** Returns the alias for the target table of this UPDATE. */
   @Pure
   public @Nullable SqlIdentifier getAlias() {
@@ -160,30 +169,128 @@ public class SqlUpdate extends SqlCall {
         writer.startList(SqlWriter.FrameTypeEnum.SELECT, "UPDATE", "");
     final int opLeft = getOperator().getLeftPrec();
     final int opRight = getOperator().getRightPrec();
+
+    List<SqlNode> sources = new ArrayList<>();
+
+    if (sourceSelect != null && sourceSelect.from != null) {
+      SqlJoin join = null;
+      if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS
+      && ((SqlBasicCall)sourceSelect.from).operands[0] instanceof SqlJoin) {
+        join = (SqlJoin) ((SqlBasicCall)sourceSelect.from).operands[0];
+      } else if (sourceSelect.from instanceof SqlJoin) {
+        join = (SqlJoin) sourceSelect.from;
+      }
+      setTargetAndSources(join, sources);
+    }
+
     targetTable.unparse(writer, opLeft, opRight);
+
     SqlIdentifier alias = this.alias;
     if (alias != null) {
       writer.keyword("AS");
       alias.unparse(writer, opLeft, opRight);
     }
+
+    unparseSet(writer, opLeft, opRight);
+    if (!sources.isEmpty()) {
+      unparseUpdateSources(sources, writer, opLeft, opRight);
+    }
+    unparseUpdateCondition(writer, opLeft, opRight);
+
+    writer.endList(frame);
+  }
+
+  private boolean isFromInstanceOfJoin() {
+    if (sourceSelect != null && sourceSelect.from != null) {
+      if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS) {
+        return ((SqlBasicCall) sourceSelect.from).operands[0] instanceof SqlJoin;
+      }
+      return sourceSelect.from instanceof SqlJoin;
+    }
+    return false;
+  }
+
+  private void setTargetAndSources(SqlNode node, List<SqlNode> sources) {
+    switch (node.getKind()) {
+    case JOIN:
+      setTargetAndSources((SqlJoin) node, sources);
+      break;
+    case IDENTIFIER:
+      setTargetAndSources((SqlIdentifier) node, sources);
+      break;
+    case AS:
+      setTargetAndsources((SqlBasicCall) node, sources);
+      break;
+    case WITH:
+      setTargetAndSources((SqlWith) node, sources);
+      break;
+    }
+  }
+
+  private void setTargetAndSources(SqlJoin node, List<SqlNode> sources) {
+    setTargetAndSources(node.right, sources);
+    setTargetAndSources(node.left, sources);
+  }
+
+  private void setTargetAndSources(SqlIdentifier node, List<SqlNode> sources) {
+    if (!isTargetTable(node)) {
+      sources.add(node);
+    }
+  }
+
+  private void setTargetAndsources(SqlBasicCall node, List<SqlNode> sources) {
+    if (isTargetTable(node)) {
+      setTargetTable(node);
+    } else {
+      sources.add(node);
+    }
+  }
+
+  private boolean isTargetTable(SqlNode node) {
+    if (node.equalsDeep(targetTable, Litmus.IGNORE)) {
+      return true;
+    } else if (node instanceof SqlBasicCall) {
+      return ((SqlBasicCall) node).operands[0].equalsDeep(targetTable, Litmus.IGNORE);
+    }
+    return targetTable instanceof SqlBasicCall && targetTable.getKind() == SqlKind.AS
+        && ((SqlBasicCall) targetTable).operands[0].equalsDeep(node, Litmus.IGNORE);
+  }
+
+  private void setTargetAndSources(SqlWith node, List<SqlNode> sources) {
+    sources.add(node);
+  }
+
+  private void unparseSet(SqlWriter writer, int opLeft, int opRight) {
     final SqlWriter.Frame setFrame =
         writer.startList(SqlWriter.FrameTypeEnum.UPDATE_SET_LIST, "SET", "");
     for (Pair<SqlNode, SqlNode> pair
         : Pair.zip(getTargetColumnList(), getSourceExpressionList())) {
+      SqlNode[] setOperands = new SqlNode[]{pair.left, pair.right};
+      SqlBasicCall setCall = new SqlBasicCall(SqlStdOperatorTable.EQUALS, setOperands, POS);
       writer.sep(",");
-      SqlIdentifier id = (SqlIdentifier) pair.left;
-      id.unparse(writer, opLeft, opRight);
-      writer.keyword("=");
-      SqlNode sourceExp = pair.right;
-      sourceExp.unparse(writer, opLeft, opRight);
+      setCall.unparse(writer, opLeft, opRight);
     }
     writer.endList(setFrame);
+  }
+
+  private void unparseUpdateSources(
+      List<SqlNode> sources, SqlWriter writer, int opLeft, int opRight) {
+    writer.keyword("FROM");
+    for (int index = 0; index < sources.size(); index++) {
+      SqlNode source = sources.get(index);
+      source.unparse(writer, opLeft, opRight);
+      if (sources.size() - 1 != index) {
+        writer.keyword(",");
+      }
+    }
+  }
+
+  private void unparseUpdateCondition(SqlWriter writer, int opLeft, int opRight) {
     SqlNode condition = this.condition;
     if (condition != null) {
       writer.sep("WHERE");
       condition.unparse(writer, opLeft, opRight);
     }
-    writer.endList(frame);
   }
 
   @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
