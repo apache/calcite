@@ -11264,4 +11264,44 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
+
+  @Test public void testCoalesceFunctionWithIntegerAndStringArgument() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode formatIntegerCastRexNode =
+        builder.call(SqlLibraryOperators.FORMAT,
+            builder.literal("'%11d'"), builder.scan("EMP").field(0));
+    final RexNode formatIntegerRexNode =
+        builder.call(SqlStdOperatorTable.COALESCE,
+            formatIntegerCastRexNode, builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatIntegerRexNode, "Name"))
+        .build();
+
+    final String expectedSparkQuery = "SELECT "
+        + "COALESCE(STRING(EMPNO), ENAME) Name"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testCoalesceFunctionWithDecimalAndStringArgument() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode formatIntegerCastRexNode =
+        builder.call(SqlLibraryOperators.FORMAT,
+            builder.literal("'%10.4f'"), builder.scan("EMP").field(5));
+    final RexNode formatIntegerRexNode =
+        builder.call(SqlStdOperatorTable.COALESCE,
+            formatIntegerCastRexNode, builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatIntegerRexNode, "Name"))
+        .build();
+
+    final String expectedSparkQuery = "SELECT "
+        + "COALESCE(STRING(SAL), ENAME) Name"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
 }

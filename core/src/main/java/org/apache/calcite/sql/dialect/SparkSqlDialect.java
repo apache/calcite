@@ -59,6 +59,7 @@ import org.apache.calcite.util.interval.SparkDateTimestampInterval;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -981,5 +982,14 @@ public class SparkSqlDialect extends SqlDialect {
           POST_MERIDIAN_INDICATOR.value);
     }
     return dateString;
+  }
+
+  @Override protected void unparseFormat(
+      final SqlWriter writer,
+      final SqlCall call, final int leftPrec, final int rightPrec) {
+    final SqlWriter.Frame formatFrame = writer.startFunCall("STRING");
+    List<SqlNode> operands = call.getOperandList();
+    operands.get(1).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(formatFrame);
   }
 }
