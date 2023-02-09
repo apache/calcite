@@ -2347,11 +2347,13 @@ The following functions combine 2D geometries.
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
-| o | ST_Buffer(geom, distance [, quadSegs \| style ]) | Computes a buffer around *geom*
+| p | ST_Buffer(geom, distance [, quadSegs, endCapStyle ]) | Computes a buffer around *geom*
+| p | ST_Buffer(geom, distance [, bufferStyle ]) | Computes a buffer around *geom*
 | o | ST_ConvexHull(geom) | Computes the smallest convex polygon that contains all the points in *geom*
 | o | ST_Difference(geom1, geom2) | Computes the difference between two geometries
 | o | ST_SymDifference(geom1, geom2) | Computes the symmetric difference between two geometries
 | o | ST_Intersection(geom1, geom2) | Computes the intersection of *geom1* and *geom2*
+| p | ST_OffsetCurve(geom, distance, bufferStyle) | Computes an offset line for *linestring*
 | o | ST_Union(geom1, geom2) | Computes the union of *geom1* and *geom2*
 | o | ST_Union(geomCollection) | Computes the union of the geometries in *geomCollection*
 

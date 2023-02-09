@@ -53,6 +53,9 @@ import org.locationtech.jts.geom.util.AffineTransformation;
 import org.locationtech.jts.geom.util.GeometryEditor;
 import org.locationtech.jts.geom.util.GeometryFixer;
 import org.locationtech.jts.linearref.LengthIndexedLine;
+import org.locationtech.jts.operation.buffer.BufferOp;
+import org.locationtech.jts.operation.buffer.BufferParameters;
+import org.locationtech.jts.operation.buffer.OffsetCurve;
 import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.jts.operation.linemerge.LineMerger;
 import org.locationtech.jts.operation.overlay.snap.GeometrySnapper;
@@ -925,7 +928,6 @@ public class SpatialTypeFunctions {
     } else {
       return Double.NaN;
     }
-
   }
 
   /**
@@ -1143,6 +1145,17 @@ public class SpatialTypeFunctions {
   /**
    * Computes a buffer around {@code geom}.
    */
+  public static Geometry ST_Buffer(Geometry geom, double distance, String bufferStyle) {
+    BufferStyle style = new BufferStyle(bufferStyle);
+    BufferParameters params = style.asBufferParameters();
+    double sidedDistance = style.asSidedDistance(distance);
+    Geometry result = new BufferOp(geom, params).getResultGeometry(sidedDistance);
+    return result;
+  }
+
+  /**
+   * Computes a buffer around {@code geom}.
+   */
   public static Geometry ST_Buffer(Geometry geom, double distance) {
     return geom.buffer(distance);
   }
@@ -1190,6 +1203,20 @@ public class SpatialTypeFunctions {
   }
 
   /**
+   * Computes an offset line for {@code linestring}.
+   */
+  public static Geometry ST_OffsetCurve(Geometry linestring, double distance, String bufferStyle) {
+    if (!(linestring instanceof LineString)) {
+      throw new IllegalArgumentException("ST_OffsetCurve only accepts LineString");
+    }
+    BufferStyle style = new BufferStyle(bufferStyle);
+    BufferParameters params = style.asBufferParameters();
+    double sidedDistance = style.asSidedDistance(distance);
+    Coordinate[] coordinates = OffsetCurve.rawOffset((LineString) linestring, sidedDistance, params);
+    return GEOMETRY_FACTORY.createLineString(coordinates);
+  }
+
+  /**
    * Returns the DE-9IM intersection matrix for geom1 and geom2.
    */
   public static String ST_Relate(Geometry geom1, Geometry geom2) {
@@ -1213,7 +1240,8 @@ public class SpatialTypeFunctions {
   /**
    * Computes the union of the geometries in {@code geomCollection}.
    */
-  @SemiStrict public static Geometry ST_UnaryUnion(Geometry geomCollection) {
+  @SemiStrict
+  public static Geometry ST_UnaryUnion(Geometry geomCollection) {
     return geomCollection.union();
   }
 
@@ -1552,8 +1580,8 @@ public class SpatialTypeFunctions {
         LineSegment lineSegment = new LineSegment(c1, c2);
         coordinates.add(
             lineSegment.pointAlongOffset(
-            segmentLengthFraction.doubleValue(),
-            offsetDistance.doubleValue()));
+                segmentLengthFraction.doubleValue(),
+                offsetDistance.doubleValue()));
       }
     }
     Coordinate[] coordinateArray = coordinates.toArray(new Coordinate[0]);
@@ -1581,7 +1609,7 @@ public class SpatialTypeFunctions {
     if (c1 == null || c2 == null) {
       return null;
     }
-    return GEOMETRY_FACTORY.createLineString(new Coordinate[] {c1, c2});
+    return GEOMETRY_FACTORY.createLineString(new Coordinate[]{c1, c2});
   }
 
   /**
