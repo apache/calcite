@@ -33,7 +33,6 @@ import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -364,12 +363,6 @@ public class RelSubset extends AbstractRelNode {
       planner.getListener().relEquivalenceFound(event);
     }
 
-    // If this isn't the first rel in the set, it must have compatible
-    // row type.
-    if (set.rel != null) {
-      RelOptUtil.equal("rowtype of new rel", rel.getRowType(),
-          "rowtype of set", getRowType(), Litmus.THROW);
-    }
     set.addInternal(rel);
     if (false) {
       Set<CorrelationId> variablesSet = RelOptUtil.getVariablesSet(rel);
