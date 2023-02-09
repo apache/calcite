@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
@@ -30,8 +29,6 @@ import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.apache.calcite.rel.rel2sql.SqlImplementor.POS;
 
 /**
  * A <code>SqlUpdate</code> is a node of a parse tree which represents an UPDATE
@@ -173,14 +170,10 @@ public class SqlUpdate extends SqlCall {
     List<SqlNode> sources = new ArrayList<>();
 
     if (sourceSelect != null && sourceSelect.from != null) {
-      SqlJoin join = null;
-      if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS
-      && ((SqlBasicCall)sourceSelect.from).operands[0] instanceof SqlJoin) {
-        join = (SqlJoin) ((SqlBasicCall)sourceSelect.from).operands[0];
-      } else if (sourceSelect.from instanceof SqlJoin) {
-        join = (SqlJoin) sourceSelect.from;
+      SqlJoin join = getJoinFromSourceSelect();
+      if (join != null) {
+        setTargetAndSources(join, sources);
       }
-      setTargetAndSources(join, sources);
     }
 
     targetTable.unparse(writer, opLeft, opRight);
@@ -200,14 +193,15 @@ public class SqlUpdate extends SqlCall {
     writer.endList(frame);
   }
 
-  private boolean isFromInstanceOfJoin() {
-    if (sourceSelect != null && sourceSelect.from != null) {
-      if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS) {
-        return ((SqlBasicCall) sourceSelect.from).operands[0] instanceof SqlJoin;
-      }
-      return sourceSelect.from instanceof SqlJoin;
+  private SqlJoin getJoinFromSourceSelect() {
+    SqlJoin join = null;
+    if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS
+    && ((SqlBasicCall) sourceSelect.from).operands[0] instanceof SqlJoin) {
+      join = (SqlJoin) ((SqlBasicCall)sourceSelect.from).operands[0];
+    } else if (sourceSelect.from instanceof SqlJoin) {
+      join = (SqlJoin) sourceSelect.from;
     }
-    return false;
+    return join;
   }
 
   private void setTargetAndSources(SqlNode node, List<SqlNode> sources) {
@@ -265,10 +259,12 @@ public class SqlUpdate extends SqlCall {
         writer.startList(SqlWriter.FrameTypeEnum.UPDATE_SET_LIST, "SET", "");
     for (Pair<SqlNode, SqlNode> pair
         : Pair.zip(getTargetColumnList(), getSourceExpressionList())) {
-      SqlNode[] setOperands = new SqlNode[]{pair.left, pair.right};
-      SqlBasicCall setCall = new SqlBasicCall(SqlStdOperatorTable.EQUALS, setOperands, POS);
       writer.sep(",");
-      setCall.unparse(writer, opLeft, opRight);
+      SqlIdentifier id = (SqlIdentifier) pair.left;
+      id.unparse(writer, opLeft, opRight);
+      writer.keyword("=");
+      SqlNode sourceExp = pair.right;
+      sourceExp.unparse(writer, opLeft, opRight);
     }
     writer.endList(setFrame);
   }
