@@ -196,8 +196,8 @@ public class SqlUpdate extends SqlCall {
   private SqlJoin getJoinFromSourceSelect() {
     SqlJoin join = null;
     if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS
-    && ((SqlBasicCall) sourceSelect.from).operands[0] instanceof SqlJoin) {
-      join = (SqlJoin) ((SqlBasicCall)sourceSelect.from).operands[0];
+        && ((SqlBasicCall) sourceSelect.from).operands[0] instanceof SqlJoin) {
+      join = (SqlJoin) ((SqlBasicCall) sourceSelect.from).operands[0];
     } else if (sourceSelect.from instanceof SqlJoin) {
       join = (SqlJoin) sourceSelect.from;
     }
