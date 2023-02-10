@@ -2398,9 +2398,13 @@ Not implemented:
 
 The following functions modify 3D geometries.
 
+
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| h | ST_AddZ(geom, zToAdd) | Adds *zToAdd* to the z-coordinate of *geom*
+
 Not implemented:
 
-* ST_AddZ(geom, zToAdd) Adds *zToAdd* to the z-coordinate of *geom*
 * ST_Interpolate3DLine(geom) Returns *geom* with an interpolation of z values, or null if it is not a line-string or MULTILINESTRING
 * ST_MultiplyZ(geom, zFactor) Returns *geom* with its z-values multiplied by *zFactor*
 * ST_Reverse3DLine(geom [, sortOrder ]) Potentially reverses *geom* according to the z-values of its first and last coordinates

@@ -713,7 +713,7 @@ public class SpatialTypeFunctions {
     if (!(geom instanceof GeometryCollection)) {
       return null;
     }
-    return geom.getGeometryN(n);
+    return geom.getGeometryN(n - 1);
   }
 
   /**
@@ -1388,7 +1388,7 @@ public class SpatialTypeFunctions {
     return translated;
   }
 
-  // Geometry editing functions
+  // Geometry editing functions (2D)
 
   /**
    * Adds {@code point} to {@code linestring} at the end.
@@ -1507,6 +1507,15 @@ public class SpatialTypeFunctions {
    */
   public static Geometry ST_Reverse(Geometry geom) {
     return geom.reverse();
+  }
+
+  // Geometry editing functions (3D)
+
+  /**
+   * Adds {@code zToAdd} to the z-coordinate of the {@code geom}.
+   */
+  public static Geometry ST_AddZ(Geometry geom, BigDecimal zToAdd) {
+    return new AddZOperation(zToAdd.doubleValue()).transform(geom);
   }
 
   // Geometry measurement functions
