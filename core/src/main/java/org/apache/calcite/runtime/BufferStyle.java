@@ -18,6 +18,8 @@ package org.apache.calcite.runtime;
 
 import org.locationtech.jts.operation.buffer.BufferParameters;
 
+import java.util.Locale;
+
 /**
  * A parser for buffer styles as defined by PostGIS.
  */
@@ -32,7 +34,7 @@ public class BufferStyle {
   private int side = 0;
 
   public BufferStyle(String style) {
-    String[] parameters = style.toLowerCase().split(" ");
+    String[] parameters = style.toLowerCase(Locale.ROOT).split(" ");
     for (String parameter : parameters) {
       if (parameter == null || parameter.isEmpty()) {
         continue;
