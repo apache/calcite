@@ -2385,6 +2385,7 @@ The following functions modify 2D geometries.
 | h | ST_FlipCoordinates(geom) | Flips the X and Y coordinates of the *geom*
 | h | ST_Holes(geom) | Returns the holes in the *geom* (which may be a GEOMETRYCOLLECTION)
 | h | ST_Normalize(geom) | Converts the *geom* to normal form
+| p | ST_RemoveRepeatedPoints(geom [, tolerance]) | Removes duplicated coordinates from the *geom*
 | h | ST_RemoveHoles(geom) | Removes the holes of the *geom*
 | p | ST_RemovePoint(linestring, index) | Remove *point* at given *index* in *linestring*
 | h | ST_Reverse(geom) | Reverses the order of the coordinates of the *geom*
@@ -2392,8 +2393,6 @@ The following functions modify 2D geometries.
 Not implemented:
 
 * ST_CollectionExtract(geom, dimension) Filters *geom*, returning a multi-geometry of those members with a given *dimension* (1 = point, 2 = line-string, 3 = polygon)
-* ST_RemoveDuplicatedCoordinates(geom) Removes duplicated coordinates from *geom*
-* ST_RemoveRepeatedPoints(geom, tolerance) Removes from *geom* all repeated points (or points within *tolerance* of another point)
 
 #### Geometry editing functions (3D)
 

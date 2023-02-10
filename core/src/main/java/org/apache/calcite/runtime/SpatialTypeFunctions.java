@@ -49,9 +49,11 @@ import org.locationtech.jts.geom.OctagonalEnvelope;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.locationtech.jts.geom.impl.CoordinateArraySequence;
 import org.locationtech.jts.geom.util.AffineTransformation;
 import org.locationtech.jts.geom.util.GeometryEditor;
 import org.locationtech.jts.geom.util.GeometryFixer;
+import org.locationtech.jts.geom.util.GeometryTransformer;
 import org.locationtech.jts.linearref.LengthIndexedLine;
 import org.locationtech.jts.operation.buffer.BufferOp;
 import org.locationtech.jts.operation.buffer.BufferParameters;
@@ -1468,6 +1470,20 @@ public class SpatialTypeFunctions {
    */
   public static Geometry ST_Normalize(Geometry geom) {
     return geom.norm();
+  }
+
+  /**
+   * Removes duplicated coordinates from the {@code geom}.
+   */
+  public static Geometry ST_RemoveRepeatedPoints(Geometry geom) {
+    return new RemoveRepeatedPointsOperation().transform(geom);
+  }
+
+  /**
+   * Removes duplicated coordinates from the {@code geom}.
+   */
+  public static Geometry ST_RemoveRepeatedPoints(Geometry geom, BigDecimal tolerance) {
+    return new RemoveRepeatedPointsOperation(tolerance.doubleValue()).transform(geom);
   }
 
   /**

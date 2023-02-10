@@ -1839,8 +1839,16 @@ EXPR$0
 LINESTRING (1 1, 3 3, 6 3, 6 1, 3 1)
 !ok
 
-# ST_RemoveDuplicatedCoordinates(geom) Removes duplicated coordinates from *geom*
-# Not implemented
+# ST_RemoveRepeatedPoints(geom) Removes duplicated coordinates from *geom*
+SELECT ST_RemoveRepeatedPoints('LINESTRING(0 0, 0 0, 1 1, 0 0, 1 1, 2 2)');
+EXPR$0
+LINESTRING (0 0, 1 1, 0 0, 1 1, 2 2)
+!ok
+
+SELECT ST_AsText( ST_RemoveRepeatedPoints( 'LINESTRING (0 0, 0 0, 1 1, 5 5, 1 1, 2 2)', 2));
+EXPR$0
+LINESTRING (0 0, 5 5, 2 2)
+!ok
 
 # ST_RemoveHoles(geom) Removes a *geom*'s holes
 SELECT ST_RemoveHoles('POLYGON((1 5, 0 4, 0 1, 1 0, 4 0, 4 2, 5 4, 5 4, 1 5), (1 3, 1 4, 2 4, 2 3, 1 3), (2 2, 1 1, 2 1, 2 2))');
