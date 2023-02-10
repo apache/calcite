@@ -1739,6 +1739,16 @@ EXPR$0
 GEOMETRYCOLLECTION (POLYGON ((-1 1, 2 6, 5 7, -1 8, -1 1)), MULTIPOINT ((-1 2), (1 3), (0 4)))
 !ok
 
+SELECT ST_AsText(ST_Translate('POINT Z(1 2 3)', 10, 20));
+EXPR$0
+POINT Z(11 22 3)
+!ok
+
+SELECT ST_AsText(ST_Translate('LINESTRING Z(0 0 0, 1 0 1)', 1, 2));
+EXPR$0
+LINESTRING Z(1 2 0, 2 2 1)
+!ok
+
 #### Geometry editing functions (2D)
 
 # ST_AddPoint(linestring, point [, index ]) Adds *point* to *linestring* at a given *index* (or at the end if *index* is not specified)

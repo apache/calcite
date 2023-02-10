@@ -1384,7 +1384,8 @@ public class SpatialTypeFunctions {
   public static Geometry ST_Translate(Geometry geom, BigDecimal x, BigDecimal y) {
     AffineTransformation transformation = new AffineTransformation();
     transformation.translate(x.doubleValue(), y.doubleValue());
-    return transformation.transform(geom);
+    Geometry translated = transformation.transform(geom);
+    return translated;
   }
 
   // Geometry editing functions
