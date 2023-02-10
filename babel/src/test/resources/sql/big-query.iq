@@ -827,7 +827,6 @@ select datetime(timestamp "2008-01-01 01:03:05") as t_winter,
 SELECT
   TIME(15, 30, 00) as time_hms,
   TIME(TIMESTAMP "2008-12-25 07:30:00" /* TODO should be "2008-12-25 15:30:00+08" */, "America/Los_Angeles") as time_tstz;
-
 +----------+-----------+
 | time_hms | time_tstz |
 +----------+-----------+
@@ -838,7 +837,6 @@ SELECT
 !ok
 
 SELECT TIME(DATETIME "2008-12-25 15:30:00.000000") AS time_dt;
-
 +----------+
 | time_dt  |
 +----------+

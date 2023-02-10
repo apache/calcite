@@ -32,7 +32,6 @@ FROM `chinook`.`Artist` AS ar
 JOIN `chinook`.`Album` AS al ON ar.`ArtistId` = al.`ArtistId`
 JOIN `chinook`.`Track` as tr ON al.`AlbumId` = tr.`AlbumId`
 GROUP BY ar.`Name`;
-
 +---------------------------------------------------------------------------------------+--------------+-----------+
 | NAME                                                                                  | TRACKS_COUNT | MS_TOTAL  |
 +---------------------------------------------------------------------------------------+--------------+-----------+

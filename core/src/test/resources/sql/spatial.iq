@@ -421,7 +421,6 @@ POLYGON ((10 10, 10 11, 11 11, 11 10, 10 10))
 !ok
 
 SELECT ST_AsText(ST_MakeEnvelope(12.0, -1.0, 6.0, 4.0, 4326));
-
 EXPR$0
 POLYGON ((12 -1, 12 4, 6 4, 6 -1, 12 -1))
 !ok
@@ -704,7 +703,6 @@ EXPR$0
 SELECT round(ST_Distance(
     ST_Transform(ST_GeomFromText('POINT(-72.1235 42.3521)', 4326), 2163),
     ST_Transform(ST_GeomFromText('LINESTRING(-72.1260 42.45, -72.123 42.1546)', 4326), 2163)), 10);
-
 EXPR$0
 126.6642560574
 !ok
@@ -1255,7 +1253,6 @@ SELECT ST_GeometryType(geomA) As geomtype, ST_Contains(geomA,geomA) AS acontains
 FROM (VALUES ( ST_Buffer(ST_Point(1.0,1.0), 5/*,1*/) ),
              ( ST_MakeLine(ST_Point(1.0,1.0), ST_Point(-1.0,-1.0) ) ),
              ( ST_Point(1.0,1.0))) As foo(geomA);
-
 GEOMTYPE, ACONTAINSA, ACONTAINSPROPA, ACONTAINSBA, ACONTAINSPROPBA
 LINESTRING, true, true, false, false
 POINT, true, true, false, false
@@ -2156,7 +2153,6 @@ FROM (
   SELECT ST_GeomFromText('POINT Z(-2 3 1)') as the_geom
   UNION ALL
   SELECT ST_GeomFromText('LINESTRING Z(5 5 5, 10 10 10)') as the_geom ) as foo;
-
 EXPR$0
 GEOMETRYCOLLECTION Z(POINT Z(-2 3 1), LINESTRING Z(5 5 5, 10 10 10), POLYGON Z((-7 4.2 2, -7.1 4.2 3, -7.1 4.3 2, -7 4.2 2)))
 !ok

@@ -177,7 +177,6 @@ with data(c_row, c_timestamp) as (select * from (values
     (22, TIMESTAMP '1996-02-29 17:32:01'),
     (23, TIMESTAMP '1996-03-01 17:32:01')))
 select cast(c_timestamp as varchar(20)), cast(c_timestamp as date) from data where c_row <> 12;
-
 +---------------------+------------+
 | EXPR$0              | EXPR$1     |
 +---------------------+------------+
@@ -479,7 +478,6 @@ where not exists (
   select 1 from "hr"."depts" where "depts"."deptno" = "emps"."deptno")
 or not exists (
   select 1 from "hr"."depts" where "depts"."deptno" + 90 = "emps"."empid");
-
 +-------+--------+-----------+---------+------------+
 | empid | deptno | name      | salary  | commission |
 +-------+--------+-----------+---------+------------+
@@ -1262,7 +1260,6 @@ select * from "scott".emp where empno between '7500' and '07600';
 # BETWEEN follows the PostgreSQL style to coerce STRING operand to type of the other
 # NUMERIC operands, see TypeCoercionImpl#commonTypeForBinaryComparison.
 select * from "scott".emp where deptno between '7369' and '7876';
-
 Caused by: java.lang.NumberFormatException: Value out of range. Value:"7369" Radix:10
 !error
 
@@ -2307,7 +2304,6 @@ with data(c_date, c_timestamp) as (select * from (values
     (DATE'2019-06-28', TIMESTAMP '2019-06-28 17:32:01'),
     (DATE'2019-12-12', TIMESTAMP '2019-12-12 12:12:01')))
 select last_day(c_date), last_day(c_timestamp) from data;
-
 EXPR$0, EXPR$1
 1965-01-31, 1965-01-31
 2019-01-31, 2019-01-31
