@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.runtime;
 
 import org.locationtech.jts.geom.Coordinate;
@@ -42,8 +41,7 @@ public class RemoveRepeatedPointsOperation extends GeometryTransformer {
     this.tolerance = tolerance;
   }
 
-  @Override
-  protected CoordinateSequence transformCoordinates(CoordinateSequence coordinates, Geometry parent) {
+  @Override protected CoordinateSequence transformCoordinates(CoordinateSequence coordinates, Geometry parent) {
     List<Coordinate> list = new ArrayList<>();
     Coordinate previous = coordinates.getCoordinate(0);
     list.add(previous);
