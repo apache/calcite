@@ -31,10 +31,6 @@ public class BufferStyle {
 
   private int side = 0;
 
-  /**
-   * Constructs a BufferStyle.
-   * @param style
-   */
   public BufferStyle(String style) {
     String[] parameters = style.toLowerCase().split(" ");
     for (String parameter : parameters) {

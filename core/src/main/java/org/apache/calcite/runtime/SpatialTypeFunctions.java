@@ -1212,7 +1212,8 @@ public class SpatialTypeFunctions {
     BufferStyle style = new BufferStyle(bufferStyle);
     BufferParameters params = style.asBufferParameters();
     double sidedDistance = style.asSidedDistance(distance);
-    Coordinate[] coordinates = OffsetCurve.rawOffset((LineString) linestring, sidedDistance, params);
+    Coordinate[] coordinates =
+        OffsetCurve.rawOffset((LineString) linestring, sidedDistance, params);
     return GEOMETRY_FACTORY.createLineString(coordinates);
   }
 
