@@ -41,7 +41,8 @@ public class RemoveRepeatedPointsOperation extends GeometryTransformer {
     this.tolerance = tolerance;
   }
 
-  @Override protected CoordinateSequence transformCoordinates(CoordinateSequence coordinates, Geometry parent) {
+  @Override protected CoordinateSequence transformCoordinates(
+      CoordinateSequence coordinates, Geometry parent) {
     List<Coordinate> list = new ArrayList<>();
     Coordinate previous = coordinates.getCoordinate(0);
     list.add(previous);

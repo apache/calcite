@@ -33,7 +33,8 @@ public class AddZOperation extends GeometryTransformer {
     this.zToAdd = zToAdd;
   }
 
-  @Override protected CoordinateSequence transformCoordinates(CoordinateSequence coordinates, Geometry parent) {
+  @Override protected CoordinateSequence transformCoordinates(
+      CoordinateSequence coordinates, Geometry parent) {
     Coordinate[] newCoordinates = new Coordinate[coordinates.size()];
     for (int i = 0; i < coordinates.size(); i++) {
       Coordinate current = coordinates.getCoordinate(i);
