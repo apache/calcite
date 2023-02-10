@@ -3920,12 +3920,20 @@ class RelToSqlConverterTest {
 
   @Test void testFetchOffset() {
     String query = "SELECT * FROM \"employee\" LIMIT 1 OFFSET 1";
-    String expectedMssql = "SELECT *\nFROM [foodmart].[employee]\nOFFSET 1 ROWS\n"
+    String expectedMssql = "SELECT *\n"
+        + "FROM [foodmart].[employee]\n"
+        + "OFFSET 1 ROWS\n"
         + "FETCH NEXT 1 ROWS ONLY";
-    String expectedSybase = "SELECT TOP (1) START AT 1 *\nFROM foodmart.employee";
+    String expectedSybase = "SELECT TOP (1) START AT 1 *\n"
+        + "FROM foodmart.employee";
+    final String expectedPresto = "SELECT *\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "OFFSET 1\n"
+        + "LIMIT 1";
     sql(query)
         .withMssql().ok(expectedMssql)
-        .withSybase().ok(expectedSybase);
+        .withSybase().ok(expectedSybase)
+        .withPresto().ok(expectedPresto);
   }
 
   @Test void testFloorMssqlMonth() {
