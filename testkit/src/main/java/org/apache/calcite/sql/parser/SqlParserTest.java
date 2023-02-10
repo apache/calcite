@@ -5035,6 +5035,8 @@ public class SqlParserTest {
   }
 
   @Test void testTrim() {
+    expr("trim('mustache', 'a')")
+        .ok("TRIM(BOTH 'a' FROM 'mustache')");
     expr("trim('mustache' FROM 'beard')")
         .ok("TRIM(BOTH 'mustache' FROM 'beard')");
     expr("trim('mustache')")

@@ -6316,11 +6316,16 @@ SqlNode BuiltinFunctionCall() :
             if (flag == null) {
                 flag = SqlTrimFunction.Flag.BOTH.symbol(SqlParserPos.ZERO);
             }
+        }
+        [
+            <COMMA> {
+                trimChars = Expression(ExprContext.ACCEPT_SUB_QUERY);
+            }
+        ]
+        <RPAREN> {
             args = startList(flag);
             args.add(trimChars);
             args.add(e);
-        }
-        <RPAREN> {
             return SqlStdOperatorTable.TRIM.createCall(s.end(this), args);
         }
     |
@@ -7348,7 +7353,6 @@ SqlIdentifier ReservedFunctionName() :
     |   <STDDEV_SAMP>
     |   <SUM>
     |   <UPPER>
-    |   <TRIM>
     |   <TRUNCATE>
     |   <USER>
     |   <VAR_POP>
@@ -8379,7 +8383,6 @@ String NonReservedKeyWord() :
     |   <CONTAINS>
     |   <INSERT>
     |   <DAY>
-    |   <TRIM>
     )
     {
         return unquotedIdentifier();
