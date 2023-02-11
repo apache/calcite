@@ -142,6 +142,11 @@
   githubId: jcamachor
   org: Hortonworks
   role: PMC
+- name: Jiajun Xie
+  apacheId: jiajunxie
+  githubId: jiajunbernoulli
+  org: ByteDance
+  role: Committer
 - name: Jinfeng Ni
   apacheId: jni
   githubId: jinfengni
