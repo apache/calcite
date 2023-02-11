@@ -17,8 +17,6 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.prepare.Prepare;
-import org.apache.calcite.util.TryThreadLocal;
 
 import net.hydromatic.quidem.Quidem;
 
@@ -81,26 +79,6 @@ class CoreQuidemTest extends QuidemTest {
       // Oracle as the JDBC data source.
       return;
     }
-    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun(path);
-    }
+    checkRun(path);
   }
-
-  /** Override settings for "sql/scalar.iq". */
-  public void testSqlScalar(String path) throws Exception {
-    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun(path);
-    }
-  }
-
-  /** Runs the dummy script "sql/dummy.iq", which is checked in empty but
-   * which you may use as scratch space during development. */
-
-  // Do not disable this test; just remember not to commit changes to dummy.iq
-  public void testSqlDummy(String path) throws Exception {
-    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun(path);
-    }
-  }
-
 }

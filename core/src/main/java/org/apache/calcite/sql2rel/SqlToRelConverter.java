@@ -6562,10 +6562,10 @@ public class SqlToRelConverter {
     Config withExplain(boolean explain);
 
     /** Returns the {@code expand} option. Controls whether to expand
-     * sub-queries. If false, each sub-query becomes a
+     * sub-queries. If false (the default), each sub-query becomes a
      * {@link org.apache.calcite.rex.RexSubQuery}. */
     @Value.Default default boolean isExpand() {
-      return true;
+      return false;
     }
 
     /** Sets {@link #isExpand()}. */

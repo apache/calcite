@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
@@ -38,9 +39,11 @@ import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Util;
 
+import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.function.UnaryOperator;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -51,32 +54,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * Tests the application of the {@link SortRemoveRule}.
  */
 public final class SortRemoveRuleTest {
-
-  /**
-   * The default schema that is used in these tests provides tables sorted on the primary key. Due
-   * to this scan operators always come with a {@link org.apache.calcite.rel.RelCollation} trait.
-   */
-  private RelNode transform(String sql, RuleSet prepareRules) throws Exception {
-    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
-    final SchemaPlus defSchema = rootSchema.add("hr", new HrClusteredSchema());
-    final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .parserConfig(SqlParser.Config.DEFAULT)
-        .defaultSchema(defSchema)
-        .traitDefs(ConventionTraitDef.INSTANCE, RelCollationTraitDef.INSTANCE)
-        .programs(
-            Programs.of(prepareRules),
-            Programs.ofRules(CoreRules.SORT_REMOVE))
-        .build();
-    Planner planner = Frameworks.getPlanner(config);
-    SqlNode parse = planner.parse(sql);
-    SqlNode validate = planner.validate(parse);
-    RelRoot planRoot = planner.rel(validate);
-    RelNode planBefore = planRoot.rel;
-    RelTraitSet desiredTraits = planBefore.getTraitSet()
-        .replace(EnumerableConvention.INSTANCE);
-    RelNode planAfter = planner.transform(0, desiredTraits, planBefore);
-    return planner.transform(1, desiredTraits, planAfter);
-  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2554">[CALCITE-2554]
@@ -99,12 +76,10 @@ public final class SortRemoveRuleTest {
               + joinType + " join \"hr\".\"depts\" d "
               + " on e.\"deptno\" = d.\"deptno\" "
               + "order by e.\"empid\" ";
-      RelNode actualPlan = transform(sql, prepareRules);
-      assertThat(
-          toString(actualPlan),
-          allOf(
-              containsString("EnumerableHashJoin"),
-              not(containsString("EnumerableSort"))));
+      new Fixture(sql, prepareRules)
+          .assertThatPlan(
+              allOf(containsString("EnumerableHashJoin"),
+                  not(containsString("EnumerableSort"))));
     }
   }
 
@@ -132,12 +107,10 @@ public final class SortRemoveRuleTest {
               + joinType + " join \"hr\".\"depts\" d "
               + " on e.\"deptno\" > d.\"deptno\" "
               + "order by e.\"empid\" ";
-      RelNode actualPlan = transform(sql, prepareRules);
-      assertThat(
-          toString(actualPlan),
-          allOf(
-              containsString("EnumerableNestedLoopJoin"),
-              not(containsString("EnumerableSort"))));
+      new Fixture(sql, prepareRules)
+          .assertThatPlan(
+              allOf(containsString("EnumerableNestedLoopJoin"),
+                  not(containsString("EnumerableSort"))));
     }
   }
 
@@ -165,7 +138,7 @@ public final class SortRemoveRuleTest {
               + joinType + " join \"hr\".\"depts\" d "
               + " on e.\"deptno\" = d.\"deptno\" "
               + "order by e.\"empid\" ";
-      RelNode actualPlan = transform(sql, prepareRules);
+      RelNode actualPlan = new Fixture(sql, prepareRules).plan();
       assertThat(
           toString(actualPlan),
           allOf(
@@ -196,7 +169,9 @@ public final class SortRemoveRuleTest {
         "select e.\"deptno\" from \"hr\".\"emps\" e\n"
             + " where e.\"deptno\" in (select d.\"deptno\" from \"hr\".\"depts\" d)\n"
             + " order by e.\"empid\"";
-    RelNode actualPlan = transform(sql, prepareRules);
+    RelNode actualPlan = new Fixture(sql, prepareRules)
+        .withSqlToRel(c -> c.withExpand(true))
+        .plan();
     assertThat(
         toString(actualPlan),
         allOf(
@@ -204,9 +179,73 @@ public final class SortRemoveRuleTest {
             not(containsString("EnumerableSort"))));
   }
 
-  private String toString(RelNode rel) {
+  private static String toString(RelNode rel) {
     return Util.toLinux(
         RelOptUtil.dumpPlan("", rel, SqlExplainFormat.TEXT,
             SqlExplainLevel.DIGEST_ATTRIBUTES));
+  }
+
+  /** Test fixture. */
+  private static class Fixture {
+    final RuleSet prepareRules;
+    final String sql;
+    final UnaryOperator<SqlToRelConverter.Config> sqlToRelConfigTransform;
+
+    Fixture(String sql, RuleSet prepareRules,
+        UnaryOperator<SqlToRelConverter.Config> sqlToRelConfigTransform) {
+      this.prepareRules = prepareRules;
+      this.sql = sql;
+      this.sqlToRelConfigTransform = sqlToRelConfigTransform;
+    }
+
+    Fixture(String sql, RuleSet prepareRules) {
+      this(sql, prepareRules, UnaryOperator.identity());
+    }
+
+    Fixture withSqlToRel(UnaryOperator<SqlToRelConverter.Config> transform) {
+      final UnaryOperator<SqlToRelConverter.Config> newTransform = c ->
+          transform.apply(this.sqlToRelConfigTransform.apply(c));
+      return new Fixture(sql, prepareRules, newTransform);
+    }
+
+    /**
+     * The default schema that is used in these tests provides tables sorted on the primary key. Due
+     * to this scan operators always come with a {@link org.apache.calcite.rel.RelCollation} trait.
+     */
+    RelNode plan() throws Exception {
+      final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+      final SchemaPlus defSchema = rootSchema.add("hr", new HrClusteredSchema());
+      final FrameworkConfig config = Frameworks.newConfigBuilder()
+          .parserConfig(SqlParser.Config.DEFAULT)
+          .sqlToRelConverterConfig(
+              sqlToRelConfigTransform.apply(SqlToRelConverter.config()))
+          .defaultSchema(defSchema)
+          .traitDefs(ConventionTraitDef.INSTANCE, RelCollationTraitDef.INSTANCE)
+          .programs(
+              Programs.of(prepareRules),
+              Programs.ofRules(CoreRules.SORT_REMOVE))
+          .build();
+      Planner planner = Frameworks.getPlanner(config);
+      SqlNode parse = planner.parse(sql);
+      SqlNode validate = planner.validate(parse);
+      RelRoot planRoot = planner.rel(validate);
+      RelNode planBefore = planRoot.rel;
+      RelTraitSet desiredTraits = planBefore.getTraitSet()
+          .replace(EnumerableConvention.INSTANCE);
+      RelNode planAfter = planner.transform(0, desiredTraits, planBefore);
+      return planner.transform(1, desiredTraits, planAfter);
+    }
+
+    Fixture assertThatPlan(Matcher<String> matcher) {
+      try {
+        RelNode actualPlan = plan();
+        assertThat(
+            SortRemoveRuleTest.toString(actualPlan),
+            matcher);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+      return this;
+    }
   }
 }

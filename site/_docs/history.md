@@ -43,6 +43,19 @@ z.
 #### Breaking Changes
 {: #breaking-1-34-0}
 
+As of [CALCITE-3870](https://issues.apache.org/jira/browse/CALCITE-3870),
+the default value of
+[SqlToRelConverter.Config.expand](https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql2rel/SqlToRelConverter.Config.html#isExpand())
+is now false, which means that `SqlToRelConverter` handles sub-queries (such
+as `IN`, `EXISTS`, and scalar sub-queries) by converting them to `RexSubQuery`
+expressions, rather than expanding them. To expand these `RexSubQuery`
+expressions, the `SubQueryRemoveRule` rule must be enabled in the planning
+phase.
+
+To keep the old behavior (which is discouraged but still supported),
+initialize `SqlToRelConverter` using
+`SqlToRelConverter.config().withExpand(true)` as the value for the `config`
+argument.
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 18;
@@ -350,7 +363,7 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5433">CALCITE-5433</a>]
   Druid tests hang/fail intermittently in CI
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5474">CALCITE-5474</a>]
-  Disable Sonar quality gates to avoid checks appearing as failures 
+  Disable Sonar quality gates to avoid checks appearing as failures
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5475">CALCITE-5475</a>]
   Improve test coverage accuracy by aggregating modules
 

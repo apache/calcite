@@ -83,8 +83,8 @@ class RelOptFixture {
           null, RelSupplier.NONE, null, null,
           ImmutableMap.of(), (f, r) -> r, (f, r) -> r, false, false)
           .withFactory(f ->
-              f.withValidatorConfig(c ->
-                  c.withIdentifierExpansion(true)))
+              f.withValidatorConfig(c -> c.withIdentifierExpansion(true))
+                  .withSqlToRelConfig(c -> c.withExpand(true)))
           .withRelBuilderConfig(b -> b.withPruneInputOfAggregate(false));
 
   /**

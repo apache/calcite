@@ -235,7 +235,7 @@ public abstract class Prepare {
     final SqlToRelConverter.Config config =
         SqlToRelConverter.config()
             .withTrimUnusedFields(true)
-            .withExpand(castNonNull(THREAD_EXPAND.get()))
+            .withExpand(THREAD_EXPAND.get())
             .withInSubQueryThreshold(castNonNull(THREAD_INSUBQUERY_THRESHOLD.get()))
             .withExplain(sqlQuery.getKind() == SqlKind.EXPLAIN);
     final Holder<SqlToRelConverter.Config> configHolder = Holder.of(config);
@@ -374,7 +374,7 @@ public abstract class Prepare {
   protected RelRoot trimUnusedFields(RelRoot root) {
     final SqlToRelConverter.Config config = SqlToRelConverter.config()
         .withTrimUnusedFields(shouldTrim(root.rel))
-        .withExpand(castNonNull(THREAD_EXPAND.get()))
+        .withExpand(THREAD_EXPAND.get())
         .withInSubQueryThreshold(castNonNull(THREAD_INSUBQUERY_THRESHOLD.get()));
     final SqlToRelConverter converter =
         getSqlToRelConverter(getSqlValidator(), catalogReader, config);
