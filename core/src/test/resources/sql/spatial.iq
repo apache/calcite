@@ -1939,9 +1939,9 @@ GEOMETRYCOLLECTION (POLYGON ((1 2, 1 6, 4 6, 4 2, 1 2)), LINESTRING (6 2, 2 6))
 #### Geometry editing functions (3D)
 
 # ST_AddZ(geom, zToAdd) Adds *zToAdd* to the z-coordinate of *geom*
-SELECT ST_AddZ('MULTIPOINT((190 300 1), (10 11))', 10);
+SELECT ST_AsText(ST_AddZ('MULTIPOINT((190 300 1), (10 11 0))', 10));
 EXPR$0
-MULTIPOINT Z ((190 300 11), (10 11 10))
+MULTIPOINT Z((190 300 11), (10 11 10))
 !ok
 
 SELECT ST_Z(ST_GeometryN(ST_AddZ('MULTIPOINT((190 300 1), (10 11))', 10), 1));
@@ -1949,14 +1949,14 @@ EXPR$0
 NaN
 !ok
 
-SELECT ST_AddZ('MULTIPOINT((190 300 10), (10 11 5))', -10)
+SELECT ST_AsText(ST_AddZ('MULTIPOINT Z((190 300 10), (10 11 5))', -10));
 EXPR$0
-MULTIPOINT((190 300 0), (10 11 -5))
+MULTIPOINT Z((190 300 0), (10 11 -5))
 !ok
 
-SELECT ST_AddZ('POLYGON((1 1 5, 1 7 10, 7 7 -1, 7 1 -1, 1 1 5))', -10);
+SELECT ST_AsText(ST_AddZ('POLYGON((1 1 5, 1 7 10, 7 7 -1, 7 1 -1, 1 1 5))', -10));
 EXPR$0
-POLYGON((1 1 -5, 1 7 0, 7 7 -11, 7 1 -11, 1 1 -5))
+POLYGON Z((1 1 -5, 1 7 0, 7 7 -11, 7 1 -11, 1 1 -5))
 !ok
 
 # ST_Interpolate3DLine(geom) Returns *geom* with a interpolation of z values, or null if it is not a line-string or multi-line-string
