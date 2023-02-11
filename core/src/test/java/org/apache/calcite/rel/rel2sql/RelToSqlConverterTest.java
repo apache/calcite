@@ -3145,7 +3145,7 @@ class RelToSqlConverterTest {
         + "WHERE \"store_id\" < 150\n"
         + "GROUP BY \"department_id\") AS \"t1\" "
         + "ON \"department\".\"department_id\" = \"t1\".\"department_id\"";
-    sql(query).ok(expected);
+    sql(query).withConfig(c -> c.withExpand(true)).ok(expected);
   }
 
   /** Test case for
@@ -6153,11 +6153,11 @@ class RelToSqlConverterTest {
     sql(query1).ok(expected1);
   }
 
-  @Test void testUnionAllWithNoOperandsUsingOracleDialect() {
+  @Test void testUnionAll() {
     String query = "select A.\"department_id\" "
         + "from \"foodmart\".\"employee\" A "
         + " where A.\"department_id\" = ( select min( A.\"department_id\") from \"foodmart\".\"department\" B where 1=2 )";
-    final String expected = "SELECT \"employee\".\"department_id\"\n"
+    final String expectedOracle = "SELECT \"employee\".\"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "INNER JOIN (SELECT \"t1\".\"department_id\" \"department_id0\", MIN(\"t1\".\"department_id\") \"EXPR$0\"\n"
         + "FROM (SELECT NULL \"department_id\", NULL \"department_description\"\n"
@@ -6168,13 +6168,11 @@ class RelToSqlConverterTest {
         + "GROUP BY \"department_id\") \"t1\"\n"
         + "GROUP BY \"t1\".\"department_id\"\n"
         + "HAVING \"t1\".\"department_id\" = MIN(\"t1\".\"department_id\")) \"t4\" ON \"employee\".\"department_id\" = \"t4\".\"department_id0\"";
-    sql(query).withOracle().ok(expected);
-  }
-
-  @Test void testUnionAllWithNoOperands() {
-    String query = "select A.\"department_id\" "
-        + "from \"foodmart\".\"employee\" A "
-        + " where A.\"department_id\" = ( select min( A.\"department_id\") from \"foodmart\".\"department\" B where 1=2 )";
+    final String expectedNoExpand = "SELECT \"department_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE \"department_id\" = (((SELECT MIN(\"employee\".\"department_id\")\n"
+        + "FROM \"foodmart\".\"department\"\n"
+        + "WHERE 1 = 2)))";
     final String expected = "SELECT \"employee\".\"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "INNER JOIN (SELECT \"t1\".\"department_id\" AS \"department_id0\", MIN(\"t1\".\"department_id\") AS \"EXPR$0\"\n"
@@ -6186,7 +6184,10 @@ class RelToSqlConverterTest {
         + "GROUP BY \"department_id\") AS \"t1\"\n"
         + "GROUP BY \"t1\".\"department_id\"\n"
         + "HAVING \"t1\".\"department_id\" = MIN(\"t1\".\"department_id\")) AS \"t4\" ON \"employee\".\"department_id\" = \"t4\".\"department_id0\"";
-    sql(query).ok(expected);
+    sql(query)
+        .ok(expectedNoExpand)
+        .withConfig(c -> c.withExpand(true)).ok(expected)
+        .withOracle().ok(expectedOracle);
   }
 
   @Test void testSmallintOracle() {

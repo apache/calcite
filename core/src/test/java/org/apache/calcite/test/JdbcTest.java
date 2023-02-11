@@ -5072,19 +5072,17 @@ public class JdbcTest {
   /** Tests a correlated scalar sub-query in the SELECT clause.
    *
    * <p>Note that there should be an extra row "empid=200; deptno=20;
-   * DNAME=null" but left join doesn't work.</p> */
+   * DNAME=null" but left join doesn't work. */
   @Test void testScalarSubQuery() {
-    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      CalciteAssert.hr()
-          .query("select \"empid\", \"deptno\",\n"
-              + " (select \"name\" from \"hr\".\"depts\"\n"
-              + "  where \"deptno\" = e.\"deptno\") as dname\n"
-              + "from \"hr\".\"emps\" as e")
-          .returnsUnordered("empid=100; deptno=10; DNAME=Sales",
-              "empid=110; deptno=10; DNAME=Sales",
-              "empid=150; deptno=10; DNAME=Sales",
-              "empid=200; deptno=20; DNAME=null");
-    }
+    CalciteAssert.hr()
+        .query("select \"empid\", \"deptno\",\n"
+            + " (select \"name\" from \"hr\".\"depts\"\n"
+            + "  where \"deptno\" = e.\"deptno\") as dname\n"
+            + "from \"hr\".\"emps\" as e")
+        .returnsUnordered("empid=100; deptno=10; DNAME=Sales",
+            "empid=110; deptno=10; DNAME=Sales",
+            "empid=150; deptno=10; DNAME=Sales",
+            "empid=200; deptno=20; DNAME=null");
   }
 
   /** Test case for
@@ -5251,21 +5249,19 @@ public class JdbcTest {
   }
 
   @Test void testScalarSubQueryInCase() {
-    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      CalciteAssert.hr()
-          .query("select e.\"name\",\n"
-              + " (CASE e.\"deptno\"\n"
-              + "  WHEN (Select \"deptno\" from \"hr\".\"depts\" d\n"
-              + "        where d.\"deptno\" = e.\"deptno\")\n"
-              + "  THEN (Select d.\"name\" from \"hr\".\"depts\" d\n"
-              + "        where d.\"deptno\" = e.\"deptno\")\n"
-              + "  ELSE 'DepartmentNotFound'  END) AS DEPTNAME\n"
-              + "from \"hr\".\"emps\" e")
-          .returnsUnordered("name=Bill; DEPTNAME=Sales",
-              "name=Eric; DEPTNAME=DepartmentNotFound",
-              "name=Sebastian; DEPTNAME=Sales",
-              "name=Theodore; DEPTNAME=Sales");
-    }
+    CalciteAssert.hr()
+        .query("select e.\"name\",\n"
+            + " (CASE e.\"deptno\"\n"
+            + "  WHEN (Select \"deptno\" from \"hr\".\"depts\" d\n"
+            + "        where d.\"deptno\" = e.\"deptno\")\n"
+            + "  THEN (Select d.\"name\" from \"hr\".\"depts\" d\n"
+            + "        where d.\"deptno\" = e.\"deptno\")\n"
+            + "  ELSE 'DepartmentNotFound'  END) AS DEPTNAME\n"
+            + "from \"hr\".\"emps\" e")
+        .returnsUnordered("name=Bill; DEPTNAME=Sales",
+            "name=Eric; DEPTNAME=DepartmentNotFound",
+            "name=Sebastian; DEPTNAME=Sales",
+            "name=Theodore; DEPTNAME=Sales");
   }
 
   @Test void testScalarSubQueryInCase2() {

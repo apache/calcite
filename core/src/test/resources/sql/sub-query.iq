@@ -834,8 +834,6 @@ and empno in (7876, 7698, 7900);
 
 !set outputformat psql
 
-!set expand false
-
 # [CALCITE-2329] Enhance SubQueryRemoveRule to rewrite IN operator with the constant from the left side more optimally
 # Test project null IN null
 select sal,
@@ -2494,7 +2492,6 @@ from "scott".emp emp1;
 
 # [CALCITE-4486] UNIQUE predicate
 !use scott
-!set expand false
 !set outputformat mysql
 
 # singleton keys have unique value which excludes fully or partially null rows.
