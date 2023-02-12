@@ -1335,6 +1335,14 @@ public class SpatialTypeFunctions {
     return snapper.snapTo(geom2, snapTolerance.doubleValue());
   }
 
+  /**
+   * Splits {@code geom} by {@code blade}.
+   */
+  public static Geometry ST_Split(Geometry geom, Geometry blade) {
+    return new SplitOperation(geom, blade).split();
+  }
+
+
   // Affine transformation functions (3D and 2D)
 
   /**
