@@ -707,6 +707,34 @@ class RelToSqlConverterTest {
         .withMysql().ok(expectedMysql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5518">[CALCITE-5518]
+   * RelToSql converter generates invalid order of ROLLUP fields</a>.
+   */
+  @Test void testGroupingSetsRollupNonNaturalOrder() {
+    final String query1 = "select \"product_class_id\", \"brand_name\"\n"
+        + "from \"product\"\n"
+        + "group by GROUPING SETS ((\"product_class_id\", \"brand_name\"),"
+        + " (\"brand_name\"), ())\n";
+    final String expected1 = "SELECT \"product_class_id\", \"brand_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"brand_name\", \"product_class_id\")";
+    sql(query1)
+        .withPostgresql().ok(expected1);
+
+    final String query2 = "select \"product_class_id\", \"brand_name\", \"product_id\"\n"
+        + "from \"product\"\n"
+        + "group by GROUPING SETS ("
+        + " (\"product_class_id\", \"brand_name\", \"product_id\"),"
+        + " (\"product_class_id\", \"brand_name\"),"
+        + " (\"brand_name\"), ())\n";
+    final String expected2 = "SELECT \"product_class_id\", \"brand_name\", \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"brand_name\", \"product_class_id\", \"product_id\")";
+    sql(query2)
+        .withPostgresql().ok(expected2);
+  }
+
   /** Tests a query with GROUP BY and a sub-query which is also with GROUP BY.
    * If we flatten sub-queries, the number of rows going into AVG becomes
    * incorrect. */
