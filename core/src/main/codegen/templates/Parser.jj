@@ -6297,6 +6297,18 @@ SqlNode BuiltinFunctionCall() :
                             RESOURCE.illegalFromEmpty());
                     }
                 }
+                e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
+                    if (flag == null) {
+                        flag = SqlTrimFunction.Flag.BOTH.symbol(SqlParserPos.ZERO);
+                    }
+                }
+                <RPAREN> {
+                    args = startList(flag);
+                    args.add(trimChars);
+                    args.add(e);
+                    return SqlStdOperatorTable.TRIM.createCall(s.end(this), args);
+                }
+
             |
                 <RPAREN> {
                     // This is to handle the case of TRIM(x)
