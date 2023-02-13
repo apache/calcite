@@ -2492,11 +2492,11 @@ Not implemented:
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
+| h | ST_ConstrainedDelaunay(geom [, flag]) | Computes a constrained Delaunay triangulation based on *geom*
 | h | ST_Delaunay(geom [, flag]) | Computes a Delaunay triangulation based on points in *geom*
 
 Not implemented:
 
-* ST_ConstrainedDelaunay(geom [, flag [, quality ]]) Computes a constrained Delaunay triangulation based on *geom*
 * ST_Tessellate(polygon) Tessellates *polygon* (may be MULTIPOLYGON) with adaptive triangles
 
 #### Geometry aggregate functions

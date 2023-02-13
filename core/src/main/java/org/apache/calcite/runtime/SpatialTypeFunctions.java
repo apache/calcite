@@ -65,11 +65,17 @@ import org.locationtech.jts.precision.GeometryPrecisionReducer;
 import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 import org.locationtech.jts.triangulate.DelaunayTriangulationBuilder;
+import org.locationtech.jts.triangulate.polygon.ConstrainedDelaunayTriangulator;
 import org.locationtech.jts.triangulate.quadedge.QuadEdgeSubdivision;
+import org.locationtech.jts.triangulate.tri.Tri;
 import org.locationtech.jts.util.GeometricShapeFactory;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -1690,6 +1696,33 @@ public class SpatialTypeFunctions {
   // Triangulation functions
 
   /**
+   * Computes a constrained Delaunay triangulation based on points in {@code geom}.
+   */
+  public static Geometry ST_ConstrainedDelaunay(Geometry geom) {
+    return ST_ConstrainedDelaunay(geom, 0);
+  }
+
+  /**
+   * Computes a constrained Delaunay triangulation based on points in {@code geom}.
+   */
+  public static Geometry ST_ConstrainedDelaunay(Geometry geom, int flag) {
+    GeometryFactory factory = geom.getFactory();
+    ConstrainedDelaunayTriangulator cdt = new ConstrainedDelaunayTriangulator(geom);
+    List<Tri> tris = cdt.getTriangles();
+    Polygon[] polygons = new Polygon[tris.size()];
+    int i = 0;
+    for (Tri tri : tris) {
+      polygons[i++] = tri.toPolygon(factory);
+    }
+    MultiPolygon multiPolygon = factory.createMultiPolygon(polygons);
+    if (flag == 0) {
+      return multiPolygon;
+    } else {
+      return asTriangleEdges(multiPolygon);
+    }
+  }
+
+  /**
    * Computes a Delaunay triangulation based on points in {@code geom}.
    */
   public static Geometry ST_Delaunay(Geometry geom) {
@@ -1703,19 +1736,37 @@ public class SpatialTypeFunctions {
     GeometryFactory factory = geom.getFactory();
     DelaunayTriangulationBuilder builder = new DelaunayTriangulationBuilder();
     builder.setSites(geom);
-    if (flag == 0) {
-      QuadEdgeSubdivision subdivision = builder.getSubdivision();
-      List triPtsList = subdivision.getTriangleCoordinates(false);
-      Polygon[] tris = new Polygon[triPtsList.size()];
-      int i = 0;
-      for (Iterator it = triPtsList.iterator(); it.hasNext();) {
-        Coordinate[] triPt = (Coordinate[]) it.next();
-        tris[i++] = factory.createPolygon(factory.createLinearRing(triPt));
-      }
-      return factory.createMultiPolygon(tris);
-    } else {
-      return builder.getEdges(geom.getFactory());
+    QuadEdgeSubdivision subdivision = builder.getSubdivision();
+    List triPtsList = subdivision.getTriangleCoordinates(false);
+    Polygon[] tris = new Polygon[triPtsList.size()];
+    int i = 0;
+    for (Iterator it = triPtsList.iterator(); it.hasNext();) {
+      Coordinate[] triPt = (Coordinate[]) it.next();
+      tris[i++] = factory.createPolygon(factory.createLinearRing(triPt));
     }
+    MultiPolygon multiPolygon = factory.createMultiPolygon(tris);
+    if (flag == 0) {
+      return multiPolygon;
+    } else {
+      return asTriangleEdges(multiPolygon);
+    }
+  }
+
+  private static Geometry asTriangleEdges(MultiPolygon multiPolygon) {
+    GeometryFactory factory = multiPolygon.getFactory();
+    List<LineString> edges = new ArrayList<>();
+    for (int i = 0; i < multiPolygon.getNumGeometries(); i++) {
+      Polygon polygon = (Polygon) multiPolygon.getGeometryN(i);
+      Coordinate[] coordinates = polygon.getCoordinates();
+      for (int j = 1; j < coordinates.length; j++) {
+        Coordinate c1 = coordinates[j - 1].copy();
+        Coordinate c2 = coordinates[j].copy();
+        LineString line = factory.createLineString(new Coordinate[]{c1, c2});
+        edges.add(line);
+      }
+    }
+    Geometry geometry = factory.createMultiLineString(edges.toArray(new LineString[0]));
+    return geometry.union().norm();
   }
 
   // Space-filling curves
