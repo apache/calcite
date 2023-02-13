@@ -705,6 +705,14 @@ public class BigQuerySqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
         break;
       }
+    case COLUMN_LIST:
+      final SqlWriter.Frame columnListFrame = getColumnListFrame(writer, call);
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endList(columnListFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -1603,7 +1611,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       int rightPrec) {
     final String operatorName;
     SqlLiteral trimFlag = call.operand(0);
-    SqlLiteral valueToTrim = call.operand(1);
+    SqlNode valueToTrim = call.operand(1);
+    requireNonNull(valueToTrim, "valueToTrim in unparseTrim() must not be null");
+    String value = Util.removeLeadingAndTrailingSingleQuotes(valueToTrim.toString());
     switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
     case LEADING:
       operatorName = "LTRIM";
@@ -1621,7 +1631,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     // If the trimmed character is a non-space character, add it to the target SQL.
     // eg: TRIM(BOTH 'A' from 'ABCD'
     // Output Query: TRIM('ABC', 'A')
-    String value = requireNonNull(valueToTrim.toValue(), "valueToTrim.toValue()");
     if (!value.matches("\\s+")) {
       writer.literal(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
@@ -1953,6 +1962,16 @@ public class BigQuerySqlDialect extends SqlDialect {
         frame = writer.startFunCall("DATE_TRUNC");
 
       }
+    }
+    return frame;
+  }
+
+  private SqlWriter.Frame getColumnListFrame(SqlWriter writer, SqlCall call) {
+    SqlWriter.Frame frame = null;
+    if (call.getOperandList().size() == 1) {
+      frame = writer.startList("", "");
+    } else {
+      frame = writer.startList("(", ")");
     }
     return frame;
   }
