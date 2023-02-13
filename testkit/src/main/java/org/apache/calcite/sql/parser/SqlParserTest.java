@@ -5056,6 +5056,11 @@ public class SqlParserTest {
 
     sql("trim(^from^ 'beard')")
         .fails("(?s).*'FROM' without operands preceding it is illegal.*");
+
+//    Currently, this is parses to an expression equivalent to:
+//    TRIM(BOTH 'a' FROM 'beard')
+    expr("trim('mustache' FROM 'beard', 'a')")
+        .fails("TODO: some sort of validation error here");
   }
 
   @Test void testConvertAndTranslate() {
