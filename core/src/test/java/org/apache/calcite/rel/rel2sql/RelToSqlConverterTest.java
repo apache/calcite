@@ -11268,15 +11268,15 @@ class RelToSqlConverterTest {
   @Test public void testCoalesceFunctionWithIntegerAndStringArgument() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode formatIntegerCastRexNode =
+    final RexNode formatIntegerRexNode =
         builder.call(SqlLibraryOperators.FORMAT,
             builder.literal("'%11d'"), builder.scan("EMP").field(0));
-    final RexNode formatIntegerRexNode =
+    final RexNode formatCoalesceRexNode =
         builder.call(SqlStdOperatorTable.COALESCE,
-            formatIntegerCastRexNode, builder.scan("EMP").field(1));
+            formatIntegerRexNode, builder.scan("EMP").field(1));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(formatIntegerRexNode, "Name"))
+        .project(builder.alias(formatCoalesceRexNode, "Name"))
         .build();
 
     final String expectedSparkQuery = "SELECT "
@@ -11288,15 +11288,15 @@ class RelToSqlConverterTest {
   @Test public void testCoalesceFunctionWithDecimalAndStringArgument() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode formatIntegerCastRexNode =
+    final RexNode formatFloatRexNode =
         builder.call(SqlLibraryOperators.FORMAT,
             builder.literal("'%10.4f'"), builder.scan("EMP").field(5));
-    final RexNode formatIntegerRexNode =
+    final RexNode formatCoalesceRexNode =
         builder.call(SqlStdOperatorTable.COALESCE,
-            formatIntegerCastRexNode, builder.scan("EMP").field(1));
+            formatFloatRexNode, builder.scan("EMP").field(1));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(formatIntegerRexNode, "Name"))
+        .project(builder.alias(formatCoalesceRexNode, "Name"))
         .build();
 
     final String expectedSparkQuery = "SELECT "
