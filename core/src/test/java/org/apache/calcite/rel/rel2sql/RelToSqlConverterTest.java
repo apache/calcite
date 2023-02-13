@@ -11265,6 +11265,36 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
+  @Test public void testColumnListInWhereEquals() {
+    final RelBuilder builder = relBuilder();
+    final RelNode scalarQueryRel = builder.
+        scan("EMP")
+        .filter(builder.equals(builder.field("EMPNO"), builder.literal("100")))
+        .project(
+            builder.call(
+            SqlStdOperatorTable.COLUMN_LIST, builder.field("EMPNO"), builder.field("HIREDATE")))
+        .build();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.equals(
+                builder.call(
+                    SqlStdOperatorTable.COLUMN_LIST, builder.field("EMPNO"
+            ), builder.field("HIREDATE")),
+            RexSubQuery.scalar(scalarQueryRel)))
+        .build();
+
+    final String expectedBigQuery = "SELECT *\n"
+        + "FROM scott.EMP\n"
+        + "WHERE (EMPNO, HIREDATE) = (((SELECT (EMPNO, HIREDATE) AS `$f0`\n"
+        + "FROM scott.EMP\n"
+        + "WHERE EMPNO = '100')))";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
+
   @Test public void testCoalesceFunctionWithIntegerAndStringArgument() {
     final RelBuilder builder = relBuilder();
 
