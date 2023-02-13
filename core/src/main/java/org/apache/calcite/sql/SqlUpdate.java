@@ -193,15 +193,6 @@ public class SqlUpdate extends SqlCall {
     writer.endList(frame);
   }
 
-  private SqlIdentifier getFromAlias() {
-    if (sourceSelect != null && sourceSelect.from != null) {
-      if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS) {
-        return (SqlIdentifier) ((SqlBasicCall) sourceSelect.from).operands[1];
-      }
-    }
-    return null;
-  }
-
   private SqlJoin getJoinFromSourceSelect() {
     SqlJoin join = null;
     if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS
@@ -249,6 +240,12 @@ public class SqlUpdate extends SqlCall {
     }
   }
 
+  /**
+   * This method will @return true when:
+   * 1. If the targetTable and the @param node is exactly same
+   * 2. If @param node is aliased and its first operand and targetTable are same
+   * 3. If targetTable is aliased and its first operand and @param node are same.
+   */
   private boolean isTargetTable(SqlNode node) {
     if (node.equalsDeep(targetTable, Litmus.IGNORE)) {
       return true;
@@ -290,12 +287,21 @@ public class SqlUpdate extends SqlCall {
     }
 
     if (sources.size() == 1) {
-      SqlIdentifier fromAlias = getFromAlias();
+      SqlIdentifier fromAlias = getAliasForFromClause();
       if (fromAlias != null) {
         writer.keyword("AS");
         fromAlias.unparse(writer, opLeft, opRight);
       }
     }
+  }
+
+  private SqlIdentifier getAliasForFromClause() {
+    if (sourceSelect != null && sourceSelect.from != null) {
+      if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS) {
+        return (SqlIdentifier) ((SqlBasicCall) sourceSelect.from).operands[1];
+      }
+    }
+    return null;
   }
 
   private void unparseUpdateCondition(SqlWriter writer, int opLeft, int opRight) {
