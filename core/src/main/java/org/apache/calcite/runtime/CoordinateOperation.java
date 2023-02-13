@@ -28,14 +28,14 @@ import java.util.stream.Stream;
 /**
  * Transforms the coordinates of a geometry.
  */
-public class CoordinateTransformer extends GeometryTransformer {
+public class CoordinateOperation extends GeometryTransformer {
 
   private final Function<Coordinate, Coordinate> transform;
 
   /**
    * Creates a transformer that applies the {@code transform} to all coordinates.
    */
-  public CoordinateTransformer(Function<Coordinate, Coordinate> transform) {
+  public CoordinateOperation(Function<Coordinate, Coordinate> transform) {
     this.transform = transform;
   }
 

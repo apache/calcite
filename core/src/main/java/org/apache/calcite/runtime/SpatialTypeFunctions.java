@@ -64,13 +64,12 @@ import org.locationtech.jts.operation.union.UnaryUnionOp;
 import org.locationtech.jts.precision.GeometryPrecisionReducer;
 import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
+import org.locationtech.jts.triangulate.DelaunayTriangulationBuilder;
+import org.locationtech.jts.triangulate.quadedge.QuadEdgeSubdivision;
 import org.locationtech.jts.util.GeometricShapeFactory;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -154,7 +153,7 @@ public class SpatialTypeFunctions {
   public static @Nullable Geometry ST_Force2D(Geometry geometry) {
     Function<Coordinate, Coordinate> transform =
         coordinate -> new Coordinate(coordinate.getX(), coordinate.getY());
-    CoordinateTransformer transformer = new CoordinateTransformer(transform);
+    CoordinateOperation transformer = new CoordinateOperation(transform);
     return transformer.transform(geometry);
   }
 
@@ -365,7 +364,7 @@ public class SpatialTypeFunctions {
             coordinate.getX(),
             coordinate.getY(),
             Double.isNaN(coordinate.getZ()) ? 0d : coordinate.getZ());
-    CoordinateTransformer transformer = new CoordinateTransformer(transform);
+    CoordinateOperation transformer = new CoordinateOperation(transform);
     return transformer.transform(geometry);
   }
 
@@ -1686,6 +1685,37 @@ public class SpatialTypeFunctions {
     double index = lengthIndexedLine.project(point.getCoordinate());
     Coordinate projectedCoordinate = lengthIndexedLine.extractPoint(index);
     return GEOMETRY_FACTORY.createPoint(projectedCoordinate);
+  }
+
+  // Triangulation functions
+
+  /**
+   * Computes a Delaunay triangulation based on points in {@code geom}.
+   */
+  public static Geometry ST_Delaunay(Geometry geom) {
+    return ST_Delaunay(geom, 0);
+  }
+
+  /**
+   * Computes a Delaunay triangulation based on points in {@code geom}.
+   */
+  public static Geometry ST_Delaunay(Geometry geom, int flag) {
+    GeometryFactory factory = geom.getFactory();
+    DelaunayTriangulationBuilder builder = new DelaunayTriangulationBuilder();
+    builder.setSites(geom);
+    if (flag == 0) {
+      QuadEdgeSubdivision subdivision = builder.getSubdivision();
+      List triPtsList = subdivision.getTriangleCoordinates(false);
+      Polygon[] tris = new Polygon[triPtsList.size()];
+      int i = 0;
+      for (Iterator it = triPtsList.iterator(); it.hasNext();) {
+        Coordinate[] triPt = (Coordinate[]) it.next();
+        tris[i++] = factory.createPolygon(factory.createLinearRing(triPt));
+      }
+      return factory.createMultiPolygon(tris);
+    } else {
+      return builder.getEdges(geom.getFactory());
+    }
   }
 
   // Space-filling curves
