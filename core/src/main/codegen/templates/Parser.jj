@@ -6271,70 +6271,54 @@ SqlNode BuiltinFunctionCall() :
             s = span();
         }
         <LPAREN>
+        /**
+        * We want to accept:
+        * [BOTH/TRAILING/LEADING] X from Y (trimChars = X, exp = Y)
+        * X (exp = X)
+        * X, Y (Equivalent to trimChars=Y, exp=X)
+        * NOTE: SqlStdOperatorTable.TRIM expects values in the order trimchars, exp
+        */
         [
-            LOOKAHEAD(2)
-            [
-                <BOTH> {
-                    s.add(this);
-                    flag = SqlTrimFunction.Flag.BOTH.symbol(getPos());
-                }
-            |
-                <TRAILING> {
-                    s.add(this);
-                    flag = SqlTrimFunction.Flag.TRAILING.symbol(getPos());
-                }
-            |
-                <LEADING> {
-                    s.add(this);
-                    flag = SqlTrimFunction.Flag.LEADING.symbol(getPos());
-                }
-            ]
-            [ trimChars = Expression(ExprContext.ACCEPT_SUB_QUERY) ]
-            (
+            <BOTH> {
+                s.add(this);
+                flag = SqlTrimFunction.Flag.BOTH.symbol(getPos());
+            }
+        |
+            <TRAILING> {
+                s.add(this);
+                flag = SqlTrimFunction.Flag.TRAILING.symbol(getPos());
+            }
+        |
+            <LEADING> {
+                s.add(this);
+                flag = SqlTrimFunction.Flag.LEADING.symbol(getPos());
+            }
+        ]
+        [ e = Expression(ExprContext.ACCEPT_SUB_QUERY) ]
+        [
                 <FROM> {
                     if (null == flag && null == trimChars) {
                         throw SqlUtil.newContextException(getPos(),
                             RESOURCE.illegalFromEmpty());
                     }
+                    //Need to reinterpret e as the trimChars
+                    trimChars = e
+                    e = Expression(ExprContext.ACCEPT_SUB_QUERY);
+                    e = Expression(ExprContext.ACCEPT_SUB_QUERY)
                 }
-                e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
-                    if (flag == null) {
-                        flag = SqlTrimFunction.Flag.BOTH.symbol(SqlParserPos.ZERO);
-                    }
-                }
-                <RPAREN> {
-                    args = startList(flag);
-                    args.add(trimChars);
-                    args.add(e);
-                    return SqlStdOperatorTable.TRIM.createCall(s.end(this), args);
-                }
-
             |
-                <RPAREN> {
-                    // This is to handle the case of TRIM(x)
-                    // (FRG-191).
-                    if (flag == null) {
-                        flag = SqlTrimFunction.Flag.BOTH.symbol(SqlParserPos.ZERO);
+                <COMMA> {
+                    if (flag != null) {
+                        throw SqlUtil.newContextException(getPos(),
+                                                RESOURCE.illegalFromEmpty());
                     }
-                    args = startList(flag);
-                    args.add(null); // no trim chars
-                    args.add(trimChars); // reinterpret trimChars as source
-                    return SqlStdOperatorTable.TRIM.createCall(s.end(this),
-                        args);
+                    trimChars = Expression(ExprContext.ACCEPT_SUB_QUERY);
                 }
-            )
         ]
-        e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
+        <RPAREN> {
             if (flag == null) {
                 flag = SqlTrimFunction.Flag.BOTH.symbol(SqlParserPos.ZERO);
             }
-        }
-        [
-            <COMMA> {
-                trimChars = Expression(ExprContext.ACCEPT_SUB_QUERY);
-            }
-        ]
-        <RPAREN> {
             args = startList(flag);
             args.add(trimChars);
             args.add(e);
