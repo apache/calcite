@@ -8157,7 +8157,7 @@ public class JdbcTest {
 
   /** Factory for EMP and DEPT tables. */
   public static class EmpDeptTableFactory implements TableFactory<Table> {
-    public static final TryThreadLocal<List<Employee>> THREAD_COLLECTION =
+    public static final TryThreadLocal<@Nullable List<Employee>> THREAD_COLLECTION =
         TryThreadLocal.of(null);
 
     public Table create(
@@ -8253,7 +8253,7 @@ public class JdbcTest {
 
   /** Mock driver that a given {@link Handler}. */
   public static class HandlerDriver extends org.apache.calcite.jdbc.Driver {
-    private static final TryThreadLocal<Handler> HANDLERS =
+    private static final TryThreadLocal<@Nullable Handler> HANDLERS =
         TryThreadLocal.of(null);
 
     public HandlerDriver() {
