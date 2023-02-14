@@ -278,19 +278,17 @@ public class SqlUpdate extends SqlCall {
   private void unparseUpdateSources(
       List<SqlNode> sources, SqlWriter writer, int opLeft, int opRight) {
     writer.keyword("FROM");
-    for (int index = 0; index < sources.size(); index++) {
-      SqlNode source = sources.get(index);
+    final SqlWriter.Frame sourcesFrame = writer.startList("", "");
+    for (SqlNode source: sources) {
+      writer.sep(",");
       source.unparse(writer, opLeft, opRight);
-      if (sources.size() - 1 != index) {
-        writer.keyword(",");
-      }
     }
-
+    writer.endList(sourcesFrame);
     if (sources.size() == 1) {
-      SqlIdentifier fromAlias = getAliasForFromClause();
-      if (fromAlias != null) {
+      SqlIdentifier aliasForFromClause = getAliasForFromClause();
+      if (aliasForFromClause != null) {
         writer.keyword("AS");
-        fromAlias.unparse(writer, opLeft, opRight);
+        aliasForFromClause.unparse(writer, opLeft, opRight);
       }
     }
   }
