@@ -2749,7 +2749,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           select,
           SqlSelect.WHERE_OPERAND);
 
-      // Register subqueries in the qualify clause
+      // Register subqueries in the QUALIFY clause
       registerOperandSubQueries(
           selectScope,
           select,
@@ -4217,56 +4217,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throw newValidationError(qualifyNode, RESOURCE.condMustBeBoolean("QUALIFY"));
     }
 
-    boolean qualifyContainsWindowFunction = qualifyNode.accept(WindowFunctionDetector.INSTANCE);
+    boolean qualifyContainsWindowFunction = overFinder.findAgg(qualifyNode) != null;
     if (!qualifyContainsWindowFunction) {
       throw newValidationError(qualifyNode,
           RESOURCE.qualifyExpressionMustContainWindowFunction(qualifyNode.toString()));
-    }
-  }
-
-  /** Detects OVER. */
-  private static final class WindowFunctionDetector implements SqlVisitor<Boolean> {
-    public static final WindowFunctionDetector INSTANCE = new WindowFunctionDetector();
-    private WindowFunctionDetector() {}
-
-    @Override public Boolean visit(SqlLiteral literal) {
-      return false;
-    }
-
-    @Override public Boolean visit(SqlCall call) {
-      if (call.getKind() == SqlKind.OVER) {
-        return true;
-      }
-
-      return call
-          .getOperandList()
-          .stream()
-          .filter(Objects::nonNull)
-          .anyMatch(operand -> operand.accept(this));
-    }
-
-    @Override public Boolean visit(SqlNodeList nodeList) {
-      return nodeList
-          .getList()
-          .stream()
-          .filter(Objects::nonNull)
-          .anyMatch(node -> node.accept(this));
-    }
-
-    @Override public Boolean visit(SqlIdentifier id) {
-      return false;
-    }
-
-    @Override public Boolean visit(SqlDataTypeSpec type) {
-      return false;
-    }
-
-    @Override public Boolean visit(SqlDynamicParam param) {
-      return false;
-    }
-
-    @Override public Boolean visit(SqlIntervalQualifier intervalQualifier) {
-      return false;
     }
   }
 
@@ -6888,24 +6842,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return super.visit(id);
       }
 
-      boolean replaceAliases;
-      switch (clause) {
-      case GROUP_BY:
-        replaceAliases = validator.config().conformance().isGroupByAlias();
-        break;
-
-      case HAVING:
-        replaceAliases = validator.config().conformance().isHavingAlias();
-        break;
-
-      case QUALIFY:
-        replaceAliases = true;
-        break;
-
-      default:
-        throw Util.unexpected(clause);
-      }
-
+      final boolean replaceAliases = shouldReplaceAliases(validator.config, clause);
       if (!replaceAliases) {
         final SelectScope scope = validator.getRawSelectScope(select);
         SqlNode node = expandCommonColumn(select, id, scope, validator);
@@ -6952,7 +6889,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public @Nullable SqlNode visit(SqlLiteral literal) {
-      boolean expandGroupByOrdinal = (clause == ExpansionClause.GROUP_BY) && validator.config().conformance().isGroupByOrdinal();
+      boolean expandGroupByOrdinal = (clause == ExpansionClause.GROUP_BY)
+          && validator.config().conformance().isGroupByOrdinal();
       if (!expandGroupByOrdinal) {
         return super.visit(literal);
       }
@@ -6997,6 +6935,41 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
       return super.visit(literal);
+    }
+
+    /**
+     * Determines if the extender should replace aliases with expanded values.
+     * For example:
+     *
+     *  SELECT a + a as twoA
+     *  GROUP BY twoA
+     *
+     *  turns into
+     *
+     *  SELECT a + a as twoA
+     *  GROUP BY a + a
+     *
+     * This is determine both by the clause and the config
+     * @param config The configuration
+     * @param clause The clause
+     * @return Whether we should replace the alias with it's expanded value.
+     */
+    private static boolean shouldReplaceAliases(
+        Config config,
+        ExpansionClause clause) {
+      switch (clause) {
+      case GROUP_BY:
+        return config.conformance().isGroupByAlias();
+
+      case HAVING:
+        return config.conformance().isHavingAlias();
+
+      case QUALIFY:
+        return true;
+
+      default:
+        throw Util.unexpected(clause);
+      }
     }
   }
 
