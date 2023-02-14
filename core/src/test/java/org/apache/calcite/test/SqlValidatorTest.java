@@ -5106,7 +5106,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "QUALIFY ^SUM(deptno) = 1^";
     f.withSql(qualifyOnNonWindowFunction)
         .fails("QUALIFY expression 'SUM\\(`EMP`\\.`DEPTNO`\\) = 1' "
-            + "must contain a window function\\.");
+            + "must contain a window function");
 
     final String qualifyOnAliasedNonWindowFunction = ""
         + "SELECT ^SUM(deptno) as sumDeptNo\n"
@@ -5114,7 +5114,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "QUALIFY sumDeptNo = 1^";
     f.withSql(qualifyOnAliasedNonWindowFunction)
         .fails("QUALIFY expression 'SUM\\(`EMP`\\.`DEPTNO`\\) = 1' "
-            + "must contain a window function\\.");
+            + "must contain a window function");
 
     // This query fails, since it's a mix of regular aggregates and window
     // functions. This query needs to fail, since we assume that qualify filters
