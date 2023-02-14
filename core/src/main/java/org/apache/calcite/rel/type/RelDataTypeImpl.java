@@ -308,8 +308,7 @@ public abstract class RelDataTypeImpl
    */
   @SuppressWarnings("method.invocation.invalid")
   protected void computeDigest(
-      @UnknownInitialization RelDataTypeImpl this
-  ) {
+      @UnknownInitialization RelDataTypeImpl this) {
     StringBuilder sb = new StringBuilder();
     generateTypeString(sb, true);
     if (!isNullable()) {

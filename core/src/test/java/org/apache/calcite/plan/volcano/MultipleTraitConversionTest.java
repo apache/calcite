@@ -168,8 +168,7 @@ public class MultipleTraitConversionTest {
         RelOptPlanner planner,
         RelNode rel,
         CustomTrait toTrait,
-        boolean allowInfiniteCostConverters
-    ) {
+        boolean allowInfiniteCostConverters) {
       return new CustomTraitEnforcer(
           rel.getCluster(),
           rel.getTraitSet().replace(toTrait),
