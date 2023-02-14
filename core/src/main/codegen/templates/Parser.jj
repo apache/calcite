@@ -6294,28 +6294,35 @@ SqlNode BuiltinFunctionCall() :
                 flag = SqlTrimFunction.Flag.LEADING.symbol(getPos());
             }
         ]
+        // Distinguishing the "[x] FROM y" syntax at this point would require expensive and potentially
+        // tricky syntactic lookahead. So instead, we opt to manually throw contextExceptions
         [ e = Expression(ExprContext.ACCEPT_SUB_QUERY) ]
         [
                 <FROM> {
-                    if (null == flag && null == trimChars) {
+                    if (null == flag && null == e) {
                         throw SqlUtil.newContextException(getPos(),
                             RESOURCE.illegalFromEmpty());
                     }
-                    //Need to reinterpret e as the trimChars
-                    trimChars = e
+                    // Need to reinterpret e as the trimChars
+                    trimChars = e;
                     e = Expression(ExprContext.ACCEPT_SUB_QUERY);
-                    e = Expression(ExprContext.ACCEPT_SUB_QUERY)
                 }
             |
                 <COMMA> {
-                    if (flag != null) {
-                        throw SqlUtil.newContextException(getPos(),
-                                                RESOURCE.illegalFromEmpty());
+                    // We require a preceding expression and no BOTH/TRAILING/LEADING flag
+                    if (e == null || flag != null) {
+                        throw SqlUtil.newContextException(s.end(this),
+                                                RESOURCE.GenericTrimError());
                     }
                     trimChars = Expression(ExprContext.ACCEPT_SUB_QUERY);
                 }
         ]
         <RPAREN> {
+            // Check for empty TRIM()
+            if (e == null) {
+                throw SqlUtil.newContextException(s.end(this),
+                                                  RESOURCE.GenericTrimError());
+            }
             if (flag == null) {
                 flag = SqlTrimFunction.Flag.BOTH.symbol(SqlParserPos.ZERO);
             }

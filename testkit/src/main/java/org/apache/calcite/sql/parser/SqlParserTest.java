@@ -5060,8 +5060,12 @@ public class SqlParserTest {
     expr("trim('mustache' FROM 'beard'^,^ 'a')")
         .fails("(?s).*Encountered \",\" at.*");
 
-    expr("trim(^)^")
-        .fails("(?s).*Encountered \"\\)\" at.*");
+    expr("^trim()^")
+        .fails(
+            "Invalid Trim Syntax\\. We support TRIM\\(\\[BOTH/TRAILING/LEADING\\] trimchars from Y \\) and TRIM\\(X \\[, trimchars\\]\\)");
+    expr("^trim(, 'foo')^")
+        .fails(
+            "Invalid Trim Syntax\\. We support TRIM\\(\\[BOTH/TRAILING/LEADING\\] trimchars from Y \\) and TRIM\\(X \\[, trimchars\\]\\)");
   }
 
   @Test void testConvertAndTranslate() {
