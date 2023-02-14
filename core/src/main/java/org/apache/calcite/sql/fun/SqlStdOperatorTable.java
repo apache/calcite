@@ -272,8 +272,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
                 "inferred CONCAT element type");
           }),
           null,
-          OperandTypes.STRING_SAME_SAME_OR_ARRAY_SAME_SAME
-      );
+          OperandTypes.STRING_SAME_SAME_OR_ARRAY_SAME_SAME);
 
 
   /**

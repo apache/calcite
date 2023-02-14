@@ -96,8 +96,7 @@ public class CassandraSchema extends AbstractSchema {
         session.getKeyspace()
           .orElseThrow(() -> new RuntimeException("No keyspace for session " + session.getName()))
           .asInternal(),
-        name
-    );
+        name);
   }
 
   /**
@@ -112,8 +111,7 @@ public class CassandraSchema extends AbstractSchema {
       CqlSession session,
       SchemaPlus parentSchema,
       String keyspace,
-      String name
-  ) {
+      String name) {
     super();
 
     this.session = session;

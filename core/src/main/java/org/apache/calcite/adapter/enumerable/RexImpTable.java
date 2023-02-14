@@ -1393,8 +1393,7 @@ public class RexImpTable {
               Expressions.call(add.accumulator().get(0),
                   BuiltInMethod.COLLECTION_RETAIN_ALL.method,
                   add.arguments().get(0))
-          )
-      );
+          ));
 
       add.currentBlock().add(
           Expressions.ifThenElse(
@@ -2951,8 +2950,8 @@ public class RexImpTable {
                     Expressions.equal(nullValue, expression)),
                 Expressions.assign(list, nullValue),
                 Expressions.statement(
-                    Expressions.call(list, BuiltInMethod.COLLECTION_ADDALL.method, expression)))
-        );
+                    Expressions.call(list,
+                        BuiltInMethod.COLLECTION_ADDALL.method, expression))));
       }
       return list;
     }

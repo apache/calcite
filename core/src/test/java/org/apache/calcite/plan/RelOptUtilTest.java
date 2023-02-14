@@ -299,8 +299,7 @@ class RelOptUtilTest {
         joinCondition,
         joinKeys,
         null,
-        null
-    );
+        null);
     final List<List<RexNode>> expectedJoinKeys = Arrays.asList(
         Collections.emptyList(),
         Collections.emptyList());

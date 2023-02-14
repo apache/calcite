@@ -155,8 +155,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
             inputEnumerable,
             result.physType,
             physType
-        )
-    );
+        ));
 
     return implementor.result(physType, builder.toBlock());
   }

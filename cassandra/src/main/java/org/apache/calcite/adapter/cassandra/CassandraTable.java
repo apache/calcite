@@ -77,8 +77,7 @@ public class CassandraTable extends AbstractQueryableTable
       CassandraSchema schema,
       String keyspace,
       String columnFamily,
-      boolean isView
-  ) {
+      boolean isView) {
     super(Object[].class);
     this.keyspace = Optional.of(keyspace);
     this.columnFamily = columnFamily;
@@ -197,8 +196,7 @@ public class CassandraTable extends AbstractQueryableTable
         .append(" FROM \"");
 
     keyspace.ifPresent(s ->
-        queryBuilder.append(s).append("\".\"")
-    );
+        queryBuilder.append(s).append("\".\""));
 
     queryBuilder
         .append(columnFamily)
