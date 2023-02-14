@@ -5060,6 +5060,8 @@ public class SqlParserTest {
     expr("trim('mustache' FROM 'beard'^,^ 'a')")
         .fails("(?s).*Encountered \",\" at.*");
 
+    expr("trim()")
+        .fails("TODO");
   }
 
   @Test void testConvertAndTranslate() {
