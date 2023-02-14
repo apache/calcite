@@ -949,7 +949,8 @@ public class BigQuerySqlDialect extends SqlDialect {
    */
   private SqlLiteral getIntervalLiteral(SqlBasicCall intervalOperand) {
     if (intervalOperand.operand(1).getKind() == SqlKind.IDENTIFIER
-        || (intervalOperand.operand(1) instanceof SqlNumericLiteral)) {
+        || (intervalOperand.operand(1) instanceof SqlNumericLiteral)
+        || (intervalOperand.operand(1) instanceof SqlBasicCall)) {
       return ((SqlBasicCall) intervalOperand).operand(0);
     }
     return ((SqlBasicCall) intervalOperand).operand(1);
