@@ -66,6 +66,42 @@ public enum FormatElementEnum implements FormatElement {
       return formatter.format(date);
     }
   },
+  FF1("Fractional seconds to 1 digit") {
+    @Override public String format(Date date) {
+      DateFormat formatter = new SimpleDateFormat("S", Locale.ROOT);
+      return formatter.format(date);
+    }
+  },
+  FF2("Fractional seconds to 2 digits") {
+    @Override public String format(Date date) {
+      DateFormat formatter = new SimpleDateFormat("SS", Locale.ROOT);
+      return formatter.format(date);
+    }
+  },
+  FF3("Fractional seconds to 3 digits") {
+    @Override public String format(Date date) {
+      DateFormat formatter = new SimpleDateFormat("SSS", Locale.ROOT);
+      return formatter.format(date);
+    }
+  },
+  FF4("Fractional seconds to 4 digits") {
+    @Override public String format(Date date) {
+      DateFormat formatter = new SimpleDateFormat("SSSS", Locale.ROOT);
+      return formatter.format(date);
+    }
+  },
+  FF5("Fractional seconds to 5 digits") {
+    @Override public String format(Date date) {
+      DateFormat formatter = new SimpleDateFormat("SSSSS", Locale.ROOT);
+      return formatter.format(date);
+    }
+  },
+  FF6("Fractional seconds to 6 digits") {
+    @Override public String format(Date date) {
+      DateFormat formatter = new SimpleDateFormat("SSSSSS", Locale.ROOT);
+      return formatter.format(date);
+    }
+  },
   HH24("The hour (24-hour clock) as a decimal number (00-23)") {
     @Override public String format(Date date) {
       CAL.setTime(date);

@@ -184,8 +184,6 @@ public class MysqlSqlDialect extends SqlDialect {
     return super.getCastSpec(type);
   }
 
-
-
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
     final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);

@@ -62,6 +62,12 @@ import static org.apache.calcite.util.format.FormatElementEnum.DAY;
 import static org.apache.calcite.util.format.FormatElementEnum.DD;
 import static org.apache.calcite.util.format.FormatElementEnum.DDD;
 import static org.apache.calcite.util.format.FormatElementEnum.DY;
+import static org.apache.calcite.util.format.FormatElementEnum.FF1;
+import static org.apache.calcite.util.format.FormatElementEnum.FF2;
+import static org.apache.calcite.util.format.FormatElementEnum.FF3;
+import static org.apache.calcite.util.format.FormatElementEnum.FF4;
+import static org.apache.calcite.util.format.FormatElementEnum.FF5;
+import static org.apache.calcite.util.format.FormatElementEnum.FF6;
 import static org.apache.calcite.util.format.FormatElementEnum.HH24;
 import static org.apache.calcite.util.format.FormatElementEnum.IW;
 import static org.apache.calcite.util.format.FormatElementEnum.MI;
@@ -130,6 +136,12 @@ public class BigQuerySqlDialect extends SqlDialect {
                   SS, FormatModels.literalElement(" "),
                   YYYY), "The date and time representation (English)"))
           .put("%d", DD)
+          .put("%E1S", FF1)
+          .put("%E2S", FF2)
+          .put("%E3S", FF3)
+          .put("%E4S", FF4)
+          .put("%E5S", FF5)
+          .put("%E*S", FF6)
           .put("%H", HH24)
           .put("%j", DDD)
           .put("%M", MI)

@@ -8638,6 +8638,10 @@ public class SqlOperatorTest {
     f.checkScalar("FORMAT_TIMESTAMP('The time is: %R', TIMESTAMP '2008-12-25 15:30:00')",
         "The time is: 15:30",
         "VARCHAR(2000) NOT NULL");
+    f.checkScalar(
+        "FORMAT_TIMESTAMP('The time is: %R.%E2S', TIMESTAMP '2008-12-25 15:30:00.1235456')",
+        "The time is: 15:30.123",
+        "VARCHAR(2000) NOT NULL");
   }
 
 
