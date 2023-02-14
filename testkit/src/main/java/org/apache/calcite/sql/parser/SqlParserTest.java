@@ -8043,8 +8043,30 @@ public class SqlParserTest {
       }
     }
 
-    expr("timestampadd(^incorrect^, 1, current_timestamp)")
-        .fails("(?s).*Was expecting one of.*");
+    // tests for taking string as first argument
+    List<String> stringIntervalPart = ImmutableList.<String>builder()
+        .add("MILLISECOND")
+        .add("MICROSECOND")
+        .add("MINUTE")
+        .add("HOUR")
+        .add("DAY")
+        .add("WEEK")
+        .add("MONTH")
+        .add("QUARTER")
+        .add("YEAR")
+        .build();
+
+    String function = "timestampadd('%1$s', 5, current_timestamp)";
+    for (String interval : stringIntervalPart) {
+      expr(String.format(Locale.ROOT, function, interval, ""))
+          .ok(String.format(Locale.ROOT, function, interval, "`")
+              .toUpperCase(Locale.ROOT));
+    }
+
+    //  now timestampadd can take string/column as the first input argument
+    //  so it shouldn't throw error here, java code generator will check the input instead
+    //  expr("timestampadd(^incorrect^, 1, current_timestamp)")
+    //      .fails("(?s).*Was expecting one of.*");
     expr("timestampdiff(^incorrect^, current_timestamp, current_timestamp)")
         .fails("(?s).*Was expecting one of.*");
   }
@@ -8056,6 +8078,13 @@ public class SqlParserTest {
         + "FROM `T`\n"
         + "WHERE (TIMESTAMPADD(MONTH, 5, `HIREDATE`) < `CURDATE`)";
     sql(sql).ok(expected);
+
+    final String sql1 = "select * from t\n"
+        + "where timestampadd('DAY', 5, hiredate) < curdate";
+    final String expected1 = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE (TIMESTAMPADD('DAY', 5, `HIREDATE`) < `CURDATE`)";
+    sql(sql1).ok(expected1);
   }
 
   @Test void testTimestampDiff() {

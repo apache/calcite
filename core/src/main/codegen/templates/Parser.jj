@@ -6867,9 +6867,13 @@ SqlCall TimestampAddFunctionCall() :
 {
     <TIMESTAMPADD> { s = span(); }
     <LPAREN>
-    interval = TimestampInterval() {
-        args = startList(SqlLiteral.createSymbol(interval, getPos()));
-    }
+    (
+        interval = TimestampInterval() {
+            args = startList(SqlLiteral.createSymbol(interval, getPos()));
+        }
+    |
+        e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args = startList(e); interval = null; }
+    )
     <COMMA>
     e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e); }
     <COMMA>

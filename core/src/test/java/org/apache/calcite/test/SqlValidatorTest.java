@@ -4155,8 +4155,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("timestampdiff(SQL_TSI_WEEK, cast(null as timestamp), current_timestamp)")
         .columnType("INTEGER");
 
-    expr("timestampadd(^incorrect^, 1, current_timestamp)")
-        .fails("(?s).*Was expecting one of.*");
+    //  now timestampadd can take string/column as the first input argument
+    //  so it shouldn't throw error here, java code generator will check the input instead
+    //  expr("timestampadd(^incorrect^, 1, current_timestamp)")
+    //      .fails("(?s).*Was expecting one of.*");
     expr("timestampdiff(^incorrect^, current_timestamp, current_timestamp)")
         .fails("(?s).*Was expecting one of.*");
   }
