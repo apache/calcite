@@ -11209,25 +11209,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       super(opTab, catalogReader, typeFactory, config);
     }
 
-    @Override public SqlNode expand(SqlNode expr, SqlValidatorScope scope) {
-      SqlNode rewrittenNode = rewriteNode(expr);
-      return super.expand(rewrittenNode, scope);
+    @Override public SqlNode validate(SqlNode topNode) {
+      SqlNode rewrittenNode = rewriteNode(topNode);
+      return super.validate(rewrittenNode);
     }
 
-    @Override public SqlNode expandSelectExpr(SqlNode expr, SelectScope scope,
-        SqlSelect select) {
-      SqlNode rewrittenNode = rewriteNode(expr);
-      return super.expandSelectExpr(rewrittenNode, scope, select);
-    }
-
-    @Override public SqlNode extendedExpand(SqlNode expr,
-        SqlValidatorScope scope, SqlSelect select, ExpansionClause clause) {
-      SqlNode rewrittenNode = rewriteNode(expr);
-      return super.extendedExpand(rewrittenNode, scope, select,
-          clause);
-    }
-
-    private SqlNode rewriteNode(SqlNode sqlNode) {
+    private static SqlNode rewriteNode(SqlNode sqlNode) {
       return sqlNode.accept(new SqlShuttle() {
         @Override public SqlNode visit(SqlIdentifier id) {
           return rewriteIdentifier(id);
@@ -11235,8 +11222,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       });
     }
 
-    private SqlIdentifier rewriteIdentifier(SqlIdentifier sqlIdentifier) {
-      Preconditions.checkArgument(sqlIdentifier.names.size() == 2);
+    private static SqlIdentifier rewriteIdentifier(SqlIdentifier sqlIdentifier) {
+      if (sqlIdentifier.names.size() != 2) {
+        return sqlIdentifier;
+      }
+
       if (sqlIdentifier.names.get(0).equals("UNEXPANDED")) {
         return new SqlIdentifier(asList("DEPT", sqlIdentifier.names.get(1)),
             null, sqlIdentifier.getParserPosition(),
@@ -11246,7 +11236,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         //  Identifiers are expanded multiple times
         return sqlIdentifier;
       } else {
-        throw new RuntimeException("Unknown Identifier " + sqlIdentifier);
+        return sqlIdentifier;
       }
     }
   }

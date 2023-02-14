@@ -4202,7 +4202,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     SqlValidatorScope qualifyScope = getSelectScope(select);
 
-    qualifyNode = extendedExpand(qualifyNode, qualifyScope, select, ExpansionClause.QUALIFY);
+    qualifyNode = extendedExpand(qualifyNode, qualifyScope, select, Clause.QUALIFY);
     select.setQualify(qualifyNode);
 
     inferUnknownTypes(
@@ -4417,7 +4417,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     List<SqlNode> expandedList = new ArrayList<>();
     for (SqlNode groupItem : groupList) {
       SqlNode expandedItem =
-          extendedExpand(groupItem, groupScope, select, ExpansionClause.GROUP_BY);
+          extendedExpand(groupItem, groupScope, select, Clause.GROUP_BY);
       expandedList.add(expandedItem);
     }
     groupList = new SqlNodeList(expandedList, groupList.getParserPosition());
@@ -4547,7 +4547,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final AggregatingScope havingScope =
         (AggregatingScope) getSelectScope(select);
     if (config.conformance().isHavingAlias()) {
-      SqlNode newExpr = extendedExpand(having, havingScope, select, ExpansionClause.HAVING);
+      SqlNode newExpr = extendedExpand(having, havingScope, select, Clause.HAVING);
       if (having != newExpr) {
         having = newExpr;
         select.setHaving(newExpr);
@@ -6224,8 +6224,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /** Expands an expression in a GROUP BY, HAVING or QUALIFY clause. */
-  public SqlNode extendedExpand(SqlNode expr,
-      SqlValidatorScope scope, SqlSelect select, ExpansionClause clause) {
+  private SqlNode extendedExpand(SqlNode expr,
+      SqlValidatorScope scope, SqlSelect select, Clause clause) {
     final Expander expander =
         new ExtendedExpander(this, scope, select, expr, clause);
     SqlNode newExpr = expander.go(expr);
@@ -6233,6 +6233,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       setOriginal(newExpr, expr);
     }
     return newExpr;
+  }
+
+  public SqlNode extendedExpandGroupBy(SqlNode expr,
+      SqlValidatorScope scope, SqlSelect select) {
+    return extendedExpand(expr, scope, select, Clause.GROUP_BY);
   }
 
   @Override public boolean isSystemField(RelDataTypeField field) {
@@ -6827,10 +6832,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   static class ExtendedExpander extends Expander {
     final SqlSelect select;
     final SqlNode root;
-    final ExpansionClause clause;
+    final Clause clause;
 
     ExtendedExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
-        SqlSelect select, SqlNode root, ExpansionClause clause) {
+        SqlSelect select, SqlNode root, Clause clause) {
       super(validator, scope);
       this.select = select;
       this.root = root;
@@ -6874,7 +6879,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             RESOURCE.columnAmbiguous(name));
       }
 
-      if ((clause == ExpansionClause.HAVING) && validator.isAggregate(root)) {
+      if ((clause == Clause.HAVING) && validator.isAggregate(root)) {
         return super.visit(id);
       }
 
@@ -6889,7 +6894,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public @Nullable SqlNode visit(SqlLiteral literal) {
-      boolean expandGroupByOrdinal = (clause == ExpansionClause.GROUP_BY)
+      boolean expandGroupByOrdinal = (clause == Clause.GROUP_BY)
           && validator.config().conformance().isGroupByOrdinal();
       if (!expandGroupByOrdinal) {
         return super.visit(literal);
@@ -6956,7 +6961,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      */
     private static boolean shouldReplaceAliases(
         Config config,
-        ExpansionClause clause) {
+        Clause clause) {
       switch (clause) {
       case GROUP_BY:
         return config.conformance().isGroupByAlias();
@@ -7436,12 +7441,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     GROUP_BY,
     SELECT,
     ORDER,
-    CURSOR
-  }
-
-  /** Which clause is being expanded. */
-  public enum ExpansionClause {
-    GROUP_BY,
+    CURSOR,
     HAVING,
     QUALIFY,
   }
