@@ -478,7 +478,7 @@ public interface CalciteResource {
   @BaseMessage("Duplicate window specification not allowed in the same window clause")
   ExInst<SqlValidatorException> dupWindowSpec();
 
-  @BaseMessage("QUALIFY expression ''{0}'' must contain a window function.")
+  @BaseMessage("QUALIFY expression ''{0}'' must contain a window function")
   ExInst<SqlValidatorException> qualifyExpressionMustContainWindowFunction(String a0);
 
   @BaseMessage("ROW/RANGE not allowed with RANK, DENSE_RANK or ROW_NUMBER functions")
