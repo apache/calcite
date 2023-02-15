@@ -95,6 +95,9 @@ public interface CalciteResource {
   @BaseMessage("''FROM'' without operands preceding it is illegal")
   ExInst<CalciteException> illegalFromEmpty();
 
+  @BaseMessage("Invalid Trim Syntax. We support TRIM([BOTH/TRAILING/LEADING] trimchars from Y ) and TRIM(X [, trimchars])")
+  ExInst<CalciteException> genericTrimError();
+
   @BaseMessage("ROW expression encountered in illegal context")
   ExInst<CalciteException> illegalRowExpression();
 

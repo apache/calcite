@@ -5035,6 +5035,8 @@ public class SqlParserTest {
   }
 
   @Test void testTrim() {
+    expr("trim('mustache', 'a')")
+        .ok("TRIM(BOTH 'a' FROM 'mustache')");
     expr("trim('mustache' FROM 'beard')")
         .ok("TRIM(BOTH 'mustache' FROM 'beard')");
     expr("trim('mustache')")
@@ -5054,6 +5056,36 @@ public class SqlParserTest {
 
     sql("trim(^from^ 'beard')")
         .fails("(?s).*'FROM' without operands preceding it is illegal.*");
+
+    expr("trim('mustache' FROM 'beard'^,^ 'a')")
+        .fails("(?s).*Encountered \",\" at.*");
+
+    //Sanity check that lookahead isn't going to be an issue
+    expr("trim('mustache'||'beard'||'hello'||'beard'||'hello', "
+        + "'hello'||'beard'||'hello'||'beard'||'hello')")
+        .ok("TRIM(BOTH (((('hello' || 'beard') || 'hello') || 'beard') || 'hello') "
+            + "FROM (((('mustache' || 'beard') || 'hello') || 'beard') || 'hello'))");
+
+    expr("trim(LEADING 'mustache'||'beard'||'hello'||'beard'||'hello' FROM "
+        + "'hello'||'beard'||'hello'||'beard'||'hello')")
+        .ok("TRIM(LEADING (((('mustache' || 'beard') || 'hello') || 'beard') || 'hello')"
+            + " FROM (((('hello' || 'beard') || 'hello') || 'beard') || 'hello'))");
+
+    expr("trim('mustache'||'beard'||'hello'||'beard'||'hello' FROM "
+        + "'hello'||'beard'||'hello'||'beard'||'hello')")
+        .ok("TRIM(BOTH (((('mustache' || 'beard') || 'hello') || 'beard') || 'hello')"
+            + " FROM (((('hello' || 'beard') || 'hello') || 'beard') || 'hello'))");
+
+    expr("^trim()^")
+        .fails(
+            "Invalid Trim Syntax\\. "
+                + "We support TRIM\\(\\[BOTH/TRAILING/LEADING\\] trimchars from Y \\) "
+                + "and TRIM\\(X \\[, trimchars\\]\\)");
+    expr("^trim(,^ 'foo')")
+        .fails(
+            "Invalid Trim Syntax\\. "
+                + "We support TRIM\\(\\[BOTH/TRAILING/LEADING\\] trimchars from Y \\) "
+                + "and TRIM\\(X \\[, trimchars\\]\\)");
   }
 
   @Test void testConvertAndTranslate() {
