@@ -747,12 +747,12 @@ public class CalciteAssert {
     return n;
   }
 
-  static Collection<String> toStringList(ResultSet resultSet,
+  public static Collection<String> toStringList(ResultSet resultSet,
       Collection<String> list) throws SQLException {
     return new ResultSetFormatter().toStringList(resultSet, list);
   }
 
-  static List<String> toList(ResultSet resultSet) throws SQLException {
+  public static List<String> toList(ResultSet resultSet) throws SQLException {
     return (List<String>) toStringList(resultSet, new ArrayList<String>());
   }
 

@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.RangeSet;
 
@@ -84,10 +85,15 @@ public class Matchers {
    *   returnsUnordered("empno=1234", "empno=100"));</pre>
    */
   public static Matcher<? super ResultSet> returnsUnordered(String... lines) {
+    return returnsUnordered(ImmutableList.copyOf(lines));
+  }
+
+  /** As {@link #returnsUnordered(String...)}, but argument is a list. */
+  public static Matcher<? super ResultSet> returnsUnordered(List<String> lines) {
     final List<String> expectedList = Lists.newArrayList(lines);
     Collections.sort(expectedList);
 
-    return new CustomTypeSafeMatcher<ResultSet>(Arrays.toString(lines)) {
+    return new CustomTypeSafeMatcher<ResultSet>(lines.toString()) {
       @Override protected void describeMismatchSafely(ResultSet item,
           Description description) {
         final Object value = THREAD_ACTUAL.get();

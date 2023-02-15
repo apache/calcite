@@ -1952,6 +1952,25 @@ class UtilTest {
     }
   }
 
+  @SuppressWarnings("resource")
+  @Test void testToken() {
+    final Token.Pool pool = Token.pool();
+    final Token token1 = pool.token();
+    final Token token2 = pool.token();
+    final Token token3 = pool.token();
+    final Token token4 = pool.token();
+    token2.close();
+    token4.close();
+    // Token 2 closed twice
+    assertThrows(RuntimeException.class, token2::close);
+    token1.close();
+    // Pool is not empty
+    assertThrows(RuntimeException.class, pool::assertEmpty);
+    token3.close();
+    // Pool is now empty
+    pool.assertEmpty();
+  }
+
   /** Tests that sorted sets behave the way we expect. */
   @Test void testSortedSet() {
     final TreeSet<String> treeSet = new TreeSet<String>();

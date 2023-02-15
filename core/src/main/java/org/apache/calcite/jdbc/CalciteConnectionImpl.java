@@ -150,6 +150,16 @@ abstract class CalciteConnectionImpl
         requireNonNull(rootSchema != null
             ? rootSchema
             : CalciteSchema.createRootSchema(true));
+
+    final String schema = cfg.schema();
+    if (schema != null && !schema.isEmpty()) {
+      try {
+        setSchema(schema);
+      } catch (SQLException e) {
+        throw new AssertionError(e); // not possible
+      }
+    }
+
     // Add dual table metadata when isSupportedDualTable return true
     if (cfg.conformance().isSupportedDualTable()) {
       SchemaPlus schemaPlus = this.rootSchema.plus();
