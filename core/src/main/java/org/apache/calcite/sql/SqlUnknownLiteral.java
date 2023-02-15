@@ -39,6 +39,10 @@ public class SqlUnknownLiteral extends SqlLiteral {
     return (String) requireNonNull(super.getValue(), "value");
   }
 
+  @Override public SqlLiteral clone(SqlParserPos pos) {
+    return new SqlUnknownLiteral(tag, getValue(), pos);
+  }
+
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     final NlsString nlsString = new NlsString(getValue(), null, null);
     writer.keyword(tag);
