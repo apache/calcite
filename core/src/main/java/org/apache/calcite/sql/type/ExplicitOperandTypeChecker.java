@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.validate.SqlValidator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,6 +68,11 @@ public class ExplicitOperandTypeChecker implements SqlOperandTypeChecker {
   }
 
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+    return "<TYPE> " + opName + " <TYPE>";
+  }
+
+  @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+      SqlValidator validator) {
     return "<TYPE> " + opName + " <TYPE>";
   }
 }

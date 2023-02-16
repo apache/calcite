@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.validate.SqlValidator;
 
 import com.google.common.collect.ImmutableList;
 
@@ -82,6 +83,11 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
   }
 
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+    return "<MULTISET> " + opName + " <MULTISET>";
+  }
+
+  @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+      SqlValidator validator) {
     return "<MULTISET> " + opName + " <MULTISET>";
   }
 }

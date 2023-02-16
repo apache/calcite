@@ -20,6 +20,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Util;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -74,6 +75,11 @@ public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
   }
 
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+    return "<LITERAL>";
+  }
+
+  @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+      SqlValidator validator) {
     return "<LITERAL>";
   }
 }

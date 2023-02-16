@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
 import com.google.common.collect.ImmutableList;
@@ -188,5 +189,10 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
 
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return SqlUtil.getAliasedSignature(op, opName, families);
+  }
+
+  @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+      SqlValidator validator) {
+    return SqlUtil.getAliasedSignatureWithValidator(op, opName, families, validator);
   }
 }

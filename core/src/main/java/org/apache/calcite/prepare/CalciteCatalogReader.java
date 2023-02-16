@@ -16,8 +16,13 @@
  */
 package org.apache.calcite.prepare;
 
+import com.google.common.collect.BiMap;
+
+import com.google.common.collect.HashBiMap;
+
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.CalciteSchema.TypeEntry;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.function.Hints;
 import org.apache.calcite.model.ModelHandler;
@@ -88,6 +93,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   private final List<List<String>> schemaPaths;
   protected final SqlNameMatcher nameMatcher;
   protected final CalciteConnectionConfig config;
+  protected BiMap<TypeEntry, String> aliasTypeMap;
 
   public CalciteCatalogReader(CalciteSchema rootSchema,
       List<String> defaultSchema, RelDataTypeFactory typeFactory, CalciteConnectionConfig config) {
@@ -108,6 +114,23 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
             : new LinkedHashSet<>(schemaPaths));
     this.typeFactory = typeFactory;
     this.config = config;
+    this.aliasTypeMap = HashBiMap.create();
+    populateAliasTypeMap(this.aliasTypeMap, rootSchema);
+  }
+
+
+  public static void populateAliasTypeMap(BiMap<TypeEntry, String> aliasTypeMap,
+      CalciteSchema schema) {
+
+    for (String typeName: schema.getTypeNames()){
+      TypeEntry typeEntry = schema.getType(typeName, true);
+      if (typeEntry!=null){
+        aliasTypeMap.put(typeEntry, typeName);
+      }
+    }
+    for (CalciteSchema subschema: schema.getSubSchemaMap().values()){
+      populateAliasTypeMap(aliasTypeMap, subschema);
+    }
   }
 
   @Override public CalciteCatalogReader withSchemaPath(List<String> schemaPath) {
@@ -172,8 +195,14 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     }
     return functions2;
   }
+  // public @Nullable SqlIdentifier getNameFromType(RelDataType type) {
+  //   // fill this out
+  // // SqlValidatorUtil.getNameFromType(getRootSchema(), type);
+  //   return null;
+  // }
 
   @Override public @Nullable RelDataType getNamedType(SqlIdentifier typeName) {
+    // getRootSchema().schema.
     CalciteSchema.TypeEntry typeEntry = SqlValidatorUtil.getTypeEntry(getRootSchema(), typeName);
     if (typeEntry != null) {
       return typeEntry.getType().apply(typeFactory);
@@ -451,5 +480,10 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
       return aClass.cast(this);
     }
     return null;
+  }
+
+  @Override
+  public BiMap<TypeEntry, String> getAliasTypeMap() {
+    return aliasTypeMap;
   }
 }

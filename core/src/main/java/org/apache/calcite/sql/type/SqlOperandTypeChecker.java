@@ -19,6 +19,7 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.validate.SqlValidator;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -59,6 +60,8 @@ public interface SqlOperandTypeChecker {
    * @return generated string
    */
   String getAllowedSignatures(SqlOperator op, String opName);
+
+  String getAllowedSignaturesUsingValidator(SqlOperator op, String opName, SqlValidator validator);
 
   /** Returns the strategy for making the arguments have consistency types. */
   default Consistency getConsistency() {

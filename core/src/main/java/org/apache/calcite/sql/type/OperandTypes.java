@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
@@ -374,6 +375,11 @@ public abstract class OperandTypes {
       }
 
       @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+        return opName + "(...)";
+      }
+
+      @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+          SqlValidator validator) {
         return opName + "(...)";
       }
     };
@@ -774,7 +780,12 @@ public abstract class OperandTypes {
         @Override public String getAllowedSignatures(SqlOperator op, String opName) {
           return opName + "(<ANY>, <COMPARABLE_TYPE>)";
         }
-  };
+
+        @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+            SqlValidator validator) {
+          return opName + "(<ANY>, <COMPARABLE_TYPE>)";
+        }
+      };
 
   public static final SqlSingleOperandTypeChecker CURSOR =
       family(SqlTypeFamily.CURSOR);
@@ -912,6 +923,11 @@ public abstract class OperandTypes {
         @Override public String getAllowedSignatures(SqlOperator op, String opName) {
           return "UNNEST(<MULTISET>)";
         }
+
+        @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+            SqlValidator validator) {
+          return "UNNEST(<MULTISET>)";
+        }
       };
 
   /**
@@ -969,7 +985,12 @@ public abstract class OperandTypes {
           @Override public String getAllowedSignatures(SqlOperator op, String opName) {
             return "UNNEST(<MULTISET>)\nUNNEST(<ARRAY>)\nUNNEST(<MAP>)";
           }
-        });
+
+            @Override public String getAllowedSignaturesUsingValidator(SqlOperator op,
+                String opName, SqlValidator validator) {
+              return "UNNEST(<MULTISET>)\nUNNEST(<ARRAY>)\nUNNEST(<MAP>)";
+            }
+          });
 
   public static final SqlOperandTypeChecker MULTISET_MULTISET =
       new MultisetOperandTypeChecker();
@@ -1004,6 +1025,12 @@ public abstract class OperandTypes {
         }
 
         @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+          return SqlUtil.getAliasedSignature(op, opName,
+              ImmutableList.of("RECORDTYPE(SINGLE FIELD)"));
+        }
+
+        @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+            SqlValidator validator) {
           return SqlUtil.getAliasedSignature(op, opName,
               ImmutableList.of("RECORDTYPE(SINGLE FIELD)"));
         }
@@ -1050,6 +1077,13 @@ public abstract class OperandTypes {
           ImmutableList.of("PERIOD (DATETIME, INTERVAL)",
               "PERIOD (DATETIME, DATETIME)"));
     }
+
+    @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+        SqlValidator validator) {
+      return SqlUtil.getAliasedSignature(op, opName,
+          ImmutableList.of("PERIOD (DATETIME, INTERVAL)",
+              "PERIOD (DATETIME, DATETIME)"));
+    }
   }
 
   /** Checker that passes if the operand's type has a particular
@@ -1081,6 +1115,11 @@ public abstract class OperandTypes {
     }
 
     @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+      return opName + "(" + typeName.getSpaceName() + ")";
+    }
+
+    @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+        SqlValidator validator) {
       return opName + "(" + typeName.getSpaceName() + ")";
     }
   }

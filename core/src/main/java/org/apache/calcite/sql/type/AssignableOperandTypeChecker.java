@@ -16,12 +16,17 @@
  */
 package org.apache.calcite.sql.type;
 
+import java.util.stream.Stream;
+
+import org.apache.calcite.jdbc.CalciteSchema.TypeEntry;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -93,6 +98,31 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
       }
       if (paramNames != null) {
         sb.append(paramNames.get(paramType.i))
+            .append(" => ");
+      }
+      sb.append("<");
+      sb.append(paramType.e.getFamily());
+      sb.append(">");
+    }
+    sb.append(")");
+    return sb.toString();
+  }
+
+  @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+      SqlValidator validator) {
+    StringBuilder sb = new StringBuilder();
+    // validator.getCatalogReader().alias
+    sb.append(opName);
+    sb.append("(");
+    for (Ord<RelDataType> paramType : Ord.zip(paramTypes)) {
+      if (paramType.i > 0) {
+        sb.append(", ");
+      }
+      if (paramNames != null) {
+        String paramTypeName = paramNames.get(paramType.i);
+        // String aliasedName = SqlValidatorUtil.getAliasedTypeName(validator, paramTypeName);
+        String aliasedName = paramTypeName;
+        sb.append(aliasedName)
             .append(" => ");
       }
       sb.append("<");

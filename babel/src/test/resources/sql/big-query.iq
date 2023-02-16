@@ -1937,7 +1937,7 @@ SELECT
 SELECT
   TIMESTAMP "2010-07-07 10:20:00" AS later_timestamp,
   TIMESTAMP "2008-12-25 15:30:00" AS earlier_timestamp,
-  TIMESTAMP_DIFF(TIMESTAMP "2010-07-07 10:20:00", TIMESTAMP "2008-12-25 15:30:00", HOUR) AS hours;
+  TIMESTAMP_DIFF(1, TIMESTAMP "2008-12-25 15:30:00", HOUR) AS hours;
 +---------------------+---------------------+-------+
 | later_timestamp     | earlier_timestamp   | hours |
 +---------------------+---------------------+-------+

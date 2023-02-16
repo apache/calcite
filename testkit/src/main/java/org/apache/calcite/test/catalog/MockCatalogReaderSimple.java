@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.test.catalog;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+
+import org.apache.calcite.jdbc.CalciteSchema.TypeEntry;
+import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -45,6 +50,7 @@ import java.util.List;
  */
 public class MockCatalogReaderSimple extends MockCatalogReader {
   private final ObjectSqlType addressType;
+  static BiMap<TypeEntry, String> aliasTypeMap;
 
   /**
    * Creates a MockCatalogReader.
@@ -60,6 +66,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     super(typeFactory, caseSensitive);
 
     addressType = new Fixture(typeFactory).addressType;
+    this.aliasTypeMap = HashBiMap.create();
   }
 
   /** Creates and initializes a MockCatalogReaderSimple. */
@@ -439,6 +446,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     }
     registerTable(struct10View);
     registerTablesWithRollUp(salesSchema, fixture);
+    populateAliasTypeMap(aliasTypeMap, getRootSchema());
     return this;
 
   }

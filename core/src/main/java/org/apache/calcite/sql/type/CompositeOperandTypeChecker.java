@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Util;
 
@@ -154,12 +155,45 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
       if (ord.i > 0) {
         ret.append(SqlOperator.NL);
       }
+      // is call binding available here?
+
       ret.append(ord.e.getAllowedSignatures(op, opName));
       if (composition == Composition.AND) {
         break;
       }
     }
     return ret.toString();
+  }
+
+  @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+      SqlValidator validator) {
+    if (allowedSignatures != null) {
+      return allowedSignatures;
+    }
+    if (signatureGenerator != null) {
+      return signatureGenerator.apply(op, opName);
+    }
+    if (composition == Composition.SEQUENCE) {
+      throw new AssertionError(
+          "specify allowedSignatures or override getAllowedSignatures");
+    }
+    StringBuilder ret = new StringBuilder();
+    for (Ord<SqlOperandTypeChecker> ord
+        : Ord.<SqlOperandTypeChecker>zip(allowedRules)) {
+      if (ord.i > 0) {
+        ret.append(SqlOperator.NL);
+      }
+      // is call binding available here?
+      ret.append("test");
+      validator.getCatalogReader().getRootSchema();
+
+      ret.append(ord.e.getAllowedSignaturesUsingValidator(op, opName, validator));
+      if (composition == Composition.AND) {
+        break;
+      }
+    }
+    return ret.toString();
+
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {

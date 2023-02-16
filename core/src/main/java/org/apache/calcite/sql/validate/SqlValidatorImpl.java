@@ -1040,7 +1040,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         if ((op.getSyntax() == SqlSyntax.FUNCTION)
             || (op.getSyntax() == SqlSyntax.PREFIX)) {
           if (op.getOperandTypeChecker() != null) {
+            // is validator available here? yes
+            // validator.getCatalogReader().getTypeFromName(op.getName())
             String sig = op.getAllowedSignatures();
+            // String sig = op.getAllowedSignaturesUsingValidator(validator);
             sig = sig.replace("'", "");
             result.add(
                 new SqlMonikerImpl(

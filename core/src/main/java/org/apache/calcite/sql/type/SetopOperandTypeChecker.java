@@ -148,4 +148,9 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return "{0} " + opName + " {1}";
   }
+
+  @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+      SqlValidator validator) {
+    return "{0} " + opName + " {1}";
+  }
 }

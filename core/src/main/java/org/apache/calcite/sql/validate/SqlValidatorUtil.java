@@ -16,10 +16,17 @@
  */
 package org.apache.calcite.sql.validate;
 
+import java.util.ArrayDeque;
+import java.util.Optional;
+import java.util.Queue;
+
+import java.util.stream.Stream;
+
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.CalciteSchema.TypeEntry;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptSchemaWithSampling;
@@ -1037,6 +1044,25 @@ public class SqlValidatorUtil {
       }
     }
     return schema.getType(name, false);
+  }
+
+  // public static SqlIdentifier getNameFromType(
+  //     CalciteSchema rootSchema, RelDataType type) {
+  //   // SqlIdentifier target = type.;
+  //   Queue<CalciteSchema> queue = new ArrayDeque<>();
+  //   queue.add(rootSchema);
+  //   while(!queue.isEmpty()){
+  //     CalciteSchema currentSchema = queue.remove();
+  //     if currentSchema.getType
+  //   }
+  //   return null;
+  // }
+  public static String getAliasedTypeName(SqlValidator validator, String typeName){
+    ImmutableList<TypeEntry> matches = validator.getCatalogReader().getAliasTypeMap().keySet().stream().filter(key ->
+        key.getType().apply(validator.getTypeFactory()).getSqlTypeName().getName() == typeName
+    ).collect(Util.toImmutableList());
+    return matches.size() > 0 ?
+        matches.get(0).name : typeName;
   }
 
   /**

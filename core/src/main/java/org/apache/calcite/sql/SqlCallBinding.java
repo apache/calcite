@@ -398,10 +398,13 @@ public class SqlCallBinding extends SqlOperatorBinding {
    * @return signature exception
    */
   public CalciteException newValidationSignatureError() {
+    // String type = validator.getCatalogReader().getNamedType(call.getOperator()
+    // .getNameAsId()).getSqlTypeName().getName();
     return validator.newValidationError(call,
         RESOURCE.canNotApplyOp2Type(getOperator().getName(),
             call.getCallSignature(validator, scope),
-            getOperator().getAllowedSignatures()));
+            // getOperator().getAllowedSignatures()));
+            getOperator().getAllowedSignaturesUsingValidator(validator)));
   }
 
   /**

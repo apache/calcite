@@ -38,6 +38,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BarfingInvocationHandler;
 import org.apache.calcite.util.ConversionUtil;
@@ -887,6 +888,43 @@ public abstract class SqlUtil {
         }
         final String t = String.valueOf(typeList.get(i)).toUpperCase(Locale.ROOT);
         ret.append("<").append(t).append(">");
+      }
+      ret.append(")'");
+    } else {
+      Object[] values = new Object[typeList.size() + 1];
+      values[0] = opName;
+      ret.append("'");
+      for (int i = 0; i < typeList.size(); i++) {
+        final String t = String.valueOf(typeList.get(i)).toUpperCase(Locale.ROOT);
+        values[i + 1] = "<" + t + ">";
+      }
+      ret.append(new MessageFormat(template, Locale.ROOT).format(values));
+      ret.append("'");
+      assert (typeList.size() + 1) == values.length;
+    }
+
+    return ret.toString();
+  }
+
+  public static String getAliasedSignatureWithValidator(
+      SqlOperator op,
+      String opName,
+      List<?> typeList,
+      SqlValidator validator
+      ) {
+    StringBuilder ret = new StringBuilder();
+    String template = op.getSignatureTemplate(typeList.size());
+    if (null == template) {
+      ret.append("'");
+      ret.append(opName);
+      ret.append("(");
+      for (int i = 0; i < typeList.size(); i++) {
+        if (i > 0) {
+          ret.append(", ");
+        }
+        final String t = String.valueOf(typeList.get(i)).toUpperCase(Locale.ROOT);
+        String aliasedType = SqlValidatorUtil.getAliasedTypeName(validator, t);
+        ret.append("<").append(aliasedType).append(">");
       }
       ret.append(")'");
     } else {
