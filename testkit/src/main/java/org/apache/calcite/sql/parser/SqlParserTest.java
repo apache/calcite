@@ -5328,32 +5328,32 @@ public class SqlParserTest {
   }
 
   @Test void testAsAliases() {
-//    sql("select x from t as t1 (a, b) where foo")
-//        .ok("SELECT `X`\n"
-//            + "FROM `T` AS `T1` (`A`, `B`)\n"
-//            + "WHERE `FOO`");
+    sql("select x from t as t1 (a, b) where foo")
+        .ok("SELECT `X`\n"
+            + "FROM `T` AS `T1` (`A`, `B`)\n"
+            + "WHERE `FOO`");
 
     sql("select x from (values (1, 2), (3, 4)) as t1 (\"a\", b) where \"a\" > b")
         .ok("SELECT `X`\n"
             + "FROM (VALUES (ROW(1, 2)),\n"
             + "(ROW(3, 4))) AS `T1` (`a`, `B`)\n"
             + "WHERE (`a` > `B`)");
-//
-//    // must have at least one column
-//    sql("select x from (values (1, 2), (3, 4)) as t1 (^)^")
-//        .fails("(?s).*Encountered \"\\)\" at .*");
-//
-//    // cannot have expressions
-//    sql("select x from t as t1 (x ^+^ y)")
-//        .fails("(?s).*Was expecting one of:\n"
-//            + "    \"\\)\" \\.\\.\\.\n"
-//            + "    \",\" \\.\\.\\..*");
-//
-//    // cannot have compound identifiers
-//    sql("select x from t as t1 (x^.^y)")
-//        .fails("(?s).*Was expecting one of:\n"
-//            + "    \"\\)\" \\.\\.\\.\n"
-//            + "    \",\" \\.\\.\\..*");
+
+    // must have at least one column
+    sql("select x from (values (1, 2), (3, 4)) as t1 (^)^")
+        .fails("(?s).*Encountered \"\\)\" at .*");
+
+    // cannot have expressions
+    sql("select x from t as t1 (x ^+^ y)")
+        .fails("(?s).*Was expecting one of:\n"
+            + "    \"\\)\" \\.\\.\\.\n"
+            + "    \",\" \\.\\.\\..*");
+
+    // cannot have compound identifiers
+    sql("select x from t as t1 (x^.^y)")
+        .fails("(?s).*Was expecting one of:\n"
+            + "    \"\\)\" \\.\\.\\.\n"
+            + "    \",\" \\.\\.\\..*");
   }
 
   @Test void testOver() {

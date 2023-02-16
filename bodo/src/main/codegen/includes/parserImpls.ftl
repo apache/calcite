@@ -16,24 +16,6 @@
 -->
 
 
-/**
-* Parses either a row expression, a leaf query expression, or
-* a parenthesized expression of any kind.
-*/
-SqlNode LeafQueryOrExpr(ExprContext exprContext) :
-{
-SqlNode e;
-}
-{
-    // Bodo Change: since values is now an unreserved keyword, we need to try and parse
-    // The LeafQuery first, otherwise we'll go down the expression path when trying to parse
-    // tableConstructor (IE: (VALUES (1,2), (3,4)))
-    e = LeafQuery(exprContext) { return e; }
-    |
-    e = Expression(exprContext) { return e; }
-}
-
-
 
 // /** Parses the infix "::" cast operator used in PostgreSQL. */
 // void InfixCast(List<Object> list, ExprContext exprContext, Span s) :
