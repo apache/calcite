@@ -5083,10 +5083,8 @@ SqlIntervalQualifier IntervalQualifierStart() :
  * registered as abbreviations in your time frame set.
  */
 SqlIntervalQualifier TimeUnitOrName() : {
-    final Span span;
-    final String w;
-    final TimeUnit unit;
     final SqlIdentifier unitName;
+    final SqlIntervalQualifier intervalQualifier;
 }
 {
     // When we see a time unit that is also a non-reserved keyword, such as
@@ -5097,41 +5095,59 @@ SqlIntervalQualifier TimeUnitOrName() : {
     // Reserved keywords, such as SECOND, cannot be identifiers, and are
     // therefore not ambiguous.
     LOOKAHEAD(2)
-    (
-        <NANOSECOND> { return new SqlIntervalQualifier(TimeUnit.NANOSECOND, null, getPos()); }
-    |   <MICROSECOND> { return new SqlIntervalQualifier(TimeUnit.MICROSECOND, null, getPos()); }
-    |   <MILLISECOND> { return new SqlIntervalQualifier(TimeUnit.MILLISECOND, null, getPos()); }
-    |   <SECOND> { return new SqlIntervalQualifier(TimeUnit.SECOND, null, getPos()); }
-    |   <MINUTE> { return new SqlIntervalQualifier(TimeUnit.MINUTE, null, getPos()); }
-    |   <HOUR> { return new SqlIntervalQualifier(TimeUnit.HOUR, null, getPos()); }
-    |   <DAY> { return new SqlIntervalQualifier(TimeUnit.DAY, null, getPos()); }
-    |   <DOW> { return new SqlIntervalQualifier(TimeUnit.DOW, null, getPos()); }
-    |   <DOY> { return new SqlIntervalQualifier(TimeUnit.DOY, null, getPos()); }
-    |   <ISODOW> { return new SqlIntervalQualifier(TimeUnit.ISODOW, null, getPos()); }
-    |   <ISOYEAR> { return new SqlIntervalQualifier(TimeUnit.ISOYEAR, null, getPos()); }
-    |   <WEEK> { span = span(); }
-        (
-            // There is a choice between "WEEK(weekday)" and "WEEK". We prefer
-            // the former, and the parser will look ahead for '('.
-            LOOKAHEAD(2)
-            <LPAREN> w = weekdayName() <RPAREN> {
-                return new SqlIntervalQualifier(w, span.end(this));
-            }
-        |
-            { return new SqlIntervalQualifier(TimeUnit.WEEK, null, getPos()); }
-        )
-    |   <MONTH> { return new SqlIntervalQualifier(TimeUnit.MONTH, null, getPos()); }
-    |   <QUARTER> { return new SqlIntervalQualifier(TimeUnit.QUARTER, null, getPos()); }
-    |   <YEAR> { return new SqlIntervalQualifier(TimeUnit.YEAR, null, getPos()); }
-    |   <EPOCH> { return new SqlIntervalQualifier(TimeUnit.EPOCH, null, getPos()); }
-    |   <DECADE> { return new SqlIntervalQualifier(TimeUnit.DECADE, null, getPos()); }
-    |   <CENTURY> { return new SqlIntervalQualifier(TimeUnit.CENTURY, null, getPos()); }
-    |   <MILLENNIUM> { return new SqlIntervalQualifier(TimeUnit.MILLENNIUM, null, getPos()); }
-    )
+    intervalQualifier = TimeUnit() {
+        return intervalQualifier;
+    }
 |   unitName = SimpleIdentifier() {
         return new SqlIntervalQualifier(unitName.getSimple(),
             unitName.getParserPosition());
     }
+}
+
+/** Parses a built-in time unit (e.g. "YEAR")
+ * and returns a {@link SqlIntervalQualifier}.
+ *
+ * <p>Includes {@code WEEK} and {@code WEEK(SUNDAY)} through
+  {@code WEEK(SATURDAY)}.
+ *
+ * <p>Does not include SQL_TSI_DAY, SQL_TSI_FRAC_SECOND etc. These will be
+ * parsed as identifiers and can be resolved in the validator if they are
+ * registered as abbreviations in your time frame set.
+ */
+SqlIntervalQualifier TimeUnit() : {
+    final Span span;
+    final String w;
+}
+{
+    <NANOSECOND> { return new SqlIntervalQualifier(TimeUnit.NANOSECOND, null, getPos()); }
+|   <MICROSECOND> { return new SqlIntervalQualifier(TimeUnit.MICROSECOND, null, getPos()); }
+|   <MILLISECOND> { return new SqlIntervalQualifier(TimeUnit.MILLISECOND, null, getPos()); }
+|   <SECOND> { return new SqlIntervalQualifier(TimeUnit.SECOND, null, getPos()); }
+|   <MINUTE> { return new SqlIntervalQualifier(TimeUnit.MINUTE, null, getPos()); }
+|   <HOUR> { return new SqlIntervalQualifier(TimeUnit.HOUR, null, getPos()); }
+|   <DAY> { return new SqlIntervalQualifier(TimeUnit.DAY, null, getPos()); }
+|   <DOW> { return new SqlIntervalQualifier(TimeUnit.DOW, null, getPos()); }
+|   <DOY> { return new SqlIntervalQualifier(TimeUnit.DOY, null, getPos()); }
+|   <ISODOW> { return new SqlIntervalQualifier(TimeUnit.ISODOW, null, getPos()); }
+|   <ISOYEAR> { return new SqlIntervalQualifier(TimeUnit.ISOYEAR, null, getPos()); }
+|   <WEEK> { span = span(); }
+    (
+        // There is a choice between "WEEK(weekday)" and "WEEK". We prefer
+        // the former, and the parser will look ahead for '('.
+        LOOKAHEAD(2)
+        <LPAREN> w = weekdayName() <RPAREN> {
+            return new SqlIntervalQualifier(w, span.end(this));
+        }
+    |
+        { return new SqlIntervalQualifier(TimeUnit.WEEK, null, getPos()); }
+    )
+|   <MONTH> { return new SqlIntervalQualifier(TimeUnit.MONTH, null, getPos()); }
+|   <QUARTER> { return new SqlIntervalQualifier(TimeUnit.QUARTER, null, getPos()); }
+|   <YEAR> { return new SqlIntervalQualifier(TimeUnit.YEAR, null, getPos()); }
+|   <EPOCH> { return new SqlIntervalQualifier(TimeUnit.EPOCH, null, getPos()); }
+|   <DECADE> { return new SqlIntervalQualifier(TimeUnit.DECADE, null, getPos()); }
+|   <CENTURY> { return new SqlIntervalQualifier(TimeUnit.CENTURY, null, getPos()); }
+|   <MILLENNIUM> { return new SqlIntervalQualifier(TimeUnit.MILLENNIUM, null, getPos()); }
 }
 
 String weekdayName() :
@@ -6739,7 +6755,7 @@ SqlCall DateTruncFunctionCall() :
     // and the Redshift variant, e.g. "DATE_TRUNC('year', DATE '2008-09-08')".
     (
         LOOKAHEAD(2)
-        unit = TimeUnitOrName() { args.add(unit); }
+        unit = TimeUnit() { args.add(unit); }
     |
         AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
     )

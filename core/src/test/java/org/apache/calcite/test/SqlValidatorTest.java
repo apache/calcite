@@ -2758,7 +2758,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // Check that each invalid code fails each query that it should.
     Consumer<String> invalidConsumer = weekday -> {
-      String errorMessage = "'" + weekday + "' is not a valid time frame";
+      String errorMessage = "Column '" + weekday + "' not found in any table";
       f.withSql("select date_trunc(" + ds + ", ^" + weekday + "^)")
           .fails(errorMessage);
     };

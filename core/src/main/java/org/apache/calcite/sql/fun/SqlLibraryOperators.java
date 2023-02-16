@@ -32,6 +32,7 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.OperandHandlers;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
@@ -837,7 +838,8 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DATE_NULLABLE,
           OperandTypes.sequence("'DATE_TRUNC(<DATE>, <DATETIME_INTERVAL>)'",
               OperandTypes.DATE, OperandTypes.dateInterval()),
-          SqlFunctionCategory.TIMEDATE);
+          SqlFunctionCategory.TIMEDATE)
+          .withOperandHandler(OperandHandlers.OPERAND_1_MIGHT_BE_TIME_FRAME);
 
   /** The "TIME_SUB(time, interval)" function (BigQuery);
    * subtracts an interval from a time, independent of any time zone.

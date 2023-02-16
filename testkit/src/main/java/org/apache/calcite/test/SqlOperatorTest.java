@@ -8537,7 +8537,7 @@ public class SqlOperatorTest {
         .withLibrary(SqlLibrary.BIG_QUERY)
         .setFor(SqlLibraryOperators.DATE_TRUNC);
     f.checkFails("date_trunc(date '2015-02-19', ^foo^)",
-        "'FOO' is not a valid time frame", false);
+        "Column 'FOO' not found in any table", false);
     f.checkScalar("date_trunc(date '2015-02-19', day)",
         "2015-02-19", "DATE NOT NULL");
     f.checkScalar("date_trunc(date '2015-02-19', week)",
