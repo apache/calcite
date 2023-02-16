@@ -68,6 +68,7 @@ public class SqlToRelFixture {
                               b.withAggregateUnique(true)
                                   .withPruneInputOfAggregate(false))));
 
+
   private final String sql;
   private final @Nullable DiffRepository diffRepos;
   private final boolean decorrelate;
