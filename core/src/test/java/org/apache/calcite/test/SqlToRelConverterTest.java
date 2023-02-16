@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
+
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.NullCollation;
@@ -1981,6 +1982,16 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "select empno from emp where deptno not in"
         + " (select deptno from dept)";
     sql(sql).withExpand(false).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5532">[CALCITE-5532]
+   * CompositeOperandTypeChecker should check operands without type coercion first</a>.
+   */
+  @Test void testNoTypeCoercionForExactMatchInCompositeTypeChecker() {
+    String sql = "SELECT COMPARE_STRINGS_OR_NUMERIC_VALUES(1, 1)";
+    sql(sql).ok();
   }
 
   @Test void testNotCaseInThreeClause() {

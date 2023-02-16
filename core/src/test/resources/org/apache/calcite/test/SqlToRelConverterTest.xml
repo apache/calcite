@@ -5186,6 +5186,17 @@ LogicalProject(SKILL=[ROW($0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNoTypeCoercionForExactMatchInCompositeTypeChecker">
+    <Resource name="sql">
+      <![CDATA[SELECT COMPARE_STRINGS_OR_NUMERIC_VALUES(1, 1)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[COMPARE_STRINGS_OR_NUMERIC_VALUES(1, 1)])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNotCaseInMoreClause">
     <Resource name="sql">
       <![CDATA[select empno from emp where not case when true then deptno in (10,20) when false then false else deptno in (30,40) end]]>
