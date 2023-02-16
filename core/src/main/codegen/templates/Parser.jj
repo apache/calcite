@@ -728,9 +728,7 @@ SqlNode LeafQuery(ExprContext exprContext) :
 {
     {
         // ensure a query is legal in this context
-        System.out.println("HERE?");
         checkQueryExpression(exprContext);
-        System.out.println("HERE2?");
     }
     e = SqlSelect() { return e; }
 |
@@ -821,10 +819,8 @@ SqlNodeList ParenthesizedQueryOrCommaList(
     (
         <COMMA>
         {
-            System.out.println("Here 824");
             // a comma-list can't appear where only a query is expected
             checkNonQueryExpression(exprContext);
-            System.out.println("Done");
         }
         e = Expression(exprContext)
         {
@@ -874,10 +870,8 @@ SqlNodeList ParenthesizedQueryOrCommaListWithDefault(
     (
         <COMMA>
         {
-            System.out.println("Here 877");
             // a comma-list can't appear where only a query is expected
             checkNonQueryExpression(exprContext);
-            System.out.println("Done");
         }
         (
             e = Expression(exprContext)
@@ -931,10 +925,8 @@ List FunctionParameterList(
     Arg0(list, exprContext)
     (
         <COMMA> {
-            System.out.println("Here 934");
             // a comma-list can't appear where only a query is expected
             checkNonQueryExpression(exprContext);
-            System.out.println("Done");
         }
         Arg(list, exprContext)
     )*
@@ -1644,10 +1636,8 @@ SqlNode NamedRoutineCall(
         Arg0(list, exprContext)
         (
             <COMMA> {
-                System.out.println("Here 1647");
                 // a comma-list can't appear where only a query is expected
                 checkNonQueryExpression(exprContext);
-                System.out.println("Done");
             }
             Arg(list, exprContext)
         )*
@@ -3607,17 +3597,13 @@ SqlNode QueryOrExpr(ExprContext exprContext) :
                 // whoops, expression we just parsed wasn't a query,
                 // but we're about to see something like UNION, so
                 // force an exception retroactively
-                System.out.println("Here 3610");
                 checkNonQueryExpression(ExprContext.ACCEPT_QUERY);
-                System.out.println("Done");
             }
         }
         op = BinaryQueryOperator() {
             // ensure a query is legal in this context
             pos = getPos();
-            System.out.println("HERE3?");
             checkQueryExpression(exprContext);
-            System.out.println("HERE4?");
 
         }
         e = LeafQueryOrExpr(ExprContext.ACCEPT_QUERY) {
@@ -3670,19 +3656,19 @@ SqlWithItem WithItem() :
 }
 
 /**
- * Parses either a row expression, a leaf query expression, or
- * a parenthesized expression of any kind.
- */
+* Parses either a row expression, a leaf query expression, or
+* a parenthesized expression of any kind.
+*/
 SqlNode LeafQueryOrExpr(ExprContext exprContext) :
 {
-    SqlNode e;
+SqlNode e;
 }
 {
     // Bodo Change: since values is now an unreserved keyword, we need to try and parse
     // The LeafQuery first, otherwise we'll go down the expression path when trying to parse
     // tableConstructor (IE: (VALUES (1,2), (3,4)))
     e = LeafQuery(exprContext) { return e; }
-|
+    |
     e = Expression(exprContext) { return e; }
 }
 
@@ -3714,9 +3700,7 @@ void Expression2b(ExprContext exprContext, List<Object> list) :
     (
         LOOKAHEAD(1)
         op = PrefixRowOperator() {
-            System.out.println("Here 3714");
             checkNonQueryExpression(exprContext);
-            System.out.println("Done");
             list.add(new SqlParserUtil.ToTreeListItem(op, getPos()));
         }
     )*
@@ -3773,9 +3757,7 @@ List<Object> Expression2(ExprContext exprContext) :
                 // else we get conflicts due to .... NOT LIKE <Const string> vs NOT LIKE SOME
                 // (checkNonQueryExpression doesn't have any tokens, just java code that does some debug asserts)
                 LOOKAHEAD(3) {
-                    System.out.println("Here 3773");
                     checkNonQueryExpression(exprContext);
-                    System.out.println("Done");
                 }
                 (
                     //Need this lookahead here, so we we can decide if we're parsing NOT IN or NOT LIKE
@@ -3831,9 +3813,7 @@ List<Object> Expression2(ExprContext exprContext) :
                 }
             |
                 LOOKAHEAD(2) {
-                    System.out.println("Here 3831");
                     checkNonQueryExpression(exprContext);
-                    System.out.println("Done");
                 }
                 (
                     <NOT> <BETWEEN> {
@@ -3864,9 +3844,7 @@ List<Object> Expression2(ExprContext exprContext) :
                 }
             |
                 LOOKAHEAD(2) {
-                    System.out.println("Here 3864");
                     checkNonQueryExpression(exprContext);
-                    System.out.println("Done");
                     s.clear().add(this);
                 }
                 (
@@ -3925,9 +3903,7 @@ List<Object> Expression2(ExprContext exprContext) :
             |
             </#list>
                 LOOKAHEAD(3) op = BinaryRowOperator() {
-                    System.out.println("Here 3925");
                     checkNonQueryExpression(exprContext);
-                    System.out.println("Done");
                     list.add(new SqlParserUtil.ToTreeListItem(op, getPos()));
                 }
                 Expression2b(ExprContext.ACCEPT_SUB_QUERY, list)
@@ -3951,9 +3927,7 @@ List<Object> Expression2(ExprContext exprContext) :
                 )*
             |
                 {
-                    System.out.println("Here 3951");
                     checkNonQueryExpression(exprContext);
-                    System.out.println("Done");
                 }
                 op = PostfixRowOperator() {
                     list.add(new SqlParserUtil.ToTreeListItem(op, getPos()));
@@ -4015,10 +3989,7 @@ SqlNode Expression3(ExprContext exprContext) :
     LOOKAHEAD(2)
     e = AtomicRowExpression()
     {
-        System.out.println("Here 4015");
-        System.out.println(getPos());
         checkNonQueryExpression(exprContext);
-        System.out.println("Done");
         return e;
     }
 |
@@ -4233,10 +4204,8 @@ SqlCall StringAggFunctionCall() :
     Arg(args, ExprContext.ACCEPT_SUB_QUERY)
     (
         <COMMA> {
-            System.out.println("Here 824");
             // a comma-list can't appear where only a query is expected
             checkNonQueryExpression(ExprContext.ACCEPT_SUB_QUERY);
-            System.out.println("Done");
         }
         Arg(args, ExprContext.ACCEPT_SUB_QUERY)
     )*
@@ -6145,9 +6114,7 @@ void InfixCast(List<Object> list, ExprContext exprContext, Span s) :
 }
 {
     <INFIX_CAST> {
-        System.out.println("Here 6144");
         checkNonQueryExpression(exprContext);
-        System.out.println("Done");
     }
     dt = DataType() {
         list.add(
