@@ -42,6 +42,7 @@ data: {
     # items in this list become non-reserved
     nonReservedKeywordsToAdd: [
     "IF",
+    "CORR",
     ]
 
     # List of additional join types. Each is a method with no arguments.
