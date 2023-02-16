@@ -128,6 +128,28 @@ public class BodoParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  /** Tests parsing VAlUES keyword. */
+  @Test void testParseValuesKeyword() {
+    sql("select x from\n"
+        +
+        "(values\n"
+        +
+        "(1\n"
+        +
+        ", 2\n"
+        +
+        ")\n"
+        +
+        ",\n"
+        +
+        "(3, 4))\n"
+        +
+        "as t1")
+        .ok("SELECT `X`\n"
+            + "FROM (VALUES (ROW(1, 2)),\n"
+            + "(ROW(3, 4))) AS `T1`");
+  }
+
   /** Tests parsing MySQL-style "<=>" equal operator. */
   @Test void testParseNullSafeEqual()  {
     // x <=> y
