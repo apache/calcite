@@ -61,6 +61,7 @@ include(
     "bom",
     "release",
     "babel",
+    "bodo",
     "cassandra",
     "core",
     "druid",

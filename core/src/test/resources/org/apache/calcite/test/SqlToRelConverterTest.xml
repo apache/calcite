@@ -3423,6 +3423,53 @@ LogicalProject(PRODUCT_ID=[$1])
     LogicalValues(tuples=[[{ 1, null, null, null, 2, null, 3, 4, null, false }]])
 ]]>
     </Resource>
+    <Resource name="sql">
+      <![CDATA[with dummy_table as (select 1 as A),
+
+product_options as (
+         select 1 as brand_id
+              , 2 as product_id
+         from dummy_table
+     ),
+
+products_daily_summary_spoof as (
+        select
+            1 as product_id,
+            null::date as ds
+        from dummy_table
+),
+
+etl_datascience_products_daily_summary_spoof as (
+        select
+            1 as product_id,
+            null::date as ds
+        from dummy_table
+),
+
+production_product_videos_spoof as (
+        select
+            1 as id,
+            null::timestamp as updated_at,
+            null::varchar as token,
+            null::varchar as state,
+            2 as brand_id,
+            null::timestamp as first_published_at,
+            3 as product_id,
+            4 as video_id,
+            null::timestamp as created_at,
+            false as is_deleted
+        from dummy_table
+)
+
+
+select
+             po.product_id
+
+             from product_options po
+                      left join etl_datascience_products_daily_summary_spoof pds on po.product_id = pds.product_id
+                 and pds.ds::date = (select max(ds) from etl_datascience_products_daily_summary_spoof)
+                      left join production_product_videos_spoof pv on pv.product_id = po.product_id]]>
+    </Resource>
   </TestCase>
   <TestCase name="testJoinConditionSubQuery2">
     <Resource name="plan">
@@ -3561,7 +3608,7 @@ LogicalProject(PRODUCT_ID=[$4])
   LogicalJoin(condition=[=($25, $27)], joinType=[inner])
     LogicalJoin(condition=[=($25, $4)], joinType=[inner])
       LogicalJoin(condition=[AND(=($13, $4), <=(CAST($8):DATE, $0))], joinType=[left])
-        LogicalJoin(condition=[AND(=($4, $0), =($1, $0), =($2, $1))], joinType=[right])
+        LogicalJoin(condition=[AND(=($4, $0), =($1, $0), =($2, $0))], joinType=[right])
           LogicalValues(tuples=[[{ 1, null, 2 }]])
           LogicalJoin(condition=[true], joinType=[left])
             LogicalJoin(condition=[true], joinType=[left])
@@ -3636,6 +3683,299 @@ on pv.product_id = po.product_id and pv.updated_at::date <= (select max(ds) from
          join emp on emp.deptno = po.product_id
          join dept on emp.deptno = dept.deptno
 ]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionSubQuery5">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalJoin(condition=[=($3, $11)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(EXPR$0=[CAST($7):VARCHAR NOT NULL])
+          LogicalFilter(condition=[>($0, 5)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionSubQuery5part3">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalJoin(condition=[AND(=($3, $11), =($0, $11))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0, 1}])
+        LogicalAggregate(group=[{}], EXPR$0=[MAX($0)], EXPR$1=[MIN($1)])
+          LogicalProject($f0=[CAST($7):VARCHAR NOT NULL], EMPNO=[$0])
+            LogicalFilter(condition=[>($0, 5)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select * from dept join emp on          (emp.ename, dept.deptno) in (Select MAX(deptno::varchar),         MIN(empno) from emp where empno > 5)
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionSubQuery5part4">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalJoin(condition=[=(||($3, CAST($0):VARCHAR NOT NULL), $11)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}])
+        LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+          LogicalProject($f0=[CAST($7):VARCHAR NOT NULL])
+            LogicalFilter(condition=[>($0, 5)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select * from dept join emp on          (emp.ename || dept.deptno::varchar) in            (Select MAX(deptno::varchar) from emp where empno > 5)
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionSubQuery6">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(PRODUCT_ID=[$4])
+  LogicalJoin(condition=[=($25, $27)], joinType=[inner])
+    LogicalJoin(condition=[=($25, $4)], joinType=[inner])
+      LogicalJoin(condition=[AND(=($13, $4), <=(CAST($8):DATE, $0))], joinType=[left])
+        LogicalJoin(condition=[AND(=($4, $0), =($1, $0), =($2, $0))], joinType=[right])
+          LogicalValues(tuples=[[{ 1, null, 2 }]])
+          LogicalJoin(condition=[true], joinType=[left])
+            LogicalJoin(condition=[true], joinType=[left])
+              LogicalValues(tuples=[[{ 1, 2 }]])
+              LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+                LogicalProject(DS=[$1])
+                  LogicalJoin(condition=[=($10, $0)], joinType=[inner])
+                    LogicalValues(tuples=[[{ 1, null, 2 }]])
+                    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+              LogicalProject(SECONDARY_PRODUCT_ID=[$2])
+                LogicalValues(tuples=[[{ 1, null, 2 }]])
+        LogicalJoin(condition=[true], joinType=[left])
+          LogicalValues(tuples=[[{ 1, null, null, null, 2, null, 3, 4, null, false }]])
+          LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+            LogicalProject(DS=[$1])
+              LogicalJoin(condition=[AND(=($10, $0), =($4, $12))], joinType=[inner])
+                LogicalValues(tuples=[[{ 1, null, 2 }]])
+                LogicalJoin(condition=[true], joinType=[inner])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+                  LogicalAggregate(group=[{0}])
+                    LogicalProject(EXPR$0=[CAST($7):VARCHAR NOT NULL])
+                      LogicalFilter(condition=[>($0, 5)])
+                        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionSubQuery7">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(PRODUCT_ID=[$4])
+  LogicalJoin(condition=[=($25, $29)], joinType=[inner])
+    LogicalJoin(condition=[=($25, $4)], joinType=[inner])
+      LogicalJoin(condition=[AND(=($13, $4), <=(CAST($8):DATE, $0))], joinType=[left])
+        LogicalJoin(condition=[AND(=($4, $0), =($1, $0), =($2, $0))], joinType=[right])
+          LogicalValues(tuples=[[{ 1, null, 2 }]])
+          LogicalJoin(condition=[true], joinType=[left])
+            LogicalJoin(condition=[true], joinType=[left])
+              LogicalValues(tuples=[[{ 1, 2 }]])
+              LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+                LogicalProject(DS=[$1])
+                  LogicalJoin(condition=[=($10, $0)], joinType=[inner])
+                    LogicalValues(tuples=[[{ 1, null, 2 }]])
+                    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+              LogicalProject(SECONDARY_PRODUCT_ID=[$2])
+                LogicalValues(tuples=[[{ 1, null, 2 }]])
+        LogicalJoin(condition=[true], joinType=[left])
+          LogicalValues(tuples=[[{ 1, null, null, null, 2, null, 3, 4, null, false }]])
+          LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+            LogicalProject(DS=[$1])
+              LogicalJoin(condition=[AND(=($11, $0), =($5, $13), =($11, $13), =($3, $13))], joinType=[inner])
+                LogicalProject(PRODUCT_ID=[$0], DS=[$1], SECONDARY_PRODUCT_ID=[$2], $f3=[*($0, 10)])
+                  LogicalValues(tuples=[[{ 1, null, 2 }]])
+                LogicalJoin(condition=[true], joinType=[inner])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+                  LogicalAggregate(group=[{0, 1, 2}])
+                    LogicalProject(EXPR$0=[CAST($7):VARCHAR NOT NULL], EXPR$1=[*($7, 10)], EXPR$2=[+($7, 2)])
+                      LogicalFilter(condition=[>($0, 5)])
+                        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$0])
+          LogicalJoin(condition=[AND(=($9, $11), =(+($0, $9), $11))], joinType=[inner])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+            LogicalJoin(condition=[true], joinType=[inner])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalAggregate(group=[{0, 1}])
+                LogicalProject(PRODUCT_ID=[$1], EXPR$1=[*($1, 2)])
+                  LogicalValues(tuples=[[{ 1, 2 }]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[with dummy_table as (select 1 as A),
+
+product_options as (
+         select 1 as brand_id
+              , 2 as product_id
+         from dummy_table
+     ),
+
+products_daily_summary_spoof as (
+        select
+            1 as product_id,
+            null::date as ds
+        from dummy_table
+),
+
+etl_datascience_products_daily_summary_spoof as (
+        select
+            1 as product_id,
+            null::date as ds,
+            2 as secondary_product_id
+        from dummy_table
+),
+
+production_product_videos_spoof as (
+        select
+            1 as id,
+            null::timestamp as updated_at,
+            null::varchar as token,
+            null::varchar as state,
+            2 as brand_id,
+            null::timestamp as first_published_at,
+            3 as product_id,
+            4 as video_id,
+            null::timestamp as created_at,
+            false as is_deleted
+        from dummy_table
+)
+
+
+select
+             po.product_id
+             from etl_datascience_products_daily_summary_spoof pds  right join product_options po
+on po.product_id = pds.product_id
+                 and pds.ds::date = (select max(ds) from (select * from etl_datascience_products_daily_summary_spoof etl_spoof join emp on          emp.deptno = etl_spoof.product_id))
+                 and pds.secondary_product_id = (select max(secondary_product_id) from etl_datascience_products_daily_summary_spoof)
+                      left join production_product_videos_spoof pv
+on pv.product_id = po.product_id and pv.updated_at::date <= (select max(ds) from (select * from etl_datascience_products_daily_summary_spoof etl_spoof join emp on          emp.deptno = etl_spoof.product_id and         (emp.ename, emp.deptno, etl_spoof.product_id * 10) in (Select deptno::varchar, deptno * 10, deptno + 2 from emp where empno > 5)))
+         join emp on emp.deptno = po.product_id
+         join dept on              emp.deptno in (  select dept.deptno from dept join emp on (emp.deptno, dept.deptno + emp.deptno) in    (Select po.product_id, po.product_id * 2 from product_options po))
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionSubQueryEdgeCase0">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalJoin(condition=[AND(=($9, $11), SEARCH($9, Sarg[1, 2, 3, 4]))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select
+             *
+             from emp join dept on              dept.deptno in (select dept.deptno from dept)             and dept.deptno in (1, 2, 3, 4)
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionSubQueryEdgeCase1">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalJoin(condition=[AND(=($9, $11), =($9, $12))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(EXPR$0=[1])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(EXPR$0=[1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select
+             *
+             from emp join dept on              dept.deptno in (select 1 from dept)             and dept.deptno in (select 1 from dept)
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionSubQueryEdgeCase2">
+    <Resource name="sql">
+      <![CDATA[select
+             *
+             from emp join dept on              dept.deptno = (select MAX(dept.deptno) from dept)             and dept.deptno = (select MAX(dept.deptno) from dept)
+]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalJoin(condition=[=($9, $0)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalJoin(condition=[true], joinType=[left])
+      LogicalJoin(condition=[true], joinType=[left])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+          LogicalProject(DEPTNO=[$0])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
+        LogicalProject(DEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinConditionSubQueryEdgeCase3">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10], BRAND_ID=[$13], PRODUCT_ID=[$14])
+  LogicalJoin(condition=[AND(=($9, $15), =($11, $15), =(+(+($14, $9), $7), $15), =($9, $18), =($12, $18), =(+(+($14, $9), $7), $18))], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10], $f11=[+($9, $7)], $f12=[+($9, $7)])
+      LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalValues(tuples=[[{ 1, 2 }]])
+        LogicalAggregate(group=[{0, 1, 2}])
+          LogicalProject(DEPTNO=[$0], EXPR$1=[+($0, 2)], EXPR$2=[+($0, 3)])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalAggregate(group=[{0, 1, 2}])
+        LogicalProject(DEPTNO=[$0], EXPR$1=[+($0, 2)], EXPR$2=[+($0, 3)])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[with dummy_table as (select 1 as A),
+
+product_options as (
+         select 1 as brand_id
+              , 2 as product_id
+         from dummy_table
+     )
+select
+             *
+             from emp join dept on              emp.deptno = dept.deptno join product_options po on (dept.deptno, dept.deptno + emp.deptno, po.product_id + dept.deptno + emp.deptno) in (select dept.deptno, dept.deptno + 2, dept.deptno + 3 from dept) and (dept.deptno, dept.deptno + emp.deptno, po.product_id + dept.deptno + emp.deptno) in (select dept.deptno, dept.deptno + 2, dept.deptno + 3 from dept)]]>
     </Resource>
   </TestCase>
   <TestCase name="testJoinExpandAndDecorrelation">
