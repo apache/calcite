@@ -6867,9 +6867,7 @@ SqlCall TimestampAddFunctionCall() :
 {
     <TIMESTAMPADD> { s = span(); }
     <LPAREN>
-    interval = TimestampInterval() {
-        args = startList(SqlLiteral.createSymbol(interval, getPos()));
-    }
+    e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args = startList(e); }
     <COMMA>
     e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e); }
     <COMMA>
@@ -6894,9 +6892,7 @@ SqlCall TimestampDiffFunctionCall() :
 {
     <TIMESTAMPDIFF> { s = span(); }
     <LPAREN>
-    interval = TimestampInterval() {
-        args = startList(SqlLiteral.createSymbol(interval, getPos()));
-    }
+    e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args = startList(e); }
     <COMMA>
     e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e); }
     <COMMA>
@@ -8378,8 +8374,6 @@ String NonReservedKeyWord() :
     |   <CONTAINS>
     |   <INSERT>
     |   <DAY>
-    |   <TIMESTAMPADD>
-    |   <TIMESTAMPDIFF>
     )
     {
         return unquotedIdentifier();

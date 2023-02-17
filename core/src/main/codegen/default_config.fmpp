@@ -319,7 +319,8 @@ parser: {
     "TEMPORARY"
     "TIES"
     "TIMESTAMP"
-
+    "TIMESTAMPADD"
+    "TIMESTAMPDIFF"
     "TOP"
     "TOP_LEVEL_COUNT"
     "TRANSACTION"

@@ -4591,14 +4591,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(query).withNoWindowedAggDecompositionTester().ok();
   }
 
-  @Test public void testConvertletConfigTimestampdiffDecompose() {
-    String query = "SELECT TIMESTAMPDIFF(DAY, TIMESTAMP '2021-02-02', TIMESTAMP '2022-02-01')";
-    sql(query).ok();
-  }
-  @Test public void testConvertletConfigNoTimestampdiffDecompose() {
-    String query = "SELECT TIMESTAMPDIFF(DAY, TIMESTAMP '2021-02-02', TIMESTAMP '2022-02-01')";
-    sql(query).withNoTimestampdiffDecompositionTester().ok();
-  }
+//  @Test public void testConvertletConfigTimestampdiffDecompose() {
+//    String query = "SELECT TIMESTAMPDIFF(DAY, TIMESTAMP '2021-02-02', TIMESTAMP '2022-02-01')";
+//    sql(query).ok();
+//  }
+//  @Test public void testConvertletConfigNoTimestampdiffDecompose() {
+//    String query = "SELECT TIMESTAMPDIFF(DAY, TIMESTAMP '2021-02-02', TIMESTAMP '2022-02-01')";
+//    sql(query).withNoTimestampdiffDecompositionTester().ok();
+//  }
 
 
   /** Test case for

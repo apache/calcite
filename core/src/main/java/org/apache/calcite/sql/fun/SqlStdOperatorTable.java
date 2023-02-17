@@ -1983,10 +1983,30 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlCurrentDateFunction();
 
   /** The <code>TIMESTAMPADD</code> function. */
-  public static final SqlFunction TIMESTAMP_ADD = new SqlTimestampAddFunction();
+  public static final SqlFunction TIMESTAMP_ADD = new SqlFunction(
+      "TIMESTAMPADD",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.TIME_NULLABLE,
+      null,
+      OperandTypes.sequence(
+          "TIMESTAMPADD(UNIT, VALUE, TIME)",
+          OperandTypes.STRING,
+          OperandTypes.INTEGER,
+          OperandTypes.DATETIME),
+      SqlFunctionCategory.TIMEDATE);
 
   /** The <code>TIMESTAMPDIFF</code> function. */
-  public static final SqlFunction TIMESTAMP_DIFF = new SqlTimestampDiffFunction();
+  public static final SqlFunction TIMESTAMP_DIFF = new SqlFunction(
+      "TIMESTAMPDIFF",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.TIME_NULLABLE,
+      null,
+      OperandTypes.sequence(
+          "TIMESTAMPDIFF(UNIT, TIME, TIME)",
+          OperandTypes.STRING,
+          OperandTypes.DATETIME,
+          OperandTypes.DATETIME),
+      SqlFunctionCategory.TIMEDATE);
 
   /**
    * Use of the <code>IN_FENNEL</code> operator forces the argument to be
