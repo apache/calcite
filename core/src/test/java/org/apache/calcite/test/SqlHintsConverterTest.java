@@ -535,6 +535,7 @@ class SqlHintsConverterTest {
           RelOptUtil.registerDefaultRules(p, false, false);
           ruleSet.forEach(p::addRule);
         })
+        .withExpand(true)
         .check();
   }
 
@@ -556,6 +557,7 @@ class SqlHintsConverterTest {
           RelOptUtil.registerDefaultRules(p, false, false);
           ruleSet.forEach(p::addRule);
         })
+        .withExpand(true)
         .check();
   }
 

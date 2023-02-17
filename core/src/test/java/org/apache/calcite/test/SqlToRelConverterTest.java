@@ -1709,7 +1709,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testUniqueWithExpand() {
     final String sql = "select * from emp\n"
         + "where unique (select 1 from dept where deptno=55)";
-    sql(sql).withExpand(true).throws_("UNIQUE is only supported if expand = false");
+    sql(sql).withExpand(true)
+        .throws_("UNIQUE is only supported if expand = false");
   }
 
   @Test void testUniqueWithProjectLateral() {

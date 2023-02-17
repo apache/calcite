@@ -6563,12 +6563,18 @@ public class SqlToRelConverter {
 
     /** Returns the {@code expand} option. Controls whether to expand
      * sub-queries. If false (the default), each sub-query becomes a
-     * {@link org.apache.calcite.rex.RexSubQuery}. */
+     * {@link org.apache.calcite.rex.RexSubQuery}.
+     *
+     * <p>Setting {@code expand} to true is deprecated. Expansion still works,
+     * but there will be less development effort in that area. */
     @Value.Default default boolean isExpand() {
       return false;
     }
 
-    /** Sets {@link #isExpand()}. */
+    /** Sets {@link #isExpand()}.
+     *
+     * <p>Expansion is deprecated. We recommend that you do not call this
+     * method, and use the default value of {@link #isExpand()}, false. */
     Config withExpand(boolean expand);
 
     /** Returns the {@code inSubQueryThreshold} option,

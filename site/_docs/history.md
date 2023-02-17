@@ -54,7 +54,7 @@ phase.
 
 To keep the old behavior (which is discouraged but still supported),
 initialize `SqlToRelConverter` using
-`SqlToRelConverter.config().withExpand(true)` as the value for the `config`
+`SqlToRelConverter.config().withExpandDeprecated(true)` as the value for the `config`
 argument.
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
