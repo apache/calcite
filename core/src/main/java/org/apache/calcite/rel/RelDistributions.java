@@ -46,11 +46,6 @@ public class RelDistributions {
   public static final RelDistribution RANDOM_DISTRIBUTED =
       new RelDistributionImpl(RelDistribution.Type.RANDOM_DISTRIBUTED, EMPTY);
 
-  /** The singleton round-robin distribution. */
-  public static final RelDistribution ROUND_ROBIN_DISTRIBUTED =
-      new RelDistributionImpl(RelDistribution.Type.ROUND_ROBIN_DISTRIBUTED,
-          EMPTY);
-
   /** The singleton broadcast distribution. */
   public static final RelDistribution BROADCAST_DISTRIBUTED =
       new RelDistributionImpl(RelDistribution.Type.BROADCAST_DISTRIBUTED,
