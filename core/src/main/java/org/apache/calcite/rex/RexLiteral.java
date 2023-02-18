@@ -298,7 +298,8 @@ public class RexLiteral extends RexNode {
    */
   @RequiresNonNull("type")
   RexDigestIncludeType digestIncludesType(
-      @UnknownInitialization RexLiteral this) {
+      @UnknownInitialization RexLiteral this
+  ) {
     return shouldIncludeType(value, type);
   }
 

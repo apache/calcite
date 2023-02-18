@@ -138,7 +138,8 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
   @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
     return EnumerableTraitsUtils.deriveTraitsForJoin(
-        childTraits, childId, joinType, traitSet, right.getTraitSet());
+        childTraits, childId, joinType, traitSet, right.getTraitSet()
+    );
   }
 
   @Override public DeriveMode getDeriveMode() {

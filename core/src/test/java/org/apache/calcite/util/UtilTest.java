@@ -1206,7 +1206,8 @@ class UtilTest {
     assertThat(list2.appendAll(list2), is(Arrays.asList(1, 3, 5, 1, 3, 5)));
     assertThat(
         Arrays.toString(ImmutableIntList.of(1).toArray(new Integer[]{5, 6, 7})),
-        is("[1, null, 7]"));
+        is("[1, null, 7]")
+    );
   }
 
   /** Unit test for {@link IdPair}. */

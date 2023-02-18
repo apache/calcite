@@ -171,7 +171,8 @@ public class RelSubset extends AbstractRelNode {
   private void computeBestCost(
       @UnderInitialization RelSubset this,
       RelOptCluster cluster,
-      RelOptPlanner planner) {
+      RelOptPlanner planner
+  ) {
     bestCost = planner.getCostFactory().makeInfiniteCost();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     @SuppressWarnings("method.invocation.invalid")

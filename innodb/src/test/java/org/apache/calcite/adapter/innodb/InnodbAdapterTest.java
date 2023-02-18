@@ -1135,7 +1135,8 @@ public class InnodbAdapterTest {
       Pair.of(7934, "EMPNO=7934; ENAME=MILLER; JOB=CLERK; AGE=32; MGR=7782; "
           + "HIREDATE=1982-01-23; SAL=1300.00; COMM=null; DEPTNO=10; EMAIL=null; "
           + "CREATE_DATETIME=2016-09-02 23:15:01; CREATE_TIME=23:15:01; UPSERT_TIME="
-          + expectedLocalTime("2016-09-02 23:15:01")));
+          + expectedLocalTime("2016-09-02 23:15:01"))
+  );
 
   static List<Pair<Integer, String>> reversedRows = rows.stream()
       .sorted(Comparator.reverseOrder()).collect(toList());

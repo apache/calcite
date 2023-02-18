@@ -114,8 +114,9 @@ public final class AggregateProjectConstantToDummyJoinRule
 
     builder.project(newProjects);
     builder.aggregate(
-        builder.groupKey(aggregate.getGroupSet(), aggregate.getGroupSets()),
-        aggregate.getAggCallList());
+        builder.groupKey(
+            aggregate.getGroupSet(), aggregate.getGroupSets()), aggregate.getAggCallList()
+    );
 
     call.transformTo(builder.build());
   }

@@ -583,8 +583,6 @@ allprojects {
                     // (?-m) disables multiline, so $ matches the very end of the file rather than end of line
                     replaceRegex("Remove '// End file.java' trailer", "(?-m)\n// End [^\n]+\\.\\w+\\s*$", "")
                     replaceRegex("<p> should not be placed a the end of the line", "(?-m)\\s*+<p> *+\n \\* ", "\n *\n * <p>")
-                    replaceRegex("Method parameter list should not end in whitespace or newline", "(?<!;)\\s+\\) \\{", ") {")
-                    replaceRegex("Method argument list should not end in whitespace or newline", "(?<!;)\\s+\\);", ");")
                     // Assume developer copy-pasted the link, and updated text only, so the url is old, and we replace it with the proper one
                     replaceRegex(">[CALCITE-...] link styles: 1", "<a(?:(?!CALCITE-)[^>])++CALCITE-\\d+[^>]++>\\s*+\\[?(CALCITE-\\d+)\\]?", "<a href=\"https://issues.apache.org/jira/browse/\$1\">[\$1]")
                     // If the link was crafted manually, ensure it has [CALCITE-...] in the link text

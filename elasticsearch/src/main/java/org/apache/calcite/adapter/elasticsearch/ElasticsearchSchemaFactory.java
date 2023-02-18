@@ -78,7 +78,8 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
               + "broken! Do not try to access more than {} distinct ES REST APIs through this "
               + "adapter.",
               REST_CLIENT_CACHE_SIZE,
-              REST_CLIENT_CACHE_SIZE);
+              REST_CLIENT_CACHE_SIZE
+          );
 
           try {
             // Free resources allocated by this RestClient

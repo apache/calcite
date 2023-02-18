@@ -43,7 +43,8 @@ public class BlockStatement extends Statement {
 
   private boolean distinctVariables(
       @UnderInitialization(BlockStatement.class) BlockStatement this,
-      boolean fail) {
+      boolean fail
+  ) {
     Set<String> names = new HashSet<>();
     for (Statement statement : statements) {
       if (statement instanceof DeclarationStatement) {

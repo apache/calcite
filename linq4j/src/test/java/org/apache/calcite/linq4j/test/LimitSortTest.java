@@ -87,7 +87,8 @@ class LimitSortTest {
         this.enumerable(seed),
         s -> s.key,
         cmp,
-        offset, fetch);
+        offset, fetch
+    );
 
     List<Row> result = ordered.toList();
     assertTrue(

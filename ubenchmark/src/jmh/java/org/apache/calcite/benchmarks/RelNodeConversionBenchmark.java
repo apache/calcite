@@ -92,7 +92,8 @@ public class RelNodeConversionBenchmark {
             String.format(Locale.ROOT, "c%s / CASE WHEN c%s > %d THEN c%s ELSE c%s END ",
                 String.valueOf(rnd.nextInt(columnLength)), String.valueOf(i % columnLength),
                 rnd.nextInt(columnLength), String.valueOf(rnd.nextInt(columnLength)),
-                String.valueOf(rnd.nextInt(columnLength))));
+                String.valueOf(rnd.nextInt(columnLength)))
+        );
       }
       sb.append(" FROM test1");
       sql = sb.toString();

@@ -307,7 +307,9 @@ public abstract class RelDataTypeImpl
    * subclass constructor once the type is fully defined.
    */
   @SuppressWarnings("method.invocation.invalid")
-  protected void computeDigest(@UnknownInitialization RelDataTypeImpl this) {
+  protected void computeDigest(
+      @UnknownInitialization RelDataTypeImpl this
+  ) {
     StringBuilder sb = new StringBuilder();
     generateTypeString(sb, true);
     if (!isNullable()) {

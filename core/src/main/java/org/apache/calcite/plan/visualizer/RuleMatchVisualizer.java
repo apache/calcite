@@ -474,7 +474,8 @@ public class RuleMatchVisualizer implements RelOptListener {
             formatCostScientific(cost.getRows()),
             formatCostScientific(cost.getCpu()),
             formatCostScientific(cost.getIo())
-        });
+        }
+    );
   }
 
   private static String formatCostScientific(double costNumber) {

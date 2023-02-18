@@ -524,7 +524,8 @@ class SqlHintsConverterTest {
         .build();
     // Validate Volcano planner.
     RuleSet ruleSet = RuleSets.ofList(
-        MockEnumerableJoinRule.create(hint)); // Rule to validate the hint.
+        MockEnumerableJoinRule.create(hint) // Rule to validate the hint.
+    );
     ruleFixture()
         .sql(sql)
         .withTrim(true)
@@ -544,7 +545,8 @@ class SqlHintsConverterTest {
         .build();
     // Validate Volcano planner.
     RuleSet ruleSet = RuleSets.ofList(
-        MockEnumerableJoinRule.create(hint)); // Rule to validate the hint.
+        MockEnumerableJoinRule.create(hint) // Rule to validate the hint.
+    );
     ruleFixture()
         .sql(sql)
         .withTrim(true)

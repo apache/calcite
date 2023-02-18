@@ -252,7 +252,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       final int k = j;
 
       RelDataType type = leastRestrictive(
-          Util.transform(types, t -> t.getFieldList().get(k).getType()));
+          Util.transform(types, t -> t.getFieldList().get(k).getType())
+      );
       if (type == null) {
         return null;
       }

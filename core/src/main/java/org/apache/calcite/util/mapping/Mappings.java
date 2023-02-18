@@ -1348,7 +1348,8 @@ public abstract class Mappings {
       }
 
       private void advance(
-          @UnknownInitialization MappingItr this) {
+          @UnknownInitialization MappingItr this
+      ) {
         do {
           ++i;
         } while (i < targets.length && targets[i] == -1);

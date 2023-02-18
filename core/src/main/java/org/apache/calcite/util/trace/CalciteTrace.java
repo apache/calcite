@@ -129,7 +129,8 @@ public abstract class CalciteTrace {
 
   public static Logger getRuleAttemptsTracer() {
     return LoggerFactory.getLogger(
-        AbstractRelOptPlanner.class.getName() + ".rule_execution_summary");
+        AbstractRelOptPlanner.class.getName() + ".rule_execution_summary"
+    );
   }
 
   /**

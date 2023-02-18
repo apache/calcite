@@ -103,8 +103,9 @@ public class RelMdUtilTest {
       RelNode rel = sql("select * from emp limit ? offset ?").toRel();
       Sort sort = (Sort) rel;
       assertFalse(
-          RelMdUtil.checkInputForCollationAndLimit(mq, sort.getInput(),
-              RelCollations.EMPTY, sort.offset, sort.fetch));
+          RelMdUtil.checkInputForCollationAndLimit(mq, sort.getInput(), RelCollations.EMPTY,
+              sort.offset, sort.fetch)
+      );
       return null;
     });
   }
