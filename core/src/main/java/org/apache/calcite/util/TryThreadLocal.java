@@ -20,14 +20,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.function.Supplier;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
 /**
  * Thread-local variable that returns a handle that can be closed.
  *
  * @param <T> Value type
  */
-public class TryThreadLocal<T> extends ThreadLocal<@Nullable T> {
+public class TryThreadLocal<@Nullable T> extends ThreadLocal<T> {
   private final T initialValue;
 
   /** Creates a TryThreadLocal.
@@ -48,10 +46,6 @@ public class TryThreadLocal<T> extends ThreadLocal<@Nullable T> {
   // equal to the initial value.
   @Override protected final T initialValue() {
     return initialValue;
-  }
-
-  @Override public T get() {
-    return castNonNull(super.get());
   }
 
   /** Assigns the value as {@code value} for the current thread.

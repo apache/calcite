@@ -2345,8 +2345,7 @@ class UtilTest {
     memo1.close();
     assertThat(local1.get(), is("foo"));
 
-    final TryThreadLocal<@org.checkerframework.checker.nullness.qual.Nullable String> local2 =
-        TryThreadLocal.of(null);
+    final TryThreadLocal<String> local2 = TryThreadLocal.of(null);
     assertThat(local2.get(), nullValue());
     TryThreadLocal.Memo memo2 = local2.push("a");
     assertThat(local2.get(), is("a"));

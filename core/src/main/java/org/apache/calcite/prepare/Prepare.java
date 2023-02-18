@@ -100,7 +100,7 @@ public abstract class Prepare {
   protected @MonotonicNonNull RelDataType parameterRowType;
 
   // temporary. for testing.
-  public static final TryThreadLocal<Boolean> THREAD_TRIM =
+  public static final TryThreadLocal<@Nullable Boolean> THREAD_TRIM =
       TryThreadLocal.of(false);
 
   /** Temporary, until
@@ -110,7 +110,7 @@ public abstract class Prepare {
    * <p>The default is false, meaning do not expand queries during sql-to-rel,
    * but a few tests override and set it to true. After CALCITE-1045
    * is fixed, remove those overrides and use false everywhere. */
-  public static final TryThreadLocal<Boolean> THREAD_EXPAND =
+  public static final TryThreadLocal<@Nullable Boolean> THREAD_EXPAND =
       TryThreadLocal.of(false);
 
   // temporary. for testing.
@@ -119,7 +119,8 @@ public abstract class Prepare {
 
   protected Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {
-    this.context = requireNonNull(context, "context");
+    assert context != null;
+    this.context = context;
     this.catalogReader = catalogReader;
     this.resultConvention = resultConvention;
   }
