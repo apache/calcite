@@ -38,7 +38,7 @@ import java.util.Objects;
 public class RelDistributions {
   public static final ImmutableIntList EMPTY = ImmutableIntList.of();
 
-  /** The singleton singleton distribution. */
+  /** The singleton distribution. */
   public static final RelDistribution SINGLETON =
       new RelDistributionImpl(RelDistribution.Type.SINGLETON, EMPTY);
 
