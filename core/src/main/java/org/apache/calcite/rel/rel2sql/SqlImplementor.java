@@ -617,7 +617,7 @@ public abstract class SqlImplementor {
       }
       if (node instanceof SqlCall
           && dialect.getConformance().isSortByOrdinal()) {
-        // If the filed is expression and sort by ordinal is set in dialect,
+        // If the field is expression and sort by ordinal is set in dialect,
         // convert it to ordinal.
         return SqlLiteral.createExactNumeric(
             Integer.toString(ordinal + 1), SqlParserPos.ZERO);
