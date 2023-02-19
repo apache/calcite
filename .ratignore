@@ -47,7 +47,3 @@ site/js/**
 # Images
 site/img/*.png
 site/favicon.ico
-
-# gradle caches
-C:/*
-calcite/*
