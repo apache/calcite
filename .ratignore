@@ -50,3 +50,4 @@ site/favicon.ico
 
 # gradle caches
 C:/*
+calcite/*
