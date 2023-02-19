@@ -263,6 +263,18 @@ LogicalProject(JOB_NAME=[CASE(SEARCH($1, Sarg['810000', '820000']:CHAR(6)), $1, 
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAliasCommonExpressionPushdown">
+    <Resource name="sql">
+      <![CDATA[SELECT rand() r FROM emp WHERE r > 0.4]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalFilter(condition=[>($0, 0.4:DECIMAL(2, 1))])
+  LogicalProject(R=[RAND()])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAliasInHaving">
     <Resource name="plan">
       <![CDATA[

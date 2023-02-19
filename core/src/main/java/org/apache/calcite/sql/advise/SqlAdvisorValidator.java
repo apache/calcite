@@ -106,6 +106,12 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     return expr;
   }
 
+  @Override public SqlNode expandWithAlias(SqlNode expr,
+      SqlValidatorScope scope, SqlSelect sqlSelect) {
+    // Disable expansion. It doesn't help us come up with better hints.
+    return expr;
+  }
+
   @Override public SqlNode expandOrderExpr(SqlSelect select, SqlNode orderExpr) {
     // Disable expansion. It doesn't help us come up with better hints.
     return orderExpr;

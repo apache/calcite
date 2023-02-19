@@ -4835,4 +4835,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     String sql = "SELECT CAST(CAST(? AS INTEGER) AS CHAR)";
     sql(sql).ok();
   }
+
+
+  @Test public void testAliasCommonExpressionPushdown() {
+    sql("SELECT rand() r FROM emp\n"
+        + "WHERE r  > 0.4")
+//        .conformance(SqlConformanceEnum.LENIENT)
+        .ok();
+  }
+
 }

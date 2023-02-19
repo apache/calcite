@@ -3525,8 +3525,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       Preconditions.checkArgument(join.getCondition() == null);
       break;
     case ON:
-      final SqlNode condition = expand(getCondition(join), joinScope);
-      join.setOperand(5, condition);
+      SqlNode condition = getCondition(join);
+      SqlNode expandedCondition = condition;
+      if (scope.getNode() instanceof SqlSelect) {
+        expandedCondition = expandWithAlias(condition, joinScope, (SqlSelect) scope.getNode());
+      } else {
+        expandedCondition = expand(condition, joinScope);
+      }
+      join.setOperand(5, expandedCondition);
+      condition = getCondition(join);
       validateWhereOrOn(joinScope, condition, "ON");
       checkRollUp(null, join, condition, joinScope, "ON");
       break;
@@ -4464,7 +4471,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return;
     }
     final SqlValidatorScope whereScope = getWhereScope(select);
-    final SqlNode expandedWhere = expand(where, whereScope);
+    final SqlNode expandedWhere = expandWithAlias(where, whereScope, select);
     select.setWhere(expandedWhere);
     validateWhereOrOn(whereScope, expandedWhere, "WHERE");
   }
@@ -6196,7 +6203,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return newExpr;
   }
 
-  @Override public boolean isSystemField(RelDataTypeField field) {
+  public SqlNode expandWithAlias(SqlNode expr,
+      SqlValidatorScope scope, SqlSelect select) {
+    final Expander expander = new ExtendedAliasExpander(this, scope, select);
+    SqlNode newExpr = expr.accept(expander);
+    if (expr != newExpr) {
+      setOriginal(newExpr, expr);
+    }
+    return newExpr;
+  }
+
+  public boolean isSystemField(RelDataTypeField field) {
     return false;
   }
 
@@ -6757,17 +6774,70 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+
+  /**
+   * Shuttle which walks over an expression replacing usage of alias with underlying expression.
+   */
+  static class ExtendedAliasExpander extends Expander {
+    SqlSelect select;
+
+    ExtendedAliasExpander(SqlValidatorImpl validator, SqlValidatorScope scope,
+        SqlSelect select) {
+      super(validator, scope);
+      this.select = select;
+    }
+
+    @Override public SqlNode visit(SqlIdentifier id) {
+      if (id.isSimple()) {
+        try {
+          SqlNode sqlNode = super.visit(id);
+          return sqlNode;
+        } catch (Exception e) {
+          String name = id.getSimple();
+          SqlNode expr = null;
+          final SqlNameMatcher nameMatcher =
+              validator.catalogReader.nameMatcher();
+          int n = 0;
+          for (SqlNode s : select.getSelectList()) {
+            final String alias = SqlValidatorUtil.getAlias(s, -1);
+            if (alias != null && nameMatcher.matches(alias, name)) {
+              expr = s;
+              n++;
+            }
+          }
+          if (n == 0) {
+            return super.visit(id);
+          } else if (n > 1) {
+            // More than one column has this alias.
+            throw validator.newValidationError(id,
+                RESOURCE.columnAmbiguous(name));
+          }
+          expr = stripAs(expr);
+          if (expr instanceof SqlIdentifier) {
+            if (((SqlIdentifier) expr).names.equals(id.names)) {
+              // Not an alias , don't want to update parser position
+              return super.visit(id);
+            }
+            expr = getScope().fullyQualify((SqlIdentifier) expr).identifier;
+          }
+          validator.setOriginal(expr, id);
+          return expr;
+        }
+      }
+      return super.visit(id);
+    }
+  }
+
   /**
    * Converts an expression into canonical form by fully-qualifying any
    * identifiers. For common columns in USING, it will be converted to
    * COALESCE(A.col, B.col) AS col.
    */
-  static class SelectExpander extends Expander {
-    final SqlSelect select;
+  static class SelectExpander extends ExtendedAliasExpander {
 
     SelectExpander(SqlValidatorImpl validator, SelectScope scope,
         SqlSelect select) {
-      super(validator, scope);
+      super(validator, scope, select);
       this.select = select;
     }
 
