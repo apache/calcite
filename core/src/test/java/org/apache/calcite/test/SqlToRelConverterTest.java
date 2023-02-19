@@ -381,8 +381,19 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5486">[CALCITE-5486]
    * SubQuery not support HAVING alias in where condition</a>. */
-  @Test void testHavingAliasInSubQuery() {
+  @Test void testHavingAliasInSubQuery1() {
     final String sql = "select * from emp where sal >\n"
+        + " (select avg(sal) as s"
+        + "    from emp having s > 0"
+        + "  )";
+    sql(sql).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
+  @Test void testHavingAliasInSubQuery2() {
+    final String sql = "select * from emp e "
+        + "left join dept d "
+        + "on e.deptno = d.deptno "
+        + "and sal >\n"
         + " (select avg(sal) as s"
         + "    from emp having s > 0"
         + "  )";
