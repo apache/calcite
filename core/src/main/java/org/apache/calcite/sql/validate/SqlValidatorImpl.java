@@ -6895,21 +6895,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     /**
      * Returns whether a given node contains a {@link SqlIdentifier}.
      *
-     * @param parent a SqlNode
-     * @param children a SqlIdentifier
+     * @param sqlNode a SqlNode
+     * @param target a SqlIdentifier
      */
-    private boolean containsIdentifier(SqlNode parent, SqlIdentifier children) {
+    private boolean containsIdentifier(SqlNode sqlNode, SqlIdentifier target) {
       try {
         SqlVisitor<Void> visitor =
             new SqlBasicVisitor<Void>() {
               @Override public Void visit(SqlIdentifier identifier) {
-                if (identifier.equalsDeep(children, Litmus.IGNORE)) {
-                  throw new Util.FoundOne(children);
+                if (identifier.equalsDeep(target, Litmus.IGNORE)) {
+                  throw new Util.FoundOne(target);
                 }
                 return super.visit(identifier);
               }
             };
-        parent.accept(visitor);
+        sqlNode.accept(visitor);
         return false;
       } catch (Util.FoundOne e) {
         Util.swallow(e, null);
