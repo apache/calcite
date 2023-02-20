@@ -1027,8 +1027,12 @@ public class SqlPrettyWriter implements SqlWriter {
     setNeedWhitespace(true);
   }
 
-  @Override public void namedParam(String name) {
-    print("@");
+  @Override public void namedParam(String name, boolean prefixIsDollar) {
+    if (prefixIsDollar) {
+      print("$");
+    } else {
+      print("@");
+    }
     print(name);
     setNeedWhitespace(true);
   }

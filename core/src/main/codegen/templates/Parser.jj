@@ -5264,9 +5264,17 @@ SqlNamedParam NamedParam() :
 {
     final String name;
     final SqlParserPos pos;
+    boolean prefixIsDollar = false;
 }
 {
-    <PARAM_IDENTIFIER>
+
+    (
+            <AT_PARAM_IDENTIFIER>
+        |
+            <DOLLAR_PARAM_IDENTIFIER> {
+                prefixIsDollar = true;
+            }
+    )
     (
       {
         name = pythonUnquotedIdentifier();
@@ -5274,7 +5282,7 @@ SqlNamedParam NamedParam() :
       }
     )
     {
-      return new SqlNamedParam(name, getPos());
+      return new SqlNamedParam(name, prefixIsDollar, getPos());
     }
 }
 
@@ -8751,9 +8759,10 @@ MORE :
     < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
 }
 
-<DEFAULT, DQID, BTID, BQID> TOKEN :
+<DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :
 {
-    < PARAM_IDENTIFIER: (<AT_SYMBOL> | <DOLLAR>) (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f"]) (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f", "\u0030"-"\u0039"])* >
+    < AT_PARAM_IDENTIFIER: "@" (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f"]) (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f", "\u0030"-"\u0039"])* >
+    | < DOLLAR_PARAM_IDENTIFIER: <DOLLAR> (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f"]) (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f", "\u0030"-"\u0039"])* >
 }
 
 <DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :
@@ -8769,7 +8778,9 @@ MORE :
 |
     < #LETTER:
     [
-        "\u0024",
+// Bodo change, we dissalow identifiers begining with $ due to
+// conflicts with Named parameters
+//        "\u0024",
         "\u0041"-"\u005a",
         "\u005f",
         "\u0061"-"\u007a",

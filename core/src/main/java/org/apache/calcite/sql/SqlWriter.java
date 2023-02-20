@@ -381,7 +381,7 @@ public interface SqlWriter {
   /**
    * Prints a named parameter (e.g. {@code @name} for default JDBC)
    */
-  void namedParam(String name);
+  void namedParam(String name, boolean prefixIsDollar);
 
   /**
    * Prints the OFFSET/FETCH clause.
