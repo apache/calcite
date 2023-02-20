@@ -45,4 +45,16 @@ public class BodoSqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+
+  @Test void testValuesUnreserved() {
+    //Test that confirms we can use "values" as a column name, and table name
+    final String sql = "SELECT ename, dept2.values + values.values FROM\n"
+        +
+        "(select deptno as values from dept) dept2 JOIN\n"
+        +
+        "(select ename, deptno as values from emp) values\n"
+        +
+        "on values.values = dept2.values";
+    sql(sql).ok();
+  }
 }
