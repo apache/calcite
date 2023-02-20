@@ -1762,7 +1762,7 @@ class RelToSqlConverterTest {
    * RelToSqlConverter don't support sort by ordinal when sort by column is an expression</a>.
    */
   @Test void testOrderByOrdinalWithExpression() {
-    String query = "select \"product_id\", count(*) as \"c\"\n"
+    final String query = "select \"product_id\", count(*) as \"c\"\n"
         + "from \"product\"\n"
         + "group by \"product_id\"\n"
         + "order by 2";
