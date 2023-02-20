@@ -8752,7 +8752,7 @@ MORE :
 
 <DEFAULT, DQID, BTID, BQID> TOKEN :
 {
-    < PARAM_IDENTIFIER: "@" (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f"]) (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f", "\u0030"-"\u0039"])* >
+    < PARAM_IDENTIFIER: ("@"|"$") (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f"]) (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f", "\u0030"-"\u0039"])* >
 }
 
 <DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :
