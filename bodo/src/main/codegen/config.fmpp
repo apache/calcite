@@ -43,6 +43,7 @@ data: {
     nonReservedKeywordsToAdd: [
         "IF",
         "VALUES",
+        "CORR",
     ]
 
     # List of additional join types. Each is a method with no arguments.
