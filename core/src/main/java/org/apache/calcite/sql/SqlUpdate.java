@@ -28,7 +28,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A <code>SqlUpdate</code> is a node of a parse tree which represents an UPDATE
@@ -62,6 +65,7 @@ public class SqlUpdate extends SqlCall {
     this.sourceSelect = sourceSelect;
     assert sourceExpressionList.size() == targetColumnList.size();
     this.alias = alias;
+    init();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -112,7 +116,10 @@ public class SqlUpdate extends SqlCall {
     return targetTable;
   }
 
-  public void setTargetTable(SqlNode targetTable) {
+  /**
+   *  Updates the targetTable if it is aliased to @param targetTable.
+   */
+  private void updateTargetTable(SqlNode targetTable) {
     this.targetTable = targetTable;
   }
 
@@ -172,7 +179,8 @@ public class SqlUpdate extends SqlCall {
     if (sourceSelect != null && sourceSelect.from != null) {
       SqlJoin join = getJoinFromSourceSelect();
       if (join != null) {
-        setTargetAndSources(join, sources);
+        updateTargetTableFromJoin(join);
+        sources = sqlKindSourceCollectorMap.get(join.getKind()).collectSources(join);
       }
     }
 
@@ -193,9 +201,18 @@ public class SqlUpdate extends SqlCall {
     writer.endList(frame);
   }
 
+  private void updateTargetTableFromJoin(SqlJoin join) {
+    if (join.right.getKind() == SqlKind.AS && isTargetTable(join.right)) {
+      updateTargetTable(join.right);
+    }
+    if (join.left.getKind() == SqlKind.AS && isTargetTable(join.left)) {
+      updateTargetTable(join.left);
+    }
+  }
+
   private SqlJoin getJoinFromSourceSelect() {
     SqlJoin join = null;
-    if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS
+    if (sourceSelect.from.getKind() == SqlKind.AS
         && ((SqlBasicCall) sourceSelect.from).operands[0] instanceof SqlJoin) {
       join = (SqlJoin) ((SqlBasicCall) sourceSelect.from).operands[0];
     } else if (sourceSelect.from instanceof SqlJoin) {
@@ -204,40 +221,38 @@ public class SqlUpdate extends SqlCall {
     return join;
   }
 
-  private void setTargetAndSources(SqlNode node, List<SqlNode> sources) {
-    switch (node.getKind()) {
-    case JOIN:
-      setTargetAndSources((SqlJoin) node, sources);
-      break;
-    case IDENTIFIER:
-      setTargetAndSources((SqlIdentifier) node, sources);
-      break;
-    case AS:
-      setTargetAndSources((SqlBasicCall) node, sources);
-      break;
-    case WITH:
-      setTargetAndSources((SqlWith) node, sources);
-      break;
-    }
+  /**
+   * This Collect Sources for SqlNode.
+   * @param <T> is type of SqlNode
+   */
+  interface SourceCollector<T extends SqlNode> {
+    List<SqlNode> collectSources(T node);
   }
 
-  private void setTargetAndSources(SqlJoin node, List<SqlNode> sources) {
-    setTargetAndSources(node.right, sources);
-    setTargetAndSources(node.left, sources);
-  }
+  private final Map<SqlKind, SourceCollector> sqlKindSourceCollectorMap = new HashMap<>();
 
-  private void setTargetAndSources(SqlIdentifier node, List<SqlNode> sources) {
-    if (!isTargetTable(node)) {
-      sources.add(node);
-    }
-  }
+  private final SourceCollector collectSourcesFromIdentifier = node ->
+      isTargetTable(node) ? new ArrayList<>() : new ArrayList<>(Arrays.asList(node));
 
-  private void setTargetAndSources(SqlBasicCall node, List<SqlNode> sources) {
-    if (isTargetTable(node)) {
-      setTargetTable(node);
-    } else {
-      sources.add(node);
-    }
+  private final SourceCollector collectSourcesFromAs = node ->
+      isTargetTable(node) ? new ArrayList<>() : new ArrayList<>(Arrays.asList(node));
+
+  private final SourceCollector collectSourcesFromWith = node ->
+      new ArrayList<>(Arrays.asList(node));
+
+  private final SourceCollector collectSourcesFromJoin = node -> {
+    SqlNode right = ((SqlJoin) node).right;
+    SqlNode left = ((SqlJoin) node).left;
+    List<SqlNode> sources = sqlKindSourceCollectorMap.get(right.getKind()).collectSources(right);
+    sources.addAll(sqlKindSourceCollectorMap.get(left.getKind()).collectSources(left));
+    return sources;
+  };
+
+  void init() {
+    sqlKindSourceCollectorMap.put(SqlKind.JOIN, collectSourcesFromJoin);
+    sqlKindSourceCollectorMap.put(SqlKind.IDENTIFIER, collectSourcesFromIdentifier);
+    sqlKindSourceCollectorMap.put(SqlKind.AS, collectSourcesFromAs);
+    sqlKindSourceCollectorMap.put(SqlKind.WITH, collectSourcesFromWith);
   }
 
   /**
@@ -249,15 +264,11 @@ public class SqlUpdate extends SqlCall {
   private boolean isTargetTable(SqlNode node) {
     if (node.equalsDeep(targetTable, Litmus.IGNORE)) {
       return true;
-    } else if (node instanceof SqlBasicCall) {
+    } else if (node.getKind() == SqlKind.AS) {
       return ((SqlBasicCall) node).operands[0].equalsDeep(targetTable, Litmus.IGNORE);
     }
     return targetTable instanceof SqlBasicCall && targetTable.getKind() == SqlKind.AS
         && ((SqlBasicCall) targetTable).operands[0].equalsDeep(node, Litmus.IGNORE);
-  }
-
-  private void setTargetAndSources(SqlWith node, List<SqlNode> sources) {
-    sources.add(node);
   }
 
   private void unparseSet(SqlWriter writer, int opLeft, int opRight) {
