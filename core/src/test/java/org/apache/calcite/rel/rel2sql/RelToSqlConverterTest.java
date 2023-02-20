@@ -765,12 +765,12 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id` WITH ROLLUP\n"
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
-        + " 2 IS NULL, 2";
+        + " COUNT(*) IS NULL, 2";
     final String expectedPresto = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
         + "ORDER BY \"product_class_id\" IS NULL, \"product_class_id\", "
-        + "2 IS NULL, 2";
+        + "COUNT(*) IS NULL, 2";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
@@ -817,7 +817,7 @@ class RelToSqlConverterTest {
         + "GROUP BY `product_class_id`, `brand_name` WITH ROLLUP\n"
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
         + " `brand_name` IS NULL, `brand_name`,"
-        + " 3 IS NULL, 3";
+        + " COUNT(*) IS NULL, 3";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql);
@@ -1777,7 +1777,7 @@ class RelToSqlConverterTest {
     final String prestoExpected = "SELECT \"product_id\", COUNT(*) AS \"c\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_id\"\n"
-        + "ORDER BY 2 IS NULL, 2";
+        + "ORDER BY COUNT(*) IS NULL, 2";
     sql(query)
         .ok(ordinalExpected)
         .dialect(nonOrdinalDialect())
@@ -1815,7 +1815,7 @@ class RelToSqlConverterTest {
     final String expectedMysql = "SELECT `net_weight` AS `product_id`,"
         + " `product_id` AS `product_id0`\n"
         + "FROM `foodmart`.`product`\n"
-        + "ORDER BY 2 IS NULL, 2";
+        + "ORDER BY `product_id` IS NULL, 2";
     sql(query).ok(expected)
         .withMysql().ok(expectedMysql);
   }
@@ -6710,7 +6710,7 @@ class RelToSqlConverterTest {
         + "FROM SCOTT.EMP\n"
         + "GROUP BY DEPTNO\n"
         + "HAVING COUNT(DISTINCT EMPNO) > 0\n"
-        + "ORDER BY 2 IS NULL DESC, 2 DESC";
+        + "ORDER BY COUNT(DISTINCT EMPNO) IS NULL DESC, 2 DESC";
 
     // Convert rel node to SQL with BigQuery dialect,
     // in which "isHavingAlias" is true.
