@@ -8559,6 +8559,7 @@ void NonReservedKeyWord2of3() :
 |   < VERTICAL_BAR: "|" >
 |   < CARET: "^" >
 |   < DOLLAR: "$" >
+|   < AT_SYMBOL: "@" >
 |   < INFIX_CAST: "::" >
 <#list (parser.binaryOperatorsTokens!default.parser.binaryOperatorsTokens) as operator>
 |   ${operator}
@@ -8752,7 +8753,7 @@ MORE :
 
 <DEFAULT, DQID, BTID, BQID> TOKEN :
 {
-    < PARAM_IDENTIFIER: ("@"|"$") (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f"]) (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f", "\u0030"-"\u0039"])* >
+    < PARAM_IDENTIFIER: (<AT_SYMBOL> | <DOLLAR>) (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f"]) (["\u0041"-"\u005a", "\u0061"-"\u007a", "\u005f", "\u0030"-"\u0039"])* >
 }
 
 <DEFAULT, DQID, BTID, BQID, BQHID> TOKEN :
