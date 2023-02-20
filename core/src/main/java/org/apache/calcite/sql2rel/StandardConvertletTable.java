@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.sql2rel;
 
-import org.apache.calcite.avatica.util.DateTimeUtils;
-import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -1823,84 +1821,84 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
   }
 
-  /** Convertlet that handles the {@code TIMESTAMPADD} function. */
-  private static class TimestampAddConvertlet implements SqlRexConvertlet {
-    @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
-      // TIMESTAMPADD(unit, count, timestamp)
-      //  => timestamp + count * INTERVAL '1' UNIT
-      final RexBuilder rexBuilder = cx.getRexBuilder();
-      final SqlLiteral unitLiteral = call.operand(0);
-      final TimeUnit unit = unitLiteral.getValueAs(TimeUnit.class);
-      RexNode interval2Add;
-      SqlIntervalQualifier qualifier =
-          new SqlIntervalQualifier(unit, null, unitLiteral.getParserPosition());
-      RexNode op1 = cx.convertExpression(call.operand(1));
-      switch (unit) {
-      case MICROSECOND:
-      case NANOSECOND:
-        interval2Add =
-            divide(rexBuilder,
-                multiply(rexBuilder,
-                    rexBuilder.makeIntervalLiteral(BigDecimal.ONE, qualifier), op1),
-                BigDecimal.ONE.divide(unit.multiplier,
-                    RoundingMode.UNNECESSARY));
-        break;
-      default:
-        interval2Add = multiply(rexBuilder,
-            rexBuilder.makeIntervalLiteral(unit.multiplier, qualifier), op1);
-      }
-
-      return rexBuilder.makeCall(SqlStdOperatorTable.DATETIME_PLUS,
-          cx.convertExpression(call.operand(2)), interval2Add);
-    }
-  }
-
-  /** Convertlet that handles the {@code TIMESTAMPDIFF} function. */
-  private static class TimestampDiffConvertlet implements SqlRexConvertlet {
-    @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
-      // TIMESTAMPDIFF(unit, t1, t2)
-      //    => (t2 - t1) UNIT
-      final RexBuilder rexBuilder = cx.getRexBuilder();
-      final SqlLiteral unitLiteral = call.operand(0);
-      TimeUnit unit = unitLiteral.getValueAs(TimeUnit.class);
-      BigDecimal multiplier = BigDecimal.ONE;
-      BigDecimal divider = BigDecimal.ONE;
-      SqlTypeName sqlTypeName = unit == TimeUnit.NANOSECOND
-          ? SqlTypeName.BIGINT
-          : SqlTypeName.INTEGER;
-      switch (unit) {
-      case MICROSECOND:
-      case MILLISECOND:
-      case NANOSECOND:
-      case WEEK:
-        multiplier = BigDecimal.valueOf(DateTimeUtils.MILLIS_PER_SECOND);
-        divider = unit.multiplier;
-        unit = TimeUnit.SECOND;
-        break;
-      case QUARTER:
-        divider = unit.multiplier;
-        unit = TimeUnit.MONTH;
-        break;
-      default:
-        break;
-      }
-      final SqlIntervalQualifier qualifier =
-          new SqlIntervalQualifier(unit, null, SqlParserPos.ZERO);
-      final RexNode op2 = cx.convertExpression(call.operand(2));
-      final RexNode op1 = cx.convertExpression(call.operand(1));
-      final RelDataType intervalType =
-          cx.getTypeFactory().createTypeWithNullability(
-              cx.getTypeFactory().createSqlIntervalType(qualifier),
-              op1.getType().isNullable() || op2.getType().isNullable());
-      final RexCall rexCall = (RexCall) rexBuilder.makeCall(
-          intervalType, SqlStdOperatorTable.MINUS_DATE,
-          ImmutableList.of(op2, op1));
-      final RelDataType intType =
-          cx.getTypeFactory().createTypeWithNullability(
-              cx.getTypeFactory().createSqlType(sqlTypeName),
-              SqlTypeUtil.containsNullable(rexCall.getType()));
-      RexNode e = rexBuilder.makeCast(intType, rexCall);
-      return rexBuilder.multiplyDivide(e, multiplier, divider);
-    }
-  }
+//  /** Convertlet that handles the {@code TIMESTAMPADD} function. */
+//  private static class TimestampAddConvertlet implements SqlRexConvertlet {
+//    @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+//      // TIMESTAMPADD(unit, count, timestamp)
+//      //  => timestamp + count * INTERVAL '1' UNIT
+//      final RexBuilder rexBuilder = cx.getRexBuilder();
+//      final SqlLiteral unitLiteral = call.operand(0);
+//      final TimeUnit unit = unitLiteral.getValueAs(TimeUnit.class);
+//      RexNode interval2Add;
+//      SqlIntervalQualifier qualifier =
+//          new SqlIntervalQualifier(unit, null, unitLiteral.getParserPosition());
+//      RexNode op1 = cx.convertExpression(call.operand(1));
+//      switch (unit) {
+//      case MICROSECOND:
+//      case NANOSECOND:
+//        interval2Add =
+//            divide(rexBuilder,
+//                multiply(rexBuilder,
+//                    rexBuilder.makeIntervalLiteral(BigDecimal.ONE, qualifier), op1),
+//                BigDecimal.ONE.divide(unit.multiplier,
+//                    RoundingMode.UNNECESSARY));
+//        break;
+//      default:
+//        interval2Add = multiply(rexBuilder,
+//            rexBuilder.makeIntervalLiteral(unit.multiplier, qualifier), op1);
+//      }
+//
+//      return rexBuilder.makeCall(SqlStdOperatorTable.DATETIME_PLUS,
+//          cx.convertExpression(call.operand(2)), interval2Add);
+//    }
+//  }
+//
+//  /** Convertlet that handles the {@code TIMESTAMPDIFF} function. */
+//  private static class TimestampDiffConvertlet implements SqlRexConvertlet {
+//    @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+//      // TIMESTAMPDIFF(unit, t1, t2)
+//      //    => (t2 - t1) UNIT
+//      final RexBuilder rexBuilder = cx.getRexBuilder();
+//      final SqlLiteral unitLiteral = call.operand(0);
+//      TimeUnit unit = unitLiteral.getValueAs(TimeUnit.class);
+//      BigDecimal multiplier = BigDecimal.ONE;
+//      BigDecimal divider = BigDecimal.ONE;
+//      SqlTypeName sqlTypeName = unit == TimeUnit.NANOSECOND
+//          ? SqlTypeName.BIGINT
+//          : SqlTypeName.INTEGER;
+//      switch (unit) {
+//      case MICROSECOND:
+//      case MILLISECOND:
+//      case NANOSECOND:
+//      case WEEK:
+//        multiplier = BigDecimal.valueOf(DateTimeUtils.MILLIS_PER_SECOND);
+//        divider = unit.multiplier;
+//        unit = TimeUnit.SECOND;
+//        break;
+//      case QUARTER:
+//        divider = unit.multiplier;
+//        unit = TimeUnit.MONTH;
+//        break;
+//      default:
+//        break;
+//      }
+//      final SqlIntervalQualifier qualifier =
+//          new SqlIntervalQualifier(unit, null, SqlParserPos.ZERO);
+//      final RexNode op2 = cx.convertExpression(call.operand(2));
+//      final RexNode op1 = cx.convertExpression(call.operand(1));
+//      final RelDataType intervalType =
+//          cx.getTypeFactory().createTypeWithNullability(
+//              cx.getTypeFactory().createSqlIntervalType(qualifier),
+//              op1.getType().isNullable() || op2.getType().isNullable());
+//      final RexCall rexCall = (RexCall) rexBuilder.makeCall(
+//          intervalType, SqlStdOperatorTable.MINUS_DATE,
+//          ImmutableList.of(op2, op1));
+//      final RelDataType intType =
+//          cx.getTypeFactory().createTypeWithNullability(
+//              cx.getTypeFactory().createSqlType(sqlTypeName),
+//              SqlTypeUtil.containsNullable(rexCall.getType()));
+//      RexNode e = rexBuilder.makeCast(intType, rexCall);
+//      return rexBuilder.multiplyDivide(e, multiplier, divider);
+//    }
+//  }
 }
