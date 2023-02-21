@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * A <code>SqlUpdate</code> is a node of a parse tree which represents an UPDATE
@@ -117,7 +118,7 @@ public class SqlUpdate extends SqlCall {
   }
 
   /**
-   *  Updates the targetTable if it is aliased to @param targetTable.
+   *  Updates the targetTable if it is aliased.
    */
   private void updateTargetTable(SqlNode targetTable) {
     this.targetTable = targetTable;
@@ -171,34 +172,40 @@ public class SqlUpdate extends SqlCall {
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.SELECT, "UPDATE", "");
-    final int opLeft = getOperator().getLeftPrec();
-    final int opRight = getOperator().getRightPrec();
+    final int operatorLeftPrec = getOperator().getLeftPrec();
+    final int operatorRightPrec = getOperator().getRightPrec();
 
-    List<SqlNode> sources = new ArrayList<>();
+    targetTable.unparse(writer, operatorLeftPrec, operatorRightPrec);
 
-    if (sourceSelect != null && sourceSelect.from != null) {
-      SqlJoin join = getJoinFromSourceSelect();
-      if (join != null) {
-        updateTargetTableFromJoin(join);
-        sources = sqlKindSourceCollectorMap.get(join.getKind()).collectSources(join);
-      }
-    }
+    unparseAlias(writer, operatorLeftPrec, operatorRightPrec);
 
-    targetTable.unparse(writer, opLeft, opRight);
-
-    SqlIdentifier alias = this.alias;
-    if (alias != null) {
-      writer.keyword("AS");
-      alias.unparse(writer, opLeft, opRight);
-    }
-
-    unparseSet(writer, opLeft, opRight);
+    unparseSet(writer, operatorLeftPrec, operatorRightPrec);
+    List<SqlNode> sources = getSources();
     if (!sources.isEmpty()) {
-      unparseUpdateSources(sources, writer, opLeft, opRight);
+      unparseUpdateSources(sources, writer, operatorLeftPrec, operatorRightPrec);
     }
-    unparseUpdateCondition(writer, opLeft, opRight);
+    unparseUpdateCondition(writer, operatorLeftPrec, operatorRightPrec);
 
     writer.endList(frame);
+  }
+
+  private void unparseAlias(SqlWriter writer, int operatorLeftPrec, int operatorRightPrec) {
+    if (alias != null) {
+      writer.keyword("AS");
+      alias.unparse(writer, operatorLeftPrec, operatorRightPrec);
+    }
+  }
+
+  private List<SqlNode> getSources() {
+    List<SqlNode> sources = new ArrayList<>();
+    if (sourceSelect != null && sourceSelect.from != null) {
+      Optional<SqlJoin> join = getJoinFromSourceSelect();
+      if (join.isPresent()) {
+        updateTargetTableFromJoin(join.get());
+        sources = sqlKindSourceCollectorMap.get(join.get().getKind()).collectSources(join.get());
+      }
+    }
+    return sources;
   }
 
   private void updateTargetTableFromJoin(SqlJoin join) {
@@ -210,13 +217,14 @@ public class SqlUpdate extends SqlCall {
     }
   }
 
-  private SqlJoin getJoinFromSourceSelect() {
+  private Optional<SqlJoin> getJoinFromSourceSelect() {
     if (sourceSelect.from.getKind() == SqlKind.AS
         && ((SqlBasicCall) sourceSelect.from).operands[0] instanceof SqlJoin) {
-      return (SqlJoin) ((SqlBasicCall) sourceSelect.from).operands[0];
+      return Optional.of((SqlJoin) ((SqlBasicCall) sourceSelect.from).operands[0]);
     } else {
-      return sourceSelect.from instanceof SqlJoin ? (SqlJoin) sourceSelect.from : null;
+      return Optional.of(sourceSelect.from instanceof SqlJoin ? (SqlJoin) sourceSelect.from);
     }
+    return Optional.empty();
   }
 
   /**
@@ -274,7 +282,7 @@ public class SqlUpdate extends SqlCall {
    * AND `table2update`.`id` = `trimmed_employee`.`employee_id`
    *
    * Here sources are: `foodmart`.`trimmed_employee`, `foodmart`.`table2update`
-   * 
+   *
    * @param <T> is type of SqlNode
    */
   private interface SourceCollector<T extends SqlNode> {
@@ -348,25 +356,24 @@ public class SqlUpdate extends SqlCall {
     }
     writer.endList(sourcesFrame);
     if (sources.size() == 1) {
-      SqlIdentifier aliasForFromClause = getAliasForFromClause();
-      if (aliasForFromClause != null) {
+      Optional<SqlIdentifier> aliasForFromClause = getAliasForFromClause();
+      if (aliasForFromClause.isPresent()) {
         writer.keyword("AS");
-        aliasForFromClause.unparse(writer, opLeft, opRight);
+        aliasForFromClause.get().unparse(writer, opLeft, opRight);
       }
     }
   }
 
-  private SqlIdentifier getAliasForFromClause() {
+  private Optional<SqlIdentifier> getAliasForFromClause() {
     if (sourceSelect != null && sourceSelect.from != null) {
       if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS) {
-        return (SqlIdentifier) ((SqlBasicCall) sourceSelect.from).operands[1];
+        return Optional.of((SqlIdentifier) ((SqlBasicCall) sourceSelect.from).operands[1]);
       }
     }
-    return null;
+    return Optional.empty();
   }
 
   private void unparseUpdateCondition(SqlWriter writer, int opLeft, int opRight) {
-    SqlNode condition = this.condition;
     if (condition != null) {
       writer.sep("WHERE");
       condition.unparse(writer, opLeft, opRight);
