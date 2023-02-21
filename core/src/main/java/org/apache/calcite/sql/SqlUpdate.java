@@ -211,21 +211,73 @@ public class SqlUpdate extends SqlCall {
   }
 
   private SqlJoin getJoinFromSourceSelect() {
-    SqlJoin join = null;
     if (sourceSelect.from.getKind() == SqlKind.AS
         && ((SqlBasicCall) sourceSelect.from).operands[0] instanceof SqlJoin) {
-      join = (SqlJoin) ((SqlBasicCall) sourceSelect.from).operands[0];
-    } else if (sourceSelect.from instanceof SqlJoin) {
-      join = (SqlJoin) sourceSelect.from;
+      return (SqlJoin) ((SqlBasicCall) sourceSelect.from).operands[0];
+    } else {
+      return sourceSelect.from instanceof SqlJoin ? (SqlJoin) sourceSelect.from : null;
     }
-    return join;
   }
 
   /**
-   * This Collect Sources for SqlNode.
+   * Collect Sources for Update Statement.
+   *
+   * Examples:
+   *
+   * Example 1: When there is only one source.
+   *
+   * A. When source is CTE (SqlWith)
+   *
+   * sourceSelect: SELECT *
+   * FROM ((WITH `CTE1` () AS (SELECT *
+   * FROM `foodmart`.`empDeptBoolTableDup`) (SELECT `CTE10`.`ID`, `CTE10`.`DEPT_ID`,
+   * `CTE10`.`NAME`, `CTE10`.`BOOL_DATA`
+   * FROM `CTE1` AS `CTE10`
+   * INNER JOIN `foodmart`.`trimmed_employee` AS `trimmed_employee0` ON `CTE10`.`ID` =
+   * `trimmed_employee0`.`EMPLOYEE_ID`
+   * WHERE NVL(`trimmed_employee0`.`DEPARTMENT_ID`, CAST('' AS NUMERIC)) <> NVL(`CTE10`.`DEPT_ID`,
+   * CAST('' AS NUMERIC)))) INNER JOIN `foodmart`.`empDeptBoolTable` ON
+   * TRUE) AS `t0`
+   * WHERE `empDeptBoolTable`.`ID` = `t0`.`ID`
+   *
+   * Here source is :
+   * WITH `CTE1` () AS (SELECT *
+   * FROM `foodmart`.`empDeptBoolTableDup`) (SELECT `CTE10`.`ID`, `CTE10`.`DEPT_ID`,
+   * `CTE10`.`NAME`, `CTE10`.`BOOL_DATA`
+   * FROM `CTE1` AS `CTE10`
+   * INNER JOIN `foodmart`.`trimmed_employee` AS `trimmed_employee0` ON `CTE10`.`ID` =
+   * `trimmed_employee0`.`EMPLOYEE_ID`
+   * WHERE NVL(`trimmed_employee0`.`DEPARTMENT_ID`, CAST('' AS NUMERIC)) <> NVL(`CTE10``DEPT_ID`,
+   * CAST('' AS NUMERIC)))
+   *
+   * B: When source is a Table (SqlIdentifier) -
+   *
+   * sourceSelect: SELECT `employee`.`EMPLOYEE_ID`, `employee`.`FIRST_NAME`,
+   * `table1`.`ID`, `table1`.`NAME`, `table1`.`EMP_ID`,
+   * `table1`.`EMPLOYEE_ID` AS `EMPLOYEE_ID0`,
+   * `table1`.`FIRST_NAME` AS `FIRST_NAME0`, `employee`.`EMPLOYEE_ID`
+   *  AS `EMPLOYEE_ID1` FROM `foodmart`.`employee`
+   *  INNER JOIN `foodmart`.`table1` ON TRUE
+   *  WHERE `table1`.`NAME` = 'Derrick' AND `employee`.`FIRST_NAME` = 'Derrick'
+   *
+   * Here source is : `foodmart`.`employee`
+   *
+   * Example 2: When there are multiple sources:
+   *
+   * sourceSelect: SELECT `table1update`.`id`, `table1update`.`name`, table2update`.`id` AS `id0`,
+   * `table2update`.`name` AS `name0`, `trimmed_employee`.`employee_id`,`
+   * `trimmed_employee`.`first_name`, 10 AS `$f23`, `table1update`.`name` AS `name1`,
+   * `table2update`.`middlename` AS `middlename0` FROM `foodmart`.`table1update`
+   * INNER JOIN `foodmart`.`table2update` ON TRUE
+   * INNER JOIN `foodmart`.`trimmed_employee` ON TRUE
+   * WHERE LOWER(`trimmed_employee`.`first_name`) = LOWER(`table1update`.`name`)
+   * AND `table2update`.`id` = `trimmed_employee`.`employee_id`
+   *
+   * Here sources are: `foodmart`.`trimmed_employee`, `foodmart`.`table2update`
+   * 
    * @param <T> is type of SqlNode
    */
-  interface SourceCollector<T extends SqlNode> {
+  private interface SourceCollector<T extends SqlNode> {
     List<SqlNode> collectSources(T node);
   }
 
