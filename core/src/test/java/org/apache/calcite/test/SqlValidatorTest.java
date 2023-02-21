@@ -4161,14 +4161,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 //        .fails("(?s).*Was expecting one of.*");
   }
 
-//  @Test void testTimestampAddNullInterval() {
-//    expr("timestampadd(SQL_TSI_SECOND, cast(NULL AS INTEGER),"
-//        + " current_timestamp)")
-//        .columnType("TIMESTAMP(0)");
-//    expr("timestampadd(SQL_TSI_DAY, cast(NULL AS INTEGER),"
-//        + " current_timestamp)")
-//        .columnType("TIMESTAMP('UTC')");
-//  }
+  @Test void testTimestampAddNullInterval() {
+    expr("timestampadd('SECOND', cast(NULL AS INTEGER),"
+        + " current_timestamp)")
+        .columnType("TIME(0)");
+    expr("timestampadd('DAY', cast(NULL AS INTEGER),"
+        + " current_timestamp)")
+        .columnType("TIME(0)");
+  }
 
   @Test void testNumericOperators() {
     // unary operator
