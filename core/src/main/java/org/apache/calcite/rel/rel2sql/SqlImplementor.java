@@ -1854,11 +1854,12 @@ public abstract class SqlImplementor {
           return false;
         }
         for (SqlNode sqlNode : orderList) {
-          if (sqlNode instanceof SqlBasicCall) {
-            for (SqlNode operand : ((SqlBasicCall) sqlNode).getOperandList()) {
-              if (operand instanceof SqlNumericLiteral) {
-                return true;
-              }
+          if (!(sqlNode instanceof SqlBasicCall)) {
+            return false;
+          }
+          for (SqlNode operand : ((SqlBasicCall) sqlNode).getOperandList()) {
+            if (operand instanceof SqlNumericLiteral) {
+              return true;
             }
           }
         }
