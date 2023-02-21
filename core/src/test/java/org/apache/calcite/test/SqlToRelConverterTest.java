@@ -6590,4 +6590,32 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     withPostgresLib(sql(sql)).ok();
   }
 
+  @Test void testJoinSubqueryIssueOrig() {
+    //Test the minimal reproducer
+    final String sql = "SELECT * FROM\n"
+        +
+        " dept JOIN\n"
+        +
+        "emp\n"
+        +
+        "on dept.deptno = emp.deptno and\n"
+        +
+        "emp.sal = (Select max(sal) from emp)";
+    sql(sql).ok();
+  }
+
+  @Test void testJoinSubqueryIssueOrig2() {
+    //Test the minimal reproducer
+    final String sql = "SELECT * FROM\n"
+        +
+        " dept JOIN\n"
+        +
+        "emp\n"
+        +
+        "on dept.deptno = emp.deptno and\n"
+        +
+        "(emp.sal, dept.deptno) in (Select max(sal), 10 from emp)";
+    sql(sql).ok();
+  }
+
 }
