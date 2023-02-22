@@ -314,8 +314,14 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
     switch (operandType2.getSqlTypeName()) {
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
     case TIMESTAMP:
+      outputType = operandType2;
+      break;
     case TIME_WITH_LOCAL_TIME_ZONE:
     case TIME:
+      if (!timeUnitSmallerThanDay) {
+        throw new RuntimeException("TODO: When date_or_time_expr is a time,"
+            + " time unit must be smaller than day!");
+      }
       outputType = operandType2;
       break;
     case DATE:
