@@ -11294,4 +11294,39 @@ class RelToSqlConverterTest {
         isLinux(expectedBigQuery));
   }
 
+
+  @Test public void testBetween() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.call(SqlLibraryOperators.BETWEEN,
+            builder.field("EMPNO"), builder.literal(1), builder.literal(3)))
+        .build();
+    final String expectedBigQuery = "SELECT *\n"
+                                    + "FROM scott.EMP\n"
+                                    + "WHERE EMPNO BETWEEN 1 AND 3";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
+
+
+  @Test public void testNotBetween() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.call(SqlLibraryOperators.NOT_BETWEEN,
+                builder.field("EMPNO"), builder.literal(1), builder.literal(3)))
+        .build();
+    final String expectedBigQuery = "SELECT *\n"
+        + "FROM scott.EMP\n"
+        + "WHERE EMPNO NOT BETWEEN 1 AND 3";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
 }
