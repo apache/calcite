@@ -179,10 +179,10 @@ public class SqlUpdate extends SqlCall {
 
     unparseAlias(writer, operatorLeftPrec, operatorRightPrec);
 
-    unparseSet(writer, operatorLeftPrec, operatorRightPrec);
-    List<SqlNode> sources = getSources();
-    if (!sources.isEmpty()) {
-      unparseUpdateSources(sources, writer, operatorLeftPrec, operatorRightPrec);
+    unparseSetClause(writer, operatorLeftPrec, operatorRightPrec);
+    List<SqlNode> updateSources = getUpdateSources();
+    if (!updateSources.isEmpty()) {
+      unparseUpdateSources(updateSources, writer, operatorLeftPrec, operatorRightPrec);
     }
     unparseUpdateCondition(writer, operatorLeftPrec, operatorRightPrec);
 
@@ -196,16 +196,16 @@ public class SqlUpdate extends SqlCall {
     }
   }
 
-  private List<SqlNode> getSources() {
-    List<SqlNode> sources = new ArrayList<>();
+  private List<SqlNode> getUpdateSources() {
+    List<SqlNode> updateSources = new ArrayList<>();
     if (sourceSelect != null && sourceSelect.from != null) {
       Optional<SqlJoin> join = getJoinFromSourceSelect();
       if (join.isPresent()) {
         updateTargetTableFromJoin(join.get());
-        sources = sqlKindSourceCollectorMap.get(join.get().getKind()).collectSources(join.get());
+        updateSources = sqlKindSourceCollectorMap.get(join.get().getKind()).collectSources(join.get());
       }
     }
-    return sources;
+    return updateSources;
   }
 
   private void updateTargetTableFromJoin(SqlJoin join) {
@@ -331,7 +331,7 @@ public class SqlUpdate extends SqlCall {
         && ((SqlBasicCall) targetTable).operands[0].equalsDeep(node, Litmus.IGNORE);
   }
 
-  private void unparseSet(SqlWriter writer, int opLeft, int opRight) {
+  private void unparseSetClause(SqlWriter writer, int opLeft, int opRight) {
     final SqlWriter.Frame setFrame =
         writer.startList(SqlWriter.FrameTypeEnum.UPDATE_SET_LIST, "SET", "");
     for (Pair<SqlNode, SqlNode> pair
@@ -355,6 +355,10 @@ public class SqlUpdate extends SqlCall {
       source.unparse(writer, opLeft, opRight);
     }
     writer.endList(sourcesFrame);
+    unparseSourceAlias(sources, writer, opLeft, opRight);
+  }
+
+  private void unparseSourceAlias(List<SqlNode> sources, SqlWriter writer, int opLeft, int opRight) {
     if (sources.size() == 1) {
       Optional<SqlIdentifier> aliasForFromClause = getAliasForFromClause();
       if (aliasForFromClause.isPresent()) {
