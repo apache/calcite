@@ -1985,28 +1985,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** The <code>TIMESTAMPADD</code> function. */
   public static final SqlFunction TIMESTAMP_ADD = new BodoSqlTimestampAddFunction();
 
-//  new SqlFunction(
-//      "TIMESTAMPADD",
-//      SqlKind.OTHER_FUNCTION,
-//      ReturnTypes.ARG2,
-//      null,
-//      OperandTypes.family(SqlTypeFamily.ANY,
-//          SqlTypeFamily.INTEGER,
-//          SqlTypeFamily.DATETIME),
-//      SqlFunctionCategory.TIMEDATE);
-
   /** The <code>TIMESTAMPDIFF</code> function. */
-  public static final SqlFunction TIMESTAMP_DIFF = new SqlFunction(
-      "TIMESTAMPDIFF",
-      SqlKind.OTHER_FUNCTION,
-      ReturnTypes.TIME_NULLABLE,
-      null,
-      OperandTypes.sequence(
-          "TIMESTAMPDIFF(UNIT, TIME, TIME)",
-          OperandTypes.STRING,
-          OperandTypes.DATETIME,
-          OperandTypes.DATETIME),
-      SqlFunctionCategory.TIMEDATE);
+  public static final SqlFunction TIMESTAMP_DIFF = new SqlTimestampDiffFunction();
 
   /**
    * Use of the <code>IN_FENNEL</code> operator forces the argument to be
