@@ -34,7 +34,18 @@ import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperand
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * TODO: write a javadoc.
+ * The <code>TIMESTAMPADD</code> function, which adds an interval to a
+ * datetime (TIMESTAMP, TIME or DATE).
+ *
+ * <p>The SQL syntax is
+ *
+ * <blockquote>
+ * <code>TIMESTAMPADD(<i>timestamp interval</i>, <i>quantity</i>,
+ * <i>datetime</i>)</code>
+ * </blockquote>
+ * Accept both quoted and unquoted time units now
+ *
+ * <p>Returns modified datetime.
  */
 public class BodoSqlTimestampAddFunction extends SqlFunction {
 
@@ -58,7 +69,7 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
        opBindingWithCast.getOperandType(2).getSqlTypeName() == SqlTypeName.TIME);
           } catch (Throwable e) {
             throw opBindingWithCast.getValidator().newValidationError(opBindingWithCast.getCall(),
-                RESOURCE.functionUndefined("TODO: Error function for wrong time unit"));
+                RESOURCE.functionUndefined("Wrong time unit input"));
           }
           break;
 
@@ -319,7 +330,7 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
     case TIME_WITH_LOCAL_TIME_ZONE:
     case TIME:
       if (!timeUnitSmallerThanDay) {
-        throw new RuntimeException("TODO: When date_or_time_expr is a time,"
+        throw new RuntimeException("When date_or_time_expr is a time,"
             + " time unit must be smaller than day!");
       }
       outputType = operandType2;
