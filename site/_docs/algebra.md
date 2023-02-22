@@ -265,17 +265,7 @@ or `builder.field(2, 1, 1)`.
 ### Recursive Queries
 
 Warning: The current API is experimental and subject to change without notice.
-A SQL recursive query, e.g. this one that generates the sequence 1, 2, 3, ...10:
-
-{% highlight sql %}
-WITH RECURSIVE aux(i) AS (
-  VALUES (1)
-  UNION ALL
-  SELECT i+1 FROM aux WHERE i < 10
-)
-SELECT * FROM aux
-{% endhighlight %}
-
+A recursive query, e.g. this one that generates the sequence 1, 2, 3, ...10,
 can be generated using a scan on a TransientTable and a RepeatUnion:
 
 {% highlight java %}
@@ -307,6 +297,19 @@ LogicalRepeatUnion(all=[true])
     LogicalProject($f0=[+($0, 1)])
       LogicalFilter(condition=[<($0, 10)])
         LogicalTableScan(table=[[aux]])
+{% endhighlight %}
+
+Note that currently there is no support for recursive queries in the SQL layer yet.
+At some point in the future, a recursive SQL query may look like this
+(example only for illustrative purposes, the `RECURSIVE` keyword is not supported yet):
+
+{% highlight sql %}
+WITH RECURSIVE aux(i) AS (
+  VALUES (1)
+  UNION ALL
+  SELECT i+1 FROM aux WHERE i < 10
+)
+SELECT * FROM aux
 {% endhighlight %}
 
 ### API summary
