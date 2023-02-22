@@ -5784,6 +5784,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+
+  /**
+   * Test that - can be done between two dates.
+   */
+  @Test void testTimestampAddSimple() {
+    String sql = "Select TIMESTAMPADD(DAY, 3, DATE '2022-1-1') from emp";
+    sql(sql).ok();
+  }
+
   /**
    * Test that - can be done between two dates.
    */

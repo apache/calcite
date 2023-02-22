@@ -47,8 +47,7 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
         assert opBinding instanceof SqlCallBinding;
         SqlCallBinding opBindingWithCast = (SqlCallBinding) opBinding;
         RelDataType arg0Type = opBindingWithCast.getOperandType(0);
-        opBindingWithCast.getOperandLiteralValue(0, String.class);
-        TimeUnit arg0timeUnit = null;
+        TimeUnit arg0timeUnit;
         switch (arg0Type.getSqlTypeName()) {
         case CHAR:
         case VARCHAR:
@@ -67,7 +66,6 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
           arg0timeUnit = getOperandLiteralValueOrThrow(opBinding, 0, TimeUnit.class);
         }
 
-        assert arg0timeUnit != null;
 
         return deduceType(typeFactory, arg0timeUnit,
             opBinding.getOperandType(1), opBinding.getOperandType(2));
@@ -329,9 +327,11 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
 
     final RelDataType outputType;
     switch (operandType2.getSqlTypeName()) {
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
     case TIMESTAMP:
       outputType = operandType2;
       break;
+    case TIME_WITH_LOCAL_TIME_ZONE:
     case TIME:
       if (!timeUnitSmallerThanDay) {
         throw new RuntimeException("TODO");

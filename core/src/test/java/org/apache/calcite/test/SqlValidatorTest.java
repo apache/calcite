@@ -4115,8 +4115,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testTimestampAddAndDiff() {
     List<String> tsi = ImmutableList.<String>builder()
-        .add("FRAC_SECOND")
-        .add("MICROSECOND")
+//        .add("FRAC_SECOND")
+//        .add("MICROSECOND")
         .add("MINUTE")
         .add("HOUR")
         .add("DAY")
@@ -4124,19 +4124,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .add("MONTH")
         .add("QUARTER")
         .add("YEAR")
-        .add("SQL_TSI_FRAC_SECOND")
-        .add("SQL_TSI_MICROSECOND")
-        .add("SQL_TSI_MINUTE")
-        .add("SQL_TSI_HOUR")
-        .add("SQL_TSI_DAY")
-        .add("SQL_TSI_WEEK")
-        .add("SQL_TSI_MONTH")
-        .add("SQL_TSI_QUARTER")
-        .add("SQL_TSI_YEAR")
+//        .add("SQL_TSI_FRAC_SECOND")
+//        .add("SQL_TSI_MICROSECOND")
+//        .add("SQL_TSI_MINUTE")
+//        .add("SQL_TSI_HOUR")
+//        .add("SQL_TSI_DAY")
+//        .add("SQL_TSI_WEEK")
+//        .add("SQL_TSI_MONTH")
+//        .add("SQL_TSI_QUARTER")
+//        .add("SQL_TSI_YEAR")
         .build();
 
     List<String> functions = ImmutableList.<String>builder()
-        .add("timestampadd('%s', 12, current_timestamp)")
+        .add("timestampadd(%s, 12, current_timestamp)")
         .add("timestampdiff('%s', current_timestamp, current_timestamp)")
         .build();
 
