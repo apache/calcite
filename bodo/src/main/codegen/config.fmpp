@@ -43,6 +43,7 @@ data: {
     nonReservedKeywordsToAdd: [
         "IF",
         "VALUES",
+        "VALUE",
         "CORR",
     ]
 
