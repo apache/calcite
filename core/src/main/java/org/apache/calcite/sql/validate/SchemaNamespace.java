@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Util;
 
@@ -60,5 +62,15 @@ class SchemaNamespace extends AbstractNamespace {
 
   @Override public @Nullable SqlNode getNode() {
     return null;
+  }
+
+  public Schema getSchema() {
+
+    CalciteSchema curSchema = validator.catalogReader.getRootSchema();
+    for (String name: names) {
+      curSchema = curSchema.getSubSchema(name, false);
+      requireNonNull(curSchema, "curSchema");
+    }
+    return curSchema.schema;
   }
 }

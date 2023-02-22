@@ -27,6 +27,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.LogicalTableCreate;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
@@ -399,6 +400,18 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             rel.getUpdateColumnList(),
             rel.getSourceExpressionList(),
             true);
+    setNewForOldRel(rel, newRel);
+  }
+
+  public void rewriteRel(LogicalTableCreate rel) {
+    LogicalTableCreate newRel =
+        LogicalTableCreate.create(
+            getNewForOldRel(rel.getInput()),
+            rel.getSchema(),
+            rel.getTableName(),
+            rel.isReplace(),
+            rel.getSchemaPath()
+        );
     setNewForOldRel(rel, newRel);
   }
 

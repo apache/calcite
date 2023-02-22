@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql.babel;
+package org.apache.calcite.sql.bodo;
 
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -29,41 +29,30 @@ import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Parse tree for {@code CREATE TABLE} statement, with extensions for particular
- * SQL dialects supported by Babel.
+ * SQL dialects supported by Bodo.
  */
-public class SqlBabelCreateTable extends SqlCreateTable {
-  private final TableCollectionType tableCollectionType;
-  // CHECKSTYLE: IGNORE 2; can't use 'volatile' because it is a Java keyword
-  // but checkstyle does not like trailing '_'.
-  private final boolean volatile_;
+public class SqlBodoCreateTable extends SqlCreateTable {
 
-  /** Creates a SqlBabelCreateTable. */
-  public SqlBabelCreateTable(SqlParserPos pos, boolean replace,
-      TableCollectionType tableCollectionType, boolean volatile_,
+  // CHECKSTYLE: IGNORE 2; can't use 'volatile' because it is a Java keyword
+  // but checkstyle does not like trailing or preceding '_'
+  private final boolean _volatile;
+
+  /** Creates a SqlBodoCreateTable. */
+  public SqlBodoCreateTable(SqlParserPos pos, boolean replace, boolean volatile_,
       boolean ifNotExists, SqlIdentifier name, SqlNodeList columnList,
       SqlNode query) {
     super(pos, replace, ifNotExists, name, columnList, query);
-    this.tableCollectionType = tableCollectionType;
-    this.volatile_ = volatile_;
+    this._volatile = volatile_;
   }
 
   @Override public void validate(final SqlValidator validator, final SqlValidatorScope scope) {
-    // Validate the clauses that are specific to Babel's create table statement,
-    // and then defers to the superclass for the rest
-    if (this.volatile_) {
+    // Validate the clauses that are specific to Bodo's create table statement,
+    // and then defers to the superclass for the rest.
+    // Currently, we do not support volatile/temporary tables due to the fact that bodo doesn't
+    // keep track of session information.
+    if (this._volatile) {
       throw validator.newValidationError(
           this, RESOURCE.createTableUnsupportedClause("VOLATILE"));
-    }
-
-    switch (this.tableCollectionType) {
-    case SET:
-      throw validator.newValidationError(
-          this, RESOURCE.createTableUnsupportedClause("SET"));
-    case MULTISET:
-      throw validator.newValidationError(
-          this, RESOURCE.createTableUnsupportedClause("MULTISET"));
-    default:
-      //do nothing
     }
 
     super.validate(validator, scope);
@@ -71,17 +60,7 @@ public class SqlBabelCreateTable extends SqlCreateTable {
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     writer.keyword("CREATE");
-    switch (tableCollectionType) {
-    case SET:
-      writer.keyword("SET");
-      break;
-    case MULTISET:
-      writer.keyword("MULTISET");
-      break;
-    default:
-      break;
-    }
-    if (volatile_) {
+    if (_volatile) {
       writer.keyword("VOLATILE");
     }
     writer.keyword("TABLE");

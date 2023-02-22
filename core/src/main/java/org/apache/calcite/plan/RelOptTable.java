@@ -151,7 +151,7 @@ public interface RelOptTable extends Wrapper {
         List<String> schemaPath, @Nullable List<String> viewPath);
   }
 
-  /** Contains the context needed to convert a a table into a relational
+  /** Contains the context needed to convert a table into a relational
    * expression. */
   interface ToRelContext extends ViewExpander {
     RelOptCluster getCluster();

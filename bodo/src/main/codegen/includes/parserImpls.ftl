@@ -16,6 +16,93 @@
 -->
 
 
+boolean IfNotExistsOpt() :
+{
+}
+{
+    <IF> <NOT> <EXISTS> { return true; }
+    |
+    { return false; }
+}
+
+
+boolean VolatileOpt() :
+{
+}
+{
+    <VOLATILE> { return true; }
+    |
+    { return false; }
+}
+
+SqlNodeList ExtendColumnList() :
+{
+    final Span s;
+    List<SqlNode> list = new ArrayList<SqlNode>();
+}
+{
+    <LPAREN> { s = span(); }
+    ColumnWithType(list)
+    (
+        <COMMA> ColumnWithType(list)
+    )*
+    <RPAREN> {
+        return new SqlNodeList(list, s.end(this));
+    }
+}
+
+void ColumnWithType(List<SqlNode> list) :
+{
+    SqlIdentifier id;
+    SqlDataTypeSpec type;
+    boolean nullable = true;
+    final Span s = Span.of();
+}
+{
+    id = CompoundIdentifier()
+    type = DataType()
+    [
+        <NOT> <NULL> {
+            nullable = false;
+        }
+    ]
+    {
+        list.add(SqlDdlNodes.column(s.add(id).end(this), id,
+            type.withNullable(nullable), null, null));
+    }
+}
+
+SqlCreate SqlCreateTable(Span s, boolean replace) :
+{
+    final boolean volatile_;
+    final boolean ifNotExists;
+    final SqlIdentifier id;
+    final SqlNodeList columnList;
+    final SqlNode query;
+}
+{
+    volatile_ = VolatileOpt()
+    <TABLE>
+    ifNotExists = IfNotExistsOpt()
+    id = CompoundIdentifier()
+    (
+        columnList = ExtendColumnList()
+    |
+        { columnList = null; }
+    )
+    (
+        <AS> query = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
+    |
+        { query = null; }
+    )
+    {
+        return new SqlBodoCreateTable(s.end(this), replace, volatile_,
+            ifNotExists, id, columnList, query);
+    }
+}
+
+
+
 
 // /** Parses the infix "::" cast operator used in PostgreSQL. */
 // void InfixCast(List<Object> list, ExprContext exprContext, Span s) :

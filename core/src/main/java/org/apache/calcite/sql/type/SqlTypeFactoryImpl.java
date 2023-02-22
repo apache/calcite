@@ -541,7 +541,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         nullable);
   }
 
-  private RelDataType copyTZAwareSqlType(RelDataType type, boolean nullable) {
+  private static RelDataType copyTZAwareSqlType(RelDataType type, boolean nullable) {
     return new TZAwareSqlType(
         requireNonNull(type.getTZInfo(),
             () -> "type.getTZInfo() for " + type), nullable);

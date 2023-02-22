@@ -42,6 +42,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.LogicalTableCreate;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sample;
@@ -138,6 +139,7 @@ import org.apache.calcite.sql.SqlValuesOperator;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.ddl.SqlCreateTable;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlInOperator;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
@@ -3997,6 +3999,10 @@ public class SqlToRelConverter {
       return convertWith((SqlWith) query, top);
     case VALUES:
       return RelRoot.of(convertValues((SqlCall) query, targetRowType), kind);
+    case CREATE_TABLE:
+      //Create table has to be the topmost relnode
+      assert top;
+      return RelRoot.of(convertCreateTable((SqlCreateTable) query), kind);
     default:
       throw new AssertionError("not a query: " + query);
     }
@@ -4396,6 +4402,23 @@ public class SqlToRelConverter {
 
     return LogicalTableModify.create(targetTable, catalogReader, sourceRel,
         LogicalTableModify.Operation.DELETE, null, null, false);
+  }
+
+  private RelNode convertCreateTable(SqlCreateTable call) {
+
+    // NOTE: We currently require a SqlCreateTable to have a query in valiation,
+    // so the call to requireNonNull is valid here
+    RelRoot relRoot = convertQueryRecursive(requireNonNull(call.query), false, null);
+
+    return LogicalTableCreate.create(
+        relRoot.rel,
+        // all these fields should be set in validation
+        requireNonNull(call.getOutputTableSchema()),
+        requireNonNull(call.getOutputTableName()),
+        // Failing if already exists is the default in SF
+        // TODO: support a dialect dependent default if/when merging to upstream Calcite
+        call.getReplace(),
+        requireNonNull(call.getOutputTableSchemaPath()));
   }
 
   private RelNode convertUpdate(SqlUpdate call) {

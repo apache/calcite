@@ -214,6 +214,16 @@ public interface SqlValidatorScope {
   void resolveTable(List<String> names, SqlNameMatcher nameMatcher, Path path,
       Resolved resolved, List<RelDataTypeField> extensionCols);
 
+
+  /**
+   * Helper function used for DDL statements. Returns the schema
+   *
+   * @param names names for the schema
+   */
+  void resolveSchema(List<String> names, SqlNameMatcher nameMatcher, Path path,
+      Resolved resolved);
+
+
   /** Converts the type of an expression to nullable, if the context
    * warrants it. */
   RelDataType nullifyType(SqlNode node, RelDataType type);

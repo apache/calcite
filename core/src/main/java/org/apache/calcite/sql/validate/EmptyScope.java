@@ -133,6 +133,89 @@ class EmptyScope implements SqlValidatorScope {
     }
   }
 
+  @Override public void resolveSchema(List<String> names, SqlNameMatcher nameMatcher, Path path,
+      Resolved resolved) {
+
+    final List<Resolve> imperfectResolves = new ArrayList<>();
+    final List<Resolve> resolves = ((ResolvedImpl) resolved).resolves;
+
+
+
+    // Look in the default schema, then default catalog, then root schema.
+    // NOTE: at this point, we return the first find, where the order that we check is based
+    // on validator.catalogReader.getSchemaPaths(). This is what is done in resolveTable,
+    // therefore, I believe that this should identify the default/primary schema, in the case that
+    // we have an non-fully qualified identifier
+    for (List<String> schemaPath : validator.catalogReader.getSchemaPaths()) {
+      resolveSchemaInternal(validator.catalogReader.getRootSchema(), names, schemaPath,
+          nameMatcher, path, resolved);
+      for (Resolve resolve : resolves) {
+        //Should have nothing remaining if we have a full match
+        if (resolve.remainingNames.isEmpty()) {
+          // There is a full match. Return it as the only match.
+          ((ResolvedImpl) resolved).clear();
+          resolves.add(resolve);
+          return;
+        }
+      }
+      imperfectResolves.addAll(resolves);
+    }
+    // If there were no matches in the last round, restore those found in
+    // previous rounds
+    if (resolves.isEmpty()) {
+      resolves.addAll(imperfectResolves);
+    }
+
+  }
+
+  private void resolveSchemaInternal(final CalciteSchema rootSchema, List<String> names,
+      List<String> schemaNames, SqlNameMatcher nameMatcher, Path path,
+      Resolved resolved) {
+
+    // Concatenate the default/implicit schema names with those explicitly set
+    // by the user
+    final List<String> concat = ImmutableList.<String>builder()
+        .addAll(schemaNames).addAll(names).build();
+
+    // Variables updated in the loop
+    CalciteSchema schema = rootSchema;
+    SqlValidatorNamespace namespace = null;
+    List<String> remainingNames = concat;
+
+    for (String schemaName : concat) {
+      // Ignore rootSchema
+      if (schema == rootSchema
+          && nameMatcher.matches(schemaName, schema.name)) {
+        remainingNames = Util.skip(remainingNames);
+        continue;
+      }
+      final CalciteSchema subSchema =
+          schema.getSubSchema(schemaName, nameMatcher.isCaseSensitive());
+
+      // If we have a subSchema, update the loop variables, and continue, to see
+      // If we can find a lower subSchema.
+      if (subSchema != null) {
+        path = path.plus(null, -1, subSchema.name, StructKind.NONE);
+        remainingNames = Util.skip(remainingNames);
+        schema = subSchema;
+        namespace = new SchemaNamespace(validator,
+            ImmutableList.copyOf(path.stepNames()));
+        continue;
+      }
+      //Return early if we can't find any further sub schemas
+      if (namespace != null) {
+        resolved.found(namespace, false, null, path, remainingNames);
+        return;
+      }
+    }
+
+    //Return if we've iterated through all the names in the identifier
+    if (namespace != null) {
+      resolved.found(namespace, false, null, path, remainingNames);
+    }
+
+  }
+
   private void resolve_(final CalciteSchema rootSchema, List<String> names,
       List<String> schemaNames, SqlNameMatcher nameMatcher, Path path,
       Resolved resolved, List<RelDataTypeField> extensionFields) {

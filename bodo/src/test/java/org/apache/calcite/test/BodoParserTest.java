@@ -194,6 +194,21 @@ public class BodoParserTest extends SqlParserTest {
     assertThat(hoisted.substitute(SqlParserTest::varToStr), is(expected2));
   }
 
+
+  @Test void testCreateTable() {
+    //Tests certain clauses that parse, but are currently unsupported (throw errors in validation)
+
+    // Volatile is supported in SF, so we may get to it soonish
+    final String q1 = "CREATE VOLATILE TABLE out_test AS select 1, 2, 3 from emp";
+    final String q1_expected = "CREATE VOLATILE TABLE `OUT_TEST` AS\n"
+        + "SELECT 1, 2, 3\n"
+        + "FROM `EMP`";
+
+    sql(q1).ok(q1_expected);
+
+  }
+
+
   /**
    * Bodo's parser's global {@code LOOKAHEAD} is larger than the core
    * parser's. This causes different parse error message between these two
