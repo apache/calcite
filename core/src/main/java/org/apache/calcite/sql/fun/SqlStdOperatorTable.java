@@ -1983,17 +1983,17 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlCurrentDateFunction();
 
   /** The <code>TIMESTAMPADD</code> function. */
-  public static final SqlFunction TIMESTAMP_ADD = new SqlFunction(
-      "TIMESTAMPADD",
-      SqlKind.OTHER_FUNCTION,
-      ReturnTypes.TIME_NULLABLE,
-      null,
-      OperandTypes.sequence(
-          "TIMESTAMPADD(UNIT, VALUE, TIME)",
-          OperandTypes.STRING,
-          OperandTypes.INTEGER,
-          OperandTypes.DATETIME),
-      SqlFunctionCategory.TIMEDATE);
+  public static final SqlFunction TIMESTAMP_ADD = new BodoSqlTimestampAddFunction();
+
+//  new SqlFunction(
+//      "TIMESTAMPADD",
+//      SqlKind.OTHER_FUNCTION,
+//      ReturnTypes.ARG2,
+//      null,
+//      OperandTypes.family(SqlTypeFamily.ANY,
+//          SqlTypeFamily.INTEGER,
+//          SqlTypeFamily.DATETIME),
+//      SqlFunctionCategory.TIMEDATE);
 
   /** The <code>TIMESTAMPDIFF</code> function. */
   public static final SqlFunction TIMESTAMP_DIFF = new SqlFunction(
