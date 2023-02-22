@@ -11294,4 +11294,49 @@ class RelToSqlConverterTest {
         isLinux(expectedBigQuery));
   }
 
+
+  @Test public void testNextDayFunctionWithDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.literal("2023-02-22"), builder.literal("TUESDAY"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedSpark =
+        "SELECT NEXT_DAY('2023-02-22', 'TUESDAY') next_day\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testNextDayFunctionWithCurrentDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.literal("current_date"), builder.literal("TUESDAY"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedSpark =
+        "SELECT NEXT_DAY('current_date', 'TUESDAY') next_day\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testNextDayFunctionWithTimestamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.literal("2023-02-22 10:00:00"), builder.literal("TUESDAY"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedSpark =
+        "SELECT NEXT_DAY('2023-02-22 10:00:00', 'TUESDAY') next_day\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
 }

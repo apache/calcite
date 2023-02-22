@@ -1417,4 +1417,15 @@ public abstract class SqlLibraryOperators {
               // Third operand optional (operand index 0, 1, 2)
               number -> number == 2),
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE, HIVE, SPARK})
+  public static final SqlFunction NEXT_DAY =
+      new SqlFunction(
+          "NEXT_DAY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE,
+          null,
+          OperandTypes.family(SqlTypeFamily.ANY,
+              SqlTypeFamily.STRING),
+          SqlFunctionCategory.SYSTEM);
 }
