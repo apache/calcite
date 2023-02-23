@@ -43,10 +43,8 @@ import org.apache.calcite.util.Util;
  */
 public class SqlBetweenAsymmetricOperator extends SqlFunction {
 
-
   private static final String BETWEEN = "BETWEEN";
   private static final String NOT_BETWEEN = "NOT BETWEEN";
-
 
   SqlBetweenAsymmetricOperator(boolean negated) {
     super(negated ? NOT_BETWEEN : BETWEEN,

@@ -11294,7 +11294,6 @@ class RelToSqlConverterTest {
         isLinux(expectedBigQuery));
   }
 
-
   @Test public void testBetween() {
     final RelBuilder builder = relBuilder();
     final RelNode root = builder
@@ -11311,8 +11310,6 @@ class RelToSqlConverterTest {
         isLinux(expectedBigQuery));
   }
 
-
-
   @Test public void testNotBetween() {
     final RelBuilder builder = relBuilder();
     final RelNode root = builder
@@ -11328,5 +11325,4 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedBigQuery));
   }
-
 }
