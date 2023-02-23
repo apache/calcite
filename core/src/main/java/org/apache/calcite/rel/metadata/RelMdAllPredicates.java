@@ -96,16 +96,12 @@ public class RelMdAllPredicates
   }
 
   public @Nullable RelOptPredicateList getAllPredicates(HepRelVertex rel, RelMetadataQuery mq) {
-    return mq.getAllPredicates(rel.getCurrentRel());
+    return mq.getAllPredicates(rel.stripped());
   }
 
   public @Nullable RelOptPredicateList getAllPredicates(RelSubset rel,
       RelMetadataQuery mq) {
-    RelNode bestOrOriginal = Util.first(rel.getBest(), rel.getOriginal());
-    if (bestOrOriginal == null) {
-      return null;
-    }
-    return mq.getAllPredicates(bestOrOriginal);
+    return mq.getAllPredicates(rel.stripped());
   }
 
   /**

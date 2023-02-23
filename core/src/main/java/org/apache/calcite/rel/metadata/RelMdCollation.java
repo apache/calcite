@@ -234,7 +234,7 @@ public class RelMdCollation
 
   public @Nullable ImmutableList<RelCollation> collations(HepRelVertex rel,
       RelMetadataQuery mq) {
-    return mq.collations(rel.getCurrentRel());
+    return mq.collations(rel.stripped());
   }
 
   public @Nullable ImmutableList<RelCollation> collations(RelSubset rel,

@@ -70,7 +70,7 @@ public class RelMdRowCount
   @SuppressWarnings("CatchAndPrintStackTrace")
   public @Nullable Double getRowCount(RelSubset subset, RelMetadataQuery mq) {
     if (!Bug.CALCITE_1048_FIXED) {
-      return mq.getRowCount(subset.getBestOrOriginal());
+      return mq.getRowCount(subset.stripped());
     }
     Double v = null;
     for (RelNode r : subset.getRels()) {

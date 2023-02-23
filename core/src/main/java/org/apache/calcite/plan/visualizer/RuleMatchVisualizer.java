@@ -54,7 +54,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
+
+import static org.apache.calcite.util.Util.transform;
 
 /**
  * This is a tool to visualize the rule match process of a RelOptPlanner.
@@ -159,8 +160,7 @@ public class RuleMatchVisualizer implements RelOptListener {
    */
   private void updateInitialPlan(RelNode node) {
     if (node instanceof HepRelVertex) {
-      HepRelVertex v = (HepRelVertex) node;
-      updateInitialPlan(v.getCurrentRel());
+      updateInitialPlan(node.stripped());
       return;
     }
     this.registerRelNode(node);
@@ -174,12 +174,8 @@ public class RuleMatchVisualizer implements RelOptListener {
    * (Workaround for HepPlanner)
    */
   private static List<RelNode> getInputs(final RelNode node) {
-    return node.getInputs().stream().map(n -> {
-      if (n instanceof HepRelVertex) {
-        return ((HepRelVertex) n).getCurrentRel();
-      }
-      return n;
-    }).collect(Collectors.toList());
+    return transform(node.getInputs(), n ->
+        n instanceof HepRelVertex ? n.stripped() : n);
   }
 
   @Override public void relChosen(RelChosenEvent event) {

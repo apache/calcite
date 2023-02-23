@@ -960,6 +960,9 @@ public class HepPlanner extends AbstractRelOptPlanner {
       rel.recomputeDigest();
     }
 
+    if (rel instanceof HepRelVertex) {
+      throw new AssertionError("post-condition failed: " + rel);
+    }
     return rel;
   }
 

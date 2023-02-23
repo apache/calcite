@@ -24,6 +24,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.PhysicalNode;
 import org.apache.calcite.rel.RelNode;
@@ -235,6 +236,10 @@ public class RelSubset extends AbstractRelNode {
     return requireNonNull(getOriginal(), "both best and original nodes are null");
   }
 
+  @Override public RelNode stripped() {
+    return getBestOrOriginal();
+  }
+
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     if (inputs.isEmpty()) {
       final RelTraitSet traitSet1 = traitSet.simplify();
@@ -350,6 +355,7 @@ public class RelSubset extends AbstractRelNode {
    * Adds expression <code>rel</code> to this subset.
    */
   void add(RelNode rel) {
+    assert !(rel instanceof HepRelVertex);
     if (set.rels.contains(rel)) {
       return;
     }
