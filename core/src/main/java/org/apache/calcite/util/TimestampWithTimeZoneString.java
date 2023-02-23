@@ -49,12 +49,37 @@ public class TimestampWithTimeZoneString
     this.v = localDateTime.toString() + " " + timeZone.getID();
   }
 
-  /** Creates a TimestampWithTimeZoneString. */
+  /** Creates a TimestampWithTimeZoneString.
+   *
+   * TODO: BigQuery allows odd TIMESTAMP literals that, with proper aliasing of
+   * TIMESTAMP -> TIMESTAMP WITH LOCAL TIME ZONE, cause failures here.
+   * There are two cases this band-aid patch addresses:
+   *   1) A `TIMESTAMP` with a date format in function calls
+   *        e.g. TIMESTAMP_DIFF(TIMESTAMP "2018-08-14", TIMESTAMP "2018-10-14", DAY)
+   *   2) TIMESTAMP literals without a provided timezone e.g. TIMESTAMP "2010-07-07 10:20:00"
+   *
+   * Both cases were throwing an {@link IndexOutOfBoundsException} when evaluating the
+   * `timeZoneString` of a literal.
+   * */
+  private static final int TIMESTAMP_WITH_TIMEZONE_LENGTH = 20;
+  private static final int DATE_LENGTH = 10;
+
   public TimestampWithTimeZoneString(String v) {
-    this.localDateTime = new TimestampString(v.substring(0, v.indexOf(' ', 11)));
-    String timeZoneString = v.substring(v.indexOf(' ', 11) + 1);
-    Preconditions.checkArgument(DateTimeStringUtils.isValidTimeZone(timeZoneString));
-    this.timeZone = TimeZone.getTimeZone(timeZoneString);
+    if (v.length() < TIMESTAMP_WITH_TIMEZONE_LENGTH) {
+      if (v.length() == DATE_LENGTH) {
+        // pad a date format string to a timestamp
+        this.localDateTime = new TimestampString(v + " 00:00:00");
+      } else {
+        this.localDateTime = new TimestampString(v);
+      }
+      // if there is no TZ info pretend we are BigQuery and set it as UTC.
+      this.timeZone = TimeZone.getTimeZone("UTC");
+    } else {
+      this.localDateTime = new TimestampString(v.substring(0, v.indexOf(' ', DATE_LENGTH + 1)));
+      String timeZoneString = v.substring(v.indexOf(' ', DATE_LENGTH + 1) + 1);
+      Preconditions.checkArgument(DateTimeStringUtils.isValidTimeZone(timeZoneString));
+      this.timeZone = TimeZone.getTimeZone(timeZoneString);
+    }
     this.v = v;
   }
 
