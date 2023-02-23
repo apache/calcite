@@ -882,10 +882,8 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DATETIME_SUB =
       TIMESTAMP_SUB.withName("DATETIME_SUB");
 
-  /** The "TIMESTAMP_TRUNC(timestamp_expression, date_time_part[, time_zone])"
-   * function (BigQuery); truncates a TIMESTAMP value to the granularity of
-   * date_time_part. The TIMESTAMP value is always rounded to the beginning of
-   * date_time_part. */
+  /** The "TIMESTAMP_TRUNC(timestamp, timeUnit[, timeZone])" function (BigQuery);
+   * truncates a TIMESTAMP value to the beginning of a timeUnit. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_TRUNC =
       SqlBasicFunction.create("TIMESTAMP_TRUNC",

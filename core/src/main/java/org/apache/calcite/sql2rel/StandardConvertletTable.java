@@ -185,6 +185,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     registerOp(SqlLibraryOperators.DATE_SUB,
         new TimestampSubConvertlet());
+    registerOp(SqlLibraryOperators.DATETIME_SUB,
+        new TimestampSubConvertlet());
     registerOp(SqlLibraryOperators.TIME_ADD,
         new TimestampAddConvertlet());
     registerOp(SqlLibraryOperators.TIME_DIFF,
@@ -196,8 +198,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     registerOp(SqlLibraryOperators.TIMESTAMP_DIFF3,
         new TimestampDiffConvertlet());
     registerOp(SqlLibraryOperators.TIMESTAMP_SUB,
-        new TimestampSubConvertlet());
-    registerOp(SqlLibraryOperators.DATETIME_SUB,
         new TimestampSubConvertlet());
 
     registerOp(SqlLibraryOperators.NVL, StandardConvertletTable::convertNvl);
