@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.rel.externalize;
 
-import org.apache.calcite.plan.hep.HepRelVertex;
-import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -165,16 +163,7 @@ public class RelDotWriter extends RelWriterImpl {
   }
 
   private static List<RelNode> getInputs(RelNode parent) {
-    return Util.transform(parent.getInputs(), child -> {
-      if (child instanceof HepRelVertex) {
-        return ((HepRelVertex) child).getCurrentRel();
-      } else if (child instanceof RelSubset) {
-        RelSubset subset = (RelSubset) child;
-        return subset.getBestOrOriginal();
-      } else {
-        return child;
-      }
-    });
+    return Util.transform(parent.getInputs(), RelNode::stripped);
   }
 
   private void explainInputs(List<? extends @Nullable RelNode> inputs) {

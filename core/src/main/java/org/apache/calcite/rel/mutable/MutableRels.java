@@ -70,8 +70,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static java.util.Objects.requireNonNull;
-
 /** Utilities for dealing with {@link MutableRel}s. */
 public abstract class MutableRels {
 
@@ -329,17 +327,10 @@ public abstract class MutableRels {
 
   public static MutableRel toMutable(RelNode rel) {
     if (rel instanceof HepRelVertex) {
-      return toMutable(((HepRelVertex) rel).getCurrentRel());
+      return toMutable(rel.stripped());
     }
     if (rel instanceof RelSubset) {
-      RelSubset subset = (RelSubset) rel;
-      RelNode best = subset.getBest();
-      if (best == null) {
-        best =
-            requireNonNull(subset.getOriginal(),
-                () -> "subset.getOriginal() is null for " + subset);
-      }
-      return toMutable(best);
+      return toMutable(rel.stripped());
     }
     if (rel instanceof TableScan) {
       return MutableScan.of((TableScan) rel);

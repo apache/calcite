@@ -30,6 +30,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * HepRelVertex wraps a real {@link RelNode} as a vertex in a DAG representing
  * the entire query expression.
@@ -45,10 +49,9 @@ public class HepRelVertex extends AbstractRelNode implements DelegatingMetadataR
   //~ Constructors -----------------------------------------------------------
 
   HepRelVertex(RelNode rel) {
-    super(
-        rel.getCluster(),
-        rel.getTraitSet());
-    currentRel = rel;
+    super(rel.getCluster(), rel.getTraitSet());
+    currentRel = requireNonNull(rel, "rel");
+    checkArgument(!(rel instanceof HepRelVertex));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -91,6 +94,10 @@ public class HepRelVertex extends AbstractRelNode implements DelegatingMetadataR
    * Returns current implementation chosen for this vertex.
    */
   public RelNode getCurrentRel() {
+    return currentRel;
+  }
+
+  @Override public RelNode stripped() {
     return currentRel;
   }
 

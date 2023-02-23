@@ -132,7 +132,7 @@ public abstract class PruneEmptyRules {
       return ((Values) node).getTuples().isEmpty();
     }
     if (node instanceof HepRelVertex) {
-      return isEmpty(((HepRelVertex) node).getCurrentRel());
+      return isEmpty(node.stripped());
     }
     // Note: relation input might be a RelSubset, so we just iterate over the relations
     // in order to check if the subset is equivalent to an empty relation.

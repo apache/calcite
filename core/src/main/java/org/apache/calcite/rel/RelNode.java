@@ -425,6 +425,11 @@ public interface RelNode extends RelOptNode, Cloneable {
     return getRowType().getFieldList().get(i).getType().isNullable();
   }
 
+  /** Returns this node without any wrapper added by the planner. */
+  default RelNode stripped() {
+    return this;
+  }
+
   /** Context of a relational expression, for purposes of checking validity. */
   interface Context {
     Set<CorrelationId> correlationIds();

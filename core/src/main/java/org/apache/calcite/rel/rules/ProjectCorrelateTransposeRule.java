@@ -18,8 +18,6 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.plan.hep.HepRelVertex;
-import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.Correlate;
@@ -195,14 +193,10 @@ public class ProjectCorrelateTransposeRule
       this.rexVisitor = rexVisitor;
     }
 
-    @Override protected RelNode visitChild(RelNode parent, int i, RelNode child) {
-      if (child instanceof HepRelVertex) {
-        child = ((HepRelVertex) child).getCurrentRel();
-      } else if (child instanceof RelSubset) {
-        RelSubset subset = (RelSubset) child;
-        child = subset.getBestOrOriginal();
-      }
-      return super.visitChild(parent, i, child).accept(rexVisitor);
+    @Override protected RelNode visitChild(RelNode parent, int i,
+        RelNode input) {
+      return super.visitChild(parent, i, input.stripped())
+          .accept(rexVisitor);
     }
   }
 
