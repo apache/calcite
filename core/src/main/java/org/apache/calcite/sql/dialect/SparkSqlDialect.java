@@ -59,6 +59,7 @@ import org.apache.calcite.util.interval.SparkDateTimestampInterval;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -389,6 +390,30 @@ public class SparkSqlDialect extends SqlDialect {
         SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
             timeUnitNode.getParserPosition());
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
+        break;
+      case COALESCE:
+        final SqlWriter.Frame coalesceFrame = writer.startFunCall("COALESCE");
+        List<SqlNode> operands = call.getOperandList();
+        int operandCount = operands.size();
+        for (int index = 0; index < operandCount; index++) {
+          SqlNode sqlNode = operands.get(index);
+          if (sqlNode instanceof SqlBasicCall && ((SqlBasicCall) sqlNode).getOperator()
+              .toString().equals("FORMAT")) {
+            final SqlWriter.Frame stringFrame = writer.startFunCall("STRING");
+            SqlBasicCall sqlBasicCall = call.operand(index);
+            sqlBasicCall.operand(1).unparse(writer, 0, 0);
+            writer.endFunCall(stringFrame);
+            if (index != operandCount - 1) {
+              writer.print(",");
+            }
+          } else {
+            operands.get(index).unparse(writer, 0, 0);
+            if (index != operandCount - 1) {
+              writer.print(",");
+            }
+          }
+        }
+        writer.endFunCall(coalesceFrame);
         break;
       case FORMAT:
         unparseFormat(writer, call, leftPrec, rightPrec);
@@ -981,15 +1006,5 @@ public class SparkSqlDialect extends SqlDialect {
           POST_MERIDIAN_INDICATOR.value);
     }
     return dateString;
-  }
-
-  @Override protected void unparseFormat(
-      final SqlWriter writer,
-      final SqlCall call, final int leftPrec, final int rightPrec) {
-    /* We are unparsing FORMAT() as STRING() for databricks because of
-     different behaviour for NULL as argument */
-    final SqlWriter.Frame formatFrame = writer.startFunCall("STRING");
-    call.getOperandList().get(1).unparse(writer, leftPrec, rightPrec);
-    writer.endFunCall(formatFrame);
   }
 }
