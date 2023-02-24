@@ -66,7 +66,6 @@ public class SqlUpdate extends SqlCall {
     this.sourceSelect = sourceSelect;
     assert sourceExpressionList.size() == targetColumnList.size();
     this.alias = alias;
-    init();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -115,13 +114,6 @@ public class SqlUpdate extends SqlCall {
   /** Returns the identifier for the target table of this UPDATE. */
   public SqlNode getTargetTable() {
     return targetTable;
-  }
-
-  /**
-   *  Updates the targetTable if it is aliased.
-   */
-  private void updateTargetTable(SqlNode targetTable) {
-    this.targetTable = targetTable;
   }
 
   /** Returns the alias for the target table of this UPDATE. */
@@ -175,37 +167,40 @@ public class SqlUpdate extends SqlCall {
     final int operatorLeftPrec = getOperator().getLeftPrec();
     final int operatorRightPrec = getOperator().getRightPrec();
 
+    List<SqlNode> sources = getSources();
     targetTable.unparse(writer, operatorLeftPrec, operatorRightPrec);
-
-    unparseAlias(writer, operatorLeftPrec, operatorRightPrec);
-
+    unparseTargetAlias(writer, operatorLeftPrec, operatorRightPrec);
     unparseSetClause(writer, operatorLeftPrec, operatorRightPrec);
-    List<SqlNode> updateSources = getUpdateSources();
-    if (!updateSources.isEmpty()) {
-      unparseUpdateSources(updateSources, writer, operatorLeftPrec, operatorRightPrec);
-    }
-    unparseUpdateCondition(writer, operatorLeftPrec, operatorRightPrec);
+    unparseSources(writer, operatorLeftPrec, operatorRightPrec, sources);
+    unparseCondition(writer, operatorLeftPrec, operatorRightPrec);
 
     writer.endList(frame);
   }
 
-  private void unparseAlias(SqlWriter writer, int operatorLeftPrec, int operatorRightPrec) {
-    if (alias != null) {
-      writer.keyword("AS");
-      alias.unparse(writer, operatorLeftPrec, operatorRightPrec);
-    }
-  }
-
-  private List<SqlNode> getUpdateSources() {
-    List<SqlNode> updateSources = new ArrayList<>();
+  /**
+   * @return the single or multiple sources used by update statement to
+   * update its target table.
+   * This  also updates
+   */
+  private List<SqlNode> getSources() {
+    List<SqlNode> sources = new ArrayList<>();
     if (sourceSelect != null && sourceSelect.from != null) {
       Optional<SqlJoin> join = getJoinFromSourceSelect();
       if (join.isPresent()) {
         updateTargetTableFromJoin(join.get());
-        updateSources = sqlKindSourceCollectorMap.get(join.get().getKind()).collectSources(join.get());
+        sources = sqlKindSourceCollectorMap.get(join.get().getKind()).collectSources(join.get());
       }
     }
-    return updateSources;
+    return sources;
+  }
+
+  private Optional<SqlJoin> getJoinFromSourceSelect() {
+    if (sourceSelect.from.getKind() == SqlKind.AS
+        && ((SqlBasicCall) sourceSelect.from).operands[0] instanceof SqlJoin) {
+      return Optional.of((SqlJoin) ((SqlBasicCall) sourceSelect.from).operands[0]);
+    }
+    return sourceSelect.from instanceof SqlJoin
+        ? Optional.of((SqlJoin) sourceSelect.from) : Optional.empty();
   }
 
   private void updateTargetTableFromJoin(SqlJoin join) {
@@ -217,14 +212,91 @@ public class SqlUpdate extends SqlCall {
     }
   }
 
-  private Optional<SqlJoin> getJoinFromSourceSelect() {
-    if (sourceSelect.from.getKind() == SqlKind.AS
-        && ((SqlBasicCall) sourceSelect.from).operands[0] instanceof SqlJoin) {
-      return Optional.of((SqlJoin) ((SqlBasicCall) sourceSelect.from).operands[0]);
-    } else {
-      return Optional.of(sourceSelect.from instanceof SqlJoin ? (SqlJoin) sourceSelect.from);
+  /**
+   * This method will @return true when:
+   * 1. If the targetTable and the @param node is exactly same
+   * 2. If @param node is aliased and its first operand and targetTable are same
+   * 3. If targetTable is aliased and its first operand and @param node are same.
+   */
+  private boolean isTargetTable(SqlNode node) {
+    if (node.equalsDeep(targetTable, Litmus.IGNORE)) {
+      return true;
+    } else if (node.getKind() == SqlKind.AS) {
+      return ((SqlBasicCall) node).operands[0].equalsDeep(targetTable, Litmus.IGNORE);
+    }
+    return targetTable instanceof SqlBasicCall && targetTable.getKind() == SqlKind.AS
+        && ((SqlBasicCall) targetTable).operands[0].equalsDeep(node, Litmus.IGNORE);
+  }
+
+  /**
+   *  Updates the targetTable if @param targetTable is aliased.
+   */
+  private void updateTargetTable(SqlNode targetTable) {
+    if (!targetTable.equalsDeep(this.targetTable, Litmus.IGNORE)) {
+      this.targetTable = targetTable;
+    }
+  }
+
+  private void unparseTargetAlias(SqlWriter writer, int operatorLeftPrec, int operatorRightPrec) {
+    if (alias != null) {
+      writer.keyword("AS");
+      alias.unparse(writer, operatorLeftPrec, operatorRightPrec);
+    }
+  }
+
+  private void unparseSetClause(SqlWriter writer, int opLeft, int opRight) {
+    final SqlWriter.Frame setFrame =
+        writer.startList(SqlWriter.FrameTypeEnum.UPDATE_SET_LIST, "SET", "");
+    for (Pair<SqlNode, SqlNode> pair
+        : Pair.zip(getTargetColumnList(), getSourceExpressionList())) {
+      writer.sep(",");
+      SqlIdentifier id = (SqlIdentifier) pair.left;
+      id.unparse(writer, opLeft, opRight);
+      writer.keyword("=");
+      SqlNode sourceExp = pair.right;
+      sourceExp.unparse(writer, opLeft, opRight);
+    }
+    writer.endList(setFrame);
+  }
+
+  private void unparseSources(SqlWriter writer, int opLeft, int opRight, List<SqlNode> sources) {
+    if (!sources.isEmpty()) {
+      writer.keyword("FROM");
+      final SqlWriter.Frame sourcesFrame = writer.startList("", "");
+      for (SqlNode source: sources) {
+        writer.sep(",");
+        source.unparse(writer, opLeft, opRight);
+      }
+      writer.endList(sourcesFrame);
+      unparseSourceAlias(sources, writer, opLeft, opRight);
+    }
+  }
+
+  private void unparseSourceAlias(
+      List<SqlNode> sources, SqlWriter writer, int opLeft, int opRight) {
+    if (sources.size() == 1) {
+      Optional<SqlIdentifier> aliasForFromClause = getAliasForFromClause();
+      if (aliasForFromClause.isPresent()) {
+        writer.keyword("AS");
+        aliasForFromClause.get().unparse(writer, opLeft, opRight);
+      }
+    }
+  }
+
+  private Optional<SqlIdentifier> getAliasForFromClause() {
+    if (sourceSelect != null && sourceSelect.from != null) {
+      if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS) {
+        return Optional.of((SqlIdentifier) ((SqlBasicCall) sourceSelect.from).operands[1]);
+      }
     }
     return Optional.empty();
+  }
+
+  private void unparseCondition(SqlWriter writer, int opLeft, int opRight) {
+    if (condition != null) {
+      writer.sep("WHERE");
+      condition.unparse(writer, opLeft, opRight);
+    }
   }
 
   /**
@@ -308,80 +380,11 @@ public class SqlUpdate extends SqlCall {
     return sources;
   };
 
-  void init() {
+  public void init() {
     sqlKindSourceCollectorMap.put(SqlKind.JOIN, collectSourcesFromJoin);
     sqlKindSourceCollectorMap.put(SqlKind.IDENTIFIER, collectSourcesFromIdentifier);
     sqlKindSourceCollectorMap.put(SqlKind.AS, collectSourcesFromAs);
     sqlKindSourceCollectorMap.put(SqlKind.WITH, collectSourcesFromWith);
-  }
-
-  /**
-   * This method will @return true when:
-   * 1. If the targetTable and the @param node is exactly same
-   * 2. If @param node is aliased and its first operand and targetTable are same
-   * 3. If targetTable is aliased and its first operand and @param node are same.
-   */
-  private boolean isTargetTable(SqlNode node) {
-    if (node.equalsDeep(targetTable, Litmus.IGNORE)) {
-      return true;
-    } else if (node.getKind() == SqlKind.AS) {
-      return ((SqlBasicCall) node).operands[0].equalsDeep(targetTable, Litmus.IGNORE);
-    }
-    return targetTable instanceof SqlBasicCall && targetTable.getKind() == SqlKind.AS
-        && ((SqlBasicCall) targetTable).operands[0].equalsDeep(node, Litmus.IGNORE);
-  }
-
-  private void unparseSetClause(SqlWriter writer, int opLeft, int opRight) {
-    final SqlWriter.Frame setFrame =
-        writer.startList(SqlWriter.FrameTypeEnum.UPDATE_SET_LIST, "SET", "");
-    for (Pair<SqlNode, SqlNode> pair
-        : Pair.zip(getTargetColumnList(), getSourceExpressionList())) {
-      writer.sep(",");
-      SqlIdentifier id = (SqlIdentifier) pair.left;
-      id.unparse(writer, opLeft, opRight);
-      writer.keyword("=");
-      SqlNode sourceExp = pair.right;
-      sourceExp.unparse(writer, opLeft, opRight);
-    }
-    writer.endList(setFrame);
-  }
-
-  private void unparseUpdateSources(
-      List<SqlNode> sources, SqlWriter writer, int opLeft, int opRight) {
-    writer.keyword("FROM");
-    final SqlWriter.Frame sourcesFrame = writer.startList("", "");
-    for (SqlNode source: sources) {
-      writer.sep(",");
-      source.unparse(writer, opLeft, opRight);
-    }
-    writer.endList(sourcesFrame);
-    unparseSourceAlias(sources, writer, opLeft, opRight);
-  }
-
-  private void unparseSourceAlias(List<SqlNode> sources, SqlWriter writer, int opLeft, int opRight) {
-    if (sources.size() == 1) {
-      Optional<SqlIdentifier> aliasForFromClause = getAliasForFromClause();
-      if (aliasForFromClause.isPresent()) {
-        writer.keyword("AS");
-        aliasForFromClause.get().unparse(writer, opLeft, opRight);
-      }
-    }
-  }
-
-  private Optional<SqlIdentifier> getAliasForFromClause() {
-    if (sourceSelect != null && sourceSelect.from != null) {
-      if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS) {
-        return Optional.of((SqlIdentifier) ((SqlBasicCall) sourceSelect.from).operands[1]);
-      }
-    }
-    return Optional.empty();
-  }
-
-  private void unparseUpdateCondition(SqlWriter writer, int opLeft, int opRight) {
-    if (condition != null) {
-      writer.sep("WHERE");
-      condition.unparse(writer, opLeft, opRight);
-    }
   }
 
   @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
