@@ -392,28 +392,7 @@ public class SparkSqlDialect extends SqlDialect {
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
         break;
       case COALESCE:
-        final SqlWriter.Frame coalesceFrame = writer.startFunCall("COALESCE");
-        List<SqlNode> operands = call.getOperandList();
-        int operandCount = operands.size();
-        for (int index = 0; index < operandCount; index++) {
-          SqlNode sqlNode = operands.get(index);
-          if (sqlNode instanceof SqlBasicCall && ((SqlBasicCall) sqlNode).getOperator()
-              .toString().equals("FORMAT")) {
-            final SqlWriter.Frame stringFrame = writer.startFunCall("STRING");
-            SqlBasicCall sqlBasicCall = call.operand(index);
-            sqlBasicCall.operand(1).unparse(writer, 0, 0);
-            writer.endFunCall(stringFrame);
-            if (index != operandCount - 1) {
-              writer.print(",");
-            }
-          } else {
-            operands.get(index).unparse(writer, 0, 0);
-            if (index != operandCount - 1) {
-              writer.print(",");
-            }
-          }
-        }
-        writer.endFunCall(coalesceFrame);
+        unparseCoalesceFormat(writer, call);
         break;
       case FORMAT:
         unparseFormat(writer, call, leftPrec, rightPrec);
@@ -1006,5 +985,38 @@ public class SparkSqlDialect extends SqlDialect {
           POST_MERIDIAN_INDICATOR.value);
     }
     return dateString;
+  }
+
+  private void unparseCoalesceFormat(SqlWriter writer, SqlCall call) {
+    final SqlWriter.Frame coalesceFrame = writer.startFunCall("COALESCE");
+    unparseFormatString(writer, call);
+    writer.endFunCall(coalesceFrame);
+  }
+
+  private void unparseFormatString(SqlWriter writer, SqlCall call) {
+    List<SqlNode> operands = call.getOperandList();
+    int operandCount = operands.size();
+    for (int index = 0; index < operandCount; index++) {
+      SqlNode sqlNode = operands.get(index);
+      if (isFormatSqlBasicCall(sqlNode)) {
+        final SqlWriter.Frame stringFrame = writer.startFunCall("STRING");
+        SqlBasicCall sqlBasicCall = call.operand(index);
+        sqlBasicCall.operand(1).unparse(writer, 0, 0);
+        writer.endFunCall(stringFrame);
+        if (index != operandCount - 1) {
+          writer.print(",");
+        }
+      } else {
+        operands.get(index).unparse(writer, 0, 0);
+        if (index != operandCount - 1) {
+          writer.print(",");
+        }
+      }
+    }
+  }
+
+  private boolean isFormatSqlBasicCall(SqlNode sqlNode) {
+    return sqlNode instanceof SqlBasicCall && ((SqlBasicCall) sqlNode).getOperator()
+        .toString().equals("FORMAT");
   }
 }
