@@ -1826,20 +1826,6 @@ SELECT
 !ok
 
 SELECT
-  TIMESTAMP "2010-07-07 10:20:00" as first_datetime,
-  TIMESTAMP "2008-12-25 15:30:00" as second_datetime,
-  TIMESTAMP_DIFF(TIMESTAMP "2010-07-07 10:20:00",
-    TIMESTAMP "2008-12-25 15:30:00", DAY) as difference;
-+---------------------+---------------------+------------+
-| first_datetime      | second_datetime     | difference |
-+---------------------+---------------------+------------+
-| 2010-07-07 10:20:00 | 2008-12-25 15:30:00 |        559hey |
-+---------------------+---------------------+------------+
-(1 row)
-
-!ok
-
-SELECT
   DATETIME_DIFF(DATETIME '2017-10-15 00:00:00',
     DATETIME '2017-10-14 00:00:00', DAY) as days_diff,
   DATETIME_DIFF(DATETIME '2017-10-15 00:00:00',

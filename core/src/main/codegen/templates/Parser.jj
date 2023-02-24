@@ -6765,7 +6765,7 @@ SqlCall TimestampDiff3FunctionCall() :
 /**
  * Parses BigQuery's built-in DATETIME_DIFF() function.
  */
-SqlNode DatetimeDiffFunctionCall() :
+SqlCall DatetimeDiffFunctionCall() :
 {
     final List<SqlNode> args = new ArrayList<SqlNode>();
     final Span s;
@@ -7363,6 +7363,12 @@ SqlNode JdbcFunctionCall() :
     (
         LOOKAHEAD(1)
         call = DateDiffFunctionCall() {
+            name = call.getOperator().getName();
+            args = new SqlNodeList(call.getOperandList(), getPos());
+        }
+    |
+        LOOKAHEAD(1)
+        call = DatetimeDiffFunctionCall() {
             name = call.getOperator().getName();
             args = new SqlNodeList(call.getOperandList(), getPos());
         }

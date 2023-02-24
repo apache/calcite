@@ -1975,22 +1975,28 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   /** Convertlet that handles the {@code TIMESTAMPDIFF} function. */
   private static class TimestampDiffConvertlet implements SqlRexConvertlet {
     @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
-      // TIMESTAMPDIFF(unit, t1, t2)
+      // The standard TIMESTAMPDIFF and BigQuery's TIMESTAMP_DIFF have two key differences. The
+      // first being the order of the subtraction, outlined below. The second is that BigQuery
+      // truncates each timestamp to the specified time unit before the difference is computed.
+      //  For example, if computing the number of weeks between two timestamps, one occurring on a
+      //  Saturday and the other occurring the next day on Sunday, their week difference is 1. This
+      //  is because the first timestamp is truncated to the previous Sunday. This is done by making
+      //  calls to TIMESTAMP_TRUNC and the difference is then computed using their results.
+      //  TIMESTAMPDIFF(unit, t1, t2)
       //    => (t2 - t1) UNIT
-      // TIMESTAMP_DIFF(t1, t2, unit)
+      //  TIMESTAMP_DIFF(t1, t2, unit)
       //    => (t1 - t2) UNIT
       SqlIntervalQualifier qualifier;
       final RexNode op1;
       final RexNode op2;
-      final boolean isBigQuery = !(call.operand(0).getKind() == SqlKind.INTERVAL_QUALIFIER);
-      if (isBigQuery) {
-        qualifier = call.operand(2);
-        op1 = cx.convertExpression(call.operand(1));
-        op2 = cx.convertExpression(call.operand(0));
-      } else {
+      if (call.operand(0).getKind() == SqlKind.INTERVAL_QUALIFIER) {
         qualifier = call.operand(0);
         op1 = cx.convertExpression(call.operand(1));
         op2 = cx.convertExpression(call.operand(2));
+      } else {
+        qualifier = call.operand(2);
+        op1 = cx.convertExpression(call.operand(1));
+        op2 = cx.convertExpression(call.operand(0));
       }
       final RexBuilder rexBuilder = cx.getRexBuilder();
       final TimeFrame timeFrame = cx.getValidator().validateTimeFrame(qualifier);
@@ -2002,7 +2008,12 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         // then handled by Java functions.
         final RexLiteral timeFrameName =
             rexBuilder.makeLiteral(qualifier.timeFrameName);
-        if (isBigQuery) {
+        // This additional logic accounts for BigQuery truncating prior to computing the difference.
+        if (call.operand(0).getKind() == SqlKind.INTERVAL_QUALIFIER) {
+          return rexBuilder.makeCall(cx.getValidator().getValidatedNodeType(call),
+              SqlStdOperatorTable.TIMESTAMP_DIFF,
+              ImmutableList.of(timeFrameName, op1, op2));
+        } else {
           truncCall1 = (RexCall) rexBuilder.makeCall(
               op1.getType(), SqlLibraryOperators.TIMESTAMP_TRUNC,
               ImmutableList.of(op1, timeFrameName));
@@ -2012,10 +2023,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           return rexBuilder.makeCall(cx.getValidator().getValidatedNodeType(call),
               SqlStdOperatorTable.TIMESTAMP_DIFF,
               ImmutableList.of(timeFrameName, truncCall1, truncCall2));
-        } else {
-          return rexBuilder.makeCall(cx.getValidator().getValidatedNodeType(call),
-              SqlStdOperatorTable.TIMESTAMP_DIFF,
-              ImmutableList.of(timeFrameName, op1, op2));
         }
 
       }
@@ -2053,12 +2060,12 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
       RelDataType intervalType;
       RexCall rexCall;
-      /* This additional logic handles the differing definitions of 'WEEK' between BigQuery
-      *  and Calcite. BigQuery considers Sunday as the start of the week, so two dates whose
-      *  day difference is <7 may have a week difference of 1 if they occur on two different
-      * Sunday-anchored weeks. In this case, the issue can be solved by truncating each date
-      * to the most recent Sunday. Similar logic is used for ISOYEAR as well. */
-      if ((unit == TimeUnit.WEEK || unit == TimeUnit.ISOYEAR) && isBigQuery) {
+      if (unit != TimeUnit.HOUR &&
+          call.operand(0).getKind() != SqlKind.INTERVAL_QUALIFIER) {
+      // The timestamps should be truncated unless the time unit is HOUR, in which case
+      // only the whole number of hours between the timestamps should be returned.
+      if (unit != TimeUnit.HOUR &&
+          call.operand(0).getKind() != SqlKind.INTERVAL_QUALIFIER) {
         final RexNode timeUnit = cx.convertExpression(call.operand(2));
         intervalType =
             cx.getTypeFactory().createTypeWithNullability(

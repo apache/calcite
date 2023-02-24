@@ -948,17 +948,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BIGINT_NULLABLE, OperandTypes.TIMESTAMP,
           SqlFunctionCategory.TIMEDATE);
 
-  /** BigQuery's "DATETIME_ADD(timestamp, interval) function; Behaves similarly
-   * to BigQuery's TIMESTAMP_ADD because in Calcite, datetime is a type alias
-   * for timestamp. */
+  /** The "DATETIME_ADD(timestamp, interval)" function (BigQuery). {@code TIMESTAMP_ADD},
+   * returns a Calcite {@code TIMESTAMP} (which BigQuery calls a {@code DATETIME}). */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATETIME_ADD =
       TIMESTAMP_ADD2.withName("DATETIME_ADD");
 
-  /** BigQuery's "DATETIME_DIFF(timestamp, timestamp, timeUnit) function; Behaves
-   * similarly to BigQuery's TIMESTAMP_DIFF because in Calcite, datetime is a type
-   * alias for timestamp. Returns the whole number of timeUnit between datetime
-   * and datetime2, with the result being negative if datetime occurs before datetime2. */
+  /** The "DATETIME_DIFF(timestamp, timestamp2, timeUnit)" function (BigQuery). */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATETIME_DIFF =
       new SqlTimestampDiffFunction("DATETIME_DIFF",
