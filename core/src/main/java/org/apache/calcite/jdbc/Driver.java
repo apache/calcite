@@ -64,6 +64,15 @@ public class Driver extends UnregisteredDriver {
     this.prepareFactory = createPrepareFactory();
   }
 
+  private Driver(Function0<CalcitePrepare> prepareFactory) {
+    super();
+    this.prepareFactory = prepareFactory;
+  }
+  public Driver withPrepareFactory(Function0<CalcitePrepare> prepareFactory) {
+    return this.prepareFactory == prepareFactory
+        ? this : new Driver(prepareFactory);
+  }
+
   protected Function0<CalcitePrepare> createPrepareFactory() {
     return CalcitePrepare.DEFAULT_FACTORY;
   }
