@@ -902,6 +902,8 @@ public enum SqlKind {
 
   /** The {@code ROW_NUMBER} window function. */
   ROW_NUMBER,
+  /** The Bodo Internal {@code MIN_ROW_NUMBER_FILTER} window function. */
+  MIN_ROW_NUMBER_FILTER,
 
   /** The {@code RANK} window function. */
   RANK,
