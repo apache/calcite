@@ -2064,8 +2064,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           call.operand(0).getKind() != SqlKind.INTERVAL_QUALIFIER) {
       // The timestamps should be truncated unless the time unit is HOUR, in which case
       // only the whole number of hours between the timestamps should be returned.
-      if (unit != TimeUnit.HOUR &&
-          call.operand(0).getKind() != SqlKind.INTERVAL_QUALIFIER) {
+      if (unit != TimeUnit.HOUR
+          && call.operand(0).getKind() != SqlKind.INTERVAL_QUALIFIER) {
         final RexNode timeUnit = cx.convertExpression(call.operand(2));
         intervalType =
             cx.getTypeFactory().createTypeWithNullability(
