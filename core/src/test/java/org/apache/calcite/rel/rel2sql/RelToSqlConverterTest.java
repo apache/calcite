@@ -11295,7 +11295,7 @@ class RelToSqlConverterTest {
   @Test public void testNextDayFunctionWithDate() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("2023-02-22"), builder.literal("TUESDAY"));
+        builder.literal("2023-02-22"), builder.literal(Day.TUESDAY.getValue()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -11310,7 +11310,7 @@ class RelToSqlConverterTest {
   @Test public void testNextDayFunctionWithCurrentDate() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("current_date"), builder.literal("TUESDAY"));
+        builder.literal("current_date"), builder.literal(Day.TUESDAY.getValue()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
