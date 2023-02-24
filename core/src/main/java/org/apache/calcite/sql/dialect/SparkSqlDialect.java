@@ -392,7 +392,7 @@ public class SparkSqlDialect extends SqlDialect {
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
         break;
       case COALESCE:
-        unparseCoalesceFormat(writer, call);
+        unparseCoalesce(writer, call);
         break;
       case FORMAT:
         unparseFormat(writer, call, leftPrec, rightPrec);
@@ -987,32 +987,23 @@ public class SparkSqlDialect extends SqlDialect {
     return dateString;
   }
 
-  private void unparseCoalesceFormat(SqlWriter writer, SqlCall call) {
+  private void unparseCoalesce(SqlWriter writer, SqlCall call) {
     final SqlWriter.Frame coalesceFrame = writer.startFunCall("COALESCE");
-    unparseFormatString(writer, call);
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      if (isFormatSqlBasicCall(operand)) {
+        unparseFormatInCoalesce(writer, operand);
+      } else {
+        operand.unparse(writer, 0, 0);
+      }
+    }
     writer.endFunCall(coalesceFrame);
   }
 
-  private void unparseFormatString(SqlWriter writer, SqlCall call) {
-    List<SqlNode> operands = call.getOperandList();
-    int operandCount = operands.size();
-    for (int index = 0; index < operandCount; index++) {
-      SqlNode sqlNode = operands.get(index);
-      if (isFormatSqlBasicCall(sqlNode)) {
-        final SqlWriter.Frame stringFrame = writer.startFunCall("STRING");
-        SqlBasicCall sqlBasicCall = call.operand(index);
-        sqlBasicCall.operand(1).unparse(writer, 0, 0);
-        writer.endFunCall(stringFrame);
-        if (index != operandCount - 1) {
-          writer.print(",");
-        }
-      } else {
-        operands.get(index).unparse(writer, 0, 0);
-        if (index != operandCount - 1) {
-          writer.print(",");
-        }
-      }
-    }
+  private void unparseFormatInCoalesce(SqlWriter writer, SqlNode call) {
+    final SqlWriter.Frame stringFrame = writer.startFunCall("STRING");
+    ((SqlCall) call).operand(1).unparse(writer, 0, 0);
+    writer.endFunCall(stringFrame);
   }
 
   private boolean isFormatSqlBasicCall(SqlNode sqlNode) {
