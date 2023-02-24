@@ -112,7 +112,6 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -130,6 +129,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -514,13 +514,40 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         throw new AssertionError("factory returned null planner");
       }
       try {
+        CalcitePreparingStmt preparingStmt =
+            getPreparingStmt(context, elementType, catalogReader, planner);
         return prepare2_(context, query, elementType, maxRowCount,
-            catalogReader, planner);
+            catalogReader, preparingStmt);
       } catch (RelOptPlanner.CannotPlanException e) {
         exception = e;
       }
     }
     throw exception;
+  }
+
+  /** Returns CalcitePreparingStmt
+   *
+   * <p>Override this function to return a custom {@link CalcitePreparingStmt} and
+   * {@link #createSqlValidator} to enable custom validation logic.
+   */
+  protected CalcitePreparingStmt getPreparingStmt(
+      Context context,
+      Type elementType,
+      CalciteCatalogReader catalogReader,
+      RelOptPlanner planner) {
+    final JavaTypeFactory typeFactory = context.getTypeFactory();
+    final EnumerableRel.Prefer prefer;
+    if (elementType == Object[].class) {
+      prefer = EnumerableRel.Prefer.ARRAY;
+    } else {
+      prefer = EnumerableRel.Prefer.CUSTOM;
+    }
+    final Convention resultConvention =
+        enableBindable ? BindableConvention.INSTANCE
+            : EnumerableConvention.INSTANCE;
+    return new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
+            context.getRootSchema(), prefer, createCluster(planner, new RexBuilder(typeFactory)),
+            resultConvention, createConvertletTable());
   }
 
   /** Quickly prepares a simple SQL statement, circumventing the usual
@@ -590,21 +617,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       Type elementType,
       long maxRowCount,
       CalciteCatalogReader catalogReader,
-      RelOptPlanner planner) {
+      CalcitePreparingStmt preparingStmt) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
-    final EnumerableRel.Prefer prefer;
-    if (elementType == Object[].class) {
-      prefer = EnumerableRel.Prefer.ARRAY;
-    } else {
-      prefer = EnumerableRel.Prefer.CUSTOM;
-    }
-    final Convention resultConvention =
-        enableBindable ? BindableConvention.INSTANCE
-            : EnumerableConvention.INSTANCE;
-    final CalcitePreparingStmt preparingStmt =
-        new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
-            context.getRootSchema(), prefer, createCluster(planner, new RexBuilder(typeFactory)),
-            resultConvention, createConvertletTable());
 
     final RelDataType x;
     final Prepare.PreparedResult preparedResult;
@@ -645,8 +659,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             Meta.StatementType.OTHER_DDL);
       }
 
-      final SqlValidator validator =
-          createSqlValidator(context, catalogReader);
+      final SqlValidator validator = preparingStmt.createSqlValidator(catalogReader);
 
       preparedResult =
           preparingStmt.prepareSql(sqlNode, Object.class, validator, true);
@@ -937,8 +950,12 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         prepareContext.getRootSchema().plus(), statement);
   }
 
-  /** Holds state for the process of preparing a SQL statement. */
-  static class CalcitePreparingStmt extends Prepare
+  /** Holds state for the process of preparing a SQL statement.
+   *
+   * <p>Overload this class and {@link #createSqlValidator} to provide desired SqlValidator
+   * and custom validation logic.</p>
+   */
+  public static class CalcitePreparingStmt extends Prepare
       implements RelOptTable.ViewExpander {
     protected final RelOptPlanner planner;
     protected final RexBuilder rexBuilder;
@@ -954,7 +971,12 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     private int expansionDepth;
     private @Nullable SqlValidator sqlValidator;
 
-    CalcitePreparingStmt(CalcitePrepareImpl prepare,
+    /** Constructor.
+     *
+     * <p>Overload this constructor and {@link #createSqlValidator} to provide desired
+     *  SqlValidaor and custom validation logic.</p>
+     */
+    public CalcitePreparingStmt(CalcitePrepareImpl prepare,
         Context context,
         CatalogReader catalogReader,
         RelDataTypeFactory typeFactory,

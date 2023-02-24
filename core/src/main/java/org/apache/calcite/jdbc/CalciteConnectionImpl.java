@@ -39,7 +39,6 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.materialize.Lattice;
@@ -87,6 +86,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -104,7 +104,7 @@ abstract class CalciteConnectionImpl
   public final JavaTypeFactory typeFactory;
 
   final CalciteSchema rootSchema;
-  final Function0<CalcitePrepare> prepareFactory;
+  final Supplier<CalcitePrepare> prepareFactory;
   final CalciteServer server = new CalciteServerImpl();
 
   // must be package-protected
@@ -127,7 +127,7 @@ abstract class CalciteConnectionImpl
       @Nullable JavaTypeFactory typeFactory) {
     super(driver, factory, url, info);
     CalciteConnectionConfig cfg = new CalciteConnectionConfigImpl(info);
-    this.prepareFactory = driver.prepareFactory;
+    this.prepareFactory = driver::createPrepare;
     if (typeFactory != null) {
       this.typeFactory = typeFactory;
     } else {
@@ -232,7 +232,7 @@ abstract class CalciteConnectionImpl
       CalcitePrepare.Context prepareContext, long maxRowCount) {
     CalcitePrepare.Dummy.push(prepareContext);
     try {
-      final CalcitePrepare prepare = prepareFactory.apply();
+      final CalcitePrepare prepare = prepareFactory.get();
       return prepare.prepareSql(prepareContext, query, Object[].class,
           maxRowCount);
     } finally {

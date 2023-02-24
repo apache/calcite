@@ -140,6 +140,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -163,6 +164,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -764,15 +766,69 @@ public class JdbcTest {
 
   /** Tests that a driver can be extended with its own parser and can execute
    * its own flavor of DDL. */
-  @Test void testMockDdl() throws Exception {
-    final MockDdlDriver driver = new MockDdlDriver();
+  @Test void testMockDdl() {
+    final AtomicInteger counter = new AtomicInteger();
+
+    // Raw MockDdlDriver does not implement commit.
+    checkMockDdl(counter, false, new MockDdlDriver());
+
+    // MockDdlDriver implements commit if we have supplied a
+    // prepare-factory to do so.
+    checkMockDdl(counter, true,
+        new MockDdlDriver()
+            .withPrepareFactory(() -> new CountingPrepare(counter)));
+
+    // Raw MockDdlDriver2 does not implement commit.
+    final MockDdlDriver2 driver2 = new MockDdlDriver2(counter);
+    checkMockDdl(counter, false, driver2);
+
+    // MockDdlDriver2 implements commit if we have supplied a
+    // prepare-factory to do so.
+    checkMockDdl(counter, true,
+        driver2.withPrepareFactory(() -> new CountingPrepare(counter)));
+
+    // MockDdlDriver2 implements commit if we override its createPrepareFactory
+    // method. The method is deprecated but override still needs to work.
+    checkMockDdl(counter, true,
+        new MockDdlDriver2(counter) {
+          @SuppressWarnings("deprecation")
+          @Override protected Function0<CalcitePrepare> createPrepareFactory() {
+            return () -> new CountingPrepare(counter);
+          }
+        });
+
+    // MockDdlDriver2 implements commit if we override its createPrepareFactory
+    // method.
+    checkMockDdl(counter, true,
+        new MockDdlDriver2(counter) {
+          @Override public CalcitePrepare createPrepare() {
+            return new CountingPrepare(counter);
+          }
+        });
+  }
+
+  static void checkMockDdl(AtomicInteger counter, boolean hasCommit,
+      Driver driver) {
     try (Connection connection =
              driver.connect("jdbc:calcite:", new Properties());
-        Statement statement = connection.createStatement()) {
-      assertThat(driver.counter, is(0));
-      statement.executeUpdate("COMMIT");
-      assertThat(driver.counter, is(1));
+         Statement statement = connection.createStatement()) {
+      final int original = counter.get();
+      if (hasCommit) {
+        int rowCount = statement.executeUpdate("COMMIT");
+        assertThat(rowCount, is(0));
+        assertThat(counter.get() - original, is(1));
+      } else {
+        assertThrows(SQLException.class,
+            () -> statement.executeUpdate("COMMIT"));
+      }
+    } catch (SQLException e) {
+      throw new AssertionError(e);
     }
+  }
+
+  @Test void testCustomValidator() {
+    final Driver driver = new MockDdlDriver().withPrepareFactory(MockPrepareImpl::new);
+    assertThat(driver.createPrepare().getClass(), is(MockPrepareImpl.class));
   }
 
   /**
@@ -8270,39 +8326,52 @@ public class JdbcTest {
 
   /** Mock driver that can execute a trivial DDL statement. */
   public static class MockDdlDriver extends org.apache.calcite.jdbc.Driver {
-    public int counter;
+  }
 
-    public MockDdlDriver() {
+  /** Mock driver that can execute a trivial DDL statement. */
+  public static class MockDdlDriver2 extends MockDdlDriver {
+    final AtomicInteger counter;
+
+    public MockDdlDriver2(AtomicInteger counter) {
+      this.counter = counter;
+    }
+  }
+
+  /** Implementation of {@link CalcitePrepare} that counts how many DDL
+   * statements have been executed. */
+  private static class CountingPrepare extends CalcitePrepareImpl {
+    private final AtomicInteger counter;
+
+    CountingPrepare(AtomicInteger counter) {
+      this.counter = counter;
     }
 
-    @Override protected Function0<CalcitePrepare> createPrepareFactory() {
-      return new Function0<CalcitePrepare>() {
-        @Override public CalcitePrepare apply() {
-          return new CalcitePrepareImpl() {
-            @Override protected SqlParser.Config parserConfig() {
-              return super.parserConfig().withParserFactory(stream ->
-                  new SqlParserImpl(stream) {
-                    @Override public SqlNode parseSqlStmtEof() {
-                      return new SqlCall(SqlParserPos.ZERO) {
-                        @Override public SqlOperator getOperator() {
-                          return new SqlSpecialOperator("COMMIT",
-                              SqlKind.COMMIT);
-                        }
+    @Override protected SqlParser.Config parserConfig() {
+      return super.parserConfig().withParserFactory(stream ->
+          new SqlParserImpl(stream) {
+            @Override public SqlNode parseSqlStmtEof() {
+              return new SqlCall(SqlParserPos.ZERO) {
+                @Override public SqlOperator getOperator() {
+                  return new SqlSpecialOperator("COMMIT",
+                      SqlKind.COMMIT);
+                }
 
-                        @Override public List<SqlNode> getOperandList() {
-                          return ImmutableList.of();
-                        }
-                      };
-                    }
-                  });
+                @Override public List<SqlNode> getOperandList() {
+                  return ImmutableList.of();
+                }
+              };
             }
+          });
+    }
 
-            @Override public void executeDdl(Context context, SqlNode node) {
-              ++counter;
-            }
-          };
-        }
-      };
+    @Override public void executeDdl(Context context, SqlNode node) {
+      counter.incrementAndGet();
+    }
+  }
+
+  /** Dummy subclass of CalcitePrepareImpl. */
+  public static class MockPrepareImpl extends CalcitePrepareImpl {
+    public MockPrepareImpl() {
     }
   }
 
