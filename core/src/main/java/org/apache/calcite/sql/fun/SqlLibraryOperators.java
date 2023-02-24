@@ -1427,5 +1427,5 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.family(SqlTypeFamily.ANY,
               SqlTypeFamily.STRING),
-          SqlFunctionCategory.SYSTEM);
+          SqlFunctionCategory.TIMEDATE);
 }

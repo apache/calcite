@@ -11295,7 +11295,7 @@ class RelToSqlConverterTest {
   @Test public void testNextDayFunctionWithDate() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("2023-02-22"), builder.literal(Day.TUESDAY.getValue()));
+        builder.literal("2023-02-22"), builder.literal(DayOfWeek.TUESDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -11310,13 +11310,13 @@ class RelToSqlConverterTest {
   @Test public void testNextDayFunctionWithCurrentDate() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("current_date"), builder.literal(Day.TUESDAY.getValue()));
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.TUESDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
         .build();
     final String expectedSpark =
-        "SELECT NEXT_DAY('current_date', 'TUESDAY') next_day\n"
+        "SELECT NEXT_DAY(CURRENT_DATE, 'TUESDAY') next_day\n"
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
@@ -11325,7 +11325,7 @@ class RelToSqlConverterTest {
   @Test public void testNextDayFunctionWithTimestamp() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("2023-02-22 10:00:00"), builder.literal(Day.TUESDAY.getValue()));
+        builder.literal("2023-02-22 10:00:00"), builder.literal(DayOfWeek.TUESDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -11337,10 +11337,25 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
+  @Test public void testNextDayFunctionWithCurrentTimestamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.call(CURRENT_TIMESTAMP), builder.literal(DayOfWeek.TUESDAY.name()));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedSpark =
+        "SELECT NEXT_DAY(CURRENT_TIMESTAMP, 'TUESDAY') next_day\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
   @Test public void testNextDayFunctionWithSunday() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("2023-02-22"), builder.literal(Day.SUNDAY.getValue()));
+        builder.literal("2023-02-22"), builder.literal(DayOfWeek.SUNDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -11355,13 +11370,13 @@ class RelToSqlConverterTest {
   @Test public void testNextDayFunctionWithMonday() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("current_date"), builder.literal(Day.MONDAY.getValue()));
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.MONDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
         .build();
     final String expectedSpark =
-        "SELECT NEXT_DAY('current_date', 'MONDAY') next_day\n"
+        "SELECT NEXT_DAY(CURRENT_DATE, 'MONDAY') next_day\n"
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
@@ -11370,7 +11385,7 @@ class RelToSqlConverterTest {
   @Test public void testNextDayFunctionWithWednesday() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("2023-02-23"), builder.literal(Day.WEDNESDAY.getValue()));
+        builder.literal("2023-02-23"), builder.literal(DayOfWeek.WEDNESDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -11385,13 +11400,13 @@ class RelToSqlConverterTest {
   @Test public void testNextDayFunctionWithThursday() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("current_date"), builder.literal(Day.THURSDAY.getValue()));
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.THURSDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
         .build();
     final String expectedSpark =
-        "SELECT NEXT_DAY('current_date', 'THURSDAY') next_day\n"
+        "SELECT NEXT_DAY(CURRENT_DATE, 'THURSDAY') next_day\n"
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
@@ -11400,13 +11415,13 @@ class RelToSqlConverterTest {
   @Test public void testNextDayFunctionWithFriday() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("current_date"), builder.literal(Day.FRIDAY.getValue()));
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.FRIDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
         .build();
     final String expectedSpark =
-        "SELECT NEXT_DAY('current_date', 'FRIDAY') next_day\n"
+        "SELECT NEXT_DAY(CURRENT_DATE, 'FRIDAY') next_day\n"
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
@@ -11415,13 +11430,13 @@ class RelToSqlConverterTest {
   @Test public void testNextDayFunctionWithSaturday() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("current_date"), builder.literal(Day.SATURDAY.getValue()));
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.SATURDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
         .build();
     final String expectedSpark =
-        "SELECT NEXT_DAY('current_date', 'SATURDAY') next_day\n"
+        "SELECT NEXT_DAY(CURRENT_DATE, 'SATURDAY') next_day\n"
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
