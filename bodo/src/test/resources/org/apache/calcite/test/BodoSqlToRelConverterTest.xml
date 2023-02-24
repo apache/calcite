@@ -45,6 +45,18 @@ LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[SALES]], IsReplace=[fal
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testValueUnreserved">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(ENAME=[$1], EXPR$1=[+($0, $2)])
+  LogicalJoin(condition=[=($2, $0)], joinType=[inner])
+    LogicalProject(VALUE=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(ENAME=[$1], VALUE=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testValuesUnreserved">
     <Resource name="plan">
       <![CDATA[
