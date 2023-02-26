@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
@@ -37,6 +38,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
@@ -52,6 +54,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -191,7 +194,8 @@ public class RelMdAllPredicates
    * Add the Join condition to the list obtained from the input.
    */
   public @Nullable RelOptPredicateList getAllPredicates(Join join, RelMetadataQuery mq) {
-    if (join.getJoinType().isOuterJoin()) {
+    final JoinRelType joinType = join.getJoinType();
+    if (joinType == JoinRelType.FULL) {
       // We cannot map origin of this expression.
       return null;
     }
@@ -200,7 +204,18 @@ public class RelMdAllPredicates
     final RexNode pred = join.getCondition();
 
     final Multimap<List<String>, RelTableRef> qualifiedNamesToRefs = HashMultimap.create();
-    RelOptPredicateList newPreds = RelOptPredicateList.EMPTY;
+
+    // Left child's predicate.
+    RelOptPredicateList leftNewPreds = RelOptPredicateList.EMPTY;
+    // Right child's predicate.
+    RelOptPredicateList rightNewPreds = RelOptPredicateList.EMPTY;
+    // Join on's predicate.
+    RelOptPredicateList joinOnNewPreds = RelOptPredicateList.EMPTY;
+    // Left table's refs
+    final Set<RelTableRef> leftTableRefs = new HashSet<>();
+    // Right table's refs
+    final Set<RelTableRef> rightTableRefs = new HashSet<>();
+
     for (RelNode input : join.getInputs()) {
       final RelOptPredicateList inputPreds = mq.getAllPredicates(input);
       if (inputPreds == null) {
@@ -213,11 +228,12 @@ public class RelMdAllPredicates
         return null;
       }
       if (input == join.getLeft()) {
+        leftTableRefs.addAll(tableRefs);
         // Left input references remain unchanged
         for (RelTableRef leftRef : tableRefs) {
           qualifiedNamesToRefs.put(leftRef.getQualifiedName(), leftRef);
         }
-        newPreds = newPreds.union(rexBuilder, inputPreds);
+        leftNewPreds = leftNewPreds.union(rexBuilder, inputPreds);
       } else {
         // Right input references might need to be updated if there are table name
         // clashes with left input
@@ -229,15 +245,29 @@ public class RelMdAllPredicates
           if (lRefs != null) {
             shift = lRefs.size();
           }
-          currentTablesMapping.put(rightRef,
-              RelTableRef.of(rightRef.getTable(), shift + rightRef.getEntityNumber()));
+          final RelTableRef newRightRef = RelTableRef.of(rightRef.getTable(),
+              shift + rightRef.getEntityNumber());
+          currentTablesMapping.put(rightRef, newRightRef);
+          rightTableRefs.add(newRightRef);
         }
-        final List<RexNode> updatedPreds =
+        final List<RexNode> updatedPullupPreds =
             Util.transform(inputPreds.pulledUpPredicates,
                 e -> RexUtil.swapTableReferences(rexBuilder, e,
                     currentTablesMapping));
-        newPreds = newPreds.union(rexBuilder,
-            RelOptPredicateList.of(rexBuilder, updatedPreds));
+
+        final List<RexNode> updatedLeftPreds =
+            Util.transform(inputPreds.leftInferredPredicates,
+                e -> RexUtil.swapTableReferences(rexBuilder, e,
+                    currentTablesMapping));
+
+        final List<RexNode> updatedRightPreds =
+            Util.transform(inputPreds.rightInferredPredicates,
+                e -> RexUtil.swapTableReferences(rexBuilder, e,
+                    currentTablesMapping));
+
+        final RelOptPredicateList updateNewPreds = RelOptPredicateList.of(rexBuilder,
+            updatedPullupPreds, updatedLeftPreds, updatedRightPreds);
+        rightNewPreds = rightNewPreds.union(rexBuilder, updateNewPreds);
       }
     }
 
@@ -272,7 +302,55 @@ public class RelMdAllPredicates
     if (allExprs == null) {
       return null;
     }
-    return newPreds.union(rexBuilder, RelOptPredicateList.of(rexBuilder, allExprs));
+
+    joinOnNewPreds = joinOnNewPreds.union(rexBuilder, RelOptPredicateList.of(rexBuilder, allExprs));
+    if (joinType == JoinRelType.LEFT) {
+      // Current join is left out join: left predicates could be pulled up, and right predicates
+      // and on predicates couldn't pull be pulled up.
+      ImmutableList<RexNode> joinOnPreds = wrapRefNullable(rexBuilder,
+          rightTableRefs, joinOnNewPreds.pulledUpPredicates);
+      ImmutableList<RexNode> rightAllPreds = ImmutableList.<RexNode>builder()
+          .addAll(joinOnPreds)
+          .addAll(rightNewPreds.pulledUpPredicates)
+          .build();
+      ImmutableList<RexNode> pullUpPreds = leftNewPreds.pulledUpPredicates;
+      return RelOptPredicateList.of(rexBuilder, pullUpPreds, ImmutableList.of(), rightAllPreds);
+    } else if (joinType == JoinRelType.RIGHT) {
+      // It's similar to left join.
+      // Current join is right out join: right predicates could be pulled up, and left predicates
+      // and on predicates couldn't pull be pulled up.
+      ImmutableList<RexNode> joinOnPreds = wrapRefNullable(rexBuilder,
+          leftTableRefs, joinOnNewPreds.pulledUpPredicates);
+      ImmutableList<RexNode> leftAllPreds = ImmutableList.<RexNode>builder()
+          .addAll(joinOnPreds)
+          .addAll(leftNewPreds.pulledUpPredicates)
+          .build();
+      ImmutableList<RexNode> pullUpPreds = rightNewPreds.pulledUpPredicates;
+      return RelOptPredicateList.of(rexBuilder, pullUpPreds, leftAllPreds, ImmutableList.of());
+    } else {
+      return RelOptPredicateList.EMPTY.union(rexBuilder, leftNewPreds)
+          .union(rexBuilder, rightNewPreds)
+          .union(rexBuilder, joinOnNewPreds);
+    }
+  }
+
+  /**
+   * Wrap input ref for nullable, which exists in nullable input of join.
+   */
+  private ImmutableList<RexNode> wrapRefNullable(RexBuilder rexBuilder,
+      Set<RelTableRef> nullableOriginTableRefs, List<RexNode> allExprs) {
+    final RexShuttle shuttle = new RexShuttle() {
+      @Override public RexNode visitTableInputRef(RexTableInputRef inputRef) {
+        final RelTableRef tableRef = inputRef.getTableRef();
+        if (nullableOriginTableRefs.contains(tableRef)) {
+          return RexTableInputRef.of(rexBuilder.getTypeFactory(),
+              tableRef, inputRef.getIndex(), inputRef.getType(), true);
+        } else {
+          return inputRef;
+        }
+      }
+    };
+    return ImmutableList.copyOf(shuttle.apply(allExprs));
   }
 
   /**

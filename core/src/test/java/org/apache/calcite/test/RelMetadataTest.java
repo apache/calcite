@@ -137,6 +137,7 @@ import static org.apache.calcite.test.Matchers.sortsAs;
 import static org.apache.calcite.test.Matchers.within;
 
 import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -180,6 +181,9 @@ public class RelMetadataTest {
 
   private static final List<String> EMP_QNAME =
       ImmutableList.of("CATALOG", "SALES", "EMP");
+
+  private static final List<String> DEPT_QNAME =
+      ImmutableList.of("CATALOG", "SALES", "DEPT");
 
   /** Ensures that tests that use a lot of memory do not run at the same
    * time. */
@@ -2471,15 +2475,87 @@ public class RelMetadataTest {
         not(((RexTableInputRef) r2.iterator().next()).getIdentifier()));
   }
 
-  @Test void testExpressionLineageOuterJoin() {
-    // lineage cannot be determined
-    final RelNode rel = sql("select name as dname from emp left outer join dept"
+  @Test void testExpressionLineageFullOuterJoin() {
+    // lineage of full join cannot be determined
+    final RelNode rel = sql("select name as dname from emp full outer join dept"
         + " on emp.deptno = dept.deptno").toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     final RexNode ref = RexInputRef.of(0, rel.getRowType().getFieldList());
     final Set<RexNode> r = mq.getExpressionLineage(rel, ref);
     assertNull(r);
+  }
+
+  @Test void testExpressionLineageLeftOuterJoin() {
+    // support to analyze for out join.
+    final RelNode rel = sql("select emp.sal as e_sal, dept.name as d_name\n"
+        + "from emp left outer join dept\n"
+        + "on emp.deptno = dept.deptno").toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final RelNode empTableRel = sql("select * from emp").toRel();
+    final RelNode depTableRel = sql("select * from dept").toRel();
+
+    // check left's input of left-join (emp's field)
+    final RexNode empRef = RexInputRef.of(0, rel.getRowType().getFieldList());
+    final Set<RexNode> empNode = mq.getExpressionLineage(rel, empRef);
+    assertThat(empNode.size(), is(1));
+    final RexNode empTargetNode = empNode.iterator().next();
+    assertThat(((RexTableInputRef) empTargetNode).getForceNullable(), is(false));
+    assertThat(empTargetNode.toString(), startsWith(EMP_QNAME.toString()));
+    assertThat(
+        empTargetNode.toString(),
+        endsWith(
+            RexInputRef.of(
+        5, empTableRel.getRowType()).toString()));
+
+    // check right's input of left-join (dept's field)
+    final RexNode deptRef = RexInputRef.of(1, rel.getRowType().getFieldList());
+    final Set<RexNode> deptNode = mq.getExpressionLineage(rel, deptRef);
+    assertThat(deptNode.size(), is(1));
+    final RexNode deptTargetNode = deptNode.iterator().next();
+    assertThat(((RexTableInputRef) deptTargetNode).getForceNullable(), is(true));
+    assertThat(deptTargetNode.toString(), startsWith(DEPT_QNAME.toString()));
+    assertThat(
+        deptTargetNode.toString(),
+        containsString(
+            RexInputRef.ofNullable(
+        rel.getCluster().getTypeFactory(), 1, depTableRel.getRowType()).toString()));
+  }
+
+  @Test void testExpressionLineageRightOuterJoin() {
+    // support to analyze for out join
+    final RelNode rel = sql("select dept.name as d_name, emp.sal as e_sal\n"
+        + "from dept right outer join emp\n"
+        + "on emp.deptno = dept.deptno").toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final RelNode empTableRel = sql("select * from emp").toRel();
+    final RelNode depTableRel = sql("select * from dept").toRel();
+
+    // check right's input of right-join (emp's field)
+    final RexNode empRef = RexInputRef.of(1, rel.getRowType().getFieldList());
+    final Set<RexNode> empNode = mq.getExpressionLineage(rel, empRef);
+    assertThat(empNode.size(), is(1));
+    final RexNode empTargetNode = empNode.iterator().next();
+    assertThat(((RexTableInputRef) empTargetNode).getForceNullable(), is(false));
+    assertThat(empTargetNode.toString(), startsWith(EMP_QNAME.toString()));
+    assertThat(
+        empTargetNode.toString(),
+        endsWith(
+            RexInputRef.of(
+        5, empTableRel.getRowType()).toString()));
+
+    // check left's input of right-join (dept's field)
+    final RexNode deptRef = RexInputRef.of(0, rel.getRowType().getFieldList());
+    final Set<RexNode> deptNode = mq.getExpressionLineage(rel, deptRef);
+    assertThat(deptNode.size(), is(1));
+    final RexNode deptTargetNode = deptNode.iterator().next();
+    assertThat(((RexTableInputRef) deptTargetNode).getForceNullable(), is(true));
+    assertThat(deptTargetNode.toString(), startsWith(DEPT_QNAME.toString()));
+    assertThat(
+        deptTargetNode.toString(),
+        containsString(
+            RexInputRef.ofNullable(
+        rel.getCluster().getTypeFactory(), 1, depTableRel.getRowType()).toString()));
   }
 
   @Test void testExpressionLineageFilter() {
@@ -2765,6 +2841,130 @@ public class RelMetadataTest {
         equalTo("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, DEPT].#1, "
             + "[CATALOG, SALES, EMP].#0, [CATALOG, SALES, EMP].#1, "
             + "[CATALOG, SALES, EMP].#2, [CATALOG, SALES, EMP].#3]"));
+  }
+
+  @Test void testAllPredicatesAndTablesLeftJoin() {
+    final String sql = "select empno, dept.deptno\n"
+        + "from (select deptno from dept where deptno > 1) dept\n"
+        + "left join (select * from emp where emp.deptno < 1001) emp\n"
+        + "on emp.deptno = dept.deptno and emp.deptno < 1002\n"
+        + "where empno > 2";
+    final RelNode rel = sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final RelOptPredicateList allPredicates = mq.getAllPredicates(rel);
+    assertThat(allPredicates.pulledUpPredicates,
+        sortsAs("[>([CATALOG, SALES, DEPT].#0.$0, 1), "
+            + ">([CATALOG, SALES, EMP].#0.$0(nullable), 2)]"));
+    assertThat(allPredicates.rightInferredPredicates,
+        sortsAs("[<([CATALOG, SALES, EMP].#0.$7, 1001), "
+            + "AND(=([CATALOG, SALES, EMP].#0.$7(nullable), [CATALOG, SALES, DEPT].#0.$0), "
+            + "<([CATALOG, SALES, EMP].#0.$7(nullable), 1002))]"));
+    final Set<RelTableRef> tableReferences =
+        Sets.newTreeSet(mq.getTableReferences(rel));
+    assertThat(tableReferences.toString(),
+        equalTo("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, EMP].#0]"));
+  }
+
+  @Test void testAllPredicatesAndTablesMoreLeftJoin() {
+    final String sql = "select a.empno as empno_1, a.deptno as deptno_1, "
+        + "b.empno as empno_2, b.deptno as deptno_2\n"
+        + "from (\n"
+        + "select emp.empno as empno, emp.deptno as deptno\n"
+        + "from (select deptno from dept where deptno > 1) dept\n"
+        + "left join\n"
+        + "(select * from emp where emp.deptno < 1001) emp\n"
+        + "on emp.deptno = dept.deptno and emp.deptno < 1002\n"
+        + "where empno > 2\n"
+        + ") a\n"
+        + "left join\n"
+        + "(select emp.empno as empno, emp.deptno as deptno\n"
+        + "from (select deptno from dept where deptno > 11) dept\n"
+        + "left join\n"
+        + "(select * from emp where emp.deptno < 11001) emp\n"
+        + "on emp.deptno = dept.deptno and emp.deptno < 11002\n"
+        + "where empno > 22\n"
+        + ") b\n"
+        + "on a.empno = b.empno and a.empno > 1222\n"
+        + "where a.empno > 222";
+    final RelNode rel = sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final RelOptPredicateList allPredicates = mq.getAllPredicates(rel);
+    assertThat(allPredicates.pulledUpPredicates,
+        sortsAs("[>([CATALOG, SALES, DEPT].#0.$0, 1), "
+            + ">([CATALOG, SALES, EMP].#0.$0(nullable), 2), "
+            + ">([CATALOG, SALES, EMP].#0.$0(nullable), 222)]"));
+    assertThat(allPredicates.rightInferredPredicates,
+        sortsAs("[>([CATALOG, SALES, DEPT].#1.$0, 11), "
+            + ">([CATALOG, SALES, EMP].#1.$0(nullable), 22), "
+            + "AND(=([CATALOG, SALES, EMP].#0.$0(nullable), [CATALOG, SALES, EMP].#1.$0(nullable)), "
+            + ">([CATALOG, SALES, EMP].#0.$0(nullable), 1222))]"));
+    final Set<RelTableRef> tableReferences =
+        Sets.newTreeSet(mq.getTableReferences(rel));
+    assertThat(tableReferences.toString(),
+        equalTo("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, DEPT].#1, "
+            + "[CATALOG, SALES, EMP].#0, [CATALOG, SALES, EMP].#1]"));
+  }
+
+  @Test void testAllPredicatesAndTablesLeftInnerJoin() {
+    final String sql = "select a.empno as empno_1, a.deptno as deptno_1, "
+        + "b.empno as empno_2, b.deptno as deptno_2\n"
+        + "from (\n"
+        + "select emp.empno as empno, emp.deptno as deptno\n"
+        + "from (select deptno from dept where deptno > 1) dept\n"
+        + "inner join\n"
+        + "(select * from emp where emp.deptno < 1001) emp\n"
+        + "on emp.deptno = dept.deptno and emp.deptno < 1002\n"
+        + "where empno > 2\n"
+        + ") a\n"
+        + "left join\n"
+        + "(select emp.empno as empno, emp.deptno as deptno\n"
+        + "from (select deptno from dept where deptno > 11) dept\n"
+        + "left join\n"
+        + "(select * from emp where emp.deptno < 11001) emp\n"
+        + "on emp.deptno = dept.deptno and emp.deptno < 11002\n"
+        + "where empno > 22\n"
+        + ") b\n"
+        + "on a.empno = b.empno and a.empno > 1222\n"
+        + "where a.empno > 222";
+    final RelNode rel = sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final RelOptPredicateList allPredicates = mq.getAllPredicates(rel);
+    assertThat(allPredicates.pulledUpPredicates,
+        sortsAs("[<([CATALOG, SALES, EMP].#0.$7, 1001), >([CATALOG, SALES, DEPT].#0.$0, 1), "
+            + ">([CATALOG, SALES, EMP].#0.$0, 2), >([CATALOG, SALES, EMP].#0.$0, 222), "
+            + "AND(=([CATALOG, SALES, EMP].#0.$7, [CATALOG, SALES, DEPT].#0.$0), "
+            + "<([CATALOG, SALES, EMP].#0.$7, 1002))]"));
+    assertThat(allPredicates.rightInferredPredicates,
+        sortsAs("[>([CATALOG, SALES, DEPT].#1.$0, 11), "
+            + ">([CATALOG, SALES, EMP].#1.$0(nullable), 22), "
+            + "AND(=([CATALOG, SALES, EMP].#0.$0, [CATALOG, SALES, EMP].#1.$0(nullable)), "
+            + ">([CATALOG, SALES, EMP].#0.$0, 1222))]"));
+    final Set<RelTableRef> tableReferences =
+        Sets.newTreeSet(mq.getTableReferences(rel));
+    assertThat(tableReferences.toString(),
+        equalTo("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, DEPT].#1, "
+            + "[CATALOG, SALES, EMP].#0, [CATALOG, SALES, EMP].#1]"));
+  }
+
+  @Test void testAllPredicatesAndTablesRightJoin() {
+    final String sql = "select empno, dept.deptno as d_deptno, emp.deptno as e_deptno\n"
+        + "from (select deptno from dept where deptno > 1) dept\n"
+        + "right join (select * from emp where emp.deptno < 1001) emp\n"
+        + "on emp.deptno = dept.deptno and emp.deptno < 1002\n"
+        + "where empno > 2";
+    final RelNode rel = sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final RelOptPredicateList allPredicates = mq.getAllPredicates(rel);
+    assertThat(allPredicates.pulledUpPredicates,
+        sortsAs("[<([CATALOG, SALES, EMP].#0.$7, 1001), >([CATALOG, SALES, EMP].#0.$0, 2)]"));
+    assertThat(allPredicates.leftInferredPredicates,
+        sortsAs("[>([CATALOG, SALES, DEPT].#0.$0, 1), "
+            + "AND(=([CATALOG, SALES, EMP].#0.$7, [CATALOG, SALES, DEPT].#0.$0(nullable)), "
+            + "<([CATALOG, SALES, EMP].#0.$7, 1002))]"));
+    final Set<RelTableRef> tableReferences =
+        Sets.newTreeSet(mq.getTableReferences(rel));
+    assertThat(tableReferences.toString(),
+        equalTo("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, EMP].#0]"));
   }
 
   @Test void testAllPredicatesAndTablesCalc() {

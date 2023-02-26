@@ -32,6 +32,7 @@ import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -192,6 +193,7 @@ public class RelMdExpressionLineage
   public @Nullable Set<RexNode> getExpressionLineage(Join rel, RelMetadataQuery mq,
       RexNode outputExpression) {
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+    final RelDataTypeFactory factory = rexBuilder.getTypeFactory();
     final RelNode leftInput = rel.getLeft();
     final RelNode rightInput = rel.getRight();
     final int nLeftColumns = leftInput.getRowType().getFieldList().size();
@@ -199,27 +201,16 @@ public class RelMdExpressionLineage
     // Extract input fields referenced by expression
     final ImmutableBitSet inputFieldsUsed = extractInputRefs(outputExpression);
 
-    if (rel.getJoinType().isOuterJoin()) {
-      // If we reference the inner side, we will bail out
-      if (rel.getJoinType() == JoinRelType.LEFT) {
-        ImmutableBitSet rightFields = ImmutableBitSet.range(
-            nLeftColumns, rel.getRowType().getFieldCount());
-        if (inputFieldsUsed.intersects(rightFields)) {
-          // We cannot map origin of this expression.
-          return null;
-        }
-      } else if (rel.getJoinType() == JoinRelType.RIGHT) {
-        ImmutableBitSet leftFields = ImmutableBitSet.range(
-            0, nLeftColumns);
-        if (inputFieldsUsed.intersects(leftFields)) {
-          // We cannot map origin of this expression.
-          return null;
-        }
-      } else {
-        // We cannot map origin of this expression.
+    final JoinRelType joinType = rel.getJoinType();
+    if (joinType.isOuterJoin()) {
+      if (joinType == JoinRelType.FULL) {
+        // We cannot map origin of this expression, if join's type is full join.
         return null;
       }
     }
+
+    final boolean wrapLeftNullable = rel.getJoinType() == JoinRelType.RIGHT;
+    final boolean wrapRightNullable = rel.getJoinType() == JoinRelType.LEFT;
 
     // Gather table references
     final Set<RelTableRef> leftTableRefs = mq.getTableReferences(leftInput);
@@ -258,8 +249,33 @@ public class RelMdExpressionLineage
           // Bail out
           return null;
         }
+        final Set<RexNode> newExprs;
+        if (wrapLeftNullable) {
+          newExprs = new HashSet<>();
+          for (RexNode originalExpr : originalExprs) {
+            // Bail out
+            if (!(originalExpr instanceof RexTableInputRef)) {
+              return null;
+            }
+            // Rebuild a left's node for wrap_left_nullable
+            final RexTableInputRef expr = (RexTableInputRef) originalExpr;
+            newExprs.add(
+                RexTableInputRef.of(
+                    factory, RelTableRef.of(
+                    expr.getTableRef().getTable(), expr.getTableRef().getEntityNumber()),
+                expr.getIndex(), expr.getType(), true));
+          }
+        } else {
+          newExprs = originalExprs;
+        }
         // Left input references remain unchanged
-        mapping.put(RexInputRef.of(idx, rel.getRowType().getFieldList()), originalExprs);
+        final RexInputRef joinRef;
+        if (wrapLeftNullable) {
+          joinRef = RexTableInputRef.ofNullable(factory, idx, rel.getRowType());
+        } else {
+          joinRef = RexInputRef.of(idx, rel.getRowType());
+        }
+        mapping.put(joinRef, newExprs);
       } else {
         // Right input.
         final RexInputRef inputRef = RexInputRef.of(idx - nLeftColumns,
@@ -278,10 +294,22 @@ public class RelMdExpressionLineage
             null,
             ImmutableList.of());
         final Set<RexNode> updatedExprs = ImmutableSet.copyOf(
-            Util.transform(originalExprs, e ->
-                RexUtil.swapTableReferences(rexBuilder, e,
-                    currentTablesMapping)));
-        mapping.put(RexInputRef.of(idx, fullRowType), updatedExprs);
+            Util.transform(originalExprs, e -> {
+              if (wrapRightNullable) {
+                return RexUtil.swapTableReferencesNullable(rexBuilder, e,
+                    currentTablesMapping);
+              } else {
+                return RexUtil.swapTableReferences(rexBuilder, e,
+                    currentTablesMapping);
+              }
+            }));
+        final RexInputRef joinRef;
+        if (wrapRightNullable) {
+          joinRef = RexTableInputRef.ofNullable(factory, idx, fullRowType);
+        } else {
+          joinRef = RexInputRef.of(idx, fullRowType);
+        }
+        mapping.put(joinRef, updatedExprs);
       }
     }
 
