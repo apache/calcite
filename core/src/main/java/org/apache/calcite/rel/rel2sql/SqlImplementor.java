@@ -1758,7 +1758,7 @@ public abstract class SqlImplementor {
                 if (selectItem.i != ordinal) {
                   final @Nullable String alias =
                       SqlValidatorUtil.alias(selectItem.e);
-                  if (name.equalsIgnoreCase(alias)) {
+                  if (name.equalsIgnoreCase(alias) && dialect.getConformance().isSortByAlias()) {
                     return SqlLiteral.createExactNumeric(
                         Integer.toString(ordinal + 1), SqlParserPos.ZERO);
                   }
@@ -1825,9 +1825,10 @@ public abstract class SqlImplementor {
 
       if (rel instanceof Project
           && clauses.contains(Clause.ORDER_BY)
-          && dialect.getConformance().isSortByOrdinal()) {
+          && dialect.getConformance().isSortByOrdinal()
+          && hasSortByOrdinal()) {
         // Cannot merge a Project that contains sort by ordinal under it.
-        return hasSortByOrdinal();
+        return true;
       }
 
       if (rel instanceof Aggregate) {
@@ -1862,7 +1863,7 @@ public abstract class SqlImplementor {
         }
         for (SqlNode sqlNode : orderList) {
           if (!(sqlNode instanceof SqlBasicCall)) {
-            return false;
+            return sqlNode instanceof SqlNumericLiteral;
           }
           for (SqlNode operand : ((SqlBasicCall) sqlNode).getOperandList()) {
             if (operand instanceof SqlNumericLiteral) {
