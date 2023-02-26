@@ -675,9 +675,9 @@ public class SpatialTypeFunctions {
    */
   @Hints({"SqlKind:ST_POINT3"})
   public static Geometry ST_Point(BigDecimal x, BigDecimal y, BigDecimal z) {
-    final Geometry g = GEOMETRY_FACTORY.createPoint(
-        new Coordinate(x.doubleValue(), y.doubleValue(),
-            z.doubleValue()));
+    final Geometry g =
+        GEOMETRY_FACTORY.createPoint(
+            new Coordinate(x.doubleValue(), y.doubleValue(), z.doubleValue()));
     return g;
   }
 
@@ -1570,8 +1570,9 @@ public class SpatialTypeFunctions {
           if (point) {
             final double xCurrent = minX + (x + 0.5D) * deltaX;
             final double yCurrent = minY + (y + 0.5D) * deltaY;
-            geom = ST_MakePoint(BigDecimal.valueOf(xCurrent),
-                BigDecimal.valueOf(yCurrent));
+            geom =
+                ST_MakePoint(BigDecimal.valueOf(xCurrent),
+                    BigDecimal.valueOf(yCurrent));
           } else {
             final double left = minX + x * deltaX;
             final double right = left + deltaX;

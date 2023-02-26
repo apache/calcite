@@ -1618,11 +1618,11 @@ public class RelMetadataTest {
     assertThat(collations.get(0).getFieldCollations().get(1).getFieldIndex(),
         equalTo(0));
 
-    final LogicalProject project = LogicalProject.create(empSort,
-        ImmutableList.of(),
-        projects,
-        ImmutableList.of("a", "b", "c", "d"),
-        ImmutableSet.of());
+    final LogicalProject project =
+        LogicalProject.create(empSort, ImmutableList.of(),
+            projects,
+            ImmutableList.of("a", "b", "c", "d"),
+            ImmutableSet.of());
 
     final LogicalTableScan deptScan =
         LogicalTableScan.create(cluster, deptTable, ImmutableList.of());
@@ -1634,9 +1634,9 @@ public class RelMetadataTest {
 
     final ImmutableIntList leftKeys = ImmutableIntList.of(2);
     final ImmutableIntList rightKeys = ImmutableIntList.of(0);
-    final EnumerableMergeJoin join;
-    join = EnumerableMergeJoin.create(project, deptSort,
-        rexBuilder.makeLiteral(true), leftKeys, rightKeys, JoinRelType.INNER);
+    final EnumerableMergeJoin join =
+        EnumerableMergeJoin.create(project, deptSort,
+            rexBuilder.makeLiteral(true), leftKeys, rightKeys, JoinRelType.INNER);
     collations =
         RelMdCollation.mergeJoin(mq, project, deptSort, leftKeys,
             rightKeys, JoinRelType.INNER);
@@ -1662,8 +1662,8 @@ public class RelMetadataTest {
         equalTo(antiJoin.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE)));
 
     // Values (empty)
-    collations = RelMdCollation.values(mq, empTable.getRowType(),
-        ImmutableList.of());
+    collations =
+        RelMdCollation.values(mq, empTable.getRowType(), ImmutableList.of());
     assertThat(collations.toString(),
         equalTo("[[0, 1, 2, 3, 4, 5, 6, 7, 8], "
             + "[1, 2, 3, 4, 5, 6, 7, 8], "
@@ -1762,8 +1762,8 @@ public class RelMetadataTest {
       if (value == null) {
         literal = rexBuilder.makeNullLiteral(varcharType);
       } else if (value instanceof Integer) {
-        literal = rexBuilder.makeExactLiteral(
-            BigDecimal.valueOf((Integer) value));
+        literal =
+            rexBuilder.makeExactLiteral(BigDecimal.valueOf((Integer) value));
       } else {
         literal = rexBuilder.makeLiteral((String) value);
       }
@@ -1935,8 +1935,8 @@ public class RelMetadataTest {
     final RelBuilder relBuilder = RelBuilder.proto().create(cluster, null);
     final RelMetadataQuery mq = cluster.getMetadataQuery();
 
-    final LogicalTableScan empScan = LogicalTableScan.create(cluster, empTable,
-        ImmutableList.of());
+    final LogicalTableScan empScan =
+        LogicalTableScan.create(cluster, empTable, ImmutableList.of());
     relBuilder.push(empScan);
 
     RelOptPredicateList predicates =
@@ -2896,8 +2896,8 @@ public class RelMetadataTest {
   @Test void testTableReferencesJoinUnknownNode() {
     final String sql = "select * from emp limit 10";
     final RelNode node = sql(sql).toRel();
-    final RelNode nodeWithUnknown = new DummyRelNode(
-        node.getCluster(), node.getTraitSet(), node);
+    final RelNode nodeWithUnknown =
+        new DummyRelNode(node.getCluster(), node.getTraitSet(), node);
     final RexBuilder rexBuilder = node.getCluster().getRexBuilder();
     // Join
     final LogicalJoin join =
@@ -2931,8 +2931,8 @@ public class RelMetadataTest {
   @Test void testTableReferencesUnionUnknownNode() {
     final String sql = "select * from emp limit 10";
     final RelNode node = sql(sql).toRel();
-    final RelNode nodeWithUnknown = new DummyRelNode(
-        node.getCluster(), node.getTraitSet(), node);
+    final RelNode nodeWithUnknown =
+        new DummyRelNode(node.getCluster(), node.getTraitSet(), node);
     // Union
     final LogicalUnion union =
         LogicalUnion.create(ImmutableList.of(nodeWithUnknown, node),

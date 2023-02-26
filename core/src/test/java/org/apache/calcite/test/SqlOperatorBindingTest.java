@@ -123,18 +123,18 @@ class SqlOperatorBindingTest {
    * literal</a>.
    */
   @Test void testRexNodeLiteral() {
-    final RexNode literal = rexBuilder.makeZeroLiteral(
-        integerDataType);
+    final RexNode literal =
+        rexBuilder.makeZeroLiteral(integerDataType);
 
-    final RexNode castLiteral = rexBuilder.makeCall(
-        integerDataType,
-        SqlStdOperatorTable.CAST,
-        Lists.newArrayList(literal));
+    final RexNode castLiteral =
+        rexBuilder.makeCall(integerDataType,
+            SqlStdOperatorTable.CAST,
+            Lists.newArrayList(literal));
 
-    final RexNode castCastLiteral = rexBuilder.makeCall(
-        integerDataType,
-        SqlStdOperatorTable.CAST,
-        Lists.newArrayList(castLiteral));
+    final RexNode castCastLiteral =
+        rexBuilder.makeCall(integerDataType,
+            SqlStdOperatorTable.CAST,
+            Lists.newArrayList(castLiteral));
 
     // RexLiteral is considered a literal
     assertThat(RexUtil.isLiteral(literal, true), is(true));

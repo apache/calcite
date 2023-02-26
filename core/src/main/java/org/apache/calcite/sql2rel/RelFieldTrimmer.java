@@ -308,8 +308,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   protected TrimResult result(RelNode r, final Mapping mapping) {
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
     for (final CorrelationId correlation : r.getVariablesSet()) {
-      r = r.accept(
-          new CorrelationReferenceFinder() {
+      r =
+          r.accept(new CorrelationReferenceFinder() {
             @Override protected RexNode handle(RexFieldAccess fieldAccess) {
               final RexCorrelVariable v =
                   (RexCorrelVariable) fieldAccess.getReferenceExpr();
@@ -385,17 +385,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RexProgram rexProgram = calc.getProgram();
-    final List<RexNode> projs = Util.transform(rexProgram.getProjectList(),
-        rexProgram::expandLocalRef);
+    final List<RexNode> projs =
+        Util.transform(rexProgram.getProjectList(), rexProgram::expandLocalRef);
 
-    RexNode conditionExpr = null;
-    if (rexProgram.getCondition() != null) {
-      final List<RexNode> filter = Util.transform(
-          ImmutableList.of(
-              rexProgram.getCondition()), rexProgram::expandLocalRef);
-      assert filter.size() == 1;
-      conditionExpr = filter.get(0);
-    }
+    final RexNode conditionExpr =
+        rexProgram.getCondition() == null ? null
+            : rexProgram.expandLocalRef(rexProgram.getCondition());
 
     final RelDataType rowType = calc.getRowType();
     final int fieldCount = rowType.getFieldCount();
@@ -461,10 +456,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     if (conditionExpr != null) {
       newConditionExpr = conditionExpr.accept(shuttle);
     }
-    final RexProgram newRexProgram = RexProgram.create(newInputRelNode.getRowType(),
-        newProjects, newConditionExpr, newRowType.getFieldNames(),
-        newInputRelNode.getCluster().getRexBuilder());
-    final Calc newCalc = calc.copy(calc.getTraitSet(), newInputRelNode, newRexProgram);
+    final RexProgram newRexProgram =
+        RexProgram.create(newInputRelNode.getRowType(), newProjects,
+            newConditionExpr, newRowType.getFieldNames(),
+            newInputRelNode.getCluster().getRexBuilder());
+    final Calc newCalc =
+        calc.copy(calc.getTraitSet(), newInputRelNode, newRexProgram);
     return result(newCalc, mapping, calc);
   }
 
@@ -884,9 +881,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         relBuilder.antiJoin(newConditionExpr);
       }
       Mapping inputMapping = inputMappings.get(0);
-      mapping = Mappings.create(MappingType.INVERSE_SURJECTION,
-          join.getRowType().getFieldCount(),
-          newSystemFieldCount + inputMapping.getTargetCount());
+      mapping =
+          Mappings.create(MappingType.INVERSE_SURJECTION,
+              join.getRowType().getFieldCount(),
+              newSystemFieldCount + inputMapping.getTargetCount());
       for (int i = 0; i < newSystemFieldCount; ++i) {
         mapping.set(i, i);
       }
@@ -1094,10 +1092,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     if (newAggCallList.isEmpty() && newGroupSet.isEmpty()) {
       // Add a dummy call if all the column fields have been trimmed
-      mapping = Mappings.create(
-          MappingType.INVERSE_SURJECTION,
-          mapping.getSourceCount(),
-          1);
+      mapping =
+          Mappings.create(MappingType.INVERSE_SURJECTION,
+              mapping.getSourceCount(), 1);
       newAggCallList.add(relBuilder.count(false, "DUMMY"));
     }
 
@@ -1183,9 +1180,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     LogicalTableFunctionScan newTabFun = tabFun;
     if (!tabFun.getInputs().equals(newInputs)) {
-      newTabFun = tabFun.copy(tabFun.getTraitSet(), newInputs,
-          tabFun.getCall(), tabFun.getElementType(), tabFun.getRowType(),
-          tabFun.getColumnMappings());
+      newTabFun =
+          tabFun.copy(tabFun.getTraitSet(), newInputs, tabFun.getCall(),
+              tabFun.getElementType(), tabFun.getRowType(),
+              tabFun.getColumnMappings());
     }
     assert newTabFun.getClass() == tabFun.getClass();
 

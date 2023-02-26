@@ -488,8 +488,10 @@ public class RexUtil {
     final SqlTypeName name1 = type1.getSqlTypeName();
     final SqlTypeName name2 = type2.getSqlTypeName();
     final RelDataType type1Final = type1;
-    SqlTypeFamily family = requireNonNull(name1.getFamily(),
-        () -> "SqlTypeFamily is null for type " + type1Final + ", SqlTypeName " + name1);
+    SqlTypeFamily family =
+        requireNonNull(name1.getFamily(),
+            () -> "SqlTypeFamily is null for type " + type1Final
+                + ", SqlTypeName " + name1);
     if (family == name2.getFamily()) {
       switch (family) {
       case NUMERIC:
@@ -1155,8 +1157,9 @@ public class RexUtil {
       @Nullable List<? extends @Nullable String> names,
       SqlValidatorUtil.@Nullable Suggester suggester) {
     if (names != null && suggester != null) {
-      names = SqlValidatorUtil.uniquify(names, suggester,
-          typeFactory.getTypeSystem().isSchemaCaseSensitive());
+      names =
+          SqlValidatorUtil.uniquify(names, suggester,
+              typeFactory.getTypeSystem().isSchemaCaseSensitive());
     }
     final RelDataTypeFactory.Builder builder = typeFactory.builder();
     for (int i = 0; i < exprs.size(); i++) {
@@ -2155,13 +2158,12 @@ public class RexUtil {
     case EQUALS:
       final RexCall call = (RexCall) e;
       if (call.getOperands().get(1) instanceof RexLiteral) {
-        notTerms = Util.filter(notTerms,
-            e2 -> {
+        notTerms =
+            Util.filter(notTerms, e2 -> {
               switch (e2.getKind()) {
               case EQUALS:
                 RexCall call2 = (RexCall) e2;
-                if (call2.getOperands().get(0)
-                    .equals(call.getOperands().get(0))
+                if (call2.getOperands().get(0).equals(call.getOperands().get(0))
                     && call2.getOperands().get(1) instanceof RexLiteral
                     && !call.getOperands().get(1)
                           .equals(call2.getOperands().get(1))) {
@@ -2282,11 +2284,13 @@ public class RexUtil {
           @Override public RexNode visitTableInputRef(RexTableInputRef inputRef) {
             if (tableMapping != null) {
               RexTableInputRef inputRefFinal = inputRef;
-              inputRef = RexTableInputRef.of(
-                  requireNonNull(tableMapping.get(inputRef.getTableRef()),
-                      () -> "tableMapping.get(...) for " + inputRefFinal.getTableRef()),
-                  inputRef.getIndex(),
-                  inputRef.getType());
+              inputRef =
+                  RexTableInputRef.of(
+                      requireNonNull(tableMapping.get(inputRef.getTableRef()),
+                          () -> "tableMapping.get(...) for "
+                              + inputRefFinal.getTableRef()),
+                      inputRef.getIndex(),
+                      inputRef.getType());
             }
             if (ec != null) {
               Set<RexTableInputRef> s = ec.get(inputRef);
@@ -2320,9 +2324,11 @@ public class RexUtil {
             }
             if (tableMapping != null) {
               RexTableInputRef inputRefFinal = inputRef;
-              inputRef = RexTableInputRef.of(
-                  requireNonNull(tableMapping.get(inputRef.getTableRef()),
-                      () -> "tableMapping.get(...) for " + inputRefFinal.getTableRef()),
+              inputRef =
+                  RexTableInputRef.of(
+                      requireNonNull(tableMapping.get(inputRef.getTableRef()),
+                          () -> "tableMapping.get(...) for "
+                              + inputRefFinal.getTableRef()),
                   inputRef.getIndex(),
                   inputRef.getType());
             }

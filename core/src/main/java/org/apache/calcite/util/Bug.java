@@ -25,14 +25,15 @@ package org.apache.calcite.util;
  * incorrect row-count, and you want to disable unit tests. You might use the
  * constant in your code as follows:
  *
- * <blockquote>
- * <pre>Statement stmt = connection.createStatement();
- * int rowCount = stmt.execute(
- *     "INSERT INTO FemaleEmps SELECT * FROM Emps WHERE gender = 'F'");
- * if (Bug.CALCITE_123_FIXED) {
- *    assertEquals(rowCount, 5);
- * }</pre>
- * </blockquote>
+ * <blockquote><pre>{@code
+ *   Statement stmt = connection.createStatement();
+ *   int rowCount =
+ *       stmt.execute("INSERT INTO FemaleEmps\n"
+ *           + "SELECT * FROM Emps WHERE gender = 'F'");
+ *   if (Bug.CALCITE_123_FIXED) {
+ *      assertEquals(rowCount, 5);
+ *   }
+ * }</pre></blockquote>
  *
  * <p>The usage of the constant is a convenient way to identify the impact of
  * the bug. When someone fixes the bug, they will remove the constant and all

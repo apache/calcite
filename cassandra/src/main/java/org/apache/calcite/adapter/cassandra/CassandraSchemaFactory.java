@@ -43,8 +43,8 @@ public class CassandraSchemaFactory implements SchemaFactory {
   private static final int DEFAULT_CASSANDRA_PORT = 9042;
   private static final Map<Map<String, Object>, CqlSession> INFO_TO_SESSION =
       new ConcurrentHashMap<>();
-  private static final Set<String> SESSION_DEFINING_KEYS = ImmutableSet.of(
-      "host", "port", "keyspace", "username", "password");
+  private static final Set<String> SESSION_DEFINING_KEYS =
+      ImmutableSet.of("host", "port", "keyspace", "username", "password");
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   public CassandraSchemaFactory() {

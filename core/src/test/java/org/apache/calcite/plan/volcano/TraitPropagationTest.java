@@ -147,34 +147,36 @@ class TraitPropagationTest {
         }
       };
 
-      final RelOptAbstractTable t1 = new RelOptAbstractTable(relOptSchema,
-          "t1", table.getRowType(typeFactory)) {
-        @Override public <T> T unwrap(Class<T> clazz) {
-          return clazz.isInstance(table)
-              ? clazz.cast(table)
-              : super.unwrap(clazz);
-        }
-      };
+      final RelOptAbstractTable t1 =
+          new RelOptAbstractTable(relOptSchema, "t1",
+              table.getRowType(typeFactory)) {
+            @Override public <T> T unwrap(Class<T> clazz) {
+              return clazz.isInstance(table)
+                  ? clazz.cast(table)
+                  : super.unwrap(clazz);
+            }
+          };
 
       final RelNode rt1 = LogicalTableScan.create(cluster, t1, ImmutableList.of());
 
       // project s column
-      RelNode project = LogicalProject.create(rt1,
-          ImmutableList.of(),
-          ImmutableList.of(
-              (RexNode) rexBuilder.makeInputRef(stringType, 0),
-              rexBuilder.makeInputRef(integerType, 1)),
-          typeFactory.builder().add("s", stringType).add("i", integerType)
-              .build(),
-          ImmutableSet.of());
+      RelNode project =
+          LogicalProject.create(rt1, ImmutableList.of(),
+              ImmutableList.of((RexNode) rexBuilder.makeInputRef(stringType, 0),
+                  rexBuilder.makeInputRef(integerType, 1)),
+              typeFactory.builder().add("s", stringType).add("i", integerType)
+                  .build(),
+              ImmutableSet.of());
 
       // aggregate on s, count
-      AggregateCall aggCall = AggregateCall.create(SqlStdOperatorTable.COUNT,
-          false, false, false, Collections.singletonList(1), -1,
-          null, RelCollations.EMPTY, sqlBigInt, "cnt");
-      RelNode agg = new LogicalAggregate(cluster,
-          cluster.traitSetOf(Convention.NONE), ImmutableList.of(), project,
-          ImmutableBitSet.of(0), null, Collections.singletonList(aggCall));
+      AggregateCall aggCall =
+          AggregateCall.create(SqlStdOperatorTable.COUNT,
+              false, false, false, Collections.singletonList(1), -1,
+              null, RelCollations.EMPTY, sqlBigInt, "cnt");
+      RelNode agg =
+          new LogicalAggregate(cluster,
+              cluster.traitSetOf(Convention.NONE), ImmutableList.of(), project,
+              ImmutableBitSet.of(0), null, Collections.singletonList(aggCall));
 
       final RelNode rootRel = agg;
 
@@ -209,10 +211,11 @@ class TraitPropagationTest {
       LogicalAggregate rel = call.rel(0);
       assert rel.getGroupSet().cardinality() == 1;
       int aggIndex = rel.getGroupSet().iterator().next();
-      RelTrait collation = RelCollations.of(
-          new RelFieldCollation(aggIndex,
-              RelFieldCollation.Direction.ASCENDING,
-              RelFieldCollation.NullDirection.FIRST));
+      RelTrait collation =
+          RelCollations.of(
+              new RelFieldCollation(aggIndex,
+                  RelFieldCollation.Direction.ASCENDING,
+                  RelFieldCollation.NullDirection.FIRST));
       RelTraitSet desiredTraits = empty.replace(PHYSICAL).replace(collation);
       RelNode convertedInput = convert(rel.getInput(), desiredTraits);
       call.transformTo(
@@ -302,10 +305,9 @@ class TraitPropagationTest {
 
     @Override public RelNode convert(RelNode rel) {
       final Sort sort = (Sort) rel;
-      final RelNode input = convert(sort.getInput(),
-          rel.getCluster().traitSetOf(PHYSICAL));
-      return new PhysSort(
-          rel.getCluster(),
+      final RelNode input =
+          convert(sort.getInput(), rel.getCluster().traitSetOf(PHYSICAL));
+      return new PhysSort(rel.getCluster(),
           input.getTraitSet().plus(sort.getCollation()),
           convert(input, input.getTraitSet().replace(PHYSICAL)),
           sort.getCollation(),
@@ -459,8 +461,8 @@ class TraitPropagationTest {
               typeFactory,
               prepareContext.config());
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
-    final RelOptPlanner planner = new VolcanoPlanner(config.getCostFactory(),
-        config.getContext());
+    final RelOptPlanner planner =
+        new VolcanoPlanner(config.getCostFactory(), config.getContext());
 
     // set up rules before we generate cluster
     planner.clearRelTraitDefs();

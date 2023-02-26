@@ -75,46 +75,46 @@ class SqlValidatorUtilTest {
 
   @Test void testUniquifyCaseSensitive() {
     List<String> nameList = Lists.newArrayList("col1", "COL1", "col_ABC", "col_abC");
-    List<String> resultList = SqlValidatorUtil.uniquify(
-        nameList, SqlValidatorUtil.EXPR_SUGGESTER, true);
+    List<String> resultList =
+        SqlValidatorUtil.uniquify(nameList, SqlValidatorUtil.EXPR_SUGGESTER, true);
     assertThat(nameList, sameInstance(resultList));
   }
 
   @Test void testUniquifyNotCaseSensitive() {
     List<String> nameList = Lists.newArrayList("col1", "COL1", "col_ABC", "col_abC");
-    List<String> resultList = SqlValidatorUtil.uniquify(
-        nameList, SqlValidatorUtil.EXPR_SUGGESTER, false);
+    List<String> resultList =
+        SqlValidatorUtil.uniquify(nameList, SqlValidatorUtil.EXPR_SUGGESTER, false);
     assertThat(resultList, not(nameList));
     checkChangedFieldList(nameList, resultList, false);
   }
 
   @Test void testUniquifyOrderingCaseSensitive() {
     List<String> nameList = Lists.newArrayList("k68s", "def", "col1", "COL1", "abc", "123");
-    List<String> resultList = SqlValidatorUtil.uniquify(
-        nameList, SqlValidatorUtil.EXPR_SUGGESTER, true);
+    List<String> resultList =
+        SqlValidatorUtil.uniquify(nameList, SqlValidatorUtil.EXPR_SUGGESTER, true);
     assertThat(nameList, sameInstance(resultList));
   }
 
   @Test void testUniquifyOrderingRepeatedCaseSensitive() {
     List<String> nameList = Lists.newArrayList("k68s", "def", "col1", "COL1", "def", "123");
-    List<String> resultList = SqlValidatorUtil.uniquify(
-        nameList, SqlValidatorUtil.EXPR_SUGGESTER, true);
+    List<String> resultList =
+        SqlValidatorUtil.uniquify(nameList, SqlValidatorUtil.EXPR_SUGGESTER, true);
     assertThat(nameList, not(resultList));
     checkChangedFieldList(nameList, resultList, true);
   }
 
   @Test void testUniquifyOrderingNotCaseSensitive() {
     List<String> nameList = Lists.newArrayList("k68s", "def", "col1", "COL1", "abc", "123");
-    List<String> resultList = SqlValidatorUtil.uniquify(
-        nameList, SqlValidatorUtil.EXPR_SUGGESTER, false);
+    List<String> resultList =
+        SqlValidatorUtil.uniquify(nameList, SqlValidatorUtil.EXPR_SUGGESTER, false);
     assertThat(resultList, not(nameList));
     checkChangedFieldList(nameList, resultList, false);
   }
 
   @Test void testUniquifyOrderingRepeatedNotCaseSensitive() {
     List<String> nameList = Lists.newArrayList("k68s", "def", "col1", "COL1", "def", "123");
-    List<String> resultList = SqlValidatorUtil.uniquify(
-        nameList, SqlValidatorUtil.EXPR_SUGGESTER, false);
+    List<String> resultList =
+        SqlValidatorUtil.uniquify(nameList, SqlValidatorUtil.EXPR_SUGGESTER, false);
     assertThat(resultList, not(nameList));
     checkChangedFieldList(nameList, resultList, false);
   }

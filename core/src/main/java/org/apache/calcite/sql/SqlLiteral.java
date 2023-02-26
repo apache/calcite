@@ -1086,10 +1086,7 @@ public class SqlLiteral extends SqlNode {
         sb.append(c);
       }
     }
-    ns = new NlsString(
-        sb.toString(),
-        ns.getCharsetName(),
-        ns.getCollation());
+    ns = new NlsString(sb.toString(), ns.getCharsetName(), ns.getCollation());
     return new SqlCharStringLiteral(ns, getParserPosition());
   }
 

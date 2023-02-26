@@ -57,8 +57,7 @@ class EnumerableLimitRuleTest {
    */
   @Test void enumerableLimitOnEmptySort() throws Exception {
     RuleSet prepareRules =
-        RuleSets.ofList(
-            EnumerableRules.ENUMERABLE_FILTER_RULE,
+        RuleSets.ofList(EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,
             EnumerableRules.ENUMERABLE_LIMIT_RULE,
             EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
@@ -85,8 +84,9 @@ class EnumerableLimitRuleTest {
     RelTraitSet desiredTraits = planBefore.getTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     Program program = Programs.of(prepareRules);
-    RelNode planAfter = program.run(planBefore.getCluster().getPlanner(), planBefore,
-        desiredTraits, ImmutableList.of(), ImmutableList.of());
+    RelNode planAfter =
+        program.run(planBefore.getCluster().getPlanner(), planBefore,
+            desiredTraits, ImmutableList.of(), ImmutableList.of());
 
     // verify that the collation [0] is not lost in the final plan
     final RelCollation collation =

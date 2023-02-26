@@ -103,8 +103,9 @@ class SimpleCalciteSchema extends CalciteSchema {
   @Override protected @Nullable CalciteSchema getImplicitSubSchema(String schemaName,
       boolean caseSensitive) {
     // Check implicit schemas.
-    final String schemaName2 = caseSensitive ? schemaName : caseInsensitiveLookup(
-        schema.getSubSchemaNames(), schemaName);
+    final String schemaName2 =
+        caseSensitive ? schemaName
+            : caseInsensitiveLookup(schema.getSubSchemaNames(), schemaName);
     if (schemaName2 == null) {
       return null;
     }
@@ -118,8 +119,9 @@ class SimpleCalciteSchema extends CalciteSchema {
   @Override protected @Nullable TableEntry getImplicitTable(String tableName,
       boolean caseSensitive) {
     // Check implicit tables.
-    final String tableName2 = caseSensitive ? tableName : caseInsensitiveLookup(
-        schema.getTableNames(), tableName);
+    final String tableName2 =
+        caseSensitive ? tableName
+            : caseInsensitiveLookup(schema.getTableNames(), tableName);
     if (tableName2 == null) {
       return null;
     }
@@ -132,8 +134,9 @@ class SimpleCalciteSchema extends CalciteSchema {
 
   @Override protected @Nullable TypeEntry getImplicitType(String name, boolean caseSensitive) {
     // Check implicit types.
-    final String name2 = caseSensitive ? name : caseInsensitiveLookup(
-        schema.getTypeNames(), name);
+    final String name2 =
+        caseSensitive ? name
+            : caseInsensitiveLookup(schema.getTypeNames(), name);
     if (name2 == null) {
       return null;
     }
@@ -219,9 +222,10 @@ class SimpleCalciteSchema extends CalciteSchema {
 
   @Override protected CalciteSchema snapshot(@Nullable CalciteSchema parent,
       SchemaVersion version) {
-    CalciteSchema snapshot = new SimpleCalciteSchema(parent,
-        schema.snapshot(version), name, null, tableMap, latticeMap, typeMap,
-        functionMap, functionNames, nullaryFunctionMap, getPath());
+    CalciteSchema snapshot =
+        new SimpleCalciteSchema(parent, schema.snapshot(version), name, null,
+            tableMap, latticeMap, typeMap,
+            functionMap, functionNames, nullaryFunctionMap, getPath());
     for (CalciteSchema subSchema : subSchemaMap.map().values()) {
       CalciteSchema subSchemaSnapshot = subSchema.snapshot(snapshot, version);
       snapshot.subSchemaMap.put(subSchema.name, subSchemaSnapshot);

@@ -582,9 +582,11 @@ allprojects {
                     replaceRegex("require message for requireNonNull", """(?<!#)requireNonNull\(\s*(\w+)\s*(?:,\s*"(?!\1")\w+"\s*)?\)""", "requireNonNull($1, \"$1\")")
                     // (?-m) disables multiline, so $ matches the very end of the file rather than end of line
                     replaceRegex("Remove '// End file.java' trailer", "(?-m)\n// End [^\n]+\\.\\w+\\s*$", "")
-                    replaceRegex("<p> should not be placed a the end of the line", "(?-m)\\s*+<p> *+\n \\* ", "\n *\n * <p>")
+                    replaceRegex("<p> should not be placed at the end of the line", "(?-m)\\s*+<p> *+\n \\* ", "\n *\n * <p>")
                     replaceRegex("Method parameter list should not end in whitespace or newline", "(?<!;)\\s+\\) \\{", ") {")
-                    replaceRegex("Method argument list should not end in whitespace or newline", "(?<!;)\\s+\\);", ");")
+                    replaceRegex("Method argument list should not end in whitespace or newline", "(?<!;)\\s+(\\)+[;,])", "$1")
+                    replaceRegex("Long assignment should be broken after '='", "^([^/*\"\\n]*) = ([^@\\n]*)\\(\n( *)", "$1 =\n$3$2(")
+                    replaceRegex("Long assignment should be broken after '='", "^([^/*\"\\n]*) = ([^@\\n]*)\\((.*,)\n( *)", "$1 =\n$4$2($3 ")
                     // Assume developer copy-pasted the link, and updated text only, so the url is old, and we replace it with the proper one
                     replaceRegex(">[CALCITE-...] link styles: 1", "<a(?:(?!CALCITE-)[^>])++CALCITE-\\d+[^>]++>\\s*+\\[?(CALCITE-\\d+)\\]?", "<a href=\"https://issues.apache.org/jira/browse/\$1\">[\$1]")
                     // If the link was crafted manually, ensure it has [CALCITE-...] in the link text

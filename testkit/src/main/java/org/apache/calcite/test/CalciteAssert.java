@@ -777,8 +777,8 @@ public class CalciteAssert {
           new ReflectiveSchema(new FoodmartSchema()));
     case JDBC_SCOTT:
       cs = DatabaseInstance.HSQLDB.scott;
-      dataSource = JdbcSchema.dataSource(cs.url, cs.driver, cs.username,
-          cs.password);
+      dataSource =
+          JdbcSchema.dataSource(cs.url, cs.driver, cs.username, cs.password);
       return rootSchema.add(schema.schemaName,
           JdbcSchema.create(rootSchema, schema.schemaName, dataSource,
               cs.catalog, cs.schema));
@@ -837,16 +837,18 @@ public class CalciteAssert {
       ModelHandler.addFunctions(s, "countries", emptyPath,
           CountriesTableFunction.class.getName(), null, false);
       final String sql = "select * from table(\"countries\"(true))";
-      final ViewTableMacro viewMacro = ViewTable.viewMacro(rootSchema, sql,
-          ImmutableList.of("GEO"), emptyPath, false);
+      final ViewTableMacro viewMacro =
+          ViewTable.viewMacro(rootSchema, sql,
+              ImmutableList.of("GEO"), emptyPath, false);
       s.add("countries", viewMacro);
       ModelHandler.addFunctions(s, "states", emptyPath,
           StatesTableFunction.class.getName(), "states", false);
       final String sql2 = "select \"name\",\n"
           + " ST_PolyFromText(\"geom\") as \"geom\"\n"
           + "from table(\"states\"(true))";
-      final ViewTableMacro viewMacro2 = ViewTable.viewMacro(rootSchema, sql2,
-          ImmutableList.of("GEO"), emptyPath, false);
+      final ViewTableMacro viewMacro2 =
+          ViewTable.viewMacro(rootSchema, sql2,
+              ImmutableList.of("GEO"), emptyPath, false);
       s.add("states", viewMacro2);
 
       ModelHandler.addFunctions(s, "parks", emptyPath,
@@ -854,8 +856,9 @@ public class CalciteAssert {
       final String sql3 = "select \"name\",\n"
           + " ST_PolyFromText(\"geom\") as \"geom\"\n"
           + "from table(\"parks\"(true))";
-      final ViewTableMacro viewMacro3 = ViewTable.viewMacro(rootSchema, sql3,
-          ImmutableList.of("GEO"), emptyPath, false);
+      final ViewTableMacro viewMacro3 =
+          ViewTable.viewMacro(rootSchema, sql3,
+              ImmutableList.of("GEO"), emptyPath, false);
       s.add("parks", viewMacro3);
 
       return s;
@@ -1220,9 +1223,10 @@ public class CalciteAssert {
             + "]"
             + model.substring(endIndex + 1);
       } else if (model.contains("type: ")) {
-        model2 = model.replaceFirst("type: ",
-            java.util.regex.Matcher.quoteReplacement(buf + ",\n"
-            + "type: "));
+        model2 =
+            model.replaceFirst("type: ",
+                java.util.regex.Matcher.quoteReplacement(buf + ",\n"
+                    + "type: "));
       } else {
         throw new AssertionError("do not know where to splice");
       }

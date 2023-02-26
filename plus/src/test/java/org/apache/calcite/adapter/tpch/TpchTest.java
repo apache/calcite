@@ -63,8 +63,7 @@ class TpchTest {
       + "   ]\n"
       + "}";
 
-  static final List<String> QUERIES = ImmutableList.of(
-      // 01
+  private static final String[] QUERY_ARRAY = {
       "select\n"
           + "  l_returnflag,\n"
           + "  l_linestatus,\n"
@@ -749,7 +748,10 @@ class TpchTest {
           + "group by\n"
           + "  cntrycode\n"
           + "order by\n"
-          + "  cntrycode");
+          + "  cntrycode"};
+
+  static final List<String> QUERIES =
+      ImmutableList.copyOf(QUERY_ARRAY);
 
   @Disabled("it's wasting time")
   @Test void testRegion() {

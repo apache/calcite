@@ -375,8 +375,9 @@ public abstract class ReflectUtil {
 
     Class<?>[] interfaces = visiteeClass.getInterfaces();
     for (Class<?> anInterface : interfaces) {
-      final Method method = lookupVisitMethod(visitorClass, anInterface,
-          visitMethodName, paramTypes, cache);
+      final Method method =
+          lookupVisitMethod(visitorClass, anInterface,
+              visitMethodName, paramTypes, cache);
       if (method != null) {
         if (candidateMethod != null) {
           if (!method.equals(candidateMethod)) {

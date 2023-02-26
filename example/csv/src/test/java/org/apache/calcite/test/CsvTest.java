@@ -616,24 +616,28 @@ class CsvTest {
 
     try (Connection connection =
         DriverManager.getConnection("jdbc:calcite:", info)) {
-      ResultSet res = connection.getMetaData().getColumns(null, null,
-          "DATE", "JOINEDAT");
+      ResultSet res =
+          connection.getMetaData().getColumns(null, null,
+              "DATE", "JOINEDAT");
       res.next();
       assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.DATE);
 
-      res = connection.getMetaData().getColumns(null, null,
-          "DATE", "JOINTIME");
+      res =
+          connection.getMetaData().getColumns(null, null,
+              "DATE", "JOINTIME");
       res.next();
       assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIME);
 
-      res = connection.getMetaData().getColumns(null, null,
-          "DATE", "JOINTIMES");
+      res =
+          connection.getMetaData().getColumns(null, null,
+              "DATE", "JOINTIMES");
       res.next();
       assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIMESTAMP);
 
       Statement statement = connection.createStatement();
-      ResultSet resultSet = statement.executeQuery(
-          "select \"JOINEDAT\", \"JOINTIME\", \"JOINTIMES\" from \"DATE\" where EMPNO = 100");
+      final String sql = "select \"JOINEDAT\", \"JOINTIME\", \"JOINTIMES\" "
+          + "from \"DATE\" where EMPNO = 100";
+      ResultSet resultSet = statement.executeQuery(sql);
       resultSet.next();
 
       // date
@@ -762,8 +766,8 @@ class CsvTest {
     properties.setProperty("caseSensitive", "true");
     try (Connection connection =
         DriverManager.getConnection("jdbc:calcite:", properties)) {
-      final CalciteConnection calciteConnection = connection.unwrap(
-          CalciteConnection.class);
+      final CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
 
       final Schema schema =
           CsvSchemaFactory.INSTANCE

@@ -436,8 +436,8 @@ public abstract class SparkRules {
             pair._1() + ":" + Iterables.size(pair._2())).collect().toString();
     System.out.print(s);
 
-    final JavaRDD<Integer> rdd = sc.parallelize(
-        new AbstractList<Integer>() {
+    final JavaRDD<Integer> rdd =
+        sc.parallelize(new AbstractList<Integer>() {
           final Random random = new Random();
           @Override public Integer get(int index) {
             System.out.println("get(" + index + ")");

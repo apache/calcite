@@ -118,10 +118,11 @@ public class ProjectCorrelateTransposeRule
             correlationId);
 
     // updates RexCorrelVariable and sets actual RelDataType for RexFieldAccess
-    rightProject = rightProject.accept(
-        new RelNodesExprsHandler(
-            new RexFieldAccessReplacer(correlate.getCorrelationId(),
-                rexCorrel, rexBuilder, requiredColsMap)));
+    rightProject =
+        rightProject.accept(
+            new RelNodesExprsHandler(
+                new RexFieldAccessReplacer(correlate.getCorrelationId(),
+                    rexCorrel, rexBuilder, requiredColsMap)));
 
     // create a new correlate with the projected children
     final Correlate newCorrelate =

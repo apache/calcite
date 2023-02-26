@@ -112,7 +112,7 @@ public class SqlParserTest {
    * this list, flagged "c". If the keyword is not intended to be a reserved
    * keyword, add it to the non-reserved keyword list in the parser.
    */
-  private static final List<String> RESERVED_KEYWORDS = ImmutableList.of(
+  private static final String[] RESERVED_KEYWORDS = {
       "ABS",                                               "2011", "2014", "c",
       "ABSOLUTE",                      "92", "99",
       "ACTION",                        "92", "99",
@@ -583,7 +583,8 @@ public class SqlParserTest {
       "WRITE",                         "92", "99",
       "YEAR",                          "92", "99", "2003", "2011", "2014", "c",
       "YEARS",                                             "2011",
-      "ZONE",                          "92", "99");
+      "ZONE",                          "92", "99",
+  };
 
   private static final String ANY = "(?s).*";
 

@@ -151,10 +151,10 @@ public final class Schemas {
       String tableName, Class clazz) {
     final MethodCallExpression expression;
     if (Table.class.isAssignableFrom(clazz)) {
-      expression = Expressions.call(
-          expression(schema),
-          BuiltInMethod.SCHEMA_GET_TABLE.method,
-          Expressions.constant(tableName));
+      expression =
+          Expressions.call(expression(schema),
+              BuiltInMethod.SCHEMA_GET_TABLE.method,
+              Expressions.constant(tableName));
       if (ScannableTable.class.isAssignableFrom(clazz)) {
         return Expressions.call(
             BuiltInMethod.SCHEMAS_ENUMERABLE_SCANNABLE.method,
@@ -174,12 +174,12 @@ public final class Schemas {
             DataContext.ROOT);
       }
     } else {
-      expression = Expressions.call(
-          BuiltInMethod.SCHEMAS_QUERYABLE.method,
-          DataContext.ROOT,
-          expression(schema),
-          Expressions.constant(elementType),
-          Expressions.constant(tableName));
+      expression =
+          Expressions.call(BuiltInMethod.SCHEMAS_QUERYABLE.method,
+              DataContext.ROOT,
+              expression(schema),
+              Expressions.constant(elementType),
+              Expressions.constant(tableName));
     }
     return EnumUtils.convert(expression, clazz);
   }
@@ -247,9 +247,9 @@ public final class Schemas {
   /** Returns a {@link Queryable}, given a schema and table name. */
   public static <E> Queryable<E> queryable(DataContext root, SchemaPlus schema,
       Class<E> clazz, String tableName) {
-    QueryableTable table = (QueryableTable) requireNonNull(
-        schema.getTable(tableName),
-        () -> "table " + tableName + " is not found in " + schema);
+    QueryableTable table =
+        (QueryableTable) requireNonNull(schema.getTable(tableName),
+            () -> "table " + tableName + " is not found in " + schema);
     QueryProvider queryProvider = root.getQueryProvider();
     return table.asQueryable(queryProvider, schema, tableName);
   }

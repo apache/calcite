@@ -1098,17 +1098,14 @@ public abstract class SqlTypeUtil {
         scale = maxScale;
       }
 
-      typeNameSpec = new SqlBasicTypeNameSpec(
-          typeName,
-          precision,
-          scale,
-          charSetName,
-          SqlParserPos.ZERO);
+      typeNameSpec =
+          new SqlBasicTypeNameSpec(typeName, precision, scale, charSetName,
+              SqlParserPos.ZERO);
     } else if (isCollection(type)) {
-      typeNameSpec = new SqlCollectionTypeNameSpec(
-          convertTypeToSpec(getComponentTypeOrThrow(type)).getTypeNameSpec(),
-          typeName,
-          SqlParserPos.ZERO);
+      typeNameSpec =
+          new SqlCollectionTypeNameSpec(
+              convertTypeToSpec(getComponentTypeOrThrow(type)).getTypeNameSpec(),
+              typeName, SqlParserPos.ZERO);
     } else if (isRow(type)) {
       RelRecordType recordType = (RelRecordType) type;
       List<RelDataTypeField> fields = recordType.getFieldList();

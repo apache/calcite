@@ -369,8 +369,9 @@ class RelOptFixture {
 
     final RelNode r2;
     if (planner instanceof VolcanoPlanner) {
-      r2 = planner.changeTraits(relBefore,
-          relBefore.getTraitSet().replace(EnumerableConvention.INSTANCE));
+      r2 =
+          planner.changeTraits(relBefore,
+              relBefore.getTraitSet().replace(EnumerableConvention.INSTANCE));
     } else {
       r2 = relBefore;
     }

@@ -188,10 +188,9 @@ public final class SqlParserUtil {
           if (i + 1 + charsToConsume >= length) {
             throw new MalformedUnicodeEscape(i);
           }
-          endIdx = calculateMaxCharsInSequence(input,
-              i + 2,
-              charsToConsume,
-              SqlParserUtil::isHexDigit);
+          endIdx =
+              calculateMaxCharsInSequence(input, i + 2, charsToConsume,
+                  SqlParserUtil::isHexDigit);
           if (endIdx != i + 2 + charsToConsume) {
             throw new MalformedUnicodeEscape(i);
           }
@@ -200,10 +199,9 @@ public final class SqlParserUtil {
           break;
         case 'x':
           // handle hex byte case - up to 2 chars for hex value
-          endIdx = calculateMaxCharsInSequence(input,
-              i + 2,
-              2,
-              SqlParserUtil::isHexDigit);
+          endIdx =
+              calculateMaxCharsInSequence(input, i + 2, 2,
+                  SqlParserUtil::isHexDigit);
           if (endIdx > i + 2) {
             builder.appendCodePoint(parseInt(input.substring(i + 2, endIdx), 16));
             i = endIdx - 1; // skip already consumed chars
@@ -218,10 +216,10 @@ public final class SqlParserUtil {
         case '2':
         case '3':
           // handle octal case - up to 3 chars
-          endIdx = calculateMaxCharsInSequence(input,
-              i + 2,
-              2,      // first char is already "consumed"
-              SqlParserUtil::isOctalDigit);
+          endIdx =
+              calculateMaxCharsInSequence(input, i + 2,
+                  2, // first char is already "consumed"
+                  SqlParserUtil::isOctalDigit);
           builder.appendCodePoint(parseInt(input.substring(i + 1, endIdx), 8));
           i = endIdx - 1; // skip already consumed chars
           break;
@@ -356,8 +354,9 @@ public final class SqlParserUtil {
     // PostgreSQL); TODO: require time fields except in Babel's lenient mode
     final DateFormat[] dateFormats = {format.timestamp, format.date};
     for (DateFormat dateFormat : dateFormats) {
-      pt = DateTimeUtils.parsePrecisionDateTimeLiteral(s,
-          dateFormat, DateTimeUtils.UTC_ZONE, -1);
+      pt =
+          DateTimeUtils.parsePrecisionDateTimeLiteral(s,
+              dateFormat, DateTimeUtils.UTC_ZONE, -1);
       if (pt != null) {
         break;
       }
@@ -395,8 +394,8 @@ public final class SqlParserUtil {
    * @throws SqlParseException if there is a parse error
    */
   public static SqlNode parseArrayLiteral(String s) throws SqlParseException {
-    SqlAbstractParserImpl parser = SqlParserImpl.FACTORY.getParser(
-        new StringReader(s));
+    SqlAbstractParserImpl parser =
+        SqlParserImpl.FACTORY.getParser(new StringReader(s));
     return parser.parseArray();
   }
 
@@ -431,9 +430,9 @@ public final class SqlParserUtil {
         "interval must be day time");
     int[] ret;
     try {
-      ret = intervalQualifier.evaluateIntervalLiteral(literal,
-          intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
-      assert ret != null;
+      ret =
+          intervalQualifier.evaluateIntervalLiteral(literal,
+              intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
     } catch (CalciteContextException e) {
       throw new RuntimeException("while parsing day-to-second interval "
           + literal, e);
@@ -472,9 +471,9 @@ public final class SqlParserUtil {
         "interval must be year month");
     int[] ret;
     try {
-      ret = intervalQualifier.evaluateIntervalLiteral(literal,
-          intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
-      assert ret != null;
+      ret =
+          intervalQualifier.evaluateIntervalLiteral(literal,
+              intervalQualifier.getParserPosition(), RelDataTypeSystem.DEFAULT);
     } catch (CalciteContextException e) {
       throw new RuntimeException("Error while parsing year-to-month interval "
           + literal, e);
@@ -849,8 +848,8 @@ public final class SqlParserUtil {
    */
   public static SqlNode toTreeEx(SqlSpecialOperator.TokenSequence list,
       int start, final int minPrec, final SqlKind stopperKind) {
-    PrecedenceClimbingParser parser = list.parser(start,
-        token -> {
+    PrecedenceClimbingParser parser =
+        list.parser(start, token -> {
           if (token instanceof PrecedenceClimbingParser.Op) {
             PrecedenceClimbingParser.Op tokenOp = (PrecedenceClimbingParser.Op) token;
             final SqlOperator op = ((ToTreeListItem) tokenOp.o()).op;
@@ -1029,8 +1028,9 @@ public final class SqlParserUtil {
     }
 
     @Override public SqlOperator op(int i) {
-      ToTreeListItem o = (ToTreeListItem) requireNonNull(list.get(i).o,
-          () -> "list.get(" + i + ").o is null in " + list);
+      ToTreeListItem o =
+          (ToTreeListItem) requireNonNull(list.get(i).o,
+              () -> "list.get(" + i + ").o is null in " + list);
       return o.getOperator();
     }
 
@@ -1123,8 +1123,9 @@ public final class SqlParserUtil {
     }
 
     @Override public SqlOperator op(int i) {
-      ToTreeListItem item = (ToTreeListItem) requireNonNull(list.get(i),
-          () -> "list.get(" + i + ")");
+      ToTreeListItem item =
+          (ToTreeListItem) requireNonNull(list.get(i),
+              () -> "list.get(" + i + ")");
       return item.op;
     }
 

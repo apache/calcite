@@ -357,12 +357,10 @@ public class JoinProjectTransposeRule
         RexNode e = pair.left;
         if (adjustmentAmount != 0) {
           // shift the references by the adjustment amount
-          e = e.accept(
-              new RelOptUtil.RexInputConverter(
-                  rexBuilder,
-                  childFields,
-                  joinChildrenFields,
-                  adjustments));
+          e =
+              e.accept(
+                  new RelOptUtil.RexInputConverter(rexBuilder, childFields,
+                      joinChildrenFields, adjustments));
         }
         projects.add(Pair.of(e, pair.right));
       }

@@ -95,8 +95,8 @@ public class ExchangeRemoveConstantKeysRule
       return;
     }
 
-    final List<Integer> distributionKeys = simplifyDistributionKeys(
-        exchange.getDistribution(), constants);
+    final List<Integer> distributionKeys =
+        simplifyDistributionKeys(exchange.getDistribution(), constants);
 
     if (distributionKeys.size() != exchange.getDistribution().getKeys()
         .size()) {
@@ -136,8 +136,8 @@ public class ExchangeRemoveConstantKeysRule
     boolean hashDistribution = sortExchange.getDistribution().getType()
         == RelDistribution.Type.HASH_DISTRIBUTED;
     if (hashDistribution) {
-      distributionKeys = simplifyDistributionKeys(
-          sortExchange.getDistribution(), constants);
+      distributionKeys =
+          simplifyDistributionKeys(sortExchange.getDistribution(), constants);
       distributionSimplified =
           distributionKeys.size() != sortExchange.getDistribution().getKeys()
               .size();

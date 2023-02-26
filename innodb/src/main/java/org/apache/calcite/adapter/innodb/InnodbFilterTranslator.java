@@ -166,17 +166,20 @@ class InnodbFilterTranslator {
             pushDownRexNodeList, remainderRexNodeList);
 
     // handle point query if possible
-    condition = handlePointQuery(condition, keyMeta, leftMostKeyNodes,
-        keyOrdToNodesMap, pushDownRexNodeList, remainderRexNodeList);
+    condition =
+        handlePointQuery(condition, keyMeta, leftMostKeyNodes,
+            keyOrdToNodesMap, pushDownRexNodeList, remainderRexNodeList);
     if (condition.canPushDown()) {
       return condition;
     }
 
     // handle range query
-    condition = handleRangeQuery(condition, keyMeta, leftMostKeyNodes,
-        pushDownRexNodeList, remainderRexNodeList, ">=", ">");
-    condition = handleRangeQuery(condition, keyMeta, leftMostKeyNodes,
-        pushDownRexNodeList, remainderRexNodeList, "<=", "<");
+    condition =
+        handleRangeQuery(condition, keyMeta, leftMostKeyNodes,
+            pushDownRexNodeList, remainderRexNodeList, ">=", ">");
+    condition =
+        handleRangeQuery(condition, keyMeta, leftMostKeyNodes,
+            pushDownRexNodeList, remainderRexNodeList, "<=", "<");
 
     return condition;
   }

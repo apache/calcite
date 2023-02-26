@@ -427,9 +427,10 @@ public abstract class RelOptUtil {
         || ((Hintable) originalRel).getHints().size() == 0) {
       return equiv;
     }
-    final RelShuttle shuttle = new SubTreeHintPropagateShuttle(
-        originalRel.getCluster().getHintStrategies(),
-        ((Hintable) originalRel).getHints());
+    final RelShuttle shuttle =
+        new SubTreeHintPropagateShuttle(
+            originalRel.getCluster().getHintStrategies(),
+            ((Hintable) originalRel).getHints());
     return equiv.accept(shuttle);
   }
 
@@ -896,18 +897,15 @@ public abstract class RelOptUtil {
       // No need to create another project node if the rel
       // is already a project.
       final Project project = (Project) rel;
-      castExps = RexUtil.generateCastExpressions(
-          rexBuilder,
-          castRowType,
-          ((Project) rel).getProjects());
+      castExps =
+          RexUtil.generateCastExpressions(rexBuilder, castRowType,
+              ((Project) rel).getProjects());
       input = rel.getInput(0);
       hints = project.getHints();
       correlationVariables = project.getVariablesSet();
     } else {
-      castExps = RexUtil.generateCastExpressions(
-          rexBuilder,
-          castRowType,
-          rowType);
+      castExps =
+          RexUtil.generateCastExpressions(rexBuilder, castRowType, rowType);
       input = rel;
       correlationVariables = ImmutableSet.of();
     }
@@ -3198,8 +3196,9 @@ public abstract class RelOptUtil {
   }
 
   private static RexShuttle pushShuttle(final Calc calc) {
-    final List<RexNode> projects = Util.transform(calc.getProgram().getProjectList(),
-        calc.getProgram()::expandLocalRef);
+    final List<RexNode> projects =
+        Util.transform(calc.getProgram().getProjectList(),
+            calc.getProgram()::expandLocalRef);
     return new RexShuttle() {
       @Override public RexNode visitInputRef(RexInputRef ref) {
         return projects.get(ref.getIndex());
@@ -3741,8 +3740,9 @@ public abstract class RelOptUtil {
     // yet.
     if (!containsGet(joinCond)
         && RexUtil.SubQueryFinder.find(joinCond) == null) {
-      joinCond = pushDownEqualJoinConditions(joinCond, leftCount, rightCount, extraLeftExprs,
-          extraRightExprs, relBuilder.getRexBuilder());
+      joinCond =
+          pushDownEqualJoinConditions(joinCond, leftCount, rightCount,
+              extraLeftExprs, extraRightExprs, relBuilder.getRexBuilder());
     }
 
     relBuilder.push(originalJoin.getLeft());
@@ -3896,8 +3896,8 @@ public abstract class RelOptUtil {
       for (int i = 0; i < operands.size(); i++) {
         RexNode operand = operands.get(i);
         if (operand instanceof RexCall) {
-          operand = collapseExpandedIsNotDistinctFromExpr(
-              (RexCall) operand, builder);
+          operand =
+              collapseExpandedIsNotDistinctFromExpr((RexCall) operand, builder);
         }
         if (node.getKind() == SqlKind.AND
             && operand.getKind() != SqlKind.EQUALS

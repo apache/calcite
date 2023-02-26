@@ -150,8 +150,8 @@ public class RelMdDistribution
     assert program.getCondition() != null || !program.getProjectList().isEmpty();
     final RelDistribution inputDistribution = mq.distribution(input);
     if (!program.getProjectList().isEmpty()) {
-      final Mappings.TargetMapping mapping = program.getPartialMapping(
-          input.getRowType().getFieldCount());
+      final Mappings.TargetMapping mapping =
+          program.getPartialMapping(input.getRowType().getFieldCount());
       return inputDistribution.apply(mapping);
     }
     return inputDistribution;

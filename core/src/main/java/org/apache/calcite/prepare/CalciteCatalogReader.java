@@ -382,8 +382,8 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
       final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
       final RelDataType type;
       if (function instanceof ScalarFunctionImpl) {
-        type = ((ScalarFunctionImpl) function).getReturnType(typeFactory,
-            opBinding);
+        type =
+            ((ScalarFunctionImpl) function).getReturnType(typeFactory, opBinding);
       } else {
         type = function.getReturnType(typeFactory);
       }

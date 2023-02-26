@@ -36,9 +36,10 @@ import com.google.common.collect.ImmutableSortedMultiset;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Scope for resolving identifiers within a SELECT statement that has a
@@ -88,8 +89,9 @@ public class AggregatingSelectScope
       // if the DISTINCT keyword of GROUP BY is present it can be the only item
       if (groupList.size() == 1
           && groupList.get(0).getKind() == SqlKind.GROUP_BY_DISTINCT) {
-        groupList = new SqlNodeList(((SqlCall) groupList.get(0)).getOperandList(),
-            groupList.getParserPosition());
+        groupList =
+            new SqlNodeList(((SqlCall) groupList.get(0)).getOperandList(),
+                groupList.getParserPosition());
         groupByDistinct = true;
       }
       for (SqlNode groupExpr : groupList) {
@@ -147,9 +149,9 @@ public class AggregatingSelectScope
       // Remove the AS operator so the expressions are consistent with
       // OrderExpressionExpander.
       final SelectScope selectScope = (SelectScope) parent;
-      List<SqlNode> expandedSelectList = Objects.requireNonNull(
-          selectScope.getExpandedSelectList(),
-          () -> "expandedSelectList for " + selectScope);
+      List<SqlNode> expandedSelectList =
+          requireNonNull(selectScope.getExpandedSelectList(),
+              () -> "expandedSelectList for " + selectScope);
       for (SqlNode selectItem : expandedSelectList) {
         groupExprs.add(stripAs(selectItem));
       }

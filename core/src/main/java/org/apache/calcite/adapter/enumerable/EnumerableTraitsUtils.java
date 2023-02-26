@@ -117,8 +117,7 @@ class EnumerableTraitsUtils {
       return null;
     }
 
-    final int maxField = Math.max(exps.size(),
-        inputRowType.getFieldCount());
+    final int maxField = Math.max(exps.size(), inputRowType.getFieldCount());
     Mappings.TargetMapping mapping = Mappings
         .create(MappingType.FUNCTION, maxField, maxField);
     for (Ord<RexNode> node : Ord.zip(exps)) {

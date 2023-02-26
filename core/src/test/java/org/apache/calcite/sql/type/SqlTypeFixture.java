@@ -25,79 +25,80 @@ import com.google.common.collect.ImmutableList;
  * Reusable {@link RelDataType} fixtures for tests.
  */
 class SqlTypeFixture {
-  SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-  final RelDataType sqlBoolean = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.BOOLEAN), false);
-  final RelDataType sqlBigInt = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.BIGINT), false);
-  final RelDataType sqlBigIntNullable = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.BIGINT), true);
-  final RelDataType sqlInt = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.INTEGER), false);
-  final RelDataType sqlDate = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.DATE), false);
-  final RelDataType sqlVarchar = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.VARCHAR), false);
-  final RelDataType sqlChar = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.CHAR), false);
-  final RelDataType sqlVarcharNullable = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
-  final RelDataType sqlNull = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.NULL), false);
-  final RelDataType sqlUnknown = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.UNKNOWN), false);
-  final RelDataType sqlAny = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.ANY), false);
-  final RelDataType sqlFloat = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.FLOAT), false);
-  final RelDataType sqlTimestampPrec0 = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.TIMESTAMP, 0), false);
-  final RelDataType sqlTimestampPrec3 = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.TIMESTAMP, 3), false);
-  final RelDataType sqlGeometry = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.GEOMETRY), false);
-  final RelDataType arrayFloat = typeFactory.createTypeWithNullability(
-      typeFactory.createArrayType(sqlFloat, -1), false);
-  final RelDataType arrayBigInt = typeFactory.createTypeWithNullability(
-      typeFactory.createArrayType(sqlBigIntNullable, -1), false);
-  final RelDataType multisetFloat = typeFactory.createTypeWithNullability(
-      typeFactory.createMultisetType(sqlFloat, -1), false);
-  final RelDataType multisetBigInt = typeFactory.createTypeWithNullability(
-      typeFactory.createMultisetType(sqlBigIntNullable, -1), false);
-  final RelDataType multisetBigIntNullable = typeFactory.createTypeWithNullability(
-      typeFactory.createMultisetType(sqlBigIntNullable, -1), true);
-  final RelDataType arrayBigIntNullable = typeFactory.createTypeWithNullability(
-      typeFactory.createArrayType(sqlBigIntNullable, -1), true);
-  final RelDataType arrayOfArrayBigInt = typeFactory.createTypeWithNullability(
-      typeFactory.createArrayType(arrayBigInt, -1), false);
-  final RelDataType arrayOfArrayFloat = typeFactory.createTypeWithNullability(
-      typeFactory.createArrayType(arrayFloat, -1), false);
-  final RelDataType structOfInt = typeFactory.createTypeWithNullability(
-      typeFactory.createStructType(
-          ImmutableList.of(sqlInt, sqlInt),
-          ImmutableList.of("i", "j")), false);
-  final RelDataType structOfIntNullable = typeFactory.createTypeWithNullability(
-      typeFactory.createStructType(
-          ImmutableList.of(sqlInt, sqlInt),
-          ImmutableList.of("i", "j")), true);
-  final RelDataType mapOfInt = typeFactory.createTypeWithNullability(
-      typeFactory.createMapType(sqlInt, sqlInt), false);
-  final RelDataType mapOfIntNullable = typeFactory.createTypeWithNullability(
-      typeFactory.createMapType(sqlInt, sqlInt), true);
-  final RelDataType sqlChar1 = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.CHAR, 1), false);
-  final RelDataType sqlChar10 = typeFactory.createTypeWithNullability(
-      typeFactory.createSqlType(SqlTypeName.CHAR, 10), false);
-  final RelDataType arraySqlChar10 = typeFactory.createTypeWithNullability(
-      typeFactory.createArrayType(sqlChar10, -1), false);
-  final RelDataType arraySqlChar1 = typeFactory.createTypeWithNullability(
-      typeFactory.createArrayType(sqlChar1, -1), false);
-  final RelDataType multisetSqlChar10Nullable = typeFactory.createTypeWithNullability(
-      typeFactory.createMultisetType(sqlChar10, -1), true);
-  final RelDataType multisetSqlChar1 = typeFactory.createTypeWithNullability(
-      typeFactory.createMultisetType(sqlChar1, -1), false);
-  final RelDataType mapSqlChar10Nullable = typeFactory.createTypeWithNullability(
-      typeFactory.createMapType(sqlChar10, sqlChar10), true);
-  final RelDataType mapSqlChar1 = typeFactory.createTypeWithNullability(
-      typeFactory.createMapType(sqlChar1, sqlChar1), false);
+  final SqlTypeFactoryImpl typeFactory =
+      new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+  final RelDataType sqlBoolean = type(SqlTypeName.BOOLEAN, false);
+  final RelDataType sqlBigInt = type(SqlTypeName.BIGINT, false);
+  final RelDataType sqlBigIntNullable = type(SqlTypeName.BIGINT, true);
+  final RelDataType sqlInt = type(SqlTypeName.INTEGER, false);
+  final RelDataType sqlDate = type(SqlTypeName.DATE, false);
+  final RelDataType sqlVarchar = type(SqlTypeName.VARCHAR, false);
+  final RelDataType sqlChar = type(SqlTypeName.CHAR, false);
+  final RelDataType sqlVarcharNullable = type(SqlTypeName.VARCHAR, true);
+  final RelDataType sqlNull = type(SqlTypeName.NULL, false);
+  final RelDataType sqlUnknown = type(SqlTypeName.UNKNOWN, false);
+  final RelDataType sqlAny = type(SqlTypeName.ANY, false);
+  final RelDataType sqlFloat = type(SqlTypeName.FLOAT, false);
+  final RelDataType sqlTimestampPrec0 = type(SqlTypeName.TIMESTAMP, 0);
+  final RelDataType sqlTimestampPrec3 = type(SqlTypeName.TIMESTAMP, 3);
+  final RelDataType sqlGeometry = type(SqlTypeName.GEOMETRY, false);
+  final RelDataType arrayFloat =
+      notNullable(typeFactory.createArrayType(sqlFloat, -1));
+  final RelDataType arrayBigInt =
+      notNullable(typeFactory.createArrayType(sqlBigIntNullable, -1));
+  final RelDataType multisetFloat =
+      notNullable(typeFactory.createMultisetType(sqlFloat, -1));
+  final RelDataType multisetBigInt =
+      notNullable(typeFactory.createMultisetType(sqlBigIntNullable, -1));
+  final RelDataType multisetBigIntNullable =
+      nullable(typeFactory.createMultisetType(sqlBigIntNullable, -1));
+  final RelDataType arrayBigIntNullable =
+      nullable(typeFactory.createArrayType(sqlBigIntNullable, -1));
+  final RelDataType arrayOfArrayBigInt =
+      notNullable(typeFactory.createArrayType(arrayBigInt, -1));
+  final RelDataType arrayOfArrayFloat =
+      notNullable(typeFactory.createArrayType(arrayFloat, -1));
+  final RelDataType structOfInt =
+      notNullable(
+          typeFactory.createStructType(
+              ImmutableList.of(sqlInt, sqlInt), ImmutableList.of("i", "j")));
+  final RelDataType structOfIntNullable =
+      nullable(
+          typeFactory.createStructType(
+              ImmutableList.of(sqlInt, sqlInt), ImmutableList.of("i", "j")));
+  final RelDataType mapOfInt =
+      notNullable(typeFactory.createMapType(sqlInt, sqlInt));
+  final RelDataType mapOfIntNullable =
+      nullable(typeFactory.createMapType(sqlInt, sqlInt));
+  final RelDataType sqlChar1 = type(SqlTypeName.CHAR, 1);
+  final RelDataType sqlChar10 = type(SqlTypeName.CHAR, 10);
+  final RelDataType arraySqlChar10 =
+      notNullable(typeFactory.createArrayType(sqlChar10, -1));
+  final RelDataType arraySqlChar1 =
+      notNullable(typeFactory.createArrayType(sqlChar1, -1));
+  final RelDataType multisetSqlChar10Nullable =
+      nullable(typeFactory.createMultisetType(sqlChar10, -1));
+  final RelDataType multisetSqlChar1 =
+      notNullable(typeFactory.createMultisetType(sqlChar1, -1));
+  final RelDataType mapSqlChar10Nullable =
+      nullable(typeFactory.createMapType(sqlChar10, sqlChar10));
+  final RelDataType mapSqlChar1 =
+      notNullable(typeFactory.createMapType(sqlChar1, sqlChar1));
+
+  private RelDataType type(SqlTypeName typeName, int precision) {
+    return notNullable(typeFactory.createSqlType(typeName, precision));
+  }
+
+  private RelDataType type(SqlTypeName typeName, boolean nullable) {
+    RelDataType type = typeFactory.createSqlType(typeName);
+    return typeFactory.createTypeWithNullability(type, nullable);
+  }
+
+  private RelDataType notNullable(RelDataType type) {
+    return typeFactory.createTypeWithNullability(type, false);
+  }
+
+  private RelDataType nullable(RelDataType type) {
+    return typeFactory.createTypeWithNullability(type, true);
+  }
 }

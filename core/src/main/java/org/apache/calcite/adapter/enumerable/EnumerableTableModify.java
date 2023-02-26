@@ -74,8 +74,8 @@ public class EnumerableTableModify extends TableModify
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
-    final Result result = implementor.visitChild(
-        this, 0, (EnumerableRel) getInput(), pref);
+    final Result result =
+        implementor.visitChild(this, 0, (EnumerableRel) getInput(), pref);
     Expression childExp =
         builder.append(
             "child", result.block);

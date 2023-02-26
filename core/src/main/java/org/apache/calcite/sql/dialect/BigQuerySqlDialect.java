@@ -327,16 +327,16 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
       SqlTypeName typeName) {
-    SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
-        typeAlias, typeName, SqlParserPos.ZERO);
+    SqlAlienSystemTypeNameSpec typeNameSpec =
+        new SqlAlienSystemTypeNameSpec(typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
   }
 
   /**
    * List of BigQuery Specific Operators needed to form Syntactically Correct SQL.
    */
-  private static final SqlOperator UNION_DISTINCT = new SqlSetOperator(
-      "UNION DISTINCT", SqlKind.UNION, 14, false);
+  private static final SqlOperator UNION_DISTINCT =
+      new SqlSetOperator("UNION DISTINCT", SqlKind.UNION, 14, false);
 
   private static final SqlSetOperator EXCEPT_DISTINCT =
       new SqlSetOperator("EXCEPT DISTINCT", SqlKind.EXCEPT, 14, false);

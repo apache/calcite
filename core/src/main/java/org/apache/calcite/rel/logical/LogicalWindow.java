@@ -144,8 +144,9 @@ public final class LogicalWindow extends Window {
           return ref;
         }
         constants.add(literal);
-        ref = new RexInputRef(constantPool.size() + inputFieldCount,
-            literal.getType());
+        ref =
+            new RexInputRef(constantPool.size() + inputFieldCount,
+                literal.getType());
         constantPool.put(literal, ref);
         return ref;
       }
@@ -363,13 +364,14 @@ public final class LogicalWindow extends Window {
     final RexWindow aggWindow = over.getWindow();
 
     // Look up or create a window.
-    RelCollation orderKeys = getCollation(
-        Lists.newArrayList(
-            Util.filter(aggWindow.orderKeys,
-                rexFieldCollation ->
-                    // If ORDER BY references constant (i.e. RexInputRef),
-                    // then we can ignore such ORDER BY key.
-                    rexFieldCollation.left instanceof RexLocalRef)));
+    RelCollation orderKeys =
+        getCollation(
+            Lists.newArrayList(
+                Util.filter(aggWindow.orderKeys,
+                    rexFieldCollation ->
+                        // If ORDER BY references constant (i.e. RexInputRef),
+                        // then we can ignore such ORDER BY key.
+                        rexFieldCollation.left instanceof RexLocalRef)));
     ImmutableBitSet groupSet =
         ImmutableBitSet.of(getProjectOrdinals(aggWindow.partitionKeys));
     final int groupLength = groupSet.length();

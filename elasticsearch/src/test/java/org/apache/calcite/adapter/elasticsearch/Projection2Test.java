@@ -58,9 +58,9 @@ class Projection2Test {
 
   @BeforeAll
   public static void setupInstance() throws Exception {
-
-    final Map<String, String> mappings = ImmutableMap.of("a", "long",
-        "b.a", "long", "b.b", "long", "b.c.a", "keyword");
+    final Map<String, String> mappings =
+        ImmutableMap.of("a", "long",
+            "b.a", "long", "b.b", "long", "b.c.a", "keyword");
 
     NODE.createIndex(NAME, mappings);
 
@@ -77,16 +77,17 @@ class Projection2Test {
     root.add("elastic", new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), NAME));
 
     // add calcite view programmatically
-    final String viewSql = String.format(Locale.ROOT,
-        "select _MAP['a'] AS \"a\", "
+    final String viewSql =
+        String.format(Locale.ROOT, "select _MAP['a'] AS \"a\", "
             + " _MAP['b.a']  AS \"b.a\", "
             + " _MAP['b.b'] AS \"b.b\", "
             + " _MAP['b.c.a'] AS \"b.c.a\", "
             + " _MAP['_id'] AS \"id\" " // _id field is implicit
             + " from \"elastic\".\"%s\"", NAME);
 
-    ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
-        Collections.singletonList("elastic"), Arrays.asList("elastic", "view"), false);
+    ViewTableMacro macro =
+        ViewTable.viewMacro(root, viewSql, Collections.singletonList("elastic"),
+            Arrays.asList("elastic", "view"), false);
     root.add("VIEW", macro);
     return connection;
   }

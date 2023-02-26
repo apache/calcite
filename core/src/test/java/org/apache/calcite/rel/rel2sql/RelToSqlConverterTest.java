@@ -3888,10 +3888,11 @@ class RelToSqlConverterTest {
     builder.addRuleClass(AggregateProjectMergeRule.class);
     builder.addRuleClass(AggregateJoinTransposeRule.class);
     HepPlanner hepPlanner = new HepPlanner(builder.build());
-    RuleSet rules = RuleSets.ofList(
-        CoreRules.FILTER_INTO_JOIN,
-        CoreRules.JOIN_CONDITION_PUSH,
-        CoreRules.AGGREGATE_PROJECT_MERGE, CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED);
+    RuleSet rules =
+        RuleSets.ofList(CoreRules.FILTER_INTO_JOIN,
+            CoreRules.JOIN_CONDITION_PUSH,
+            CoreRules.AGGREGATE_PROJECT_MERGE,
+            CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED);
     sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expect);
   }
 
@@ -3997,15 +3998,6 @@ class RelToSqlConverterTest {
         .withPresto().ok(expectedPresto);
   }
 
-  @Test void testFloorMssqlWeek() {
-    String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
-    String expected = "SELECT CONVERT(DATETIME, CONVERT(VARCHAR(10), "
-        + "DATEADD(day, - (6 + DATEPART(weekday, [hire_date] )) % 7, [hire_date] ), 126))\n"
-        + "FROM [foodmart].[employee]";
-    sql(query)
-        .withMssql().ok(expected);
-  }
-
   @Test void testFetchMssql() {
     String query = "SELECT * FROM \"employee\" LIMIT 1";
     String expected = "SELECT TOP (1) *\nFROM [foodmart].[employee]";
@@ -4052,7 +4044,8 @@ class RelToSqlConverterTest {
     final String expectedClickHouse = "SELECT toMonday(`hire_date`)\n"
         + "FROM `foodmart`.`employee`";
     final String expectedMssql = "SELECT CONVERT(DATETIME, CONVERT(VARCHAR(10), "
-        + "DATEADD(day, - (6 + DATEPART(weekday, [hire_date] )) % 7, [hire_date] ), 126))\n"
+        + "DATEADD(day, - (6 + DATEPART(weekday, [hire_date] )) % 7, [hire_date] "
+        + "), 126))\n"
         + "FROM [foodmart].[employee]";
     final String expectedMysql = "SELECT STR_TO_DATE(DATE_FORMAT(`hire_date` , '%x%v-1'), "
         + "'%x%v-%w')\n"

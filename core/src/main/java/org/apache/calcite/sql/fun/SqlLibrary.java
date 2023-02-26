@@ -27,7 +27,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A library is a collection of SQL functions and operators.
@@ -77,8 +78,8 @@ public enum SqlLibrary {
   public final String fun;
 
   SqlLibrary(String abbrev, String fun) {
-    this.abbrev = Objects.requireNonNull(abbrev, "abbrev");
-    this.fun = Objects.requireNonNull(fun, "fun");
+    this.abbrev = requireNonNull(abbrev, "abbrev");
+    this.fun = requireNonNull(fun, "fun");
     Preconditions.checkArgument(
         fun.equals(name().toLowerCase(Locale.ROOT).replace("_", "")));
   }
@@ -94,8 +95,9 @@ public enum SqlLibrary {
   public static List<SqlLibrary> parse(String libraryNameList) {
     final ImmutableList.Builder<SqlLibrary> list = ImmutableList.builder();
     for (String libraryName : libraryNameList.split(",")) {
-      SqlLibrary library = Objects.requireNonNull(
-          SqlLibrary.of(libraryName), () -> "library does not exist: " + libraryName);
+      SqlLibrary library =
+          requireNonNull(SqlLibrary.of(libraryName),
+              () -> "library does not exist: " + libraryName);
       list.add(library);
     }
     return list.build();

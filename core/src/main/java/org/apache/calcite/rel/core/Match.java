@@ -249,8 +249,9 @@ public abstract class Match extends SingleRel {
         visitEach(call.operands);
       }
       if (aggFunction != null) {
-        RexMRAggCall aggCall = new RexMRAggCall(aggFunction,
-            call.getType(), call.getOperands(), aggregateCalls.size());
+        RexMRAggCall aggCall =
+            new RexMRAggCall(aggFunction, call.getType(), call.getOperands(),
+                aggregateCalls.size());
         aggregateCalls.add(aggCall);
         Set<String> pv = new PatternVarFinder().go(call.getOperands());
         if (pv.size() == 0) {

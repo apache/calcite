@@ -45,8 +45,9 @@ public abstract class RelToSqlConverterUtil {
       int leftPrec,
       int rightPrec) {
     final SqlLiteral valueToTrim = call.operand(1);
-    String value = requireNonNull(valueToTrim.toValue(),
-        () -> "call.operand(1).toValue() for call " + call);
+    String value =
+        requireNonNull(valueToTrim.toValue(),
+            () -> "call.operand(1).toValue() for call " + call);
     if (value.matches("\\s+")) {
       unparseTrimWithSpace(writer, call, leftPrec, rightPrec);
     } else {
@@ -102,8 +103,9 @@ public abstract class RelToSqlConverterUtil {
    * @return the regex pattern of the character to be trimmed
    */
   public static SqlCharStringLiteral createRegexPatternLiteral(SqlNode call, SqlLiteral trimFlag) {
-    final String regexPattern = requireNonNull(((SqlCharStringLiteral) call).toValue(),
-        () -> "null value for SqlNode " + call);
+    final String regexPattern =
+        requireNonNull(((SqlCharStringLiteral) call).toValue(),
+            () -> "null value for SqlNode " + call);
     String escaped = escapeSpecialChar(regexPattern);
     final StringBuilder builder = new StringBuilder();
     switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
@@ -132,8 +134,9 @@ public abstract class RelToSqlConverterUtil {
    * @return escape character if any special character is present in the string
    */
   private static String escapeSpecialChar(String inputString) {
-    final String[] specialCharacters = {"\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
-        "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"};
+    final String[] specialCharacters =
+        {"\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
+            "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"};
 
     for (String specialCharacter : specialCharacters) {
       if (inputString.contains(specialCharacter)) {

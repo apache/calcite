@@ -3389,7 +3389,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // (partition by sal order by deptno), w2 as (w partition by sal)",
     // null); d) valid because existing window does not have an ORDER BY
     // clause
-    win("window w as (w2 range 2 preceding ), w2 as (order by sal)").ok();
+    win("window w as (w2 range 2 preceding), w2 as (order by sal)").ok();
     win("window w as ^(partition by sal)^, w2 as (w order by deptno)").ok();
     win("window w as (w2 partition by ^sal^), w2 as (order by deptno)")
         .fails("PARTITION BY not allowed with existing window reference");

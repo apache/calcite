@@ -347,8 +347,9 @@ public class RexImplicationCheckerTest {
     // In this case, the cast is not nullable. Thus, in both cases, the
     // simplified expression only consists of the literal.
     RelDataType notNullIntRelDataType = f.typeFactory.createJavaType(int.class);
-    final RexNode e2 = f.cast(notNullIntRelDataType,
-        f.cast(notNullIntRelDataType, f.literal(2014)));
+    final RexNode e2 =
+        f.cast(notNullIntRelDataType,
+            f.cast(notNullIntRelDataType, f.literal(2014)));
     assertThat(
         f.simplify.simplifyPreservingType(e2, RexUnknownAs.UNKNOWN, true)
             .toString(),
@@ -371,19 +372,19 @@ public class RexImplicationCheckerTest {
     final RexNode literalTs =
         f.timestampLiteral(new TimestampString("2010-10-10 00:00:00"));
     for (int i = 0; i < timeUnitRanges.size(); i++) {
-      final RexNode innerFloorCall = f.rexBuilder.makeCall(
-          SqlStdOperatorTable.FLOOR, literalTs,
-          f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
-      final RexNode innerCeilCall = f.rexBuilder.makeCall(
-          SqlStdOperatorTable.CEIL, literalTs,
-          f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
+      final RexNode innerFloorCall =
+          f.rexBuilder.makeCall(SqlStdOperatorTable.FLOOR, literalTs,
+              f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
+      final RexNode innerCeilCall =
+          f.rexBuilder.makeCall(SqlStdOperatorTable.CEIL, literalTs,
+              f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
       for (int j = 0; j <= i; j++) {
-        final RexNode outerFloorCall = f.rexBuilder.makeCall(
-            SqlStdOperatorTable.FLOOR, innerFloorCall,
-            f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
-        final RexNode outerCeilCall = f.rexBuilder.makeCall(
-            SqlStdOperatorTable.CEIL, innerCeilCall,
-            f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
+        final RexNode outerFloorCall =
+            f.rexBuilder.makeCall(SqlStdOperatorTable.FLOOR, innerFloorCall,
+                f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
+        final RexNode outerCeilCall =
+            f.rexBuilder.makeCall(SqlStdOperatorTable.CEIL, innerCeilCall,
+                f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
         final RexCall floorSimplifiedExpr =
             (RexCall) f.simplify.simplifyPreservingType(outerFloorCall,
                 RexUnknownAs.UNKNOWN, true);
@@ -405,19 +406,19 @@ public class RexImplicationCheckerTest {
 
     // Negative test
     for (int i = timeUnitRanges.size() - 1; i >= 0; i--) {
-      final RexNode innerFloorCall = f.rexBuilder.makeCall(
-          SqlStdOperatorTable.FLOOR, literalTs,
-          f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
-      final RexNode innerCeilCall = f.rexBuilder.makeCall(
-          SqlStdOperatorTable.CEIL, literalTs,
-          f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
+      final RexNode innerFloorCall =
+          f.rexBuilder.makeCall(SqlStdOperatorTable.FLOOR, literalTs,
+              f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
+      final RexNode innerCeilCall =
+          f.rexBuilder.makeCall(SqlStdOperatorTable.CEIL, literalTs,
+              f.rexBuilder.makeFlag(timeUnitRanges.get(i)));
       for (int j = timeUnitRanges.size() - 1; j > i; j--) {
-        final RexNode outerFloorCall = f.rexBuilder.makeCall(
-            SqlStdOperatorTable.FLOOR, innerFloorCall,
-            f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
-        final RexNode outerCeilCall = f.rexBuilder.makeCall(
-            SqlStdOperatorTable.CEIL, innerCeilCall,
-            f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
+        final RexNode outerFloorCall =
+            f.rexBuilder.makeCall(SqlStdOperatorTable.FLOOR, innerFloorCall,
+                f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
+        final RexNode outerCeilCall =
+            f.rexBuilder.makeCall(SqlStdOperatorTable.CEIL, innerCeilCall,
+                f.rexBuilder.makeFlag(timeUnitRanges.get(j)));
         final RexCall floorSimplifiedExpr =
             (RexCall) f.simplify.simplifyPreservingType(outerFloorCall,
                 RexUnknownAs.UNKNOWN, true);

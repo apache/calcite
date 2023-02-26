@@ -40,16 +40,15 @@ public class RelSetTest {
    */
   @Test void testAddRelNodeWithSameRowType() {
     RelBuilder builder = createRelBuilder();
-    RelNode relNodeA = builder.scan("myTable")
-        .project(builder.field("a")).build();
-    RelNode relNodeE = builder.scan("myTable")
-        .project(builder.field("e")).build();
-    RelSet relSet = new RelSet(
-        1,
-        Util.minus(
-            RelOptUtil.getVariablesSet(relNodeA),
-            relNodeA.getVariablesSet()),
-        RelOptUtil.getVariablesUsed(relNodeA));
+    RelNode relNodeA =
+        builder.scan("myTable").project(builder.field("a")).build();
+    RelNode relNodeE =
+        builder.scan("myTable").project(builder.field("e")).build();
+    RelSet relSet =
+        new RelSet(1,
+            Util.minus(RelOptUtil.getVariablesSet(relNodeA),
+                relNodeA.getVariablesSet()),
+            RelOptUtil.getVariablesUsed(relNodeA));
     relSet.add(relNodeA);
     relSet.add(relNodeE);
   }
@@ -59,16 +58,15 @@ public class RelSetTest {
    */
   @Test void testAddRelNodeWithDifferentRowType() {
     RelBuilder builder = createRelBuilder();
-    RelNode relNodeA = builder.scan("myTable")
-        .project(builder.field("a")).build();
-    RelNode relNodeN = builder.scan("myTable")
-        .project(builder.field("n1")).build();
-    RelSet relSet = new RelSet(
-        1,
-        Util.minus(
-            RelOptUtil.getVariablesSet(relNodeA),
-            relNodeA.getVariablesSet()),
-        RelOptUtil.getVariablesUsed(relNodeA));
+    RelNode relNodeA =
+        builder.scan("myTable").project(builder.field("a")).build();
+    RelNode relNodeN =
+        builder.scan("myTable").project(builder.field("n1")).build();
+    RelSet relSet =
+        new RelSet(1,
+            Util.minus(RelOptUtil.getVariablesSet(relNodeA),
+                relNodeA.getVariablesSet()),
+            RelOptUtil.getVariablesUsed(relNodeA));
     relSet.add(relNodeA);
     assertThrows(AssertionError.class, () -> relSet.add(relNodeN));
   }

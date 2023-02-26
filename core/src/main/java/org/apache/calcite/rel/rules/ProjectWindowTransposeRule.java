@@ -173,17 +173,15 @@ public class ProjectWindowTransposeRule
 
     final LogicalWindow newLogicalWindow =
         LogicalWindow.create(window.getTraitSet(), projectBelowWindow,
-        window.constants, outputBuilder.build(), groups);
+            window.constants, outputBuilder.build(), groups);
 
     // Modify the top LogicalProject
     final List<RexNode> topProjExps =
         indexAdjustment.visitList(project.getProjects());
 
-    final Project newTopProj = project.copy(
-        newLogicalWindow.getTraitSet(),
-        newLogicalWindow,
-        topProjExps,
-        project.getRowType());
+    final Project newTopProj =
+        project.copy(newLogicalWindow.getTraitSet(), newLogicalWindow,
+            topProjExps, project.getRowType());
 
     if (ProjectRemoveRule.isTrivial(newTopProj)) {
       call.transformTo(newLogicalWindow);

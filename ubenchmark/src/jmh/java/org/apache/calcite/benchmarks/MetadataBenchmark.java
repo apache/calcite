@@ -133,8 +133,7 @@ public class MetadataBenchmark {
     test(
         () -> new RelMetadataQuery(
             new ProxyingMetadataHandlerProvider(
-        DefaultRelMetadataProvider.INSTANCE
-    )));
+        DefaultRelMetadataProvider.INSTANCE)));
   }
 
 }

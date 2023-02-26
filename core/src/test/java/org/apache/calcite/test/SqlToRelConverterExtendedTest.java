@@ -68,9 +68,8 @@ class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
 
     // Convert JSON back to rel tree.
     Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
-      final RelJsonReader reader = new RelJsonReader(
-          cluster,
-          schemas[0], rootSchema);
+      final RelJsonReader reader =
+          new RelJsonReader(cluster, schemas[0], rootSchema);
       try {
         RelNode x = reader.read(json);
       } catch (IOException e) {

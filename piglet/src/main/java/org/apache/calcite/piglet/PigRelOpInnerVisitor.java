@@ -160,8 +160,8 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
       }
 
       if (outputFieldSchema.size() == 1 && !gen.getFlattenFlags()[i]) {
-        final RelDataType scriptType = PigTypes.convertSchemaField(
-            outputFieldSchema.getField(0));
+        final RelDataType scriptType =
+            PigTypes.convertSchemaField(outputFieldSchema.getField(0));
         if (dataType.getSqlTypeName() == SqlTypeName.ANY
                 || !SqlTypeUtil.isComparable(dataType, scriptType)) {
           // Script schema is different from project expression schema, need to do type cast
@@ -174,10 +174,11 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
         if (dataType instanceof DynamicTupleRecordType) {
           ((DynamicTupleRecordType) dataType).resize(outputFieldSchema.size());
           for (int j = 0; j < outputFieldSchema.size(); j++) {
-            final RelDataType scriptType = PigTypes.convertSchemaField(
-                outputFieldSchema.getField(j));
-            RexNode exp = builder.call(
-                SqlStdOperatorTable.ITEM, rexNode, builder.literal(j + 1));
+            final RelDataType scriptType =
+                PigTypes.convertSchemaField(outputFieldSchema.getField(j));
+            RexNode exp =
+                builder.call(SqlStdOperatorTable.ITEM, rexNode,
+                    builder.literal(j + 1));
             innerCols.add(builder.getRexBuilder().makeCast(scriptType, exp));
             fieldAlias.add(outputFieldSchema.getField(j).alias);
           }

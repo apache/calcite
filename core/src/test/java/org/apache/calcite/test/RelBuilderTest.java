@@ -95,6 +95,7 @@ import com.google.common.collect.Lists;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import java.lang.reflect.Method;
 import java.sql.Connection;
@@ -187,8 +188,9 @@ public class RelBuilderTest {
             spec.schemaName, "EMP");
 
     // create view
-    ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
-        Collections.singletonList("test"), Arrays.asList("test", "view"), false);
+    ViewTableMacro macro =
+        ViewTable.viewMacro(root, viewSql, Collections.singletonList("test"),
+            Arrays.asList("test", "view"), false);
 
     // register view (in root schema)
     root.add("MYVIEW", macro);
@@ -447,9 +449,10 @@ public class RelBuilderTest {
         + "  {\"name\":\"d\",\"type\":\"DATE\",\"nullable\":true}"
         + "]}";
     final int rowCount = 3;
-    RelNode root = builder.functionScan(operator, 0,
-        builder.literal(jsonRowType), builder.literal(rowCount))
-        .build();
+    RelNode root =
+        builder.functionScan(operator, 0, builder.literal(jsonRowType),
+                builder.literal(rowCount))
+            .build();
     final String expected = "LogicalTableFunctionScan("
         + "invocation=[dynamicRowType('{\"nullable\":false,\"fields\":["
         + "  {\"name\":\"i\",\"type\":\"INTEGER\",\"nullable\":false},"
@@ -714,9 +717,9 @@ public class RelBuilderTest {
     final RelBuilder builder = RelBuilder.create(config().build());
     try {
       builder.scan("EMP");
-      RexNode call = builder.call(SqlStdOperatorTable.PLUS,
-          builder.field(1),
-          builder.field(3));
+      RexNode call =
+          builder.call(SqlStdOperatorTable.PLUS, builder.field(1),
+              builder.field(3));
       fail("expected error, got " + call);
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(),
@@ -3839,29 +3842,31 @@ public class RelBuilderTest {
     final RelDataTypeFactory typeFactory = builder.getTypeFactory();
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
 
-    RexNode pattern = builder.patternConcat(
-        builder.literal("STRT"),
-        builder.patternQuantify(builder.literal("DOWN"), builder.literal(1),
-            builder.literal(-1), builder.literal(false)),
-        builder.patternQuantify(builder.literal("UP"), builder.literal(1),
-            builder.literal(-1), builder.literal(false)));
+    RexNode pattern =
+        builder.patternConcat(builder.literal("STRT"),
+            builder.patternQuantify(builder.literal("DOWN"), builder.literal(1),
+                builder.literal(-1), builder.literal(false)),
+            builder.patternQuantify(builder.literal("UP"), builder.literal(1),
+                builder.literal(-1), builder.literal(false)));
 
     ImmutableMap.Builder<String, RexNode> pdBuilder = new ImmutableMap.Builder<>();
-    RexNode downDefinition = builder.lessThan(
-        builder.call(SqlStdOperatorTable.PREV,
-            builder.patternField("DOWN", intType, 3),
-            builder.literal(0)),
-        builder.call(SqlStdOperatorTable.PREV,
-            builder.patternField("DOWN", intType, 3),
-            builder.literal(1)));
+    RexNode downDefinition =
+        builder.lessThan(
+            builder.call(SqlStdOperatorTable.PREV,
+                builder.patternField("DOWN", intType, 3),
+                builder.literal(0)),
+            builder.call(SqlStdOperatorTable.PREV,
+                builder.patternField("DOWN", intType, 3),
+                builder.literal(1)));
     pdBuilder.put("DOWN", downDefinition);
-    RexNode upDefinition = builder.greaterThan(
-        builder.call(SqlStdOperatorTable.PREV,
-            builder.patternField("UP", intType, 3),
-            builder.literal(0)),
-        builder.call(SqlStdOperatorTable.PREV,
-            builder.patternField("UP", intType, 3),
-            builder.literal(1)));
+    RexNode upDefinition =
+        builder.greaterThan(
+            builder.call(SqlStdOperatorTable.PREV,
+                builder.patternField("UP", intType, 3),
+                builder.literal(0)),
+            builder.call(SqlStdOperatorTable.PREV,
+                builder.patternField("UP", intType, 3),
+                builder.literal(1)));
     pdBuilder.put("UP", upDefinition);
 
     ImmutableList.Builder<RexNode> measuresBuilder = new ImmutableList.Builder<>();
@@ -3875,8 +3880,9 @@ public class RelBuilderTest {
                 builder.literal(0)),
             "bottom_nw"));
 
-    RexNode after = builder.getRexBuilder().makeFlag(
-        SqlMatchRecognize.AfterOption.SKIP_TO_NEXT_ROW);
+    RexNode after =
+        builder.getRexBuilder()
+            .makeFlag(SqlMatchRecognize.AfterOption.SKIP_TO_NEXT_ROW);
 
     ImmutableList.Builder<RexNode> partitionKeysBuilder = new ImmutableList.Builder<>();
     partitionKeysBuilder.add(builder.field("DEPTNO"));
@@ -4031,36 +4037,20 @@ public class RelBuilderTest {
    * {@link org.apache.calcite.rex.RexUnknownAs#FALSE} mode for filter
    * conditions. */
   @Test void testFilterSimplification() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RelNode root =
-        builder.scan("EMP")
+    Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
             .filter(
-                builder.or(
-                     builder.literal(null),
-                     builder.and(
-                         builder.equals(builder.field(2), builder.literal(1)),
-                         builder.equals(builder.field(2), builder.literal(2))
-             )))
+                b.or(b.literal(null),
+                     b.and(b.equals(b.field(2), b.literal(1)),
+                         b.equals(b.field(2), b.literal(2)))))
             .build();
-    assertThat(root, hasTree("LogicalValues(tuples=[[]])\n"));
-  }
-
-  @Test void testFilterWithoutSimplification() {
-    final RelBuilder builder = createBuilder(c -> c.withSimplify(false));
-    final RelNode root =
-        builder.scan("EMP")
-            .filter(
-                builder.or(
-                    builder.literal(null),
-                    builder.and(
-                        builder.equals(builder.field(2), builder.literal(1)),
-                        builder.equals(builder.field(2), builder.literal(2))
-                    )))
-            .build();
-    final String expected = ""
+    final String expected = "LogicalValues(tuples=[[]])\n";
+    final String expectedWithoutSimplify = ""
         + "LogicalFilter(condition=[OR(null:NULL, AND(=($2, 1), =($2, 2)))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(root, hasTree(expected));
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withSimplify(false))),
+        hasTree(expectedWithoutSimplify));
   }
 
   @Test void testRelBuilderToString() {
@@ -4393,16 +4383,16 @@ public class RelBuilderTest {
     assertThat(planBefore, hasTree(expectedLogicalPlan));
 
     RuleSet prepareRules =
-        RuleSets.ofList(
-            EnumerableRules.ENUMERABLE_FILTER_RULE,
+        RuleSets.ofList(EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,
             EnumerableRules.ENUMERABLE_LIMIT_RULE,
             EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
     RelTraitSet desiredTraits = planBefore.getTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     Program program = Programs.of(prepareRules);
-    RelNode planAfter = program.run(planBefore.getCluster().getPlanner(), planBefore,
-        desiredTraits, ImmutableList.of(), ImmutableList.of());
+    RelNode planAfter =
+        program.run(planBefore.getCluster().getPlanner(), planBefore,
+            desiredTraits, ImmutableList.of(), ImmutableList.of());
     String expectedEnumerablePlan = "EnumerableLimit(offset=[?1], fetch=[?0])\n"
         + "  EnumerableTableScan(table=[[scott, DEPT]])\n";
     assertThat(planAfter, hasTree(expectedEnumerablePlan));
@@ -4511,9 +4501,11 @@ public class RelBuilderTest {
     //   ON orders.product = products_temporal.id
     RelNode left = builder.scan("orders").build();
     RelNode right = builder.scan("products_temporal").build();
-    RexNode period = builder.getRexBuilder().makeFieldAccess(
-        builder.getRexBuilder().makeCorrel(left.getRowType(), new CorrelationId(0)),
-        0);
+    RexNode period =
+        builder.getRexBuilder().makeFieldAccess(
+            builder.getRexBuilder().makeCorrel(left.getRowType(),
+                new CorrelationId(0)),
+            0);
     RelNode root3 =
         builder
             .push(left)
@@ -4537,9 +4529,9 @@ public class RelBuilderTest {
         .hintOption("_idx2")
         .build();
     // Attach hints on empty stack.
-    final AssertionError error = assertThrows(
-        AssertionError.class,
-        () -> RelBuilder.create(config().build()).hints(indexHint),
+    final AssertionError error =
+        assertThrows(AssertionError.class,
+            () -> RelBuilder.create(config().build()).hints(indexHint),
         "hints() should fail on empty stack");
     assertThat(error.getMessage(),
         containsString("There is no relational expression to attach the hints"));
@@ -4551,80 +4543,90 @@ public class RelBuilderTest {
         .hintOption("_idx2")
         .build();
     // Attach hints on non hintable.
-    final AssertionError error1 = assertThrows(
-        AssertionError.class,
-        () -> {
-          // Equivalent SQL:
-          //   SELECT *
-          //   FROM emp
-          //   MATCH_RECOGNIZE (
-          //     PARTITION BY deptno
-          //     ORDER BY empno asc
-          //     MEASURES
-          //       STRT.mgr as start_nw,
-          //       LAST(DOWN.mgr) as bottom_nw,
-          //     PATTERN (STRT DOWN+ UP+) WITHIN INTERVAL '5' SECOND
-          //     DEFINE
-          //       DOWN as DOWN.mgr < PREV(DOWN.mgr),
-          //       UP as UP.mgr > PREV(UP.mgr)
-          //   )
-          final RelBuilder builder = RelBuilder.create(config().build()).scan("EMP");
-          final RelDataTypeFactory typeFactory = builder.getTypeFactory();
-          final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
 
-          RexNode pattern = builder.patternConcat(
-              builder.literal("STRT"),
-              builder.patternQuantify(builder.literal("DOWN"), builder.literal(1),
-                  builder.literal(-1), builder.literal(false)),
-              builder.patternQuantify(builder.literal("UP"), builder.literal(1),
-                  builder.literal(-1), builder.literal(false)));
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   MATCH_RECOGNIZE (
+    //     PARTITION BY deptno
+    //     ORDER BY empno asc
+    //     MEASURES
+    //       STRT.mgr as start_nw,
+    //       LAST(DOWN.mgr) as bottom_nw,
+    //     PATTERN (STRT DOWN+ UP+) WITHIN INTERVAL '5' SECOND
+    //     DEFINE
+    //       DOWN as DOWN.mgr < PREV(DOWN.mgr),
+    //       UP as UP.mgr > PREV(UP.mgr)
+    //   )
+    final RelBuilder builder = RelBuilder.create(config().build()).scan("EMP");
+    final RelDataTypeFactory typeFactory = builder.getTypeFactory();
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
 
-          ImmutableMap.Builder<String, RexNode> pdBuilder = new ImmutableMap.Builder<>();
-          RexNode downDefinition = builder.lessThan(
-              builder.call(SqlStdOperatorTable.PREV,
-                  builder.patternField("DOWN", intType, 3),
-                  builder.literal(0)),
-              builder.call(SqlStdOperatorTable.PREV,
-                  builder.patternField("DOWN", intType, 3),
-                  builder.literal(1)));
-          pdBuilder.put("DOWN", downDefinition);
-          RexNode upDefinition = builder.greaterThan(
-              builder.call(SqlStdOperatorTable.PREV,
-                  builder.patternField("UP", intType, 3),
-                  builder.literal(0)),
-              builder.call(SqlStdOperatorTable.PREV,
-                  builder.patternField("UP", intType, 3),
-                  builder.literal(1)));
-          pdBuilder.put("UP", upDefinition);
+    RexNode pattern =
+        builder.patternConcat(builder.literal("STRT"),
+            builder.patternQuantify(builder.literal("DOWN"),
+                builder.literal(1), builder.literal(-1),
+                builder.literal(false)),
+            builder.patternQuantify(builder.literal("UP"),
+                builder.literal(1), builder.literal(-1),
+                builder.literal(false)));
 
-          ImmutableList.Builder<RexNode> measuresBuilder = new ImmutableList.Builder<>();
-          measuresBuilder.add(
-              builder.alias(builder.patternField("STRT", intType, 3), "start_nw"));
-          measuresBuilder.add(
-              builder.alias(
-                  builder.call(SqlStdOperatorTable.LAST,
-                          builder.patternField("DOWN", intType, 3),
-                          builder.literal(0)),
-                  "bottom_nw"));
+    ImmutableMap.Builder<String, RexNode> pdBuilder =
+        new ImmutableMap.Builder<>();
+    RexNode downDefinition =
+        builder.lessThan(
+            builder.call(SqlStdOperatorTable.PREV,
+                builder.patternField("DOWN", intType, 3),
+                builder.literal(0)),
+            builder.call(SqlStdOperatorTable.PREV,
+                builder.patternField("DOWN", intType, 3),
+                builder.literal(1)));
+    pdBuilder.put("DOWN", downDefinition);
+    RexNode upDefinition =
+        builder.greaterThan(
+            builder.call(SqlStdOperatorTable.PREV,
+                builder.patternField("UP", intType, 3),
+                builder.literal(0)),
+            builder.call(SqlStdOperatorTable.PREV,
+                builder.patternField("UP", intType, 3),
+                builder.literal(1)));
+    pdBuilder.put("UP", upDefinition);
 
-          RexNode after = builder.getRexBuilder().makeFlag(
-              SqlMatchRecognize.AfterOption.SKIP_TO_NEXT_ROW);
+    ImmutableList.Builder<RexNode> measuresBuilder =
+        new ImmutableList.Builder<>();
+    measuresBuilder.add(
+        builder.alias(builder.patternField("STRT", intType, 3), "start_nw"));
+    measuresBuilder.add(
+        builder.alias(
+            builder.call(SqlStdOperatorTable.LAST,
+                builder.patternField("DOWN", intType, 3),
+                builder.literal(0)),
+            "bottom_nw"));
 
-          ImmutableList.Builder<RexNode> partitionKeysBuilder = new ImmutableList.Builder<>();
-          partitionKeysBuilder.add(builder.field("DEPTNO"));
+    RexNode after =
+        builder.getRexBuilder().makeFlag(
+            SqlMatchRecognize.AfterOption.SKIP_TO_NEXT_ROW);
 
-          ImmutableList.Builder<RexNode> orderKeysBuilder = new ImmutableList.Builder<>();
-          orderKeysBuilder.add(builder.field("EMPNO"));
+    ImmutableList.Builder<RexNode> partitionKeysBuilder =
+        new ImmutableList.Builder<>();
+    partitionKeysBuilder.add(builder.field("DEPTNO"));
 
-          RexNode interval = builder.literal("INTERVAL '5' SECOND");
+    ImmutableList.Builder<RexNode> orderKeysBuilder =
+        new ImmutableList.Builder<>();
+    orderKeysBuilder.add(builder.field("EMPNO"));
 
-          builder
-              .match(pattern, false, false, pdBuilder.build(),
-                  measuresBuilder.build(), after, ImmutableMap.of(), false,
-                  partitionKeysBuilder.build(), orderKeysBuilder.build(), interval)
-              .hints(indexHint);
-        },
-        "hints() should fail on non Hintable relational expression");
+    RexNode interval = builder.literal("INTERVAL '5' SECOND");
+
+    Executable executable = () -> {
+      builder
+          .match(pattern, false, false, pdBuilder.build(),
+              measuresBuilder.build(), after, ImmutableMap.of(), false,
+              partitionKeysBuilder.build(), orderKeysBuilder.build(), interval)
+          .hints(indexHint);
+    };
+    final AssertionError error1 =
+        assertThrows(AssertionError.class, executable,
+            "hints() should fail on non Hintable relational expression");
     assertThat(error1.getMessage(),
         containsString("The top relational expression is not a Hintable"));
   }

@@ -157,12 +157,14 @@ public class RelMdUniqueKeys
       // select id, id, id, unique2, unique2
       // the resulting unique keys would be {{0},{3}}, {{0},{4}}, {{0},{1},{4}}, ...
 
-      Iterable<List<ImmutableBitSet>> product = Linq4j.product(
-          Util.transform(colMask,
-              in -> Util.filter(
-                  requireNonNull(mapInToOutPos.get(in),
-                      () -> "no entry for column " + in + " in mapInToOutPos: " + mapInToOutPos)
-                      .powerSet(), bs -> !bs.isEmpty())));
+      Iterable<List<ImmutableBitSet>> product =
+          Linq4j.product(
+              Util.transform(colMask, in ->
+                  Util.filter(
+                      requireNonNull(mapInToOutPos.get(in),
+                          () -> "no entry for column " + in
+                              + " in mapInToOutPos: " + mapInToOutPos).powerSet(),
+                      bs -> !bs.isEmpty())));
 
       resultBuilder.addAll(Util.transform(product, ImmutableBitSet::union));
     }

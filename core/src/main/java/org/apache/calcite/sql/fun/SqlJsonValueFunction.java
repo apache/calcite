@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.linq4j.Nullness;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
@@ -39,6 +40,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -72,12 +74,12 @@ public class SqlJsonValueFunction extends SqlFunction {
    * Returns new operand list with type specification removed.
    */
   public static List<SqlNode> removeTypeSpecOperands(SqlCall call) {
-    @Nullable SqlNode[] operands = call.getOperandList().toArray(new SqlNode[0]);
-    if (hasExplicitTypeSpec(operands)) {
-      operands[2] = null;
-      operands[3] = null;
+    List<@Nullable SqlNode> operands = new ArrayList<>(call.getOperandList());
+    if (hasExplicitTypeSpec(call.getOperandList())) {
+      operands.set(2, null);
+      operands.set(3, null);
     }
-    return Arrays.stream(operands)
+    return operands.stream()
         .filter(Objects::nonNull)
         .collect(Collectors.toList());
   }
@@ -98,9 +100,15 @@ public class SqlJsonValueFunction extends SqlFunction {
   }
 
   /** Returns whether there is an explicit return type specification. */
+  public static boolean hasExplicitTypeSpec(List<SqlNode> operands) {
+    return operands.size() > 2
+        && isReturningTypeSymbol(operands.get(2));
+  }
+
+  @Deprecated // to be removed before 2.0
   public static boolean hasExplicitTypeSpec(@Nullable SqlNode[] operands) {
-    return operands.length > 2
-        && isReturningTypeSymbol(operands[2]);
+    return hasExplicitTypeSpec(
+        Arrays.asList(Nullness.castNonNullArray(operands)));
   }
 
   private static boolean isReturningTypeSymbol(@Nullable SqlNode node) {

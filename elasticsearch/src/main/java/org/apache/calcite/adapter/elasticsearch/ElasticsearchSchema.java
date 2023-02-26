@@ -94,8 +94,8 @@ public class ElasticsearchSchema extends AbstractSchema {
   private Map<String, Table> createTables(Iterable<String> indices) {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     for (String index : indices) {
-      final ElasticsearchTransport transport = new ElasticsearchTransport(client, mapper,
-          index, fetchSize);
+      final ElasticsearchTransport transport =
+          new ElasticsearchTransport(client, mapper, index, fetchSize);
       builder.put(index, new ElasticsearchTable(transport));
     }
     return builder.build();

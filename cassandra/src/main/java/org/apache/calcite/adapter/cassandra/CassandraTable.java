@@ -47,8 +47,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on a Cassandra column family.
@@ -138,8 +139,8 @@ public class CassandraTable extends AbstractQueryableTable
     final RelDataType rowType = getRowType(typeFactory);
 
     Function1<String, Void> addField = fieldName -> {
-      RelDataType relDataType = Objects.requireNonNull(
-              rowType.getField(fieldName, true, false)).getType();
+      RelDataType relDataType =
+          requireNonNull(rowType.getField(fieldName, true, false)).getType();
       fieldInfo.add(fieldName, relDataType).nullable(true);
       return null;
     };
@@ -266,7 +267,7 @@ public class CassandraTable extends AbstractQueryableTable
     }
 
     private CqlSession getSession() {
-      return Objects.requireNonNull(schema.unwrap(CassandraSchema.class)).session;
+      return requireNonNull(schema.unwrap(CassandraSchema.class)).session;
     }
 
     /** Called via code-generation.

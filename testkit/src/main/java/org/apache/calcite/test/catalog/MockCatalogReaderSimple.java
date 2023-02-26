@@ -207,8 +207,8 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     registerSchema(customerSchema);
 
     // Register "CONTACT" table.
-    MockTable contactTable = MockTable.create(this, customerSchema, "CONTACT",
-        false, 1000);
+    MockTable contactTable =
+        MockTable.create(this, customerSchema, "CONTACT", false, 1000);
     contactTable.addColumn("CONTACTNO", fixture.intType);
     contactTable.addColumn("FNAME", fixture.varchar10Type);
     contactTable.addColumn("LNAME", fixture.varchar10Type);
@@ -228,16 +228,17 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     registerTable(contactPeekTable);
 
     // Register "ACCOUNT" table.
-    MockTable accountTable = MockTable.create(this, customerSchema, "ACCOUNT",
-        false, 457);
+    MockTable accountTable =
+        MockTable.create(this, customerSchema, "ACCOUNT", false, 457);
     accountTable.addColumn("ACCTNO", fixture.intType);
     accountTable.addColumn("TYPE", fixture.varchar20Type);
     accountTable.addColumn("BALANCE", fixture.intType);
     registerTable(accountTable);
 
     // Register "ORDERS" stream.
-    MockTable ordersStream = MockTable.create(this, salesSchema, "ORDERS",
-        true, Double.POSITIVE_INFINITY);
+    MockTable ordersStream =
+        MockTable.create(this, salesSchema, "ORDERS", true,
+            Double.POSITIVE_INFINITY);
     ordersStream.addColumn("ROWTIME", fixture.timestampType);
     ordersStream.addMonotonic("ROWTIME");
     ordersStream.addColumn("PRODUCTID", fixture.intType);
@@ -246,24 +247,25 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
 
     // Register "SHIPMENTS" stream.
     // "ROWTIME" is not column 0, just to mix things up.
-    MockTable shipmentsStream = MockTable.create(this, salesSchema, "SHIPMENTS",
-        true, Double.POSITIVE_INFINITY);
+    MockTable shipmentsStream =
+        MockTable.create(this, salesSchema, "SHIPMENTS", true,
+            Double.POSITIVE_INFINITY);
     shipmentsStream.addColumn("ORDERID", fixture.intType);
     shipmentsStream.addColumn("ROWTIME", fixture.timestampType);
     shipmentsStream.addMonotonic("ROWTIME");
     registerTable(shipmentsStream);
 
     // Register "PRODUCTS" table.
-    MockTable productsTable = MockTable.create(this, salesSchema, "PRODUCTS",
-        false, 200D);
+    MockTable productsTable =
+        MockTable.create(this, salesSchema, "PRODUCTS", false, 200D);
     productsTable.addColumn("PRODUCTID", fixture.intType);
     productsTable.addColumn("NAME", fixture.varchar20Type);
     productsTable.addColumn("SUPPLIERID", fixture.intType);
     registerTable(productsTable);
 
     // Register "EMPTY_PRODUCTS" table.
-    MockTable emptyProductsTable = MockTable.create(this, salesSchema, "EMPTY_PRODUCTS",
-        false, 0D, 0D);
+    MockTable emptyProductsTable =
+        MockTable.create(this, salesSchema, "EMPTY_PRODUCTS", false, 0D, 0D);
     emptyProductsTable.addColumn("PRODUCTID", fixture.intType);
     emptyProductsTable.addColumn("NAME", fixture.varchar20Type);
     emptyProductsTable.addColumn("SUPPLIERID", fixture.intType);
@@ -281,8 +283,8 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     registerTable(productsTemporalTable);
 
     // Register "SUPPLIERS" table.
-    MockTable suppliersTable = MockTable.create(this, salesSchema, "SUPPLIERS",
-        false, 10D);
+    MockTable suppliersTable =
+        MockTable.create(this, salesSchema, "SUPPLIERS", false, 10D);
     suppliersTable.addColumn("SUPPLIERID", fixture.intType);
     suppliersTable.addColumn("NAME", fixture.varchar20Type);
     suppliersTable.addColumn("CITY", fixture.intType);
@@ -307,17 +309,18 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
                 tableRowType.getFieldList().get(7);
             final RelDataTypeField salField =
                 tableRowType.getFieldList().get(5);
-            final List<RexNode> nodes = Arrays.asList(
-                rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-                    rexBuilder.makeInputRef(deptnoField.getType(),
-                        deptnoField.getIndex()),
-                    rexBuilder.makeExactLiteral(BigDecimal.valueOf(20L),
-                        deptnoField.getType())),
-                rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN,
-                    rexBuilder.makeInputRef(salField.getType(),
-                        salField.getIndex()),
-                    rexBuilder.makeExactLiteral(BigDecimal.valueOf(1000L),
-                        salField.getType())));
+            final List<RexNode> nodes =
+                Arrays.asList(
+                    rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                        rexBuilder.makeInputRef(deptnoField.getType(),
+                            deptnoField.getIndex()),
+                        rexBuilder.makeExactLiteral(BigDecimal.valueOf(20L),
+                            deptnoField.getType())),
+                    rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN,
+                        rexBuilder.makeInputRef(salField.getType(),
+                            salField.getIndex()),
+                        rexBuilder.makeExactLiteral(BigDecimal.valueOf(1000L),
+                            salField.getType())));
             return RexUtil.composeConjunction(rexBuilder, nodes);
           }
         };
@@ -342,17 +345,18 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
                 tableRowType.getFieldList().get(7);
             final RelDataTypeField salField =
                 tableRowType.getFieldList().get(5);
-            final List<RexNode> nodes = Arrays.asList(
-                rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-                    rexBuilder.makeInputRef(deptnoField.getType(),
-                        deptnoField.getIndex()),
-                    rexBuilder.makeExactLiteral(BigDecimal.valueOf(20L),
-                        deptnoField.getType())),
-                rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN,
-                    rexBuilder.makeInputRef(salField.getType(),
-                        salField.getIndex()),
-                    rexBuilder.makeExactLiteral(BigDecimal.valueOf(1000L),
-                        salField.getType())));
+            final List<RexNode> nodes =
+                Arrays.asList(
+                    rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                        rexBuilder.makeInputRef(deptnoField.getType(),
+                            deptnoField.getIndex()),
+                        rexBuilder.makeExactLiteral(BigDecimal.valueOf(20L),
+                            deptnoField.getType())),
+                    rexBuilder.makeCall(SqlStdOperatorTable.GREATER_THAN,
+                        rexBuilder.makeInputRef(salField.getType(),
+                            salField.getIndex()),
+                        rexBuilder.makeExactLiteral(BigDecimal.valueOf(1000L),
+                            salField.getType())));
             return RexUtil.composeConjunction(rexBuilder, nodes);
           }
         };
@@ -369,16 +373,16 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
 
     MockSchema structTypeSchema = new MockSchema("STRUCT");
     registerSchema(structTypeSchema);
-    final List<CompoundNameColumn> columns = Arrays.asList(
-        new CompoundNameColumn("", "K0", fixture.varchar20Type),
-        new CompoundNameColumn("", "C1", fixture.varchar20Type),
-        new CompoundNameColumn("F1", "A0", fixture.intType),
-        new CompoundNameColumn("F2", "A0", fixture.booleanType),
-        new CompoundNameColumn("F0", "C0", fixture.intType),
-        new CompoundNameColumn("F1", "C0", fixture.intTypeNull),
-        new CompoundNameColumn("F0", "C1", fixture.intType),
-        new CompoundNameColumn("F1", "C2", fixture.intType),
-        new CompoundNameColumn("F2", "C3", fixture.intType));
+    final List<CompoundNameColumn> columns =
+        Arrays.asList(new CompoundNameColumn("", "K0", fixture.varchar20Type),
+            new CompoundNameColumn("", "C1", fixture.varchar20Type),
+            new CompoundNameColumn("F1", "A0", fixture.intType),
+            new CompoundNameColumn("F2", "A0", fixture.booleanType),
+            new CompoundNameColumn("F0", "C0", fixture.intType),
+            new CompoundNameColumn("F1", "C0", fixture.intTypeNull),
+            new CompoundNameColumn("F0", "C1", fixture.intType),
+            new CompoundNameColumn("F1", "C2", fixture.intType),
+            new CompoundNameColumn("F2", "C3", fixture.intType));
     final CompoundNameColumnResolver structTypeTableResolver =
         new CompoundNameColumnResolver(columns, "F0");
     final MockTable structTypeTable =
@@ -389,16 +393,16 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     }
     registerTable(structTypeTable);
 
-    final List<CompoundNameColumn> columnsNullable = Arrays.asList(
-        new CompoundNameColumn("", "K0", fixture.varchar20TypeNull),
-        new CompoundNameColumn("", "C1", fixture.varchar20TypeNull),
-        new CompoundNameColumn("F1", "A0", fixture.intTypeNull),
-        new CompoundNameColumn("F2", "A0", fixture.booleanTypeNull),
-        new CompoundNameColumn("F0", "C0", fixture.intTypeNull),
-        new CompoundNameColumn("F1", "C0", fixture.intTypeNull),
-        new CompoundNameColumn("F0", "C1", fixture.intTypeNull),
-        new CompoundNameColumn("F1", "C2", fixture.intType),
-        new CompoundNameColumn("F2", "C3", fixture.intTypeNull));
+    final List<CompoundNameColumn> columnsNullable =
+        Arrays.asList(new CompoundNameColumn("", "K0", fixture.varchar20TypeNull),
+            new CompoundNameColumn("", "C1", fixture.varchar20TypeNull),
+            new CompoundNameColumn("F1", "A0", fixture.intTypeNull),
+            new CompoundNameColumn("F2", "A0", fixture.booleanTypeNull),
+            new CompoundNameColumn("F0", "C0", fixture.intTypeNull),
+            new CompoundNameColumn("F1", "C0", fixture.intTypeNull),
+            new CompoundNameColumn("F0", "C1", fixture.intTypeNull),
+            new CompoundNameColumn("F1", "C2", fixture.intType),
+            new CompoundNameColumn("F2", "C3", fixture.intTypeNull));
     final MockTable structNullableTypeTable =
         MockTable.create(this, structTypeSchema, "T_NULLABLES", false, 100,
             structTypeTableResolver);

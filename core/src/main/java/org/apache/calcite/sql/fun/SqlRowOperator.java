@@ -57,18 +57,18 @@ public class SqlRowOperator extends SqlSpecialOperator {
     // {e1type,e2type}.  According to the standard, field names are
     // implementation-defined.
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    final RelDataType recordType = typeFactory.createStructType(
-        new AbstractList<Map.Entry<String, RelDataType>>() {
-          @Override public Map.Entry<String, RelDataType> get(int index) {
-            return Pair.of(
-                SqlUtil.deriveAliasFromOrdinal(index),
-                opBinding.getOperandType(index));
-          }
+    final RelDataType recordType =
+        typeFactory.createStructType(
+            new AbstractList<Map.Entry<String, RelDataType>>() {
+              @Override public Map.Entry<String, RelDataType> get(int index) {
+                return Pair.of(SqlUtil.deriveAliasFromOrdinal(index),
+                    opBinding.getOperandType(index));
+              }
 
-          @Override public int size() {
-            return opBinding.getOperandCount();
-          }
-        });
+              @Override public int size() {
+                return opBinding.getOperandCount();
+              }
+            });
 
     // The value of ROW(e1,e2) is considered null if and only all of its
     // fields (i.e., e1, e2) are null. Otherwise ROW can not be null.

@@ -302,8 +302,7 @@ public abstract class SemiJoinRule
                       b4 -> b4.operand(RelNode.class)
                           // If RHS is Aggregate, it will be covered by ProjectToSemiJoinRule
                           .predicate(n -> !(n instanceof Aggregate))
-                          .anyInputs()
-                  )))
+                          .anyInputs())))
           .as(JoinOnUniqueToSemiJoinRuleConfig.class);
 
       @Override default JoinOnUniqueToSemiJoinRule toRule() {

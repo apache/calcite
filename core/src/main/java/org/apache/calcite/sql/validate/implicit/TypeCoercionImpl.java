@@ -410,8 +410,9 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
           validator.deriveType(
               scope, node));
     }
-    SqlNode elseOp = requireNonNull(caseCall.getElseOperand(),
-        () -> "getElseOperand() is null for " + caseCall);
+    SqlNode elseOp =
+        requireNonNull(caseCall.getElseOperand(),
+            () -> "getElseOperand() is null for " + caseCall);
     RelDataType elseOpType = validator.deriveType(scope, elseOp);
     argTypes.add(elseOpType);
     // Entering this method means we have already got a wider type, recompute it here
@@ -505,10 +506,13 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
           }
         };
 
-        RelDataType widenType = commonTypeForBinaryComparison(columnIthTypes.get(0),
-            columnIthTypes.get(1));
+        RelDataType widenType =
+            commonTypeForBinaryComparison(columnIthTypes.get(0),
+                columnIthTypes.get(1));
         if (widenType == null) {
-          widenType = getTightestCommonType(columnIthTypes.get(0), columnIthTypes.get(1));
+          widenType =
+              getTightestCommonType(columnIthTypes.get(0),
+                  columnIthTypes.get(1));
         }
         if (widenType == null) {
           // Can not find any common type, just return early.
@@ -593,9 +597,9 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    */
   @Override public boolean userDefinedFunctionCoercion(SqlValidatorScope scope,
       SqlCall call, SqlFunction function) {
-    final SqlOperandMetadata operandMetadata = requireNonNull(
-        (SqlOperandMetadata) function.getOperandTypeChecker(),
-        () -> "getOperandTypeChecker is not defined for " + function);
+    final SqlOperandMetadata operandMetadata =
+        requireNonNull((SqlOperandMetadata) function.getOperandTypeChecker(),
+            () -> "getOperandTypeChecker is not defined for " + function);
     final List<RelDataType> paramTypes =
         operandMetadata.paramTypes(scope.getValidator().getTypeFactory());
     boolean coerced = false;
@@ -610,10 +614,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
           return false;
         }
         // Column list operand type is not supported now.
-        coerced = coerceOperandType(scope, (SqlCall) operand, 0,
-            paramTypes.get(formalIndex)) || coerced;
+        coerced =
+            coerceOperandType(scope, (SqlCall) operand, 0,
+                paramTypes.get(formalIndex)) || coerced;
       } else {
-        coerced = coerceOperandType(scope, call, i, paramTypes.get(i)) || coerced;
+        coerced =
+            coerceOperandType(scope, call, i, paramTypes.get(i)) || coerced;
       }
     }
     return coerced;

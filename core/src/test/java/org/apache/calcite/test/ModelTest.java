@@ -57,8 +57,7 @@ class ModelTest {
   /** Reads a simple schema from a string into objects. */
   @Test void testRead() throws IOException {
     final ObjectMapper mapper = mapper();
-    JsonRoot root = mapper.readValue(
-        "{\n"
+    final String json = "{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"
         + "     {\n"
@@ -96,8 +95,8 @@ class ModelTest {
         + "       ]\n"
         + "     }\n"
         + "   ]\n"
-        + "}",
-        JsonRoot.class);
+        + "}";
+    JsonRoot root = mapper.readValue(json, JsonRoot.class);
     assertEquals("1.0", root.version);
     assertEquals(1, root.schemas.size());
     final JsonMapSchema schema = (JsonMapSchema) root.schemas.get(0);
@@ -119,8 +118,7 @@ class ModelTest {
   /** Reads a simple schema containing JdbcSchema, a sub-type of Schema. */
   @Test void testSubtype() throws IOException {
     final ObjectMapper mapper = mapper();
-    JsonRoot root = mapper.readValue(
-        "{\n"
+    final String json = "{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"
         + "     {\n"
@@ -133,8 +131,8 @@ class ModelTest {
         + "       jdbcSchema: ''\n"
         + "     }\n"
         + "   ]\n"
-        + "}",
-        JsonRoot.class);
+        + "}";
+    JsonRoot root = mapper.readValue(json, JsonRoot.class);
     assertEquals("1.0", root.version);
     assertEquals(1, root.schemas.size());
     final JsonJdbcSchema schema = (JsonJdbcSchema) root.schemas.get(0);

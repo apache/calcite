@@ -48,9 +48,7 @@ public class RelMdPercentageOriginalRows {
                   BuiltInMetadata.CumulativeCost.Handler.class),
               ReflectiveRelMetadataProvider.reflectiveSource(
                   new RelMdNonCumulativeCost(),
-                  BuiltInMetadata.NonCumulativeCost.Handler.class
-              )
-          ));
+                  BuiltInMetadata.NonCumulativeCost.Handler.class)));
 
   //~ Methods ----------------------------------------------------------------
 

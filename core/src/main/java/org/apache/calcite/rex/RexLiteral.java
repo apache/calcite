@@ -843,9 +843,9 @@ public class RexLiteral extends RexNode {
       final Comparable v;
       switch (typeName) {
       case DATE:
-        final Calendar cal = DateTimeUtils.parseDateFormat(literal,
-            new SimpleDateFormat(format, Locale.ROOT),
-            tz);
+        final Calendar cal =
+            DateTimeUtils.parseDateFormat(literal,
+                new SimpleDateFormat(format, Locale.ROOT), tz);
         if (cal == null) {
           throw new AssertionError("fromJdbcString: invalid date/time value '"
               + literal + "'");

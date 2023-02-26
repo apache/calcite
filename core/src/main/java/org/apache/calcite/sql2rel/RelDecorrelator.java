@@ -856,8 +856,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
       assert newInput != null;
 
       if (!joinedInputs.contains(newInput)) {
-        final List<Integer> positions = requireNonNull(mapNewInputToOutputs.get(newInput),
-            () -> "mapNewInputToOutputs.get(" + newInput + ")");
+        final List<Integer> positions =
+            requireNonNull(mapNewInputToOutputs.get(newInput),
+                () -> "mapNewInputToOutputs.get(" + newInput + ")");
 
         RelNode distinct = relBuilder.push(newInput)
             .project(relBuilder.fields(positions))
@@ -891,8 +892,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
       final RelNode newInput = frame.r;
       assert newInput != null;
 
-      final List<Integer> newLocalOutputs = requireNonNull(mapNewInputToOutputs.get(newInput),
-          () -> "mapNewInputToOutputs.get(" + newInput + ")");
+      final List<Integer> newLocalOutputs =
+          requireNonNull(mapNewInputToOutputs.get(newInput),
+              () -> "mapNewInputToOutputs.get(" + newInput + ")");
 
       final int newLocalOutput = requireNonNull(frame.oldToNewOutputs.get(corRef.field));
 
@@ -925,8 +927,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   private RelNode getCorRel(CorRef corVar) {
-    final RelNode r = requireNonNull(cm.mapCorToCorRel.get(corVar.corr),
-        () -> "cm.mapCorToCorRel.get(" + corVar.corr + ")");
+    final RelNode r =
+        requireNonNull(cm.mapCorToCorRel.get(corVar.corr),
+            () -> "cm.mapCorToCorRel.get(" + corVar.corr + ")");
     return requireNonNull(r.getInput(0),
         () -> "r.getInput(0) is null for " + r);
   }
@@ -1024,13 +1027,16 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     // can directly add positions into corDefOutputs since join
     // does not change the output ordering from the inputs.
-    RelNode valueGen = requireNonNull(
-        createValueGenerator(corVarList, leftInputOutputCount, corDefOutputs),
-        "createValueGenerator(...) is null");
+    final RelNode valueGen =
+        createValueGenerator(corVarList, leftInputOutputCount, corDefOutputs);
+    requireNonNull(valueGen, "valueGen");
 
-    RelNode join = relBuilder.push(frame.r).push(valueGen)
-        .join(JoinRelType.INNER, relBuilder.literal(true),
-        ImmutableSet.of()).build();
+    RelNode join =
+        relBuilder
+            .push(frame.r)
+            .push(valueGen)
+            .join(JoinRelType.INNER)
+            .build();
 
     // Join or Filter does not change the old input ordering. All
     // input fields from newLeftInput (i.e. the original input to the old
@@ -1354,8 +1360,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
         oldInput = oldInput0;
         break;
       }
-      RelNode newInput = requireNonNull(map.get(oldInput0),
-          () -> "map.get(oldInput0) for " + oldInput0).r;
+      RelNode newInput =
+          requireNonNull(map.get(oldInput0),
+              () -> "map.get(oldInput0) for " + oldInput0).r;
       newOrdinal += newInput.getRowType().getFieldCount();
       oldOrdinal -= n;
     }
@@ -2433,12 +2440,17 @@ public class RelDecorrelator implements ReflectiveVisitor {
       int joinOutputProjExprCount =
           leftInputFieldCount + aggInputProjects.size() + 1;
 
-      right = d.createProjectWithAdditionalExprs(right,
-          ImmutableList.of(
-              Pair.of(rexBuilder.makeLiteral(true), "nullIndicator")));
+      right =
+          d.createProjectWithAdditionalExprs(right,
+              ImmutableList.of(
+                  Pair.of(rexBuilder.makeLiteral(true), "nullIndicator")));
 
-      Join join = (Join) d.relBuilder.push(left).push(right)
-          .join(joinType, joinCond).build();
+      Join join =
+          (Join) d.relBuilder
+              .push(left)
+              .push(right)
+              .join(joinType, joinCond)
+              .build();
 
       // To the consumer of joinOutputProjRel, nullIndicator is located
       // at the end

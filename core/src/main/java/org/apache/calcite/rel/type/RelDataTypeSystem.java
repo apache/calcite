@@ -111,10 +111,8 @@ public interface RelDataTypeSystem {
    *
    * <p>Pre-condition: <code>createDecimalProduct(type1, type2) != null</code>
    */
-  default boolean shouldUseDoubleMultiplication(
-          RelDataTypeFactory typeFactory,
-          RelDataType type1,
-          RelDataType type2) {
+  default boolean shouldUseDoubleMultiplication(RelDataTypeFactory typeFactory,
+      RelDataType type1, RelDataType type2) {
     assert deriveDecimalMultiplyType(typeFactory, type1, type2) != null;
     return false;
   }
@@ -150,9 +148,9 @@ public interface RelDataTypeSystem {
   default @Nullable RelDataType deriveDecimalPlusType(RelDataTypeFactory typeFactory,
       RelDataType type1, RelDataType type2) {
     if (SqlTypeUtil.isExactNumeric(type1)
-            && SqlTypeUtil.isExactNumeric(type2)) {
+        && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
-              || SqlTypeUtil.isDecimal(type2)) {
+          || SqlTypeUtil.isDecimal(type2)) {
         // Java numeric will always have invalid precision/scale,
         // use its default decimal precision/scale instead.
         type1 = RelDataTypeFactoryImpl.isJavaType(type1)
@@ -168,16 +166,10 @@ public interface RelDataTypeSystem {
         int scale = Math.max(s1, s2);
         assert scale <= getMaxNumericScale();
         int precision = Math.max(p1 - s1, p2 - s2) + scale + 1;
-        precision =
-                Math.min(
-                        precision,
-                        getMaxNumericPrecision());
+        precision = Math.min(precision, getMaxNumericPrecision());
         assert precision > 0;
 
-        return typeFactory.createSqlType(
-                SqlTypeName.DECIMAL,
-                precision,
-                scale);
+        return typeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale);
       }
     }
     return null;
@@ -219,9 +211,9 @@ public interface RelDataTypeSystem {
   default @Nullable RelDataType deriveDecimalMultiplyType(RelDataTypeFactory typeFactory,
       RelDataType type1, RelDataType type2) {
     if (SqlTypeUtil.isExactNumeric(type1)
-            && SqlTypeUtil.isExactNumeric(type2)) {
+        && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
-              || SqlTypeUtil.isDecimal(type2)) {
+          || SqlTypeUtil.isDecimal(type2)) {
         // Java numeric will always have invalid precision/scale,
         // use its default decimal precision/scale instead.
         type1 = RelDataTypeFactoryImpl.isJavaType(type1)
@@ -238,16 +230,10 @@ public interface RelDataTypeSystem {
         int scale = s1 + s2;
         scale = Math.min(scale, getMaxNumericScale());
         int precision = p1 + p2;
-        precision =
-                Math.min(
-                        precision,
-                        getMaxNumericPrecision());
+        precision = Math.min(precision, getMaxNumericPrecision());
 
         RelDataType ret;
-        ret = typeFactory.createSqlType(
-                        SqlTypeName.DECIMAL,
-                        precision,
-                        scale);
+        ret = typeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale);
 
         return ret;
       }
@@ -292,9 +278,9 @@ public interface RelDataTypeSystem {
       RelDataType type1, RelDataType type2) {
 
     if (SqlTypeUtil.isExactNumeric(type1)
-            && SqlTypeUtil.isExactNumeric(type2)) {
+        && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
-              || SqlTypeUtil.isDecimal(type2)) {
+          || SqlTypeUtil.isDecimal(type2)) {
         // Java numeric will always have invalid precision/scale,
         // use its default decimal precision/scale instead.
         type1 = RelDataTypeFactoryImpl.isJavaType(type1)
@@ -310,15 +296,15 @@ public interface RelDataTypeSystem {
 
         final int maxNumericPrecision = getMaxNumericPrecision();
         int dout =
-                Math.min(
-                        p1 - s1 + s2,
-                        maxNumericPrecision);
+            Math.min(
+                p1 - s1 + s2,
+                maxNumericPrecision);
 
         int scale = Math.max(6, s1 + p2 + 1);
         scale =
-                Math.min(
-                        scale,
-                        maxNumericPrecision - dout);
+            Math.min(
+                scale,
+                maxNumericPrecision - dout);
         scale = Math.min(scale, getMaxNumericScale());
 
         int precision = dout + scale;
@@ -327,10 +313,10 @@ public interface RelDataTypeSystem {
 
         RelDataType ret;
         ret = typeFactory.
-                createSqlType(
-                        SqlTypeName.DECIMAL,
-                        precision,
-                        scale);
+            createSqlType(
+            SqlTypeName.DECIMAL,
+            precision,
+            scale);
 
         return ret;
       }
@@ -373,17 +359,17 @@ public interface RelDataTypeSystem {
   default @Nullable RelDataType deriveDecimalModType(RelDataTypeFactory typeFactory,
       RelDataType type1, RelDataType type2) {
     if (SqlTypeUtil.isExactNumeric(type1)
-            && SqlTypeUtil.isExactNumeric(type2)) {
+        && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
-              || SqlTypeUtil.isDecimal(type2)) {
+          || SqlTypeUtil.isDecimal(type2)) {
         // Java numeric will always have invalid precision/scale,
         // use its default decimal precision/scale instead.
         type1 = RelDataTypeFactoryImpl.isJavaType(type1)
-                ? typeFactory.decimalOf(type1)
-                : type1;
+            ? typeFactory.decimalOf(type1)
+            : type1;
         type2 = RelDataTypeFactoryImpl.isJavaType(type2)
-                ? typeFactory.decimalOf(type2)
-                : type2;
+            ? typeFactory.decimalOf(type2)
+            : type2;
         int p1 = type1.getPrecision();
         int p2 = type2.getPrecision();
         int s1 = type1.getScale();
@@ -401,7 +387,7 @@ public interface RelDataTypeSystem {
         assert precision > 0;
 
         return typeFactory.createSqlType(SqlTypeName.DECIMAL,
-                precision, scale);
+            precision, scale);
       }
     }
     return null;

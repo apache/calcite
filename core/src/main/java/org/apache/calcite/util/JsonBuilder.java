@@ -35,39 +35,39 @@ public class JsonBuilder {
   /** Maps control characters (0 .. 31) to JSON escaped strings.
    * Tab, newline, form feed and carriage return are mapped to '\t', '\n',
    * '\f', 'r' respectively; others are mapped to '\\u00xx' for some 'xx'. */
-  private static final ImmutableList<String> ESCAPED = ImmutableList.of(
-      "\\u0000",
-      "\\u0001",
-      "\\u0002",
-      "\\u0003",
-      "\\u0004",
-      "\\u0005",
-      "\\u0006",
-      "\\u0007",
-      "\\u0008",
-      "\\t", // tab, ASCII 9 x09
-      "\\n", // newline, ASCII 10 x0A
-      "\\u000B",
-      "\\f", // form feed, ASCII 12 x0C
-      "\\r", // carriage return, ASCII 13 x0D
-      "\\u000E",
-      "\\u000F",
-      "\\u0010",
-      "\\u0011",
-      "\\u0012",
-      "\\u0013",
-      "\\u0014",
-      "\\u0015",
-      "\\u0016",
-      "\\u0017",
-      "\\u0018",
-      "\\u0019",
-      "\\u001A",
-      "\\u001B",
-      "\\u001C",
-      "\\u001D",
-      "\\u001E",
-      "\\u001F");
+  private static final ImmutableList<String> ESCAPED =
+      ImmutableList.of("\\u0000",
+          "\\u0001",
+          "\\u0002",
+          "\\u0003",
+          "\\u0004",
+          "\\u0005",
+          "\\u0006",
+          "\\u0007",
+          "\\u0008",
+          "\\t", // tab, ASCII 9 x09
+          "\\n", // newline, ASCII 10 x0A
+          "\\u000B",
+          "\\f", // form feed, ASCII 12 x0C
+          "\\r", // carriage return, ASCII 13 x0D
+          "\\u000E",
+          "\\u000F",
+          "\\u0010",
+          "\\u0011",
+          "\\u0012",
+          "\\u0013",
+          "\\u0014",
+          "\\u0015",
+          "\\u0016",
+          "\\u0017",
+          "\\u0018",
+          "\\u0019",
+          "\\u001A",
+          "\\u001B",
+          "\\u001C",
+          "\\u001D",
+          "\\u001E",
+          "\\u001F");
 
   /**
    * Creates a JSON object (represented by a {@link Map}).

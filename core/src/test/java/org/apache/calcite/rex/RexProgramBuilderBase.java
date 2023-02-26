@@ -321,11 +321,7 @@ public abstract class RexProgramBuilderBase {
   }
 
   protected RexNode item(RexNode inputRef, RexNode literal) {
-    RexNode rexNode = rexBuilder.makeCall(
-        SqlStdOperatorTable.ITEM,
-        inputRef,
-        literal);
-    return rexNode;
+    return rexBuilder.makeCall(SqlStdOperatorTable.ITEM, inputRef, literal);
   }
 
   /**

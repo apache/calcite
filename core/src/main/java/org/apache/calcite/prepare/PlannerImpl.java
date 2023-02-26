@@ -129,12 +129,14 @@ public class PlannerImpl implements Planner, ViewExpander {
         context.maybeUnwrap(CalciteConnectionConfigImpl.class)
             .orElse(CalciteConnectionConfig.DEFAULT);
     if (!config.isSet(CalciteConnectionProperty.CASE_SENSITIVE)) {
-      config = config.set(CalciteConnectionProperty.CASE_SENSITIVE,
-          String.valueOf(parserConfig.caseSensitive()));
+      config =
+          config.set(CalciteConnectionProperty.CASE_SENSITIVE,
+              String.valueOf(parserConfig.caseSensitive()));
     }
     if (!config.isSet(CalciteConnectionProperty.CONFORMANCE)) {
-      config = config.set(CalciteConnectionProperty.CONFORMANCE,
-          String.valueOf(parserConfig.conformance()));
+      config =
+          config.set(CalciteConnectionProperty.CONFORMANCE,
+              String.valueOf(parserConfig.conformance()));
     }
     return config;
   }
@@ -253,12 +255,13 @@ public class PlannerImpl implements Planner, ViewExpander {
 
   @Override public RelRoot rel(SqlNode sql) {
     ensure(State.STATE_4_VALIDATED);
-    SqlNode validatedSqlNode = requireNonNull(this.validatedSqlNode,
-        "validatedSqlNode is null. Need to call #validate() first");
+    SqlNode validatedSqlNode =
+        requireNonNull(this.validatedSqlNode,
+            "validatedSqlNode is null. Need to call #validate() first");
     final RexBuilder rexBuilder = createRexBuilder();
-    final RelOptCluster cluster = RelOptCluster.create(
-        requireNonNull(planner, "planner"),
-        rexBuilder);
+    final RelOptCluster cluster =
+        RelOptCluster.create(requireNonNull(planner, "planner"),
+            rexBuilder);
     final SqlToRelConverter.Config config =
         sqlToRelConverterConfig.withTrimUnusedFields(false);
     final SqlToRelConverter sqlToRelConverter =
@@ -269,8 +272,8 @@ public class PlannerImpl implements Planner, ViewExpander {
     root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
     final RelBuilder relBuilder =
         config.getRelBuilderFactory().create(cluster, null);
-    root = root.withRel(
-        RelDecorrelator.decorrelateQuery(root.rel, relBuilder));
+    root =
+        root.withRel(RelDecorrelator.decorrelateQuery(root.rel, relBuilder));
     state = State.STATE_5_CONVERTED;
     return root;
   }

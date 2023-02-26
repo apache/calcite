@@ -362,15 +362,18 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
           @Override public SqlNode visit(SqlCall call) {
             SqlOperator operator = call.getOperator();
             if (operator instanceof SqlUnresolvedFunction) {
-              final SqlUnresolvedFunction unresolvedFunction = (SqlUnresolvedFunction) operator;
-              final SqlOperator lookup = SqlValidatorUtil.lookupSqlFunctionByID(
-                  SqlStdOperatorTable.instance(),
-                  unresolvedFunction.getSqlIdentifier(),
-                  unresolvedFunction.getFunctionType());
+              final SqlUnresolvedFunction unresolvedFunction =
+                  (SqlUnresolvedFunction) operator;
+              final SqlOperator lookup =
+                  SqlValidatorUtil.lookupSqlFunctionByID(
+                      SqlStdOperatorTable.instance(),
+                      unresolvedFunction.getSqlIdentifier(),
+                      unresolvedFunction.getFunctionType());
               if (lookup != null) {
                 operator = lookup;
-                call = operator.createCall(call.getFunctionQuantifier(),
-                    call.getParserPosition(), call.getOperandList());
+                call =
+                    operator.createCall(call.getFunctionQuantifier(),
+                        call.getParserPosition(), call.getOperandList());
               }
             }
             if (operator == SqlStdOperatorTable.CAST

@@ -1640,12 +1640,10 @@ class UtilTest {
     CompositeMap<String, Integer> map = CompositeMap.of(beatleMap);
     checkCompositeMap(beatles, map);
 
-    map = CompositeMap.of(
-        beatleMap, Collections.emptyMap());
+    map = CompositeMap.of(beatleMap, Collections.emptyMap());
     checkCompositeMap(beatles, map);
 
-    map = CompositeMap.of(
-        Collections.emptyMap(), beatleMap);
+    map = CompositeMap.of(Collections.emptyMap(), beatleMap);
     checkCompositeMap(beatles, map);
 
     map = CompositeMap.of(beatleMap, beatleMap);

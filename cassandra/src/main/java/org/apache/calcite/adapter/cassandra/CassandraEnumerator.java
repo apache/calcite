@@ -87,9 +87,10 @@ class CassandraEnumerator implements Enumerator<Object> {
    */
   private @Nullable Object currentRowField(int index) {
     assert current != null;
-    final Object o =  current.get(index,
-        CodecRegistry.DEFAULT.codecFor(
-            current.getColumnDefinitions().get(index).getType()));
+    final Object o =
+         current.get(index,
+             CodecRegistry.DEFAULT.codecFor(
+                 current.getColumnDefinitions().get(index).getType()));
 
     return convertToEnumeratorObject(o);
   }

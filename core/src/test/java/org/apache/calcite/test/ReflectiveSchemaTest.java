@@ -176,12 +176,12 @@ public class ReflectiveSchemaTest {
     schema.add("StringUnion",
         TableMacroImpl.create(Smalls.STRING_UNION_METHOD));
     rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
-    ResultSet resultSet = connection.createStatement().executeQuery(
-        "select *\n"
+    final String sql = "select *\n"
         + "from table(s.StringUnion(\n"
         + "  GenerateStrings(5),\n"
         + "  cursor (select name from emps)))\n"
-        + "where char_length(s) > 3");
+        + "where char_length(s) > 3";
+    ResultSet resultSet = connection.createStatement().executeQuery(sql);
     assertTrue(resultSet.next());
   }
 
@@ -200,14 +200,13 @@ public class ReflectiveSchemaTest {
             "select * from \"hr\".\"emps\" where \"deptno\" = 10",
             null, Arrays.asList("s", "emps_view"), null));
     rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
-    ResultSet resultSet = connection.createStatement().executeQuery(
-        "select *\n"
+    final String sql = "select *\n"
         + "from \"s\".\"emps_view\"\n"
-        + "where \"empid\" < 120");
-    assertEquals(
-        "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
-        + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n",
-        CalciteAssert.toString(resultSet));
+        + "where \"empid\" < 120";
+    ResultSet resultSet = connection.createStatement().executeQuery(sql);
+    assertThat(CalciteAssert.toString(resultSet),
+        is("empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n"
+            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n"));
   }
 
   /**
@@ -238,15 +237,19 @@ public class ReflectiveSchemaTest {
             ImmutableList.of("s", "null_emps"), null));
     rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
     final Statement statement = connection.createStatement();
-    ResultSet resultSet;
-    resultSet = statement.executeQuery(
-        "select * from \"s\".\"hr_emps\"");
-    assertEquals(4, count(resultSet)); // "hr_emps" -> "hr"."emps", 4 rows
-    resultSet = statement.executeQuery(
-        "select * from \"s\".\"s_emps\""); // "s_emps" -> "s"."emps", 3 rows
+
+    // "hr_emps" -> "hr"."emps", 4 rows
+    ResultSet resultSet =
+        statement.executeQuery("select * from \"s\".\"hr_emps\"");
+    assertEquals(4, count(resultSet));
+
+    // "s_emps" -> "s"."emps", 3 rows
+    resultSet =
+        statement.executeQuery("select * from \"s\".\"s_emps\"");
     assertEquals(3, count(resultSet));
-    resultSet = statement.executeQuery(
-        "select * from \"s\".\"null_emps\""); // "null_emps" -> "s"."emps", 3
+
+    // "null_emps" -> "s"."emps", 3
+    resultSet = statement.executeQuery("select * from \"s\".\"null_emps\"");
     assertEquals(3, count(resultSet));
     statement.close();
   }

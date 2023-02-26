@@ -40,8 +40,10 @@ class CachingLatticeStatisticProvider implements LatticeStatisticProvider {
   CachingLatticeStatisticProvider(final Lattice lattice,
       final LatticeStatisticProvider provider) {
     this.lattice = lattice;
-    cache = CacheBuilder.newBuilder().build(
-        CacheLoader.from(key -> provider.cardinality(ImmutableList.of(key))));
+    cache =
+        CacheBuilder.newBuilder().build(
+            CacheLoader.from(key ->
+                provider.cardinality(ImmutableList.of(key))));
   }
 
   @Override public double cardinality(List<Lattice.Column> columns) {

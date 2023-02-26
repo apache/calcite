@@ -120,9 +120,10 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
    */
   public static void unparseDatetimeFunction(SqlWriter writer, SqlCall call,
       String funName, Boolean datetimeFirst) {
-    SqlFunction func = new SqlFunction(funName, SqlKind.OTHER_FUNCTION,
-        ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
-        SqlFunctionCategory.STRING);
+    SqlFunction func =
+        new SqlFunction(funName, SqlKind.OTHER_FUNCTION,
+            ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
+            SqlFunctionCategory.STRING);
 
     SqlCall call1;
     if (datetimeFirst) {

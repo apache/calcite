@@ -1189,8 +1189,8 @@ public class RexImpTable {
       if (info.returnType() == BigDecimal.class) {
         next = Expressions.call(acc, "add", add.arguments().get(0));
       } else {
-        next = Expressions.add(acc,
-            EnumUtils.convert(add.arguments().get(0), acc.type));
+        final Expression arg = EnumUtils.convert(add.arguments().get(0), acc.type);
+        next = Expressions.add(acc, arg);
       }
       accAdvance(add, acc, next);
     }
@@ -1223,11 +1223,9 @@ public class RexImpTable {
       final Method method = (isMin
           ? BuiltInMethod.LESSER
           : BuiltInMethod.GREATER).method;
-      Expression next = Expressions.call(
-          method.getDeclaringClass(),
-          method.getName(),
-          acc,
-          Expressions.unbox(arg));
+      Expression next =
+          Expressions.call(method.getDeclaringClass(), method.getName(),
+              acc, Expressions.unbox(arg));
       accAdvance(add, acc, next);
     }
   }
@@ -1372,11 +1370,11 @@ public class RexImpTable {
       final Expression arg0 = add.arguments().get(0);
       final Expression arg1 = add.arguments().size() == 2
           ? add.arguments().get(1) : COMMA_EXPR;
-      final Expression result = Expressions.condition(
-          Expressions.equal(NULL_EXPR, accValue),
-          arg0,
-          Expressions.call(BuiltInMethod.STRING_CONCAT.method, accValue,
-              Expressions.call(BuiltInMethod.STRING_CONCAT.method, arg1, arg0)));
+      final Expression result =
+          Expressions.condition(Expressions.equal(NULL_EXPR, accValue),
+              arg0,
+              Expressions.call(BuiltInMethod.STRING_CONCAT.method, accValue,
+                  Expressions.call(BuiltInMethod.STRING_CONCAT.method, arg1, arg0)));
 
       add.currentBlock().add(Expressions.statement(Expressions.assign(accValue, result)));
     }
@@ -1405,8 +1403,7 @@ public class RexImpTable {
           Expressions.statement(
               Expressions.call(add.accumulator().get(0),
                   BuiltInMethod.COLLECTION_RETAIN_ALL.method,
-                  add.arguments().get(0))
-          ));
+                  add.arguments().get(0))));
 
       add.currentBlock().add(
           Expressions.ifThenElse(
@@ -1449,8 +1446,9 @@ public class RexImpTable {
           Expressions.call(accMap, BuiltInMethod.MAP_GET_OR_DEFAULT.method, currentArg,
               Expressions.constant(0, Long.class));
       // declare and assign the occurrences number about current value
-      ParameterExpression currentNumber = Expressions.parameter(
-          Long.class, add.currentBlock().newName("currentNumber"));
+      ParameterExpression currentNumber =
+          Expressions.parameter(Long.class,
+              add.currentBlock().newName("currentNumber"));
       add.currentBlock().add(Expressions.declare(0, currentNumber, null));
       add.currentBlock().add(
           Expressions.statement(
@@ -1555,11 +1553,9 @@ public class RexImpTable {
             + ". Only support bit_and, bit_or and bit_xor for bit aggregation function");
       }
       final Method method = builtInMethod.method;
-      Expression next = Expressions.call(
-          method.getDeclaringClass(),
-          method.getName(),
-          acc,
-          Expressions.unbox(arg));
+      Expression next =
+          Expressions.call(method.getDeclaringClass(), method.getName(),
+              acc, Expressions.unbox(arg));
       accAdvance(add, acc, next);
     }
   }
@@ -1835,17 +1831,19 @@ public class RexImpTable {
 
       List<RexNode> rexArgs = winResult.rexArguments();
 
-      ParameterExpression res = Expressions.parameter(0, info.returnType(),
-          result.currentBlock().newName("nth"));
+      ParameterExpression res =
+          Expressions.parameter(0, info.returnType(),
+              result.currentBlock().newName("nth"));
 
       RexToLixTranslator currentRowTranslator =
           winResult.rowTranslator(
               winResult.computeIndex(Expressions.constant(0), SeekType.START));
 
-      Expression dstIndex = winResult.computeIndex(
-          Expressions.subtract(
-              currentRowTranslator.translate(rexArgs.get(1), int.class),
-              Expressions.constant(1)), SeekType.START);
+      Expression dstIndex =
+          winResult.computeIndex(
+              Expressions.subtract(
+                  currentRowTranslator.translate(rexArgs.get(1), int.class),
+                  Expressions.constant(1)), SeekType.START);
 
       Expression rowInRange = winResult.rowInPartition(dstIndex);
 
@@ -1897,8 +1895,9 @@ public class RexImpTable {
 
       List<RexNode> rexArgs = winResult.rexArguments();
 
-      ParameterExpression res = Expressions.parameter(0, info.returnType(),
-          result.currentBlock().newName(isLead ? "lead" : "lag"));
+      ParameterExpression res =
+          Expressions.parameter(0, info.returnType(),
+              result.currentBlock().newName(isLead ? "lead" : "lag"));
 
       Expression offset;
       RexToLixTranslator currentRowTranslator =
@@ -1906,8 +1905,7 @@ public class RexImpTable {
               winResult.computeIndex(Expressions.constant(0), SeekType.SET));
       if (rexArgs.size() >= 2) {
         // lead(x, offset) or lead(x, offset, default)
-        offset = currentRowTranslator.translate(
-            rexArgs.get(1), int.class);
+        offset = currentRowTranslator.translate(rexArgs.get(1), int.class);
       } else {
         offset = Expressions.constant(1);
       }
@@ -1919,8 +1917,8 @@ public class RexImpTable {
       Expression rowInRange = winResult.rowInPartition(dstIndex);
 
       BlockBuilder thenBlock = result.nestBlock();
-      Expression lagResult = winResult.rowTranslator(dstIndex).translate(
-          rexArgs.get(0), res.type);
+      Expression lagResult =
+          winResult.rowTranslator(dstIndex).translate(rexArgs.get(0), res.type);
       thenBlock.add(Expressions.statement(Expressions.assign(res, lagResult)));
       result.exitBlock();
       BlockStatement thenBranch = thenBlock.toBlock();
@@ -2245,10 +2243,11 @@ public class RexImpTable {
         Expression operand0 = argValueList.get(0);
         switch (call.getType().getSqlTypeName()) {
         case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-          operand0 = Expressions.call(
-              BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
-              operand0,
-              Expressions.call(BuiltInMethod.TIME_ZONE.method, translator.getRoot()));
+          operand0 =
+              Expressions.call(BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
+                  operand0,
+                  Expressions.call(BuiltInMethod.TIME_ZONE.method,
+                      translator.getRoot()));
           // fall through
         case TIMESTAMP:
           type = long.class;
@@ -2760,14 +2759,16 @@ public class RexImpTable {
         case INTERVAL_SECOND:
           break;
         case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-          operand = Expressions.call(
-              BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
-              operand,
-              Expressions.call(BuiltInMethod.TIME_ZONE.method, translator.getRoot()));
+          operand =
+              Expressions.call(BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
+                  operand,
+                  Expressions.call(BuiltInMethod.TIME_ZONE.method,
+                      translator.getRoot()));
           // fall through
         case TIMESTAMP:
-          operand = Expressions.call(BuiltInMethod.FLOOR_DIV.method,
-              operand, Expressions.constant(TimeUnit.DAY.multiplier.longValue()));
+          operand =
+              Expressions.call(BuiltInMethod.FLOOR_DIV.method, operand,
+                  Expressions.constant(TimeUnit.DAY.multiplier.longValue()));
           // fall through
         case DATE:
           return Expressions.call(BuiltInMethod.UNIX_DATE_EXTRACT.method,
@@ -2789,18 +2790,20 @@ public class RexImpTable {
         switch (sqlTypeName) {
         case DATE:
           // convert to milliseconds
-          operand = Expressions.multiply(operand,
-              Expressions.constant(TimeUnit.DAY.multiplier.longValue()));
+          operand =
+              Expressions.multiply(operand,
+                  Expressions.constant(TimeUnit.DAY.multiplier.longValue()));
           // fall through
         case TIMESTAMP:
           // convert to seconds
           return Expressions.divide(operand,
               Expressions.constant(TimeUnit.SECOND.multiplier.longValue()));
         case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-          operand = Expressions.call(
-              BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
-              operand,
-              Expressions.call(BuiltInMethod.TIME_ZONE.method, translator.getRoot()));
+          operand =
+              Expressions.call(BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIMESTAMP.method,
+                  operand,
+                  Expressions.call(BuiltInMethod.TIME_ZONE.method,
+                      translator.getRoot()));
           return Expressions.divide(operand,
               Expressions.constant(TimeUnit.SECOND.multiplier.longValue()));
         case INTERVAL_YEAR:
@@ -2838,8 +2841,9 @@ public class RexImpTable {
       if (unit == TimeUnit.QUARTER) {
         operand = Expressions.subtract(operand, Expressions.constant(1L));
       }
-      operand = Expressions.divide(operand,
-          Expressions.constant(unit.multiplier.longValue()));
+      operand =
+          Expressions.divide(operand,
+              Expressions.constant(unit.multiplier.longValue()));
       if (unit == TimeUnit.QUARTER) {
         operand = Expressions.add(operand, Expressions.constant(1L));
       }
@@ -3202,10 +3206,11 @@ public class RexImpTable {
       case DATE:
         switch (typeName) {
         case TIMESTAMP:
-          trop0 = Expressions.convert_(
-              Expressions.multiply(trop0,
-                  Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
-              long.class);
+          trop0 =
+              Expressions.convert_(
+                  Expressions.multiply(trop0,
+                      Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
+                  long.class);
           break;
         default:
           switch (typeName1) {
@@ -3219,10 +3224,11 @@ public class RexImpTable {
           case INTERVAL_MINUTE:
           case INTERVAL_MINUTE_SECOND:
           case INTERVAL_SECOND:
-            trop1 = Expressions.convert_(
-                Expressions.divide(trop1,
-                    Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
-                int.class);
+            trop1 =
+                Expressions.convert_(
+                    Expressions.divide(trop1,
+                        Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
+                    int.class);
             break;
           default:
             break;
@@ -3333,9 +3339,10 @@ public class RexImpTable {
 
       // TODO: verify if the variable is needed
       @SuppressWarnings("unused")
-      final BinaryExpression lastIndex = Expressions.subtract(
-          Expressions.call(rows, BuiltInMethod.COLLECTION_SIZE.method),
-          Expressions.constant(1));
+      final BinaryExpression lastIndex =
+          Expressions.subtract(
+              Expressions.call(rows, BuiltInMethod.COLLECTION_SIZE.method),
+              Expressions.constant(1));
 
       // Just take the last one, if exists
       if ("*".equals(alpha)) {

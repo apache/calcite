@@ -105,8 +105,8 @@ class SqlItemOperator extends SqlSpecialOperator {
     case ARRAY:
       return OperandTypes.family(SqlTypeFamily.INTEGER);
     case MAP:
-      RelDataType keyType = requireNonNull(operandType.getKeyType(),
-          "operandType.getKeyType()");
+      RelDataType keyType =
+          requireNonNull(operandType.getKeyType(), "operandType.getKeyType()");
       SqlTypeName sqlTypeName = keyType.getSqlTypeName();
       return OperandTypes.family(
           requireNonNull(sqlTypeName.getFamily(),

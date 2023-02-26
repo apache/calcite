@@ -1401,7 +1401,7 @@ public enum SqlKind {
    * <p>For {@link #IS_TRUE}, {@link #IS_FALSE}, {@link #IS_NOT_TRUE},
    * {@link #IS_NOT_FALSE}, nullable inputs need to be treated carefully.
    *
-   * <p>{@code NOT(IS_TRUE(null))} = {@code NOT(false)} = {@code true},
+   * <p>{@code NOT(IS_TRUE(null))} = {@code NOT false} = {@code true},
    * while {@code IS_FALSE(null)} = {@code false},
    * so {@code NOT(IS_TRUE(X))} should be {@code IS_NOT_TRUE(X)}.
    * On the other hand,

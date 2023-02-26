@@ -69,12 +69,12 @@ public class SelectNamespace extends AbstractNamespace {
   @Override public SqlMonotonicity getMonotonicity(String columnName) {
     final RelDataType rowType = this.getRowTypeSansSystemColumns();
     final int field = SqlTypeUtil.findField(rowType, columnName);
-    SelectScope selectScope = requireNonNull(
-        validator.getRawSelectScope(select),
-        () -> "rawSelectScope for " + select);
-    final SqlNode selectItem = requireNonNull(
-        selectScope.getExpandedSelectList(),
-        () -> "expandedSelectList for selectScope of " + select).get(field);
+    SelectScope selectScope =
+        requireNonNull(validator.getRawSelectScope(select),
+            () -> "rawSelectScope for " + select);
+    final SqlNode selectItem =
+        requireNonNull(selectScope.getExpandedSelectList(),
+            () -> "expandedSelectList for selectScope of " + select).get(field);
     return validator.getSelectScope(select).getMonotonicity(selectItem);
   }
 }

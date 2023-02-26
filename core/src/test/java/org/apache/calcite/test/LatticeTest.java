@@ -683,8 +683,9 @@ class LatticeTest {
   @Disabled
   @Test void testAllFoodmartQueries() {
     // Test ids that had bugs in them until recently. Useful for a sanity check.
-    final List<Integer> fixed = ImmutableList.of(13, 24, 28, 30, 61, 76, 79, 81,
-        85, 98, 101, 107, 128, 129, 130, 131);
+    final List<Integer> fixed =
+        ImmutableList.of(13, 24, 28, 30, 61, 76, 79, 81,
+            85, 98, 101, 107, 128, 129, 130, 131);
     // Test ids that still have bugs
     final List<Integer> bad = ImmutableList.of(382, 423);
     for (int i = 1; i < 1000; i++) {
@@ -964,8 +965,9 @@ class LatticeTest {
 
   // Just for debugging.
   private static void runJdbc() throws SQLException {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:calcite:model=core/src/test/resources/mysql-foodmart-lattice-model.json");
+    final String url = "jdbc:calcite:model="
+        + "core/src/test/resources/mysql-foodmart-lattice-model.json";
+    final Connection connection = DriverManager.getConnection(url);
     final ResultSet resultSet = connection.createStatement()
         .executeQuery("select * from \"adhoc\".\"m{32, 36}\"");
     System.out.println(CalciteAssert.toString(resultSet));

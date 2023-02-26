@@ -173,8 +173,9 @@ public abstract class Prepare {
     final RelTraitSet desiredTraits = getDesiredRootTraitSet(root);
 
     final Program program = getProgram();
-    final RelNode rootRel4 = program.run(
-        planner, root.rel, desiredTraits, materializationList, latticeList);
+    final RelNode rootRel4 =
+        program.run(planner, root.rel, desiredTraits, materializationList,
+            latticeList);
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Plan after physical tweaks:\n{}",
           RelOptUtil.toString(rootRel4, SqlExplainLevel.ALL_ATTRIBUTES));

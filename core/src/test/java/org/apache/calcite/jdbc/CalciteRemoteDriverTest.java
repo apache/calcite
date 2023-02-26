@@ -88,8 +88,12 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * Test for Calcite's remote JDBC driver.
- * Technically speaking, the test is thread safe, however Caclite/Avatica have thread-safety issues
- * see https://issues.apache.org/jira/browse/CALCITE-2853.
+ *
+ * <p>Technically, the test is thread-safe, however Calcite/Avatica have
+ * thread-safety issues; see
+ * <a href="https://issues.apache.org/jira/browse/CALCITE-2853">
+ * [CALCITE-2853] avatica.MetaImpl and calcite.jdbc.CalciteMetaImpl are not
+ * thread-safe</a>.
  */
 @Execution(ExecutionMode.SAME_THREAD)
 class CalciteRemoteDriverTest {
@@ -151,8 +155,8 @@ class CalciteRemoteDriverTest {
     localConnection = CalciteAssert.hr().connect();
 
     // Make sure we pick an ephemeral port for the server
-    start = Main.start(new String[]{Factory.class.getName()}, 0,
-        AvaticaJsonHandler::new);
+    final String[] args = {Factory.class.getName()};
+    start = Main.start(args, 0, AvaticaJsonHandler::new);
   }
 
   protected static Connection getRemoteConnection() throws SQLException {
@@ -173,8 +177,8 @@ class CalciteRemoteDriverTest {
   }
 
   @Test void testCatalogsLocal() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory=" + LJS);
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory=" + LJS);
     assertThat(connection.isClosed(), is(false));
     final ResultSet resultSet = connection.getMetaData().getCatalogs();
     final ResultSetMetaData metaData = resultSet.getMetaData();
@@ -188,8 +192,8 @@ class CalciteRemoteDriverTest {
   }
 
   @Test void testSchemasLocal() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory=" + LJS);
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory=" + LJS);
     assertThat(connection.isClosed(), is(false));
     final ResultSet resultSet = connection.getMetaData().getSchemas();
     final ResultSetMetaData metaData = resultSet.getMetaData();
@@ -508,8 +512,8 @@ class CalciteRemoteDriverTest {
     try (Connection remoteConnection = getRemoteConnection()) {
       Statement statement = remoteConnection.createStatement();
       statement.setMaxRows(2);
-      ResultSet resultSet = statement.executeQuery(
-          "select * from \"hr\".\"emps\"");
+      ResultSet resultSet =
+          statement.executeQuery("select * from \"hr\".\"emps\"");
       int count = 0;
       while (resultSet.next()) {
         ++count;
@@ -577,8 +581,9 @@ class CalciteRemoteDriverTest {
   }
 
   @Test void testRemoteStatementFetch() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory=" + LocalServiceMoreFactory.class.getName());
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory="
+            + LocalServiceMoreFactory.class.getName());
     String sql = "select * from \"foo\".\"bar\"";
     Statement statement = connection.createStatement();
     boolean status = statement.execute(sql);
@@ -592,8 +597,9 @@ class CalciteRemoteDriverTest {
   }
 
   @Test void testRemotePreparedStatementFetch() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory=" + LocalServiceMoreFactory.class.getName());
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory="
+            + LocalServiceMoreFactory.class.getName());
     assertThat(connection.isClosed(), is(false));
 
     String sql = "select * from \"foo\".\"bar\"";
@@ -814,8 +820,8 @@ class CalciteRemoteDriverTest {
 
   /** Test remote Statement insert. */
   @Test void testInsert() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory="
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory="
             + LocalServiceModifiableFactory.class.getName());
     assertThat(connection.isClosed(), is(false));
     Statement statement = connection.createStatement();
@@ -833,8 +839,8 @@ class CalciteRemoteDriverTest {
 
   /** Test remote Statement batched insert. */
   @Test void testInsertBatch() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory="
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory="
             + LocalServiceModifiableFactory.class.getName());
     assertThat(connection.getMetaData().supportsBatchUpdates(), is(true));
     assertThat(connection.isClosed(), is(false));
@@ -865,8 +871,8 @@ class CalciteRemoteDriverTest {
    * Remote PreparedStatement insert WITHOUT bind variables.
    */
   @Test void testRemotePreparedStatementInsert() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory="
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory="
             + LocalServiceModifiableFactory.class.getName());
     assertThat(connection.isClosed(), is(false));
 
@@ -886,12 +892,13 @@ class CalciteRemoteDriverTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3338">[CALCITE-3338]
    * Error with executeBatch and preparedStatement when using RemoteMeta</a>. */
   @Test void testInsertBatchWithPreparedStatement() throws Exception {
-    final Connection connection = DriverManager.getConnection(
-        "jdbc:avatica:remote:factory="
+    final Connection connection =
+        DriverManager.getConnection("jdbc:avatica:remote:factory="
             + LocalServiceModifiableFactory.class.getName());
 
-    PreparedStatement pst = connection.prepareStatement(
-        "insert into \"foo\".\"bar\" values (?, ?, ?, ?, ?)");
+    PreparedStatement pst =
+        connection.prepareStatement("insert into \"foo\".\"bar\"\n"
+            + "values (?, ?, ?, ?, ?)");
     pst.setInt(1, 1);
     pst.setInt(2, 1);
     pst.setString(3, "second");

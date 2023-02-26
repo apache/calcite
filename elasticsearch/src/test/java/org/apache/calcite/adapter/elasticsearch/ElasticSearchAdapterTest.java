@@ -71,8 +71,8 @@ class ElasticSearchAdapterTest {
    */
   @BeforeAll
   public static void setupInstance() throws Exception {
-    final Map<String, String> mapping = ImmutableMap.of("city", "keyword", "state",
-        "keyword", "pop", "long");
+    final Map<String, String> mapping =
+        ImmutableMap.of("city", "keyword", "state", "keyword", "pop", "long");
 
     NODE.createIndex(ZIPS, mapping);
 
@@ -251,11 +251,10 @@ class ElasticSearchAdapterTest {
           //noinspection unchecked
           final int cmp = current.compareTo(next);
           if (direction == RelFieldCollation.Direction.ASCENDING ? cmp > 0 : cmp < 0) {
-            final String message = String.format(Locale.ROOT,
-                "Column %s NOT sorted (%s): %s (index:%d) > %s (index:%d) count: %d",
-                column,
-                direction,
-                current, i, next, i + 1, states.size());
+            final String message =
+                String.format(Locale.ROOT,
+                    "Column %s NOT sorted (%s): %s (index:%d) > %s (index:%d) count: %d",
+                    column, direction, current, i, next, i + 1, states.size());
             throw new AssertionError(message);
           }
         }

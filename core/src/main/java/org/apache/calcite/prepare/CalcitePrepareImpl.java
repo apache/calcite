@@ -648,8 +648,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       final SqlValidator validator =
           createSqlValidator(context, catalogReader);
 
-      preparedResult = preparingStmt.prepareSql(
-          sqlNode, Object.class, validator, true);
+      preparedResult =
+          preparingStmt.prepareSql(sqlNode, Object.class, validator, true);
       switch (sqlNode.getKind()) {
       case INSERT:
       case DELETE:
@@ -1006,8 +1006,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           rel instanceof Sort
               ? ((Sort) rel).collation
               : RelCollations.EMPTY;
-      RelRoot root = new RelRoot(rel, resultType, SqlKind.SELECT, fields,
-          collation, new ArrayList<>());
+      RelRoot root =
+          new RelRoot(rel, resultType, SqlKind.SELECT, fields, collation,
+              new ArrayList<>());
 
       if (timingTracer != null) {
         timingTracer.traceTime("end sql2rel");
@@ -1122,8 +1123,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           for (int field : Pair.left(root.fields)) {
             projects.add(rexBuilder.makeInputRef(enumerable, field));
           }
-          RexProgram program = RexProgram.create(enumerable.getRowType(),
-              projects, null, root.validatedRowType, rexBuilder);
+          RexProgram program =
+              RexProgram.create(enumerable.getRowType(), projects, null,
+                  root.validatedRowType, rexBuilder);
           enumerable = EnumerableCalc.create(enumerable, program);
         }
 
@@ -1131,9 +1133,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           CatalogReader.THREAD_LOCAL.set(catalogReader);
           final SqlConformance conformance = context.config().conformance();
           internalParameters.put("_conformance", conformance);
-          bindable = EnumerableInterpretable.toBindable(internalParameters,
-              context.spark(), enumerable,
-              requireNonNull(prefer, "EnumerableRel.Prefer prefer"));
+          bindable =
+              EnumerableInterpretable.toBindable(internalParameters,
+                  context.spark(), enumerable,
+                  requireNonNull(prefer, "EnumerableRel.Prefer prefer"));
         } finally {
           CatalogReader.THREAD_LOCAL.remove();
         }
@@ -1262,10 +1265,11 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         // Case-sensitive name match because name was previously resolved.
         MemberExpression memberExpression = (MemberExpression) expression;
         PseudoField field = memberExpression.field;
-        Expression targetExpression = requireNonNull(memberExpression.expression,
-            () -> "static field access is not implemented yet."
-                + " field.name=" + field.getName()
-                + ", field.declaringClass=" + field.getDeclaringClass());
+        Expression targetExpression =
+            requireNonNull(memberExpression.expression,
+                () -> "static field access is not implemented yet."
+                    + " field.name=" + field.getName()
+                    + ", field.declaringClass=" + field.getDeclaringClass());
         return rexBuilder.makeFieldAccess(
             toRex(targetExpression),
             field.getName(),

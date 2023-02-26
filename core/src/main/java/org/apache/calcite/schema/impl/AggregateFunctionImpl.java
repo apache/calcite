@@ -86,8 +86,8 @@ public class AggregateFunctionImpl implements AggregateFunction,
     final Method initMethod = ReflectiveFunctionBase.findMethod(clazz, "init");
     final Method addMethod = ReflectiveFunctionBase.findMethod(clazz, "add");
     final Method mergeMethod = null; // TODO:
-    final Method resultMethod = ReflectiveFunctionBase.findMethod(
-        clazz, "result");
+    final Method resultMethod =
+        ReflectiveFunctionBase.findMethod(clazz, "result");
     if (initMethod != null && addMethod != null) {
       // A is return type of init by definition
       final Class<?> accumulatorType = initMethod.getReturnType();

@@ -80,9 +80,9 @@ public class EnumerableInterpretable extends ConverterImpl
   }
 
   @Override public Node implement(final InterpreterImplementor implementor) {
-    final Bindable bindable = toBindable(implementor.internalParameters,
-            implementor.spark, (EnumerableRel) getInput(),
-        EnumerableRel.Prefer.ARRAY);
+    final Bindable bindable =
+        toBindable(implementor.internalParameters, implementor.spark,
+            (EnumerableRel) getInput(), EnumerableRel.Prefer.ARRAY);
     final ArrayBindable arrayBindable = box(bindable);
     final Enumerable<@Nullable Object[]> enumerable =
         arrayBindable.bind(implementor.dataContext);

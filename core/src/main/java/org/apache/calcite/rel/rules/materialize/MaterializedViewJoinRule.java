@@ -180,9 +180,10 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
 
 
     if (!compensationColumnsEquiPred.isAlwaysTrue()) {
-      RexNode newCompensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
-          target, target, queryExprs, viewToQueryTableMapping.inverse(), queryEC, false,
-          compensationColumnsEquiPred);
+      RexNode newCompensationColumnsEquiPred =
+          rewriteExpression(rexBuilder, mq, target, target, queryExprs,
+              viewToQueryTableMapping.inverse(), queryEC, false,
+              compensationColumnsEquiPred);
       if (newCompensationColumnsEquiPred == null) {
         // Skip it
         return null;
@@ -191,19 +192,21 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
     }
     // For the rest, we use the query equivalence classes
     if (!otherCompensationPred.isAlwaysTrue()) {
-      RexNode newOtherCompensationPred = rewriteExpression(rexBuilder, mq,
-          target, target, queryExprs, viewToQueryTableMapping.inverse(), viewEC, true,
-          otherCompensationPred);
+      RexNode newOtherCompensationPred =
+          rewriteExpression(rexBuilder, mq, target, target, queryExprs,
+              viewToQueryTableMapping.inverse(), viewEC, true,
+              otherCompensationPred);
       if (newOtherCompensationPred == null) {
         // Skip it
         return null;
       }
       otherCompensationPred = newOtherCompensationPred;
     }
-    final RexNode queryCompensationPred = RexUtil.not(
-        RexUtil.composeConjunction(rexBuilder,
-            ImmutableList.of(compensationColumnsEquiPred,
-                otherCompensationPred)));
+    final RexNode queryCompensationPred =
+        RexUtil.not(
+            RexUtil.composeConjunction(rexBuilder,
+                ImmutableList.of(compensationColumnsEquiPred,
+                    otherCompensationPred)));
 
     // Generate query rewriting.
     RelNode rewrittenPlan = relBuilder
@@ -211,8 +214,8 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
         .filter(simplify.simplifyUnknownAsFalse(queryCompensationPred))
         .build();
     if (unionRewritingPullProgram != null) {
-      rewrittenPlan = newNode.copy(
-          newNode.getTraitSet(), ImmutableList.of(rewrittenPlan));
+      rewrittenPlan =
+          newNode.copy(newNode.getTraitSet(), ImmutableList.of(rewrittenPlan));
     }
     if (topProject != null) {
       return topProject.copy(topProject.getTraitSet(), ImmutableList.of(rewrittenPlan));
@@ -279,8 +282,9 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
     List<RexNode> viewExprs = topViewProject == null
         ? extractReferences(rexBuilder, viewNode)
         : topViewProject.getProjects();
-    List<RexNode> rewrittenExprs = rewriteExpressions(rexBuilder, mq, input, viewNode, viewExprs,
-        queryToViewTableMapping.inverse(), queryEC, true, exprsLineage);
+    List<RexNode> rewrittenExprs =
+        rewriteExpressions(rexBuilder, mq, input, viewNode, viewExprs,
+            queryToViewTableMapping.inverse(), queryEC, true, exprsLineage);
     if (rewrittenExprs == null) {
       return null;
     }

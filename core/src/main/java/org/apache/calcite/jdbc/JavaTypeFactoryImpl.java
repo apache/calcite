@@ -270,14 +270,14 @@ public class JavaTypeFactoryImpl
         // 1. type.getJavaClass() is collection with erased generic type
         // 2. ElementType returned by JavaType is also of JavaType,
         // and needs conversion using typeFactory
-        final RelDataType elementType = toSqlTypeWithNullToAny(
-            typeFactory, type.getComponentType());
+        final RelDataType elementType =
+            toSqlTypeWithNullToAny(typeFactory, type.getComponentType());
         relDataType = typeFactory.createArrayType(elementType, -1);
       } else if (SqlTypeUtil.isMap(type)) {
-        final RelDataType keyType = toSqlTypeWithNullToAny(
-            typeFactory, type.getKeyType());
-        final RelDataType valueType = toSqlTypeWithNullToAny(
-            typeFactory, type.getValueType());
+        final RelDataType keyType =
+            toSqlTypeWithNullToAny(typeFactory, type.getKeyType());
+        final RelDataType valueType =
+            toSqlTypeWithNullToAny(typeFactory, type.getValueType());
         relDataType = typeFactory.createMapType(keyType, valueType);
       } else {
         relDataType = typeFactory.createSqlType(sqlTypeName);

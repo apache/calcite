@@ -62,9 +62,10 @@ public class ProjectRemoveRule
     if (stripped instanceof Project) {
       // Rename columns of child projection if desired field names are given.
       Project childProject = (Project) stripped;
-      stripped = childProject.copy(childProject.getTraitSet(),
-          childProject.getInput(), childProject.getProjects(),
-          project.getRowType());
+      stripped =
+          childProject.copy(childProject.getTraitSet(),
+              childProject.getInput(), childProject.getProjects(),
+              project.getRowType());
     }
     stripped = convert(stripped, project.getConvention());
     call.transformTo(stripped);

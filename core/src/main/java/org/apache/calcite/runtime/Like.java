@@ -278,11 +278,9 @@ public class Like {
         case '[':
           javaPattern.append('[');
           insideCharacterEnumeration = true;
-          i = sqlSimilarRewriteCharEnumeration(
-              sqlPattern,
-              javaPattern,
-              i,
-              escapeChar);
+          i =
+              sqlSimilarRewriteCharEnumeration(sqlPattern, javaPattern,
+                  i, escapeChar);
           break;
         case ']':
           if (!insideCharacterEnumeration) {

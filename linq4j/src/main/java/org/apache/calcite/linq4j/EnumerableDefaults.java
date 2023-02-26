@@ -1915,8 +1915,8 @@ public abstract class EnumerableDefaults {
         // moment when we are sure
         // that it will be really needed, i.e. when the first outer
         // enumerator item is processed
-        final Supplier<Lookup<TKey, TInner>> innerLookup = Suppliers.memoize(
-            () ->
+        final Supplier<Lookup<TKey, TInner>> innerLookup =
+            Suppliers.memoize(() ->
                 comparer == null
                     ? inner.toLookup(innerKeySelector)
                     : inner.toLookup(innerKeySelector, comparer));
@@ -2656,8 +2656,8 @@ public abstract class EnumerableDefaults {
         // must supply a comparator if the key does not extend Comparable.
         // Otherwise there will be a ClassCastException while retrieving.
         final Map<TKey, List<TSource>> map = new TreeMap<>(comparator);
-        final LookupImpl<TKey, TSource> lookup = toLookup_(map, source, keySelector,
-            Functions.identitySelector());
+        final LookupImpl<TKey, TSource> lookup =
+            toLookup_(map, source, keySelector, Functions.identitySelector());
         return lookup.valuesEnumerable().enumerator();
       }
     };
@@ -3533,9 +3533,11 @@ public abstract class EnumerableDefaults {
       EqualityComparer<TKey> comparer) {
     // Use LinkedHashMap because groupJoin requires order of keys to be
     // preserved.
-    final Map<TKey, TElement> map = new WrapMap<>(
-        // Java 8 cannot infer return type with LinkedHashMap::new is used
-        () -> new LinkedHashMap<Wrapped<TKey>, TElement>(), comparer);
+    // Java 8 cannot infer return type with LinkedHashMap::new is used
+    @SuppressWarnings("Convert2MethodRef")
+    final Map<TKey, TElement> map =
+        new WrapMap<>(() -> new LinkedHashMap<Wrapped<TKey>, TElement>(),
+            comparer);
     try (Enumerator<TSource> os = source.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
@@ -4293,8 +4295,10 @@ public abstract class EnumerableDefaults {
               if (!advanceLeft(left, leftKey)) {
                 done = true;
               }
-              results = new CartesianProductJoinEnumerator<>(resultSelector,
-                  Linq4j.enumerator(lefts), Linq4j.enumerator(Collections.singletonList(null)));
+              results =
+                  new CartesianProductJoinEnumerator<>(resultSelector,
+                      Linq4j.enumerator(lefts),
+                      Linq4j.enumerator(Collections.singletonList(null)));
               return true;
             }
             if (!getLeftEnumerator().moveNext()) {
@@ -4350,8 +4354,10 @@ public abstract class EnumerableDefaults {
                   Linq4j.enumerator(rights));
         } else {
           // we must verify the non equi-join predicate, use nested loop join for that
-          results = nestedLoopJoin(Linq4j.asEnumerable(lefts), Linq4j.asEnumerable(rights),
-              extraPredicate, resultSelector, joinType).enumerator();
+          results =
+              nestedLoopJoin(Linq4j.asEnumerable(lefts),
+                  Linq4j.asEnumerable(rights), extraPredicate, resultSelector,
+                  joinType).enumerator();
         }
         return true;
       }

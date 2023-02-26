@@ -423,8 +423,8 @@ public class ScannableTableTest {
     properties.setProperty("caseSensitive", "true");
     try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:", properties)) {
-      final CalciteConnection calciteConnection = connection.unwrap(
-          CalciteConnection.class);
+      final CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
 
       final AtomicInteger scanCount = new AtomicInteger();
       final AtomicInteger enumerateCount = new AtomicInteger();

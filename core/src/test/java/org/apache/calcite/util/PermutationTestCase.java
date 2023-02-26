@@ -164,22 +164,25 @@ class PermutationTestCase {
         typeFactory.createSqlType(SqlTypeName.DOUBLE);
 
     // A project with [1, 1] is not a permutation, so should return null
-    final Permutation perm = Project.getPermutation(2,
-        ImmutableList.of(builder.makeInputRef(doubleType, 1),
-            builder.makeInputRef(doubleType, 1)));
+    final Permutation perm =
+        Project.getPermutation(2,
+            ImmutableList.of(builder.makeInputRef(doubleType, 1),
+                builder.makeInputRef(doubleType, 1)));
     assertThat(perm, nullValue());
 
     // A project with [0, 1, 0] is not a permutation, so should return null
-    final Permutation perm1 = Project.getPermutation(2,
-        ImmutableList.of(builder.makeInputRef(doubleType, 0),
-            builder.makeInputRef(doubleType, 1),
-            builder.makeInputRef(doubleType, 0)));
+    final Permutation perm1 =
+        Project.getPermutation(2,
+            ImmutableList.of(builder.makeInputRef(doubleType, 0),
+                builder.makeInputRef(doubleType, 1),
+                builder.makeInputRef(doubleType, 0)));
     assertThat(perm1, nullValue());
 
     // A project of [1, 0] is a valid permutation!
-    final Permutation perm2 = Project.getPermutation(2,
-        ImmutableList.of(builder.makeInputRef(doubleType, 1),
-            builder.makeInputRef(doubleType, 0)));
+    final Permutation perm2 =
+        Project.getPermutation(2,
+            ImmutableList.of(builder.makeInputRef(doubleType, 1),
+                builder.makeInputRef(doubleType, 0)));
     assertThat(perm2, is(new Permutation(new int[]{1, 0})));
   }
 }

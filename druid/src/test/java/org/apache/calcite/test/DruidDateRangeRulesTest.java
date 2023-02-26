@@ -175,14 +175,15 @@ class DruidDateRangeRulesTest {
     private final RexNode exDay;
 
     Fixture2() {
-      exYear = rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), ts));
-      exMonth = rexBuilder.makeCall(intRelDataType,
-          SqlStdOperatorTable.EXTRACT,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), ts));
-      exDay = rexBuilder.makeCall(intRelDataType,
-          SqlStdOperatorTable.EXTRACT,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), ts));
+      exYear =
+          rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), ts));
+      exMonth =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), ts));
+      exDay =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), ts));
     }
 
     public RexNode timestampLiteral(int year, int month, int day) {

@@ -2612,8 +2612,8 @@ public class DruidAdapter2IT {
    * {@link org.apache.calcite.adapter.druid.DruidSchema} is always the same Java object.
    * */
   @Test void testTableMapReused() {
-    AbstractSchema schema = new DruidSchema(
-        "http://localhost:8082", "http://localhost:8081", true);
+    AbstractSchema schema =
+        new DruidSchema("http://localhost:8082", "http://localhost:8081", true);
     assertSame(schema.getTable("wikiticker"), schema.getTable("wikiticker"));
   }
 

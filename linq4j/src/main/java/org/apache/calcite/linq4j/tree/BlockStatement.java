@@ -59,8 +59,8 @@ public class BlockStatement extends Statement {
 
   @Override public BlockStatement accept(Shuttle shuttle) {
     shuttle = shuttle.preVisit(this);
-    List<Statement> newStatements = Expressions.acceptStatements(statements,
-        shuttle);
+    List<Statement> newStatements =
+        Expressions.acceptStatements(statements, shuttle);
     return shuttle.visit(this, newStatements);
   }
 
