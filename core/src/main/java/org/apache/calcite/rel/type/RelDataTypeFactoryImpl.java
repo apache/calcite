@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.type;
 
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
@@ -38,7 +39,6 @@ import com.google.common.collect.Interners;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -490,10 +490,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
 
   private @Nullable List<RelDataTypeFieldImpl> fieldsOf(Class clazz) {
     final List<RelDataTypeFieldImpl> list = new ArrayList<>();
-    for (Field field : clazz.getFields()) {
-      if (Modifier.isStatic(field.getModifiers())) {
-        continue;
-      }
+    for (Field field : Types.getClassFields(clazz)) {
       list.add(
           new RelDataTypeFieldImpl(
               field.getName(),

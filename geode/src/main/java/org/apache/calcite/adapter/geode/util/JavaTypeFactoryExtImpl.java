@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.geode.util;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.JavaRecordType;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
@@ -27,7 +28,6 @@ import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.geode.pdx.PdxInstance;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,23 +42,17 @@ import java.util.Map;
 public class JavaTypeFactoryExtImpl
     extends JavaTypeFactoryImpl {
 
-  /**
-   * See <a href="http://stackoverflow.com/questions/16966629/what-is-the-difference-between-getfields-and-getdeclaredfields-in-java-reflectio">
-   *   the difference between fields and declared fields</a>.
-   */
   @Override public RelDataType createStructType(Class type) {
 
     final List<RelDataTypeField> list = new ArrayList<>();
-    for (Field field : type.getDeclaredFields()) {
-      if (!Modifier.isStatic(field.getModifiers())) {
-        // FIXME: watch out for recursion
-        final Type fieldType = field.getType();
-        list.add(
-            new RelDataTypeFieldImpl(
-                field.getName(),
-                list.size(),
-                createType(fieldType)));
-      }
+    for (Field field : Types.getClassFields(type, false)) {
+      // FIXME: watch out for recursion
+      final Type fieldType = field.getType();
+      list.add(
+          new RelDataTypeFieldImpl(
+              field.getName(),
+              list.size(),
+              createType(fieldType)));
     }
     return canonize(new JavaRecordType(list, type));
   }

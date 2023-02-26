@@ -23,7 +23,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -197,7 +196,7 @@ public class ConstantExpression extends Expression {
     if (constructor != null) {
       writer.append("new ").append(value.getClass());
       list(writer,
-          Arrays.stream(value.getClass().getFields())
+          Types.getClassFields(value.getClass()).stream()
               // <@Nullable Object> is needed for CheckerFramework
               .<@Nullable Object>map(field -> {
                 try {
@@ -281,8 +280,9 @@ public class ConstantExpression extends Expression {
   }
 
   private static @Nullable Constructor matchingConstructor(Object value) {
-    final Field[] fields = value.getClass().getFields();
-    for (Constructor<?> constructor : value.getClass().getConstructors()) {
+    final Class<?> clazz = value.getClass();
+    final Field[] fields = Types.getClassFields(clazz).toArray(new Field[0]);
+    for (Constructor<?> constructor : clazz.getConstructors()) {
       if (argsMatchFields(fields, constructor.getParameterTypes())) {
         return constructor;
       }

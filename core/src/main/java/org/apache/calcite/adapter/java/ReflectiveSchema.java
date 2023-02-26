@@ -27,6 +27,7 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -61,7 +62,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -75,6 +78,8 @@ public class ReflectiveSchema
     extends AbstractSchema {
   private final Class clazz;
   private final Object target;
+  private Types.FieldsOrdering fieldsOrdering;
+  private @Nullable Map<Class, List<Field>> classFieldsMap;
   private @MonotonicNonNull Map<String, Table> tableMap;
   private @MonotonicNonNull Multimap<String, Function> functionMap;
 
@@ -87,6 +92,32 @@ public class ReflectiveSchema
     super();
     this.clazz = target.getClass();
     this.target = target;
+    this.fieldsOrdering = Types.FieldsOrdering.CONSTRUCTOR;
+  }
+
+  /**
+   * Creates a ReflectiveSchema.
+   *
+   * @param target Object whose fields will be sub-objects of the schema
+   * @param fieldsOrdering ordering strategy for SQL type fields from the Object fields
+   */
+  public ReflectiveSchema(Object target, Types.FieldsOrdering fieldsOrdering) {
+    this(target);
+    this.fieldsOrdering = fieldsOrdering;
+  }
+
+  /**
+   * Creates a ReflectiveSchema.
+   *
+   * @param target Object whose fields will be sub-objects of the schema
+   * @param fieldsOrdering ordering strategy for SQL type fields from the Object fields
+   * @param classFieldsMap class to list of fields map for supporting user-provided field ordering
+   */
+  public ReflectiveSchema(Object target,
+      Types.FieldsOrdering fieldsOrdering, @Nullable Map<Class, List<Field>> classFieldsMap) {
+    this(target);
+    this.fieldsOrdering = fieldsOrdering;
+    this.classFieldsMap = classFieldsMap;
   }
 
   @Override public String toString() {
@@ -112,7 +143,7 @@ public class ReflectiveSchema
 
   private Map<String, Table> createTableMap() {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
-    for (Field field : clazz.getFields()) {
+    for (Field field : Types.getClassFields(clazz, true, fieldsOrdering, classFieldsMap)) {
       final String fieldName = field.getName();
       final Table table = fieldRelation(field);
       if (table == null) {
@@ -122,7 +153,7 @@ public class ReflectiveSchema
     }
     Map<String, Table> tableMap = builder.build();
     // Unique-Key - Foreign-Key
-    for (Field field : clazz.getFields()) {
+    for (Field field : Types.getClassFields(clazz, true, fieldsOrdering, classFieldsMap)) {
       if (RelReferentialConstraint.class.isAssignableFrom(field.getType())) {
         RelReferentialConstraint rc;
         try {
@@ -205,7 +236,7 @@ public class ReflectiveSchema
     requireNonNull(o, () -> "field " + field + " is null for " + target);
     @SuppressWarnings("unchecked")
     final Enumerable<T> enumerable = toEnumerable(o);
-    return new FieldTable<>(field, elementType, enumerable);
+    return new FieldTable<>(field, elementType, enumerable, fieldsOrdering, classFieldsMap);
   }
 
   /** Deduces the element type of a collection;
@@ -240,14 +271,27 @@ public class ReflectiveSchema
       extends AbstractQueryableTable
       implements Table, ScannableTable {
     private final Enumerable enumerable;
+    private final Types.FieldsOrdering fieldsOrdering;
+    private final @Nullable Map<Class, List<Field>> classFieldsMap;
 
-    ReflectiveTable(Type elementType, Enumerable enumerable) {
+    ReflectiveTable(Type elementType, Enumerable enumerable,
+        Types.FieldsOrdering fieldsOrdering, @Nullable Map<Class, List<Field>> classFieldsMap) {
       super(elementType);
       this.enumerable = enumerable;
+      this.fieldsOrdering = fieldsOrdering;
+      this.classFieldsMap = classFieldsMap;
     }
 
     @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-      return ((JavaTypeFactory) typeFactory).createType(elementType);
+      if (classFieldsMap == null) {
+        return ((JavaTypeFactory) typeFactory).createType(elementType);
+      }
+      Class clazz = Types.toClass(elementType);
+      List<Field> classFields = classFieldsMap.get(clazz);
+      if (classFields == null) {
+        return ((JavaTypeFactory) typeFactory).createType(elementType);
+      }
+      return ((JavaTypeFactory) typeFactory).createStructType(clazz, classFields);
     }
 
     @Override public Statistic getStatistic() {
@@ -260,7 +304,8 @@ public class ReflectiveSchema
         return enumerable;
       } else {
         //noinspection unchecked
-        return enumerable.select(new FieldSelector((Class) elementType));
+        return enumerable.select(
+            new FieldSelector((Class) elementType, fieldsOrdering, classFieldsMap));
       }
     }
 
@@ -270,7 +315,7 @@ public class ReflectiveSchema
           tableName) {
         @SuppressWarnings("unchecked")
         @Override public Enumerator<T> enumerator() {
-          return (Enumerator<T>) enumerable.enumerator();
+          return enumerable.enumerator();
         }
       };
     }
@@ -281,7 +326,8 @@ public class ReflectiveSchema
    *
    * <p>The following example instantiates a {@code FoodMart} object as a schema
    * that contains tables called {@code EMPS} and {@code DEPTS} based on the
-   * object's fields.
+   * object's fields. The order of the fields in the SQL types, derived from Java
+   * classes, is alphabetical.
    *
    * <blockquote><pre>
    * schemas: [
@@ -291,7 +337,8 @@ public class ReflectiveSchema
    *       factory: "org.apache.calcite.adapter.java.ReflectiveSchema$Factory",
    *       operand: {
    *         class: "com.acme.FoodMart",
-   *         staticMethod: "instance"
+   *         staticMethod: "instance",
+   *         fieldsOrdering: "ALPHABETICAL"
    *       }
    *     }
    *   ]
@@ -339,8 +386,61 @@ public class ReflectiveSchema
               e);
         }
       }
+      final Object fieldsOrdering = operand.get("fieldsOrdering");
+      Types.FieldsOrdering fieldsOrderingEnum = null;
+      if (fieldsOrdering != null) {
+        try {
+          fieldsOrderingEnum = Types.FieldsOrdering.valueOf((String) fieldsOrdering);
+        } catch (Exception e) {
+          throw new RuntimeException("Error deriving fields ordering enumeration: "
+              + fieldsOrdering, e);
+        }
+      }
+
+      if (fieldsOrderingEnum != null) {
+        final Object fieldsParam = operand.get("fields");
+
+        if (fieldsParam == null
+            && (fieldsOrderingEnum == Types.FieldsOrdering.EXPLICIT
+            || fieldsOrderingEnum == Types.FieldsOrdering.EXPLICIT_TOLERANT)) {
+          throw new RuntimeException("\"fields\" operand must be provided if fields ordering "
+              + "strategy is either \"" + Types.FieldsOrdering.EXPLICIT.name() + "\" or \""
+              + Types.FieldsOrdering.EXPLICIT_TOLERANT.name() + "\"");
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, List<String>> fieldsMap = (Map) fieldsParam;
+        Map<Class, List<Field>> classListMap = null;
+
+        if (fieldsMap != null) {
+          classListMap = new HashMap<>(fieldsMap.size());
+          for (Map.Entry<String, List<String>> entry : fieldsMap.entrySet()) {
+            String classString = entry.getKey();
+            try {
+              clazz = Class.forName(classString);
+              classListMap.put(clazz, fieldNamesToFields(clazz, entry.getValue()));
+            } catch (ClassNotFoundException e) {
+              throw new RuntimeException("Error loading class " + classString, e);
+            }
+          }
+        }
+        return new ReflectiveSchema(target, fieldsOrderingEnum, classListMap);
+      }
       return new ReflectiveSchema(target);
     }
+  }
+
+  private static List<Field> fieldNamesToFields(Class clazz, List<String> fieldNames) {
+    List<Field> classFields = new ArrayList<>();
+    for (String fieldName : fieldNames) {
+      try {
+        classFields.add(clazz.getField(fieldName));
+      } catch (NoSuchFieldException e) {
+        throw new RuntimeException("Error resolving field " + fieldName
+            + " in class " + clazz.getName(), e);
+      }
+    }
+    return classFields;
   }
 
   /** Table macro based on a Java method. */
@@ -379,13 +479,15 @@ public class ReflectiveSchema
     private final Field field;
     private Statistic statistic;
 
-    FieldTable(Field field, Type elementType, Enumerable<T> enumerable) {
-      this(field, elementType, enumerable, Statistics.UNKNOWN);
+    FieldTable(Field field, Type elementType, Enumerable<T> enumerable,
+        Types.FieldsOrdering fieldsOrdering, @Nullable Map<Class, List<Field>> classFieldsMap) {
+      this(field, elementType, enumerable, Statistics.UNKNOWN, fieldsOrdering, classFieldsMap);
     }
 
     FieldTable(Field field, Type elementType, Enumerable<T> enumerable,
-        Statistic statistic) {
-      super(elementType, enumerable);
+        Statistic statistic, Types.FieldsOrdering fieldsOrdering,
+        @Nullable Map<Class, List<Field>> classFieldsMap) {
+      super(elementType, enumerable, fieldsOrdering, classFieldsMap);
       this.field = field;
       this.statistic = statistic;
     }
@@ -413,8 +515,11 @@ public class ReflectiveSchema
   private static class FieldSelector implements Function1<Object, @Nullable Object[]> {
     private final Field[] fields;
 
-    FieldSelector(Class elementType) {
-      this.fields = elementType.getFields();
+    FieldSelector(Class elementType, Types.FieldsOrdering fieldsOrdering,
+        @Nullable Map<Class, List<Field>> classFieldsMap) {
+      this.fields =
+          Types.getClassFields(elementType, true, fieldsOrdering, classFieldsMap)
+          .toArray(new Field[0]);
     }
 
     @Override public @Nullable Object[] apply(Object o) {

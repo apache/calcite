@@ -88,6 +88,7 @@ val enableJacoco by props()
 val skipJandex by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
+val skipJavacParameterNames by props()
 val skipJavadoc by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
@@ -738,6 +739,9 @@ allprojects {
                 }
                 if (enableCheckerframework) {
                     options.forkOptions.memoryMaximumSize = "2g"
+                }
+                if (!skipJavacParameterNames) {
+                    options.compilerArgs.add("-parameters")
                 }
             }
             configureEach<Test> {

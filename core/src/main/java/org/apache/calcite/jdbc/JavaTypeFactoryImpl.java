@@ -75,16 +75,27 @@ public class JavaTypeFactoryImpl
 
   @Override public RelDataType createStructType(Class type) {
     final List<RelDataTypeField> list = new ArrayList<>();
-    for (Field field : type.getFields()) {
-      if (!Modifier.isStatic(field.getModifiers())) {
-        // FIXME: watch out for recursion
-        final Type fieldType = fieldType(field);
-        list.add(
-            new RelDataTypeFieldImpl(
-                field.getName(),
-                list.size(),
-                createType(fieldType)));
-      }
+    for (Field field : Types.getClassFields(type)) {
+      // FIXME: watch out for recursion
+      final Type fieldType = fieldType(field);
+      list.add(
+          new RelDataTypeFieldImpl(
+              field.getName(),
+              list.size(),
+              createType(fieldType)));
+    }
+    return canonize(new JavaRecordType(list, type));
+  }
+
+  @Override public RelDataType createStructType(Class type, List<Field> fields) {
+    final List<RelDataTypeField> list = new ArrayList<>();
+    for (Field field : fields) {
+      final Type fieldType = fieldType(field);
+      list.add(
+          new RelDataTypeFieldImpl(
+              field.getName(),
+              list.size(),
+              createType(fieldType)));
     }
     return canonize(new JavaRecordType(list, type));
   }

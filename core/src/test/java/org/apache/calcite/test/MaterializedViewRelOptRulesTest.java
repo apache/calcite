@@ -784,8 +784,8 @@ class MaterializedViewRelOptRulesTest {
     String plan = ""
         + "EnumerableAggregate(group=[{8}], num_emps=[$SUM0($1)])\n"
         + "  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[FLAG(YEAR)], "
-        + "expr#9=[FLOOR($t3, $t8)], proj#0..7=[{exprs}], $f8=[$t9])\n"
-        + "    EnumerableHashJoin(condition=[=($0, $4)], joinType=[inner])\n"
+        + "expr#9=[FLOOR($t7, $t8)], proj#0..7=[{exprs}], $f8=[$t9])\n"
+        + "    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])\n"
         + "      EnumerableTableScan(table=[[hr, MV0]])\n"
         + "      EnumerableTableScan(table=[[hr, depts2]])\n";
     sql(m, q)
