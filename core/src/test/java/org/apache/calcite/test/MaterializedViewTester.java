@@ -109,6 +109,9 @@ public abstract class MaterializedViewTester {
   private TestConfig build(MaterializedViewFixture f) {
     return Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
       cluster.getPlanner().setExecutor(new RexExecutorImpl(DataContexts.EMPTY));
+      if (f.relMetadataProvider != null) {
+        cluster.setMetadataProvider(f.relMetadataProvider);
+      }
       try {
         final SchemaPlus defaultSchema;
         if (f.schemaSpec == null) {

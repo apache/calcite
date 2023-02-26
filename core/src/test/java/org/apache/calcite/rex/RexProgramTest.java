@@ -17,6 +17,7 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
@@ -3042,6 +3043,44 @@ class RexProgramTest extends RexProgramTestBase {
         is(NullSentinel.INSTANCE));
     assertThat(eval(and(this.trueLiteral, falseLiteral)),
         is(false));
+  }
+
+  private void assertFloorCeil(String timestampString, String expectedFloorString,
+      String expectedCeilString, TimeUnitRange timeUnitRange) {
+    final RexLiteral timestampLiteral = rexBuilder.makeTimestampLiteral(
+        new TimestampString(timestampString), 3);
+    final RexLiteral flagLiteral = rexBuilder.makeFlag(timeUnitRange);
+
+    final RexNode flooredLiteral = rexBuilder.makeCall(SqlStdOperatorTable.FLOOR,
+        ImmutableList.of(timestampLiteral, flagLiteral));
+    final long expectedFloorValue = new TimestampString(expectedFloorString).getMillisSinceEpoch();
+    assertThat(eval(flooredLiteral), is(expectedFloorValue));
+
+    final RexNode ceiledLiteral = rexBuilder.makeCall(SqlStdOperatorTable.CEIL,
+        ImmutableList.of(timestampLiteral, flagLiteral));
+    long expectedCeiledFloorValue = new TimestampString(expectedCeilString).getMillisSinceEpoch();
+    assertThat(eval(ceiledLiteral), is(expectedCeiledFloorValue));
+  }
+
+  @Test void testInterpreterFloorCeil() {
+    final String timestampString1 = "2011-07-20 12:34:18.123";
+    assertFloorCeil(timestampString1, "2011-07-20 12:34:18", "2011-07-20 12:34:19",
+        TimeUnitRange.SECOND);
+    assertFloorCeil(timestampString1, "2011-07-20 12:34:00", "2011-07-20 12:35:00",
+        TimeUnitRange.MINUTE);
+    assertFloorCeil(timestampString1, "2011-07-20 12:00:00", "2011-07-20 13:00:00",
+        TimeUnitRange.HOUR);
+    assertFloorCeil(timestampString1, "2011-07-20 00:00:00", "2011-07-21 00:00:00",
+        TimeUnitRange.DAY);
+    final String timestampString2 = "2011-07-20 12:34:59.078";
+    assertFloorCeil(timestampString2, "2011-07-17 00:00:00", "2011-07-24 00:00:00",
+        TimeUnitRange.WEEK);
+    assertFloorCeil(timestampString2, "2011-07-01 00:00:00", "2011-08-01 00:00:00",
+        TimeUnitRange.MONTH);
+    assertFloorCeil(timestampString2, "2011-07-01 00:00:00", "2011-10-01 00:00:00",
+        TimeUnitRange.QUARTER);
+    assertFloorCeil(timestampString2, "2011-01-01 00:00:00", "2012-01-01 00:00:00",
+        TimeUnitRange.YEAR);
   }
 
   @Test void testIsNullRecursion() {

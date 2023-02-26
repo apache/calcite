@@ -19,17 +19,21 @@ package org.apache.calcite.rel.rules.materialize;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.CoreRules;
@@ -38,6 +42,7 @@ import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
@@ -47,6 +52,7 @@ import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -242,7 +248,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       @Nullable Project topProject,
       RelNode node,
       BiMap<RelTableRef, RelTableRef> queryToViewTableMapping,
-      EquivalenceClasses viewEC, EquivalenceClasses queryEC) {
+      EquivalenceClasses viewEC, EquivalenceClasses queryEC, boolean viewRewritten) {
     Aggregate aggregate = (Aggregate) node;
 
     // Our target node is the node below the root, which should have the maximum
@@ -268,7 +274,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     if (!compensationColumnsEquiPred.isAlwaysTrue()) {
       RexNode newCompensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
           target, target, queryExprs, queryToViewTableMapping, queryEC, false,
-          compensationColumnsEquiPred);
+          compensationColumnsEquiPred, viewRewritten);
       if (newCompensationColumnsEquiPred == null) {
         // Skip it
         return null;
@@ -279,7 +285,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     if (!otherCompensationPred.isAlwaysTrue()) {
       RexNode newOtherCompensationPred = rewriteExpression(rexBuilder, mq,
           target, target, queryExprs, queryToViewTableMapping, viewEC, true,
-          otherCompensationPred);
+          otherCompensationPred, viewRewritten);
       if (newOtherCompensationPred == null) {
         // Skip it
         return null;
@@ -292,10 +298,17 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
                 otherCompensationPred)));
 
     // Generate query rewriting.
-    RelNode rewrittenPlan = relBuilder
-        .push(target)
-        .filter(simplify.simplifyUnknownAsFalse(queryCompensationPred))
-        .build();
+    RelNode rewrittenPlan;
+    if (viewRewritten) {
+      rewrittenPlan = target.accept(
+          new QueryCompensationPredicateHandler(
+          rexBuilder, queryCompensationPred));
+    } else {
+      rewrittenPlan = relBuilder
+          .push(target)
+          .filter(simplify.simplifyUnknownAsFalse(queryCompensationPred))
+          .build();
+    }
     if (config.unionRewritingPullProgram() != null) {
       return aggregate.copy(aggregate.getTraitSet(),
           ImmutableList.of(
@@ -303,6 +316,38 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
                   ImmutableList.of(rewrittenPlan))));
     }
     return aggregate.copy(aggregate.getTraitSet(), ImmutableList.of(rewrittenPlan));
+  }
+
+  /**
+   * Push the queryCompensationPred down into any filter that is present in the plan.
+   */
+  private static class QueryCompensationPredicateHandler extends RelShuttleImpl {
+    private final RexBuilder rexBuilder;
+    private final RexNode queryCompensationPred;
+
+    QueryCompensationPredicateHandler(RexBuilder rexBuilder, RexNode queryCompensationPred) {
+      this.rexBuilder = rexBuilder;
+      this.queryCompensationPred = queryCompensationPred;
+    }
+
+    @Override public RelNode visit(LogicalFilter filter) {
+      RexNode condition =
+          RexUtil.flatten(rexBuilder,
+              rexBuilder.makeCall(
+                  SqlStdOperatorTable.AND,
+                  filter.getCondition(),
+                  queryCompensationPred));
+      return filter.copy(filter.getTraitSet(), filter.getInput(), condition);
+    }
+
+    @Override public RelNode visit(RelNode other) {
+      if (other instanceof RelSubset) {
+        RelSubset relSubset = (RelSubset) other;
+        return relSubset.getBestOrOriginal().accept(this);
+      } else {
+        return visitChildren(other);
+      }
+    }
   }
 
   @Override protected @Nullable RelNode createUnion(RelBuilder relBuilder, RexBuilder rexBuilder,
@@ -908,6 +953,70 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       }
     }
     return Pair.of(resultTopViewProject, requireNonNull(resultViewNode, "resultViewNode"));
+  }
+
+
+
+  /**
+   * If the view contains FLOOR(col) and the query contains a range predicate on col then
+   * rewrite the view to include a predicate based on the query predicate so that the view
+   * can be used.
+   * @return pair of view and added view predicate, or null if the rewrite can't be done
+   */
+  @Override public @Nullable Pair<RelNode, RexNode> rewriteInputView(RelOptRuleCall call,
+      RelNode view, RelNode viewNode, RexBuilder rexBuilder, Pair<RexNode, RexNode> queryPreds,
+      RexNode viewPred) {
+    if (queryPreds.right != null && !queryPreds.right.isAlwaysTrue() && viewPred.isAlwaysTrue()) {
+      // If there is no view predicate add one based on the query predicate if the
+      // view is a rollup (contains an aggregation that groups by FLOOR)
+      if (viewNode instanceof Aggregate) {
+        Aggregate aggregate = (Aggregate) viewNode;
+        RelNode input = aggregate.getInput();
+        if (input instanceof Project) {
+          Project project = (Project) input;
+          int viewColumnIndex = 0;
+          for (RexNode rexNode : project.getProjects()) {
+            if (rexNode instanceof RexCall) {
+              RexCall rexCall = (RexCall) rexNode;
+              if (rexCall.getKind() == SqlKind.FLOOR) {
+                Pair<RelNode, RexNode> viewAndViewPredicate = getViewAndViewPredicate(call, view,
+                    rexBuilder, queryPreds, rexCall, viewColumnIndex);
+                if (viewAndViewPredicate != null) {
+                  return viewAndViewPredicate;
+                }
+              }
+            }
+            viewColumnIndex++;
+          }
+        }
+      }
+      return null;
+    }
+    // return original view and viewPred
+    return Pair.of(view, viewPred);
+  }
+
+  /**
+   * Uses ImplicitViewPredicateShuttle to generate a view predicate that will be added to the view.
+   * @return pair of view and added view predicate, or null if the rewrite can't be done
+   */
+  private @Nullable Pair<RelNode, RexNode> getViewAndViewPredicate(RelOptRuleCall call,
+      RelNode view, RexBuilder rexBuilder, Pair<RexNode, RexNode> queryPreds, RexCall rexCall,
+      int viewColumnIndex) {
+    ImplicitViewPredicateShuttle viewPredicateShuttleRangeMatcher =
+        new ImplicitViewPredicateShuttle(rexBuilder, rexCall, null);
+    RexNode viewPredicate = queryPreds.right.accept(viewPredicateShuttleRangeMatcher);
+    if (viewPredicateShuttleRangeMatcher.isRangeMatched()) {
+      RexInputRef viewInputRef = RexInputRef.of(viewColumnIndex, view.getRowType());
+      ImplicitViewPredicateShuttle viewPredicateShuttleFilterGenerator =
+          new ImplicitViewPredicateShuttle(rexBuilder, rexCall, viewInputRef);
+      RexNode viewFilter = queryPreds.right.accept(viewPredicateShuttleFilterGenerator);
+      RelBuilder builder =
+          call.builder().transform(c -> c.withPruneInputOfAggregate(false));
+      RelNode rewrittenView = builder.push(view).filter(viewFilter).build();
+      return new Pair<>(rewrittenView, viewPredicate);
+    }
+    return null;
   }
 
   /**

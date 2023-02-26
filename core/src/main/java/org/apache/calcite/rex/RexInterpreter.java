@@ -328,11 +328,15 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     if (values.get(0) == N) {
       return N;
     }
-    final Long v = (Long) values.get(0);
+    Long v = (Long) values.get(0);
     final TimeUnitRange unit = (TimeUnitRange) values.get(1);
     switch (unit) {
     case YEAR:
+    case QUARTER:
     case MONTH:
+    case WEEK:
+    case DAY:
+      v = ceilSubDay(call.getKind(), v, TimeUnitRange.DAY);
       switch (call.getKind()) {
       case FLOOR:
         return DateTimeUtils.unixTimestampFloor(unit, v);
@@ -342,22 +346,17 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     default:
       break;
     }
-    final TimeUnitRange subUnit = subUnit(unit);
-    for (long v2 = v;;) {
-      final int e = DateTimeUtils.unixTimestampExtract(subUnit, v2);
-      if (e == 0) {
-        return v2;
-      }
-      v2 -= unit.startUnit.multiplier.longValue();
-    }
+    return ceilSubDay(call.getKind(), v, unit);
   }
 
-  private static TimeUnitRange subUnit(TimeUnitRange unit) {
-    switch (unit) {
-    case QUARTER:
-      return TimeUnitRange.MONTH;
+  private static long ceilSubDay(SqlKind kind, Long v, TimeUnitRange unit) {
+    switch (kind) {
+    case FLOOR:
+      return SqlFunctions.floor(v, unit.startUnit.multiplier.longValue());
+    case CEIL:
+      return SqlFunctions.ceil(v, unit.startUnit.multiplier.longValue());
     default:
-      return TimeUnitRange.DAY;
+      throw new AssertionError();
     }
   }
 

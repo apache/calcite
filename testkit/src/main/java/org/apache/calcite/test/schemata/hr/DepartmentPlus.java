@@ -30,4 +30,10 @@ public class DepartmentPlus extends Department {
     super(deptno, name, employees, location);
     this.inceptionDate = inceptionDate;
   }
+
+  public DepartmentPlus(Timestamp inceptionDate, int deptno, String name,
+      List<Employee> employees, Location location) {
+    super(deptno, name, employees, location);
+    this.inceptionDate = inceptionDate;
+  }
 }

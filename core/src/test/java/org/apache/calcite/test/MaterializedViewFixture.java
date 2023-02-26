@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -34,22 +35,25 @@ public class MaterializedViewFixture {
   public final CalciteAssert.@Nullable SchemaSpec schemaSpec;
   public final ImmutableList<Pair<String, String>> materializationList;
   public final @Nullable Predicate<String> checker;
+  public final @Nullable RelMetadataProvider relMetadataProvider;
 
   public static MaterializedViewFixture create(String query,
       MaterializedViewTester tester) {
     return new MaterializedViewFixture(tester, query, null, ImmutableList.of(),
-        null);
+        null, null);
   }
 
   private MaterializedViewFixture(MaterializedViewTester tester, String query,
       CalciteAssert.@Nullable SchemaSpec schemaSpec,
       ImmutableList<Pair<String, String>> materializationList,
-      @Nullable Predicate<String> checker) {
+      @Nullable Predicate<String> checker,
+      @Nullable RelMetadataProvider relMetadataProvider) {
     this.query = query;
     this.tester = tester;
     this.schemaSpec = schemaSpec;
     this.materializationList = materializationList;
     this.checker = checker;
+    this.relMetadataProvider = relMetadataProvider;
   }
 
   public void ok() {
@@ -66,7 +70,7 @@ public class MaterializedViewFixture {
       return this;
     }
     return new MaterializedViewFixture(tester, query, schemaSpec,
-        materializationList, checker);
+        materializationList, checker, relMetadataProvider);
   }
 
   public MaterializedViewFixture withMaterializations(
@@ -77,7 +81,7 @@ public class MaterializedViewFixture {
       return this;
     }
     return new MaterializedViewFixture(tester, query, schemaSpec,
-        materializationList, checker);
+        materializationList, checker, relMetadataProvider);
   }
 
   public MaterializedViewFixture withQuery(String query) {
@@ -85,7 +89,7 @@ public class MaterializedViewFixture {
       return this;
     }
     return new MaterializedViewFixture(tester, query, schemaSpec,
-        materializationList, checker);
+        materializationList, checker, relMetadataProvider);
   }
 
   public MaterializedViewFixture withChecker(Predicate<String> checker) {
@@ -93,7 +97,16 @@ public class MaterializedViewFixture {
       return this;
     }
     return new MaterializedViewFixture(tester, query, schemaSpec,
-        materializationList, checker);
+        materializationList, checker, relMetadataProvider);
+  }
+
+  public MaterializedViewFixture withMetadataProvider(
+      @Nullable RelMetadataProvider relMetadataProvider) {
+    if (relMetadataProvider == this.relMetadataProvider) {
+      return this;
+    }
+    return new MaterializedViewFixture(tester, query, schemaSpec,
+        materializationList, checker, relMetadataProvider);
   }
 
   public MaterializedViewFixture checkingThatResultContains(
