@@ -1107,16 +1107,52 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlAvgAggFunction(SqlKind.STDDEV_POP);
 
   /**
+   * <code>REGR_AVGX</code> aggregate function.
+   */
+  public static final SqlAggFunction REGR_AVGX =
+      new SqlCovarAggFunction(SqlKind.REGR_AVGX);
+
+  /**
+   * <code>REGR_AVGY</code> aggregate function.
+   */
+  public static final SqlAggFunction REGR_AVGY =
+      new SqlCovarAggFunction(SqlKind.REGR_AVGY);
+
+  /**
    * <code>REGR_COUNT</code> aggregate function.
    */
   public static final SqlAggFunction REGR_COUNT =
       new SqlRegrCountAggFunction(SqlKind.REGR_COUNT);
 
   /**
+   * <code>REGR_INTERCEPT</code> aggregate function.
+   */
+  public static final SqlAggFunction REGR_INTERCEPT =
+      new SqlCovarAggFunction(SqlKind.REGR_INTERCEPT);
+
+  /**
+   * <code>REGR_R2</code> aggregate function.
+   */
+  public static final SqlAggFunction REGR_R2 =
+      new SqlCovarAggFunction(SqlKind.REGR_R2);
+
+  /**
+   * <code>REGR_SLOPE</code> aggregate function.
+   */
+  public static final SqlAggFunction REGR_SLOPE =
+      new SqlCovarAggFunction(SqlKind.REGR_SLOPE);
+
+  /**
    * <code>REGR_SXX</code> aggregate function.
    */
   public static final SqlAggFunction REGR_SXX =
       new SqlCovarAggFunction(SqlKind.REGR_SXX);
+
+  /**
+   * <code>REGR_SXY</code> aggregate function.
+   */
+  public static final SqlAggFunction REGR_SXY =
+      new SqlCovarAggFunction(SqlKind.REGR_SXY);
 
   /**
    * <code>REGR_SYY</code> aggregate function.
@@ -1135,6 +1171,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlAggFunction COVAR_SAMP =
       new SqlCovarAggFunction(SqlKind.COVAR_SAMP);
+
+  /**
+   * <code>CORR</code> aggregate function.
+   */
+  public static final SqlAggFunction CORR =
+      new SqlCovarAggFunction(SqlKind.CORR);
 
   /**
    * <code>STDDEV_SAMP</code> aggregate function.
