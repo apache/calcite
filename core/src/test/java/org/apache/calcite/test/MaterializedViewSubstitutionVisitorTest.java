@@ -1259,6 +1259,74 @@ public class MaterializedViewSubstitutionVisitorTest {
     sql(mv, query).ok();
   }
 
+  /**
+   * It's match, when roll up query's grouping with mv's agg-call.
+   */
+  @Test void testRollupWithGroupingAggCall1() {
+    final String mv = ""
+        + "select \"deptno\", \"salary\", min(\"commission\")"
+        + "from \"emps\" group by \"deptno\", \"salary\"";
+    final String query = ""
+        + "select \"deptno\", max(\"salary\"), min(\"commission\"), \"salary\""
+        + "from \"emps\" group by \"deptno\", \"salary\"";
+    sql(mv, query)
+        .withChecker(
+            resultContains(""
+                + "LogicalCalc(expr#0..3=[{inputs}], deptno=[$t0], EXPR$1=[$t3], EXPR$2=[$t2], "
+                + "salary=[$t1])\n"
+                + "  LogicalAggregate(group=[{0, 1, 2}], EXPR$1=[MAX($1)])\n"
+                + "    LogicalCalc(expr#0..2=[{inputs}], proj#0..2=[{exprs}])\n"
+                + "      EnumerableTableScan(table=[[hr, MV0]])"))
+        .ok();
+  }
+
+  /**
+   * It's match, when roll up query's grouping with mv's agg-call.
+   * Mv has more agg-calls.
+   */
+  @Test void testRollupWithGroupingAggCall2() {
+    final String mv = ""
+        + "select \"deptno\", \"salary\", sum(\"commission\"), min(\"commission\")"
+        + "from \"emps\" group by \"deptno\", \"salary\"";
+    final String query = ""
+        + "select \"deptno\", max(\"salary\"), min(\"commission\"), \"salary\""
+        + "from \"emps\" group by \"deptno\", \"salary\"";
+    sql(mv, query)
+        .withChecker(
+            resultContains(""
+                + "LogicalCalc(expr#0..3=[{inputs}], deptno=[$t0], EXPR$1=[$t3], EXPR$2=[$t2], "
+                + "salary=[$t1])\n"
+                + "  LogicalAggregate(group=[{0, 1, 2}], EXPR$1=[MAX($1)])\n"
+                + "    LogicalCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}], EXPR$3=[$t3])\n"
+                + "      EnumerableTableScan(table=[[hr, MV0]])"))
+        .ok();
+  }
+
+  /**
+   * It's match, when roll up query's grouping with mv's agg-call.
+   * Query has constant filter.
+   */
+  @Test void testRollupWithGroupingAggCall3() {
+    final String mv = ""
+        + "select \"deptno\", \"salary\", sum(\"commission\"), min(\"commission\")"
+        + "from \"emps\" group by \"deptno\", \"salary\"";
+    final String query = ""
+        + "select \"deptno\", max(\"salary\"), min(\"commission\"), \"salary\""
+        + "from \"emps\" "
+        + "where \"deptno\" = 1"
+        + "group by \"deptno\", \"salary\"";
+    sql(mv, query)
+        .withChecker(
+            resultContains(""
+                + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[1], deptno=[$t3], EXPR$1=[$t2], "
+                + "EXPR$2=[$t1], salary=[$t0])\n"
+                + "  LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($0)])\n"
+                + "    LogicalCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[CAST($t0):INTEGER "
+                + "NOT NULL], expr#6=[=($t4, $t5)], salary=[$t1], EXPR$3=[$t3], $condition=[$t6])\n"
+                + "      EnumerableTableScan(table=[[hr, MV0]])"))
+        .ok();
+  }
+
   /** Unit test for logic functions
    * {@link org.apache.calcite.plan.SubstitutionVisitor#mayBeSatisfiable} and
    * {@link RexUtil#simplify}. */
