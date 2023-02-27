@@ -4408,7 +4408,7 @@ public class SqlToRelConverter {
 
     // NOTE: We currently require a SqlCreateTable to have a query in valiation,
     // so the call to requireNonNull is valid here
-    RelRoot relRoot = convertQueryRecursive(requireNonNull(call.query), false, null);
+    RelRoot relRoot = convertQueryRecursive(requireNonNull(call.getQuery()), false, null);
 
     return LogicalTableCreate.create(
         relRoot.rel,

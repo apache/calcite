@@ -39,9 +39,12 @@ import java.util.Objects;
  * Parse tree for {@code CREATE TABLE} statement.
  */
 public class SqlCreateTable extends SqlCreate {
-  public final SqlIdentifier name;
-  public final @Nullable SqlNodeList columnList;
-  public final @Nullable SqlNode query;
+
+  // These values should only be changed by calls to setOperand,
+  // which should only be called during unconditional rewrite.
+  private SqlIdentifier name;
+  private @Nullable SqlNodeList columnList;
+  private @Nullable SqlNode query;
 
 
   /* set during validation, null before that point */
@@ -66,7 +69,24 @@ public class SqlCreateTable extends SqlCreate {
     return ImmutableNullableList.of(name, columnList, query);
   }
 
-
+  @SuppressWarnings("assignment.type.incompatible")
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
+    switch (i) {
+    case 0:
+      assert operand instanceof SqlIdentifier;
+      name = (SqlIdentifier) operand;
+      break;
+    case 1:
+      assert operand instanceof SqlNodeList;
+      columnList = (SqlNodeList) operand;
+      break;
+    case 2:
+      query = operand;
+      break;
+    default:
+      throw new AssertionError(i);
+    }
+  }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     writer.keyword("CREATE");
@@ -104,6 +124,17 @@ public class SqlCreateTable extends SqlCreate {
     this.outputTableSchemaPath = path;
   }
 
+  public @Nullable SqlIdentifier getName() {
+    return name;
+  }
+
+  public @Nullable SqlNodeList getcolumnList() {
+    return columnList;
+  }
+  public @Nullable SqlNode getQuery() {
+    return query;
+  }
+
   public @Nullable Schema getOutputTableSchema() {
     return outputTableSchema;
   }
@@ -112,9 +143,8 @@ public class SqlCreateTable extends SqlCreate {
     return outputTableSchemaPath;
   }
 
-  public @Nullable String getOutputTableName() {
+  public String getOutputTableName() {
     return outputTableName;
   }
-
 
 }
