@@ -90,7 +90,11 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
-import org.apache.calcite.util.*;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.Util;
+import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
