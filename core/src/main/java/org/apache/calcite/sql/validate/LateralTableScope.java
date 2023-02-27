@@ -17,7 +17,6 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlSelect;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -29,34 +28,26 @@ import java.util.Objects;
  * <p>The objects visible are those in the parameters found on the left side of
  * the LATERAL TABLE clause, and objects inherited from the parent scope.
  */
-class TableScope extends ListScope {
-  //~ Instance fields --------------------------------------------------------
-
+public class LateralTableScope extends ListScope {
   private final SqlNode node;
-
-  //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a scope corresponding to a LATERAL TABLE clause.
    *
    * @param parent  Parent scope
    */
-  TableScope(SqlValidatorScope parent, SqlNode node) {
+  LateralTableScope(SqlValidatorScope parent, SqlNode node) {
     super(Objects.requireNonNull(parent, "parent"));
     this.node = Objects.requireNonNull(node, "node");
   }
-
-  //~ Methods ----------------------------------------------------------------
 
   @Override public SqlNode getNode() {
     return node;
   }
 
   @Override public boolean isWithin(@Nullable SqlValidatorScope scope2) {
-    if (this == scope2) {
-      return true;
-    }
-    SqlValidatorScope s = getValidator().getSelectScope((SqlSelect) node);
-    return s.isWithin(scope2);
+    return this == scope2
+        || (scope2 instanceof JoinScope && node == scope2.getNode())
+        || super.isWithin(scope2);
   }
 }

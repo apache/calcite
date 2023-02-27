@@ -2134,6 +2134,12 @@ public class Util {
     return list.subList(list.size() - n, list.size());
   }
 
+  /** Returns the only element in a list. */
+  public static <E> E getOnlyElement(List<E> list) {
+    Preconditions.checkArgument(list.size() == 1);
+    return list.get(0);
+  }
+
   /** Returns all but the first element of a list. */
   public static <E> List<E> skip(List<E> list) {
     return skip(list, 1);

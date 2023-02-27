@@ -4995,7 +4995,7 @@ public class JdbcTest {
         + " where \"emps\".\"deptno\"=\"depts\".\"deptno\")";
     final String plan = ""
         + "LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
-        + "  LogicalFilter(condition=[EXISTS({\n"
+        + "  LogicalFilter(condition=[EXISTS($cor0, {\n"
         + "LogicalFilter(condition=[=($cor0.deptno, $0)])\n"
         + "  LogicalTableScan(table=[[hr, depts]])\n"
         + "})], variablesSet=[[$cor0]])\n"

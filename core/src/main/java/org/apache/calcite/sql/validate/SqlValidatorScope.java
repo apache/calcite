@@ -315,9 +315,6 @@ public interface SqlValidatorScope {
 
     @Override public void found(SqlValidatorNamespace namespace, boolean nullable,
         @Nullable SqlValidatorScope scope, Path path, @Nullable List<String> remainingNames) {
-      if (scope instanceof TableScope) {
-        scope = scope.getValidator().getSelectScope((SqlSelect) scope.getNode());
-      }
       if (scope instanceof AggregatingSelectScope) {
         scope = ((AggregatingSelectScope) scope).parent;
         assert scope instanceof SelectScope;
@@ -355,7 +352,6 @@ public interface SqlValidatorScope {
       this.namespace = Objects.requireNonNull(namespace, "namespace");
       this.nullable = nullable;
       this.scope = scope;
-      assert !(scope instanceof TableScope);
       this.path = Objects.requireNonNull(path, "path");
       this.remainingNames = remainingNames == null ? ImmutableList.of()
           : ImmutableList.copyOf(remainingNames);

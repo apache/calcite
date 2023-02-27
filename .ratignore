@@ -14,6 +14,7 @@
 **/data2.txt
 .idea/vcs.xml
 example/csv/src/test/resources/smoke_test.sql
+piglet/src/test/resources/input.data
 
 # TODO: remove when pom.xml files are removed
 src/main/config/licenses

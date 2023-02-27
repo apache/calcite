@@ -92,6 +92,9 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
 
   private static RelNode optimize(RelNode rootRel) {
     final HepProgram hepProgram = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE)
+        .addRuleInstance(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .addRuleInstance(CoreRules.JOIN_SUB_QUERY_TO_CORRELATE)
         .addRuleInstance(CoreRules.CALC_SPLIT)
         .addRuleInstance(CoreRules.FILTER_SCAN)
         .addRuleInstance(CoreRules.FILTER_INTERPRETER_SCAN)

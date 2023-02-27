@@ -79,6 +79,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -1180,6 +1181,30 @@ public class EnumUtils {
         v -= timeZone.getOffset(v);
         return new Timestamp(v);
       };
+    case MULTISET: {
+      RelDataType componentType = requireNonNull(type.getComponentType());
+      Function<Object, Object> subEx = toExternal(componentType, timeZone);
+      return o -> {
+        List<? extends Object> l = (List<? extends Object>) o;
+        return l.stream()
+            .map(subEx)
+            .collect(Collectors.toList());
+      };
+    }
+    case CHAR: {
+      StringBuilder sb = new StringBuilder();
+      return o -> {
+        if (o instanceof String) {
+          return o;
+        }
+        sb.setLength(0);
+        @Nullable Object[] a = (@Nullable Object[]) o;
+        for (Object obj : a) {
+          sb.append(obj);
+        }
+        return sb.toString();
+      };
+    }
     default:
       return Function.identity();
     }
