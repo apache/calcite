@@ -59,7 +59,6 @@ import org.apache.calcite.util.interval.SparkDateTimestampInterval;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -83,6 +82,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
+import static org.apache.calcite.util.Util.isFormatSqlBasicCall;
 import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
 
 import static  org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
@@ -1004,10 +1004,5 @@ public class SparkSqlDialect extends SqlDialect {
     final SqlWriter.Frame stringFrame = writer.startFunCall("STRING");
     ((SqlCall) call).operand(1).unparse(writer, 0, 0);
     writer.endFunCall(stringFrame);
-  }
-
-  private boolean isFormatSqlBasicCall(SqlNode sqlNode) {
-    return sqlNode instanceof SqlBasicCall && ((SqlBasicCall) sqlNode).getOperator()
-        .toString().equals("FORMAT");
   }
 }
