@@ -16,10 +16,7 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.avatica.util.TimeUnit;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
@@ -28,19 +25,15 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import static org.apache.calcite.sql.fun.BodoSqlTimestampAddFunction.standardizeTimeUnit;
-import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
-import static org.apache.calcite.util.Static.RESOURCE;
-
 /**
  * The <code>TIMESTAMPDIFF</code> function, which calculates the difference
- * between two timestamps.
+ * between two datetimes (TIMESTAMP, TIME or DATE).
  *
  * <p>The SQL syntax is
  *
  * <blockquote>
- * <code>TIMESTAMPDIFF(<i>timestamp interval</i>, <i>timestamp</i>,
- * <i>timestamp</i>)</code>
+ * <code>TIMESTAMPDIFF(<i>time interval</i>, <i>datetime</i>,
+ * <i>datetime</i>)</code>
  * </blockquote>
  *
  * <p>The interval time unit can one of the following literals:<ul>
@@ -64,32 +57,8 @@ public class BodoSqlTimestampDiffFunction extends SqlFunction {
   private static final SqlReturnTypeInference RETURN_TYPE_INFERENCE =
       opBinding -> {
         final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-        assert opBinding instanceof SqlCallBinding;
-        SqlCallBinding opBindingWithCast = (SqlCallBinding) opBinding;
-        RelDataType arg0Type = opBindingWithCast.getOperandType(0);
-        TimeUnit arg0timeUnit;
-        switch (arg0Type.getSqlTypeName()) {
-        case CHAR:
-        case VARCHAR:
-          //This will fail if the value is a non-literal
-          try {
-            arg0timeUnit = standardizeTimeUnit("TIMESTAMPDIFF",
-                opBindingWithCast.getOperandLiteralValue(0, String.class),
-                opBindingWithCast.getOperandType(2).getSqlTypeName() == SqlTypeName.TIME);
-          } catch (Throwable e) {
-            throw opBindingWithCast.getValidator().newValidationError(opBindingWithCast.getCall(),
-                RESOURCE.functionUndefined("Wrong time unit input"));
-          }
-          break;
 
-        default:
-          arg0timeUnit = getOperandLiteralValueOrThrow(opBinding, 0, TimeUnit.class);
-        }
-
-        SqlTypeName sqlTypeName =
-            arg0timeUnit == TimeUnit.NANOSECOND
-                ? SqlTypeName.BIGINT
-                : SqlTypeName.INTEGER;
+        SqlTypeName sqlTypeName = SqlTypeName.BIGINT;
         return typeFactory.createTypeWithNullability(
             typeFactory.createSqlType(sqlTypeName),
             opBinding.getOperandType(1).isNullable()

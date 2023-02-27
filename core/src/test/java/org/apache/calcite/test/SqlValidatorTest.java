@@ -4151,9 +4151,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("timestampadd(SQL_TSI_WEEK, 2, cast(null as timestamp))")
         .columnType("TIMESTAMP(0)");
     expr("timestampdiff(SQL_TSI_WEEK, current_timestamp, current_timestamp)")
-        .columnType("INTEGER NOT NULL");
+        .columnType("BIGINT NOT NULL");
     expr("timestampdiff(SQL_TSI_WEEK, cast(null as timestamp), current_timestamp)")
-        .columnType("INTEGER");
+        .columnType("BIGINT");
 
     expr("timestampadd(^incorrect^, 1, current_timestamp)")
         .fails("(?s).*Was expecting one of.*");
