@@ -4297,9 +4297,9 @@ class RelToSqlConverterTest {
 
     final String sql1 = "select  * \n"
         + "from \"employee\" "
-        + "where  \"hire_date\" INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
-    final String expect1 = "SELECT *n"
-        + "FROM foodmart.employeen"
+        + "where  \"hire_date\" + INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect1 = "SELECT *\n"
+        + "FROM foodmart.employee\n"
         + "WHERE hire_date + INTERVAL 10 HOUR > CAST('2005-10-17 00:00:00' AS DATETIME)";
     sql(sql1).withBigQuery().ok(expect1);
 
