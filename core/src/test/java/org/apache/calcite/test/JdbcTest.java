@@ -16,8 +16,11 @@
  */
 package org.apache.calcite.test;
 
+import java.lang.reflect.Type;
+
 import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.clone.CloneSchema;
+import org.apache.calcite.adapter.enumerable.EnumerableRel.Prefer;
 import org.apache.calcite.adapter.generate.RangeTable;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -37,9 +40,11 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.interpreter.BindableConvention;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteMetaImpl;
 import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.jdbc.CalcitePrepare.Context;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.linq4j.Enumerator;
@@ -48,14 +53,19 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
+import org.apache.calcite.prepare.CalcitePrepareImpl.CalcitePreparingStmt;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.SqlFunctions;
@@ -75,11 +85,15 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter.Config;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
 import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
@@ -769,6 +783,11 @@ public class JdbcTest {
       statement.executeUpdate("COMMIT");
       assertThat(driver.counter, is(1));
     }
+  }
+
+  @Test void testCustomValidator() {
+    final Driver driver = new MockDdlDriver().withPrepareFactory(MockPrepareImpl::new);
+    assertTrue(driver.prepareFactory.apply().getClass() == MockPrepareImpl.class);
   }
 
   /**
@@ -8292,9 +8311,50 @@ public class JdbcTest {
             @Override public void executeDdl(Context context, SqlNode node) {
               ++counter;
             }
+
+            @Override
+            protected CalcitePreparingStmt getPreparingStmt(Context context, Type elementType,
+                CalciteCatalogReader catalogReader, RelOptPlanner planner) {
+              final JavaTypeFactory typeFactory = context.getTypeFactory();
+              return new MockPreparingStmt(this, context, catalogReader,
+                  typeFactory, context.getRootSchema(), Prefer.ARRAY,
+                  createCluster(planner, new RexBuilder(typeFactory)), BindableConvention.INSTANCE,
+                  createConvertletTable());
+            }
           };
         }
       };
+    }
+  }
+
+  public static class MockPrepareImpl extends CalcitePrepareImpl {
+    public MockPrepareImpl() {
+    }
+  }
+  public static class MockPreparingStmt extends CalcitePreparingStmt {
+    public MockPreparingStmt(
+        CalcitePrepareImpl prepare,
+        Context context,
+        CatalogReader catalogReader,
+        RelDataTypeFactory typeFactory,
+        CalciteSchema schema,
+        Prefer prefer,
+        RelOptCluster cluster,
+        Convention resultConvention,
+        SqlRexConvertletTable convertletTable
+        ) {
+      super(prepare, context, catalogReader, typeFactory, schema, prefer, cluster, resultConvention, convertletTable);
+    }
+  }
+
+  public static class MockSqlValidator extends SqlValidatorImpl  {
+    public MockSqlValidator(
+        SqlOperatorTable opTab,
+        CalciteCatalogReader catalogReader,
+        JavaTypeFactory typeFactory,
+        SqlValidator.Config config
+    ) {
+      super(opTab,  catalogReader,  typeFactory,  config);
     }
   }
 
