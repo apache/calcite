@@ -50,9 +50,6 @@ import static org.apache.calcite.util.Static.RESOURCE;
  */
 public class BodoSqlTimestampAddFunction extends SqlFunction {
 
-  private static final int MILLISECOND_PRECISION = 3;
-  private static final int MICROSECOND_PRECISION = 6;
-
   private static final SqlReturnTypeInference RETURN_TYPE_INFERENCE =
       opBinding -> {
         final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
