@@ -60,14 +60,19 @@ public class Driver extends UnregisteredDriver {
 
   @SuppressWarnings("method.invocation.invalid")
   public Driver() {
-    super();
-    this.prepareFactory = createPrepareFactory();
+    new Driver(createPrepareFactory());
   }
 
   private Driver(Function0<CalcitePrepare> prepareFactory) {
     super();
     this.prepareFactory = prepareFactory;
   }
+
+  /**
+   *
+   * @param prepareFactory {@link org.apache.calcite.jdbc.CalcitePrepare}
+   * @return Driver with the provided prepareFactory
+   */
   public Driver withPrepareFactory(Function0<CalcitePrepare> prepareFactory) {
     return this.prepareFactory == prepareFactory
         ? this : new Driver(prepareFactory);

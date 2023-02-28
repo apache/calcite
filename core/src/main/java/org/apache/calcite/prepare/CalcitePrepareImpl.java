@@ -524,6 +524,12 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
     throw exception;
   }
+
+  /** Returns CalcitePreparingStmt
+   *
+   * <p>Override this function to return a custom {@link CalcitePreparingStmt} and
+   * {@link #createSqlValidator} to enable custom validation logic.
+   */
   protected CalcitePreparingStmt getPreparingStmt(
       Context context,
       Type elementType,
@@ -945,8 +951,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   }
 
   /** Holds state for the process of preparing a SQL statement.
-   *  Overload this class and {@link #createSqlValidator} to supply custom validation logic.
-   * */
+   *
+   * <p>Overload this class and {@link #createSqlValidator} to provide desired SqlValidator
+   * and custom validation logic.</p>
+   */
   public static class CalcitePreparingStmt extends Prepare
       implements RelOptTable.ViewExpander {
     protected final RelOptPlanner planner;

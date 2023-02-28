@@ -76,6 +76,8 @@ import static java.util.Objects.requireNonNull;
  * <p>A fixture is immutable. If you have two test cases that require a similar
  * set up (for example, the same SQL expression and set of planner rules), it is
  * safe to use the same fixture object as a starting point for both tests.
+ *
+ * <p>The class has public access-level to allow implementing custom fixtures.
  */
 public class RelOptFixture {
   static final RelOptFixture DEFAULT =
