@@ -8303,6 +8303,7 @@ public class JdbcTest {
     }
   }
 
+  /** Dummy subclass of CalcitePrepareImpl. */
   public static class MockPrepareImpl extends CalcitePrepareImpl {
     public MockPrepareImpl() {
     }
