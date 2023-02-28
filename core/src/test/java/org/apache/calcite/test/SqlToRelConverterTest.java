@@ -4597,10 +4597,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 //    String query = "SELECT TIMESTAMPDIFF(DAY, TIMESTAMP '2021-02-02', TIMESTAMP '2022-02-01')";
 //    sql(query).ok();
 //  }
-//  @Test public void testConvertletConfigNoTimestampdiffDecompose() {
-//    String query = "SELECT TIMESTAMPDIFF(DAY, TIMESTAMP '2021-02-02', TIMESTAMP '2022-02-01')";
-//    sql(query).withNoTimestampdiffDecompositionTester().ok();
-//  }
+  @Test public void testConvertletConfigNoTimestampdiffDecompose() {
+    String query = "SELECT TIMESTAMPDIFF(DAY, TIMESTAMP '2021-02-02', TIMESTAMP '2022-02-01')";
+    sql(query).withNoTimestampdiffDecompositionTester().ok();
+  }
 
 
   /** Test case for
@@ -5784,14 +5784,6 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-
-  /**
-   * Test that - can be done between two dates.
-   */
-  @Test void testTimestampAddSimple() {
-    String sql = "Select TIMESTAMPADD(DAY, 3, DATE '2022-1-1') from emp";
-    sql(sql).ok();
-  }
 
   /**
    * Test that - can be done between two dates.

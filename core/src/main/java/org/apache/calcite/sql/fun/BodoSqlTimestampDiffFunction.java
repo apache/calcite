@@ -32,9 +32,10 @@ import org.apache.calcite.sql.type.SqlTypeName;
  * <p>The SQL syntax is
  *
  * <blockquote>
- * <code>TIMESTAMPDIFF(<i>time interval</i>, <i>datetime</i>,
+ * <code>TIMESTAMPDIFF(<i>time unit</i>, <i>datetime</i>,
  * <i>datetime</i>)</code>
  * </blockquote>
+ * Accepts both quoted and unquoted time units now.
  *
  * <p>The interval time unit can one of the following literals:<ul>
  * <li>NANOSECOND (and synonym SQL_TSI_FRAC_SECOND)
@@ -59,6 +60,10 @@ public class BodoSqlTimestampDiffFunction extends SqlFunction {
         final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
 
         SqlTypeName sqlTypeName = SqlTypeName.BIGINT;
+//            (opBinding.getOperandLiteralValue(0, TimeUnit.class) == TimeUnit.NANOSECOND
+//              || opBinding.getOperandLiteralValue(0, TimeUnit.class) == TimeUnit.MICROSECOND)
+//                ? SqlTypeName.BIGINT
+//                : SqlTypeName.INTEGER;
         return typeFactory.createTypeWithNullability(
             typeFactory.createSqlType(sqlTypeName),
             opBinding.getOperandType(1).isNullable()

@@ -27,6 +27,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.tools.ValidationException;
 
 import java.util.Locale;
 
@@ -43,7 +44,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <code>TIMESTAMPADD(<i>timestamp interval</i>, <i>quantity</i>,
  * <i>datetime</i>)</code>
  * </blockquote>
- * Accept both quoted and unquoted time units now
+ * Accepts both quoted and unquoted time units now.
  *
  * <p>Returns modified datetime.
  */
@@ -60,6 +61,8 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
         RelDataType arg0Type = opBindingWithCast.getOperandType(0);
         TimeUnit arg0timeUnit;
         switch (arg0Type.getSqlTypeName()) {
+          // This must be a constant string or time unit input,
+          // due to the way that we handle the parsing
         case CHAR:
         case VARCHAR:
           //This will fail if the value is a non-literal
@@ -69,7 +72,7 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
        opBindingWithCast.getOperandType(2).getSqlTypeName() == SqlTypeName.TIME);
           } catch (Throwable e) {
             throw opBindingWithCast.getValidator().newValidationError(opBindingWithCast.getCall(),
-                RESOURCE.functionUndefined("Wrong time unit input"));
+                RESOURCE.wrongTimeUnit("TIMESTAMPADD", e.toString()));
           }
           break;
 
@@ -77,9 +80,15 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
           arg0timeUnit = getOperandLiteralValueOrThrow(opBinding, 0, TimeUnit.class);
         }
 
-
-        return deduceType(typeFactory, arg0timeUnit,
-            opBinding.getOperandType(1), opBinding.getOperandType(2));
+        RelDataType ret;
+        try {
+          ret = deduceType(typeFactory, arg0timeUnit,
+              opBinding.getOperandType(1), opBinding.getOperandType(2));
+        } catch (Throwable e) {
+          throw opBindingWithCast.getValidator().newValidationError(opBindingWithCast.getCall(),
+              RESOURCE.wrongTimeUnit("TIMESTAMPADD", e.toString()));
+        }
+        return ret;
       };
 
 
@@ -93,7 +102,8 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
    * @param isTime if this time unit should fit with Bodo.Time, which means smaller or equal to hour
    * @return the standardized time unit string
    */
-  public static TimeUnit standardizeTimeUnit(String fnName, String inputTimeStr, boolean isTime) {
+  public static TimeUnit standardizeTimeUnit(String fnName, String inputTimeStr, boolean isTime)
+      throws ValidationException {
     TimeUnit unit;
     switch (inputTimeStr.toLowerCase(Locale.ROOT)) {
     case "\"year\"":
@@ -343,11 +353,7 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
       }
       break;
     default:
-      throw new RuntimeException("This should be impossible, "
-        +
-          "since the input type requires this to"
-        +
-          "be one of the above types");
+      throw new RuntimeException("Input type of arg2 must be TIME or TIMESTAMP!");
     }
 
     return typeFactory.createTypeWithNullability(outputType,
