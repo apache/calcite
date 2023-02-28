@@ -173,7 +173,7 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test void testInsertValuesDifferentColumnTypes() {
+  @Test void testInsertValuesWithConvertibleTypes() {
     final String sql = "insert into t3 (t3_int, t3_varchar20, t3_date) values "
         + "('10', 50, DATE '2001-01-01'), "
         + "('20', null, '2002-01-01'), "
