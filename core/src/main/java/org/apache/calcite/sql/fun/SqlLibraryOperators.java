@@ -956,6 +956,20 @@ public abstract class SqlLibraryOperators {
               OperandTypes.TIMESTAMP, OperandTypes.timestampInterval()),
           SqlFunctionCategory.TIMEDATE);
 
+  /** The "DATETIME_TRUNC(datetime_expression, date_time_part)"
+   * function (BigQuery); truncates a DATETIME value to the granularity of
+   * date_time_part. The DATETIME value is always rounded to the beginning of
+   * date_time_part. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_TRUNC =
+      SqlBasicFunction.create(
+        "DATETIME_TRUNC",
+        ReturnTypes.TIMESTAMP_NULLABLE,
+        OperandTypes.sequence(
+            "'DATETIME_TRUNC(<TIMESTAMP>, <DATETIME_INTERVAL>)'",
+            OperandTypes.TIMESTAMP, OperandTypes.timestampInterval()),
+          SqlFunctionCategory.TIMEDATE);
+
   /** The "TIMESTAMP_SECONDS(bigint)" function; returns a TIMESTAMP value
    * a given number of seconds after 1970-01-01 00:00:00. */
   @LibraryOperator(libraries = {BIG_QUERY})

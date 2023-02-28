@@ -125,6 +125,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FROM_UNIX_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
@@ -537,6 +538,7 @@ public class RexImpTable {
       map.put(DATE_TRUNC, map.get(FLOOR));
       map.put(TIMESTAMP_TRUNC, map.get(FLOOR));
       map.put(TIME_TRUNC, map.get(FLOOR));
+      map.put(DATETIME_TRUNC, map.get(FLOOR));
 
       map.put(LAST_DAY,
           new LastDayImplementor("lastDay", BuiltInMethod.LAST_DAY));

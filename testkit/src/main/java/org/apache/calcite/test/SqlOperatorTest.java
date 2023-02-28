@@ -8876,6 +8876,44 @@ public class SqlOperatorTest {
         "VARCHAR(2000) NOT NULL");
   }
 
+  @Test void testDatetimeTrunc() {
+    SqlOperatorFixture nonBigQuery = fixture()
+        .setFor(SqlLibraryOperators.DATETIME_TRUNC);
+    nonBigQuery.checkFails("^datetime_trunc(timestamp '2012-05-02 15:30:00', hour)^",
+        "No match found for function signature "
+            + "DATETIME_TRUNC\\(<TIMESTAMP>, <INTERVAL_DAY_TIME>\\)",
+        false);
+
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.DATETIME_TRUNC);
+    f.checkFails("^datetime_trunc(100, hour)^",
+        "Cannot apply 'DATETIME_TRUNC' to arguments of type "
+            + "'DATETIME_TRUNC\\(<INTEGER>, <INTERVAL HOUR>\\)'\\. "
+            + "Supported form\\(s\\): 'DATETIME_TRUNC\\(<TIMESTAMP>, <DATETIME_INTERVAL>\\)'",
+        false);
+    f.checkFails("^datetime_trunc(100, foo)^",
+        "Cannot apply 'DATETIME_TRUNC' to arguments of type "
+            + "'DATETIME_TRUNC\\(<INTEGER>, <INTERVAL `FOO`>\\)'\\. "
+            + "Supported form\\(s\\): 'DATETIME_TRUNC\\(<TIMESTAMP>, <DATETIME_INTERVAL>\\)'",
+        false);
+
+    f.checkScalar("datetime_trunc(timestamp '2015-02-19 12:34:56.78', second)",
+        "2015-02-19 12:34:56", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_trunc(timestamp '2015-02-19 12:34:56', minute)",
+        "2015-02-19 12:34:00", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_trunc(timestamp '2015-02-19 12:34:56', hour)",
+        "2015-02-19 12:00:00", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_trunc(timestamp '2015-02-19 12:34:56', day)",
+        "2015-02-19 00:00:00", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_trunc(timestamp '2015-02-19 12:34:56', week)",
+        "2015-02-15 00:00:00", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_trunc(timestamp '2015-02-19 12:34:56', month)",
+        "2015-02-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_trunc(timestamp '2015-02-19 12:34:56', year)",
+        "2015-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+  }
+
   @Test void testDenseRankFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DENSE_RANK, VM_FENNEL, VM_JAVA);
