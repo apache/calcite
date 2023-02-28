@@ -4295,11 +4295,12 @@ class RelToSqlConverterTest {
         + " > CAST('2005-10-17 00:00:00' AS DATETIME)";
     sql(sql0).withBigQuery().ok(expect0);
 
-    final String sql1 = "select  * from \"employee\" where  \"hire_date\" + "
-        + "INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
-    final String expect1 = "SELECT *\n" +
-        "FROM foodmart.employee\n" +
-        "WHERE hire_date + INTERVAL 10 HOUR > CAST('2005-10-17 00:00:00' AS DATETIME)";
+    final String sql1 = "select  * \n"
+        + "from \"employee\" "
+        + "where  \"hire_date\" INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect1 = "SELECT *n"
+        + "FROM foodmart.employeen"
+        + "WHERE hire_date + INTERVAL 10 HOUR > CAST('2005-10-17 00:00:00' AS DATETIME)";
     sql(sql1).withBigQuery().ok(expect1);
 
     final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
@@ -6429,8 +6430,8 @@ class RelToSqlConverterTest {
   @Test public void testIntervalSecond() {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL '2'\n"
             + "second from \"employee\"";
-    final String expectedBigQuery = "SELECT CAST(birth_date AS DATETIME) + INTERVAL 2 SECOND\n" +
-        "FROM foodmart.employee";
+    final String expectedBigQuery = "SELECT CAST(birth_date AS DATETIME) + INTERVAL 2 SECOND\n"
+        + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
             .ok(expectedBigQuery);
@@ -6671,8 +6672,8 @@ class RelToSqlConverterTest {
     String query = "SELECT CURRENT_TIMESTAMP + INTERVAL '06:10:30' HOUR TO SECOND,"
         + "CURRENT_TIMESTAMP - INTERVAL '06:10:30' HOUR TO SECOND "
         + "FROM \"employee\"";
-    final String expectedBQ = "SELECT CURRENT_DATETIME() + INTERVAL 22230 SECOND, " +
-        "TIMESTAMP_SUB(CURRENT_DATETIME(), INTERVAL 22230 SECOND)\n"
+    final String expectedBQ = "SELECT CURRENT_DATETIME() + INTERVAL 22230 SECOND, "
+        + "TIMESTAMP_SUB(CURRENT_DATETIME(), INTERVAL 22230 SECOND)\n"
             + "FROM foodmart.employee";
     sql(query)
         .withBigQuery()
@@ -6723,8 +6724,8 @@ class RelToSqlConverterTest {
         .project(plusCall)
         .build();
 
-    final String expectedBigQuery = "SELECT TIMESTAMP '2022-02-18 08:23:45' + " +
-        "INTERVAL 1 MICROSECOND AS `$f0`";
+    final String expectedBigQuery = "SELECT TIMESTAMP '2022-02-18 08:23:45' + "
+        + "INTERVAL 1 MICROSECOND AS `$f0`";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
@@ -10288,8 +10289,8 @@ class RelToSqlConverterTest {
         .project(builder.alias(createRexNode, "FD"))
         .build();
     final String expectedBiqQuery =
-        "SELECT CAST('1999-07-01 15:00:00-08:00' AS DATETIME) + INTERVAL 1 MICROSECOND AS FD\n" +
-            "FROM scott.EMP";
+        "SELECT CAST('1999-07-01 15:00:00-08:00' AS DATETIME) + INTERVAL 1 MICROSECOND AS FD\n"
+            + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
