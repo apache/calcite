@@ -7416,16 +7416,16 @@ public class SqlOperatorTest {
         "00:00:59", "TIME(0) NOT NULL");
     f.checkScalar("timestampadd(HOUR, 1, time '23:59:59')",
         "00:59:59", "TIME(0) NOT NULL");
-//    f.checkScalar("timestampadd(DAY, 15, time '23:59:59')",
-//        "23:59:59", "TIME(0) NOT NULL");
-//    f.checkScalar("timestampadd(WEEK, 3, time '23:59:59')",
-//        "23:59:59", "TIME(0) NOT NULL");
-//    f.checkScalar("timestampadd(MONTH, 6, time '23:59:59')",
-//        "23:59:59", "TIME(0) NOT NULL");
-//    f.checkScalar("timestampadd(QUARTER, 1, time '23:59:59')",
-//        "23:59:59", "TIME(0) NOT NULL");
-//    f.checkScalar("timestampadd(YEAR, 10, time '23:59:59')",
-//        "23:59:59", "TIME(0) NOT NULL");
+    f.checkFails("^timestampadd(DAY, 15, time '23:59:59')^",
+        "(?s)Invalid time unit input for TIMESTAMPADD.*", false);
+    f.checkFails("^timestampadd(WEEK, 3, time '23:59:59')^",
+        "(?s)Invalid time unit input for TIMESTAMPADD.*", false);
+    f.checkFails("^timestampadd(MONTH, 6, time '23:59:59')^",
+        "(?s)Invalid time unit input for TIMESTAMPADD.*", false);
+    f.checkFails("^timestampadd(QUARTER, 1, time '23:59:59')^",
+        "(?s)Invalid time unit input for TIMESTAMPADD.*", false);
+    f.checkFails("^timestampadd(YEAR, 10, time '23:59:59')^",
+        "(?s)Invalid time unit input for TIMESTAMPADD.*", false);
     // TIMESTAMPADD with time; returns a time value .The interval is negative.
     f.checkScalar("timestampadd(SECOND, -1, time '00:00:00')",
         "23:59:59", "TIME(0) NOT NULL");
@@ -7433,16 +7433,16 @@ public class SqlOperatorTest {
         "23:59:00", "TIME(0) NOT NULL");
     f.checkScalar("timestampadd(HOUR, -1, time '00:00:00')",
         "23:00:00", "TIME(0) NOT NULL");
-//    f.checkScalar("timestampadd(DAY, -1, time '23:59:59')",
-//        "23:59:59", "TIME(0) NOT NULL");
-//    f.checkScalar("timestampadd(WEEK, -1, time '23:59:59')",
-//        "23:59:59", "TIME(0) NOT NULL");
-//    f.checkScalar("timestampadd(MONTH, -1, time '23:59:59')",
-//        "23:59:59", "TIME(0) NOT NULL");
-//    f.checkScalar("timestampadd(QUARTER, -1, time '23:59:59')",
-//        "23:59:59", "TIME(0) NOT NULL");
-//    f.checkScalar("timestampadd(YEAR, -1, time '23:59:59')",
-//        "23:59:59", "TIME(0) NOT NULL");
+    f.checkFails("^timestampadd(DAY, -1, time '23:59:59')^",
+        "(?s)Invalid time unit input for TIMESTAMPADD.*", false);
+    f.checkFails("^timestampadd(WEEK, -1, time '23:59:59')^",
+        "(?s)Invalid time unit input for TIMESTAMPADD.*", false);
+    f.checkFails("^timestampadd(MONTH, -1, time '23:59:59')^",
+        "(?s)Invalid time unit input for TIMESTAMPADD.*", false);
+    f.checkFails("^timestampadd(QUARTER, -1, time '23:59:59')^",
+        "(?s)Invalid time unit input for TIMESTAMPADD.*", false);
+    f.checkFails("^timestampadd(YEAR, -1, time '23:59:59')^",
+        "(?s)Invalid time unit input for TIMESTAMPADD.*", false);
   }
 
   @Test void testTimestampAddFractionalSeconds() {
