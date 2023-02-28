@@ -69,7 +69,7 @@ public class Driver extends UnregisteredDriver {
     this.prepareFactory = prepareFactory;
   }
 
-  /**
+  /** Allows changing prepareFactory without having to subclass Driver.
    *
    * @param prepareFactory {@link org.apache.calcite.jdbc.CalcitePrepare}
    * @return Driver with the provided prepareFactory
