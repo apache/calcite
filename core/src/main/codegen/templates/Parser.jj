@@ -7800,8 +7800,8 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < DATA: "DATA" >
 |   < DATABASE: "DATABASE" >
 |   < DATE: "DATE" >
-|   < DATE_TRUNC: "DATE_TRUNC" >
 |   < DATE_DIFF: "DATE_DIFF" >
+|   < DATE_TRUNC: "DATE_TRUNC" >
 |   < DATETIME: "DATETIME" >
 |   < DATETIME_DIFF: "DATETIME_DIFF" >
 |   < DATETIME_INTERVAL_CODE: "DATETIME_INTERVAL_CODE" >
