@@ -20,6 +20,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.SpatialTypeFunctions;
@@ -50,6 +51,15 @@ public class SqlSpatialTypeFunctions {
 
   // Geometry table functions =================================================
 
+  /**
+   * Explodes the {@code geom} into multiple geometries.
+   *
+   * @see SpatialTypeFunctions ST_Explode */
+  @SuppressWarnings({"WeakerAccess", "unused"})
+  public static ScannableTable ST_Explode(Geometry geom) {
+    return new ExplodeTable(geom);
+  }
+
   /** Calculates a regular grid of polygons based on {@code geom}.
    *
    * @see SpatialTypeFunctions ST_MakeGrid */
@@ -66,6 +76,47 @@ public class SqlSpatialTypeFunctions {
   public static ScannableTable ST_MakeGridPoints(final Geometry geom,
       final BigDecimal deltaX, final BigDecimal deltaY) {
     return new GridTable(geom, deltaX, deltaY, true);
+  }
+
+  /** Returns the geometries of a geometry. */
+  public static class ExplodeTable implements ScannableTable {
+
+    private final Geometry geometry;
+
+    public ExplodeTable(Geometry geometry) {
+      this.geometry = geometry;
+    }
+
+    @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+      return Linq4j.asEnumerable(
+          Functions.generate(
+            geometry.getNumGeometries(),
+            i -> new Object[] { geometry.getGeometryN(i), i }));
+    }
+
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return typeFactory.builder()
+          .add("GEOM", SqlTypeName.GEOMETRY)
+          .add("INDEX", SqlTypeName.INTEGER)
+          .build();
+    }
+
+    @Override public Statistic getStatistic() {
+      return Statistics.UNKNOWN;
+    }
+
+    @Override public Schema.TableType getJdbcTableType() {
+      return Schema.TableType.TABLE;
+    }
+
+    @Override public boolean isRolledUp(String column) {
+      return false;
+    }
+
+    @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+        @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
+      return true;
+    }
   }
 
   /** Returns the points or rectangles in a grid that covers a given

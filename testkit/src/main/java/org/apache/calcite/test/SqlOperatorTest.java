@@ -78,6 +78,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
@@ -1868,10 +1870,18 @@ public class SqlOperatorTest {
   }
 
   @Test void testModOperator() {
-    // "%" is allowed under MYSQL_5 SQL conformance level
-    final SqlOperatorFixture f0 = fixture();
-    final SqlOperatorFixture f = f0.withConformance(SqlConformanceEnum.MYSQL_5);
-    f.setFor(SqlStdOperatorTable.PERCENT_REMAINDER);
+    // "%" is allowed under BIG_QUERY, MYSQL_5 SQL conformance levels
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlStdOperatorTable.PERCENT_REMAINDER);
+    final List<SqlConformanceEnum> conformances =
+        list(SqlConformanceEnum.BIG_QUERY, SqlConformanceEnum.MYSQL_5);
+    f0.forEachConformance(conformances, this::checkModOperator);
+    f0.forEachConformance(conformances, this::checkModPrecedence);
+    f0.forEachConformance(conformances, this::checkModOperatorNull);
+    f0.forEachConformance(conformances, this::checkModOperatorDivByZero);
+  }
+
+  void checkModOperator(SqlOperatorFixture f) {
     f.checkScalarExact("4%2", 0);
     f.checkScalarExact("8%5", 3);
     f.checkScalarExact("-12%7", -5);
@@ -1890,19 +1900,12 @@ public class SqlOperatorTest {
         "DECIMAL(1, 0) NOT NULL", "-2");
   }
 
-  @Test void testModPrecedence() {
-    // "%" is allowed under MYSQL_5 SQL conformance level
-    final SqlOperatorFixture f0 = fixture();
-    final SqlOperatorFixture f = f0.withConformance(SqlConformanceEnum.MYSQL_5);
-    f.setFor(SqlStdOperatorTable.PERCENT_REMAINDER);
+  void checkModPrecedence(SqlOperatorFixture f) {
     f.checkScalarExact("1 + 5 % 3 % 4 * 14 % 17", 12);
     f.checkScalarExact("(1 + 5 % 3) % 4 + 14 % 17", 17);
   }
 
-  @Test void testModOperatorNull() {
-    // "%" is allowed under MYSQL_5 SQL conformance level
-    final SqlOperatorFixture f0 = fixture();
-    final SqlOperatorFixture f = f0.withConformance(SqlConformanceEnum.MYSQL_5);
+  void checkModOperatorNull(SqlOperatorFixture f) {
     f.checkNull("cast(null as integer) % 2");
     f.checkNull("4 % cast(null as tinyint)");
     if (!DECIMAL) {
@@ -1911,13 +1914,10 @@ public class SqlOperatorTest {
     f.checkNull("4 % cast(null as decimal(12,0))");
   }
 
-  @Test void testModOperatorDivByZero() {
-    // "%" is allowed under MYSQL_5 SQL conformance level
-    final SqlOperatorFixture f0 = fixture();
-    final SqlOperatorFixture f = f0.withConformance(SqlConformanceEnum.MYSQL_5);
+  void checkModOperatorDivByZero(SqlOperatorFixture f) {
     // The extra CASE expression is to fool Janino.  It does constant
     // reduction and will throw the divide by zero exception while
-    // compiling the expression.  The test frame work would then issue
+    // compiling the expression.  The test framework would then issue
     // unexpected exception occurred during "validation".  You cannot
     // submit as non-runtime because the janino exception does not have
     // error position information and the framework is unhappy with that.
@@ -2706,12 +2706,17 @@ public class SqlOperatorTest {
         "Bang equal '!=' is not allowed under the current SQL conformance level",
         false);
 
-    // "!=" is allowed under ORACLE_10 SQL conformance level
-    final SqlOperatorFixture f1 =
-        f.withConformance(SqlConformanceEnum.ORACLE_10);
-    f1.checkBoolean("1 <> 1", false);
-    f1.checkBoolean("1 != 1", false);
-    f1.checkBoolean("1 != null", null);
+    final Consumer<SqlOperatorFixture> consumer = f1 -> {
+      f1.checkBoolean("1 <> 1", false);
+      f1.checkBoolean("1 != 1", false);
+      f1.checkBoolean("2 != 1", true);
+      f1.checkBoolean("1 != null", null);
+    };
+
+    // "!=" is allowed under BigQuery, ORACLE_10 SQL conformance levels
+    final List<SqlConformanceEnum> conformances =
+        list(SqlConformanceEnum.BIG_QUERY, SqlConformanceEnum.ORACLE_10);
+    f.forEachConformance(conformances, consumer);
   }
 
   @Test void testNotEqualsOperatorIntervals() {
@@ -3629,6 +3634,23 @@ public class SqlOperatorTest {
     f.checkNull("CHARACTER_LENGTH(cast(null as varchar(1)))");
   }
 
+  @Test void testLengthFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.LENGTH);
+    f0.checkFails("^length('hello')^",
+        "No match found for function signature LENGTH\\(<CHARACTER>\\)",
+        false);
+
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar("length('hello')", "5", "INTEGER NOT NULL");
+      f.checkScalar("length('')", "0", "INTEGER NOT NULL");
+      f.checkScalar("length(CAST('x' as CHAR(3)))", "3", "INTEGER NOT NULL");
+      f.checkScalar("length(CAST('x' as VARCHAR(4)))", "1", "INTEGER NOT NULL");
+      f.checkNull("length(CAST(NULL as CHAR(5)))");
+    };
+
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY), consumer);
+  }
+
   @Test void testOctetLengthFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.OCTET_LENGTH, VmName.EXPAND);
@@ -4047,6 +4069,60 @@ public class SqlOperatorTest {
     f.checkNull("json_exists(cast(null as varchar), "
         + "'lax $.foo1' unknown on error)");
 
+  }
+
+  @Test public void testJsonInsert() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.MYSQL);
+    f.checkString("json_insert('10', '$.a', 10, '$.c', '[true]')",
+        "10", "VARCHAR(2000)");
+    f.checkString("json_insert('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')",
+        "{\"a\":1,\"b\":[2],\"c\":\"[true]\"}", "VARCHAR(2000)");
+    f.checkString("json_insert('{ \"a\": 1, \"b\": [2]}', '$', 10, '$', '[true]')",
+        "{\"a\":1,\"b\":[2]}", "VARCHAR(2000)");
+    f.checkString("json_insert('{ \"a\": 1, \"b\": [2]}', '$.b[1]', 10)",
+        "{\"a\":1,\"b\":[2,10]}", "VARCHAR(2000)");
+    f.checkString("json_insert('{\"a\": 1, \"b\": [2, 3, [true]]}', '$.b[3]', 'false')",
+        "{\"a\":1,\"b\":[2,3,[true],\"false\"]}", "VARCHAR(2000)");
+    f.checkFails("json_insert('{\"a\": 1, \"b\": [2, 3, [true]]}', 'a', 'false')",
+        "(?s).*Invalid input for.*", true);
+    // nulls
+    f.checkNull("json_insert(cast(null as varchar), '$', 10)");
+  }
+
+  @Test public void testJsonReplace() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.MYSQL);
+    f.checkString("json_replace('10', '$.a', 10, '$.c', '[true]')",
+        "10", "VARCHAR(2000)");
+    f.checkString("json_replace('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')",
+        "{\"a\":10,\"b\":[2]}", "VARCHAR(2000)");
+    f.checkString("json_replace('{ \"a\": 1, \"b\": [2]}', '$', 10, '$.c', '[true]')",
+        "10", "VARCHAR(2000)");
+    f.checkString("json_replace('{ \"a\": 1, \"b\": [2]}', '$.b', 10, '$.c', '[true]')",
+        "{\"a\":1,\"b\":10}", "VARCHAR(2000)");
+    f.checkString("json_replace('{ \"a\": 1, \"b\": [2, 3]}', '$.b[1]', 10)",
+        "{\"a\":1,\"b\":[2,10]}", "VARCHAR(2000)");
+    f.checkFails("json_replace('{\"a\": 1, \"b\": [2, 3, [true]]}', 'a', 'false')",
+        "(?s).*Invalid input for.*", true);
+
+    // nulls
+    f.checkNull("json_replace(cast(null as varchar), '$', 10)");
+  }
+
+  @Test public void testJsonSet() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.MYSQL);
+    f.checkString("json_set('10', '$.a', 10, '$.c', '[true]')",
+        "10", "VARCHAR(2000)");
+    f.checkString("json_set('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')",
+        "{\"a\":10,\"b\":[2],\"c\":\"[true]\"}", "VARCHAR(2000)");
+    f.checkString("json_set('{ \"a\": 1, \"b\": [2]}', '$', 10, '$.c', '[true]')",
+        "10", "VARCHAR(2000)");
+    f.checkString("json_set('{ \"a\": 1, \"b\": [2, 3]}', '$.b[1]', 10, '$.c', '[true]')",
+        "{\"a\":1,\"b\":[2,10],\"c\":\"[true]\"}", "VARCHAR(2000)");
+    f.checkFails("json_set('{\"a\": 1, \"b\": [2, 3, [true]]}', 'a', 'false')",
+        "(?s).*Invalid input for.*", true);
+
+    // nulls
+    f.checkNull("json_set(cast(null as varchar), '$', 10)");
   }
 
   @Test void testJsonValue() {
@@ -5024,10 +5100,10 @@ public class SqlOperatorTest {
     f.checkNull("timestamp_micros(cast(null as bigint))");
     f.checkScalar("date_from_unix_date(0)", "1970-01-01", "DATE NOT NULL");
 
-    // Have to quote the "DATE" function because we're not using the Babel
-    // parser. In the regular parser, DATE is a reserved keyword.
-    f.checkNull("\"DATE\"(null)");
-    f.checkScalar("\"DATE\"('1985-12-06')", "1985-12-06", "DATE NOT NULL");
+    // DATE is a reserved keyword, but the parser has special treatment to
+    // allow it as a function.
+    f.checkNull("DATE(null)");
+    f.checkScalar("DATE('1985-12-06')", "1985-12-06", "DATE NOT NULL");
     f.checkType("CURRENT_DATETIME()", "TIMESTAMP(0) NOT NULL");
     f.checkType("CURRENT_DATETIME('America/Los_Angeles')", "TIMESTAMP(0) NOT NULL");
     f.checkType("CURRENT_DATETIME(CAST(NULL AS VARCHAR(20)))", "TIMESTAMP(0)");
@@ -5285,6 +5361,14 @@ public class SqlOperatorTest {
     f.checkNull("radians(cast(null as double))");
   }
 
+  @Test void testPowFunc() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.POW)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalarApprox("pow(2,3)", "DOUBLE NOT NULL", isExactly("8.0"));
+    f.checkNull("pow(2, cast(null as integer))");
+    f.checkNull("pow(cast(null as integer), 2)");
+  }
 
   @Test void testRoundFunc() {
     final SqlOperatorFixture f = fixture();
@@ -5420,6 +5504,41 @@ public class SqlOperatorTest {
       f.checkNull("tanh(cast(null as double))");
     };
     f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
+  }
+
+  @Test void testTruncFunc() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.TRUNC)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkType("trunc(42, -1)", "INTEGER NOT NULL");
+    f.checkType("trunc(cast(42 as float), 1)", "FLOAT NOT NULL");
+    f.checkType("trunc(case when false then 42 else null end, -1)",
+        "INTEGER");
+    f.enableTypeCoercion(false)
+        .checkFails("^trunc('abc', 'def')^",
+            "Cannot apply 'TRUNC' to arguments of type "
+                + "'TRUNC\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported "
+                + "form\\(s\\): 'TRUNC\\(<NUMERIC>, <INTEGER>\\)'",
+            false);
+    f.checkType("trunc('abc', 'def')", "DECIMAL(19, 9) NOT NULL");
+    f.checkScalar("trunc(42, -1)", 40, "INTEGER NOT NULL");
+    f.checkScalar("trunc(cast(42.345 as decimal(2, 3)), 2)",
+        BigDecimal.valueOf(4234, 2), "DECIMAL(2, 3) NOT NULL");
+    f.checkScalar("trunc(cast(-42.345 as decimal(2, 3)), 2)",
+        BigDecimal.valueOf(-4234, 2), "DECIMAL(2, 3) NOT NULL");
+    f.checkNull("trunc(cast(null as integer), 1)");
+    f.checkNull("trunc(cast(null as double), 1)");
+    f.checkNull("trunc(43.21, cast(null as integer))");
+
+    f.checkScalar("trunc(42)", 42, "INTEGER NOT NULL");
+    f.checkScalar("trunc(42.324)",
+        BigDecimal.valueOf(42, 0), "DECIMAL(5, 3) NOT NULL");
+    f.checkScalar("trunc(cast(42.324 as float))", 42F,
+        "FLOAT NOT NULL");
+    f.checkScalar("trunc(cast(42.345 as decimal(2, 3)))",
+        BigDecimal.valueOf(42, 0), "DECIMAL(2, 3) NOT NULL");
+    f.checkNull("trunc(cast(null as integer))");
+    f.checkNull("trunc(cast(null as double))");
   }
 
   @Test void testTruncateFunc() {
@@ -5845,6 +5964,57 @@ public class SqlOperatorTest {
         "9999-12-31", "DATE NOT NULL");
 
     f.checkNull("last_day(cast(null as timestamp))");
+  }
+
+  @Test void testLpadFunction() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.LPAD);
+    f.check("select lpad('12345', 8, 'a')", "VARCHAR(5) NOT NULL", "aaa12345");
+    f.checkString("lpad('12345', 8)", "   12345", "VARCHAR(5) NOT NULL");
+    f.checkString("lpad('12345', 8, 'ab')", "aba12345", "VARCHAR(5) NOT NULL");
+    f.checkString("lpad('12345', 3, 'a')", "123", "VARCHAR(5) NOT NULL");
+    f.checkFails("lpad('12345', -3, 'a')",
+        "Second argument for LPAD/RPAD must not be negative", true);
+    f.checkFails("lpad('12345', -3)",
+        "Second argument for LPAD/RPAD must not be negative", true);
+    f.checkFails("lpad('12345', 3, '')",
+        "Third argument (pad pattern) for LPAD/RPAD must not be empty", true);
+    f.checkString("lpad(x'aa', 4, x'bb')", "bbbbbbaa", "VARBINARY(1) NOT NULL");
+    f.checkString("lpad(x'aa', 4)", "202020aa", "VARBINARY(1) NOT NULL");
+    f.checkString("lpad(x'aaaaaa', 2)", "aaaa", "VARBINARY(3) NOT NULL");
+    f.checkString("lpad(x'aaaaaa', 2, x'bb')", "aaaa", "VARBINARY(3) NOT NULL");
+    f.checkFails("lpad(x'aa', -3, x'bb')",
+        "Second argument for LPAD/RPAD must not be negative", true);
+    f.checkFails("lpad(x'aa', -3)",
+        "Second argument for LPAD/RPAD must not be negative", true);
+    f.checkFails("lpad(x'aa', 3, x'')",
+        "Third argument (pad pattern) for LPAD/RPAD must not be empty", true);
+  }
+
+  @Test void testRpadFunction() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.RPAD);
+    f.check("select rpad('12345', 8, 'a')", "VARCHAR(5) NOT NULL", "12345aaa");
+    f.checkString("rpad('12345', 8)", "12345   ", "VARCHAR(5) NOT NULL");
+    f.checkString("rpad('12345', 8, 'ab')", "12345aba", "VARCHAR(5) NOT NULL");
+    f.checkString("rpad('12345', 3, 'a')", "123", "VARCHAR(5) NOT NULL");
+    f.checkFails("rpad('12345', -3, 'a')",
+        "Second argument for LPAD/RPAD must not be negative", true);
+    f.checkFails("rpad('12345', -3)",
+        "Second argument for LPAD/RPAD must not be negative", true);
+    f.checkFails("rpad('12345', 3, '')",
+        "Third argument (pad pattern) for LPAD/RPAD must not be empty", true);
+
+    f.checkString("rpad(x'aa', 4, x'bb')", "aabbbbbb", "VARBINARY(1) NOT NULL");
+    f.checkString("rpad(x'aa', 4)", "aa202020", "VARBINARY(1) NOT NULL");
+    f.checkString("rpad(x'aaaaaa', 2)", "aaaa", "VARBINARY(3) NOT NULL");
+    f.checkString("rpad(x'aaaaaa', 2, x'bb')", "aaaa", "VARBINARY(3) NOT NULL");
+    f.checkFails("rpad(x'aa', -3, x'bb')",
+        "Second argument for LPAD/RPAD must not be negative", true);
+    f.checkFails("rpad(x'aa', -3)",
+        "Second argument for LPAD/RPAD must not be negative", true);
+    f.checkFails("rpad(x'aa', 3, x'')",
+        "Third argument (pad pattern) for LPAD/RPAD must not be empty", true);
   }
 
   @Test void testStartsWithFunction() {
@@ -6313,6 +6483,31 @@ public class SqlOperatorTest {
     f12.checkString("nvl(CAST(NULL AS VARCHAR(20)), 'abc')", "abc",
         "VARCHAR(20) NOT NULL");
     f12.checkNull("nvl(CAST(NULL AS VARCHAR(6)), cast(NULL AS VARCHAR(4)))");
+  }
+
+  /** Tests {@code IFNULL}, which is a synonym for {@code NVL}, and is related to
+   * {@code COALESCE} but requires precisely two arguments. */
+  @Test void testIfnullFunc() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.IFNULL, VM_EXPAND);
+
+    f.checkString("ifnull('a','b')", "a", "CHAR(1) NOT NULL");
+    f.checkString("ifnull(null,'b')", "b", "CHAR(1) NOT NULL");
+    f.checkScalar("ifnull(4,3)", 4, "INTEGER NOT NULL");
+    f.checkScalar("ifnull(null, 4)", 4, "INTEGER NOT NULL");
+    f.enableTypeCoercion(false)
+        .checkFails("1 + ifnull('a', 1) + 2",
+            "Cannot infer return type for IFNULL; operand types: \\[CHAR\\(1\\), INTEGER\\]",
+            false);
+    f.checkType("1 + ifnull(1, null) + 2",
+        "INTEGER NOT NULL");
+    f.checkFails("^ifnull(1,2,3)^",
+        "Invalid number of arguments to function 'IFNULL'. Was expecting 2 arguments",
+        false);
+    f.checkFails("^ifnull(1)^",
+        "Invalid number of arguments to function 'IFNULL'. Was expecting 2 arguments",
+        false);
   }
 
   @Test void testDecodeFunc() {
@@ -7452,6 +7647,12 @@ public class SqlOperatorTest {
         "12:34:00", "TIME(0) NOT NULL");
     f.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to second)",
         "2015-02-19 12:34:56", "TIMESTAMP(2) NOT NULL");
+    f.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to millisecond)",
+        "2015-02-19 12:34:56", "TIMESTAMP(2) NOT NULL");
+    f.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to microsecond)",
+        "2015-02-19 12:34:56", "TIMESTAMP(2) NOT NULL");
+    f.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to nanosecond)",
+        "2015-02-19 12:34:56", "TIMESTAMP(2) NOT NULL");
     f.checkScalar("floor(timestamp '2015-02-19 12:34:56' to minute)",
         "2015-02-19 12:34:00", "TIMESTAMP(0) NOT NULL");
     f.checkScalar("floor(timestamp '2015-02-19 12:34:56' to year)",
@@ -7491,6 +7692,12 @@ public class SqlOperatorTest {
         "13:00:00", "TIME(0) NOT NULL");
     f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.78' to second)",
         "2015-02-19 12:34:57", "TIMESTAMP(2) NOT NULL");
+    f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.78' to millisecond)",
+        "2015-02-19 12:34:56", "TIMESTAMP(2) NOT NULL");
+    f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.78' to microsecond)",
+        "2015-02-19 12:34:56", "TIMESTAMP(2) NOT NULL");
+    f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.78' to nanosecond)",
+        "2015-02-19 12:34:56", "TIMESTAMP(2) NOT NULL");
     f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.00' to second)",
         "2015-02-19 12:34:56", "TIMESTAMP(2) NOT NULL");
     f.checkScalar("ceil(timestamp '2015-02-19 12:34:56' to minute)",
@@ -7582,6 +7789,11 @@ public class SqlOperatorTest {
     f.checkScalar("timestampdiff(\"month4\", date '2016-02-24', "
             + "date '2016-02-23')",
         "0", "INTEGER NOT NULL");
+    f.withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.TIMESTAMP_DIFF3)
+        .checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', "
+            + "timestamp '2008-12-25 16:30:00', \"minute15\")",
+            "-4", "INTEGER NOT NULL");
   }
 
   @Test void testFloorFuncInterval() {
@@ -7816,8 +8028,289 @@ public class SqlOperatorTest {
     f.checkNull("timestamp_add(CAST(NULL AS TIMESTAMP), interval 5 minute)");
   }
 
-  @Test void testTimestampDiff() {
-    final SqlOperatorFixture f = fixture();
+  /** Tests BigQuery's {@code DATETIME_ADD(timestamp, interval)} function.
+   * When Calcite runs in BigQuery mode, {@code DATETIME} is a type alias for
+   * {@code TIMESTAMP} and this function follows the same behavior as
+   * {@code TIMESTAMP_ADD(timestamp, interval)}. The tests below use
+   * {@code TIMESTAMP} values rather than the {@code DATETIME} alias because the
+   * operator fixture does not currently support type aliases. */
+  @Test void testDatetimeAdd() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.DATETIME_ADD);
+    f0.checkFails("^datetime_add(timestamp '2008-12-25 15:30:00', "
+            + "interval 5 minute)^",
+        "No match found for function signature "
+            + "DATETIME_ADD\\(<TIMESTAMP>, <INTERVAL_DAY_TIME>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    if (Bug.CALCITE_5422_FIXED) {
+      f.checkScalar("datetime_add(timestamp '2008-12-25 15:30:00', "
+              + "interval 100000000000 microsecond)",
+          "2008-12-26 19:16:40",
+          "TIMESTAMP(3) NOT NULL");
+      f.checkScalar("datetime_add(timestamp '2008-12-25 15:30:00', "
+              + "interval 100000000 millisecond)",
+          "2008-12-26 19:16:40",
+          "TIMESTAMP(3) NOT NULL");
+    }
+
+    f.checkScalar("datetime_add(timestamp '2016-02-24 12:42:25', interval 2 second)",
+        "2016-02-24 12:42:27",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_add(timestamp '2016-02-24 12:42:25', interval 2 minute)",
+        "2016-02-24 12:44:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_add(timestamp '2016-02-24 12:42:25', interval -2000 hour)",
+        "2015-12-03 04:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_add(timestamp '2016-02-24 12:42:25', interval 1 day)",
+        "2016-02-25 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_add(timestamp '2016-02-24 12:42:25', interval 1 month)",
+        "2016-03-24 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_add(timestamp '2016-02-24 12:42:25', interval 1 year)",
+        "2017-02-24 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkNull("datetime_add(CAST(NULL AS TIMESTAMP), interval 5 minute)");
+  }
+
+  /** Tests {@code TIMESTAMP_DIFF}, BigQuery's variant of the
+   * {@code TIMESTAMPDIFF} function, which differs in the ordering
+   * of the parameters and the ordering of the subtraction between
+   * the two timestamps. In {@code TIMESTAMPDIFF} it is (t2 - t1)
+   * while for {@code TIMESTAMP_DIFF} is is (t1 - t2). */
+  @Test void testTimestampDiff3() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.TIMESTAMP_DIFF3);
+    f0.checkFails("^timestamp_diff(timestamp '2008-12-25 15:30:00', "
+            + "timestamp '2008-12-25 16:30:00', "
+            + "minute)^",
+        "No match found for function signature "
+            + "TIMESTAMP_DIFF\\(<TIMESTAMP>, <TIMESTAMP>, <INTERVAL_DAY_TIME>\\)", false);
+
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.TIMESTAMP_DIFF3);
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(timestamp '2016-02-24 12:42:25', "
+                + "timestamp '2016-02-24 15:42:25', "
+                + s + ")",
+            "-3", "INTEGER NOT NULL"));
+    MICROSECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(timestamp '2016-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:20', "
+                + s + ")",
+            "5000000", "INTEGER NOT NULL"));
+    YEAR_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25', "
+                + s + ")",
+            "-2", "INTEGER NOT NULL"));
+    WEEK_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25', "
+                + s + ")",
+            "-104", "INTEGER NOT NULL"));
+    WEEK_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(timestamp '2014-02-19 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25', "
+                + s + ")",
+            "-105", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25', "
+                + s + ")",
+            "-24", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(timestamp '2019-09-01 12:42:25', "
+                + "timestamp '2020-03-01 12:42:25', "
+                + s + ")",
+            "-6", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(timestamp '2019-09-01 12:42:25', "
+                + "timestamp '2016-08-01 12:42:25', "
+                + s + ")",
+            "37", "INTEGER NOT NULL"));
+    QUARTER_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25', "
+                + s + ")",
+            "-8", "INTEGER NOT NULL"));
+    f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
+            + "timestamp '2614-02-24 12:42:25', "
+            + "CENTURY)",
+        "-6", "INTEGER NOT NULL");
+    QUARTER_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(timestamp '2016-02-24 12:42:25', "
+                + "cast(null as timestamp), "
+                + s + ")",
+            isNullValue(), "INTEGER"));
+
+    // timestamp_diff with date
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(date '2016-03-15', "
+                + "date '2016-06-14', "
+                + s + ")",
+            "-3", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(date '2019-09-01', "
+                + "date '2020-03-01', "
+                + s + ")",
+            "-6", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(date '2019-09-01', "
+                + "date '2016-08-01', "
+                + s + ")",
+            "37", "INTEGER NOT NULL"));
+    DAY_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(date '2016-06-15', "
+                + "date '2016-06-14', "
+                + s + ")",
+            "1", "INTEGER NOT NULL"));
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(date '2016-06-15', "
+                + "date '2016-06-14', "
+                + s + ")",
+            "24", "INTEGER NOT NULL"));
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(date '2016-06-15',  "
+                + "date '2016-06-15', "
+                + s + ")",
+            "0", "INTEGER NOT NULL"));
+    MINUTE_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(date '2016-06-15', "
+                + "date '2016-06-14', "
+                + s + ")",
+            "1440", "INTEGER NOT NULL"));
+    DAY_VARIANTS.forEach(s ->
+        f.checkScalar("timestamp_diff(date '2016-06-15', "
+                + "cast(null as date), "
+                + s + ")",
+            isNullValue(), "INTEGER"));
+  }
+
+  /** Tests BigQuery's {@code DATETIME_DIFF(timestamp, timestamp2, timeUnit)}
+   * function. When Calcite runs in BigQuery mode, {@code DATETIME} is a type
+   * alias for {@code TIMESTAMP} and this function follows the same behavior as
+   * {@code TIMESTAMP_DIFF(timestamp, timestamp2, timeUnit)}. The tests below
+   * use {@code TIMESTAMP} values rather than the {@code DATETIME} alias because
+   * the operator fixture does not currently support type aliases. */
+  @Test void testDatetimeDiff() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.DATETIME_DIFF);
+    f0.checkFails("^datetime_diff(timestamp '2008-12-25 15:30:00', "
+            + "timestamp '2008-12-25 16:30:00', "
+            + "minute)^",
+        "No match found for function signature "
+            + "DATETIME_DIFF\\(<TIMESTAMP>, <TIMESTAMP>, <INTERVAL_DAY_TIME>\\)", false);
+
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.DATETIME_DIFF);
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(timestamp '2016-02-24 12:42:25', "
+                + "timestamp '2016-02-24 15:42:25', "
+                + s + ")",
+            "-3", "INTEGER NOT NULL"));
+    MICROSECOND_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(timestamp '2016-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:20', "
+                + s + ")",
+            "5000000", "INTEGER NOT NULL"));
+    YEAR_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25', "
+                + s + ")",
+            "-2", "INTEGER NOT NULL"));
+    WEEK_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25', "
+                + s + ")",
+            "-104", "INTEGER NOT NULL"));
+    WEEK_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(timestamp '2014-02-19 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25', "
+                + s + ")",
+            "-105", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25', "
+                + s + ")",
+            "-24", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(timestamp '2019-09-01 12:42:25', "
+                + "timestamp '2020-03-01 12:42:25', "
+                + s + ")",
+            "-6", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(timestamp '2019-09-01 12:42:25', "
+                + "timestamp '2016-08-01 12:42:25', "
+                + s + ")",
+            "37", "INTEGER NOT NULL"));
+    QUARTER_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
+                + "timestamp '2016-02-24 12:42:25', "
+                + s + ")",
+            "-8", "INTEGER NOT NULL"));
+    f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
+            + "timestamp '2614-02-24 12:42:25', "
+            + "CENTURY)",
+        "-6", "INTEGER NOT NULL");
+    QUARTER_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(timestamp '2016-02-24 12:42:25', "
+                + "cast(null as timestamp), "
+                + s + ")",
+            isNullValue(), "INTEGER"));
+
+    // datetime_diff with date
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(date '2016-03-15', "
+                + "date '2016-06-14', "
+                + s + ")",
+            "-3", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(date '2019-09-01', "
+                + "date '2020-03-01', "
+                + s + ")",
+            "-6", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(date '2019-09-01', "
+                + "date '2016-08-01', "
+                + s + ")",
+            "37", "INTEGER NOT NULL"));
+    DAY_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(date '2016-06-15', "
+                + "date '2016-06-14', "
+                + s + ")",
+            "1", "INTEGER NOT NULL"));
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(date '2016-06-15', "
+                + "date '2016-06-14', "
+                + s + ")",
+            "24", "INTEGER NOT NULL"));
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(date '2016-06-15',  "
+                + "date '2016-06-15', "
+                + s + ")",
+            "0", "INTEGER NOT NULL"));
+    MINUTE_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(date '2016-06-15', "
+                + "date '2016-06-14', "
+                + s + ")",
+            "1440", "INTEGER NOT NULL"));
+    DAY_VARIANTS.forEach(s ->
+        f.checkScalar("datetime_diff(date '2016-06-15', "
+                + "cast(null as date), "
+                + s + ")",
+            isNullValue(), "INTEGER"));
+  }
+
+  @ValueSource(booleans = {true, false})
+  @ParameterizedTest(name = "CoercionEnabled: {0}")
+  void testTimestampDiff(boolean coercionEnabled) {
+    final SqlOperatorFixture f = fixture()
+        .withValidatorConfig(c -> c.withTypeCoercionEnabled(coercionEnabled));
     f.setFor(SqlStdOperatorTable.TIMESTAMP_DIFF, VmName.EXPAND);
     HOUR_VARIANTS.forEach(s ->
         f.checkScalar("timestampdiff(" + s + ", "
@@ -7898,6 +8391,18 @@ public class SqlOperatorTest {
         f.checkScalar("timestampdiff(" + s + ", "
                 + "date '2019-09-01', date '2016-08-01')",
             "-37", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "time '12:42:25', time '12:42:25')",
+            "0", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "time '12:42:25', date '2016-06-14')",
+            "-1502389", "INTEGER NOT NULL"));
+    MONTH_VARIANTS.forEach(s ->
+        f.checkScalar("timestampdiff(" + s + ", "
+                + "date '2016-06-14', time '12:42:25')",
+            "1502389", "INTEGER NOT NULL"));
     DAY_VARIANTS.forEach(s ->
         f.checkScalar("timestampdiff(" + s + ", "
                 + "date '2016-06-15', date '2016-06-14')",
@@ -7924,6 +8429,178 @@ public class SqlOperatorTest {
             isNullValue(), "INTEGER"));
   }
 
+  @Test void testTimestampSub() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.TIMESTAMP_SUB);
+    f0.checkFails("^timestamp_sub(timestamp '2008-12-25 15:30:00', "
+            + "interval 5 minute)^",
+        "No match found for function signature "
+            + "TIMESTAMP_SUB\\(<TIMESTAMP>, <INTERVAL_DAY_TIME>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    if (Bug.CALCITE_5422_FIXED) {
+      f.checkScalar("timestamp_sub(timestamp '2008-12-25 15:30:00', "
+              + "interval 100000000000 microsecond)",
+          "2008-12-24 11:44:20",
+          "TIMESTAMP(3) NOT NULL");
+      f.checkScalar("timestamp_sub(timestamp '2008-12-25 15:30:00', "
+              + "interval 100000000 millisecond)",
+          "2008-12-24 11:44:20",
+          "TIMESTAMP(3) NOT NULL");
+    }
+
+    f.checkScalar("timestamp_sub(timestamp '2016-02-24 12:42:25', interval 2 second)",
+        "2016-02-24 12:42:23",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_sub(timestamp '2016-02-24 12:42:25', interval 2 minute)",
+        "2016-02-24 12:40:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_sub(timestamp '2016-02-24 12:42:25', interval 2000 hour)",
+        "2015-12-03 04:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_sub(timestamp '2016-02-24 12:42:25', interval 1 day)",
+        "2016-02-23 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_sub(timestamp '2016-02-24 12:42:25', interval 2 week)",
+        "2016-02-10 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_sub(timestamp '2016-02-24 12:42:25', interval 2 weeks)",
+        "2016-02-10 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_sub(timestamp '2016-02-24 12:42:25', interval 1 month)",
+        "2016-01-24 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_sub(timestamp '2016-02-24 12:42:25', interval 1 quarter)",
+        "2015-11-24 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_sub(timestamp '2016-02-24 12:42:25', interval 1 quarters)",
+        "2015-11-24 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp_sub(timestamp '2016-02-24 12:42:25', interval 1 year)",
+        "2015-02-24 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkNull("timestamp_sub(CAST(NULL AS TIMESTAMP), interval 5 minute)");
+  }
+
+  @Test void testTimeSub() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.TIME_SUB);
+    f0.checkFails("^time_sub(time '15:30:00', "
+            + "interval 5 minute)^",
+        "No match found for function signature "
+            + "TIME_SUB\\(<TIME>, <INTERVAL_DAY_TIME>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    if (Bug.CALCITE_5422_FIXED) {
+      f.checkScalar("time_sub(time '15:30:00', "
+              + "interval 100000000000 microsecond)",
+          "11:44:20",
+          "TIME(3) NOT NULL");
+      f.checkScalar("time_sub(time '15:30:00', "
+              + "interval 100000000 millisecond)",
+          "11:44:20",
+          "TIME(3) NOT NULL");
+    }
+
+    f.checkScalar("time_sub(time '12:42:25', interval 2 second)",
+        "12:42:23",
+        "TIME(0) NOT NULL");
+    f.checkScalar("time_sub(time '12:42:25', interval 2 minute)",
+        "12:40:25",
+        "TIME(0) NOT NULL");
+    f.checkScalar("time_sub(time '12:42:25', interval 0 minute)",
+        "12:42:25",
+        "TIME(0) NOT NULL");
+    f.checkScalar("time_sub(time '12:42:25', interval 20 hour)",
+        "16:42:25",
+        "TIME(0) NOT NULL");
+    f.checkScalar("time_sub(time '12:34:45', interval -5 second)",
+        "12:34:50",
+        "TIME(0) NOT NULL");
+    f.checkNull("time_sub(CAST(NULL AS TIME), interval 5 minute)");
+  }
+
+  @Test void testDateSub() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.DATE_SUB);
+    f0.checkFails("^date_sub(date '2008-12-25', "
+            + "interval 5 day)^",
+        "No match found for function signature "
+            + "DATE_SUB\\(<DATE>, <INTERVAL_DAY_TIME>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("date_sub(date '2016-02-24', interval 2 day)",
+        "2016-02-22",
+        "DATE NOT NULL");
+    f.checkScalar("date_sub(date '2016-02-24', interval 1 week)",
+        "2016-02-17",
+        "DATE NOT NULL");
+    f.checkScalar("date_sub(date '2016-02-24', interval 2 weeks)",
+        "2016-02-10",
+        "DATE NOT NULL");
+    f.checkScalar("date_sub(date '2020-10-17', interval 0 week)",
+        "2020-10-17",
+        "DATE NOT NULL");
+    f.checkScalar("date_sub(date '2016-02-24', interval 3 month)",
+        "2015-11-24",
+        "DATE NOT NULL");
+    f.checkScalar("date_sub(date '2016-02-24', interval 1 quarter)",
+        "2015-11-24",
+        "DATE NOT NULL");
+    f.checkScalar("date_sub(date '2016-02-24', interval 2 quarters)",
+        "2015-08-24",
+        "DATE NOT NULL");
+    f.checkScalar("date_sub(date '2016-02-24', interval 5 year)",
+        "2011-02-24",
+        "DATE NOT NULL");
+    f.checkNull("date_sub(CAST(NULL AS DATE), interval 5 day)");
+  }
+
+  /** Tests for BigQuery's DATETIME_SUB() function. Because the operator
+   * fixture does not currently support type aliases, TIMESTAMPs are used
+   * in place of DATETIMEs (a Calcite alias of TIMESTAMP) for the function's
+   * first argument. */
+  @Test void testDatetimeSub() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.DATETIME_SUB);
+    f0.checkFails("^datetime_sub(timestamp '2008-12-25 15:30:00', "
+            + "interval 5 minute)^",
+        "No match found for function signature "
+            + "DATETIME_SUB\\(<TIMESTAMP>, <INTERVAL_DAY_TIME>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    if (Bug.CALCITE_5422_FIXED) {
+      f.checkScalar("datetime_sub(timestamp '2008-12-25 15:30:00', "
+              + "interval 100000000000 microsecond)",
+          "2008-12-24 11:44:20",
+          "TIMESTAMP(3) NOT NULL");
+      f.checkScalar("datetime_sub(timestamp '2008-12-25 15:30:00', "
+              + "interval 100000000 millisecond)",
+          "2008-12-24 11:44:20",
+          "TIMESTAMP(3) NOT NULL");
+    }
+
+    f.checkScalar("datetime_sub(timestamp '2016-02-24 12:42:25', interval 2 second)",
+        "2016-02-24 12:42:23",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_sub(timestamp '2016-02-24 12:42:25', interval 2 minute)",
+        "2016-02-24 12:40:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_sub(timestamp '2016-02-24 12:42:25', interval 2000 hour)",
+        "2015-12-03 04:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_sub(timestamp '2016-02-24 12:42:25', interval 1 day)",
+        "2016-02-23 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_sub(timestamp '2016-02-24 12:42:25', interval 1 month)",
+        "2016-01-24 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("datetime_sub(timestamp '2016-02-24 12:42:25', interval 1 year)",
+        "2015-02-24 12:42:25",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkNull("datetime_sub(CAST(NULL AS TIMESTAMP), interval 5 minute)");
+  }
+
   /** The {@code DATEDIFF} function is implemented in the Babel parser but not
    * the Core parser, and therefore gives validation errors. */
   @Test void testDateDiff() {
@@ -7932,6 +8609,77 @@ public class SqlOperatorTest {
     f.checkFails("datediff(^\"MONTH\"^, '2019-09-14',  '2019-09-15')",
         "(?s)Column 'MONTH' not found in any table",
         false);
+  }
+
+  /** Tests BigQuery's {@code TIME_ADD}, which adds an interval to a time
+   * expression. */
+  @Test void testTimeAdd() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.TIME_ADD);
+    f0.checkFails("^time_add(time '15:30:00', interval 5 minute)^",
+        "No match found for function signature TIME_ADD\\(<TIME>, <INTERVAL_DAY_TIME>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    if (Bug.CALCITE_5422_FIXED) {
+      f.checkScalar("time_add(time '15:30:00', interval 5000000 millisecond)",
+          "15:30:05", "TIME(3) NOT NULL");
+      f.checkScalar("time_add(time '15:30:00', interval 5000000000 microsecond)",
+          "15:30:05", "TIME(3) NOT NULL");
+    }
+    f.checkScalar("time_add(time '23:59:59', interval 2 second)",
+        "00:00:01", "TIME(0) NOT NULL");
+    f.checkScalar("time_add(time '23:59:59', interval 86402 second)",
+        "00:00:01", "TIME(0) NOT NULL");
+    f.checkScalar("time_add(time '15:30:00', interval 5 minute)",
+        "15:35:00", "TIME(0) NOT NULL");
+    f.checkScalar("time_add(time '15:30:00', interval 1445 minute)",
+        "15:35:00", "TIME(0) NOT NULL");
+    f.checkScalar("time_add(time '15:30:00', interval 3 hour)",
+        "18:30:00", "TIME(0) NOT NULL");
+    f.checkScalar("time_add(time '15:30:00', interval 27 hour)",
+        "18:30:00", "TIME(0) NOT NULL");
+    f.checkNull("time_add(cast(null as time), interval 5 minute)");
+  }
+
+  @Test void testTimeDiff() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.TIME_DIFF);
+    f0.checkFails("^time_diff(time '15:30:00', "
+            + "time '16:30:00', "
+            + "minute)^",
+        "No match found for function signature "
+            + "TIME_DIFF\\(<TIME>, <TIME>, <INTERVAL_DAY_TIME>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("time_diff(time '15:30:00', "
+            + "time '15:30:05', "
+            + "millisecond)",
+        "-5000", "INTEGER NOT NULL");
+    MICROSECOND_VARIANTS.forEach(s ->
+        f.checkScalar("time_diff(time '15:30:00', "
+                + "time '15:30:05', "
+                + s + ")",
+            "-5000000", "INTEGER NOT NULL"));
+    SECOND_VARIANTS.forEach(s ->
+        f.checkScalar("time_diff(time '15:30:00', "
+                + "time '15:29:00', "
+                + s + ")",
+            "60", "INTEGER NOT NULL"));
+    MINUTE_VARIANTS.forEach(s ->
+        f.checkScalar("time_diff(time '15:30:00', "
+                + "time '15:29:00', "
+                + s + ")",
+            "1", "INTEGER NOT NULL"));
+    HOUR_VARIANTS.forEach(s ->
+        f.checkScalar("time_diff(time '15:30:00', "
+                + "time '16:30:00', "
+                + s + ")",
+            "-1", "INTEGER NOT NULL"));
+    MINUTE_VARIANTS.forEach(s ->
+        f.checkScalar("time_diff(time '15:30:00', "
+                + "cast(null as time), "
+                + s + ")",
+            isNullValue(), "INTEGER"));
   }
 
   @Test void testTimeTrunc() {
@@ -8004,6 +8752,130 @@ public class SqlOperatorTest {
         "2015-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
   }
 
+  @Test void testDateTrunc() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.DATE_TRUNC);
+    f.checkFails("date_trunc(date '2015-02-19', ^foo^)",
+        "Column 'FOO' not found in any table", false);
+    f.checkScalar("date_trunc(date '2015-02-19', day)",
+        "2015-02-19", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', week)",
+        "2015-02-15", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', isoweek)",
+        "2015-02-16", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', week(sunday))",
+        "2015-02-15", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', week(monday))",
+        "2015-02-16", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', week(tuesday))",
+        "2015-02-17", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', week(wednesday))",
+        "2015-02-18", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', week(thursday))",
+        "2015-02-19", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', week(friday))",
+        "2015-02-13", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', week(saturday))",
+        "2015-02-14", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', month)",
+        "2015-02-01", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', quarter)",
+        "2015-01-01", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', year)",
+        "2015-01-01", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', isoyear)",
+        "2014-12-29", "DATE NOT NULL");
+  }
+
+  @Test void testFormatTime() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.FORMAT_TIME);
+    f.checkFails("^FORMAT_TIME('%x', timestamp '2008-12-25 15:30:00')^",
+        "Cannot apply 'FORMAT_TIME' to arguments of type "
+            + "'FORMAT_TIME\\(<CHAR\\(2\\)>, <TIMESTAMP\\(0\\)>\\)'\\. "
+            + "Supported form\\(s\\): "
+            + "'FORMAT_TIME\\(<CHARACTER>, <TIME>\\)'",
+        false);
+    f.checkScalar("FORMAT_TIME('%H', TIME '12:34:33')",
+        "12",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_TIME('%R', TIME '12:34:33')",
+        "12:34",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_TIME('The time is %M-%S', TIME '12:34:33')",
+        "The time is 34-33",
+        "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test void testFormatDate() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.FORMAT_DATE);
+    f.checkFails("^FORMAT_DATE('%x', 123)^",
+        "Cannot apply 'FORMAT_DATE' to arguments of type "
+            + "'FORMAT_DATE\\(<CHAR\\(2\\)>, <INTEGER>\\)'\\. "
+            + "Supported form\\(s\\): "
+            + "'FORMAT_DATE\\(<CHARACTER>, <DATE>\\)'",
+        false);
+    // Can implicitly cast TIMESTAMP to DATE
+    f.checkScalar("FORMAT_DATE('%x', timestamp '2008-12-25 15:30:00')",
+        "12/25/08",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_DATE('%b-%d-%Y', DATE '2008-12-25')",
+        "Dec-25-2008",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_DATE('%b %Y', DATE '2008-12-25')",
+        "Dec 2008",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_DATE('%x', DATE '2008-12-25')",
+        "12/25/08",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_DATE('The date is: %x', DATE '2008-12-25')",
+        "The date is: 12/25/08",
+        "VARCHAR(2000) NOT NULL");
+  }
+
+  @Test void testFormatTimestamp() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.FORMAT_TIMESTAMP);
+    f.checkFails("^FORMAT_TIMESTAMP('%x', 123)^",
+        "Cannot apply 'FORMAT_TIMESTAMP' to arguments of type "
+            + "'FORMAT_TIMESTAMP\\(<CHAR\\(2\\)>, <INTEGER>\\)'\\. "
+            + "Supported form\\(s\\): "
+            + "FORMAT_TIMESTAMP\\(<CHARACTER>, "
+            + "<TIMESTAMP WITH LOCAL TIME ZONE>\\)\n"
+            + "FORMAT_TIMESTAMP\\(<CHARACTER>, "
+            + "<TIMESTAMP WITH LOCAL TIME ZONE>, <CHARACTER>\\)",
+        false);
+    f.checkScalar("FORMAT_TIMESTAMP('%c',"
+            + " TIMESTAMP WITH LOCAL TIME ZONE '2008-12-25 15:30:00')",
+        "Thu Dec 25 15:30:00 2008",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_TIMESTAMP('%b-%d-%Y',"
+            + " TIMESTAMP WITH LOCAL TIME ZONE '2008-12-25 15:30:00')",
+        "Dec-25-2008",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_TIMESTAMP('%b %Y',"
+            + " TIMESTAMP WITH LOCAL TIME ZONE '2008-12-25 15:30:00')",
+        "Dec 2008",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_TIMESTAMP('%x',"
+            + " TIMESTAMP WITH LOCAL TIME ZONE '2008-12-25 15:30:00')",
+        "12/25/08",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_TIMESTAMP('The time is: %R',"
+            + " TIMESTAMP WITH LOCAL TIME ZONE '2008-12-25 15:30:00')",
+        "The time is: 15:30",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_TIMESTAMP('The time is: %R.%E2S',"
+            + " TIMESTAMP WITH LOCAL TIME ZONE '2008-12-25 15:30:00.1235456')",
+        "The time is: 15:30.123",
+        "VARCHAR(2000) NOT NULL");
+  }
+
   @Test void testDenseRankFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DENSE_RANK, VM_FENNEL, VM_JAVA);
@@ -8033,7 +8905,7 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.PERCENTILE_CONT, VM_FENNEL, VM_JAVA);
     f.checkType("percentile_cont(0.25) within group (order by 1)",
-        "DOUBLE NOT NULL");
+        "INTEGER NOT NULL");
     f.checkFails("percentile_cont(0.25) within group (^order by 'a'^)",
         "Invalid type 'CHAR' in ORDER BY clause of 'PERCENTILE_CONT' function. "
             + "Only NUMERIC types are supported", false);
@@ -8874,6 +9746,24 @@ public class SqlOperatorTest {
         isSingle("02"));
   }
 
+  @Test void testArgMin() {
+    final SqlOperatorFixture f0 = fixture().withTester(t -> TESTER);
+    final String[] xValues = {"2", "3", "4", "4", "5", "7"};
+
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkAgg("arg_min(mod(x, 3), x)", xValues, isSingle("2"));
+      f.checkAgg("arg_max(mod(x, 3), x)", xValues, isSingle("1"));
+    };
+
+    final Consumer<SqlOperatorFixture> consumer2 = f -> {
+      f.checkAgg("min_by(mod(x, 3), x)", xValues, isSingle("2"));
+      f.checkAgg("max_by(mod(x, 3), x)", xValues, isSingle("1"));
+    };
+
+    consumer.accept(f0);
+    consumer2.accept(f0.withLibrary(SqlLibrary.SPARK));
+  }
+
   /**
    * Tests that CAST fails when given a value just outside the valid range for
    * that type. For example,
@@ -9250,8 +10140,8 @@ public class SqlOperatorTest {
         return SqlLiteral.createCharString(value.toString(), SqlParserPos.ZERO);
       case TIMESTAMP:
         TimestampString ts = TimestampString.fromMillisSinceEpoch((Long) value);
-        return SqlLiteral.createTimestamp(ts, type.getPrecision(),
-            SqlParserPos.ZERO);
+        return SqlLiteral.createTimestamp(type.getSqlTypeName(), ts,
+            type.getPrecision(), SqlParserPos.ZERO);
       default:
         throw new AssertionError(type);
       }

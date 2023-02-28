@@ -277,7 +277,7 @@ class TopDownOptTest {
       p.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
       p.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
       p.removeRule(EnumerableRules.ENUMERABLE_SORT_RULE);
-    }).check();
+    }).withExpand(true).check();
   }
 
   // test if "order by mgr desc nulls last" can be pushed through the projection ("select mgr").

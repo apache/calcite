@@ -19,7 +19,6 @@ package org.apache.calcite.rel.type;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
-import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.util.NameMap;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
@@ -214,7 +213,7 @@ public class TimeFrameSet {
     if (perMonth != null
         && perMonth.getNumerator().equals(BigInteger.ONE)) {
       final int m = perMonth.getDenominator().intValueExact(); // e.g. 12 for YEAR
-      return SqlFunctions.addMonths(date, interval * m);
+      return DateTimeUtils.addMonths(date, interval * m);
     }
 
     // Unknown time frame. Return the original value unchanged.
@@ -235,7 +234,7 @@ public class TimeFrameSet {
     if (perMonth != null
         && perMonth.getNumerator().equals(BigInteger.ONE)) {
       final long m = perMonth.getDenominator().longValueExact(); // e.g. 12 for YEAR
-      return SqlFunctions.addMonths(timestamp, (int) (interval * m));
+      return DateTimeUtils.addMonths(timestamp, (int) (interval * m));
     }
 
     // Unknown time frame. Return the original value unchanged.

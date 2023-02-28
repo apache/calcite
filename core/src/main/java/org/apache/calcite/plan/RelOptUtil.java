@@ -387,7 +387,9 @@ public abstract class RelOptUtil {
         + "set type is " + expectedRowType.getFullTypeString()
         + "\nexpression type is " + actualRowType.getFullTypeString()
         + "\nset is " + equivalenceClass.toString()
-        + "\nexpression is " + RelOptUtil.toString(newRel);
+        + "\nexpression is " + RelOptUtil.toString(newRel)
+        + getFullTypeDifferenceString("rowtype of original rel", expectedRowType,
+        "rowtype of new rel", actualRowType);
     throw new AssertionError(s);
   }
 

@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.util.NlsString;
@@ -193,6 +194,18 @@ public abstract class SqlOperatorBinding {
    */
   public boolean isOperandLiteral(int ordinal, boolean allowCast) {
     throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Returns whether an operand is a time frame.
+   *
+   * @param ordinal   zero-based ordinal of operand of interest
+   * @return whether operand is a time frame
+   */
+  public boolean isOperandTimeFrame(int ordinal) {
+    return getOperandCount() > 0
+        && SqlTypeName.TIME_FRAME_TYPES.contains(
+            getOperandType(ordinal).getSqlTypeName());
   }
 
   /** Returns the number of bound operands. */

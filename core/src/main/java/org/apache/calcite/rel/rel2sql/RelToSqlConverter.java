@@ -103,7 +103,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -283,7 +282,7 @@ public class RelToSqlConverter extends SqlImplementor
               new SqlNodeList(
                   ImmutableList.of(ONE), POS),
               fromPart, sqlCondition, null,
-              null, null, null, null, null, null);
+              null, null, null, null, null, null, null);
     }
     sqlCondition = SqlStdOperatorTable.EXISTS.createCall(POS, existsSqlSelect);
     if (e.getJoinType() == JoinRelType.ANTI) {
@@ -621,8 +620,13 @@ public class RelToSqlConverter extends SqlImplementor
       // a singleton CUBE and ROLLUP are the same but we prefer ROLLUP;
       // fall through
     case ROLLUP:
+      final List<Integer> rollupBits = Aggregate.Group.getRollup(aggregate.groupSets);
+      final List<SqlNode> rollupKeys = rollupBits
+          .stream()
+          .map(bit -> builder.context.field(bit))
+          .collect(Collectors.toList());
       return ImmutableList.of(
-          SqlStdOperatorTable.ROLLUP.createCall(SqlParserPos.ZERO, groupKeys));
+          SqlStdOperatorTable.ROLLUP.createCall(SqlParserPos.ZERO, rollupKeys));
     default:
     case OTHER:
       // Make sure that the group sets contains all bits.
@@ -773,7 +777,7 @@ public class RelToSqlConverter extends SqlImplementor
             new SqlSelect(POS, null,
                 new SqlNodeList(values2, POS),
                 getDual(), null, null,
-                null, null, null, null, null, null));
+                null, null, null, null, null, null, null));
       }
       if (list.isEmpty()) {
         // In this case we need to construct the following query:
@@ -788,18 +792,18 @@ public class RelToSqlConverter extends SqlImplementor
         if (dual == null) {
           query = new SqlSelect(POS, null,
               new SqlNodeList(nullColumnNames, POS), null, null, null, null,
-              null, null, null, null, null);
+              null, null, null, null, null, null);
 
           // Wrap "SELECT 1 AS x"
           // as "SELECT * FROM (SELECT 1 AS x) AS t WHERE false"
           query = new SqlSelect(POS, null, SqlNodeList.SINGLETON_STAR,
               as(query, "t"), createAlwaysFalseCondition(), null, null,
-              null, null, null, null, null);
+              null, null, null, null, null, null);
         } else {
           query = new SqlSelect(POS, null,
               new SqlNodeList(nullColumnNames, POS),
               dual, createAlwaysFalseCondition(), null,
-              null, null, null, null, null, null);
+              null, null, null, null, null, null, null);
         }
       } else if (list.size() == 1) {
         query = list.get(0);
@@ -843,7 +847,7 @@ public class RelToSqlConverter extends SqlImplementor
         query =
             new SqlSelect(POS, null, SqlNodeList.SINGLETON_STAR, query,
                 createAlwaysFalseCondition(), null, null, null,
-                null, null, null, null);
+                null, null, null, null, null);
       }
     }
     return result(query, clauses, e, null);
@@ -873,19 +877,39 @@ public class RelToSqlConverter extends SqlImplementor
       if (hasTrickyRollup(e, aggregate)) {
         // MySQL 5 does not support standard "GROUP BY ROLLUP(x, y)", only
         // the non-standard "GROUP BY x, y WITH ROLLUP".
-        // It does not allow "WITH ROLLUP" in combination with "ORDER BY",
-        // but "GROUP BY x, y WITH ROLLUP" implicitly sorts by x, y,
+        List<Integer> rollupList =
+            Aggregate.Group.getRollup(aggregate.getGroupSets());
+        List<Integer> sortList = e.getCollation()
+            .getFieldCollations()
+            .stream()
+            .map(f -> aggregate.getGroupSet().nth(f.getFieldIndex()))
+            .collect(Collectors.toList());
+        // "GROUP BY x, y WITH ROLLUP" implicitly sorts by x, y,
         // so skip the ORDER BY.
-        final Set<Integer> groupList = new LinkedHashSet<>();
-        for (RelFieldCollation fc : e.collation.getFieldCollations()) {
-          groupList.add(aggregate.getGroupSet().nth(fc.getFieldIndex()));
-        }
-        groupList.addAll(Aggregate.Group.getRollup(aggregate.getGroupSets()));
+        final boolean isImplicitlySort = Util.startsWith(rollupList, sortList);
         final Builder builder =
-            visitAggregate(aggregate, ImmutableList.copyOf(groupList),
+            visitAggregate(aggregate, rollupList,
                 Clause.GROUP_BY, Clause.OFFSET, Clause.FETCH);
-        offsetFetch(e, builder);
-        return builder.result();
+        Result result = builder.result();
+        if (sortList.isEmpty()
+            || isImplicitlySort) {
+          offsetFetch(e, builder);
+          return result;
+        }
+        // MySQL does not allow "WITH ROLLUP" in combination with "ORDER BY",
+        // so generate the grouped result apply ORDER BY to it.
+        SqlSelect sqlSelect = result.subSelect();
+        SqlNodeList sortExps = exprList(builder.context, e.getSortExps());
+        sqlSelect.setOrderBy(sortExps);
+        if (e.offset != null) {
+          SqlNode offset = builder.context.toSql(null, e.offset);
+          sqlSelect.setOffset(offset);
+        }
+        if (e.fetch != null) {
+          SqlNode fetch = builder.context.toSql(null, e.fetch);
+          sqlSelect.setFetch(fetch);
+        }
+        return result(sqlSelect, ImmutableList.of(Clause.ORDER_BY), e, null);
       }
     }
     if (e.getInput() instanceof Project) {
@@ -1158,7 +1182,7 @@ public class RelToSqlConverter extends SqlImplementor
             ImmutableList.of(callNode), SqlParserPos.ZERO);
     SqlNode select =
         new SqlSelect(SqlParserPos.ZERO, null, SqlNodeList.SINGLETON_STAR,
-            tableCall, null, null, null, null, null, null, null,
+            tableCall, null, null, null, null, null, null, null, null,
             SqlNodeList.EMPTY);
     return result(select, ImmutableList.of(Clause.SELECT), e, null);
   }

@@ -16,7 +16,6 @@
 # limitations under the License.
 #
 !use scott
-!set expand false
 !set outputformat mysql
 
 # =ANY
@@ -47,7 +46,6 @@ where empno = any (select empno from "scott".emp);
 # Both sides NOT NULL
 select * from "scott".emp
 where empno > any (select deptno from "scott".dept);
-
 +-------+--------+-----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+-----------+------+------------+---------+---------+--------+
@@ -73,7 +71,6 @@ where empno > any (select deptno from "scott".dept);
 # ANY; left side NOT NULL, right side nullable.
 select * from "scott".emp
 where sal > any (select comm from "scott".emp);
-
 +-------+--------+-----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+-----------+------+------------+---------+---------+--------+
@@ -99,7 +96,6 @@ where sal > any (select comm from "scott".emp);
 # ALL; left side NOT NULL, right side nullable.
 select * from "scott".emp
 where sal > all (select comm from "scott".emp);
-
 +-------+-------+-----+-----+----------+-----+------+--------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
 +-------+-------+-----+-----+----------+-----+------+--------+
@@ -111,7 +107,6 @@ where sal > all (select comm from "scott".emp);
 # Previous, as scalar sub-query
 select *, sal > all (select comm from "scott".emp) as x
 from "scott".emp;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X     |
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
@@ -143,7 +138,6 @@ EnumerableCalc(expr#0..10=[{inputs}], expr#11=[0], expr#12=[=($t9, $t11)], expr#
 # NOT SOME; left side NOT NULL, right side nullable; converse of previous query.
 select * from "scott".emp
 where not sal <= some (select comm from "scott".emp);
-
 +-------+-------+-----+-----+----------+-----+------+--------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
 +-------+-------+-----+-----+----------+-----+------+--------+
@@ -155,7 +149,6 @@ where not sal <= some (select comm from "scott".emp);
 # Similar, as scalar sub-query.
 select *, sal <= some (select comm from "scott".emp) as x
 from "scott".emp;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X    |
 +-------+--------+-----------+------+------------+---------+---------+--------+------+
@@ -183,7 +176,6 @@ from "scott".emp;
 select *
 from "scott".emp
 where empno <> some (values (100), (200));
-
 +-------+--------+-----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+-----------+------+------------+---------+---------+--------+
@@ -209,7 +201,6 @@ where empno <> some (values (100), (200));
 # Previous, as scalar sub-query.
 select *, empno <> some (values (100), (200)) as x
 from "scott".emp;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X    |
 +-------+--------+-----------+------+------------+---------+---------+--------+------+
@@ -236,7 +227,6 @@ from "scott".emp;
 select *
 from "scott".emp
 where empno <> some (values (7499),(NULL));
-
 +-------+--------+-----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+-----------+------+------------+---------+---------+--------+
@@ -261,7 +251,6 @@ where empno <> some (values (7499),(NULL));
 # Previous, as scalar sub-query.
 select *, empno <> some (values (7499), (NULL)) as x
 from "scott".emp;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X    |
 +-------+--------+-----------+------+------------+---------+---------+--------+------+
@@ -288,7 +277,6 @@ from "scott".emp;
 select *
 from "scott".emp
 where empno <> some (select empno from "scott".emp where empno = 8000);
-
 +-------+-------+-----+-----+----------+-----+------+--------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
 +-------+-------+-----+-----+----------+-----+------+--------+
@@ -300,7 +288,6 @@ where empno <> some (select empno from "scott".emp where empno = 8000);
 # Previous, as scalar sub-query.
 select *, empno <> some (select empno from "scott".emp where empno = 8000) as x
 from "scott".emp;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X     |
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
@@ -327,7 +314,6 @@ from "scott".emp;
 select *
 from "scott".emp
 where emp.comm <> some (values (300), (500));
-
 +-------+--------+----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+----------+------+------------+---------+---------+--------+
@@ -343,7 +329,6 @@ where emp.comm <> some (values (300), (500));
 # Previous, as scalar sub-query.
 select *, emp.comm <> some (values (300), (500)) as x
 from "scott".emp;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X    |
 +-------+--------+-----------+------+------------+---------+---------+--------+------+
@@ -370,7 +355,6 @@ from "scott".emp;
 select *
 from "scott".emp
 where emp.comm <> some (select comm from "scott".emp);
-
 +-------+--------+----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+----------+------+------------+---------+---------+--------+
@@ -386,7 +370,6 @@ where emp.comm <> some (select comm from "scott".emp);
 # Previous, as scalar sub-query.
 select *, emp.comm <> some (select comm from "scott".emp) as x
 from "scott".emp;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X    |
 +-------+--------+-----------+------+------------+---------+---------+--------+------+
@@ -413,7 +396,6 @@ from "scott".emp;
 select *
 from "scott".emp
 where emp.comm <> some (select comm from "scott".emp where comm = 800);
-
 +-------+-------+-----+-----+----------+-----+------+--------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
 +-------+-------+-----+-----+----------+-----+------+--------+
@@ -425,7 +407,6 @@ where emp.comm <> some (select comm from "scott".emp where comm = 800);
 # Previous, as scalar sub-query.
 select *, emp.comm <> some (select comm from "scott".emp where comm = 800) as x
 from "scott".emp;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X     |
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
@@ -452,7 +433,6 @@ from "scott".emp;
 select * from "scott".emp
 where comm < all (select comm from "scott".emp where 1 = 0)
 order by empno;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+-----------+------+------------+---------+---------+--------+
@@ -478,7 +458,6 @@ order by empno;
 # If sub-query is empty, "< some" is trivially false. Even for null comm.
 select * from "scott".emp
 where comm < some (select comm from "scott".emp where 1 = 0);
-
 +-------+-------+-----+-----+----------+-----+------+--------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
 +-------+-------+-----+-----+----------+-----+------+--------+
@@ -489,7 +468,6 @@ where comm < some (select comm from "scott".emp where 1 = 0);
 
 select * from "scott".emp
 where sal > all (select comm from "scott".emp where comm <> null);
-
 +-------+--------+-----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+-----------+------+------------+---------+---------+--------+
@@ -514,7 +492,6 @@ where sal > all (select comm from "scott".emp where comm <> null);
 
 select * from "scott".emp
 where sal > all(500, 2000);
-
 +-------+-------+-----------+------+------------+---------+------+--------+
 | EMPNO | ENAME | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
 +-------+-------+-----------+------+------------+---------+------+--------+
@@ -531,7 +508,6 @@ where sal > all(500, 2000);
 
 select * from "scott".emp
 where sal > all (4000, 2000);
-
 +-------+-------+-----------+-----+------------+---------+------+--------+
 | EMPNO | ENAME | JOB       | MGR | HIREDATE   | SAL     | COMM | DEPTNO |
 +-------+-------+-----------+-----+------------+---------+------+--------+
@@ -543,7 +519,6 @@ where sal > all (4000, 2000);
 
 select * from "scott".emp
 where sal > some (4000, 2000);
-
 +-------+-------+-----------+------+------------+---------+------+--------+
 | EMPNO | ENAME | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
 +-------+-------+-----------+------+------------+---------+------+--------+
@@ -560,7 +535,6 @@ where sal > some (4000, 2000);
 
 select * from "scott".emp
 where sal > any (4000, 2000);
-
 +-------+-------+-----------+------+------------+---------+------+--------+
 | EMPNO | ENAME | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
 +-------+-------+-----------+------+------------+---------+------+--------+
@@ -583,7 +557,6 @@ more than one value in agg SINGLE_VALUE
 select * from "scott".emp
 where sal > any (select sal * 2 from "scott".emp)
 order by sal desc;
-
 +-------+-------+-----------+------+------------+---------+------+--------+
 | EMPNO | ENAME | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
 +-------+-------+-----------+------+------------+---------+------+--------+
@@ -601,7 +574,6 @@ order by sal desc;
 select * from "scott".emp
 where sal < all (select sal * 2 from "scott".emp)
 order by sal desc;
-
 +-------+--------+----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+----------+------+------------+---------+---------+--------+
@@ -649,7 +621,6 @@ order by sal desc;
 
 select * from "scott".emp
 where sal < all (select comm * 2 from "scott".emp);
-
 +-------+-------+-----+-----+----------+-----+------+--------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
 +-------+-------+-----+-----+----------+-----+------+--------+
@@ -661,7 +632,6 @@ where sal < all (select comm * 2 from "scott".emp);
 select * from "scott".emp
 where sal < any (select comm * 2 from "scott".emp)
 order by empno;
-
 +-------+--------+----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+----------+------+------------+---------+---------+--------+
@@ -683,7 +653,6 @@ order by empno;
 # It should return all rows.
 select * from "scott".emp
 where sal < any (select comm * 2 from "scott".emp) is unknown;
-
 +-------+-------+-----------+------+------------+---------+------+--------+
 | EMPNO | ENAME | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
 +-------+-------+-----------+------+------------+---------+------+--------+
@@ -699,7 +668,6 @@ where sal < any (select comm * 2 from "scott".emp) is unknown;
 
 # Oracle gives error, but I believe the statement is valid and result is correct.
 select *, sal > all(select comm from "scott".emp) as x from "scott".emp;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X     |
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
@@ -724,7 +692,6 @@ select *, sal > all(select comm from "scott".emp) as x from "scott".emp;
 
 select * from "scott".emp
 where sal > all (select comm from "scott".emp);
-
 +-------+-------+-----+-----+----------+-----+------+--------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
 +-------+-------+-----+-----+----------+-----+------+--------+
@@ -735,7 +702,6 @@ where sal > all (select comm from "scott".emp);
 
 select * from "scott".emp
 where sal > any (select comm from "scott".emp);
-
 +-------+--------+-----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+-----------+------+------------+---------+---------+--------+
@@ -760,7 +726,6 @@ where sal > any (select comm from "scott".emp);
 
 select * from "scott".emp
 where sal > any (select comm from "scott".emp where comm < 1000);
-
 +-------+--------+-----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+-----------+------+------------+---------+---------+--------+
@@ -785,7 +750,6 @@ where sal > any (select comm from "scott".emp where comm < 1000);
 
 select * from "scott".emp
 where sal > any (select comm from "scott".emp where comm < 2000);
-
 +-------+--------+-----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+-----------+------+------------+---------+---------+--------+
@@ -810,7 +774,6 @@ where sal > any (select comm from "scott".emp where comm < 2000);
 
 select * from "scott".emp
 where sal > any (select comm * 2 from "scott".emp where comm < 2000);
-
 +-------+--------+-----------+------+------------+---------+---------+--------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
 +-------+--------+-----------+------+------------+---------+---------+--------+
@@ -835,7 +798,6 @@ where sal > any (select comm * 2 from "scott".emp where comm < 2000);
 
 select * from "scott".emp
 where sal > all (select comm * 2 from "scott".emp where comm < 2000);
-
 +-------+-------+-----------+------+------------+---------+------+--------+
 | EMPNO | ENAME | JOB       | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
 +-------+-------+-----------+------+------------+---------+------+--------+
@@ -851,7 +813,6 @@ where sal > all (select comm * 2 from "scott".emp where comm < 2000);
 
 select * from "scott".emp
 where sal > all (select comm from "scott".emp where comm is not null);
-
 +-------+--------+-----------+------+------------+---------+--------+--------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM   | DEPTNO |
 +-------+--------+-----------+------+------------+---------+--------+--------+

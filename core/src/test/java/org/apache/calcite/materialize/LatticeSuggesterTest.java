@@ -26,6 +26,7 @@ import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.statistic.MapSqlStatisticProvider;
 import org.apache.calcite.statistic.QuerySqlStatisticProvider;
 import org.apache.calcite.test.CalciteAssert;
@@ -282,7 +283,9 @@ class LatticeSuggesterTest {
   }
 
   private void checkFoodMartAll(boolean evolve) throws Exception {
-    final Tester t = new Tester().foodmart().withEvolve(evolve);
+    final Tester t = new Tester().sqlToRelConverter(config -> config.withExpand(true))
+        .foodmart()
+        .withEvolve(evolve);
     final FoodMartQuerySet set = FoodMartQuerySet.instance();
     for (FoodMartQuerySet.FoodmartQuery query : set.queries.values()) {
       if (query.sql.contains("\"agg_10_foo_fact\"")
@@ -813,6 +816,12 @@ class LatticeSuggesterTest {
 
     Tester withConfig(FrameworkConfig config) {
       return new Tester(config);
+    }
+
+    Tester sqlToRelConverter(UnaryOperator<SqlToRelConverter.Config> sqlToRelConverterConfig) {
+      return withConfig(
+          builder().sqlToRelConverterConfig(sqlToRelConverterConfig
+              .apply(config.getSqlToRelConverterConfig())).build());
     }
 
     Tester foodmart() {

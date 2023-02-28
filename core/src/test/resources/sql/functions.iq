@@ -207,7 +207,6 @@ select nvl("name", 'undefined') FROM "hr"."emps";
 EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t2)], expr#6=[CAST($t2):VARCHAR], expr#7=['undefined':VARCHAR], expr#8=[CASE($t5, $t6, $t7)], EXPR$0=[$t8])
   EnumerableTableScan(table=[[hr, emps]])
 !plan
-
 +-----------+
 | EXPR$0    |
 +-----------+

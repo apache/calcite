@@ -157,6 +157,7 @@ data: {
       "CYCLE"
       "DATA"
 #     "DATE"
+      "DATETIME_DIFF"
       "DAY"
       "DEALLOCATE"
       "DEC"
@@ -463,8 +464,10 @@ data: {
       "TEMPORARY"
 #     "THEN"
 #     "TIME"
+      "TIME_DIFF"
       "TIME_TRUNC"
 #     "TIMESTAMP"
+      "TIMESTAMP_DIFF"
       "TIMESTAMP_TRUNC"
       "TIMEZONE_HOUR"
       "TIMEZONE_MINUTE"
@@ -530,9 +533,8 @@ data: {
 
     # List of methods for parsing builtin function calls.
     # Return type of method implementation should be "SqlNode".
-    # Example: "DateFunctionCall()".
+    # Example: "DateaddFunctionCall()".
     builtinFunctionCallMethods: [
-       "DateFunctionCall()"
        "DateaddFunctionCall()"
     ]
 

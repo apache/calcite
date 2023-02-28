@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.TimeFrames;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -29,9 +30,12 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -92,6 +96,52 @@ public class SqlIntervalQualifier extends SqlNode {
   private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
   private static final BigDecimal INT_MAX_VALUE_PLUS_ONE =
       BigDecimal.valueOf(Integer.MAX_VALUE).add(BigDecimal.ONE);
+
+  private static final Set<TimeUnitRange> TIME_UNITS =
+      ImmutableSet.of(TimeUnitRange.HOUR,
+          TimeUnitRange.MINUTE,
+          TimeUnitRange.SECOND);
+
+  private static final Set<TimeUnitRange> MONTH_UNITS =
+      ImmutableSet.of(TimeUnitRange.MILLENNIUM,
+          TimeUnitRange.CENTURY,
+          TimeUnitRange.DECADE,
+          TimeUnitRange.YEAR,
+          TimeUnitRange.ISOYEAR,
+          TimeUnitRange.QUARTER,
+          TimeUnitRange.MONTH);
+
+  private static final Set<TimeUnitRange> DAY_UNITS =
+      ImmutableSet.of(TimeUnitRange.WEEK,
+          TimeUnitRange.DAY);
+
+  private static final Set<TimeUnitRange> DATE_UNITS =
+      ImmutableSet.<TimeUnitRange>builder()
+          .addAll(MONTH_UNITS).addAll(DAY_UNITS).build();
+
+  private static final Set<String> WEEK_FRAMES =
+      ImmutableSet.<String>builder()
+          .addAll(TimeFrames.WEEK_FRAME_NAMES)
+          .add("ISOWEEK")
+          .add("WEEK")
+          .add("SQL_TSI_WEEK")
+          .build();
+
+  private static final Set<String> TSI_TIME_FRAMES =
+      ImmutableSet.of(
+          "SQL_TSI_FRAC_SECOND",
+          "SQL_TSI_MICROSECOND",
+          "SQL_TSI_SECOND",
+          "SQL_TSI_MINUTE",
+          "SQL_TSI_HOUR");
+
+  private static final Set<String> TSI_DATE_FRAMES =
+      ImmutableSet.of(
+          "SQL_TSI_DAY",
+          "SQL_TSI_WEEK",
+          "SQL_TSI_MONTH",
+          "SQL_TSI_QUARTER",
+          "SQL_TSI_YEAR");
 
   //~ Instance fields --------------------------------------------------------
 
@@ -195,6 +245,32 @@ public class SqlIntervalQualifier extends SqlNode {
     default:
       throw new AssertionError(timeUnitRange);
     }
+  }
+
+  /** Whether this is a DATE interval (including all week intervals). */
+  public boolean isDate() {
+    return DATE_UNITS.contains(timeUnitRange)
+        || timeFrameName != null && TSI_DATE_FRAMES.contains(timeFrameName)
+        || isWeek();
+  }
+
+  /** Whether this is a TIME interval. */
+  public boolean isTime() {
+    return TIME_UNITS.contains(timeUnitRange)
+        || timeFrameName != null && TSI_TIME_FRAMES.contains(timeFrameName);
+  }
+
+  /** Whether this is a TIMESTAMP interval (including all week intervals). */
+  public boolean isTimestamp() {
+    return isDate() || isTime();
+  }
+
+  /** Whether this qualifier represents {@code WEEK}, {@code ISOWEEK},
+   *  or {@code WEEK(}<i>weekday</i>{@code )}
+   * (for <i>weekday</i> in {@code SUNDAY} .. {@code SATURDAY}). */
+  public boolean isWeek() {
+    return timeUnitRange == TimeUnitRange.WEEK
+        || timeFrameName != null && WEEK_FRAMES.contains(timeFrameName);
   }
 
   @Override public void validate(
@@ -589,6 +665,76 @@ public class SqlIntervalQualifier extends SqlNode {
 
       // package values up for return
       return fillIntervalValueArray(sign, ZERO, month);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
+  /**
+   * Validates an INTERVAL literal against a QUARTER interval qualifier.
+   *
+   * @throws org.apache.calcite.runtime.CalciteContextException if the interval
+   * value is illegal
+   */
+  private int[] evaluateIntervalLiteralAsQuarter(
+      RelDataTypeSystem typeSystem, int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal quarter;
+
+    // validate as QUARTER(startPrecision), e.g. 'MM'
+    String intervalPattern = "(\\d+)";
+
+    Matcher m = Pattern.compile(intervalPattern).matcher(value);
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        quarter = parseField(m, 1);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      // Validate individual fields
+      checkLeadFieldInRange(typeSystem, sign, quarter, TimeUnit.QUARTER, pos);
+
+      // package values up for return
+      return fillIntervalValueArray(sign, ZERO, quarter);
+    } else {
+      throw invalidValueException(pos, originalValue);
+    }
+  }
+
+  /**
+   * Validates an INTERVAL literal against a WEEK interval qualifier.
+   *
+   * @throws org.apache.calcite.runtime.CalciteContextException if the interval
+   * value is illegal
+   */
+  private int[] evaluateIntervalLiteralAsWeek(
+      RelDataTypeSystem typeSystem, int sign,
+      String value,
+      String originalValue,
+      SqlParserPos pos) {
+    BigDecimal week;
+
+    // validate as WEEK(startPrecision), e.g. 'MM'
+    String intervalPattern = "(\\d+)";
+
+    Matcher m = Pattern.compile(intervalPattern).matcher(value);
+    if (m.matches()) {
+      // Break out  field values
+      try {
+        week = parseField(m, 1);
+      } catch (NumberFormatException e) {
+        throw invalidValueException(pos, originalValue);
+      }
+
+      // Validate individual fields
+      checkLeadFieldInRange(typeSystem, sign, week, TimeUnit.WEEK, pos);
+
+      // package values up for return
+      return fillIntervalValueArray(sign, ZERO, week);
     } else {
       throw invalidValueException(pos, originalValue);
     }
@@ -1148,6 +1294,12 @@ public class SqlIntervalQualifier extends SqlNode {
           value0, pos);
     case MONTH:
       return evaluateIntervalLiteralAsMonth(typeSystem, sign, value, value0,
+          pos);
+    case QUARTER:
+      return evaluateIntervalLiteralAsQuarter(typeSystem, sign, value, value0,
+          pos);
+    case WEEK:
+      return evaluateIntervalLiteralAsWeek(typeSystem, sign, value, value0,
           pos);
     case DAY:
       return evaluateIntervalLiteralAsDay(typeSystem, sign, value, value0, pos);

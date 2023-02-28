@@ -25,15 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
  */
 class MetadataDefTest {
   @Test void staticMethodInHandlerIsIgnored() {
-    assertDoesNotThrow(
-        () -> MetadataDef.of(TestMetadata.class, MetadataHandlerWithStaticMethod.class)
-    );
+    assertDoesNotThrow(() ->
+        MetadataDef.of(TestMetadata.class,
+            MetadataHandlerWithStaticMethod.class));
   }
 
   @Test void synthenticMethodInHandlerIsIgnored() {
-    assertDoesNotThrow(
-        () -> MetadataDef.of(TestMetadata.class,
-            TestMetadataHandlers.handlerClassWithSyntheticMethod())
-    );
+    assertDoesNotThrow(() ->
+        MetadataDef.of(TestMetadata.class,
+            TestMetadataHandlers.handlerClassWithSyntheticMethod()));
   }
 }

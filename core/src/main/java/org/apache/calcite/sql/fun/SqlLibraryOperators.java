@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -33,6 +32,7 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.OperandHandlers;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
@@ -43,13 +43,10 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
 
-import com.google.common.collect.ImmutableSet;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibrary.CALCITE;
@@ -93,6 +90,21 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DATE_NULLABLE, OperandTypes.CHARACTER_CHARACTER_DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
+  /** THE "DATE_ADD(date, interval)" function
+   * (BigQuery) adds the interval to the date. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_ADD =
+      SqlBasicFunction.create(SqlKind.DATE_ADD, ReturnTypes.ARG0_NULLABLE,
+              OperandTypes.DATE_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** THE "DATE_DIFF(date, date2, timeUnit)" function
+   * (BigQuery) returns the number of timeUnit in (date - date2). */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_DIFF =
+      new SqlTimestampDiffFunction("DATE_DIFF",
+          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE, SqlTypeFamily.ANY));
+
   /** The "DATEADD(timeUnit, numeric, datetime)" function
    * (Microsoft SQL Server, Redshift, Snowflake). */
   @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
@@ -107,7 +119,9 @@ public abstract class SqlLibraryOperators {
    * argument. */
   @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
   public static final SqlFunction DATEDIFF =
-      new SqlTimestampDiffFunction("DATEDIFF");
+      new SqlTimestampDiffFunction("DATEDIFF",
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATE,
+              SqlTypeFamily.DATE));
 
   /** The "DATE_PART(timeUnit, datetime)" function
    * (Databricks, Postgres, Redshift, Snowflake). */
@@ -119,6 +133,14 @@ public abstract class SqlLibraryOperators {
           getSyntax().unparse(writer, this, call, leftPrec, rightPrec);
         }
       };
+
+  /** The "DATE_SUB(date, interval)" function (BigQuery);
+   * subtracts interval from the date, independent of any time zone. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_SUB =
+      SqlBasicFunction.create(SqlKind.DATE_SUB, ReturnTypes.ARG0_NULLABLE,
+           OperandTypes.DATE_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
 
   /** The "DATEPART(timeUnit, datetime)" function
    * (Microsoft SQL Server). */
@@ -182,11 +204,38 @@ public abstract class SqlLibraryOperators {
 
   /** The "NVL(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction NVL =
+  public static final SqlBasicFunction NVL =
       SqlBasicFunction.create(SqlKind.NVL,
           ReturnTypes.LEAST_RESTRICTIVE
               .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
           OperandTypes.SAME_SAME);
+
+  /** The "IFNULL(value, value)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction IFNULL = NVL.withName("IFNULL");
+
+  /** The "LENGTH(string)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction LENGTH =
+      SqlStdOperatorTable.CHAR_LENGTH.withName("LENGTH");
+
+  /** The "LPAD(original_value, return_length[, pattern])" function. */
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
+  public static final SqlFunction LPAD =
+      SqlBasicFunction.create(
+          "LPAD",
+          ReturnTypes.ARG0_NULLABLE_VARYING,
+          OperandTypes.STRING_NUMERIC_OPTIONAL_STRING,
+          SqlFunctionCategory.STRING);
+
+  /** The "RPAD(original_value, return_length[, pattern])" function. */
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
+  public static final SqlFunction RPAD =
+      SqlBasicFunction.create(
+          "RPAD",
+          ReturnTypes.ARG0_NULLABLE_VARYING,
+          OperandTypes.STRING_NUMERIC_OPTIONAL_STRING,
+          SqlFunctionCategory.STRING);
 
   /** The "LTRIM(string)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
@@ -303,6 +352,15 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction JSON_STORAGE_SIZE = new SqlJsonStorageSizeFunction();
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction JSON_INSERT = new SqlJsonModifyFunction("JSON_INSERT");
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction JSON_REPLACE = new SqlJsonModifyFunction("JSON_REPLACE");
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction JSON_SET = new SqlJsonModifyFunction("JSON_SET");
 
   @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
@@ -428,11 +486,131 @@ public abstract class SqlLibraryOperators {
           .withAllowsSeparator(true)
           .withSyntax(SqlSyntax.ORDERED_FUNCTION);
 
-  /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
+  /** The "MAX_BY(value, comp)" aggregate function, Spark's
+   * equivalent to {@link SqlStdOperatorTable#ARG_MAX}. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlAggFunction MAX_BY =
+      SqlStdOperatorTable.ARG_MAX.withName("MAX_BY");
+
+  /** The "MIN_BY(condition)" aggregate function, Spark's
+   * equivalent to {@link SqlStdOperatorTable#ARG_MIN}. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlAggFunction MIN_BY =
+      SqlStdOperatorTable.ARG_MIN.withName("MIN_BY");
+
+  /** The "DATE" function. It has the following overloads:
+   *
+   * <ul>
+   *   <li>{@code DATE(string)} is syntactic sugar for
+   *       {@code CAST(string AS DATE)}
+   *   <li>{@code DATE(year, month, day)}
+   *   <li>{@code DATE(timestampLtz [, timeZone])}
+   *   <li>{@code DATE(timestamp)}
+   * </ul>
+   */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE =
       SqlBasicFunction.create("DATE", ReturnTypes.DATE_NULLABLE,
-          OperandTypes.STRING, SqlFunctionCategory.TIMEDATE);
+          OperandTypes.or(
+              // DATE(string)
+              OperandTypes.STRING,
+              // DATE(year, month, day)
+              OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
+                  SqlTypeFamily.INTEGER),
+              // DATE(timestamp)
+              OperandTypes.TIMESTAMP_NTZ,
+              // DATE(timestampLtz)
+              OperandTypes.TIMESTAMP_LTZ,
+              // DATE(timestampLtz, timeZone)
+              OperandTypes.sequence(
+                  "DATE(TIMESTAMP WITH LOCAL TIME ZONE, VARCHAR)",
+                  OperandTypes.TIMESTAMP_LTZ, OperandTypes.CHARACTER)),
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "DATETIME" function returns a Calcite
+   * {@code TIMESTAMP} (which BigQuery calls a {@code DATETIME}).
+   * It has the following overloads:
+   *
+   * <ul>
+   *   <li>{@code DATETIME(year, month, day, hour, minute, second)}
+   *   <li>{@code DATETIME(date[, time])}
+   *   <li>{@code DATETIME(timestampLtz[, timeZone])}
+   * </ul>
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME =
+      SqlBasicFunction.create("DATETIME", ReturnTypes.TIMESTAMP_NULLABLE,
+          OperandTypes.or(
+              // DATETIME(year, month, day, hour, minute, second)
+              OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
+                  SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
+                  SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+              // DATETIME(date)
+              OperandTypes.DATE,
+              // DATETIME(date, time)
+              OperandTypes.DATE_TIME,
+              // DATETIME(timestampLtz)
+              OperandTypes.TIMESTAMP_LTZ,
+              // DATETIME(timestampLtz, timeZone)
+              OperandTypes.sequence(
+                  "DATETIME(TIMESTAMP WITH LOCAL TIME ZONE, VARCHAR)",
+                  OperandTypes.TIMESTAMP_LTZ, OperandTypes.CHARACTER)),
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIME" function. It has the following overloads:
+   *
+   * <ul>
+   *   <li>{@code TIME(hour, minute, second)}
+   *   <li>{@code TIME(timestampLtz [, timeZone])}
+   *   <li>{@code TIME(timestamp)}
+   * </ul>
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME =
+      SqlBasicFunction.create("TIME", ReturnTypes.TIME_NULLABLE,
+          OperandTypes.or(
+              // TIME(hour, minute, second)
+              OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
+                  SqlTypeFamily.INTEGER),
+              // TIME(timestamp)
+              OperandTypes.TIMESTAMP_NTZ,
+              // TIME(timestampLtz)
+              OperandTypes.TIMESTAMP_LTZ,
+              // TIME(timestampLtz, timeZone)
+              OperandTypes.sequence(
+                  "TIME(TIMESTAMP WITH LOCAL TIME ZONE, VARCHAR)",
+                  OperandTypes.TIMESTAMP_LTZ, OperandTypes.CHARACTER)),
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIMESTAMP" function returns a Calcite
+   * {@code TIMESTAMP WITH LOCAL TIME ZONE}
+   * (which BigQuery calls a {@code TIMESTAMP}). It has the following overloads:
+   *
+   * <ul>
+   *   <li>{@code TIMESTAMP(string[, timeZone])}
+   *   <li>{@code TIMESTAMP(date[, timeZone])}
+   *   <li>{@code TIMESTAMP(timestamp[, timeZone])}
+   * </ul>
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP =
+      SqlBasicFunction.create("TIMESTAMP",
+          ReturnTypes.TIMESTAMP_LTZ.andThen(SqlTypeTransforms.TO_NULLABLE),
+          OperandTypes.or(
+              // TIMESTAMP(string)
+              OperandTypes.CHARACTER,
+              // TIMESTAMP(string, timeZone)
+              OperandTypes.CHARACTER_CHARACTER,
+              // TIMESTAMP(date)
+              OperandTypes.DATE,
+              // TIMESTAMP(date, timeZone)
+              OperandTypes.DATE_CHARACTER,
+              // TIMESTAMP(timestamp)
+              OperandTypes.TIMESTAMP_NTZ,
+              // TIMESTAMP(timestamp, timeZone)
+              OperandTypes.sequence("TIMESTAMP(TIMESTAMP, VARCHAR)",
+                  OperandTypes.TIMESTAMP_NTZ, OperandTypes.CHARACTER)),
+          SqlFunctionCategory.TIMEDATE);
 
   /** The "CURRENT_DATETIME([timezone])" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
@@ -626,62 +804,156 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
-  private static final Set<TimeUnitRange> TIME_UNITS =
-      ImmutableSet.of(TimeUnitRange.HOUR,
-          TimeUnitRange.MINUTE,
-          TimeUnitRange.SECOND);
+  /** The "FORMAT_TIME(string, time)" function (BigQuery);
+   * Formats a time object according to the specified string. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_TIME =
+      SqlBasicFunction.create("FORMAT_TIME", ReturnTypes.VARCHAR_2000_NULLABLE,
+          OperandTypes.CHARACTER_TIME, SqlFunctionCategory.STRING);
 
-  private static final Set<TimeUnitRange> MONTH_UNITS =
-      ImmutableSet.of(TimeUnitRange.MILLENNIUM,
-          TimeUnitRange.CENTURY,
-          TimeUnitRange.DECADE,
-          TimeUnitRange.YEAR,
-          TimeUnitRange.MONTH);
+  /** The "FORMAT_DATE(string, date)" function (BigQuery);
+   * Formats a date object according to the specified string. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_DATE =
+      SqlBasicFunction.create("FORMAT_DATE", ReturnTypes.VARCHAR_2000_NULLABLE,
+          OperandTypes.CHARACTER_DATE, SqlFunctionCategory.STRING);
 
-  private static final Set<TimeUnitRange> DATE_UNITS =
-      ImmutableSet.of(TimeUnitRange.WEEK,
-          TimeUnitRange.DAY);
+  /** The "FORMAT_TIMESTAMP(string, timestamp)" function (BigQuery);
+   * Formats a timestamp object according to the specified string.
+   *
+   * <p>In BigQuery, the "TIMESTAMP" datatype maps to Calcite's
+   * TIMESTAMP_WITH_LOCAL_TIME_ZONE */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_TIMESTAMP =
+      SqlBasicFunction.create("FORMAT_TIMESTAMP",
+          ReturnTypes.VARCHAR_2000_NULLABLE,
+          OperandTypes.sequence("FORMAT_TIMESTAMP(<CHARACTER>, "
+                  + "<TIMESTAMP WITH LOCAL TIME ZONE>)",
+              OperandTypes.CHARACTER, OperandTypes.TIMESTAMP_LTZ)
+              .or(
+                  OperandTypes.sequence("FORMAT_TIMESTAMP(<CHARACTER>, "
+                          + "<TIMESTAMP WITH LOCAL TIME ZONE>, <CHARACTER>)",
+                      OperandTypes.CHARACTER, OperandTypes.TIMESTAMP_LTZ,
+                      OperandTypes.CHARACTER)),
+          SqlFunctionCategory.STRING);
 
-  private static final Set<TimeUnitRange> TIMESTAMP_UNITS =
-      ImmutableSet.<TimeUnitRange>builder()
-          .addAll(MONTH_UNITS).addAll(DATE_UNITS).addAll(TIME_UNITS).build();
+  /** The "FORMAT_DATETIME(string, timestamp)" function (BigQuery);
+   * Formats a timestamp object according to the specified string. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FORMAT_DATETIME =
+      SqlBasicFunction.create("FORMAT_DATETIME",
+          ReturnTypes.VARCHAR_2000_NULLABLE,
+          OperandTypes.sequence("FORMAT_DATETIME(<CHARACTER>, <TIMESTAMP>)",
+                  OperandTypes.CHARACTER, OperandTypes.TIMESTAMP_NTZ)
+              .or(
+                  OperandTypes.sequence("FORMAT_DATETIME(<CHARACTER>, "
+                          + "<TIMESTAMP>, <CHARACTER>)",
+                      OperandTypes.CHARACTER, OperandTypes.TIMESTAMP_NTZ,
+                      OperandTypes.CHARACTER)),
+          SqlFunctionCategory.STRING);
 
-  /** The "TIMESTAMP_ADD(timestamp_expression, interval_expression)" function
-   * (BigQuery), the two-argument variant of the built-in
+  /** The "TIMESTAMP_ADD(timestamp, interval)" function (BigQuery), the
+   * two-argument variant of the built-in
    * {@link SqlStdOperatorTable#TIMESTAMP_ADD TIMESTAMPADD} function, which has
    * three arguments.
    *
-   * <p>In BigQuery, the syntax is "TIMESTAMP_ADD(timestamp_expression, INTERVAL
+   * <p>In BigQuery, the syntax is "TIMESTAMP_ADD(timestamp, INTERVAL
    * int64_expression date_part)" but in Calcite the second argument can be any
    * interval expression, not just an interval literal. */
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TIMESTAMP_ADD2 =
+  public static final SqlBasicFunction TIMESTAMP_ADD2 =
       SqlBasicFunction.create(SqlKind.TIMESTAMP_ADD, ReturnTypes.ARG0_NULLABLE,
           OperandTypes.TIMESTAMP_INTERVAL)
           .withFunctionType(SqlFunctionCategory.TIMEDATE);
 
-  /** The "TIME_TRUNC(time_expression, time_part)" function (BigQuery);
-   * truncates a TIME value to the granularity of time_part. The TIME value is
-   * always rounded to the beginning of time_part. */
+  /** The "TIMESTAMP_DIFF(timestamp, timestamp, timeUnit)" function (BigQuery);
+   * returns the number of timeUnit between the two timestamp expressions.
+   *
+   * <p>{@code TIMESTAMP_DIFF(t1, t2, unit)} is equivalent to
+   * {@code TIMESTAMPDIFF(unit, t2, t1)} and {@code (t1 - t2) unit}. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP_DIFF3 =
+      new SqlTimestampDiffFunction("TIMESTAMP_DIFF",
+          OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP,
+              SqlTypeFamily.ANY));
+
+  /** The "TIME_ADD(time, interval)" function (BigQuery);
+   * adds interval expression to the specified time expression. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME_ADD =
+      SqlBasicFunction.create(SqlKind.TIME_ADD, ReturnTypes.ARG0_NULLABLE,
+              OperandTypes.TIME_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIME_DIFF(time, time, timeUnit)" function (BigQuery);
+   * returns the number of timeUnit between the two time expressions. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME_DIFF =
+      new SqlTimestampDiffFunction("TIME_DIFF",
+          OperandTypes.family(SqlTypeFamily.TIME, SqlTypeFamily.TIME,
+              SqlTypeFamily.ANY));
+
+  /** The "DATE_TRUNC(date, timeUnit)" function (BigQuery);
+   * truncates a DATE value to the beginning of a timeUnit. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_TRUNC =
+      SqlBasicFunction.create("DATE_TRUNC",
+          ReturnTypes.DATE_NULLABLE,
+          OperandTypes.sequence("'DATE_TRUNC(<DATE>, <DATETIME_INTERVAL>)'",
+              OperandTypes.DATE, OperandTypes.dateInterval()),
+          SqlFunctionCategory.TIMEDATE)
+          .withOperandHandler(OperandHandlers.OPERAND_1_MIGHT_BE_TIME_FRAME);
+
+  /** The "TIME_SUB(time, interval)" function (BigQuery);
+   * subtracts an interval from a time, independent of any time zone.
+   *
+   * <p>In BigQuery, the syntax is "TIME_SUB(time, INTERVAL int64 date_part)"
+   * but in Calcite the second argument can be any interval expression, not just
+   * an interval literal. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME_SUB =
+      SqlBasicFunction.create(SqlKind.TIME_SUB, ReturnTypes.ARG0_NULLABLE,
+              OperandTypes.TIME_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIME_TRUNC(time, timeUnit)" function (BigQuery);
+   * truncates a TIME value to the beginning of a timeUnit. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIME_TRUNC =
       SqlBasicFunction.create("TIME_TRUNC",
           ReturnTypes.TIME_NULLABLE,
           OperandTypes.sequence("'TIME_TRUNC(<TIME>, <DATETIME_INTERVAL>)'",
-              OperandTypes.TIME, OperandTypes.interval(TIME_UNITS)),
+              OperandTypes.TIME, OperandTypes.timeInterval()),
           SqlFunctionCategory.TIMEDATE);
 
-  /** The "TIMESTAMP_TRUNC(timestamp_expression, date_time_part[, time_zone])"
-   * function (BigQuery); truncates a TIMESTAMP value to the granularity of
-   * date_time_part. The TIMESTAMP value is always rounded to the beginning of
-   * date_time_part. */
+  /** The "TIMESTAMP_SUB(timestamp, interval)" function (BigQuery);
+   * subtracts an interval from a timestamp, independent of any time zone.
+   *
+   * <p>In BigQuery, the syntax is "TIMESTAMP_SUB(timestamp,
+   * INTERVAL int64 date_part)" but in Calcite the second argument can be any
+   * interval expression, not just an interval literal. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlBasicFunction TIMESTAMP_SUB =
+      SqlBasicFunction.create(SqlKind.TIMESTAMP_SUB, ReturnTypes.ARG0_NULLABLE,
+          OperandTypes.TIMESTAMP_INTERVAL)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** BigQuery's {@code DATETIME_SUB(timestamp, interval)} function
+   * is a synonym for TIMESTAMP_SUB because in Calcite, DATETIME
+   * is an alias for TIMESTAMP. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_SUB =
+      TIMESTAMP_SUB.withName("DATETIME_SUB");
+
+  /** The "TIMESTAMP_TRUNC(timestamp, timeUnit[, timeZone])" function (BigQuery);
+   * truncates a TIMESTAMP value to the beginning of a timeUnit. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_TRUNC =
       SqlBasicFunction.create("TIMESTAMP_TRUNC",
           ReturnTypes.TIMESTAMP_NULLABLE,
           OperandTypes.sequence(
               "'TIMESTAMP_TRUNC(<TIMESTAMP>, <DATETIME_INTERVAL>)'",
-              OperandTypes.TIMESTAMP, OperandTypes.interval(TIMESTAMP_UNITS)),
+              OperandTypes.TIMESTAMP, OperandTypes.timestampInterval()),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_SECONDS(bigint)" function; returns a TIMESTAMP value
@@ -730,6 +1002,20 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("UNIX_MICROS",
           ReturnTypes.BIGINT_NULLABLE, OperandTypes.TIMESTAMP,
           SqlFunctionCategory.TIMEDATE);
+
+  /** The "DATETIME_ADD(timestamp, interval)" function (BigQuery).
+   * As {@code TIMESTAMP_ADD}, returns a Calcite {@code TIMESTAMP}
+   * (which BigQuery calls a {@code DATETIME}). */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_ADD =
+      TIMESTAMP_ADD2.withName("DATETIME_ADD");
+
+  /** The "DATETIME_DIFF(timestamp, timestamp2, timeUnit)" function (BigQuery). */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_DIFF =
+      new SqlTimestampDiffFunction("DATETIME_DIFF",
+          OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP,
+              SqlTypeFamily.ANY));
 
   /** The "CHAR(n)" function; returns the character whose ASCII code is
    * {@code n} % 256, or null if {@code n} &lt; 0. */
@@ -785,6 +1071,14 @@ public abstract class SqlLibraryOperators {
               .andThen(SqlTypeTransforms.TO_NULLABLE),
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction POW =
+      SqlStdOperatorTable.POWER.withName("POW");
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TRUNC =
+      SqlStdOperatorTable.TRUNCATE.withName("TRUNC");
 
   /** Infix "::" cast operator used by PostgreSQL, for example
    * {@code '100'::INTEGER}. */

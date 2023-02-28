@@ -213,6 +213,7 @@ select:
       [ GROUP BY [ ALL | DISTINCT ] { groupItem [, groupItem ]* } ]
       [ HAVING booleanExpression ]
       [ WINDOW windowName AS windowSpec [, windowName AS windowSpec ]* ]
+      [ QUALIFY booleanExpression ]
 
 selectWithoutFrom:
       SELECT [ ALL | DISTINCT ]
@@ -542,8 +543,12 @@ CURSOR_NAME,
 DATA,
 DATABASE,
 **DATE**,
+**DATETIME**,
+DATETIME_DIFF,
 DATETIME_INTERVAL_CODE,
 DATETIME_INTERVAL_PRECISION,
+DATE_DIFF,
+DATE_TRUNC,
 **DAY**,
 DAYS,
 **DEALLOCATE**,
@@ -626,6 +631,7 @@ FOUND,
 FRAC_SECOND,
 **FRAME_ROW**,
 **FREE**,
+**FRIDAY**,
 **FROM**,
 **FULL**,
 **FUNCTION**,
@@ -745,6 +751,7 @@ MINVALUE,
 **MOD**,
 **MODIFIES**,
 **MODULE**,
+**MONDAY**,
 **MONTH**,
 MONTHS,
 MORE,
@@ -841,7 +848,9 @@ PRIOR,
 PRIVILEGES,
 **PROCEDURE**,
 PUBLIC,
+**QUALIFY**,
 QUARTER,
+QUARTERS,
 **RANGE**,
 **RANK**,
 READ,
@@ -891,6 +900,7 @@ ROUTINE_SCHEMA,
 ROW_COUNT,
 **ROW_NUMBER**,
 **RUNNING**,
+**SATURDAY**,
 **SAVEPOINT**,
 SCALAR,
 SCALE,
@@ -1003,6 +1013,7 @@ SUBSTITUTE,
 **SUBSTRING_REGEX**,
 **SUCCEEDS**,
 **SUM**,
+**SUNDAY**,
 **SYMMETRIC**,
 **SYSTEM**,
 **SYSTEM_TIME**,
@@ -1012,14 +1023,17 @@ SUBSTITUTE,
 TABLE_NAME,
 TEMPORARY,
 **THEN**,
+**THURSDAY**,
 TIES,
 **TIME**,
 **TIMESTAMP**,
 TIMESTAMPADD,
 TIMESTAMPDIFF,
+TIMESTAMP_DIFF,
 TIMESTAMP_TRUNC,
 **TIMEZONE_HOUR**,
 **TIMEZONE_MINUTE**,
+TIME_DIFF,
 TIME_TRUNC,
 **TINYINT**,
 **TO**,
@@ -1043,6 +1057,7 @@ TRIGGER_SCHEMA,
 **TRIM_ARRAY**,
 **TRUE**,
 **TRUNCATE**,
+**TUESDAY**,
 TUMBLE,
 TYPE,
 **UESCAPE**,
@@ -1080,7 +1095,9 @@ UTF8,
 VERSION,
 **VERSIONING**,
 VIEW,
+**WEDNESDAY**,
 WEEK,
+WEEKS,
 **WHEN**,
 **WHENEVER**,
 **WHERE**,
@@ -1163,9 +1180,9 @@ Note:
 * GEOMETRY is allowed only in certain
   [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowGeometry--).
 * Interval literals may only use time units
-  YEAR, MONTH, DAY, HOUR, MINUTE and SECOND. In certain
+  YEAR, QUARTER, MONTH, WEEK, DAY, HOUR, MINUTE and SECOND. In certain
   [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowPluralTimeUnits--),
-  we also allow their plurals, YEARS, MONTHS, DAYS, HOURS, MINUTES and SECONDS.
+  we also allow their plurals, YEARS, QUARTERS, MONTHS, WEEKS, DAYS, HOURS, MINUTES and SECONDS.
 
 ### Non-scalar types
 
@@ -1240,7 +1257,7 @@ completeness.
 |:------------------------------------------------- |:-----------
 | value1 = value2                                   | Equals
 | value1 <> value2                                  | Not equal
-| value1 != value2                                  | Not equal (only available at some conformance levels)
+| value1 != value2                                  | Not equal (only in certain [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isBangEqualAllowed--))
 | value1 > value2                                   | Greater than
 | value1 >= value2                                  | Greater than or equal
 | value1 < value2                                   | Less than
@@ -1849,6 +1866,8 @@ and `LISTAGG`).
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
 | ANY_VALUE( [ ALL &#124; DISTINCT ] value)     | Returns one of the values of *value* across all input values; this is NOT specified in the SQL standard
+| ARG_MAX(value, comp)                          | Returns *value* for the maximum value of *comp* in the group
+| ARG_MIN(value, comp)                          | Returns *value* for the minimum value of *comp* in the group
 | APPROX_COUNT_DISTINCT(value [, value ]*)      | Returns the approximate number of distinct values of *value*; the database is allowed to use an approximation but is not required to
 | AVG( [ ALL &#124; DISTINCT ] numeric)         | Returns the average (arithmetic mean) of *numeric* across all input values
 | BIT_AND( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise AND of all non-null input values, or null if none; integer and binary types are supported
@@ -2438,12 +2457,10 @@ Not implemented:
 
 #### Geometry projection functions
 
-Projection functions rely on Proj4J to transform the geometries.
-Proj4J is released under the Apache License 2.0, however, it also uses the EPSG dataset,
-which has restricting [terms of use](https://epsg.org/terms-of-use.html).
-As a result, Proj4J is not suitable for inclusion in Apache Calcite
-and some of these functions may throw `ClassNotFoundException`s.
-Users can still use these functions by including Proj4J in their classpath.
+The EPSG dataset is released separately from Proj4J due
+to its restrictive [terms of use](https://epsg.org/terms-of-use.html).
+In order to use the projection functions in Apache Calcite,
+users must include the EPSG dataset in their dependencies.
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
@@ -2595,6 +2612,17 @@ The 'C' (compatibility) column contains value:
 One operator name may correspond to multiple SQL dialects, but with different
 semantics.
 
+BigQuery's type system uses confusingly different names for types and functions:
+* BigQuery's `DATETIME` type represents a local date time, and corresponds to
+  Calcite's `TIMESTAMP` type;
+* BigQuery's `TIMESTAMP` type represents an instant, and corresponds to
+  Calcite's `TIMESTAMP WITH LOCAL TIME ZONE` type;
+* The *timestampLtz* parameter, for instance in `DATE(timestampLtz)`, has
+  Calcite type `TIMESTAMP WITH LOCAL TIME ZONE`;
+* The `TIMESTAMP(string)` function, designed to be compatible the BigQuery
+  function, return a Calcite `TIMESTAMP WITH LOCAL TIME ZONE`;
+* Similarly, `DATETIME(string)` returns a Calcite `TIMESTAMP`.
+
 | C | Operator syntax                                | Description
 |:- |:-----------------------------------------------|:-----------
 | p | expr :: type                                   | Casts *expr* to *type*
@@ -2609,45 +2637,72 @@ semantics.
 | b m p | CONCAT(string [, string ]*)                | Concatenates two or more strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string.
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
-| b | CURRENT_DATETIME([timezone])                   | Returns the current time as a TIMESTAMP from *timezone*
+| b | CURRENT_DATETIME([ timeZone ])                 | Returns the current time as a TIMESTAMP from *timezone*
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
+| b | DATE(timestamp)                                | Extracts the DATE from a *timestamp*
+| b | DATE(timestampLtz)                             | Extracts the DATE from *timestampLtz* (an instant; BigQuery's TIMESTAMP type), assuming UTC
+| b | DATE(timestampLtz, timeZone)                   | Extracts the DATE from *timestampLtz* (an instant; BigQuery's TIMESTAMP type) in *timeZone*
 | b | DATE(string)                                   | Equivalent to `CAST(string AS DATE)`
+| b | DATE(year, month, day)                         | Returns a DATE value for *year*, *month*, and *day* (all of type INTEGER)
 | p q | DATEADD(timeUnit, integer, datetime)         | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
 | p q | DATEDIFF(timeUnit, datetime, datetime2)      | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
 | q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
+| b | DATETIME(date, time)                           | Converts *date* and *time* to a TIMESTAMP
+| b | DATETIME(date)                                 | Converts *date* to a TIMESTAMP value (at midnight)
+| b | DATETIME(date, timeZone)                       | Converts *date* to a TIMESTAMP value (at midnight), in *timeZone*
+| b | DATETIME(year, month, day, hour, minute, second) | Creates a TIMESTAMP for *year*, *month*, *day*, *hour*, *minute*, *second* (all of type INTEGER)
+| b | DATETIME_ADD(timestamp, interval)              | Returns the TIMESTAMP value that occurs *interval* after *timestamp*
+| b | DATETIME_DIFF(timestamp, timestamp2, timeUnit) | Returns the whole number of *timeUnit* between *timestamp* and *timestamp2*
+| b | DATETIME_SUB(timestamp, interval)              | Returns the TIMESTAMP that occurs *interval* before *timestamp*
 | b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
 | p | DATE_PART(timeUnit, datetime)                  | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
+| b | DATE_ADD(date, interval)                       | Returns the DATE value that occurs *interval* after *date*
+| b | DATE_DIFF(date, date2, timeUnit)               | Returns the whole number of *timeUnit* between *date* and *date2*
+| b | DATE_SUB(date, interval)                       | Returns the DATE value that occurs *interval* before *date*
+| b | DATE_TRUNC(date, timeUnit)                     | Truncates *date* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
 | b | ENDS_WITH(string1, string2)                    | Returns whether *string2* is a suffix of *string1*
 | o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the xml fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
 | o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
+| b | FORMAT_DATE(string, date)                      | Formats *date* according to the specified format *string*
+| b | FORMAT_DATETIME(string, timestamp)             | Formats *timestamp* according to the specified format *string*
+| b | FORMAT_TIME(string, time)                      | Formats *time* according to the specified format *string*
+| b | FORMAT_TIMESTAMP(string timestamp)             | Formats *timestamp* according to the specified format *string*
 | b o | GREATEST(expr [, expr ]*)                    | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
+| b | IFNULL(value1, value2)                         | Equivalent to `NVL(value1, value2)`
 | p | string1 ILIKE string2 [ ESCAPE string3 ]       | Whether *string1* matches pattern *string2*, ignoring case (similar to `LIKE`)
 | p | string1 NOT ILIKE string2 [ ESCAPE string3 ]   | Whether *string1* does not match pattern *string2*, ignoring case (similar to `NOT LIKE`)
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of *jsonValue*
 | m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of *jsonValue*
 | m | JSON_PRETTY(jsonValue)                         | Returns a pretty-printing of *jsonValue*
 | m | JSON_LENGTH(jsonValue [, path ])               | Returns a integer indicating the length of *jsonValue*
+| m | JSON_INSERT(jsonValue, path, val[, path, val]*)  | Returns a JSON document insert a data of *jsonValue*, *path*, *val*
 | m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
 | m | JSON_REMOVE(jsonValue, path[, path])           | Removes data from *jsonValue* using a series of *path* expressions and returns the result
+| m | JSON_REPLACE(jsonValue, path, val[, path, val]*)  | Returns a JSON document replace a data of *jsonValue*, *path*, *val*
+| m | JSON_SET(jsonValue, path, val[, path, val]*)  | Returns a JSON document set a data of *jsonValue*, *path*, *val*
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of *jsonValue*
 | b o | LEAST(expr [, expr ]* )                      | Returns the least of the expressions
 | b m p | LEFT(string, length)                       | Returns the leftmost *length* characters from the *string*
+| b | LENGTH(string)                                 | Equivalent to `CHAR_LENGTH(string)`
+| b o | LPAD(string, length[, pattern ])             | Returns a string or bytes value that consists of *string* prepended to *length* with *pattern*
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
 | b m | FROM_BASE64(string)                          | Returns the decoded result of a base-64 *string* as a string
 | b o | LTRIM(string)                                | Returns *string* with all blanks removed from the start
 | b m p | MD5(string)                                | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
+| b | POW(numeric1, numeric2)                        | Returns *numeric1* raised to the power *numeric2*
 | m o | REGEXP_REPLACE(string, regexp, rep, [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* means which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
 | b m p | REPEAT(string, integer)                    | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | b m | REVERSE(string)                              | Returns *string* with the order of the characters reversed
 | b m p | RIGHT(string, length)                      | Returns the rightmost *length* characters from the *string*
 | h s | string1 RLIKE string2                        | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
 | h s | string1 NOT RLIKE string2                    | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
+| b o | RPAD(string, length[, pattern ])             | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
 | b o | RTRIM(string)                                | Returns *string* with all blanks removed from the end
 | b m p | SHA1(string)                               | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | b o | SINH(numeric)                                | Returns the hyperbolic sine of *numeric*
@@ -2657,15 +2712,31 @@ semantics.
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
 | b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | b o | TANH(numeric)                                | Returns the hyperbolic tangent of *numeric*
-| b | TIMESTAMP_ADD(timestamp, interval int64 date_part) | Adds int64_expression units of date_part to the timestamp, independent of any time zone.
+| b | TIME(hour, minute, second)                     | Returns a TIME value *hour*, *minute*, *second* (all of type INTEGER)
+| b | TIME(timestamp)                                | Extracts the TIME from *timestamp* (a local time; BigQuery's DATETIME type)
+| b | TIME(instant)                                  | Extracts the TIME from *timestampLtz* (an instant; BigQuery's TIMESTAMP type), assuming UTC
+| b | TIME(instant, timeZone)                        | Extracts the time from *timestampLtz* (an instant; BigQuery's TIMESTAMP type), in *timeZone*
+| b | TIMESTAMP(string)                              | Equivalent to `CAST(string AS TIMESTAMP WITH LOCAL TIME ZONE)`
+| b | TIMESTAMP(string, timeZone)                    | Equivalent to `CAST(string AS TIMESTAMP WITH LOCAL TIME ZONE)`, converted to *timeZone*
+| b | TIMESTAMP(date)                                | Converts *date* to a TIMESTAMP WITH LOCAL TIME ZONE value (at midnight)
+| b | TIMESTAMP(date, timeZone)                      | Converts *date* to a TIMESTAMP WITH LOCAL TIME ZONE value (at midnight), in *timeZone*
+| b | TIMESTAMP(timestamp)                           | Converts *timestamp* to a TIMESTAMP WITH LOCAL TIME ZONE, assuming a UTC
+| b | TIMESTAMP(timestamp, timeZone)                 | Converts *timestamp* to a TIMESTAMP WITH LOCAL TIME ZONE, in *timeZone*
+| b | TIMESTAMP_ADD(timestamp, interval)             | Returns the TIMESTAMP value that occurs *interval* after *timestamp*
+| b | TIMESTAMP_DIFF(timestamp, timestamp2, timeUnit) | Returns the whole number of *timeUnit* between *timestamp* and *timestamp2*. Equivalent to `TIMESTAMPDIFF(timeUnit, timestamp2, timestamp)` and `(timestamp - timestamp2) timeUnit`
 | b | TIMESTAMP_MICROS(integer)                      | Returns the TIMESTAMP that is *integer* microseconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_MILLIS(integer)                      | Returns the TIMESTAMP that is *integer* milliseconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_SECONDS(integer)                     | Returns the TIMESTAMP that is *integer* seconds after 1970-01-01 00:00:00
-| b | TIMESTAMP_TRUNC(timestamp, timeUnit)           | Truncates a *timestamp* value to the granularity of *timeUnit*. The *timestamp* value is always rounded to the beginning of the *timeUnit*.
-| b | TIME_TRUNC(time, timeUnit)                     | Truncates a *time* value to the granularity of *timeUnit*. The *time* value is always rounded to the beginning of timeUnit, which can be one of the following: MILLISECOND, SECOND, MINUTE, HOUR.
+| b | TIMESTAMP_SUB(timestamp, interval)             | Returns the TIMESTAMP value that is *interval* before *timestamp*
+| b | TIMESTAMP_TRUNC(timestamp, timeUnit)           | Truncates *timestamp* to the granularity of *timeUnit*, rounding to the beginning of the unit
+| b | TIME_ADD(time, interval)                       | Adds *interval* to *time*, independent of any time zone
+| b | TIME_DIFF(time, time2, timeUnit)               | Returns the whole number of *timeUnit* between *time* and *time2*
+| b | TIME_SUB(time, interval)                       | Returns the TIME value that is *interval* before *time*
+| b | TIME_TRUNC(time, timeUnit)                     | Truncates *time* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | b o p | TRANSLATE(expr, fromString, toString)      | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| b | TRUNC(numeric1 [, numeric2 ])                  | Truncates *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point
 | b | UNIX_MICROS(timestamp)                         | Returns the number of microseconds since 1970-01-01 00:00:00
 | b | UNIX_MILLIS(timestamp)                         | Returns the number of milliseconds since 1970-01-01 00:00:00
 | b | UNIX_SECONDS(timestamp)                        | Returns the number of seconds since 1970-01-01 00:00:00
@@ -2713,6 +2784,8 @@ Dialect-specific aggregate functions.
 | m | GROUP_CONCAT( [ ALL &#124; DISTINCT ] value [, value ]* [ ORDER BY orderItem [, orderItem ]* ] [ SEPARATOR separator ] ) | MySQL-specific variant of `LISTAGG`
 | b | LOGICAL_AND(condition)                         | Synonym for `EVERY`
 | b | LOGICAL_OR(condition)                          | Synonym for `SOME`
+| s | MAX_BY(value, comp)                            | Synonym for `ARG_MAX`
+| s | MIN_BY(value, comp)                            | Synonym for `ARG_MIN`
 | b p | STRING_AGG( [ ALL &#124; DISTINCT ] value [, separator] [ ORDER BY orderItem [, orderItem ]* ] ) | Synonym for `LISTAGG`
 
 Usage Examples:
@@ -2774,6 +2847,23 @@ Result
 |:------:|:-----:|:-------:|:-------:|
 | 1      | 2     | 1       | 1       |
 
+##### JSON_INSERT example
+
+SQL
+
+```SQL
+SELECT JSON_INSERT(v, '$.a', 10, '$.c', '[1]') AS c1,
+  JSON_INSERT(v, '$', 10, '$.c', '[1]') AS c2
+FROM (VALUES ('{"a": [10, true]}')) AS t(v)
+LIMIT 10;
+```
+
+Result
+
+| c1                             | c2                            |
+| ------------------------------ | ----------------------------- |
+| {"a":1 , "b":[2] , "c":"[1]"}  | {"a":1 , "b":[2] , "c":"[1]"} |
+
 ##### JSON_KEYS example
 
 SQL
@@ -2810,6 +2900,41 @@ LIMIT 10;
 |:----------:|
 | ["a", "d"] |
 
+##### JSON_REPLACE example
+
+SQL
+
+ ```SQL
+SELECT
+JSON_REPLACE(v, '$.a', 10, '$.c', '[1]') AS c1,
+JSON_REPLACE(v, '$', 10, '$.c', '[1]') AS c2
+FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)
+limit 10;
+```
+
+ Result
+
+| c1                             | c2                              |
+| ------------------------------ | ------------------------------- |
+| {"a":1 , "b":[2] , "c":"[1]"}  | {"a":1 , "b":[2] , "c":"[1]"}") |
+
+##### JSON_SET example
+
+SQL
+
+ ```SQL
+SELECT
+JSON_SET(v, '$.a', 10, '$.c', '[1]') AS c1,
+JSON_SET(v, '$', 10, '$.c', '[1]') AS c2
+FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)
+limit 10;
+```
+
+ Result
+
+| c1                 | c2 |
+| -------------------| -- |
+| {"a":10, "b":[2]}  | 10 |
 
 ##### JSON_STORAGE_SIZE example
 
@@ -2867,12 +2992,6 @@ Result
 | c1          | c2          | c3          | c4          |
 |:-----------:|:-----------:|:-----------:|:-----------:|
 | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d |
-
-Not implemented:
-
-* JSON_INSERT
-* JSON_SET
-* JSON_REPLACE
 
 ## User-defined functions
 

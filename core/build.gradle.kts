@@ -48,11 +48,7 @@ dependencies {
 
     api("org.locationtech.jts:jts-core")
     api("org.locationtech.jts.io:jts-io-common")
-
-    // Due to restricting terms of use, we cannot include Proj4J as an API dependency.
-    compileOnly("org.locationtech.proj4j:proj4j")
-    testRuntimeOnly("org.locationtech.proj4j:proj4j")
-
+    api("org.locationtech.proj4j:proj4j")
     api("com.fasterxml.jackson.core:jackson-annotations")
     api("com.google.errorprone:error_prone_annotations")
     api("com.google.guava:guava")
@@ -102,6 +98,10 @@ dependencies {
     testImplementation(kotlin("stdlib-jdk8"))
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
+
+    // proj4j-epsg must not be converted to 'implementation' due to its license
+    testRuntimeOnly("org.locationtech.proj4j:proj4j-epsg")
+
     testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }
 

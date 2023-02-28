@@ -536,8 +536,7 @@ public class CalciteMetaImpl extends MetaImpl {
                   op.getName(),
                   (short) DatabaseMetaData.functionResultUnknown,
                   op.getName()
-              )
-          );
+              ));
     }
     return Linq4j.asEnumerable(schema.calciteSchema.getFunctionNames())
         .selectMany(name ->

@@ -1206,8 +1206,7 @@ class UtilTest {
     assertThat(list2.appendAll(list2), is(Arrays.asList(1, 3, 5, 1, 3, 5)));
     assertThat(
         Arrays.toString(ImmutableIntList.of(1).toArray(new Integer[]{5, 6, 7})),
-        is("[1, null, 7]")
-    );
+        is("[1, null, 7]"));
   }
 
   /** Unit test for {@link IdPair}. */
@@ -2345,7 +2344,8 @@ class UtilTest {
     memo1.close();
     assertThat(local1.get(), is("foo"));
 
-    final TryThreadLocal<String> local2 = TryThreadLocal.of(null);
+    final TryThreadLocal<@org.checkerframework.checker.nullness.qual.Nullable String> local2 =
+        TryThreadLocal.of(null);
     assertThat(local2.get(), nullValue());
     TryThreadLocal.Memo memo2 = local2.push("a");
     assertThat(local2.get(), is("a"));

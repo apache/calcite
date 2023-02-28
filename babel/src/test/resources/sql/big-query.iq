@@ -15,6 +15,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# In this file (due to the use of 'scott-big-query' below, and unlike typical
+# Quidem tests), types are aliased to be consistent with BigQuery's type names,
+# not Calcite's usual type names. # In particular:
+#  * DATETIME is what Calcite calls TIMESTAMP;
+#  * TIMESTAMP is what Calcite calls TIMESTAMP WITH LOCAL TIME ZONE;
+#  * DATE and TIME are the same as Calcite;
+#  * BYTES means VARBINARY(*);
+#  * STRING means VARCHAR(*).
+#
+# The DATETIME() and TIMESTAMP() functions are also substituted so that they
+# produce values that BigQuery would call DATETIME and TIMESTAMP.
+#
 !use scott-big-query
 !set outputformat mysql
 
@@ -349,15 +361,15 @@ SELECT current_timestamp() AS now, t.current_timestamp FROM t;
 # In the following example, EXTRACT returns a value corresponding to
 # the DAY date part.
 
-!if (false) {
 SELECT EXTRACT(DAY FROM DATE '2013-12-25') AS the_day;
 +---------+
 | the_day |
 +---------+
-| 25      |
+|      25 |
 +---------+
+(1 row)
+
 !ok
-!}
 
 # In the following example, EXTRACT returns values corresponding to
 # different date parts from a column of dates near the end of the
@@ -565,6 +577,54 @@ FROM t;
 !}
 
 #####################################################################
+# NOT EQUAL Operator (value1 != value2)
+#
+# Compares value1 and value2 and returns TRUE if not equal.
+SELECT (5 != 3) as result;
++--------+
+| result |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+SELECT (5 != 5) as result;
++--------+
+| result |
++--------+
+| false  |
++--------+
+(1 row)
+
+!ok
+
+#####################################################################
+# MODULO % OPERATOR (value1 % value2)
+#
+# Returns the remainder of dividing value1 by value2.
+SELECT (5 % 3) as result;
++--------+
+| result |
++--------+
+|      2 |
++--------+
+(1 row)
+
+!ok
+
+SELECT (19 % 19) as result;
++--------+
+| result |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+#####################################################################
 # STRING
 #
 # STRING(timestamp_expression[, time_zone])
@@ -582,10 +642,25 @@ SELECT STRING(TIMESTAMP "2008-12-25 15:30:00+00", "UTC") AS string;
 !ok
 !}
 
+#####################################################################
+# LENGTH(string)
+#
+# Returns the number of characters in the provided string.
+SELECT LENGTH("hello") as length;
++--------+
+| length |
++--------+
+|      5 |
++--------+
+(1 row)
+
+!ok
 
 #####################################################################
 # DATE
 #
+# 0. DATE(string)
+#   Shorthand for 'CAST(string AS DATE)'
 # 1. DATE(year, month, day)
 #   Constructs a DATE from INT64 values representing the year, month,
 #   and day.
@@ -598,19 +673,88 @@ SELECT STRING(TIMESTAMP "2008-12-25 15:30:00+00", "UTC") AS string;
 #
 # Returns DATE
 
-!if (false) {
+# 'date(x) is shorthand for 'cast(x as date)'
+select date('1970-01-01') as d;
++------------+
+| d          |
++------------+
+| 1970-01-01 |
++------------+
+(1 row)
+
+!ok
+
+select date(cast(null as varchar(10))) as d;
++---+
+| d |
++---+
+|   |
++---+
+(1 row)
+
+!ok
+
 SELECT
   DATE(2016, 12, 25) AS date_ymd,
   DATE(DATETIME "2016-12-25 23:59:59") AS date_dt,
-  DATE(TIMESTAMP "2016-12-25 05:30:00+07", "America/Los_Angeles") AS date_tstz;
+  DATE(TIMESTAMP "2016-12-24 22:30:00" /* TODO should be "2016-12-25 05:30:00+07" */ , "America/Los_Angeles") AS date_tstz;
 +------------+------------+------------+
 | date_ymd   | date_dt    | date_tstz  |
 +------------+------------+------------+
 | 2016-12-25 | 2016-12-25 | 2016-12-24 |
 +------------+------------+------------+
-!ok
-!}
+(1 row)
 
+!ok
+
+select date(2022, 11, 15) as d1,
+       date(datetime "2008-01-01 01:03:05") as d2,
+       date(datetime(2008, 1, 1, 1, 3, 5)) as d3;
++------------+------------+------------+
+| d1         | d2         | d3         |
++------------+------------+------------+
+| 2022-11-15 | 2008-01-01 | 2008-01-01 |
++------------+------------+------------+
+(1 row)
+
+!ok
+
+# Test timezone conversion when converting TIMESTAMP to DATE.
+# Denver observes DST whereas Phoenix does not.
+# Both cities have a -07:00 offset in winter, but Denver has -06:00 in summer.
+select date(timestamp("2008-06-21 06:30:00")) as sum_utc,
+       date(timestamp("2008-06-21 06:30:00"), "America/Denver") as sum_dst,
+       date(timestamp("2008-06-21 06:30:00"), "America/Phoenix") as sum_std,
+       date(timestamp("2008-12-21 06:30:00")) as win_utc,
+       date(timestamp("2008-12-21 06:30:00"), "America/Denver") as win_dst,
+       date(timestamp("2008-12-21 06:30:00"), "America/Phoenix") as win_std;
++------------+------------+------------+------------+------------+------------+
+| sum_utc    | sum_dst    | sum_std    | win_utc    | win_dst    | win_std    |
++------------+------------+------------+------------+------------+------------+
+| 2008-06-21 | 2008-06-21 | 2008-06-20 | 2008-12-21 | 2008-12-20 | 2008-12-20 |
++------------+------------+------------+------------+------------+------------+
+(1 row)
+
+!ok
+
+# Date-time literals.
+# As for other tests in this script, data type semantics match BigQuery:
+# DATETIME is what Calcite calls TIMESTAMP;
+# TIMESTAMP is what Calcite calls TIMESTAMP WITH LOCAL TIME ZONE;
+# DATE and TIME are the same as Calcite.
+SELECT
+  DATETIME "1969-07-21 02:56:00" AS dt,
+  TIMESTAMP "1969-07-21 02:56:00" AS ts,
+  DATE "1969-07-21" AS d,
+  TIME "02:56:00" AS t;
++---------------------+---------------------+------------+----------+
+| dt                  | ts                  | d          | t        |
++---------------------+---------------------+------------+----------+
+| 1969-07-21 02:56:00 | 1969-07-21 02:56:00 | 1969-07-21 | 02:56:00 |
++---------------------+---------------------+------------+----------+
+(1 row)
+
+!ok
 
 #####################################################################
 # DATETIME
@@ -628,17 +772,42 @@ SELECT
 #
 # Returns DATETIME
 
-!if (false) {
 SELECT
   DATETIME(2008, 12, 25, 05, 30, 00) as datetime_ymdhms,
-  DATETIME(TIMESTAMP "2008-12-25 05:30:00+00", "America/Los_Angeles") as datetime_tstz;
+  DATETIME(TIMESTAMP "2008-12-25 05:30:00" /* TODO should be "2008-12-25 05:30:00+00" */, "America/Los_Angeles") as datetime_tstz;
 +---------------------+---------------------+
 | datetime_ymdhms     | datetime_tstz       |
 +---------------------+---------------------+
-| 2008-12-25T05:30:00 | 2008-12-24T21:30:00 |
+| 2008-12-25 05:30:00 | 2008-12-24 21:30:00 |
 +---------------------+---------------------+
+(1 row)
+
 !ok
-!}
+
+select datetime(2003, 05, 25, 12, 30, 59) as dt1,
+       datetime(date(2003, 05, 25)) as d2,
+       datetime(date(2003, 05, 25), time(12, 30, 59)) as d3;
++---------------------+---------------------+---------------------+
+| dt1                 | d2                  | d3                  |
++---------------------+---------------------+---------------------+
+| 2003-05-25 12:30:59 | 2003-05-25 00:00:00 | 2003-05-25 12:30:59 |
++---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
+
+# This tests time zone conversion from a timestamp.
+select datetime(timestamp "2008-01-01 01:03:05") as t_winter,
+       datetime(timestamp "2008-01-01 01:03:05", "America/Los_Angeles") as t_winter_offs,
+       datetime(timestamp "2008-07-01 01:03:05", "America/Los_Angeles") as t_summer_offs;
++---------------------+---------------------+---------------------+
+| t_winter            | t_winter_offs       | t_summer_offs       |
++---------------------+---------------------+---------------------+
+| 2008-01-01 01:03:05 | 2007-12-31 17:03:05 | 2008-06-30 18:03:05 |
++---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
 
 #####################################################################
 # TIME
@@ -655,29 +824,75 @@ SELECT
 #
 # Returns TIME
 
-!if (false) {
 SELECT
   TIME(15, 30, 00) as time_hms,
-  TIME(TIMESTAMP "2008-12-25 15:30:00+08", "America/Los_Angeles") as time_tstz;
-
+  TIME(TIMESTAMP "2008-12-25 07:30:00" /* TODO should be "2008-12-25 15:30:00+08" */, "America/Los_Angeles") as time_tstz;
 +----------+-----------+
 | time_hms | time_tstz |
 +----------+-----------+
 | 15:30:00 | 23:30:00  |
 +----------+-----------+
+(1 row)
+
 !ok
-!}
 
-!if (false) {
 SELECT TIME(DATETIME "2008-12-25 15:30:00.000000") AS time_dt;
-
 +----------+
 | time_dt  |
 +----------+
 | 15:30:00 |
 +----------+
+(1 row)
+
 !ok
-!}
+
+select time(12, 30, 59) as t1,
+       time(datetime(2008, 01, 01, 12, 30, 59)) as t2,
+       time(datetime(2008, 07, 01, 12, 30, 59)) as t3;
++----------+----------+----------+
+| t1       | t2       | t3       |
++----------+----------+----------+
+| 12:30:59 | 12:30:59 | 12:30:59 |
++----------+----------+----------+
+(1 row)
+
+!ok
+
+# Test timezone conversion when converting TIMESTAMP to TIME.
+# Denver observes DST whereas Phoenix does not.
+# Both cities have a -07:00 offset in winter, but Denver has -06:00 in summer.
+select time(timestamp("2008-06-21 06:30:00")) as sum_utc,
+       time(timestamp("2008-06-21 06:30:00"), "America/Denver") as sum_dst,
+       time(timestamp("2008-06-21 06:30:00"), "America/Phoenix") as sum_std,
+       time(timestamp("2008-12-21 06:30:00")) as win_utc,
+       time(timestamp("2008-12-21 06:30:00"), "America/Denver") as win_dst,
+       time(timestamp("2008-12-21 06:30:00"), "America/Phoenix") as win_std;
++----------+----------+----------+----------+----------+----------+
+| sum_utc  | sum_dst  | sum_std  | win_utc  | win_dst  | win_std  |
++----------+----------+----------+----------+----------+----------+
+| 06:30:00 | 00:30:00 | 23:30:00 | 06:30:00 | 23:30:00 | 23:30:00 |
++----------+----------+----------+----------+----------+----------+
+(1 row)
+
+!ok
+
+# Test timezone conversion when converting DATE to TIMESTAMP.
+# Denver observes DST whereas Phoenix does not.
+# Both cities have a -07:00 offset in winter, but Denver has -06:00 in summer.
+select timestamp(date(2008, 6, 21)) as sum_utc,
+       timestamp(date(2008, 6, 21), "America/Denver") as sum_dst,
+       timestamp(date(2008, 6, 21), "America/Phoenix") as sum_std,
+       timestamp(date(2008, 12, 21)) as win_utc,
+       timestamp(date(2008, 12, 21), "America/Denver") as win_dst,
+       timestamp(date(2008, 12, 21), "America/Phoenix") as win_std;
++---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
+| sum_utc             | sum_dst             | sum_std             | win_utc             | win_dst             | win_std             |
++---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
+| 2008-06-21 00:00:00 | 2008-06-21 06:00:00 | 2008-06-21 07:00:00 | 2008-12-21 00:00:00 | 2008-12-21 07:00:00 | 2008-12-21 07:00:00 |
++---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
 
 #####################################################################
 # TIMESTAMP
@@ -734,27 +949,74 @@ SELECT TIMESTAMP("2008-12-25 15:30:00 UTC") AS timestamp_str;
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
+#
+# After [CALCITE-5446] is fixed, this and other TIMESTAMP WITH LOCAL TIME
+# values will end in UTC, like this: 2008-12-25 15:30:00 UTC.
+#
 SELECT TIMESTAMP(DATETIME "2008-12-25 15:30:00") AS timestamp_datetime;
-+-------------------------+
-| timestamp_datetime      |
-+-------------------------+
-| 2008-12-25 15:30:00 UTC |
-+-------------------------+
++---------------------+
+| timestamp_datetime  |
++---------------------+
+| 2008-12-25 15:30:00 |
++---------------------+
+(1 row)
+
 !ok
-!}
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
 SELECT TIMESTAMP(DATE "2008-12-25") AS timestamp_date;
-+-------------------------+
-| timestamp_date          |
-+-------------------------+
-| 2008-12-25 00:00:00 UTC |
-+-------------------------+
++---------------------+
+| timestamp_date      |
++---------------------+
+| 2008-12-25 00:00:00 |
++---------------------+
+(1 row)
+
 !ok
-!}
+
+# All these timestamps should be equal.
+# This tests the BQ timestamp literal string formatter
+# (optional 'T', optional leading zeros, optional offset with conversion).
+select timestamp("2008-01-01 01:03:05+00") as t_space,
+       timestamp("2008-01-01T01:03:05+00") as t_iso,
+       timestamp("2008-01-01 01:03:05") as t_no_offset,
+       timestamp("2008-1-1 3:5:7+02:02:02") as t_offset;
++---------------------+---------------------+---------------------+---------------------+
+| t_space             | t_iso               | t_no_offset         | t_offset            |
++---------------------+---------------------+---------------------+---------------------+
+| 2008-01-01 01:03:05 | 2008-01-01 01:03:05 | 2008-01-01 01:03:05 | 2008-01-01 01:03:05 |
++---------------------+---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
+
+# Negative and positive offsets.
+select timestamp("2008-01-01 01:03:05+01") as space_01,
+       timestamp("2008-01-01T01:03:05+01") as iso_1,
+       timestamp("2008-01-01T01:03:05+01:00") as iso_1_00,
+       timestamp("2008-01-01T01:03:05-11") as iso_neg_11;
++---------------------+---------------------+---------------------+---------------------+
+| space_01            | iso_1               | iso_1_00            | iso_neg_11          |
++---------------------+---------------------+---------------------+---------------------+
+| 2008-01-01 00:03:05 | 2008-01-01 00:03:05 | 2008-01-01 00:03:05 | 2008-01-01 12:03:05 |
++---------------------+---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
+
+# This tests time zone conversion from a datetime.
+select timestamp(datetime "2008-01-01 01:03:05") as t_winter,
+       timestamp(datetime "2008-01-01 01:03:05", "America/Los_Angeles") as t_winter_offs,
+       timestamp(datetime "2008-07-01 01:03:05", "America/Los_Angeles") as t_summer_offs;
++---------------------+---------------------+---------------------+
+| t_winter            | t_winter_offs       | t_summer_offs       |
++---------------------+---------------------+---------------------+
+| 2008-01-01 01:03:05 | 2008-01-01 09:03:05 | 2008-07-01 08:03:05 |
++---------------------+---------------------+---------------------+
+(1 row)
+
+!ok
 
 #####################################################################
 # TIMESTAMP_SECONDS
@@ -1041,7 +1303,7 @@ order by v;
 
 !ok
 
-select unix_date(timestamp '2008-12-25') as d;
+select unix_date(datetime '2008-12-25') as d;
 +-------+
 | d     |
 +-------+
@@ -1051,29 +1313,6 @@ select unix_date(timestamp '2008-12-25') as d;
 
 !ok
 
-# DATE
-# 'date(x) is shorthand for 'cast(x as date)'
-select date('1970-01-01') as d;
-+------------+
-| d          |
-+------------+
-| 1970-01-01 |
-+------------+
-(1 row)
-
-!ok
-
-!if (false) {
-select date(cast(null as varchar(10))) as d;
-+---+
-| D |
-+---+
-|   |
-+---+
-(1 row)
-
-!ok
-!}
 
 #####################################################################
 # DATE_ADD
@@ -1096,15 +1335,15 @@ select date(cast(null as varchar(10))) as d;
 #
 # Returns DATE
 
-!if (false) {
 SELECT DATE_ADD(DATE "2008-12-25", INTERVAL 5 DAY) AS five_days_later;
-+--------------------+
-| five_days_later    |
-+--------------------+
-| 2008-12-30         |
-+--------------------+
++-----------------+
+| five_days_later |
++-----------------+
+| 2008-12-30      |
++-----------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # DATETIME_ADD
@@ -1133,17 +1372,29 @@ SELECT DATE_ADD(DATE "2008-12-25", INTERVAL 5 DAY) AS five_days_later;
 #
 # Returns DATETIME
 
-!if (false) {
 SELECT
   DATETIME "2008-12-25 15:30:00" as original_date,
   DATETIME_ADD(DATETIME "2008-12-25 15:30:00", INTERVAL 10 MINUTE) as later;
-+-----------------------------+------------------------+
-| original_date               | later                  |
-+-----------------------------+------------------------+
-| 2008-12-25T15:30:00         | 2008-12-25T15:40:00    |
-+-----------------------------+------------------------+
++---------------------+---------------------+
+| original_date       | later               |
++---------------------+---------------------+
+| 2008-12-25 15:30:00 | 2008-12-25 15:40:00 |
++---------------------+---------------------+
+(1 row)
+
 !ok
-!}
+
+SELECT
+  DATETIME "2008-12-25 15:30:00" as original_date,
+  DATETIME_ADD(TIMESTAMP "2008-12-25 15:30:00", INTERVAL 20 MINUTE) as later;
++---------------------+---------------------+
+| original_date       | later               |
++---------------------+---------------------+
+| 2008-12-25 15:30:00 | 2008-12-25 15:50:00 |
++---------------------+---------------------+
+(1 row)
+
+!ok
 
 #####################################################################
 # TIME_ADD
@@ -1166,17 +1417,17 @@ SELECT
 #
 # Returns TIME
 
-!if (false) {
 SELECT
   TIME "15:30:00" as original_time,
   TIME_ADD(TIME "15:30:00", INTERVAL 10 MINUTE) as later;
-+-----------------------------+------------------------+
-| original_time               | later                  |
-+-----------------------------+------------------------+
-| 15:30:00                    | 15:40:00               |
-+-----------------------------+------------------------+
++---------------+----------+
+| original_time | later    |
++---------------+----------+
+| 15:30:00      | 15:40:00 |
++---------------+----------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # TIMESTAMP_ADD
@@ -1227,6 +1478,78 @@ SELECT
 !ok
 
 #####################################################################
+# LPAD(original_value, return_length, pattern)
+#
+# Returns a STRING or BYTES value that consists of original_value prepended
+# with pattern.
+#
+# This function supports specifying collation.
+WITH Examples AS (
+  SELECT LPAD('12345', 8, 'a') as result, "8" as pad_length, "a" as p UNION ALL
+  SELECT LPAD('12345', 8), "8", " " UNION ALL
+  SELECT LPAD('12345', 8, 'aba'), "8", "aba" UNION ALL
+  SELECT LPAD('12345', 3), "3", " " UNION ALL
+  SELECT LPAD(x'aa', 4, x'bb'), "4", "x'bb'" UNION ALL
+  SELECT LPAD(x'aa', 4), "4", "20" UNION ALL
+  SELECT LPAD(x'aaaaaa', 2), "2", "20" UNION ALL
+  SELECT LPAD(x'aaaaaa', 2, x'bb'), "2", "x'bb'"
+)
+SELECT
+  *
+FROM Examples;
++----------+------------+-------+
+| result   | pad_length | p     |
++----------+------------+-------+
+| aaa12345 | 8          | a     |
+|    12345 | 8          |       |
+| aba12345 | 8          | aba   |
+| 123      | 3          |       |
+| bbbbbbaa | 4          | x'bb' |
+| 202020aa | 4          | 20    |
+| aaaa     | 2          | 20    |
+| aaaa     | 2          | x'bb' |
++----------+------------+-------+
+(8 rows)
+
+!ok
+
+#####################################################################
+# RPAD(original_value, return_length, pattern)
+#
+# Returns a STRING or BYTES value that consists of original_value prepended
+# with pattern.
+#
+# This function supports specifying collation.
+WITH Examples AS (
+  SELECT RPAD('12345', 8, 'a') as result, "8" as pad_length, "a" as p UNION ALL
+  SELECT RPAD('12345', 8), "8", " " UNION ALL
+  SELECT RPAD('12345', 8, 'aba'), "8", "aba" UNION ALL
+  SELECT RPAD('12345', 3), "3", " " UNION ALL
+  SELECT RPAD(x'aa', 4, x'bb'), "4", "x'bb'" UNION ALL
+  SELECT RPAD(x'aa', 4), "4", "20" UNION ALL
+  SELECT RPAD(x'aaaaaa', 2), "2", "20" UNION ALL
+  SELECT RPAD(x'aaaaaa', 2, x'bb'), "2", "x'bb'"
+)
+SELECT
+  *
+FROM Examples;
++----------+------------+-------+
+| result   | pad_length | p     |
++----------+------------+-------+
+| 12345aaa | 8          | a     |
+| 12345    | 8          |       |
+| 12345aba | 8          | aba   |
+| 123      | 3          |       |
+| aabbbbbb | 4          | x'bb' |
+| aa202020 | 4          | 20    |
+| aaaa     | 2          | 20    |
+| aaaa     | 2          | x'bb' |
++----------+------------+-------+
+(8 rows)
+
+!ok
+
+#####################################################################
 # DATE_SUB
 #
 # DATE_SUB(date_expression, INTERVAL int64_expression date_part)
@@ -1248,15 +1571,15 @@ SELECT
 #
 # Returns DATE
 
-!if (false) {
 SELECT DATE_SUB(DATE "2008-12-25", INTERVAL 5 DAY) AS five_days_ago;
 +---------------+
 | five_days_ago |
 +---------------+
 | 2008-12-20    |
 +---------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # DATETIME_SUB
@@ -1284,17 +1607,29 @@ SELECT DATE_SUB(DATE "2008-12-25", INTERVAL 5 DAY) AS five_days_ago;
 #
 # Returns DATETIME
 
-!if (false) {
 SELECT
   DATETIME "2008-12-25 15:30:00" as original_date,
   DATETIME_SUB(DATETIME "2008-12-25 15:30:00", INTERVAL 10 MINUTE) as earlier;
-+-----------------------------+------------------------+
-| original_date               | earlier                |
-+-----------------------------+------------------------+
-| 2008-12-25T15:30:00         | 2008-12-25T15:20:00    |
-+-----------------------------+------------------------+
++---------------------+---------------------+
+| original_date       | earlier             |
++---------------------+---------------------+
+| 2008-12-25 15:30:00 | 2008-12-25 15:20:00 |
++---------------------+---------------------+
+(1 row)
+
 !ok
-!}
+
+SELECT
+  TIMESTAMP "2008-12-25 15:30:00" as original_date,
+  DATETIME_SUB(TIMESTAMP "2008-12-25 15:30:00", INTERVAL 10 MINUTE) as earlier;
++---------------------+---------------------+
+| original_date       | earlier             |
++---------------------+---------------------+
+| 2008-12-25 15:30:00 | 2008-12-25 15:20:00 |
++---------------------+---------------------+
+(1 row)
+
+!ok
 
 
 #####################################################################
@@ -1318,17 +1653,17 @@ SELECT
 #
 # Returns TIME
 
-!if (false) {
 SELECT
   TIME "15:30:00" as original_date,
   TIME_SUB(TIME "15:30:00", INTERVAL 10 MINUTE) as earlier;
-+-----------------------------+------------------------+
-| original_date               | earlier                |
-+-----------------------------+------------------------+
-| 15:30:00                    | 15:20:00               |
-+-----------------------------+------------------------+
++---------------+----------+
+| original_date | earlier  |
++---------------+----------+
+| 15:30:00      | 15:20:00 |
++---------------+----------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # TIMESTAMP_SUB
@@ -1348,17 +1683,18 @@ SELECT
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
+
 SELECT
-  TIMESTAMP("2008-12-25 15:30:00+00") AS original,
-  TIMESTAMP_SUB(TIMESTAMP "2008-12-25 15:30:00+00", INTERVAL 10 MINUTE) AS earlier;
-+-------------------------+-------------------------+
-| original                | earlier                 |
-+-------------------------+-------------------------+
-| 2008-12-25 15:30:00 UTC | 2008-12-25 15:20:00 UTC |
-+-------------------------+-------------------------+
+  TIMESTAMP "2008-12-25 15:30:00" AS original,
+  TIMESTAMP_SUB(TIMESTAMP "2008-12-25 15:30:00", INTERVAL 10 MINUTE) AS earlier;
++---------------------+---------------------+
+| original            | earlier             |
++---------------------+---------------------+
+| 2008-12-25 15:30:00 | 2008-12-25 15:20:00 |
++---------------------+---------------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # DATE_DIFF
@@ -1385,27 +1721,27 @@ SELECT
 #
 # Returns INT64
 
-!if (false) {
 SELECT DATE_DIFF(DATE '2010-07-07', DATE '2008-12-25', DAY) AS days_diff;
 +-----------+
 | days_diff |
 +-----------+
-| 559       |
+|       559 |
 +-----------+
-!ok
-!}
+(1 row)
 
-!if (false) {
+!ok
+
 SELECT
   DATE_DIFF(DATE '2017-10-15', DATE '2017-10-14', DAY) AS days_diff,
   DATE_DIFF(DATE '2017-10-15', DATE '2017-10-14', WEEK) AS weeks_diff;
 +-----------+------------+
 | days_diff | weeks_diff |
 +-----------+------------+
-| 1         | 1          |
+|         1 |          1 |
 +-----------+------------+
+(1 row)
+
 !ok
-!}
 
 # The example above shows the result of DATE_DIFF for two days in
 # succession. DATE_DIFF with the date part WEEK returns 1 because
@@ -1420,17 +1756,18 @@ SELECT
 # because the second date belongs to the ISO year 2015. The first
 # Thursday of the 2015 calendar year was 2015-01-01, so the ISO year
 # 2015 begins on the preceding Monday, 2014-12-29.
-!if (false) {
+
 SELECT
   DATE_DIFF('2017-12-30', '2014-12-30', YEAR) AS year_diff,
   DATE_DIFF('2017-12-30', '2014-12-30', ISOYEAR) AS isoyear_diff;
 +-----------+--------------+
 | year_diff | isoyear_diff |
 +-----------+--------------+
-| 3         | 2            |
+|         3 |            2 |
 +-----------+--------------+
+(1 row)
+
 !ok
-!}
 
 # The following example shows the result of DATE_DIFF for two days in
 # succession. The first date falls on a Monday and the second date
@@ -1439,7 +1776,6 @@ SELECT
 # with the date part WEEK(MONDAY) returns 1. DATE_DIFF with the date
 # part ISOWEEK also returns 1 because ISO weeks begin on Monday.
 
-!if (false) {
 SELECT
   DATE_DIFF('2017-12-18', '2017-12-17', WEEK) AS week_diff,
   DATE_DIFF('2017-12-18', '2017-12-17', WEEK(MONDAY)) AS week_weekday_diff,
@@ -1447,10 +1783,11 @@ SELECT
 +-----------+-------------------+--------------+
 | week_diff | week_weekday_diff | isoweek_diff |
 +-----------+-------------------+--------------+
-| 0         | 1                 | 1            |
+|         0 |                 1 |            1 |
 +-----------+-------------------+--------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # DATETIME_DIFF
@@ -1486,21 +1823,20 @@ SELECT
 #
 # Returns INT64
 
-!if (false) {
 SELECT
   DATETIME "2010-07-07 10:20:00" as first_datetime,
   DATETIME "2008-12-25 15:30:00" as second_datetime,
   DATETIME_DIFF(DATETIME "2010-07-07 10:20:00",
     DATETIME "2008-12-25 15:30:00", DAY) as difference;
-+----------------------------+------------------------+------------------------+
-| first_datetime             | second_datetime        | difference             |
-+----------------------------+------------------------+------------------------+
-| 2010-07-07T10:20:00        | 2008-12-25T15:30:00    | 559                    |
-+----------------------------+------------------------+------------------------+
-!ok
-!}
++---------------------+---------------------+------------+
+| first_datetime      | second_datetime     | difference |
++---------------------+---------------------+------------+
+| 2010-07-07 10:20:00 | 2008-12-25 15:30:00 |        559 |
++---------------------+---------------------+------------+
+(1 row)
 
-!if (false) {
+!ok
+
 SELECT
   DATETIME_DIFF(DATETIME '2017-10-15 00:00:00',
     DATETIME '2017-10-14 00:00:00', DAY) as days_diff,
@@ -1509,10 +1845,11 @@ SELECT
 +-----------+------------+
 | days_diff | weeks_diff |
 +-----------+------------+
-| 1         | 1          |
+|         1 |          1 |
 +-----------+------------+
+(1 row)
+
 !ok
-!}
 
 # The example above shows the result of DATETIME_DIFF for two
 # DATETIMEs that are 24 hours apart. DATETIME_DIFF with the part WEEK
@@ -1530,7 +1867,6 @@ SELECT
 # 2015-01-01, so the ISO year 2015 begins on the preceding Monday,
 # 2014-12-29.
 
-!if (false) {
 SELECT
   DATETIME_DIFF('2017-12-30 00:00:00',
     '2014-12-30 00:00:00', YEAR) AS year_diff,
@@ -1539,10 +1875,11 @@ SELECT
 +-----------+--------------+
 | year_diff | isoyear_diff |
 +-----------+--------------+
-| 3         | 2            |
+|         3 |            2 |
 +-----------+--------------+
+(1 row)
+
 !ok
-!}
 
 # The following example shows the result of DATETIME_DIFF for two days
 # in succession. The first date falls on a Monday and the second date
@@ -1552,7 +1889,6 @@ SELECT
 # 1. DATETIME_DIFF with the date part ISOWEEK also returns 1 because
 # ISO weeks begin on Monday.
 
-!if (false) {
 SELECT
   DATETIME_DIFF('2017-12-18', '2017-12-17', WEEK) AS week_diff,
   DATETIME_DIFF('2017-12-18', '2017-12-17', WEEK(MONDAY)) AS week_weekday_diff,
@@ -1560,10 +1896,11 @@ SELECT
 +-----------+-------------------+--------------+
 | week_diff | week_weekday_diff | isoweek_diff |
 +-----------+-------------------+--------------+
-| 0         | 1                 | 1            |
+|         0 |                 1 |            1 |
 +-----------+-------------------+--------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # TIME_DIFF
@@ -1586,18 +1923,18 @@ SELECT
 #
 # Returns INT64
 
-!if (false) {
 SELECT
   TIME "15:30:00" as first_time,
   TIME "14:35:00" as second_time,
   TIME_DIFF(TIME "15:30:00", TIME "14:35:00", MINUTE) as difference;
-+----------------------------+------------------------+------------------------+
-| first_time                 | second_time            | difference             |
-+----------------------------+------------------------+------------------------+
-| 15:30:00                   | 14:35:00               | 55                     |
-+----------------------------+------------------------+------------------------+
++------------+-------------+------------+
+| first_time | second_time | difference |
++------------+-------------+------------+
+| 15:30:00   | 14:35:00    |         55 |
++------------+-------------+------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # TIMESTAMP_DIFF
@@ -1622,43 +1959,53 @@ SELECT
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
 SELECT
-  TIMESTAMP("2010-07-07 10:20:00+00") AS later_timestamp,
-  TIMESTAMP("2008-12-25 15:30:00+00") AS earlier_timestamp,
-  TIMESTAMP_DIFF(TIMESTAMP "2010-07-07 10:20:00+00", TIMESTAMP "2008-12-25 15:30:00+00", HOUR) AS hours;
-+-------------------------+-------------------------+-------+
-| later_timestamp         | earlier_timestamp       | hours |
-+-------------------------+-------------------------+-------+
-| 2010-07-07 10:20:00 UTC | 2008-12-25 15:30:00 UTC | 13410 |
-+-------------------------+-------------------------+-------+
+  TIMESTAMP "2010-07-07 10:20:00" AS later_timestamp,
+  TIMESTAMP "2008-12-25 15:30:00" AS earlier_timestamp,
+  TIMESTAMP_DIFF(TIMESTAMP "2010-07-07 10:20:00", TIMESTAMP "2008-12-25 15:30:00", HOUR) AS hours;
++---------------------+---------------------+-------+
+| later_timestamp     | earlier_timestamp   | hours |
++---------------------+---------------------+-------+
+| 2010-07-07 10:20:00 | 2008-12-25 15:30:00 | 13410 |
++---------------------+---------------------+-------+
+(1 row)
+
 !ok
-!}
 
 # In the following example, the first timestamp occurs
 # before the second timestamp, resulting in a negative output.
-!if (false) {
-SELECT TIMESTAMP_DIFF(TIMESTAMP "2018-08-14", TIMESTAMP "2018-10-14", DAY);
+SELECT TIMESTAMP_DIFF(TIMESTAMP "2018-08-14", TIMESTAMP "2018-10-14", DAY) AS negative_diff;
 +---------------+
 | negative_diff |
 +---------------+
-| -61           |
+|           -61 |
 +---------------+
+(1 row)
+
 !ok
-!}
 
 # In this example, the result is 0 because only the number
 # of whole specified HOUR intervals are included.
-!if (false) {
-SELECT TIMESTAMP_DIFF("2001-02-01 01:00:00", "2001-02-01 00:00:01", HOUR);
+SELECT TIMESTAMP_DIFF("2001-02-01 01:00:00", "2001-02-01 00:00:01", HOUR) AS negative_diff;
 +---------------+
 | negative_diff |
 +---------------+
-| 0             |
+|             0 |
 +---------------+
-!ok
-!}
+(1 row)
 
+!ok
+
+# In this example, the time unit is a 'flag' literal.
+SELECT TIMESTAMP_DIFF(TIMESTAMP '2008-12-25', TIMESTAMP '2008-09-25', `quarter`) as diff;
++------+
+| diff |
++------+
+|    1 |
++------+
+(1 row)
+
+!ok
 #####################################################################
 # DATE_TRUNC
 #
@@ -1692,16 +2039,38 @@ SELECT TIMESTAMP_DIFF("2001-02-01 01:00:00", "2001-02-01 00:00:01", HOUR);
 #     corresponding Gregorian calendar year.
 #
 # Returns DATE
+WITH Dates AS (
+  SELECT DATE_TRUNC(DATE '2008-12-25', YEAR) as d , "year" as frame UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', ISOYEAR), "isoyear" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', QUARTER), "quarter" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', MONTH), "month" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', WEEK), "week" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', WEEK(SUNDAY)), "week(sunday)" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', WEEK(MONDAY)), "week(monday)" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', WEEK(TUESDAY)), "week(tuesday)" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', ISOWEEK), "isoweek" UNION ALL
+  SELECT DATE_TRUNC(DATE '2008-12-25', DAY), "day"
+)
+SELECT
+  *
+FROM Dates;
++------------+---------------+
+| d          | frame         |
++------------+---------------+
+| 2008-01-01 | year          |
+| 2007-12-31 | isoyear       |
+| 2008-10-01 | quarter       |
+| 2008-12-01 | month         |
+| 2008-12-21 | week          |
+| 2008-12-21 | week(sunday)  |
+| 2008-12-22 | week(monday)  |
+| 2008-12-23 | week(tuesday) |
+| 2008-12-22 | isoweek       |
+| 2008-12-25 | day           |
++------------+---------------+
+(10 rows)
 
-!if (false) {
-SELECT DATE_TRUNC(DATE '2008-12-25', MONTH) AS month;
-+------------+
-| month      |
-+------------+
-| 2008-12-01 |
-+------------+
 !ok
-!}
 
 # In the following example, the original date falls on a
 # Sunday. Because the date_part is WEEK(MONDAY), DATE_TRUNC returns
@@ -2065,6 +2434,31 @@ SELECT LAST_DAY(DATETIME '2008-11-10 15:30:00', WEEK(MONDAY)) AS last_day;
 !}
 
 #####################################################################
+#
+# IFNULL(value1, value2)
+#
+# Returns value1 if not NULL, else value2
+#
+WITH items AS (
+  SELECT 'IFNULL(null, 5)' question, IFNULL(null, 5) AS answer UNION ALL
+  SELECT 'IFNULL(2, 1)', IFNULL(2, 1) UNION ALL
+  SELECT "IFNULL('b', null)", IFNULL('b', null) UNION ALL
+  SELECT 'IFNULL(null, null)', IFNULL(null, null)
+)
+SELECT * FROM items;
++--------------------+--------+
+| question           | answer |
++--------------------+--------+
+| IFNULL(null, 5)    | 5      |
+| IFNULL(2, 1)       | 2      |
+| IFNULL('b', null)  | b      |
+| IFNULL(null, null) |        |
++--------------------+--------+
+(4 rows)
+
+!ok
+
+#####################################################################
 # FORMAT_DATE
 #
 # FORMAT_DATE(format_string, date_expr)
@@ -2076,35 +2470,35 @@ SELECT LAST_DAY(DATETIME '2008-11-10 15:30:00', WEEK(MONDAY)) AS last_day;
 #
 # Returns STRING
 
-!if (false) {
 SELECT FORMAT_DATE("%x", DATE "2008-12-25") AS US_format;
-+------------+
-| US_format  |
-+------------+
-| 12/25/08   |
-+------------+
-!ok
-!}
++-----------+
+| US_format |
++-----------+
+| 12/25/08  |
++-----------+
+(1 row)
 
-!if (false) {
+!ok
+
 SELECT FORMAT_DATE("%b-%d-%Y", DATE "2008-12-25") AS formatted;
 +-------------+
 | formatted   |
 +-------------+
 | Dec-25-2008 |
 +-------------+
-!ok
-!}
+(1 row)
 
-!if (false) {
-SELECT FORMAT_DATE("%b %Y", DATE "2008-12-25") AS formatted;
-+-------------+
-| formatted   |
-+-------------+
-| Dec 2008    |
-+-------------+
 !ok
-!}
+
+SELECT FORMAT_DATE("%b %Y", DATE "2008-12-25") AS formatted;
++-----------+
+| formatted |
++-----------+
+| Dec 2008  |
++-----------+
+(1 row)
+
+!ok
 
 #####################################################################
 # FORMAT_DATETIME
@@ -2116,7 +2510,6 @@ SELECT FORMAT_DATE("%b %Y", DATE "2008-12-25") AS formatted;
 #
 # Returns STRING
 
-!if (false) {
 SELECT
   FORMAT_DATETIME("%c", DATETIME "2008-12-25 15:30:00")
   AS formatted;
@@ -2125,10 +2518,10 @@ SELECT
 +--------------------------+
 | Thu Dec 25 15:30:00 2008 |
 +--------------------------+
-!ok
-!}
+(1 row)
 
-!if (false) {
+!ok
+
 SELECT
   FORMAT_DATETIME("%b-%d-%Y", DATETIME "2008-12-25 15:30:00")
   AS formatted;
@@ -2137,20 +2530,21 @@ SELECT
 +-------------+
 | Dec-25-2008 |
 +-------------+
-!ok
-!}
+(1 row)
 
-!if (false) {
+!ok
+
 SELECT
   FORMAT_DATETIME("%b %Y", DATETIME "2008-12-25 15:30:00")
   AS formatted;
-+-------------+
-| formatted   |
-+-------------+
-| Dec 2008    |
-+-------------+
++-----------+
+| formatted |
++-----------+
+| Dec 2008  |
++-----------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # FORMAT_TIME
@@ -2163,15 +2557,15 @@ SELECT
 #
 # Returns STRING
 
-!if (false) {
 SELECT FORMAT_TIME("%R", TIME "15:30:00") as formatted_time;
 +----------------+
 | formatted_time |
 +----------------+
 | 15:30          |
 +----------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # FORMAT_TIMESTAMP
@@ -2184,36 +2578,36 @@ SELECT FORMAT_TIME("%R", TIME "15:30:00") as formatted_time;
 # See Supported Format Elements For TIMESTAMP for a list of format
 # elements that this function supports.
 
-!if (false) {
-SELECT FORMAT_TIMESTAMP("%c", TIMESTAMP "2008-12-25 15:30:00+00", "UTC") AS formatted;
+SELECT FORMAT_TIMESTAMP("%c", TIMESTAMP "2008-12-25 15:30:00" /* TODO should be "2008-12-25 15:30:00+00" */, "UTC") AS formatted;
 +--------------------------+
 | formatted                |
 +--------------------------+
 | Thu Dec 25 15:30:00 2008 |
 +--------------------------+
-!ok
-!}
+(1 row)
 
-!if (false) {
-SELECT FORMAT_TIMESTAMP("%b-%d-%Y", TIMESTAMP "2008-12-25 15:30:00+00") AS formatted;
+!ok
+
+SELECT FORMAT_TIMESTAMP("%b-%d-%Y", TIMESTAMP "2008-12-25 15:30:00" /* TODO should be "2008-12-25 15:30:00+00" */) AS formatted;
 +-------------+
 | formatted   |
 +-------------+
 | Dec-25-2008 |
 +-------------+
-!ok
-!}
+(1 row)
 
-!if (false) {
-SELECT FORMAT_TIMESTAMP("%b %Y", TIMESTAMP "2008-12-25 15:30:00+00")
-  AS formatted;
-+-------------+
-| formatted   |
-+-------------+
-| Dec 2008    |
-+-------------+
 !ok
-!}
+
+SELECT FORMAT_TIMESTAMP("%b %Y", TIMESTAMP "2008-12-25 15:30:00" /* TODO should be "2008-12-25 15:30:00+00" */)
+  AS formatted;
++-----------+
+| formatted |
++-----------+
+| Dec 2008  |
++-----------+
+(1 row)
+
+!ok
 
 #####################################################################
 # PARSE_DATE
@@ -2595,5 +2989,6 @@ FROM items;
 (4 rows)
 
 !ok
+
 
 # End big-query.iq

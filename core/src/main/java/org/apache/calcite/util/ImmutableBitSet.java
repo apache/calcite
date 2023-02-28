@@ -498,7 +498,7 @@ public class ImmutableBitSet
    * that occurs on or after the specified starting index. If no such
    * bit exists then {@code -1} is returned.
    *
-   * <p>Based upon {@link BitSet#nextSetBit}.
+   * <p>Based upon {@link BitSet#nextSetBit(int)}.
    *
    * @param  fromIndex the index to start checking from (inclusive)
    * @return the index of the next set bit, or {@code -1} if there
@@ -972,8 +972,7 @@ public class ImmutableBitSet
     @RequiresNonNull("equivalence")
     private ImmutableBitSet computeClosure(
         @UnderInitialization Closure this,
-        int pos
-    ) {
+        int pos) {
       ImmutableBitSet o = closure.get(pos);
       if (o != null) {
         return o;

@@ -665,8 +665,9 @@ public abstract class SqlOperator {
     final SqlValidatorScope operandScope = scope.getOperandScope(call);
 
     final ImmutableList.Builder<RelDataType> argTypeBuilder =
-            ImmutableList.builder();
-    for (SqlNode operand : args) {
+        ImmutableList.builder();
+    for (int i = 0; i < args.size(); i++) {
+      SqlNode operand = args.get(i);
       RelDataType nodeType;
       // for row arguments that should be converted to ColumnList
       // types, set the nodeType to a ColumnList type but defer
@@ -677,12 +678,17 @@ public abstract class SqlOperator {
         nodeType = typeFactory.createSqlType(SqlTypeName.COLUMN_LIST);
         validator.setValidatedNodeType(operand, nodeType);
       } else {
-        nodeType = validator.deriveType(operandScope, operand);
+        nodeType = deriveOperandType(validator, operandScope, i, operand);
       }
       argTypeBuilder.add(nodeType);
     }
 
     return argTypeBuilder.build();
+  }
+
+  protected RelDataType deriveOperandType(SqlValidator validator,
+      SqlValidatorScope scope, int i, SqlNode operand) {
+    return validator.deriveType(scope, operand);
   }
 
   /**

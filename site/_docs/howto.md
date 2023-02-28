@@ -39,8 +39,8 @@ Unpack the source distribution `.tar.gz` file,
 then build using Gradle:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.32.0-src.tar.gz
-$ cd apache-calcite-1.32.0-src
+$ tar xvfz apache-calcite-1.33.0-src.tar.gz
+$ cd apache-calcite-1.33.0-src
 $ gradle build
 {% endhighlight %}
 
@@ -841,8 +841,6 @@ your key to the keyservers used by Nexus, see above.
   that the `META-INF` directory contains `LICENSE`,
   `NOTICE`
 * Check PGP, per [this](https://httpd.apache.org/dev/verification.html)
-* Check that Proj4J is not among the api and implementation dependencies,
-  as the EPSG database is not redistributable.
 
 Verify the staged artifacts in the Nexus repository:
 

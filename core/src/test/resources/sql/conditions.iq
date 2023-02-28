@@ -28,7 +28,6 @@ select *
   from tmp
  where a = 1 or b = 1
  order by 1, 2;
-
 +---+---+
 | A | B |
 +---+---+
@@ -50,7 +49,6 @@ select *
   from tmp
  where not (a = 1 or b = 1)
  order by 1, 2;
-
 +---+---+
 | A | B |
 +---+---+
@@ -70,7 +68,6 @@ select *
   from tmp
  where a = 1 AND b = 1
  order by 1, 2;
-
 +---+---+
 | A | B |
 +---+---+
@@ -88,7 +85,6 @@ select *
   from tmp
  where not (a = 1 AND b = 1)
  order by 1, 2;
-
 +---+---+
 | A | B |
 +---+---+
@@ -105,7 +101,6 @@ select *
 # Test cases for CALCITE-980
 
 select "value" from "nullables" a where "value" = 'A' or "value" = 'B' order by 1;
-
 +-------+
 | value |
 +-------+
@@ -117,7 +112,6 @@ select "value" from "nullables" a where "value" = 'A' or "value" = 'B' order by 
 !ok
 
 select "value" from "nullables" a where not ("value" = 'A' or "value" = 'B') order by 1;
-
 +-------+
 | value |
 +-------+
@@ -128,7 +122,6 @@ select "value" from "nullables" a where not ("value" = 'A' or "value" = 'B') ord
 !ok
 
 select "value" from "nullables" a where not (not ("value" = 'A' or "value" = 'B')) order by 1;
-
 +-------+
 | value |
 +-------+
@@ -140,7 +133,6 @@ select "value" from "nullables" a where not (not ("value" = 'A' or "value" = 'B'
 !ok
 
 select "value" from "nullables" a where "value" = 'A' and "value" = 'B' order by 1;
-
 +-------+
 | value |
 +-------+
@@ -150,7 +142,6 @@ select "value" from "nullables" a where "value" = 'A' and "value" = 'B' order by
 !ok
 
 select "value" from "nullables" a where not ("value" = 'A' and "value" = 'B') order by 1;
-
 +-------+
 | value |
 +-------+
@@ -163,7 +154,6 @@ select "value" from "nullables" a where not ("value" = 'A' and "value" = 'B') or
 !ok
 
 select "value" from "nullables" a where not (not ("value" = 'A' and "value" = 'B')) order by 1;
-
 +-------+
 | value |
 +-------+
@@ -175,7 +165,6 @@ select "value" from "nullables" a where not (not ("value" = 'A' and "value" = 'B
 select "value" from "nullables" a
  where case when not ("value" = 'A' or "value" = 'B') then 1 else 0 end = 1
  order by 1;
-
 +-------+
 | value |
 +-------+
@@ -193,7 +182,6 @@ select "value" from "nullables" a
      else 0
    end = 2
  order by 1;
-
 +-------+
 | value |
 +-------+
@@ -211,7 +199,6 @@ select "value" from "nullables" a
      else 0
    end = 1 /* <- diff from above*/
  order by 1;
-
 +-------+
 | value |
 +-------+
@@ -229,7 +216,6 @@ select "value" from "nullables" a
      else 0
    end = 0 /* <- diff from above*/
  order by 1;
-
 +-------+
 | value |
 +-------+
@@ -249,7 +235,6 @@ select "value" from "nullables" a
      else 0
    end = 2 /* <- diff from above*/
  order by 1;
-
 +-------+
 | value |
 +-------+
@@ -273,7 +258,6 @@ from ax where ((s,t) in (('a','a'),(null, 'bb'))) is null;
 
 with ax(s) as (values (1),(0))
 select case when s=0 then false else 100/s > 0 end from ax;
-
 +--------+
 | EXPR$0 |
 +--------+
@@ -287,7 +271,6 @@ select case when s=0 then false else 100/s > 0 end from ax;
 # Test case for CALCITE-2783
 with ax(s) as (values (true),(false),(cast(null as boolean)))
 select s, (s or s is null), (s and s is not null) from ax;
-
 +-------+--------+--------+
 | S     | EXPR$1 | EXPR$2 |
 +-------+--------+--------+
@@ -422,7 +405,6 @@ EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t0])
 select r.empno, s.deptno
 from emp as r
          left join dept as s on (select count(true) > 0 from emp) and s.deptno = r.deptno;
-
 +-------+--------+
 | EMPNO | DEPTNO |
 +-------+--------+
@@ -449,7 +431,6 @@ from emp as r
 select r.empno, s.deptno
 from emp as r
          left join dept as s on (select count(job) > 0 from bonus);
-
 +-------+--------+
 | EMPNO | DEPTNO |
 +-------+--------+

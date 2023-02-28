@@ -54,7 +54,6 @@ select * from
 intersect all
 (select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
   (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y));
-
 +---+---+
 | X | Y |
 +---+---+
@@ -72,7 +71,6 @@ select * from
 intersect
 (select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
   (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y));
-
 +---+---+
 | X | Y |
 +---+---+
@@ -195,7 +193,6 @@ select * from
 except all
 (select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
   (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y));
-
 +---+---+
 | X | Y |
 +---+---+
@@ -212,7 +209,6 @@ select * from
 except
 (select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
   (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y));
-
 +---+---+
 | X | Y |
 +---+---+

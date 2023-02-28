@@ -1200,7 +1200,7 @@ public class SqlValidatorUtil {
     final SqlSelect select0 = new SqlSelect(SqlParserPos.ZERO, null,
         new SqlNodeList(Collections.singletonList(expr), SqlParserPos.ZERO),
         new SqlIdentifier(tableName, SqlParserPos.ZERO),
-        null, null, null, null, null, null, null, null);
+        null, null, null, null, null, null, null, null, null);
     Prepare.CatalogReader catalogReader = createSingleTableCatalogReader(
         caseSensitive,
         tableName,

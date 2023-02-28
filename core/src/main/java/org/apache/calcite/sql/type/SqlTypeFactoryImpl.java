@@ -504,9 +504,17 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
                 nullCount > 0 || nullableCount > 0);
           }
         }
+
+        if (type.getSqlTypeName() == resultType.getSqlTypeName()
+            && type.getSqlTypeName().allowsPrec()
+            && type.getPrecision() != resultType.getPrecision()) {
+          final int precision =
+              SqlTypeUtil.maxPrecision(resultType.getPrecision(),
+                  type.getPrecision());
+
+          resultType = createSqlType(type.getSqlTypeName(), precision);
+        }
       } else {
-        // TODO:  datetime precision details; for now we let
-        // leastRestrictiveByCast handle it
         return null;
       }
     }

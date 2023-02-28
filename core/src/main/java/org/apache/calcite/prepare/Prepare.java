@@ -100,7 +100,7 @@ public abstract class Prepare {
   protected @MonotonicNonNull RelDataType parameterRowType;
 
   // temporary. for testing.
-  public static final TryThreadLocal<@Nullable Boolean> THREAD_TRIM =
+  public static final TryThreadLocal<Boolean> THREAD_TRIM =
       TryThreadLocal.of(false);
 
   /** Temporary, until
@@ -110,7 +110,7 @@ public abstract class Prepare {
    * <p>The default is false, meaning do not expand queries during sql-to-rel,
    * but a few tests override and set it to true. After CALCITE-1045
    * is fixed, remove those overrides and use false everywhere. */
-  public static final TryThreadLocal<@Nullable Boolean> THREAD_EXPAND =
+  public static final TryThreadLocal<Boolean> THREAD_EXPAND =
       TryThreadLocal.of(false);
 
   // temporary. for testing.
@@ -119,8 +119,7 @@ public abstract class Prepare {
 
   protected Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {
-    assert context != null;
-    this.context = context;
+    this.context = requireNonNull(context, "context");
     this.catalogReader = catalogReader;
     this.resultConvention = resultConvention;
   }
@@ -236,7 +235,7 @@ public abstract class Prepare {
     final SqlToRelConverter.Config config =
         SqlToRelConverter.config()
             .withTrimUnusedFields(true)
-            .withExpand(castNonNull(THREAD_EXPAND.get()))
+            .withExpand(THREAD_EXPAND.get())
             .withInSubQueryThreshold(castNonNull(THREAD_INSUBQUERY_THRESHOLD.get()))
             .withExplain(sqlQuery.getKind() == SqlKind.EXPLAIN);
     final Holder<SqlToRelConverter.Config> configHolder = Holder.of(config);
@@ -375,7 +374,7 @@ public abstract class Prepare {
   protected RelRoot trimUnusedFields(RelRoot root) {
     final SqlToRelConverter.Config config = SqlToRelConverter.config()
         .withTrimUnusedFields(shouldTrim(root.rel))
-        .withExpand(castNonNull(THREAD_EXPAND.get()))
+        .withExpand(THREAD_EXPAND.get())
         .withInSubQueryThreshold(castNonNull(THREAD_INSUBQUERY_THRESHOLD.get()));
     final SqlToRelConverter converter =
         getSqlToRelConverter(getSqlValidator(), catalogReader, config);

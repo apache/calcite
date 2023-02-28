@@ -91,7 +91,8 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
       throw validator.newValidationError(call, RESOURCE.withinGroupNotAllowed(operator.getName()));
     }
 
-    if (inner.getOperator().getKind() == SqlKind.PERCENTILE_DISC) {
+    if (inner.getOperator().getKind() == SqlKind.PERCENTILE_DISC
+        || inner.getOperator().getKind() == SqlKind.PERCENTILE_CONT) {
       // We first check the percentile call operands, and then derive the correct type using
       // PercentileDiscCallBinding (See CALCITE-5230).
       SqlCallBinding opBinding =

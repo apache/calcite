@@ -64,6 +64,8 @@ public final class GeneratedMetadata_PredicatesHandler
       return provider0.getPredicates((org.apache.calcite.plan.volcano.RelSubset) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Aggregate) {
       return provider0.getPredicates((org.apache.calcite.rel.core.Aggregate) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.Correlate) {
+      return provider0.getPredicates((org.apache.calcite.rel.core.Correlate) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Exchange) {
       return provider0.getPredicates((org.apache.calcite.rel.core.Exchange) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Filter) {

@@ -5072,19 +5072,17 @@ public class JdbcTest {
   /** Tests a correlated scalar sub-query in the SELECT clause.
    *
    * <p>Note that there should be an extra row "empid=200; deptno=20;
-   * DNAME=null" but left join doesn't work.</p> */
+   * DNAME=null" but left join doesn't work. */
   @Test void testScalarSubQuery() {
-    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      CalciteAssert.hr()
-          .query("select \"empid\", \"deptno\",\n"
-              + " (select \"name\" from \"hr\".\"depts\"\n"
-              + "  where \"deptno\" = e.\"deptno\") as dname\n"
-              + "from \"hr\".\"emps\" as e")
-          .returnsUnordered("empid=100; deptno=10; DNAME=Sales",
-              "empid=110; deptno=10; DNAME=Sales",
-              "empid=150; deptno=10; DNAME=Sales",
-              "empid=200; deptno=20; DNAME=null");
-    }
+    CalciteAssert.hr()
+        .query("select \"empid\", \"deptno\",\n"
+            + " (select \"name\" from \"hr\".\"depts\"\n"
+            + "  where \"deptno\" = e.\"deptno\") as dname\n"
+            + "from \"hr\".\"emps\" as e")
+        .returnsUnordered("empid=100; deptno=10; DNAME=Sales",
+            "empid=110; deptno=10; DNAME=Sales",
+            "empid=150; deptno=10; DNAME=Sales",
+            "empid=200; deptno=20; DNAME=null");
   }
 
   /** Test case for
@@ -5251,21 +5249,19 @@ public class JdbcTest {
   }
 
   @Test void testScalarSubQueryInCase() {
-    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      CalciteAssert.hr()
-          .query("select e.\"name\",\n"
-              + " (CASE e.\"deptno\"\n"
-              + "  WHEN (Select \"deptno\" from \"hr\".\"depts\" d\n"
-              + "        where d.\"deptno\" = e.\"deptno\")\n"
-              + "  THEN (Select d.\"name\" from \"hr\".\"depts\" d\n"
-              + "        where d.\"deptno\" = e.\"deptno\")\n"
-              + "  ELSE 'DepartmentNotFound'  END) AS DEPTNAME\n"
-              + "from \"hr\".\"emps\" e")
-          .returnsUnordered("name=Bill; DEPTNAME=Sales",
-              "name=Eric; DEPTNAME=DepartmentNotFound",
-              "name=Sebastian; DEPTNAME=Sales",
-              "name=Theodore; DEPTNAME=Sales");
-    }
+    CalciteAssert.hr()
+        .query("select e.\"name\",\n"
+            + " (CASE e.\"deptno\"\n"
+            + "  WHEN (Select \"deptno\" from \"hr\".\"depts\" d\n"
+            + "        where d.\"deptno\" = e.\"deptno\")\n"
+            + "  THEN (Select d.\"name\" from \"hr\".\"depts\" d\n"
+            + "        where d.\"deptno\" = e.\"deptno\")\n"
+            + "  ELSE 'DepartmentNotFound'  END) AS DEPTNAME\n"
+            + "from \"hr\".\"emps\" e")
+        .returnsUnordered("name=Bill; DEPTNAME=Sales",
+            "name=Eric; DEPTNAME=DepartmentNotFound",
+            "name=Sebastian; DEPTNAME=Sales",
+            "name=Theodore; DEPTNAME=Sales");
   }
 
   @Test void testScalarSubQueryInCase2() {
@@ -7878,6 +7874,36 @@ public class JdbcTest {
         .returns("A=29; B=35; C=37; D=36\n");
   }
 
+  @Test public void testJsonInsert() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.FUN, "mysql")
+        .query("SELECT JSON_INSERT(v, '$.a', 10, '$.c', '[1]') AS c1\n"
+            + ",JSON_INSERT(v, '$', 10, '$.c', '[1]') AS c2\n"
+            + "FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1={\"a\":1,\"b\":[2],\"c\":\"[1]\"}; C2={\"a\":1,\"b\":[2],\"c\":\"[1]\"}\n");
+  }
+
+  @Test public void testJsonReplace() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.FUN, "mysql")
+        .query("SELECT JSON_REPLACE(v, '$.a', 10, '$.c', '[1]') AS c1\n"
+            + ",JSON_REPLACE(v, '$', 10, '$.c', '[1]') AS c2\n"
+            + "FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1={\"a\":10,\"b\":[2]}; C2=10\n");
+  }
+
+  @Test public void testJsonSet() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.FUN, "mysql")
+        .query("SELECT JSON_SET(v, '$.a', 10, '$.c', '[1]') AS c1\n"
+            + ",JSON_SET(v, '$', 10, '$.c', '[1]') AS c2\n"
+            + "FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1={\"a\":10,\"b\":[2],\"c\":\"[1]\"}; C2=10\n");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]
@@ -8000,6 +8026,90 @@ public class JdbcTest {
         .returns("EXPR$0=[0E+1, 1.1]\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]</a>
+   * Convert between standard Gregorian and proleptic Gregorian calendars for
+   * literal dates in local time zone. */
+  @Test void testLiteralDateToSqlTimestamp() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.TIME_ZONE, TimeZone.getDefault().getID())
+        .query("select cast('1500-04-30' as date)")
+        .returns(resultSet -> {
+          try {
+            assertTrue(resultSet.next());
+            assertEquals("1500-04-30", resultSet.getString(1));
+            assertEquals(Date.valueOf("1500-04-30"), resultSet.getDate(1));
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]</a>
+   * Convert between standard Gregorian and proleptic Gregorian calendars for
+   * literal timestamps in local time zone. */
+  @Test void testLiteralTimestampToSqlTimestamp() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.TIME_ZONE, TimeZone.getDefault().getID())
+        .query("select cast('1500-04-30 12:00:00' as timestamp)")
+        .returns(resultSet -> {
+          try {
+            assertTrue(resultSet.next());
+            assertEquals("1500-04-30 12:00:00", resultSet.getString(1));
+            assertEquals(Timestamp.valueOf("1500-04-30 12:00:00"), resultSet.getTimestamp(1));
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]</a>
+   * Convert between standard Gregorian and proleptic Gregorian calendars for
+   * dynamic dates in local time zone. */
+  @Test void testDynamicDateToSqlTimestamp() {
+    final Date date = Date.valueOf("1500-04-30");
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.TIME_ZONE, TimeZone.getDefault().getID())
+        .query("select cast(? as date)")
+        .consumesPreparedStatement(statement -> statement.setDate(1, date))
+        .returns(resultSet -> {
+          try {
+            assertTrue(resultSet.next());
+            assertEquals("1500-04-30", resultSet.getString(1));
+            assertEquals(date, resultSet.getDate(1));
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]</a>
+   * Convert between standard Gregorian and proleptic Gregorian calendars for
+   * dynamic timestamps in local time zone. */
+  @Test void testDynamicTimestampToSqlTimestamp() {
+    final Timestamp timestamp = Timestamp.valueOf("1500-04-30 12:00:00");
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.TIME_ZONE, TimeZone.getDefault().getID())
+        .query("select cast(? as timestamp)")
+        .consumesPreparedStatement(statement -> statement.setTimestamp(1, timestamp))
+        .returns(resultSet -> {
+          try {
+            assertTrue(resultSet.next());
+            assertEquals("1500-04-30 12:00:00", resultSet.getString(1));
+            assertEquals(timestamp, resultSet.getTimestamp(1));
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {
@@ -8043,7 +8153,7 @@ public class JdbcTest {
 
   /** Factory for EMP and DEPT tables. */
   public static class EmpDeptTableFactory implements TableFactory<Table> {
-    public static final TryThreadLocal<List<Employee>> THREAD_COLLECTION =
+    public static final TryThreadLocal<@Nullable List<Employee>> THREAD_COLLECTION =
         TryThreadLocal.of(null);
 
     public Table create(
@@ -8139,7 +8249,7 @@ public class JdbcTest {
 
   /** Mock driver that a given {@link Handler}. */
   public static class HandlerDriver extends org.apache.calcite.jdbc.Driver {
-    private static final TryThreadLocal<Handler> HANDLERS =
+    private static final TryThreadLocal<@Nullable Handler> HANDLERS =
         TryThreadLocal.of(null);
 
     public HandlerDriver() {

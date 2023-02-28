@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
@@ -39,6 +40,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -47,6 +49,8 @@ import java.util.function.Predicate;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Strategies for checking operand types.
@@ -66,6 +70,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * @see org.apache.calcite.sql.type.InferTypes
  */
 public abstract class OperandTypes {
+
   private OperandTypes() {
   }
 
@@ -96,13 +101,46 @@ public abstract class OperandTypes {
   }
 
   /**
+   * Creates a single-operand checker that passes if the operand's type has a
+   * particular {@link SqlTypeName}.
+   */
+  public static SqlSingleOperandTypeChecker typeName(SqlTypeName typeName) {
+    return new TypeNameChecker(typeName);
+  }
+
+  /**
    * Creates a checker that passes if the operand is an interval appropriate for
    * a given date/time type. For example, the time frame HOUR is appropriate for
    * type TIMESTAMP or DATE but not TIME.
    */
   public static SqlSingleOperandTypeChecker interval(
       Iterable<TimeUnitRange> ranges) {
-    return new IntervalOperandTypeChecker(ImmutableSet.copyOf(ranges));
+    final Set<TimeUnitRange> set = ImmutableSet.copyOf(ranges);
+    return new IntervalOperandTypeChecker(intervalQualifier ->
+        set.contains(intervalQualifier.timeUnitRange));
+  }
+
+  /**
+   * Creates a checker for DATE intervals (YEAR, WEEK, ISOWEEK,
+   * WEEK_WEDNESDAY, etc.)
+   */
+  public static SqlSingleOperandTypeChecker dateInterval() {
+    return new IntervalOperandTypeChecker(SqlIntervalQualifier::isDate);
+  }
+
+  /**
+   * Creates a checker for TIME intervals (HOUR, SECOND, etc.)
+   */
+  public static SqlSingleOperandTypeChecker timeInterval() {
+    return new IntervalOperandTypeChecker(SqlIntervalQualifier::isTime);
+  }
+
+  /**
+   * Creates a checker for TIMESTAMP intervals (YEAR, WEEK, ISOWEEK,
+   * WEEK_WEDNESDAY, HOUR, SECOND, etc.)
+   */
+  public static SqlSingleOperandTypeChecker timestampInterval() {
+    return new IntervalOperandTypeChecker(SqlIntervalQualifier::isTimestamp);
   }
 
   /**
@@ -346,7 +384,16 @@ public abstract class OperandTypes {
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING);
 
   public static final FamilyOperandTypeChecker STRING_STRING_OPTIONAL_STRING =
-      family(ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+      family(
+          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+              SqlTypeFamily.STRING),
+          // Third operand optional (operand index 0, 1, 2)
+          number -> number == 2);
+
+  public static final FamilyOperandTypeChecker STRING_NUMERIC_OPTIONAL_STRING =
+      family(
+          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.STRING),
           // Third operand optional (operand index 0, 1, 2)
           number -> number == 2);
 
@@ -365,11 +412,30 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker TIMESTAMP =
       family(SqlTypeFamily.TIMESTAMP);
 
+  /** Type-checker that matches "TIMESTAMP WITH LOCAL TIME ZONE" but not other
+   * members of the "TIMESTAMP" family (e.g. "TIMESTAMP"). */
+  public static final SqlSingleOperandTypeChecker TIMESTAMP_LTZ =
+      new TypeNameChecker(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+
+  /** Type-checker that matches "TIMESTAMP" but not other members of the
+   * "TIMESTAMP" family (e.g. "TIMESTAMP WITH LOCAL TIME ZONE"). */
+  public static final SqlSingleOperandTypeChecker TIMESTAMP_NTZ =
+      new TypeNameChecker(SqlTypeName.TIMESTAMP);
+
   public static final SqlSingleOperandTypeChecker INTERVAL =
       family(SqlTypeFamily.DATETIME_INTERVAL);
 
+  public static final SqlSingleOperandTypeChecker CHARACTER_CHARACTER =
+      family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER);
+
   public static final SqlSingleOperandTypeChecker CHARACTER_CHARACTER_DATETIME =
       family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME);
+
+  public static final SqlSingleOperandTypeChecker CHARACTER_DATE =
+      family(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATE);
+
+  public static final SqlSingleOperandTypeChecker CHARACTER_TIME =
+      family(SqlTypeFamily.CHARACTER, SqlTypeFamily.TIME);
 
   public static final SqlSingleOperandTypeChecker PERIOD =
       new PeriodOperandTypeChecker();
@@ -656,6 +722,29 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker ANY_STRING_STRING =
       family(SqlTypeFamily.ANY, SqlTypeFamily.STRING, SqlTypeFamily.STRING);
 
+  /**
+   * Operand type-checking strategy used by {@code ARG_MIN(value, comp)} and
+   * similar functions, where the first operand can have any type and the second
+   * must be comparable.
+   */
+  public static final SqlOperandTypeChecker ANY_COMPARABLE =
+      new SqlOperandTypeChecker() {
+        @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+            boolean throwOnFailure) {
+          getOperandCountRange().isValidCount(callBinding.getOperandCount());
+          RelDataType type = callBinding.getOperandType(1);
+          return type.getComparability() == RelDataTypeComparability.ALL;
+        }
+
+        @Override public SqlOperandCountRange getOperandCountRange() {
+          return SqlOperandCountRanges.of(2);
+        }
+
+        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+          return opName + "(<ANY>, <COMPARABLE_TYPE>)";
+        }
+  };
+
   public static final SqlSingleOperandTypeChecker CURSOR =
       family(SqlTypeFamily.CURSOR);
 
@@ -702,6 +791,15 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker TIMESTAMP_INTERVAL =
       family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATETIME_INTERVAL);
+
+  public static final SqlSingleOperandTypeChecker DATE_INTERVAL =
+      family(SqlTypeFamily.DATE, SqlTypeFamily.DATETIME_INTERVAL);
+
+  public static final SqlSingleOperandTypeChecker DATE_CHARACTER =
+      family(SqlTypeFamily.DATE, SqlTypeFamily.CHARACTER);
+
+  public static final SqlSingleOperandTypeChecker DATE_TIME =
+      family(SqlTypeFamily.DATE, SqlTypeFamily.TIME);
 
   public static final SqlSingleOperandTypeChecker DATETIME_INTERVAL =
       family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL);
@@ -784,7 +882,6 @@ public abstract class OperandTypes {
           return "UNNEST(<MULTISET>)";
         }
       };
-
 
   /**
    * Checker for record just has one field.
@@ -921,6 +1018,39 @@ public abstract class OperandTypes {
       return SqlUtil.getAliasedSignature(op, opName,
           ImmutableList.of("PERIOD (DATETIME, INTERVAL)",
               "PERIOD (DATETIME, DATETIME)"));
+    }
+  }
+
+  /** Checker that passes if the operand's type has a particular
+   * {@link SqlTypeName}. */
+  private static class TypeNameChecker implements SqlSingleOperandTypeChecker,
+      ImplicitCastOperandTypeChecker {
+    final SqlTypeName typeName;
+
+    TypeNameChecker(SqlTypeName typeName) {
+      this.typeName = requireNonNull(typeName, "typeName");
+    }
+
+    @Override public boolean checkSingleOperandType(SqlCallBinding callBinding,
+        SqlNode operand, int iFormalOperand, boolean throwOnFailure) {
+      final RelDataType operandType =
+          callBinding.getValidator().getValidatedNodeType(operand);
+      return operandType.getSqlTypeName() == typeName;
+    }
+
+    @Override public boolean checkOperandTypesWithoutTypeCoercion(
+        SqlCallBinding callBinding, boolean throwOnFailure) {
+      // FIXME we assume that there is exactly one operand
+      return checkSingleOperandType(callBinding, callBinding.operand(0), 0,
+          throwOnFailure);
+    }
+
+    @Override public SqlTypeFamily getOperandSqlTypeFamily(int iFormalOperand) {
+      return requireNonNull(typeName.getFamily(), "family");
+    }
+
+    @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+      return opName + "(" + typeName.getSpaceName() + ")";
     }
   }
 }

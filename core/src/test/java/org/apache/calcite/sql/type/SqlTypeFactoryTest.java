@@ -150,6 +150,34 @@ class SqlTypeFactoryTest {
     assertThat(leastRestrictive.getValueType().getPrecision(), is(10));
   }
 
+  @Test void testLeastRestrictiveForTimestamps() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlTimestampPrec0, f.sqlTimestampPrec3));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.TIMESTAMP));
+    assertThat(leastRestrictive.isNullable(), is(false));
+    assertThat(leastRestrictive.getPrecision(), is(3));
+  }
+
+  @Test void testLeastRestrictiveForTimestamps2() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlTimestampPrec3, f.sqlTimestampPrec0));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.TIMESTAMP));
+    assertThat(leastRestrictive.isNullable(), is(false));
+    assertThat(leastRestrictive.getPrecision(), is(3));
+  }
+
+  @Test void testLeastRestrictiveForTimestampAndDate() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlTimestampPrec3, f.sqlDate));
+    assertNull(leastRestrictive);
+  }
+
   @Test void testLeastRestrictiveForImpossibleWithMaps() {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =

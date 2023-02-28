@@ -139,6 +139,36 @@ class VolcanoPlannerTest {
     assertTrue(result instanceof PhysSingleRel);
   }
 
+  @Test void testMemoizeInputRelNodes() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    RelOptCluster cluster = newCluster(planner);
+
+    // The rule that triggers the assert rule
+    planner.addRule(PhysLeafRule.INSTANCE);
+    planner.addRule(GoodSingleRule.INSTANCE);
+
+    // Leaf RelNode
+    NoneLeafRel leafRel = new NoneLeafRel(cluster, "a");
+    RelNode leafPhy = planner
+        .changeTraits(leafRel, cluster.traitSetOf(PHYS_CALLING_CONVENTION));
+
+    // RelNode with leaf RelNode as single input
+    NoneSingleRel singleRel = new NoneSingleRel(cluster, leafPhy);
+    RelNode singlePhy = planner
+        .changeTraits(singleRel, cluster.traitSetOf(PHYS_CALLING_CONVENTION));
+
+    // Binary RelNode with identical input on either side
+    PhysBiRel parent = new PhysBiRel(
+        cluster, cluster.traitSetOf(PHYS_CALLING_CONVENTION), singlePhy, singlePhy);
+    planner.setRoot(parent);
+
+    RelNode result = planner.chooseDelegate().findBestExp();
+
+    // Expect inputs to remain identical
+    assertEquals(result.getInput(0), result.getInput(1));
+  }
+
   @Test void testPlanToDot() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);

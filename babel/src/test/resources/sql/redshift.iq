@@ -1261,6 +1261,17 @@ select date_trunc('week', date '2008-09-09');
 SELECT "DATE_TRUNC"('week', DATE '2008-09-09')
 !explain-validated-on calcite
 
+with orders (id, order_date) as
+  (values (1, date '2023-02-15'), (2, date '2023-01-01'))
+select DATE_TRUNC('month', orders.order_date)
+from orders
+order by id;
+WITH "ORDERS" ("ID", "ORDER_DATE") AS (VALUES ROW(1, DATE '2023-02-15'),
+            ROW(2, DATE '2023-01-01')) (SELECT "DATE_TRUNC"('month', "ORDERS"."ORDER_DATE")
+        FROM "ORDERS" AS "ORDERS"
+        ORDER BY "ORDERS"."ID")
+!explain-validated-on calcite
+
 # EXTRACT (datepart FROM {TIMESTAMP 'literal' | timestamp}) returns DOUBLE
 # Extracts a date part from a timestamp or literal.
 -- returns 8
@@ -1777,17 +1788,25 @@ manhattan
 
 # LPAD and RPAD
 select lpad('cat', 7);
-SELECT "LPAD"('cat', 7)
-!explain-validated-on calcite
+EXPR$0
+    cat
+!ok
 
 -- returns 'eeriness'
 select rpad(lpad('rine', 6, 'e'), 8, 's');
-SELECT "RPAD"("LPAD"('rine', 6, 'e'), 8, 's')
-!explain-validated-on calcite
+EXPR$0
+eeriness
+!ok
 
-select rpad('cat', 7);
-SELECT "RPAD"('cat', 7)
-!explain-validated-on calcite
+select rpad('cat', 7) || '!';
+EXPR$0
+cat    !
+!ok
+
+select rpad('cat', 7, '!');
+EXPR$0
+cat!!!!
+!ok
 
 # LTRIM
 -- returns 'kery'

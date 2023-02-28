@@ -50,7 +50,6 @@ t2(x) as (select * from  (values (1),(case when 1 = 1 then null else 3 end)) as 
 select *
 from t1
 where t1.x not in (select t2.x from t2);
-
  X
 ---
 (0 rows)
@@ -834,8 +833,6 @@ and empno in (7876, 7698, 7900);
 !ok
 
 !set outputformat psql
-
-!set expand false
 
 # [CALCITE-2329] Enhance SubQueryRemoveRule to rewrite IN operator with the constant from the left side more optimally
 # Test project null IN null
@@ -2224,7 +2221,6 @@ EnumerableCalc(expr#0..2=[{inputs}], ENAME=[$t1])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t3)], expr#9=[CAST($t3):INTEGER NOT NULL], expr#10=[0], expr#11=[CASE($t8, $t9, $t10)], $f8=[$t11])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
-
  ENAME
 --------
  ADAMS
@@ -2270,7 +2266,6 @@ EnumerableCalc(expr#0..5=[{inputs}], expr#6=[<>($t2, $t1)], expr#7=[1], expr#8=[
 # Previous, as scalar sub-query.
 select empno, empno <> some (select emp2.empno from "scott".emp emp2 where emp2.empno = emp1.empno) as x
 from "scott".emp emp1;
-
 +-------+-------+
 | EMPNO | X     |
 +-------+-------+
@@ -2326,7 +2321,6 @@ EnumerableCalc(expr#0..12=[{inputs}], expr#13=[<>($t9, $t8)], expr#14=[1], expr#
 # Previous, as scalar sub-query.
 select *, empno <> some (select comm from "scott".emp where deptno = emp1.deptno) as x
 from "scott".emp as emp1;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X    |
 +-------+--------+-----------+------+------------+---------+---------+--------+------+
@@ -2375,7 +2369,6 @@ EnumerableCalc(expr#0..12=[{inputs}], expr#13=[<>($t9, $t8)], expr#14=[1], expr#
 # Previous, as scalar sub-query.
 select *, empno <> some (select 2 from "scott".dept dept1 where dept1.deptno = emp1.empno) as x
 from "scott".emp as emp1;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X     |
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
@@ -2424,7 +2417,6 @@ EnumerableCalc(expr#0..12=[{inputs}], expr#13=[<>($t9, $t8)], expr#14=[1], expr#
 # Previous, as scalar sub-query.
 select *, comm <> some (select 2 from "scott".dept dept1 where dept1.deptno = emp1.empno) as x
 from "scott".emp as emp1;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X     |
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
@@ -2476,7 +2468,6 @@ EnumerableCalc(expr#0..12=[{inputs}], expr#13=[<>($t9, $t8)], expr#14=[1], expr#
 # Previous, as scalar sub-query.
 select *, emp1.comm <> some (select comm from "scott".emp where sal = emp1.sal) as x
 from "scott".emp emp1;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | X     |
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
@@ -2501,14 +2492,12 @@ from "scott".emp emp1;
 
 # [CALCITE-4486] UNIQUE predicate
 !use scott
-!set expand false
 !set outputformat mysql
 
 # singleton keys have unique value which excludes fully or partially null rows.
 select deptno
 from "scott".dept
 where unique (select comm from "scott".emp where comm is not null);
-
 +--------+
 | DEPTNO |
 +--------+
@@ -2535,7 +2524,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
 # Previous, as scalar sub-query.
 select deptno, unique (select comm from "scott".emp where comm is not null) as u
 from "scott".dept;
-
 +--------+------+
 | DEPTNO | U    |
 +--------+------+
@@ -2562,7 +2550,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2
 # Previous, but NOT UNIQUE.
 select deptno, not unique (select comm from "scott".emp where comm is not null) as u
 from "scott".dept;
-
 +--------+-------+
 | DEPTNO | U     |
 +--------+-------+
@@ -2590,7 +2577,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t1)], DEPTNO=[$t0], U=
 select deptno
 from "scott".dept
 where unique (select comm from "scott".emp);
-
 +--------+
 | DEPTNO |
 +--------+
@@ -2617,7 +2603,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
 # Previous, as scalar sub-query.
 select deptno, unique (select comm from "scott".emp) as u
 from "scott".dept;
-
 +--------+------+
 | DEPTNO | U    |
 +--------+------+
@@ -2645,7 +2630,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2
 select deptno
 from "scott".dept
 where unique (select comm from "scott".emp where comm is null);
-
 +--------+
 | DEPTNO |
 +--------+
@@ -2665,7 +2649,6 @@ EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
 # Previous, as scalar sub-query.
 select deptno, unique (select comm from "scott".emp where comm is null) as u
 from "scott".dept;
-
 +--------+------+
 | DEPTNO | U    |
 +--------+------+
@@ -2686,7 +2669,6 @@ EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], DEPTNO=[$t0], U=[$t3])
 select deptno
 from "scott".dept
 where unique (select comm, sal from "scott".emp where comm is not null);
-
 +--------+
 | DEPTNO |
 +--------+
@@ -2713,7 +2695,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
 # Previous, as scalar sub-query.
 select deptno, unique (select comm, sal from "scott".emp where comm is not null) as u
 from "scott".dept;
-
 +--------+------+
 | DEPTNO | U    |
 +--------+------+
@@ -2743,7 +2724,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2
 select deptno
 from "scott".dept
 where unique (select comm, sal from "scott".emp);
-
 +--------+
 | DEPTNO |
 +--------+
@@ -2770,7 +2750,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
 # Previous, as scalar sub-query.
 select deptno, unique (select comm, sal from "scott".emp) as u
 from "scott".dept;
-
 +--------+------+
 | DEPTNO | U    |
 +--------+------+
@@ -2820,7 +2799,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
 # Previous, as scalar sub-query.
 select deptno, unique (select deptno from "scott".emp) as u
 from "scott".dept;
-
 +--------+-------+
 | DEPTNO | U     |
 +--------+-------+
@@ -2870,7 +2848,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
 # Previous, as scalar sub-query.
 select deptno, unique (select deptno, sal from "scott".emp where sal = 3000) as u
 from "scott".dept;
-
 +--------+-------+
 | DEPTNO | U     |
 +--------+-------+
@@ -2897,7 +2874,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2
 # Previous, but NOT UNIQUE.
 select deptno, not unique (select deptno, sal from "scott".emp where sal = 3000) as u
 from "scott".dept;
-
 +--------+------+
 | DEPTNO | U    |
 +--------+------+
@@ -2925,7 +2901,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t1)], DEPTNO=[$t0], U=
 select deptno
 from "scott".dept
 where unique (select deptno from "scott".emp where deptno = 35);
-
 +--------+
 | DEPTNO |
 +--------+
@@ -2952,7 +2927,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
 # Previous, as scalar sub-query.
 select deptno, unique (select deptno from "scott".emp where deptno = 35) as u
 from "scott".dept;
-
 +--------+------+
 | DEPTNO | U    |
 +--------+------+
@@ -2980,7 +2954,6 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2
 select *
 from "scott".dept
 where unique (select deptno from "scott".dept);
-
 +--------+------------+----------+
 | DEPTNO | DNAME      | LOC      |
 +--------+------------+----------+
@@ -3000,7 +2973,6 @@ EnumerableTableScan(table=[[scott, DEPT]])
 select *
 from "scott".dept
 where unique (select deptno from "scott".emp limit 1);
-
 +--------+------------+----------+
 | DEPTNO | DNAME      | LOC      |
 +--------+------------+----------+
@@ -3020,7 +2992,6 @@ EnumerableTableScan(table=[[scott, DEPT]])
 select deptno
 from "scott".dept
 where unique (select distinct deptno, sal from "scott".emp where sal = 3000);
-
 +--------+
 | DEPTNO |
 +--------+
@@ -3041,7 +3012,6 @@ EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
 select deptno
 from "scott".dept
 where unique (select job from "scott".emp group by job);
-
 +--------+
 | DEPTNO |
 +--------+
@@ -3063,7 +3033,6 @@ select *
 from "scott".dept
 where unique (
     select 1 from "scott".emp where dept.deptno = emp.deptno);
-
 +--------+------------+--------+
 | DEPTNO | DNAME      | LOC    |
 +--------+------------+--------+
@@ -3086,7 +3055,6 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NULL($t3)], proj#0..2=[{exprs}],
 # Previous, as scalar sub-query.
 select *, unique (select 1 from "scott".emp where dept.deptno = emp.deptno) as u
 from "scott".dept;
-
 +--------+------------+----------+-------+
 | DEPTNO | DNAME      | LOC      | U     |
 +--------+------------+----------+-------+
@@ -3114,7 +3082,6 @@ select *
 from "scott".dept
 where not unique (
     select 1 from "scott".emp where dept.deptno = emp.deptno);
-
 +--------+------------+----------+
 | DEPTNO | DNAME      | LOC      |
 +--------+------------+----------+
@@ -3137,7 +3104,6 @@ EnumerableHashJoin(condition=[=($0, $3)], joinType=[semi])
 # Previous, as scalar sub-query.
 select *, not unique (select 1 from "scott".emp where dept.deptno = emp.deptno) as u
 from "scott".dept;
-
 +--------+------------+----------+-------+
 | DEPTNO | DNAME      | LOC      | U     |
 +--------+------------+----------+-------+
@@ -3165,7 +3131,6 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t3)], proj#0..2=[{expr
 
 # The IN-list contains partial null value.
 select * from "scott".emp where comm in (300, 500, null);
-
 +-------+-------+----------+------+------------+---------+--------+--------+
 | EMPNO | ENAME | JOB      | MGR  | HIREDATE   | SAL     | COMM   | DEPTNO |
 +-------+-------+----------+------+------------+---------+--------+--------+
@@ -3182,7 +3147,6 @@ EnumerableCalc(expr#0..7=[{inputs}], expr#8=[Sarg[300:DECIMAL(7, 2), 500:DECIMAL
 
 # Previous, as scalar sub-query.
 select *, comm in (300, 500, null) as i from "scott".emp;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | I    |
 +-------+--------+-----------+------+------------+---------+---------+--------+------+
@@ -3211,7 +3175,6 @@ EnumerableCalc(expr#0..7=[{inputs}], expr#8=[Sarg[300:DECIMAL(7, 2), 500:DECIMAL
 
 # As above, but NOT IN.
 select * from "scott".emp where comm not in (300, 500, null);
-
 +-------+-------+-----+-----+----------+-----+------+--------+
 | EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
 +-------+-------+-----+-----+----------+-----+------+--------+
@@ -3225,7 +3188,6 @@ EnumerableValues(tuples=[[]])
 
 # Previous, as scalar sub-query.
 select *, comm not in (300, 500, null) as i from "scott".emp;
-
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
 | EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO | I     |
 +-------+--------+-----------+------+------------+---------+---------+--------+-------+
@@ -3572,7 +3534,6 @@ SELECT ARRAY(SELECT s.x) FROM (SELECT 1 as x) s;
 # Test case for [CALCITE-5310] JSON_OBJECT in scalar sub-query throws AssertionError
 SELECT (SELECT json_object('1': (a.attidentity = 'a'), '2': v) FROM UNNEST(ARRAY[1]) as v) as options
 FROM UNNEST(ARRAY['a', 'b']) AS a(attidentity);
-
 +-------------------+
 | OPTIONS           |
 +-------------------+

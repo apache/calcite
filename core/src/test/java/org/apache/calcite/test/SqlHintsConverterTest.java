@@ -112,7 +112,8 @@ class SqlHintsConverterTest {
           "?", false, false)
           .withFactory(f ->
               f.withSqlToRelConfig(c ->
-                  c.withHintStrategyTable(HintTools.HINT_STRATEGY_TABLE)));
+                  c.withHintStrategyTable(HintTools.HINT_STRATEGY_TABLE)
+                      .withExpand(true)));
 
   static final RelOptFixture RULE_FIXTURE =
       RelOptFixture.DEFAULT
@@ -524,8 +525,7 @@ class SqlHintsConverterTest {
         .build();
     // Validate Volcano planner.
     RuleSet ruleSet = RuleSets.ofList(
-        MockEnumerableJoinRule.create(hint) // Rule to validate the hint.
-    );
+        MockEnumerableJoinRule.create(hint)); // Rule to validate the hint.
     ruleFixture()
         .sql(sql)
         .withTrim(true)
@@ -534,6 +534,7 @@ class SqlHintsConverterTest {
           RelOptUtil.registerDefaultRules(p, false, false);
           ruleSet.forEach(p::addRule);
         })
+        .withExpand(true)
         .check();
   }
 
@@ -545,8 +546,7 @@ class SqlHintsConverterTest {
         .build();
     // Validate Volcano planner.
     RuleSet ruleSet = RuleSets.ofList(
-        MockEnumerableJoinRule.create(hint) // Rule to validate the hint.
-    );
+        MockEnumerableJoinRule.create(hint)); // Rule to validate the hint.
     ruleFixture()
         .sql(sql)
         .withTrim(true)
@@ -555,6 +555,7 @@ class SqlHintsConverterTest {
           RelOptUtil.registerDefaultRules(p, false, false);
           ruleSet.forEach(p::addRule);
         })
+        .withExpand(true)
         .check();
   }
 

@@ -81,6 +81,7 @@ import static org.apache.calcite.runtime.SpatialTypeUtils.fromGeoJson;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromGml;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkb;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkt;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * Helper methods to implement spatial type (ST) functions in generated code.
@@ -999,6 +1000,15 @@ public class SpatialTypeFunctions {
     return geom.getEnvelope();
   }
 
+  /**
+   * Explodes the {@code geom} into multiple geometries.
+   */
+  private static void ST_Explode(final Geometry geom) {
+    // This is a dummy function. We cannot include table functions in this
+    // package, because they have too many dependencies. See the real definition
+    // in SqlSpatialTypeFunctions.
+  }
+
   // Geometry predicates ======================================================
 
   /**
@@ -1192,9 +1202,12 @@ public class SpatialTypeFunctions {
    * {@code srid}.
    */
   public static Geometry ST_Transform(Geometry geom, int srid) {
-    ProjectionTransformer projectionTransformer =
-        new ProjectionTransformer(geom.getSRID(), srid);
-    return projectionTransformer.transform(geom);
+    try {
+      ProjectionTransformer projectionTransformer = new ProjectionTransformer(geom.getSRID(), srid);
+      return projectionTransformer.transform(geom);
+    } catch (IllegalStateException e) {
+      throw RESOURCE.proj4jEpsgIsMissing().ex();
+    }
   }
 
   /**

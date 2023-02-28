@@ -124,32 +124,46 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEADD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FROM_UNIX_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ENDS_WITH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXISTS_NODE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_VALUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_XML;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_DATETIME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ILIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_INSERT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_KEYS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_PRETTY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_REMOVE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_REPLACE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_SET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_STORAGE_SIZE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_TYPE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEFT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAX_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MIN_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.POW;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
@@ -157,6 +171,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STARTS_WITH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRCMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TANH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MILLIS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
@@ -164,6 +180,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MICROS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MILLIS;
@@ -173,6 +190,8 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ANY_VALUE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARG_MAX;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARG_MIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASCII;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASIN;
@@ -395,6 +414,8 @@ public class RexImpTable {
       defineMethod(SUBSTRING, BuiltInMethod.SUBSTRING.method, NullPolicy.STRICT);
       defineMethod(LEFT, BuiltInMethod.LEFT.method, NullPolicy.ANY);
       defineMethod(RIGHT, BuiltInMethod.RIGHT.method, NullPolicy.ANY);
+      defineMethod(LPAD, BuiltInMethod.LPAD.method, NullPolicy.STRICT);
+      defineMethod(RPAD, BuiltInMethod.RPAD.method, NullPolicy.STRICT);
       defineMethod(STARTS_WITH, BuiltInMethod.STARTS_WITH.method, NullPolicy.STRICT);
       defineMethod(ENDS_WITH, BuiltInMethod.ENDS_WITH.method, NullPolicy.STRICT);
       defineMethod(REPLACE, BuiltInMethod.REPLACE.method, NullPolicy.STRICT);
@@ -467,6 +488,7 @@ public class RexImpTable {
       defineMethod(COSH, "cosh", NullPolicy.STRICT);
       defineMethod(COT, "cot", NullPolicy.STRICT);
       defineMethod(DEGREES, "degrees", NullPolicy.STRICT);
+      defineMethod(POW, "power", NullPolicy.STRICT);
       defineMethod(RADIANS, "radians", NullPolicy.STRICT);
       defineMethod(ROUND, "sround", NullPolicy.STRICT);
       defineMethod(SIGN, "sign", NullPolicy.STRICT);
@@ -474,6 +496,7 @@ public class RexImpTable {
       defineMethod(SINH, "sinh", NullPolicy.STRICT);
       defineMethod(TAN, "tan", NullPolicy.STRICT);
       defineMethod(TANH, "tanh", NullPolicy.STRICT);
+      defineMethod(TRUNC, "struncate", NullPolicy.STRICT);
       defineMethod(TRUNCATE, "struncate", NullPolicy.STRICT);
 
       map.put(PI, new PiImplementor());
@@ -511,11 +534,12 @@ public class RexImpTable {
 
       // TIMESTAMP_TRUNC and TIME_TRUNC methods are syntactic sugar for standard
       // datetime FLOOR.
+      map.put(DATE_TRUNC, map.get(FLOOR));
       map.put(TIMESTAMP_TRUNC, map.get(FLOOR));
       map.put(TIME_TRUNC, map.get(FLOOR));
 
-
-      defineMethod(LAST_DAY, "lastDay", NullPolicy.STRICT);
+      map.put(LAST_DAY,
+          new LastDayImplementor("lastDay", BuiltInMethod.LAST_DAY));
       map.put(DAYNAME,
           new PeriodNameImplementor("dayName",
               BuiltInMethod.DAYNAME_WITH_TIMESTAMP,
@@ -533,6 +557,20 @@ public class RexImpTable {
       defineMethod(DATE_FROM_UNIX_DATE, "dateFromUnixDate", NullPolicy.STRICT);
       defineMethod(UNIX_DATE, "unixDate", NullPolicy.STRICT);
 
+      // Datetime constructors
+      defineMethod(DATE, "date", NullPolicy.STRICT);
+      defineMethod(DATETIME, "datetime", NullPolicy.STRICT);
+      defineMethod(TIMESTAMP, "timestamp", NullPolicy.STRICT);
+      defineMethod(TIME, "time", NullPolicy.STRICT);
+
+      // Datetime formatting methods
+      final FormatDatetimeImplementor datetimeFormatImpl = new FormatDatetimeImplementor();
+      map.put(FORMAT_TIMESTAMP, datetimeFormatImpl);
+      map.put(FORMAT_DATE, datetimeFormatImpl);
+      map.put(FORMAT_TIME, datetimeFormatImpl);
+      map.put(FORMAT_DATETIME, datetimeFormatImpl);
+
+      // Boolean operators
       map.put(IS_NULL, new IsNullImplementor());
       map.put(IS_NOT_NULL, new IsNotNullImplementor());
       map.put(IS_TRUE, new IsTrueImplementor());
@@ -607,7 +645,6 @@ public class RexImpTable {
 
       map.put(COALESCE, new CoalesceImplementor());
       map.put(CAST, new CastImplementor());
-      map.put(DATE, new CastImplementor());
 
       map.put(REINTERPRET, new ReinterpretImplementor());
 
@@ -644,11 +681,14 @@ public class RexImpTable {
       defineMethod(JSON_QUERY, BuiltInMethod.JSON_QUERY.method, NullPolicy.ARG0);
       defineMethod(JSON_TYPE, BuiltInMethod.JSON_TYPE.method, NullPolicy.ARG0);
       defineMethod(JSON_DEPTH, BuiltInMethod.JSON_DEPTH.method, NullPolicy.ARG0);
+      defineMethod(JSON_INSERT, BuiltInMethod.JSON_INSERT.method, NullPolicy.ARG0);
       defineMethod(JSON_KEYS, BuiltInMethod.JSON_KEYS.method, NullPolicy.ARG0);
       defineMethod(JSON_PRETTY, BuiltInMethod.JSON_PRETTY.method, NullPolicy.ARG0);
       defineMethod(JSON_LENGTH, BuiltInMethod.JSON_LENGTH.method, NullPolicy.ARG0);
       defineMethod(JSON_REMOVE, BuiltInMethod.JSON_REMOVE.method, NullPolicy.ARG0);
       defineMethod(JSON_STORAGE_SIZE, BuiltInMethod.JSON_STORAGE_SIZE.method, NullPolicy.ARG0);
+      defineMethod(JSON_REPLACE, BuiltInMethod.JSON_REPLACE.method, NullPolicy.ARG0);
+      defineMethod(JSON_SET, BuiltInMethod.JSON_SET.method, NullPolicy.ARG0);
       defineMethod(JSON_OBJECT, BuiltInMethod.JSON_OBJECT.method, NullPolicy.NONE);
       defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
       aggMap.put(JSON_OBJECTAGG.with(SqlJsonConstructorNullClause.ABSENT_ON_NULL),
@@ -718,6 +758,10 @@ public class RexImpTable {
           constructorSupplier(MinMaxImplementor.class);
       aggMap.put(MIN, minMax);
       aggMap.put(MAX, minMax);
+      aggMap.put(ARG_MIN, constructorSupplier(ArgMinMaxImplementor.class));
+      aggMap.put(ARG_MAX, constructorSupplier(ArgMinMaxImplementor.class));
+      aggMap.put(MIN_BY, constructorSupplier(ArgMinMaxImplementor.class));
+      aggMap.put(MAX_BY, constructorSupplier(ArgMinMaxImplementor.class));
       aggMap.put(ANY_VALUE, minMax);
       aggMap.put(SOME, minMax);
       aggMap.put(EVERY, minMax);
@@ -1188,6 +1232,67 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code ARG_MIN} and {@code ARG_MAX} aggregate
+   * functions. */
+  static class ArgMinMaxImplementor extends StrictAggImplementor {
+    @Override protected void implementNotNullReset(AggContext info,
+        AggResetContext reset) {
+      // acc[0] = null;
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(0),
+                  Expressions.constant(null))));
+
+      final Type compType = info.parameterTypes().get(1);
+      final Primitive p = Primitive.of(compType);
+      final boolean isMin = info.aggregation().kind == SqlKind.ARG_MIN;
+      final Object inf = p == null ? null : (isMin ? p.max : p.min);
+      //acc[1] = isMin ? {max value} : {min value};
+      reset.currentBlock().add(
+          Expressions.statement(
+              Expressions.assign(reset.accumulator().get(1),
+                  Expressions.constant(inf, compType))));
+    }
+
+    @Override public void implementNotNullAdd(AggContext info,
+        AggAddContext add) {
+      Expression accComp = add.accumulator().get(1);
+      Expression argValue = add.arguments().get(0);
+      Expression argComp = add.arguments().get(1);
+      final Type compType = info.parameterTypes().get(1);
+      final Primitive p = Primitive.of(compType);
+      final boolean isMin = info.aggregation().kind == SqlKind.ARG_MIN;
+
+      final Method method =
+          (isMin
+              ? (p == null ? BuiltInMethod.LT_NULLABLE : BuiltInMethod.LT)
+              : (p == null ? BuiltInMethod.GT_NULLABLE : BuiltInMethod.GT))
+              .method;
+      Expression compareExpression =
+          Expressions.call(method.getDeclaringClass(),
+              method.getName(),
+              argComp,
+              accComp);
+
+      final BlockBuilder thenBlock =
+          new BlockBuilder(true, add.currentBlock());
+      thenBlock.add(
+          Expressions.statement(
+              Expressions.assign(add.accumulator().get(0), argValue)));
+      thenBlock.add(
+          Expressions.statement(
+              Expressions.assign(add.accumulator().get(1), argComp)));
+
+      add.currentBlock()
+          .add(Expressions.ifThen(compareExpression, thenBlock.toBlock()));
+    }
+
+    @Override public List<Type> getNotNullState(AggContext info) {
+      return ImmutableList.of(Object.class, // the result value
+          info.parameterTypes().get(1)); // the compare value
+    }
+  }
+
   /** Implementor for the {@code SINGLE_VALUE} aggregate function. */
   static class SingleValueImplementor implements AggImplementor {
     @Override public List<Type> getStateType(AggContext info) {
@@ -1301,8 +1406,7 @@ public class RexImpTable {
               Expressions.call(add.accumulator().get(0),
                   BuiltInMethod.COLLECTION_RETAIN_ALL.method,
                   add.arguments().get(0))
-          )
-      );
+          ));
 
       add.currentBlock().add(
           Expressions.ifThenElse(
@@ -1901,7 +2005,7 @@ public class RexImpTable {
 
     @Override protected Expression implementNotNullResult(
         WinAggContext info, WinAggResultContext result) {
-      // Window cannot be empty since ROWS/RANGE is not possible for ROW_NUMBER
+      // Window must not be empty since ROWS/RANGE is not possible for ROW_NUMBER
       return Expressions.add(
           Expressions.subtract(result.index(), result.startIndex()),
           Expressions.constant(1));
@@ -2066,6 +2170,37 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for the {@code LAST_DAY} function. */
+  private static class LastDayImplementor extends MethodNameImplementor {
+    private final BuiltInMethod dateMethod;
+
+    LastDayImplementor(String methodName, BuiltInMethod dateMethod) {
+      super(methodName, NullPolicy.STRICT, false);
+      this.dateMethod = dateMethod;
+    }
+
+    @Override String getVariableName() {
+      return methodName;
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      Expression operand = argValueList.get(0);
+      final RelDataType type = call.operands.get(0).getType();
+      switch (type.getSqlTypeName()) {
+      case TIMESTAMP:
+        operand =
+            Expressions.call(BuiltInMethod.TIMESTAMP_TO_DATE.method, operand);
+        // fall through
+      case DATE:
+        return Expressions.call(dateMethod.method.getDeclaringClass(),
+            dateMethod.method.getName(), operand);
+      default:
+        throw new AssertionError("unknown type " + type);
+      }
+    }
+  }
+
   /** Implementor for the {@code FLOOR} and {@code CEIL} functions. */
   private static class FloorImplementor extends MethodNameImplementor {
     final Method timestampMethod;
@@ -2134,6 +2269,7 @@ public class RexImpTable {
             "timeUnitRange");
         switch (timeUnitRange) {
         case YEAR:
+        case ISOYEAR:
         case QUARTER:
         case MONTH:
         case WEEK:
@@ -2153,6 +2289,13 @@ public class RexImpTable {
 
     private Expression call(Expression operand, Type type,
         TimeUnit timeUnit) {
+      if (timeUnit.multiplier.compareTo(BigDecimal.ONE) < 0) {
+        // MICROSECOND has a multiplier of 0.001,
+        // NANOSECOND has a multiplier of 0.000001.
+        // In integer arithmetic, these underflow to zero, so we get a
+        // divide-by-zero exception. FLOOR and CEIL on these units should no-op.
+        return EnumUtils.convert(operand, type);
+      }
       return Expressions.call(SqlFunctions.class, methodName,
           EnumUtils.convert(operand, type),
           EnumUtils.convert(
@@ -2223,6 +2366,35 @@ public class RexImpTable {
       default:
         return customDateMethod;
       }
+    }
+  }
+
+  /**
+   * Implementor for the {@code FORMAT_TIMESTAMP, FORMAT_DATE, FORMAT_TIME} and
+   * {@code FORMAT_DATETIME} functions.
+   */
+  private static class FormatDatetimeImplementor extends MethodNameImplementor {
+
+    FormatDatetimeImplementor() {
+      super("formatDatetime", NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      final Expression operand0 = argValueList.get(0);
+      final Expression operand1 = argValueList.get(1);
+      Method method;
+      switch (call.operands.get(1).getType().getSqlTypeName()) {
+      case TIME:
+        method = BuiltInMethod.FORMAT_TIME.method;
+        break;
+      case DATE:
+        method = BuiltInMethod.FORMAT_DATE.method;
+        break;
+      default:
+        method = BuiltInMethod.FORMAT_TIMESTAMP.method;
+      }
+      return Expressions.call(method, translator.getRoot(), operand0, operand1);
     }
   }
 
@@ -2827,8 +2999,8 @@ public class RexImpTable {
                     Expressions.equal(nullValue, expression)),
                 Expressions.assign(list, nullValue),
                 Expressions.statement(
-                    Expressions.call(list, BuiltInMethod.COLLECTION_ADDALL.method, expression)))
-        );
+                    Expressions.call(list,
+                        BuiltInMethod.COLLECTION_ADDALL.method, expression))));
       }
       return list;
     }

@@ -272,8 +272,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
                 "inferred CONCAT element type");
           }),
           null,
-          OperandTypes.STRING_SAME_SAME_OR_ARRAY_SAME_SAME
-      );
+          OperandTypes.STRING_SAME_SAME_OR_ARRAY_SAME_SAME);
 
 
   /**
@@ -1006,6 +1005,24 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlCountAggFunction("APPROX_COUNT_DISTINCT");
 
   /**
+   * <code>ARG_MAX</code> aggregate function.
+   */
+  public static final SqlBasicAggFunction ARG_MAX =
+      SqlBasicAggFunction.create("ARG_MAX", SqlKind.ARG_MAX,
+          ReturnTypes.ARG0_NULLABLE_IF_EMPTY, OperandTypes.ANY_COMPARABLE)
+          .withGroupOrder(Optionality.FORBIDDEN)
+          .withFunctionType(SqlFunctionCategory.SYSTEM);
+
+  /**
+   * <code>ARG_MIN</code> aggregate function.
+   */
+  public static final SqlBasicAggFunction ARG_MIN =
+      SqlBasicAggFunction.create("ARG_MIN", SqlKind.ARG_MIN,
+              ReturnTypes.ARG0_NULLABLE_IF_EMPTY, OperandTypes.ANY_COMPARABLE)
+          .withGroupOrder(Optionality.FORBIDDEN)
+          .withFunctionType(SqlFunctionCategory.SYSTEM);
+
+  /**
    * <code>MIN</code> aggregate function.
    */
   public static final SqlAggFunction MIN =
@@ -1278,7 +1295,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * additional interval qualifier specification.</p>
    */
   public static final SqlDatetimeSubtractionOperator MINUS_DATE =
-      new SqlDatetimeSubtractionOperator();
+      new SqlDatetimeSubtractionOperator("-", ReturnTypes.ARG2_NULLABLE);
 
   /**
    * The MULTISET Value Constructor. e.g. "<code>MULTISET[1,2,3]</code>".
@@ -1395,25 +1412,37 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction JSON_ARRAY = new SqlJsonArrayFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_TYPE = SqlLibraryOperators.JSON_TYPE;
+  public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_DEPTH = SqlLibraryOperators.JSON_DEPTH;
+  public static final SqlFunction JSON_DEPTH = new SqlJsonDepthFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_LENGTH = SqlLibraryOperators.JSON_LENGTH;
+  public static final SqlFunction JSON_LENGTH = new SqlJsonLengthFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_KEYS = SqlLibraryOperators.JSON_KEYS;
+  public static final SqlFunction JSON_KEYS = new SqlJsonKeysFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_PRETTY = SqlLibraryOperators.JSON_PRETTY;
+  public static final SqlFunction JSON_PRETTY = new SqlJsonPrettyFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_REMOVE = SqlLibraryOperators.JSON_REMOVE;
+  public static final SqlFunction JSON_REMOVE = new SqlJsonRemoveFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_STORAGE_SIZE = SqlLibraryOperators.JSON_STORAGE_SIZE;
+  public static final SqlFunction JSON_STORAGE_SIZE = new SqlJsonStorageSizeFunction();
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_INSERT =
+      new SqlJsonModifyFunction("JSON_INSERT");
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_REPLACE =
+      new SqlJsonModifyFunction("JSON_REPLACE");
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_SET =
+      new SqlJsonModifyFunction("JSON_SET");
 
   public static final SqlJsonArrayAggAggFunction JSON_ARRAYAGG =
       new SqlJsonArrayAggAggFunction(SqlKind.JSON_ARRAYAGG,
@@ -1598,10 +1627,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * example {@code POWER(INTEGER, INTEGER)} can return a non-INTEGER if the
    * second operand is negative.
    */
-  public static final SqlFunction POWER =
+  public static final SqlBasicFunction POWER =
       SqlBasicFunction.create("POWER",
           ReturnTypes.DOUBLE_NULLABLE,
-          OperandTypes.NUMERIC_NUMERIC);
+          OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
 
   /** The {@code SQRT(numeric)} function. */
   public static final SqlFunction SQRT =
@@ -1742,7 +1772,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlFunctionCategory.NUMERIC);
 
   /** The {@code TRUNCATE(numeric [, numeric])} function. */
-  public static final SqlFunction TRUNCATE =
+  public static final SqlBasicFunction TRUNCATE =
       SqlBasicFunction.create("TRUNCATE",
           ReturnTypes.ARG0_NULLABLE,
           OperandTypes.NUMERIC_OPTIONAL_INTEGER,
@@ -1889,7 +1919,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** The <code>TIMESTAMPDIFF</code> function. */
   public static final SqlFunction TIMESTAMP_DIFF =
-      new SqlTimestampDiffFunction("TIMESTAMPDIFF");
+      new SqlTimestampDiffFunction("TIMESTAMPDIFF",
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATETIME,
+              SqlTypeFamily.DATETIME));
 
   /**
    * Use of the <code>IN_FENNEL</code> operator forces the argument to be
@@ -2191,11 +2223,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * {@code PERCENTILE_CONT} inverse distribution aggregate function.
    *
    * <p>The argument must be a numeric literal in the range 0 to 1 inclusive
-   * (representing a percentage), and the return type is {@code DOUBLE}.
+   * (representing a percentage), and the return type is the type of the
+   * {@code ORDER BY} expression.
    */
   public static final SqlAggFunction PERCENTILE_CONT =
       SqlBasicAggFunction
-          .create(SqlKind.PERCENTILE_CONT, ReturnTypes.DOUBLE,
+          .create(SqlKind.PERCENTILE_CONT, ReturnTypes.PERCENTILE_DISC_CONT,
               OperandTypes.UNIT_INTERVAL_NUMERIC_LITERAL)
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withGroupOrder(Optionality.MANDATORY)
@@ -2210,7 +2243,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlAggFunction PERCENTILE_DISC =
       SqlBasicAggFunction
-          .create(SqlKind.PERCENTILE_DISC, ReturnTypes.PERCENTILE_DISC,
+          .create(SqlKind.PERCENTILE_DISC, ReturnTypes.PERCENTILE_DISC_CONT,
               OperandTypes.UNIT_INTERVAL_NUMERIC_LITERAL)
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withGroupOrder(Optionality.MANDATORY)

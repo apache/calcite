@@ -1362,7 +1362,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "BIGINT) AS $f1, CAST(SUM(SAL) AS DECIMAL(19, 0)) AS salSum\n"
         + "FROM scott.EMP\n"
         + "GROUP BY DEPTNO, MGR, HIREDATE\n"
-        + "ORDER BY CAST(SUM(SAL) AS DECIMAL(19, 0))";
+        + "ORDER BY 3";
     pig(script).assertResult(is(result))
         .assertSql(is(sql));
   }
@@ -1480,7 +1480,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "(19, 0)) AS salAvg\n"
         + "FROM scott.EMP\n"
         + "GROUP BY DEPTNO, MGR, HIREDATE\n"
-        + "ORDER BY CAST(SUM(SAL) AS DECIMAL(19, 0))";
+        + "ORDER BY 3";
     pig(script).assertRel(hasTree(plan))
         .assertOptimizedRel(hasTree(optimizedPlan))
         .assertResult(is(result))
@@ -1501,7 +1501,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "AS A\n"
         + "FROM scott.EMP\n"
         + "GROUP BY DEPTNO, MGR, HIREDATE\n"
-        + "ORDER BY CAST(SUM(SAL) AS DECIMAL(19, 0))";
+        + "ORDER BY 3";
     pig(script2).assertSql(is(sql2));
 
     final String script3 = ""
@@ -1551,7 +1551,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "COLLECT(COMM) AS comArray, CAST(SUM(SAL) AS DECIMAL(19, 0)) AS salSum\n"
         + "FROM scott.EMP\n"
         + "GROUP BY DEPTNO, MGR, HIREDATE\n"
-        + "ORDER BY CAST(SUM(SAL) AS DECIMAL(19, 0))";
+        + "ORDER BY 7";
     pig(script).assertRel(hasTree(plan))
         .assertOptimizedRel(hasTree(optimizedPlan))
         .assertSql(is(sql));
@@ -1610,7 +1610,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "    FROM scott.DEPT\n"
         + "    WHERE DEPTNO >= 20\n"
         + "    GROUP BY CAST(DEPTNO AS INTEGER)) AS t7 ON t4.DEPTNO = t7.DEPTNO\n"
-        + "ORDER BY CASE WHEN t4.DEPTNO IS NOT NULL THEN t4.DEPTNO ELSE t7.DEPTNO END";
+        + "ORDER BY 1";
     pig(script).assertRel(hasTree(plan))
         .assertResult(is(result))
         .assertSql(is(sql));
