@@ -39,13 +39,14 @@ public class SqlSelect extends SqlCall {
   //~ Static fields/initializers ---------------------------------------------
 
   // constants representing operand positions
-  public static final int FROM_OPERAND = 2;
-  public static final int WHERE_OPERAND = 3;
-  public static final int HAVING_OPERAND = 5;
-  public static final int QUALIFY_OPERAND = 7;
+  public static final int FROM_OPERAND = 3;
+  public static final int WHERE_OPERAND = 4;
+  public static final int HAVING_OPERAND = 6;
+  public static final int QUALIFY_OPERAND = 8;
 
   SqlNodeList keywordList;
   SqlNodeList selectList;
+  @Nullable SqlNodeList except;
   @Nullable SqlNode from;
   @Nullable SqlNode where;
   @Nullable SqlNodeList groupBy;
@@ -62,6 +63,7 @@ public class SqlSelect extends SqlCall {
   public SqlSelect(SqlParserPos pos,
       @Nullable SqlNodeList keywordList,
       SqlNodeList selectList,
+      @Nullable SqlNodeList except,
       @Nullable SqlNode from,
       @Nullable SqlNode where,
       @Nullable SqlNodeList groupBy,
@@ -76,6 +78,7 @@ public class SqlSelect extends SqlCall {
     this.keywordList = requireNonNull(keywordList != null
         ? keywordList : new SqlNodeList(pos));
     this.selectList = requireNonNull(selectList, "selectList");
+    this.except = except;
     this.from = from;
     this.where = where;
     this.groupBy = groupBy;
@@ -94,6 +97,7 @@ public class SqlSelect extends SqlCall {
   public SqlSelect(SqlParserPos pos,
       @Nullable SqlNodeList keywordList,
       SqlNodeList selectList,
+      @Nullable SqlNodeList except,
       @Nullable SqlNode from,
       @Nullable SqlNode where,
       @Nullable SqlNodeList groupBy,
@@ -103,7 +107,7 @@ public class SqlSelect extends SqlCall {
       @Nullable SqlNode offset,
       @Nullable SqlNode fetch,
       @Nullable SqlNodeList hints) {
-    this(pos, keywordList, selectList, from, where, groupBy, having,
+    this(pos, keywordList, selectList, except, from, where, groupBy, having,
         windowDecls, null, orderBy, offset, fetch, hints);
   }
 
@@ -119,7 +123,7 @@ public class SqlSelect extends SqlCall {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(keywordList, selectList, from, where,
+    return ImmutableNullableList.of(keywordList, selectList, except, from, where,
         groupBy, having, windowDecls, qualify, orderBy, offset, fetch, hints);
   }
 
@@ -132,30 +136,33 @@ public class SqlSelect extends SqlCall {
       selectList = requireNonNull((SqlNodeList) operand);
       break;
     case 2:
-      from = operand;
+      except = (SqlNodeList) operand;
       break;
     case 3:
-      where = operand;
+      from = operand;
       break;
     case 4:
-      groupBy = (SqlNodeList) operand;
+      where = operand;
       break;
     case 5:
-      having = operand;
+      groupBy = (SqlNodeList) operand;
       break;
     case 6:
-      windowDecls = requireNonNull((SqlNodeList) operand);
+      having = operand;
       break;
     case 7:
-      qualify = operand;
+      windowDecls = requireNonNull((SqlNodeList) operand);
       break;
     case 8:
-      orderBy = (SqlNodeList) operand;
+      qualify = operand;
       break;
     case 9:
-      offset = operand;
+      orderBy = (SqlNodeList) operand;
       break;
     case 10:
+      offset = operand;
+      break;
+    case 11:
       fetch = operand;
       break;
     default:
@@ -176,6 +183,14 @@ public class SqlSelect extends SqlCall {
       }
     }
     return null;
+  }
+
+  public final @Nullable SqlNodeList getExcept() {
+    return except;
+  }
+
+  public void setExcept(@Nullable SqlNodeList except) {
+    this.except = except;
   }
 
   @Pure

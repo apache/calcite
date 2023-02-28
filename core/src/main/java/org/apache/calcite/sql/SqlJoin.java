@@ -273,7 +273,7 @@ public class SqlJoin extends SqlCall {
   @Override public SqlString toSqlString(UnaryOperator<SqlWriterConfig> transform) {
     SqlNode selectWrapper =
         new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY,
-            SqlNodeList.SINGLETON_STAR, this, null, null, null,
+            SqlNodeList.SINGLETON_STAR, null, this, null, null, null,
             SqlNodeList.EMPTY, null, null, null, null, SqlNodeList.EMPTY);
     return selectWrapper.toSqlString(transform);
   }

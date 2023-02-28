@@ -284,6 +284,7 @@ public class RelToSqlConverter extends SqlImplementor
           new SqlSelect(POS, null,
               new SqlNodeList(
                   ImmutableList.of(ONE), POS),
+              null,
               fromPart, sqlCondition, null,
               null, null, null, null, null, null, null);
     }
@@ -783,6 +784,7 @@ public class RelToSqlConverter extends SqlImplementor
         list.add(
             new SqlSelect(POS, null,
                 new SqlNodeList(values2, POS),
+                null,
                 getDual(), null, null,
                 null, null, null, null, null, null, null));
       }
@@ -799,19 +801,19 @@ public class RelToSqlConverter extends SqlImplementor
         if (dual == null) {
           query =
               new SqlSelect(POS, null,
-                  new SqlNodeList(nullColumnNames, POS), null, null, null, null,
+                  new SqlNodeList(nullColumnNames, POS), null, null, null, null, null,
                   null, null, null, null, null, null);
 
           // Wrap "SELECT 1 AS x"
           // as "SELECT * FROM (SELECT 1 AS x) AS t WHERE false"
           query =
-              new SqlSelect(POS, null, SqlNodeList.SINGLETON_STAR,
+              new SqlSelect(POS, null, SqlNodeList.SINGLETON_STAR, null,
                   as(query, "t"), createAlwaysFalseCondition(), null, null,
                   null, null, null, null, null, null);
         } else {
           query =
               new SqlSelect(POS, null,
-                  new SqlNodeList(nullColumnNames, POS),
+                  new SqlNodeList(nullColumnNames, POS), null,
                   dual, createAlwaysFalseCondition(), null,
                   null, null, null, null, null, null, null);
         }
@@ -855,7 +857,7 @@ public class RelToSqlConverter extends SqlImplementor
           query = as(query, "t");
         }
         query =
-            new SqlSelect(POS, null, SqlNodeList.SINGLETON_STAR, query,
+            new SqlSelect(POS, null, SqlNodeList.SINGLETON_STAR, null, query,
                 createAlwaysFalseCondition(), null, null, null,
                 null, null, null, null, null);
       }
@@ -1200,7 +1202,7 @@ public class RelToSqlConverter extends SqlImplementor
         new SqlBasicCall(SqlStdOperatorTable.COLLECTION_TABLE,
             ImmutableList.of(callNode), SqlParserPos.ZERO);
     SqlNode select =
-        new SqlSelect(SqlParserPos.ZERO, null, SqlNodeList.SINGLETON_STAR,
+        new SqlSelect(SqlParserPos.ZERO, null, SqlNodeList.SINGLETON_STAR, null,
             tableCall, null, null, null, null, null, null, null, null,
             SqlNodeList.EMPTY);
     return result(select, ImmutableList.of(Clause.SELECT), e, null);

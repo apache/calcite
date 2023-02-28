@@ -748,6 +748,14 @@ public class SqlParserTest {
         .fails("(?s)Encountered \"\\*\" at .*");
   }
 
+  @Test void testSelectStarExcept() {
+    sql("select * except id from foo")
+        .ok("SELECT *\nEXCEPT `ID`\nFROM `FOO`");
+
+    sql("select * except (id, bar) from foo")
+        .ok("SELECT *\nEXCEPT (`ID`, `BAR`)\nFROM `FOO`");
+  }
+
   @Test void testHyphenatedTableName() {
     sql("select * from bigquery^-^foo-bar.baz")
         .fails("(?s)Encountered \"-\" at .*")

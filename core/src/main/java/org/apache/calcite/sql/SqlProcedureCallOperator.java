@@ -45,6 +45,7 @@ public class SqlProcedureCallOperator extends SqlPrefixOperator {
         new SqlNodeList(
             Collections.singletonList(call.operand(0)),
             SqlParserPos.ZERO),
+        null,
         SqlStdOperatorTable.VALUES.createCall(
             SqlParserPos.ZERO,
             SqlStdOperatorTable.ROW.createCall(

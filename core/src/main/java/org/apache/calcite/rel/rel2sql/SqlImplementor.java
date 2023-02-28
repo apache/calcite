@@ -544,7 +544,7 @@ public abstract class SqlImplementor {
     if (requiresAlias(node)) {
       node = as(node, "t");
     }
-    return new SqlSelect(POS, SqlNodeList.EMPTY, SqlNodeList.SINGLETON_STAR,
+    return new SqlSelect(POS, SqlNodeList.EMPTY, SqlNodeList.SINGLETON_STAR, null,
         node, null, null, null, SqlNodeList.EMPTY, null, null, null, null, null);
   }
 

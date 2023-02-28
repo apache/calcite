@@ -39,12 +39,13 @@ import static java.util.Objects.requireNonNull;
  * <ul>
  * <li>0: distinct ({@link SqlLiteral})</li>
  * <li>1: selectClause ({@link SqlNodeList})</li>
- * <li>2: fromClause ({@link SqlCall} to "join" operator)</li>
- * <li>3: whereClause ({@link SqlNode})</li>
- * <li>4: havingClause ({@link SqlNode})</li>
- * <li>5: groupClause ({@link SqlNode})</li>
- * <li>6: windowClause ({@link SqlNodeList})</li>
- * <li>7: orderClause ({@link SqlNode})</li>
+ * <li>2: exceptClause ({@link SqlNodeList})</li>
+ * <li>3: fromClause ({@link SqlCall} to "join" operator)</li>
+ * <li>4: whereClause ({@link SqlNode})</li>
+ * <li>5: havingClause ({@link SqlNode})</li>
+ * <li>6: groupClause ({@link SqlNode})</li>
+ * <li>7: windowClause ({@link SqlNodeList})</li>
+ * <li>8: orderClause ({@link SqlNode})</li>
  * </ul>
  */
 public class SqlSelectOperator extends SqlOperator {
@@ -59,11 +60,13 @@ public class SqlSelectOperator extends SqlOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlSyntax getSyntax() {
+  @Override
+  public SqlSyntax getSyntax() {
     return SqlSyntax.SPECIAL;
   }
 
-  @Override public SqlCall createCall(
+  @Override
+  public SqlCall createCall(
       @Nullable SqlLiteral functionQualifier,
       SqlParserPos pos,
       @Nullable SqlNode... operands) {
@@ -71,16 +74,17 @@ public class SqlSelectOperator extends SqlOperator {
     return new SqlSelect(pos,
         (SqlNodeList) operands[0],
         requireNonNull((SqlNodeList) operands[1], "selectList"),
-        operands[2],
+        (SqlNodeList) operands[2],
         operands[3],
-        (SqlNodeList) operands[4],
-        operands[5],
-        (SqlNodeList) operands[6],
-        operands[7],
-        (SqlNodeList) operands[8],
-        operands[9],
+        operands[4],
+        (SqlNodeList) operands[5],
+        operands[6],
+        (SqlNodeList) operands[7],
+        operands[8],
+        (SqlNodeList) operands[9],
         operands[10],
-        (SqlNodeList) operands[11]);
+        operands[11],
+        (SqlNodeList) operands[12]);
   }
 
   /**
@@ -92,6 +96,7 @@ public class SqlSelectOperator extends SqlOperator {
   public SqlSelect createCall(
       SqlNodeList keywordList,
       SqlNodeList selectList,
+      SqlNodeList except,
       SqlNode fromClause,
       SqlNode whereClause,
       SqlNodeList groupBy,
@@ -107,6 +112,7 @@ public class SqlSelectOperator extends SqlOperator {
         pos,
         keywordList,
         selectList,
+        except,
         fromClause,
         whereClause,
         groupBy,
@@ -119,7 +125,8 @@ public class SqlSelectOperator extends SqlOperator {
         hints);
   }
 
-  @Override public <R> void acceptCall(
+  @Override
+  public <R> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,
@@ -131,7 +138,8 @@ public class SqlSelectOperator extends SqlOperator {
   }
 
   @SuppressWarnings("deprecation")
-  @Override public void unparse(
+  @Override
+  public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -156,6 +164,17 @@ public class SqlSelectOperator extends SqlOperator {
     final SqlNodeList selectClause = select.selectList;
     writer.list(SqlWriter.FrameTypeEnum.SELECT_LIST, SqlWriter.COMMA,
         selectClause);
+
+    if (select.except != null) {
+      writer.sep("EXCEPT");
+      if (select.except.size() > 1) {
+        writer.print("(");
+      }
+      writer.list(SqlWriter.FrameTypeEnum.EXCEPT_LIST, SqlWriter.COMMA, select.except);
+      if (select.except.size() > 1) {
+        writer.print(")");
+      }
+    }
 
     if (select.from != null) {
       // Calcite SQL requires FROM but MySQL does not.
@@ -242,7 +261,8 @@ public class SqlSelectOperator extends SqlOperator {
     writer.endList(selectFrame);
   }
 
-  @Override public boolean argumentMustBeScalar(int ordinal) {
+  @Override
+  public boolean argumentMustBeScalar(int ordinal) {
     return ordinal == SqlSelect.WHERE_OPERAND;
   }
 }

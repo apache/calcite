@@ -251,6 +251,11 @@ public interface SqlWriter {
     CASE,
 
     /**
+     * The EXCEPT clause of a SELECT statement.
+     */
+    EXCEPT_LIST,
+
+    /**
      * Same behavior as user-defined frame type.
      */
     OTHER;
