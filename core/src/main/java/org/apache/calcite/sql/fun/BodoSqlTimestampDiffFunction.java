@@ -60,10 +60,6 @@ public class BodoSqlTimestampDiffFunction extends SqlFunction {
         final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
 
         SqlTypeName sqlTypeName = SqlTypeName.BIGINT;
-//            (opBinding.getOperandLiteralValue(0, TimeUnit.class) == TimeUnit.NANOSECOND
-//              || opBinding.getOperandLiteralValue(0, TimeUnit.class) == TimeUnit.MICROSECOND)
-//                ? SqlTypeName.BIGINT
-//                : SqlTypeName.INTEGER;
         return typeFactory.createTypeWithNullability(
             typeFactory.createSqlType(sqlTypeName),
             opBinding.getOperandType(1).isNullable()

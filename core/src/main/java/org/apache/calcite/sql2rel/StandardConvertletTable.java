@@ -1867,9 +1867,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       BigDecimal multiplier = BigDecimal.ONE;
       BigDecimal divider = BigDecimal.ONE;
       SqlTypeName sqlTypeName = SqlTypeName.BIGINT;
-//          unit == TimeUnit.NANOSECOND
-//          ? SqlTypeName.BIGINT
-//          : SqlTypeName.INTEGER;
       switch (unit) {
       case MICROSECOND:
       case MILLISECOND:
