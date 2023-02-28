@@ -1043,4 +1043,7 @@ public interface CalciteResource {
   @BaseMessage("Duplicate LIMIT: {0}")
   ExInst<CalciteException> duplicateLimit(String kind);
 
+  @BaseMessage("Invalid time unit input for {0}: {1}")
+  ExInst<SqlValidatorException> wrongTimeUnit(String fnName, String msg);
+
 }
