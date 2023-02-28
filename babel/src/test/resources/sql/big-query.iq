@@ -2171,17 +2171,19 @@ SELECT
 #
 # Returns DATETIME
 
-!if (false) {
+
 SELECT
   DATETIME "2008-12-25 15:30:00" as original,
   DATETIME_TRUNC(DATETIME "2008-12-25 15:30:00", DAY) as truncated;
-+----------------------------+------------------------+
-| original                   | truncated              |
-+----------------------------+------------------------+
-| 2008-12-25T15:30:00        | 2008-12-25T00:00:00    |
-+----------------------------+------------------------+
++---------------------+---------------------+
+| original            | truncated           |
++---------------------+---------------------+
+| 2008-12-25 15:30:00 | 2008-12-25 00:00:00 |
++---------------------+---------------------+
+(1 row)
+
 !ok
-!}
+
 
 # In the following example, the original DATETIME falls on a
 # Sunday. Because the part is WEEK(MONDAY), DATE_TRUNC returns the

@@ -529,7 +529,8 @@ public abstract class SqlLibraryOperators {
 
   /** The "DATETIME" function returns a Calcite
    * {@code TIMESTAMP} (which BigQuery calls a {@code DATETIME}).
-   * It has the following overloads:
+   *
+   * <p>It has the following overloads:
    *
    * <ul>
    *   <li>{@code DATETIME(year, month, day, hour, minute, second)}
@@ -838,7 +839,10 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   /** The "FORMAT_DATETIME(string, timestamp)" function (BigQuery);
-   * Formats a timestamp object according to the specified string. */
+   * formats a timestamp object according to the specified string.
+   *
+   * <p>Note that the {@code TIMESTAMP} type of Calcite and Standard SQL
+   * is called {@code DATETIME} in BigQuery. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FORMAT_DATETIME =
       SqlBasicFunction.create("FORMAT_DATETIME",
@@ -938,21 +942,43 @@ public abstract class SqlLibraryOperators {
           OperandTypes.TIMESTAMP_INTERVAL)
           .withFunctionType(SqlFunctionCategory.TIMEDATE);
 
-  /** BigQuery's {@code DATETIME_SUB(timestamp, interval)} function
-   * is a synonym for TIMESTAMP_SUB because in Calcite, DATETIME
-   * is an alias for TIMESTAMP. */
+  /** The "DATETIME_SUB(timestamp, interval)" function (BigQuery).
+   *
+   * <p>Note that the {@code TIMESTAMP} type of Calcite and Standard SQL
+   * is called {@code DATETIME} in BigQuery.
+   *
+   * <p>A synonym for {@link #TIMESTAMP_SUB}, which supports both
+   * {@code TIMESTAMP} and {@code TIMESTAMP WITH LOCAL TIME ZONE} operands. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATETIME_SUB =
       TIMESTAMP_SUB.withName("DATETIME_SUB");
 
   /** The "TIMESTAMP_TRUNC(timestamp, timeUnit[, timeZone])" function (BigQuery);
-   * truncates a TIMESTAMP value to the beginning of a timeUnit. */
+   * truncates a {@code TIMESTAMP WITH LOCAL TIME ZONE} value to the beginning
+   * of a timeUnit.
+   *
+   * <p>Note that the {@code TIMESTAMP WITH LOCAL TIME ZONE} type of Calcite
+   * is called {@code TIMESTAMP} in BigQuery. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_TRUNC =
       SqlBasicFunction.create("TIMESTAMP_TRUNC",
           ReturnTypes.TIMESTAMP_NULLABLE,
           OperandTypes.sequence(
               "'TIMESTAMP_TRUNC(<TIMESTAMP>, <DATETIME_INTERVAL>)'",
+              OperandTypes.TIMESTAMP, OperandTypes.timestampInterval()),
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "DATETIME_TRUNC(timestamp, timeUnit)" function (BigQuery);
+   * truncates a TIMESTAMP value to the beginning of a timeUnit.
+   *
+   * <p>Note that the {@code TIMESTAMP} type of Calcite and Standard SQL
+   * is called {@code DATETIME} in BigQuery. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_TRUNC =
+      SqlBasicFunction.create("DATETIME_TRUNC",
+          ReturnTypes.TIMESTAMP_NULLABLE,
+          OperandTypes.sequence(
+              "'DATETIME_TRUNC(<TIMESTAMP>, <DATETIME_INTERVAL>)'",
               OperandTypes.TIMESTAMP, OperandTypes.timestampInterval()),
           SqlFunctionCategory.TIMEDATE);
 
@@ -1010,7 +1036,10 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DATETIME_ADD =
       TIMESTAMP_ADD2.withName("DATETIME_ADD");
 
-  /** The "DATETIME_DIFF(timestamp, timestamp2, timeUnit)" function (BigQuery). */
+  /** The "DATETIME_DIFF(timestamp, timestamp2, timeUnit)" function (BigQuery).
+   *
+   * <p>Note that the {@code TIMESTAMP} type of Calcite and Standard SQL
+   * is called {@code DATETIME} in BigQuery. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATETIME_DIFF =
       new SqlTimestampDiffFunction("DATETIME_DIFF",
