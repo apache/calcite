@@ -30,6 +30,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.Locale;
 
+import static java.util.Objects.requireNonNull;
+
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -63,12 +65,15 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
         case VARCHAR:
           //This will fail if the value is a non-literal
           try {
+            String inputTimeStr =
+                requireNonNull(opBindingWithCast.getOperandLiteralValue(0, String.class));
             arg0timeUnit = standardizeTimeUnit("TIMESTAMPADD",
-              opBindingWithCast.getOperandLiteralValue(0, String.class),
+              inputTimeStr,
        opBindingWithCast.getOperandType(2).getSqlTypeName() == SqlTypeName.TIME);
           } catch (RuntimeException e) {
+            String errMsg = requireNonNull(e.getMessage());
             throw opBindingWithCast.getValidator().newValidationError(opBindingWithCast.getCall(),
-                RESOURCE.wrongTimeUnit("TIMESTAMPADD", e.getMessage()));
+                RESOURCE.wrongTimeUnit("TIMESTAMPADD", errMsg));
           }
           break;
 
@@ -81,8 +86,9 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
           ret = deduceType(typeFactory, arg0timeUnit,
               opBinding.getOperandType(1), opBinding.getOperandType(2));
         } catch (RuntimeException e) {
+          String errMsg = requireNonNull(e.getMessage());
           throw opBindingWithCast.getValidator().newValidationError(opBindingWithCast.getCall(),
-              RESOURCE.wrongTimeUnit("TIMESTAMPADD", e.getMessage()));
+              RESOURCE.wrongTimeUnit("TIMESTAMPADD", errMsg));
         }
         return ret;
       };
