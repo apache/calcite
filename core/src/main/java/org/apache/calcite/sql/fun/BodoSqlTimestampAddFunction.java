@@ -27,7 +27,6 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.tools.ValidationException;
 
 import java.util.Locale;
 
@@ -67,9 +66,9 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
             arg0timeUnit = standardizeTimeUnit("TIMESTAMPADD",
               opBindingWithCast.getOperandLiteralValue(0, String.class),
        opBindingWithCast.getOperandType(2).getSqlTypeName() == SqlTypeName.TIME);
-          } catch (Throwable e) {
+          } catch (RuntimeException e) {
             throw opBindingWithCast.getValidator().newValidationError(opBindingWithCast.getCall(),
-                RESOURCE.wrongTimeUnit("TIMESTAMPADD", e.toString()));
+                RESOURCE.wrongTimeUnit("TIMESTAMPADD", e.getMessage()));
           }
           break;
 
@@ -81,9 +80,9 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
         try {
           ret = deduceType(typeFactory, arg0timeUnit,
               opBinding.getOperandType(1), opBinding.getOperandType(2));
-        } catch (Throwable e) {
+        } catch (RuntimeException e) {
           throw opBindingWithCast.getValidator().newValidationError(opBindingWithCast.getCall(),
-              RESOURCE.wrongTimeUnit("TIMESTAMPADD", e.toString()));
+              RESOURCE.wrongTimeUnit("TIMESTAMPADD", e.getMessage()));
         }
         return ret;
       };
@@ -99,8 +98,7 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
    * @param isTime if this time unit should fit with Bodo.Time, which means smaller or equal to hour
    * @return the standardized time unit string
    */
-  public static TimeUnit standardizeTimeUnit(String fnName, String inputTimeStr, boolean isTime)
-      throws ValidationException {
+  public static TimeUnit standardizeTimeUnit(String fnName, String inputTimeStr, boolean isTime) {
     TimeUnit unit;
     switch (inputTimeStr.toLowerCase(Locale.ROOT)) {
     case "\"year\"":
@@ -337,8 +335,8 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
     case TIME_WITH_LOCAL_TIME_ZONE:
     case TIME:
       if (!timeUnitSmallerThanDay) {
-        throw new RuntimeException("When date_or_time_expr is a time,"
-            + " time unit must be smaller than day!");
+        throw new RuntimeException("When arg2 is a time,"
+            + " the specified time unit must be smaller than day.");
       }
       outputType = operandType2;
       break;
@@ -350,7 +348,8 @@ public class BodoSqlTimestampAddFunction extends SqlFunction {
       }
       break;
     default:
-      throw new RuntimeException("Input type of arg2 must be TIME or TIMESTAMP!");
+      // We already checked input type of arg2, this should never be thrown
+      throw new RuntimeException("Input type of arg2 must be DATE, TIME or TIMESTAMP.");
     }
 
     return typeFactory.createTypeWithNullability(outputType,

@@ -7354,6 +7354,17 @@ public class SqlOperatorTest {
 //        "timestampadd(MICROSECOND, 2000000, timestamp '2016-02-24 12:42:25')",
 //        "2016-02-24 12:42:27",
 //        "TIMESTAMP(3) NOT NULL");
+//    TODO: Fix in future
+//     If we change resultType to TIMESTAMP(0) NOT NULL, it will throw following error:
+//    java.lang.AssertionError: Conversion to relational algebra failed to preserve datatypes:
+//    validated type:
+//    RecordType(TIMESTAMP(0) NOT NULL EXPR$0) NOT NULL
+//    converted type:
+//    RecordType(TIMESTAMP(3) NOT NULL EXPR$0) NOT NULL
+//    rel:
+//    LogicalProject(EXPR$0=[+(2016-02-24 12:42:25,
+//    /INT(*(1:INTERVAL MICROSECOND, 2000000), 1000))])
+//    LogicalValues(tuples=[[{ 0 }]])
     f.checkScalar(
         "timestampadd(SQL_TSI_SECOND, 2, timestamp '2016-02-24 12:42:25')",
         "2016-02-24 12:42:27",
