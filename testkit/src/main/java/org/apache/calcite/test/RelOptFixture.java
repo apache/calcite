@@ -77,7 +77,7 @@ import static java.util.Objects.requireNonNull;
  * set up (for example, the same SQL expression and set of planner rules), it is
  * safe to use the same fixture object as a starting point for both tests.
  */
-class RelOptFixture {
+public class RelOptFixture {
   static final RelOptFixture DEFAULT =
       new RelOptFixture(SqlToRelFixture.TESTER, SqlTestFactory.INSTANCE,
           null, RelSupplier.NONE, null, null,
