@@ -4406,12 +4406,26 @@ public class SqlToRelConverter {
 
   private RelNode convertCreateTable(SqlCreateTable call) {
 
-    // NOTE: We currently require a SqlCreateTable to have a query in valiation,
+    // NOTE: We currently require a SqlCreateTable to have a query in validation,
     // so the call to requireNonNull is valid here
-    RelRoot relRoot = convertQueryRecursive(requireNonNull(call.query), false, null);
+
+    final SqlNode createTableDef = call.query;
+    final RelNode inputRel;
+    if (createTableDef instanceof SqlIdentifier) {
+      //The scope of the createTableCall should always just be the catalog scope,
+      // which we use to convert this table
+
+      final Blackboard bb = createBlackboard(this.validator.getCreateTableScope(call), null, false);
+      convertIdentifier(bb, (SqlIdentifier) createTableDef);
+      inputRel = bb.root();
+    } else {
+      RelRoot relRoot = convertQueryRecursive(requireNonNull(call.query), false, null);
+      inputRel = relRoot.rel;
+    }
+
 
     return LogicalTableCreate.create(
-        relRoot.rel,
+        inputRel,
         // all these fields should be set in validation
         requireNonNull(call.getOutputTableSchema()),
         requireNonNull(call.getOutputTableName()),

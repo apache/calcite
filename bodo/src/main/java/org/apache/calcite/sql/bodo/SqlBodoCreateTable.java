@@ -36,6 +36,22 @@ public class SqlBodoCreateTable extends SqlCreateTable {
   // CHECKSTYLE: IGNORE 2; can't use 'volatile' because it is a Java keyword
   // but checkstyle does not like trailing or preceding '_'
   private final boolean _volatile;
+  private final BodoCreateTableType bodoCreateTableType;
+
+  /**
+   * There are several minor variants of CREATE TABLE that all have slightly differing
+   * handling, see https://docs.snowflake.com/en/sql-reference/sql/create-table.
+   *
+   * This enum is set in parsing depending on the variant, and controls how this node
+   * is validated.
+   */
+  public enum BodoCreateTableType {
+    DEFAULT, //Not supported
+    AS_SELECT, //No optional arguments supported
+    LIKE, //No optional arguments supported
+    CLONE, //No optional arguments supported
+    USING_TEMPLATE, //Not supported
+  }
 
   /** Creates a SqlBodoCreateTable. */
   public SqlBodoCreateTable(SqlParserPos pos, boolean replace, boolean volatile_,
@@ -43,6 +59,7 @@ public class SqlBodoCreateTable extends SqlCreateTable {
       SqlNode query) {
     super(pos, replace, ifNotExists, name, columnList, query);
     this._volatile = volatile_;
+    this.bodoCreateTableType = BodoCreateTableType.CLONE;
   }
 
   @Override public void validate(final SqlValidator validator, final SqlValidatorScope scope) {

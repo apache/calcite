@@ -68,6 +68,28 @@ public class BodoSqlToRelConverterTest extends SqlToRelTestBase {
   }
 
 
+  @Test void testCreateTableLike() {
+    // Tests create table like
+    final String sql = "CREATE TABLE CUSTOMER.out_test LIKE\n"
+        + "emp";
+    sql(sql).withExtendedTester().ok();
+  }
+
+  @Test void testCreateOrReplaceTableLike() {
+    // Tests create table like with Replace specified
+    final String sql = "CREATE OR REPLACE TABLE CUSTOMER.out_test LIKE\n"
+        + "emp";
+    sql(sql).withExtendedTester().ok();
+  }
+  @Test void testCreateIfNotExistsTableLike() {
+    // Tests create table like with IF NOT EXISTS specified
+    final String sql = "CREATE TABLE IF NOT EXISTS CUSTOMER.out_test LIKE\n"
+        + "emp";
+    sql(sql).withExtendedTester().ok();
+  }
+
+
+
 
   @Test void testValuesUnreserved() {
     //Test that confirms we can use "values" as a column name, and table name
