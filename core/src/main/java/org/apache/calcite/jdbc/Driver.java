@@ -27,7 +27,6 @@ import org.apache.calcite.avatica.HandlerImpl;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.UnregisteredDriver;
 import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.schema.SchemaFactory;
@@ -45,6 +44,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 /**
  * Calcite JDBC driver.
@@ -52,7 +52,7 @@ import java.util.Properties;
 public class Driver extends UnregisteredDriver {
   public static final String CONNECT_STRING_PREFIX = "jdbc:calcite:";
 
-  public final Function0<CalcitePrepare> prepareFactory;
+  final Supplier<CalcitePrepare> prepareFactory;
 
   static {
     new Driver().register();
@@ -64,8 +64,8 @@ public class Driver extends UnregisteredDriver {
     this.prepareFactory = createPrepareFactory();
   }
 
-  private Driver(Function0<CalcitePrepare> prepareFactory) {
-    new Driver();
+  private Driver(Supplier<CalcitePrepare> prepareFactory) {
+    super();
     this.prepareFactory = prepareFactory;
   }
 
@@ -74,12 +74,17 @@ public class Driver extends UnregisteredDriver {
    * @param prepareFactory {@link org.apache.calcite.jdbc.CalcitePrepare}
    * @return Driver with the provided prepareFactory
    */
-  public Driver withPrepareFactory(Function0<CalcitePrepare> prepareFactory) {
+  public Driver withPrepareFactory(Supplier<CalcitePrepare> prepareFactory) {
     return this.prepareFactory == prepareFactory
         ? this : new Driver(prepareFactory);
   }
 
-  protected Function0<CalcitePrepare> createPrepareFactory() {
+  /** Returns the CalcitePrepare of this Driver instance.*/
+  public CalcitePrepare createPrepare() {
+    return prepareFactory.get();
+  }
+
+  protected Supplier<CalcitePrepare> createPrepareFactory() {
     return CalcitePrepare.DEFAULT_FACTORY;
   }
 

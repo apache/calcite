@@ -312,7 +312,7 @@ public final class Schemas {
   public static CalcitePrepare.ParseResult parse(
       final CalciteConnection connection, final CalciteSchema schema,
       final @Nullable List<String> schemaPath, final String sql) {
-    final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
+    final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.get();
     final ImmutableMap<CalciteConnectionProperty, String> propValues =
         ImmutableMap.of();
     final CalcitePrepare.Context context =
@@ -330,7 +330,7 @@ public final class Schemas {
   public static CalcitePrepare.ConvertResult convert(
       final CalciteConnection connection, final CalciteSchema schema,
       final List<String> schemaPath, final String sql) {
-    final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
+    final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.get();
     final ImmutableMap<CalciteConnectionProperty, String> propValues =
         ImmutableMap.of();
     final CalcitePrepare.Context context =
@@ -348,7 +348,7 @@ public final class Schemas {
       final CalciteConnection connection, final CalciteSchema schema,
       final @Nullable List<String> schemaPath, final String viewSql,
       @Nullable List<String> viewPath, boolean fail) {
-    final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
+    final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.get();
     final ImmutableMap<CalciteConnectionProperty, String> propValues =
         ImmutableMap.of();
     final CalcitePrepare.Context context =
@@ -366,7 +366,7 @@ public final class Schemas {
       final CalciteConnection connection, final CalciteSchema schema,
       final @Nullable List<String> schemaPath, final String sql,
       final ImmutableMap<CalciteConnectionProperty, String> map) {
-    final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
+    final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.get();
     final CalcitePrepare.Context context =
         makeContext(connection, schema, schemaPath, null, map);
     CalcitePrepare.Dummy.push(context);

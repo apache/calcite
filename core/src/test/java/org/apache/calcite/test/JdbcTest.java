@@ -47,7 +47,6 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
@@ -141,6 +140,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -773,7 +773,7 @@ public class JdbcTest {
 
   @Test void testCustomValidator() {
     final Driver driver = new MockDdlDriver().withPrepareFactory(MockPrepareImpl::new);
-    assertTrue(driver.prepareFactory.apply().getClass() == MockPrepareImpl.class);
+    assertThat(driver.createPrepare().getClass(), is(MockPrepareImpl.class));
   }
 
   /**
@@ -8272,9 +8272,9 @@ public class JdbcTest {
     public MockDdlDriver() {
     }
 
-    @Override protected Function0<CalcitePrepare> createPrepareFactory() {
-      return new Function0<CalcitePrepare>() {
-        @Override public CalcitePrepare apply() {
+    @Override protected Supplier<CalcitePrepare> createPrepareFactory() {
+      return new Supplier<CalcitePrepare>() {
+        @Override public CalcitePrepare get() {
           return new CalcitePrepareImpl() {
             @Override protected SqlParser.Config parserConfig() {
               return super.parserConfig().withParserFactory(stream ->

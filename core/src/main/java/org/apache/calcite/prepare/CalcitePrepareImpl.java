@@ -971,6 +971,11 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     private int expansionDepth;
     private @Nullable SqlValidator sqlValidator;
 
+    /** Constructor.
+     *
+     * <p>Overload this constructor and {@link #createSqlValidator} to provide desired
+     *  SqlValidaor and custom validation logic.</p>
+     */
     public CalcitePreparingStmt(CalcitePrepareImpl prepare,
         Context context,
         CatalogReader catalogReader,

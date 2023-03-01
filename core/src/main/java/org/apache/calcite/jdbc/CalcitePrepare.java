@@ -25,7 +25,6 @@ import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.tree.ClassDeclaration;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -48,6 +47,7 @@ import org.apache.calcite.util.ImmutableIntList;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -68,7 +68,7 @@ import static java.util.Objects.requireNonNull;
  * API for a service that prepares statements for execution.
  */
 public interface CalcitePrepare {
-  Function0<CalcitePrepare> DEFAULT_FACTORY = CalcitePrepareImpl::new;
+  Supplier<CalcitePrepare> DEFAULT_FACTORY = CalcitePrepareImpl::new;
   ThreadLocal<@Nullable Deque<Context>> THREAD_CONTEXT_STACK =
       ThreadLocal.withInitial(ArrayDeque::new);
 
