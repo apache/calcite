@@ -5784,7 +5784,6 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-
   /**
    * Test that - can be done between two dates.
    */

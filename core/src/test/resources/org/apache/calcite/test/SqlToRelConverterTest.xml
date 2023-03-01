@@ -916,7 +916,7 @@ LogicalProject(SAL=[$5], EXPR$1=[VAR_POP($5) OVER (PARTITION BY $7 ORDER BY $5 R
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(EXPR$0=[/INT(Reinterpret(-(2022-02-01 00:00:00, 2021-02-02 00:00:00)), 86400000)])
+LogicalProject(EXPR$0=[CAST(/INT(Reinterpret(-(2022-02-01 00:00:00, 2021-02-02 00:00:00)), 86400000)):INTEGER NOT NULL])
   LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
@@ -3699,17 +3699,6 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
-    <Resource name="sql">
-      <![CDATA[with etl_datascience_products_daily_summary_spoof as (
-        select
-            1 as product_id,
-            null::date as ds,
-            2 as secondary_product_id
-        from emp
-)
-select * from dept join emp on          emp.ename in (Select deptno::varchar from emp where empno > 5)
-]]>
-    </Resource>
   </TestCase>
   <TestCase name="testJoinConditionSubQuery5part3">
     <Resource name="plan">
@@ -3785,56 +3774,6 @@ LogicalProject(PRODUCT_ID=[$4])
                         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-]]>
-    </Resource>
-    <Resource name="sql">
-      <![CDATA[with dummy_table as (select 1 as A),
-
-product_options as (
-         select 1 as brand_id
-              , 2 as product_id
-         from dummy_table
-     ),
-
-products_daily_summary_spoof as (
-        select
-            1 as product_id,
-            null::date as ds
-        from dummy_table
-),
-
-etl_datascience_products_daily_summary_spoof as (
-        select
-            1 as product_id,
-            null::date as ds,
-            2 as secondary_product_id
-        from dummy_table
-),
-
-production_product_videos_spoof as (
-        select
-            1 as id,
-            null::timestamp as updated_at,
-            null::varchar as token,
-            null::varchar as state,
-            2 as brand_id,
-            null::timestamp as first_published_at,
-            3 as product_id,
-            4 as video_id,
-            null::timestamp as created_at,
-            false as is_deleted
-        from dummy_table
-)
-select
-             po.product_id
-             from etl_datascience_products_daily_summary_spoof pds  right join product_options po
-on po.product_id = pds.product_id
-                 and pds.ds::date = (select max(ds) from (select * from etl_datascience_products_daily_summary_spoof etl_spoof join emp on          emp.deptno = etl_spoof.product_id))
-                 and pds.secondary_product_id = (select max(secondary_product_id) from etl_datascience_products_daily_summary_spoof)
-                      left join production_product_videos_spoof pv
-on pv.product_id = po.product_id and pv.updated_at::date <= (select max(ds) from (select * from etl_datascience_products_daily_summary_spoof etl_spoof join emp on          emp.deptno = etl_spoof.product_id and         emp.ename in (Select deptno::varchar from emp where empno > 5)))
-         join emp on emp.deptno = po.product_id
-         join dept on emp.deptno = dept.deptno
 ]]>
     </Resource>
   </TestCase>
@@ -9132,17 +9071,6 @@ LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
 LogicalProject(DEPTNO=[$0], NAME=[$1])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testTimestampAddSimple">
-    <Resource name="plan">
-      <![CDATA[
-LogicalProject(EXPR$0=[TIMESTAMPADD(FLAG(DAY), 3, 2022-01-01)])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="sql">
-      <![CDATA[Select TIMESTAMPADD(DAY, 3, DATE '2022-1-1') from emp]]>
     </Resource>
   </TestCase>
   <TestCase name="testTrimExceptAll">

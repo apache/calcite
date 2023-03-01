@@ -4151,9 +4151,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("timestampadd(SQL_TSI_WEEK, 2, cast(null as timestamp))")
         .columnType("TIMESTAMP(0)");
     expr("timestampdiff(SQL_TSI_WEEK, current_timestamp, current_timestamp)")
-        .columnType("BIGINT NOT NULL");
+        .columnType("INTEGER NOT NULL");
     expr("timestampdiff(SQL_TSI_WEEK, cast(null as timestamp), current_timestamp)")
-        .columnType("BIGINT");
+        .columnType("INTEGER");
 
     expr("timestampadd(^incorrect^, 1, current_timestamp)")
         .fails("(?s).*Was expecting one of.*");
@@ -4164,7 +4164,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testTimestampAddNullInterval() {
     expr("timestampadd(SQL_TSI_SECOND, cast(NULL AS INTEGER),"
         + " current_timestamp)")
-        .columnType("TIMESTAMP('UTC')");
+        .columnType("TIMESTAMP(0)");
     expr("timestampadd(SQL_TSI_DAY, cast(NULL AS INTEGER),"
         + " current_timestamp)")
         .columnType("TIMESTAMP('UTC')");
