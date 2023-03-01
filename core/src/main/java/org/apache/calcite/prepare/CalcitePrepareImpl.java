@@ -112,7 +112,6 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -130,6 +129,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -514,8 +514,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         throw new AssertionError("factory returned null planner");
       }
       try {
-        CalcitePreparingStmt preparingStmt = getPreparingStmt(
-            context, elementType, catalogReader, planner);
+        CalcitePreparingStmt preparingStmt =
+            getPreparingStmt(context, elementType, catalogReader, planner);
         return prepare2_(context, query, elementType, maxRowCount,
             catalogReader, preparingStmt);
       } catch (RelOptPlanner.CannotPlanException e) {
