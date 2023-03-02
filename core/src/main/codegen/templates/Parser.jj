@@ -6878,9 +6878,15 @@ SqlCall TimestampAddFunctionCall() :
 {
     <TIMESTAMPADD> { s = span(); }
     <LPAREN>
-    interval = TimestampInterval() {
-        args = startList(SqlLiteral.createSymbol(interval, getPos()));
-    }
+    (
+        e = StringLiteral() {
+            args = startList(e);
+        }
+    |
+        interval = TimestampInterval() {
+            args = startList(SqlLiteral.createSymbol(interval, getPos()));
+        }
+    )
     <COMMA>
     e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e); }
     <COMMA>
@@ -6905,9 +6911,15 @@ SqlCall TimestampDiffFunctionCall() :
 {
     <TIMESTAMPDIFF> { s = span(); }
     <LPAREN>
-    interval = TimestampInterval() {
-        args = startList(SqlLiteral.createSymbol(interval, getPos()));
-    }
+    (
+        e = StringLiteral() {
+            args = startList(e);
+        }
+    |
+        interval = TimestampInterval() {
+            args = startList(SqlLiteral.createSymbol(interval, getPos()));
+        }
+    )
     <COMMA>
     e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e); }
     <COMMA>

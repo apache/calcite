@@ -260,8 +260,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     registerOp(SqlStdOperatorTable.FLOOR, floorCeilConvertlet);
     registerOp(SqlStdOperatorTable.CEIL, floorCeilConvertlet);
 
-    registerOp(SqlStdOperatorTable.TIMESTAMP_ADD, new TimestampAddConvertlet());
     if (config.shouldDecomposeTimestampdiff()) {
+      registerOp(SqlStdOperatorTable.TIMESTAMP_ADD,
+          new TimestampAddConvertlet());
       registerOp(SqlStdOperatorTable.TIMESTAMP_DIFF,
           new TimestampDiffConvertlet());
     }
@@ -1865,9 +1866,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       TimeUnit unit = unitLiteral.getValueAs(TimeUnit.class);
       BigDecimal multiplier = BigDecimal.ONE;
       BigDecimal divider = BigDecimal.ONE;
-      SqlTypeName sqlTypeName = unit == TimeUnit.NANOSECOND
-          ? SqlTypeName.BIGINT
-          : SqlTypeName.INTEGER;
+      SqlTypeName sqlTypeName = SqlTypeName.BIGINT;
       switch (unit) {
       case MICROSECOND:
       case MILLISECOND:
