@@ -35,20 +35,23 @@ public class SqlNamedParam extends SqlNode {
   //~ Instance fields --------------------------------------------------------
 
   private final String name;
+  private final boolean prefixIsDollar;
 
   //~ Constructors -----------------------------------------------------------
 
   public SqlNamedParam(
       String name,
+      boolean prefixIsDollar,
       SqlParserPos pos) {
     super(pos);
     this.name = name;
+    this.prefixIsDollar = prefixIsDollar;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public SqlNode clone(SqlParserPos pos) {
-    return new SqlNamedParam(name, pos);
+    return new SqlNamedParam(name, prefixIsDollar, pos);
   }
 
   @Override public SqlNode deepCopy(@Nullable SqlParserPos pos) {
@@ -71,7 +74,7 @@ public class SqlNamedParam extends SqlNode {
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    writer.namedParam(name);
+    writer.namedParam(name, prefixIsDollar);
   }
 
   @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {

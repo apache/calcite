@@ -7869,10 +7869,14 @@ public class SqlParserTest {
   @Test void testNamedParameterOperators() {
     expr("@q")
         .ok("@q");
+    expr("$Z")
+        .ok("$Z");
     expr("a > @Q")
         .ok("(`A` > @Q)");
     expr("a + @Q")
         .ok("(`A` + @Q)");
+    expr("@Q + $Todo")
+        .ok("(@Q + $Todo)");
     expr("1 <=> @WeWon")
         .ok("(1 <=> @WeWon)");
   }
@@ -7885,24 +7889,24 @@ public class SqlParserTest {
         + "WHERE (`A` > @B)";
     sql(sql).ok(expected);
     // Name doesn't match a column name + case insensitive
-    sql = "SELECT B from table1 where A = @GoBears";
+    sql = "SELECT B from table1 where A = $GoBears";
     expected = "SELECT `B`\n"
         + "FROM `TABLE1`\n"
-        + "WHERE (`A` = @GoBears)";
+        + "WHERE (`A` = $GoBears)";
     sql(sql).ok(expected);
 
     // Test the boundary of letters?
-    sql = "SELECT B from table1 where A between @a and @z";
+    sql = "SELECT B from table1 where A between @a + $A and @z + $Z";
     expected = "SELECT `B`\n"
         + "FROM `TABLE1`\n"
-        + "WHERE (`A` BETWEEN ASYMMETRIC @a AND @z)";
+        + "WHERE (`A` BETWEEN ASYMMETRIC (@a + $A) AND (@z + $Z))";
     sql(sql).ok(expected);
 
     // Test the boundary of letters? + AND
-    sql = "SELECT B from table1 where @A < A and C >= @Z";
+    sql = "SELECT B from table1 where @A < A and C >= $Z";
     expected = "SELECT `B`\n"
         + "FROM `TABLE1`\n"
-        + "WHERE ((@A < `A`) AND (`C` >= @Z))";
+        + "WHERE ((@A < `A`) AND (`C` >= $Z))";
     sql(sql).ok(expected);
 
     // Test underscore
@@ -7920,10 +7924,10 @@ public class SqlParserTest {
         + "FETCH NEXT @B ROWS ONLY";
     sql(sql).ok(expected);
     // Test @a because A is a non-reserved keyword
-    sql = "SELECT B from table1 limit @a";
+    sql = "SELECT B from table1 limit $a";
     expected = "SELECT `B`\n"
         + "FROM `TABLE1`\n"
-        + "FETCH NEXT @a ROWS ONLY";
+        + "FETCH NEXT $a ROWS ONLY";
     sql(sql).ok(expected);
     // Test for case insensitive
     sql = "SELECT B from table1 limit @RuDy";
@@ -7950,24 +7954,24 @@ public class SqlParserTest {
   }
 
   @Test void testNamedParameterCase() {
-    String sql = "SELECT Case WHEN @e IS NULL THEN @a"
+    String sql = "SELECT Case WHEN @e IS NULL THEN $a"
         + " WHEN @_3424 IS NOT NULL THEN 1"
         + " WHEN -@FWEFW < 0 THEN CAST(@_NONINT as int)"
         + " ELSE @FWEFW - 1 "
         + "END from table1";
-    String expected = "SELECT (CASE WHEN (@e IS NULL) THEN @a"
+    String expected = "SELECT (CASE WHEN (@e IS NULL) THEN $a"
         + " WHEN (@_3424 IS NOT NULL) THEN 1"
         + " WHEN ((- @FWEFW) < 0)"
         + " THEN CAST(@_NONINT AS INTEGER)"
         + " ELSE (@FWEFW - 1) END)\n"
         + "FROM `TABLE1`";
     sql(sql).ok(expected);
-    sql = "SELECT Case WHEN @e IS TRUE THEN @a / 6"
+    sql = "SELECT Case WHEN $e IS TRUE THEN @a / 6"
         + " WHEN @_3424 IS NOT TRUE THEN 15 / @a"
         + " WHEN @FWEFW IS FALSE THEN 4 * @a"
         + " WHEN @e IS NOT FALSE THEN @a"
         + " END from table1";
-    expected = "SELECT (CASE WHEN (@e IS TRUE) THEN (@a / 6)"
+    expected = "SELECT (CASE WHEN ($e IS TRUE) THEN (@a / 6)"
         + " WHEN (@_3424 IS NOT TRUE) THEN (15 / @a)"
         + " WHEN (@FWEFW IS FALSE) THEN (4 * @a)"
         + " WHEN (@e IS NOT FALSE) THEN @a"
@@ -7982,17 +7986,17 @@ public class SqlParserTest {
         + "FROM `TABLE1`\n"
         + "WHERE (`B` LIKE @b)";
     sql(sql).ok(expected);
-    sql = "SELECT A from table1 where B not LIKE @b";
+    sql = "SELECT A from table1 where B not LIKE $b";
     expected = "SELECT `A`\n"
         + "FROM `TABLE1`\n"
-        + "WHERE (`B` NOT LIKE @b)";
+        + "WHERE (`B` NOT LIKE $b)";
     sql(sql).ok(expected);
   }
 
   @Test void testNamedParameterFunction() {
     // Test a builtin numeric function
-    String sql = "SELECT A + CEIL(@break) from table1";
-    String expected = "SELECT (`A` + CEIL(@break))\n"
+    String sql = "SELECT A + CEIL($break) from table1";
+    String expected = "SELECT (`A` + CEIL($break))\n"
         + "FROM `TABLE1`";
     sql(sql).ok(expected);
     // Test a builtin string function
