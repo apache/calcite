@@ -5448,18 +5448,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlValidatorScope queryScope = requireNonNull(scopes.get(queryNode));
 
     //Note, this can either a row expression or a query expression with an optional ORDER BY
+    //We're not currently handling the row expression case.
+
+    //In order to be sufficiently general to input of Create table,
+    //we have to use validateScopedExpression, and we have to validate that expression in
+    //the overall scope of the create table node.
+//    validateScopedExpression()
+    // Note that validateScopedExpression has the ability to rewrite the sqlNode via a call to
+    // performUnconditionalRewrites. This may actually have undesired effects, idk if calling
+    // performUnconditionalRewrites twice is valid. Instead, we should probably just call:
+     queryNode.validate(this, scope);
+    // (idk how this works if queryNode is identifier we were even properly validating)
+
     if (queryNode instanceof SqlSelect) {
       final SqlSelect sqlSelect = (SqlSelect) queryNode;
       validateSelect(sqlSelect, unknownType);
     } else {
       validateQuery(queryNode, queryScope, unknownType);
     }
-
-    final SqlValidatorNamespace queryNS = getNamespaceOrThrow(queryNode);
-    final DdlNamespace createTableNS = (DdlNamespace) getNamespaceOrThrow(createTable);
-
-    //Row type of the overall create statement should be the same as that of the underlying query
-    assert queryNS.getRowType().equals(createTableNS.getRowType());
 
     final SqlIdentifier tableNameNode = createTable.getName();
     final List<String> names = tableNameNode.names;

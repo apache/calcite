@@ -75,6 +75,15 @@ public class BodoSqlToRelConverterTest extends SqlToRelTestBase {
   }
 
 
+  @Test void testCreateTableWith() {
+    // Tests create table with a query that uses "with" syntax
+    final String sql = "CREATE TABLE foo as\n" +
+        "with temporaryTable as (select * from dept limit 10),\n" +
+        "temporaryTable2 as (select * from dept limit 10)\n" +
+        "SELECT * from temporaryTable join temporaryTable2\n" +
+        "on temporaryTable.deptno = temporaryTable2.deptno";
+    sql(sql).withExtendedTester().ok();
+  }
 
   @Test void testValuesUnreserved() {
     //Test that confirms we can use "values" as a column name, and table name
