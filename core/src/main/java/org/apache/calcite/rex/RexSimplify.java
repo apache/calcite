@@ -192,7 +192,7 @@ public class RexSimplify {
         && SqlTypeUtil.equalSansNullability(rexBuilder.typeFactory, e2.getType(), e.getType())) {
       return e2;
     }
-    final RexNode e3 = rexBuilder.makeCast(e.getType(), e2, matchNullability);
+    final RexNode e3 = rexBuilder.makeCast(e.getType(), e2, matchNullability, false);
     if (e3.equals(e)) {
       return e;
     }
@@ -286,6 +286,7 @@ public class RexSimplify {
     case COALESCE:
       return simplifyCoalesce((RexCall) e);
     case CAST:
+    case SAFE_CAST:
       return simplifyCast((RexCall) e);
     case CEIL:
     case FLOOR:
@@ -1197,7 +1198,7 @@ public class RexSimplify {
       if (sameTypeOrNarrowsNullability(caseType, value.getType())) {
         return value;
       } else {
-        return rexBuilder.makeAbstractCast(caseType, value);
+        return rexBuilder.makeAbstractCast(caseType, value, false);
       }
     }
 
@@ -1417,7 +1418,7 @@ public class RexSimplify {
       final RexNode cond = isTrue(branch.cond);
       final RexNode value;
       if (!branchType.equals(branch.value.getType())) {
-        value = rexBuilder.makeAbstractCast(branchType, branch.value);
+        value = rexBuilder.makeAbstractCast(branchType, branch.value, false);
       } else {
         value = branch.value;
       }
@@ -2193,6 +2194,7 @@ public class RexSimplify {
         return rexBuilder.makeCast(e.getType(), intExpr);
       }
     }
+    final boolean safe = e.getKind() == SqlKind.SAFE_CAST;
     switch (operand.getKind()) {
     case LITERAL:
       final RexLiteral literal = (RexLiteral) operand;
@@ -2221,7 +2223,8 @@ public class RexSimplify {
         break;
       }
       final List<RexNode> reducedValues = new ArrayList<>();
-      final RexNode simplifiedExpr = rexBuilder.makeCast(e.getType(), operand);
+      final RexNode simplifiedExpr =
+          rexBuilder.makeCast(e.getType(), operand, safe, safe);
       executor.reduce(rexBuilder, ImmutableList.of(simplifiedExpr), reducedValues);
       return requireNonNull(
           Iterables.getOnlyElement(reducedValues));
@@ -2229,7 +2232,7 @@ public class RexSimplify {
       if (operand == e.getOperands().get(0)) {
         return e;
       } else {
-        return rexBuilder.makeCast(e.getType(), operand);
+        return rexBuilder.makeCast(e.getType(), operand, safe, safe);
       }
     }
   }

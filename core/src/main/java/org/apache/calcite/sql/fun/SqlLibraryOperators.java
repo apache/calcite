@@ -146,7 +146,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction MSSQL_CONVERT =
       SqlBasicFunction.create(SqlKind.CAST,
               ReturnTypes.andThen(SqlLibraryOperators::transformConvert,
-                  SqlCastFunction::inferReturnTypeImpl),
+                  SqlCastFunction.returnTypeInference(false)),
               OperandTypes.repeat(SqlOperandCountRanges.between(2, 3),
                   OperandTypes.ANY))
           .withName("CONVERT")
@@ -1186,6 +1186,13 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = { POSTGRESQL })
   public static final SqlOperator INFIX_CAST =
       new SqlCastOperator();
+
+  /** The "SAFE_CAST(expr AS type)" function; identical to CAST(),
+   * except that if conversion fails, it returns NULL instead of raising an
+   * error. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SAFE_CAST =
+      new SqlCastFunction(SqlKind.SAFE_CAST);
 
   /** NULL-safe "&lt;=&gt;" equal operator used by MySQL, for example
    * {@code 1<=>NULL}. */

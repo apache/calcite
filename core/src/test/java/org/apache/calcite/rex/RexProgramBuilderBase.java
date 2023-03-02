@@ -241,7 +241,7 @@ public abstract class RexProgramBuilderBase {
    * @return call to CAST operator
    */
   protected RexNode abstractCast(RexNode e, RelDataType type) {
-    return rexBuilder.makeAbstractCast(type, e);
+    return rexBuilder.makeAbstractCast(type, e, false);
   }
 
   /**

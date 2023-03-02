@@ -303,6 +303,7 @@ public enum BuiltInMethod {
       Calendar.class),
   TIME_ZONE_GET_OFFSET(TimeZone.class, "getOffset", long.class),
   LONG_VALUE(Number.class, "longValue"),
+  STRING_TO_UPPER(String.class, "toUpperCase"),
   COMPARATOR_COMPARE(Comparator.class, "compare", Object.class, Object.class),
   COLLECTIONS_REVERSE_ORDER(Collections.class, "reverseOrder"),
   COLLECTIONS_EMPTY_LIST(Collections.class, "emptyList"),

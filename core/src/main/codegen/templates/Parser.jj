@@ -54,6 +54,7 @@ import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlHint;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -5996,11 +5997,15 @@ SqlNode BuiltinFunctionCall() :
     final SqlIntervalQualifier unit;
     final SqlNode node;
     final SqlLiteral style; // mssql convert 'style' operand
+    final SqlFunction f;
 }
 {
     //~ FUNCTIONS WITH SPECIAL SYNTAX ---------------------------------------
     (
-        <CAST> { s = span(); }
+        (  <CAST> { f = SqlStdOperatorTable.CAST; }
+        | <SAFE_CAST> { f = SqlLibraryOperators.SAFE_CAST; }
+        )
+        { s = span(); }
         <LPAREN> AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
         <AS>
         (
@@ -6009,7 +6014,7 @@ SqlNode BuiltinFunctionCall() :
             <INTERVAL> e = IntervalQualifier() { args.add(e); }
         )
         <RPAREN> {
-            return SqlStdOperatorTable.CAST.createCall(s.end(this), args);
+            return f.createCall(s.end(this), args);
         }
     |
         <EXTRACT> { s = span(); }
@@ -8189,6 +8194,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < ROW_NUMBER: "ROW_NUMBER" >
 |   < ROWS: "ROWS" >
 |   < RUNNING: "RUNNING" >
+|   < SAFE_CAST: "SAFE_CAST" >
 |   < SATURDAY: "SATURDAY" >
 |   < SAVEPOINT: "SAVEPOINT" >
 |   < SCALAR: "SCALAR" >
