@@ -6009,6 +6009,18 @@ SqlNode BuiltinFunctionCall() :
             return SqlStdOperatorTable.CAST.createCall(s.end(this), args);
         }
     |
+        <SAFE_CAST> { s = span(); }
+        <LPAREN> AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+        <AS>
+        (
+            dt = DataType() { args.add(dt); }
+        |
+            <INTERVAL> e = IntervalQualifier() { args.add(e); }
+        )
+        <RPAREN> {
+            return SqlLibraryOperators.SAFE_CAST.createCall(s.end(this), args);
+        }
+    |
         <EXTRACT> { s = span(); }
         <LPAREN> unit = TimeUnitOrName() {
             args.add(unit);
@@ -8133,6 +8145,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < ROW_NUMBER: "ROW_NUMBER" >
 |   < ROWS: "ROWS" >
 |   < RUNNING: "RUNNING" >
+|   < SAFE_CAST: "SAFE_CAST" >
 |   < SATURDAY: "SATURDAY" >
 |   < SAVEPOINT: "SAVEPOINT" >
 |   < SCALAR: "SCALAR" >

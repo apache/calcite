@@ -657,6 +657,20 @@ SELECT LENGTH("hello") as length;
 !ok
 
 #####################################################################
+# SAFE_CAST(x AS type)
+#
+# Identical to CAST(), except it returns NULL instead of raising an error.
+select safe_cast(1 as int) as test;
++------+
+| test |
++------+
+|    1 |
++------+
+(1 row)
+
+!ok
+
+#####################################################################
 # DATE
 #
 # 0. DATE(string)

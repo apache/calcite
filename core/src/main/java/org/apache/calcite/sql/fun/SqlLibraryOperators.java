@@ -980,6 +980,11 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.TIMESTAMP_NULLABLE, OperandTypes.INTEGER,
           SqlFunctionCategory.TIMEDATE);
 
+  /** The "SAFE_CAST(expr AS type)" function; Identical to CAST(),
+   *  except it returns NULL instead of raising an error. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SAFE_CAST = new SqlSafeCastFunction();
+
   /** The "UNIX_SECONDS(bigint)" function; returns the number of seconds
    * since 1970-01-01 00:00:00. */
   @LibraryOperator(libraries = {BIG_QUERY})

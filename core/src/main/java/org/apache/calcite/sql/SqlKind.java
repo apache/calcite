@@ -640,6 +640,10 @@ public enum SqlKind {
   CAST,
 
   /**
+   * The {@code SAFE_CAST} function. */
+  SAFE_CAST,
+
+  /**
    * The "NEXT VALUE OF sequence" operator.
    */
   NEXT_VALUE,

@@ -164,6 +164,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_CAST;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
@@ -645,6 +646,8 @@ public class RexImpTable {
 
       map.put(COALESCE, new CoalesceImplementor());
       map.put(CAST, new CastImplementor());
+      // defineMethod(SAFE_CAST, "SAFE_CAST", NullPolicy.ANY);
+      map.put(SAFE_CAST, new SafeCastImplementor());
 
       map.put(REINTERPRET, new ReinterpretImplementor());
 
@@ -2946,6 +2949,53 @@ public class RexImpTable {
           nullifyType(translator.typeFactory, call.getType(), false);
       return translator.translateCast(sourceType,
               targetType, argValueList.get(0));
+    }
+
+    private static RelDataType nullifyType(JavaTypeFactory typeFactory,
+        final RelDataType type, final boolean nullable) {
+      if (type instanceof RelDataTypeFactoryImpl.JavaType) {
+        Class<?> javaClass = ((RelDataTypeFactoryImpl.JavaType) type).getJavaClass();
+        final Class<?> primitive = Primitive.unbox(javaClass);
+        if (primitive != javaClass) {
+          return typeFactory.createJavaType(primitive);
+        }
+      }
+      return typeFactory.createTypeWithNullability(type, nullable);
+    }
+  }
+
+  /** Implementor for the SQL {@code SAFE_CAST} operator. */
+  private static class SafeCastImplementor extends AbstractRexCallImplementor {
+    SafeCastImplementor() {
+      super(NullPolicy.STRICT, false);
+    }
+
+    @Override String getVariableName() {
+      return "safe_cast";
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      assert call.getOperands().size() == 1;
+      final RelDataType sourceType = call.getOperands().get(0).getType();
+
+      // Short-circuit if no cast is required
+      RexNode arg = call.getOperands().get(0);
+      if (call.getType().equals(sourceType)) {
+        // No cast required, omit cast
+        return argValueList.get(0);
+      }
+      if (SqlTypeUtil.equalSansNullability(translator.typeFactory,
+          call.getType(), arg.getType())
+          && translator.deref(arg) instanceof RexLiteral) {
+        return RexToLixTranslator.translateLiteral(
+            (RexLiteral) translator.deref(arg), call.getType(),
+            translator.typeFactory, NullAs.NULL);
+      }
+      final RelDataType targetType =
+          nullifyType(translator.typeFactory, call.getType(), false);
+      return translator.translateCast(sourceType,
+          targetType, argValueList.get(0));
     }
 
     private static RelDataType nullifyType(JavaTypeFactory typeFactory,
