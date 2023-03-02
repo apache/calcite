@@ -6040,6 +6040,19 @@ SqlNode BuiltinFunctionCall() :
             return SqlStdOperatorTable.CONVERT.createCall(s.end(this), args);
         }
     |
+        // MSSQL CONVERT
+        //LOOKAHEAD(2)
+        <CONVERT> {s = span();}
+        <LPAREN>
+        (
+          dt = DataType() { args.add(dt); }
+          |
+          <INTERVAL> e = IntervalQualifier() { args.add(e); }
+        )
+        <COMMA>
+        AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+        [<COMMA> style = UnsignedIntLiteral() { /*args.add(style);*/ }]
+    |
         <TRANSLATE> { s = span(); }
         <LPAREN>
         AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
