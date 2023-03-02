@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
@@ -40,6 +41,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
 
@@ -122,6 +124,50 @@ public abstract class SqlLibraryOperators {
       new SqlTimestampDiffFunction("DATEDIFF",
           OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATE,
               SqlTypeFamily.DATE));
+
+  /** The "CONVERT(type, expr [,style])" function (Microsoft SQL Server).
+   *
+   * <p>Syntax:
+   * <blockquote>{@code
+   * CONVERT( data_type [ ( length ) ], expression [, style ] )
+   * }</blockquote>
+   *
+   * <p>The optional "style" argument specifies how the value is going to be
+   * converted; this implementation ignores the {@code style} parameter.
+   *
+   * <p>{@code CONVERT(type, expr, style)} is equivalent to CAST(expr AS type),
+   * and the implementation delegates most of its logic to actual CAST operator.
+   *
+   * <p>Not to be confused with standard {@link SqlStdOperatorTable#CONVERT},
+   * which converts a string from one character set to another. */
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction MSSQL_CONVERT =
+      SqlBasicFunction.create(SqlKind.CAST,
+              ReturnTypes.andThen(SqlLibraryOperators::transformConvert,
+                  SqlCastFunction::inferReturnTypeImpl),
+              OperandTypes.repeat(SqlOperandCountRanges.between(2, 3),
+                  OperandTypes.ANY))
+          .withName("CONVERT")
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withOperandTypeInference(InferTypes.FIRST_KNOWN)
+          .withOperandHandler(
+              OperandHandlers.of(SqlLibraryOperators::transformConvert));
+
+  /** Transforms a call binding of {@code CONVERT} to an equivalent binding for
+   *  {@code CAST}. */
+  private static SqlCallBinding transformConvert(SqlOperatorBinding opBinding) {
+    // Guaranteed to be a SqlCallBinding, with 2 or 3 arguments
+    final SqlCallBinding binding = (SqlCallBinding) opBinding;
+    return new SqlCallBinding(binding.getValidator(), binding.getScope(),
+        transformConvert(binding.getValidator(), binding.getCall()));
+  }
+
+  /** Transforms a call to {@code CONVERT} to an equivalent call to
+   *  {@code CAST}. */
+  private static SqlCall transformConvert(SqlValidator validator, SqlCall call) {
+    return SqlStdOperatorTable.CAST.createCall(call.getParserPosition(),
+        call.operand(1), call.operand(0));
+  }
 
   /** The "DATE_PART(timeUnit, datetime)" function
    * (Databricks, Postgres, Redshift, Snowflake). */

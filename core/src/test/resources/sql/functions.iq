@@ -219,4 +219,88 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t2)], expr#6=[CAST($t2
 
 !ok
 
+# [CALCITE-5548] - Add support for MSSQL CONVERT function
+!use mssqlfunc
+select CONVERT(INTEGER, 45.4);
++--------+
+| EXPR$0 |
++--------+
+|     45 |
++--------+
+(1 row)
+
+!ok
+
+select CONVERT(INTEGER, 45.4, 121);
++--------+
+| EXPR$0 |
++--------+
+|     45 |
++--------+
+(1 row)
+
+!ok
+
+select CONVERT(FLOAT, '34.5');
++--------+
+| EXPR$0 |
++--------+
+|   34.5 |
++--------+
+(1 row)
+
+!ok
+
+select CONVERT(DATE, '2011-01-05');
++------------+
+| EXPR$0     |
++------------+
+| 2011-01-05 |
++------------+
+(1 row)
+
+!ok
+
+# style (3rd operand) ignored (for now)
+select CONVERT(DATE, '2011-01-05', 999);
++------------+
+| EXPR$0     |
++------------+
+| 2011-01-05 |
++------------+
+(1 row)
+
+!ok
+
+select CONVERT(INTEGER, 45.4, 121, 99999);
+parse failed: Encountered ","
+!error
+
+# since 'style' operand is ignored, usual behaviour of returning NULL with NULL style is not present
+select CONVERT(INTEGER, 5, NULL);
++--------+
+| EXPR$0 |
++--------+
+|      5 |
++--------+
+(1 row)
+
+!ok
+
+select CONVERT(INTEGER, NULL, NULL);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+# below not executed due to huge stack trace quidem insists on generating
+# unsupported format test for documentation (dd/mm/yyyy) (need MSSQL "style" operand support in enumerable)
+# however CONVERT right now is simply a wrapper around CAST
+# select CONVERT(DATE, '05/01/2000', 103);
+
+
 # End functions.iq

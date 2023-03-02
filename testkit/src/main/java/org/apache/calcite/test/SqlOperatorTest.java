@@ -1184,6 +1184,34 @@ public class SqlOperatorTest {
     f.checkNull("cast(cast(null as timestamp) as time)");
   }
 
+  @Test void testMssqlConvert() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.MSSQL_CONVERT, VmName.EXPAND);
+    // happy-paths (no need to test all, proper functionality is tested by CAST already
+    // just need to make sure it works at all
+    f.checkScalar("convert(INTEGER, 45.4)", "45", "INTEGER NOT NULL");
+    f.checkScalar("convert(DATE, '2000-01-01')", "2000-01-01", "DATE NOT NULL");
+
+    // null-values
+    f.checkNull("convert(DATE, NULL)");
+  }
+
+  @Test void testMssqlConvertWithStyle() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.MSSQL_CONVERT, VmName.EXPAND);
+    // ensure 'style' argument is ignored
+    // 3rd argument 'style' is a literal. However,
+    // AbstractSqlTester converts values to a single value in a column.
+    // see AbstractSqlTester.buildQuery2
+    // But CONVERT 'style' is supposed to be a literal.
+    // So for now, they are put in a @Disabled test
+    f.checkScalar("convert(INTEGER, 45.4, 999)", "45", "INTEGER NOT NULL");
+    f.checkScalar("convert(DATE, '2000-01-01', 999)", "2000-01-01", "DATE NOT NULL");
+    // including 'NULL' style argument
+    f.checkScalar("convert(DATE, '2000-01-01', NULL)", "2000-01-01", "DATE NOT NULL");
+
+  }
+
   private static Calendar getFixedCalendar() {
     Calendar calendar = Util.calendar();
     calendar.set(Calendar.YEAR, 2014);
