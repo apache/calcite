@@ -26,6 +26,12 @@
 /buildSrc/subprojects/*/build
 /site/.jekyll-cache
 
+# VSCode Java plugin
+/example/*/bin
+/*/bin
+/bin
+/.vscode/*
+
 # IDEA
 /out
 /*/out/
