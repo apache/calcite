@@ -35,6 +35,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MapSqlType;
@@ -528,12 +529,20 @@ public class RexBuilder {
   public RexNode makeCast(
       RelDataType type,
       RexNode exp) {
-    return makeCast(type, exp, false);
+    return makeCast(type, exp, false, false);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public RexNode makeCast(
+      RelDataType type,
+      RexNode exp,
+      boolean matchNullability) {
+    return makeCast(type, exp, matchNullability, false);
   }
 
   /**
    * Creates a call to the CAST operator, expanding if possible, and optionally
-   * also preserving nullability.
+   * also preserving nullability, and optionally in safe mode.
    *
    * <p>Tries to expand the cast, and therefore the result may be something
    * other than a {@link RexCall} to the CAST operator, such as a
@@ -543,12 +552,14 @@ public class RexBuilder {
    * @param exp  Expression being cast
    * @param matchNullability Whether to ensure the result has the same
    * nullability as {@code type}
+   * @param safe Whether to return NULL if cast fails
    * @return Call to CAST operator
    */
   public RexNode makeCast(
       RelDataType type,
       RexNode exp,
-      boolean matchNullability) {
+      boolean matchNullability,
+      boolean safe) {
     final SqlTypeName sqlType = type.getSqlTypeName();
     if (exp instanceof RexLiteral) {
       RexLiteral literal = (RexLiteral) exp;
@@ -608,7 +619,7 @@ public class RexBuilder {
         if (type.isNullable()
             && !literal2.getType().isNullable()
             && matchNullability) {
-          return makeAbstractCast(type, literal2);
+          return makeAbstractCast(type, literal2, safe);
         }
         return literal2;
       }
@@ -622,7 +633,7 @@ public class RexBuilder {
         && SqlTypeUtil.isExactNumeric(type)) {
       return makeCastBooleanToExact(type, exp);
     }
-    return makeAbstractCast(type, exp);
+    return makeAbstractCast(type, exp, safe);
   }
 
   /** Returns the lowest granularity unit for the given unit.
@@ -792,20 +803,24 @@ public class RexBuilder {
         matchNullability(bigintType, node), node, makeLiteral(false));
   }
 
+  @Deprecated // to be removed before 2.0
+  public RexNode makeAbstractCast(RelDataType type, RexNode exp) {
+    return makeAbstractCast(type, exp, false);
+  }
+
   /**
-   * Creates a call to the CAST operator.
+   * Creates a call to CAST or SAFE_CAST operator.
    *
    * @param type Type to cast to
    * @param exp  Expression being cast
+   * @param safe Whether to return NULL if cast fails
    * @return Call to CAST operator
    */
-  public RexNode makeAbstractCast(
-      RelDataType type,
-      RexNode exp) {
-    return new RexCall(
-        type,
-        SqlStdOperatorTable.CAST,
-        ImmutableList.of(exp));
+  public RexNode makeAbstractCast(RelDataType type, RexNode exp, boolean safe) {
+    SqlOperator operator =
+        safe ? SqlLibraryOperators.SAFE_CAST
+            : SqlStdOperatorTable.CAST;
+    return new RexCall(type, operator, ImmutableList.of(exp));
   }
 
   /**
@@ -843,7 +858,7 @@ public class RexBuilder {
     }
     final RelDataType notNullType =
         typeFactory.createTypeWithNullability(type, false);
-    return makeAbstractCast(notNullType, exp);
+    return makeAbstractCast(notNullType, exp, false);
   }
 
   /**
@@ -1585,7 +1600,7 @@ public class RexBuilder {
           typeFactory.createTypeWithNullability(type, false);
       if (allowCast) {
         RexNode literalNotNull = makeLiteral(value, typeNotNull, allowCast);
-        return makeAbstractCast(type, literalNotNull);
+        return makeAbstractCast(type, literalNotNull, false);
       }
       type = typeNotNull;
     }

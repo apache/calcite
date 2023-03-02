@@ -903,6 +903,7 @@ ROUTINE_SCHEMA,
 ROW_COUNT,
 **ROW_NUMBER**,
 **RUNNING**,
+**SAFE_CAST**,
 **SATURDAY**,
 **SAVEPOINT**,
 SCALAR,
@@ -2709,6 +2710,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | h s | string1 NOT RLIKE string2                    | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
 | b o | RPAD(string, length[, pattern ])             | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
 | b o | RTRIM(string)                                | Returns *string* with all blanks removed from the end
+| b | SAFE_CAST(value AS type)                       | Converts *value* to *type*, returning NULL if conversion fails
 | b m p | SHA1(string)                               | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | b o | SINH(numeric)                                | Returns the hyperbolic sine of *numeric*
 | b m o p | SOUNDEX(string)                          | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8

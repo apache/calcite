@@ -664,12 +664,12 @@ class RelOptUtilTest {
             rexBuilder.makeCast(
                 fieldTypeEmpnoNullable,
                 RexInputRef.of(0, agg.getRowType()),
-                true),
+                true, false),
             RexInputRef.of(1, agg.getRowType()),
             rexBuilder.makeCast(
                 fieldTypeJobCntNullable,
                 RexInputRef.of(2, agg.getRowType()),
-                true))
+                true, false))
         .build();
     assertThat(castNode.explain(), is(expectNode.explain()));
 

@@ -98,7 +98,7 @@ public class UnionPullUpConstantsRule
         if (constant.getType().equals(field.getType())) {
           topChildExprs.add(constant);
         } else {
-          topChildExprs.add(rexBuilder.makeCast(field.getType(), constant, true));
+          topChildExprs.add(rexBuilder.makeCast(field.getType(), constant, true, false));
         }
         topChildExprsFields.add(field.getName());
       } else {

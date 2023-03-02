@@ -165,6 +165,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_CAST;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
@@ -649,6 +650,7 @@ public class RexImpTable {
 
       map.put(COALESCE, new CoalesceImplementor());
       map.put(CAST, new CastImplementor());
+      map.put(SAFE_CAST, new CastImplementor());
 
       map.put(REINTERPRET, new ReinterpretImplementor());
 
@@ -2895,8 +2897,9 @@ public class RexImpTable {
       }
       final RelDataType targetType =
           nullifyType(translator.typeFactory, call.getType(), false);
+      boolean safe = call.getKind() == SqlKind.SAFE_CAST;
       return translator.translateCast(sourceType,
-              targetType, argValueList.get(0));
+              targetType, argValueList.get(0), safe);
     }
 
     private static RelDataType nullifyType(JavaTypeFactory typeFactory,

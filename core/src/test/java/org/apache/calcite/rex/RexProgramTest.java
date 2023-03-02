@@ -1759,21 +1759,24 @@ class RexProgramTest extends RexProgramTestBase {
     // =>
     // "=(CAST(?0.int0):INTEGER NOT NULL, 5)"
     checkSimplify(
-        and(ne(rexBuilder.makeCast(intType, intExpr, true), literal3),
-                    eq(rexBuilder.makeCast(intType, intExpr, true), literal5)),
+        and(ne(rexBuilder.makeCast(intType, intExpr, true, false), literal3),
+                    eq(rexBuilder.makeCast(intType, intExpr, true, false), literal5)),
             "=(CAST(?0.int0):INTEGER NOT NULL, 5)");
     // "AND(<>(CAST(?0.int0):INTEGER NOT NULL, 3), =(CAST(?0.int0):INTEGER NOT NULL, 5))"
     // =>
     // "=(CAST(?0.int0):INTEGER NOT NULL, 5)"
     checkSimplify(
-        and(ne(rexBuilder.makeCast(intType, intExpr, true), literal3),
-                    eq(rexBuilder.makeCast(intType, intExpr, true), literal5)),
+        and(ne(rexBuilder.makeCast(intType, intExpr, true, false), literal3),
+                    eq(rexBuilder.makeCast(intType, intExpr, true, false), literal5)),
             "=(CAST(?0.int0):INTEGER NOT NULL, 5)");
     // "AND(<>(CAST(?0.int0):INTEGER NOT NULL, 3), =(?0.int0, 5))"
     // =>
     // "AND(<>(CAST(?0.int0):INTEGER NOT NULL, 3), =(?0.int0, 5))"
     checkSimplifyUnchanged(
-        and(ne(rexBuilder.makeCast(intType, intExpr, true), literal3), eq(intExpr, literal5)));
+        and(
+            ne(
+            rexBuilder.makeCast(intType, intExpr, true, false),
+            literal3), eq(intExpr, literal5)));
   }
 
   @Test void testSimplifyAndIsNull() {
