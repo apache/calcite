@@ -25,6 +25,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -67,7 +69,8 @@ public class SqlBodoCreateTable extends SqlCreateTable {
     if (ifNotExists) {
       writer.keyword("IF NOT EXISTS");
     }
-    name.unparse(writer, leftPrec, rightPrec);
+    this.getName().unparse(writer, leftPrec, rightPrec);
+    @Nullable SqlNodeList columnList = getcolumnList();
     if (columnList != null) {
       SqlWriter.Frame frame = writer.startList("(", ")");
       for (SqlNode c : columnList) {
@@ -76,10 +79,12 @@ public class SqlBodoCreateTable extends SqlCreateTable {
       }
       writer.endList(frame);
     }
+    SqlNode query = getQuery();
     if (query != null) {
       writer.keyword("AS");
       writer.newlineAndIndent();
       query.unparse(writer, 0, 0);
     }
   }
+
 }

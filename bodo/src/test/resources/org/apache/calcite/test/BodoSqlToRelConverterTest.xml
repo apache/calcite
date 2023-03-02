@@ -36,6 +36,16 @@ LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[SALES]], IsReplace=[fal
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCreateTableRewrite">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableCreate(TableName=[FOO], Target Schema=[[SALES]], IsReplace=[false])
+  LogicalSort(fetch=[10])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCreateTableSimple">
     <Resource name="plan">
       <![CDATA[

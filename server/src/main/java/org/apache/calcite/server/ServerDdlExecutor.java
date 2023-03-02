@@ -89,6 +89,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Reader;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -403,36 +405,38 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
   public void execute(SqlCreateTable create,
       CalcitePrepare.Context context) {
     final Pair<CalciteSchema, String> pair =
-        schema(context, true, create.name);
+        schema(context, true, create.getName());
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     final RelDataType queryRowType;
-    if (create.query != null) {
+    @Nullable SqlNode createQuery = create.getQuery();
+    @Nullable SqlNodeList createColumnList = create.getcolumnList();
+    if (createQuery != null) {
       // A bit of a hack: pretend it's a view, to get its row type
       final String sql =
-          create.query.toSqlString(CalciteSqlDialect.DEFAULT).getSql();
+          createQuery.toSqlString(CalciteSqlDialect.DEFAULT).getSql();
       final ViewTableMacro viewTableMacro =
           ViewTable.viewMacro(pair.left.plus(), sql, pair.left.path(null),
               context.getObjectPath(), false);
       final TranslatableTable x = viewTableMacro.apply(ImmutableList.of());
       queryRowType = x.getRowType(typeFactory);
 
-      if (create.columnList != null
-          && queryRowType.getFieldCount() != create.columnList.size()) {
+      if (createColumnList != null
+          && queryRowType.getFieldCount() != createColumnList.size()) {
         throw SqlUtil.newContextException(
-            create.columnList.getParserPosition(),
+            createColumnList.getParserPosition(),
             RESOURCE.columnCountMismatch());
       }
     } else {
       queryRowType = null;
     }
     final List<SqlNode> columnList;
-    if (create.columnList != null) {
-      columnList = create.columnList;
+    if (createColumnList != null) {
+      columnList = createColumnList;
     } else {
       if (queryRowType == null) {
         // "CREATE TABLE t" is invalid; because there is no "AS query" we need
         // a list of column names and types, "CREATE TABLE t (INT c)".
-        throw SqlUtil.newContextException(create.name.getParserPosition(),
+        throw SqlUtil.newContextException(create.getName().getParserPosition(),
             RESOURCE.createTableRequiresColumnList());
       }
       columnList = new ArrayList<>();
@@ -503,7 +507,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
       }
       if (!create.getReplace()) {
         // They did not specify IF NOT EXISTS, so give error.
-        throw SqlUtil.newContextException(create.name.getParserPosition(),
+        throw SqlUtil.newContextException(create.getName().getParserPosition(),
             RESOURCE.tableExists(pair.right));
       }
     }
@@ -512,8 +516,8 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
         new MutableArrayTable(pair.right,
             RelDataTypeImpl.proto(storedRowType),
             RelDataTypeImpl.proto(rowType), ief));
-    if (create.query != null) {
-      populate(create.name, create.query, context);
+    if (createQuery != null) {
+      populate(create.getName(), createQuery, context);
     }
   }
 

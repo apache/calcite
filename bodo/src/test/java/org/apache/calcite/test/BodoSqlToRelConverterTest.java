@@ -68,6 +68,13 @@ public class BodoSqlToRelConverterTest extends SqlToRelTestBase {
   }
 
 
+  @Test void testCreateTableRewrite() {
+    // Tests create table with a query that will require unconditional rewriting
+    final String sql = "CREATE TABLE foo as select * from dept limit 10";
+    sql(sql).withExtendedTester().ok();
+  }
+
+
 
   @Test void testValuesUnreserved() {
     //Test that confirms we can use "values" as a column name, and table name

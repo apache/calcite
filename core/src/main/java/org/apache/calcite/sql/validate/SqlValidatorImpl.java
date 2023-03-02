@@ -2884,7 +2884,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // to confirm that the sql dialect we're validating for even supports CREATE_TABLE.
     // This will be done as followup: https://bodo.atlassian.net/browse/BE-4429
 
-    final SqlNode queryNode = createTable.query;
+    final SqlNode queryNode = createTable.getQuery();
 
     // NOTE: query can be null, in the case that we're just doing a table definition with no data.
     // For now, only supporting the case where we have a query
@@ -5440,7 +5440,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
 
-    final SqlNode queryNode = createTable.query;
+    final SqlNode queryNode = createTable.getQuery();
     if (queryNode == null) {
       throw newValidationError(createTable, RESOURCE.createTableRequiresAsQuery());
     }
@@ -5461,7 +5461,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     //Row type of the overall create statement should be the same as that of the underlying query
     assert queryNS.getRowType().equals(createTableNS.getRowType());
 
-    final SqlIdentifier tableNameNode = createTable.name;
+    final SqlIdentifier tableNameNode = createTable.getName();
     final List<String> names = tableNameNode.names;
 
     final SqlValidatorScope.ResolvedImpl resolved = new SqlValidatorScope.ResolvedImpl();
