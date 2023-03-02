@@ -78,6 +78,26 @@ from emp;
 
 !ok
 
+# STDDEV applied to nullable column
+select empno,
+  stddev(comm) over (order by empno rows unbounded preceding) as stdev
+from emp
+where deptno = 30
+order by 1;
++-------+-------------------------------------------------+
+| EMPNO | STDEV                                           |
++-------+-------------------------------------------------+
+|  7499 |                                                 |
+|  7521 |  141.421356237309510106570087373256683349609375 |
+|  7654 | 585.9465277082316561063635163009166717529296875 |
+|  7698 | 585.9465277082316561063635163009166717529296875 |
+|  7844 | 602.7713773341707792496890760958194732666015625 |
+|  7900 | 602.7713773341707792496890760958194732666015625 |
++-------+-------------------------------------------------+
+(6 rows)
+
+!ok
+
 !use post
 # [CALCITE-1540] Support multiple columns in PARTITION BY clause of window function
 select gender,deptno,
