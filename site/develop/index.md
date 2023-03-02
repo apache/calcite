@@ -90,31 +90,7 @@ Thanks,
 
 
 ### I do not have an ASF JIRA account, want to request an account and be added as a contributor
-In order to request an ASF JIRA account, you will need to email
-[jira-requests@calcite.apache.org](mailto:jira-requests@calcite.apache.org)
-using the following template:
-
-[**[Open the template in your email client]**](mailto:jira-requests@calcite.apache.org?subject=Request%20for%20JIRA%20Account&body=Hello,%0A%0AI%20would%20like%20to%20request%20a%20JIRA%20account.%0AMy%20proposed%20JIRA%20username:%20[INSERT%20YOUR%20DESIRED%20JIRA%20USERNAME%20HERE%20(LOWERCASE%20LETTERS%20AND%20NUMBERS%20ONLY)]%0AMy%20full%20name:%20[INSERT%20YOUR%20FULL%20NAME%20HERE]%0AMy%20email%20address:%20[INSERT%20YOUR%20EMAIL%20ADDRESS%20HERE]%0A%0AThanks,%0A[INSERT%20YOUR%20NAME%20HERE])
-{% highlight text %}
-Subject: Request for JIRA Account
-
-Hello,
-
-I would like to request a JIRA account.
-My proposed JIRA username: [INSERT YOUR DESIRED JIRA USERNAME HERE (LOWERCASE LETTERS AND NUMBERS ONLY)]
-My full name: [INSERT YOUR FULL NAME HERE]
-My email address: [INSERT YOUR EMAIL ADDRESS HERE]
-
-Thanks,
-[INSERT YOUR NAME HERE]
-{% endhighlight %}
-
-**IMPORTANT**: The email address the request is sent from MUST be the same
-as the email address in the body of the request, otherwise, we will not be
-able to process your request.
-
-Once the ASF has processed our submission on your behalf, you will receive
-an email to set your password.
+Please request an account using the [ASF's self-serve facility](https://selfserve.apache.org/jira-account.html).
 
 ## Contributing
 
