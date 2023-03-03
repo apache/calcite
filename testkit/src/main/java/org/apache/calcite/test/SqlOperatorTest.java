@@ -119,7 +119,6 @@ import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_EXTRACT_UNI
 import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_EXTRACT_UNIT_VALIDATION_ERROR;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.LITERAL_OUT_OF_RANGE_MESSAGE;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.OUT_OF_RANGE_MESSAGE;
-import static org.apache.calcite.sql.test.SqlOperatorFixture.STRING_TRUNC_MESSAGE;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -444,9 +443,7 @@ public class SqlOperatorTest {
 
     f.checkString("cast(1.29 as varchar(10))", "1.29", "VARCHAR(10) NOT NULL");
     f.checkString("cast(.48 as varchar(10))", ".48", "VARCHAR(10) NOT NULL");
-    if (Bug.CALCITE_2539_FIXED) {
-      f.checkFails("cast(2.523 as char(2))", STRING_TRUNC_MESSAGE, true);
-    }
+    f.checkString("cast(2.523 as char(2))", "2.", "CHAR(2) NOT NULL");
 
     f.checkString("cast(-0.29 as varchar(10))",
         "-.29", "VARCHAR(10) NOT NULL");
@@ -470,12 +467,9 @@ public class SqlOperatorTest {
     if (TODO) {
       f.checkCastToString("cast(-0.1 as real)", "CHAR(5)", "-1E-1");
     }
-    if (Bug.CALCITE_2539_FIXED) {
-      f.checkFails("cast(1.3243232e0 as varchar(4))", STRING_TRUNC_MESSAGE,
-          true);
-      f.checkFails("cast(1.9e5 as char(4))", STRING_TRUNC_MESSAGE,
-          true);
-    }
+    f.checkString("cast(1.3243232e0 as varchar(4))", "1.32",
+        "VARCHAR(4) NOT NULL");
+    f.checkString("cast(1.9e5 as char(4))", "1.9E", "CHAR(4) NOT NULL");
 
     // string
     f.checkCastToString("'abc'", "CHAR(1)", "a");
@@ -524,12 +518,10 @@ public class SqlOperatorTest {
     f.checkCastToString("True", "VARCHAR(6)", "TRUE");
     f.checkCastToString("False", "CHAR(5)", "FALSE");
 
-    if (Bug.CALCITE_2539_FIXED) {
-      f.checkFails("cast(true as char(3))", INVALID_CHAR_MESSAGE, true);
-      f.checkFails("cast(false as char(4))", INVALID_CHAR_MESSAGE, true);
-      f.checkFails("cast(true as varchar(3))", INVALID_CHAR_MESSAGE, true);
-      f.checkFails("cast(false as varchar(4))", INVALID_CHAR_MESSAGE, true);
-    }
+    f.checkString("cast(true as char(3))", "TRU", "CHAR(3) NOT NULL");
+    f.checkString("cast(false as char(4))", "FALS", "CHAR(4) NOT NULL");
+    f.checkString("cast(true as varchar(3))", "TRU", "VARCHAR(3) NOT NULL");
+    f.checkString("cast(false as varchar(4))", "FALS", "VARCHAR(4) NOT NULL");
   }
 
   @Test void testCastExactNumericLimits() {
@@ -1123,13 +1115,11 @@ public class SqlOperatorTest {
     }
 
     f.checkFails("cast('nottime' as TIME)", BAD_DATETIME_MESSAGE, true);
-    if (Bug.CALCITE_2539_FIXED) {
-      f.checkFails("cast('1241241' as TIME)", BAD_DATETIME_MESSAGE, true);
-      f.checkFails("cast('12:54:78' as TIME)", BAD_DATETIME_MESSAGE, true);
-      f.checkFails("cast('12:34:5' as TIME)", BAD_DATETIME_MESSAGE, true);
-      f.checkFails("cast('12:3:45' as TIME)", BAD_DATETIME_MESSAGE, true);
-      f.checkFails("cast('1:23:45' as TIME)", BAD_DATETIME_MESSAGE, true);
-    }
+    f.checkScalar("cast('1241241' as TIME)", "72:40:12", "TIME(0) NOT NULL");
+    f.checkScalar("cast('12:54:78' as TIME)", "12:55:18", "TIME(0) NOT NULL");
+    f.checkScalar("cast('12:34:5' as TIME)", "12:34:05", "TIME(0) NOT NULL");
+    f.checkScalar("cast('12:3:45' as TIME)", "12:03:45", "TIME(0) NOT NULL");
+    f.checkScalar("cast('1:23:45' as TIME)", "01:23:45", "TIME(0) NOT NULL");
 
     // timestamp <-> string
     f.checkCastToString("TIMESTAMP '1945-02-24 12:42:25'", null,
@@ -1159,17 +1149,14 @@ public class SqlOperatorTest {
           "1945-02-24 12:42:25.34", "TIMESTAMP(2) NOT NULL");
     }
     f.checkFails("cast('nottime' as TIMESTAMP)", BAD_DATETIME_MESSAGE, true);
-
-    if (Bug.CALCITE_2539_FIXED) {
-      f.checkFails("cast('1241241' as TIMESTAMP)",
-          BAD_DATETIME_MESSAGE, true);
-      f.checkFails("cast('1945-20-24 12:42:25.34' as TIMESTAMP)",
-          BAD_DATETIME_MESSAGE, true);
-      f.checkFails("cast('1945-01-24 25:42:25.34' as TIMESTAMP)",
-          BAD_DATETIME_MESSAGE, true);
-      f.checkFails("cast('1945-1-24 12:23:34.454' as TIMESTAMP)",
-          BAD_DATETIME_MESSAGE, true);
-    }
+    f.checkScalar("cast('1241241' as TIMESTAMP)",
+        "1241-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("cast('1945-20-24 12:42:25.34' as TIMESTAMP)",
+        "1946-08-26 12:42:25", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("cast('1945-01-24 25:42:25.34' as TIMESTAMP)",
+        "1945-01-25 01:42:25", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("cast('1945-1-24 12:23:34.454' as TIMESTAMP)",
+        "1945-01-24 12:23:34", "TIMESTAMP(0) NOT NULL");
 
     // date <-> string
     f.checkCastToString("DATE '1945-02-24'", null, "1945-02-24");
@@ -1181,10 +1168,8 @@ public class SqlOperatorTest {
         "1945-02-24", "DATE NOT NULL");
     f.checkFails("cast('notdate' as DATE)", BAD_DATETIME_MESSAGE, true);
 
-    if (Bug.CALCITE_2539_FIXED) {
-      f.checkFails("cast('52534253' as DATE)", BAD_DATETIME_MESSAGE, true);
-      f.checkFails("cast('1945-30-24' as DATE)", BAD_DATETIME_MESSAGE, true);
-    }
+    f.checkScalar("cast('52534253' as DATE)", "7368-10-13", "DATE NOT NULL");
+    f.checkScalar("cast('1945-30-24' as DATE)", "1947-06-26", "DATE NOT NULL");
 
     // cast null
     f.checkNull("cast(null as date)");
@@ -1323,8 +1308,8 @@ public class SqlOperatorTest {
     // so nulls do not match.
     // (Unlike Oracle's 'decode(null, null, ...)', by the way.)
     f.checkString("case cast(null as int)\n"
-        + "when cast(null as int) then 'nulls match'\n"
-        + "else 'nulls do not match' end",
+            + "when cast(null as int) then 'nulls match'\n"
+            + "else 'nulls do not match' end",
         "nulls do not match",
         "CHAR(18) NOT NULL");
 
@@ -1606,14 +1591,9 @@ public class SqlOperatorTest {
         "VARCHAR(2000) NOT NULL");
     f.checkScalar("{fn DAYOFMONTH(DATE '2014-12-10')}", 10,
         "BIGINT NOT NULL");
-    if (Bug.CALCITE_2539_FIXED) {
-      f.checkFails("{fn DAYOFWEEK(DATE '2014-12-10')}",
-          "cannot translate call EXTRACT.*",
-          true);
-      f.checkFails("{fn DAYOFYEAR(DATE '2014-12-10')}",
-          "cannot translate call EXTRACT.*",
-          true);
-    }
+    f.checkScalar("{fn DAYOFWEEK(DATE '2014-12-10')}", "4", "BIGINT NOT NULL");
+    f.checkScalar("{fn DAYOFYEAR(DATE '2014-12-10')}", "344",
+        "BIGINT NOT NULL");
     f.checkScalar("{fn HOUR(TIMESTAMP '2014-12-10 12:34:56')}", 12,
         "BIGINT NOT NULL");
     f.checkScalar("{fn MINUTE(TIMESTAMP '2014-12-10 12:34:56')}", 34,
@@ -1638,11 +1618,7 @@ public class SqlOperatorTest {
         + " TIMESTAMP '2019-09-01 00:00:00',"
         + " TIMESTAMP '2020-03-01 00:00:00')}", "6", "INTEGER NOT NULL");
 
-    if (Bug.CALCITE_2539_FIXED) {
-      f.checkFails("{fn WEEK(DATE '2014-12-10')}",
-          "cannot translate call EXTRACT.*",
-          true);
-    }
+    f.checkScalar("{fn WEEK(DATE '2014-12-10')}", "50", "BIGINT NOT NULL");
     f.checkScalar("{fn YEAR(DATE '2014-12-10')}", 2014, "BIGINT NOT NULL");
 
     // System Functions
@@ -1950,10 +1926,8 @@ public class SqlOperatorTest {
     }
     f.checkNull("1e1 / cast(null as float)");
 
-    if (Bug.CALCITE_2539_FIXED) {
-      f.checkFails("100.1 / 0.00000000000000001", OUT_OF_RANGE_MESSAGE,
-          true);
-    }
+    f.checkScalarExact("100.1 / 0.00000000000000001", "DECIMAL(19, 0) NOT NULL",
+        "1.001E+19");
   }
 
   @Test void testDivideOperatorIntervals() {
@@ -3448,7 +3422,6 @@ public class SqlOperatorTest {
                 + "                    \\^";
     f.checkFails("'yd3223' similar to '[:LOWER:]{2}[:DIGIT:]{,5}'",
         expectedError, true);
-
     if (Bug.CALCITE_2539_FIXED) {
       f.checkFails("'cd' similar to '[(a-e)]d' ",
           "Invalid regular expression: \\[\\(a-e\\)\\]d at 1",
@@ -4891,7 +4864,7 @@ public class SqlOperatorTest {
             "Cannot apply 'INITCAP' to arguments of type "
                 + "'INITCAP\\(<DATE>\\)'\\. Supported form\\(s\\): "
                 + "'INITCAP\\(<CHARACTER>\\)'",
-        false);
+            false);
     f.checkType("initcap(cast(null as date))", "VARCHAR");
   }
 
@@ -5152,7 +5125,7 @@ public class SqlOperatorTest {
             "Cannot apply 'ACOS' to arguments of type "
                 + "'ACOS\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
                 + "'ACOS\\(<NUMERIC>\\)'",
-        false);
+            false);
     f.checkType("acos('abc')", "DOUBLE NOT NULL");
     f.checkScalarApprox("acos(0.5)", "DOUBLE NOT NULL",
         isWithin(1.0472d, 0.0001d));
@@ -5173,7 +5146,7 @@ public class SqlOperatorTest {
             "Cannot apply 'ASIN' to arguments of type "
                 + "'ASIN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
                 + "'ASIN\\(<NUMERIC>\\)'",
-        false);
+            false);
     f.checkType("asin('abc')", "DOUBLE NOT NULL");
     f.checkScalarApprox("asin(0.5)", "DOUBLE NOT NULL",
         isWithin(0.5236d, 0.0001d));
@@ -5194,7 +5167,7 @@ public class SqlOperatorTest {
             "Cannot apply 'ATAN' to arguments of type "
                 + "'ATAN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
                 + "'ATAN\\(<NUMERIC>\\)'",
-        false);
+            false);
     f.checkType("atan('abc')", "DOUBLE NOT NULL");
     f.checkScalarApprox("atan(2)", "DOUBLE NOT NULL",
         isWithin(1.1071d, 0.0001d));
@@ -5217,7 +5190,7 @@ public class SqlOperatorTest {
             "Cannot apply 'ATAN2' to arguments of type "
                 + "'ATAN2\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. "
                 + "Supported form\\(s\\): 'ATAN2\\(<NUMERIC>, <NUMERIC>\\)'",
-        false);
+            false);
     f.checkType("atan2('abc', 'def')", "DOUBLE NOT NULL");
     f.checkScalarApprox("atan2(0.5, -0.5)", "DOUBLE NOT NULL",
         isWithin(2.3562d, 0.0001d));
@@ -5239,7 +5212,7 @@ public class SqlOperatorTest {
             "Cannot apply 'CBRT' to arguments of type "
                 + "'CBRT\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
                 + "'CBRT\\(<NUMERIC>\\)'",
-        false);
+            false);
     f.checkType("cbrt('abc')", "DOUBLE NOT NULL");
     f.checkScalar("cbrt(8)", "2.0", "DOUBLE NOT NULL");
     f.checkScalar("cbrt(-8)", "-2.0", "DOUBLE NOT NULL");
@@ -5260,7 +5233,7 @@ public class SqlOperatorTest {
             "Cannot apply 'COS' to arguments of type "
                 + "'COS\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
                 + "'COS\\(<NUMERIC>\\)'",
-        false);
+            false);
     f.checkType("cos('abc')", "DOUBLE NOT NULL");
     f.checkScalarApprox("cos(1)", "DOUBLE NOT NULL",
         isWithin(0.5403d, 0.0001d));
@@ -5321,7 +5294,7 @@ public class SqlOperatorTest {
             "Cannot apply 'DEGREES' to arguments of type "
                 + "'DEGREES\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
                 + "'DEGREES\\(<NUMERIC>\\)'",
-        false);
+            false);
     f.checkType("degrees('abc')", "DOUBLE NOT NULL");
     f.checkScalarApprox("degrees(1)", "DOUBLE NOT NULL",
         isWithin(57.2958d, 0.0001d));
@@ -6534,7 +6507,7 @@ public class SqlOperatorTest {
         "CHAR(1) NOT NULL");
     // nulls match
     f.checkScalar("decode(cast(null as integer), 0, 'a',\n"
-        + " cast(null as integer), 'b', 2, 'c', 'd')", "b",
+            + " cast(null as integer), 'b', 2, 'c', 'd')", "b",
         "CHAR(1) NOT NULL");
   }
 
@@ -6575,7 +6548,7 @@ public class SqlOperatorTest {
     f.checkBoolean("1 member of multiset[1]", true);
     f.checkBoolean("'2' member of multiset['1']", false);
     f.checkBoolean("cast(null as double) member of"
-            + " multiset[cast(null as double)]", true);
+        + " multiset[cast(null as double)]", true);
     f.checkBoolean("cast(null as double) member of multiset[1.1]", false);
     f.checkBoolean("1.1 member of multiset[cast(null as double)]", false);
   }
@@ -6585,7 +6558,7 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.MULTISET_UNION_DISTINCT,
         VM_FENNEL, VM_JAVA);
     f.checkBoolean("multiset[1,2] submultiset of "
-            + "(multiset[2] multiset union multiset[1])", true);
+        + "(multiset[2] multiset union multiset[1])", true);
     f.checkScalar("cardinality(multiset[1, 2, 3, 4, 2] "
             + "multiset union distinct multiset[1, 4, 5, 7, 8])",
         "7",
@@ -6692,7 +6665,7 @@ public class SqlOperatorTest {
     f.checkBoolean("multiset['a', 'b'] not submultiset of "
         + "multiset['c', 'd', 's', 'a']", true);
     f.checkBoolean("multiset['a', 'd'] not submultiset of "
-            + "multiset['c', 's', 'a', 'w', 'd']", false);
+        + "multiset['c', 's', 'a', 'w', 'd']", false);
     f.checkBoolean("multiset['q', 'a'] not submultiset of "
         + "multiset['a', 'q']", false);
   }
@@ -6731,11 +6704,11 @@ public class SqlOperatorTest {
     f.checkAggType("listagg(12)", "VARCHAR NOT NULL");
     f.enableTypeCoercion(false)
         .checkFails("^listagg(12)^",
-        "Cannot apply 'LISTAGG' to arguments of type .*'\n.*'", false);
+            "Cannot apply 'LISTAGG' to arguments of type .*'\n.*'", false);
     f.checkAggType("listagg(cast(12 as double))", "VARCHAR NOT NULL");
     f.enableTypeCoercion(false)
         .checkFails("^listagg(cast(12 as double))^",
-        "Cannot apply 'LISTAGG' to arguments of type .*'\n.*'", false);
+            "Cannot apply 'LISTAGG' to arguments of type .*'\n.*'", false);
     f.checkFails("^listagg()^",
         "Invalid number of arguments to function 'LISTAGG'. Was expecting 1 arguments",
         false);
@@ -7008,51 +6981,29 @@ public class SqlOperatorTest {
   @Test void testWeek() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.WEEK, VM_FENNEL, VM_JAVA);
-    if (Bug.CALCITE_2539_FIXED) {
-      // TODO: Not implemented in operator test execution code
-      f.checkFails("week(date '2008-1-23')",
-          "cannot translate call EXTRACT.*",
-          true);
-      f.checkFails("week(cast(null as date))",
-          "cannot translate call EXTRACT.*",
-          true);
-    }
+    f.checkScalar("week(date '2008-1-23')", "4", "BIGINT NOT NULL");
+    f.checkNull("week(cast(null as date))");
   }
 
   @Test void testDayOfYear() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DAYOFYEAR, VM_FENNEL, VM_JAVA);
-    if (Bug.CALCITE_2539_FIXED) {
-      // TODO: Not implemented in operator test execution code
-      f.checkFails("dayofyear(date '2008-1-23')",
-          "cannot translate call EXTRACT.*",
-          true);
-      f.checkFails("dayofyear(cast(null as date))",
-          "cannot translate call EXTRACT.*",
-          true);
-    }
+    f.checkScalar("dayofyear(date '2008-01-23')", "23", "BIGINT NOT NULL");
+    f.checkNull("dayofyear(cast(null as date))");
   }
 
   @Test void testDayOfMonth() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DAYOFMONTH, VM_FENNEL, VM_JAVA);
-    f.checkScalar("dayofmonth(date '2008-1-23')", "23",
-        "BIGINT NOT NULL");
+    f.checkScalar("dayofmonth(date '2008-1-23')", "23", "BIGINT NOT NULL");
     f.checkNull("dayofmonth(cast(null as date))");
   }
 
   @Test void testDayOfWeek() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DAYOFWEEK, VM_FENNEL, VM_JAVA);
-    if (Bug.CALCITE_2539_FIXED) {
-      // TODO: Not implemented in operator test execution code
-      f.checkFails("dayofweek(date '2008-1-23')",
-          "cannot translate call EXTRACT.*",
-          true);
-      f.checkFails("dayofweek(cast(null as date))",
-          "cannot translate call EXTRACT.*",
-          true);
-    }
+    f.checkScalar("dayofweek(date '2008-1-23')", "4", "BIGINT NOT NULL");
+    f.checkNull("dayofweek(cast(null as date))");
   }
 
   @Test void testHour() {
@@ -7099,13 +7050,13 @@ public class SqlOperatorTest {
           "0", "BIGINT NOT NULL");
 
       f.checkScalar("extract(millisecond from "
-              + "interval '4-2' year to month)", "0", "BIGINT NOT NULL");
+          + "interval '4-2' year to month)", "0", "BIGINT NOT NULL");
 
       f.checkScalar("extract(microsecond "
-              + "from interval '4-2' year to month)", "0", "BIGINT NOT NULL");
+          + "from interval '4-2' year to month)", "0", "BIGINT NOT NULL");
 
       f.checkScalar("extract(nanosecond from "
-              + "interval '4-2' year to month)", "0", "BIGINT NOT NULL");
+          + "interval '4-2' year to month)", "0", "BIGINT NOT NULL");
 
       f.checkScalar("extract(minute from interval '4-2' year to month)",
           "0", "BIGINT NOT NULL");
@@ -7119,14 +7070,16 @@ public class SqlOperatorTest {
 
     // Postgres doesn't support DOW, ISODOW, DOY and WEEK on INTERVAL YEAR MONTH type.
     // SQL standard doesn't have extract units for DOW, ISODOW, DOY and WEEK.
-    f.checkFails("^extract(doy from interval '4-2' year to month)^",
-        INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
-    f.checkFails("^extract(dow from interval '4-2' year to month)^",
-        INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
-    f.checkFails("^extract(week from interval '4-2' year to month)^",
-        INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
-    f.checkFails("^extract(isodow from interval '4-2' year to month)^",
-        INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
+    if (Bug.CALCITE_2539_FIXED) {
+      f.checkFails("extract(doy from interval '4-2' year to month)",
+          INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
+      f.checkFails("^extract(dow from interval '4-2' year to month)^",
+          INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
+      f.checkFails("^extract(week from interval '4-2' year to month)^",
+          INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
+      f.checkFails("^extract(isodow from interval '4-2' year to month)^",
+          INVALID_EXTRACT_UNIT_VALIDATION_ERROR, false);
+    }
 
     f.checkScalar("extract(month from interval '4-2' year to month)",
         "2", "BIGINT NOT NULL");
@@ -7198,16 +7151,14 @@ public class SqlOperatorTest {
 
     // Postgres doesn't support DOW, ISODOW, DOY and WEEK on INTERVAL DAY TIME type.
     // SQL standard doesn't have extract units for DOW, ISODOW, DOY and WEEK.
-    if (Bug.CALCITE_2539_FIXED) {
-      f.checkFails("extract(doy from interval '2 3:4:5.678' day to second)",
-          INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
-      f.checkFails("extract(dow from interval '2 3:4:5.678' day to second)",
-          INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
-      f.checkFails("extract(week from interval '2 3:4:5.678' day to second)",
-          INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
-      f.checkFails("extract(isodow from interval '2 3:4:5.678' day to second)",
-          INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
-    }
+    f.checkFails("extract(doy from interval '2 3:4:5.678' day to second)",
+        INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
+    f.checkFails("extract(dow from interval '2 3:4:5.678' day to second)",
+        INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
+    f.checkFails("extract(week from interval '2 3:4:5.678' day to second)",
+        INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
+    f.checkFails("extract(isodow from interval '2 3:4:5.678' day to second)",
+        INVALID_EXTRACT_UNIT_CONVERTLET_ERROR, true);
 
     f.checkFails("^extract(month from interval '2 3:4:5.678' day to second)^",
         "(?s)Cannot apply 'EXTRACT' to arguments of type 'EXTRACT\\(<INTERVAL "
@@ -7280,11 +7231,14 @@ public class SqlOperatorTest {
 
     f.checkScalar("extract(doy from date '2008-2-23')",
         "54", "BIGINT NOT NULL");
-
+    f.checkScalar("extract(dayofyear from date '2008-2-23')",
+        "54", "BIGINT NOT NULL");
     f.checkScalar("extract(dow from date '2008-2-23')",
         "7", "BIGINT NOT NULL");
     f.checkScalar("extract(dow from date '2008-2-24')",
         "1", "BIGINT NOT NULL");
+    f.checkScalar("extract(dayofweek from date '2008-2-23')",
+        "7", "BIGINT NOT NULL");
     f.checkScalar("extract(isodow from date '2008-2-23')",
         "6", "BIGINT NOT NULL");
     f.checkScalar("extract(isodow from date '2008-2-24')",
@@ -7353,21 +7307,12 @@ public class SqlOperatorTest {
         "2008", "BIGINT NOT NULL");
     f.checkScalar("extract(isoyear from timestamp '2008-2-23 12:34:56')",
         "2008", "BIGINT NOT NULL");
-
-    if (Bug.CALCITE_2539_FIXED) {
-      // TODO: Not implemented in operator test execution code
-      f.checkFails("extract(doy from timestamp '2008-2-23 12:34:56')",
-          "cannot translate call EXTRACT.*", true);
-
-      // TODO: Not implemented in operator test execution code
-      f.checkFails("extract(dow from timestamp '2008-2-23 12:34:56')",
-          "cannot translate call EXTRACT.*", true);
-
-      // TODO: Not implemented in operator test execution code
-      f.checkFails("extract(week from timestamp '2008-2-23 12:34:56')",
-          "cannot translate call EXTRACT.*", true);
-    }
-
+    f.checkScalar("extract(doy from timestamp '2008-2-23 12:34:56')",
+        "54", "BIGINT NOT NULL");
+    f.checkScalar("extract(dow from timestamp '2008-2-23 12:34:56')",
+        "7", "BIGINT NOT NULL");
+    f.checkScalar("extract(week from timestamp '2008-2-23 12:34:56')",
+        "8", "BIGINT NOT NULL");
     f.checkScalar("extract(decade from timestamp '2008-2-23 12:34:56')",
         "200", "BIGINT NOT NULL");
     f.checkScalar("extract(century from timestamp '2008-2-23 12:34:56')",
@@ -7560,7 +7505,7 @@ public class SqlOperatorTest {
             + "from (VALUES (ROW(ROW(3, CAST(NULL AS INTEGER)), ROW(4, 8)))) as T(x, y)",
         SqlTests.ANY_TYPE_CHECKER, isNullValue());
     f.checkFails("select \"T\".\"X\"[1 + CAST(NULL AS INTEGER)] "
-        + "from (VALUES (ROW(ROW(3, CAST(NULL AS INTEGER)), ROW(4, 8)))) as T(x, y)",
+            + "from (VALUES (ROW(ROW(3, CAST(NULL AS INTEGER)), ROW(4, 8)))) as T(x, y)",
         "Cannot infer type of field at position null within ROW type: "
             + "RecordType\\(INTEGER EXPR\\$0, INTEGER EXPR\\$1\\)", false);
   }
@@ -7681,7 +7626,7 @@ public class SqlOperatorTest {
                 + "'CEIL\\(<DATE> TO <TIME_UNIT>\\)'\n"
                 + "'CEIL\\(<TIME> TO <TIME_UNIT>\\)'\n"
                 + "'CEIL\\(<TIMESTAMP> TO <TIME_UNIT>\\)'",
-        false);
+            false);
     f.checkType("ceil('12:34:56')", "DECIMAL(19, 0) NOT NULL");
     f.checkFails("^ceil(time '12:34:56')^",
         "(?s)Cannot apply 'CEIL' to arguments .*", false);
@@ -7795,7 +7740,7 @@ public class SqlOperatorTest {
     f.withLibrary(SqlLibrary.BIG_QUERY)
         .setFor(SqlLibraryOperators.TIMESTAMP_DIFF3)
         .checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', "
-            + "timestamp '2008-12-25 16:30:00', \"minute15\")",
+                + "timestamp '2008-12-25 16:30:00', \"minute15\")",
             "-4", "INTEGER NOT NULL");
   }
 
@@ -9037,7 +8982,7 @@ public class SqlOperatorTest {
             "(?s)Cannot apply 'SUM' to arguments of type "
                 + "'SUM\\(<CHAR\\(4\\)>\\)'\\. Supported form\\(s\\): "
                 + "'SUM\\(<NUMERIC>\\)'.*",
-        false);
+            false);
     f.checkType("sum('name')", "DECIMAL(19, 9)");
     f.checkAggType("sum(1)", "INTEGER NOT NULL");
     f.checkAggType("sum(1.2)", "DECIMAL(19, 1) NOT NULL");
@@ -9053,7 +8998,7 @@ public class SqlOperatorTest {
             "(?s)Cannot apply 'SUM' to arguments of type "
                 + "'SUM\\(<VARCHAR\\(2\\)>\\)'\\. Supported form\\(s\\): "
                 + "'SUM\\(<NUMERIC>\\)'.*",
-        false);
+            false);
     f.checkType("sum(cast(null as varchar(2)))", "DECIMAL(19, 9)");
     final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
     f.checkAgg("sum(x)", values, isSingle(4));
@@ -9263,7 +9208,7 @@ public class SqlOperatorTest {
             "(?s)Cannot apply 'STDDEV' to arguments of type "
                 + "'STDDEV\\(<VARCHAR\\(2\\)>\\)'\\. "
                 + "Supported form\\(s\\): 'STDDEV\\(<NUMERIC>\\)'.*",
-        false);
+            false);
     f.checkType("stddev(cast(null as varchar(2)))", "DECIMAL(19, 9)");
     f.checkType("stddev(CAST(NULL AS INTEGER))", "INTEGER");
     f.checkAggType("stddev(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
@@ -9848,12 +9793,12 @@ public class SqlOperatorTest {
           // Casting overlarge string/binary values do not fail -
           // they are truncated. See testCastTruncates().
         } else {
+          // Value outside legal bound should fail at runtime (not
+          // validate time).
+          //
+          // NOTE: Because Java and Fennel calcs give
+          // different errors, the pattern hedges its bets.
           if (Bug.CALCITE_2539_FIXED) {
-            // Value outside legal bound should fail at runtime (not
-            // validate time).
-            //
-            // NOTE: Because Java and Fennel calcs give
-            // different errors, the pattern hedges its bets.
             f.checkFails("CAST(" + literalString + " AS " + type + ")",
                 "(?s).*(Overflow during calculation or cast\\.|Code=22003).*",
                 true);
