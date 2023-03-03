@@ -6052,6 +6052,9 @@ SqlNode BuiltinFunctionCall() :
         <COMMA>
         AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
         [<COMMA> style = UnsignedIntLiteral() { /*args.add(style);*/ }]
+        <RPAREN> {
+          return SqlLibraryOperators.MSSQL_CONVERT.createCall(s.end(this), args);
+        }
     |
         <TRANSLATE> { s = span(); }
         <LPAREN>
