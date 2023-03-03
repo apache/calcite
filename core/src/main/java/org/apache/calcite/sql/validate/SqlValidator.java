@@ -656,6 +656,15 @@ public interface SqlValidator {
   SqlValidatorScope getOrderScope(SqlSelect select);
 
   /**
+   * Returns the scope that should be used when converting the create table
+   * sub query/table reference.
+   *
+   * @param createTable CREATE TABLE statement
+   * @return scope used for the sub query/table reference.
+   */
+  SqlValidatorScope getCreateTableScope(SqlCreateTable createTable);
+
+  /**
    * Returns a scope match recognize clause.
    *
    * @param node Match recognize

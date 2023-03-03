@@ -1169,6 +1169,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return scopes.get(select);
   }
 
+  @Override public SqlValidatorScope getCreateTableScope(SqlCreateTable createTable) {
+    return requireNonNull(scopes.get(createTable));
+  }
+
   @Override public SqlValidatorScope getOrderScope(SqlSelect select) {
     return getScope(select, Clause.ORDER);
   }
@@ -2904,6 +2908,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     } else {
       throw newValidationError(createTable, RESOURCE.createTableRequiresAsQuery());
     }
+    // Store the scope of the create table node itself.
+    // This will be used later during validation to resolve table aliases and/or
+    // the associated sub query.
+    // Since the create table node is always the topmost node, I believe that the usingScope
+    // should always be null, but better to be overly defensive.
+    scopes.put(createTable, (usingScope != null) ? usingScope : parentScope);
   }
 
   /**
@@ -5445,29 +5455,30 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throw newValidationError(createTable, RESOURCE.createTableRequiresAsQuery());
     }
 
-    final SqlValidatorScope queryScope = requireNonNull(scopes.get(queryNode));
-
     //Note, this can either a row expression or a query expression with an optional ORDER BY
-    if (queryNode instanceof SqlSelect) {
-      final SqlSelect sqlSelect = (SqlSelect) queryNode;
-      validateSelect(sqlSelect, unknownType);
-    } else {
-      validateQuery(queryNode, queryScope, unknownType);
-    }
+    //We're not currently handling the row expression case.
 
-    final SqlValidatorNamespace queryNS = getNamespaceOrThrow(queryNode);
-    final DdlNamespace createTableNS = (DdlNamespace) getNamespaceOrThrow(createTable);
+    SqlValidatorScope createTableScope = this.getCreateTableScope(createTable);
+    // In order to be sufficiently general to the input of Create table,
+    // We have to validate this expression in the overall scope of the create table node,
+    // Since the associated query node
+    // doesn't necessarily have to be a select (notably, validaSelect doesn't work if the query has
+    // any 'with' clauses)
+    // Note that we also can't use validateScopedExpression, as this can rewrite the sqlNode
+    // via a call to performUnconditionalRewrites, which should have already been done by the time
+    // that we reach this points, and calling performUnconditionalRewrites twice is likely invalid.
+    queryNode.validate(this, createTableScope);
+    // (Note: for create table LIKE (WIP) if queryNode is identifier, we may need additional work to
+    // properly validate)
 
-    //Row type of the overall create statement should be the same as that of the underlying query
-    assert queryNS.getRowType().equals(createTableNS.getRowType());
 
     final SqlIdentifier tableNameNode = createTable.getName();
     final List<String> names = tableNameNode.names;
 
+    //Create an empty resolve to accumulate the results
     final SqlValidatorScope.ResolvedImpl resolved = new SqlValidatorScope.ResolvedImpl();
-    CatalogScope temp = (CatalogScope) ((SelectScope) queryScope).parent;
 
-    temp.resolveSchema(
+    createTableScope.resolveSchema(
         Util.skipLast(names), //Skip the last name element (the table name)
         this.catalogReader.nameMatcher(),
         SqlValidatorScope.Path.EMPTY,
