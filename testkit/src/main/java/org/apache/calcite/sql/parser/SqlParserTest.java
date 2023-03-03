@@ -4891,6 +4891,10 @@ public class SqlParserTest {
   @Test void testPosition() {
     expr("posiTion('mouse' in 'house')")
         .ok("POSITION('mouse' IN 'house')");
+    expr("posiTion('ball', 'ballroom')")
+        .ok("POSITION('ball' IN 'ballroom')");
+    expr("posiTion('ball', 'roomball', 4)")
+        .ok("POSITION('ball' IN 'roomball' FROM 4)");
   }
 
   @Test void testReplace() {

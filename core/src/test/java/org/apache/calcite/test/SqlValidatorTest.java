@@ -882,7 +882,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("position(x'11' in x'100110')").ok();
     expr("position(x'11' in x'100110' FROM 10)").ok();
     expr("position(x'abcd' in x'')").ok();
+    expr("position('mouse','house')").ok();
+    expr("position(x'11', x'100110')").ok();
+    expr("position(x'11', x'100110', 10)").ok();
+    expr("position(x'abcd', x'')").ok();
     expr("position('mouse' in 'house')")
+        .columnType("INTEGER NOT NULL");
+    expr("position(x'11', x'100110', 10)")
         .columnType("INTEGER NOT NULL");
     wholeExpr("position(x'1234' in '110')")
         .fails("Parameters must be of the same type");

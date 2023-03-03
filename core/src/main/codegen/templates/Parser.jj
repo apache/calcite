@@ -6183,12 +6183,21 @@ SqlNode BuiltinFunctionCall() :
         // Expression(ExprContext.ACCEPT_SUB_QUERY), but that doesn't work
         // because it matches the other kind of IN.
         e = AtomicRowExpression() { args = startList(e); }
-        <IN>
-        e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e);}
-        [
-            <FROM>
-            e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e); }
-        ]
+        (
+            <IN>
+            e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e);}
+            [
+                <FROM>
+                e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e); }
+            ]
+        |
+            <COMMA>
+            e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e);}
+            [
+                <COMMA>
+                e = Expression(ExprContext.ACCEPT_SUB_QUERY) { args.add(e); }
+            ]
+        )
         <RPAREN> {
             return SqlStdOperatorTable.POSITION.createCall(s.end(this), args);
         }
