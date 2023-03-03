@@ -371,6 +371,30 @@ SELECT EXTRACT(DAY FROM DATE '2013-12-25') AS the_day;
 
 !ok
 
+SELECT
+  EXTRACT(DAYOFWEEK FROM DATE '2008-12-25') as day_of_week,
+  EXTRACT(DOW FROM DATE '2008-12-25') as dow;
++-------------+-----+
+| day_of_week | dow |
++-------------+-----+
+|           5 |   5 |
++-------------+-----+
+(1 row)
+
+!ok
+
+SELECT
+  EXTRACT(DAYOFYEAR FROM DATE '2008-12-25') as day_of_year,
+  EXTRACT(DOY FROM DATE '2008-12-25') as doy;
++-------------+-----+
+| day_of_year | doy |
++-------------+-----+
+|         360 | 360 |
++-------------+-----+
+(1 row)
+
+!ok
+
 # In the following example, EXTRACT returns values corresponding to
 # different date parts from a column of dates near the end of the
 # year.

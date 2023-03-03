@@ -5126,6 +5126,8 @@ SqlIntervalQualifier TimeUnit() : {
 |   <MINUTE> { return new SqlIntervalQualifier(TimeUnit.MINUTE, null, getPos()); }
 |   <HOUR> { return new SqlIntervalQualifier(TimeUnit.HOUR, null, getPos()); }
 |   <DAY> { return new SqlIntervalQualifier(TimeUnit.DAY, null, getPos()); }
+|   <DAYOFWEEK> { return new SqlIntervalQualifier(TimeUnit.DOW, null, getPos()); }
+|   <DAYOFYEAR> { return new SqlIntervalQualifier(TimeUnit.DOY, null, getPos()); }
 |   <DOW> { return new SqlIntervalQualifier(TimeUnit.DOW, null, getPos()); }
 |   <DOY> { return new SqlIntervalQualifier(TimeUnit.DOY, null, getPos()); }
 |   <ISODOW> { return new SqlIntervalQualifier(TimeUnit.ISODOW, null, getPos()); }
@@ -7263,6 +7265,8 @@ SqlIdentifier ReservedFunctionName() :
     |   <CURRENT_DATE>
     |   <CURRENT_TIME>
     |   <CURRENT_TIMESTAMP>
+    |   <DAYOFWEEK>
+    |   <DAYOFYEAR>
     |   <DENSE_RANK>
     |   <ELEMENT>
     |   <EVERY>
@@ -7784,6 +7788,8 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < DATETIME_INTERVAL_PRECISION: "DATETIME_INTERVAL_PRECISION" >
 |   < DATE_DIFF: "DATE_DIFF" >
 |   < DAY: "DAY" >
+|   < DAYOFWEEK: "DAYOFWEEK" >
+|   < DAYOFYEAR: "DAYOFYEAR" >
 |   < DAYS: "DAYS" >
 |   < DEALLOCATE: "DEALLOCATE" >
 |   < DEC: "DEC" >
