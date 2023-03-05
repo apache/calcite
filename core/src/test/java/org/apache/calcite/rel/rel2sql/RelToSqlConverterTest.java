@@ -902,13 +902,20 @@ class RelToSqlConverterTest {
     // The expected string should deliberately have a subquery to handle a scenario in which
     // the projection field has an alias with the same name as that of the field used in the
     // ORDER BY
-    String expectedString = ""
+    String expectedSql1 = ""
         + "SELECT \"EMPNO\"\n"
         + "FROM (SELECT UPPER(\"ENAME\") AS \"EMPNO\", \"EMPNO\" AS \"EMPNO0\"\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "ORDER BY 2) AS \"t0\"";
-
-    assertThat(toSql(base), isLinux(expectedString));
+    String actualSql1 = toSql(base);
+    assertThat(actualSql1, isLinux(expectedSql1));
+    // SqlConformance#isSortByAlias is false for Spark.
+    String actualSql2 = toSql(base, DatabaseProduct.SPARK.getDialect());
+    String expectedSql2 = "SELECT EMPNO\n"
+        + "FROM (SELECT UPPER(ENAME) EMPNO, EMPNO EMPNO0\n"
+        + "FROM scott.EMP\n"
+        + "ORDER BY 2 NULLS LAST) t0";
+    assertThat(actualSql2, isLinux(expectedSql2));
   }
 
   @Test void testSortWithAnExpressionNotInTheProjectionThatRefersToUnderlyingFieldWithSameAlias() {
@@ -932,13 +939,20 @@ class RelToSqlConverterTest {
     // "SELECT UPPER(\"ENAME\") AS \"EMPNO\"\nFROM \"scott\".\"EMP\"\nORDER BY \"EMPNO\" + 1"
     // would be incorrect since the rel is sorting by the field \"EMPNO\" + 1 in which EMPNO
     // refers to the physical column EMPNO and not the alias
-    String expectedString = ""
+    String actualSql1 = toSql(base);
+    String expectedSql1 = ""
         + "SELECT \"EMPNO\"\n"
         + "FROM (SELECT UPPER(\"ENAME\") AS \"EMPNO\", \"EMPNO\" + 1 AS \"$f1\"\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "ORDER BY 2) AS \"t0\"";
-
-    assertThat(toSql(base), isLinux(expectedString));
+    assertThat(actualSql1, isLinux(expectedSql1));
+    // SqlConformance#isSortByAlias is false for Spark.
+    String actualSql2 = toSql(base, DatabaseProduct.SPARK.getDialect());
+    String expectedSql2 = "SELECT EMPNO\n"
+        + "FROM (SELECT UPPER(ENAME) EMPNO, EMPNO + 1 $f1\n"
+        + "FROM scott.EMP\n"
+        + "ORDER BY 2 NULLS LAST) t0";
+    assertThat(actualSql2, isLinux(expectedSql2));
   }
 
   @Test void testSelectQueryWithMinAggregateFunction() {
