@@ -891,8 +891,7 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(
             builder.alias(
-                builder.call(SqlStdOperatorTable.UPPER, builder.field("ENAME")), "EMPNO"
-            ),
+                builder.call(SqlStdOperatorTable.UPPER, builder.field("ENAME")), "EMPNO"),
             builder.field("EMPNO")
         )
         .sort(1)
@@ -924,8 +923,7 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(
             builder.alias(
-                builder.call(SqlStdOperatorTable.UPPER, builder.field("ENAME")), "EMPNO"
-            ),
+                builder.call(SqlStdOperatorTable.UPPER, builder.field("ENAME")), "EMPNO"),
             builder.call(
                 SqlStdOperatorTable.PLUS, builder.field("EMPNO"),
                 builder.literal(1)
