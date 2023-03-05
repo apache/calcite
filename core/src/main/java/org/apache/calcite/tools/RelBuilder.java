@@ -3889,10 +3889,13 @@ public class RelBuilder {
    * @throws IllegalArgumentException if the {@link CorrelationId} is used by left side or if the a
    *   {@link CorrelationId} is present and the {@link JoinRelType} is FULL or RIGHT.
    */
-  private static boolean checkIfCorrelated(Set<CorrelationId> variablesSet,
+  private boolean checkIfCorrelated(Set<CorrelationId> variablesSet,
       JoinRelType joinType, RelNode leftNode, RelNode rightRel) {
     if (variablesSet.size() != 1) {
       return false;
+    }
+    if (!config.convertCorrelateToJoin()) {
+      return true;
     }
     CorrelationId id = Iterables.getOnlyElement(variablesSet);
     if (!RelOptUtil.notContainsCorrelation(leftNode, id, Litmus.IGNORE)) {
@@ -4688,6 +4691,14 @@ public class RelBuilder {
 
     /** Sets {@link #aggregateUnique()}. */
     Config withAggregateUnique(boolean aggregateUnique);
+
+    /** Whether to convert Correlate to Join if correlation variable is unused. */
+    @Value.Default default boolean convertCorrelateToJoin() {
+      return true;
+    }
+
+    /** Sets {@link #convertCorrelateToJoin()}. */
+    Config withConvertCorrelateToJoin(boolean convertCorrelateToJoin);
   }
 
 }
