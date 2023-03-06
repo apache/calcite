@@ -337,8 +337,19 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     for (RelNode input : inputs) {
       fieldCnt += input.getRowType().getFieldCount();
       if (fieldCnt > fieldIdx) {
-        return getNewForOldRel(input).getRowType().getFieldList().size()
-            == input.getRowType().getFieldList().size();
+        List<RelDataTypeField> newTypeFields = getNewForOldRel(input).getRowType().getFieldList();
+        List<RelDataTypeField> inputTypeFields = input.getRowType().getFieldList();
+        if (newTypeFields.size() != inputTypeFields.size()) {
+          return false;
+        }
+        // Ensure single field nested structs aren't flattened
+        for (int i = 0; i < newTypeFields.size(); ++i) {
+          if (newTypeFields.get(i).getType().isStruct()
+              != inputTypeFields.get(i).getType().isStruct()) {
+            return false;
+          }
+        }
+        return true;
       }
     }
     return false;

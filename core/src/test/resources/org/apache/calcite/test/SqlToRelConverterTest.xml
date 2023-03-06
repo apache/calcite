@@ -4779,6 +4779,20 @@ LogicalProject(EXPR$0=[$2.OTHERS.A])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNestedStructSingleFieldAccessWhere">
+    <Resource name="sql">
+      <![CDATA[select dn.skill
+from sales.dept_single dn WHERE dn.skill.type = '']]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(SKILL=[ROW($0)])
+  LogicalFilter(condition=[=($0, '')])
+    LogicalProject(TYPE=[$0.TYPE])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT_SINGLE]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNotCaseInMoreClause">
     <Resource name="sql">
       <![CDATA[select empno from emp where not case when true then deptno in (10,20) when false then false else deptno in (30,40) end]]>

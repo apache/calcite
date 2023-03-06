@@ -68,6 +68,9 @@ final class Fixture extends AbstractFixture {
               .build())
       .kind(StructKind.PEEK_FIELDS_NO_EXPAND)
       .build();
+  final RelDataType singleRecordType = typeFactory.builder()
+      .add("TYPE", varchar10Type)
+      .build();
   final RelDataType abRecordType = typeFactory.builder()
       .add("A", varchar10Type)
       .add("B", varchar10Type)
