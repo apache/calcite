@@ -3715,6 +3715,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testNestedStructSingleFieldAccessWhere() {
+    final String sql = "select dn.skill\n"
+        + "from sales.dept_single dn WHERE dn.skill.type = ''";
+    sql(sql).ok();
+  }
+
   @Test void testFunctionWithStructInput() {
     final String sql = "select json_type(skill)\n"
         + "from sales.dept_nested";

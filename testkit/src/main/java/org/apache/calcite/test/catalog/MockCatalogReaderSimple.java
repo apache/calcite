@@ -158,6 +158,12 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     deptTable.addColumn("NAME", fixture.varchar10Type);
     registerTable(deptTable);
 
+    // Register "DEPT_SINGLE" table.
+    MockTable deptSingleTable =
+        MockTable.create(this, salesSchema, "DEPT_SINGLE", false, 4);
+    deptSingleTable.addColumn("SKILL", fixture.singleRecordType);
+    registerTable(deptSingleTable);
+
     // Register "DEPT_NESTED" table.
     MockTable deptNestedTable =
         MockTable.create(this, salesSchema, "DEPT_NESTED", false, 4);
@@ -291,13 +297,10 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     registerTable(suppliersTable);
 
     // Register "EMP_20" and "EMPNULLABLES_20 views.
-    // Same columns as "EMP" amd "EMPNULLABLES",
-    // but "DEPTNO" not visible and set to 20 by default
-    // and "SAL" is visible but must be greater than 1000,
-    // which is the equivalent of:
+    // Same columns as "EMP" amd "EMPNULLABLES", but "DEPTNO" not visible and set to 20 by default
+    // and "SAL" is visible but must be greater than 1000, which is the equivalent of:
     //   SELECT EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, SLACKER
-    //   FROM EMP
-    //   WHERE DEPTNO = 20 AND SAL > 1000
+    //   FROM EMP WHERE DEPTNO = 20 AND SAL > 1000
     final ImmutableIntList m0 = ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 8);
     MockTable emp20View =
         new MockViewTable(this, salesSchema.getCatalogName(), salesSchema.getName(),
@@ -412,12 +415,8 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     registerTable(structNullableTypeTable);
 
     // Register "STRUCT.T_10" view.
-    // Same columns as "STRUCT.T",
-    // but "F0.C0" is set to 10 by default,
-    // which is the equivalent of:
-    //   SELECT *
-    //   FROM T
-    //   WHERE F0.C0 = 10
+    // Same columns as "STRUCT.T", but "F0.C0" is set to 10 by default, which is the equivalent of:
+    //   SELECT * FROM T WHERE F0.C0 = 10
     // This table uses MockViewTable which does not populate the constrained columns with default
     // values on INSERT.
     final ImmutableIntList m1 = ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 7, 8);
