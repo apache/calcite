@@ -31,17 +31,21 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 
 import java.text.Collator;
+import java.util.List;
 import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -64,7 +68,7 @@ public class SqlConvertMssqlFunction extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
 
   public SqlConvertMssqlFunction() {
-    super("CONVERT",
+    super("MSCONVERT",
         SqlKind.CAST,
         null,
         InferTypes.FIRST_KNOWN,
@@ -94,27 +98,7 @@ public class SqlConvertMssqlFunction extends SqlFunction {
   */
 
   @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.between(2,3);
-  }
-
-  @Override public boolean checkOperandTypes(
-      SqlCallBinding callBinding,
-      boolean throwOnFailure) {
-
-    // check if style code is actually an integer
-    if (callBinding.getOperandCount() == 3) {
-      SqlNode styleCode = callBinding.operand(2);
-      RelDataType styleCodeType =
-          callBinding.getValidator().getValidatedNodeType(styleCode);
-
-      if (SqlTypeUtil.isIntType(styleCodeType)) {
-        return false;
-      }
-    }
-
-    // for first two, delegate to CAST
-    SqlCallBinding reordered = getReorderedCallBinding(callBinding);
-    return SqlStdOperatorTable.CAST.checkOperandTypes(reordered, throwOnFailure);
+    return SqlOperandCountRanges.between(2, 3);
   }
 
   /* CONVERT is a normal function
@@ -141,9 +125,19 @@ public class SqlConvertMssqlFunction extends SqlFunction {
   }
   */
 
-  @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
-    SqlCallBinding reordered = getReorderedCallBinding((SqlCallBinding) call);
-    return SqlStdOperatorTable.CAST.getMonotonicity(reordered);
+
+  @Override public SqlNode rewriteCall(final SqlValidator validator, final SqlCall call) {
+    final List<SqlNode> operands = call.getOperandList();
+
+    if (operands.size() != 2 && operands.size() != 3 ) {
+      // invalidArgCount accepts int only, so picked 2 to show how many min args needed
+      throw validator.newValidationError(call, RESOURCE.invalidArgCount(getName(), 2));
+    }
+
+    SqlParserPos pos = call.getParserPosition();
+    return SqlStdOperatorTable.CAST.createCall(pos,
+        call.operand(1),
+        call.operand(0));
   }
 
   /**
@@ -158,10 +152,8 @@ public class SqlConvertMssqlFunction extends SqlFunction {
         callBinding.operand(1), callBinding.operand(0)
     );
 
-    SqlCallBinding reorderedCallBinding = new SqlCallBinding(
+    return new SqlCallBinding(
         callBinding.getValidator(), callBinding.getScope(), reorderedCall
     );
-
-    return reorderedCallBinding;
   }
 }
