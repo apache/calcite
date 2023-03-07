@@ -295,6 +295,7 @@ public class RelSubset extends AbstractRelNode {
         // see usage of this method in propagateCostImprovements0()
         if (rel == this) {
           list.add(parent);
+          break;
         }
       }
     }
@@ -311,6 +312,7 @@ public class RelSubset extends AbstractRelNode {
       for (RelSubset rel : inputSubsets(parent)) {
         if (rel.set == set && rel.getTraitSet().equals(traitSet)) {
           list.add(planner.getSubsetNonNull(parent));
+          break;
         }
       }
     }
