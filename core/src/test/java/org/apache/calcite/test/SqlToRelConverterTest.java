@@ -695,6 +695,20 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     fixture.withSql(sql).ok();
   }
 
+  @Test void testHavingNonAggregate() {
+    // tests that we can have a having clause in the case that we have no aggregates in the select
+    final String sql = "select empno from emp having empno > 10";
+    sql(sql).ok();
+  }
+
+
+  @Test void testHavingAndWhereNonAggregate() {
+    // tests that we can have a having clause and a where clause, that the two
+    // are properly AND'd together
+    final String sql = "select empno from emp WHERE empno < 20 having empno > 10";
+    sql(sql).ok();
+  }
+
   @Test void testQualifyWithAlias() {
     // test qualify on a simple clause, that contains an alias
     final String sql = "select empno, ROW_NUMBER() over (PARTITION BY deptno ORDER BY sal)\n"
@@ -2160,6 +2174,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "join dept as d using (deptno)\n"
         + "where e.sal in (\n"
         + "  select e2.sal from emp as e2 where e2.deptno > e.deptno)";
+    sql(sql).withExpand(false).ok();
+  }
+
+  @Test void testNonAggregateHavingInCorrelated() {
+    //Tests that non-aggregate Having is identical to WHERE in this case
+    final String sql = "select empno from emp as e\n"
+        + "join dept as d using (deptno)\n"
+        + "having e.sal in (\n"
+        + "  select e2.sal from emp as e2 having e2.deptno > e.deptno)";
     sql(sql).withExpand(false).ok();
   }
 

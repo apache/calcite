@@ -2738,6 +2738,18 @@ LogicalProject(DEPTNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testHavingAndWhereNonAggregate">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[AND(<($0, 20), >($0, 10))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select empno from emp WHERE empno < 20 having empno > 10]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testHavingInSubQueryWithAggrFunction">
     <Resource name="sql">
       <![CDATA[select sal
@@ -2763,6 +2775,18 @@ LogicalProject(SAL=[$0])
             LogicalProject(DEPTNO=[$0])
               LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testHavingNonAggregate">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[>($0, 10)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select empno from emp having empno > 10]]>
     </Resource>
   </TestCase>
   <TestCase name="testHopTable">
@@ -6028,6 +6052,27 @@ from sales.dept_nested dn]]>
 LogicalProject(EXPR$0=[$2.OTHERS.A])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
 ]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNonAggregateHavingInCorrelated">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalFilter(condition=[IN($5, {
+LogicalProject(SAL=[$5])
+  LogicalFilter(condition=[>($7, $cor0.DEPTNO)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})], variablesSet=[[$cor0]])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[select empno from emp as e
+join dept as d using (deptno)
+having e.sal in (
+  select e2.sal from emp as e2 having e2.deptno > e.deptno)]]>
     </Resource>
   </TestCase>
   <TestCase name="testNotCaseInMoreClause">

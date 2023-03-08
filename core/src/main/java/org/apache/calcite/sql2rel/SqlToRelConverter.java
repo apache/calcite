@@ -685,6 +685,25 @@ public class SqlToRelConverter {
     return new Blackboard(scope, nameToNodeMap, top);
   }
 
+  private void handleNonAggregateHavingReWrite(SqlSelect select) {
+    // Re-writes the having as a part of the WHERE clause now, in the case that
+    // we have a non-aggregate select.
+    SqlNode whereClause = select.getWhere();
+    SqlNode havingClause = select.getHaving();
+    if (havingClause != null && !validator().isAggregate(select)) {
+      if (whereClause != null) {
+        //If we have a where clause, AND the two together (this is the expected behavior in SF)
+        //Note that we've already validated the WHERE clause. Since we've validated both of the
+        //individual clauses, we don't need to do any additional
+        //validation of the AND of the two expressions.
+        havingClause = SqlStdOperatorTable.AND.createCall(
+            SqlNodeList.of(whereClause, havingClause));
+      }
+      select.setHaving(null);
+      select.setWhere(havingClause);
+    }
+  }
+
   /**
    * Implementation of {@link #convertSelect(SqlSelect, boolean)};
    * derived class may override.
@@ -692,6 +711,13 @@ public class SqlToRelConverter {
   protected void convertSelectImpl(
       final Blackboard bb,
       SqlSelect select) {
+
+    // We handle the rewrite here, since we've already verified the having and/or thrown
+    // an error in the case that it's invalid, and we no longer need to know what expressions
+    // originated from what clauses.
+    // Doing this rewrite prior to anything else simplifies the rest of the SqlToRel conversion
+    handleNonAggregateHavingReWrite(select);
+
     convertFrom(
         bb,
         select.getFrom());

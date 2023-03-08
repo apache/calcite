@@ -3413,10 +3413,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (node != null) {
       return node;
     }
+
+    // Bodo change: we allow having in non-aggregate clauses. (where it is equivalent to a
+    // WHERE clause).
+    // Note that we still require the having to behave as normal in the
+    // case that we encounter an aggregate in the having clause itself
     node = select.getHaving();
-    if (node != null) {
+    if (node != null && aggFinder.findAgg(node) != null) {
       return node;
     }
+
     return getAgg(select);
   }
 
@@ -3767,7 +3773,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       condition = getCondition(join);
 
 
-      validateWhereOrOn(joinScope, condition, "ON");
+      validateWhereOrOnOrNonAggregateHaving(joinScope, condition, "ON");
       checkRollUp(null, join, condition, joinScope, "ON");
       break;
     case USING:
@@ -3974,6 +3980,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     } else {
       validateFrom(select.getFrom(), fromType, fromScope);
     }
+
 
     validateWhereClause(select);
     validateGroupClause(select);
@@ -4665,10 +4672,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlNode expandedWhere = expandWithAlias(where, whereScope, select,
         ExtendedExpanderExprType.whereExpr);
     select.setWhere(expandedWhere);
-    validateWhereOrOn(whereScope, expandedWhere, "WHERE");
+    validateWhereOrOnOrNonAggregateHaving(whereScope, expandedWhere, "WHERE");
   }
 
-  protected void validateWhereOrOn(
+  protected void validateWhereOrOnOrNonAggregateHaving(
       SqlValidatorScope scope,
       SqlNode condition,
       String clause) {
@@ -4686,16 +4693,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   protected void validateHavingClause(SqlSelect select) {
-    // HAVING is validated in the scope after groups have been created.
-    // For example, in "SELECT empno FROM emp WHERE empno = 10 GROUP BY
-    // deptno HAVING empno = 10", the reference to 'empno' in the HAVING
-    // clause is illegal.
     SqlNode having = select.getHaving();
     if (having == null) {
       return;
     }
-    // If we have an HAVING clause, the select scope must be an aggregating scope,
-    // so the cast is safe
+
+    // If we have an HAVING clause, the select scope can either be an aggregating scope,
+    // or a non-aggregate scope, with both having different validation paths.
+    if (isAggregate(select)) {
+      validateAggregateHavingClause(select, having);
+    } else {
+      validateNonAggregateHavingClause(select, having);
+    }
+
+  }
+
+  protected void validateAggregateHavingClause(SqlSelect select, SqlNode having) {
+    // In the case that we're handling an aggregate select,
+    // HAVING is validated in the scope after groups have been created.
+    // For example, in "SELECT empno FROM emp WHERE empno = 10 GROUP BY
+    // deptno HAVING empno = 10", the reference to 'empno' in the HAVING
+    // clause is illegal.
+
     final AggregatingScope havingScope =
         (AggregatingScope) getSelectScope(select);
     if (config.conformance().isHavingAlias()) {
@@ -4721,6 +4740,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throw newValidationError(having, RESOURCE.havingMustBeBoolean());
     }
   }
+
+  protected void validateNonAggregateHavingClause(SqlSelect select, SqlNode having) {
+    // In the case that we're handling a non-aggregate select,
+    // HAVING is semantically equivalent to a WHERE expression
+
+    final SqlValidatorScope havingScope = getSelectScope(select);
+    SqlNode expandedHaving = expandWithAlias(having, havingScope, select,
+        ExtendedExpanderExprType.whereExpr);
+    validateWhereOrOnOrNonAggregateHaving(havingScope, expandedHaving, "HAVING");
+    select.setHaving(expandedHaving);
+  }
+
   protected void validateQualifyClause(SqlSelect select) {
     SqlNode qualify = select.getQualify();
     if (qualify == null) {
