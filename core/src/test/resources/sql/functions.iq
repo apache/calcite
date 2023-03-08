@@ -276,8 +276,28 @@ select CONVERT(INTEGER, 45.4, 121, 99999);
 parse failed: Encountered ","
 !error
 
+# since 'style' operand is ignored, usual behaviour of returning NULL with NULL style is not present
+select CONVERT(INTEGER, 5, NULL);
++--------+
+| EXPR$0 |
++--------+
+|      5 |
++--------+
+(1 row)
+
+!ok
+
+select CONVERT(INTEGER, NULL, NULL);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
 # below not executed due to huge stack trace quidem insists on generating
-# and !if doesn't seem to work?
 # unsupported format test for documentation (dd/mm/yyyy) (need MSSQL "style" operand support in enumerable)
 # however CONVERT right now is simply a wrapper around CAST
 # select CONVERT(DATE, '05/01/2000', 103);
