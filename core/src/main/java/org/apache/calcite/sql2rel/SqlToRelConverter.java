@@ -1371,7 +1371,8 @@ public class SqlToRelConverter {
         for (int i = 0; i < leftKeys.size(); i++) {
           RexNode lhsNode = leftKeys.get(i);
           RexNode rhsNode = this.rexBuilder.makeInputRef(
-              rhsFields.getType().getFieldList().get(i).getType(), outputStartingIdx);
+              rhsFields.getType().getFieldList().get(i).getType(),
+              outputStartingIdx + i);
 
           equalityConditions.add(
               this.getRexBuilder().makeCall(
@@ -3473,6 +3474,30 @@ public class SqlToRelConverter {
         }
 
         old_right_rel_count = cur_right_rel_count;
+
+        // NOTE: we know for a fact that whenever handling scalar sub queries, the output will
+        // be a RexRangeRef with an input of 1 (It's commented in the original code in
+        // convertExpression). Therefore, this should be stable for all scalar sub queries.
+        // However, this will need to be revisited if/when we get around to handling all of
+        // possible conditions (see https://bodo.atlassian.net/browse/BE-4307)
+        RexNode oldNodeExpr = node.expr;
+        if (oldNodeExpr instanceof RexRangeRef) {
+          // Because the blackboard that we pass to substituteSubQuery has no
+          // root node, the returned rangeRefs will always point towards index 0.
+          // To handle this, we create a temporary join in order to update the rangeReference
+          // to the appropriate type/offset
+          final RelNode joinRel = createJoin(
+              bb,
+              leftRel,
+              curRightRel,
+              this.rexBuilder.makeLiteral(true),
+              convertJoinType(join.getJoinType()));
+          node.expr = this.rexBuilder.makeRangeReference(joinRel.getRowType(),
+              0, //Note, this offset is 0 because the conversion when substituting the
+                       //uses the length of the type + this offset to create the appropriate
+                       //input refs
+              oldNodeExpr.getType().isNullable());
+        }
         bb.setRoot(ImmutableList.of(leftRel, curRightRel));
       }
     }
