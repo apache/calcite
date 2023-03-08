@@ -2636,6 +2636,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | o | CONCAT(string, string)                         | Concatenates two strings
 | b m p | CONCAT(string [, string ]*)                | Concatenates two or more strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string.
+| q | CONVERT (data_type[ ( length ) ] , expression [ , style ]) | In MSSQL, a function very similar to `CAST` with optional style operand. In Calcite implementation, however, it's simply a wrapper around CAST which parses, but ultimately ignores "style" argument.
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
 | b | CURRENT_DATETIME([ timeZone ])                 | Returns the current time as a TIMESTAMP from *timezone*
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
