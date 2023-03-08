@@ -1713,6 +1713,25 @@ public class SqlParserTest {
         .fails("(?s).*Encountered \"without\" at line 1, column 23.\n.*");
   }
 
+  /** Test for MSSQL CONVERT parsing, with focus on iffy DATE type and
+   * testing that the extra "style" operand is parsed
+   * Other tests aredefined in functions.iq
+   */
+  @Test void testMssqlConvert() {
+    expr("CONVERT(VARCHAR(5), 'xx')")
+        .same();
+    expr("CONVERT(VARCHAR(5), 'xx')")
+        .same();
+    expr("CONVERT(VARCHAR(5), NULL)")
+        .same();
+    expr("CONVERT(VARCHAR(5), NULL, NULL)")
+        .same();
+    expr("CONVERT(DATE, 'xx', 121)")
+        .same();
+    expr("CONVERT(DATE, 'xx')")
+        .same();
+  }
+
   @Test void testLikeAndSimilar() {
     sql("select * from t where x like '%abc%'")
         .ok("SELECT *\n"

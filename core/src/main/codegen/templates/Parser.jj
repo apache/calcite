@@ -6032,7 +6032,7 @@ SqlNode BuiltinFunctionCall() :
             return SqlStdOperatorTable.POSITION.createCall(s.end(this), args);
         }
     |
-        LOOKAHEAD(3) // Prevent conflict with mssql convert
+        LOOKAHEAD(4) // Prevent conflict with mssql convert
         <CONVERT> { s = span(); }
         <LPAREN>
         AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
