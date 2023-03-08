@@ -179,8 +179,7 @@ public class SqlUpdate extends SqlCall {
 
   /**
    * @return the single or multiple sources used by update statement to
-   * update its target table.
-   * This  also updates
+   * This update target table and sources for Update Statement
    */
   private List<SqlNode> getSources() {
     List<SqlNode> sources = new ArrayList<>();
