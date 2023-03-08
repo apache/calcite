@@ -68,7 +68,7 @@ public class SqlConvertMssqlFunction extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
 
   public SqlConvertMssqlFunction() {
-    super("MSCONVERT",
+    super("CONVERT",
         SqlKind.CAST,
         null,
         InferTypes.FIRST_KNOWN,

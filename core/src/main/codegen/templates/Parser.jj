@@ -6032,28 +6032,13 @@ SqlNode BuiltinFunctionCall() :
             return SqlStdOperatorTable.POSITION.createCall(s.end(this), args);
         }
     |
+        LOOKAHEAD(3) // Prevent conflict with mssql convert
         <CONVERT> { s = span(); }
         <LPAREN>
         AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
         <USING> name = SimpleIdentifier() { args.add(name); }
         <RPAREN> {
             return SqlStdOperatorTable.CONVERT.createCall(s.end(this), args);
-        }
-    |
-        // MSSQL CONVERT
-        //LOOKAHEAD(2)
-        <CONVERT> {s = span();}
-        <LPAREN>
-        (
-          dt = DataType() { args.add(dt); }
-          |
-          <INTERVAL> e = IntervalQualifier() { args.add(e); }
-        )
-        <COMMA>
-        AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
-        [<COMMA> style = UnsignedIntLiteral() { /*args.add(style);*/ }]
-        <RPAREN> {
-          return SqlLibraryOperators.MSSQL_CONVERT.createCall(s.end(this), args);
         }
     |
         <TRANSLATE> { s = span(); }
@@ -6206,6 +6191,8 @@ SqlNode BuiltinFunctionCall() :
         node = JsonArrayAggFunctionCall() { return node; }
     |
         node = GroupByWindowingCall() { return node; }
+    |
+        node = MssqlConvertCall() { return node; }
     )
 }
 
@@ -6912,6 +6899,30 @@ SqlCall GroupByWindowingCall() :
     args = UnquantifiedFunctionParameterList(ExprContext.ACCEPT_SUB_QUERY) {
         return op.createCall(s.end(this), args);
     }
+}
+
+SqlCall MssqlConvertCall() :
+{
+    final List<SqlNode> args = new ArrayList<SqlNode>();
+    final Span s;
+    final SqlIntervalQualifier e;
+    final SqlLiteral style;
+    final SqlDataTypeSpec dt;
+}
+{
+  <CONVERT> {s = span();}
+  <LPAREN>
+  (
+    dt = DataType() { args.add(dt); }
+    |
+    <INTERVAL> e = IntervalQualifier() { args.add(e); }
+  )
+  <COMMA>
+  AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+  [<COMMA> style = UnsignedNumericLiteral() { args.add(style); }]
+  <RPAREN> {
+    return SqlLibraryOperators.MSSQL_CONVERT.createCall(s.end(this), args);
+  }
 }
 
 SqlCall MatchRecognizeFunctionCall() :
