@@ -432,6 +432,7 @@ public enum BuiltInMethod {
   RAND_INTEGER(RandomFunction.class, "randInteger", int.class),
   RAND_INTEGER_SEED(RandomFunction.class, "randIntegerSeed", int.class,
       int.class),
+  LOG(SqlFunctions.class, "log", long.class, long.class),
   TANH(SqlFunctions.class, "tanh", long.class),
   SINH(SqlFunctions.class, "sinh", long.class),
   TRUNCATE(SqlFunctions.class, "truncate", String.class, int.class),

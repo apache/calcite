@@ -731,6 +731,68 @@ Call to function 'SPLIT' with argument of type 'BINARY(2)' requires extra delimi
 !error
 
 #####################################################################
+# LN
+#
+# LN(x)
+#
+# Computes the natural logarithm of x. Generates an error if x is less than or
+# equal to zero.
+
+SELECT LN(100) as result;
++-------------------+
+| result            |
++-------------------+
+| 4.605170185988092 |
++-------------------+
+(1 row)
+
+!ok
+
+#####################################################################
+# LOG
+#
+# LOG(x, y)
+#
+# If only x is present, LOG is a synonym of LN. If y is also
+# present, LOG computes the logarithm of x to base y.
+SELECT LOG(64, 8) as result;
++--------+
+| result |
++--------+
+|    2.0 |
++--------+
+(1 row)
+
+!ok
+
+SELECT LOG(100) as result;
++-------------------+
+| result            |
++-------------------+
+| 4.605170185988092 |
++-------------------+
+(1 row)
+
+!ok
+
+#####################################################################
+# LOG10
+#
+# LOG10(x)
+#
+# Similar to LOG, but computes logarithm to base 10.
+
+SELECT LOG10(100) as result;
++--------+
+| result |
++--------+
+|    2.0 |
++--------+
+(1 row)
+
+!ok
+
+#####################################################################
 # STRING
 #
 # STRING(timestamp_expression[, time_zone])

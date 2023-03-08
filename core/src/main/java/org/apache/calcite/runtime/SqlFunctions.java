@@ -1567,28 +1567,29 @@ public class SqlFunctions {
     return Math.pow(b0.doubleValue(), b1.doubleValue());
   }
 
-  // LN
 
-  /** SQL {@code LN(number)} function applied to double values. */
-  public static double ln(double d) {
-    return Math.log(d);
+  // LN, LOG, LOG10
+
+  /** SQL {@code LOG(number, number2)} function applied to double values. */
+  public static double log(double d0, double d1) {
+    return Math.log(d0) / Math.log(d1);
   }
 
-  /** SQL {@code LN(number)} function applied to BigDecimal values. */
-  public static double ln(BigDecimal d) {
-    return Math.log(d.doubleValue());
+  /** SQL {@code LOG(number, number2)} function applied to
+   * double and BigDecimal values. */
+  public static double log(double d0, BigDecimal d1) {
+    return Math.log(d0) / Math.log(d1.doubleValue());
   }
 
-  // LOG10
-
-  /** SQL <code>LOG10(numeric)</code> operator applied to double values. */
-  public static double log10(double b0) {
-    return Math.log10(b0);
+  /** SQL {@code LOG(number, number2)} function applied to
+   * BigDecimal and double values. */
+  public static double log(BigDecimal d0, double d1) {
+    return Math.log(d0.doubleValue()) / Math.log(d1);
   }
 
-  /** SQL {@code LOG10(number)} function applied to BigDecimal values. */
-  public static double log10(BigDecimal d) {
-    return Math.log10(d.doubleValue());
+  /** SQL {@code LOG(number, number2)} function applied to double values. */
+  public static double log(BigDecimal d0, BigDecimal d1) {
+    return Math.log(d0.doubleValue()) / Math.log(d1.doubleValue());
   }
 
   // MOD

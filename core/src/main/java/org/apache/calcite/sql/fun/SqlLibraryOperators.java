@@ -1177,6 +1177,18 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
+  /** The "LOG(value [, value2])" function.
+   *
+   * @see SqlStdOperatorTable#LN
+   * @see SqlStdOperatorTable#LOG10
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction LOG =
+      SqlBasicFunction.create("LOG",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC_OPTIONAL_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction POW =
       SqlStdOperatorTable.POWER.withName("POW");

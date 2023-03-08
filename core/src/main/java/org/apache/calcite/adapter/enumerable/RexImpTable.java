@@ -153,6 +153,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_SET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_STORAGE_SIZE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_TYPE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEFT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
@@ -490,9 +491,11 @@ public class RexImpTable {
       defineMethod(MOD, "mod", NullPolicy.STRICT);
       defineMethod(EXP, "exp", NullPolicy.STRICT);
       defineMethod(POWER, "power", NullPolicy.STRICT);
-      defineMethod(LN, "ln", NullPolicy.STRICT);
-      defineMethod(LOG10, "log10", NullPolicy.STRICT);
       defineMethod(ABS, "abs", NullPolicy.STRICT);
+
+      map.put(LN, new LogImplementor());
+      map.put(LOG, new LogImplementor());
+      map.put(LOG10, new LogImplementor());
 
       map.put(RAND, new RandImplementor());
       map.put(RAND_INTEGER, new RandIntegerImplementor());
@@ -3681,6 +3684,41 @@ public class RexImpTable {
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
       return Expressions.call(BuiltInMethod.NOT.method, argValueList);
+    }
+  }
+
+  /** Implementor for the {@code LN}, {@code LOG}, and {@code LOG10} operators.
+   *
+   * <p>Handles all logarithm functions using log rules to determine the
+   * appropriate base (i.e. base e for LN).
+   */
+  private static class LogImplementor extends AbstractRexCallImplementor {
+    LogImplementor() {
+      super("log", NullPolicy.STRICT, true);
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      return Expressions.call(BuiltInMethod.LOG.method, args(call, argValueList));
+    }
+
+    private static List<Expression> args(RexCall call,
+        List<Expression> argValueList) {
+      Expression operand0 = argValueList.get(0);
+      final Expressions.FluentList<Expression> list = Expressions.list(operand0);
+      switch (call.getOperator().getName()) {
+      case "LOG":
+        if (argValueList.size() == 2) {
+          return list.append(argValueList.get(1));
+        }
+        // fall through
+      case "LN":
+        return list.append(Expressions.constant(Math.exp(1)));
+      case "LOG10":
+        return list.append(Expressions.constant(BigDecimal.TEN));
+      default:
+        throw new AssertionError("Operator not found: " + call.getOperator());
+      }
     }
   }
 
