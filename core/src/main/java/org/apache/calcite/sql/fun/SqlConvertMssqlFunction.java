@@ -45,24 +45,24 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 
 import java.text.Collator;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * SqlCastFunction. Note that the std functions are really singleton objects,
- * because they always get fetched via the StdOperatorTable. So you can't store
- * any local info in the class and hence the return type data is maintained in
- * operand[1] through the validation phase.
+ * A <i>partial</i> implementation of MSSQL CONVERT function
+ * of the form {@code CONVERT ( data_type [ ( length ) ] , expression [ , style ] )}.
+ * <ul>
+ * <b>Important notes:</b>
+ * <li>'style' parameter is ignored.</li><p>
+ * <li>This is just a wrapper around CAST, and hence acts like CAST</li>
+ * </ul>
  *
- * <p>Can be used for both {@link SqlCall} and
- * {@link org.apache.calcite.rex.RexCall}.
- * Note that the {@code SqlCall} has two operands (expression and type),
- * while the {@code RexCall} has one operand (expression) and the type is
- * obtained from {@link org.apache.calcite.rex.RexNode#getType()}.
  *
- * @see SqlCastOperator
+ * @see SqlCastFunction
  */
 public class SqlConvertMssqlFunction extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
@@ -82,7 +82,6 @@ public class SqlConvertMssqlFunction extends SqlFunction {
   // with operand idxs reordered
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     assert opBinding.getOperandCount() == 2 || opBinding.getOperandCount() == 3;
-    // TODO: Clarify with reviewers
     // guaranteed to be a SqlCallBinding
     SqlCallBinding callBinding = (SqlCallBinding) opBinding;
     SqlCallBinding reordered = getReorderedCallBinding(callBinding);
@@ -90,12 +89,6 @@ public class SqlConvertMssqlFunction extends SqlFunction {
 
   }
 
-  /* CONVERT is a normal function
-  @Override public String getSignatureTemplate(final int operandsCount) {
-    assert operandsCount == 2;
-    return "{0}({1} AS {2})";
-  }
-  */
 
   @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.between(2, 3);
@@ -136,8 +129,8 @@ public class SqlConvertMssqlFunction extends SqlFunction {
 
     SqlParserPos pos = call.getParserPosition();
     return SqlStdOperatorTable.CAST.createCall(pos,
-        call.operand(1),
-        call.operand(0));
+        operands.get(1),
+        operands.get(0));
   }
 
   /**
