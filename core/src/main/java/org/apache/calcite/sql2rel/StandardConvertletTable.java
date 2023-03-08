@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql2rel;
 
+import java.util.Arrays;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.plan.RelOptUtil;
@@ -598,7 +599,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlRexContext cx,
       final SqlCall call) {
     RelDataTypeFactory typeFactory = cx.getTypeFactory();
-    assert call.getKind() == SqlKind.CAST;
+    assert Arrays.asList(SqlKind.CAST, SqlKind.SAFE_CAST).contains(call.getKind());
     final SqlNode left = call.operand(0);
     final SqlNode right = call.operand(1);
     if (right instanceof SqlIntervalQualifier) {
@@ -708,7 +709,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       return castToValidatedType(cx, call, cx.convertExpression(left));
     }
     SqlDataTypeSpec dataType = (SqlDataTypeSpec) right;
-    RelDataType type = dataType.deriveType(cx.getValidator());
+    RelDataType type = dataType.deriveType(cx.getValidator(), true);
     if (type == null) {
       type = cx.getValidator().getValidatedNodeType(dataType.getTypeName());
     }
@@ -748,7 +749,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         type = typeFactory.createTypeWithNullability(type, isn);
       }
     }
-    return cx.getRexBuilder().makeCast(type, arg);
+    return cx.getRexBuilder().makeAbstractSafeCast(type, arg);
   }
 
   protected RexNode convertFloorCeil(SqlRexContext cx, SqlCall call) {

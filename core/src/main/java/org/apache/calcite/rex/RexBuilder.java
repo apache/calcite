@@ -35,6 +35,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MapSqlType;
@@ -805,6 +806,22 @@ public class RexBuilder {
     return new RexCall(
         type,
         SqlStdOperatorTable.CAST,
+        ImmutableList.of(exp));
+  }
+
+  /**
+   * Creates a call to the SAFE_CAST operator.
+   *
+   * @param type Type to cast to
+   * @param exp  Expression being cast
+   * @return Call to CAST operator
+   */
+  public RexNode makeAbstractSafeCast(
+      RelDataType type,
+      RexNode exp) {
+    return new RexCall(
+        type,
+        SqlLibraryOperators.SAFE_CAST,
         ImmutableList.of(exp));
   }
 

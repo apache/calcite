@@ -136,7 +136,7 @@ public class RexExecutorImpl implements RexExecutor {
 
     final RexExecutable executable = new RexExecutable(code, constExps);
     executable.setDataContext(dataContext);
-    executable.reduce(rexBuilder, constExps, reducedValues);
+    executable.reduce(rexBuilder, constExps, reducedValues, true);
   }
 
   /**

@@ -660,13 +660,22 @@ SELECT LENGTH("hello") as length;
 # SAFE_CAST(x AS type)
 #
 # Identical to CAST(), except it returns NULL instead of raising an error.
-select safe_cast(1 as int) as test;
-+------+
-| test |
-+------+
-|    1 |
-+------+
-(1 row)
+WITH Casted AS (
+  SELECT SAFE_CAST("a" as int) as casted, "null" as actual UNION ALL
+  SELECT SAFE_CAST("a" as varchar(1)), "a" UNION ALL
+  SELECT SAFE_CAST("2023-03-07" as DATE), DATE("2023-03-07")
+)
+SELECT
+  *
+FROM Casted;
++------------+------------+
+| casted     | actual     |
++------------+------------+
+| 2023-03-07 | 2023-03-07 |
+| a          | a          |
+|            | null       |
++------------+------------+
+(3 rows)
 
 !ok
 

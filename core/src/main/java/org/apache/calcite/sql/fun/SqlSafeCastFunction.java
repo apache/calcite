@@ -101,7 +101,7 @@ public class SqlSafeCastFunction extends SqlFunction {
     ret =
         opBinding.getTypeFactory().createTypeWithNullability(
             ret,
-            firstType.isNullable());
+            true);
     if (opBinding instanceof SqlCallBinding) {
       SqlCallBinding callBinding = (SqlCallBinding) opBinding;
       SqlNode operand0 = callBinding.operand(0);
@@ -145,30 +145,30 @@ public class SqlSafeCastFunction extends SqlFunction {
         callBinding.getValidator().getValidatedNodeType(left);
     RelDataType returnType = SqlTypeUtil.deriveType(callBinding, right);
     if (!SqlTypeUtil.canCastFrom(returnType, validatedNodeType, true)) {
-      if (throwOnFailure) {
-        throw callBinding.newError(
-            RESOURCE.cannotCastValue(validatedNodeType.toString(),
-                returnType.toString()));
-      }
+      // if (throwOnFailure) {
+      //   throw callBinding.newError(
+      //       RESOURCE.cannotCastValue(validatedNodeType.toString(),
+      //           returnType.toString()));
+      // }
       return false;
     }
     if (SqlTypeUtil.areCharacterSetsMismatched(
         validatedNodeType,
         returnType)) {
-      if (throwOnFailure) {
-        // Include full type string to indicate character
-        // set mismatch.
-        throw callBinding.newError(
-            RESOURCE.cannotCastValue(validatedNodeType.getFullTypeString(),
-                returnType.getFullTypeString()));
-      }
+      // if (throwOnFailure) {
+      //   // Include full type string to indicate character
+      //   // set mismatch.
+      //   throw callBinding.newError(
+      //       RESOURCE.cannotCastValue(validatedNodeType.getFullTypeString(),
+      //           returnType.getFullTypeString()));
+      // }
       return false;
     }
     return true;
   }
 
   @Override public SqlSyntax getSyntax() {
-    return SqlSyntax.SPECIAL;
+    return SqlSyntax.FUNCTION;
   }
 
   @Override public void unparse(
