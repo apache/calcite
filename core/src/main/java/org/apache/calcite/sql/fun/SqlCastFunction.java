@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 
 import java.text.Collator;
+import java.util.Arrays;
 import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -83,12 +84,25 @@ public class SqlCastFunction extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
 
   public SqlCastFunction() {
-    super("CAST",
-        SqlKind.CAST,
-        null,
-        InferTypes.FIRST_KNOWN,
-        null,
-        SqlFunctionCategory.SYSTEM);
+    this(SqlKind.CAST);
+  }
+
+  private SqlCastFunction(SqlKind kind) {
+    super(kind.toString(),
+      kind,
+      null,
+      InferTypes.FIRST_KNOWN,
+      null,
+      SqlFunctionCategory.SYSTEM);
+    assert Arrays.asList(SqlKind.CAST, SqlKind.SAFE_CAST).contains(kind);
+  }
+
+  protected SqlFunction withKind(SqlKind kind) {
+    if (this.kind == kind){
+      return this;
+    } else {
+      return new SqlCastFunction(kind);
+    }
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -101,7 +115,7 @@ public class SqlCastFunction extends SqlFunction {
     ret =
         opBinding.getTypeFactory().createTypeWithNullability(
             ret,
-            firstType.isNullable());
+            firstType.isNullable() || this.kind == SqlKind.SAFE_CAST);
     if (opBinding instanceof SqlCallBinding) {
       SqlCallBinding callBinding = (SqlCallBinding) opBinding;
       SqlNode operand0 = callBinding.operand(0);
@@ -168,7 +182,7 @@ public class SqlCastFunction extends SqlFunction {
   }
 
   @Override public SqlSyntax getSyntax() {
-    return SqlSyntax.SPECIAL;
+    return this.kind == SqlKind.CAST ? SqlSyntax.SPECIAL : SqlSyntax.FUNCTION;
   }
 
   @Override public void unparse(

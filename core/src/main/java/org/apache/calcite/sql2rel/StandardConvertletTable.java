@@ -672,7 +672,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         type = typeFactory.createTypeWithNullability(type, isn);
       }
     }
-    return cx.getRexBuilder().makeCast(type, arg, call);
+    return cx.getRexBuilder().makeCast(type, arg, call.getKind());
   }
 
   protected RexNode convertFloorCeil(SqlRexContext cx, SqlCall call) {

@@ -28,11 +28,9 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlUtil;
@@ -537,8 +535,8 @@ public class RexBuilder {
   public RexNode makeCast(
       RelDataType type,
       RexNode exp,
-      SqlCall call) {
-    return makeCast(type, exp, false, call);
+      SqlKind kind) {
+    return makeCast(type, exp, false, kind);
   }
 
   /**
@@ -639,7 +637,7 @@ public class RexBuilder {
       RelDataType type,
       RexNode exp,
       boolean matchNullability,
-      SqlNode call) {
+      SqlKind kind) {
     try {
       final SqlTypeName sqlType = type.getSqlTypeName();
       if (exp instanceof RexLiteral) {
@@ -700,10 +698,7 @@ public class RexBuilder {
           if (type.isNullable()
               && !literal2.getType().isNullable()
               && matchNullability) {
-            if (call.getKind() == SqlKind.SAFE_CAST) {
-              return makeAbstractSafeCast(type, exp);
-            }
-            return makeAbstractCast(type, literal2);
+            return makeAbstractCast(type, literal2, kind);
           }
           return literal2;
         }
@@ -717,12 +712,9 @@ public class RexBuilder {
           && SqlTypeUtil.isExactNumeric(type)) {
         return makeCastBooleanToExact(type, exp);
       }
-      if (call.getKind() == SqlKind.SAFE_CAST) {
-        return makeAbstractSafeCast(type, exp);
-      }
-      return makeAbstractCast(type, exp);
+      return makeAbstractCast(type, exp, kind);
     } catch (Error e) {
-      if (call.getKind() == SqlKind.SAFE_CAST) {
+      if (kind == SqlKind.SAFE_CAST) {
         return makeLiteral(null, type, exp.getType().getSqlTypeName());
       }
       throw e;
@@ -913,19 +905,25 @@ public class RexBuilder {
   }
 
   /**
-   * Creates a call to the SAFE_CAST operator.
+   * Creates a call to CAST or SAFE_CAST operator.
    *
    * @param type Type to cast to
    * @param exp  Expression being cast
    * @return Call to CAST operator
    */
-  public RexNode makeAbstractSafeCast(
+  public RexNode makeAbstractCast(
       RelDataType type,
-      RexNode exp) {
-    return new RexCall(
+      RexNode exp,
+      SqlKind kind) {
+    assert Arrays.asList(SqlKind.CAST, SqlKind.SAFE_CAST).contains(kind);
+    return kind == SqlKind.SAFE_CAST ? new RexCall(
         type,
         SqlLibraryOperators.SAFE_CAST,
-        ImmutableList.of(exp));
+        ImmutableList.of(exp))
+        : new RexCall(
+            type,
+            SqlStdOperatorTable.CAST,
+            ImmutableList.of(exp));
   }
 
   /**

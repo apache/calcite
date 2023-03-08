@@ -2236,6 +2236,7 @@ public class RexSimplify {
           }
       }
     } catch (Exception ex) {
+      // throwOnFailure=false implies it is a SAFE_CAST call and we should return null
       if (!throwOnFailure) {
         return new RexLiteral(null, e.getType(), e.type.getSqlTypeName());
       }
