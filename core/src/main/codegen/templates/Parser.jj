@@ -6919,7 +6919,15 @@ SqlCall MssqlConvertCall() :
   )
   <COMMA>
   AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
-  [<COMMA> style = UnsignedNumericLiteral() { args.add(style); }]
+  [
+    <COMMA>
+    (
+      style = UnsignedNumericLiteral() { args.add(style); }
+      |
+      <NULL> { args.add(SqlLiteral.createNull(getPos())); }
+    )
+
+  ]
   <RPAREN> {
     return SqlLibraryOperators.MSSQL_CONVERT.createCall(s.end(this), args);
   }
