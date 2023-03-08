@@ -25,6 +25,11 @@
   githubId: alanfgates
   org: Hortonworks
   role: PMC
+- name: Alessandro Solimando
+  apacheId: asolimando
+  githubId: asolimando
+  org: Cloudera
+  role: Committer
 - name: Aman Sinha
   apacheId: amansinha
   githubId: amansinha100
@@ -90,7 +95,7 @@
   apacheId: hyuan
   githubId: hsyuan
   org: Alibaba
-  role: PMC Chair
+  role: PMC
 - name: Hongze Zhang
   apacheId: hongze
   githubId: zhztheplayer
@@ -211,7 +216,7 @@
   apacheId: rubenql
   githubId: rubenada
   org: TIBCO
-  role: PMC
+  role: PMC Chair
 - name: Rui Wang
   apacheId: amaliujia
   githubId: amaliujia

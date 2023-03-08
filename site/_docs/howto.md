@@ -31,16 +31,16 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14 or 15)
-and Gradle (version 7.2) on your path.
+Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16 or 17)
+and Gradle (version 7.3) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
 then build using Gradle:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.28.0-src.tar.gz
-$ cd apache-calcite-1.28.0-src
+$ tar xvfz apache-calcite-1.30.0-src.tar.gz
+$ cd apache-calcite-1.30.0-src
 $ gradle build
 {% endhighlight %}
 
@@ -51,7 +51,7 @@ tests  (but you should use the `gradle` command rather than
 ## Building from Git
 
 Prerequisites are git
-and Java (JDK 8, 9, 10, 11, 12, 13, 14 or 15) on your path.
+and Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16 or 17) on your path.
 
 Create a local copy of the GitHub repository,
 `cd` to its root directory,
@@ -109,7 +109,7 @@ You can use `./gradlew assemble` to build the artifacts and skip all tests and v
 There are other options that control which tests are run, and in what
 environment, as follows.
 
-* `-Dcalcite.test.db=DB` (where db is `h2`, `hsqldb`, `mysql`, or `postgresql`) allows you
+* `-Dcalcite.test.db=DB` (where DB is `h2`, `hsqldb`, `mysql`, or `postgresql`) allows you
   to change the JDBC data source for the test suite. Calcite's test
   suite requires a JDBC data source populated with the foodmart data
   set.
@@ -605,7 +605,7 @@ must:
  * resolve the issue (do not close it as this will be done by the release
 manager);
  * select "Fixed" as resolution cause;
- * mark the appropriate version (e.g., 1.28.0) in the "Fix version" field;
+ * mark the appropriate version (e.g., 1.30.0) in the "Fix version" field;
  * add a comment (e.g., "Fixed in ...") with a hyperlink pointing to the commit
 which resolves the issue (in GitHub or GitBox), and also thank the contributor
 for their contribution.
@@ -694,8 +694,7 @@ Before you start:
 * Set up signing keys as described above.
 * Make sure you are using JDK 8 (not 9 or 10).
 * Make sure `master` branch and `site` branch are in sync, i.e. there is no commit on `site` that has not
-  been applied also to `master`.
-  This can be achieved by doing `git switch site && git rebase --empty=drop master && git switch master && git reset --hard site`.
+  been applied also to `master`. If you spot missing commits then port them to `master`.
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `site/_docs/howto.md` has the correct Gradle version.
 * Check that `NOTICE` has the current copyright year.
@@ -949,7 +948,9 @@ Add a release announcement by copying
 Generate the javadoc, and [preview](http://localhost:4000/news/) the site by following the
 instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md). Ensure the announcement,
 javadoc, and release note appear correctly and then publish the site following the instructions
-in the same file.
+in the same file. Rebase the `site` branch with `master` (e.g., `git checkout site && git rebase master`);
+at this point there shouldn't be any commits in `site` that are not in `master`, so the rebase is
+essentially a noop.
 
 In JIRA, search for
 [all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.5.0%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),

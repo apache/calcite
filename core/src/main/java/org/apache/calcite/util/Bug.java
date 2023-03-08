@@ -16,10 +16,6 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.calcite.avatica.AvaticaUtils;
-
-import java.util.Objects;
-
 /**
  * Holder for a list of constants describing which bugs which have not been
  * fixed.
@@ -204,14 +200,11 @@ public abstract class Bug {
    * Druid plans with small intervals should be chosen over full interval scan plus filter</a> is
    * fixed. */
   public static final boolean CALCITE_4213_FIXED = false;
-
   /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4877">[CALCITE-4877]
-   * Make the exception information of class not found more explicit</a> is
-   * fixed. The actual fix is in Avatica, and we don't know the precise version
-   * of Avatica, so we have to deduce whether it is fixed from Avatica's
-   * behavior. We memoize the result so that we don't generate lots of exceptions.  */
-  public static final boolean CALCITE_4877_FIXED = isCalcite4877Fixed();
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4645">[CALCITE-4645]
+   * In Elasticsearch adapter, a range predicate should be translated to a range query</a> is
+   * fixed. */
+  public static final boolean CALCITE_4645_FIXED = false;
 
   /**
    * Use this to flag temporary code.
@@ -250,21 +243,4 @@ public abstract class Bug {
     return false;
   }
 
-  private static boolean isCalcite4877Fixed() {
-    try {
-      AvaticaUtils.instantiatePlugin(Integer.class,
-          "org.apache.calcite.NonExistent");
-    } catch (RuntimeException e) {
-      // Avatica 1.19 and earlier gives
-      //   Property 'org.apache.calcite.NonExistent' not valid for plugin type
-      //   java.lang.Integer
-      // Avatica 1.20 and later gives
-      //   Property 'org.apache.calcite.NonExistent' not valid as
-      //   'org.apache.calcite.NonExistent' not found in the classpath
-      return Objects.equals(e.getMessage(),
-          "Property 'org.apache.calcite.NonExistent' not valid as "
-              + "'org.apache.calcite.NonExistent' not found in the classpath");
-    }
-    return false;
-  }
 }

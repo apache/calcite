@@ -19,6 +19,8 @@ package org.apache.calcite.rel.externalize;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationImpl;
 import org.apache.calcite.rel.RelCollations;
@@ -89,6 +91,7 @@ import static java.util.Objects.requireNonNull;
 public class RelJson {
   private final Map<String, Constructor> constructorMap = new HashMap<>();
   private final @Nullable JsonBuilder jsonBuilder;
+  private final InputTranslator inputTranslator;
 
   public static final List<String> PACKAGES =
       ImmutableList.of(
@@ -98,8 +101,24 @@ public class RelJson {
           "org.apache.calcite.adapter.jdbc.",
           "org.apache.calcite.adapter.jdbc.JdbcRules$");
 
-  public RelJson(@Nullable JsonBuilder jsonBuilder) {
+  /** Private constructor. */
+  private RelJson(@Nullable JsonBuilder jsonBuilder,
+      InputTranslator inputTranslator) {
     this.jsonBuilder = jsonBuilder;
+    this.inputTranslator = requireNonNull(inputTranslator, "inputTranslator");
+  }
+
+  /** Creates a RelJson. */
+  public RelJson(@Nullable JsonBuilder jsonBuilder) {
+    this(jsonBuilder, RelJson::translateInput);
+  }
+
+  /** Returns a RelJson with a given InputTranslator. */
+  public RelJson withInputTranslator(InputTranslator inputTranslator) {
+    if (inputTranslator == this.inputTranslator) {
+      return this;
+    }
+    return new RelJson(jsonBuilder, inputTranslator);
   }
 
   private JsonBuilder jsonBuilder() {
@@ -183,6 +202,32 @@ public class RelJson {
       }
     }
     return canonicalName;
+  }
+
+  /** Default implementation of
+   * {@link InputTranslator#translateInput(RelJson, int, Map, RelInput)}. */
+  private static RexNode translateInput(RelJson relJson, int input,
+      Map<String, @Nullable Object> map, RelInput relInput) {
+    final RelOptCluster cluster = relInput.getCluster();
+    final RexBuilder rexBuilder = cluster.getRexBuilder();
+
+    // Check if it is a local ref.
+    if (map.containsKey("type")) {
+      final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
+      final RelDataType type = relJson.toType(typeFactory, get(map, "type"));
+      return rexBuilder.makeLocalRef(type, input);
+    }
+    int i = input;
+    final List<RelNode> relNodes = relInput.getInputs();
+    for (RelNode inputNode : relNodes) {
+      final RelDataType rowType = inputNode.getRowType();
+      if (i < rowType.getFieldCount()) {
+        final RelDataTypeField field = rowType.getFieldList().get(i);
+        return rexBuilder.makeInputRef(field.getType(), input);
+      }
+      i -= rowType.getFieldCount();
+    }
+    throw new RuntimeException("input field " + input + " is out of range");
   }
 
   public Object toJson(RelCollationImpl node) {
@@ -296,6 +341,13 @@ public class RelJson {
       componentType = toType(typeFactory, component);
       return typeFactory.createArrayType(componentType, -1);
 
+    case MAP:
+      Object key = get(map, "key");
+      Object value = get(map, "value");
+      RelDataType keyType = toType(typeFactory, key);
+      RelDataType valueType = toType(typeFactory, value);
+      return typeFactory.createMapType(keyType, valueType);
+
     case MULTISET:
       component = requireNonNull(map.get("component"), "component");
       componentType = toType(typeFactory, component);
@@ -387,6 +439,14 @@ public class RelJson {
       if (node.getComponentType() != null) {
         map.put("component", toJson(node.getComponentType()));
       }
+      RelDataType keyType = node.getKeyType();
+      if (keyType != null) {
+        map.put("key", toJson(keyType));
+      }
+      RelDataType valueType = node.getValueType();
+      if (valueType != null) {
+        map.put("value", toJson(valueType));
+      }
       if (node.getSqlTypeName().allowsPrec()) {
         map.put("precision", node.getPrecision());
       }
@@ -402,7 +462,9 @@ public class RelJson {
     if (node.getType().isStruct()) {
       map = jsonBuilder().map();
       map.put("fields", toJson(node.getType()));
+      map.put("nullable", node.getType().isNullable());
     } else {
+      //noinspection unchecked
       map = (Map<String, @Nullable Object>) toJson(node.getType());
     }
     map.put("name", node.getName());
@@ -534,21 +596,21 @@ public class RelJson {
     return map;
   }
 
+  @SuppressWarnings({"rawtypes", "unchecked"})
   @PolyNull RexNode toRex(RelInput relInput, @PolyNull Object o) {
     final RelOptCluster cluster = relInput.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     if (o == null) {
       return null;
     } else if (o instanceof Map) {
-      Map map = (Map) o;
-      final Map<String, @Nullable Object> opMap = (Map) map.get("op");
+      final Map<String, @Nullable Object> map = (Map) o;
       final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
-      if (opMap != null) {
+      if (map.containsKey("op")) {
+        final Map<String, @Nullable Object> opMap = get(map, "op");
         if (map.containsKey("class")) {
-          opMap.put("class", map.get("class"));
+          opMap.put("class", get(map, "class"));
         }
-        @SuppressWarnings("unchecked")
-        final List operands = get((Map<String, Object>) map, "operands");
+        final List operands = get(map, "operands");
         final List<RexNode> rexOperands = toRexList(relInput, operands);
         final Object jsonType = map.get("type");
         final Map window = (Map) map.get("window");
@@ -602,23 +664,7 @@ public class RelJson {
       }
       final Integer input = (Integer) map.get("input");
       if (input != null) {
-        // Check if it is a local ref.
-        if (map.containsKey("type")) {
-          final RelDataType type = toType(typeFactory, map.get("type"));
-          return rexBuilder.makeLocalRef(type, input);
-        }
-
-        List<RelNode> inputNodes = relInput.getInputs();
-        int i = input;
-        for (RelNode inputNode : inputNodes) {
-          final RelDataType rowType = inputNode.getRowType();
-          if (i < rowType.getFieldCount()) {
-            final RelDataTypeField field = rowType.getFieldList().get(i);
-            return rexBuilder.makeInputRef(field.getType(), input);
-          }
-          i -= rowType.getFieldCount();
-        }
-        throw new RuntimeException("input field " + input + " is out of range");
+        return inputTranslator.translateInput(this, input, map, relInput);
       }
       final String field = (String) map.get("field");
       if (field != null) {
@@ -634,16 +680,17 @@ public class RelJson {
       }
       if (map.containsKey("literal")) {
         Object literal = map.get("literal");
-        final RelDataType type = toType(typeFactory, map.get("type"));
         if (literal == null) {
+          final RelDataType type = toType(typeFactory, get(map, "type"));
           return rexBuilder.makeNullLiteral(type);
         }
-        if (type == null) {
+        if (!map.containsKey("type")) {
           // In previous versions, type was not specified for all literals.
           // To keep backwards compatibility, if type is not specified
           // we just interpret the literal
           return toRex(relInput, literal);
         }
+        final RelDataType type = toType(typeFactory, get(map, "type"));
         if (type.getSqlTypeName() == SqlTypeName.SYMBOL) {
           literal = RelEnumTypes.toEnum((String) literal);
         }
@@ -758,5 +805,146 @@ public class RelJson {
     map.put("kind", operator.kind.toString());
     map.put("syntax", operator.getSyntax().toString());
     return map;
+  }
+
+  /**
+   * Translates a JSON expression into a RexNode,
+   * using a given {@link InputTranslator} to transform JSON objects that
+   * represent input references into RexNodes.
+   *
+   * @param cluster The optimization environment
+   * @param translator Input translator
+   * @param o JSON object
+   * @return the transformed RexNode
+   */
+  public static RexNode readExpression(RelOptCluster cluster,
+      InputTranslator translator, Map<String, Object> o) {
+    RelInput relInput = new RelInputForCluster(cluster);
+    return new RelJson(null, translator).toRex(relInput, o);
+  }
+
+  /**
+   * Special context from which a relational expression can be initialized,
+   * reading from a serialized form of the relational expression.
+   *
+   * <p>Contains only a cluster and an empty list of inputs;
+   * most methods throw {@link UnsupportedOperationException}.
+   */
+  private static class RelInputForCluster implements RelInput {
+    private final RelOptCluster cluster;
+
+    RelInputForCluster(RelOptCluster cluster) {
+      this.cluster = cluster;
+    }
+    @Override public RelOptCluster getCluster() {
+      return cluster;
+    }
+
+    @Override public RelTraitSet getTraitSet() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public RelOptTable getTable(String table) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public RelNode getInput() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public List<RelNode> getInputs() {
+      return ImmutableList.of();
+    }
+
+    @Override public @Nullable RexNode getExpression(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public ImmutableBitSet getBitSet(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public @Nullable List<ImmutableBitSet> getBitSetList(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public List<AggregateCall> getAggregateCalls(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public @Nullable Object get(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public @Nullable String getString(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public float getFloat(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public <E extends Enum<E>> @Nullable E getEnum(
+        String tag, Class<E> enumClass) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public @Nullable List<RexNode> getExpressionList(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public @Nullable List<String> getStringList(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public @Nullable List<Integer> getIntegerList(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public @Nullable List<List<Integer>> getIntegerListList(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public RelDataType getRowType(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public RelDataType getRowType(String expressionsTag, String fieldsTag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public RelCollation getCollation() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public RelDistribution getDistribution() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public ImmutableList<ImmutableList<RexLiteral>> getTuples(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override public boolean getBoolean(String tag, boolean default_) {
+      throw new UnsupportedOperationException();
+    }
+  }
+
+  /**
+   * Translates a JSON object that represents an input reference into a RexNode.
+   */
+  @FunctionalInterface
+  public interface InputTranslator {
+    /**
+     * Transforms an input reference into a RexNode.
+     *
+     * @param relJson RelJson
+     * @param input Ordinal of input field
+     * @param map JSON object representing an input reference
+     * @param relInput Description of input(s)
+     * @return RexNode representing an input reference
+     */
+    RexNode translateInput(RelJson relJson, int input,
+        Map<String, @Nullable Object> map, RelInput relInput);
   }
 }

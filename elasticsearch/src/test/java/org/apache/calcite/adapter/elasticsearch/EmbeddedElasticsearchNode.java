@@ -25,6 +25,7 @@ import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
@@ -49,7 +50,7 @@ import static java.util.Collections.emptyMap;
 class EmbeddedElasticsearchNode implements AutoCloseable {
 
   private final Node node;
-  private volatile boolean  isStarted;
+  private volatile boolean isStarted;
 
   private EmbeddedElasticsearchNode(Node node) {
     this.node = Objects.requireNonNull(node, "node");
@@ -126,7 +127,8 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
           + response.getNodes().size());
     }
     NodeInfo node = response.getNodes().get(0);
-    return node.getHttp().address().boundAddresses()[0];
+    HttpInfo httpInfo = node.getInfo(HttpInfo.class);
+    return httpInfo.address().boundAddresses()[0];
   }
 
   /**

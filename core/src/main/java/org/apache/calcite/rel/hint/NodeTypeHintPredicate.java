@@ -19,6 +19,7 @@ package org.apache.calcite.rel.hint;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
@@ -63,7 +64,12 @@ public class NodeTypeHintPredicate implements HintPredicate {
     /**
      * The hint would be propagated to the Calc nodes.
      */
-    CALC(Calc.class);
+    CALC(Calc.class),
+
+    /**
+     * The hint would be propagated to the Correlate nodes.
+     */
+    CORRELATE(Correlate.class);
 
     /** Relational expression clazz that the hint can apply to. */
     @SuppressWarnings("ImmutableEnumChecker")

@@ -124,6 +124,7 @@ public class JoinToCorrelateRule
     RelNode newRel =
         LogicalCorrelate.create(left,
             relBuilder.build(),
+            join.getHints(),
             correlationId,
             requiredColumns.build(),
             join.getJoinType());

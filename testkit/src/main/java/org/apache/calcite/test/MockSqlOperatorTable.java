@@ -218,6 +218,28 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
 
   }
 
+  /**
+   * "MAP" user-defined function. This function return map type
+   * in order to reproduce the throws of CALCITE-4895.
+   */
+  public static class MapFunction extends SqlFunction {
+
+    public MapFunction() {
+      super("MAP", new SqlIdentifier("MAP", SqlParserPos.ZERO),
+          SqlKind.OTHER_FUNCTION, null, null,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory =
+          opBinding.getTypeFactory();
+      return typeFactory.createMapType(typeFactory.createSqlType(SqlTypeName.VARCHAR),
+          typeFactory.createSqlType(SqlTypeName.VARCHAR));
+    }
+
+  }
+
   /** "MYAGG" user-defined aggregate function. This agg function accept two numeric arguments
    * in order to reproduce the throws of CALCITE-2744. */
   public static class MyAvgAggFunction extends SqlAggFunction {

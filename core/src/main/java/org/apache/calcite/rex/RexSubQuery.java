@@ -27,6 +27,7 @@ import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -139,8 +140,14 @@ public class RexSubQuery extends RexCall {
   /** Creates a MAP sub-query. */
   public static RexSubQuery map(RelNode rel) {
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
+    final RelDataType rowType = rel.getRowType();
+    Preconditions.checkArgument(rowType.getFieldCount() == 2,
+        "MAP requires exactly two fields, got %s; row type %s",
+        rowType.getFieldCount(), rowType);
+    final List<RelDataTypeField> fieldList = rowType.getFieldList();
     final RelDataType type =
-        typeFactory.createMultisetType(rel.getRowType(), -1L);
+        typeFactory.createMapType(fieldList.get(0).getType(),
+            fieldList.get(1).getType());
     return new RexSubQuery(type, SqlStdOperatorTable.MAP_QUERY,
         ImmutableList.of(), rel);
   }

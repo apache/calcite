@@ -357,6 +357,11 @@ public class RelBuilder {
     return this;
   }
 
+  /** Returns the size of the stack. */
+  public int size() {
+    return stack.size();
+  }
+
   /** Returns the final relational expression.
    *
    * <p>Throws if the stack is empty.
@@ -1280,16 +1285,6 @@ public class RelBuilder {
   public GroupKey groupKey(ImmutableBitSet groupSet,
       Iterable<? extends ImmutableBitSet> groupSets) {
     return groupKey_(groupSet, ImmutableList.copyOf(groupSets));
-  }
-
-  // CHECKSTYLE: IGNORE 1
-  /** @deprecated Use {@link #groupKey(ImmutableBitSet)}
-   * or {@link #groupKey(ImmutableBitSet, Iterable)}. */
-  @Deprecated // to be removed before 2.0
-  public GroupKey groupKey(ImmutableBitSet groupSet,
-      @Nullable ImmutableList<ImmutableBitSet> groupSets) {
-    return groupKey_(groupSet, groupSets == null
-        ? ImmutableList.of(groupSet) : ImmutableList.copyOf(groupSets));
   }
 
   // CHECKSTYLE: IGNORE 1
@@ -2714,7 +2709,7 @@ public class RelBuilder {
     RelNode seed = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, finder.relOptTable).build();
     RelNode repeatUnion =
         struct.repeatUnionFactory.createRepeatUnion(seed, iterative, all,
-            iterationLimit);
+            iterationLimit, finder.relOptTable);
     return push(repeatUnion);
   }
 
@@ -2796,7 +2791,7 @@ public class RelBuilder {
       }
       final ImmutableBitSet requiredColumns = RelOptUtil.correlationColumns(id, right.rel);
       join =
-          struct.correlateFactory.createCorrelate(left.rel, right.rel, id,
+          struct.correlateFactory.createCorrelate(left.rel, right.rel, ImmutableList.of(), id,
               requiredColumns, joinType);
     } else {
       RelNode join0 =
@@ -2841,7 +2836,7 @@ public class RelBuilder {
     Frame left = stack.pop();
 
     final RelNode correlate =
-        struct.correlateFactory.createCorrelate(left.rel, right.rel,
+        struct.correlateFactory.createCorrelate(left.rel, right.rel, ImmutableList.of(),
             correlationId, ImmutableBitSet.of(requiredOrdinals), joinType);
 
     final ImmutableList.Builder<Field> fields = ImmutableList.builder();

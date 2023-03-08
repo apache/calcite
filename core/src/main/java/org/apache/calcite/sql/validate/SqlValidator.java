@@ -913,12 +913,25 @@ public interface SqlValidator {
 
     /** Returns the dialect of SQL (SQL:2003, etc.) this validator recognizes.
      * Default is {@link SqlConformanceEnum#DEFAULT}. */
-    @SuppressWarnings("deprecation")
-    @Value.Default default SqlConformance sqlConformance() {
-      return SqlConformance.DEFAULT;
+    @Value.Default default SqlConformance conformance() {
+      return SqlConformanceEnum.DEFAULT;
     }
 
-    /** Sets up the sql conformance of the validator. */
-    Config withSqlConformance(SqlConformance conformance);
+    /** Returns the SQL conformance.
+     * @deprecated Use {@link #conformance()} */
+    @Deprecated // to be removed before 2.0
+    default SqlConformance sqlConformance() {
+      return conformance();
+    }
+
+    /** Sets the SQL conformance of the validator. */
+    Config withConformance(SqlConformance conformance);
+
+    /** Sets the SQL conformance of the validator.
+     * @deprecated Use {@link #conformance()} */
+    @Deprecated // to be removed before 2.0
+    default Config withSqlConformance(SqlConformance conformance) {
+      return withConformance(conformance);
+    }
   }
 }

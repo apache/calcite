@@ -62,7 +62,7 @@ public class RelMetadataHandlerGeneratorUtil {
         .getName();
     final String name =
         "GeneratedMetadata_" + simpleNameForHandler(handlerClass);
-    final Method[] declaredMethods = handlerClass.getDeclaredMethods();
+    final Method[] declaredMethods = MetadataHandler.handlerMethods(handlerClass);
     Arrays.sort(declaredMethods, Comparator.comparing(Method::getName));
 
     final Map<MetadataHandler<?>, String> handlerToName = new LinkedHashMap<>();

@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import com.github.autostyle.gradle.AutostyleTask
 import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.ide.dsl.settings
@@ -33,6 +34,10 @@ val integrationTestConfig: (Configuration.() -> Unit) = {
     extendsFrom(configurations.testRuntimeClasspath.get())
 }
 
+// The custom configurations below allow to include dependencies (and jars) in the classpath only
+// when IT tests are running. In the future it may make sense to include the JDBC driver
+// dependencies using the default 'testRuntimeOnly' configuration to simplify the build but at the
+// moment they can remain as is.
 val testH2 by configurations.creating(integrationTestConfig)
 val testOracle by configurations.creating(integrationTestConfig)
 val testPostgresql by configurations.creating(integrationTestConfig)
@@ -80,6 +85,7 @@ dependencies {
 
     testImplementation(project(":testkit"))
     testImplementation("commons-lang:commons-lang")
+    testImplementation("net.bytebuddy:byte-buddy")
     testImplementation("net.hydromatic:foodmart-queries")
     testImplementation("net.hydromatic:quidem")
     testImplementation("org.apache.calcite.avatica:avatica-server")
@@ -186,6 +192,18 @@ tasks.compileTestKotlin {
     dependsOn(javaCCTest)
 }
 
+tasks.withType<Checkstyle>().configureEach {
+    mustRunAfter(versionClass)
+    mustRunAfter(javaCCMain)
+    mustRunAfter(javaCCTest)
+}
+
+tasks.withType<AutostyleTask>().configureEach {
+    mustRunAfter(versionClass)
+    mustRunAfter(javaCCMain)
+    mustRunAfter(javaCCTest)
+}
+
 ide {
     fun generatedSource(javacc: TaskProvider<org.apache.calcite.buildtools.javacc.JavaCCTask>, sourceSet: String) =
         generatedJavaSources(javacc.get(), javacc.get().output.get().asFile, sourceSets.named(sourceSet))
@@ -245,8 +263,6 @@ val integTestAll by tasks.registering() {
     description = "Executes integration JDBC tests for all DBs"
 }
 
-val coreTestClasses = sourceSets.main.get().output
-val coreClasses = sourceSets.main.get().output + coreTestClasses
 for (db in listOf("h2", "mysql", "oracle", "postgresql")) {
     val task = tasks.register("integTest" + db.capitalize(), Test::class) {
         group = LifecycleBasePlugin.VERIFICATION_GROUP
@@ -254,8 +270,9 @@ for (db in listOf("h2", "mysql", "oracle", "postgresql")) {
         include("org/apache/calcite/test/JdbcAdapterTest.class")
         include("org/apache/calcite/test/JdbcTest.class")
         systemProperty("calcite.test.db", db)
-        testClassesDirs = coreTestClasses.classesDirs
-        classpath = coreClasses + configurations.getAt("test" + db.capitalize())
+        // Include the jars from the custom configuration to the classpath
+        // otherwise the JDBC drivers for each DBMS will be missing
+        classpath = classpath + configurations.getAt("test" + db.capitalize())
     }
     integTestAll {
         dependsOn(task)

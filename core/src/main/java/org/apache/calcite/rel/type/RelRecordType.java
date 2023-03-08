@@ -19,8 +19,14 @@ package org.apache.calcite.rel.type;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.collect.ImmutableMap;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
@@ -31,6 +37,11 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
   /** Name resolution policy; usually {@link StructKind#FULLY_QUALIFIED}. */
   private final StructKind kind;
   private final boolean nullable;
+  private final @Nullable Map<String, RelDataTypeField> fieldNameMap;
+
+  /** Minimum number of fields where it is worth populating {@link #fieldNameMap}
+   * to accelerate lookups by field name. */
+  private static final int THRESHOLD = 20;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -45,6 +56,19 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
     super(fields);
     this.nullable = nullable;
     this.kind = requireNonNull(kind, "kind");
+    if (fields.size() > THRESHOLD) {
+      final Map<String, RelDataTypeField> map = new HashMap<>();
+      for (RelDataTypeField f : fields) {
+        map.putIfAbsent(f.getName(), f);
+        if (f.isDynamicStar()) {
+          // the first dynamic star field is cached with a special name
+          map.putIfAbsent("", f);
+        }
+      }
+      this.fieldNameMap = ImmutableMap.copyOf(map);
+    } else {
+      this.fieldNameMap = null;
+    }
     computeDigest();
   }
 
@@ -83,6 +107,10 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
 
   @Override public StructKind getStructKind() {
     return kind;
+  }
+
+  @Override protected @Nullable Map<String, RelDataTypeField> getFieldMap() {
+    return fieldNameMap;
   }
 
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {

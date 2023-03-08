@@ -22,7 +22,10 @@ github:
     issues: false
     projects: false
   enabled_merge_buttons:
+    # "squash and merge" replaces committer with noreply@github, and we don't want that
+    # See https://lists.apache.org/thread/vxxpt1x316kjryb4dptsbs95p66d9xrv
     squash:  false
+    # We prefer linear history, so creating merge commits is disabled in UI
     merge:   false
     rebase:  true
 notifications:
