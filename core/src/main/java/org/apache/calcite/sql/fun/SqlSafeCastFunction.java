@@ -44,8 +44,6 @@ import com.google.common.collect.SetMultimap;
 import java.text.Collator;
 import java.util.Objects;
 
-import static org.apache.calcite.util.Static.RESOURCE;
-
 /**
  * SqlCastFunction. Note that the std functions are really singleton objects,
  * because they always get fetched via the StdOperatorTable. So you can't store

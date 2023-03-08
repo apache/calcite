@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql2rel;
 
-import java.util.Arrays;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.plan.RelOptUtil;
@@ -92,6 +91,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
@@ -133,7 +133,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     // Register convertlets for specific objects.
     registerOp(SqlStdOperatorTable.CAST, this::convertCast);
-    registerOp(SqlLibraryOperators.SAFE_CAST, this::convertSafeCast);
+    registerOp(SqlLibraryOperators.SAFE_CAST, this::convertCast);
     registerOp(SqlLibraryOperators.INFIX_CAST, this::convertCast);
     registerOp(SqlStdOperatorTable.IS_DISTINCT_FROM,
         (cx, call) -> convertIsDistinctFrom(cx, call, false));
@@ -630,7 +630,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       return castToValidatedType(cx, call, cx.convertExpression(left));
     }
     SqlDataTypeSpec dataType = (SqlDataTypeSpec) right;
-    RelDataType type = dataType.deriveType(cx.getValidator());
+    // If SAFE_CAST, allow nullable.
+    RelDataType type =
+        dataType.deriveType(cx.getValidator(), call.getKind() == SqlKind.SAFE_CAST);
     if (type == null) {
       type = cx.getValidator().getValidatedNodeType(dataType.getTypeName());
     }
@@ -670,86 +672,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         type = typeFactory.createTypeWithNullability(type, isn);
       }
     }
-    return cx.getRexBuilder().makeCast(type, arg);
-  }
-
-  protected RexNode convertSafeCast(
-      @UnknownInitialization StandardConvertletTable this,
-      SqlRexContext cx,
-      final SqlCall call) {
-    RelDataTypeFactory typeFactory = cx.getTypeFactory();
-    assert call.getKind() == SqlKind.SAFE_CAST;
-    final SqlNode left = call.operand(0);
-    final SqlNode right = call.operand(1);
-    if (right instanceof SqlIntervalQualifier) {
-      final SqlIntervalQualifier intervalQualifier =
-          (SqlIntervalQualifier) right;
-      if (left instanceof SqlIntervalLiteral) {
-        RexLiteral sourceInterval =
-            (RexLiteral) cx.convertExpression(left);
-        BigDecimal sourceValue =
-            (BigDecimal) sourceInterval.getValue();
-        RexLiteral castedInterval =
-            cx.getRexBuilder().makeIntervalLiteral(sourceValue,
-                intervalQualifier);
-        return castToValidatedType(cx, call, castedInterval);
-      } else if (left instanceof SqlNumericLiteral) {
-        RexLiteral sourceInterval =
-            (RexLiteral) cx.convertExpression(left);
-        BigDecimal sourceValue =
-            (BigDecimal) sourceInterval.getValue();
-        final BigDecimal multiplier = intervalQualifier.getUnit().multiplier;
-        sourceValue = SqlFunctions.multiply(sourceValue, multiplier);
-        RexLiteral castedInterval =
-            cx.getRexBuilder().makeIntervalLiteral(
-                sourceValue,
-                intervalQualifier);
-        return castToValidatedType(cx, call, castedInterval);
-      }
-      return castToValidatedType(cx, call, cx.convertExpression(left));
-    }
-    SqlDataTypeSpec dataType = (SqlDataTypeSpec) right;
-    RelDataType type = dataType.deriveType(cx.getValidator(), true);
-    if (type == null) {
-      type = cx.getValidator().getValidatedNodeType(dataType.getTypeName());
-    }
-    RexNode arg = cx.convertExpression(left);
-    if (arg.getType().isNullable()) {
-      type = typeFactory.createTypeWithNullability(type, true);
-    }
-    if (SqlUtil.isNullLiteral(left, false)) {
-      final SqlValidatorImpl validator = (SqlValidatorImpl) cx.getValidator();
-      validator.setValidatedNodeType(left, type);
-      return cx.convertExpression(left);
-    }
-    if (null != dataType.getCollectionsTypeName()) {
-      RelDataType argComponentType = arg.getType().getComponentType();
-
-      // arg.getType() may be ANY
-      if (argComponentType == null) {
-        argComponentType = dataType.getComponentTypeSpec().deriveType(cx.getValidator());
-      }
-
-      requireNonNull(argComponentType, () -> "componentType of " + arg);
-
-      RelDataType typeFinal = type;
-      final RelDataType componentType =
-          requireNonNull(type.getComponentType(),
-              () -> "componentType of " + typeFinal);
-      if (argComponentType.isStruct()
-          && !componentType.isStruct()) {
-        RelDataType tt =
-            typeFactory.builder()
-                .add(argComponentType.getFieldList().get(0).getName(),
-                    componentType)
-                .build();
-        tt = typeFactory.createTypeWithNullability(tt, componentType.isNullable());
-        boolean isn = type.isNullable();
-        type = typeFactory.createMultisetType(tt, -1);
-        type = typeFactory.createTypeWithNullability(type, isn);
-      }
-    }
-    return cx.getRexBuilder().makeAbstractSafeCast(type, arg);
+    return cx.getRexBuilder().makeCast(type, arg, call);
   }
 
   protected RexNode convertFloorCeil(SqlRexContext cx, SqlCall call) {

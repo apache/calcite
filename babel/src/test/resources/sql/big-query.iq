@@ -661,21 +661,43 @@ SELECT LENGTH("hello") as length;
 #
 # Identical to CAST(), except it returns NULL instead of raising an error.
 WITH Casted AS (
-  SELECT SAFE_CAST("a" as int) as casted, "null" as actual UNION ALL
-  SELECT SAFE_CAST("a" as varchar(1)), "a" UNION ALL
-  SELECT SAFE_CAST("2023-03-07" as DATE), DATE("2023-03-07")
+  SELECT SAFE_CAST("a" as int) as casted, "a" as input, "int" as as UNION ALL
+  SELECT SAFE_CAST("a" as varchar(1)), "a", "varchar(1)" UNION ALL
+  SELECT SAFE_CAST("2023-03-07" as DATE), DATE("2023-03-07"), "date" UNION ALL
+  SELECT SAFE_CAST("2023-03-07a" as DATE), "2023-03-07a", "date" UNION ALL
+  SELECT SAFE_CAST(0 as BOOLEAN), 0, "boolean"
 )
 SELECT
   *
 FROM Casted;
-+------------+------------+
-| casted     | actual     |
-+------------+------------+
-| 2023-03-07 | 2023-03-07 |
-| a          | a          |
-|            | null       |
-+------------+------------+
-(3 rows)
++------------+-------------+------------+
+| casted     | input       | as         |
++------------+-------------+------------+
+|            | a           | int        |
+| a          | a           | varchar(1) |
+| 2023-03-07 | 2023-03-07  | date       |
+|            | 2023-03-07a | date       |
+| FALSE      | 0           | boolean    |
++------------+-------------+------------+
+(5 rows)
+
+!ok
+
+WITH Casted AS (
+  SELECT SAFE_CAST("12:12:11" as TIME) as casted,
+   "12:12:11" as input, "time" as as UNION ALL
+  SELECT SAFE_CAST("12:12:11a" as TIME), "12:12:11a", "time"
+)
+SELECT
+  *
+FROM Casted;
++----------+-----------+------+
+| casted   | input     | as   |
++----------+-----------+------+
+| 12:12:11 | 12:12:11  | time |
+|          | 12:12:11a | time |
++----------+-----------+------+
+(2 rows)
 
 !ok
 
