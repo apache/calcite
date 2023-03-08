@@ -1715,7 +1715,7 @@ public class SqlParserTest {
 
   /** Test for MSSQL CONVERT parsing, with focus on iffy DATE type and
    * testing that the extra "style" operand is parsed
-   * Other tests aredefined in functions.iq
+   * Other tests are defined in functions.iq
    */
   @Test void testMssqlConvert() {
     expr("CONVERT(VARCHAR(5), 'xx')")
