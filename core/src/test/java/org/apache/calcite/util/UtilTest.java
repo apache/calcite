@@ -47,12 +47,11 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.hamcrest.TypeSafeMatcher;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
@@ -2054,10 +2053,10 @@ class UtilTest {
   /** Tests {@link ReflectUtil#mightBeAssignableFrom(Class, Class)}. */
   @Test void testMightBeAssignableFrom() {
     final Object myMap = new HashMap<String, Integer>() {
-      @Override public @NotNull Set<Entry<String, Integer>> entrySet() {
+      @Override public Set<Entry<String, Integer>> entrySet() {
         throw new UnsupportedOperationException();
       }
-      @Override public @Nullable Integer put(String key, Integer value) {
+      @Override public Integer put(String key, Integer value) {
         throw new UnsupportedOperationException();
       }
       @Override public int size() {
@@ -2342,7 +2341,7 @@ class UtilTest {
     memo1.close();
     assertThat(local1.get(), is("foo"));
 
-    final TryThreadLocal<@org.checkerframework.checker.nullness.qual.Nullable String> local2 =
+    final TryThreadLocal<@Nullable String> local2 =
         TryThreadLocal.of(null);
     assertThat(local2.get(), nullValue());
     TryThreadLocal.Memo memo2 = local2.push("a");

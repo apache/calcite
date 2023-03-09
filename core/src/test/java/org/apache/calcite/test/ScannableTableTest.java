@@ -46,7 +46,6 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -652,7 +651,7 @@ public class ScannableTableTest {
       @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
         scanCount.incrementAndGet();
         return new AbstractEnumerable<Object[]>() {
-          @NotNull @Override public Enumerator<Object[]> enumerator() {
+          @Override public Enumerator<Object[]> enumerator() {
             enumerateCount.incrementAndGet();
             final Enumerator<Object[]> enumerator =
                 superScan(root).enumerator();

@@ -334,6 +334,11 @@ allprojects {
     val javaUsed = file("src/main/java").isDirectory
     if (javaUsed) {
         apply(plugin = "java-library")
+        configurations {
+            "implementation" {
+                exclude(group = "org.jetbrains", module = "annotations")
+            }
+        }
     }
 
     plugins.withId("java-library") {
