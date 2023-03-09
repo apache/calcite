@@ -26,6 +26,11 @@ LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
+    <Resource name="sql">
+      <![CDATA[CREATE OR REPLACE TABLE CUSTOMER.out_test AS
+select dept.deptno, emp.empno
+ from emp join dept on emp.deptno = dept.deptno]]>
+    </Resource>
   </TestCase>
   <TestCase name="testCreateTableIfNotExists">
     <Resource name="plan">
@@ -33,6 +38,19 @@ LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[
 LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[SALES]], IsReplace=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[CREATE TABLE IF NOT EXISTS out_test AS select * from emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCreateTableOrderBy">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableCreate(TableName=[TESTING_OUTPUT], Target Schema=[[SALES]], IsReplace=[false])
+  LogicalSort(sort0=[$0], dir0=[ASC])
+    LogicalProject(P_PARTKEY=[$0])
+      LogicalValues(tuples=[[{ 'foo' }]])
 ]]>
     </Resource>
   </TestCase>
@@ -45,6 +63,9 @@ LogicalTableCreate(TableName=[FOO], Target Schema=[[SALES]], IsReplace=[false])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
+    <Resource name="sql">
+      <![CDATA[CREATE TABLE foo as select * from dept limit 10]]>
+    </Resource>
   </TestCase>
   <TestCase name="testCreateTableSimple">
     <Resource name="plan">
@@ -52,6 +73,37 @@ LogicalTableCreate(TableName=[FOO], Target Schema=[[SALES]], IsReplace=[false])
 LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[SALES]], IsReplace=[false])
   LogicalProject(EXPR$0=[1], EXPR$1=[2], EXPR$2=[3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCreateTableWith">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableCreate(TableName=[FOO], Target Schema=[[SALES]], IsReplace=[false])
+  LogicalProject(DEPTNO=[$0], NAME=[$1], DEPTNO0=[$2], NAME0=[$3])
+    LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+      LogicalSort(fetch=[10])
+        LogicalProject(DEPTNO=[$0], NAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalSort(fetch=[10])
+        LogicalProject(DEPTNO=[$0], NAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[CREATE TABLE foo as
+with temporaryTable as (select * from dept limit 10),
+temporaryTable2 as (select * from dept limit 10)
+SELECT * from temporaryTable join temporaryTable2
+on temporaryTable.deptno = temporaryTable2.deptno]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testOrderByNoCreateTable">
+    <Resource name="plan">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalProject(P_PARTKEY=[$0])
+    LogicalValues(tuples=[[{ 'foo' }]])
 ]]>
     </Resource>
   </TestCase>
@@ -66,6 +118,12 @@ LogicalProject(ENAME=[$1], EXPR$1=[+($0, $2)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
+    <Resource name="sql">
+      <![CDATA[SELECT ename, dept2.value + value.value FROM
+(select deptno as value from dept) dept2 JOIN
+(select ename, deptno as value from emp) value
+on value.value = dept2.value]]>
+    </Resource>
   </TestCase>
   <TestCase name="testValuesUnreserved">
     <Resource name="plan">
@@ -77,6 +135,12 @@ LogicalProject(ENAME=[$1], EXPR$1=[+($0, $2)])
     LogicalProject(ENAME=[$1], VALUES=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[SELECT ename, dept2.values + values.values FROM
+(select deptno as values from dept) dept2 JOIN
+(select ename, deptno as values from emp) values
+on values.values = dept2.values]]>
     </Resource>
   </TestCase>
   <TestCase name="testWithBodoParser">

@@ -75,7 +75,19 @@ public class BodoSqlToRelConverterTest extends SqlToRelTestBase {
   }
 
 
-
+  @Test void testCreateTableWith() {
+    // Tests create table with a query that uses "with" syntax
+    final String sql = "CREATE TABLE foo as\n"
+        +
+        "with temporaryTable as (select * from dept limit 10),\n"
+        +
+        "temporaryTable2 as (select * from dept limit 10)\n"
+        +
+        "SELECT * from temporaryTable join temporaryTable2\n"
+        +
+        "on temporaryTable.deptno = temporaryTable2.deptno";
+    sql(sql).withExtendedTester().ok();
+  }
   @Test void testValuesUnreserved() {
     //Test that confirms we can use "values" as a column name, and table name
     final String sql = "SELECT ename, dept2.values + values.values FROM\n"
@@ -99,4 +111,62 @@ public class BodoSqlToRelConverterTest extends SqlToRelTestBase {
         "on value.value = dept2.value";
     sql(sql).ok();
   }
+
+  @Test void testCreateTableOrderBy() {
+    // Tests an error specific to CREATE TABLE with "WITH" and "ORDER BY" clauses during
+    // SqlToRelConversion. The converter was previously optimizing out the sort node,
+    // but its parent process expected the conversion collation to exist, which lead
+    // to an assertion error.
+
+    final String sql = "CREATE TABLE testing_output AS ("
+        +
+        "with part_two as (\n"
+        +
+        "        select 'foo' as p_partkey from (VALUES (1, 2, 3))\n"
+        +
+        "    )\n"
+        +
+        "    select\n"
+        +
+        "                       p_partkey\n"
+        +
+        "                     from\n"
+        +
+        "                       part_two\n"
+        +
+        "                     order by\n"
+        +
+        "                       p_partkey"
+        +
+        ")";
+    sql(sql).ok();
+  }
+
+  @Test void testOrderByNoCreateTable() {
+    // Tests that the default path for a query with "WITH" and "ORDER BY" clauses still works.
+    // This test should not be necessary at this time, but it may be useful in
+    // the case that we attempt to resolve the "WITH"/"ORDER BY" clause issue in a more performant
+    // way:
+    // https://bodo.atlassian.net/browse/BE-4483
+    final String sql =
+        "with part_two as (\n"
+        +
+        "        select 'foo' as p_partkey from (VALUES (1, 2, 3))\n"
+        +
+        "    )\n"
+        +
+        "    select\n"
+        +
+        "                       p_partkey\n"
+        +
+        "                     from\n"
+        +
+        "                       part_two\n"
+        +
+        "                     order by\n"
+        +
+        "                       p_partkey";
+    sql(sql).ok();
+  }
+
 }
