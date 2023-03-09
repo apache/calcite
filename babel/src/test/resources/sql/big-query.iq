@@ -701,6 +701,87 @@ FROM Casted;
 
 !ok
 
+WITH Casted AS (
+  SELECT SAFE_CAST(TRUE as BOOLEAN) as casted, "true" as input,
+   "boolean" as as UNION ALL
+  SELECT SAFE_CAST(FALSE as BOOLEAN) as casted, "false" as input,
+   "boolean" as as
+)
+SELECT
+  *
+FROM Casted;
++--------+-------+---------+
+| casted | input | as      |
++--------+-------+---------+
+| true   | true  | boolean |
+| false  | false | boolean |
++--------+-------+---------+
+(2 rows)
+
+!ok
+
+WITH Casted AS (
+  SELECT SAFE_CAST(interval '12' month as interval year) as casted,
+   "interval 1 month" as input,
+   "interval year" as as UNION ALL
+  SELECT SAFE_CAST("a" as interval year), "a",
+    "interval year" UNION ALL
+  SELECT SAFE_CAST(null as interval year), "null", "interval year"
+)
+SELECT
+  *
+FROM Casted;
++--------+------------------+---------------+
+| casted | input            | as            |
++--------+------------------+---------------+
+| +1     | interval 1 month | interval year |
+|        | a                | interval year |
+|        | null             | interval year |
++--------+------------------+---------------+
+(3 rows)
+
+!ok
+
+WITH Casted AS (
+  SELECT SAFE_CAST(interval '1:1' hour to minute as interval minute to second)
+   as casted, "interval 1:1 hour to minute" as input,
+    "interval minute to second" as as UNION ALL
+  SELECT SAFE_CAST("a" as interval minute to second),
+   "a", "interval minute to second"
+)
+SELECT
+  *
+FROM Casted;
++---------------+-----------------------------+---------------------------+
+| casted        | input                       | as                        |
++---------------+-----------------------------+---------------------------+
+| +61:00.000000 | interval 1:1 hour to minute | interval minute to second |
+|               | a                           | interval minute to second |
++---------------+-----------------------------+---------------------------+
+(2 rows)
+
+!ok
+
+WITH Casted AS (
+  SELECT SAFE_CAST(true as BIGINT) as casted, "true" as input,
+    "bigint" as as UNION ALL
+    SELECT SAFE_CAST(1.0 as BIGINT), "1.0", "bigint" UNION ALL
+    SELECT SAFE_CAST(1 as BIGINT), "1", "bigint"
+)
+SELECT
+  *
+FROM Casted;
++--------+-------+--------+
+| casted | input | as     |
++--------+-------+--------+
+|        | true  | bigint |
+|      1 | 1.0   | bigint |
+|      1 | 1     | bigint |
++--------+-------+--------+
+(3 rows)
+
+!ok
+
 #####################################################################
 # DATE
 #

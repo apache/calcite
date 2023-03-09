@@ -536,7 +536,7 @@ public class RexBuilder {
       RelDataType type,
       RexNode exp,
       SqlKind kind) {
-    return makeCast(type, exp, false, kind);
+    return makeCast(type, exp, kind == SqlKind.SAFE_CAST, kind);
   }
 
   /**
@@ -622,7 +622,7 @@ public class RexBuilder {
       }
     } else if (SqlTypeUtil.isExactNumeric(type)
         && SqlTypeUtil.isInterval(exp.getType())) {
-      return makeCastIntervalToExact(type, exp);
+      return makeCastIntervalToExact(type, exp, exp.getKind());
     } else if (sqlType == SqlTypeName.BOOLEAN
         && SqlTypeUtil.isExactNumeric(exp.getType())) {
       return makeCastExactToBoolean(type, exp);
@@ -704,7 +704,7 @@ public class RexBuilder {
         }
       } else if (SqlTypeUtil.isExactNumeric(type)
           && SqlTypeUtil.isInterval(exp.getType())) {
-        return makeCastIntervalToExact(type, exp);
+        return makeCastIntervalToExact(type, exp, kind);
       } else if (sqlType == SqlTypeName.BOOLEAN
           && SqlTypeUtil.isExactNumeric(exp.getType())) {
         return makeCastExactToBoolean(type, exp);
@@ -816,14 +816,14 @@ public class RexBuilder {
             casted, makeNullLiteral(toType)));
   }
 
-  private RexNode makeCastIntervalToExact(RelDataType toType, RexNode exp) {
+  private RexNode makeCastIntervalToExact(RelDataType toType, RexNode exp, SqlKind kind) {
     final TimeUnit endUnit = exp.getType().getSqlTypeName().getEndUnit();
     final TimeUnit baseUnit = baseUnit(exp.getType().getSqlTypeName());
     final BigDecimal multiplier = baseUnit.multiplier;
     final BigDecimal divider = endUnit.multiplier;
     RexNode value =
         multiplyDivide(decodeIntervalOrDecimal(exp), multiplier, divider);
-    return ensureType(toType, value, false);
+    return ensureType(toType, value, kind == SqlKind.SAFE_CAST);
   }
 
   public RexNode multiplyDivide(RexNode e, BigDecimal multiplier,
@@ -909,6 +909,7 @@ public class RexBuilder {
    *
    * @param type Type to cast to
    * @param exp  Expression being cast
+   * @param kind  Either SqlKind.CAST or SqlKind.SAFE_CAST
    * @return Call to CAST operator
    */
   public RexNode makeAbstractCast(

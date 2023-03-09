@@ -613,7 +613,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         RexLiteral castedInterval =
             cx.getRexBuilder().makeIntervalLiteral(sourceValue,
                 intervalQualifier);
-        return castToValidatedType(cx, call, castedInterval);
+        return castToValidatedType(cx, call, castedInterval, call.getKind());
       } else if (left instanceof SqlNumericLiteral) {
         RexLiteral sourceInterval =
             (RexLiteral) cx.convertExpression(left);
@@ -625,9 +625,9 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             cx.getRexBuilder().makeIntervalLiteral(
                 sourceValue,
                 intervalQualifier);
-        return castToValidatedType(cx, call, castedInterval);
+        return castToValidatedType(cx, call, castedInterval, call.getKind());
       }
-      return castToValidatedType(cx, call, cx.convertExpression(left));
+      return castToValidatedType(cx, call, cx.convertExpression(left), call.getKind());
     }
     SqlDataTypeSpec dataType = (SqlDataTypeSpec) right;
     // If SAFE_CAST, allow nullable.
@@ -1355,6 +1355,21 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
    * was already of the validated type, then the value is returned without an
    * additional cast.
    */
+  public RexNode castToValidatedType(
+      @UnknownInitialization StandardConvertletTable this,
+      SqlRexContext cx,
+      SqlCall call,
+      RexNode value,
+      SqlKind kind) {
+    return castToValidatedType(call, value, cx.getValidator(),
+        cx.getRexBuilder(), kind);
+  }
+
+  /**
+   * Casts a RexNode value to the validated type of a SqlCall. If the value
+   * was already of the validated type, then the value is returned without an
+   * additional cast.
+   */
   public static RexNode castToValidatedType(SqlNode node, RexNode e,
       SqlValidator validator, RexBuilder rexBuilder) {
     final RelDataType type = validator.getValidatedNodeType(node);
@@ -1362,6 +1377,20 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       return e;
     }
     return rexBuilder.makeCast(type, e);
+  }
+
+  /**
+   * Casts a RexNode value to the validated type of a SqlCall. If the value
+   * was already of the validated type, then the value is returned without an
+   * additional cast.
+   */
+  public static RexNode castToValidatedType(SqlNode node, RexNode e,
+      SqlValidator validator, RexBuilder rexBuilder, SqlKind kind) {
+    final RelDataType type = validator.getValidatedNodeType(node);
+    if (e.getType() == type) {
+      return e;
+    }
+    return rexBuilder.makeCast(type, e, kind);
   }
 
   /** Convertlet that handles {@code COVAR_POP}, {@code COVAR_SAMP},
