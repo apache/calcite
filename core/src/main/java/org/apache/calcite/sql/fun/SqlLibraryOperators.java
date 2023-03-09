@@ -132,7 +132,7 @@ public abstract class SqlLibraryOperators {
    * Delegates most of its logic to actual CAST operator.
    */
  @LibraryOperator(libraries = {MSSQL})
- public static final SqlFunction MSSQL_CONVERT = new SqlConvertMssqlFunction();
+ public static final SqlFunction MSSQL_CONVERT = new SqlCastConvertFunction();
 
   /** The "DATE_PART(timeUnit, datetime)" function
    * (Databricks, Postgres, Redshift, Snowflake). */
