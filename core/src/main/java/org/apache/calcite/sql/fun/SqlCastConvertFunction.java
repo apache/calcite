@@ -39,8 +39,9 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * of the form {@code CONVERT ( data_type [ ( length ) ] , expression [ , style ] )}.
  * <ul>
  * <b>Important notes:</b>
- * <li>'style' parameter is ignored.</li><p>
- * <li>This is just a wrapper around CAST, and hence acts like CAST</li>
+ * <li>'style' parameter is ignored.</li>
+ *
+ * <p><li>This is just a wrapper around CAST, and hence acts like CAST</li>
  * </ul>
  *
  *
@@ -60,7 +61,7 @@ public class SqlCastConvertFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Switches places of 1st and 2nd operand in SqlCallBinding, and delegates to SqlCastFunction's 
+  /** Switches places of 1st and 2nd operand in SqlCallBinding, and delegates to SqlCastFunction's
    * inferReturnType
    */
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
@@ -69,11 +70,9 @@ public class SqlCastConvertFunction extends SqlFunction {
     SqlCallBinding callBinding = (SqlCallBinding) opBinding;
     SqlCall reorderedCall = createCall(
         callBinding.getCall().getParserPosition(),
-        callBinding.operand(1), callBinding.operand(0)
-    );
+        callBinding.operand(1), callBinding.operand(0));
     SqlCallBinding reorderedCallBinding = new SqlCallBinding(
-        callBinding.getValidator(), callBinding.getScope(), reorderedCall
-    );
+        callBinding.getValidator(), callBinding.getScope(), reorderedCall);
 
     return SqlStdOperatorTable.CAST.inferReturnType(reorderedCallBinding);
   }
@@ -86,7 +85,7 @@ public class SqlCastConvertFunction extends SqlFunction {
   @Override public SqlNode rewriteCall(final SqlValidator validator, final SqlCall call) {
     final List<SqlNode> operands = call.getOperandList();
 
-    if (operands.size() != 2 && operands.size() != 3 ) {
+    if (operands.size() != 2 && operands.size() != 3) {
       // invalidArgCount accepts int only, so picked 2 to show how many min args needed
       throw validator.newValidationError(call, RESOURCE.invalidArgCount(getName(), 2));
     }
