@@ -71,6 +71,8 @@ public enum SqlTypeName {
       SqlTypeFamily.TIMESTAMP),
   TIMESTAMP_WITH_LOCAL_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
       SqlTypeFamily.TIMESTAMP),
+  TIMESTAMP_WITH_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
+      SqlTypeFamily.TIMESTAMP),
   INTERVAL_YEAR(PrecScale.NO_NO, false, Types.OTHER,
       SqlTypeFamily.INTERVAL_YEAR_MONTH),
   INTERVAL_YEAR_MONTH(PrecScale.NO_NO, false, Types.OTHER,

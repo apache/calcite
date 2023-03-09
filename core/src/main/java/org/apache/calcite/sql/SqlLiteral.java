@@ -37,6 +37,7 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -205,6 +206,8 @@ public class SqlLiteral extends SqlNode {
       return value instanceof TimeString;
     case TIMESTAMP:
       return value instanceof TimestampString;
+    case TIMESTAMP_WITH_TIME_ZONE:
+      return value instanceof TimestampWithTimeZoneString;
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
@@ -847,6 +850,12 @@ public class SqlLiteral extends SqlNode {
     return new SqlTimestampLiteral(ts, precision, false, pos);
   }
 
+  public static SqlTimestampWithTimezoneLiteral createTimestampWithTimeZone(
+      TimestampWithTimeZoneString ts,
+      int precision,
+      SqlParserPos pos) {
+    return new SqlTimestampWithTimezoneLiteral(ts, precision, true, pos);
+  }
   @Deprecated // to be removed before 2.0
   public static SqlTimeLiteral createTime(
       Calendar calendar,
