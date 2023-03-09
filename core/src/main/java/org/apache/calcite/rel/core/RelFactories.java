@@ -28,6 +28,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.rel.logical.LogicalDistinctTableSpool;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
@@ -610,6 +611,10 @@ public class RelFactories {
     /** Creates a {@link TableSpool}. */
     RelNode createTableSpool(RelNode input, Spool.Type readType,
         Spool.Type writeType, RelOptTable table);
+
+    /** Creates a {@link TableSpool}. */
+    RelNode createTableSpool(RelNode input, Spool.Type readType,
+        Spool.Type writeType, RelOptTable table, boolean all);
   }
 
   /**
@@ -620,6 +625,13 @@ public class RelFactories {
     @Override public RelNode createTableSpool(RelNode input, Spool.Type readType,
         Spool.Type writeType, RelOptTable table) {
       return LogicalTableSpool.create(input, readType, writeType, table);
+    }
+
+    @Override public RelNode createTableSpool(RelNode input, Spool.Type readType,
+        Spool.Type writeType, RelOptTable table, boolean all) {
+      return all
+        ? createTableSpool(input, readType, writeType, table)
+        : LogicalDistinctTableSpool.create(input, readType, writeType, table);
     }
   }
 

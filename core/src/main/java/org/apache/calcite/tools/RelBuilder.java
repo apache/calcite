@@ -2715,13 +2715,14 @@ public class RelBuilder {
    *
    * @param readType Spool's read type (as described in {@link Spool.Type})
    * @param writeType Spool's write type (as described in {@link Spool.Type})
+   * @param all whether duplicates will be considered or not
    * @param table Table to write into
    */
   private RelBuilder tableSpool(Spool.Type readType, Spool.Type writeType,
-      RelOptTable table) {
+      RelOptTable table, boolean all) {
     RelNode spool =
         struct.spoolFactory.createTableSpool(peek(), readType, writeType,
-            table);
+            table, all);
     replaceTop(spool);
     return this;
   }
@@ -2775,8 +2776,9 @@ public class RelBuilder {
       throw RESOURCE.tableNotFound(tableName).ex();
     }
 
-    RelNode iterative = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, finder.relOptTable).build();
-    RelNode seed = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, finder.relOptTable).build();
+    RelNode iterative =
+        tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, finder.relOptTable, all).build();
+    RelNode seed = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, finder.relOptTable, all).build();
     RelNode repeatUnion =
         struct.repeatUnionFactory.createRepeatUnion(seed, iterative, all,
             iterationLimit, finder.relOptTable);

@@ -60,6 +60,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -4678,6 +4679,63 @@ public abstract class EnumerableDefaults {
           private void flush() {
             collection.clear();
             collection.addAll(tempCollection);
+            tempCollection.clear();
+          }
+
+          @Override public void reset() {
+            inputEnumerator.reset();
+            collection.clear();
+            tempCollection.clear();
+          }
+
+          @Override public void close() {
+            inputEnumerator.close();
+          }
+        };
+      }
+    };
+  }
+
+  /** Lazy read and lazy write spool that stores data into a collection, without duplicates. */
+  @SuppressWarnings("unchecked")
+  public static <TSource> Enumerable<TSource> lazyDistinctCollectionSpool(
+      Collection<TSource> outputCollection,
+      Enumerable<TSource> input,
+      EqualityComparer<TSource> comparer) {
+
+    return new AbstractEnumerable<TSource>() {
+      @Override public Enumerator<TSource> enumerator() {
+        return new Enumerator<TSource>() {
+          private TSource current = (TSource) DUMMY;
+          private final Enumerator<TSource> inputEnumerator = input.enumerator();
+          private final Collection<TSource> collection = outputCollection;
+          private final Set<Wrapped<TSource>> tempCollection = new LinkedHashSet<>();
+          private final Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
+
+          @Override public TSource current() {
+            if (current == DUMMY) {
+              throw new NoSuchElementException();
+            }
+            return current;
+          }
+
+          @Override public boolean moveNext() {
+            while (inputEnumerator.moveNext()) {
+              current = inputEnumerator.current();
+              // check duplicates
+              if (tempCollection.add(wrapper.apply(current))) {
+                return true;
+              }
+            }
+            flush();
+            return false;
+          }
+
+          private void flush() {
+            collection.clear();
+            for (Wrapped<TSource> sourceWrapped : tempCollection) {
+              collection.add(sourceWrapped.element);
+            }
             tempCollection.clear();
           }
 

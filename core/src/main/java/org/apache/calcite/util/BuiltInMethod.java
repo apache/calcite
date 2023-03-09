@@ -248,6 +248,8 @@ public enum BuiltInMethod {
       Comparator.class, boolean.class, EqualityComparer.class),
   LAZY_COLLECTION_SPOOL(EnumerableDefaults.class, "lazyCollectionSpool", Collection.class,
       Enumerable.class),
+  LAZY_DISTINCT_COLLECTION_SPOOL(EnumerableDefaults.class, "lazyDistinctCollectionSpool",
+      Collection.class, Enumerable.class, EqualityComparer.class),
   INTERSECT(ExtendedEnumerable.class, "intersect", Enumerable.class, boolean.class),
   EXCEPT(ExtendedEnumerable.class, "except", Enumerable.class, boolean.class),
   SKIP(ExtendedEnumerable.class, "skip", int.class),

@@ -67,6 +67,14 @@ class EnumerableRepeatUnionTest {
                         builder.literal(1)))
                 .repeatUnion("DELTA", true)
                 .build())
+        .explainHookMatches(""
+            + "EnumerableRepeatUnion(all=[true])\n"
+            + "  EnumerableTableSpool(readType=[LAZY], writeType=[LAZY], table=[[DELTA]])\n"
+            + "    EnumerableValues(tuples=[[{ 1 }]])\n"
+            + "  EnumerableTableSpool(readType=[LAZY], writeType=[LAZY], table=[[DELTA]])\n"
+            + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[+($t0, $t1)], expr#3=[10], expr#4=[<($t0, $t3)], $f0=[$t2], $condition=[$t4])\n"
+            + "      EnumerableInterpreter\n"
+            + "        BindableTableScan(table=[[DELTA]])\n")
         .returnsOrdered("i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9", "i=10");
   }
 
@@ -94,6 +102,14 @@ class EnumerableRepeatUnionTest {
                         builder.literal(10)))
                 .repeatUnion("AUX", false)
                 .build())
+        .explainHookMatches(""
+            + "EnumerableRepeatUnion(all=[false])\n"
+            + "  EnumerableDistinctTableSpool(readType=[LAZY], writeType=[LAZY], table=[[AUX]])\n"
+            + "    EnumerableValues(tuples=[[{ 0 }]])\n"
+            + "  EnumerableDistinctTableSpool(readType=[LAZY], writeType=[LAZY], table=[[AUX]])\n"
+            + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[+($t0, $t1)], expr#3=[10], expr#4=[MOD($t2, $t3)], expr#5=[<($t0, $t3)], $f0=[$t4], $condition=[$t5])\n"
+            + "      EnumerableInterpreter\n"
+            + "        BindableTableScan(table=[[AUX]])\n")
         .returnsOrdered("i=0", "i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9");
   }
 
@@ -122,6 +138,14 @@ class EnumerableRepeatUnionTest {
                     builder.field(1))
                 .repeatUnion("AUX", false)
                 .build())
+        .explainHookMatches(""
+            + "EnumerableRepeatUnion(all=[false])\n"
+            + "  EnumerableDistinctTableSpool(readType=[LAZY], writeType=[LAZY], table=[[AUX]])\n"
+            + "    EnumerableValues(tuples=[[{ 0, 0 }]])\n"
+            + "  EnumerableDistinctTableSpool(readType=[LAZY], writeType=[LAZY], table=[[AUX]])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t0, $t2)], expr#4=[10], expr#5=[MOD($t3, $t4)], expr#6=[<($t0, $t4)], $f0=[$t5], j=[$t1], $condition=[$t6])\n"
+            + "      EnumerableInterpreter\n"
+            + "        BindableTableScan(table=[[AUX]])\n")
         .returnsOrdered("i=0; j=0",
             "i=1; j=0",
             "i=2; j=0",
