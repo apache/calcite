@@ -29,10 +29,10 @@ Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
 <!--
-## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.34.0">1.34.0</a> / XXXX-XX-XX
-{: #v1-34-0}
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.35.0">1.35.0</a> / XXXX-XX-XX
+{: #v1-35-0}
 
-This release comes x months after [1.33.0](#v1-33-0),
+This release comes x months after [1.34.0](#v1-34-0),
 contains contributions from x contributors, and resolves x issues.
 
 Contributors to this release:
@@ -41,21 +41,81 @@ y (release manager),
 z.
 
 #### Breaking Changes
+{: #breaking-1-35-0}
+
+Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
+using JDK/OpenJDK versions 8 to 18;
+Guava versions 16.0.1 to 31.1-jre;
+other software versions as specified in gradle.properties.
+
+#### New features
+{: #new-features-1-35-0}
+
+#### Dependency version upgrade
+{: #dependency-1-35-0}
+
+#### Bug-fixes, API changes and minor enhancements
+{: #fixes-1-35-0}
+
+#### Build and test suite
+{: #build-1-35-0}
+
+#### Web site and documentation
+{: #site-1-35-0}
+-->
+
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.34.0">1.34.0</a> / 2023-03-XX
+{: #v1-34-0}
+
+This release comes 1 month after [1.33.0](#v1-33-0),
+contains contributions from 18 contributors, and resolves 34 issues. It's worth highlighting the
+introduction of QUALIFY clause ([<a href="https://issues.apache.org/jira/browse/CALCITE-5268">CALCITE-5268</a>]),
+which facilitates filtering the results of window functions. Among other improvements and fixes, it
+adds roughly 15 new functions in BigQuery library for handling dates, times, and timestamps, and 
+provides a fix ([<a href="https://issues.apache.org/jira/browse/CALCITE-5522">CALCITE-5522</a>])
+for a small breaking change in `DATE_TRUNC` function
+([<a href="https://issues.apache.org/jira/browse/CALCITE-5447">CALCITE-5447</a>]), which was
+introduced accidentally in [1.33.0](#v1-33-0). 
+
+Contributors to this release:
+Alessandro Solimando,
+Benchao Li,
+Brandon Chong,
+Dmitry Sysolyatin,
+Francis Chuang,
+Gian Merlino,
+Guillaume Massé,
+Jiajun Xie,
+Julian Hyde,
+Moritz Mack,
+Oliver Lee,
+Peng Wang,
+Stamatis Zampetakis (release manager),
+Tanner Clary,
+Tim Nieradzik,
+TJ Banghart,
+xinqiu.hu,
+Zou Dan.
+
+<!--
+Command used to generate the release notes
+git log b64cb1325cfe1a5143ea3ca534f991b6f881c3c5..ee9b80b0b68d442991dfaa142722e3488ec73e79 --format="%s" | sed 's|\[\(CALCITE-[0-9]\+\)\]|* [<a href="https://issues.apache.org/jira/browse/\1">\1</a>]\n|'git log b64cb1325cfe1a5143ea3ca534f991b6f881c3c5..ee9b80b0b68d442991dfaa142722e3488ec73e79 --format="%s" | sed 's|\[\(CALCITE-[0-9]\+\)\]|* [<a href="https://issues.apache.org/jira/browse/\1">\1</a>]\n|'
+-->
+
+#### Breaking Changes
 {: #breaking-1-34-0}
 
-As of [CALCITE-3870](https://issues.apache.org/jira/browse/CALCITE-3870),
-the default value of
+[<a href="https://issues.apache.org/jira/browse/CALCITE-3870">CALCITE-3870</a>]
+  Change the default value of
 [SqlToRelConverter.Config.expand](https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql2rel/SqlToRelConverter.Config.html#isExpand())
-is now false, which means that `SqlToRelConverter` handles sub-queries (such
+from true to false. From  now on `SqlToRelConverter`, handles sub-queries (such
 as `IN`, `EXISTS`, and scalar sub-queries) by converting them to `RexSubQuery`
 expressions, rather than expanding them. To expand these `RexSubQuery`
 expressions, the `SubQueryRemoveRule` rule must be enabled in the planning
 phase.
-
 To keep the old behavior (which is discouraged but still supported),
-initialize `SqlToRelConverter` using
-`SqlToRelConverter.config().withExpandDeprecated(true)` as the value for the `config`
-argument.
+initialize `SqlToRelConverter` using `SqlToRelConverter.config().withExpand(true)` as the value for
+the `config` argument.
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 18;
@@ -65,18 +125,82 @@ other software versions as specified in gradle.properties.
 #### New features
 {: #new-features-1-34-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5268">CALCITE-5268</a>]
+  Add `QUALIFY` clause
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5469">CALCITE-5469</a>]
+  Add `DATETIME_ADD`, `DATETIME_DIFF`, `DATE_ADD`, `DATE_DIFF` functions (enabled in BigQuery library)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5484">CALCITE-5484</a>]
+  Add `DATETIME_SUB` function (enabled in BigQuery library)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5357">CALCITE-5357</a>]
+  Add `FORMAT_TIME`, `FORMAT_DATE`, `FORMAT_DATETIME`, `FORMAT_TIMESTAMP` functions (enabled in BigQuery library)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5508">CALCITE-5508</a>]
+  Add constructor functions for `DATE`, `TIME`, `TIMESTAMP`, `DATETIME` (enabled in BigQuery library)
+
 #### Dependency version upgrade
 {: #dependency-1-34-0}
+
+* Bump Quidem from 0.10 to 0.11
 
 #### Bug-fixes, API changes and minor enhancements
 {: #fixes-1-34-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5545">CALCITE-5545</a>]
+  Allow for overriding `SqlValidator` to enable custom `SqlNode` validation
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5504">CALCITE-5504</a>]
+  Array value constructor is unparsed incorrectly for `SparkSqlDialect`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5518">CALCITE-5518</a>]
+  `RelToSqlConverter` generates invalid order of `ROLLUP` fields
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5510">CALCITE-5510</a>]
+  `RelToSqlConverter` should use ordinal for `ORDER BY` if the dialect allows
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5478">CALCITE-5478</a>]
+  Use highest input precision for datetimes in `SqlTypeFactoryImpl.leastRestrictive`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5522">CALCITE-5522</a>]
+  Babel parser cannot handle some overloads of the `DATE_TRUNC` function
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5531">CALCITE-5531</a>]
+  `COALESCE` function throws `ClassCastException`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5507">CALCITE-5507</a>]
+  `HAVING` alias fails for mixed usage of alias and aggregate function
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5503">CALCITE-5503</a>]
+  `CheapestPlanReplacer` should reuse repeated nodes in a DAG plan
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5468">CALCITE-5468</a>]
+  `SqlToRelConverter` throws if `ORDER BY` contains `IN`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5515">CALCITE-5515</a>]
+  Add keyspace parameter to `CassandraSchema` and `CassandraTable`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5416">CALCITE-5416</a>]
+  JDBC adapter for MySQL 5 incorrectly combines `GROUP BY ROLLUP` and `ORDER BY` clauses
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5505">CALCITE-5505</a>]
+  JavaCC warns about missing LOOKAHEAD directives in Parser.jj
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5514">CALCITE-5514</a>]
+  In `RelJson`, add a public `toRex()` instance method
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5442">CALCITE-5442</a>]
+  Tweak janino code generation in `EnumerableInterpretable` to allow debugging
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5521">CALCITE-5521</a>]
+  Remove redundant rowtype check in `RelSubset#add`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5483">CALCITE-5483</a>]
+  `ProjectAggregateMergeRule` throws exception if literal is non-numeric
+* `TryThreadLocal` values are now not-null by default
+
 #### Build and test suite
 {: #build-1-34-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5546">CALCITE-5546</a>]
+  Code style: Break long assignment expressions after '='
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5501">CALCITE-5501</a>]
+  `SqlToRelConverterTest.checkActualAndReferenceFiles` fails intermittently in Jenkins CI
+* Add test for [<a href="https://issues.apache.org/jira/browse/CALCITE-5524">CALCITE-5524</a>] JDBC adapter generates `LIMIT`, `OFFSET` in wrong order for Presto dialect
+* Add tests for [<a href="https://issues.apache.org/jira/browse/CALCITE-2980">CALCITE-2980</a>] Implement the `FORMAT` clause of the `CAST` operator
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5537">CALCITE-5537</a>]
+  Slow test case failures in `LatticeSuggesterTest`
+* Autostyle: Disallow space or newline before ')' in method declaration or call
+
 #### Web site and documentation
 {: #site-1-34-0}
--->
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5555">CALCITE-5555</a>]
+  Remove obsolete instructions for processing requests for new JIRA accounts
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5550">CALCITE-5550</a>]
+  Update instructions for requesting Jira account to use self-serve facility
+* `CompositeOperandTypeChecker`'s javadoc uses wrong class name
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.33.0">1.33.0</a> / 2023-02-06
 {: #v1-33-0}
