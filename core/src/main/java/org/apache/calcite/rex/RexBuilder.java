@@ -646,52 +646,52 @@ public class RexBuilder {
         SqlTypeName typeName = literal.getTypeName();
         if (canRemoveCastFromLiteral(type, value, typeName)) {
           switch (typeName) {
-            case INTERVAL_YEAR:
-            case INTERVAL_YEAR_MONTH:
-            case INTERVAL_MONTH:
-            case INTERVAL_DAY:
-            case INTERVAL_DAY_HOUR:
-            case INTERVAL_DAY_MINUTE:
-            case INTERVAL_DAY_SECOND:
-            case INTERVAL_HOUR:
-            case INTERVAL_HOUR_MINUTE:
-            case INTERVAL_HOUR_SECOND:
-            case INTERVAL_MINUTE:
-            case INTERVAL_MINUTE_SECOND:
-            case INTERVAL_SECOND:
-              assert value instanceof BigDecimal;
-              typeName = type.getSqlTypeName();
-              switch (typeName) {
-                case BIGINT:
-                case INTEGER:
-                case SMALLINT:
-                case TINYINT:
-                case FLOAT:
-                case REAL:
-                case DECIMAL:
-                  BigDecimal value2 = (BigDecimal) value;
-                  final BigDecimal multiplier =
-                      baseUnit(literal.getTypeName()).multiplier;
-                  final BigDecimal divider =
-                      literal.getTypeName().getEndUnit().multiplier;
-                  value = value2.multiply(multiplier)
-                      .divide(divider, 0, RoundingMode.HALF_DOWN);
-                  break;
-                default:
-                  break;
-              }
-
-              // Not all types are allowed for literals
-              switch (typeName) {
-                case INTEGER:
-                  typeName = SqlTypeName.BIGINT;
-                  break;
-                default:
-                  break;
-              }
+          case INTERVAL_YEAR:
+          case INTERVAL_YEAR_MONTH:
+          case INTERVAL_MONTH:
+          case INTERVAL_DAY:
+          case INTERVAL_DAY_HOUR:
+          case INTERVAL_DAY_MINUTE:
+          case INTERVAL_DAY_SECOND:
+          case INTERVAL_HOUR:
+          case INTERVAL_HOUR_MINUTE:
+          case INTERVAL_HOUR_SECOND:
+          case INTERVAL_MINUTE:
+          case INTERVAL_MINUTE_SECOND:
+          case INTERVAL_SECOND:
+            assert value instanceof BigDecimal;
+            typeName = type.getSqlTypeName();
+            switch (typeName) {
+            case BIGINT:
+            case INTEGER:
+            case SMALLINT:
+            case TINYINT:
+            case FLOAT:
+            case REAL:
+            case DECIMAL:
+              BigDecimal value2 = (BigDecimal) value;
+              final BigDecimal multiplier =
+                  baseUnit(literal.getTypeName()).multiplier;
+              final BigDecimal divider =
+                  literal.getTypeName().getEndUnit().multiplier;
+              value = value2.multiply(multiplier)
+                  .divide(divider, 0, RoundingMode.HALF_DOWN);
               break;
             default:
               break;
+            }
+
+            // Not all types are allowed for literals
+            switch (typeName) {
+            case INTEGER:
+              typeName = SqlTypeName.BIGINT;
+              break;
+            default:
+              break;
+            }
+            break;
+          default:
+            break;
           }
           final RexLiteral literal2 =
               makeLiteral(value, type, typeName);

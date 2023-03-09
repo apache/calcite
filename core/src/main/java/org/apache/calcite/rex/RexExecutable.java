@@ -103,12 +103,8 @@ public class RexExecutable {
   }
 
   /**
-   * Same as {@link #reduce(RexBuilder, List, List)} but with a flag to throw on failure
+   * Same as {@link #reduce(RexBuilder, List, List)} but with a flag to throw on failure.
    * <p>Catch the exception to return null for SAFE_ functions.</p>
-   * @param rexBuilder
-   * @param constExps
-   * @param reducedValues
-   * @param throwOnFailure
    */
   public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues, boolean throwOnFailure) {

@@ -89,16 +89,16 @@ public class SqlCastFunction extends SqlFunction {
 
   private SqlCastFunction(SqlKind kind) {
     super(kind.toString(),
-      kind,
-      null,
-      InferTypes.FIRST_KNOWN,
-      null,
-      SqlFunctionCategory.SYSTEM);
+        kind,
+        null,
+        InferTypes.FIRST_KNOWN,
+        null,
+        SqlFunctionCategory.SYSTEM);
     assert Arrays.asList(SqlKind.CAST, SqlKind.SAFE_CAST).contains(kind);
   }
 
   protected SqlFunction withKind(SqlKind kind) {
-    if (this.kind == kind){
+    if (this.kind == kind) {
       return this;
     } else {
       return new SqlCastFunction(kind);

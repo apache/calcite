@@ -2197,43 +2197,43 @@ public class RexSimplify {
         }
       }
       switch (operand.getKind()) {
-        case LITERAL:
-          final RexLiteral literal = (RexLiteral) operand;
-          final Comparable value = literal.getValueAs(Comparable.class);
-          final SqlTypeName typeName = literal.getTypeName();
+      case LITERAL:
+        final RexLiteral literal = (RexLiteral) operand;
+        final Comparable value = literal.getValueAs(Comparable.class);
+        final SqlTypeName typeName = literal.getTypeName();
 
-          // First, try to remove the cast without changing the value.
-          // makeCast and canRemoveCastFromLiteral have the same logic, so we are
-          // sure to be able to remove the cast.
-          if (rexBuilder.canRemoveCastFromLiteral(e.getType(), value, typeName)) {
-            return rexBuilder.makeCast(e.getType(), operand);
-          }
+        // First, try to remove the cast without changing the value.
+        // makeCast and canRemoveCastFromLiteral have the same logic, so we are
+        // sure to be able to remove the cast.
+        if (rexBuilder.canRemoveCastFromLiteral(e.getType(), value, typeName)) {
+          return rexBuilder.makeCast(e.getType(), operand);
+        }
 
-          // Next, try to convert the value to a different type,
-          // e.g. CAST('123' as integer)
-          switch (literal.getTypeName()) {
-            case TIME:
-              switch (e.getType().getSqlTypeName()) {
-                case TIMESTAMP:
-                  return e;
-                default:
-                  break;
-              }
-              break;
-            default:
-              break;
-          }
-          final List<RexNode> reducedValues = new ArrayList<>();
-          final RexNode simplifiedExpr = rexBuilder.makeCast(e.getType(), operand);
-          executor.reduce(rexBuilder, ImmutableList.of(simplifiedExpr), reducedValues);
-          return requireNonNull(
-              Iterables.getOnlyElement(reducedValues));
-        default:
-          if (operand == e.getOperands().get(0)) {
+        // Next, try to convert the value to a different type,
+        // e.g. CAST('123' as integer)
+        switch (literal.getTypeName()) {
+        case TIME:
+          switch (e.getType().getSqlTypeName()) {
+          case TIMESTAMP:
             return e;
-          } else {
-            return rexBuilder.makeCast(e.getType(), operand);
+          default:
+            break;
           }
+          break;
+        default:
+          break;
+        }
+        final List<RexNode> reducedValues = new ArrayList<>();
+        final RexNode simplifiedExpr = rexBuilder.makeCast(e.getType(), operand);
+        executor.reduce(rexBuilder, ImmutableList.of(simplifiedExpr), reducedValues);
+        return requireNonNull(
+            Iterables.getOnlyElement(reducedValues));
+      default:
+        if (operand == e.getOperands().get(0)) {
+          return e;
+        } else {
+          return rexBuilder.makeCast(e.getType(), operand);
+        }
       }
     } catch (Exception ex) {
       // throwOnFailure=false implies it is a SAFE_CAST call and we should return null
