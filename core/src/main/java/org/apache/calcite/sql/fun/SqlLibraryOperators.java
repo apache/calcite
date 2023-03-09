@@ -480,7 +480,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("TIME_ADD",
           SqlKind.PLUS,
           ReturnTypes.TIME, null,
-          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIME),
+          OperandTypes.DATETIME_INTERVAL,
           SqlFunctionCategory.TIMEDATE) {
 
     @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
