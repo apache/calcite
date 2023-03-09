@@ -608,7 +608,7 @@ public class RelToSqlConverter extends SqlImplementor
 
   private SqlNode getGroupBySqlNode(Builder builder, int key) {
     boolean isGroupByAlias = dialect.getConformance().isGroupByAlias();
-    if (aliasNotRequiredInGroupBy(builder, key)) {
+    if (isAliasNotRequiredInGroupBy(builder, key)) {
       isGroupByAlias = false;
     }
 
@@ -634,7 +634,7 @@ public class RelToSqlConverter extends SqlImplementor
     } */
   }
 
-  private boolean aliasNotRequiredInGroupBy(Builder builder, int key) {
+  private boolean isAliasNotRequiredInGroupBy(Builder builder, int key) {
     if (builder.context.field(key).getKind() == SqlKind.LITERAL
         && dialect.getConformance().isGroupByOrdinal()) {
       if (builder.select.getSelectList() != null) {
