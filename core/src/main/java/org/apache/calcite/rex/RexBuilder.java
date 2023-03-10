@@ -917,14 +917,15 @@ public class RexBuilder {
       RexNode exp,
       SqlKind kind) {
     assert Arrays.asList(SqlKind.CAST, SqlKind.SAFE_CAST).contains(kind);
-    return kind == SqlKind.SAFE_CAST ? new RexCall(
-        type,
-        SqlLibraryOperators.SAFE_CAST,
-        ImmutableList.of(exp))
-        : new RexCall(
-            type,
-            SqlStdOperatorTable.CAST,
-            ImmutableList.of(exp));
+    SqlOperator operator;
+    if (kind == SqlKind.SAFE_CAST) {
+      operator = SqlLibraryOperators.SAFE_CAST;
+    } else {
+      operator = SqlStdOperatorTable.CAST;
+    }
+    return new RexCall(
+        type, operator, ImmutableList.of(exp)
+    );
   }
 
   /**
