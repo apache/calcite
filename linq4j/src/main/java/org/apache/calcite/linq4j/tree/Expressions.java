@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import java.util.function.Supplier;
 import org.apache.calcite.linq4j.Extensions;
 import org.apache.calcite.linq4j.function.Function;
 import org.apache.calcite.linq4j.function.Function0;
@@ -1163,6 +1164,7 @@ public abstract class Expressions {
       Iterable<? extends ParameterExpression> parameters) {
     return new FunctionExpression<>(type, body, toList(parameters));
   }
+
 
   /**
    * Creates a LambdaExpression by first constructing a delegate

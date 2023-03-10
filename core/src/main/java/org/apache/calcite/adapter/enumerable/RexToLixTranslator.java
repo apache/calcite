@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -80,6 +81,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.calcite.runtime.SqlFunctions.safe;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
@@ -280,7 +282,35 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       switch (sourceType.getSqlTypeName()) {
       case CHAR:
       case VARCHAR:
-        convert = Expressions.call(BuiltInMethod.ST_GEOM_FROM_EWKT.method, operand);
+        // convert = Expressions.call(BuiltInMethod.ST_GEOM_FROM_EWKT.method, operand);
+        // // convert = Expressions.lambda(Supplier.class,
+        // //      (safe(Suppliers.memoize(() -> Expressions.call(BuiltInMethod.ST_GEOM_FROM_EWKT.method, operand))
+        // //     )),
+        // //     (ParameterExpression) operand, (ParameterExpression) operand
+        // // );
+        // convert = Expressions.call(
+        //     (ParameterExpression) operand,
+        //     BuiltInMethod.ST_GEOM_FROM_EWKT.method.getName(), Collections.emptyList());
+        //
+        // convert = (Expression) safe(() -> Expressions.call(BuiltInMethod.ST_GEOM_FROM_EWKT.method, operand));
+        //     // Expressions.lambda(
+        //     //   Supplier.class,
+        //     //     (Expression) Expressions.call(
+        //     //       BuiltInMethod.ST_GEOM_FROM_EWKT.method, operand
+        //     //   ),
+        //     //     (Iterable<? extends Expression>) Arrays.asList(operand)
+        //     // );
+        convert = Expressions.lambda(
+            Function0.class,
+            (Expression) safe(() -> Expressions.call(BuiltInMethod.ST_GEOM_FROM_EWKT.method, operand)),
+            (Iterable<? extends ParameterExpression>) operand
+        );
+
+        // convert =  Expressions.lambda(
+        //     Function1.class,
+        //      safe( () -> Expressions.call(
+        //        operand, "length", Collections.emptyList())),
+        //     (Iterable<? extends ParameterExpression>) Arrays.asList(operand));
         break;
       default:
         break;
@@ -290,7 +320,10 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       convert = translateCastToDate(sourceType, operand);
       break;
     case TIME:
-      convert = translateCastToTime(sourceType, operand);
+      convert = Expressions.lambda(
+          Function0.class,
+          (Expression) safe(() -> translateCastToTime(sourceType, operand))
+      );
       break;
     case TIME_WITH_LOCAL_TIME_ZONE:
       switch (sourceType.getSqlTypeName()) {
@@ -534,7 +567,11 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       break;
     }
     if (convert == null) {
-      convert = EnumUtils.convert(operand, typeFactory.getJavaClass(targetType));
+      convert = Expressions.lambda(
+          Function0.class,
+          (Expression) safe(() -> EnumUtils.convert(operand, typeFactory.getJavaClass(targetType)))
+      )
+          ;
     }
     // Going from anything to CHAR(n) or VARCHAR(n), make sure value is no
     // longer than n.
@@ -652,11 +689,18 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       break;
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       convert =
-          RexImpTable.optimize2(operand,
-              Expressions.call(
-                  BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIME.method,
-                  operand,
-                  Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
+          Expressions.lambda(
+              (Expression) safe(() -> RexImpTable.optimize2(operand,
+                  Expressions.call(
+                      BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIME.method,
+                      operand,
+                      Expressions.call(BuiltInMethod.TIME_ZONE.method, root))))
+          );
+          // RexImpTable.optimize2(operand,
+          //     Expressions.call(
+          //         BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIME.method,
+          //         operand,
+          //         Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
       break;
     default:
       break;

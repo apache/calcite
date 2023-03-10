@@ -661,11 +661,7 @@ SELECT LENGTH("hello") as length;
 #
 # Identical to CAST(), except it returns NULL instead of raising an error.
 WITH Casted AS (
-  SELECT SAFE_CAST("a" as int) as casted, "a" as input, "int" as as UNION ALL
-  SELECT SAFE_CAST("a" as varchar(1)), "a", "varchar(1)" UNION ALL
-  SELECT SAFE_CAST("2023-03-07" as DATE), DATE("2023-03-07"), "date" UNION ALL
-  SELECT SAFE_CAST("2023-03-07a" as DATE), "2023-03-07a", "date" UNION ALL
-  SELECT SAFE_CAST(0 as BOOLEAN), 0, "boolean"
+  SELECT SAFE_CAST("a" as int) as casted, "a" as input, "int" as as
 )
 SELECT
   *

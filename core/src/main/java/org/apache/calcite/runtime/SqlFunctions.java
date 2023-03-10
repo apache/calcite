@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
+import java.util.function.Supplier;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
@@ -29,8 +30,12 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
+import org.apache.calcite.linq4j.function.Function;
+import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.TimeFrame;
 import org.apache.calcite.rel.type.TimeFrameSet;
@@ -3480,6 +3485,15 @@ public class SqlFunctions {
     }
     return result;
   }
+
+  public static final Object safe(Supplier<Expression> supplier){
+    try {
+      return  supplier.get();
+    } catch (RuntimeException e) {
+      return null;
+    }
+  }
+
 
   /** Support the MULTISET EXCEPT ALL function. */
   @SuppressWarnings("JdkObsolete")
