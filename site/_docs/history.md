@@ -167,7 +167,7 @@ other software versions as specified in gradle.properties.
   Remove obsolete instructions for processing requests for new JIRA accounts
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5550">CALCITE-5550</a>]
   Update instructions for requesting Jira account to use self-serve facility
-* CompositeOperandTypeChecker's java doc uses wrong class name
+* CompositeOperandTypeChecker's javadoc uses wrong class name
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.33.0">1.33.0</a> / 2023-02-06
 {: #v1-33-0}
