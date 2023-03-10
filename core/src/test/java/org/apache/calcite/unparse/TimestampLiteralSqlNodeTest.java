@@ -19,7 +19,7 @@ package org.apache.calcite.unparse;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 
 import org.junit.jupiter.api.Test;
@@ -32,19 +32,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TimestampLiteralSqlNodeTest {
 
   @Test void testTimestampLiteralSqlNode() {
-    TimestampString timestampString = new TimestampString("2020-05-21 11:20:01.4321");
-
-    final SqlNode node = SqlLiteral.createTimestamp(timestampString, 4, SqlParserPos.ZERO);
+    final SqlNode node = SqlParserUtil.parseTimestampLiteral("TIMESTAMP '2020-05-21 11:20:01.4321'",
+        SqlParserPos.ZERO);
     final String expectedSqlNode = "TIMESTAMP '2020-05-21 11:20:01.4321'";
 
     assertEquals(node.toString(), expectedSqlNode);
   }
 
+/** Added support to create SqlNode for TIMESTAMP WITH TIME ZONE literal.
+ *
+ * Current Behaviour: Hardcoded precision value.
+ * To-Do:
+ *  Need to add support to calculate precision from input and get expected count of precision.
+ * */
   @Test void testTimestampWithTimeZoneLiteralSqlNode() {
     TimestampWithTimeZoneString timestampWithTimeZoneString = new TimestampWithTimeZoneString(
         "2020-05-21 11:20:01.4321 GMT-05:00");
 
-    final SqlNode node = SqlLiteral.createTimestampWithTimeZone(timestampWithTimeZoneString, 4,
+    final SqlNode node = SqlLiteral.createTimestampWithTimeZone(timestampWithTimeZoneString, 6,
         SqlParserPos.ZERO);
     final String expectedSqlNode = "TIMESTAMP '2020-05-21 11:20:01.4321 GMT-05:00'";
 

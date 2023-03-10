@@ -54,6 +54,9 @@ public class SqlTimestampWithTimezoneLiteral extends SqlAbstractDateTimeLiteral 
 
   @Override public String toFormattedString() {
     TimestampWithTimeZoneString ts = getTimestampWithTimeZoneString();
+    if (precision > 0) {
+      ts = ts.round(precision);
+    }
     return ts.toString();
   }
 
