@@ -28,6 +28,42 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
+<!--
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.35.0">1.35.0</a> / XXXX-XX-XX
+{: #v1-35-0}
+
+This release comes x months after [1.34.0](#v1-34-0),
+contains contributions from x contributors, and resolves x issues.
+
+Contributors to this release:
+x,
+y (release manager),
+z.
+
+#### Breaking Changes
+{: #breaking-1-35-0}
+
+Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
+using JDK/OpenJDK versions 8 to 18;
+Guava versions 16.0.1 to 31.1-jre;
+other software versions as specified in gradle.properties.
+
+#### New features
+{: #new-features-1-35-0}
+
+#### Dependency version upgrade
+{: #dependency-1-35-0}
+
+#### Bug-fixes, API changes and minor enhancements
+{: #fixes-1-35-0}
+
+#### Build and test suite
+{: #build-1-35-0}
+
+#### Web site and documentation
+{: #site-1-35-0}
+-->
+
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.34.0">1.34.0</a> / 2023-03-XX
 {: #v1-34-0}
 
