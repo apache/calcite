@@ -68,13 +68,14 @@ other software versions as specified in gradle.properties.
 {: #v1-34-0}
 
 This release comes 1 month after [1.33.0](#v1-33-0),
-contains contributions from 18 contributors, and resolves 34 issues. It adds roughly 15 new functions
-in BigQuery library for handling dates, times, and timestamps and provides a fix
-([<a href="https://issues.apache.org/jira/browse/CALCITE-5522">CALCITE-5522</a>]) for a small breaking
-change in `DATE_TRUNC` function ([<a href="https://issues.apache.org/jira/browse/CALCITE-5447">CALCITE-5447</a>]),
-which was introduced accidentally in [1.33.0](#v1-33-0). Among other small improvements and fixes it
-brings a new breaking change ([<a href="https://issues.apache.org/jira/browse/CALCITE-3870">CALCITE-3870</a>])
-changing the default sub-query expansion strategy of `SqlToRelConverter`. 
+contains contributions from 18 contributors, and resolves 34 issues. It's worth highlighting the
+introduction of QUALIFY clause ([<a href="https://issues.apache.org/jira/browse/CALCITE-5268">CALCITE-5268</a>]),
+which facilitates filtering the results of window functions. Among other improvements and fixes, it
+adds roughly 15 new functions in BigQuery library for handling dates, times, and timestamps, and 
+provides a fix ([<a href="https://issues.apache.org/jira/browse/CALCITE-5522">CALCITE-5522</a>])
+for a small breaking change in `DATE_TRUNC` function
+([<a href="https://issues.apache.org/jira/browse/CALCITE-5447">CALCITE-5447</a>]), which was
+introduced accidentally in [1.33.0](#v1-33-0). 
 
 Contributors to this release:
 Alessandro Solimando,
@@ -124,14 +125,14 @@ other software versions as specified in gradle.properties.
 #### New features
 {: #new-features-1-34-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-5268">CALCITE-5268</a>]
+  Add `QUALIFY` clause
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5469">CALCITE-5469</a>]
   Add `DATETIME_ADD`, `DATETIME_DIFF`, `DATE_ADD`, `DATE_DIFF` functions (enabled in BigQuery library)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5484">CALCITE-5484</a>]
   Add `DATETIME_SUB` function (enabled in BigQuery library)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5357">CALCITE-5357</a>]
   Add `FORMAT_TIME`, `FORMAT_DATE`, `FORMAT_DATETIME`, `FORMAT_TIMESTAMP` functions (enabled in BigQuery library)
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-5268">CALCITE-5268</a>]
-  Add `QUALIFY` clause
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5508">CALCITE-5508</a>]
   Add constructor functions for `DATE`, `TIME`, `TIMESTAMP`, `DATETIME` (enabled in BigQuery library)
 
