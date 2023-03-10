@@ -41,27 +41,23 @@ public class SqlTimestampWithTimezoneLiteral extends SqlAbstractDateTimeLiteral 
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public SqlTimestampWithTimezoneLiteral clone(SqlParserPos pos) {
+  @Override public SqlTimestampWithTimezoneLiteral clone(SqlParserPos pos) {
     return new SqlTimestampWithTimezoneLiteral(
         (TimestampWithTimeZoneString) requireNonNull(value, "value"),
         precision,
         hasTimeZone, pos);
   }
 
-  @Override
-  public String toString() {
-    return toFormattedString();
+  @Override public String toString() {
+    return "TIMESTAMP '" + toFormattedString() + "'";
   }
 
-  @Override
-  public String toFormattedString() {
+  @Override public String toFormattedString() {
     TimestampWithTimeZoneString ts = getTimestampWithTimeZoneString();
     return ts.toString();
   }
 
-  @Override
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {

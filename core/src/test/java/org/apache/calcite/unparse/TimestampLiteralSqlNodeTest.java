@@ -34,20 +34,19 @@ public class TimestampLiteralSqlNodeTest {
   @Test void testTimestampLiteralSqlNode() {
     TimestampString timestampString = new TimestampString("2020-05-21 11:20:01.4321");
 
-    final SqlNode node = SqlLiteral.createTimestamp(timestampString, 4,
-        SqlParserPos.ZERO);
+    final SqlNode node = SqlLiteral.createTimestamp(timestampString, 4, SqlParserPos.ZERO);
     final String expectedSqlNode = "TIMESTAMP '2020-05-21 11:20:01.4321'";
 
     assertEquals(node.toString(), expectedSqlNode);
   }
 
   @Test void testTimestampWithTimeZoneLiteralSqlNode() {
-    String abc = "2020-05-21 11:20:01 GMT-05:00";
-    TimestampWithTimeZoneString timestampWithTimeZoneString = new TimestampWithTimeZoneString(abc);
+    TimestampWithTimeZoneString timestampWithTimeZoneString = new TimestampWithTimeZoneString(
+        "2020-05-21 11:20:01.4321 GMT-05:00");
 
     final SqlNode node = SqlLiteral.createTimestampWithTimeZone(timestampWithTimeZoneString, 4,
         SqlParserPos.ZERO);
-    final String expectedSqlNode = "2020-05-21 11:20:01 GMT-05:00";
+    final String expectedSqlNode = "TIMESTAMP '2020-05-21 11:20:01.4321 GMT-05:00'";
 
     assertEquals(node.toString(), expectedSqlNode);
   }
