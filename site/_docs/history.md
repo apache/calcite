@@ -145,6 +145,7 @@ other software versions as specified in gradle.properties.
   Remove redundant rowtype check in `RelSubset#add`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5483">CALCITE-5483</a>]
   `ProjectAggregateMergeRule` throws exception if literal is non-numeric
+* TryThreadLocal values are now not-null by default
 
 #### Build and test suite
 {: #build-1-34-0}
@@ -158,7 +159,6 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5537">CALCITE-5537</a>]
   Slow test case failures in `LatticeSuggesterTest`
 * Autostyle: Disallow space or newline before ')' in method declaration or call
-* TryThreadLocal values are now not-null by default
 
 #### Web site and documentation
 {: #site-1-34-0}
