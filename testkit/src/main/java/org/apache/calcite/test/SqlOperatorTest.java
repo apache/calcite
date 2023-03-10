@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
@@ -82,6 +83,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -10081,6 +10083,20 @@ public class SqlOperatorTest {
    * JDBC connection.
    */
   protected static class TesterImpl extends SqlRuntimeTester {
+    /** Assign a type system object to this thread-local, pass the name of the
+     * field as the {@link CalciteConnectionProperty#TYPE_SYSTEM} property,
+     * and any connection you make in the same thread will use your type
+     * system. */
+    public static final TryThreadLocal<RelDataTypeSystem> THREAD_TYPE_SYSTEM =
+        TryThreadLocal.of(RelDataTypeSystem.DEFAULT);
+
+    private static final Field FIELD =
+        Types.lookupField(TesterImpl.class, "THREAD_TYPE_SYSTEM");
+
+    private static String uri(Field field) {
+      return field.getDeclaringClass().getName() + '#' + field.getName();
+    }
+
     public TesterImpl() {
     }
 
@@ -10093,10 +10109,8 @@ public class SqlOperatorTest {
           factory.typeSystemTransform.apply(RelDataTypeSystem.DEFAULT);
       final ConnectionFactory connectionFactory =
           factory.connectionFactory
-              .with(CalciteConnectionProperty.TYPE_SYSTEM,
-                  CustomTimeFrameTypeSystem.class.getName());
-      try (TryThreadLocal.Memo ignore =
-               CustomTimeFrameTypeSystem.DELEGATE.push(typeSystem);
+              .with(CalciteConnectionProperty.TYPE_SYSTEM, uri(FIELD));
+      try (TryThreadLocal.Memo ignore = THREAD_TYPE_SYSTEM.push(typeSystem);
            Connection connection = connectionFactory.createConnection();
            Statement statement = connection.createStatement()) {
         final ResultSet resultSet =
@@ -10199,30 +10213,6 @@ public class SqlOperatorTest {
           .replace("$1", values[1])
           .replace("$2", values[2])
           .replace("$3", values[3]);
-    }
-  }
-
-  /** Type system whose constructor reads from a thread-local. You must invoke
-   * the constructor in the same thread, but once constructed you can use from
-   * other threads.
-   *
-   * <p>It's a bit strange, but the best we can do to pass objects via Avatica's
-   * plugin system until
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5295">[CALCITE-5295]
-   * Read the values of plugins (such as connect string properties) from
-   * ThreadLocal fields</a> is fixed.
-   */
-  public static class CustomTimeFrameTypeSystem extends DelegatingTypeSystem {
-    /** Assign to this thread-local before you instantiate a FooTypeSystem
-     * (in the same thread) and your FooTypeSystem will behave in the same
-     * way. */
-    public static final TryThreadLocal<RelDataTypeSystem> DELEGATE =
-        TryThreadLocal.of(DEFAULT);
-
-    /** Creates a CustomTimeFrameTypeSystem, taking a snapshot of
-     * {@link #DELEGATE}. */
-    public CustomTimeFrameTypeSystem() {
-      super(DELEGATE.get());
     }
   }
 }
