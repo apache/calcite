@@ -69,20 +69,16 @@ git log b64cb1325cfe1a5143ea3ca534f991b6f881c3c5..ee9b80b0b68d442991dfaa142722e3
 {: #breaking-1-34-0}
 
 [<a href="https://issues.apache.org/jira/browse/CALCITE-3870">CALCITE-3870</a>]
-  Change the default value of SqlToRelConverter.Config.expand from true to false
-
-The default value of
+  Change the default value of
 [SqlToRelConverter.Config.expand](https://calcite.apache.org/javadocAggregate/org/apache/calcite/sql2rel/SqlToRelConverter.Config.html#isExpand())
-is now false, which means that `SqlToRelConverter` handles sub-queries (such
+from true to false. From  now on `SqlToRelConverter`, handles sub-queries (such
 as `IN`, `EXISTS`, and scalar sub-queries) by converting them to `RexSubQuery`
 expressions, rather than expanding them. To expand these `RexSubQuery`
 expressions, the `SubQueryRemoveRule` rule must be enabled in the planning
 phase.
-
 To keep the old behavior (which is discouraged but still supported),
-initialize `SqlToRelConverter` using
-`SqlToRelConverter.config().withExpandDeprecated(true)` as the value for the `config`
-argument.
+initialize `SqlToRelConverter` using `SqlToRelConverter.config().withExpand(true)` as the value for
+the `config` argument.
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 18;
