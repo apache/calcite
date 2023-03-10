@@ -1200,6 +1200,26 @@ public abstract class Expressions {
     return lambda(type, Blocks.toFunctionBlock(body), toList(parameters));
   }
 
+  public static Expression safeExpression(Expression body){
+    final ParameterExpression e_ =
+        Expressions.parameter(Exception.class, new BlockBuilder().newName("e"));
+
+    return Expressions.lambda(
+        Expressions.block(
+            Expressions.tryCatch(
+                Expressions.return_(
+                    null,
+                    body
+                )
+                , Expressions.catch_(
+                    e_,
+                    Expressions.return_(null, constant(null))
+
+                )
+            )
+        ));
+  }
+
   /**
    * Creates a BinaryExpression that represents a bitwise
    * left-shift operation.

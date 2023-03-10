@@ -288,7 +288,7 @@ public class RexSimplify {
     case CAST:
       return simplifyCast((RexCall) e, true);
     case SAFE_CAST:
-      return simplifyCast((RexCall) e, false);
+      return simplifyCast((RexCall) e, true);
     case CEIL:
     case FLOOR:
       return simplifyCeilFloor((RexCall) e);
