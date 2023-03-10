@@ -66,6 +66,7 @@ public class SqlUpdate extends SqlCall {
     this.sourceSelect = sourceSelect;
     assert sourceExpressionList.size() == targetColumnList.size();
     this.alias = alias;
+    init();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -178,7 +179,7 @@ public class SqlUpdate extends SqlCall {
   }
 
   /**
-   * @return single or multiple sources used by update statement
+   * This @return single or multiple sources used by update statement
    * This update target table also.
    */
   private List<SqlNode> getSources() {
@@ -379,7 +380,7 @@ public class SqlUpdate extends SqlCall {
     return sources;
   };
 
-  public void init() {
+  private void init() {
     sqlKindSourceCollectorMap.put(SqlKind.JOIN, collectSourcesFromJoin);
     sqlKindSourceCollectorMap.put(SqlKind.IDENTIFIER, collectSourcesFromIdentifier);
     sqlKindSourceCollectorMap.put(SqlKind.AS, collectSourcesFromAs);
