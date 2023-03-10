@@ -854,7 +854,7 @@ public class SqlLiteral extends SqlNode {
       TimestampWithTimeZoneString ts,
       int precision,
       SqlParserPos pos) {
-    return new SqlTimestampWithTimezoneLiteral(ts, precision, true, pos);
+    return new SqlTimestampWithTimezoneLiteral(ts, precision, pos);
   }
   @Deprecated // to be removed before 2.0
   public static SqlTimeLiteral createTime(

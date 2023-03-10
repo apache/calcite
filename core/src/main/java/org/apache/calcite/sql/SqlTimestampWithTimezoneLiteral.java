@@ -33,9 +33,8 @@ public class SqlTimestampWithTimezoneLiteral extends SqlAbstractDateTimeLiteral 
   //~ Constructors -----------------------------------------------------------
 
 
-  SqlTimestampWithTimezoneLiteral(TimestampWithTimeZoneString ts, int precision,
-      boolean hasTimeZone, SqlParserPos pos) {
-    super(ts, hasTimeZone, SqlTypeName.TIMESTAMP_WITH_TIME_ZONE, precision, pos);
+  SqlTimestampWithTimezoneLiteral(TimestampWithTimeZoneString ts, int precision, SqlParserPos pos) {
+    super(ts, true, SqlTypeName.TIMESTAMP_WITH_TIME_ZONE, precision, pos);
     Preconditions.checkArgument(this.precision >= 0);
   }
 
@@ -44,8 +43,7 @@ public class SqlTimestampWithTimezoneLiteral extends SqlAbstractDateTimeLiteral 
   @Override public SqlTimestampWithTimezoneLiteral clone(SqlParserPos pos) {
     return new SqlTimestampWithTimezoneLiteral(
         (TimestampWithTimeZoneString) requireNonNull(value, "value"),
-        precision,
-        hasTimeZone, pos);
+        precision, pos);
   }
 
   @Override public String toString() {
