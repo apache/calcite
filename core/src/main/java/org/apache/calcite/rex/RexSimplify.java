@@ -2224,7 +2224,7 @@ public class RexSimplify {
           break;
         }
         final List<RexNode> reducedValues = new ArrayList<>();
-        final RexNode simplifiedExpr = rexBuilder.makeCast(e.getType(), operand);
+        final RexNode simplifiedExpr = rexBuilder.makeCast(e.getType(), operand, e.getKind());
         executor.reduce(rexBuilder, ImmutableList.of(simplifiedExpr), reducedValues);
         return requireNonNull(
             Iterables.getOnlyElement(reducedValues));
@@ -2232,7 +2232,7 @@ public class RexSimplify {
         if (operand == e.getOperands().get(0)) {
           return e;
         } else {
-          return rexBuilder.makeCast(e.getType(), operand);
+          return rexBuilder.makeCast(e.getType(), operand, e.getKind());
         }
       }
     } catch (Exception ex) {

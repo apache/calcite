@@ -5993,12 +5993,11 @@ SqlNode BuiltinFunctionCall() :
     SqlDataTypeSpec dt;
     final SqlIntervalQualifier unit;
     final SqlNode node;
-    final SqlParserPos intermediate;
 }
 {
     //~ FUNCTIONS WITH SPECIAL SYNTAX ---------------------------------------
     (
-        (<CAST> | <SAFE_CAST>) { s = span(); }
+        <CAST> { s = span(); }
         <LPAREN> AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
         <AS>
         (
@@ -6007,12 +6006,19 @@ SqlNode BuiltinFunctionCall() :
             <INTERVAL> e = IntervalQualifier() { args.add(e); }
         )
         <RPAREN> {
-            intermediate = s.end(this);
-            if (intermediate.toString().contains("SAFE")) {
-              return SqlLibraryOperators.SAFE_CAST.createCall(intermediate, args);
-            } else {
-              return SqlStdOperatorTable.CAST.createCall(intermediate, args);
-            }
+            return SqlStdOperatorTable.CAST.createCall(s.end(this), args);
+        }
+    |
+        <SAFE_CAST> { s = span(); }
+        <LPAREN> AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+        <AS>
+        (
+            dt = DataType() { args.add(dt); }
+        |
+            <INTERVAL> e = IntervalQualifier() { args.add(e); }
+        )
+        <RPAREN> {
+            return SqlLibraryOperators.SAFE_CAST.createCall(s.end(this), args);
         }
     |
         <EXTRACT> { s = span(); }
