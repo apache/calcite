@@ -96,6 +96,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -114,6 +116,8 @@ import static org.apache.calcite.linq4j.tree.Expressions.list;
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.QUANTIFY_OPERATORS;
+import static org.apache.calcite.sql.test.ResultCheckers.isExactDateTime;
+import static org.apache.calcite.sql.test.ResultCheckers.isExactTime;
 import static org.apache.calcite.sql.test.ResultCheckers.isExactly;
 import static org.apache.calcite.sql.test.ResultCheckers.isNullValue;
 import static org.apache.calcite.sql.test.ResultCheckers.isSet;
@@ -2630,6 +2634,31 @@ public class SqlOperatorTest {
     f.checkScalar("timestamp '2003-08-02 12:54:01' "
             + "- interval '-4 2:4' day to minute",
         "2003-08-06 14:58:01", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp '2003-08-02 12:54:01' "
+            + "- interval '0.01' second(1, 3)",
+        isExactDateTime(LocalDateTime.of(2003, 8, 2, 12, 54, 0, 990_000_000)),
+        "TIMESTAMP(3) NOT NULL");
+    f.checkScalar("timestamp '2003-08-02 12:54:01.000' "
+            + "- interval '1' second",
+        isExactDateTime(LocalDateTime.of(2003, 8, 2, 12, 54, 0, 0)),
+        "TIMESTAMP(3) NOT NULL");
+    f.checkScalar("timestamp '2003-08-02 12:54:01.123' "
+            + "- interval '1' hour",
+        isExactDateTime(LocalDateTime.of(2003, 8, 2, 11, 54, 1, 123_000_000)),
+        "TIMESTAMP(3) NOT NULL");
+    f.checkScalar("timestamp with local time zone '2003-08-02 12:54:01' "
+            + "- interval '0.456' second(1, 3)",
+        isExactDateTime(LocalDateTime.of(2003, 8, 2, 12, 54, 0, 544_000_000)),
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(3) NOT NULL");
+    f.checkScalar("time '23:54:01' "
+            + "- interval '0.01' second(1, 3)",
+        isExactTime(LocalTime.of(23, 54, 0, 990_000_000)), "TIME(3) NOT NULL");
+    f.checkScalar("time '23:54:01.123' "
+            + "- interval '1' minute",
+        isExactTime(LocalTime.of(23, 53, 1, 123_000_000)), "TIME(3) NOT NULL");
+    f.checkScalar("date '2003-08-02' "
+            + "- interval '1.123' second(1, 3)",
+        "2003-08-02", "DATE NOT NULL");
 
     // Datetime minus year-month interval
     f.checkScalar("timestamp '2003-08-02 12:54:01' - interval '12' year",
@@ -2931,6 +2960,30 @@ public class SqlOperatorTest {
     f.checkScalar("timestamp '2003-08-02 12:54:01'"
             + " + interval '-4 2:4' day to minute",
         "2003-07-29 10:50:01", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("interval '0.003' SECOND(1, 3) + timestamp '2003-08-02 12:54:01.001'",
+        isExactDateTime(LocalDateTime.of(2003, 8, 2, 12, 54, 1, 4_000_000)),
+        "TIMESTAMP(3) NOT NULL");
+    f.checkScalar("timestamp '2003-08-02 12:54:01.000' "
+            + "+ interval '1' second",
+        isExactDateTime(LocalDateTime.of(2003, 8, 2, 12, 54, 2, 0)),
+        "TIMESTAMP(3) NOT NULL");
+    f.checkScalar("timestamp '2003-08-02 12:54:01.123' "
+            + "+ interval '1' hour",
+        isExactDateTime(LocalDateTime.of(2003, 8, 2, 13, 54, 1, 123_000_000)),
+        "TIMESTAMP(3) NOT NULL");
+    f.checkScalar("timestamp with local time zone '2003-08-02 12:54:01' "
+            + "+ interval '0.456' second(1, 3)",
+        isExactDateTime(LocalDateTime.of(2003, 8, 2, 12, 54, 1, 456_000_000)),
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(3) NOT NULL");
+    f.checkScalar("time '23:54:01' "
+            + "+ interval '0.01' second(1, 3)",
+        isExactTime(LocalTime.of(23, 54, 1, 10_000_000)), "TIME(3) NOT NULL");
+    f.checkScalar("time '23:54:01.123' "
+            + "+ interval '1' minute",
+        isExactTime(LocalTime.of(23, 55, 1, 123_000_000)), "TIME(3) NOT NULL");
+    f.checkScalar("date '2003-08-02' "
+            + "+ interval '1.123' second(1, 3)",
+        "2003-08-02", "DATE NOT NULL");
 
     // Datetime plus year-to-month interval
     f.checkScalar("interval '5-3' year to month + date '2005-03-02'",
@@ -8059,12 +8112,12 @@ public class SqlOperatorTest {
         f.checkScalar("timestampadd(" + s
                 + ", 3000000000, timestamp '2016-02-24 12:42:25')",
             "2016-02-24 12:42:28",
-            "TIMESTAMP(0) NOT NULL"));
+            "TIMESTAMP(3) NOT NULL"));
     NANOSECOND_VARIANTS.forEach(s ->
         f.checkScalar("timestampadd(" + s
                 + ", 2000000000, timestamp '2016-02-24 12:42:25')",
             "2016-02-24 12:42:27",
-            "TIMESTAMP(0) NOT NULL"));
+            "TIMESTAMP(3) NOT NULL"));
     MINUTE_VARIANTS.forEach(s ->
         f.checkScalar("timestampadd(" + s
                 + ", 2, timestamp '2016-02-24 12:42:25')",
@@ -8183,10 +8236,23 @@ public class SqlOperatorTest {
   @Test void testTimestampAddFractionalSeconds() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.TIMESTAMP_ADD, VmName.EXPAND);
-    f.checkType(
-        "timestampadd(SQL_TSI_FRAC_SECOND, 2, timestamp '2016-02-24 12:42:25.000000')",
+    f.checkType("timestampadd(SQL_TSI_FRAC_SECOND, 2, "
+            + "timestamp '2016-02-24 12:42:25.000000')",
         // "2016-02-24 12:42:25.000002",
         "TIMESTAMP(3) NOT NULL");
+
+    f.checkType("timestampadd(SQL_TSI_FRAC_SECOND, 2, "
+            + "timestamp with local time zone '2016-02-24 12:42:25.000000')",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(3) NOT NULL");
+
+    f.checkType("timestampadd(SECOND, 2, timestamp '2016-02-24 12:42:25.000')",
+        "TIMESTAMP(3) NOT NULL");
+
+    f.checkType("timestampadd(HOUR, 2, time '12:42:25.000')",
+        "TIME(3) NOT NULL");
+
+    f.checkType("timestampadd(MINUTE, 2, time '12:42:25')",
+        "TIME(0) NOT NULL");
 
     // The following test would correctly return "TIMESTAMP(6) NOT NULL" if max
     // precision were 6 or higher

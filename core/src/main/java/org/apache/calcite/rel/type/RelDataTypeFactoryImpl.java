@@ -18,6 +18,7 @@ package org.apache.calcite.rel.type;
 
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.MapSqlType;
@@ -47,6 +48,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Abstract base for implementations of {@link RelDataTypeFactory}.
@@ -109,7 +112,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
 
   /** Creates a type factory. */
   protected RelDataTypeFactoryImpl(RelDataTypeSystem typeSystem) {
-    this.typeSystem = Objects.requireNonNull(typeSystem, "typeSystem");
+    this.typeSystem = requireNonNull(typeSystem, "typeSystem");
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -313,6 +316,26 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return new MapSqlType(keyType, valueType, isNullable);
   }
 
+  protected RelDataType leastRestrictiveIntervalDatetimeType(
+      final RelDataType dateTimeType, final RelDataType type1) {
+    assert SqlTypeUtil.isDatetime(dateTimeType);
+    if (SqlTypeUtil.isIntType(type1)) {
+      return dateTimeType;
+    }
+    final SqlIntervalQualifier intervalQualifier = type1.getIntervalQualifier();
+    requireNonNull(intervalQualifier, "intervalQualifier");
+    if (!dateTimeType.getSqlTypeName().allowsPrec()
+        || intervalQualifier.useDefaultFractionalSecondPrecision()
+        || intervalQualifier.getFractionalSecondPrecision(typeSystem)
+            <= dateTimeType.getPrecision()) {
+      return dateTimeType;
+    } else {
+      return
+          createSqlType(dateTimeType.getSqlTypeName(),
+              intervalQualifier.getFractionalSecondPrecision(typeSystem));
+    }
+  }
+
   // copy a non-record type, setting nullability
   private RelDataType copySimpleType(
       RelDataType type,
@@ -374,7 +397,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   @Override public RelDataType createTypeWithNullability(
       final RelDataType type,
       final boolean nullable) {
-    Objects.requireNonNull(type, "type");
+    requireNonNull(type, "type");
     RelDataType newType;
     if (type.isNullable() == nullable) {
       newType = type;

@@ -32,7 +32,11 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
+import com.google.common.collect.ImmutableMap;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.Map;
 
 import static org.apache.calcite.util.Util.first;
 
@@ -64,8 +68,10 @@ import static org.apache.calcite.util.Util.first;
  */
 public class SqlTimestampAddFunction extends SqlFunction {
 
-  private static final int MILLISECOND_PRECISION = 3;
-  private static final int MICROSECOND_PRECISION = 6;
+  private static final Map<TimeUnit, Integer> FRAC_SECOND_PRECISION_MAP =
+      ImmutableMap.of(TimeUnit.MILLISECOND, 3,
+          TimeUnit.MICROSECOND, 6,
+          TimeUnit.NANOSECOND, 9);
 
   private static final SqlReturnTypeInference RETURN_TYPE_INFERENCE =
       opBinding ->
@@ -84,35 +90,28 @@ public class SqlTimestampAddFunction extends SqlFunction {
 
   static RelDataType deduceType(RelDataTypeFactory typeFactory,
       @Nullable TimeUnit timeUnit, RelDataType datetimeType) {
-    TimeUnit timeUnit2 = first(timeUnit, TimeUnit.EPOCH);
+    final TimeUnit timeUnit2 = first(timeUnit, TimeUnit.EPOCH);
+    SqlTypeName typeName = datetimeType.getSqlTypeName();
     switch (timeUnit2) {
-    case MILLISECOND:
-      return typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
-          MILLISECOND_PRECISION);
-
     case MICROSECOND:
-      return typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
-          MICROSECOND_PRECISION);
-
+    case MILLISECOND:
+    case NANOSECOND:
+      return typeFactory.createSqlType(typeName,
+          Math.max(FRAC_SECOND_PRECISION_MAP.getOrDefault(timeUnit2, 0),
+              datetimeType.getPrecision()));
     case HOUR:
     case MINUTE:
     case SECOND:
-      SqlTypeName typeName = datetimeType.getSqlTypeName();
-      switch (typeName) {
-      case TIME:
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        break;
-      default:
-        // If it is not a TIMESTAMP_WITH_LOCAL_TIME_ZONE, operations involving
-        // HOUR, MINUTE, SECOND with DATE or TIMESTAMP types will result in
-        // TIMESTAMP type.
-        typeName = SqlTypeName.TIMESTAMP;
-        break;
+      if (datetimeType.getFamily() == SqlTypeFamily.TIME) {
+        return datetimeType;
+      } else if (datetimeType.getFamily() == SqlTypeFamily.TIMESTAMP) {
+        return
+            typeFactory.createSqlType(typeName,
+                datetimeType.getPrecision());
+      } else {
+        return typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
       }
-      return typeFactory.createSqlType(typeName);
-
     default:
-    case EPOCH:
       return datetimeType;
     }
   }
