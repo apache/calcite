@@ -8071,6 +8071,22 @@ public class SqlOperatorTest {
         // "2016-02-24 12:42:25.000002",
         "TIMESTAMP(3) NOT NULL");
 
+    f.checkType(
+        "timestampadd(SQL_TSI_FRAC_SECOND, 2, timestamp with local time zone '2016-02-24 12:42:25.000000')",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(3) NOT NULL");
+
+    f.checkType(
+        "timestampadd(SECOND, 2, timestamp '2016-02-24 12:42:25.000')",
+        "TIMESTAMP(3) NOT NULL");
+
+    f.checkType(
+        "timestampadd(HOUR, 2, time '12:42:25.000')",
+        "TIME(3) NOT NULL");
+
+    f.checkType(
+        "timestampadd(MINUTE, 2, time '12:42:25')",
+        "TIME(0) NOT NULL");
+
     // The following test would correctly return "TIMESTAMP(6) NOT NULL" if max
     // precision were 6 or higher
     assumeTrue(f.getFactory().getTypeFactory().getTypeSystem()

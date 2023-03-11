@@ -82,37 +82,34 @@ public class SqlTimestampAddFunction extends SqlFunction {
         operandType1.isNullable() || operandType2.isNullable());
   }
 
-  static RelDataType deduceType(RelDataTypeFactory typeFactory,
-      @Nullable TimeUnit timeUnit, RelDataType datetimeType) {
-    TimeUnit timeUnit2 = first(timeUnit, TimeUnit.EPOCH);
+  static RelDataType deduceType(
+      RelDataTypeFactory typeFactory, TimeUnit timeUnit, RelDataType datetimeType) {
+    final TimeUnit timeUnit2 = first(timeUnit, TimeUnit.EPOCH);
+    SqlTypeName typeName = datetimeType.getSqlTypeName();
     switch (timeUnit2) {
     case MILLISECOND:
-      return typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
-          MILLISECOND_PRECISION);
-
+      return typeFactory.createSqlType(
+          typeName,
+          Math.max(MILLISECOND_PRECISION, datetimeType.getPrecision()));
     case MICROSECOND:
-      return typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
-          MICROSECOND_PRECISION);
-
+      return
+          typeFactory.createSqlType(
+              typeName,
+              Math.max(MICROSECOND_PRECISION, datetimeType.getPrecision()));
     case HOUR:
     case MINUTE:
     case SECOND:
-      SqlTypeName typeName = datetimeType.getSqlTypeName();
-      switch (typeName) {
-      case TIME:
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        break;
-      default:
-        // If it is not a TIMESTAMP_WITH_LOCAL_TIME_ZONE, operations involving
-        // HOUR, MINUTE, SECOND with DATE or TIMESTAMP types will result in
-        // TIMESTAMP type.
-        typeName = SqlTypeName.TIMESTAMP;
-        break;
+      if (datetimeType.getFamily() == SqlTypeFamily.TIME) {
+        return datetimeType;
+      } else if (datetimeType.getFamily() == SqlTypeFamily.TIMESTAMP) {
+        return
+            typeFactory.createSqlType(
+                typeName,
+                datetimeType.getPrecision());
+      } else {
+        return typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
       }
-      return typeFactory.createSqlType(typeName);
-
     default:
-    case EPOCH:
       return datetimeType;
     }
   }
