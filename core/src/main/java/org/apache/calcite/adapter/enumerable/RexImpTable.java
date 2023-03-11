@@ -2946,8 +2946,9 @@ public class RexImpTable {
       }
       final RelDataType targetType =
           nullifyType(translator.typeFactory, call.getType(), false);
+      boolean safe = call.getKind() == SqlKind.SAFE_CAST;
       return translator.translateCast(sourceType,
-              targetType, argValueList.get(0));
+              targetType, argValueList.get(0), safe);
     }
 
     private static RelDataType nullifyType(JavaTypeFactory typeFactory,
