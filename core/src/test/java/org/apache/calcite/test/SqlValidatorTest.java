@@ -7529,6 +7529,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Table 'PRODUCTS' is not a temporal table, "
             + "can not be queried in system time period specification");
 
+    sql("select stream * from orders, ^products^ for system_time as of"
+        + " TIMESTAMP WITH LOCAL TIME ZONE '2011-01-02 00:00:00'")
+        .fails("Table 'PRODUCTS' is not a temporal table, "
+            + "can not be queried in system time period specification");
+
     sql("select stream * from orders, products_temporal "
         + "for system_time as of ^'2011-01-02 00:00:00'^")
         .fails("The system time period specification expects Timestamp type but is 'CHAR'");

@@ -5302,7 +5302,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlSnapshot snapshot = (SqlSnapshot) node;
       SqlNode period = snapshot.getPeriod();
       RelDataType dataType = deriveType(requireNonNull(scope, "scope"), period);
-      if (dataType.getSqlTypeName() != SqlTypeName.TIMESTAMP) {
+      if (dataType.getSqlTypeName() != SqlTypeName.TIMESTAMP
+          && dataType.getSqlTypeName() != SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
         throw newValidationError(period,
             Static.RESOURCE.illegalExpressionForTemporal(dataType.getSqlTypeName().getName()));
       }
@@ -5650,7 +5651,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         identifier = (SqlIdentifier) requireNonNull(firstOrderByColumn, "firstOrderByColumn");
       }
       RelDataType firstOrderByColumnType = deriveType(scope, identifier);
-      if (firstOrderByColumnType.getSqlTypeName() != SqlTypeName.TIMESTAMP) {
+      final SqlTypeName firstOrderByColumnTypeSqlTypeName = firstOrderByColumnType.getSqlTypeName();
+      if (firstOrderByColumnTypeSqlTypeName != SqlTypeName.TIMESTAMP
+          && firstOrderByColumnTypeSqlTypeName != SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
         throw newValidationError(interval,
           RESOURCE.firstColumnOfOrderByMustBeTimestamp());
       }

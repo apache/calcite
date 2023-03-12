@@ -42,7 +42,11 @@ final class Fixture extends AbstractFixture {
   final RelDataType varchar20Type = sqlType(SqlTypeName.VARCHAR, 20);
   final RelDataType varchar20TypeNull = nullable(varchar20Type);
   final RelDataType timestampType = sqlType(SqlTypeName.TIMESTAMP);
+  final RelDataType timestampTypeWithLocalTimeZone =
+      sqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
   final RelDataType timestampTypeNull = nullable(timestampType);
+  final RelDataType timestampTypeWithLocalTimeZoneNull =
+      nullable(timestampTypeWithLocalTimeZone);
   final RelDataType dateType = sqlType(SqlTypeName.DATE);
   final RelDataType booleanType = sqlType(SqlTypeName.BOOLEAN);
   final RelDataType booleanTypeNull = nullable(booleanType);

@@ -1246,6 +1246,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testJoinTemporalTableOnSpecificTimeWithLocalTimeZone() {
+    final String sql = "select stream *\n"
+        + "from orders,\n"
+        + "  products_temporal for system_time as of\n"
+        + "    TIMESTAMP WITH LOCAL TIME ZONE '2011-01-02 00:00:00'";
+    sql(sql).ok();
+  }
+
   @Test void testJoinTemporalTableOnSpecificTime2() {
     // Test temporal table with virtual columns.
     final String sql = "select stream *\n"

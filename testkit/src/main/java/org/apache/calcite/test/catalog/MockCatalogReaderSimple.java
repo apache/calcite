@@ -279,6 +279,10 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     productsTemporalTable.addColumn("SUPPLIERID", fixture.intType);
     productsTemporalTable.addColumn("SYS_START", fixture.timestampType);
     productsTemporalTable.addColumn("SYS_END", fixture.timestampType);
+    productsTemporalTable.addColumn(
+        "SYS_START_LOCAL_TIMESTAMP", fixture.timestampTypeWithLocalTimeZone);
+    productsTemporalTable.addColumn(
+        "SYS_END_LOCAL_TIMESTAMP", fixture.timestampTypeWithLocalTimeZone);
     registerTable(productsTemporalTable);
   }
 
