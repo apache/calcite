@@ -82,8 +82,8 @@ public class SqlTimestampAddFunction extends SqlFunction {
         operandType1.isNullable() || operandType2.isNullable());
   }
 
-  static RelDataType deduceType(
-      RelDataTypeFactory typeFactory, TimeUnit timeUnit, RelDataType datetimeType) {
+  static RelDataType deduceType(RelDataTypeFactory typeFactory,
+      @Nullable TimeUnit timeUnit, RelDataType datetimeType) {
     final TimeUnit timeUnit2 = first(timeUnit, TimeUnit.EPOCH);
     SqlTypeName typeName = datetimeType.getSqlTypeName();
     switch (timeUnit2) {
