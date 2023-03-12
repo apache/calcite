@@ -27,7 +27,7 @@ import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
-import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
@@ -131,7 +131,7 @@ public abstract class Snapshot extends SingleRel implements Hintable {
 
   @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     RelDataType dataType = period.getType();
-    if (dataType.getSqlTypeName() != SqlTypeName.TIMESTAMP) {
+    if (!SqlTypeUtil.isTimestamp(dataType)) {
       return litmus.fail("The system time period specification expects Timestamp type but is '"
           + dataType.getSqlTypeName() + "'");
     }

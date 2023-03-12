@@ -495,6 +495,31 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @Test void testJoinTemporalTableForTimestampWithLocalTimezone() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM orders
+    //   JOIN products_temporal FOR SYSTEM_TIME
+    //   AS OF TIMESTAMP WITH LOCAL TIME ZONE '2011-07-20 12:34:56'
+    //   ON orders.product = products_temporal.id
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("orders")
+            .scan("products_temporal")
+            .snapshot(
+                builder.getRexBuilder().makeTimestampWithLocalTimeZoneLiteral(
+                    new TimestampString("2011-07-20 12:34:56"), 0))
+            .join(JoinRelType.INNER,
+                builder.equals(builder.field(2, 0, "PRODUCT"),
+                    builder.field(2, 1, "ID")))
+            .build();
+    final String expected = "LogicalJoin(condition=[=($2, $4)], joinType=[inner])\n"
+        + "  LogicalTableScan(table=[[scott, orders]])\n"
+        + "  LogicalSnapshot(period=[2011-07-20 12:34:56:TIMESTAMP_WITH_LOCAL_TIME_ZONE(0)])\n"
+        + "    LogicalTableScan(table=[[scott, products_temporal]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
   /** Tests that {@link RelBuilder#project} simplifies expressions if and only if
    * {@link RelBuilder.Config#simplify}. */
   @Test void testSimplify() {
