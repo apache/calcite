@@ -225,6 +225,11 @@ public class MockCatalogReaderExtended extends MockCatalogReaderSimple {
         f.varchar5MultisetArrayType);
     complexTypeColumnsTable.addColumn("intArrayMultisetType", f.intArrayMultisetType);
     complexTypeColumnsTable.addColumn("rowArrayMultisetType", f.rowArrayMultisetType);
+    complexTypeColumnsTable.addColumn("int2IntMapType", f.int2IntMapType);
+    complexTypeColumnsTable.addColumn("int2varcharArrayMapType",
+        f.int2varcharArrayMapType);
+    complexTypeColumnsTable.addColumn("varcharMultiset2IntIntMapType",
+        f.varcharMultiset2IntIntMapType);
     registerTable(complexTypeColumnsTable);
 
     MockSchema nullableRowsSchema = new MockSchema("NULLABLEROWS");

@@ -6123,6 +6123,20 @@ public class SqlParserTest {
         .ok("CAST(`A` AS ROW(`F0` VARCHAR, `F1` TIMESTAMP NULL) MULTISET)");
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5570">[CALCITE-5570]
+   * Support nested map type for SqlDataTypeSpec</a>.
+   */
+  @Test void testCastAsMapType() {
+    expr("cast(a as map<int, int>)")
+        .ok("CAST(`A` AS MAP< INTEGER, INTEGER >)");
+    expr("cast(a as map<int, varchar array>)")
+        .ok("CAST(`A` AS MAP< INTEGER, VARCHAR ARRAY >)");
+    expr("cast(a as map<varchar multiset, map<int, int>>)")
+        .ok("CAST(`A` AS MAP< VARCHAR MULTISET, MAP< INTEGER, INTEGER > >)");
+  }
+
   @Test void testMapValueConstructor() {
     expr("map[1, 'x', 2, 'y']")
         .ok("(MAP[1, 'x', 2, 'y'])");
