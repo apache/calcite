@@ -76,6 +76,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
+import org.apache.calcite.sql.SqlMapTypeNameSpec;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
@@ -5690,6 +5691,9 @@ SqlTypeNameSpec TypeName() :
     |
         typeNameSpec = RowTypeName()
     |
+        LOOKAHEAD(2)
+        typeNameSpec = MapTypeName()
+    |
         typeName = CompoundIdentifier() {
             typeNameSpec = new SqlUserDefinedTypeNameSpec(typeName, s.end(this));
         }
@@ -5959,6 +5963,23 @@ SqlTypeNameSpec RowTypeName() :
     <LPAREN> AddFieldNameTypes(fieldNames, fieldTypes) <RPAREN>
     {
         return new SqlRowTypeNameSpec(getPos(), fieldNames, fieldTypes);
+    }
+}
+
+SqlTypeNameSpec MapTypeName() :
+{
+    SqlDataTypeSpec keyType = null;
+    SqlDataTypeSpec valType = null;
+}
+{
+    <MAP>
+    <LT>
+    keyType = DataType()
+    <COMMA>
+    valType = DataType()
+    <GT>
+    {
+        return new SqlMapTypeNameSpec(keyType, valType, getPos());
     }
 }
 

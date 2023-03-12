@@ -2543,4 +2543,23 @@ select decimal'12.3' + 5.6;
 
 !ok
 
+# [CALCITE-5570] Support nested map type for SqlDataTypeSpec
+SELECT
+  cast(x as map<int, int>),
+  cast(y as map<int, varchar array>),
+  cast(z as map<varchar  multiset, map<int, int>>)
+FROM (
+  SELECT
+    map[1, 2, 3, 4] as x,
+    map[1, array['a', 'b'], 2, array['c', 'd']] as y,
+    map[multiset['A'], map[1,2], multiset['B'], map[3, 4]] as z
+);
++------------+----------------------+------------------------+
+| EXPR$0     | EXPR$1               | EXPR$2                 |
++------------+----------------------+------------------------+
+| {1=2, 3=4} | {1=[a, b], 2=[c, d]} | {[A]={1=2}, [B]={3=4}} |
++------------+----------------------+------------------------+
+(1 row)
+
+!ok
 # End misc.iq

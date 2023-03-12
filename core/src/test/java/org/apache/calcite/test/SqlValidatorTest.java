@@ -7127,6 +7127,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Unknown identifier 'MYUDT'");
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5570">[CALCITE-5570]
+   * Support nested map type for SqlDataTypeSpec</a>.
+   */
+  @Test void testCastMapType() {
+    sql("select cast(\"int2IntMapType\" as map<int,int>) from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    sql("select cast(\"int2varcharArrayMapType\" as map<int,varchar array>) "
+        + "from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("(INTEGER NOT NULL, VARCHAR NOT NULL ARRAY NOT NULL) MAP NOT NULL");
+    sql("select cast(\"varcharMultiset2IntIntMapType\" as map<varchar(5) multiset, map<int, int>>)"
+        + " from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("(VARCHAR(5) NOT NULL MULTISET NOT NULL, "
+            + "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL) MAP NOT NULL");
+  }
+
   @Test void testCastAsRowType() {
     sql("select cast(a as row(f0 int, f1 varchar)) from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()

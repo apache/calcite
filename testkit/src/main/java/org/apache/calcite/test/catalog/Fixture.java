@@ -149,6 +149,12 @@ final class Fixture extends AbstractFixture {
                   Arrays.asList(intArrayMultisetType, varchar5ArrayType),
                   Arrays.asList("f0", "f1"))),
           -1);
+  final RelDataType int2IntMapType =
+      typeFactory.createMapType(intType, intType);
+  final RelDataType int2varcharArrayMapType =
+      typeFactory.createMapType(intType, array(varcharType));
+  final RelDataType varcharMultiset2IntIntMapType =
+      typeFactory.createMapType(varchar5MultisetType, int2IntMapType);
 
   Fixture(RelDataTypeFactory typeFactory) {
     super(typeFactory);
