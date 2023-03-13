@@ -101,7 +101,7 @@ public class SparkSqlDialect extends SqlDialect {
       case ARRAY_VALUE_CONSTRUCTOR:
       case MAP_VALUE_CONSTRUCTOR:
         final String keyword =
-            call.getKind().equals(SqlKind.ARRAY_VALUE_CONSTRUCTOR) ? "array" : "map";
+            call.getKind() == SqlKind.ARRAY_VALUE_CONSTRUCTOR ? "array" : "map";
 
         writer.keyword(keyword);
 
