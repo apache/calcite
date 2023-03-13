@@ -770,6 +770,7 @@ public abstract class SqlImplementor {
         return new SqlDynamicParam(caseParam.getIndex(), POS);
 
       case IN:
+      case SOME:
         if (rex instanceof RexSubQuery) {
           subQuery = (RexSubQuery) rex;
           sqlSubQuery = implementor().visitRoot(subQuery.rel).asQueryOrValues();
