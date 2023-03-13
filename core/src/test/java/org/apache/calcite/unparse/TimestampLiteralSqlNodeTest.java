@@ -46,23 +46,17 @@ public class TimestampLiteralSqlNodeTest {
  *  Need to add support to calculate precision from input and get expected count of precision.
  * */
   @Test void testTimestampWithTimeZoneLiteralSqlNodeWithValidValues() {
-    TimestampWithTimeZoneString timestampWithTimeZoneString1 = new TimestampWithTimeZoneString(
-        "2020-05-21 11:20:01.4321 GMT-05:00");
-    TimestampWithTimeZoneString timestampWithTimeZoneString2 = new TimestampWithTimeZoneString(
-        "2020-05-21 11:20:01.4321 GMT");
-    TimestampWithTimeZoneString timestampWithTimeZoneString3 = new TimestampWithTimeZoneString(
-        "2020-05-21 11:20:01.4321 IST");
-    TimestampWithTimeZoneString timestampWithTimeZoneString4 = new TimestampWithTimeZoneString(
-        "2011-07-20 10:34:56 America/Los_Angeles");
+    final SqlNode node1 = SqlParserUtil.parseTimestampWithTimeZoneLiteral("2020-05-21 11:20:01"
+        + ".4321-05:00", SqlParserPos.ZERO);
 
-    final SqlNode node1 = SqlLiteral.createTimestampWithTimeZone(timestampWithTimeZoneString1, 6,
-        SqlParserPos.ZERO);
-    final SqlNode node2 = SqlLiteral.createTimestampWithTimeZone(timestampWithTimeZoneString2, 6,
-        SqlParserPos.ZERO);
-    final SqlNode node3 = SqlLiteral.createTimestampWithTimeZone(timestampWithTimeZoneString3, 6,
-        SqlParserPos.ZERO);
-    final SqlNode node4 = SqlLiteral.createTimestampWithTimeZone(timestampWithTimeZoneString4, 6,
-        SqlParserPos.ZERO);
+    final SqlNode node2 = SqlParserUtil.parseTimestampWithTimeZoneLiteral("2020-05-21 11:20:01"
+        + ".4321 GMT", SqlParserPos.ZERO);
+
+    final SqlNode node3 = SqlParserUtil.parseTimestampWithTimeZoneLiteral("2020-05-21 11:20:01"
+        + ".4321 IST", SqlParserPos.ZERO);
+
+    final SqlNode node4 = SqlParserUtil.parseTimestampWithTimeZoneLiteral("2011-07-20 10:34:56 "
+        + "America/Los_Angeles", SqlParserPos.ZERO);
 
     final String expectedSqlNode1 = "TIMESTAMP '2020-05-21 11:20:01.4321 GMT-05:00'";
     final String expectedSqlNode2 = "TIMESTAMP '2020-05-21 11:20:01.4321 GMT'";
