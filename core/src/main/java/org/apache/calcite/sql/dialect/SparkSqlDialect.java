@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlUtil;
@@ -98,7 +99,10 @@ public class SparkSqlDialect extends SqlDialect {
     } else {
       switch (call.getKind()) {
       case ARRAY_VALUE_CONSTRUCTOR:
-        writer.keyword("array");
+      case MAP_VALUE_CONSTRUCTOR:
+        final String keyword = call.getKind().equals(SqlKind.ARRAY_VALUE_CONSTRUCTOR) ? "array" : "map";
+        writer.keyword(keyword);
+
         final SqlWriter.Frame frame = writer.startList("(", ")");
         for (SqlNode operand : call.getOperandList()) {
           writer.sep(",");

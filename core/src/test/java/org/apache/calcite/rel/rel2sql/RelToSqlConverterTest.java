@@ -3685,6 +3685,16 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5577">[CALCITE-5577]
+   * Map value constructor is unparsed incorrectly for SparkSqlDialect</a>.*/
+  @Test void testMapValueConstructorSpark() {
+    final String query = "SELECT MAP['k1', 'v1', 'k2', 'v2']";
+    final String expected = "SELECT MAP ('k1', 'v1', 'k2', 'v2')\n"
+        + "FROM (VALUES (0)) t (ZERO)";
+    sql(query).withSpark().ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4674">[CALCITE-4674]
    * Excess quotes in generated SQL when STAR is a column alias</a>. */
   @Test void testAliasOnStarNoExcessQuotes() {
