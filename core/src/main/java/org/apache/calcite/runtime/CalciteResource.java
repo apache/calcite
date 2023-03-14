@@ -598,6 +598,10 @@ public interface CalciteResource {
   ExInst<SqlValidatorException> argumentMustBeValidPrecision(String a0, int a1,
       int a2);
 
+  @BaseMessage("Call to function ''{0}'' with argument of type ''{1}'' requires extra delimiter argument")
+  ExInst<SqlValidatorException> delimiterIsRequired(String functionName,
+      String argumentTypeName);
+
   @BaseMessage("Wrong arguments for table function ''{0}'' call. Expected ''{1}'', actual ''{2}''")
   ExInst<CalciteException> illegalArgumentForTableFunctionCall(String a0,
       String a1, String a2);

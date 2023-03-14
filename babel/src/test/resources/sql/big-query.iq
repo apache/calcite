@@ -649,6 +649,88 @@ SELECT (19 % 19) as result;
 !ok
 
 #####################################################################
+# SPLIT
+#
+# SPLIT(string [, delimiter])
+#
+# Splits string using the delimiter argument. For STRING, the default
+# delimiter is the comma.
+#
+# Returns a STRING array as result.
+WITH letters AS
+  (SELECT '' as letter_group
+  UNION ALL
+  SELECT 'a' as letter_group
+  UNION ALL
+  SELECT 'b c d' as letter_group)
+SELECT SPLIT(letter_group, ' ') as example
+FROM letters;
++-----------+
+| example   |
++-----------+
+| []        |
+| [a]       |
+| [b, c, d] |
++-----------+
+(3 rows)
+
+!ok
+
+SELECT SPLIT("h,e,l,l,o") as result;
++-----------------+
+| result          |
++-----------------+
+| [h, e, l, l, o] |
++-----------------+
+(1 row)
+
+!ok
+
+SELECT SPLIT("") as result;
++--------+
+| result |
++--------+
+| []     |
++--------+
+(1 row)
+
+!ok
+
+# Careful to treat the delimiter as a string, not a regular expression
+SELECT SPLIT("abc.de.", ".") as result;
++-------------+
+| result      |
++-------------+
+| [abc, de, ] |
++-------------+
+(1 row)
+
+!ok
+
+WITH letters AS
+  (SELECT x'' as letter_group
+  UNION ALL
+  SELECT x'41' as letter_group
+  UNION ALL
+  SELECT x'42ff43ff44' as letter_group)
+SELECT SPLIT(letter_group, x'ff') as example
+FROM letters;
++-----------+
+| example   |
++-----------+
+| []        |
+| [A]       |
+| [B, C, D] |
++-----------+
+(3 rows)
+
+!ok
+
+SELECT SPLIT(x'abc2') as result;
+Call to function 'SPLIT' with argument of type 'BINARY(2)' requires extra delimiter argument
+!error
+
+#####################################################################
 # STRING
 #
 # STRING(timestamp_expression[, time_zone])

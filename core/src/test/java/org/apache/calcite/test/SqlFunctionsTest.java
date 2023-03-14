@@ -22,6 +22,8 @@ import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
 
+import com.google.common.collect.ImmutableList;
+
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -81,6 +83,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * rather than {@code assertEquals}.
  */
 class SqlFunctionsTest {
+  static <E> List<E> list(E... es) {
+    return Arrays.asList(es);
+  }
+
+  static <E> List<E> list() {
+    return ImmutableList.of();
+  }
+
   @Test void testCharLength() {
     assertThat(charLength("xyz"), is(3));
   }
@@ -505,6 +515,64 @@ class SqlFunctionsTest {
     assertThat(SqlFunctions.sround(-11999, -3), within(-12000d, 0.001));
     assertThat(SqlFunctions.sround(-12000, -4), within(-10000d, 0.001));
     assertThat(SqlFunctions.sround(-12000, -5), within(0d, 0.001));
+  }
+
+  @Test void testSplit() {
+    assertThat("no occurrence of delimiter",
+        SqlFunctions.split("abc", ","), is(list("abc")));
+    assertThat("delimiter in middle",
+        SqlFunctions.split("abc", "b"), is(list("a", "c")));
+    assertThat("delimiter at end",
+        SqlFunctions.split("abc", "c"), is(list("ab", "")));
+    assertThat("delimiter at start",
+        SqlFunctions.split("abc", "a"), is(list("", "bc")));
+    assertThat("empty delimiter",
+        SqlFunctions.split("abc", ""), is(list("abc")));
+    assertThat("empty delimiter and string",
+        SqlFunctions.split("", ""), is(list()));
+    assertThat("empty string",
+        SqlFunctions.split("", ","), is(list()));
+    assertThat("long delimiter (occurs at start)",
+        SqlFunctions.split("abracadabra", "ab"), is(list("", "racad", "ra")));
+    assertThat("long delimiter (occurs at end)",
+        SqlFunctions.split("sabracadabrab", "ab"),
+        is(list("s", "racad", "r", "")));
+
+    // Same as above but for ByteString
+    final ByteString a = ByteString.of("aa", 16);
+    final ByteString ab = ByteString.of("aabb", 16);
+    final ByteString abc = ByteString.of("aabbcc", 16);
+    final ByteString abracadabra = ByteString.of("aabb44aaccaaddaabb44aa", 16);
+    final ByteString b = ByteString.of("bb", 16);
+    final ByteString bc = ByteString.of("bbcc", 16);
+    final ByteString c = ByteString.of("cc", 16);
+    final ByteString f = ByteString.of("ff", 16);
+    final ByteString r = ByteString.of("44", 16);
+    final ByteString ra = ByteString.of("44aa", 16);
+    final ByteString racad = ByteString.of("44aaccaadd", 16);
+    final ByteString empty = ByteString.of("", 16);
+    final ByteString s = ByteString.of("55", 16);
+    final ByteString sabracadabrab =
+        ByteString.of("55", 16).concat(abracadabra).concat(b);
+    assertThat("no occurrence of delimiter",
+        SqlFunctions.split(abc, f), is(list(abc)));
+    assertThat("delimiter in middle",
+        SqlFunctions.split(abc, b), is(list(a, c)));
+    assertThat("delimiter at end",
+        SqlFunctions.split(abc, c), is(list(ab, empty)));
+    assertThat("delimiter at start",
+        SqlFunctions.split(abc, a), is(list(empty, bc)));
+    assertThat("empty delimiter",
+        SqlFunctions.split(abc, empty), is(list(abc)));
+    assertThat("empty delimiter and string",
+        SqlFunctions.split(empty, empty), is(list()));
+    assertThat("empty string",
+        SqlFunctions.split(empty, f), is(list()));
+    assertThat("long delimiter (occurs at start)",
+        SqlFunctions.split(abracadabra, ab), is(list(empty, racad, ra)));
+    assertThat("long delimiter (occurs at end)",
+        SqlFunctions.split(sabracadabrab, ab),
+        is(list(s, racad, r, empty)));
   }
 
   @Test void testByteString() {

@@ -106,7 +106,7 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
     }
   }
 
-  private SqlNode getCollationColumn(SqlCall call) {
+  private static SqlNode getCollationColumn(SqlCall call) {
     return ((SqlNodeList) call.operand(1)).get(0);
   }
 

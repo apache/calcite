@@ -23,6 +23,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -45,6 +46,7 @@ public class SqlBasicFunction extends SqlFunction {
   private final SqlSyntax syntax;
   private final boolean deterministic;
   private final SqlOperandHandler operandHandler;
+  private final int callValidator;
   private final Function<SqlOperatorBinding, SqlMonotonicity> monotonicityInference;
 
   //~ Constructors -----------------------------------------------------------
@@ -60,6 +62,7 @@ public class SqlBasicFunction extends SqlFunction {
    * @param operandTypeInference Strategy to use for parameter type inference
    * @param operandHandler Strategy to use for handling operands
    * @param operandTypeChecker Strategy to use for parameter type checking
+   * @param callValidator Strategy to validate calls
    * @param category Categorization for function
    * @param monotonicityInference Strategy to infer monotonicity of a call
    */
@@ -68,6 +71,7 @@ public class SqlBasicFunction extends SqlFunction {
       @Nullable SqlOperandTypeInference operandTypeInference,
       SqlOperandHandler operandHandler,
       SqlOperandTypeChecker operandTypeChecker,
+      Integer callValidator,
       SqlFunctionCategory category,
       Function<SqlOperatorBinding, SqlMonotonicity> monotonicityInference) {
     super(name, kind,
@@ -77,6 +81,7 @@ public class SqlBasicFunction extends SqlFunction {
     this.syntax = requireNonNull(syntax, "syntax");
     this.deterministic = deterministic;
     this.operandHandler = requireNonNull(operandHandler, "operandHandler");
+    this.callValidator = requireNonNull(callValidator, "callValidator");
     this.monotonicityInference =
         requireNonNull(monotonicityInference, "monotonicityInference");
   }
@@ -88,7 +93,7 @@ public class SqlBasicFunction extends SqlFunction {
       SqlOperandTypeChecker operandTypeChecker) {
     return new SqlBasicFunction(kind.name(), kind,
         SqlSyntax.FUNCTION, true, returnTypeInference, null,
-        OperandHandlers.DEFAULT, operandTypeChecker,
+        OperandHandlers.DEFAULT, operandTypeChecker, 0,
         SqlFunctionCategory.SYSTEM, call -> SqlMonotonicity.NOT_MONOTONIC);
   }
 
@@ -100,7 +105,7 @@ public class SqlBasicFunction extends SqlFunction {
       SqlOperandTypeChecker operandTypeChecker) {
     return new SqlBasicFunction(name, SqlKind.OTHER_FUNCTION,
         SqlSyntax.FUNCTION, true, returnTypeInference, null,
-        OperandHandlers.DEFAULT, operandTypeChecker,
+        OperandHandlers.DEFAULT, operandTypeChecker, 0,
         SqlFunctionCategory.NUMERIC, call -> SqlMonotonicity.NOT_MONOTONIC);
   }
 
@@ -111,7 +116,7 @@ public class SqlBasicFunction extends SqlFunction {
       SqlOperandTypeChecker operandTypeChecker, SqlFunctionCategory category) {
     return new SqlBasicFunction(name, SqlKind.OTHER_FUNCTION,
         SqlSyntax.FUNCTION, true, returnTypeInference, null,
-        OperandHandlers.DEFAULT, operandTypeChecker,
+        OperandHandlers.DEFAULT, operandTypeChecker, 0,
         category, call -> SqlMonotonicity.NOT_MONOTONIC);
   }
 
@@ -141,32 +146,40 @@ public class SqlBasicFunction extends SqlFunction {
     return operandHandler.rewriteCall(validator, call);
   }
 
+  @Override public void validateCall(SqlCall call, SqlValidator validator,
+      SqlValidatorScope scope, SqlValidatorScope operandScope) {
+    super.validateCall(call, validator, scope, operandScope);
+  }
+
   /** Returns a copy of this function with a given name. */
   public SqlBasicFunction withName(String name) {
     return new SqlBasicFunction(name, kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
-        getOperandTypeChecker(), getFunctionType(), monotonicityInference);
+        getOperandTypeChecker(), callValidator,
+        getFunctionType(), monotonicityInference);
   }
 
   /** Returns a copy of this function with a given kind. */
   public SqlBasicFunction withKind(SqlKind kind) {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
-        getOperandTypeChecker(), getFunctionType(), monotonicityInference);
+        getOperandTypeChecker(), callValidator,
+        getFunctionType(), monotonicityInference);
   }
 
   /** Returns a copy of this function with a given category. */
   public SqlBasicFunction withFunctionType(SqlFunctionCategory category) {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
-        getOperandTypeChecker(), category, monotonicityInference);
+        getOperandTypeChecker(), callValidator, category, monotonicityInference);
   }
 
   /** Returns a copy of this function with a given syntax. */
   public SqlBasicFunction withSyntax(SqlSyntax syntax) {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
-        getOperandTypeChecker(), getFunctionType(), monotonicityInference);
+        getOperandTypeChecker(), callValidator,
+        getFunctionType(), monotonicityInference);
   }
 
   /** Returns a copy of this function with a given strategy for inferring
@@ -175,7 +188,8 @@ public class SqlBasicFunction extends SqlFunction {
       SqlOperandTypeInference operandTypeInference) {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), operandTypeInference, operandHandler,
-        getOperandTypeChecker(), getFunctionType(), monotonicityInference);
+        getOperandTypeChecker(), callValidator,
+        getFunctionType(), monotonicityInference);
   }
 
   /** Returns a copy of this function with a given strategy for handling
@@ -183,13 +197,15 @@ public class SqlBasicFunction extends SqlFunction {
   public SqlBasicFunction withOperandHandler(SqlOperandHandler operandHandler) {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
-        getOperandTypeChecker(), getFunctionType(), monotonicityInference);
+        getOperandTypeChecker(), callValidator,
+        getFunctionType(), monotonicityInference);
   }
   /** Returns a copy of this function with a given determinism. */
   public SqlBasicFunction withDeterministic(boolean deterministic) {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
-        getOperandTypeChecker(), getFunctionType(), monotonicityInference);
+        getOperandTypeChecker(), callValidator,
+        getFunctionType(), monotonicityInference);
   }
 
   /** Returns a copy of this function with a given strategy for inferring
@@ -198,6 +214,14 @@ public class SqlBasicFunction extends SqlFunction {
       Function<SqlOperatorBinding, SqlMonotonicity> monotonicityInference) {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
         getReturnTypeInference(), getOperandTypeInference(), operandHandler,
-        getOperandTypeChecker(), getFunctionType(), monotonicityInference);
+        getOperandTypeChecker(), callValidator,
+        getFunctionType(), monotonicityInference);
+  }
+
+  public SqlFunction withValidation(int callValidator) {
+    return new SqlBasicFunction(getName(), kind, syntax, deterministic,
+        getReturnTypeInference(), getOperandTypeInference(), operandHandler,
+        getOperandTypeChecker(), callValidator,
+        getFunctionType(), monotonicityInference);
   }
 }

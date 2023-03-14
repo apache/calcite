@@ -41,9 +41,11 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
+import org.apache.calcite.util.Static;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -300,6 +302,30 @@ public abstract class SqlLibraryOperators {
               .andThen(SqlTypeTransforms.TO_VARYING),
           OperandTypes.STRING)
           .withFunctionType(SqlFunctionCategory.STRING);
+
+  /** The "SPLIT(string [, delimiter])" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SPLIT =
+      SqlBasicFunction.create("SPLIT",
+          ReturnTypes.ARG0
+              .andThen(SqlLibraryOperators::deriveTypeSplit)
+              .andThen(SqlTypeTransforms.TO_ARRAY),
+          OperandTypes.or(OperandTypes.CHARACTER_CHARACTER,
+              OperandTypes.CHARACTER,
+              OperandTypes.BINARY_BINARY,
+              OperandTypes.BINARY),
+          SqlFunctionCategory.STRING)
+          .withValidation(3);
+
+  static RelDataType deriveTypeSplit(SqlOperatorBinding operatorBinding,
+      RelDataType type) {
+    if (SqlTypeUtil.isBinary(type) && operatorBinding.getOperandCount() == 1) {
+      throw operatorBinding.newError(
+          Static.RESOURCE.delimiterIsRequired(
+              operatorBinding.getOperator().getName(), type.toString()));
+    }
+    return type;
+  }
 
   /** Generic "SUBSTR(string, position [, substringLength ])" function. */
   private static final SqlBasicFunction SUBSTR =

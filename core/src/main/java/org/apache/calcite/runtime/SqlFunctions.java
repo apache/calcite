@@ -49,6 +49,7 @@ import org.apache.commons.codec.language.Soundex;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
@@ -461,6 +462,51 @@ public class SqlFunctions {
   /** SQL {@code STARTS_WITH(binary, binary)} function. */
   public static boolean startsWith(ByteString s0, ByteString s1) {
     return s0.startsWith(s1);
+  }
+
+  /** SQL {@code SPLIT(string, string)} function. */
+  public static List<String> split(String s, String delimiter) {
+    if (s.isEmpty()) {
+      return ImmutableList.of();
+    }
+    if (delimiter.isEmpty()) {
+      return ImmutableList.of(s); // prevent mischief
+    }
+    final ImmutableList.Builder<String> list = ImmutableList.builder();
+    for (int i = 0;;) {
+      int j = s.indexOf(delimiter, i);
+      if (j < 0) {
+        list.add(s.substring(i));
+        return list.build();
+      }
+      list.add(s.substring(i, j));
+      i = j + delimiter.length();
+    }
+  }
+
+  /** SQL {@code SPLIT(string)} function. */
+  public static List<String> split(String s) {
+    return split(s, ",");
+  }
+
+  /** SQL {@code SPLIT(binary, binary)} function. */
+  public static List<ByteString> split(ByteString s, ByteString delimiter) {
+    if (s.length() == 0) {
+      return ImmutableList.of();
+    }
+    if (delimiter.length() == 0) {
+      return ImmutableList.of(s); // prevent mischief
+    }
+    final ImmutableList.Builder<ByteString> list = ImmutableList.builder();
+    for (int i = 0;;) {
+      int j = s.indexOf(delimiter, i);
+      if (j < 0) {
+        list.add(s.substring(i));
+        return list.build();
+      }
+      list.add(s.substring(i, j));
+      i = j + delimiter.length();
+    }
   }
 
   /** SQL SUBSTRING(string FROM ...) function. */
