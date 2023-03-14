@@ -952,7 +952,7 @@ Remember that UTC date changes at 4 pm Pacific time.
 If for whatever reason the `publishDist` task fails
 (e.g. [failed to release nexus repository](https://github.com/vlsi/vlsi-release-plugins/issues/64),
 it is still possible to perform the publishing tasks manually. Ask for help in the dev list if
-you are not sure what needs to done.
+you are not sure what needs to be done.
 
 Svnpubsub will publish to the
 [release repo](https://dist.apache.org/repos/dist/release/calcite) and propagate to the
