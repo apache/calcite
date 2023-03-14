@@ -817,13 +817,15 @@ installed in your machine.
 Log into [Nexus UI](https://repository.apache.org/#stagingRepositories) to see the actual error. In case of
 `Failed: Signature Validation. No public key: Key with id: ... was not able to be located`, make sure you have uploaded
 your key to the keyservers used by Nexus, see above.
+* [[CALCITE-5573]](https://issues.apache.org/jira/browse/CALCITE-5573) Gradle prepareVote fails when signing artifact
+* [[VLSI-RELEASE-PLUGINS-64]](https://github.com/vlsi/vlsi-release-plugins/issues/64) Execution failed for task ':releaseRepository due to missing nexus.txt
 
 #### Checking the artifacts
 
 * In the `release/build/distributions` directory should be these 3 files, among others:
   * `apache-calcite-X.Y.Z-src.tar.gz`
   * `apache-calcite-X.Y.Z-src.tar.gz.asc`
-  * `apache-calcite-X.Y.Z-src.tar.gz.sha256`
+  * `apache-calcite-X.Y.Z-src.tar.gz.sha512`
 * Note that the file names start `apache-calcite-`.
 * In the source distro `.tar.gz` (currently there is
   no binary distro), check that all files belong to a directory called
@@ -949,6 +951,11 @@ Remember that UTC date changes at 4 pm Pacific time.
 ./gradlew publishDist -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
 
+If for whatever reason the `publishDist` task fails
+(e.g. [failed to release nexus repository](https://github.com/vlsi/vlsi-release-plugins/issues/64),
+it is still possible to perform the publishing tasks manually. Ask for help in the dev list if
+you are not sure what needs to be done.
+
 Svnpubsub will publish to the
 [release repo](https://dist.apache.org/repos/dist/release/calcite) and propagate to the
 [mirrors](https://www.apache.org/dyn/closer.cgi/calcite) almost immediately.
@@ -968,15 +975,17 @@ The old releases will remain available in the
 You should receive an email from the [Apache Reporter Service](https://reporter.apache.org/).
 Make sure to add the version number and date of the latest release at the site linked to in the email.
 
-Update the site with the release note, the release announcement, and the javadoc of the new version.
+The release notes and the javadoc of the new version will be automatically deployed to the website
+once the release commits/tags reach the ASF remote and the respective
+[Gitub workflows](https://github.com/apache/calcite/blob/main/.github/workflows/) are triggered.
+
 Add a release announcement by copying
-[site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md).
-Generate the javadoc, and [preview](http://localhost:4000/news/) the site by following the
-instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md). Ensure the announcement,
-javadoc, and release note appear correctly and then publish the site following the instructions
-in the same file. Rebase the `site` branch with `main` (e.g., `git checkout site && git rebase main`);
-at this point there shouldn't be any commits in `site` that are not in `main`, so the rebase is
-essentially a noop.
+[site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md),
+and adapt the release date in `history.md` if necessary. Preview the changes locally, by following the
+instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md), and then commit and push
+the changes to the `main` branch.
+
+Ensure that all changes to the website (news, release notes, javadoc) are correctly displayed.
 
 In JIRA, search for
 [all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.5.0%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),
@@ -990,18 +999,18 @@ a new version (e.g., X.Y+1.Z) for the next release. In order to make the [releas
 reflect state of the next release, change the fixVersion in the [JIRA filter powering the dashboard](https://issues.apache.org/jira/issues/?filter=12346388)
 and save the changes.
 
-After 24 hours, announce the release by sending an email to
-[announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/) using an `@apache.org`
-address. You can use
-[the 1.20.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201906.mbox/%3CCA%2BEpF8tcJcZ41rVuwJODJmyRy-qAxZUQm9OxKsoDi07c2SKs_A%40mail.gmail.com%3E)
-as a template. Be sure to include a brief description of the project.
-
 Increase the `calcite.version` value in `/gradle.properties`, commit and push
 the change with the message "Prepare for next development iteration"
 (see [ed1470a](https://github.com/apache/calcite/commit/ed1470a3ea53a78c667354a5ec066425364eca73) as a reference)
 
 Re-open the `main` branch. Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying
 that `main` code freeze is over and commits can resume.
+
+Announce the release by sending an email to
+[announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/) using an `@apache.org`
+address. You can use
+[the 1.20.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201906.mbox/%3CCA%2BEpF8tcJcZ41rVuwJODJmyRy-qAxZUQm9OxKsoDi07c2SKs_A%40mail.gmail.com%3E)
+as a template. Be sure to include a brief description of the project.
 
 ## Publishing the web site
 {: #publish-the-web-site}
