@@ -760,6 +760,72 @@ class RelWriterTest {
         + "  ]\n"
         + "}";
     assertThatReadExpressionResult(jsonString2, is("+(1001, 2)"));
+
+    // SELECT TIMESTAMPDIFF(DAY, TIMESTAMP '2012-12-03 12:34:44', TIMESTAMP '2014-12-23 12:34:00') AS test"
+    final String jsonString3 = "{\n"
+        + "  \"op\":{\n"
+        + "    \"name\":\"CAST\",\n"
+        + "    \"kind\":\"CAST\",\n"
+        + "    \"syntax\":\"SPECIAL\"\n"
+        + "  },\n"
+        + "  \"operands\":[\n"
+        + "    {\n"
+        + "      \"op\":{\n"
+        + "        \"name\":\"/INT\",\n"
+        + "        \"kind\":\"DIVIDE\",\n"
+        + "        \"syntax\":\"BINARY\"\n"
+        + "      },\n"
+        + "      \"operands\":[\n"
+        + "        {\n"
+        + "          \"op\":{\n"
+        + "            \"name\":\"Reinterpret\",\n"
+        + "            \"kind\":\"REINTERPRET\",\n"
+        + "            \"syntax\":\"SPECIAL\"\n"
+        + "          },\n"
+        + "          \"operands\":[\n"
+        + "            {\n"
+        + "              \"op\":{\n"
+        + "                \"name\":\"-\",\n"
+        + "                \"kind\":\"MINUS\",\n"
+        + "                \"syntax\":\"SPECIAL\"\n"
+        + "              },\n"
+        + "              \"operands\":[\n"
+        + "                {\n"
+        + "                  \"literal\":1419338040000,\n"
+        + "                  \"type\":{\n"
+        + "                    \"type\":\"TIMESTAMP\",\n"
+        + "                    \"nullable\":false,\n"
+        + "                    \"precision\":0\n"
+        + "                  }\n"
+        + "                },\n"
+        + "                {\n"
+        + "                  \"literal\":1354538084000,\n"
+        + "                  \"type\":{\n"
+        + "                    \"type\":\"TIMESTAMP\",\n"
+        + "                    \"nullable\":false,\n"
+        + "                    \"precision\":0\n"
+        + "                  }\n"
+        + "                }\n"
+        + "              ]\n"
+        + "            }\n"
+        + "          ]\n"
+        + "        },\n"
+        + "        {\n"
+        + "          \"literal\":86400000,\n"
+        + "          \"type\":{\n"
+        + "            \"type\":\"INTEGER\",\n"
+        + "            \"nullable\":false\n"
+        + "          }\n"
+        + "        }\n"
+        + "      ]\n"
+        + "    }\n"
+        + "  ],\n"
+        + "  \"type\":{\n"
+        + "    \"type\":\"INTEGER\",\n"
+        + "    \"nullable\":false\n"
+        + "  }\n"
+        + "}";
+    assertThatReadExpressionResult(jsonString3, is("<TODO>"));
   }
 
   private void assertThatReadExpressionResult(String json, Matcher<String> matcher) {
@@ -779,7 +845,8 @@ class RelWriterTest {
       throw TestUtil.rethrow(e);
     }
     final RelJson relJson = RelJson.create()
-        .withInputTranslator(RelWriterTest::translateInput);
+        .withInputTranslator(RelWriterTest::translateInput)
+        .withLibraryOperatorTable();
     final RexNode e = relJson.toRex(cluster, o);
     assertThat(e.toString(), is(matcher));
   }
@@ -942,6 +1009,34 @@ class RelWriterTest {
     final String expected = ""
         + "LogicalProject(JOB=[$2], $f1=[CURRENT_DATETIME()])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(result, isLinux(expected));
+  }
+
+  /** Test case for RelJson deserialization with the <code>REINTERPRET</code> operator. The operator
+   * gets added to some calls with similar types in <code>StandardConverletTable#convertFloorCeil</code>
+   *
+   * This is hard to replicate with the rel builder since the internal operator is added during
+   * SQL -> Rel translation. This test creates a REINTERPRET call directly for convenience
+   * */
+  @Test void testDeserializeReinterpretOperator() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RexBuilder rb = builder.getRexBuilder();
+    final RelNode rel = builder
+        .scan("EMP")
+        .project(builder.field("JOB"),
+            builder.call(SqlStdOperatorTable.REINTERPRET,
+                builder.call(SqlStdOperatorTable.MINUS_DATE,
+                      rb.makeTimestampLiteral(new TimestampString("2012-12-03 12:34:44"), 0),
+                      rb.makeTimestampLiteral(new TimestampString("2014-12-23 12:34:44"), 0)
+                    ))
+        ).build();
+    final RelJsonWriter jsonWriter =
+        new RelJsonWriter(new JsonBuilder(), RelJson::withLibraryOperatorTable);
+    rel.explain(jsonWriter);
+    String relJson = jsonWriter.asString();
+    String result = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
+    final String expected = "<TODO>";
     assertThat(result, isLinux(expected));
   }
 
