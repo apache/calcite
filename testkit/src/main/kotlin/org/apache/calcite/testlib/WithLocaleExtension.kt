@@ -46,7 +46,8 @@ class WithLocaleExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallb
         // Save the value of WithLocale if it is present at the class level
         context.element
             .flatMap { AnnotationSupport.findAnnotation(it, WithLocale::class.java) }
-            .map { Locale(it.country, it.country, it.variant) }
+            .map { Locale.Builder().setLanguageTag(it.country + '-' + it.country +
+                    if (it.variant.isBlank()) "" else '-' + it.variant).build() }
             .orElseGet { defaultLocale }
             .let { context.store.put(CLASS_LOCALE, it) }
     }
@@ -62,7 +63,8 @@ class WithLocaleExtension : BeforeAllCallback, AfterAllCallback, BeforeEachCallb
         // Set locale based on
         context.element
             .flatMap { AnnotationSupport.findAnnotation(it, WithLocale::class.java) }
-            .map { Locale(it.country, it.country, it.variant) }
+            .map { Locale.Builder().setLanguageTag(it.country + '-' + it.country +
+                    if (it.variant.isBlank()) "" else '-' + it.variant).build() }
             .orElseGet { context.store.get(CLASS_LOCALE, Locale::class.java) }
             ?.let { Locale.setDefault(it) }
     }

@@ -62,10 +62,12 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.IllformedLocaleException;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -79,6 +81,8 @@ public final class SqlParserUtil {
   //~ Static fields/initializers ---------------------------------------------
 
   static final Logger LOGGER = CalciteTrace.getParserTracer();
+
+  private static final Pattern UNDERSCORE = Pattern.compile("_+");
 
   //~ Constructors -----------------------------------------------------------
 
@@ -738,18 +742,14 @@ public final class SqlParserUtil {
     }
 
     Charset charset = SqlUtil.getCharset(charsetStr);
-    String[] localeParts = localeStr.split("_");
-    Locale locale;
-    if (1 == localeParts.length) {
-      locale = new Locale(localeParts[0]);
-    } else if (2 == localeParts.length) {
-      locale = new Locale(localeParts[0], localeParts[1]);
-    } else if (3 == localeParts.length) {
-      locale = new Locale(localeParts[0], localeParts[1], localeParts[2]);
-    } else {
+    try {
+      Locale locale =
+          new Locale.Builder().setLanguageTag(
+              UNDERSCORE.matcher(localeStr).replaceAll("-")).build();
+      return new ParsedCollation(charset, locale, strength);
+    } catch (IllformedLocaleException e) {
       throw RESOURCE.illegalLocaleFormat(localeStr).ex();
     }
-    return new ParsedCollation(charset, locale, strength);
   }
 
   @Deprecated // to be removed before 2.0

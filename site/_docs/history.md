@@ -43,8 +43,11 @@ z.
 #### Breaking Changes
 {: #breaking-1-35-0}
 
+The way of Locale parsing changed within [<a href="https://issues.apache.org/jira/browse/CALCITE-5567">CALCITE-5567</a>]
+Now locale's language tag should match IETF BCP 47 language tag or be empty.
+
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
-using JDK/OpenJDK versions 8 to 18;
+using JDK/OpenJDK versions 8 to 19;
 Guava versions 16.0.1 to 31.1-jre;
 other software versions as specified in gradle.properties.
 
@@ -71,11 +74,11 @@ This release comes 1 month after [1.33.0](#v1-33-0),
 contains contributions from 18 contributors, and resolves 34 issues. It's worth highlighting the
 introduction of QUALIFY clause ([<a href="https://issues.apache.org/jira/browse/CALCITE-5268">CALCITE-5268</a>]),
 which facilitates filtering the results of window functions. Among other improvements and fixes, it
-adds roughly 15 new functions in BigQuery library for handling dates, times, and timestamps, and 
+adds roughly 15 new functions in BigQuery library for handling dates, times, and timestamps, and
 provides a fix ([<a href="https://issues.apache.org/jira/browse/CALCITE-5522">CALCITE-5522</a>])
 for a small breaking change in `DATE_TRUNC` function
 ([<a href="https://issues.apache.org/jira/browse/CALCITE-5447">CALCITE-5447</a>]), which was
-introduced accidentally in [1.33.0](#v1-33-0). 
+introduced accidentally in [1.33.0](#v1-33-0).
 
 Contributors to this release:
 Alessandro Solimando,

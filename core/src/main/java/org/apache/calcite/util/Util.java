@@ -90,6 +90,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.IllformedLocaleException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -123,6 +124,7 @@ import static java.util.Objects.requireNonNull;
 public class Util {
 
   private static final int QUICK_DISTINCT = 15;
+  private static final Pattern UNDERSCORE = Pattern.compile("_+");
 
   private Util() {}
 
@@ -1723,15 +1725,13 @@ public class Util {
    * @return Java locale object
    */
   public static Locale parseLocale(String localeString) {
-    String[] strings = localeString.split("_");
-    switch (strings.length) {
-    case 1:
-      return new Locale(strings[0]);
-    case 2:
-      return new Locale(strings[0], strings[1]);
-    case 3:
-      return new Locale(strings[0], strings[1], strings[2]);
-    default:
+    if (localeString.isEmpty()) {
+      return Locale.ROOT;
+    }
+    try {
+      return new Locale.Builder().setLanguageTag(
+          UNDERSCORE.matcher(localeString).replaceAll("-")).build();
+    } catch (IllformedLocaleException e) {
       throw new AssertionError("bad locale string '" + localeString + "'");
     }
   }
