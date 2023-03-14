@@ -1063,7 +1063,7 @@ public abstract class SqlLibraryOperators {
       SqlKind.TIMESTAMP_DIFF,
       ReturnTypes.INTEGER, null,
       OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
-      SqlFunctionCategory.TIMEDATE)
+      SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMPINTADD = new SqlFunction("TIMESTAMPINTADD",

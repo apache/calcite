@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -6206,8 +6207,11 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(builder.alias(DateTimeDiffRexNode, "DT"))
         .build();
-    final String expectedSql = "";
-    final String expectedBiqQuery = "";
+    final String expectedSql = "SELECT DATETIME_DIFF(CURRENT_DATE, CURRENT_DATE, HOUR) AS "
+        + "\"DT\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATETIME_DIFF(CURRENT_DATE, CURRENT_DATE, HOUR) AS "
+        + "DT\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
