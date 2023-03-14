@@ -123,6 +123,7 @@ import static java.util.Objects.requireNonNull;
 public class Util {
 
   private static final int QUICK_DISTINCT = 15;
+  private static final Pattern UNDERSCORE = Pattern.compile("_");
 
   private Util() {}
 
@@ -1717,17 +1718,7 @@ public class Util {
    * @return Java locale object
    */
   public static Locale parseLocale(String localeString) {
-    String[] strings = localeString.split("_");
-    switch (strings.length) {
-    case 1:
-      return new Locale(strings[0]);
-    case 2:
-      return new Locale(strings[0], strings[1]);
-    case 3:
-      return new Locale(strings[0], strings[1], strings[2]);
-    default:
-      throw new AssertionError("bad locale string '" + localeString + "'");
-    }
+    return Locale.forLanguageTag(UNDERSCORE.matcher(localeString).replaceAll("-"));
   }
 
   /**

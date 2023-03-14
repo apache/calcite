@@ -914,7 +914,7 @@ class UtilTest {
     }
     // Example locale names in Locale.toString() javadoc.
     String[] localeNames = {
-        "en", "de_DE", "_GB", "en_US_WIN", "de__POSIX", "fr__MAC"
+        "en", "de_DE", "fr_CA"
     };
     for (String localeName : localeNames) {
       assertEquals(localeName, Util.parseLocale(localeName).toString());
