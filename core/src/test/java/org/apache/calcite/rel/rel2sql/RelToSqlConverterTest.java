@@ -6196,6 +6196,24 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
   }
 
+  @Test public void testDateTimeDiffFunctionRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode DateTimeDiffRexNode = builder.call(SqlLibraryOperators.DATETIME_DIFF,
+        builder.call(SqlStdOperatorTable.CURRENT_DATE),
+        builder.call(SqlStdOperatorTable.CURRENT_DATE), builder.literal(TimeUnit.HOUR));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(DateTimeDiffRexNode, "DT"))
+        .build();
+    final String expectedSql = "SELECT CURRENT_TIMESTAMP(6) AS \"CT\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT CAST(FORMAT_TIMESTAMP('%F %H:%M:%E6S', "
+        + "CURRENT_DATETIME()) AS DATETIME) AS CT\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test void testJsonType() {
     String query = "select json_type(\"product_name\") from \"product\"";
     final String expected = "SELECT "
