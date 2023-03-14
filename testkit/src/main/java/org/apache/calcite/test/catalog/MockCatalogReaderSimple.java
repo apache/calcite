@@ -76,27 +76,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     }
   }
 
-  @Override public MockCatalogReaderSimple init() {
-    final Fixture fixture = new Fixture(typeFactory);
-
-    // Register "SALES" schema.
-    MockSchema salesSchema = new MockSchema("SALES");
-    registerSchema(salesSchema);
-
-    // Register "EMP" table with customer InitializerExpressionFactory
-    // to check whether newDefaultValue method called or not.
-    final InitializerExpressionFactory countingInitializerExpressionFactory =
-        new CountingFactory(ImmutableList.of("DEPTNO"));
-
-    registerType(
-        ImmutableList.of(salesSchema.getCatalogName(), salesSchema.getName(),
-            "customBigInt"),
-        typeFactory -> typeFactory.createSqlType(SqlTypeName.BIGINT));
-
-    // Register "EMP" table.
-    final MockTable empTable =
-        MockTable.create(this, salesSchema, "EMP", false, 14, null,
-            countingInitializerExpressionFactory, false);
+  private void registerTableEmp(MockTable empTable, Fixture fixture) {
     empTable.addColumn("EMPNO", fixture.intType, true);
     empTable.addColumn("ENAME", fixture.varchar20Type);
     empTable.addColumn("JOB", fixture.varchar10Type);
@@ -107,10 +87,9 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     empTable.addColumn("DEPTNO", fixture.intType);
     empTable.addColumn("SLACKER", fixture.booleanType);
     registerTable(empTable);
+  }
 
-    // Register "EMPNULLABLES" table with nullable columns.
-    final MockTable empNullablesTable =
-        MockTable.create(this, salesSchema, "EMPNULLABLES", false, 14);
+  private void registerTableEmpNullables(MockTable empNullablesTable, Fixture fixture) {
     empNullablesTable.addColumn("EMPNO", fixture.intType, true);
     empNullablesTable.addColumn("ENAME", fixture.varchar20TypeNull);
     empNullablesTable.addColumn("JOB", fixture.varchar10TypeNull);
@@ -121,8 +100,9 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     empNullablesTable.addColumn("DEPTNO", fixture.intTypeNull);
     empNullablesTable.addColumn("SLACKER", fixture.booleanTypeNull);
     registerTable(empNullablesTable);
+  }
 
-    // Register "EMPDEFAULTS" table with default values for some columns.
+  private void registerTableEmpDefaults(MockSchema salesSchema, Fixture fixture) {
     final MockTable empDefaultsTable =
         MockTable.create(this, salesSchema, "EMPDEFAULTS", false, 14, null,
             new EmpInitializerExpressionFactory(), false);
@@ -136,8 +116,9 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     empDefaultsTable.addColumn("DEPTNO", fixture.intTypeNull);
     empDefaultsTable.addColumn("SLACKER", fixture.booleanTypeNull);
     registerTable(empDefaultsTable);
+  }
 
-    // Register "EMP_B" table. As "EMP", birth with a "BIRTHDATE" column.
+  private void registerTableEmpB(MockSchema salesSchema, Fixture fixture) {
     final MockTable empBTable =
         MockTable.create(this, salesSchema, "EMP_B", false, 14);
     empBTable.addColumn("EMPNO", fixture.intType, true);
@@ -151,20 +132,23 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     empBTable.addColumn("SLACKER", fixture.booleanType);
     empBTable.addColumn("BIRTHDATE", fixture.dateType);
     registerTable(empBTable);
+  }
 
-    // Register "DEPT" table.
+  private void registerTableDept(MockSchema salesSchema, Fixture fixture) {
     MockTable deptTable = MockTable.create(this, salesSchema, "DEPT", false, 4);
     deptTable.addColumn("DEPTNO", fixture.intType, true);
     deptTable.addColumn("NAME", fixture.varchar10Type);
     registerTable(deptTable);
+  }
 
-    // Register "DEPT_SINGLE" table.
+  private void registerTableDeptSingle(MockSchema salesSchema, Fixture fixture) {
     MockTable deptSingleTable =
         MockTable.create(this, salesSchema, "DEPT_SINGLE", false, 4);
     deptSingleTable.addColumn("SKILL", fixture.singleRecordType);
     registerTable(deptSingleTable);
+  }
 
-    // Register "DEPT_NESTED" table.
+  private void registerTableDeptNested(MockSchema salesSchema, Fixture fixture) {
     MockTable deptNestedTable =
         MockTable.create(this, salesSchema, "DEPT_NESTED", false, 4);
     deptNestedTable.addColumn("DEPTNO", fixture.intType, true);
@@ -172,8 +156,9 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     deptNestedTable.addColumn("SKILL", fixture.skillRecordType);
     deptNestedTable.addColumn("EMPLOYEES", fixture.empListType);
     registerTable(deptNestedTable);
+  }
 
-    // Register "DEPT_NESTED_EXPANDED" table.
+  private void registerTableDeptNestedExpanded(MockSchema salesSchema, Fixture fixture) {
     MockTable deptNestedExpandedTable =
         MockTable.create(this, salesSchema, "DEPT_NESTED_EXPANDED", false, 4);
     deptNestedExpandedTable.addColumn("DEPTNO", fixture.intType, true);
@@ -182,8 +167,9 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     deptNestedExpandedTable.addColumn("ADMINS", fixture.varchar5ArrayType);
     deptNestedExpandedTable.addColumn("OFFICES", fixture.rectilinearPeekCoordMultisetType);
     registerTable(deptNestedExpandedTable);
+  }
 
-    // Register "BONUS" table.
+  private void registerTableBonus(MockSchema salesSchema, Fixture fixture) {
     MockTable bonusTable =
         MockTable.create(this, salesSchema, "BONUS", false, 0);
     bonusTable.addColumn("ENAME", fixture.varchar20Type);
@@ -191,16 +177,18 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     bonusTable.addColumn("SAL", fixture.intType);
     bonusTable.addColumn("COMM", fixture.intType);
     registerTable(bonusTable);
+  }
 
-    // Register "SALGRADE" table.
+  private void registerTableSalgrade(MockSchema salesSchema, Fixture fixture) {
     MockTable salgradeTable =
         MockTable.create(this, salesSchema, "SALGRADE", false, 5);
     salgradeTable.addColumn("GRADE", fixture.intType, true);
     salgradeTable.addColumn("LOSAL", fixture.intType);
     salgradeTable.addColumn("HISAL", fixture.intType);
     registerTable(salgradeTable);
+  }
 
-    // Register "EMP_ADDRESS" table
+  private void registerTableEmpAddress(MockSchema salesSchema, Fixture fixture) {
     MockTable contactAddressTable =
         MockTable.create(this, salesSchema, "EMP_ADDRESS", false, 26);
     contactAddressTable.addColumn("EMPNO", fixture.intType, true);
@@ -208,11 +196,9 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     contactAddressTable.addColumn("MAILING_ADDRESS", addressType);
     registerTable(contactAddressTable);
 
-    // Register "CUSTOMER" schema.
-    MockSchema customerSchema = new MockSchema("CUSTOMER");
-    registerSchema(customerSchema);
+  }
 
-    // Register "CONTACT" table.
+  private void registerTableContact(MockSchema customerSchema, Fixture fixture) {
     MockTable contactTable =
         MockTable.create(this, customerSchema, "CONTACT", false, 1000);
     contactTable.addColumn("CONTACTNO", fixture.intType);
@@ -221,8 +207,9 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     contactTable.addColumn("EMAIL", fixture.varchar20Type);
     contactTable.addColumn("COORD", fixture.rectilinearCoordType);
     registerTable(contactTable);
+  }
 
-    // Register "CONTACT_PEEK" table. The
+  private void registerTableContactPeek(MockSchema customerSchema, Fixture fixture) {
     MockTable contactPeekTable =
         MockTable.create(this, customerSchema, "CONTACT_PEEK", false, 1000);
     contactPeekTable.addColumn("CONTACTNO", fixture.intType);
@@ -232,16 +219,18 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     contactPeekTable.addColumn("COORD", fixture.rectilinearPeekCoordType);
     contactPeekTable.addColumn("COORD_NE", fixture.rectilinearPeekNoExpandCoordType);
     registerTable(contactPeekTable);
+  }
 
-    // Register "ACCOUNT" table.
+  private void registerTableAccount(MockSchema customerSchema, Fixture fixture) {
     MockTable accountTable =
         MockTable.create(this, customerSchema, "ACCOUNT", false, 457);
     accountTable.addColumn("ACCTNO", fixture.intType);
     accountTable.addColumn("TYPE", fixture.varchar20Type);
     accountTable.addColumn("BALANCE", fixture.intType);
     registerTable(accountTable);
+  }
 
-    // Register "ORDERS" stream.
+  private void registerTableOrders(MockSchema salesSchema, Fixture fixture) {
     MockTable ordersStream =
         MockTable.create(this, salesSchema, "ORDERS", true,
             Double.POSITIVE_INFINITY);
@@ -250,8 +239,8 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     ordersStream.addColumn("PRODUCTID", fixture.intType);
     ordersStream.addColumn("ORDERID", fixture.intType);
     registerTable(ordersStream);
-
-    // Register "SHIPMENTS" stream.
+  }
+  private void registerTableShipments(MockSchema salesSchema, Fixture fixture) {
     // "ROWTIME" is not column 0, just to mix things up.
     MockTable shipmentsStream =
         MockTable.create(this, salesSchema, "SHIPMENTS", true,
@@ -260,47 +249,48 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     shipmentsStream.addColumn("ROWTIME", fixture.timestampType);
     shipmentsStream.addMonotonic("ROWTIME");
     registerTable(shipmentsStream);
+  }
 
-    // Register "PRODUCTS" table.
+  private void registerTableProducts(MockSchema salesSchema, Fixture fixture) {
     MockTable productsTable =
         MockTable.create(this, salesSchema, "PRODUCTS", false, 200D);
     productsTable.addColumn("PRODUCTID", fixture.intType);
     productsTable.addColumn("NAME", fixture.varchar20Type);
     productsTable.addColumn("SUPPLIERID", fixture.intType);
     registerTable(productsTable);
+  }
 
-    // Register "EMPTY_PRODUCTS" table.
+  private void registerTableEmptyProducts(MockSchema salesSchema, Fixture fixture) {
     MockTable emptyProductsTable =
         MockTable.create(this, salesSchema, "EMPTY_PRODUCTS", false, 0D, 0D);
     emptyProductsTable.addColumn("PRODUCTID", fixture.intType);
     emptyProductsTable.addColumn("NAME", fixture.varchar20Type);
     emptyProductsTable.addColumn("SUPPLIERID", fixture.intType);
     registerTable(emptyProductsTable);
+  }
 
-    // Register "PRODUCTS_TEMPORAL" table.
+  private void registerTableProductsTemporal(MockSchema salesSchema, Fixture fixture) {
     MockTable productsTemporalTable =
         MockTable.create(this, salesSchema, "PRODUCTS_TEMPORAL", false, 200D,
-        null, NullInitializerExpressionFactory.INSTANCE, true);
+            null, NullInitializerExpressionFactory.INSTANCE, true);
     productsTemporalTable.addColumn("PRODUCTID", fixture.intType);
     productsTemporalTable.addColumn("NAME", fixture.varchar20Type);
     productsTemporalTable.addColumn("SUPPLIERID", fixture.intType);
     productsTemporalTable.addColumn("SYS_START", fixture.timestampType);
     productsTemporalTable.addColumn("SYS_END", fixture.timestampType);
     registerTable(productsTemporalTable);
+  }
 
-    // Register "SUPPLIERS" table.
+  private void registerTableSuppliers(MockSchema salesSchema, Fixture fixture) {
     MockTable suppliersTable =
         MockTable.create(this, salesSchema, "SUPPLIERS", false, 10D);
     suppliersTable.addColumn("SUPPLIERID", fixture.intType);
     suppliersTable.addColumn("NAME", fixture.varchar20Type);
     suppliersTable.addColumn("CITY", fixture.intType);
     registerTable(suppliersTable);
+  }
 
-    // Register "EMP_20" and "EMPNULLABLES_20 views.
-    // Same columns as "EMP" amd "EMPNULLABLES", but "DEPTNO" not visible and set to 20 by default
-    // and "SAL" is visible but must be greater than 1000, which is the equivalent of:
-    //   SELECT EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, SLACKER
-    //   FROM EMP WHERE DEPTNO = 20 AND SAL > 1000
+  private void registerViewEmp20(MockSchema salesSchema, MockTable empTable, Fixture fixture) {
     final ImmutableIntList m0 = ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 8);
     MockTable emp20View =
         new MockViewTable(this, salesSchema.getCatalogName(), salesSchema.getName(),
@@ -337,7 +327,11 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     emp20View.addColumn("COMM", fixture.intType);
     emp20View.addColumn("SLACKER", fixture.booleanType);
     registerTable(emp20View);
+  }
 
+  private void registerViewEmpNullables20(
+      MockSchema salesSchema, MockTable empNullablesTable, Fixture fixture) {
+    final ImmutableIntList m0 = ImmutableIntList.of(0, 1, 2, 3, 4, 5, 6, 8);
     MockTable empNullables20View =
         new MockViewTable(this, salesSchema.getCatalogName(), salesSchema.getName(),
             "EMPNULLABLES_20", false, 600, empNullablesTable, m0, null,
@@ -373,7 +367,9 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     empNullables20View.addColumn("COMM", fixture.intTypeNull);
     empNullables20View.addColumn("SLACKER", fixture.booleanTypeNull);
     registerTable(empNullables20View);
+  }
 
+  private void registerStructTypeTables(Fixture fixture) {
     MockSchema structTypeSchema = new MockSchema("STRUCT");
     registerSchema(structTypeSchema);
     final List<CompoundNameColumn> columns =
@@ -441,8 +437,106 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
       struct10View.addColumn(column.getName(), column.type);
     }
     registerTable(struct10View);
+  }
+
+  @Override public MockCatalogReaderSimple init() {
+    final Fixture fixture = new Fixture(typeFactory);
+
+    // Register "SALES" schema.
+    MockSchema salesSchema = new MockSchema("SALES");
+    registerSchema(salesSchema);
+
+    // Register "EMP" table with customer InitializerExpressionFactory
+    // to check whether newDefaultValue method called or not.
+    final InitializerExpressionFactory countingInitializerExpressionFactory =
+        new CountingFactory(ImmutableList.of("DEPTNO"));
+
+    registerType(
+        ImmutableList.of(salesSchema.getCatalogName(), salesSchema.getName(),
+            "customBigInt"),
+        typeFactory -> typeFactory.createSqlType(SqlTypeName.BIGINT));
+
+    // Register "EMP" table.
+    final MockTable empTable =
+        MockTable.create(this, salesSchema, "EMP", false, 14, null,
+            countingInitializerExpressionFactory, false);
+    registerTableEmp(empTable, fixture);
+
+    // Register "EMPNULLABLES" table with nullable columns.
+    final MockTable empNullablesTable =
+        MockTable.create(this, salesSchema, "EMPNULLABLES", false, 14);
+    registerTableEmpNullables(empNullablesTable, fixture);
+
+    // Register "EMPDEFAULTS" table with default values for some columns.
+    registerTableEmpDefaults(salesSchema, fixture);
+
+    // Register "EMP_B" table. As "EMP", birth with a "BIRTHDATE" column.
+    registerTableEmpB(salesSchema, fixture);
+
+    // Register "DEPT" table.
+    registerTableDept(salesSchema, fixture);
+
+    // Register "DEPT_SINGLE" table.
+    registerTableDeptSingle(salesSchema, fixture);
+
+    // Register "DEPT_NESTED" table.
+    registerTableDeptNested(salesSchema, fixture);
+
+    // Register "DEPT_NESTED_EXPANDED" table.
+    registerTableDeptNestedExpanded(salesSchema, fixture);
+
+    // Register "BONUS" table.
+    registerTableBonus(salesSchema, fixture);
+
+    // Register "SALGRADE" table.
+    registerTableSalgrade(salesSchema, fixture);
+
+    // Register "EMP_ADDRESS" table
+    registerTableEmpAddress(salesSchema, fixture);
+
+    // Register "CUSTOMER" schema.
+    MockSchema customerSchema = new MockSchema("CUSTOMER");
+    registerSchema(customerSchema);
+
+    // Register "CONTACT" table.
+    registerTableContact(customerSchema, fixture);
+
+    // Register "CONTACT_PEEK" table. The
+    registerTableContactPeek(customerSchema, fixture);
+
+    // Register "ACCOUNT" table.
+    registerTableAccount(customerSchema, fixture);
+
+    // Register "ORDERS" stream.
+    registerTableOrders(salesSchema, fixture);
+
+    // Register "SHIPMENTS" stream.
+    registerTableShipments(salesSchema, fixture);
+
+    // Register "PRODUCTS" table.
+    registerTableProducts(salesSchema, fixture);
+
+    // Register "EMPTY_PRODUCTS" table.
+    registerTableEmptyProducts(salesSchema, fixture);
+
+    // Register "PRODUCTS_TEMPORAL" table.
+    registerTableProductsTemporal(salesSchema, fixture);
+
+    // Register "SUPPLIERS" table.
+    registerTableSuppliers(salesSchema, fixture);
+
+    // Register "EMP_20" and "EMPNULLABLES_20 views.
+    // Same columns as "EMP" amd "EMPNULLABLES", but "DEPTNO" not visible and set to 20 by default
+    // and "SAL" is visible but must be greater than 1000, which is the equivalent of:
+    //   SELECT EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, SLACKER
+    //   FROM EMP WHERE DEPTNO = 20 AND SAL > 1000
+    registerViewEmp20(salesSchema, empTable, fixture);
+
+    registerViewEmpNullables20(salesSchema, empNullablesTable, fixture);
+
+    registerStructTypeTables(fixture);
+
     registerTablesWithRollUp(salesSchema, fixture);
     return this;
-
   }
 }
