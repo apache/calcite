@@ -1273,7 +1273,13 @@ public abstract class SqlImplementor {
 
     /** Converts a collation to an ORDER BY item. */
     public SqlNode toSql(RelFieldCollation collation) {
-      SqlNode node = orderField(collation.getFieldIndex());
+      SqlNode node;
+      if (collation.isFieldRefOrdinal) {
+        node = SqlLiteral.createExactNumeric(
+            Integer.toString(collation.getFieldIndex() + 1), SqlParserPos.ZERO);
+      } else {
+        node = orderField(collation.getFieldIndex());
+      }
       switch (collation.getDirection()) {
       case DESCENDING:
       case STRICTLY_DESCENDING:

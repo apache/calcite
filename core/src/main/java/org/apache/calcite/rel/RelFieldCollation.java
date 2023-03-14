@@ -217,6 +217,11 @@ public class RelFieldCollation {
    */
   public final NullDirection nullDirection;
 
+  /**
+   * Whether field is referenced as an Ordinal.
+   */
+  public final boolean isFieldRefOrdinal;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -240,9 +245,18 @@ public class RelFieldCollation {
       int fieldIndex,
       Direction direction,
       NullDirection nullDirection) {
+    this(fieldIndex, direction, nullDirection, false);
+  }
+
+  public RelFieldCollation(
+      int fieldIndex,
+      Direction direction,
+      NullDirection nullDirection,
+      boolean isOrdinal) {
     this.fieldIndex = fieldIndex;
     this.direction = Objects.requireNonNull(direction);
     this.nullDirection = Objects.requireNonNull(nullDirection);
+    this.isFieldRefOrdinal = isOrdinal;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -252,7 +266,7 @@ public class RelFieldCollation {
    */
   public RelFieldCollation withFieldIndex(int fieldIndex) {
     return this.fieldIndex == fieldIndex ? this
-        : new RelFieldCollation(fieldIndex, direction, nullDirection);
+        : new RelFieldCollation(fieldIndex, direction, nullDirection, isFieldRefOrdinal);
   }
 
   @Deprecated // to be removed before 2.0
@@ -263,14 +277,14 @@ public class RelFieldCollation {
   /** Creates a copy of this RelFieldCollation with a different direction. */
   public RelFieldCollation withDirection(Direction direction) {
     return this.direction == direction ? this
-        : new RelFieldCollation(fieldIndex, direction, nullDirection);
+        : new RelFieldCollation(fieldIndex, direction, nullDirection, isFieldRefOrdinal);
   }
 
   /** Creates a copy of this RelFieldCollation with a different null
    * direction. */
   public RelFieldCollation withNullDirection(NullDirection nullDirection) {
     return this.nullDirection == nullDirection ? this
-        : new RelFieldCollation(fieldIndex, direction, nullDirection);
+        : new RelFieldCollation(fieldIndex, direction, nullDirection, isFieldRefOrdinal);
   }
 
   /**
