@@ -2708,6 +2708,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b o | SINH(numeric)                                | Returns the hyperbolic sine of *numeric*
 | b m o p | SOUNDEX(string)                          | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
+| b | SPLIT(string1 [, string2 ])                    | Returns the string array of *string1* being split at delimiter *string2*, the default delimiter is a comma if *string2* is not provided
 | b | STARTS_WITH(string1, string2)                  | Returns whether *string2* is a prefix of *string1*
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
 | b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set

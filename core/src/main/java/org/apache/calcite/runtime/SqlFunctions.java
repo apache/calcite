@@ -463,6 +463,16 @@ public class SqlFunctions {
     return s0.startsWith(s1);
   }
 
+  /** SQL {@code SPLIT(string, string)} function. */
+  public static List<String> split(String s0, String s1) {
+    return Arrays.asList(s0.split(s1));
+  }
+
+  /** SQL {@code SPLIT(string)} function. */
+  public static List<String> split(String s) {
+    return split(s, ",");
+  }
+
   /** SQL SUBSTRING(string FROM ...) function. */
   public static String substring(String c, int s) {
     final int s0 = s - 1;

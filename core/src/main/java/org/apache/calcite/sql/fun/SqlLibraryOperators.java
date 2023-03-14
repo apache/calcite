@@ -255,6 +255,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING)
           .withFunctionType(SqlFunctionCategory.STRING);
 
+  /** The "SPLIT(string [, delimiter])" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SPLIT =
+      SqlBasicFunction.create("SPLIT", ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_ARRAY),
+          OperandTypes.STRING_OPTIONAL_STRING,
+          SqlFunctionCategory.STRING);
+
   /** Generic "SUBSTR(string, position [, substringLength ])" function. */
   private static final SqlBasicFunction SUBSTR =
       SqlBasicFunction.create("SUBSTR", ReturnTypes.ARG0_NULLABLE_VARYING,
