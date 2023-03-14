@@ -271,10 +271,10 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   /**
    * Used for safe operators that return null if an exception is thrown.
    */
-  Expression expressionHandlingSafe(Expression body, boolean safe){
-    if (safe){
+  Expression expressionHandlingSafe(Expression body, boolean safe) {
+    if (safe) {
       return safeExpression(body);
-    } else{
+    } else {
       return body;
     }
   }
@@ -291,9 +291,10 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
                         null,
                         body
                     )
-                    , Expressions.catch_(
+                    ,Expressions.catch_(
                         e_,
-                        Expressions.return_(null, constant(null)))))), BuiltInMethod.FUNCTION0_APPLY.method);
+                        Expressions.return_(null, constant(null)))))),
+        BuiltInMethod.FUNCTION0_APPLY.method);
   };
   Expression translateCast(
       RelDataType sourceType,
@@ -310,7 +311,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       case CHAR:
       case VARCHAR:
         convert =
-          expressionHandlingSafe(Expressions.call(BuiltInMethod.ST_GEOM_FROM_EWKT.method, operand), safe);
+          expressionHandlingSafe(Expressions.call(BuiltInMethod.ST_GEOM_FROM_EWKT.method, operand),
+              safe);
         break;
       default:
         break;
@@ -373,7 +375,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       case CHAR:
       case VARCHAR:
         convert =
-            expressionHandlingSafe(Expressions.call(BuiltInMethod.STRING_TO_TIMESTAMP.method, operand), safe);
+            expressionHandlingSafe(
+                Expressions.call(BuiltInMethod.STRING_TO_TIMESTAMP.method, operand), safe);
         break;
       case DATE:
         convert =
@@ -488,7 +491,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       case CHAR:
       case VARCHAR:
         convert =
-            expressionHandlingSafe(Expressions.call(BuiltInMethod.STRING_TO_BOOLEAN.method, operand), safe);
+            expressionHandlingSafe(
+                Expressions.call(BuiltInMethod.STRING_TO_BOOLEAN.method, operand), safe);
         break;
       default:
         break;
@@ -588,7 +592,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     }
     if (convert == null) {
       convert =
-          expressionHandlingSafe(EnumUtils.convert(operand, typeFactory.getJavaClass(targetType)), safe);
+          expressionHandlingSafe(
+              EnumUtils.convert(operand, typeFactory.getJavaClass(targetType)), safe);
     }
     // Going from anything to CHAR(n) or VARCHAR(n), make sure value is no
     // longer than n.
