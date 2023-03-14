@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import java.util.function.Supplier;
 import org.apache.calcite.linq4j.Extensions;
 import org.apache.calcite.linq4j.function.Function;
 import org.apache.calcite.linq4j.function.Function0;

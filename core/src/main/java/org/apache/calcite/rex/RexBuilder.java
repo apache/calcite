@@ -924,8 +924,7 @@ public class RexBuilder {
       operator = SqlStdOperatorTable.CAST;
     }
     return new RexCall(
-        type, operator, ImmutableList.of(exp)
-    );
+        type, operator, ImmutableList.of(exp));
   }
 
   /**
