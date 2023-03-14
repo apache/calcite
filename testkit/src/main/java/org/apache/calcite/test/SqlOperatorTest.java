@@ -5386,8 +5386,8 @@ public class SqlOperatorTest {
             false);
     f.checkType("round('abc', 'def')", "DECIMAL(19, 9) NOT NULL");
     f.checkScalar("round(42, -1)", 40, "INTEGER NOT NULL");
-    // f.checkScalar("round(cast(42.346 as decimal(2, 3)), 2)",
-    //     BigDecimal.valueOf(4235, 2), "DECIMAL(2, 3) NOT NULL");
+    f.checkScalar("round(cast(42.346 as decimal(2, 3)), 2)",
+        BigDecimal.valueOf(4235, 2), "DECIMAL(2, 3) NOT NULL");
     f.checkScalar("round(cast(-42.346 as decimal(2, 3)), 2)",
         BigDecimal.valueOf(-4235, 2), "DECIMAL(2, 3) NOT NULL");
     f.checkNull("round(cast(null as integer), 1)");

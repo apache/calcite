@@ -3486,14 +3486,6 @@ public class SqlFunctions {
     return result;
   }
 
-  // public static final Object safe(Supplier fn){
-  //   try {
-  //     return  fn.get();
-  //   } catch (RuntimeException e) {
-  //     return null;
-  //   }
-  // }
-
 
   /** Support the MULTISET EXCEPT ALL function. */
   @SuppressWarnings("JdkObsolete")
