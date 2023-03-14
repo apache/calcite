@@ -1200,25 +1200,52 @@ public abstract class Expressions {
     return lambda(type, Blocks.toFunctionBlock(body), toList(parameters));
   }
 
-  public static Expression safeExpression(Expression body){
-    final ParameterExpression e_ =
-        Expressions.parameter(Exception.class, new BlockBuilder().newName("e"));
+  // public static Expression safeExpression(Expression body){
+  //   final ParameterExpression e_ =
+  //       Expressions.parameter(Exception.class, new BlockBuilder().newName("e"));
+  //
+  //   return Expressions.call(
+  //       Expressions.lambda(
+  //           Expressions.block(
+  //               Expressions.tryCatch(
+  //                   Expressions.return_(
+  //                       null,
+  //                       body
+  //                   )
+  //                   , Expressions.catch_(
+  //                       e_,
+  //                       Expressions.return_(null, constant("test"))
+  //
+  //                   )
+  //               )
+  //           )), BuiltInMethod.FUNCTION0_APPLY.method
+  //   );
+    // return Expressions.lambda(
+    //     Expressions.block(
+    //         Expressions.tryCatch(
+    //             Expressions.return_(
+    //                 null,
+    //                 body
+    //             )
+    //             , Expressions.catch_(
+    //                 e_,
+    //                 Expressions.return_(null, constant("test"))
+    //
+    //             )
+    //         )
+    //     ));
 
-    return Expressions.lambda(
-        Expressions.block(
-            Expressions.tryCatch(
-                Expressions.return_(
-                    null,
-                    body
-                )
-                , Expressions.catch_(
-                    e_,
-                    Expressions.return_(null, constant(null))
+    // return Expressions.lambda(
+    //     Expressions.block(
+    //         Expressions.return_(
+    //             null,
+    //             body
+    //         )
+    //       )
+    //     );
 
-                )
-            )
-        ));
-  }
+    // return body;
+  // }
 
   /**
    * Creates a BinaryExpression that represents a bitwise

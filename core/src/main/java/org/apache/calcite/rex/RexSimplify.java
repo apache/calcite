@@ -286,9 +286,8 @@ public class RexSimplify {
     case COALESCE:
       return simplifyCoalesce((RexCall) e);
     case CAST:
-      return simplifyCast((RexCall) e, true);
     case SAFE_CAST:
-      return simplifyCast((RexCall) e, false);
+      return simplifyCast((RexCall) e);
     case CEIL:
     case FLOOR:
       return simplifyCeilFloor((RexCall) e);
@@ -2146,101 +2145,93 @@ public class RexSimplify {
     return call;
   }
 
-  private RexNode simplifyCast(RexCall e, boolean throwOnFailure) {
+  private RexNode simplifyCast(RexCall e) {
     RexNode operand = e.getOperands().get(0);
     operand = simplify(operand, UNKNOWN);
     if (sameTypeOrNarrowsNullability(e.getType(), operand.getType())) {
       return operand;
     }
-    try {
-      if (RexUtil.isLosslessCast(operand)) {
-        // x :: y below means cast(x as y) (which is PostgreSQL-specific cast by the way)
-        // A) Remove lossless casts:
-        // A.1) intExpr :: bigint :: int => intExpr
-        // A.2) char2Expr :: char(5) :: char(2) => char2Expr
-        // B) There are cases when we can't remove two casts, but we could probably remove inner one
-        // B.1) char2expression :: char(4) :: char(5) -> char2expression :: char(5)
-        // B.2) char2expression :: char(10) :: char(5) -> char2expression :: char(5)
-        // B.3) char2expression :: varchar(10) :: char(5) -> char2expression :: char(5)
-        // B.4) char6expression :: varchar(10) :: char(5) -> char6expression :: char(5)
-        // C) Simplification is not possible:
-        // C.1) char6expression :: char(3) :: char(5) -> must not be changed
-        //      the input is truncated to 3 chars, so we can't use char6expression :: char(5)
-        // C.2) varchar2Expr :: char(5) :: varchar(2) -> must not be changed
-        //      the input have to be padded with spaces (up to 2 chars)
-        // C.3) char2expression :: char(4) :: varchar(5) -> must not be changed
-        //      would not have the padding
+    if (RexUtil.isLosslessCast(operand)) {
+      // x :: y below means cast(x as y) (which is PostgreSQL-specific cast by the way)
+      // A) Remove lossless casts:
+      // A.1) intExpr :: bigint :: int => intExpr
+      // A.2) char2Expr :: char(5) :: char(2) => char2Expr
+      // B) There are cases when we can't remove two casts, but we could probably remove inner one
+      // B.1) char2expression :: char(4) :: char(5) -> char2expression :: char(5)
+      // B.2) char2expression :: char(10) :: char(5) -> char2expression :: char(5)
+      // B.3) char2expression :: varchar(10) :: char(5) -> char2expression :: char(5)
+      // B.4) char6expression :: varchar(10) :: char(5) -> char6expression :: char(5)
+      // C) Simplification is not possible:
+      // C.1) char6expression :: char(3) :: char(5) -> must not be changed
+      //      the input is truncated to 3 chars, so we can't use char6expression :: char(5)
+      // C.2) varchar2Expr :: char(5) :: varchar(2) -> must not be changed
+      //      the input have to be padded with spaces (up to 2 chars)
+      // C.3) char2expression :: char(4) :: varchar(5) -> must not be changed
+      //      would not have the padding
 
-        // The approach seems to be:
-        // 1) Ensure inner cast is lossless (see if above)
-        // 2) If operand of the inner cast has the same type as the outer cast,
-        //    remove two casts except C.2 or C.3-like pattern (== inner cast is CHAR)
-        // 3) If outer cast is lossless, remove inner cast (B-like cases)
+      // The approach seems to be:
+      // 1) Ensure inner cast is lossless (see if above)
+      // 2) If operand of the inner cast has the same type as the outer cast,
+      //    remove two casts except C.2 or C.3-like pattern (== inner cast is CHAR)
+      // 3) If outer cast is lossless, remove inner cast (B-like cases)
 
-        // Here we try to remove two casts in one go (A-like cases)
-        RexNode intExpr = ((RexCall) operand).operands.get(0);
-        // intExpr == CHAR detects A.1
-        // operand != CHAR detects C.2
-        if ((intExpr.getType().getSqlTypeName() == SqlTypeName.CHAR
-            || operand.getType().getSqlTypeName() != SqlTypeName.CHAR)
-            && sameTypeOrNarrowsNullability(e.getType(), intExpr.getType())) {
-          return intExpr;
-        }
-        // Here we try to remove inner cast (B-like cases)
-        if (RexUtil.isLosslessCast(intExpr.getType(), operand.getType())
-            && (e.getType().getSqlTypeName() == operand.getType().getSqlTypeName()
-            || e.getType().getSqlTypeName() == SqlTypeName.CHAR
-            || operand.getType().getSqlTypeName() != SqlTypeName.CHAR)
-            && SqlTypeCoercionRule.instance()
-            .canApplyFrom(intExpr.getType().getSqlTypeName(), e.getType().getSqlTypeName())) {
-          return rexBuilder.makeCast(e.getType(), intExpr);
-        }
+      // Here we try to remove two casts in one go (A-like cases)
+      RexNode intExpr = ((RexCall) operand).operands.get(0);
+      // intExpr == CHAR detects A.1
+      // operand != CHAR detects C.2
+      if ((intExpr.getType().getSqlTypeName() == SqlTypeName.CHAR
+          || operand.getType().getSqlTypeName() != SqlTypeName.CHAR)
+          && sameTypeOrNarrowsNullability(e.getType(), intExpr.getType())) {
+        return intExpr;
       }
-      switch (operand.getKind()) {
-      case LITERAL:
-        final RexLiteral literal = (RexLiteral) operand;
-        final Comparable value = literal.getValueAs(Comparable.class);
-        final SqlTypeName typeName = literal.getTypeName();
+      // Here we try to remove inner cast (B-like cases)
+      if (RexUtil.isLosslessCast(intExpr.getType(), operand.getType())
+          && (e.getType().getSqlTypeName() == operand.getType().getSqlTypeName()
+          || e.getType().getSqlTypeName() == SqlTypeName.CHAR
+          || operand.getType().getSqlTypeName() != SqlTypeName.CHAR)
+          && SqlTypeCoercionRule.instance()
+          .canApplyFrom(intExpr.getType().getSqlTypeName(), e.getType().getSqlTypeName())) {
+        return rexBuilder.makeCast(e.getType(), intExpr);
+      }
+    }
+    switch (operand.getKind()) {
+    case LITERAL:
+      final RexLiteral literal = (RexLiteral) operand;
+      final Comparable value = literal.getValueAs(Comparable.class);
+      final SqlTypeName typeName = literal.getTypeName();
 
-        // First, try to remove the cast without changing the value.
-        // makeCast and canRemoveCastFromLiteral have the same logic, so we are
-        // sure to be able to remove the cast.
-        if (rexBuilder.canRemoveCastFromLiteral(e.getType(), value, typeName)) {
-          return rexBuilder.makeCast(e.getType(), operand);
-        }
+      // First, try to remove the cast without changing the value.
+      // makeCast and canRemoveCastFromLiteral have the same logic, so we are
+      // sure to be able to remove the cast.
+      if (rexBuilder.canRemoveCastFromLiteral(e.getType(), value, typeName)) {
+        return rexBuilder.makeCast(e.getType(), operand);
+      }
 
-        // Next, try to convert the value to a different type,
-        // e.g. CAST('123' as integer)
-        switch (literal.getTypeName()) {
-        case TIME:
-          switch (e.getType().getSqlTypeName()) {
-          case TIMESTAMP:
-            return e;
-          default:
-            break;
-          }
-          break;
+      // Next, try to convert the value to a different type,
+      // e.g. CAST('123' as integer)
+      switch (literal.getTypeName()) {
+      case TIME:
+        switch (e.getType().getSqlTypeName()) {
+        case TIMESTAMP:
+          return e;
         default:
           break;
         }
-        final List<RexNode> reducedValues = new ArrayList<>();
-        final RexNode simplifiedExpr = rexBuilder.makeCast(e.getType(), operand, e.getKind());
-        executor.reduce(rexBuilder, ImmutableList.of(simplifiedExpr), reducedValues);
-        return requireNonNull(
-            Iterables.getOnlyElement(reducedValues));
+        break;
       default:
-        if (operand == e.getOperands().get(0)) {
-          return e;
-        } else {
-          return rexBuilder.makeCast(e.getType(), operand, e.getKind());
-        }
+        break;
       }
-    } catch (Exception ex) {
-      // throwOnFailure=false implies it is a SAFE_CAST call and we should return null
-      if (!throwOnFailure) {
-        return new RexLiteral(null, e.getType(), e.type.getSqlTypeName());
+      final List<RexNode> reducedValues = new ArrayList<>();
+      final RexNode simplifiedExpr = rexBuilder.makeCast(e.getType(), operand, e.getKind());
+      executor.reduce(rexBuilder, ImmutableList.of(simplifiedExpr), reducedValues);
+      return requireNonNull(
+          Iterables.getOnlyElement(reducedValues));
+    default:
+      if (operand == e.getOperands().get(0)) {
+        return e;
+      } else {
+        return rexBuilder.makeCast(e.getType(), operand, e.getKind());
       }
-      throw ex;
     }
   }
 

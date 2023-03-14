@@ -102,38 +102,6 @@ public class RexExecutable {
     Hook.EXPRESSION_REDUCER.run(Pair.of(code, values));
   }
 
-  /**
-   * Same as {@link #reduce(RexBuilder, List, List)} but with a flag to throw on failure.
-   * <p>Catch the exception to return null for SAFE_ functions.</p>
-   */
-  public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
-      List<RexNode> reducedValues, boolean throwOnFailure) {
-    @Nullable Object[] values;
-    try {
-      values = execute();
-      if (values == null) {
-        reducedValues.addAll(constExps);
-        values = new Object[constExps.size()];
-      } else {
-        assert values.length == constExps.size();
-        final List<@Nullable Object> valueList = Arrays.asList(values);
-        for (Pair<RexNode, @Nullable Object> value : Pair.zip(constExps, valueList)) {
-          reducedValues.add(
-              rexBuilder.makeLiteral(value.right, value.left.getType(), true));
-        }
-      }
-    } catch (RuntimeException e) {
-      if (throwOnFailure) {
-        throw e;
-      }
-      // One or more of the expressions failed.
-      // Don't reduce any of the expressions.
-      reducedValues.addAll(constExps);
-      values = new Object[constExps.size()];
-    }
-    Hook.EXPRESSION_REDUCER.run(Pair.of(code, values));
-  }
-
   public Function1<DataContext, @Nullable Object @Nullable []> getFunction() {
     return compiledFunction;
   }

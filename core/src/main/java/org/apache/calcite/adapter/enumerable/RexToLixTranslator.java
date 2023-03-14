@@ -81,7 +81,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.calcite.linq4j.tree.Expressions.constant;
-import static org.apache.calcite.linq4j.tree.Expressions.safeExpression;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
@@ -276,6 +275,24 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       return body;
     }
   }
+
+  public static Expression safeExpression(Expression body) {
+    final ParameterExpression e_ =
+        Expressions.parameter(Exception.class, new BlockBuilder().newName("e"));
+
+    return Expressions.call(
+        Expressions.lambda(
+            Expressions.block(
+                Expressions.tryCatch(
+                    Expressions.return_(
+                        null,
+                        body
+                    )
+                    , Expressions.catch_(
+                        e_,
+                        Expressions.return_(null, constant(null))
+        )))), BuiltInMethod.FUNCTION0_APPLY.method);
+  };
   Expression translateCast(
       RelDataType sourceType,
       RelDataType targetType,
