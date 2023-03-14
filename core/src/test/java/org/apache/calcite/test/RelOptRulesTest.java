@@ -1194,6 +1194,22 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
+   * Test the effect of the DecorrelateQuery when there is LogicalValues
+   */
+  @Test void testDecorrelateQueryForLogicalValues() {
+    final String sql = "SELECT\n"
+        + "( SELECT COUNT(tbl2.deptno) FROM emp AS tbl2 WHERE tbl1.deptno = tbl2.deptno ) AS c0,\n"
+        + "( SELECT 1 ) AS c1\n"
+        + "FROM emp AS tbl1";
+
+    sql(sql)
+        .withLateDecorrelate(true)
+        .withExpand(true)
+        .withRule()
+        .check();
+  }
+
+  /**
    * Test case of
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5391">[CALCITE-5391]
    * JoinOnUniqueToSemiJoinRule should preserve field names, if possible</a>. */

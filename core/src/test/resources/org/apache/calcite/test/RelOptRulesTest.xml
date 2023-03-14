@@ -1938,6 +1938,57 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDecorrelateQueryForLogicalValues">
+    <Resource name="sql">
+      <![CDATA[SELECT
+( SELECT COUNT(tbl2.deptno) FROM emp AS tbl2 WHERE tbl1.deptno = tbl2.deptno ) AS c0,
+( SELECT 1 ) AS c1
+FROM emp AS tbl1]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(C0=[$9], C1=[$10])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+        LogicalProject(DEPTNO=[$7])
+          LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+      LogicalValues(tuples=[[{ 1 }]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalProject(C0=[$9], C1=[$10])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+        LogicalProject(DEPTNO=[$7])
+          LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+      LogicalValues(tuples=[[{ 1 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(C0=[$9], C1=[$10])
+  LogicalJoin(condition=[true], joinType=[left])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[CASE(IS NULL($9), 0:BIGINT, $9)])
+      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
+          LogicalProject(DEPTNO=[$7])
+            LogicalFilter(condition=[=($cor0.DEPTNO, $7)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+      LogicalValues(tuples=[[{ 1 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testDecorrelateTwoExists">
     <Resource name="sql">
       <![CDATA[select * from sales.emp
