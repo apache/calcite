@@ -6206,11 +6206,8 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(builder.alias(DateTimeDiffRexNode, "DT"))
         .build();
-    final String expectedSql = "SELECT CURRENT_TIMESTAMP(6) AS \"CT\"\n"
-        + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT CAST(FORMAT_TIMESTAMP('%F %H:%M:%E6S', "
-        + "CURRENT_DATETIME()) AS DATETIME) AS CT\n"
-        + "FROM scott.EMP";
+    final String expectedSql = "";
+    final String expectedBiqQuery = "";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
