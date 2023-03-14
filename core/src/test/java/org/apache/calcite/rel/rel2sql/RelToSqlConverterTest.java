@@ -103,6 +103,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -4295,12 +4296,12 @@ class RelToSqlConverterTest {
         + " > CAST('2005-10-17 00:00:00' AS DATETIME)";
     sql(sql0).withBigQuery().ok(expect0);
 
-    final String sql1 = "select  * from \"employee\" where  \"hire_date\" + "
-        + "INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String sql1 = "select  * \n"
+        + "from \"employee\" "
+        + "where  \"hire_date\" + INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
     final String expect1 = "SELECT *\n"
         + "FROM foodmart.employee\n"
-        + "WHERE TIMESTAMP_ADD(hire_date, INTERVAL 10 HOUR)"
-        + " > CAST('2005-10-17 00:00:00' AS DATETIME)";
+        + "WHERE hire_date + INTERVAL 10 HOUR > CAST('2005-10-17 00:00:00' AS DATETIME)";
     sql(sql1).withBigQuery().ok(expect1);
 
     final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
@@ -6429,8 +6430,7 @@ class RelToSqlConverterTest {
   @Test public void testIntervalMinute() {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL\n"
             + "'2' minute from \"employee\"";
-    final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CAST(birth_date AS "
-            + "DATETIME), INTERVAL 2 MINUTE)\n"
+    final String expectedBigQuery = "SELECT CAST(birth_date AS DATETIME) + INTERVAL 2 MINUTE\n"
             + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
@@ -6440,8 +6440,7 @@ class RelToSqlConverterTest {
   @Test public void testIntervalHour() {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL\n"
             + "'2' hour from \"employee\"";
-    final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CAST(birth_date AS "
-            + "DATETIME), INTERVAL 2 HOUR)\n"
+    final String expectedBigQuery = "SELECT CAST(birth_date AS DATETIME) + INTERVAL 2 HOUR\n"
             + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
@@ -6450,9 +6449,8 @@ class RelToSqlConverterTest {
   @Test public void testIntervalSecond() {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL '2'\n"
             + "second from \"employee\"";
-    final String expectedBigQuery = "SELECT TIMESTAMP_ADD(CAST(birth_date AS"
-            + " DATETIME), INTERVAL 2 SECOND)\n"
-            + "FROM foodmart.employee";
+    final String expectedBigQuery = "SELECT CAST(birth_date AS DATETIME) + INTERVAL 2 SECOND\n"
+        + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
             .ok(expectedBigQuery);
@@ -6693,8 +6691,8 @@ class RelToSqlConverterTest {
     String query = "SELECT CURRENT_TIMESTAMP + INTERVAL '06:10:30' HOUR TO SECOND,"
         + "CURRENT_TIMESTAMP - INTERVAL '06:10:30' HOUR TO SECOND "
         + "FROM \"employee\"";
-    final String expectedBQ = "SELECT TIMESTAMP_ADD(CURRENT_DATETIME(), INTERVAL 22230 SECOND), "
-            + "TIMESTAMP_SUB(CURRENT_DATETIME(), INTERVAL 22230 SECOND)\n"
+    final String expectedBQ = "SELECT CURRENT_DATETIME() + INTERVAL 22230 SECOND, "
+        + "TIMESTAMP_SUB(CURRENT_DATETIME(), INTERVAL 22230 SECOND)\n"
             + "FROM foodmart.employee";
     sql(query)
         .withBigQuery()
@@ -6745,8 +6743,8 @@ class RelToSqlConverterTest {
         .project(plusCall)
         .build();
 
-    final String expectedBigQuery = "SELECT TIMESTAMP_ADD(TIMESTAMP '2022-02-18 08:23:45',"
-        + " INTERVAL 1 MICROSECOND) AS `$f0`";
+    final String expectedBigQuery = "SELECT TIMESTAMP '2022-02-18 08:23:45' + "
+        + "INTERVAL 1 MICROSECOND AS `$f0`";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
@@ -9602,7 +9600,7 @@ class RelToSqlConverterTest {
   @Test public void testIntervalMultiplyWithInteger() {
     String query = "select \"hire_date\" + 10 * INTERVAL '00:01:00' HOUR "
         + "TO SECOND from \"employee\"";
-    final String expectedBQSql = "SELECT TIMESTAMP_ADD(hire_date, INTERVAL 10 * 60 SECOND)\n"
+    final String expectedBQSql = "SELECT hire_date + 10 * INTERVAL 60 SECOND\n"
         + "FROM foodmart.employee";
 
     sql(query)
@@ -10310,8 +10308,7 @@ class RelToSqlConverterTest {
         .project(builder.alias(createRexNode, "FD"))
         .build();
     final String expectedBiqQuery =
-        "SELECT TIMESTAMP_ADD(CAST('1999-07-01 15:00:00-08:00' AS DATETIME), "
-            + "INTERVAL 1 MICROSECOND) AS FD\n"
+        "SELECT CAST('1999-07-01 15:00:00-08:00' AS DATETIME) + INTERVAL 1 MICROSECOND AS FD\n"
             + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
@@ -11312,4 +11309,154 @@ class RelToSqlConverterTest {
         isLinux(expectedBigQuery));
   }
 
+
+  @Test public void testNextDayFunctionWithDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.literal("2023-02-22"), builder.literal(DayOfWeek.TUESDAY.name()));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedSpark =
+        "SELECT NEXT_DAY('2023-02-22', 'TUESDAY') next_day\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testNextDayFunctionWithCurrentDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.TUESDAY.name()));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedSpark =
+        "SELECT NEXT_DAY(CURRENT_DATE, 'TUESDAY') next_day\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testNextDayFunctionWithTimestamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.literal("2023-02-22 10:00:00"), builder.literal(DayOfWeek.TUESDAY.name()));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedSpark =
+        "SELECT NEXT_DAY('2023-02-22 10:00:00', 'TUESDAY') next_day\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testNextDayFunctionWithCurrentTimestamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.call(CURRENT_TIMESTAMP), builder.literal(DayOfWeek.TUESDAY.name()));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedSpark =
+        "SELECT NEXT_DAY(CURRENT_TIMESTAMP, 'TUESDAY') next_day\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testNextDayFunctionWithSunday() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.literal("2023-02-22"), builder.literal(DayOfWeek.SUNDAY.name()));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedSpark =
+        "SELECT NEXT_DAY('2023-02-22', 'SUNDAY') next_day\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testNextDayFunctionWithMonday() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.MONDAY.name()));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedSpark =
+        "SELECT NEXT_DAY(CURRENT_DATE, 'MONDAY') next_day\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testNextDayFunctionWithWednesday() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.literal("2023-02-23"), builder.literal(DayOfWeek.WEDNESDAY.name()));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedSpark =
+        "SELECT NEXT_DAY('2023-02-23', 'WEDNESDAY') next_day\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testNextDayFunctionWithThursday() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.THURSDAY.name()));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedSpark =
+        "SELECT NEXT_DAY(CURRENT_DATE, 'THURSDAY') next_day\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testNextDayFunctionWithFriday() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.FRIDAY.name()));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedSpark =
+        "SELECT NEXT_DAY(CURRENT_DATE, 'FRIDAY') next_day\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testNextDayFunctionWithSaturday() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.SATURDAY.name()));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedSpark =
+        "SELECT NEXT_DAY(CURRENT_DATE, 'SATURDAY') next_day\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
 }
