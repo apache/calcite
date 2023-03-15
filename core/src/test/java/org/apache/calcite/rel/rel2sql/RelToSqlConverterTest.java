@@ -11454,7 +11454,7 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
-  @Test public void testSortByOrdinalWithAliasForBigQuery() {
+  @Test public void testSortByOrdinalWithExprForBigQuery() {
     RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
         builder.call(CURRENT_DATE), builder.literal(DayOfWeek.SATURDAY.name()));
