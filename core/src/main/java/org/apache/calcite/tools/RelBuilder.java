@@ -73,6 +73,7 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOrdinalRef;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
@@ -471,6 +472,14 @@ public class RelBuilder {
       throw new IllegalArgumentException("field [" + fieldName
           + "] not found; input fields are: " + fieldNames);
     }
+  }
+
+  /** Creates a reference to an input field of type ordinal.
+   *
+   * @param fieldOrdinal Field Ordinal
+   */
+  public RexOrdinalRef ordinal(int fieldOrdinal) {
+    return RexOrdinalRef.of(field(fieldOrdinal));
   }
 
   /** Creates a reference to an input field by ordinal.
@@ -2890,6 +2899,9 @@ public class RelBuilder {
     case INPUT_REF:
       return new RelFieldCollation(((RexInputRef) node).getIndex(), direction,
           Util.first(nullDirection, direction.defaultNullDirection()));
+    case ORDINAL_REF:
+      return new RelFieldCollation(((RexInputRef) node).getIndex(), direction,
+          Util.first(nullDirection, direction.defaultNullDirection()), true);
     case DESCENDING:
       return collation(((RexCall) node).getOperands().get(0),
           RelFieldCollation.Direction.DESCENDING,

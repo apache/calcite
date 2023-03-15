@@ -11441,4 +11441,32 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
+
+  @Test public void testSortByOrdinal() {
+    RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .sort(builder.ordinal(0))
+        .build();
+    final String expectedBQSql = "SELECT *\n"
+        + "FROM scott.EMP\n"
+        + "ORDER BY 1 IS NULL, 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testSortByOrdinalWithAliasForBigQuery() {
+    RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.SATURDAY.name()));
+    RelNode root = builder
+        .scan("EMP")
+        .project(nextDayRexNode)
+        .sort(builder.ordinal(0))
+        .build();
+    final String expectedBQSql =
+        "SELECT NEXT_DAY(CURRENT_DATE, 'SATURDAY') AS `$f0`\n"
+        + "FROM scott.EMP\n"
+        + "ORDER BY 1 IS NULL, 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
 }

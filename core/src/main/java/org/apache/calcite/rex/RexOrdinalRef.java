@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.rex;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
+/**
+ * Variable which references ordinal in an ORDER BY clause.
+ */
 public class RexOrdinalRef extends RexInputRef {
 
   RexOrdinalRef(int index, RelDataType type) {

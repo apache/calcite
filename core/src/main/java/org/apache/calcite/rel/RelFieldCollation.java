@@ -220,7 +220,7 @@ public class RelFieldCollation {
   /**
    * Whether field is referenced as an Ordinal.
    */
-  public final boolean isFieldRefOrdinal;
+  public final boolean isOrdinal;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -256,7 +256,7 @@ public class RelFieldCollation {
     this.fieldIndex = fieldIndex;
     this.direction = Objects.requireNonNull(direction);
     this.nullDirection = Objects.requireNonNull(nullDirection);
-    this.isFieldRefOrdinal = isOrdinal;
+    this.isOrdinal = isOrdinal;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -266,7 +266,7 @@ public class RelFieldCollation {
    */
   public RelFieldCollation withFieldIndex(int fieldIndex) {
     return this.fieldIndex == fieldIndex ? this
-        : new RelFieldCollation(fieldIndex, direction, nullDirection, isFieldRefOrdinal);
+        : new RelFieldCollation(fieldIndex, direction, nullDirection, isOrdinal);
   }
 
   @Deprecated // to be removed before 2.0
@@ -277,14 +277,14 @@ public class RelFieldCollation {
   /** Creates a copy of this RelFieldCollation with a different direction. */
   public RelFieldCollation withDirection(Direction direction) {
     return this.direction == direction ? this
-        : new RelFieldCollation(fieldIndex, direction, nullDirection, isFieldRefOrdinal);
+        : new RelFieldCollation(fieldIndex, direction, nullDirection, isOrdinal);
   }
 
   /** Creates a copy of this RelFieldCollation with a different null
    * direction. */
   public RelFieldCollation withNullDirection(NullDirection nullDirection) {
     return this.nullDirection == nullDirection ? this
-        : new RelFieldCollation(fieldIndex, direction, nullDirection, isFieldRefOrdinal);
+        : new RelFieldCollation(fieldIndex, direction, nullDirection, isOrdinal);
   }
 
   /**
@@ -300,11 +300,12 @@ public class RelFieldCollation {
         || o instanceof RelFieldCollation
         && fieldIndex == ((RelFieldCollation) o).fieldIndex
         && direction == ((RelFieldCollation) o).direction
-        && nullDirection == ((RelFieldCollation) o).nullDirection;
+        && nullDirection == ((RelFieldCollation) o).nullDirection
+        && isOrdinal == ((RelFieldCollation) o).isOrdinal;
   }
 
   @Override public int hashCode() {
-    return Objects.hash(fieldIndex, direction, nullDirection);
+    return Objects.hash(fieldIndex, direction, nullDirection, isOrdinal);
   }
 
   public int getFieldIndex() {
