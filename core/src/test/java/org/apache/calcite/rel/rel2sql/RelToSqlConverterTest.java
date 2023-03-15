@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -6195,6 +6196,24 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
     assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
+  }
+
+  @Test public void testDateTimeDiffFunctionRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateTimeDiffRexNode = builder.call(SqlLibraryOperators.DATETIME_DIFF,
+        builder.call(SqlStdOperatorTable.CURRENT_DATE),
+        builder.call(SqlStdOperatorTable.CURRENT_DATE), builder.literal(TimeUnit.HOUR));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateTimeDiffRexNode, "HOURS"))
+        .build();
+    final String expectedSql = "SELECT DATETIME_DIFF(CURRENT_DATE, CURRENT_DATE, HOUR) AS "
+        + "\"HOURS\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATETIME_DIFF(CURRENT_DATE, CURRENT_DATE, HOUR) AS "
+        + "HOURS\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test void testJsonType() {
