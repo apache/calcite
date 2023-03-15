@@ -76,6 +76,7 @@ import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlCase;
@@ -1260,6 +1261,7 @@ public abstract class SqlImplementor {
     /** Wraps a call in a {@link SqlKind#WITHIN_GROUP} call, if
      * {@code collation} is non-empty. */
     private SqlCall withOrder(SqlCall call, RelCollation collation) {
+      SqlOperator sqlOperator = call.getOperator();
       if (collation.getFieldCollations().isEmpty()) {
         return call;
       }
@@ -1267,8 +1269,14 @@ public abstract class SqlImplementor {
       for (RelFieldCollation field : collation.getFieldCollations()) {
         addOrderItem(orderByList, field);
       }
-      return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, call,
-          new SqlNodeList(orderByList, POS));
+      SqlNodeList orderNodeList = new SqlNodeList(orderByList, POS);
+      List<SqlNode> operandList = new ArrayList<>();
+      operandList.addAll(call.getOperandList());
+      operandList.add(orderNodeList);
+      if (sqlOperator.getSyntax() == SqlSyntax.ORDERED_FUNCTION) {
+        return sqlOperator.createCall(POS, operandList);
+      }
+      return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, call, orderNodeList);
     }
 
     /** Converts a collation to an ORDER BY item. */
