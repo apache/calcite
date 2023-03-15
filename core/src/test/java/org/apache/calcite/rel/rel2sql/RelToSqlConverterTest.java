@@ -3419,7 +3419,7 @@ class RelToSqlConverterTest {
         + "from (select \"customer_id\" from \"sales_fact_1997\") as t1\n"
         + "inner join (select \"customer_id\" from \"sales_fact_1997\") t2\n"
         + "on t1.\"customer_id\" = t2.\"customer_id\"";
-    final String expected = "SELECT *\n"
+    final String expected = "SELECT t.customer_id, t0.customer_id AS customer_id0\n"
         + "FROM (SELECT sales_fact_1997.customer_id\n"
         + "FROM foodmart.sales_fact_1997 AS sales_fact_1997) AS t\n"
         + "INNER JOIN (SELECT sales_fact_19970.customer_id\n"
@@ -3430,7 +3430,15 @@ class RelToSqlConverterTest {
 
   @Test void testCartesianProductWithCommaSyntax() {
     String query = "select * from \"department\" , \"employee\"";
-    String expected = "SELECT *\n"
+    String expected = "SELECT \"department\".\"department_id\", "
+        + "\"department\".\"department_description\", \"employee\".\"employee_id\", "
+        + "\"employee\".\"full_name\", \"employee\".\"first_name\", \"employee\".\"last_name\", "
+        + "\"employee\".\"position_id\", \"employee\".\"position_title\", "
+        + "\"employee\".\"store_id\", \"employee\".\"department_id\" AS \"department_id0\", "
+        + "\"employee\".\"birth_date\", \"employee\".\"hire_date\", \"employee\".\"end_date\", "
+        + "\"employee\".\"salary\", \"employee\".\"supervisor_id\", "
+        + "\"employee\".\"education_level\", \"employee\".\"marital_status\", "
+        + "\"employee\".\"gender\", \"employee\".\"management_role\"\n"
         + "FROM \"foodmart\".\"department\",\n"
         + "\"foodmart\".\"employee\"";
     sql(query).ok(expected);
@@ -3475,7 +3483,15 @@ class RelToSqlConverterTest {
   @Test void testCartesianProductWithInnerJoinSyntax() {
     String query = "select * from \"department\"\n"
         + "INNER JOIN \"employee\" ON TRUE";
-    String expected = "SELECT *\n"
+    String expected = "SELECT \"department\".\"department_id\", "
+        + "\"department\".\"department_description\", \"employee\".\"employee_id\", "
+        + "\"employee\".\"full_name\", \"employee\".\"first_name\", \"employee\".\"last_name\", "
+        + "\"employee\".\"position_id\", \"employee\".\"position_title\", "
+        + "\"employee\".\"store_id\", \"employee\".\"department_id\" AS \"department_id0\", "
+        + "\"employee\".\"birth_date\", \"employee\".\"hire_date\", \"employee\".\"end_date\", "
+        + "\"employee\".\"salary\", \"employee\".\"supervisor_id\", "
+        + "\"employee\".\"education_level\", \"employee\".\"marital_status\", "
+        + "\"employee\".\"gender\", \"employee\".\"management_role\"\n"
         + "FROM \"foodmart\".\"department\",\n"
         + "\"foodmart\".\"employee\"";
     sql(query).ok(expected);
@@ -3484,7 +3500,15 @@ class RelToSqlConverterTest {
   @Test void testFullJoinOnTrueCondition() {
     String query = "select * from \"department\"\n"
         + "FULL JOIN \"employee\" ON TRUE";
-    String expected = "SELECT *\n"
+    String expected =  "SELECT \"department\".\"department_id\", "
+        + "\"department\".\"department_description\", \"employee\".\"employee_id\", "
+        + "\"employee\".\"full_name\", \"employee\".\"first_name\", \"employee\".\"last_name\", "
+        + "\"employee\".\"position_id\", \"employee\".\"position_title\", "
+        + "\"employee\".\"store_id\", \"employee\".\"department_id\" AS \"department_id0\", "
+        + "\"employee\".\"birth_date\", \"employee\".\"hire_date\", \"employee\".\"end_date\", "
+        + "\"employee\".\"salary\", \"employee\".\"supervisor_id\", "
+        + "\"employee\".\"education_level\", \"employee\".\"marital_status\", "
+        + "\"employee\".\"gender\", \"employee\".\"management_role\"\n"
         + "FROM \"foodmart\".\"department\"\n"
         + "FULL JOIN \"foodmart\".\"employee\" ON TRUE";
     sql(query).ok(expected);
@@ -3529,10 +3553,15 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"employee\" A "
         + "join \"foodmart\".\"department\" B\n"
         + "on A.\"department_id\" = B.\"department_id\"";
-    final String expected = "SELECT *\n"
+    final String expected = "SELECT employee.employee_id, employee.full_name, employee.first_name, "
+        + "employee.last_name, employee.position_id, employee.position_title, employee.store_id, "
+        + "employee.department_id, employee.birth_date, employee.hire_date, employee.end_date, "
+        + "employee.salary, employee.supervisor_id, employee.education_level, "
+        + "employee.marital_status, employee.gender, employee.management_role, "
+        + "department.department_id AS department_id0, department.department_description\n"
         + "FROM foodmart.employee AS employee\n"
-        + "INNER JOIN foodmart.department AS department "
-        + "ON employee.department_id = department.department_id";
+        + "INNER JOIN foodmart.department AS department ON "
+        + "employee.department_id = department.department_id";
     sql(query).withDb2().ok(expected);
   }
 
@@ -3540,10 +3569,23 @@ class RelToSqlConverterTest {
     String query = "select * "
         + "from \"foodmart\".\"employee\" A join \"foodmart\".\"employee\" B\n"
         + "on A.\"department_id\" = B.\"department_id\"";
-    final String expected = "SELECT *\n"
+    final String expected = "SELECT employee.employee_id, employee.full_name, "
+        + "employee.first_name, employee.last_name, employee.position_id, employee.position_title, "
+        + "employee.store_id, employee.department_id, employee.birth_date, employee.hire_date, "
+        + "employee.end_date, employee.salary, employee.supervisor_id, employee.education_level, "
+        + "employee.marital_status, employee.gender, employee.management_role, "
+        + "employee0.employee_id AS employee_id0, employee0.full_name AS full_name0, "
+        + "employee0.first_name AS first_name0, employee0.last_name AS last_name0, "
+        + "employee0.position_id AS position_id0, employee0.position_title AS position_title0, "
+        + "employee0.store_id AS store_id0, employee0.department_id AS department_id0, "
+        + "employee0.birth_date AS birth_date0, employee0.hire_date AS hire_date0, "
+        + "employee0.end_date AS end_date0, employee0.salary AS salary0, "
+        + "employee0.supervisor_id AS supervisor_id0, employee0.education_level AS "
+        + "education_level0, employee0.marital_status AS marital_status0, "
+        + "employee0.gender AS gender0, employee0.management_role AS management_role0\n"
         + "FROM foodmart.employee AS employee\n"
-        + "INNER JOIN foodmart.employee AS employee0 "
-        + "ON employee.department_id = employee0.department_id";
+        + "INNER JOIN foodmart.employee AS employee0 ON "
+        + "employee.department_id = employee0.department_id";
     sql(query).withDb2().ok(expected);
   }
 
@@ -3750,17 +3792,35 @@ class RelToSqlConverterTest {
         + "on \"t1\".\"product_id\" = \"t3\".\"product_id\" or "
         + "(\"t1\".\"product_id\" is not null or "
         + "\"t3\".\"product_id\" is not null)";
-    String expected = "SELECT *\n"
+    String expected = "SELECT \"sales_fact_1997\".\"product_id\", \"sales_fact_1997\".\"time_id\", "
+        + "\"sales_fact_1997\".\"customer_id\", \"sales_fact_1997\".\"promotion_id\", "
+        + "\"sales_fact_1997\".\"store_id\", \"sales_fact_1997\".\"store_sales\", "
+        + "\"sales_fact_1997\".\"store_cost\", \"sales_fact_1997\".\"unit_sales\", "
+        + "\"customer\".\"customer_id\" AS \"customer_id0\", \"customer\".\"account_num\", "
+        + "\"customer\".\"lname\", \"customer\".\"fname\", \"customer\".\"mi\", "
+        + "\"customer\".\"address1\", \"customer\".\"address2\", \"customer\".\"address3\", "
+        + "\"customer\".\"address4\", \"customer\".\"city\", \"customer\".\"state_province\", "
+        + "\"customer\".\"postal_code\", \"customer\".\"country\", "
+        + "\"customer\".\"customer_region_id\", \"customer\".\"phone1\", \"customer\".\"phone2\", "
+        + "\"customer\".\"birthdate\", \"customer\".\"marital_status\", "
+        + "\"customer\".\"yearly_income\", \"customer\".\"gender\", "
+        + "\"customer\".\"total_children\", \"customer\".\"num_children_at_home\", "
+        + "\"customer\".\"education\", \"customer\".\"date_accnt_opened\", "
+        + "\"customer\".\"member_card\", \"customer\".\"occupation\", \"customer\".\"houseowner\", "
+        + "\"customer\".\"num_cars_owned\", \"customer\".\"fullname\", "
+        + "\"product\".\"product_class_id\", \"product\".\"product_id\" AS \"product_id0\", "
+        + "\"product\".\"brand_name\", \"product\".\"product_name\", \"product\".\"SKU\", "
+        + "\"product\".\"SRP\", \"product\".\"gross_weight\", \"product\".\"net_weight\", "
+        + "\"product\".\"recyclable_package\", \"product\".\"low_fat\", "
+        + "\"product\".\"units_per_case\", \"product\".\"cases_per_pallet\", "
+        + "\"product\".\"shelf_width\", \"product\".\"shelf_height\", \"product\".\"shelf_depth\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
-        + "INNER JOIN \"foodmart\".\"customer\" "
-        + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\""
-        + " OR \"sales_fact_1997\".\"customer_id\" IS NULL"
-        + " AND \"customer\".\"customer_id\" IS NULL"
-        + " OR \"customer\".\"occupation\" IS NULL\n"
-        + "INNER JOIN \"foodmart\".\"product\" "
-        + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\""
-        + " OR \"sales_fact_1997\".\"product_id\" IS NOT NULL"
-        + " OR \"product\".\"product_id\" IS NOT NULL";
+        + "INNER JOIN \"foodmart\".\"customer\" ON \"sales_fact_1997\".\"customer_id\" = "
+        + "\"customer\".\"customer_id\" OR \"sales_fact_1997\".\"customer_id\" IS NULL AND "
+        + "\"customer\".\"customer_id\" IS NULL OR \"customer\".\"occupation\" IS NULL\n"
+        + "INNER JOIN \"foodmart\".\"product\" ON \"sales_fact_1997\".\"product_id\" = "
+        + "\"product\".\"product_id\" OR \"sales_fact_1997\".\"product_id\" IS NOT NULL OR "
+        + "\"product\".\"product_id\" IS NOT NULL";
     // The hook prevents RelBuilder from removing "FALSE AND FALSE" and such
     try (Hook.Closeable ignore =
              Hook.REL_BUILDER_SIMPLIFY.addThread(Hook.propertyJ(false))) {
@@ -6364,10 +6424,23 @@ class RelToSqlConverterTest {
    * @see SqlDialect#emulateJoinTypeForCrossJoin()
    */
   @Test void testCrossJoinEmulation() {
-    final String expectedSpark = "SELECT *\n"
+    final String expectedSpark = "SELECT employee.employee_id, employee.full_name, "
+        + "employee.first_name, employee.last_name, employee.position_id, "
+        + "employee.position_title, employee.store_id, employee.department_id, "
+        + "employee.birth_date, employee.hire_date, employee.end_date, employee.salary, "
+        + "employee.supervisor_id, employee.education_level, employee.marital_status, "
+        + "employee.gender, employee.management_role, department.department_id department_id0,"
+        + " department.department_description\n"
         + "FROM foodmart.employee\n"
         + "CROSS JOIN foodmart.department";
-    final String expectedMysql = "SELECT *\n"
+    final String expectedMysql = "SELECT `employee`.`employee_id`, `employee`.`full_name`, "
+        + "`employee`.`first_name`, `employee`.`last_name`, `employee`.`position_id`, "
+        + "`employee`.`position_title`, `employee`.`store_id`, `employee`.`department_id`, "
+        + "`employee`.`birth_date`, `employee`.`hire_date`, `employee`.`end_date`, "
+        + "`employee`.`salary`, `employee`.`supervisor_id`, `employee`.`education_level`, "
+        + "`employee`.`marital_status`, `employee`.`gender`, `employee`.`management_role`, "
+        + "`department`.`department_id` AS `department_id0`, "
+        + "`department`.`department_description`\n"
         + "FROM `foodmart`.`employee`,\n"
         + "`foodmart`.`department`";
     Consumer<String> fn = sql ->
@@ -6388,11 +6461,38 @@ class RelToSqlConverterTest {
         + "from \"store\" as s\n"
         + "inner join \"employee\" as e on true\n"
         + "cross join \"department\" as d";
-    final String expectedMysql = "SELECT *\n"
+    final String expectedMysql = "SELECT `store`.`store_id`, `store`.`store_type`, "
+        + "`store`.`region_id`, `store`.`store_name`, `store`.`store_number`, "
+        + "`store`.`store_street_address`, `store`.`store_city`, `store`.`store_state`, "
+        + "`store`.`store_postal_code`, `store`.`store_country`, `store`.`store_manager`, "
+        + "`store`.`store_phone`, `store`.`store_fax`, `store`.`first_opened_date`, "
+        + "`store`.`last_remodel_date`, `store`.`store_sqft`, `store`.`grocery_sqft`, "
+        + "`store`.`frozen_sqft`, `store`.`meat_sqft`, `store`.`coffee_bar`, "
+        + "`store`.`video_store`, `store`.`salad_bar`, `store`.`prepared_food`, "
+        + "`store`.`florist`, `employee`.`employee_id`, `employee`.`full_name`, "
+        + "`employee`.`first_name`, `employee`.`last_name`, `employee`.`position_id`, "
+        + "`employee`.`position_title`, `employee`.`store_id` AS `store_id0`, "
+        + "`employee`.`department_id`, `employee`.`birth_date`, `employee`.`hire_date`, "
+        + "`employee`.`end_date`, `employee`.`salary`, `employee`.`supervisor_id`, "
+        + "`employee`.`education_level`, `employee`.`marital_status`, `employee`.`gender`, "
+        + "`employee`.`management_role`, `department`.`department_id` AS `department_id0`, "
+        + "`department`.`department_description`\n"
         + "FROM `foodmart`.`store`,\n"
         + "`foodmart`.`employee`,\n"
         + "`foodmart`.`department`";
-    final String expectedSpark = "SELECT *\n"
+    final String expectedSpark = "SELECT store.store_id, store.store_type, store.region_id, "
+        + "store.store_name, store.store_number, store.store_street_address, store.store_city, "
+        + "store.store_state, store.store_postal_code, store.store_country, store.store_manager, "
+        + "store.store_phone, store.store_fax, store.first_opened_date, store.last_remodel_date, "
+        + "store.store_sqft, store.grocery_sqft, store.frozen_sqft, store.meat_sqft, "
+        + "store.coffee_bar, store.video_store, store.salad_bar, store.prepared_food, "
+        + "store.florist, employee.employee_id, employee.full_name, employee.first_name, "
+        + "employee.last_name, employee.position_id, employee.position_title, "
+        + "employee.store_id store_id0, employee.department_id, employee.birth_date, "
+        + "employee.hire_date, employee.end_date, employee.salary, employee.supervisor_id, "
+        + "employee.education_level, employee.marital_status, employee.gender, "
+        + "employee.management_role, department.department_id department_id0, "
+        + "department.department_description\n"
         + "FROM foodmart.store\n"
         + "CROSS JOIN foodmart.employee\n"
         + "CROSS JOIN foodmart.department";
@@ -6408,7 +6508,22 @@ class RelToSqlConverterTest {
         + "from \"store\" as s\n"
         + "left join \"employee\" as e on true\n"
         + "cross join \"department\" as d";
-    final String expectedMysql = "SELECT *\n"
+    final String expectedMysql = "SELECT `store`.`store_id`, `store`.`store_type`, "
+        + "`store`.`region_id`, `store`.`store_name`, `store`.`store_number`, "
+        + "`store`.`store_street_address`, `store`.`store_city`, `store`.`store_state`, "
+        + "`store`.`store_postal_code`, `store`.`store_country`, `store`.`store_manager`, "
+        + "`store`.`store_phone`, `store`.`store_fax`, `store`.`first_opened_date`, "
+        + "`store`.`last_remodel_date`, `store`.`store_sqft`, `store`.`grocery_sqft`, "
+        + "`store`.`frozen_sqft`, `store`.`meat_sqft`, `store`.`coffee_bar`, "
+        + "`store`.`video_store`, `store`.`salad_bar`, `store`.`prepared_food`, "
+        + "`store`.`florist`, `employee`.`employee_id`, `employee`.`full_name`, "
+        + "`employee`.`first_name`, `employee`.`last_name`, `employee`.`position_id`, "
+        + "`employee`.`position_title`, `employee`.`store_id` AS `store_id0`, "
+        + "`employee`.`department_id`, `employee`.`birth_date`, `employee`.`hire_date`, "
+        + "`employee`.`end_date`, `employee`.`salary`, `employee`.`supervisor_id`, "
+        + "`employee`.`education_level`, `employee`.`marital_status`, `employee`.`gender`, "
+        + "`employee`.`management_role`, `department`.`department_id` AS `department_id0`, "
+        + "`department`.`department_description`\n"
         + "FROM `foodmart`.`store`\n"
         + "LEFT JOIN `foodmart`.`employee` ON TRUE\n"
         + "CROSS JOIN `foodmart`.`department`";
@@ -6422,7 +6537,22 @@ class RelToSqlConverterTest {
         + "from \"store\" as s\n"
         + "cross join \"employee\" as e\n"
         + "right join \"department\" as d on true";
-    final String expectedMysql = "SELECT *\n"
+    final String expectedMysql = "SELECT `store`.`store_id`, `store`.`store_type`, "
+        + "`store`.`region_id`, `store`.`store_name`, `store`.`store_number`, "
+        + "`store`.`store_street_address`, `store`.`store_city`, `store`.`store_state`, "
+        + "`store`.`store_postal_code`, `store`.`store_country`, `store`.`store_manager`, "
+        + "`store`.`store_phone`, `store`.`store_fax`, `store`.`first_opened_date`, "
+        + "`store`.`last_remodel_date`, `store`.`store_sqft`, `store`.`grocery_sqft`, "
+        + "`store`.`frozen_sqft`, `store`.`meat_sqft`, `store`.`coffee_bar`, "
+        + "`store`.`video_store`, `store`.`salad_bar`, `store`.`prepared_food`, "
+        + "`store`.`florist`, `employee`.`employee_id`, `employee`.`full_name`, "
+        + "`employee`.`first_name`, `employee`.`last_name`, `employee`.`position_id`, "
+        + "`employee`.`position_title`, `employee`.`store_id` AS `store_id0`, "
+        + "`employee`.`department_id`, `employee`.`birth_date`, `employee`.`hire_date`, "
+        + "`employee`.`end_date`, `employee`.`salary`, `employee`.`supervisor_id`, "
+        + "`employee`.`education_level`, `employee`.`marital_status`, `employee`.`gender`, "
+        + "`employee`.`management_role`, `department`.`department_id` AS `department_id0`, "
+        + "`department`.`department_description`\n"
         + "FROM `foodmart`.`store`\n"
         + "CROSS JOIN `foodmart`.`employee`\n"
         + "RIGHT JOIN `foodmart`.`department` ON TRUE";
@@ -6436,10 +6566,24 @@ class RelToSqlConverterTest {
         + "from \"store\" as s\n"
         + "join \"employee\" as e on s.\"store_id\" = e.\"store_id\"\n"
         + "cross join \"department\" as d";
-    final String expectedMysql = "SELECT *\n"
+    final String expectedMysql = "SELECT `store`.`store_id`, `store`.`store_type`, "
+        + "`store`.`region_id`, `store`.`store_name`, `store`.`store_number`, "
+        + "`store`.`store_street_address`, `store`.`store_city`, `store`.`store_state`, "
+        + "`store`.`store_postal_code`, `store`.`store_country`, `store`.`store_manager`, "
+        + "`store`.`store_phone`, `store`.`store_fax`, `store`.`first_opened_date`, "
+        + "`store`.`last_remodel_date`, `store`.`store_sqft`, `store`.`grocery_sqft`, "
+        + "`store`.`frozen_sqft`, `store`.`meat_sqft`, `store`.`coffee_bar`, "
+        + "`store`.`video_store`, `store`.`salad_bar`, `store`.`prepared_food`, "
+        + "`store`.`florist`, `employee`.`employee_id`, `employee`.`full_name`, "
+        + "`employee`.`first_name`, `employee`.`last_name`, `employee`.`position_id`, "
+        + "`employee`.`position_title`, `employee`.`store_id` AS `store_id0`, "
+        + "`employee`.`department_id`, `employee`.`birth_date`, `employee`.`hire_date`, "
+        + "`employee`.`end_date`, `employee`.`salary`, `employee`.`supervisor_id`, "
+        + "`employee`.`education_level`, `employee`.`marital_status`, `employee`.`gender`, "
+        + "`employee`.`management_role`, `department`.`department_id` AS `department_id0`, "
+        + "`department`.`department_description`\n"
         + "FROM `foodmart`.`store`\n"
-        + "INNER JOIN `foodmart`.`employee`"
-        + " ON `store`.`store_id` = `employee`.`store_id`\n"
+        + "INNER JOIN `foodmart`.`employee` ON `store`.`store_id` = `employee`.`store_id`\n"
         + "CROSS JOIN `foodmart`.`department`";
     sql(sql).withMysql().ok(expectedMysql);
   }
@@ -7011,6 +7155,38 @@ class RelToSqlConverterTest {
         .withOracle().ok(expected)
         .withOracle(19).ok(expected)
         .withOracle(11).throws_("Lower Oracle version(<12) doesn't support offset/fetch syntax!");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5583">[CALCITE-5583]
+   * Rel2Sql will get an error when select * and join is present</a>. */
+  @Test void testSelectStarWithJoin() {
+    final RelBuilder builder = relBuilder();
+    RelNode root = builder
+        .scan("EMP")
+        .project(ImmutableList.of(builder.field("EMPNO")), ImmutableList.of("c0"), true)
+        .scan("EMP")
+        .project(ImmutableList.of(builder.field("EMPNO")), ImmutableList.of("c0"), true)
+        .join(JoinRelType.INNER,
+            builder.equals(builder.field(2, 0, "c0"),
+                builder.field(2, 1, "c0")))
+        .projectNamed(
+            ImmutableList.of(builder.field(0), builder.field(1)),
+            ImmutableList.of("c0", "c00"),
+            true)
+        .build();
+    // LogicalProject(c0=[$0], c00=[$1])
+    //   LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    //     LogicalProject(c0=[$0])
+    //       LogicalTableScan(table=[[scott, EMP]])
+    //     LogicalProject(c0=[$0])
+    //       LogicalTableScan(table=[[scott, EMP]])
+
+    final String expected = "SELECT \"t\".\"c0\", \"t0\".\"c0\" AS \"c00\"\n"
+        + "FROM (SELECT \"EMPNO\" AS \"c0\"\nFROM \"scott\".\"EMP\") AS \"t\"\n"
+        + "INNER JOIN (SELECT \"EMPNO\" AS \"c0\"\nFROM \"scott\".\"EMP\") AS \"t0\" "
+        + "ON \"t\".\"c0\" = \"t0\".\"c0\"";
+    assertThat(toSql(root), isLinux(expected));
   }
 
   /** Test case for
