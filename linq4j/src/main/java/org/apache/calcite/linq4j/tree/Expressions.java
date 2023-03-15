@@ -1164,7 +1164,6 @@ public abstract class Expressions {
     return new FunctionExpression<>(type, body, toList(parameters));
   }
 
-
   /**
    * Creates a LambdaExpression by first constructing a delegate
    * type, using varargs.

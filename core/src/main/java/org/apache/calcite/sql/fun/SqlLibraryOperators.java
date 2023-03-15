@@ -983,7 +983,7 @@ public abstract class SqlLibraryOperators {
   /** The "SAFE_CAST(expr AS type)" function; Identical to CAST(),
    *  except it returns NULL instead of raising an error. */
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction SAFE_CAST = new SqlCastFunction().withKind(SqlKind.SAFE_CAST);
+  public static final SqlFunction SAFE_CAST = new SqlCastFunction(SqlKind.SAFE_CAST);
 
   /** The "UNIX_SECONDS(bigint)" function; returns the number of seconds
    * since 1970-01-01 00:00:00. */

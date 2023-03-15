@@ -3481,7 +3481,6 @@ public class SqlFunctions {
     return result;
   }
 
-
   /** Support the MULTISET EXCEPT ALL function. */
   @SuppressWarnings("JdkObsolete")
   public static <E> Collection<E> multisetExceptAll(Collection<E> c1,

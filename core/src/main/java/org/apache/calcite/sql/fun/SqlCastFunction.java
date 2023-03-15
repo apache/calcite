@@ -87,7 +87,7 @@ public class SqlCastFunction extends SqlFunction {
     this(SqlKind.CAST);
   }
 
-  private SqlCastFunction(SqlKind kind) {
+  public SqlCastFunction(SqlKind kind) {
     super(kind.toString(),
         kind,
         null,
@@ -95,14 +95,6 @@ public class SqlCastFunction extends SqlFunction {
         null,
         SqlFunctionCategory.SYSTEM);
     assert Arrays.asList(SqlKind.CAST, SqlKind.SAFE_CAST).contains(kind);
-  }
-
-  protected SqlFunction withKind(SqlKind kind) {
-    if (this.kind == kind) {
-      return this;
-    } else {
-      return new SqlCastFunction(kind);
-    }
   }
 
   //~ Methods ----------------------------------------------------------------
