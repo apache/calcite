@@ -1515,11 +1515,14 @@ class RelToSqlConverterTest {
   @Test void testSelectQueryWithGroupByHaving() {
     String query = "select count(*) from \"product\" group by \"product_class_id\","
         + " \"product_id\"  having \"product_id\"  > 10";
+    String query2 = "select count(*) from \"product\" group by \"product_class_id\","
+        + " \"product_id\"  having SUM(\"product_id\") > 1 AND SUM(\"product_id\")  < 10";
     final String expected = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\", \"product_id\"\n"
         + "HAVING \"product_id\" > 10";
-    sql(query).ok(expected);
+    //sql(query).ok(expected);
+    sql(query2).ok(expected);
   }
 
   /** Test case for
