@@ -6639,6 +6639,43 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-5583">[CALCITE-5583]
+   * Rel2Sql will get an error when select * and join is present</a>. */
+  @Test void testSelectStarWithJoin() {
+    final RelBuilder builder = relBuilder();
+    RelNode root = builder
+        .scan("EMP")
+        .project(
+            builder.getRexBuilder().makeCall(SqlStdOperatorTable.AS, builder.field("EMPNO"), builder.literal("c0")))
+        .scan("EMP").project(
+            builder.getRexBuilder().makeCall(SqlStdOperatorTable.AS, builder.field("EMPNO"), builder.literal("c0")))
+        .join(
+            JoinRelType.INNER,
+            builder.equals(builder.field(2, 0, "c0"),
+                builder.field(2, 1, "c0")))
+        .projectNamed(
+            ImmutableList.of(builder.field(0),
+                builder.field(1)),
+            ImmutableList.of("c0","c00"),
+            true
+        )
+        .build();
+    //LogicalProject(c0=[$0], c00=[$1])
+    //  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    //    LogicalProject(c0=[$0])
+    //      LogicalTableScan(table=[[scott, EMP]])
+    //    LogicalProject(c0=[$0])
+    //      LogicalTableScan(table=[[scott, EMP]])
+
+    final String expected = "SELECT *\n"
+        + "FROM (SELECT \"EMPNO\" AS \"c0\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"t\"\n"
+        + "INNER JOIN (SELECT \"EMPNO\" AS \"c0\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"t0\" ON \"t\".\"c0\" = \"t0\".\"c0\"";
+    assertThat(toSql(root), isLinux(expected));
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5265">[CALCITE-5265]
    * JDBC adapter sometimes adds unnecessary parentheses around SELECT in INSERT</a>. */
   @Test void testInsertSelect() {
