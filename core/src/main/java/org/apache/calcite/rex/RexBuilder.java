@@ -524,7 +524,7 @@ public class RexBuilder {
    *
    * @param type Type to cast to
    * @param exp  Expression being cast
-   * @return Call to CAST or SAFE_CAST operator
+   * @return Call to CAST operator
    */
   public RexNode makeCast(
       RelDataType type,
@@ -579,87 +579,80 @@ public class RexBuilder {
       RexNode exp,
       boolean matchNullability,
       SqlKind kind) {
-    try {
-      final SqlTypeName sqlType = type.getSqlTypeName();
-      if (exp instanceof RexLiteral) {
-        RexLiteral literal = (RexLiteral) exp;
-        Comparable value = literal.getValueAs(Comparable.class);
-        SqlTypeName typeName = literal.getTypeName();
-        if (canRemoveCastFromLiteral(type, value, typeName)) {
+    final SqlTypeName sqlType = type.getSqlTypeName();
+    if (exp instanceof RexLiteral) {
+      RexLiteral literal = (RexLiteral) exp;
+      Comparable value = literal.getValueAs(Comparable.class);
+      SqlTypeName typeName = literal.getTypeName();
+      if (canRemoveCastFromLiteral(type, value, typeName)) {
+        switch (typeName) {
+        case INTERVAL_YEAR:
+        case INTERVAL_YEAR_MONTH:
+        case INTERVAL_MONTH:
+        case INTERVAL_DAY:
+        case INTERVAL_DAY_HOUR:
+        case INTERVAL_DAY_MINUTE:
+        case INTERVAL_DAY_SECOND:
+        case INTERVAL_HOUR:
+        case INTERVAL_HOUR_MINUTE:
+        case INTERVAL_HOUR_SECOND:
+        case INTERVAL_MINUTE:
+        case INTERVAL_MINUTE_SECOND:
+        case INTERVAL_SECOND:
+          assert value instanceof BigDecimal;
+          typeName = type.getSqlTypeName();
           switch (typeName) {
-          case INTERVAL_YEAR:
-          case INTERVAL_YEAR_MONTH:
-          case INTERVAL_MONTH:
-          case INTERVAL_DAY:
-          case INTERVAL_DAY_HOUR:
-          case INTERVAL_DAY_MINUTE:
-          case INTERVAL_DAY_SECOND:
-          case INTERVAL_HOUR:
-          case INTERVAL_HOUR_MINUTE:
-          case INTERVAL_HOUR_SECOND:
-          case INTERVAL_MINUTE:
-          case INTERVAL_MINUTE_SECOND:
-          case INTERVAL_SECOND:
-            assert value instanceof BigDecimal;
-            typeName = type.getSqlTypeName();
-            switch (typeName) {
-            case BIGINT:
-            case INTEGER:
-            case SMALLINT:
-            case TINYINT:
-            case FLOAT:
-            case REAL:
-            case DECIMAL:
-              BigDecimal value2 = (BigDecimal) value;
-              final BigDecimal multiplier =
-                  baseUnit(literal.getTypeName()).multiplier;
-              final BigDecimal divider =
-                  literal.getTypeName().getEndUnit().multiplier;
-              value = value2.multiply(multiplier)
-                  .divide(divider, 0, RoundingMode.HALF_DOWN);
-              break;
-            default:
-              break;
-            }
-
-            // Not all types are allowed for literals
-            switch (typeName) {
-            case INTEGER:
-              typeName = SqlTypeName.BIGINT;
-              break;
-            default:
-              break;
-            }
+          case BIGINT:
+          case INTEGER:
+          case SMALLINT:
+          case TINYINT:
+          case FLOAT:
+          case REAL:
+          case DECIMAL:
+            BigDecimal value2 = (BigDecimal) value;
+            final BigDecimal multiplier =
+                baseUnit(literal.getTypeName()).multiplier;
+            final BigDecimal divider =
+                literal.getTypeName().getEndUnit().multiplier;
+            value = value2.multiply(multiplier)
+                .divide(divider, 0, RoundingMode.HALF_DOWN);
             break;
           default:
             break;
           }
-          final RexLiteral literal2 =
-              makeLiteral(value, type, typeName);
-          if (type.isNullable()
-              && !literal2.getType().isNullable()
-              && matchNullability) {
-            return makeAbstractCast(type, literal2, kind);
+
+          // Not all types are allowed for literals
+          switch (typeName) {
+          case INTEGER:
+            typeName = SqlTypeName.BIGINT;
+            break;
+          default:
+            break;
           }
-          return literal2;
+          break;
+        default:
+          break;
         }
-      } else if (SqlTypeUtil.isExactNumeric(type)
-          && SqlTypeUtil.isInterval(exp.getType())) {
-        return makeCastIntervalToExact(type, exp, kind);
-      } else if (sqlType == SqlTypeName.BOOLEAN
-          && SqlTypeUtil.isExactNumeric(exp.getType())) {
-        return makeCastExactToBoolean(type, exp);
-      } else if (exp.getType().getSqlTypeName() == SqlTypeName.BOOLEAN
-          && SqlTypeUtil.isExactNumeric(type)) {
-        return makeCastBooleanToExact(type, exp);
+        final RexLiteral literal2 =
+            makeLiteral(value, type, typeName);
+        if (type.isNullable()
+            && !literal2.getType().isNullable()
+            && matchNullability) {
+          return makeAbstractCast(type, literal2, kind);
+        }
+        return literal2;
       }
-      return makeAbstractCast(type, exp, kind);
-    } catch (Error e) {
-      if (kind == SqlKind.SAFE_CAST) {
-        return makeLiteral(null, type, exp.getType().getSqlTypeName());
-      }
-      throw e;
+    } else if (SqlTypeUtil.isExactNumeric(type)
+        && SqlTypeUtil.isInterval(exp.getType())) {
+      return makeCastIntervalToExact(type, exp, kind);
+    } else if (sqlType == SqlTypeName.BOOLEAN
+        && SqlTypeUtil.isExactNumeric(exp.getType())) {
+      return makeCastExactToBoolean(type, exp);
+    } else if (exp.getType().getSqlTypeName() == SqlTypeName.BOOLEAN
+        && SqlTypeUtil.isExactNumeric(type)) {
+      return makeCastBooleanToExact(type, exp);
     }
+    return makeAbstractCast(type, exp, kind);
   }
 
   /** Returns the lowest granularity unit for the given unit.
