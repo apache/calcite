@@ -130,7 +130,7 @@ public class JsonBuilder {
     } else if (o instanceof String) {
       appendString(buf, (String) o);
     } else {
-      assert o instanceof Number || o instanceof Boolean;
+      assert o instanceof Number || o instanceof Boolean : o;
       buf.append(o);
     }
   }

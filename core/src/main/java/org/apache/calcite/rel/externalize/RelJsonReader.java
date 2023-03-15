@@ -109,6 +109,17 @@ public class RelJsonReader {
     return RelJson.create().toType(typeFactory, o);
   }
 
+  /** Converts a JSON string (such as that produced by
+   * {@link RelJson#toJson(RexNode)}) into a Calcite expression. */
+  public static RexNode readRex(RelOptCluster typeFactory, String s)
+      throws IOException {
+    final ObjectMapper mapper = new ObjectMapper();
+    Map<String, Object> o = mapper
+        .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
+        .readValue(s, TYPE_REF);
+    return RelJson.create().toRex(typeFactory, o);
+  }
+
   private void readRels(List<Map<String, Object>> jsonRels) {
     for (Map<String, Object> jsonRel : jsonRels) {
       readRel(jsonRel);

@@ -22,10 +22,14 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+
+import static java.util.Objects.requireNonNull;
 
 /** Utilities for Guava {@link com.google.common.collect.RangeSet}. */
 @SuppressWarnings({"BetaApi", "UnstableApiUsage"})
@@ -279,39 +283,101 @@ public class RangeSets {
 
   /** Deconstructor for {@link Range} values.
    *
-   * @param <C> Value type
+   * @param <V> Value type
    * @param <R> Return type
    *
    * @see Consumer */
-  public interface Handler<C extends Comparable<C>, R> {
+  public interface Handler<V, R> {
     R all();
-    R atLeast(C lower);
-    R atMost(C upper);
-    R greaterThan(C lower);
-    R lessThan(C upper);
-    R singleton(C value);
-    R closed(C lower, C upper);
-    R closedOpen(C lower, C upper);
-    R openClosed(C lower, C upper);
-    R open(C lower, C upper);
+    R atLeast(V lower);
+    R atMost(V upper);
+    R greaterThan(V lower);
+    R lessThan(V upper);
+    R singleton(V value);
+    R closed(V lower, V upper);
+    R closedOpen(V lower, V upper);
+    R openClosed(V lower, V upper);
+    R open(V lower, V upper);
+
+    /** Creates a Consumer that sends output to a given sink. */
+    default Consumer<V> andThen(java.util.function.Consumer<R> consumer) {
+      return new SinkConsumer<>(this, consumer);
+    }
+  }
+
+  /** Consumer that deconstructs a range to a handler then sends the resulting
+   * range to a {@link java.util.function.Consumer}.
+   *
+   * @param <V> Value type
+   * @param <R> Output element type
+   */
+  private static class SinkConsumer<V, R> implements Consumer<V> {
+    final Handler<V, R> handler;
+    final java.util.function.Consumer<R> consumer;
+
+    SinkConsumer(Handler<V, R> handler,
+        java.util.function.Consumer<R> consumer) {
+      this.handler = requireNonNull(handler, "handler");
+      this.consumer = requireNonNull(consumer, "consumer");
+    }
+
+    @Override public void all() {
+      consumer.accept(handler.all());
+    }
+
+    @Override public void atLeast(V lower) {
+      consumer.accept(handler.atLeast(lower));
+    }
+
+    @Override public void atMost(V upper) {
+      consumer.accept(handler.atMost(upper));
+    }
+
+    @Override public void greaterThan(V lower) {
+      consumer.accept(handler.greaterThan(lower));
+    }
+
+    @Override public void lessThan(V upper) {
+      consumer.accept(handler.lessThan(upper));
+    }
+
+    @Override public void singleton(V value) {
+      consumer.accept(handler.singleton(value));
+    }
+
+    @Override public void closed(V lower, V upper) {
+      consumer.accept(handler.closed(lower, upper));
+    }
+
+    @Override public void closedOpen(V lower, V upper) {
+      consumer.accept(handler.closedOpen(lower, upper));
+    }
+
+    @Override public void openClosed(V lower, V upper) {
+      consumer.accept(handler.openClosed(lower, upper));
+    }
+
+    @Override public void open(V lower, V upper) {
+      consumer.accept(handler.open(lower, upper));
+    }
   }
 
   /** Consumer of {@link Range} values.
    *
-   * @param <C> Value type
+   * @param <V> Value type
    *
    * @see Handler */
-  public interface Consumer<C extends Comparable<C>> {
+  public interface Consumer<@NonNull V> {
     void all();
-    void atLeast(C lower);
-    void atMost(C upper);
-    void greaterThan(C lower);
-    void lessThan(C upper);
-    void singleton(C value);
-    void closed(C lower, C upper);
-    void closedOpen(C lower, C upper);
-    void openClosed(C lower, C upper);
-    void open(C lower, C upper);
+    void atLeast(V lower);
+    void atMost(V upper);
+    void greaterThan(V lower);
+    void lessThan(V upper);
+    void singleton(V value);
+    void closed(V lower, V upper);
+    void closedOpen(V lower, V upper);
+    void openClosed(V lower, V upper);
+    void open(V lower, V upper);
   }
 
   /** Handler that converts a Range into another Range of the same type,

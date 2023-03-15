@@ -18,6 +18,7 @@ package org.apache.calcite.rel.externalize;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlExplain;
@@ -66,6 +67,7 @@ public abstract class RelEnumTypes {
         ImmutableMap.builder();
     register(enumByName, JoinConditionType.class);
     register(enumByName, JoinType.class);
+    register(enumByName, RexUnknownAs.class);
     register(enumByName, SqlExplain.Depth.class);
     register(enumByName, SqlExplainFormat.class);
     register(enumByName, SqlExplainLevel.class);

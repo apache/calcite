@@ -47,6 +47,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexWindowBounds;
@@ -65,10 +66,13 @@ import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -93,6 +97,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -826,6 +831,94 @@ class RelWriterTest {
         .assertThatPlan(isLinux(expected));
   }
 
+  @Test void testSearchOperator() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder b = RelBuilder.create(config);
+    final RexBuilder rexBuilder = b.getRexBuilder();
+
+    // Test toJson -> toRex -> toJson is the same.
+    final JsonBuilder jsonBuilder = new JsonBuilder();
+    final RelJson relJson = RelJson.create().withJsonBuilder(jsonBuilder);
+    final Consumer<RexNode> consumer = node -> {
+      Object jsonRepresentation = relJson.toJson(node);
+      assertThat(jsonRepresentation, notNullValue());
+
+      RexNode deserialized = relJson.toRex(b.getCluster(), jsonRepresentation);
+      assertThat(node, is(deserialized));
+      assertThat(jsonRepresentation, is(relJson.toJson(deserialized)));
+
+      // Test that toRex is the same as toJsonString -> readRex
+      final String s = jsonBuilder.toJsonString(jsonRepresentation);
+      RexNode deserialized2;
+      try {
+        deserialized2 = RelJsonReader.readRex(b.getCluster(), s);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+      assertThat(deserialized2, is(deserialized));
+    };
+
+    // Commented out but we should also get this passing! SEARCH in a RelNode
+    // using the JSON writer also leads to failures.
+    if (false) {
+      final RelNode rel = b
+          .scan("EMP")
+          .project(b.between(b.field("DEPTNO"), b.literal(20), b.literal(30)))
+          .build();
+      final RelJsonWriter jsonWriter =
+          new RelJsonWriter(new JsonBuilder(), RelJson::withLibraryOperatorTable);
+      rel.explain(jsonWriter);
+      String relJsonString = jsonWriter.asString();
+      String result = deserializeAndDumpToTextFormat(getSchema(rel), relJsonString);
+      final String expected = "<TODO>";
+      assertThat(result, isLinux(expected));
+    }
+
+    RexNode between =
+        rexBuilder.makeBetween(b.literal(45),
+            b.literal(20),
+            b.literal(30));
+    consumer.accept(between);
+
+    RexNode inNode =
+        rexBuilder.makeIn(b.literal(12),
+        ImmutableList.of(
+          b.literal(20),
+          b.literal(14)));
+    consumer.accept(inNode);
+
+    // Test Calcite DateString class works in a Range
+    final DateString d1 =
+        DateString.fromCalendarFields(
+            new TimestampString(1970, 2, 1, 1, 1, 0).toCalendar());
+    final DateString d2 = DateString.fromDaysSinceEpoch(100);
+    final DateString d3 = DateString.fromDaysSinceEpoch(1000);
+    RexNode dateNode =
+        rexBuilder.makeBetween(rexBuilder.makeDateLiteral(d2),
+            rexBuilder.makeDateLiteral(d1),
+            rexBuilder.makeDateLiteral(d3));
+    consumer.accept(dateNode);
+
+    // Test Calcite TimeString
+    final RexLiteral t1 = rexBuilder.makeTimeLiteral(new TimeString(1, 0, 0), 0);
+    final RexLiteral t2 = rexBuilder.makeTimeLiteral(new TimeString(2, 2, 2), 6);
+    final RexLiteral t3 = rexBuilder.makeTimeLiteral(new TimeString(3, 3, 3), 9);
+
+    RexNode timeNode = rexBuilder.makeBetween(t2, t1, t3);
+    consumer.accept(timeNode);
+
+    // Test Calcite NlsString
+    final NlsString nls1 = new NlsString("one", null, null);
+    final NlsString nls2 = new NlsString("ten", null, null);
+    final NlsString nls3 = new NlsString("sixteen", null, null);
+    RexNode nlsNode =
+        rexBuilder.makeIn(
+            rexBuilder.makeCharLiteral(nls2),
+            ImmutableList.of(rexBuilder.makeCharLiteral(nls1),
+                rexBuilder.makeCharLiteral(nls3)));
+    consumer.accept(nlsNode);
+  }
+
   @ParameterizedTest
   @MethodSource("explainFormats")
   void testAggregateWithAlias(SqlExplainFormat format) {
@@ -872,7 +965,7 @@ class RelWriterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4804">[CALCITE-4804]
-   * Support Snapshot operator serialization and deserizalization</a>. */
+   * Support Snapshot operator serialization and deserialization</a>. */
   @Test void testSnapshot() {
     // Equivalent SQL:
     //   SELECT *

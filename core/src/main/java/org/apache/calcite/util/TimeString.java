@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
@@ -146,7 +148,8 @@ public class TimeString implements Comparable<TimeString> {
         .withMillis(calendar.get(Calendar.MILLISECOND));
   }
 
-  public static TimeString fromMillisOfDay(int i) {
+  @JsonCreator
+  public static TimeString fromMillisOfDay(@JsonProperty("millisOfDay") int i) {
     return new TimeString(DateTimeUtils.unixTimeToString(i))
         .withMillis((int) floorMod(i, 1000L));
   }
@@ -163,7 +166,6 @@ public class TimeString implements Comparable<TimeString> {
     }
     return new TimeString(v);
   }
-
   public int getMillisOfDay() {
     int h = Integer.valueOf(v.substring(0, 2));
     int m = Integer.valueOf(v.substring(3, 5));
