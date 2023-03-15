@@ -223,6 +223,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(ROW)",
           "KEYWORD(ROW_NUMBER)",
           "KEYWORD(RUNNING)",
+          "KEYWORD(SAFE_CAST)",
           "KEYWORD(SECOND)",
           "KEYWORD(SESSION_USER)",
           "KEYWORD(SOME)",

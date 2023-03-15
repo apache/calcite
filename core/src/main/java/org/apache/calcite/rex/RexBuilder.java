@@ -1223,7 +1223,7 @@ public class RexBuilder {
     }
 
     if (!node.getType().equals(targetType)) {
-      return makeCast(targetType, node, SqlKind.CAST);
+      return makeCast(targetType, node);
     }
     return node;
   }
@@ -1384,7 +1384,7 @@ public class RexBuilder {
     if (!type.isNullable()) {
       type = typeFactory.createTypeWithNullability(type, true);
     }
-    return (RexLiteral) makeCast(type, constantNull, SqlKind.CAST);
+    return (RexLiteral) makeCast(type, constantNull);
   }
 
   // CHECKSTYLE: IGNORE 1
@@ -1631,7 +1631,7 @@ public class RexBuilder {
   public RexNode makeLiteral(@Nullable Object value, RelDataType type,
       boolean allowCast, boolean trim) {
     if (value == null) {
-      return makeCast(type, constantNull, SqlKind.CAST);
+      return makeCast(type, constantNull);
     }
     if (type.isNullable()) {
       final RelDataType typeNotNull =
@@ -1657,7 +1657,7 @@ public class RexBuilder {
     case VARCHAR:
       literal = makeCharLiteral((NlsString) value);
       if (allowCast) {
-        return makeCast(type, literal, SqlKind.CAST);
+        return makeCast(type, literal);
       } else {
         return literal;
       }
@@ -1667,7 +1667,7 @@ public class RexBuilder {
     case VARBINARY:
       literal = makeBinaryLiteral((ByteString) value);
       if (allowCast) {
-        return makeCast(type, literal, SqlKind.CAST);
+        return makeCast(type, literal);
       } else {
         return literal;
       }
