@@ -87,12 +87,32 @@ Want to learn more about Calcite?
 Watch some presentations and read through some slide decks about
 Calcite, or attend one of the [upcoming talks](#upcoming-talks).
 
+## Adding measures to Calcite SQL
+
+At [Calcite Virtual Meetup](https://www.meetup.com/apache-calcite/events/291489488/), March 2023;
+[[slides](https://www.slideshare.net/julianhyde/adding-measures-to-calcite-sql)],
+[[video](https://youtu.be/COFQrSEX_iI)].
+
+## Building a streaming incremental view maintenance engine with Calcite
+
+At [Calcite Virtual Meetup](https://www.meetup.com/apache-calcite/events/291489488/), March 2023;
+[[slides](http://budiu.info/work/dbsp-calcite23.pptx)],
+[[video](https://youtu.be/iT4k5DCnvPU)].
+
+## Debugging planning issues using Calcite's built in loggers
+
+At [Calcite Virtual Meetup](https://www.meetup.com/apache-calcite/events/291489488/), March 2023;
+[[summary](https://github.com/zabetak/slides/blob/master/2023/calcite-meetup-march/debugging-planning-issues-using-calcites-built-in-loggers.md)],
+[[slides](https://www.slideshare.net/StamatisZampetakis/debugging-planning-issues-using-calcites-builtin-loggers)],
+[[pdf](https://github.com/zabetak/slides/blob/master/2023/calcite-meetup-march/debugging-planning-issues-using-calcites-built-in-loggers.pdf)],
+[[video](https://youtu.be/_phzRNCWJfw)].
+
 ## calcite-clj - Use Calcite with Clojure
 
-At [Apache Calcite Online Meetup January 2022](https://www.meetup.com/Apache-Calcite/events/282836907/)
-[[slides]](https://ieugen.github.io/calcite-clj/)
-[[video]](https://www.youtube.com/watch?v=9CUWX8JHA90)
-[[code]](https://github.com/ieugen/calcite-clj)
+At [Calcite Virtual Meetup](https://www.meetup.com/Apache-Calcite/events/282836907/), January 2022;
+[[slides](https://ieugen.github.io/calcite-clj/)],
+[[video](https://www.youtube.com/watch?v=9CUWX8JHA90)],
+[[code](https://github.com/ieugen/calcite-clj)].
 
 ## Morel, a functional query language (Julian Hyde)
 
@@ -109,7 +129,8 @@ At [ApacheCon 2021](https://www.apachecon.com/acah2021/tracks/bigdatasql.html), 
 At [BOSS 2021](https://boss-workshop.github.io/boss-2021/), Copenhagen, Denmark, August 16, 2021;
 [[summary](https://github.com/zabetak/slides/blob/master/2021/boss-workshop/apache-calcite-tutorial.md)],
 [[slides](https://www.slideshare.net/StamatisZampetakis/apache-calcite-tutorial-boss-21)],
-[[pdf](https://github.com/zabetak/slides/blob/master/2021/boss-workshop/apache-calcite-tutorial.pdf)].
+[[pdf](https://github.com/zabetak/slides/blob/master/2021/boss-workshop/apache-calcite-tutorial.pdf)],
+[[video](https://youtu.be/meI0W12f_nw)].
 
 ## An introduction to query processing & Apache Calcite
 
