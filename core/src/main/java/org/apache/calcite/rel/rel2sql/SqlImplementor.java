@@ -63,6 +63,7 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlFieldAccess;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
@@ -75,6 +76,7 @@ import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlCase;
@@ -699,31 +701,29 @@ public abstract class SqlImplementor {
           accesses.offerLast((RexFieldAccess) referencedExpr);
           referencedExpr = ((RexFieldAccess) referencedExpr).getReferenceExpr();
         }
-        SqlIdentifier sqlIdentifier;
+        SqlFieldAccess sqlFieldAccess = new SqlFieldAccess(POS);
         switch (referencedExpr.getKind()) {
         case CORREL_VARIABLE:
           final RexCorrelVariable variable = (RexCorrelVariable) referencedExpr;
           final Context correlAliasContext = getAliasContext(variable);
           final RexFieldAccess lastAccess = accesses.pollLast();
           assert lastAccess != null;
-          sqlIdentifier = (SqlIdentifier) correlAliasContext
-              .field(lastAccess.getField().getIndex());
+          sqlFieldAccess.add((SqlIdentifier) correlAliasContext
+              .field(lastAccess.getField().getIndex()));
           break;
         case ROW:
           final SqlNode expr = toSql(program, referencedExpr);
-          sqlIdentifier = new SqlIdentifier(expr.toString(), POS);
+          sqlFieldAccess.add(expr);
           break;
         default:
-          sqlIdentifier = (SqlIdentifier) toSql(program, referencedExpr);
+          sqlFieldAccess.add(toSql(program, referencedExpr));
         }
 
-        int nameIndex = sqlIdentifier.names.size();
         RexFieldAccess access;
         while ((access = accesses.pollLast()) != null) {
-          sqlIdentifier = sqlIdentifier.add(nameIndex++, access.getField().getName(), POS);
+          sqlFieldAccess.add(new SqlIdentifier(access.getField().getName(), POS));
         }
-        return sqlIdentifier;
-
+        return sqlFieldAccess;
       case PATTERN_INPUT_REF:
         final RexPatternFieldRef ref = (RexPatternFieldRef) rex;
         String pv = ref.getAlpha();
@@ -892,6 +892,9 @@ public abstract class SqlImplementor {
       case PLUS:
       case MINUS:
         op = dialect.getTargetFunc(call);
+        break;
+      case OTHER_FUNCTION:
+        op = dialect.getOperatorForOtherFunc(call);
         break;
       default:
         break;
@@ -1258,6 +1261,7 @@ public abstract class SqlImplementor {
     /** Wraps a call in a {@link SqlKind#WITHIN_GROUP} call, if
      * {@code collation} is non-empty. */
     private SqlCall withOrder(SqlCall call, RelCollation collation) {
+      SqlOperator sqlOperator = call.getOperator();
       if (collation.getFieldCollations().isEmpty()) {
         return call;
       }
@@ -1265,8 +1269,14 @@ public abstract class SqlImplementor {
       for (RelFieldCollation field : collation.getFieldCollations()) {
         addOrderItem(orderByList, field);
       }
-      return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, call,
-          new SqlNodeList(orderByList, POS));
+      SqlNodeList orderNodeList = new SqlNodeList(orderByList, POS);
+      List<SqlNode> operandList = new ArrayList<>();
+      operandList.addAll(call.getOperandList());
+      operandList.add(orderNodeList);
+      if (sqlOperator.getSyntax() == SqlSyntax.ORDERED_FUNCTION) {
+        return sqlOperator.createCall(POS, operandList);
+      }
+      return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, call, orderNodeList);
     }
 
     /** Converts a collation to an ORDER BY item. */
@@ -1904,12 +1914,17 @@ public abstract class SqlImplementor {
       return aliases;
     }
 
-    private boolean hasAnalyticalFunctionInWhenClauseOfCase(SqlBasicCall call) {
+    private boolean hasAnalyticalFunctionInWhenClauseOfCase(SqlCall call) {
       SqlNode sqlNode = call.operand(0);
       if (sqlNode instanceof SqlCall) {
         if (((SqlCall) sqlNode).getOperator() instanceof SqlCaseOperator) {
           for (SqlNode whenOperand : ((SqlCase) sqlNode).getWhenOperands()) {
-            boolean present = hasAnalyticalFunction((SqlBasicCall) whenOperand);
+            boolean present;
+            if (whenOperand instanceof SqlCase) {
+              present = hasAnalyticalFunctionInWhenClauseOfCase((SqlCall) whenOperand);
+            } else {
+              present = hasAnalyticalFunction((SqlBasicCall) whenOperand);
+            }
             if (present) {
               return true;
             }

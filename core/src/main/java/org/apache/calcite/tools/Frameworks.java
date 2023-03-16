@@ -18,6 +18,7 @@ package org.apache.calcite.tools;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.materialize.SqlStatisticProvider;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
@@ -42,12 +43,13 @@ import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.statistic.QuerySqlStatisticProvider;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
@@ -57,6 +59,13 @@ import java.util.Properties;
  * server first.
  */
 public class Frameworks {
+
+  /**
+   * Caches an instance of the JDBC driver.
+   */
+  private static final Supplier<Driver> DRIVER_SUPPLIER =
+      Suppliers.memoize(Driver::new);
+
   private Frameworks() {
   }
 
@@ -174,11 +183,14 @@ public class Frameworks {
         info.setProperty(CalciteConnectionProperty.TYPE_SYSTEM.camelName(),
             config.getTypeSystem().getClass().getName());
       }
-      Connection connection =
-          DriverManager.getConnection("jdbc:calcite:", info);
-      final CalciteServerStatement statement =
-          connection.createStatement()
-              .unwrap(CalciteServerStatement.class);
+      // Connect via a Driver instance. Don't use DriverManager because driver
+      // auto-loading can get broken by shading and jar-repacking.
+      //  DriverManager.getConnection("jdbc:calcite:", info);
+      final CalciteServerStatement statement;
+      try (Connection connection = DRIVER_SUPPLIER.get().connect("jdbc:calcite:", info)) {
+        statement = connection.createStatement()
+            .unwrap(CalciteServerStatement.class);
+      }
       return new CalcitePrepareImpl().perform(statement, config, action);
     } catch (Exception e) {
       throw new RuntimeException(e);

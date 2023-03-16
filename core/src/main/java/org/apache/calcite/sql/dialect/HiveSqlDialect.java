@@ -168,6 +168,10 @@ public class HiveSqlDialect extends SqlDialect {
     return true;
   }
 
+  @Override public boolean supportsColumnListForWithItem() {
+    return false;
+  }
+
   @Override public boolean supportsAliasedValues() {
     return false;
   }

@@ -111,6 +111,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsColumnListForWithItem() {
+    return false;
+  }
+
   @Override public boolean supportsCharSet() {
     return false;
   }
@@ -320,7 +324,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
       writer.endFunCall(regexpInstr);
       break;
     case "DATE_MOD":
-      unparseDateModule(writer, call, leftPrec, rightPrec);
+      unparseDateMod(writer, call, leftPrec, rightPrec);
       break;
     case "RAND_INTEGER":
       unparseRandom(writer, call, leftPrec, rightPrec);
@@ -330,6 +334,9 @@ public class SnowflakeSqlDialect extends SqlDialect {
       break;
     case "DATE_DIFF":
       unparseDateDiff(writer, call, leftPrec, rightPrec);
+      break;
+    case "TO_DATE":
+      unparseToDate(writer, call, leftPrec, rightPrec);
       break;
     case DateTimestampFormatUtil.WEEKNUMBER_OF_YEAR:
     case DateTimestampFormatUtil.YEARNUMBER_OF_CALENDAR:
@@ -507,6 +514,17 @@ public class SnowflakeSqlDialect extends SqlDialect {
       call.operand(index).unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(dateDiffFrame);
+  }
+
+  public void unparseToDate(
+      SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame toDateFrame = writer.startFunCall("TO_DATE");
+    writer.sep(",");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    writer.literal(createDateTimeFormatSqlCharLiteral(call.operand(1).toString()).toString());
+    writer.endFunCall(toDateFrame);
   }
 
   private String getDay(String day, String caseType) {

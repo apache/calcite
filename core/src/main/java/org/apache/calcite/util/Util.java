@@ -23,11 +23,14 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlValuesOperator;
 import org.apache.calcite.sql.fun.SqlRowOperator;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 
 import com.google.common.base.Preconditions;
@@ -2899,5 +2902,21 @@ public class Util {
     @Override public void remove() {
       delegate.remove();
     }
+  }
+
+  public static String removeLeadingAndTrailingSingleQuotes(String regexString) {
+    return regexString.replaceAll("^'|'$", "");
+  }
+
+  public static SqlCharStringLiteral modifyRegexStringForMatchArgument(SqlCall call,
+      String matchArgumentRegexLiteral) {
+    String updatedRegexForI = matchArgumentRegexLiteral.concat(
+        removeLeadingAndTrailingSingleQuotes(call.operand(1).toString()));
+    return SqlLiteral.createCharString(updatedRegexForI, SqlParserPos.ZERO);
+  }
+
+  public static boolean isFormatSqlBasicCall(SqlNode sqlNode) {
+    return sqlNode instanceof SqlBasicCall && ((SqlBasicCall) sqlNode).getOperator()
+        .toString().equals(SqlKind.FORMAT.name());
   }
 }

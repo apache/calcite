@@ -45,10 +45,10 @@ import java.util.Set;
 import java.util.function.UnaryOperator;
 
 /**
- * Tests for {@link RelToSqlConverter} on a schema that has nested structures of multiple
- * levels.
+ * Tests for {@link RelToSqlConverter} on a schema that has an array
+ * of struct.
  */
-class RelToSqlConverterStructsTest {
+class RelToSqlConverterArraysTest {
 
   private static final Schema SCHEMA = new Schema() {
     @Override public Table getTable(String name) {
@@ -106,30 +106,31 @@ class RelToSqlConverterStructsTest {
      * <pre>
      *  myTable(
      *          a: BIGINT,
-     *          n1: STRUCT&lt;
-     *                n11: STRUCT&lt;b: BIGINT&gt;,
-     *                n12: STRUCT&lt;c: BIGINT&gt;
-     *              &gt;,
-     *          n2: STRUCT&lt;d: BIGINT&gt;,
-     *          e: BIGINT)
+     *          n1: ARRAY;
+     *              n11: STRUCT&lt;b: BIGINT&gt;
+     *          n2: STRUCT&lt;
+         *          n21: ARRAY;
+         *                n211: STRUCT&lt;c: BIGINT&gt;
+     *          )
      * </pre>
      * </blockquote>
      */
     @Override public RelDataType getRowType(RelDataTypeFactory tf) {
       RelDataType bigint = tf.createSqlType(SqlTypeName.BIGINT);
-      RelDataType n1Type = tf.createStructType(
-          ImmutableList.of(
-              tf.createStructType(ImmutableList.of(bigint),
-                  ImmutableList.of("b")),
-              tf.createStructType(ImmutableList.of(bigint),
-                  ImmutableList.of("c"))),
-          ImmutableList.of("n11", "n12"));
+      RelDataType n1Type = tf.createArrayType(
+          tf.createStructType(
+              ImmutableList.of(bigint),
+              ImmutableList.of("b")), -1);
       RelDataType n2Type = tf.createStructType(
-          ImmutableList.of(bigint),
-          ImmutableList.of("d"));
+          ImmutableList.of(
+              tf.createArrayType(
+                tf.createStructType(
+                    ImmutableList.of(bigint),
+                    ImmutableList.of("c")), -1)),
+              ImmutableList.of("n21"));
       return tf.createStructType(
-          ImmutableList.of(bigint, n1Type, n2Type, bigint),
-          ImmutableList.of("a", "n1", "n2", "e"));
+          ImmutableList.of(bigint, n1Type, n2Type),
+          ImmutableList.of("a", "n1", "n2"));
     }
 
     @Override public Statistic getStatistic() {
@@ -168,32 +169,11 @@ class RelToSqlConverterStructsTest {
         UnaryOperator.identity(), null, ImmutableList.of());
   }
 
-  @Test void testNestedSchemaSelectStar() {
-    String query = "SELECT * FROM \"myTable\"";
-    String expected = "SELECT \"a\", "
-        + "ROW(ROW(\"n1\".\"n11\".\"b\"), ROW(\"n1\".\"n12\".\"c\")) AS \"n1\", "
-        + "ROW(\"n2\".\"d\") AS \"n2\", "
-        + "\"e\"\n"
-        + "FROM \"myDb\".\"myTable\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testNestedSchemaRootColumns() {
-    String query = "SELECT \"a\", \"e\" FROM \"myTable\"";
-    String expected = "SELECT \"a\", "
-        + "\"e\"\n"
-        + "FROM \"myDb\".\"myTable\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testNestedSchemaNestedColumns() {
-    String query = "SELECT \"a\", \"e\", "
-        + "\"myTable\".\"n1\".\"n11\".\"b\", "
-        + "\"myTable\".\"n2\".\"d\" "
-        + "FROM \"myTable\"";
-    String expected = "SELECT \"a\", \"e\", \"n1\".\"n11\".\"b\" AS "
-        + "\"b\", \"n2\".\"d\" AS \"d\""
+  @Test public void testFieldAccessInArrayOfStruct() {
+    final String query = "SELECT \"n1\"[1].\"b\" FROM \"myTable\"";
+    final String expected = "SELECT \"n1\"[1].\"b\""
         + "\nFROM \"myDb\".\"myTable\"";
-    sql(query).ok(expected);
+    sql(query)
+        .ok(expected);
   }
 }

@@ -587,7 +587,7 @@ public class SqlDialect {
         RelDataTypeSystem.DEFAULT);
   }
 
-  protected void unparseDateModule(SqlWriter writer, SqlCall call,
+  protected void unparseDateMod(SqlWriter writer, SqlCall call,
                                  int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall("MOD");
     writer.print("(");
@@ -717,6 +717,14 @@ public class SqlDialect {
     return val;
   }
 
+  /**
+   * Unparses <code>TITLE</code> present in the column's definition.
+   **/
+  public void unparseTitleInColumnDefinition(SqlWriter writer, String title,
+                                              int leftPrec, int rightPrec) {
+    throw new UnsupportedOperationException();
+  }
+
   protected boolean allowsAs() {
     return true;
   }
@@ -777,6 +785,10 @@ public class SqlDialect {
   }
 
   public boolean supportsQualifyClause() {
+    return false;
+  }
+
+  public boolean supportsUnpivot() {
     return false;
   }
 
@@ -1153,6 +1165,9 @@ public class SqlDialect {
     return false;
   }
 
+  public boolean supportsColumnListForWithItem() {
+    return true;
+  }
   /**
    * Returns whether this dialect supports "WITH ROLLUP" in the "GROUP BY"
    * clause.
@@ -1353,6 +1368,8 @@ public class SqlDialect {
       return SqlConformanceEnum.HIVE;
     case SNOWFLAKE:
       return SqlConformanceEnum.SNOWFLAKE;
+    case SPARK:
+      return SqlConformanceEnum.SPARK;
     default:
       return SqlConformanceEnum.PRAGMATIC_2003;
     }
@@ -1392,6 +1409,10 @@ public class SqlDialect {
   }
 
   public SqlOperator getTargetFunc(RexCall call) {
+    return call.getOperator();
+  }
+
+  public SqlOperator getOperatorForOtherFunc(RexCall call) {
     return call.getOperator();
   }
 
@@ -1460,11 +1481,12 @@ public class SqlDialect {
     int lastIndex = standardDateFormat.length() - 1;
     for (int i = 0; i <= lastIndex; i++) {
       Character currentChar = standardDateFormat.charAt(i);
-      if (dateFormatSeparators.contains(currentChar)) {
+      if (dateFormatSeparators.contains(currentChar)
+          && (!isDotSeparatorInAMPM(currentChar, standardDateFormat, i))) {
         separator.add(currentChar);
         String token = StringUtils.substring(standardDateFormat, startIndex, i);
         boolean isNextASeparator = standardDateFormat.length() - 1 > i
-            && dateFormatSeparators.contains(standardDateFormat.charAt(i + 1));
+              && dateFormatSeparators.contains(standardDateFormat.charAt(i + 1));
         if (!token.isEmpty()) {
           previousIndex = i;
           dateTimeTokens.add(token);
@@ -1482,10 +1504,19 @@ public class SqlDialect {
         startIndex = i + 1;
       }
     }
+
     if (lastIndex >= startIndex) {
       dateTimeTokens.add(StringUtils.substring(standardDateFormat, startIndex));
     }
     return new Pair<>(dateTimeTokens, separators);
+  }
+
+  private static boolean isDotSeparatorInAMPM(
+      Character currentChar, String standardDateFormat, int indexofCurrentChar) {
+    return currentChar.toString().equals(".")
+        && (standardDateFormat.charAt(indexofCurrentChar - 1) == 'A'
+            || standardDateFormat.charAt(indexofCurrentChar - 1) == 'P'
+            || standardDateFormat.charAt(indexofCurrentChar - 1) == 'M');
   }
 
   private String getFinalFormat(
@@ -1895,4 +1926,5 @@ public class SqlDialect {
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
   }
+
 }

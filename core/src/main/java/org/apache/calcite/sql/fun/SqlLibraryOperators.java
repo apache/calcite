@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
@@ -1058,6 +1059,13 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_DIFF = new SqlFunction("DATETIME_DIFF",
+      SqlKind.TIMESTAMP_DIFF,
+      ReturnTypes.INTEGER, null,
+      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+      SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMPINTADD = new SqlFunction("TIMESTAMPINTADD",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP, null,
@@ -1313,7 +1321,7 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER_NULLABLE,
           null,
-          OperandTypes.STRING,
+          OperandTypes.ONE_OR_MORE,
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {BIG_QUERY})
@@ -1346,6 +1354,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATE,
           SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SPARK, BIG_QUERY})
+  public static final SqlFunction DATE_TRUNC =
+      new SqlFunction(
+          "DATE_TRUNC",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP,
+          null,
+          OperandTypes.family(SqlTypeFamily.STRING,
+              SqlTypeFamily.TIMESTAMP), SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction RAISE_ERROR =
       new SqlFunction("RAISE_ERROR",
@@ -1374,4 +1392,47 @@ public abstract class SqlLibraryOperators {
           null,
           null,
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction PARENTHESIS =
+      new SqlFunction(
+          "PARENTHESIS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.COLUMN_LIST,
+          null,
+          OperandTypes.ANY,
+          SqlFunctionCategory.SYSTEM) {
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          final SqlWriter.Frame parenthesisFrame = writer.startList("(", ")");
+          for (SqlNode operand : call.getOperandList()) {
+            writer.sep(",");
+            operand.unparse(writer, leftPrec, rightPrec);
+          }
+          writer.endList(parenthesisFrame);
+        }
+      };
+
+  @LibraryOperator(libraries = {ORACLE, MYSQL, SNOWFLAKE})
+  public static final SqlFunction REGEXP_LIKE =
+      new SqlFunction("REGEXP_LIKE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+                  SqlTypeFamily.STRING),
+              // Third operand optional (operand index 0, 1, 2)
+              number -> number == 2),
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE, HIVE, SPARK})
+  public static final SqlFunction NEXT_DAY =
+      new SqlFunction(
+          "NEXT_DAY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE,
+          null,
+          OperandTypes.family(SqlTypeFamily.ANY,
+              SqlTypeFamily.STRING),
+          SqlFunctionCategory.TIMEDATE);
 }
