@@ -19,14 +19,17 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 
+import java.util.Arrays;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * SQL map type.
  */
-public class MapSqlType extends AbstractSqlType {
+public class MapSqlType extends ApplySqlType {
   //~ Instance fields --------------------------------------------------------
-
-  private final RelDataType keyType;
-  private final RelDataType valueType;
+  private static final int KEY_TYPE_INDEX = 0;
+  private static final int VALUE_TYPE_INDEX = 1;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -36,26 +39,26 @@ public class MapSqlType extends AbstractSqlType {
    */
   public MapSqlType(
       RelDataType keyType, RelDataType valueType, boolean isNullable) {
-    super(SqlTypeName.MAP, isNullable, null);
-    assert keyType != null;
-    assert valueType != null;
-    this.keyType = keyType;
-    this.valueType = valueType;
+    super(SqlTypeName.MAP, isNullable,
+        Arrays.asList(requireNonNull(keyType, "keyType"),
+            requireNonNull(valueType, "valueType")));
     computeDigest();
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public RelDataType getValueType() {
-    return valueType;
+    return types.get(VALUE_TYPE_INDEX);
   }
 
   @Override public RelDataType getKeyType() {
-    return keyType;
+    return types.get(KEY_TYPE_INDEX);
   }
 
   // implement RelDataTypeImpl
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+    final RelDataType keyType = getKeyType();
+    final RelDataType valueType = getValueType();
     sb.append("(")
         .append(
             withDetail

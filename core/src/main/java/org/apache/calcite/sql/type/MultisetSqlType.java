@@ -20,15 +20,17 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 
+import java.util.Collections;
+
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * MultisetSqlType represents a standard SQL2003 multiset type.
  */
-public class MultisetSqlType extends AbstractSqlType {
+public class MultisetSqlType extends ApplySqlType {
   //~ Instance fields --------------------------------------------------------
-
-  private final RelDataType elementType;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -37,9 +39,8 @@ public class MultisetSqlType extends AbstractSqlType {
    * from a factory method.
    */
   public MultisetSqlType(RelDataType elementType, boolean isNullable) {
-    super(SqlTypeName.MULTISET, isNullable, null);
-    assert elementType != null;
-    this.elementType = elementType;
+    super(SqlTypeName.MULTISET, isNullable,
+        Collections.singletonList(requireNonNull(elementType, "elementType")));
     computeDigest();
   }
 
@@ -48,16 +49,16 @@ public class MultisetSqlType extends AbstractSqlType {
   // implement RelDataTypeImpl
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     if (withDetail) {
-      sb.append(elementType.getFullTypeString());
+      sb.append(getComponentType().getFullTypeString());
     } else {
-      sb.append(elementType.toString());
+      sb.append(getComponentType().toString());
     }
     sb.append(" MULTISET");
   }
 
   // implement RelDataType
   @Override public RelDataType getComponentType() {
-    return elementType;
+    return types.get(0);
   }
 
   // implement RelDataType
