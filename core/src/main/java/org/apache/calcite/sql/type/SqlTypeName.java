@@ -60,7 +60,6 @@ public enum SqlTypeName {
   DECIMAL(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES, false,
       Types.DECIMAL, SqlTypeFamily.NUMERIC),
   FLOAT(PrecScale.NO_NO, false, Types.FLOAT, SqlTypeFamily.NUMERIC),
-  JSON(PrecScale.NO_NO, false, Types.OTHER, null),
   REAL(PrecScale.NO_NO, false, Types.REAL, SqlTypeFamily.NUMERIC),
   DOUBLE(PrecScale.NO_NO, false, Types.DOUBLE, SqlTypeFamily.NUMERIC),
   DATE(PrecScale.NO_NO, false, Types.DATE, SqlTypeFamily.DATE),
@@ -126,7 +125,8 @@ public enum SqlTypeName {
   /** Spatial type. Though not standard, it is common to several DBs, so we
    * do not flag it 'special' (internal). */
   GEOMETRY(PrecScale.NO_NO, false, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO),
-  SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY);
+  SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
+  JSON(PrecScale.YES_NO, true, Types.OTHER, null);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 
