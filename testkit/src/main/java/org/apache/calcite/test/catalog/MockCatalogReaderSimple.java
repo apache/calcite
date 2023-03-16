@@ -240,6 +240,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     ordersStream.addColumn("ORDERID", fixture.intType);
     registerTable(ordersStream);
   }
+
   private void registerTableShipments(MockSchema salesSchema, Fixture fixture) {
     // "ROWTIME" is not column 0, just to mix things up.
     MockTable shipmentsStream =
