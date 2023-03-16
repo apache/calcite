@@ -2978,10 +2978,19 @@ public class SqlFunctions {
         .getMillisSinceEpoch();
   }
 
+  /**
+   * Cast a date string to {@code TIMESTAMP WITH LOCAL TIME ZONE},
+   * possibly with an explicit time zone. Note that the time zone may be null, e.g.
+   * when supplied with the value of {@link #timeZone(DataContext)} called with an
+   * {@link org.apache.calcite.DataContexts.EmptyDataContext}.
+   */
   public static @PolyNull Long toTimestampWithLocalTimeZone(@PolyNull String v,
       TimeZone timeZone) {
     if (v == null) {
       return castNonNull(null);
+    }
+    if (timeZone == null) {
+      timeZone = DateTimeUtils.UTC_ZONE;
     }
     return new TimestampWithTimeZoneString(v + " " + timeZone.getID())
         .withTimeZone(DateTimeUtils.UTC_ZONE)
