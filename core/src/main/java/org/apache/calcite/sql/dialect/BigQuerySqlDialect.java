@@ -1869,6 +1869,13 @@ public class BigQuerySqlDialect extends SqlDialect {
           typeAlias = "BYTES";
         }
         return createSqlDataTypeSpecByName(typeAlias, typeName);
+      case JSON:
+        if (isContainsPrecision) {
+          typeAlias =  precision > 0 ? "JSON(" + precision + ")" : "JSON";
+        } else {
+          typeAlias = "JSON";
+        }
+        return createSqlDataTypeSpecByName(typeAlias, typeName);
       default:
         break;
       }

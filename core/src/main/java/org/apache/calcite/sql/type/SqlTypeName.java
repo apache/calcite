@@ -126,7 +126,7 @@ public enum SqlTypeName {
    * do not flag it 'special' (internal). */
   GEOMETRY(PrecScale.NO_NO, false, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO),
   SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
-  JSON(PrecScale.YES_NO, true, Types.OTHER, null);
+  JSON(PrecScale.NO_NO | PrecScale.YES_NO, true, Types.OTHER, null);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 
