@@ -424,21 +424,130 @@ public class SqlOperatorTest {
         true);
   }
 
+
+  @Test void testSafeCastToString() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+
+    f.checkCastToString("safe_cast(safe_cast('abc' as char(4)) as varchar(6))", null,
+        "abc ", true);
+
+    // integer
+    f.checkCastToString("123", "CHAR(3)", "123", true);
+
+    f.checkCastToString("0", "CHAR", "0", true);
+    f.checkCastToString("-123", "CHAR(4)", "-123", true);
+
+    // decimal
+    f.checkCastToString("123.4", "CHAR(5)", "123.4", true);
+    f.checkCastToString("-0.0", "CHAR(2)", ".0", true);
+    f.checkCastToString("-123.4", "CHAR(6)", "-123.4", true);
+
+    f.checkString("safe_cast(1.29 as varchar(10))", "1.29", "VARCHAR(10)");
+    f.checkString("safe_cast(.48 as varchar(10))", ".48", "VARCHAR(10)");
+    // if (Bug.CALCITE_2539_FIXED) {
+    f.checkFails("safe_cast(2.523 as char(2))", STRING_TRUNC_MESSAGE, true);
+    // }
+
+    f.checkString("safe_cast(-0.29 as varchar(10))",
+        "-.29", "VARCHAR(10)");
+    f.checkString("safe_cast(-1.29 as varchar(10))",
+        "-1.29", "VARCHAR(10)");
+
+    // approximate
+    f.checkCastToString("1.23E45", "CHAR(7)", "1.23E45", true);
+    f.checkCastToString("SAFE_CAST(0 AS DOUBLE)", "CHAR(3)", "0E0", true);
+    f.checkCastToString("-1.20e-07", "CHAR(7)", "-1.2E-7", true);
+    f.checkCastToString("safe_cast(0e0 as varchar(5))", "CHAR(3)", "0E0", true);
+    if (TODO) {
+      f.checkCastToString("safe_cast(-45e-2 as varchar(17))", "CHAR(7)",
+          "-4.5E-1", true);
+    }
+    if (TODO) {
+      f.checkCastToString("safe_cast(4683442.3432498375e0 as varchar(20))",
+          "CHAR(19)",
+          "4.683442343249838E6", true);
+    }
+    if (TODO) {
+      f.checkCastToString("safe_cast(-0.1 as real)", "CHAR(5)", "-1E-1", false);
+    }
+    if (Bug.CALCITE_2539_FIXED) {
+      f.checkFails("safe_cast(1.3243232e0 as varchar(4))", STRING_TRUNC_MESSAGE,
+          true);
+      f.checkFails("safe_cast(1.9e5 as char(4))", STRING_TRUNC_MESSAGE,
+          true);
+    }
+
+    // string
+    f.checkCastToString("'abc'", "CHAR(1)", "a", true);
+    f.checkCastToString("'abc'", "CHAR(3)", "abc", true);
+    f.checkCastToString("safe_cast('abc' as varchar(6))", "CHAR(3)", "abc", true);
+    f.checkCastToString("safe_cast(' abc  ' as varchar(10))", null, " abc  ", true);
+    f.checkCastToString("safe_cast(safe_cast('abc' as char(4)) as varchar(6))", null,
+        "abc ", true);
+    f.checkString("safe_cast(safe_cast('a' as char(2)) as varchar(3)) || 'x' ",
+        "a x", "VARCHAR(4)");
+    f.checkString("safe_cast(safe_cast('a' as char(3)) as varchar(5)) || 'x' ",
+        "a  x", "VARCHAR(6)");
+    f.checkString("safe_cast('a' as char(3)) || 'x'", "a  x",
+        "CHAR(4)");
+
+    f.checkScalar("char_length(safe_cast(' x ' as char(4)))", 4,
+        "INTEGER");
+    f.checkScalar("char_length(safe_cast(' x ' as varchar(3)))", 3,
+        "INTEGER");
+    f.checkScalar("char_length(safe_cast(' x ' as varchar(4)))", 3,
+        "INTEGER");
+    f.checkScalar("char_length(safe_cast(safe_cast(' x ' as char(4)) as varchar(5)))",
+        4, "INTEGER");
+    f.checkScalar("char_length(safe_cast(' x ' as varchar(3)))", 3,
+        "INTEGER");
+
+    // date & time
+    f.checkCastToString("date '2008-01-01'", "CHAR(10)", "2008-01-01", true);
+    f.checkCastToString("time '1:2:3'", "CHAR(8)", "01:02:03", true);
+    f.checkCastToString("timestamp '2008-1-1 1:2:3'", "CHAR(19)",
+        "2008-01-01 01:02:03", true);
+    f.checkCastToString("timestamp '2008-1-1 1:2:3'", "VARCHAR(30)",
+        "2008-01-01 01:02:03", true);
+
+    f.checkCastToString("interval '3-2' year to month", "CHAR(5)", "+3-02", true);
+    f.checkCastToString("interval '32' month", "CHAR(3)", "+32", true);
+    f.checkCastToString("interval '1 2:3:4' day to second", "CHAR(11)",
+        "+1 02:03:04", true);
+    f.checkCastToString("interval '1234.56' second(4,2)", "CHAR(8)",
+        "+1234.56", true);
+    f.checkCastToString("interval '60' day", "CHAR(8)", "+60     ", true);
+
+    // boolean
+    f.checkCastToString("True", "CHAR(4)", "TRUE", true);
+    f.checkCastToString("True", "CHAR(6)", "TRUE  ", true);
+    f.checkCastToString("True", "VARCHAR(6)", "TRUE", true);
+    f.checkCastToString("False", "CHAR(5)", "FALSE", true);
+
+    if (Bug.CALCITE_2539_FIXED) {
+      f.checkFails("safe_cast(true as char(3))", INVALID_CHAR_MESSAGE, true);
+      f.checkFails("safe_cast(false as char(4))", INVALID_CHAR_MESSAGE, true);
+      f.checkFails("safe_cast(true as varchar(3))", INVALID_CHAR_MESSAGE, true);
+      f.checkFails("safe_cast(false as varchar(4))", INVALID_CHAR_MESSAGE, true);
+    }
+  }
   @Test void testCastToString() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
     f.checkCastToString("cast(cast('abc' as char(4)) as varchar(6))", null,
-        "abc ");
+        "abc ", false);
 
     // integer
-    f.checkCastToString("123", "CHAR(3)", "123");
-    f.checkCastToString("0", "CHAR", "0");
-    f.checkCastToString("-123", "CHAR(4)", "-123");
+    f.checkCastToString("123", "CHAR(3)", "123", false);
+
+    f.checkCastToString("0", "CHAR", "0", false);
+    f.checkCastToString("-123", "CHAR(4)", "-123", false);
 
     // decimal
-    f.checkCastToString("123.4", "CHAR(5)", "123.4");
-    f.checkCastToString("-0.0", "CHAR(2)", ".0");
-    f.checkCastToString("-123.4", "CHAR(6)", "-123.4");
+    f.checkCastToString("123.4", "CHAR(5)", "123.4", false);
+    f.checkCastToString("-0.0", "CHAR(2)", ".0", false);
+    f.checkCastToString("-123.4", "CHAR(6)", "-123.4", false);
 
     f.checkString("cast(1.29 as varchar(10))", "1.29", "VARCHAR(10) NOT NULL");
     f.checkString("cast(.48 as varchar(10))", ".48", "VARCHAR(10) NOT NULL");
@@ -452,21 +561,21 @@ public class SqlOperatorTest {
         "-1.29", "VARCHAR(10) NOT NULL");
 
     // approximate
-    f.checkCastToString("1.23E45", "CHAR(7)", "1.23E45");
-    f.checkCastToString("CAST(0 AS DOUBLE)", "CHAR(3)", "0E0");
-    f.checkCastToString("-1.20e-07", "CHAR(7)", "-1.2E-7");
-    f.checkCastToString("cast(0e0 as varchar(5))", "CHAR(3)", "0E0");
+    f.checkCastToString("1.23E45", "CHAR(7)", "1.23E45", false);
+    f.checkCastToString("CAST(0 AS DOUBLE)", "CHAR(3)", "0E0", false);
+    f.checkCastToString("-1.20e-07", "CHAR(7)", "-1.2E-7", false);
+    f.checkCastToString("cast(0e0 as varchar(5))", "CHAR(3)", "0E0", false);
     if (TODO) {
       f.checkCastToString("cast(-45e-2 as varchar(17))", "CHAR(7)",
-          "-4.5E-1");
+          "-4.5E-1", false);
     }
     if (TODO) {
       f.checkCastToString("cast(4683442.3432498375e0 as varchar(20))",
           "CHAR(19)",
-          "4.683442343249838E6");
+          "4.683442343249838E6", false);
     }
     if (TODO) {
-      f.checkCastToString("cast(-0.1 as real)", "CHAR(5)", "-1E-1");
+      f.checkCastToString("cast(-0.1 as real)", "CHAR(5)", "-1E-1", false);
     }
     if (Bug.CALCITE_2539_FIXED) {
       f.checkFails("cast(1.3243232e0 as varchar(4))", STRING_TRUNC_MESSAGE,
@@ -476,12 +585,12 @@ public class SqlOperatorTest {
     }
 
     // string
-    f.checkCastToString("'abc'", "CHAR(1)", "a");
-    f.checkCastToString("'abc'", "CHAR(3)", "abc");
-    f.checkCastToString("cast('abc' as varchar(6))", "CHAR(3)", "abc");
-    f.checkCastToString("cast(' abc  ' as varchar(10))", null, " abc  ");
+    f.checkCastToString("'abc'", "CHAR(1)", "a", false);
+    f.checkCastToString("'abc'", "CHAR(3)", "abc", false);
+    f.checkCastToString("cast('abc' as varchar(6))", "CHAR(3)", "abc", false);
+    f.checkCastToString("cast(' abc  ' as varchar(10))", null, " abc  ", false);
     f.checkCastToString("cast(cast('abc' as char(4)) as varchar(6))", null,
-        "abc ");
+        "abc ", false);
     f.checkString("cast(cast('a' as char(2)) as varchar(3)) || 'x' ",
         "a x", "VARCHAR(4) NOT NULL");
     f.checkString("cast(cast('a' as char(3)) as varchar(5)) || 'x' ",
@@ -501,26 +610,26 @@ public class SqlOperatorTest {
         "INTEGER NOT NULL");
 
     // date & time
-    f.checkCastToString("date '2008-01-01'", "CHAR(10)", "2008-01-01");
-    f.checkCastToString("time '1:2:3'", "CHAR(8)", "01:02:03");
+    f.checkCastToString("date '2008-01-01'", "CHAR(10)", "2008-01-01", false);
+    f.checkCastToString("time '1:2:3'", "CHAR(8)", "01:02:03", false);
     f.checkCastToString("timestamp '2008-1-1 1:2:3'", "CHAR(19)",
-        "2008-01-01 01:02:03");
+        "2008-01-01 01:02:03", false);
     f.checkCastToString("timestamp '2008-1-1 1:2:3'", "VARCHAR(30)",
-        "2008-01-01 01:02:03");
+        "2008-01-01 01:02:03", false);
 
-    f.checkCastToString("interval '3-2' year to month", "CHAR(5)", "+3-02");
-    f.checkCastToString("interval '32' month", "CHAR(3)", "+32");
+    f.checkCastToString("interval '3-2' year to month", "CHAR(5)", "+3-02", false);
+    f.checkCastToString("interval '32' month", "CHAR(3)", "+32", false);
     f.checkCastToString("interval '1 2:3:4' day to second", "CHAR(11)",
-        "+1 02:03:04");
+        "+1 02:03:04", false);
     f.checkCastToString("interval '1234.56' second(4,2)", "CHAR(8)",
-        "+1234.56");
-    f.checkCastToString("interval '60' day", "CHAR(8)", "+60     ");
+        "+1234.56", false);
+    f.checkCastToString("interval '60' day", "CHAR(8)", "+60     ", false);
 
     // boolean
-    f.checkCastToString("True", "CHAR(4)", "TRUE");
-    f.checkCastToString("True", "CHAR(6)", "TRUE  ");
-    f.checkCastToString("True", "VARCHAR(6)", "TRUE");
-    f.checkCastToString("False", "CHAR(5)", "FALSE");
+    f.checkCastToString("True", "CHAR(4)", "TRUE", false);
+    f.checkCastToString("True", "CHAR(6)", "TRUE  ", false);
+    f.checkCastToString("True", "VARCHAR(6)", "TRUE", false);
+    f.checkCastToString("False", "CHAR(5)", "FALSE", false);
 
     if (Bug.CALCITE_2539_FIXED) {
       f.checkFails("cast(true as char(3))", INVALID_CHAR_MESSAGE, true);
@@ -548,47 +657,111 @@ public class SqlOperatorTest {
       }
 
       // Convert from literal to type
-      f.checkCastToScalarOkay(numeric.maxNumericString, type);
-      f.checkCastToScalarOkay(numeric.minNumericString, type);
+      f.checkCastToScalarOkay(numeric.maxNumericString, type, false);
+      f.checkCastToScalarOkay(numeric.minNumericString, type, false);
 
       // Overflow test
       if (numeric == Numeric.BIGINT) {
         // Literal of range
         f.checkCastFails(numeric.maxOverflowNumericString,
-            type, LITERAL_OUT_OF_RANGE_MESSAGE, false);
+            type, LITERAL_OUT_OF_RANGE_MESSAGE, false, false);
         f.checkCastFails(numeric.minOverflowNumericString,
-            type, LITERAL_OUT_OF_RANGE_MESSAGE, false);
+            type, LITERAL_OUT_OF_RANGE_MESSAGE, false, false);
       } else {
         if (Bug.CALCITE_2539_FIXED) {
           f.checkCastFails(numeric.maxOverflowNumericString,
-              type, OUT_OF_RANGE_MESSAGE, true);
+              type, OUT_OF_RANGE_MESSAGE, true, false);
           f.checkCastFails(numeric.minOverflowNumericString,
-              type, OUT_OF_RANGE_MESSAGE, true);
+              type, OUT_OF_RANGE_MESSAGE, true, false);
         }
       }
 
       // Convert from string to type
       f.checkCastToScalarOkay("'" + numeric.maxNumericString + "'",
-          type, numeric.maxNumericString);
+          type, numeric.maxNumericString, false);
       f.checkCastToScalarOkay("'" + numeric.minNumericString + "'",
-          type, numeric.minNumericString);
+          type, numeric.minNumericString, false);
 
       if (Bug.CALCITE_2539_FIXED) {
         f.checkCastFails("'" + numeric.maxOverflowNumericString + "'",
-            type, OUT_OF_RANGE_MESSAGE, true);
+            type, OUT_OF_RANGE_MESSAGE, true, false);
         f.checkCastFails("'" + numeric.minOverflowNumericString + "'",
-            type, OUT_OF_RANGE_MESSAGE, true);
+            type, OUT_OF_RANGE_MESSAGE, true, false);
       }
 
       // Convert from type to string
-      f.checkCastToString(numeric.maxNumericString, null, null);
-      f.checkCastToString(numeric.maxNumericString, type, null);
+      f.checkCastToString(numeric.maxNumericString, null, null, false);
+      f.checkCastToString(numeric.maxNumericString, type, null, false);
 
-      f.checkCastToString(numeric.minNumericString, null, null);
-      f.checkCastToString(numeric.minNumericString, type, null);
+      f.checkCastToString(numeric.minNumericString, null, null, false);
+      f.checkCastToString(numeric.minNumericString, type, null, false);
 
       if (Bug.CALCITE_2539_FIXED) {
-        f.checkCastFails("'notnumeric'", type, INVALID_CHAR_MESSAGE, true);
+        f.checkCastFails("'notnumeric'", type, INVALID_CHAR_MESSAGE, true, false);
+      }
+    });
+  }
+
+  @Test void testSafeCastExactNumericLimits() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+
+    // Test casting for min,max, out of range for exact numeric types
+    Numeric.forEach(numeric -> {
+      final String type = numeric.typeName;
+      switch (numeric) {
+        case DOUBLE:
+        case FLOAT:
+        case REAL:
+          // Skip approx types
+          return;
+        default:
+          // fall through
+      }
+
+      // Convert from literal to type
+      f.checkCastToScalarOkay(numeric.maxNumericString, type, true);
+      f.checkCastToScalarOkay(numeric.minNumericString, type, true);
+
+      // Overflow test
+      if (numeric == Numeric.BIGINT) {
+        // Literal of range
+        // SAFE_CAST is expected to still result in out of range message.
+        f.checkCastFails(numeric.maxOverflowNumericString,
+            type, LITERAL_OUT_OF_RANGE_MESSAGE, false, true);
+        f.checkCastFails(numeric.minOverflowNumericString,
+            type, LITERAL_OUT_OF_RANGE_MESSAGE, false, true);
+      } else {
+        if (Bug.CALCITE_2539_FIXED) {
+          f.checkCastFails(numeric.maxOverflowNumericString,
+              type, OUT_OF_RANGE_MESSAGE, true, true);
+          f.checkCastFails(numeric.minOverflowNumericString,
+              type, OUT_OF_RANGE_MESSAGE, true, true);
+        }
+      }
+
+      // Convert from string to type
+      f.checkCastToScalarOkay("'" + numeric.maxNumericString + "'",
+          type, numeric.maxNumericString, true);
+      f.checkCastToScalarOkay("'" + numeric.minNumericString + "'",
+          type, numeric.minNumericString, true);
+
+      if (Bug.CALCITE_2539_FIXED) {
+        f.checkCastFails("'" + numeric.maxOverflowNumericString + "'",
+            type, OUT_OF_RANGE_MESSAGE, true, true);
+        f.checkCastFails("'" + numeric.minOverflowNumericString + "'",
+            type, OUT_OF_RANGE_MESSAGE, true, true);
+      }
+
+      // Convert from type to string
+      f.checkCastToString(numeric.maxNumericString, null, null, true);
+      f.checkCastToString(numeric.maxNumericString, type, null, true);
+
+      f.checkCastToString(numeric.minNumericString, null, null, true);
+      f.checkCastToString(numeric.minNumericString, type, null, true);
+
+      if (Bug.CALCITE_2539_FIXED) {
+        f.checkCastFails("'notnumeric'", type, INVALID_CHAR_MESSAGE, true, true);
       }
     });
   }
@@ -597,23 +770,23 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
-    f.checkCastToScalarOkay("1", "BIGINT");
-    f.checkCastToScalarOkay("1", "INTEGER");
-    f.checkCastToScalarOkay("1", "SMALLINT");
-    f.checkCastToScalarOkay("1", "TINYINT");
-    f.checkCastToScalarOkay("1", "DECIMAL(4, 0)");
-    f.checkCastToScalarOkay("-1", "BIGINT");
-    f.checkCastToScalarOkay("-1", "INTEGER");
-    f.checkCastToScalarOkay("-1", "SMALLINT");
-    f.checkCastToScalarOkay("-1", "TINYINT");
-    f.checkCastToScalarOkay("-1", "DECIMAL(4, 0)");
+    f.checkCastToScalarOkay("1", "BIGINT", false);
+    f.checkCastToScalarOkay("1", "INTEGER", false);
+    f.checkCastToScalarOkay("1", "SMALLINT", false);
+    f.checkCastToScalarOkay("1", "TINYINT", false);
+    f.checkCastToScalarOkay("1", "DECIMAL(4, 0)", false);
+    f.checkCastToScalarOkay("-1", "BIGINT", false);
+    f.checkCastToScalarOkay("-1", "INTEGER", false);
+    f.checkCastToScalarOkay("-1", "SMALLINT", false);
+    f.checkCastToScalarOkay("-1", "TINYINT", false);
+    f.checkCastToScalarOkay("-1", "DECIMAL(4, 0)", false);
 
-    f.checkCastToScalarOkay("1.234E3", "INTEGER", "1234");
-    f.checkCastToScalarOkay("-9.99E2", "INTEGER", "-999");
-    f.checkCastToScalarOkay("'1'", "INTEGER", "1");
-    f.checkCastToScalarOkay("' 01 '", "INTEGER", "1");
-    f.checkCastToScalarOkay("'-1'", "INTEGER", "-1");
-    f.checkCastToScalarOkay("' -00 '", "INTEGER", "0");
+    f.checkCastToScalarOkay("1.234E3", "INTEGER", "1234", false);
+    f.checkCastToScalarOkay("-9.99E2", "INTEGER", "-999", false);
+    f.checkCastToScalarOkay("'1'", "INTEGER", "1", false);
+    f.checkCastToScalarOkay("' 01 '", "INTEGER", "1", false);
+    f.checkCastToScalarOkay("'-1'", "INTEGER", "-1", false);
+    f.checkCastToScalarOkay("' -00 '", "INTEGER", "0", false);
 
     // string to integer
     f.checkScalarExact("cast('6543' as integer)", 6543);
@@ -623,6 +796,35 @@ public class SqlOperatorTest {
         "654342432412312");
   }
 
+  @Test void testSafeCastToExactNumeric() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+
+    f.checkCastToScalarOkay("1", "BIGINT", true);
+    f.checkCastToScalarOkay("1", "INTEGER", true);
+    f.checkCastToScalarOkay("1", "SMALLINT", true);
+    f.checkCastToScalarOkay("1", "TINYINT", true);
+    f.checkCastToScalarOkay("1", "DECIMAL(4, 0)", true);
+    f.checkCastToScalarOkay("-1", "BIGINT", true);
+    f.checkCastToScalarOkay("-1", "INTEGER", true);
+    f.checkCastToScalarOkay("-1", "SMALLINT", true);
+    f.checkCastToScalarOkay("-1", "TINYINT", true);
+    f.checkCastToScalarOkay("-1", "DECIMAL(4, 0)", true);
+
+    f.checkCastToScalarOkay("1.234E3", "INTEGER", "1234", true);
+    f.checkCastToScalarOkay("-9.99E2", "INTEGER", "-999", true);
+    f.checkCastToScalarOkay("'1'", "INTEGER", "1", true);
+    f.checkCastToScalarOkay("' 01 '", "INTEGER", "1", true);
+    f.checkCastToScalarOkay("'-1'", "INTEGER", "-1", true);
+    f.checkCastToScalarOkay("' -00 '", "INTEGER", "0", true);
+
+    // string to integer
+    f.checkScalarExact("safe_cast('6543' as integer)", 6543);
+    f.checkScalarExact("safe_cast(' -123 ' as int)", -123);
+    f.checkScalarExact("safe_cast('654342432412312' as bigint)",
+        "BIGINT",
+        "654342432412312");
+  }
   @Test void testCastStringToDecimal() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
@@ -649,6 +851,35 @@ public class SqlOperatorTest {
         "DECIMAL(2, 1) NOT NULL",
         "-1.2");
     f.checkFails("cast(' -1.21e' as decimal(2,1))", INVALID_CHAR_MESSAGE,
+        true);
+  }
+
+  @Test void testSafeCastStringToDecimal() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    if (!DECIMAL) {
+      return;
+    }
+    // string to decimal
+    f.checkScalarExact("safe_cast('1.29' as decimal(2,1))",
+        "DECIMAL(2, 1)",
+        "1.3");
+    f.checkScalarExact("safe_cast(' 1.25 ' as decimal(2,1))",
+        "DECIMAL(2, 1)",
+        "1.3");
+    f.checkScalarExact("safe_cast('1.21' as decimal(2,1))",
+        "DECIMAL(2, 1)",
+        "1.2");
+    f.checkScalarExact("safe_cast(' -1.29 ' as decimal(2,1))",
+        "DECIMAL(2, 1)",
+        "-1.3");
+    f.checkScalarExact("safe_cast('-1.25' as decimal(2,1))",
+        "DECIMAL(2, 1)",
+        "-1.3");
+    f.checkScalarExact("safe_cast(' -1.21 ' as decimal(2,1))",
+        "DECIMAL(2, 1)",
+        "-1.2");
+    f.checkFails("safe_cast(' -1.21e' as decimal(2,1))", INVALID_CHAR_MESSAGE,
         true);
   }
 
@@ -759,6 +990,113 @@ public class SqlOperatorTest {
         "-1");
   }
 
+  @Test void testSafeCastIntervalToNumeric() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+
+    // interval to decimal
+    if (DECIMAL) {
+      f.checkScalarExact("safe_cast(INTERVAL '1.29' second(1,2) as decimal(2,1))",
+          "DECIMAL(2, 1)",
+          "1.3");
+      f.checkScalarExact("safe_cast(INTERVAL '1.25' second as decimal(2,1))",
+          "DECIMAL(2, 1)",
+          "1.3");
+      f.checkScalarExact("safe_cast(INTERVAL '-1.29' second as decimal(2,1))",
+          "DECIMAL(2, 1)",
+          "-1.3");
+      f.checkScalarExact("safe_cast(INTERVAL '-1.25' second as decimal(2,1))",
+          "DECIMAL(2, 1)",
+          "-1.3");
+      f.checkScalarExact("safe_cast(INTERVAL '-1.21' second as decimal(2,1))",
+          "DECIMAL(2, 1)",
+          "-1.2");
+      f.checkScalarExact("safe_cast(INTERVAL '5' minute as decimal(2,1))",
+          "DECIMAL(2, 1)",
+          "5.0");
+      f.checkScalarExact("safe_cast(INTERVAL '5' hour as decimal(2,1))",
+          "DECIMAL(2, 1)",
+          "5.0");
+      f.checkScalarExact("safe_cast(INTERVAL '5' day as decimal(2,1))",
+          "DECIMAL(2, 1)",
+          "5.0");
+      f.checkScalarExact("safe_cast(INTERVAL '5' month as decimal(2,1))",
+          "DECIMAL(2, 1)",
+          "5.0");
+      f.checkScalarExact("safe_cast(INTERVAL '5' year as decimal(2,1))",
+          "DECIMAL(2, 1)",
+          "5.0");
+      f.checkScalarExact("safe_cast(INTERVAL '-5' day as decimal(2,1))",
+          "DECIMAL(2, 1)",
+          "-5.0");
+    }
+
+    // Interval to bigint
+    f.checkScalarExact("safe_cast(INTERVAL '1.25' second as bigint)",
+        "BIGINT",
+        "1");
+    f.checkScalarExact("safe_cast(INTERVAL '-1.29' second(1,2) as bigint)",
+        "BIGINT",
+        "-1");
+    f.checkScalarExact("safe_cast(INTERVAL '5' day as bigint)",
+        "BIGINT",
+        "5");
+
+    // Interval to integer
+    f.checkScalarExact("safe_cast(INTERVAL '1.25' second as integer)",
+        "INTEGER",
+        "1");
+    f.checkScalarExact("safe_cast(INTERVAL '-1.29' second(1,2) as integer)",
+        "INTEGER",
+        "-1");
+    f.checkScalarExact("safe_cast(INTERVAL '5' day as integer)",
+        "INTEGER",
+        "5");
+
+    f.checkScalarExact("safe_cast(INTERVAL '1' year as integer)",
+        "INTEGER",
+        "1");
+    f.checkScalarExact(
+        "safe_cast((INTERVAL '1' year - INTERVAL '2' year) as integer)",
+        "INTEGER",
+        "-1");
+    f.checkScalarExact("safe_cast(INTERVAL '1' month as integer)",
+        "INTEGER",
+        "1");
+    f.checkScalarExact(
+        "safe_cast((INTERVAL '1' month - INTERVAL '2' month) as integer)",
+        "INTEGER",
+        "-1");
+    f.checkScalarExact("safe_cast(INTERVAL '1' day as integer)",
+        "INTEGER",
+        "1");
+    f.checkScalarExact("safe_cast((INTERVAL '1' day - INTERVAL '2' day) as integer)",
+        "INTEGER",
+        "-1");
+    f.checkScalarExact("safe_cast(INTERVAL '1' hour as integer)",
+        "INTEGER",
+        "1");
+    f.checkScalarExact(
+        "safe_cast((INTERVAL '1' hour - INTERVAL '2' hour) as integer)",
+        "INTEGER",
+        "-1");
+    f.checkScalarExact(
+        "safe_cast(INTERVAL '1' hour as integer)",
+        "INTEGER",
+        "1");
+    f.checkScalarExact(
+        "safe_cast((INTERVAL '1' minute - INTERVAL '2' minute) as integer)",
+        "INTEGER",
+        "-1");
+    f.checkScalarExact("safe_cast(INTERVAL '1' minute as integer)",
+        "INTEGER",
+        "1");
+    f.checkScalarExact(
+        "safe_cast((INTERVAL '1' second - INTERVAL '2' second) as integer)",
+        "INTEGER",
+        "-1");
+  }
+
   @Test void testCastToInterval() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
@@ -813,6 +1151,60 @@ public class SqlOperatorTest {
         "INTERVAL MINUTE(4) NOT NULL");
   }
 
+  @Test void testSafeCastToInterval() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    f.checkScalar(
+        "safe_cast(5 as interval second)",
+        "+5.000000",
+        "INTERVAL SECOND");
+    f.checkScalar(
+        "safe_cast(5 as interval minute)",
+        "+5",
+        "INTERVAL MINUTE");
+    f.checkScalar(
+        "safe_cast(5 as interval hour)",
+        "+5",
+        "INTERVAL HOUR");
+    f.checkScalar(
+        "safe_cast(5 as interval day)",
+        "+5",
+        "INTERVAL DAY");
+    f.checkScalar(
+        "safe_cast(5 as interval month)",
+        "+5",
+        "INTERVAL MONTH");
+    f.checkScalar(
+        "safe_cast(5 as interval year)",
+        "+5",
+        "INTERVAL YEAR");
+    if (DECIMAL) {
+      // Due to DECIMAL rounding bugs, currently returns "+5"
+      f.checkScalar(
+          "safe_cast(5.7 as interval day)",
+          "+6",
+          "INTERVAL DAY");
+      f.checkScalar(
+          "safe_cast(-5.7 as interval day)",
+          "-6",
+          "INTERVAL DAY");
+    } else {
+      // An easier case
+      f.checkScalar(
+          "safe_cast(6.2 as interval day)",
+          "+6",
+          "INTERVAL DAY");
+    }
+    f.checkScalar(
+        "safe_cast(3456 as interval month(4))",
+        "+3456",
+        "INTERVAL MONTH(4)");
+    f.checkScalar(
+        "safe_cast(-5723 as interval minute(4))",
+        "-5723",
+        "INTERVAL MINUTE(4)");
+  }
+
   @Test void testCastIntervalToInterval() {
     final SqlOperatorFixture f = fixture();
     f.checkScalar("cast(interval '2 5' day to hour as interval hour to minute)",
@@ -830,6 +1222,26 @@ public class SqlOperatorTest {
     f.checkScalar("cast(interval '-29:15' hour to minute as interval day to hour)",
         "-1 05",
         "INTERVAL DAY TO HOUR NOT NULL");
+  }
+
+  @Test void testSafeCastIntervalToInterval() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    f.checkScalar("safe_cast(interval '2 5' day to hour as interval hour to minute)",
+        "+53:00",
+        "INTERVAL HOUR TO MINUTE");
+    f.checkScalar("safe_cast(interval '2 5' day to hour as interval day to minute)",
+        "+2 05:00",
+        "INTERVAL DAY TO MINUTE");
+    f.checkScalar("safe_cast(interval '2 5' day to hour as interval hour to second)",
+        "+53:00:00.000000",
+        "INTERVAL HOUR TO SECOND");
+    f.checkScalar("safe_cast(interval '2 5' day to hour as interval hour)",
+        "+53",
+        "INTERVAL HOUR");
+    f.checkScalar("safe_cast(interval '-29:15' hour to minute as interval day to hour)",
+        "-1 05",
+        "INTERVAL DAY TO HOUR");
   }
 
   @Test void testCastWithRoundingToScalar() {
@@ -872,6 +1284,46 @@ public class SqlOperatorTest {
         true);
   }
 
+  @Test void testSafeCastWithRoundingToScalar() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+
+    f.checkFails("safe_cast(1.25 as int)", "INTEGER", true);
+    f.checkFails("safe_cast(1.25E0 as int)", "INTEGER", true);
+    if (!f.brokenTestsEnabled()) {
+      return;
+    }
+    f.checkFails("safe_cast(1.5 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(5E-1 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(1.75 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(1.75E0 as int)", OUT_OF_RANGE_MESSAGE, true);
+
+    f.checkFails("safe_cast(-1.25 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(-1.25E0 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(-1.5 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(-5E-1 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(-1.75 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(-1.75E0 as int)", OUT_OF_RANGE_MESSAGE, true);
+
+    f.checkFails("safe_cast(1.23454 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(1.23454E0 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(1.23455 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(5E-5 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(1.99995 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(1.99995E0 as int)", OUT_OF_RANGE_MESSAGE, true);
+
+    f.checkFails("safe_cast(-1.23454 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(-1.23454E0 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(-1.23455 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(-5E-5 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(-1.99995 as int)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast(-1.99995E0 as int)", OUT_OF_RANGE_MESSAGE, true);
+
+    // 9.99 round to 10.0, should give out of range error
+    f.checkFails("safe_cast(9.99 as decimal(2,1))", OUT_OF_RANGE_MESSAGE,
+        true);
+  }
+
   @Test void testCastDecimalToDoubleToInteger() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
@@ -885,6 +1337,21 @@ public class SqlOperatorTest {
     f.checkFails("cast( cast(-1.75 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
     f.checkFails("cast( cast(1.5 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
     f.checkFails("cast( cast(-1.5 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
+  }
+
+  @Test void testSafeCastDecimalToDoubleToInteger() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+
+    f.checkFails("safe_cast( safe_cast(1.25 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast( safe_cast(-1.25 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
+    if (!f.brokenTestsEnabled()) {
+      return;
+    }
+    f.checkFails("safe_cast( safe_cast(1.75 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast( safe_cast(-1.75 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast( safe_cast(1.5 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("safe_cast( safe_cast(-1.5 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
   }
 
   @Test void testCastApproxNumericLimits() {
@@ -917,43 +1384,43 @@ public class SqlOperatorTest {
       f.checkCastToApproxOkay(numeric.maxNumericString, type,
           isFloat
               ? isWithin(numeric.maxNumericAsDouble(), 1E32)
-              : isExactly(numeric.maxNumericAsDouble()));
+              : isExactly(numeric.maxNumericAsDouble()), false);
       f.checkCastToApproxOkay(numeric.minNumericString, type,
-          isExactly(numeric.minNumericString));
+          isExactly(numeric.minNumericString), false);
 
       if (isFloat) {
         f.checkCastFails(numeric.maxOverflowNumericString, type,
-            OUT_OF_RANGE_MESSAGE, true);
+            OUT_OF_RANGE_MESSAGE, true, false);
       } else {
         // Double: Literal out of range
         f.checkCastFails(numeric.maxOverflowNumericString, type,
-            LITERAL_OUT_OF_RANGE_MESSAGE, false);
+            LITERAL_OUT_OF_RANGE_MESSAGE, false, false);
       }
 
       // Underflow: goes to 0
       f.checkCastToApproxOkay(numeric.minOverflowNumericString, type,
-          isExactly(0));
+          isExactly(0), false);
 
       // Convert from string to type
       f.checkCastToApproxOkay("'" + numeric.maxNumericString + "'", type,
           isFloat
               ? isWithin(numeric.maxNumericAsDouble(), 1E32)
-              : isExactly(numeric.maxNumericAsDouble()));
+              : isExactly(numeric.maxNumericAsDouble()), false);
       f.checkCastToApproxOkay("'" + numeric.minNumericString + "'", type,
-          isExactly(numeric.minNumericAsDouble()));
+          isExactly(numeric.minNumericAsDouble()), false);
 
       f.checkCastFails("'" + numeric.maxOverflowNumericString + "'", type,
-          OUT_OF_RANGE_MESSAGE, true);
+          OUT_OF_RANGE_MESSAGE, true, false);
 
       // Underflow: goes to 0
       f.checkCastToApproxOkay("'" + numeric.minOverflowNumericString + "'",
-          type, isExactly(0));
+          type, isExactly(0), false);
 
       // Convert from type to string
 
       // Treated as DOUBLE
       f.checkCastToString(numeric.maxNumericString, null,
-          isFloat ? null : "1.79769313486231E308");
+          isFloat ? null : "1.79769313486231E308", false);
 
       // TODO: The following tests are slightly different depending on
       // whether the java or fennel calc are used.
@@ -961,24 +1428,119 @@ public class SqlOperatorTest {
       if (false /* fennel calc*/) { // Treated as FLOAT or DOUBLE
         f.checkCastToString(numeric.maxNumericString, type,
             // Treated as DOUBLE
-            isFloat ? "3.402824E38" : "1.797693134862316E308");
+            isFloat ? "3.402824E38" : "1.797693134862316E308", false);
         f.checkCastToString(numeric.minNumericString, null,
             // Treated as FLOAT or DOUBLE
-            isFloat ? null : "4.940656458412465E-324");
+            isFloat ? null : "4.940656458412465E-324", false);
         f.checkCastToString(numeric.minNumericString, type,
-            isFloat ? "1.401299E-45" : "4.940656458412465E-324");
+            isFloat ? "1.401299E-45" : "4.940656458412465E-324", false);
       } else if (false /* JavaCalc */) {
         // Treated as FLOAT or DOUBLE
         f.checkCastToString(numeric.maxNumericString, type,
             // Treated as DOUBLE
-            isFloat ? "3.402823E38" : "1.797693134862316E308");
+            isFloat ? "3.402823E38" : "1.797693134862316E308", false);
         f.checkCastToString(numeric.minNumericString, null,
-            isFloat ? null : null); // Treated as FLOAT or DOUBLE
+            isFloat ? null : null, false); // Treated as FLOAT or DOUBLE
         f.checkCastToString(numeric.minNumericString, type,
-            isFloat ? "1.401298E-45" : null);
+            isFloat ? "1.401298E-45" : null, false);
       }
 
-      f.checkCastFails("'notnumeric'", type, INVALID_CHAR_MESSAGE, true);
+      f.checkCastFails("'notnumeric'", type, INVALID_CHAR_MESSAGE, true, false);
+    });
+  }
+
+  @Test void testSafeCastApproxNumericLimits() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+
+    // Test casting for min, max, out of range for approx numeric types
+    Numeric.forEach(numeric -> {
+      String type = numeric.typeName;
+      boolean isFloat;
+
+      switch (numeric) {
+        case DOUBLE:
+        case FLOAT:
+          isFloat = false;
+          break;
+        case REAL:
+          isFloat = true;
+          break;
+        default:
+          // Skip non-approx types
+          return;
+      }
+
+      if (!f.brokenTestsEnabled()) {
+        return;
+      }
+
+      // Convert from literal to type
+      f.checkCastToApproxOkay(numeric.maxNumericString, type,
+          isFloat
+              ? isWithin(numeric.maxNumericAsDouble(), 1E32)
+              : isExactly(numeric.maxNumericAsDouble()), true);
+      f.checkCastToApproxOkay(numeric.minNumericString, type,
+          isExactly(numeric.minNumericString), true);
+
+      if (isFloat) {
+        f.checkCastFails(numeric.maxOverflowNumericString, type,
+            OUT_OF_RANGE_MESSAGE, true, true);
+      } else {
+        // Double: Literal out of range
+        f.checkCastFails(numeric.maxOverflowNumericString, type,
+            LITERAL_OUT_OF_RANGE_MESSAGE, false, true);
+      }
+
+      // Underflow: goes to 0
+      f.checkCastToApproxOkay(numeric.minOverflowNumericString, type,
+          isExactly(0), true);
+
+      // Convert from string to type
+      f.checkCastToApproxOkay("'" + numeric.maxNumericString + "'", type,
+          isFloat
+              ? isWithin(numeric.maxNumericAsDouble(), 1E32)
+              : isExactly(numeric.maxNumericAsDouble()), true);
+      f.checkCastToApproxOkay("'" + numeric.minNumericString + "'", type,
+          isExactly(numeric.minNumericAsDouble()), true);
+
+      f.checkCastFails("'" + numeric.maxOverflowNumericString + "'", type,
+          OUT_OF_RANGE_MESSAGE, true, true);
+
+      // Underflow: goes to 0
+      f.checkCastToApproxOkay("'" + numeric.minOverflowNumericString + "'",
+          type, isExactly(0), true);
+
+      // Convert from type to string
+
+      // Treated as DOUBLE
+      f.checkCastToString(numeric.maxNumericString, null,
+          isFloat ? null : "1.79769313486231E308", true);
+
+      // TODO: The following tests are slightly different depending on
+      // whether the java or fennel calc are used.
+      // Try to make them the same
+      if (false /* fennel calc*/) { // Treated as FLOAT or DOUBLE
+        f.checkCastToString(numeric.maxNumericString, type,
+            // Treated as DOUBLE
+            isFloat ? "3.402824E38" : "1.797693134862316E308", true);
+        f.checkCastToString(numeric.minNumericString, null,
+            // Treated as FLOAT or DOUBLE
+            isFloat ? null : "4.940656458412465E-324", true);
+        f.checkCastToString(numeric.minNumericString, type,
+            isFloat ? "1.401299E-45" : "4.940656458412465E-324", true);
+      } else if (false /* JavaCalc */) {
+        // Treated as FLOAT or DOUBLE
+        f.checkCastToString(numeric.maxNumericString, type,
+            // Treated as DOUBLE
+            isFloat ? "3.402823E38" : "1.797693134862316E308", true);
+        f.checkCastToString(numeric.minNumericString, null,
+            isFloat ? null : null, true); // Treated as FLOAT or DOUBLE
+        f.checkCastToString(numeric.minNumericString, type,
+            isFloat ? "1.401298E-45" : null, true);
+      }
+
+      f.checkCastFails("'notnumeric'", type, INVALID_CHAR_MESSAGE, true, true);
     });
   }
 
@@ -986,13 +1548,30 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
-    f.checkCastToApproxOkay("1", "DOUBLE", isExactly(1));
-    f.checkCastToApproxOkay("1.0", "DOUBLE", isExactly(1));
-    f.checkCastToApproxOkay("-2.3", "FLOAT", isWithin(-2.3, 0.000001));
-    f.checkCastToApproxOkay("'1'", "DOUBLE", isExactly(1));
-    f.checkCastToApproxOkay("'  -1e-37  '", "DOUBLE", isExactly("-1.0E-37"));
-    f.checkCastToApproxOkay("1e0", "DOUBLE", isExactly(1));
-    f.checkCastToApproxOkay("0e0", "REAL", isExactly(0));
+    f.checkCastToApproxOkay("1", "DOUBLE", isExactly(1), false);
+    f.checkCastToApproxOkay("1.0", "DOUBLE", isExactly(1), false);
+    f.checkCastToApproxOkay("-2.3", "FLOAT",
+        isWithin(-2.3, 0.000001), false);
+    f.checkCastToApproxOkay("'1'", "DOUBLE", isExactly(1), false);
+    f.checkCastToApproxOkay("'  -1e-37  '", "DOUBLE",
+        isExactly("-1.0E-37"), false);
+    f.checkCastToApproxOkay("1e0", "DOUBLE", isExactly(1), false);
+    f.checkCastToApproxOkay("0e0", "REAL", isExactly(0), false);
+  }
+
+  @Test void testSafeCastToApproxNumeric() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+
+    f.checkCastToApproxOkay("1", "DOUBLE", isExactly(1), true);
+    f.checkCastToApproxOkay("1.0", "DOUBLE", isExactly(1), true);
+    f.checkCastToApproxOkay("-2.3", "FLOAT",
+        isWithin(-2.3, 0.000001), true);
+    f.checkCastToApproxOkay("'1'", "DOUBLE", isExactly(1), true);
+    f.checkCastToApproxOkay("'  -1e-37  '", "DOUBLE",
+        isExactly("-1.0E-37"), true);
+    f.checkCastToApproxOkay("1e0", "DOUBLE", isExactly(1), true);
+    f.checkCastToApproxOkay("0e0", "REAL", isExactly(0), true);
   }
 
   @Test void testCastNull() {
@@ -1015,6 +1594,34 @@ public class SqlOperatorTest {
     f.checkNull("cast(null as boolean)");
   }
 
+  @Test void testSafeCastNull() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+
+    // null
+    f.checkNull("safe_cast(null as integer)");
+    if (DECIMAL) {
+      f.checkNull("safe_cast(null as decimal(4,3))");
+    }
+    f.checkNull("safe_cast(null as double)");
+    f.checkNull("safe_cast(null as varchar(10))");
+    f.checkNull("safe_cast(null as char(10))");
+    f.checkNull("safe_cast(null as date)");
+    f.checkNull("safe_cast(null as time)");
+    f.checkNull("safe_cast(null as timestamp)");
+    f.checkNull("safe_cast(null as interval year to month)");
+    f.checkNull("safe_cast(null as interval day to second(3))");
+    f.checkNull("safe_cast(null as boolean)");
+
+    f.checkNull("safe_cast('a' as time)");
+    f.checkNull("safe_cast('a' as int)");
+    f.checkNull("safe_cast('2023-03-17a' as date)");
+    f.checkNull("safe_cast('12:12:11a' as time)");
+    f.checkNull("safe_cast('a' as interval year)");
+    f.checkNull("safe_cast('a' as interval minute to second)");
+    f.checkNull("safe_cast('True' as bigint)");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1439">[CALCITE-1439]
    * Handling errors during constant reduction</a>. */
@@ -1033,6 +1640,28 @@ public class SqlOperatorTest {
       f.checkFails("cast('' as real)", "xxx", true);
       f.checkFails("cast('' as double)", "xxx", true);
       f.checkFails("cast('' as smallint)", "xxx", true);
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1439">[CALCITE-1439]
+   * Handling errors during constant reduction</a>. */
+  @Test void testSafeCastInvalid() {
+    // Before CALCITE-1439 was fixed, constant reduction would kick in and
+    // generate Java constants that throw when the class is loaded, thus
+    // ExceptionInInitializerError.
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    f.checkScalarExact("safe_cast('15' as integer)", "INTEGER", "15");
+    if (Bug.CALCITE_2539_FIXED) {
+      f.checkFails("safe_cast('15.4' as integer)", "xxx", true);
+      f.checkFails("safe_cast('15.6' as integer)", "xxx", true);
+      f.checkFails("safe_cast('ue' as boolean)", "xxx", true);
+      f.checkFails("safe_cast('' as boolean)", "xxx", true);
+      f.checkFails("safe_cast('' as integer)", "xxx", true);
+      f.checkFails("safe_cast('' as real)", "xxx", true);
+      f.checkFails("safe_cast('' as double)", "xxx", true);
+      f.checkFails("safe_cast('' as smallint)", "xxx", true);
     }
   }
 
@@ -1067,9 +1696,9 @@ public class SqlOperatorTest {
         "12:42:25", "TIME(0) NOT NULL");
 
     // time <-> string
-    f.checkCastToString("TIME '12:42:25'", null, "12:42:25");
+    f.checkCastToString("TIME '12:42:25'", null, "12:42:25", false);
     if (TODO) {
-      f.checkCastToString("TIME '12:42:25.34'", null, "12:42:25.34");
+      f.checkCastToString("TIME '12:42:25.34'", null, "12:42:25.34", false);
     }
 
     // Generate the current date as a string, e.g. "2007-04-18". The value
@@ -1102,6 +1731,72 @@ public class SqlOperatorTest {
         "1945-02-24 00:00:00", "TIMESTAMP(0) NOT NULL");
   }
 
+  @Test void testSafeCastDateTime() {
+    // Test cast for date/time/timestamp
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+
+    f.checkScalar("safe_cast(TIMESTAMP '1945-02-24 12:42:25.34' as TIMESTAMP)",
+        "1945-02-24 12:42:25", "TIMESTAMP(0)");
+
+    f.checkScalar("safe_cast(TIME '12:42:25.34' as TIME)",
+        "12:42:25", "TIME(0)");
+
+    // test rounding
+    if (f.brokenTestsEnabled()) {
+      f.checkScalar("safe_cast(TIME '12:42:25.9' as TIME)",
+          "12:42:26", "TIME(0)");
+    }
+
+    if (Bug.FRG282_FIXED) {
+      // test precision
+      f.checkScalar("safe_cast(TIME '12:42:25.34' as TIME(2))",
+          "12:42:25.34", "TIME(2)");
+    }
+
+    f.checkScalar("safe_cast(DATE '1945-02-24' as DATE)",
+        "1945-02-24", "DATE");
+
+    // timestamp <-> time
+    f.checkScalar("safe_cast(TIMESTAMP '1945-02-24 12:42:25.34' as TIME)",
+        "12:42:25", "TIME(0)");
+
+    // time <-> string
+    f.checkCastToString("TIME '12:42:25'", null, "12:42:25", false);
+    if (TODO) {
+      f.checkCastToString("TIME '12:42:25.34'", null, "12:42:25.34", false);
+    }
+
+    // Generate the current date as a string, e.g. "2007-04-18". The value
+    // is guaranteed to be good for at least 2 minutes, which should give
+    // us time to run the rest of the tests.
+    final String today =
+        new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(
+            getCalendarNotTooNear(Calendar.DAY_OF_MONTH).getTime());
+
+    f.checkScalar("safe_cast(DATE '1945-02-24' as TIMESTAMP)",
+        "1945-02-24 00:00:00", "TIMESTAMP(0)");
+
+    // Note: Casting to time(0) should lose date info and fractional
+    // seconds, then casting back to timestamp should initialize to
+    // current_date.
+    f.checkScalar(
+        "safe_cast(safe_cast(TIMESTAMP '1945-02-24 12:42:25.34' as TIME) as TIMESTAMP)",
+        today + " 12:42:25", "TIMESTAMP(0)");
+
+    f.checkScalar("safe_cast(TIME '12:42:25.34' as TIMESTAMP)",
+        today + " 12:42:25", "TIMESTAMP(0)");
+
+    // timestamp <-> date
+    f.checkScalar("safe_cast(TIMESTAMP '1945-02-24 12:42:25.34' as DATE)",
+        "1945-02-24", "DATE");
+
+    // Note: casting to Date discards Time fields
+    f.checkScalar(
+        "safe_cast(safe_cast(TIMESTAMP '1945-02-24 12:42:25.34' as DATE) as TIMESTAMP)",
+        "1945-02-24 00:00:00", "TIMESTAMP(0)");
+  }
+
   @Test void testCastStringToDateTime() {
     final SqlOperatorFixture f = fixture();
     f.checkScalar("cast('12:42:25' as TIME)",
@@ -1131,12 +1826,12 @@ public class SqlOperatorTest {
 
     // timestamp <-> string
     f.checkCastToString("TIMESTAMP '1945-02-24 12:42:25'", null,
-        "1945-02-24 12:42:25");
+        "1945-02-24 12:42:25", false);
 
     if (TODO) {
       // TODO: casting allows one to discard precision without error
       f.checkCastToString("TIMESTAMP '1945-02-24 12:42:25.34'",
-          null, "1945-02-24 12:42:25.34");
+          null, "1945-02-24 12:42:25.34", false);
     }
 
     f.checkScalar("cast('1945-02-24 12:42:25' as TIMESTAMP)",
@@ -1170,8 +1865,8 @@ public class SqlOperatorTest {
     }
 
     // date <-> string
-    f.checkCastToString("DATE '1945-02-24'", null, "1945-02-24");
-    f.checkCastToString("DATE '1945-2-24'", null, "1945-02-24");
+    f.checkCastToString("DATE '1945-02-24'", null, "1945-02-24", false);
+    f.checkCastToString("DATE '1945-2-24'", null, "1945-02-24", false);
 
     f.checkScalar("cast('1945-02-24' as DATE)", "1945-02-24", "DATE NOT NULL");
     f.checkScalar("cast(' 1945-2-4 ' as DATE)", "1945-02-04", "DATE NOT NULL");
@@ -1195,6 +1890,102 @@ public class SqlOperatorTest {
     f.checkNull("cast(cast(null as time) as timestamp)");
     f.checkNull("cast(cast(null as timestamp) as date)");
     f.checkNull("cast(cast(null as timestamp) as time)");
+  }
+
+  @Test void testSafeCastStringToDateTime() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    f.checkScalar("safe_cast('12:42:25' as TIME)",
+        "12:42:25", "TIME(0)");
+    f.checkScalar("safe_cast('1:42:25' as TIME)",
+        "01:42:25", "TIME(0)");
+    f.checkScalar("safe_cast('1:2:25' as TIME)",
+        "01:02:25", "TIME(0)");
+    f.checkScalar("safe_cast('  12:42:25  ' as TIME)",
+        "12:42:25", "TIME(0)");
+    f.checkScalar("safe_cast('12:42:25.34' as TIME)",
+        "12:42:25", "TIME(0)");
+
+    if (Bug.FRG282_FIXED) {
+      f.checkScalar("safe_cast('12:42:25.34' as TIME(2))",
+          "12:42:25.34", "TIME(2)");
+    }
+
+    f.checkFails("safe_cast('nottime' as TIME)", BAD_DATETIME_MESSAGE, true);
+    if (Bug.CALCITE_2539_FIXED) {
+      f.checkFails("safe_cast('1241241' as TIME)", BAD_DATETIME_MESSAGE, true);
+      f.checkFails("safe_cast('12:54:78' as TIME)", BAD_DATETIME_MESSAGE, true);
+      f.checkFails("safe_cast('12:34:5' as TIME)", BAD_DATETIME_MESSAGE, true);
+      f.checkFails("safe_cast('12:3:45' as TIME)", BAD_DATETIME_MESSAGE, true);
+      f.checkFails("safe_cast('1:23:45' as TIME)", BAD_DATETIME_MESSAGE, true);
+    }
+
+    // timestamp <-> string
+    f.checkCastToString("TIMESTAMP '1945-02-24 12:42:25'", null,
+        "1945-02-24 12:42:25", false);
+
+    if (TODO) {
+      // TODO: casting allows one to discard precision without error
+      f.checkCastToString("TIMESTAMP '1945-02-24 12:42:25.34'",
+          null, "1945-02-24 12:42:25.34", false);
+    }
+
+    f.checkScalar("safe_cast('1945-02-24 12:42:25' as TIMESTAMP)",
+        "1945-02-24 12:42:25", "TIMESTAMP(0)");
+    f.checkScalar("safe_cast('1945-2-2 12:2:5' as TIMESTAMP)",
+        "1945-02-02 12:02:05", "TIMESTAMP(0)");
+    f.checkScalar("safe_cast('  1945-02-24 12:42:25  ' as TIMESTAMP)",
+        "1945-02-24 12:42:25", "TIMESTAMP(0)");
+    f.checkScalar("safe_cast('1945-02-24 12:42:25.34' as TIMESTAMP)",
+        "1945-02-24 12:42:25", "TIMESTAMP(0)");
+    f.checkScalar("safe_cast('1945-12-31' as TIMESTAMP)",
+        "1945-12-31 00:00:00", "TIMESTAMP(0)");
+    f.checkScalar("safe_cast('2004-02-29' as TIMESTAMP)",
+        "2004-02-29 00:00:00", "TIMESTAMP(0)");
+
+    if (Bug.FRG282_FIXED) {
+      f.checkScalar("safe_cast('1945-02-24 12:42:25.34' as TIMESTAMP(2))",
+          "1945-02-24 12:42:25.34", "TIMESTAMP(2)");
+    }
+    f.checkFails("safe_cast('nottime' as TIMESTAMP)", BAD_DATETIME_MESSAGE, true);
+
+    if (Bug.CALCITE_2539_FIXED) {
+      f.checkFails("safe_cast('1241241' as TIMESTAMP)",
+          BAD_DATETIME_MESSAGE, true);
+      f.checkFails("safe_cast('1945-20-24 12:42:25.34' as TIMESTAMP)",
+          BAD_DATETIME_MESSAGE, true);
+      f.checkFails("safe_cast('1945-01-24 25:42:25.34' as TIMESTAMP)",
+          BAD_DATETIME_MESSAGE, true);
+      f.checkFails("safe_cast('1945-1-24 12:23:34.454' as TIMESTAMP)",
+          BAD_DATETIME_MESSAGE, true);
+    }
+
+    // date <-> string
+    f.checkCastToString("DATE '1945-02-24'", null, "1945-02-24", false);
+    f.checkCastToString("DATE '1945-2-24'", null, "1945-02-24", false);
+
+    f.checkScalar("safe_cast('1945-02-24' as DATE)", "1945-02-24", "DATE");
+    f.checkScalar("safe_cast(' 1945-2-4 ' as DATE)", "1945-02-04", "DATE");
+    f.checkScalar("safe_cast('  1945-02-24  ' as DATE)",
+        "1945-02-24", "DATE");
+    f.checkFails("safe_cast('notdate' as DATE)", BAD_DATETIME_MESSAGE, true);
+
+    if (Bug.CALCITE_2539_FIXED) {
+      f.checkFails("safe_cast('52534253' as DATE)", BAD_DATETIME_MESSAGE, true);
+      f.checkFails("safe_cast('1945-30-24' as DATE)", BAD_DATETIME_MESSAGE, true);
+    }
+
+    // safe_cast null
+    f.checkNull("safe_cast(null as date)");
+    f.checkNull("safe_cast(null as timestamp)");
+    f.checkNull("safe_cast(null as time)");
+    f.checkNull("safe_cast(safe_cast(null as varchar(10)) as time)");
+    f.checkNull("safe_cast(safe_cast(null as varchar(10)) as date)");
+    f.checkNull("safe_cast(safe_cast(null as varchar(10)) as timestamp)");
+    f.checkNull("safe_cast(safe_cast(null as date) as timestamp)");
+    f.checkNull("safe_cast(safe_cast(null as time) as timestamp)");
+    f.checkNull("safe_cast(safe_cast(null as timestamp) as date)");
+    f.checkNull("safe_cast(safe_cast(null as timestamp) as time)");
   }
 
   private static Calendar getFixedCalendar() {

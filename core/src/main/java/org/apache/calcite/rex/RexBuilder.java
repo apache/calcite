@@ -757,7 +757,7 @@ public class RexBuilder {
     final BigDecimal divider = endUnit.multiplier;
     RexNode value =
         multiplyDivide(decodeIntervalOrDecimal(exp), multiplier, divider);
-    return ensureType(toType, value, kind == SqlKind.SAFE_CAST);
+    return ensureType(toType, value, false);
   }
 
   public RexNode multiplyDivide(RexNode e, BigDecimal multiplier,

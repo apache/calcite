@@ -637,7 +637,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       type = cx.getValidator().getValidatedNodeType(dataType.getTypeName());
     }
     RexNode arg = cx.convertExpression(left);
-    if (arg.getType().isNullable()) {
+    if (arg.getType().isNullable() || call.getKind() == SqlKind.SAFE_CAST) {
       type = typeFactory.createTypeWithNullability(type, true);
     }
     if (SqlUtil.isNullLiteral(left, false)) {
