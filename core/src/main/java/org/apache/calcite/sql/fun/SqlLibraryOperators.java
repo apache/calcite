@@ -1065,6 +1065,13 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_DIFF = new SqlFunction("DATETIME_DIFF",
+      SqlKind.TIMESTAMP_DIFF,
+      ReturnTypes.INTEGER, null,
+      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+      SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMPINTADD = new SqlFunction("TIMESTAMPINTADD",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP, null,
@@ -1423,4 +1430,15 @@ public abstract class SqlLibraryOperators {
               // Third operand optional (operand index 0, 1, 2)
               number -> number == 2),
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE, HIVE, SPARK})
+  public static final SqlFunction NEXT_DAY =
+      new SqlFunction(
+          "NEXT_DAY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE,
+          null,
+          OperandTypes.family(SqlTypeFamily.ANY,
+              SqlTypeFamily.STRING),
+          SqlFunctionCategory.TIMEDATE);
 }
