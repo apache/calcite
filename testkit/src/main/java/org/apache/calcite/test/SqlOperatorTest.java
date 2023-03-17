@@ -426,8 +426,7 @@ public class SqlOperatorTest {
 
 
   @Test void testSafeCastToString() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
 
     f.checkCastToString("safe_cast(safe_cast('abc' as char(4)) as varchar(6))", null,
         "abc ", true);
@@ -703,8 +702,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testSafeCastExactNumericLimits() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
 
     // Test casting for min,max, out of range for exact numeric types
     Numeric.forEach(numeric -> {
@@ -797,8 +795,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testSafeCastToExactNumeric() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
 
     f.checkCastToScalarOkay("1", "BIGINT", true);
     f.checkCastToScalarOkay("1", "INTEGER", true);
@@ -855,8 +852,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testSafeCastStringToDecimal() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
     if (!DECIMAL) {
       return;
     }
@@ -991,8 +987,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testSafeCastIntervalToNumeric() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
 
     // interval to decimal
     if (DECIMAL) {
@@ -1152,8 +1147,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testSafeCastToInterval() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
     f.checkScalar(
         "safe_cast(5 as interval second)",
         "+5.000000",
@@ -1225,8 +1219,8 @@ public class SqlOperatorTest {
   }
 
   @Test void testSafeCastIntervalToInterval() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
+
     f.checkScalar("safe_cast(interval '2 5' day to hour as interval hour to minute)",
         "+53:00",
         "INTERVAL HOUR TO MINUTE");
@@ -1285,8 +1279,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testSafeCastWithRoundingToScalar() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
 
     f.checkFails("safe_cast(1.25 as int)", "INTEGER", true);
     f.checkFails("safe_cast(1.25E0 as int)", "INTEGER", true);
@@ -1340,8 +1333,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testSafeCastDecimalToDoubleToInteger() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
 
     f.checkFails("safe_cast( safe_cast(1.25 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
     f.checkFails("safe_cast( safe_cast(-1.25 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
@@ -1450,8 +1442,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testSafeCastApproxNumericLimits() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
 
     // Test casting for min, max, out of range for approx numeric types
     Numeric.forEach(numeric -> {
@@ -1560,8 +1551,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testSafeCastToApproxNumeric() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
 
     f.checkCastToApproxOkay("1", "DOUBLE", isExactly(1), true);
     f.checkCastToApproxOkay("1.0", "DOUBLE", isExactly(1), true);
@@ -1595,8 +1585,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testSafeCastNull() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
 
     // null
     f.checkNull("safe_cast(null as integer)");
@@ -1650,8 +1639,8 @@ public class SqlOperatorTest {
     // Before CALCITE-1439 was fixed, constant reduction would kick in and
     // generate Java constants that throw when the class is loaded, thus
     // ExceptionInInitializerError.
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
+
     f.checkScalarExact("safe_cast('15' as integer)", "INTEGER", "15");
     if (Bug.CALCITE_2539_FIXED) {
       f.checkFails("safe_cast('15.4' as integer)", "xxx", true);
@@ -1733,8 +1722,7 @@ public class SqlOperatorTest {
 
   @Test void testSafeCastDateTime() {
     // Test cast for date/time/timestamp
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
 
     f.checkScalar("safe_cast(TIMESTAMP '1945-02-24 12:42:25.34' as TIMESTAMP)",
         "1945-02-24 12:42:25", "TIMESTAMP(0)");
@@ -1893,8 +1881,8 @@ public class SqlOperatorTest {
   }
 
   @Test void testSafeCastStringToDateTime() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.SAFE_CAST, VmName.EXPAND);
+    final SqlOperatorFixture f = fixture().withConformance(SqlConformanceEnum.BIG_QUERY);
+
     f.checkScalar("safe_cast('12:42:25' as TIME)",
         "12:42:25", "TIME(0)");
     f.checkScalar("safe_cast('1:42:25' as TIME)",

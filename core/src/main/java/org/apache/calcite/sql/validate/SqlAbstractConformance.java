@@ -73,6 +73,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.isBangEqualAllowed();
   }
 
+  @Override public boolean isSafeCastAllowed() {
+    return SqlConformanceEnum.DEFAULT.isSafeCastAllowed();
+  }
+
   @Override public boolean isMinusAllowed() {
     return SqlConformanceEnum.DEFAULT.isMinusAllowed();
   }

@@ -1961,6 +1961,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlFunction CAST = new SqlCastFunction();
 
+  /** The "SAFE_CAST(expr AS type)" function; Identical to CAST(),
+   *  except it returns NULL instead of raising an error. */
+  public static final SqlFunction SAFE_CAST = new SqlCastFunction(SqlKind.SAFE_CAST);
+
   /**
    * The SQL <code>EXTRACT</code> operator. Extracts a specified field value
    * from a DATETIME or an INTERVAL. E.g.<br>

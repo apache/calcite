@@ -6007,7 +6007,10 @@ SqlNode BuiltinFunctionCall() :
          | <SAFE_CAST>
             {
              s = span();
-             f = SqlLibraryOperators.SAFE_CAST;
+             f = SqlStdOperatorTable.SAFE_CAST;
+             if (!this.conformance.isSafeCastAllowed()) {
+               throw SqlUtil.newContextException(getPos(), RESOURCE.safeCastNotAllowed());
+             }
             }
          )
         <LPAREN> AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)

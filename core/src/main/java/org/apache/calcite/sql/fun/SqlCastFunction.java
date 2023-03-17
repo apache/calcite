@@ -174,7 +174,7 @@ public class SqlCastFunction extends SqlFunction {
   }
 
   @Override public SqlSyntax getSyntax() {
-    return this.kind == SqlKind.CAST ? SqlSyntax.SPECIAL : SqlSyntax.FUNCTION;
+    return SqlSyntax.SPECIAL;
   }
 
   @Override public void unparse(

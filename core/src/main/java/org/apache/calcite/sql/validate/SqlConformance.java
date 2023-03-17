@@ -228,6 +228,15 @@ public interface SqlConformance {
   boolean isBangEqualAllowed();
 
   /**
+   * Whether the SAFE_CAST function is allowed in the parser.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BIG_QUERY},
+   * false otherwise.
+   */
+  boolean isSafeCastAllowed();
+
+  /**
    * Whether the "%" operator is allowed by the parser as an alternative to the
    * {@code mod} function.
    *

@@ -228,6 +228,17 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean isSafeCastAllowed() {
+    switch (this) {
+    case LENIENT:
+    case BABEL:
+    case BIG_QUERY:
+      return true;
+    default:
+      return false;
+    }
+  }
+
   @Override public boolean isMinusAllowed() {
     switch (this) {
     case BABEL:

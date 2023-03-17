@@ -35,7 +35,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MapSqlType;
@@ -644,7 +643,7 @@ public class RexBuilder {
       }
     } else if (SqlTypeUtil.isExactNumeric(type)
         && SqlTypeUtil.isInterval(exp.getType())) {
-      return makeCastIntervalToExact(type, exp, kind);
+      return makeCastIntervalToExact(type, exp);
     } else if (sqlType == SqlTypeName.BOOLEAN
         && SqlTypeUtil.isExactNumeric(exp.getType())) {
       return makeCastExactToBoolean(type, exp);
@@ -750,7 +749,7 @@ public class RexBuilder {
             casted, makeNullLiteral(toType)));
   }
 
-  private RexNode makeCastIntervalToExact(RelDataType toType, RexNode exp, SqlKind kind) {
+  private RexNode makeCastIntervalToExact(RelDataType toType, RexNode exp) {
     final TimeUnit endUnit = exp.getType().getSqlTypeName().getEndUnit();
     final TimeUnit baseUnit = baseUnit(exp.getType().getSqlTypeName());
     final BigDecimal multiplier = baseUnit.multiplier;
@@ -853,7 +852,7 @@ public class RexBuilder {
     assert Arrays.asList(SqlKind.CAST, SqlKind.SAFE_CAST).contains(kind);
     SqlOperator operator;
     if (kind == SqlKind.SAFE_CAST) {
-      operator = SqlLibraryOperators.SAFE_CAST;
+      operator = SqlStdOperatorTable.SAFE_CAST;
     } else {
       operator = SqlStdOperatorTable.CAST;
     }
