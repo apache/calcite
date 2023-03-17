@@ -3285,6 +3285,17 @@ public class SqlFunctions {
     return timeFrameSet.diffDate(date, date2, timeFrame);
   }
 
+  /** SQL {@code EXTRACT} function applied to a custom time frame.
+   *
+   * <p>Unlike other DATE/TIME functions that accept custom time frames,
+   * EXTRACT currently only accepts ISOWEEK and WEEK(WEEKDAY). */
+  public static long customDateExtract(DataContext root, String timeFrameName, long date) {
+    final TimeFrameSet timeFrameSet =
+        requireNonNull(DataContext.Variable.TIME_FRAME_SET.get(root));
+    final TimeFrame timeFrame = timeFrameSet.get(timeFrameName);
+    return timeFrameSet.extractDate((int) date, timeFrame);
+  }
+
   /** SQL {@code TIMESTAMPDIFF} function applied to a custom time frame.
    *
    * <p>Custom time frames are created and accessed as described in

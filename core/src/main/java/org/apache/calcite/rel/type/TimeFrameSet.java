@@ -287,6 +287,29 @@ public class TimeFrameSet {
     return timestamp;
   }
 
+  /** For ISOWEEK and WEEK(WEEKDAY), EXTRACT can be rewritten
+   * as the composition of DATE_DIFF and DATE_TRUNC. */
+  public long extractDate(int date, TimeFrame timeFrame) {
+    TimeUnitRange timeUnitRange;
+    int offset = 0;
+    // Date will be truncated to either ISOYEAR or YEAR depending on time frame.
+    if (timeFrame.name() == "ISOWEEK") {
+      timeUnitRange = TimeUnitRange.ISOYEAR;
+      offset += 1;
+    } else if (TimeFrames.WEEK_FRAME_NAMES.contains(timeFrame.name())) {
+      timeUnitRange = TimeUnitRange.YEAR;
+    } else {
+      throw new IllegalArgumentException("Unsupported frame for EXTRACT: " + timeFrame.name());
+    }
+    // Date is truncated first to year/isoyear and then to the provided time frame.
+    int y0 = (int) DateTimeUtils.unixDateFloor(timeUnitRange, date);
+    int date2 = floorDate(y0, timeFrame);
+
+    // For WEEK(WEEKDAY), if year starts on WEEKDAY then offset of +1 is required.
+    if (date2 == y0 && timeUnitRange != TimeUnitRange.ISOYEAR) { offset += 1; }
+    return diffDate(date2, date, timeFrame) + offset;
+  }
+
   /** Builds a collection of time frames. */
   public interface Builder {
     /** Creates a {@code TimeFrameSet}. */

@@ -88,6 +88,9 @@ public class SqlExtractFunction extends SqlFunction {
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
+    if (call.isOperandLiteral(0, false) || call.isOperandTimeFrame(0)) {
+      return SqlMonotonicity.NOT_MONOTONIC;
+    }
     TimeUnitRange value = getOperandLiteralValueOrThrow(call, 0, TimeUnitRange.class);
     switch (value) {
     case YEAR:

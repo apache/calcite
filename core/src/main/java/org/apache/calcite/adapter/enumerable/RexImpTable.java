@@ -2717,6 +2717,10 @@ public class RexImpTable {
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
+      if (argValueList.get(0).getType() == String.class) {
+        return Expressions.call(BuiltInMethod.CUSTOM_DATE_EXTRACT.method,
+            translator.getRoot(), argValueList.get(0), argValueList.get(1));
+      }
       final TimeUnitRange timeUnitRange =
           (TimeUnitRange) translator.getLiteralValue(argValueList.get(0));
       final TimeUnit unit = requireNonNull(timeUnitRange, "timeUnitRange").startUnit;
