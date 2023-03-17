@@ -710,13 +710,13 @@ public class SqlOperatorTest {
     Numeric.forEach(numeric -> {
       final String type = numeric.typeName;
       switch (numeric) {
-        case DOUBLE:
-        case FLOAT:
-        case REAL:
-          // Skip approx types
-          return;
-        default:
-          // fall through
+      case DOUBLE:
+      case FLOAT:
+      case REAL:
+        // Skip approx types
+        return;
+      default:
+        // fall through
       }
 
       // Convert from literal to type
@@ -1459,16 +1459,16 @@ public class SqlOperatorTest {
       boolean isFloat;
 
       switch (numeric) {
-        case DOUBLE:
-        case FLOAT:
-          isFloat = false;
-          break;
-        case REAL:
-          isFloat = true;
-          break;
-        default:
-          // Skip non-approx types
-          return;
+      case DOUBLE:
+      case FLOAT:
+        isFloat = false;
+        break;
+      case REAL:
+        isFloat = true;
+        break;
+      default:
+        // Skip non-approx types
+        return;
       }
 
       if (!f.brokenTestsEnabled()) {

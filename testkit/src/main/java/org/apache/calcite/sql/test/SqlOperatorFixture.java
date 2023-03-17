@@ -613,8 +613,8 @@ public interface SqlOperatorFixture extends AutoCloseable {
     if (errorLoc) {
       value = "^" + value + "^";
     }
-    return  String.format("%s", safeCast ? "safe_cast(" : "cast(") +
-        value + " as " + targetType + ")";
+    return  String.format("%s", safeCast ? "safe_cast(" : "cast(")
+        + value + " as " + targetType + ")";
   }
 
 
