@@ -11518,4 +11518,25 @@ class RelToSqlConverterTest {
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
+
+  @Test public void testLiteralWithoutAliasInSelectForGroupBy() {
+    final String query = "select 'testliteral' from"
+        + " \"product\" group by 'testliteral'";
+    final String expectedSql = "SELECT 'testliteral'\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY 'testliteral'";
+    final String bigQueryExpected = "SELECT 'testliteral'\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY 1";
+    final String expectedSpark = "SELECT 'testliteral'\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY 1";
+    sql(query)
+        .withHive()
+        .ok(expectedSql)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(bigQueryExpected);
+  }
 }
