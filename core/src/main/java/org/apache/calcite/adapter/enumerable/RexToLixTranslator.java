@@ -270,15 +270,15 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   /**
    * Used for safe operators that return null if an exception is thrown.
    */
-  private @Nullable Expression expressionHandlingSafe(@Nullable Expression body, boolean safe) {
-    if (safe && body != null) {
+  private Expression expressionHandlingSafe(Expression body, boolean safe) {
+    if (safe) {
       return safeExpression(body);
     } else {
       return body;
     }
   }
 
-  private @Nullable Expression safeExpression(@Nullable Expression body) {
+  private Expression safeExpression(Expression body) {
     final ParameterExpression e_ =
         Expressions.parameter(Exception.class, new BlockBuilder().newName("e"));
 
@@ -343,7 +343,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     return convert;
   }
 
-  private @Nullable Expression getConvertExpression(
+  private Expression getConvertExpression(
       RelDataType sourceType,
       RelDataType targetType,
       Expression operand) {
@@ -606,7 +606,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     return convert;
   }
 
-  private @Nullable Expression checkExpressionPadTruncate(
+  private Expression checkExpressionPadTruncate(
       Expression convert,
       RelDataType sourceType,
       RelDataType targetType) {
@@ -614,7 +614,6 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     // longer than n.
     boolean pad = false;
     boolean truncate = true;
-    Type operandTargetType = typeFactory.getJavaClass(targetType);
     switch (targetType.getSqlTypeName()) {
     case CHAR:
     case BINARY:
