@@ -72,6 +72,7 @@ import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -489,6 +490,20 @@ public class RelBuilder {
   public RelBuilder variable(Holder<RexCorrelVariable> v) {
     v.set((RexCorrelVariable)
         getRexBuilder().makeCorrel(peek().getRowType(),
+            cluster.createCorrel()));
+    return this;
+  }
+
+  /** Creates a correlation variable for the current top 2 inputs, and writes it into
+   * a Holder. */
+  public RelBuilder joinVariable(Holder<RexCorrelVariable> v) {
+    RelDataType leftType = peek(1).getRowType();
+    RelDataType rightType = peek().getRowType();
+    //inner join is used because the nullabiltiy of the join type should not be considered
+    v.set((RexCorrelVariable)
+        getRexBuilder().makeCorrel(
+            SqlValidatorUtil.deriveJoinRowType(leftType, rightType, JoinRelType.INNER,
+                getTypeFactory(), null, ImmutableList.of()),
             cluster.createCorrel()));
     return this;
   }
@@ -2829,7 +2844,6 @@ public class RelBuilder {
     Frame right = stack.pop();
     final Frame left = stack.pop();
     final RelNode join;
-    final boolean correlate = checkIfCorrelated(variablesSet, joinType, left.rel, right.rel);
     RexNode postCondition = literal(true);
     if (config.simplify()) {
       // Normalize expanded versions IS NOT DISTINCT FROM so that simplifier does not
@@ -2841,21 +2855,29 @@ public class RelBuilder {
       }
       condition = simplifier.simplifyUnknownAsFalse(condition);
     }
-    if (correlate) {
+    if (checkIfCorrelated(joinType, condition, left.rel, right.rel, variablesSet)) {
       final CorrelationId id = Iterables.getOnlyElement(variablesSet);
       // Correlate does not have an ON clause.
       switch (joinType) {
+      case INNER:
+        // For INNER, we can defer if condition is not correlated.
+        if(RelOptUtil.getVariablesUsed(condition).contains(id)) {
+          postCondition = condition;
+          break;
+        }
       case LEFT:
       case SEMI:
       case ANTI:
         // For a LEFT/SEMI/ANTI, predicate must be evaluated first.
         stack.push(right);
-        filter(condition.accept(new Shifter(left.rel, id, right.rel)));
+        Shifter shifter = new Shifter(left.rel, id, right.rel);
+        RexNode shiftedCondition = condition.accept(shifter);
+        if (RelOptUtil.getVariablesUsed(shiftedCondition).contains(shifter.rightId)) {
+          filter(ImmutableSet.of(shifter.rightId), shiftedCondition);
+        } else {
+          filter(shiftedCondition);
+        }
         right = stack.pop();
-        break;
-      case INNER:
-        // For INNER, we can defer.
-        postCondition = condition;
         break;
       default:
         throw new IllegalArgumentException("Correlated " + joinType + " join is not supported");
@@ -3889,13 +3911,18 @@ public class RelBuilder {
    * @throws IllegalArgumentException if the {@link CorrelationId} is used by left side or if the a
    *   {@link CorrelationId} is present and the {@link JoinRelType} is FULL or RIGHT.
    */
-  private static boolean checkIfCorrelated(Set<CorrelationId> variablesSet,
-      JoinRelType joinType, RelNode leftNode, RelNode rightRel) {
-    if (variablesSet.size() != 1) {
+  private static boolean checkIfCorrelated(JoinRelType joinType, RexNode condition,
+      RelNode leftRel, RelNode rightRel, Set<CorrelationId> variablesSet) {
+    if (variablesSet.isEmpty()) {
       return false;
+    } else if (variablesSet.size() != 1) {
+      String idsString = variablesSet.stream()
+          .map(Object::toString)
+          .collect(Collectors.joining(", "));
+      throw new IllegalArgumentException("multiple correlate ids not supported: " + idsString);
     }
     CorrelationId id = Iterables.getOnlyElement(variablesSet);
-    if (!RelOptUtil.notContainsCorrelation(leftNode, id, Litmus.IGNORE)) {
+    if (!RelOptUtil.notContainsCorrelation(leftRel, id, Litmus.IGNORE)) {
       throw new IllegalArgumentException("variable " + id
           + " must not be used by left input to correlation");
     }
@@ -3904,9 +3931,8 @@ public class RelBuilder {
     case FULL:
       throw new IllegalArgumentException("Correlated " + joinType + " join is not supported");
     default:
-      return !RelOptUtil.correlationColumns(
-          Iterables.getOnlyElement(variablesSet),
-          rightRel).isEmpty();
+      return RelOptUtil.getVariablesUsed(rightRel).contains(id)
+          || RelOptUtil.getVariablesUsed(condition).contains(id);
     }
   }
 
@@ -4551,24 +4577,84 @@ public class RelBuilder {
    * {@link RexCorrelVariable}. */
   private class Shifter extends RexShuttle {
     private final RelNode left;
-    private final CorrelationId id;
+    private final int leftCount;
+    private final CorrelationId leftId;
+    private final CorrelationId rightId;
     private final RelNode right;
+    private final RexShuttle subQueryRexShifter = new RexShuttle() {
+
+      @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+        RelNode relNode = subQuery.rel.accept(subQueryRelShuttle);
+        RexSubQuery subQueryWithNewNode;
+        if (subQuery.rel == relNode) {
+          subQueryWithNewNode = subQuery;
+        } else {
+          subQueryWithNewNode = subQuery.clone(relNode);
+        }
+        return super.visitSubQuery(subQueryWithNewNode);
+      }
+
+      @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+        if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable
+            && ((RexCorrelVariable) fieldAccess.getReferenceExpr()).id == leftId) {
+          int index = fieldAccess.getField().getIndex();
+          if (index < leftCount) {
+            final RexNode leftCorrel = getRexBuilder().makeCorrel(left.getRowType(), leftId);
+            return getRexBuilder().makeFieldAccess(leftCorrel, index);
+          } else {
+            final RexNode rightCorrel = getRexBuilder().makeCorrel(right.getRowType(), rightId);
+            return getRexBuilder().makeFieldAccess(rightCorrel, index - leftCount);
+          }
+        } else {
+          return super.visitFieldAccess(fieldAccess);
+        }
+      }
+    };
+
+    private final RelHomogeneousShuttle subQueryRelShuttle = new RelHomogeneousShuttle() {
+      @Override public RelNode visit(RelNode other) {
+        return super.visit(other.accept(subQueryRexShifter));
+      }
+    };
 
     Shifter(RelNode left, CorrelationId id, RelNode right) {
       this.left = left;
-      this.id = id;
+      this.leftId = id;
+      this.leftCount = left.getRowType().getFieldCount();
       this.right = right;
+      this.rightId = left.getCluster().createCorrel();
     }
 
     @Override public RexNode visitInputRef(RexInputRef inputRef) {
-      final RelDataType leftRowType = left.getRowType();
-      final RexBuilder rexBuilder = getRexBuilder();
-      final int leftCount = leftRowType.getFieldCount();
-      if (inputRef.getIndex() < leftCount) {
-        final RexNode v = rexBuilder.makeCorrel(leftRowType, id);
-        return rexBuilder.makeFieldAccess(v, inputRef.getIndex());
+      return rewriteField(inputRef.getIndex());
+    }
+
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+      RelNode relNode = subQuery.rel.accept(subQueryRelShuttle);
+      RexSubQuery subQueryWithNewNode;
+      if (subQuery.rel == relNode) {
+        subQueryWithNewNode = subQuery;
       } else {
-        return rexBuilder.makeInputRef(right, inputRef.getIndex() - leftCount);
+        subQueryWithNewNode = subQuery.clone(relNode);
+      }
+      return super.visitSubQuery(subQueryWithNewNode);
+    }
+
+    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+      if (fieldAccess.getReferenceExpr() instanceof RexCorrelVariable
+          && ((RexCorrelVariable) fieldAccess.getReferenceExpr()).id == leftId) {
+        return rewriteField(fieldAccess.getField().getIndex());
+      } else {
+        return super.visitFieldAccess(fieldAccess);
+      }
+    }
+
+    private RexNode rewriteField(int index) {
+      if (index < leftCount) {
+        final RexNode leftCorrel = getRexBuilder().makeCorrel(left.getRowType(), leftId);
+        return getRexBuilder().makeFieldAccess(leftCorrel, index);
+      } else {
+        return getRexBuilder().makeInputRef(right, index - leftCount);
       }
     }
   }
