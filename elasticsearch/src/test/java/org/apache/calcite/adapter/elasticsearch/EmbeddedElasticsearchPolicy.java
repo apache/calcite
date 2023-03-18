@@ -130,6 +130,41 @@ class EmbeddedElasticsearchPolicy {
   }
 
   /**
+   * Creates alias in elastic search given an index.
+   * as dots({@code .}).
+   *
+   * <p>Example
+   * <pre>
+   *  {@code
+   *     b.a: long
+   *     b.b: keyword
+   *  }
+   * </pre>
+   *
+   * @param index index of the index
+   * @param alias alias of the index
+   * @throws IOException if there is an error
+   */
+  void createAlias(String index, String alias) throws IOException {
+    Objects.requireNonNull(index, "index");
+    Objects.requireNonNull(alias, "alias");
+
+    ObjectNode actions = mapper().createObjectNode();
+
+    ObjectNode properties = actions.withObject("/actions").withObject("/add");
+    properties.put("index", index);
+    properties.put("alias", alias);
+
+    // create alias
+    final HttpEntity entity =
+        new StringEntity(mapper().writeValueAsString(actions),
+            ContentType.APPLICATION_JSON);
+    final Request r = new Request("POST", "/_aliases");
+    r.setEntity(entity);
+    restClient().performRequest(r);
+  }
+
+  /**
    * Creates nested mappings for an index. This function is called recursively for each level.
    *
    * @param parent current parent
