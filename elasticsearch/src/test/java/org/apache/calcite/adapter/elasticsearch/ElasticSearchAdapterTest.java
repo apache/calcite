@@ -63,6 +63,7 @@ class ElasticSearchAdapterTest {
 
   /** Default index/type name. */
   private static final String ZIPS = "zips";
+  private static final String ZIPS_ALIAS = "zips_alias";
   private static final int ZIPS_SIZE = 149;
 
   /**
@@ -75,6 +76,7 @@ class ElasticSearchAdapterTest {
         ImmutableMap.of("city", "keyword", "state", "keyword", "pop", "long");
 
     NODE.createIndex(ZIPS, mapping);
+    NODE.createAlias(ZIPS, ZIPS_ALIAS);
 
     // load records from file
     final List<ObjectNode> bulk = new ArrayList<>();
@@ -105,7 +107,7 @@ class ElasticSearchAdapterTest {
         connection.unwrap(CalciteConnection.class).getRootSchema();
 
     root.add("elastic",
-        new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), ZIPS));
+        new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), null));
 
     // add calcite view programmatically
     final String viewSql = "select cast(_MAP['city'] AS varchar(20)) AS \"city\", "
@@ -187,6 +189,12 @@ class ElasticSearchAdapterTest {
         .with(ElasticSearchAdapterTest::createConnection)
         .query("select * from elastic.zips limit 0")
         .returnsCount(0);
+  }
+
+  @Test void testAlias() {
+    calciteAssert()
+        .query("select * from elastic.zips_alias")
+        .returnsCount(ZIPS_SIZE);
   }
 
   @Test void testSort() {

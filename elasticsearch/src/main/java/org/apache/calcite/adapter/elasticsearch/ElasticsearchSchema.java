@@ -38,6 +38,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Each table in the schema is an ELASTICSEARCH index.
@@ -121,6 +125,13 @@ public class ElasticsearchSchema extends AbstractSchema {
       }
 
       Set<String> indices = Sets.newHashSet(root.fieldNames());
+      Set<String> aliases = root.findValues("aliases").stream()
+          .map(JsonNode::fieldNames)
+          .flatMap(
+              it -> StreamSupport.stream(
+                  Spliterators.spliteratorUnknownSize(it, Spliterator.ORDERED), false))
+          .collect(Collectors.toSet());
+      indices.addAll(aliases);
       return indices;
     }
   }
