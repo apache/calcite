@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 
 import static java.util.Objects.requireNonNull;
 
@@ -58,6 +59,11 @@ public abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
   /** Converts this literal to a {@link TimestampString}. */
   protected TimestampString getTimestamp() {
     return (TimestampString) requireNonNull(value);
+  }
+
+  /** Converts this literal to a {@link TimestampWithTimeZoneString}. */
+  protected TimestampWithTimeZoneString getTimestampWithTimeZoneString() {
+    return (TimestampWithTimeZoneString) requireNonNull(value);
   }
 
   public int getPrec() {

@@ -552,7 +552,7 @@ class RelToSqlConverterTest {
         + " \"product\" group by 'literal', sku + 1";
     final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS B\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY 1, B";
+        + "GROUP BY a, B";
     sql(query)
         .withBigQuery()
         .ok(bigQueryExpected);
@@ -563,7 +563,7 @@ class RelToSqlConverterTest {
         + " \"product\" group by sku + 1, 'literal'";
     final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS b, SUM(product_id)\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY b, 1";
+        + "GROUP BY b, a";
     sql(query)
         .withBigQuery()
         .ok(bigQueryExpected);
@@ -578,10 +578,10 @@ class RelToSqlConverterTest {
         + "GROUP BY '1', SKU + 1";
     final String bigQueryExpected = "SELECT '1' AS a, SKU + 1 AS B, '1' AS d\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY 1, B";
+        + "GROUP BY d, B";
     final String expectedSpark = "SELECT '1' a, SKU + 1 B, '1' d\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY 1, B";
+        + "GROUP BY d, B";
     sql(query)
         .withHive()
         .ok(expectedSql)
@@ -11478,4 +11478,65 @@ class RelToSqlConverterTest {
         isLinux(expectedBigQuery));
   }
 
+
+  @Test public void testCoalesceFunctionWithIntegerAndStringArgument() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode formatIntegerRexNode =
+        builder.call(SqlLibraryOperators.FORMAT,
+            builder.literal("'%11d'"), builder.scan("EMP").field(0));
+    final RexNode formatCoalesceRexNode =
+        builder.call(SqlStdOperatorTable.COALESCE,
+            formatIntegerRexNode, builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatCoalesceRexNode, "Name"))
+        .build();
+
+    final String expectedSparkQuery = "SELECT "
+        + "COALESCE(STRING(EMPNO), ENAME) Name"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testCoalesceFunctionWithDecimalAndStringArgument() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode formatFloatRexNode =
+        builder.call(SqlLibraryOperators.FORMAT,
+            builder.literal("'%10.4f'"), builder.scan("EMP").field(5));
+    final RexNode formatCoalesceRexNode =
+        builder.call(SqlStdOperatorTable.COALESCE,
+            formatFloatRexNode, builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatCoalesceRexNode, "Name"))
+        .build();
+
+    final String expectedSparkQuery = "SELECT "
+        + "COALESCE(STRING(SAL), ENAME) Name"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testLiteralWithoutAliasInSelectForGroupBy() {
+    final String query = "select 'testliteral' from"
+        + " \"product\" group by 'testliteral'";
+    final String expectedSql = "SELECT 'testliteral'\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY 'testliteral'";
+    final String bigQueryExpected = "SELECT 'testliteral'\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY 1";
+    final String expectedSpark = "SELECT 'testliteral'\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY 1";
+    sql(query)
+        .withHive()
+        .ok(expectedSql)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(bigQueryExpected);
+  }
 }

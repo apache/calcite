@@ -82,6 +82,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
+import static org.apache.calcite.util.Util.isFormatSqlBasicCall;
 import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
 
 import static  org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
@@ -389,6 +390,9 @@ public class SparkSqlDialect extends SqlDialect {
         SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
             timeUnitNode.getParserPosition());
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
+        break;
+      case COALESCE:
+        unparseCoalesce(writer, call);
         break;
       case FORMAT:
         unparseFormat(writer, call, leftPrec, rightPrec);
@@ -981,5 +985,24 @@ public class SparkSqlDialect extends SqlDialect {
           POST_MERIDIAN_INDICATOR.value);
     }
     return dateString;
+  }
+
+  private void unparseCoalesce(SqlWriter writer, SqlCall call) {
+    final SqlWriter.Frame coalesceFrame = writer.startFunCall("COALESCE");
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      if (isFormatSqlBasicCall(operand)) {
+        unparseFormatInCoalesce(writer, operand);
+      } else {
+        operand.unparse(writer, 0, 0);
+      }
+    }
+    writer.endFunCall(coalesceFrame);
+  }
+
+  private void unparseFormatInCoalesce(SqlWriter writer, SqlNode call) {
+    final SqlWriter.Frame stringFrame = writer.startFunCall("STRING");
+    ((SqlCall) call).operand(1).unparse(writer, 0, 0);
+    writer.endFunCall(stringFrame);
   }
 }

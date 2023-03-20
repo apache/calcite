@@ -22,6 +22,7 @@ import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlKind;
@@ -2912,5 +2913,10 @@ public class Util {
     String updatedRegexForI = matchArgumentRegexLiteral.concat(
         removeLeadingAndTrailingSingleQuotes(call.operand(1).toString()));
     return SqlLiteral.createCharString(updatedRegexForI, SqlParserPos.ZERO);
+  }
+
+  public static boolean isFormatSqlBasicCall(SqlNode sqlNode) {
+    return sqlNode instanceof SqlBasicCall && ((SqlBasicCall) sqlNode).getOperator()
+        .toString().equals(SqlKind.FORMAT.name());
   }
 }
