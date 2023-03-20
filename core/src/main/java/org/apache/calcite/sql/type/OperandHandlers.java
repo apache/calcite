@@ -28,6 +28,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -60,6 +61,15 @@ public abstract class OperandHandlers {
    * {@link SqlIntervalQualifier} when it matches a defined time frame. */
   public static final SqlOperandHandler OPERAND_1_MIGHT_BE_TIME_FRAME =
       new TimeFrameOperandHandler(1);
+
+  /** Creates an operand handler that applies a function to a call. */
+  public static SqlOperandHandler of(BiFunction<SqlValidator, SqlCall, SqlCall> fn) {
+    return new SqlOperandHandler() {
+      @Override public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
+        return fn.apply(validator, call);
+      }
+    };
+  }
 
   /** Operand handler for a function whose {@code timeFrameOperand} operand
    * (0-based) may be a time frame. If the operand is of type

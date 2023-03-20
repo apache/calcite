@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
@@ -125,17 +126,42 @@ public abstract class SqlLibraryOperators {
 
   /** The "CONVERT(type, expr [,style])" function (Microsoft SQL Server).
    *
-   * <p>MSSQL specific, almost identical to CAST, function.
-   * Unlike CAST, has an optional "style" argument which can specify
-   * how the value is going to be converted.
+   * <p>Syntax:
+   * <blockquote>{@code
+   * CONVERT( data_type [ ( length ) ], expression [, style ] )
+   * }</blockquote>
    *
-   * <p>Delegates most of its logic to actual CAST operator.
+   * <p>The optional "style" argument specifies how the value is going to be
+   * converted; this implementation ignores the {@code style} parameter.
+   *
+   * <p>{@code CONVERT(type, expr, style)} is equivalent to CAST(expr AS type),
+   * and the implementation delegates most of its logic to actual CAST operator.
    *
    * <p>Not to be confused with standard {@link SqlStdOperatorTable#CONVERT},
-   * which changes the encoding of a character string.
-   */
+   * which converts a string from one character set to another. */
   @LibraryOperator(libraries = {MSSQL})
-  public static final SqlFunction MSSQL_CONVERT = new SqlCastConvertFunction();
+  public static final SqlFunction MSSQL_CONVERT =
+      SqlBasicFunction.create(SqlKind.CAST,
+              ReturnTypes.andThen(opBinding -> {
+                    // Guaranteed to be a SqlCallBinding, with 2 or 3 arguments
+                    final SqlCallBinding binding = (SqlCallBinding) opBinding;
+                    final SqlCall call = binding.getCall();
+                    return new SqlCallBinding(binding.getValidator(),
+                        binding.getScope(),
+                        SqlStdOperatorTable.CAST.createCall(
+                            call.getParserPosition(), call.operand(1),
+                            call.operand(0)));
+                  },
+                  SqlCastFunction::inferReturnTypeImpl),
+              OperandTypes.repeat(SqlOperandCountRanges.between(2, 3),
+                  OperandTypes.ANY))
+          .withName("CONVERT")
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withOperandTypeInference(InferTypes.FIRST_KNOWN)
+          .withOperandHandler(
+              OperandHandlers.of((validator, call) ->
+                  SqlStdOperatorTable.CAST.createCall(call.getParserPosition(),
+                      call.operand(1), call.operand(0))));
 
   /** The "DATE_PART(timeUnit, datetime)" function
    * (Databricks, Postgres, Redshift, Snowflake). */

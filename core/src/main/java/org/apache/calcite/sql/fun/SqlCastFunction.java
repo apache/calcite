@@ -83,9 +83,7 @@ public class SqlCastFunction extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
 
   public SqlCastFunction() {
-    super("CAST",
-        SqlKind.CAST,
-        null,
+    super("CAST", SqlKind.CAST, SqlCastFunction::inferReturnTypeImpl,
         InferTypes.FIRST_KNOWN,
         null,
         SqlFunctionCategory.SYSTEM);
@@ -93,14 +91,12 @@ public class SqlCastFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public RelDataType inferReturnType(
-      SqlOperatorBinding opBinding) {
+  static RelDataType inferReturnTypeImpl(SqlOperatorBinding opBinding) {
     assert opBinding.getOperandCount() == 2;
-    RelDataType ret = opBinding.getOperandType(1);
-    RelDataType firstType = opBinding.getOperandType(0);
-    ret =
+    final RelDataType firstType = opBinding.getOperandType(0);
+    final RelDataType ret =
         opBinding.getTypeFactory().createTypeWithNullability(
-            ret,
+            opBinding.getOperandType(1),
             firstType.isNullable());
     if (opBinding instanceof SqlCallBinding) {
       SqlCallBinding callBinding = (SqlCallBinding) opBinding;
