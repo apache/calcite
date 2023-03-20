@@ -35,15 +35,20 @@ import java.util.List;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * MSSQL CONVERT function
- * of the form {@code CONVERT ( data_type [ ( length ) ] , expression [ , style ] )}.
- * <ul>
- * <b>Important notes:</b>
- * <li>'style' parameter is ignored.</li>
+ * A function that converts values to a different data type (like {@code CAST})
+ * but is named {@code CONVERT} (as in Microsoft SQL Server).
  *
- * <p><li>This is just a wrapper around CAST, and hence acts like CAST</li>
- * </ul>
+ * <p>Syntax:
+ * <blockquote>{@code
+ * CONVERT( data_type [ ( length ) ], expression [, style ] )
+ * }</blockquote>
  *
+ * <p>In this implementation, the {@code style} parameter is ignored.
+ *
+ * <p>Not to be confused with {@link SqlConvertFunction CONVERT},
+ * defined in standard SQL, converts a string from one character set to another.
+ *
+ * <p>This is just a wrapper around CAST, and hence acts like CAST.
  *
  * @see SqlCastFunction
  */
@@ -61,8 +66,10 @@ public class SqlCastConvertFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Switches places of 1st and 2nd operand in SqlCallBinding, and delegates to SqlCastFunction's
-   * inferReturnType
+  /** {@inheritDoc}
+   *
+   * <p>Switches places of 1st and 2nd operand in SqlCallBinding, and delegates
+   * to SqlCastFunction's inferReturnType.
    */
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     assert opBinding.getOperandCount() == 2 || opBinding.getOperandCount() == 3;
@@ -82,7 +89,7 @@ public class SqlCastConvertFunction extends SqlFunction {
     return SqlOperandCountRanges.between(2, 3);
   }
 
-  @Override public SqlNode rewriteCall(final SqlValidator validator, final SqlCall call) {
+  @Override public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
     final List<SqlNode> operands = call.getOperandList();
 
     if (operands.size() != 2 && operands.size() != 3) {

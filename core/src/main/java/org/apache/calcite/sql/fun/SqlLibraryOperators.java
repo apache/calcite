@@ -123,16 +123,19 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATE,
               SqlTypeFamily.DATE));
 
-  /** The CONVERT(type, expr [,style]) function
-   * (Microsoft SQL Server)
-   * MSSQL specific, almost identical to CAST, function.
+  /** The "CONVERT(type, expr [,style])" function (Microsoft SQL Server).
+   *
+   * <p>MSSQL specific, almost identical to CAST, function.
    * Unlike CAST, has an optional "style" argument which can specify
    * how the value is going to be converted.
    *
-   * Delegates most of its logic to actual CAST operator.
+   * <p>Delegates most of its logic to actual CAST operator.
+   *
+   * <p>Not to be confused with standard {@link SqlStdOperatorTable#CONVERT},
+   * which changes the encoding of a character string.
    */
- @LibraryOperator(libraries = {MSSQL})
- public static final SqlFunction MSSQL_CONVERT = new SqlCastConvertFunction();
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction MSSQL_CONVERT = new SqlCastConvertFunction();
 
   /** The "DATE_PART(timeUnit, datetime)" function
    * (Databricks, Postgres, Redshift, Snowflake). */
