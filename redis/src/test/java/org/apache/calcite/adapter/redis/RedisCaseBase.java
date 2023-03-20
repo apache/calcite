@@ -123,7 +123,7 @@ public abstract class RedisCaseBase {
   }
 
   static String getRedisServerHost() {
-    return REDIS_CONTAINER.isRunning() ? REDIS_CONTAINER.getContainerIpAddress() : HOST;
+    return REDIS_CONTAINER.isRunning() ? REDIS_CONTAINER.getHost() : HOST;
   }
 
 }
