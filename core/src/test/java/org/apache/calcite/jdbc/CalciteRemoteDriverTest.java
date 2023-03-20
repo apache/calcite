@@ -272,7 +272,7 @@ class CalciteRemoteDriverTest {
     // TypeInfo does not include internal types (NULL, SYMBOL, ANY, etc.)
     CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
         .metaData(GET_TYPEINFO)
-        .returns(CalciteAssert.checkResultCount(is(41)));
+        .returns(CalciteAssert.checkResultCount(is(42)));
   }
 
   @Test void testRemoteTableTypes() throws Exception {
