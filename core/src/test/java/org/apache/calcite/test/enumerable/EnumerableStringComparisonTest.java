@@ -305,8 +305,10 @@ class EnumerableStringComparisonTest {
                   Collections.singletonList(
                       builder.call(
                           operator,
-                          rexBuilder.makeCast(varcharSpecialCollation, builder.literal(str1)),
-                          rexBuilder.makeCast(varcharSpecialCollation, builder.literal(str2)))),
+                          rexBuilder.makeCast(varcharSpecialCollation, builder.literal(str1),
+                              false, false),
+                          rexBuilder.makeCast(varcharSpecialCollation, builder.literal(str2),
+                              false, false))),
                   Collections.singletonList("result"))
               .build();
         })

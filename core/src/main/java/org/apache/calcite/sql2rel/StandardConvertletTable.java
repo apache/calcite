@@ -165,7 +165,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
               (RexCall) StandardConvertletTable.this.convertCall(cx, call);
           if (e.getOperands().size() == 1
               && SqlTypeUtil.isString(e.getOperands().get(0).getType())) {
-            return cx.getRexBuilder().makeCast(e.type, e.getOperands().get(0));
+            return cx.getRexBuilder().makeCast(e.type, e.getOperands().get(0), false, false);
           }
           return e;
         });
@@ -367,11 +367,11 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             rexBuilder.makeCast(
                 cx.getTypeFactory()
                     .createTypeWithNullability(type, operand0.getType().isNullable()),
-                operand0),
+                operand0, false, false),
             rexBuilder.makeCast(
                 cx.getTypeFactory()
                     .createTypeWithNullability(type, operand1.getType().isNullable()),
-                operand1)));
+                operand1, false, false)));
   }
 
   /** Converts a call to the DECODE function. */
@@ -632,7 +632,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     SqlDataTypeSpec dataType = (SqlDataTypeSpec) right;
     // If SAFE_CAST, allow nullable.
     RelDataType type =
-        dataType.deriveType(cx.getValidator(), call.getKind() == SqlKind.SAFE_CAST);
+        // dataType.deriveType(cx.getValidator(), call.getKind() == SqlKind.SAFE_CAST);
+        dataType.deriveType(cx.getValidator());
     if (type == null) {
       type = cx.getValidator().getValidatedNodeType(dataType.getTypeName());
     }
@@ -672,7 +673,11 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         type = typeFactory.createTypeWithNullability(type, isn);
       }
     }
-    return cx.getRexBuilder().makeCast(type, arg, call.getKind());
+    return cx.getRexBuilder().makeCast(
+        type,
+        arg,
+        call.getKind() == SqlKind.SAFE_CAST,
+        call.getKind() == SqlKind.SAFE_CAST);
   }
 
   protected RexNode convertFloorCeil(SqlRexContext cx, SqlCall call) {
@@ -1376,7 +1381,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     if (e.getType() == type) {
       return e;
     }
-    return rexBuilder.makeCast(type, e);
+    return rexBuilder.makeCast(type, e, false, false);
   }
 
   /**
@@ -1390,7 +1395,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     if (e.getType() == type) {
       return e;
     }
-    return rexBuilder.makeCast(type, e, kind);
+    return rexBuilder.makeCast(type, e,
+        kind == SqlKind.SAFE_CAST, kind == SqlKind.SAFE_CAST);
   }
 
   /** Convertlet that handles {@code COVAR_POP}, {@code COVAR_SAMP},
@@ -1951,7 +1957,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         // If the TIMESTAMPADD call has type TIMESTAMP and op2 has type DATE
         // (which can happen for sub-day time frames such as HOUR), cast op2 to
         // TIMESTAMP.
-        final RexNode op2b = rexBuilder.makeCast(type, op2, false);
+        final RexNode op2b = rexBuilder.makeCast(type, op2, false, false);
         return rexBuilder.makeCall(type, SqlStdOperatorTable.TIMESTAMP_ADD,
             ImmutableList.of(timeFrameName, op1, op2b));
       }
@@ -2136,7 +2142,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           typeFactory.createTypeWithNullability(
               typeFactory.createSqlType(sqlTypeName),
               SqlTypeUtil.containsNullable(call2.getType()));
-      RexNode e = rexBuilder.makeCast(intType, call2);
+      RexNode e = rexBuilder.makeCast(intType, call2, false, false);
       return rexBuilder.multiplyDivide(e, multiplier, divider);
     }
   }

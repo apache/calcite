@@ -147,7 +147,7 @@ public class RexUtil {
       if (lhsType.equals(rhsType)) {
         castExps.add(rhsExp);
       } else {
-        castExps.add(rexBuilder.makeCast(lhsType, rhsExp));
+        castExps.add(rexBuilder.makeCast(lhsType, rhsExp, false, false));
       }
     }
     return castExps;
@@ -450,7 +450,7 @@ public class RexUtil {
         final RexNode operand = ((RexCall) left).getOperands().get(0);
         if (canAssignFrom(left.getType(), operand.getType(), rexBuilder.getTypeFactory())) {
           final RexNode castRight =
-              rexBuilder.makeCast(operand.getType(), constant);
+              rexBuilder.makeCast(operand.getType(), constant, false, false);
           if (castRight instanceof RexLiteral) {
             left = operand;
             constant = clazz.cast(castRight);

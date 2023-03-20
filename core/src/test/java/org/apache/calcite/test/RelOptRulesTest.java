@@ -3839,7 +3839,7 @@ class RelOptRulesTest extends RelOptTestBase {
           rexBuilder.makeCast(
               rexBuilder.getTypeFactory()
                   .createTypeWithNullability(caseRexNode.getType(), true),
-              caseRexNode);
+              caseRexNode, false, false);
       return b
           .push(left)
           .project(castNode)

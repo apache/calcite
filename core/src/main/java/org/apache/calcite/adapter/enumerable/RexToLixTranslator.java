@@ -267,6 +267,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     }
     return nullAs.handle(translated);
   }
+
   /**
    * Used for safe operators that return null if an exception is thrown.
    */
@@ -288,11 +289,13 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
                 Expressions.tryCatch(
                     Expressions.return_(
                         null,
-                        body), Expressions.catch_(
-                        e_,
-                        Expressions.return_(null, constant(null)))))),
+                        body),
+                Expressions.catch_(
+                    e_,
+                    Expressions.return_(null, constant(null)))))),
         BuiltInMethod.FUNCTION0_APPLY.method);
   };
+
   Expression translateCast(
       RelDataType sourceType,
       RelDataType targetType,
@@ -306,41 +309,31 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
 
   private @Nullable Expression translateCastToTime(RelDataType sourceType,
       Expression operand) {
-    Expression convert = null;
     switch (sourceType.getSqlTypeName()) {
     case CHAR:
     case VARCHAR:
-      convert =
-          Expressions.call(BuiltInMethod.STRING_TO_TIME.method, operand);
-      break;
+      return Expressions.call(BuiltInMethod.STRING_TO_TIME.method, operand);
     case TIME_WITH_LOCAL_TIME_ZONE:
-      convert =
-          RexImpTable.optimize2(operand,
+      return RexImpTable.optimize2(operand,
               Expressions.call(
                   BuiltInMethod.TIME_WITH_LOCAL_TIME_ZONE_TO_TIME.method,
                   operand,
                   Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
-      break;
     case TIMESTAMP:
-      convert =
-          Expressions.convert_(
+      return Expressions.convert_(
               Expressions.call(BuiltInMethod.FLOOR_MOD.method,
                   operand,
                   Expressions.constant(DateTimeUtils.MILLIS_PER_DAY)),
               int.class);
-      break;
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      convert =
-          RexImpTable.optimize2(operand,
+      return RexImpTable.optimize2(operand,
               Expressions.call(
                   BuiltInMethod.TIMESTAMP_WITH_LOCAL_TIME_ZONE_TO_TIME.method,
                   operand,
                   Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
-      break;
     default:
-      break;
+      return null;
     }
-    return convert;
   }
 
   private Expression getConvertExpression(

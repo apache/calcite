@@ -257,7 +257,7 @@ public abstract class RexProgramBuilderBase {
    * @return input node converted to given type
    */
   protected RexNode cast(RexNode e, RelDataType type) {
-    return rexBuilder.makeCast(type, e);
+    return rexBuilder.makeCast(type, e, false, false);
   }
 
   protected RexNode eq(RexNode n1, RexNode n2) {

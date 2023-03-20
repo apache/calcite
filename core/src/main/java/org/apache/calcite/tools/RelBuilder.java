@@ -1123,7 +1123,7 @@ public class RelBuilder {
   /** Creates an expression that casts an expression to a given type. */
   public RexNode cast(RexNode expr, SqlTypeName typeName) {
     final RelDataType type = cluster.getTypeFactory().createSqlType(typeName);
-    return cluster.getRexBuilder().makeCast(type, expr);
+    return cluster.getRexBuilder().makeCast(type, expr, false, false);
   }
 
   /** Creates an expression that casts an expression to a type with a given name
@@ -1131,7 +1131,7 @@ public class RelBuilder {
   public RexNode cast(RexNode expr, SqlTypeName typeName, int precision) {
     final RelDataType type =
         cluster.getTypeFactory().createSqlType(typeName, precision);
-    return cluster.getRexBuilder().makeCast(type, expr);
+    return cluster.getRexBuilder().makeCast(type, expr, false, false);
   }
 
   /** Creates an expression that casts an expression to a type with a given
@@ -1140,7 +1140,7 @@ public class RelBuilder {
       int scale) {
     final RelDataType type =
         cluster.getTypeFactory().createSqlType(typeName, precision, scale);
-    return cluster.getRexBuilder().makeCast(type, expr);
+    return cluster.getRexBuilder().makeCast(type, expr, false, false);
   }
 
   /**

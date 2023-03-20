@@ -4093,7 +4093,7 @@ public class SqlToRelConverter {
     if (!RexLiteral.isNullLiteral(node)) {
       return node;
     }
-    return rexBuilder.makeCast(type, node);
+    return rexBuilder.makeCast(type, node, false, false);
   }
 
   /**
@@ -6412,7 +6412,7 @@ public class SqlToRelConverter {
               reinterpretCast
               ? rexBuilder.makeReinterpretCast(histogramType, exprs.get(0),
                   rexBuilder.makeLiteral(false))
-              : rexBuilder.makeCast(histogramType, exprs.get(0)));
+              : rexBuilder.makeCast(histogramType, exprs.get(0), false, false));
         }
 
         RexNode over =
@@ -6445,7 +6445,7 @@ public class SqlToRelConverter {
                     rexBuilder.makeLiteral(false));
           } else {
             histogramCall =
-                rexBuilder.makeCast(type, histogramCall);
+                rexBuilder.makeCast(type, histogramCall, false, false);
           }
         }
 

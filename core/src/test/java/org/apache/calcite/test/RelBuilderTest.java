@@ -3939,7 +3939,7 @@ public class RelBuilderTest {
                     typeFactory.createTypeWithNullability(
                         typeFactory.createSqlType(SqlTypeName.BOOLEAN), true),
                     builder.equals(builder.field("DEPTNO"),
-                        builder.literal(10))))
+                        builder.literal(10)), false, false))
             .build();
     final String expected = ""
         + "LogicalFilter(condition=[=($7, 10)])\n"

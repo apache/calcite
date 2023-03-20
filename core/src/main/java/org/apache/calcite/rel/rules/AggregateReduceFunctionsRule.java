@@ -442,7 +442,7 @@ public class AggregateReduceFunctionsRule
     numeratorRef = rexBuilder.ensureType(avgType, numeratorRef, true);
     final RexNode divideRef =
         rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, numeratorRef, denominatorRef);
-    return rexBuilder.makeCast(oldCall.getType(), divideRef);
+    return rexBuilder.makeCast(oldCall.getType(), divideRef, false, false);
   }
 
   private static RexNode reduceSum(
@@ -610,7 +610,7 @@ public class AggregateReduceFunctionsRule
     }
 
     return rexBuilder.makeCast(
-        oldCall.getType(), result);
+        oldCall.getType(), result, false, false);
   }
 
   private static RexNode reduceAggCallByGrouping(
@@ -627,7 +627,7 @@ public class AggregateReduceFunctionsRule
     if (refByGroup.getType().equals(oldCall.getType())) {
       return refByGroup;
     } else {
-      return rexBuilder.makeCast(oldCall.getType(), refByGroup);
+      return rexBuilder.makeCast(oldCall.getType(), refByGroup, false, false);
     }
   }
 
@@ -778,7 +778,7 @@ public class AggregateReduceFunctionsRule
         rexBuilder.ensureType(oldCallType, avgSumXSumY, true);
     final RexNode result =
         rexBuilder.makeCall(SqlStdOperatorTable.MINUS, sumXYCast, avgSumXSumYCast);
-    return rexBuilder.makeCast(oldCall.getType(), result);
+    return rexBuilder.makeCast(oldCall.getType(), result, false, false);
   }
 
   private static RexNode reduceCovariance(
@@ -837,7 +837,7 @@ public class AggregateReduceFunctionsRule
             argXAndYNotNullFilterOrdinal);
     final RexNode result =
         divide(biased, rexBuilder, sumXY, sumXSumY, countArg);
-    return rexBuilder.makeCast(oldCall.getType(), result);
+    return rexBuilder.makeCast(oldCall.getType(), result, false, false);
   }
 
   private static RexNode divide(boolean biased, RexBuilder rexBuilder,

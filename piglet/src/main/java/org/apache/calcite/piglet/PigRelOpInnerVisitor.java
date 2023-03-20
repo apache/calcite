@@ -165,7 +165,7 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
         if (dataType.getSqlTypeName() == SqlTypeName.ANY
                 || !SqlTypeUtil.isComparable(dataType, scriptType)) {
           // Script schema is different from project expression schema, need to do type cast
-          rexNode = builder.getRexBuilder().makeCast(scriptType, rexNode);
+          rexNode = builder.getRexBuilder().makeCast(scriptType, rexNode, false, false);
         }
       }
 
@@ -179,7 +179,7 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
             RexNode exp =
                 builder.call(SqlStdOperatorTable.ITEM, rexNode,
                     builder.literal(j + 1));
-            innerCols.add(builder.getRexBuilder().makeCast(scriptType, exp));
+            innerCols.add(builder.getRexBuilder().makeCast(scriptType, exp, false, false));
             fieldAlias.add(outputFieldSchema.getField(j).alias);
           }
         } else {

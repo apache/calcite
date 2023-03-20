@@ -230,7 +230,7 @@ public interface RexImplicationCheckerFixtures {
     }
 
     public RexNode cast(RelDataType type, RexNode exp) {
-      return rexBuilder.makeCast(type, exp, true);
+      return rexBuilder.makeCast(type, exp, true, false);
     }
 
     void checkImplies(RexNode node1, RexNode node2) {

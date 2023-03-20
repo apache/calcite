@@ -1162,7 +1162,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
             if (pos != null) {
               // Found it
               return rexBuilder.makeCast(
-                  e.getType(), rexBuilder.makeInputRef(node, pos));
+                  e.getType(), rexBuilder.makeInputRef(node, pos), false, false);
             }
             return null;
           }

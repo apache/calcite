@@ -525,42 +525,28 @@ public class RexBuilder {
    * @param exp  Expression being cast
    * @return Call to CAST operator
    */
+  @Deprecated
   public RexNode makeCast(
       RelDataType type,
       RexNode exp) {
-    return makeCast(type, exp, false, SqlKind.CAST);
-  }
-
-  /**
-   * Creates a call to the CAST or SAFE_CAST operator.
-   *
-   * @param type Type to cast to
-   * @param exp  Expression being cast
-   * @param kind  SqlKind.CAST or SqlKind.SAFE_CAST
-   * @return Call to CAST or SAFE_CAST operator
-   */
-  public RexNode makeCast(
-      RelDataType type,
-      RexNode exp,
-      SqlKind kind) {
-    return makeCast(type, exp, kind == SqlKind.SAFE_CAST, kind);
+    return makeCast(type, exp, false, false);
   }
 
   /**
    * Creates a call to the CAST operator, expanding if possible, and optionally
    * also preserving nullability.
    */
-
+  @Deprecated
   public RexNode makeCast(
       RelDataType type,
       RexNode exp,
       boolean matchNullability) {
-    return makeCast(type, exp, matchNullability, SqlKind.CAST);
+    return makeCast(type, exp, matchNullability, false);
   }
 
   /**
-   * Creates a call to the CAST or SAFE_CAST operator, expanding if possible, and optionally
-   * also preserving nullability.
+   * Creates a call to the CAST operator, expanding if possible, optionally
+   * also preserving nullability, and optionally in safe mode.
    *
    * <p>Tries to expand the cast, and therefore the result may be something
    * other than a {@link RexCall} to the CAST operator, such as a
@@ -570,14 +556,14 @@ public class RexBuilder {
    * @param exp  Expression being cast
    * @param matchNullability Whether to ensure the result has the same
    * nullability as {@code type}
-   * @param kind  SqlKind.CAST or SqlKind.SAFE_CAST
-   * @return Call to CAST or SAFE_CAST operator
+   * @param safe Whether this is a regular or safe cast
+   * @return Call to CAST operator
    */
   public RexNode makeCast(
       RelDataType type,
       RexNode exp,
       boolean matchNullability,
-      SqlKind kind) {
+      boolean safe) {
     final SqlTypeName sqlType = type.getSqlTypeName();
     if (exp instanceof RexLiteral) {
       RexLiteral literal = (RexLiteral) exp;
@@ -637,7 +623,7 @@ public class RexBuilder {
         if (type.isNullable()
             && !literal2.getType().isNullable()
             && matchNullability) {
-          return makeAbstractCast(type, literal2, kind);
+          return makeAbstractCast(type, literal2, safe);
         }
         return literal2;
       }
@@ -651,7 +637,7 @@ public class RexBuilder {
         && SqlTypeUtil.isExactNumeric(type)) {
       return makeCastBooleanToExact(type, exp);
     }
-    return makeAbstractCast(type, exp, kind);
+    return makeAbstractCast(type, exp, safe);
   }
 
   /** Returns the lowest granularity unit for the given unit.
@@ -842,16 +828,15 @@ public class RexBuilder {
    *
    * @param type Type to cast to
    * @param exp  Expression being cast
-   * @param kind  Either SqlKind.CAST or SqlKind.SAFE_CAST
+   * @param safe Whether this is a regular or safe cast
    * @return Call to CAST operator
    */
   public RexNode makeAbstractCast(
       RelDataType type,
       RexNode exp,
-      SqlKind kind) {
-    assert Arrays.asList(SqlKind.CAST, SqlKind.SAFE_CAST).contains(kind);
+      boolean safe) {
     SqlOperator operator;
-    if (kind == SqlKind.SAFE_CAST) {
+    if (safe) {
       operator = SqlStdOperatorTable.SAFE_CAST;
     } else {
       operator = SqlStdOperatorTable.CAST;

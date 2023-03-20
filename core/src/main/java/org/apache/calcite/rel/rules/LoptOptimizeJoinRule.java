@@ -1696,7 +1696,7 @@ public class LoptOptimizeJoinRule
           projExpr =
               rexBuilder.makeCast(
                   newFields.get(i).getType(),
-                  mappedInput);
+                  mappedInput, false, false);
         }
       }
       projects.add(Pair.of(projExpr, newFields.get(i).getName()));

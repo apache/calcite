@@ -418,7 +418,7 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
         stack.push(castOperand);
       }
     } else {
-      stack.push(builder.getRexBuilder().makeCast(relType, castOperand));
+      stack.push(builder.getRexBuilder().makeCast(relType, castOperand, false, false));
     }
   }
 
