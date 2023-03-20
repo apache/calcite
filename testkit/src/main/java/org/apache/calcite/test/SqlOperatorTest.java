@@ -1208,7 +1208,6 @@ public class SqlOperatorTest {
     f.checkNull("convert(DATE, NULL)");
   }
 
-  @Disabled("Need to add exception for MSSQL CONVERT 'style' argument being a literal.")
   @Test void testMssqlConvertWithStyle() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlLibraryOperators.MSSQL_CONVERT, VmName.EXPAND);

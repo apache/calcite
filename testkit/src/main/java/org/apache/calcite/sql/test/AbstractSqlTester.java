@@ -325,9 +325,10 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
    * @return Query that evaluates a scalar expression
    */
   protected String buildQuery2(SqlTestFactory factory, String expression) {
-    if (expression.matches("(?i).*percentile_(cont|disc).*")) {
+    if (expression.matches("(?i).*(percentile_(cont|disc)|convert)\\(.*")) {
       // PERCENTILE_CONT requires its argument to be a literal,
       // so converting its argument to a column will cause false errors.
+      // Similarly, MSSQL-style CONVERT.
       return buildQuery(expression);
     }
     // "values (1 < 5)"
