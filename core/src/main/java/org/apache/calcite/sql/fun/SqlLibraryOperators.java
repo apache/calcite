@@ -41,6 +41,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
 
@@ -142,16 +143,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MSSQL})
   public static final SqlFunction MSSQL_CONVERT =
       SqlBasicFunction.create(SqlKind.CAST,
-              ReturnTypes.andThen(opBinding -> {
-                    // Guaranteed to be a SqlCallBinding, with 2 or 3 arguments
-                    final SqlCallBinding binding = (SqlCallBinding) opBinding;
-                    final SqlCall call = binding.getCall();
-                    return new SqlCallBinding(binding.getValidator(),
-                        binding.getScope(),
-                        SqlStdOperatorTable.CAST.createCall(
-                            call.getParserPosition(), call.operand(1),
-                            call.operand(0)));
-                  },
+              ReturnTypes.andThen(SqlLibraryOperators::transformConvert,
                   SqlCastFunction::inferReturnTypeImpl),
               OperandTypes.repeat(SqlOperandCountRanges.between(2, 3),
                   OperandTypes.ANY))
@@ -159,9 +151,23 @@ public abstract class SqlLibraryOperators {
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withOperandTypeInference(InferTypes.FIRST_KNOWN)
           .withOperandHandler(
-              OperandHandlers.of((validator, call) ->
-                  SqlStdOperatorTable.CAST.createCall(call.getParserPosition(),
-                      call.operand(1), call.operand(0))));
+              OperandHandlers.of(SqlLibraryOperators::transformConvert));
+
+  /** Transforms a call binding of {@code CONVERT} to an equivalent binding for
+   *  {@code CAST}. */
+  private static SqlCallBinding transformConvert(SqlOperatorBinding opBinding) {
+    // Guaranteed to be a SqlCallBinding, with 2 or 3 arguments
+    final SqlCallBinding binding = (SqlCallBinding) opBinding;
+    return new SqlCallBinding(binding.getValidator(), binding.getScope(),
+        transformConvert(binding.getValidator(), binding.getCall()));
+  }
+
+  /** Transforms a call to {@code CONVERT} to an equivalent call to
+   *  {@code CAST}. */
+  private static SqlCall transformConvert(SqlValidator validator, SqlCall call) {
+    return SqlStdOperatorTable.CAST.createCall(call.getParserPosition(),
+        call.operand(1), call.operand(0));
+  }
 
   /** The "DATE_PART(timeUnit, datetime)" function
    * (Databricks, Postgres, Redshift, Snowflake). */
