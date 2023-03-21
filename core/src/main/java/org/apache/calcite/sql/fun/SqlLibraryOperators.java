@@ -223,7 +223,7 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction SUBSTR4 =
-      new SqlFunction("SUBSTR4", SqlKind.STRING,
+      new SqlFunction("SUBSTR4", SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000, null,
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
