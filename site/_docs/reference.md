@@ -2647,7 +2647,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
 | m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
-| o p | CHR(integer)                                 | Returns the character whose UTF-8 code is *integer*
+| b o p | CHR(integer)                               | Returns the character whose UTF-8 code is *integer*
 | b o | COSH(numeric)                                | Returns the hyperbolic cosine of *numeric*
 | o | CONCAT(string, string)                         | Concatenates two strings
 | b m p | CONCAT(string [, string ]*)                | Concatenates two or more strings

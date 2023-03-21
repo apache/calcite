@@ -1133,7 +1133,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "CHR(n)" function; returns the character whose UTF-8 code is
    * {@code n}. */
-  @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, POSTGRESQL})
   public static final SqlFunction CHR =
       SqlBasicFunction.create("CHR",
           ReturnTypes.CHAR,
