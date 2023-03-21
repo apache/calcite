@@ -1212,11 +1212,6 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlLibraryOperators.MSSQL_CONVERT, VmName.EXPAND);
     // ensure 'style' argument is ignored
-    // 3rd argument 'style' is a literal. However,
-    // AbstractSqlTester converts values to a single value in a column.
-    // see AbstractSqlTester.buildQuery2
-    // But CONVERT 'style' is supposed to be a literal.
-    // So for now, they are put in a @Disabled test
     f.checkScalar("convert(INTEGER, 45.4, 999)", "45", "INTEGER NOT NULL");
     f.checkScalar("convert(DATE, '2000-01-01', 999)", "2000-01-01", "DATE NOT NULL");
     // including 'NULL' style argument
