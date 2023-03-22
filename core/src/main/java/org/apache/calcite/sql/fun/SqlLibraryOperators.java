@@ -327,6 +327,10 @@ public abstract class SqlLibraryOperators {
     return type;
   }
 
+  /** The "STRPOS(value1, value2)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
+  public static final SqlFunction STRPOS = new SqlPositionFunction("STRPOS");
+
   /** Generic "SUBSTR(string, position [, substringLength ])" function. */
   private static final SqlBasicFunction SUBSTR =
       SqlBasicFunction.create("SUBSTR", ReturnTypes.ARG0_NULLABLE_VARYING,

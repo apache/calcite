@@ -40,9 +40,9 @@ public class SqlPositionFunction extends SqlFunction {
       OperandTypes.STRING_SAME_SAME
           .or(OperandTypes.STRING_SAME_SAME_INTEGER);
 
-  public SqlPositionFunction() {
+  public SqlPositionFunction(String name) {
     super(
-        "POSITION",
+        name,
         SqlKind.POSITION,
         ReturnTypes.INTEGER_NULLABLE,
         null,

@@ -2718,6 +2718,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | SPLIT(string [, delimiter ])                   | Returns the string array of *string* split at *delimiter* (if omitted, default is comma)
 | b | STARTS_WITH(string1, string2)                  | Returns whether *string2* is a prefix of *string1*
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
+| b | STRPOS(value1, value2)                         | Returns the 1-based position of the first occurrence of *value2* in *value1*, returns 0 if not found
 | b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | b o | TANH(numeric)                                | Returns the hyperbolic tangent of *numeric*
 | b | TIME(hour, minute, second)                     | Returns a TIME value *hour*, *minute*, *second* (all of type INTEGER)
