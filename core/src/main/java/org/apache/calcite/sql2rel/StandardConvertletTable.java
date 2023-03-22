@@ -266,7 +266,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
                 call.operand(0),
                 SqlLiteral.createExactNumeric("0.5", SqlParserPos.ZERO))));
 
-    // "STRPOS(value1, value2) is equivalent to "POSITION(value2, value1)"
+    // "STRPOS(value1, value2) is equivalent to "POSITION(value2 IN value1)"
     registerOp(SqlLibraryOperators.STRPOS,
         (cx, call) -> cx.convertExpression(
             SqlStdOperatorTable.POSITION.createCall(SqlParserPos.ZERO,
