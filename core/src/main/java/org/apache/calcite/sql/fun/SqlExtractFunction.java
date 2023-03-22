@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -88,14 +89,12 @@ public class SqlExtractFunction extends SqlFunction {
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
-    if (call.isOperandLiteral(0, false) || call.isOperandTimeFrame(0)) {
-      return SqlMonotonicity.NOT_MONOTONIC;
-    }
-    TimeUnitRange value = getOperandLiteralValueOrThrow(call, 0, TimeUnitRange.class);
-    switch (value) {
-    case YEAR:
+    // If string value of first operand is anything except YEAR,
+    // return NOT_MONOTONIC.
+    Object value = call.getOperandLiteralValue(0, Object.class);
+    if (value != null && value.toString().equals("YEAR")) {
       return call.getOperandMonotonicity(1).unstrict();
-    default:
+    } else {
       return SqlMonotonicity.NOT_MONOTONIC;
     }
   }
