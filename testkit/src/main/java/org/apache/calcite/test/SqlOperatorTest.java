@@ -6079,6 +6079,31 @@ public class SqlOperatorTest {
         "Third argument (pad pattern) for LPAD/RPAD must not be empty", true);
   }
 
+  @Test void testStrposFunction() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.STRPOS);
+    f0.checkFails("^strpos('abc', 'a')^",
+        "No match found for function signature STRPOS\\(<CHARACTER>, <CHARACTER>\\)",
+        false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("STRPOS('abc', 'a')", "1", "INTEGER NOT NULL");
+    f.checkScalar("STRPOS('abcabc', 'bc')", "2", "INTEGER NOT NULL");
+    f.checkScalar("STRPOS('abcabc', 'd')", "0", "INTEGER NOT NULL");
+    f.checkScalar("STRPOS('abc', '')", "1", "INTEGER NOT NULL");
+    f.checkScalar("STRPOS('', 'a')", "0", "INTEGER NOT NULL");
+    f.checkNull("STRPOS(null, 'a')");
+    f.checkNull("STRPOS('a', null)");
+
+    // test for BINARY
+    f.checkScalar("STRPOS(x'2212', x'12')", "2", "INTEGER NOT NULL");
+    f.checkScalar("STRPOS(x'2122', x'12')", "0", "INTEGER NOT NULL");
+    f.checkScalar("STRPOS(x'1222', x'12')", "1", "INTEGER NOT NULL");
+    f.checkScalar("STRPOS(x'1111', x'22')", "0", "INTEGER NOT NULL");
+    f.checkScalar("STRPOS(x'2122', x'')", "1", "INTEGER NOT NULL");
+    f.checkScalar("STRPOS(x'', x'12')", "0", "INTEGER NOT NULL");
+    f.checkNull("STRPOS(null, x'')");
+    f.checkNull("STRPOS(x'', null)");
+  }
+
   @Test void testStartsWithFunction() {
     final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
     f.setFor(SqlLibraryOperators.STARTS_WITH);

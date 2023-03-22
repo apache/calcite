@@ -266,6 +266,13 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
                 call.operand(0),
                 SqlLiteral.createExactNumeric("0.5", SqlParserPos.ZERO))));
 
+    // "STRPOS(string, substring) is equivalent to
+    // "POSITION(substring IN string)"
+    registerOp(SqlLibraryOperators.STRPOS,
+        (cx, call) -> cx.convertExpression(
+            SqlStdOperatorTable.POSITION.createCall(SqlParserPos.ZERO,
+                call.operand(1), call.operand(0))));
+
     // REVIEW jvs 24-Apr-2006: This only seems to be working from within a
     // windowed agg.  I have added an optimizer rule
     // org.apache.calcite.rel.rules.AggregateReduceFunctionsRule which handles

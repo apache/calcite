@@ -893,6 +893,41 @@ FROM Casted;
 !ok
 
 #####################################################################
+# STRPOS(string, substring)
+#
+# Returns the 1-based position of the first occurrence of substring
+# within string. Returns 0 if not found.
+SELECT STRPOS("abc", "a") as result;
++--------+
+| result |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+SELECT STRPOS("abc", "d") as result;
++--------+
+| result |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+SELECT STRPOS("abcabc", "bc") as result;
++--------+
+| result |
++--------+
+|      2 |
++--------+
+(1 row)
+
+!ok
+
+#####################################################################
 # DATE
 #
 # 0. DATE(string)
