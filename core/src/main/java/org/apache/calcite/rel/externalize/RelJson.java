@@ -560,18 +560,10 @@ public class RelJson {
           list.add(toJson(operand));
         }
         map.put("operands", list);
-        switch (node.getKind()) {
-        case CAST:
-          map.put("type", toJson(node.getType()));
-          break;
-        default:
-          break;
-        }
         if (call.getOperator() instanceof SqlFunction) {
           if (((SqlFunction) call.getOperator()).getFunctionType().isUserDefined()) {
             SqlOperator op = call.getOperator();
             map.put("class", op.getClass().getName());
-            map.put("type", toJson(node.getType()));
             map.put("deterministic", op.isDeterministic());
             map.put("dynamic", op.isDynamicFunction());
           }
@@ -579,7 +571,6 @@ public class RelJson {
         if (call instanceof RexOver) {
           RexOver over = (RexOver) call;
           map.put("distinct", over.isDistinct());
-          map.put("type", toJson(node.getType()));
           map.put("window", toJson(over.getWindow()));
         }
         return map;
