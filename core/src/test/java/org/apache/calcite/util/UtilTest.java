@@ -31,6 +31,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.util.IdPair;
 import org.apache.calcite.sql.util.SqlBuilder;
 import org.apache.calcite.sql.util.SqlString;
@@ -118,6 +119,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -917,6 +919,61 @@ class UtilTest {
     for (String localeName : localeNames) {
       assertEquals(localeName, Util.parseLocale(localeName).toString());
     }
+  }
+
+  @Test void testSqlLibrary() {
+    final SqlLibrary a = SqlLibrary.ALL;
+    final SqlLibrary c = SqlLibrary.CALCITE;
+    final SqlLibrary o = SqlLibrary.ORACLE;
+    final SqlLibrary sp = SqlLibrary.SPATIAL;
+    final SqlLibrary st = SqlLibrary.STANDARD;
+
+    assertThat(SqlLibrary.parse("oracle"),
+        is(ImmutableList.of(o)));
+    assertThat(SqlLibrary.parse("oracle,calcite"),
+        is(ImmutableList.of(o, c)));
+    assertThat(SqlLibrary.parse("oracle,calcite,oracle"),
+        is(ImmutableList.of(o, c, o)));
+    assertThat(SqlLibrary.parse("oracle,CALCITE,oracle"),
+        is(ImmutableList.of(o, c, o)));
+    assertThat(SqlLibrary.parse(""),
+        is(ImmutableList.of()));
+    assertThrows(IllegalArgumentException.class,
+        () -> SqlLibrary.parse("oracle,calcite,foo,oracle"));
+    assertThrows(IllegalArgumentException.class,
+        () -> SqlLibrary.parse("oracle,calcite,,oracle"));
+
+    assertThat(SqlLibrary.expand(ImmutableList.of(a)).toString(),
+        is("[ALL, BIG_QUERY, CALCITE, HIVE, MSSQL, MYSQL, ORACLE, POSTGRESQL, "
+            + "SPARK]"));
+    assertThat(SqlLibrary.expand(ImmutableList.of(a, c)).toString(),
+        is("[ALL, BIG_QUERY, CALCITE, HIVE, MSSQL, MYSQL, ORACLE, POSTGRESQL, "
+            + "SPARK]"));
+    assertThat(SqlLibrary.expand(ImmutableList.of(c, a)).toString(),
+        is("[CALCITE, ALL, BIG_QUERY, HIVE, MSSQL, MYSQL, ORACLE, POSTGRESQL, "
+            + "SPARK]"));
+    assertThat(SqlLibrary.expand(ImmutableList.of(c, o, a)).toString(),
+        is("[CALCITE, ORACLE, ALL, BIG_QUERY, HIVE, MSSQL, MYSQL, POSTGRESQL, "
+            + "SPARK]"));
+    assertThat(SqlLibrary.expand(ImmutableList.of(o, c, o)).toString(),
+        is("[ORACLE, CALCITE]"));
+
+    assertThat("all + spatial + standard covers everything",
+        ImmutableSet.copyOf(SqlLibrary.expand(ImmutableList.of(a, sp, st))),
+        is(ImmutableSet.copyOf(SqlLibrary.values())));
+
+    assertThat(SqlLibrary.expandUp(ImmutableList.of(c)).toString(),
+        is("[ALL, CALCITE]"));
+    assertThat(SqlLibrary.expandUp(ImmutableList.of(c, o)).toString(),
+        is("[ALL, CALCITE, ORACLE]"));
+    assertThat(SqlLibrary.expandUp(ImmutableList.of(st, c, o)).toString(),
+        is("[STANDARD, ALL, CALCITE, ORACLE]"));
+    assertThat(SqlLibrary.expandUp(ImmutableList.of(st, sp)).toString(),
+        is("[STANDARD, SPATIAL]"));
+    assertThat(SqlLibrary.expandUp(ImmutableList.of(st, a, sp)).toString(),
+        is("[STANDARD, ALL, SPATIAL]"));
+    assertThat(SqlLibrary.expandUp(ImmutableList.of(a)).toString(),
+        is("[ALL]"));
   }
 
   @Test void testSpaces() {

@@ -2616,6 +2616,7 @@ To enable an operator table, set the
 connect string parameter.
 
 The 'C' (compatibility) column contains value:
+* '*' for all libraries,
 * 'b' for Google BigQuery ('fun=bigquery' in the connect string),
 * 'c' for Apache Calcite ('fun=calcite' in the connect string),
 * 'h' for Apache Hive ('fun=hive' in the connect string),
@@ -2648,7 +2649,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
 | m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
 | b o p | CHR(integer)                               | Returns the character whose UTF-8 code is *integer*
-| b o | COSH(numeric)                                | Returns the hyperbolic cosine of *numeric*
+| * | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | o | CONCAT(string, string)                         | Concatenates two strings
 | b m p | CONCAT(string [, string ]*)                | Concatenates two or more strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string
@@ -2725,7 +2726,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b o | RTRIM(string)                                | Returns *string* with all blanks removed from the end
 | b | SAFE_CAST(value AS type)                       | Converts *value* to *type*, returning NULL if conversion fails
 | b m p | SHA1(string)                               | Calculates a SHA-1 hash value of *string* and returns it as a hex string
-| b o | SINH(numeric)                                | Returns the hyperbolic sine of *numeric*
+| * | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
 | b m o p | SOUNDEX(string)                          | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
 | b | SPLIT(string [, delimiter ])                   | Returns the string array of *string* split at *delimiter* (if omitted, default is comma)
@@ -2733,7 +2734,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
 | b p | STRPOS(string, substring)                    | Equivalent to `POSITION(substring IN string)`
 | b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
-| b o | TANH(numeric)                                | Returns the hyperbolic tangent of *numeric*
+| * | TANH(numeric)                                  | Returns the hyperbolic tangent of *numeric*
 | b | TIME(hour, minute, second)                     | Returns a TIME value *hour*, *minute*, *second* (all of type INTEGER)
 | b | TIME(timestamp)                                | Extracts the TIME from *timestamp* (a local time; BigQuery's DATETIME type)
 | b | TIME(instant)                                  | Extracts the TIME from *timestampLtz* (an instant; BigQuery's TIMESTAMP type), assuming UTC

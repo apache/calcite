@@ -566,7 +566,7 @@ public interface SqlOperatorFixture extends AutoCloseable {
   /** Applies this fixture to some code for each of the given libraries. */
   default void forEachLibrary(Iterable<? extends SqlLibrary> libraries,
       Consumer<SqlOperatorFixture> consumer) {
-    libraries.forEach(library -> {
+    SqlLibrary.expand(libraries).forEach(library -> {
       try {
         consumer.accept(this.withLibrary(library));
       } catch (Exception e) {
