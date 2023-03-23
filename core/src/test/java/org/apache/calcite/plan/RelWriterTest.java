@@ -1022,14 +1022,21 @@ class RelWriterTest {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     final RexBuilder rb = builder.getRexBuilder();
+    final RelDataTypeFactory typeFactory = rb.getTypeFactory();
+    final SqlIntervalQualifier qualifier =
+        new SqlIntervalQualifier(TimeUnit.MONTH, null, SqlParserPos.ZERO);
+    final RexNode op1 = rb.makeTimestampLiteral(new TimestampString("2012-12-03 12:34:44"), 0);
+    final RexNode op2 = rb.makeTimestampLiteral(new TimestampString("2014-12-23 12:34:44"), 0);
+    final RelDataType intervalType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlIntervalType(qualifier),
+            op1.getType().isNullable() || op2.getType().isNullable());
     final RelNode rel = builder
         .scan("EMP")
         .project(builder.field("JOB"),
-            builder.call(SqlStdOperatorTable.REINTERPRET,
-                builder.call(SqlStdOperatorTable.MINUS_DATE,
-                      rb.makeTimestampLiteral(new TimestampString("2012-12-03 12:34:44"), 0),
-                      rb.makeTimestampLiteral(new TimestampString("2014-12-23 12:34:44"), 0)
-                    ))
+            rb.makeCall(intervalType,
+                SqlStdOperatorTable.MINUS_DATE,
+                ImmutableList.of(op2, op1))
         ).build();
     final RelJsonWriter jsonWriter =
         new RelJsonWriter(new JsonBuilder(), RelJson::withLibraryOperatorTable);
