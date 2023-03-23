@@ -1940,6 +1940,26 @@ public class SqlFunctions {
     return 1.0d / Math.tan(b0);
   }
 
+  /** SQL <code>COTH</code> operator applied to BigDecimal values. */
+  public static double coth(BigDecimal b0) {
+    return 1.0d / Math.tanh(b0.doubleValue());
+  }
+
+  /** SQL <code>COTH</code> operator applied to double values. */
+  public static double coth(double b0) {
+    return 1.0d / Math.tanh(b0);
+  }
+
+  /** SQL <code>CSCH</code> operator applied to BigDecimal values. */
+  public static double csch(BigDecimal b0) {
+    return 1.0d / Math.sinh(b0.doubleValue());
+  }
+
+  /** SQL <code>CSCH</code> operator applied to double values. */
+  public static double csch(double b0) {
+    return 1.0d / Math.sinh(b0);
+  }
+
   // DEGREES
   /** SQL <code>DEGREES</code> operator applied to BigDecimal values. */
   public static double degrees(BigDecimal b0) {
@@ -1960,6 +1980,16 @@ public class SqlFunctions {
   /** SQL <code>RADIANS</code> operator applied to double values. */
   public static double radians(double b0) {
     return Math.toRadians(b0);
+  }
+
+  /** SQL <code>SECH</code> operator applied to BigDecimal values. */
+  public static double sech(BigDecimal b0) {
+    return 1.0d / Math.cosh(b0.doubleValue());
+  }
+
+  /** SQL <code>SECH</code> operator applied to double values. */
+  public static double sech(double b0) {
+    return 1.0d / Math.cosh(b0);
   }
 
   // SQL ROUND
