@@ -5573,6 +5573,46 @@ public class SqlOperatorTest {
     f.checkNull("cot(cast(null as double))");
   }
 
+  @Test void testCothFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.COTH);
+    f0.checkFails("^coth(1)^",
+        "No match found for function signature COTH\\(<NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkType("coth(1)", "DOUBLE NOT NULL");
+      f.checkType("coth(cast(1 as float))", "DOUBLE NOT NULL");
+      f.checkType("coth(case when false then 1 else null end)", "DOUBLE");
+      f.checkType("coth('abc')", "DOUBLE NOT NULL");
+      f.checkScalarApprox("coth(1)", "DOUBLE NOT NULL",
+          isWithin(1.3130d, 0.0001d));
+      f.checkScalarApprox(" coth(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
+          isWithin(1.3130d, 0.0001d));
+      f.checkNull("coth(cast(null as integer))");
+      f.checkNull("coth(cast(null as double))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
+  }
+
+  @Test void testCschFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.CSCH);
+    f0.checkFails("^csch(1)^",
+        "No match found for function signature CSCH\\(<NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkType("csch(1)", "DOUBLE NOT NULL");
+      f.checkType("csch(cast(1 as float))", "DOUBLE NOT NULL");
+      f.checkType("csch(case when false then 1 else null end)", "DOUBLE");
+      f.checkType("csch('abc')", "DOUBLE NOT NULL");
+      f.checkScalarApprox("csch(1)", "DOUBLE NOT NULL",
+          isWithin(0.8509d, 0.0001d));
+      f.checkScalarApprox(" csch(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
+          isWithin(0.8509d, 0.0001d));
+      f.checkNull("csch(cast(null as integer))");
+      f.checkNull("csch(cast(null as double))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
+  }
+
   @Test void testDegreesFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DEGREES, VmName.EXPAND);
@@ -5688,6 +5728,26 @@ public class SqlOperatorTest {
     f.checkScalar("sign(cast(0 as float))", 0d, "FLOAT NOT NULL");
     f.checkNull("sign(cast(null as integer))");
     f.checkNull("sign(cast(null as double))");
+  }
+
+  @Test void testSechFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SECH);
+    f0.checkFails("^sech(1)^",
+        "No match found for function signature SECH\\(<NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkType("sech(1)", "DOUBLE NOT NULL");
+      f.checkType("sech(cast(1 as float))", "DOUBLE NOT NULL");
+      f.checkType("sech(case when false then 1 else null end)", "DOUBLE");
+      f.checkType("sech('abc')", "DOUBLE NOT NULL");
+      f.checkScalarApprox("sech(1)", "DOUBLE NOT NULL",
+          isWithin(0.6481d, 0.0001d));
+      f.checkScalarApprox(" sech(cast(1 as decimal(1, 0)))", "DOUBLE NOT NULL",
+          isWithin(0.6481d, 0.0001d));
+      f.checkNull("sech(cast(null as integer))");
+      f.checkNull("sech(cast(null as double))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
   @Test void testSinFunc() {

@@ -1205,9 +1205,36 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The "COTH(value)" function; returns the hyperbolic cotangent
+   * of {@code value}. */
+  @LibraryOperator(libraries = {ALL})
+  public static final SqlFunction COTH =
+      SqlBasicFunction.create("COTH",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {ALL})
   public static final SqlFunction COSH =
       SqlBasicFunction.create("COSH",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The "COTH(value)" function; returns the hyperbolic secant
+   * of {@code value}. */
+  @LibraryOperator(libraries = {ALL})
+  public static final SqlFunction SECH =
+      SqlBasicFunction.create("SECH",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The "COTH(value)" function; returns the hyperbolic cosecant
+   * of {@code value}. */
+  @LibraryOperator(libraries = {ALL})
+  public static final SqlFunction CSCH =
+      SqlBasicFunction.create("CSCH",
           ReturnTypes.DOUBLE_NULLABLE,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
