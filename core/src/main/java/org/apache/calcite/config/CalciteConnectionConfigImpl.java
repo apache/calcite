@@ -116,7 +116,7 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     final List<SqlLibrary> libraryList = SqlLibrary.parse(fun);
     final SqlOperatorTable operatorTable =
             SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                ConsList.of(SqlLibrary.STANDARD, libraryList));
+                ConsList.of(SqlLibrary.STANDARD, libraryList), true);
     return operatorTableClass.cast(operatorTable);
   }
 

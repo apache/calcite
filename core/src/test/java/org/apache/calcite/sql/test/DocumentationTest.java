@@ -104,15 +104,18 @@ class DocumentationTest {
     final FileFixture f = new FileFixture();
     final Map<String, PatternOp> map = new TreeMap<>();
     addOperators(map, "", SqlStdOperatorTable.instance().getOperatorList());
+    addOperators(map, "\\| \\* ", SqlLibraryOperatorTableFactory.INSTANCE
+        .getOperatorTable(SqlLibrary.ALL).getOperatorList());
     for (SqlLibrary library : SqlLibrary.values()) {
       switch (library) {
       case STANDARD:
       case SPATIAL:
+      case ALL:
         continue;
       }
       addOperators(map, "\\| [^|]*" + library.abbrev + "[^|]* ",
           SqlLibraryOperatorTableFactory.INSTANCE
-              .getOperatorTable(EnumSet.of(library)).getOperatorList());
+              .getOperatorTable(EnumSet.of(library), false).getOperatorList());
     }
     final Set<String> regexSeen = new HashSet<>();
     try (LineNumberReader r = new LineNumberReader(Util.reader(f.inFile))) {
