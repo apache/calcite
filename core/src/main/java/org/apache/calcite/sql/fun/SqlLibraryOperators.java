@@ -257,6 +257,12 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
   public static final SqlFunction TRANSLATE3 = new SqlTranslate3Function();
 
+  @LibraryOperator(libraries = {ORACLE, POSTGRESQL, MYSQL, NETEZZA, TERADATA})
+  public static final SqlFunction BETWEEN = new SqlBetweenAsymmetricOperator(false);
+
+  @LibraryOperator(libraries = {ORACLE, POSTGRESQL, MYSQL, NETEZZA, TERADATA})
+  public static final SqlFunction NOT_BETWEEN = new SqlBetweenAsymmetricOperator(true);
+
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
 
@@ -1057,6 +1063,13 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
           SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_DIFF = new SqlFunction("DATETIME_DIFF",
+      SqlKind.TIMESTAMP_DIFF,
+      ReturnTypes.INTEGER, null,
+      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+      SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMPINTADD = new SqlFunction("TIMESTAMPINTADD",

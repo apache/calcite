@@ -410,6 +410,14 @@ public abstract class OperandTypes {
           SqlOperandTypeChecker.Consistency.COMPARE);
 
   /**
+   * Operand type-checking strategy where operand types must allow ordered
+   * comparisons.
+   */
+  public static final SqlOperandTypeChecker COMPARABLE_COMPARABLE_COMPARABLE_ORDERED =
+      new ComparableOperandTypeChecker(3, RelDataTypeComparability.ALL,
+          SqlOperandTypeChecker.Consistency.COMPARE);
+
+  /**
    * Operand type-checking strategy where operand type must allow ordered
    * comparisons. Used when instance comparisons are made on single operand
    * functions

@@ -666,10 +666,6 @@ public class RelBuilder {
         return (RexCall) not(call(SqlStdOperatorTable.SIMILAR_TO, operandList));
       }
       break;
-    case BETWEEN:
-      assert operandList.size() == 3;
-      return (RexCall) between(operandList.get(0), operandList.get(1),
-          operandList.get(2));
     default:
       break;
     }

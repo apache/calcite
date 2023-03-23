@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -6197,6 +6198,24 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
   }
 
+  @Test public void testDateTimeDiffFunctionRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateTimeDiffRexNode = builder.call(SqlLibraryOperators.DATETIME_DIFF,
+        builder.call(SqlStdOperatorTable.CURRENT_DATE),
+        builder.call(SqlStdOperatorTable.CURRENT_DATE), builder.literal(TimeUnit.HOUR));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateTimeDiffRexNode, "HOURS"))
+        .build();
+    final String expectedSql = "SELECT DATETIME_DIFF(CURRENT_DATE, CURRENT_DATE, HOUR) AS "
+        + "\"HOURS\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATETIME_DIFF(CURRENT_DATE, CURRENT_DATE, HOUR) AS "
+        + "HOURS\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test void testJsonType() {
     String query = "select json_type(\"product_name\") from \"product\"";
     final String expected = "SELECT "
@@ -11440,6 +11459,117 @@ class RelToSqlConverterTest {
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testStringAggFuncWithCollation() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall = builder.aggregateCall(SqlLibraryOperators.STRING_AGG,
+        builder.field("ENAME"),
+        builder.literal(";  ")).sort(builder.field("ENAME"), builder.field("HIREDATE"));
+    final RelNode rel = builder
+        .aggregate(relBuilder().groupKey(), aggCall)
+        .build();
+
+    final String expectedBigQuery = "SELECT STRING_AGG(ENAME, ';  ' ORDER BY ENAME IS NULL,"
+        + " ENAME, HIREDATE IS NULL, HIREDATE) AS `$f0`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
+
+  @Test public void testCoalesceFunctionWithIntegerAndStringArgument() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode formatIntegerRexNode =
+        builder.call(SqlLibraryOperators.FORMAT,
+            builder.literal("'%11d'"), builder.scan("EMP").field(0));
+    final RexNode formatCoalesceRexNode =
+        builder.call(SqlStdOperatorTable.COALESCE,
+            formatIntegerRexNode, builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatCoalesceRexNode, "Name"))
+        .build();
+
+    final String expectedSparkQuery = "SELECT "
+        + "COALESCE(STRING(EMPNO), ENAME) Name"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testCoalesceFunctionWithDecimalAndStringArgument() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode formatFloatRexNode =
+        builder.call(SqlLibraryOperators.FORMAT,
+            builder.literal("'%10.4f'"), builder.scan("EMP").field(5));
+    final RexNode formatCoalesceRexNode =
+        builder.call(SqlStdOperatorTable.COALESCE,
+            formatFloatRexNode, builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatCoalesceRexNode, "Name"))
+        .build();
+
+    final String expectedSparkQuery = "SELECT "
+        + "COALESCE(STRING(SAL), ENAME) Name"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testLiteralWithoutAliasInSelectForGroupBy() {
+    final String query = "select 'testliteral' from"
+        + " \"product\" group by 'testliteral'";
+    final String expectedSql = "SELECT 'testliteral'\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY 'testliteral'";
+    final String bigQueryExpected = "SELECT 'testliteral'\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY 1";
+    final String expectedSpark = "SELECT 'testliteral'\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY 1";
+    sql(query)
+        .withHive()
+        .ok(expectedSql)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(bigQueryExpected);
+  }
+
+  @Test public void testBetween() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.call(SqlLibraryOperators.BETWEEN,
+                builder.field("EMPNO"), builder.literal(1), builder.literal(3)))
+        .build();
+    final String expectedBigQuery = "SELECT *\n"
+        + "FROM scott.EMP\n"
+        + "WHERE EMPNO BETWEEN 1 AND 3";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
+  @Test public void testNotBetween() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.call(SqlLibraryOperators.NOT_BETWEEN,
+                builder.field("EMPNO"), builder.literal(1), builder.literal(3)))
+        .build();
+    final String expectedBigQuery = "SELECT *\n"
+        + "FROM scott.EMP\n"
+        + "WHERE EMPNO NOT BETWEEN 1 AND 3";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
   }
 
   @Test public void testSortByOrdinal() {
