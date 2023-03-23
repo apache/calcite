@@ -129,6 +129,10 @@ class RelWriterTest {
       + "          \"kind\": \"EQUALS\",\n"
       + "          \"syntax\": \"BINARY\"\n"
       + "        },\n"
+      + "        \"type\": {\n"
+      + "          \"type\": \"BOOLEAN\",\n"
+      + "          \"nullable\": false\n"
+      + "        },\n"
       + "        \"operands\": [\n"
       + "          {\n"
       + "            \"input\": 1,\n"
@@ -288,6 +292,10 @@ class RelWriterTest {
       + "            \"kind\": \"COUNT\",\n"
       + "            \"syntax\": \"FUNCTION_STAR\"\n"
       + "          },\n"
+      + "          \"type\": {\n"
+      + "            \"type\": \"BIGINT\",\n"
+      + "            \"nullable\": false\n"
+      + "          },\n"
       + "          \"operands\": [\n"
       + "            {\n"
       + "              \"input\": 0,\n"
@@ -295,10 +303,6 @@ class RelWriterTest {
       + "            }\n"
       + "          ],\n"
       + "          \"distinct\": false,\n"
-      + "          \"type\": {\n"
-      + "            \"type\": \"BIGINT\",\n"
-      + "            \"nullable\": false\n"
-      + "          },\n"
       + "          \"window\": {\n"
       + "            \"partition\": [\n"
       + "              {\n"
@@ -330,6 +334,10 @@ class RelWriterTest {
       + "            \"kind\": \"SUM\",\n"
       + "            \"syntax\": \"FUNCTION\"\n"
       + "          },\n"
+      + "          \"type\": {\n"
+      + "            \"type\": \"BIGINT\",\n"
+      + "            \"nullable\": false\n"
+      + "          },\n"
       + "          \"operands\": [\n"
       + "            {\n"
       + "              \"input\": 0,\n"
@@ -337,10 +345,6 @@ class RelWriterTest {
       + "            }\n"
       + "          ],\n"
       + "          \"distinct\": false,\n"
-      + "          \"type\": {\n"
-      + "            \"type\": \"BIGINT\",\n"
-      + "            \"nullable\": false\n"
-      + "          },\n"
       + "          \"window\": {\n"
       + "            \"partition\": [\n"
       + "              {\n"
@@ -760,72 +764,6 @@ class RelWriterTest {
         + "  ]\n"
         + "}";
     assertThatReadExpressionResult(jsonString2, is("+(1001, 2)"));
-
-    // SELECT TIMESTAMPDIFF(DAY, TIMESTAMP '2012-12-03 12:34:44', TIMESTAMP '2014-12-23 12:34:00') AS test"
-    final String jsonString3 = "{\n"
-        + "  \"op\":{\n"
-        + "    \"name\":\"CAST\",\n"
-        + "    \"kind\":\"CAST\",\n"
-        + "    \"syntax\":\"SPECIAL\"\n"
-        + "  },\n"
-        + "  \"operands\":[\n"
-        + "    {\n"
-        + "      \"op\":{\n"
-        + "        \"name\":\"/INT\",\n"
-        + "        \"kind\":\"DIVIDE\",\n"
-        + "        \"syntax\":\"BINARY\"\n"
-        + "      },\n"
-        + "      \"operands\":[\n"
-        + "        {\n"
-        + "          \"op\":{\n"
-        + "            \"name\":\"Reinterpret\",\n"
-        + "            \"kind\":\"REINTERPRET\",\n"
-        + "            \"syntax\":\"SPECIAL\"\n"
-        + "          },\n"
-        + "          \"operands\":[\n"
-        + "            {\n"
-        + "              \"op\":{\n"
-        + "                \"name\":\"-\",\n"
-        + "                \"kind\":\"MINUS\",\n"
-        + "                \"syntax\":\"SPECIAL\"\n"
-        + "              },\n"
-        + "              \"operands\":[\n"
-        + "                {\n"
-        + "                  \"literal\":1419338040000,\n"
-        + "                  \"type\":{\n"
-        + "                    \"type\":\"TIMESTAMP\",\n"
-        + "                    \"nullable\":false,\n"
-        + "                    \"precision\":0\n"
-        + "                  }\n"
-        + "                },\n"
-        + "                {\n"
-        + "                  \"literal\":1354538084000,\n"
-        + "                  \"type\":{\n"
-        + "                    \"type\":\"TIMESTAMP\",\n"
-        + "                    \"nullable\":false,\n"
-        + "                    \"precision\":0\n"
-        + "                  }\n"
-        + "                }\n"
-        + "              ]\n"
-        + "            }\n"
-        + "          ]\n"
-        + "        },\n"
-        + "        {\n"
-        + "          \"literal\":86400000,\n"
-        + "          \"type\":{\n"
-        + "            \"type\":\"INTEGER\",\n"
-        + "            \"nullable\":false\n"
-        + "          }\n"
-        + "        }\n"
-        + "      ]\n"
-        + "    }\n"
-        + "  ],\n"
-        + "  \"type\":{\n"
-        + "    \"type\":\"INTEGER\",\n"
-        + "    \"nullable\":false\n"
-        + "  }\n"
-        + "}";
-    assertThatReadExpressionResult(jsonString3, is("<TODO>"));
   }
 
   private void assertThatReadExpressionResult(String json, Matcher<String> matcher) {
@@ -1013,7 +951,8 @@ class RelWriterTest {
   }
 
   /** Test case for RelJson deserialization with the <code>REINTERPRET</code> operator. The operator
-   * gets added to some calls with similar types in <code>StandardConverletTable#convertFloorCeil</code>
+   * gets added to some calls with similar types in
+   * <code>StandardConverletTable#convertFloorCeil</code>
    *
    * This is hard to replicate with the rel builder since the internal operator is added during
    * SQL -> Rel translation. This test creates a REINTERPRET call directly for convenience
@@ -1043,7 +982,9 @@ class RelWriterTest {
     rel.explain(jsonWriter);
     String relJson = jsonWriter.asString();
     String result = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
-    final String expected = "<TODO>";
+    final String expected =
+        "LogicalProject(JOB=[$2], $f1=[-(2014-12-23 12:34:44, 2012-12-03 12:34:44)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(result, isLinux(expected));
   }
 
