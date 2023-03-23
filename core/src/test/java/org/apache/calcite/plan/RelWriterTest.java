@@ -950,14 +950,12 @@ class RelWriterTest {
     assertThat(result, isLinux(expected));
   }
 
-  /** Test case for RelJson deserialization with the <code>REINTERPRET</code> operator. The operator
-   * gets added to some calls with similar types in
-   * <code>StandardConverletTable#convertFloorCeil</code>
-   *
-   * This is hard to replicate with the rel builder since the internal operator is added during
-   * SQL -> Rel translation. This test creates a REINTERPRET call directly for convenience
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5607">[CALCITE-5607]</a>
+   * <p>Before the fix, RelJson.toRex would throw an ArrayIndexOutOfBounds error
+   * when deserialization.
    * */
-  @Test void testDeserializeReinterpretOperator() {
+  @Test void testDeserializeMinusDateOperator() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     final RexBuilder rb = builder.getRexBuilder();
