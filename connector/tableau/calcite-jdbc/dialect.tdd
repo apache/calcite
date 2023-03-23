@@ -1611,6 +1611,27 @@
       <argument type='datetime' />
       <argument type='localstr' />
     </date-function>
+    <date-function name='DATETRUNC' return-type='date'>
+      <formula>DATE_TRUNC((%2), %1)</formula>
+      <formula part='year'>DATE_TRUNC((%2), YEAR)</formula>
+      <formula part='quarter'>DATE_TRUNC((%2), QUARTER)</formula>
+      <formula part='month'>DATE_TRUNC((%2), MONTH)</formula>
+      <formula part='dayofyear'>DATE_TRUNC((%2), DAY)</formula>
+      <formula part='day'>DATE_TRUNC((%2), DAY)</formula>
+      <formula part='weekday'>DATE_TRUNC((%2), DAY)</formula>
+      <formula part='week'>DATE_TRUNC((%2), WEEK)</formula>
+      <formula part='hour'>DATE_TRUNC((%2), HOUR)</formula>
+      <formula part='minute'>DATE_TRUNC((%2), MINUTE)</formula>
+      <formula part='second'>DATE_TRUNC((%2), SECOND)</formula>
+      <argument type='localstr' />
+      <argument type='date' />
+    </date-function>
+    <date-function name='DATETRUNC' return-type='date'>
+      <formula part='week'>TIMESTAMP_TRUNC((%2), WEEK(%3))</formula>
+      <argument type='localstr' />
+      <argument type='date' />
+      <argument type='localstr' />
+    </date-function>
     <date-function name='DATETRUNC' return-type='datetime'>
       <formula>TIMESTAMP_TRUNC((%2), %1)</formula>
       <formula part='year'>TIMESTAMP_TRUNC((%2), YEAR)</formula>
@@ -1627,7 +1648,7 @@
       <argument type='datetime' />
     </date-function>
     <date-function name='DATETRUNC' return-type='datetime'>
-      <formula part='week'>TIMESTAMP_TRUNC((%2), WEEK)</formula>
+      <formula part='week'>TIMESTAMP_TRUNC((%2), WEEK(%3))</formula>
       <argument type='localstr' />
       <argument type='datetime' />
       <argument type='localstr' />
