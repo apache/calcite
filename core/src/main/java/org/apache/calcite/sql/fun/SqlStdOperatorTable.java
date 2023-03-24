@@ -2130,7 +2130,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.DATE_NULLABLE,
           null,
-          OperandTypes.DATETIME,
+          OperandTypes.or(
+              OperandTypes.DATETIME,
+              OperandTypes.sequence(
+                  "LAST_DAY(DATE/TIMESTAMP, STRING)",
+                  OperandTypes.DATETIME,
+                  OperandTypes.CHARACTER
+              )
+          ),
           SqlFunctionCategory.TIMEDATE);
 
   /**

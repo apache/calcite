@@ -7810,6 +7810,21 @@ public class SqlParserTest {
         .fails("(?s)Encountered \"to\".*");
   }
 
+  @Test void testLastDay() {
+    expr("last_day(date1)")
+        .ok("LAST_DAY(`DATE1`)");
+    expr("last_day(date1, unit)")
+        .ok("LAST_DAY(`DATE1`, `UNIT`)");
+    expr("last_day(date '2000-01-01')")
+        .ok("LAST_DAY(DATE '2000-01-01')");
+    expr("last_day(date '2000-01-01', 'year')")
+        .ok("LAST_DAY(DATE '2000-01-01', 'year')");
+    expr("last_day(timestamp '2000-01-01 23:59:59.1')")
+        .ok("LAST_DAY(TIMESTAMP '2000-01-01 23:59:59.1')");
+    expr("last_day(timestamp '2000-01-01 23:59:59.1', 'week')")
+        .ok("LAST_DAY(TIMESTAMP '2000-01-01 23:59:59.1', 'week')");
+  }
+
   @Test void testGeometry() {
     expr("cast(null as ^geometry^)")
         .fails("Geo-spatial extensions and the GEOMETRY data type are not enabled");
