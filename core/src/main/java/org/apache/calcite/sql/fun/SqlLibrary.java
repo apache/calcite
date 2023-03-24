@@ -45,6 +45,8 @@ import static java.util.Objects.requireNonNull;
  * @see LibraryOperator
  */
 public enum SqlLibrary {
+  /** A collection of operators that could be used in all libraries except STANDARD and SPATIAL. */
+  ALL("*", "all"),
   /** The standard operators. */
   STANDARD("", "standard"),
   /** Geospatial operators. */
@@ -69,9 +71,7 @@ public enum SqlLibrary {
   POSTGRESQL("p", "postgresql"),
   /** A collection of operators that are in Apache Spark but not in standard
    * SQL. */
-  SPARK("s", "spark"),
-  /** A collection of operators that could be used in all libraries except STANDARD and SPATIAL. */
-  ALL("*", "all");
+  SPARK("s", "spark");
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;
@@ -106,7 +106,7 @@ public enum SqlLibrary {
         }
       }
     } else {
-      for (String libraryName : libraryNameList.split(",")) {
+      for (String libraryName : libList) {
         SqlLibrary library =
             requireNonNull(SqlLibrary.of(libraryName),
                 () -> "library does not exist: " + libraryName);

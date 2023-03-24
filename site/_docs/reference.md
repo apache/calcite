@@ -2616,6 +2616,7 @@ To enable an operator table, set the
 connect string parameter.
 
 The 'C' (compatibility) column contains value:
+* '*' for all libraries,
 * 'b' for Google BigQuery ('fun=bigquery' in the connect string),
 * 'c' for Apache Calcite ('fun=calcite' in the connect string),
 * 'h' for Apache Hive ('fun=hive' in the connect string),
