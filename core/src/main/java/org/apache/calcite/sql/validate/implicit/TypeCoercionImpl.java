@@ -114,7 +114,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       return true;
     case WITH:
       SqlNode body = ((SqlWith) query).body;
-      return rowTypeCoercion(validator.getOverScope(query), body, columnIndex, targetType);
+      return rowTypeCoercion(validator.getOverScope(((SqlWith) query).body),
+          body, columnIndex, targetType);
     case UNION:
     case INTERSECT:
     case EXCEPT:

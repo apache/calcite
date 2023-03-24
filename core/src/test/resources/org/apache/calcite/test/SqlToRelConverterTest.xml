@@ -3187,6 +3187,16 @@ LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInsertImplicitConversion">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
+  LogicalFilter(condition=[>($5, 1000)])
+    LogicalProject(EMPNO=[$0], ENAME=[CAST($1):VARCHAR(20)], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
+      LogicalValues(tuples=[[{ 1, '2022-02-01' }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInsertModifiableView">
     <Resource name="sql">
       <![CDATA[insert into EMP_MODIFIABLEVIEW (EMPNO, ENAME, JOB) values (34625, 'nom', 'accountant')]]>
@@ -3196,6 +3206,26 @@ LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[
 LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[555], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
     LogicalValues(tuples=[[{ 34625, 'nom', 'accountant' }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInsertMultipleWith">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
+  LogicalFilter(condition=[>($5, 1000)])
+    LogicalProject(EMPNO=[CAST($0):INTEGER NOT NULL], ENAME=[$1], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
+      LogicalSort(sort0=[$2], dir0=[ASC])
+        LogicalProject(UUID=[$9], CLIENT_ID=[$10], EMPNO=[$0])
+          LogicalJoin(condition=[=($1, $10)], joinType=[inner])
+            LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalAggregate(group=[{}], MAX_DATE_COL=[MAX($0)])
+                LogicalProject(EMPNO=[$0])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalAggregate(group=[{}], MAX_ENAME_COL=[MAX($0)])
+              LogicalProject(ENAME=[$1])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -3279,6 +3309,23 @@ LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], flattened=[
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInsertWith">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
+  LogicalFilter(condition=[>($5, 1000)])
+    LogicalProject(EMPNO=[1], ENAME=['eb001209-33d7-4d3f-b':VARCHAR(20)], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[INSERT INTO empnullables_20 (empno, ename)
+WITH MAXDATE AS (SELECT MAX(empno) FROM emp)
+SELECT 1 AS uuid,
+     'eb001209-33d7-4d3f-bcaa-9dd6b8cf08b0' AS client_id
+FROM emp]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInsertWithCustomColumnResolving">
     <Resource name="sql">
       <![CDATA[insert into struct.t values (?, ?, ?, ?, ?, ?, ?, ?, ?)]]>
@@ -3316,6 +3363,45 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], fl
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInsertWithImplicitConversion">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
+  LogicalFilter(condition=[>($5, 1000)])
+    LogicalProject(EMPNO=[1], ENAME=['2022-02-01':VARCHAR(20)], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[INSERT INTO empnullables_20 (empno, ename)
+WITH MAXDATE AS (SELECT MAX(empno) FROM emp)
+SELECT 1 AS uuid,
+      DATE '2022-02-01' AS client_id
+FROM emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInsertWithImplicitConversion2">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
+  LogicalFilter(condition=[>($5, 1000)])
+    LogicalProject(EMPNO=[1], ENAME=[CAST(CAST($10):VARCHAR(20) NOT NULL):VARCHAR(20)], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
+      LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(MAX_VAL=[$0], DATE_VAL=[2022-02-01])
+          LogicalAggregate(group=[{}], MAX_VAL=[MAX($0)])
+            LogicalProject(EMPNO=[$0])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[INSERT INTO empnullables_20 (empno, ename)
+WITH MAXDATE AS (SELECT MAX(empno) as MAX_VAL, DATE '2022-02-01' as date_val FROM emp)
+SELECT 1 AS uuid,
+      date_val AS client_id
+FROM emp join MAXDATE on emp.empno = MAX_VAL]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInsertWithLimit">
     <Resource name="sql">
       <![CDATA[insert into empnullables (empno, ename)
@@ -3344,6 +3430,27 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], f
       LogicalProject(DEPTNO=[$7], ENAME=[$1])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInsertWithUsage">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
+  LogicalFilter(condition=[>($5, 1000)])
+    LogicalProject(EMPNO=[CAST($9):INTEGER NOT NULL], ENAME=['BOB':VARCHAR(20)], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[20], SLACKER=[null:BOOLEAN])
+      LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{}], MAX_VAL=[MAX($0)])
+          LogicalProject(EMPNO=[$0])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[INSERT INTO empnullables_20 (empno, ename)
+WITH MAXDATE AS (SELECT MAX(empno) as MAX_VAL FROM emp)
+SELECT MAX_VAL AS uuid,
+     'BOB' AS client_id
+FROM emp join MAXDATE on emp.empno = MAX_VAL]]>
     </Resource>
   </TestCase>
   <TestCase name="testIntegerLiteral">
@@ -4255,6 +4362,13 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM
+ dept JOIN
+emp
+on dept.deptno = emp.deptno and
+emp.sal = (Select max(sal) from emp)]]>
+    </Resource>
   </TestCase>
   <TestCase name="testJoinSubqueryIssueOrig2">
     <Resource name="plan">
@@ -4270,6 +4384,13 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5
             LogicalProject(SAL=[$5])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM
+ dept JOIN
+emp
+on dept.deptno = emp.deptno and
+(emp.sal, dept.deptno) in (Select max(sal), 10 from emp)]]>
     </Resource>
   </TestCase>
   <TestCase name="testJoinTemporalTableOnColumnReference1">
