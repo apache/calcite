@@ -2716,6 +2716,10 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b m p | MD5(string)                                | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
+| b | PARSE_DATE(string1, string2)                   | Uses format specified by *string1* to convert *string2* representation of date to a DATE object
+| b | PARSE_DATETIME(string1, string2)               | Uses format specified by *string1* to convert *string2* representation of datetime to a TIMESTAMP object
+| b | PARSE_TIME(string1, string2)                   | Uses format specified by *string1* to convert *string2* representation of time to a TIME object
+| b | PARSE_TIMESTAMP(string1, string2[, timeZone])  | Uses format specified by *string1* to convert *string2* representation of timestamp to a TIMESTAMP WITH LOCAL TIME ZONE object in *timeZone*
 | b | POW(numeric1, numeric2)                        | Returns *numeric1* raised to the power *numeric2*
 | m o | REGEXP_REPLACE(string, regexp, rep, [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* means which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
 | b m p | REPEAT(string, integer)                    | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
