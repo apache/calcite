@@ -134,6 +134,10 @@ class RelWriterTest {
       + "          \"kind\": \"EQUALS\",\n"
       + "          \"syntax\": \"BINARY\"\n"
       + "        },\n"
+      + "        \"type\": {\n"
+      + "          \"type\": \"BOOLEAN\",\n"
+      + "          \"nullable\": false\n"
+      + "        },\n"
       + "        \"operands\": [\n"
       + "          {\n"
       + "            \"input\": 1,\n"
@@ -293,6 +297,10 @@ class RelWriterTest {
       + "            \"kind\": \"COUNT\",\n"
       + "            \"syntax\": \"FUNCTION_STAR\"\n"
       + "          },\n"
+      + "          \"type\": {\n"
+      + "            \"type\": \"BIGINT\",\n"
+      + "            \"nullable\": false\n"
+      + "          },\n"
       + "          \"operands\": [\n"
       + "            {\n"
       + "              \"input\": 0,\n"
@@ -300,10 +308,6 @@ class RelWriterTest {
       + "            }\n"
       + "          ],\n"
       + "          \"distinct\": false,\n"
-      + "          \"type\": {\n"
-      + "            \"type\": \"BIGINT\",\n"
-      + "            \"nullable\": false\n"
-      + "          },\n"
       + "          \"window\": {\n"
       + "            \"partition\": [\n"
       + "              {\n"
@@ -335,6 +339,10 @@ class RelWriterTest {
       + "            \"kind\": \"SUM\",\n"
       + "            \"syntax\": \"FUNCTION\"\n"
       + "          },\n"
+      + "          \"type\": {\n"
+      + "            \"type\": \"BIGINT\",\n"
+      + "            \"nullable\": false\n"
+      + "          },\n"
       + "          \"operands\": [\n"
       + "            {\n"
       + "              \"input\": 0,\n"
@@ -342,10 +350,6 @@ class RelWriterTest {
       + "            }\n"
       + "          ],\n"
       + "          \"distinct\": false,\n"
-      + "          \"type\": {\n"
-      + "            \"type\": \"BIGINT\",\n"
-      + "            \"nullable\": false\n"
-      + "          },\n"
       + "          \"window\": {\n"
       + "            \"partition\": [\n"
       + "              {\n"
@@ -786,7 +790,8 @@ class RelWriterTest {
       throw TestUtil.rethrow(e);
     }
     final RelJson relJson = RelJson.create()
-        .withInputTranslator(RelWriterTest::translateInput);
+        .withInputTranslator(RelWriterTest::translateInput)
+        .withLibraryOperatorTable();
     final RexNode e = relJson.toRex(cluster, o);
     assertThat(e, hasToString(matcher));
   }
@@ -1048,6 +1053,42 @@ class RelWriterTest {
     String result = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
         + "LogicalProject(JOB=[$2], $f1=[CURRENT_DATETIME()])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(result, isLinux(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5607">[CALCITE-5607]</a>
+   * <p>Before the fix, RelJson.toRex would throw an ArrayIndexOutOfBounds error
+   * when deserialization.
+   * */
+  @Test void testDeserializeMinusDateOperator() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RexBuilder rb = builder.getRexBuilder();
+    final RelDataTypeFactory typeFactory = rb.getTypeFactory();
+    final SqlIntervalQualifier qualifier =
+        new SqlIntervalQualifier(TimeUnit.MONTH, null, SqlParserPos.ZERO);
+    final RexNode op1 = rb.makeTimestampLiteral(new TimestampString("2012-12-03 12:34:44"), 0);
+    final RexNode op2 = rb.makeTimestampLiteral(new TimestampString("2014-12-23 12:34:44"), 0);
+    final RelDataType intervalType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlIntervalType(qualifier),
+            op1.getType().isNullable() || op2.getType().isNullable());
+    final RelNode rel = builder
+        .scan("EMP")
+        .project(builder.field("JOB"),
+            rb.makeCall(intervalType,
+                SqlStdOperatorTable.MINUS_DATE,
+                ImmutableList.of(op2, op1)))
+        .build();
+    final RelJsonWriter jsonWriter =
+        new RelJsonWriter(new JsonBuilder(), RelJson::withLibraryOperatorTable);
+    rel.explain(jsonWriter);
+    String relJson = jsonWriter.asString();
+    String result = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
+    final String expected =
+        "LogicalProject(JOB=[$2], $f1=[-(2014-12-23 12:34:44, 2012-12-03 12:34:44)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(result, isLinux(expected));
   }
