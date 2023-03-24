@@ -28,16 +28,18 @@ public interface FormatElement {
 
   /**
    * Formats a date to its appropriate string representation for the element.
-   *
-   * <p>This API is subject to change. It might be more efficient if the
-   * signature was one of the following:
-   *
-   * <pre>
-   *   void format(StringBuilder, java.util.Date)
-   *   void format(StringBuilder, long)
-   * </pre>
    */
-  String format(java.util.Date date);
+  void format(StringBuilder sb, java.util.Date date);
+
+  /**
+   * Adds the appropriate {@link java.text.SimpleDateFormat} pattern for the element to
+   * provided StringBuilder.
+   *
+   * <p>Note that certain FormatElements may not have a Java equivalent.
+   * In such cases, calling this method will throw an {@link UnsupportedOperationException}.
+   * See {@link FormatElementEnum#Q} as an example.</p>
+   */
+  void toPattern(StringBuilder sb) throws UnsupportedOperationException;
 
   /**
    * Returns the description of an element.

@@ -161,6 +161,10 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAX_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MIN_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.POW;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
@@ -589,16 +593,22 @@ public class RexImpTable {
       // Datetime constructors
       defineMethod(DATE, "date", NullPolicy.STRICT);
       defineMethod(DATETIME, "datetime", NullPolicy.STRICT);
-      defineMethod(TIMESTAMP, "timestamp", NullPolicy.STRICT);
       defineMethod(TIME, "time", NullPolicy.STRICT);
+      defineMethod(TIMESTAMP, "timestamp", NullPolicy.STRICT);
+
+      // Datetime parsing methods
+      defineMethod(PARSE_DATE, "parseDate", NullPolicy.STRICT);
+      defineMethod(PARSE_DATETIME, "parseDatetime", NullPolicy.STRICT);
+      defineMethod(PARSE_TIME, "parseTime", NullPolicy.STRICT);
+      defineMethod(PARSE_TIMESTAMP, "parseTimestamp", NullPolicy.STRICT);
 
       // Datetime formatting methods
       defineMethod(TO_CHAR, "toChar", NullPolicy.STRICT);
       final FormatDatetimeImplementor datetimeFormatImpl = new FormatDatetimeImplementor();
-      map.put(FORMAT_TIMESTAMP, datetimeFormatImpl);
       map.put(FORMAT_DATE, datetimeFormatImpl);
-      map.put(FORMAT_TIME, datetimeFormatImpl);
       map.put(FORMAT_DATETIME, datetimeFormatImpl);
+      map.put(FORMAT_TIME, datetimeFormatImpl);
+      map.put(FORMAT_TIMESTAMP, datetimeFormatImpl);
 
       // Boolean operators
       map.put(IS_NULL, new IsNullImplementor());

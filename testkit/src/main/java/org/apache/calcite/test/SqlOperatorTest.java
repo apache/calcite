@@ -9127,6 +9127,84 @@ public class SqlOperatorTest {
         "VARCHAR(2000) NOT NULL");
   }
 
+  @Test void testParseDate() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.PARSE_DATE);
+    f.checkScalar("PARSE_DATE('%A %b %e %Y', 'Thursday Dec 25 2008')",
+        "2008-12-25",
+        "DATE NOT NULL");
+    f.checkScalar("PARSE_DATE('%x', '12/25/08')",
+        "2008-12-25",
+        "DATE NOT NULL");
+    f.checkScalar("PARSE_DATE('%F', '2000-12-30')",
+        "2000-12-30",
+        "DATE NOT NULL");
+    f.checkScalar("PARSE_DATE('%x', '12/25/08')",
+        "2008-12-25",
+        "DATE NOT NULL");
+    f.checkScalar("PARSE_DATE('%Y%m%d', '20081225')",
+        "2008-12-25",
+        "DATE NOT NULL");
+    f.checkScalar("PARSE_DATE('%F', '2022-06-01')",
+        "2022-06-01",
+        "DATE NOT NULL");
+  }
+
+  @Test void testParseDatetime() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.PARSE_DATETIME);
+    f.checkScalar("PARSE_DATETIME('%a %b %e %I:%M:%S %Y', 'Thu Dec 25 07:30:00 2008')",
+        "2008-12-25 07:30:00",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("PARSE_DATETIME('%c', 'Thu Dec 25 07:30:00 2008')",
+        "2008-12-25 07:30:00",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("PARSE_DATETIME('%Y-%m-%d %H:%M:%S', '1998-10-18 13:45:55')",
+        "1998-10-18 13:45:55",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("PARSE_DATETIME('%m/%d/%Y %I:%M:%S %p', '8/30/2018 2:23:38 pm')",
+        "2018-08-30 14:23:38",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("PARSE_DATETIME('%A, %B %e, %Y', 'Wednesday, December 19, 2018')",
+        "2018-12-19 00:00:00",
+        "TIMESTAMP(0) NOT NULL");
+  }
+
+  @Test void testParseTime() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.PARSE_TIME);
+    f.checkScalar("PARSE_TIME('%I:%M:%S', '07:30:00')",
+        "07:30:00",
+        "TIME(0) NOT NULL");
+    f.checkScalar("PARSE_TIME('%T', '07:30:00')",
+        "07:30:00",
+        "TIME(0) NOT NULL");
+    f.checkScalar("PARSE_TIME('%H', '15')",
+        "15:00:00",
+        "TIME(0) NOT NULL");
+    f.checkScalar("PARSE_TIME('%I:%M:%S %p', '2:23:38 pm')",
+        "14:23:38",
+        "TIME(0) NOT NULL");
+  }
+
+  @Test void testParseTimestamp() {
+    final SqlOperatorFixture f = fixture()
+        .withLibrary(SqlLibrary.BIG_QUERY)
+        .setFor(SqlLibraryOperators.PARSE_TIMESTAMP);
+    f.checkScalar("PARSE_TIMESTAMP('%a %b %e %I:%M:%S %Y', 'Thu Dec 25 07:30:00 2008')",
+        "2008-12-25 07:30:00",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    f.checkScalar("PARSE_TIMESTAMP('%c', 'Thu Dec 25 07:30:00 2008')",
+        "2008-12-25 07:30:00",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    f.checkScalar("PARSE_TIMESTAMP('%c', 'Thu Dec 25 07:30:00 2008')",
+        "2008-12-25 07:30:00",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+  }
+
   @Test void testDenseRankFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DENSE_RANK, VM_FENNEL, VM_JAVA);

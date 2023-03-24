@@ -28,8 +28,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class FormatElementEnumTest {
   @Test void testDay() {
-    assertEquals(
-        FormatElementEnum.DAY.format(Date.from(Instant.parse("2014-09-30T10:00:00Z"))),
+    StringBuilder ts = new StringBuilder();
+    FormatElementEnum.DAY.format(ts, Date.from(Instant.parse("2014-09-30T10:00:00Z")));
+    assertEquals(ts.toString(),
         "Tuesday");
   }
 }

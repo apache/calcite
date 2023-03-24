@@ -892,6 +892,49 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
+  /**
+   * The "PARSE_TIME(string, string)" function (BigQuery);
+   * converts a string representation of time to a TIME value.
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction PARSE_TIME =
+      SqlBasicFunction.create("PARSE_TIME", ReturnTypes.TIME_NULLABLE,
+          OperandTypes.STRING_STRING, SqlFunctionCategory.TIMEDATE);
+
+  /**
+   * The "PARSE_DATE(string, string)" function (BigQuery); Converts a string representation of date
+   * to a DATE object.
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction PARSE_DATE =
+      SqlBasicFunction.create("PARSE_DATE",
+          ReturnTypes.DATE_NULLABLE, OperandTypes.STRING_STRING, SqlFunctionCategory.TIMEDATE);
+
+  /**
+   * The "PARSE_TIMESTAMP(string, string [, timezone])" function (BigQuery); Formats a timestamp
+   * object according to the specified string.
+   *
+   * <p>In BigQuery, the "TIMESTAMP" datatype maps to Calcite's
+   * TIMESTAMP_WITH_LOCAL_TIME_ZONE
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction PARSE_TIMESTAMP =
+      SqlBasicFunction.create("PARSE_TIMESTAMP",
+          ReturnTypes.TIMESTAMP_LTZ_NULLABLE, OperandTypes.STRING_STRING_OPTIONAL_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
+  /**
+   * The "PARSE_DATETIME(string, string [, timezone])" function (BigQuery); Formats a timestamp
+   * object according to the specified string.
+   *
+   * <p>Note that the {@code TIMESTAMP} type of Calcite and Standard SQL
+   * is called {@code DATETIME} in BigQuery.
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction PARSE_DATETIME =
+      SqlBasicFunction.create("PARSE_DATETIME", ReturnTypes.TIMESTAMP_NULLABLE,
+          OperandTypes.STRING_STRING, SqlFunctionCategory.TIMEDATE);
+
   /** The "FORMAT_TIME(string, time)" function (BigQuery);
    * Formats a time object according to the specified string. */
   @LibraryOperator(libraries = {BIG_QUERY})
