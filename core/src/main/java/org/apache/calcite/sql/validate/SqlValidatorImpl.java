@@ -1169,6 +1169,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return scopes.get(select);
   }
 
+
   @Override public SqlValidatorScope getCreateTableScope(SqlCreateTable createTable) {
     return requireNonNull(scopes.get(createTable));
   }
@@ -2536,6 +2537,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       parentScope = tableScope;
     }
+
     SqlCall call;
     SqlNode operand;
     SqlNode newOperand;
@@ -2883,7 +2885,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlCreateTable createTable,
       SqlNode enclosingNode,
       boolean forceNullable) {
-    //TODO: I'll likely need some sort of call to
+    // TODO: I'll likely need some sort of call to
     // validateFeature()
     // to confirm that the sql dialect we're validating for even supports CREATE_TABLE.
     // This will be done as followup: https://bodo.atlassian.net/browse/BE-4429
@@ -2891,18 +2893,34 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlNode queryNode = createTable.getQuery();
 
     // NOTE: query can be null, in the case that we're just doing a table definition with no data.
-    // For now, only supporting the case where we have a query
+    // For now, only supporting the case where we have a query, or a table identifier
     if (queryNode != null) {
-      registerQuery(
-          parentScope, //Should this be createTableNs?
-          usingScope, //Should be null?
-          queryNode,
+      if (!(queryNode instanceof SqlIdentifier)) {
+        //In the case that the query is a select statement, we need to register it and
+        // it's sub queries.
+        registerQuery(
+            parentScope,
+            usingScope,
+            queryNode,
+            enclosingNode,
+            null,
+            false
+        );
+      } else {
+        // Modified version of the code for registering the namespace of an
+        // identifier in registerFrom.
+        final SqlValidatorNamespace newNs = new IdentifierNamespace(
+            this, (SqlIdentifier) queryNode, null, enclosingNode, parentScope
+        );
+        registerNamespace(usingScope, null, newNs, forceNullable);
+      }
+
+      DdlNamespace createTableNs = new DdlNamespace(
+          this,
+          createTable,
           enclosingNode,
-          null,
-          false
-      );
-      SqlValidatorNamespace childNs = getNamespaceOrThrow(queryNode);
-      DdlNamespace createTableNs = new DdlNamespace(createTable, childNs);
+          parentScope,
+          queryNode);
       registerNamespace(usingScope, null, createTableNs, forceNullable);
 
     } else {
@@ -5488,21 +5506,33 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // Note, this can either a row expression or a query expression with an optional ORDER BY
     // We're not currently handling the row expression case.
-    // This may or may not be within the scope of what we want
-    // to support by release: (https://bodo.atlassian.net/browse/BE-4478)
 
     SqlValidatorScope createTableScope = this.getCreateTableScope(createTable);
-    // we have to validate in the overall scope of the create table node in order to be
-    // sufficiently general to the input of "create table as", since the associated query node
-    // (in relation to the Create Table node) may not be a selectScope or any one type of scope
+    // In order to be sufficiently general to the input of Create table,
+    // We have to validate this expression in the overall scope of the create table node,
+    // Since the associated query node
+    // doesn't necessarily have to be a select (notably, validaSelect doesn't work if the query has
+    // any 'with' clauses)
+    // Note that we also can't use validateScopedExpression, as this can rewrite the sqlNode
+    // via a call to performUnconditionalRewrites, which should have already been done by the time
+    // that we reach this points, and calling performUnconditionalRewrites twice is likely invalid.
 
-    // Note that we don't use validateScopedExpression, since validateScopedExpression only does
-    // some additional rewriting before calling node.validate(), and the rewriting should already
-    // have occurred by the time we reach this point.
-    queryNode.validate(this, createTableScope);
-    // (Note: for create table LIKE (https://bodo.atlassian.net/browse/BE-3989) if
-    // queryNode is identifier, we may need additional work to
-    // properly validate)
+    if (!(queryNode instanceof SqlIdentifier)) {
+      queryNode.validate(this, createTableScope);
+    } else {
+      // Validate the namespace representation of the node,
+      // This is needed, as attempting to validate this identifier in the
+      // createTableScope will result in it being treated as a column identifier
+      // instead of a table.
+      requireNonNull(getNamespace(queryNode)).validate(unknownType);
+
+      final SqlValidatorScope.ResolvedImpl resolved = new SqlValidatorScope.ResolvedImpl();
+      createTableScope.resolveTable(((SqlIdentifier) queryNode).names, catalogReader.nameMatcher(),
+          SqlValidatorScope.Path.EMPTY, resolved, new ArrayList<>());
+      if (resolved.count() != 1) {
+        throw newValidationError(queryNode, RESOURCE.tableNameNotFound(queryNode.toString()));
+      }
+    }
 
 
     final SqlIdentifier tableNameNode = createTable.getName();
@@ -7022,9 +7052,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /**
    * Namespace for DDL statements (Data Definition Language, such as create [Or replace] Table).
-   * Currently defers everything to the child query's namespace. This will likely need to be
-   * extended in the future to handle table definitions which are not defined as the result of
-   * an query.
+   * Currently, defers everything to the child query/table's namespace. This will likely need to be
+   * extended in the future in order to handle the case where the output column type are
+   * explicitly defined in the query.
    *
    * Note: this does not extend DmlNamespace because DmlNamespace
    * requires there to be an existing target table, which is not necessarily true for DDL
@@ -7032,14 +7062,31 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    */
   public static class DdlNamespace implements SqlValidatorNamespace {
     private final SqlCreate node;
-    private final SqlValidatorNamespace childQueryNamespace;
+    private final SqlValidatorNamespace childNamespace;
 
-
-    DdlNamespace(SqlCreate node, SqlValidatorNamespace childQueryNamespace) {
-      requireNonNull(childQueryNamespace, "childQueryNamespace");
+    DdlNamespace(
+        SqlValidatorImpl validator,
+        SqlCreate node,
+        SqlNode enclosingNode, SqlValidatorScope parentScope, SqlNode childNode) {
+      requireNonNull(childNode, "childNode");
       requireNonNull(node, "node");
       this.node = node;
-      this.childQueryNamespace = childQueryNamespace;
+
+      if (childNode instanceof SqlIdentifier) {
+        SqlIdentifier id = (SqlIdentifier) childNode;
+        switch (id.getKind()) {
+        case TABLE_IDENTIFIER_WITH_ID:
+        case TABLE_REF_WITH_ID:
+          childNamespace = new TableIdentifierWithIDNamespace(validator, id, enclosingNode,
+              parentScope);
+          break;
+        default:
+          childNamespace = new IdentifierNamespace(validator, id, enclosingNode, parentScope);
+        }
+      } else {
+        SqlValidatorNamespace childNs = validator.getNamespaceOrThrow(childNode);
+        childNamespace = childNs;
+      }
     }
 
 
@@ -7049,14 +7096,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      * @return validator
      */
     @Override public SqlValidator getValidator() {
-      return childQueryNamespace.getValidator();
+      return childNamespace.getValidator();
     }
 
     /**
      * Returns the underlying table, or null if there is none.
      */
     @Override public @Nullable SqlValidatorTable getTable() {
-      return null;
+      return childNamespace.getTable();
     }
 
     /**
@@ -7067,7 +7114,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      * @return Row type of this namespace, never null, always a struct
      */
     @Override public RelDataType getRowType() {
-      return childQueryNamespace.getRowType();
+      return childNamespace.getRowType();
     }
 
     /**
@@ -7076,7 +7123,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      * @return Row type converted to struct
      */
     @Override public RelDataType getType() {
-      return childQueryNamespace.getType();
+      return childNamespace.getType();
     }
 
     /**
@@ -7092,7 +7139,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      * @param type the type to set
      */
     @Override public void setType(final RelDataType type) {
-      childQueryNamespace.setType(type);
+      childNamespace.setType(type);
     }
 
     /**
@@ -7101,7 +7148,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      * @return Row type sans system columns
      */
     @Override public RelDataType getRowTypeSansSystemColumns() {
-      return childQueryNamespace.getRowTypeSansSystemColumns();
+      return childNamespace.getRowTypeSansSystemColumns();
     }
 
     /**
@@ -7116,7 +7163,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      *                      type 'unknown'.
      */
     @Override public void validate(final RelDataType targetRowType) {
-      childQueryNamespace.validate(targetRowType);
+      childNamespace.validate(targetRowType);
     }
 
     @Override public @Nullable SqlNode getNode() {
@@ -7143,7 +7190,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      * @return Namespace
      */
     @Override public @Nullable SqlValidatorNamespace lookupChild(final String name) {
-      return this.childQueryNamespace.lookupChild(name);
+      return this.childNamespace.lookupChild(name);
     }
 
     /**
@@ -7153,7 +7200,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      * @return Whether field exists
      */
     @Override public boolean fieldExists(final String name) {
-      return this.childQueryNamespace.fieldExists(name);
+      return this.childNamespace.fieldExists(name);
     }
 
     /**
@@ -7163,7 +7210,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      * {@link SqlIdentifier} called "TIMESTAMP".
      */
     @Override public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
-      return this.childQueryNamespace.getMonotonicExprs();
+      return this.childNamespace.getMonotonicExprs();
     }
 
     /**
@@ -7172,12 +7219,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      * @param columnName the column to check
      */
     @Override public SqlMonotonicity getMonotonicity(final String columnName) {
-      return this.childQueryNamespace.getMonotonicity(columnName);
+      return this.childNamespace.getMonotonicity(columnName);
     }
 
     @Override @Deprecated
     public void makeNullable() {
-      this.childQueryNamespace.makeNullable();
+      this.childNamespace.makeNullable();
     }
 
     /**
@@ -7225,7 +7272,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      * @param modality Modality
      */
     @Override public boolean supportsModality(final SqlModality modality) {
-      return childQueryNamespace.supportsModality(modality);
+      return childNamespace.supportsModality(modality);
     }
   }
 

@@ -16,6 +16,15 @@
   ~ limitations under the License.
   -->
 <Root>
+  <TestCase name="testCreateIfNotExistsTableLike">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[false])
+  LogicalSort(fetch=[0:BIGINT])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCreateOrReplaceTable">
     <Resource name="plan">
       <![CDATA[
@@ -32,6 +41,15 @@ select dept.deptno, emp.empno
  from emp join dept on emp.deptno = dept.deptno]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCreateOrReplaceTableLike">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[true])
+  LogicalSort(fetch=[0:BIGINT])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCreateTableIfNotExists">
     <Resource name="plan">
       <![CDATA[
@@ -42,6 +60,15 @@ LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[SALES]], IsReplace=[fal
     </Resource>
     <Resource name="sql">
       <![CDATA[CREATE TABLE IF NOT EXISTS out_test AS select * from emp]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCreateTableLike">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[false])
+  LogicalSort(fetch=[0:BIGINT])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
     </Resource>
   </TestCase>
   <TestCase name="testCreateTableOrderBy">

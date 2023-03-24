@@ -93,6 +93,8 @@ SqlCreate SqlCreateTable(Span s, boolean replace) :
     (
         <AS> query = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
     |
+        <LIKE> query = TableRef()
+    |
         { query = null; }
     )
     {
