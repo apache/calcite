@@ -5972,7 +5972,13 @@ class RelToSqlConverterTest {
     final String expected = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY CUBE(\"product_id\", \"product_class_id\")";
-    sql(query).ok(expected);
+    final String expectedSpark = "SELECT COUNT(*)\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY CUBE(product_id, product_class_id)";
+    sql(query)
+        .ok(expected)
+        .withPresto().ok(expected)
+        .withSpark().ok(expectedSpark);
   }
 
   @Test void testRollupWithGroupBy() {
@@ -5982,7 +5988,13 @@ class RelToSqlConverterTest {
     final String expected = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_id\", \"product_class_id\")";
-    sql(query).ok(expected);
+    final String expectedSpark = "SELECT COUNT(*)\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY ROLLUP(product_id, product_class_id)";
+    sql(query)
+        .ok(expected)
+        .withPresto().ok(expected)
+        .withSpark().ok(expectedSpark);
   }
 
   @Test void testJsonType() {
