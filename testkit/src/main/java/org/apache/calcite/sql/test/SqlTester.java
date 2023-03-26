@@ -31,6 +31,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.ResultSet;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
@@ -320,7 +321,7 @@ public interface SqlTester extends AutoCloseable {
 
   /** Type checker. */
   interface TypeChecker {
-    void checkType(RelDataType type);
+    void checkType(Supplier<String> sql, RelDataType type);
   }
 
   /** Parameter checker. */
@@ -330,7 +331,7 @@ public interface SqlTester extends AutoCloseable {
 
   /** Result checker. */
   interface ResultChecker {
-    void checkResult(ResultSet result) throws Exception;
+    void checkResult(String sql, ResultSet result) throws Exception;
   }
 
   /** Action that is called after validation.

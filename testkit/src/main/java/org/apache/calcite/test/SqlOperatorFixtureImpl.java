@@ -140,7 +140,7 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
       assertEquals(1, fields.size(), "expected query to return 1 field");
       final RelDataType actualType = fields.get(0).getType();
       String actual = SqlTests.getTypeString(actualType);
-      assertThat(actual, matcher);
+      assertThat("Query: " + sql.sql, actual, matcher);
     };
   }
 

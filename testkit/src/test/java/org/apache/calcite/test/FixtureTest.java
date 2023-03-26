@@ -95,12 +95,12 @@ public class FixtureTest {
     // The fixture that executes fails, because the result value is incorrect.
     validateFixture.checkBoolean("1 < 5", false);
     assertFails(() -> executeFixture.checkBoolean("1 < 5", false),
-        "<false>", "<true>");
+        "Query: values (1 < 5)", "<false>", "<true>");
 
     // The fixture that executes fails, because the result value is incorrect.
     validateFixture.checkScalarExact("1 + 2", "INTEGER NOT NULL", "foo");
     assertFails(() -> validateFixture.checkScalarExact("1 + 2", "DATE", "foo"),
-        "\"DATE\"", "\"INTEGER NOT NULL\"");
+        "Query: values (1 + 2)", "\"DATE\"", "\"INTEGER NOT NULL\"");
 
     // Both fixtures pass.
     validateFixture.checkScalarExact("1 + 2", "INTEGER NOT NULL", "3");
@@ -108,17 +108,17 @@ public class FixtureTest {
 
     // Both fixtures fail, because the type is incorrect.
     assertFails(() -> validateFixture.checkScalarExact("1 + 2", "DATE", "foo"),
-        "\"DATE\"", "\"INTEGER NOT NULL\"");
+        "Query: values (1 + 2)", "\"DATE\"", "\"INTEGER NOT NULL\"");
     assertFails(() -> executeFixture.checkScalarExact("1 + 2", "DATE", "foo"),
-        "\"DATE\"", "\"INTEGER NOT NULL\"");
+        "Query: values (1 + 2)", "\"DATE\"", "\"INTEGER NOT NULL\"");
   }
 
-  static void assertFails(Runnable runnable, String expected, String actual) {
+  static void assertFails(Runnable runnable, String msg, String expected, String actual) {
     try {
       runnable.run();
       fail("expected error");
     } catch (AssertionError e) {
-      String expectedMessage = "\n"
+      String expectedMessage = msg + "\n"
           + "Expected: is " + expected + "\n"
           + "     but: was " + actual;
       assertThat(e.getMessage(), is(expectedMessage));
