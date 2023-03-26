@@ -5346,7 +5346,7 @@ public class SqlOperatorTest {
       f.checkNull("cosh(cast(null as integer))");
       f.checkNull("cosh(cast(null as double))");
     };
-    f0.forEachLibrary(SqlLibrary.parse("*"), consumer);
+    f0.forEachLibrary(SqlLibrary.getExpandedLibrariesForAll(), consumer);
   }
 
   @Test void testCotFunc() {
@@ -5524,7 +5524,7 @@ public class SqlOperatorTest {
       f.checkNull("sinh(cast(null as integer))");
       f.checkNull("sinh(cast(null as double))");
     };
-    f0.forEachLibrary(SqlLibrary.parse("*"), consumer);
+    f0.forEachLibrary(SqlLibrary.getExpandedLibrariesForAll(), consumer);
   }
 
   @Test void testTanFunc() {
@@ -5565,7 +5565,7 @@ public class SqlOperatorTest {
       f.checkNull("tanh(cast(null as integer))");
       f.checkNull("tanh(cast(null as double))");
     };
-    f0.forEachLibrary(SqlLibrary.parse("*"), consumer);
+    f0.forEachLibrary(SqlLibrary.getExpandedLibrariesForAll(), consumer);
   }
 
   @Test void testTruncFunc() {

@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -97,20 +96,21 @@ public enum SqlLibrary {
   /** Parses a comma-separated string such as "standard,oracle". */
   public static List<SqlLibrary> parse(String libraryNameList) {
     final ImmutableList.Builder<SqlLibrary> list = ImmutableList.builder();
-    List<String> libList = Arrays.asList(libraryNameList.split(","));
-    if (libList.contains(ALL.abbrev) || libList.contains(ALL.fun)) {
-      // Add all the libraries except ALL, STANDARD, SPATIAL for 'all' and '*'.
-      for (SqlLibrary value : values()) {
-        if (value != ALL && value != STANDARD && value != SPATIAL) {
-          list.add(value);
-        }
-      }
-    } else {
-      for (String libraryName : libList) {
-        SqlLibrary library =
-            requireNonNull(SqlLibrary.of(libraryName),
-                () -> "library does not exist: " + libraryName);
-        list.add(library);
+    for (String libraryName : libraryNameList.split(",")) {
+      SqlLibrary library =
+          requireNonNull(SqlLibrary.of(libraryName),
+              () -> "library does not exist: " + libraryName);
+      list.add(library);
+    }
+    return list.build();
+  }
+
+  /** Get expanded libraries for {@link SqlLibrary.ALL}. */
+  public static List<SqlLibrary> getExpandedLibrariesForAll() {
+    final ImmutableList.Builder<SqlLibrary> list = ImmutableList.builder();
+    for (SqlLibrary value : values()) {
+      if (value != ALL && value != STANDARD && value != SPATIAL) {
+        list.add(value);
       }
     }
     return list.build();

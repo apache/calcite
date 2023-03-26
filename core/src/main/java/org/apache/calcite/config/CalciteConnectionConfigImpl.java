@@ -30,7 +30,8 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
-import java.util.List;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Properties;
 
 /** Implementation of {@link CalciteConnectionConfig}. */
@@ -113,10 +114,13 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     if (fun == null || fun.equals("") || fun.equals("standard")) {
       return defaultOperatorTable;
     }
-    final List<SqlLibrary> libraryList = SqlLibrary.parse(fun);
+    final HashSet<SqlLibrary> librarySet = new HashSet<>(SqlLibrary.parse(fun));
+    if (librarySet.remove(SqlLibrary.ALL)) {
+      librarySet.addAll(SqlLibrary.getExpandedLibrariesForAll());
+    }
     final SqlOperatorTable operatorTable =
             SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                ConsList.of(SqlLibrary.STANDARD, libraryList), true);
+                ConsList.of(SqlLibrary.STANDARD, new ArrayList<>(librarySet)), true);
     return operatorTableClass.cast(operatorTable);
   }
 
