@@ -18,6 +18,7 @@ package org.apache.calcite.rel.type;
 
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.MapSqlType;
@@ -311,6 +312,24 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       return null;
     }
     return new MapSqlType(keyType, valueType, isNullable);
+  }
+
+  protected RelDataType leastRestrictiveIntervalDatetimeType(
+      final RelDataType dateTimeType, final RelDataType type1) {
+    assert SqlTypeUtil.isDatetime(dateTimeType);
+    final boolean isInt1 = SqlTypeUtil.isIntType(type1);
+    final SqlIntervalQualifier intervalQualifier = type1.getIntervalQualifier();
+    if (isInt1
+        || !dateTimeType.getSqlTypeName().allowsPrec()
+        || (intervalQualifier.useDefaultFractionalSecondPrecision()
+        || intervalQualifier
+        .getFractionalSecondPrecision(typeSystem) <= dateTimeType.getPrecision())) {
+      return dateTimeType;
+    } else {
+      return
+          createSqlType(dateTimeType.getSqlTypeName(),
+              intervalQualifier.getFractionalSecondPrecision(typeSystem));
+    }
   }
 
   // copy a non-record type, setting nullability

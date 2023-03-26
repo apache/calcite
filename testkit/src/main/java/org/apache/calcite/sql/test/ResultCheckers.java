@@ -28,6 +28,9 @@ import org.hamcrest.Matcher;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.Types;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -55,6 +58,18 @@ public class ResultCheckers {
   public static SqlTester.ResultChecker isExactly(String value) {
     return new MatcherResultChecker<>(is(new BigDecimal(value)),
         JdbcType.BIG_DECIMAL);
+  }
+
+  public static SqlTester.ResultChecker isExactDateTime(LocalDateTime dateTime) {
+    return new MatcherResultChecker<>(
+        is(BigDecimal.valueOf(dateTime.toInstant(ZoneOffset.UTC).toEpochMilli())),
+        JdbcType.BIG_DECIMAL);
+  }
+
+  public static SqlTester.ResultChecker isExactTime(LocalTime time) {
+    return new MatcherResultChecker<>(
+        is((int) (time.toNanoOfDay() / 1000_000)),
+        JdbcType.INTEGER);
   }
 
   public static SqlTester.ResultChecker isWithin(double value, double delta) {

@@ -34,6 +34,10 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.Map;
+
 import static org.apache.calcite.util.Util.first;
 
 /**
@@ -64,8 +68,15 @@ import static org.apache.calcite.util.Util.first;
  */
 public class SqlTimestampAddFunction extends SqlFunction {
 
-  private static final int MILLISECOND_PRECISION = 3;
-  private static final int MICROSECOND_PRECISION = 6;
+  private static final Map<TimeUnit, Integer> FRAC_SECOND_PRECISION_MAP;
+
+  static {
+    Map<TimeUnit, Integer> map = new EnumMap<>(TimeUnit.class);
+    map.put(TimeUnit.MILLISECOND, 3);
+    map.put(TimeUnit.MICROSECOND, 6);
+    map.put(TimeUnit.NANOSECOND, 9);
+    FRAC_SECOND_PRECISION_MAP = Collections.unmodifiableMap(map);
+  }
 
   private static final SqlReturnTypeInference RETURN_TYPE_INFERENCE =
       opBinding ->
@@ -87,15 +98,13 @@ public class SqlTimestampAddFunction extends SqlFunction {
     final TimeUnit timeUnit2 = first(timeUnit, TimeUnit.EPOCH);
     SqlTypeName typeName = datetimeType.getSqlTypeName();
     switch (timeUnit2) {
+    case MICROSECOND:
     case MILLISECOND:
+    case NANOSECOND:
       return typeFactory.createSqlType(
           typeName,
-          Math.max(MILLISECOND_PRECISION, datetimeType.getPrecision()));
-    case MICROSECOND:
-      return
-          typeFactory.createSqlType(
-              typeName,
-              Math.max(MICROSECOND_PRECISION, datetimeType.getPrecision()));
+          Math.max(FRAC_SECOND_PRECISION_MAP.get(timeUnit2),
+              datetimeType.getPrecision()));
     case HOUR:
     case MINUTE:
     case SECOND:
