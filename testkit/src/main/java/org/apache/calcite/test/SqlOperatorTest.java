@@ -2619,6 +2619,9 @@ public class SqlOperatorTest {
     f.checkScalar("date '2005-03-02' - interval '25:45:54' hour to second",
         "2005-03-01", "DATE NOT NULL");
     f.checkScalar("timestamp '2003-08-02 12:54:01' "
+            + "- interval '-4 2:4' day to minute",
+        "2003-08-06 14:58:01", "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("timestamp '2003-08-02 12:54:01' "
             + "- interval '0.01' second(1, 3)",
         isExactDateTime(LocalDateTime.of(2003, 8, 2, 12, 54, 0, 990_000_000)),
         "TIMESTAMP(3) NOT NULL");
