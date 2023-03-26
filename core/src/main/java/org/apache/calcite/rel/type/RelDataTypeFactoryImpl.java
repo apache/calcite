@@ -317,12 +317,12 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   protected RelDataType leastRestrictiveIntervalDatetimeType(
       final RelDataType dateTimeType, final RelDataType type1) {
     assert SqlTypeUtil.isDatetime(dateTimeType);
-    assert SqlTypeUtil.isInterval(type1);
+    if (SqlTypeUtil.isIntType(type1)) {
+      return dateTimeType;
+    }
     final SqlIntervalQualifier intervalQualifier = type1.getIntervalQualifier();
     assert intervalQualifier != null;
-    final boolean isInt1 = SqlTypeUtil.isIntType(type1);
-    if (isInt1
-        || !dateTimeType.getSqlTypeName().allowsPrec()
+    if (!dateTimeType.getSqlTypeName().allowsPrec()
         || intervalQualifier.useDefaultFractionalSecondPrecision()
         || intervalQualifier
         .getFractionalSecondPrecision(typeSystem) <= dateTimeType.getPrecision()) {
