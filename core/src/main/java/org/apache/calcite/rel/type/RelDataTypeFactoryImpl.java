@@ -321,7 +321,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     final SqlIntervalQualifier intervalQualifier = type1.getIntervalQualifier();
     if (isInt1
         || !dateTimeType.getSqlTypeName().allowsPrec()
-        || (intervalQualifier.useDefaultFractionalSecondPrecision()
+        || intervalQualifier != null && (intervalQualifier.useDefaultFractionalSecondPrecision()
         || intervalQualifier
         .getFractionalSecondPrecision(typeSystem) <= dateTimeType.getPrecision())) {
       return dateTimeType;

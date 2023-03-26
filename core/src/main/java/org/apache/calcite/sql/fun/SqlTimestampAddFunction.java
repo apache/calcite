@@ -103,7 +103,7 @@ public class SqlTimestampAddFunction extends SqlFunction {
     case NANOSECOND:
       return typeFactory.createSqlType(
           typeName,
-          Math.max(FRAC_SECOND_PRECISION_MAP.get(timeUnit2),
+          Math.max(FRAC_SECOND_PRECISION_MAP.getOrDefault(timeUnit2, 0),
               datetimeType.getPrecision()));
     case HOUR:
     case MINUTE:
