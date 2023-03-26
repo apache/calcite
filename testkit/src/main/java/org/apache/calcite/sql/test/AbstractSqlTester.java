@@ -234,7 +234,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     RelDataType actualType = getColumnType(factory, query);
 
     // Check result type.
-    typeChecker.checkType(actualType);
+    typeChecker.checkType(() -> "Query: " + query, actualType);
 
     Pair<SqlValidator, SqlNode> p = parseAndValidate(factory, query);
     SqlValidator validator = requireNonNull(p.left);

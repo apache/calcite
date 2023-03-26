@@ -10540,7 +10540,7 @@ public class SqlOperatorTest {
                 query = AbstractSqlTester.buildQuery(s);
               }
               f.check(query, SqlTests.ANY_TYPE_CHECKER,
-                  SqlTests.ANY_PARAMETER_CHECKER, result -> { });
+                  SqlTests.ANY_PARAMETER_CHECKER, (sql, result) -> { });
             }
           } catch (Throwable e) {
             // Logging the top-level throwable directly makes the message
@@ -10602,7 +10602,7 @@ public class SqlOperatorTest {
       this.patterns = patterns;
     }
 
-    @Override public void checkResult(ResultSet result) throws Exception {
+    @Override public void checkResult(String sql, ResultSet result) throws Exception {
       Throwable thrown = null;
       try {
         if (!result.next()) {
@@ -10610,7 +10610,7 @@ public class SqlOperatorTest {
           return;
         }
         final Object actual = result.getObject(1);
-        assertEquals(expected, actual);
+        assertEquals(expected, actual, () -> "Query: " + sql);
       } catch (SQLException e) {
         thrown = e;
       }
@@ -10663,7 +10663,7 @@ public class SqlOperatorTest {
            Statement statement = connection.createStatement()) {
         final ResultSet resultSet =
             statement.executeQuery(query);
-        resultChecker.checkResult(resultSet);
+        resultChecker.checkResult(query, resultSet);
       } catch (Exception e) {
         throw TestUtil.rethrow(e);
       }
