@@ -470,6 +470,17 @@ SELECT
 
 !ok
 
+SELECT EXTRACT(DAYOFWEEK FROM DATE '2008-12-25') as dow,
+    EXTRACT(DAYOFYEAR FROM DATE '2008-12-25') as doy;
++-----+-----+
+| dow | doy |
++-----+-----+
+|   5 | 360 |
++-----+-----+
+(1 row)
+
+!ok
+
 # In the following example, EXTRACT returns a value corresponding to
 # the HOUR time part.
 !if (false) {

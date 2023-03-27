@@ -288,18 +288,28 @@ public class TimeFrameSet {
   }
 
   /** For ISOWEEK and WEEK(WEEKDAY), EXTRACT can be rewritten
-   * as the composition of DATE_DIFF and DATE_TRUNC. */
+   * as the composition of DATE_DIFF and DATE_TRUNC. DAYOFWEEK and DAYOFYEAR
+   * are just translated to DOW and DOY respectively. */
   public long extractDate(int date, TimeFrame timeFrame) {
     TimeUnitRange timeUnitRange;
     int offset = 0;
     // Date will be truncated to either ISOYEAR or YEAR depending on time frame.
-    if (timeFrame.name() == "ISOWEEK") {
+    switch (timeFrame.name()) {
+    case "DAYOFWEEK":
+      return DateTimeUtils.unixDateExtract(TimeUnitRange.DOW, date);
+    case "DAYOFYEAR":
+      return DateTimeUtils.unixDateExtract(TimeUnitRange.DOY, date);
+    case "ISOWEEK":
       timeUnitRange = TimeUnitRange.ISOYEAR;
       offset += 1;
-    } else if (TimeFrames.WEEK_FRAME_NAMES.contains(timeFrame.name())) {
-      timeUnitRange = TimeUnitRange.YEAR;
-    } else {
-      throw new IllegalArgumentException("Unsupported frame for EXTRACT: " + timeFrame.name());
+      break;
+    default:
+      if (TimeFrames.WEEK_FRAME_NAMES.contains(timeFrame.name())) {
+        timeUnitRange = TimeUnitRange.YEAR;
+      } else {
+        throw new IllegalArgumentException("Unsupported frame for EXTRACT: " + timeFrame.name());
+      }
+      break;
     }
     // Date is truncated first to year/isoyear and then to the provided time frame.
     int y0 = (int) DateTimeUtils.unixDateFloor(timeUnitRange, date);
