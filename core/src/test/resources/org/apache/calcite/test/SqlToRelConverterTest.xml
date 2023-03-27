@@ -7615,6 +7615,18 @@ LogicalProject(DEPTNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testQualifyOrderBy">
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(EMPNO=[$0], ENAME=[$2])
+      LogicalFilter(condition=[$1])
+        LogicalProject(EMPNO=[$0], EXPR$1=[=(ROW_NUMBER() OVER (PARTITION BY $0), 1)], ENAME=[$1])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testQualifySubquerySimple">
     <Resource name="sql">
       <![CDATA[SELECT empno FROM emp QUALIFY ROW_NUMBER() over (PARTITION BY deptno ORDER BY sal) in (SELECT deptno from emp)]]>

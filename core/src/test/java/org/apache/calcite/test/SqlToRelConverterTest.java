@@ -3875,6 +3875,26 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql1).ok();
   }
 
+  @Test void testQualifyOrderBy() {
+    //Tests a basic INSERT query with some implicit conversion
+    final String sql1 = "SELECT\n"
+        +
+        "    empno\n"
+        +
+        "FROM emp\n"
+        +
+        "QUALIFY ROW_NUMBER() OVER(\n"
+        +
+        "  PARTITION BY\n"
+        +
+        "      empno\n"
+        +
+        ") = 1\n"
+        +
+        "ORDER BY ename";
+
+    sql(sql1).ok();
+  }
 
 
   @Test void testInsertImplicitConversion() {

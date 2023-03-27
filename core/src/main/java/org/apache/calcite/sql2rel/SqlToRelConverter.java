@@ -774,6 +774,19 @@ public class SqlToRelConverter {
         cluster.traitSet().canonize(RelCollations.of(collationList));
 
 
+    /** The behavior of QUALIFY is the same as if you were to add the window function condition
+     * to the select statement, and then add a wrapping query that filters by the result. See
+     * https://docs.snowflake.com/en/sql-reference/constructs/qualify.html
+     * Therefore, we generate an equivalent plan by adding the value to the selectList, and
+     * then generating a wrapping filter immediatly after in handleQualifyClause.
+     */
+    int qualifyInsertionIdx = -1;
+    if (select.getQualify() != null) {
+      qualifyInsertionIdx = select.getSelectList().size();
+      SqlNodeList selectList = select.getSelectList();
+      selectList.add(select.getQualify());
+    }
+
     if (validator().isAggregate(select)) {
       convertAgg(
           bb,
@@ -787,7 +800,7 @@ public class SqlToRelConverter {
     }
 
     if (select.getQualify() != null) {
-      handleQualifyClause(bb);
+      handleQualifyClause(bb, qualifyInsertionIdx);
     }
 
     if (select.isDistinct()) {
@@ -834,15 +847,15 @@ public class SqlToRelConverter {
    * @param bb               Blackboard
    */
   private void handleQualifyClause(
-      Blackboard bb) {
+      Blackboard bb, int qualifyInsertionIdx) {
     RelNode rel = bb.root();
-    // If we had a qualify clause, we know it's the last item in the select list,
-    // as we place it there.
 
     final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
-    final RexNode filterVal = RexInputRef.of(fields.size() - 1, fields);
+    assert 0 <= qualifyInsertionIdx
+        && qualifyInsertionIdx < fields.size() : "Invalid Qualify Insertion index";
+    final RexNode filterVal = RexInputRef.of(qualifyInsertionIdx, fields);
 
-    // I'm not entirly certain why we do this, but the normal path that handles WHERE does this,
+    // I'm not entirely certain why we do this, but the normal path that handles WHERE does this,
     // So I'm going to leave it.
     final RexNode filterValWithoutNullability = RexUtil.removeNullabilityCast(typeFactory,
         filterVal);
@@ -871,7 +884,10 @@ public class SqlToRelConverter {
     // TODO: this only needs to happen if this is the topmost node, otherwise
     // we can just leave the column in, and it will likely be projected away at a later step
     final List<Pair<RexNode, String>> newProjects = new ArrayList<>();
-    for (int i = 0; i < fields.size() - 1; i++) {
+    for (int i = 0; i < fields.size(); i++) {
+      if (i == qualifyInsertionIdx) {
+        continue;
+      }
       newProjects.add(RexInputRef.of2(i, fields));
     }
     final RelNode projectRel = LogicalProject.create(filterRelNode, ImmutableList.of(),
@@ -3579,17 +3595,6 @@ public class SqlToRelConverter {
     SqlNodeList groupList = select.getGroup();
     SqlNodeList selectList = select.getSelectList();
 
-    /** The behavior of QUALIFY is the same as if you were to add the window function condition
-     * to the select statement, and then add wrapping query that filters by the result. See
-     * https://docs.snowflake.com/en/sql-reference/constructs/qualify.html
-     * Therefore, we generate an equivalent plan by adding the value to the selectList, and
-     * later generating a wrapping filter in handleQualifyClause, assuming that the clause is
-     * always present as the rightmost element of the selectlist
-     */
-
-    if (select.getQualify() != null) {
-      selectList.add(select.getQualify());
-    }
     SqlNode having = select.getHaving();
 
     final AggConverter aggConverter = new AggConverter(bb, select);
@@ -5461,23 +5466,9 @@ public class SqlToRelConverter {
       Blackboard bb,
       SqlSelect select,
       List<SqlNode> orderList) {
+
     SqlNodeList selectList = select.getSelectList();
-
-    /** The behavior of QUALIFY is the same as if you were to add the window function condition
-     * to the select statement, and then add wrapping query that filters by the result. See
-     * https://docs.snowflake.com/en/sql-reference/constructs/qualify.html
-     * Therefore, we generate an equivalent plan by adding the value to the selectList, and
-     * later generating a wrapping filter in handleQualifyClause, assuming that the clause is
-     * always present as the rightmost element of the selectList
-     */
-    if (select.getQualify() != null) {
-      selectList.add(select.getQualify());
-    }
-
     selectList = validator().expandStar(selectList, select, false);
-
-
-
     replaceSubQueries(bb, selectList, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
 
     List<String> fieldNames = new ArrayList<>();
