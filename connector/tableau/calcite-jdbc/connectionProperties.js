@@ -19,8 +19,13 @@
  */
 (function propertiesbuilder(attr) {
     var props = {};
-    props["user"] = attr[connectionHelper.attributeUsername];
-    props["password"] = attr[connectionHelper.attributePassword];
+    var authAttrValue = attr[connectionHelper.attributeAuthentication];
+    if (authAttrValue == "auth-user-pass") {
+        props["user"] = attr[connectionHelper.attributeUsername];
+        props["password"] = attr[connectionHelper.attributePassword];
+    } else if (authAttrValue == "oauth") {
+        props["token"] = attr["ACCESSTOKEN"];
+    }
     props["serialization"] = "PROTOBUF";
     props["database"] = ""; // attr[connectionHelper.attributeDatabase];
     props["schema"] = attr[connectionHelper.attributeSchema];

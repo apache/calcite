@@ -58,4 +58,5 @@
   <connection-metadata file="connectionMetadata.xml"/>
   <connection-resolver file="connectionResolver.tdr"/>
   <dialect file="dialect.tdd"/>
+  <oauth-config file='oauthConfig.xml'/>
 </connector-plugin>
