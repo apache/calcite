@@ -145,6 +145,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -484,10 +485,24 @@ public class RelBuilder {
     }
   }
 
-  /** Creates a correlation variable for the current input, and writes it into
-   * a Holder. */
+  @Deprecated // to be removed before 2.0
   public RelBuilder variable(Holder<RexCorrelVariable> v) {
-    v.set((RexCorrelVariable)
+    return variable(v::set);
+  }
+
+  /** Creates a correlation variable for the current input, and writes it into
+   * a Consumer.
+   *
+   * <p>Often the Consumer will write to a {@link Holder}, as follows:
+   * <blockquote>{@code
+   *   RelBuilder builder;
+   *    builder.scan("EMP")
+   *        .variable(v::set)
+   *        .filter(builder.equals(builder.field(0), v.get()))
+   * }</blockquote>
+   */
+  public RelBuilder variable(Consumer<RexCorrelVariable> consumer) {
+    consumer.accept((RexCorrelVariable)
         getRexBuilder().makeCorrel(peek().getRowType(),
             cluster.createCorrel()));
     return this;

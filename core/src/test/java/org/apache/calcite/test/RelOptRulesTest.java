@@ -3799,10 +3799,10 @@ class RelOptRulesTest extends RelOptTestBase {
 
   private static Function<RelBuilder, RelNode> correlationWithEmpty(JoinRelType joinType,
       boolean emptyLeft, boolean emptyRight) {
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Holder<RexCorrelVariable> v = Holder.empty();
     return b -> {
       List<RexNode> requiredFields = new ArrayList<>();
-      b.scan("EMP").variable(v);
+      b.scan("EMP").variable(v::set);
       if (emptyLeft) {
         b.empty();
       }

@@ -1098,7 +1098,7 @@ class RelWriterTest {
   void testCorrelateQuery(SqlExplainFormat format) {
     final Holder<RexCorrelVariable> v = Holder.empty();
     final Function<RelBuilder, RelNode> relFn = b -> b.scan("EMP")
-        .variable(v)
+        .variable(v::set)
         .scan("DEPT")
         .filter(b.equals(b.field(0), b.field(v.get(), "DEPTNO")))
         .correlate(JoinRelType.INNER, v.get().id, b.field(2, 0, "DEPTNO"))
