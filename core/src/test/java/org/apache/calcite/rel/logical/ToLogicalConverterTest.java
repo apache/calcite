@@ -326,7 +326,7 @@ class ToLogicalConverterTest {
     final RelBuilder builder = builder();
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     final RelNode rel = builder.scan("EMP")
-        .variable(v)
+        .variable(v::set)
         .scan("DEPT")
         .filter(
             builder.equals(builder.field(0), builder.field(v.get(), "DEPTNO")))

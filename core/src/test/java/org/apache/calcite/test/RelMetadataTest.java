@@ -1148,13 +1148,13 @@ public class RelMetadataTest {
               .build();
           final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
           final RelNode rel1 = b.scan("EMP")
-              .variable(v)
+              .variable(v::set)
               .project(b.field("DEPTNO"), b.field("SAL"))
               .filter(
                   b.equals(b.field(0), b.field(v.get(), "DEPTNO")))
               .build();
           return b.push(rel0)
-              .variable(v)
+              .variable(v::set)
               .push(rel1)
               .correlate(JoinRelType.SEMI, v.get().id, b.field(2, 0, "DEPTNO"))
               .build();
