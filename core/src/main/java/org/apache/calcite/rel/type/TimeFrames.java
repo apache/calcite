@@ -117,6 +117,8 @@ public class TimeFrames {
 
     b.addQuotient(TimeUnit.DOY, TimeUnit.DAY, TimeUnit.YEAR);
     b.addQuotient(TimeUnit.DOW, TimeUnit.DAY, TimeUnit.WEEK);
+    b.addQuotient("DAYOFYEAR", TimeUnit.DAY.name(), TimeUnit.YEAR.name());
+    b.addQuotient("DAYOFWEEK", TimeUnit.DAY.name(), TimeUnit.WEEK.name());
     b.addQuotient(TimeUnit.ISODOW.name(), TimeUnit.DAY.name(), "ISOWEEK");
 
     b.addRollup(TimeUnit.DAY, TimeUnit.MONTH);
