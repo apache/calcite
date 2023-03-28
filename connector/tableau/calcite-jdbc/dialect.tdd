@@ -1627,28 +1627,28 @@
       <argument type='date' />
     </date-function>
     <date-function name='DATETRUNC' return-type='date'>
-      <formula part='week'>TIMESTAMP_TRUNC((%2), WEEK(%3))</formula>
+      <formula part='week'>DATE_TRUNC((%2), WEEK(%3))</formula>
       <argument type='localstr' />
       <argument type='date' />
       <argument type='localstr' />
     </date-function>
     <date-function name='DATETRUNC' return-type='datetime'>
-      <formula>TIMESTAMP_TRUNC((%2), %1)</formula>
-      <formula part='year'>TIMESTAMP_TRUNC((%2), YEAR)</formula>
-      <formula part='quarter'>TIMESTAMP_TRUNC((%2), QUARTER)</formula>
-      <formula part='month'>TIMESTAMP_TRUNC((%2), MONTH)</formula>
-      <formula part='dayofyear'>TIMESTAMP_TRUNC((%2), DAY)</formula>
-      <formula part='day'>TIMESTAMP_TRUNC((%2), DAY)</formula>
-      <formula part='weekday'>TIMESTAMP_TRUNC((%2), DAY)</formula>
-      <formula part='week'>TIMESTAMP_TRUNC((%2), WEEK)</formula>
-      <formula part='hour'>TIMESTAMP_TRUNC((%2), HOUR)</formula>
-      <formula part='minute'>TIMESTAMP_TRUNC((%2), MINUTE)</formula>
-      <formula part='second'>TIMESTAMP_TRUNC((%2), SECOND)</formula>
+      <formula>TIMESTAMP_TRUNC(CAST((%2) AS TIMESTAMP), %1)</formula>
+      <formula part='year'>TIMESTAMP_TRUNC(CAST((%2) AS TIMESTAMP), YEAR)</formula>
+      <formula part='quarter'>TIMESTAMP_TRUNC(CAST((%2) AS TIMESTAMP), QUARTER)</formula>
+      <formula part='month'>TIMESTAMP_TRUNC(CAST((%2) AS TIMESTAMP), MONTH)</formula>
+      <formula part='dayofyear'>TIMESTAMP_TRUNC(CAST((%2) AS TIMESTAMP), DAY)</formula>
+      <formula part='day'>TIMESTAMP_TRUNC(CAST((%2) AS TIMESTAMP), DAY)</formula>
+      <formula part='weekday'>TIMESTAMP_TRUNC(CAST((%2) AS TIMESTAMP), DAY)</formula>
+      <formula part='week'>TIMESTAMP_TRUNC(CAST((%2) AS TIMESTAMP), WEEK)</formula>
+      <formula part='hour'>TIMESTAMP_TRUNC(CAST((%2) AS TIMESTAMP), HOUR)</formula>
+      <formula part='minute'>TIMESTAMP_TRUNC(CAST((%2) AS TIMESTAMP), MINUTE)</formula>
+      <formula part='second'>TIMESTAMP_TRUNC(CAST((%2) AS TIMESTAMP), SECOND)</formula>
       <argument type='localstr' />
       <argument type='datetime' />
     </date-function>
     <date-function name='DATETRUNC' return-type='datetime'>
-      <formula part='week'>TIMESTAMP_TRUNC((%2), WEEK(%3))</formula>
+      <formula part='week'>TIMESTAMP_TRUNC(CAST((%2) AS TIMESTAMP), WEEK(%3))</formula>
       <argument type='localstr' />
       <argument type='datetime' />
       <argument type='localstr' />
