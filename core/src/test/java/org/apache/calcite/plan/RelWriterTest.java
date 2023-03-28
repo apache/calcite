@@ -840,6 +840,13 @@ class RelWriterTest {
     //             b.literal(30))
     //     )
     //     .build();
+    // final RelJsonWriter jsonWriter = new RelJsonWriter(new JsonBuilder(), RelJson::withLibraryOperatorTable);
+    // rel.explain(jsonWriter);
+    // String relJsonString = jsonWriter.asString();
+    // String result = deserializeAndDumpToTextFormat(getSchema(rel), relJsonString);
+    // final String expected = "<TODO>";
+    // assertThat(result, isLinux(expected));
+
     RexNode between = b.getRexBuilder().makeBetween(
         b.literal(45),
         b.literal(20),
@@ -847,6 +854,7 @@ class RelWriterTest {
     RelJson relJson = RelJson.create().withJsonBuilder(new JsonBuilder());
     Object rexified = relJson.toJson(between);
     RexNode deserialize = relJson.toRex(b.getCluster(), rexified);
+    assertThat(deserialize.hashCode(), is(between.hashCode()));
   }
 
   @ParameterizedTest

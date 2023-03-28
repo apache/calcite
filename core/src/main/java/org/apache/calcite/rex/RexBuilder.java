@@ -1638,6 +1638,9 @@ public class RexBuilder {
     case INTEGER:
     case BIGINT:
     case DECIMAL:
+      if (value instanceof RexLiteral && ((RexLiteral) value).getTypeName().equals(SqlTypeName.SARG) ){
+        return (RexNode) value;
+      }
       return makeExactLiteral((BigDecimal) value, type);
     case FLOAT:
     case REAL:
@@ -1736,9 +1739,12 @@ public class RexBuilder {
    * {@link org.apache.calcite.rex.RexLiteral#valueMatchesType}.
    *
    * <p>Returns null if and only if {@code o} is null. */
-  private static @PolyNull Object clean(@PolyNull Object o, RelDataType type) {
+  private @PolyNull Object clean(@PolyNull Object o, RelDataType type) {
     if (o == null) {
       return o;
+    }
+    if (o instanceof Sarg) {
+      return makeSearchArgumentLiteral((Sarg) o, type);
     }
     switch (type.getSqlTypeName()) {
     case TINYINT:

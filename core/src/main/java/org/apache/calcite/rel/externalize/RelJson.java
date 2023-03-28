@@ -657,7 +657,7 @@ public class RelJson {
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     if (o == null) {
       return null;
-    } else if (o instanceof Map) {
+    } else if (Map.class.isAssignableFrom(o.getClass())) {
       final Map<String, @Nullable Object> map = (Map) o;
       final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
       if (map.containsKey("op")) {
