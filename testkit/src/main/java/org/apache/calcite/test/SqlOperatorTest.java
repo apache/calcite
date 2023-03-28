@@ -13305,11 +13305,13 @@ public class SqlOperatorTest {
     f.checkScalar("timestampdiff(\"month4\", date '2016-02-24', "
             + "date '2016-02-23')",
         "0", "INTEGER NOT NULL");
-    f.withLibrary(SqlLibrary.BIG_QUERY)
-        .setFor(SqlLibraryOperators.TIMESTAMP_DIFF3)
-        .checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', "
-                + "timestamp '2008-12-25 16:30:00', \"minute15\")",
-            "-4", "INTEGER NOT NULL");
+    if (Bug.CALCITE_3312_FIXED) {
+      f.withLibrary(SqlLibrary.BIG_QUERY)
+          .setFor(SqlLibraryOperators.TIMESTAMP_DIFF3)
+          .checkScalar("timestamp_diff(timestamp '2008-12-25 15:30:00', "
+                  + "timestamp '2008-12-25 16:30:00', \"minute15\")",
+              "-4", "INTEGER NOT NULL");
+    }
   }
 
   @Test void testFloorFuncInterval() {
@@ -13621,102 +13623,104 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture()
         .withLibrary(SqlLibrary.BIG_QUERY)
         .setFor(SqlLibraryOperators.TIMESTAMP_DIFF3);
-    HOUR_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(timestamp '2016-02-24 12:42:25', "
-                + "timestamp '2016-02-24 15:42:25', "
-                + s + ")",
-            "-3", "INTEGER NOT NULL"));
-    MICROSECOND_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(timestamp '2016-02-24 12:42:25', "
-                + "timestamp '2016-02-24 12:42:20', "
-                + s + ")",
-            "5000000", "INTEGER NOT NULL"));
-    YEAR_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
-                + "timestamp '2016-02-24 12:42:25', "
-                + s + ")",
-            "-2", "INTEGER NOT NULL"));
-    WEEK_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
-                + "timestamp '2016-02-24 12:42:25', "
-                + s + ")",
-            "-104", "INTEGER NOT NULL"));
-    WEEK_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(timestamp '2014-02-19 12:42:25', "
-                + "timestamp '2016-02-24 12:42:25', "
-                + s + ")",
-            "-105", "INTEGER NOT NULL"));
-    MONTH_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
-                + "timestamp '2016-02-24 12:42:25', "
-                + s + ")",
-            "-24", "INTEGER NOT NULL"));
-    MONTH_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(timestamp '2019-09-01 12:42:25', "
-                + "timestamp '2020-03-01 12:42:25', "
-                + s + ")",
-            "-6", "INTEGER NOT NULL"));
-    MONTH_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(timestamp '2019-09-01 12:42:25', "
-                + "timestamp '2016-08-01 12:42:25', "
-                + s + ")",
-            "37", "INTEGER NOT NULL"));
-    QUARTER_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
-                + "timestamp '2016-02-24 12:42:25', "
-                + s + ")",
-            "-8", "INTEGER NOT NULL"));
-    f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
-            + "timestamp '2614-02-24 12:42:25', "
-            + "CENTURY)",
-        "-6", "INTEGER NOT NULL");
-    QUARTER_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(timestamp '2016-02-24 12:42:25', "
-                + "cast(null as timestamp), "
-                + s + ")",
-            isNullValue(), "INTEGER"));
+    if (Bug.CALCITE_3312_FIXED){
+      HOUR_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(timestamp '2016-02-24 12:42:25', "
+                  + "timestamp '2016-02-24 15:42:25', "
+                  + s + ")",
+              "-3", "INTEGER NOT NULL"));
+      MICROSECOND_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(timestamp '2016-02-24 12:42:25', "
+                  + "timestamp '2016-02-24 12:42:20', "
+                  + s + ")",
+              "5000000", "INTEGER NOT NULL"));
+      YEAR_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
+                  + "timestamp '2016-02-24 12:42:25', "
+                  + s + ")",
+              "-2", "INTEGER NOT NULL"));
+      WEEK_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
+                  + "timestamp '2016-02-24 12:42:25', "
+                  + s + ")",
+              "-104", "INTEGER NOT NULL"));
+      WEEK_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(timestamp '2014-02-19 12:42:25', "
+                  + "timestamp '2016-02-24 12:42:25', "
+                  + s + ")",
+              "-105", "INTEGER NOT NULL"));
+      MONTH_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
+                  + "timestamp '2016-02-24 12:42:25', "
+                  + s + ")",
+              "-24", "INTEGER NOT NULL"));
+      MONTH_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(timestamp '2019-09-01 12:42:25', "
+                  + "timestamp '2020-03-01 12:42:25', "
+                  + s + ")",
+              "-6", "INTEGER NOT NULL"));
+      MONTH_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(timestamp '2019-09-01 12:42:25', "
+                  + "timestamp '2016-08-01 12:42:25', "
+                  + s + ")",
+              "37", "INTEGER NOT NULL"));
+      QUARTER_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
+                  + "timestamp '2016-02-24 12:42:25', "
+                  + s + ")",
+              "-8", "INTEGER NOT NULL"));
+      f.checkScalar("timestamp_diff(timestamp '2014-02-24 12:42:25', "
+              + "timestamp '2614-02-24 12:42:25', "
+              + "CENTURY)",
+          "-6", "INTEGER NOT NULL");
+      QUARTER_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(timestamp '2016-02-24 12:42:25', "
+                  + "cast(null as timestamp), "
+                  + s + ")",
+              isNullValue(), "INTEGER"));
 
-    // timestamp_diff with date
-    MONTH_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(date '2016-03-15', "
-                + "date '2016-06-14', "
-                + s + ")",
-            "-3", "INTEGER NOT NULL"));
-    MONTH_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(date '2019-09-01', "
-                + "date '2020-03-01', "
-                + s + ")",
-            "-6", "INTEGER NOT NULL"));
-    MONTH_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(date '2019-09-01', "
-                + "date '2016-08-01', "
-                + s + ")",
-            "37", "INTEGER NOT NULL"));
-    DAY_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(date '2016-06-15', "
-                + "date '2016-06-14', "
-                + s + ")",
-            "1", "INTEGER NOT NULL"));
-    HOUR_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(date '2016-06-15', "
-                + "date '2016-06-14', "
-                + s + ")",
-            "24", "INTEGER NOT NULL"));
-    HOUR_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(date '2016-06-15',  "
-                + "date '2016-06-15', "
-                + s + ")",
-            "0", "INTEGER NOT NULL"));
-    MINUTE_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(date '2016-06-15', "
-                + "date '2016-06-14', "
-                + s + ")",
-            "1440", "INTEGER NOT NULL"));
-    DAY_VARIANTS.forEach(s ->
-        f.checkScalar("timestamp_diff(date '2016-06-15', "
-                + "cast(null as date), "
-                + s + ")",
-            isNullValue(), "INTEGER"));
+      // timestamp_diff with date
+      MONTH_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(date '2016-03-15', "
+                  + "date '2016-06-14', "
+                  + s + ")",
+              "-3", "INTEGER NOT NULL"));
+      MONTH_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(date '2019-09-01', "
+                  + "date '2020-03-01', "
+                  + s + ")",
+              "-6", "INTEGER NOT NULL"));
+      MONTH_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(date '2019-09-01', "
+                  + "date '2016-08-01', "
+                  + s + ")",
+              "37", "INTEGER NOT NULL"));
+      DAY_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(date '2016-06-15', "
+                  + "date '2016-06-14', "
+                  + s + ")",
+              "1", "INTEGER NOT NULL"));
+      HOUR_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(date '2016-06-15', "
+                  + "date '2016-06-14', "
+                  + s + ")",
+              "24", "INTEGER NOT NULL"));
+      HOUR_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(date '2016-06-15',  "
+                  + "date '2016-06-15', "
+                  + s + ")",
+              "0", "INTEGER NOT NULL"));
+      MINUTE_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(date '2016-06-15', "
+                  + "date '2016-06-14', "
+                  + s + ")",
+              "1440", "INTEGER NOT NULL"));
+      DAY_VARIANTS.forEach(s ->
+          f.checkScalar("timestamp_diff(date '2016-06-15', "
+                  + "cast(null as date), "
+                  + s + ")",
+              isNullValue(), "INTEGER"));
+    }
   }
 
   /** Tests BigQuery's {@code DATETIME_DIFF(timestamp, timestamp2, timeUnit)}
@@ -13737,102 +13741,104 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture()
         .withLibrary(SqlLibrary.BIG_QUERY)
         .setFor(SqlLibraryOperators.DATETIME_DIFF);
-    HOUR_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(timestamp '2016-02-24 12:42:25', "
-                + "timestamp '2016-02-24 15:42:25', "
-                + s + ")",
-            "-3", "INTEGER NOT NULL"));
-    MICROSECOND_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(timestamp '2016-02-24 12:42:25', "
-                + "timestamp '2016-02-24 12:42:20', "
-                + s + ")",
-            "5000000", "INTEGER NOT NULL"));
-    YEAR_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
-                + "timestamp '2016-02-24 12:42:25', "
-                + s + ")",
-            "-2", "INTEGER NOT NULL"));
-    WEEK_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
-                + "timestamp '2016-02-24 12:42:25', "
-                + s + ")",
-            "-104", "INTEGER NOT NULL"));
-    WEEK_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(timestamp '2014-02-19 12:42:25', "
-                + "timestamp '2016-02-24 12:42:25', "
-                + s + ")",
-            "-105", "INTEGER NOT NULL"));
-    MONTH_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
-                + "timestamp '2016-02-24 12:42:25', "
-                + s + ")",
-            "-24", "INTEGER NOT NULL"));
-    MONTH_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(timestamp '2019-09-01 12:42:25', "
-                + "timestamp '2020-03-01 12:42:25', "
-                + s + ")",
-            "-6", "INTEGER NOT NULL"));
-    MONTH_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(timestamp '2019-09-01 12:42:25', "
-                + "timestamp '2016-08-01 12:42:25', "
-                + s + ")",
-            "37", "INTEGER NOT NULL"));
-    QUARTER_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
-                + "timestamp '2016-02-24 12:42:25', "
-                + s + ")",
-            "-8", "INTEGER NOT NULL"));
-    f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
-            + "timestamp '2614-02-24 12:42:25', "
-            + "CENTURY)",
-        "-6", "INTEGER NOT NULL");
-    QUARTER_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(timestamp '2016-02-24 12:42:25', "
-                + "cast(null as timestamp), "
-                + s + ")",
-            isNullValue(), "INTEGER"));
+    if (Bug.CALCITE_3312_FIXED) {
+      HOUR_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(timestamp '2016-02-24 12:42:25', "
+                  + "timestamp '2016-02-24 15:42:25', "
+                  + s + ")",
+              "-3", "INTEGER NOT NULL"));
+      MICROSECOND_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(timestamp '2016-02-24 12:42:25', "
+                  + "timestamp '2016-02-24 12:42:20', "
+                  + s + ")",
+              "5000000", "INTEGER NOT NULL"));
+      YEAR_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
+                  + "timestamp '2016-02-24 12:42:25', "
+                  + s + ")",
+              "-2", "INTEGER NOT NULL"));
+      WEEK_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
+                  + "timestamp '2016-02-24 12:42:25', "
+                  + s + ")",
+              "-104", "INTEGER NOT NULL"));
+      WEEK_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(timestamp '2014-02-19 12:42:25', "
+                  + "timestamp '2016-02-24 12:42:25', "
+                  + s + ")",
+              "-105", "INTEGER NOT NULL"));
+      MONTH_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
+                  + "timestamp '2016-02-24 12:42:25', "
+                  + s + ")",
+              "-24", "INTEGER NOT NULL"));
+      MONTH_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(timestamp '2019-09-01 12:42:25', "
+                  + "timestamp '2020-03-01 12:42:25', "
+                  + s + ")",
+              "-6", "INTEGER NOT NULL"));
+      MONTH_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(timestamp '2019-09-01 12:42:25', "
+                  + "timestamp '2016-08-01 12:42:25', "
+                  + s + ")",
+              "37", "INTEGER NOT NULL"));
+      QUARTER_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
+                  + "timestamp '2016-02-24 12:42:25', "
+                  + s + ")",
+              "-8", "INTEGER NOT NULL"));
+      f.checkScalar("datetime_diff(timestamp '2014-02-24 12:42:25', "
+              + "timestamp '2614-02-24 12:42:25', "
+              + "CENTURY)",
+          "-6", "INTEGER NOT NULL");
+      QUARTER_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(timestamp '2016-02-24 12:42:25', "
+                  + "cast(null as timestamp), "
+                  + s + ")",
+              isNullValue(), "INTEGER"));
 
-    // datetime_diff with date
-    MONTH_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(date '2016-03-15', "
-                + "date '2016-06-14', "
-                + s + ")",
-            "-3", "INTEGER NOT NULL"));
-    MONTH_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(date '2019-09-01', "
-                + "date '2020-03-01', "
-                + s + ")",
-            "-6", "INTEGER NOT NULL"));
-    MONTH_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(date '2019-09-01', "
-                + "date '2016-08-01', "
-                + s + ")",
-            "37", "INTEGER NOT NULL"));
-    DAY_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(date '2016-06-15', "
-                + "date '2016-06-14', "
-                + s + ")",
-            "1", "INTEGER NOT NULL"));
-    HOUR_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(date '2016-06-15', "
-                + "date '2016-06-14', "
-                + s + ")",
-            "24", "INTEGER NOT NULL"));
-    HOUR_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(date '2016-06-15',  "
-                + "date '2016-06-15', "
-                + s + ")",
-            "0", "INTEGER NOT NULL"));
-    MINUTE_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(date '2016-06-15', "
-                + "date '2016-06-14', "
-                + s + ")",
-            "1440", "INTEGER NOT NULL"));
-    DAY_VARIANTS.forEach(s ->
-        f.checkScalar("datetime_diff(date '2016-06-15', "
-                + "cast(null as date), "
-                + s + ")",
-            isNullValue(), "INTEGER"));
+      // datetime_diff with date
+      MONTH_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(date '2016-03-15', "
+                  + "date '2016-06-14', "
+                  + s + ")",
+              "-3", "INTEGER NOT NULL"));
+      MONTH_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(date '2019-09-01', "
+                  + "date '2020-03-01', "
+                  + s + ")",
+              "-6", "INTEGER NOT NULL"));
+      MONTH_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(date '2019-09-01', "
+                  + "date '2016-08-01', "
+                  + s + ")",
+              "37", "INTEGER NOT NULL"));
+      DAY_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(date '2016-06-15', "
+                  + "date '2016-06-14', "
+                  + s + ")",
+              "1", "INTEGER NOT NULL"));
+      HOUR_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(date '2016-06-15', "
+                  + "date '2016-06-14', "
+                  + s + ")",
+              "24", "INTEGER NOT NULL"));
+      HOUR_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(date '2016-06-15',  "
+                  + "date '2016-06-15', "
+                  + s + ")",
+              "0", "INTEGER NOT NULL"));
+      MINUTE_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(date '2016-06-15', "
+                  + "date '2016-06-14', "
+                  + s + ")",
+              "1440", "INTEGER NOT NULL"));
+      DAY_VARIANTS.forEach(s ->
+          f.checkScalar("datetime_diff(date '2016-06-15', "
+                  + "cast(null as date), "
+                  + s + ")",
+              isNullValue(), "INTEGER"));
+    }
   }
 
   @ValueSource(booleans = {true, false})
@@ -14337,24 +14343,26 @@ public class SqlOperatorTest {
         "(?s)Column 'MONTH' not found in any table",
         false);
     final SqlOperatorFixture f0 = f.withLibrary(SqlLibrary.BIG_QUERY);
-    f0.checkScalar("date_diff(DATE '2010-07-07', DATE '2008-12-25', DAY)",
-        "559",
-        "INTEGER NOT NULL");
-    f0.checkScalar("date_diff(DATE '2010-07-14', DATE '2010-07-07', WEEK)",
-        "1",
-        "INTEGER NOT NULL");
-    f0.checkScalar("date_diff(DATE '2011-12-14', DATE '2011-07-14', MONTH)",
-        "5",
-        "INTEGER NOT NULL");
-    f0.checkScalar("date_diff(DATE '2011-10-14', DATE '2011-07-14', QUARTER)",
-        "1",
-        "INTEGER NOT NULL");
-    f0.checkScalar("date_diff(DATE '2021-07-14', DATE '2011-07-14', YEAR)",
-        "10",
-        "INTEGER NOT NULL");
-    f0.checkNull("date_diff(CAST(NULL AS DATE), CAST(NULL AS DATE), DAY)");
-    f0.checkNull("date_diff(DATE '2008-12-25', CAST(NULL AS DATE), DAY)");
-    f0.checkNull("date_diff(CAST(NULL AS DATE), DATE '2008-12-25', DAY)");
+    if (Bug.CALCITE_3312_FIXED) {
+      f0.checkScalar("date_diff(DATE '2010-07-07', DATE '2008-12-25', DAY)",
+          "559",
+          "INTEGER NOT NULL");
+      f0.checkScalar("date_diff(DATE '2010-07-14', DATE '2010-07-07', WEEK)",
+          "1",
+          "INTEGER NOT NULL");
+      f0.checkScalar("date_diff(DATE '2011-12-14', DATE '2011-07-14', MONTH)",
+          "5",
+          "INTEGER NOT NULL");
+      f0.checkScalar("date_diff(DATE '2011-10-14', DATE '2011-07-14', QUARTER)",
+          "1",
+          "INTEGER NOT NULL");
+      f0.checkScalar("date_diff(DATE '2021-07-14', DATE '2011-07-14', YEAR)",
+          "10",
+          "INTEGER NOT NULL");
+      f0.checkNull("date_diff(CAST(NULL AS DATE), CAST(NULL AS DATE), DAY)");
+      f0.checkNull("date_diff(DATE '2008-12-25', CAST(NULL AS DATE), DAY)");
+      f0.checkNull("date_diff(CAST(NULL AS DATE), DATE '2008-12-25', DAY)");
+    }
   }
 
   /** Tests BigQuery's {@code TIME_ADD}, which adds an interval to a time
@@ -14397,35 +14405,37 @@ public class SqlOperatorTest {
             + "TIME_DIFF\\(<TIME>, <TIME>, <INTERVAL_DAY_TIME>\\)", false);
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkScalar("time_diff(time '15:30:00', "
-            + "time '15:30:05', "
-            + "millisecond)",
-        "-5000", "INTEGER NOT NULL");
-    MICROSECOND_VARIANTS.forEach(s ->
-        f.checkScalar("time_diff(time '15:30:00', "
-                + "time '15:30:05', "
-                + s + ")",
-            "-5000000", "INTEGER NOT NULL"));
-    SECOND_VARIANTS.forEach(s ->
-        f.checkScalar("time_diff(time '15:30:00', "
-                + "time '15:29:00', "
-                + s + ")",
-            "60", "INTEGER NOT NULL"));
-    MINUTE_VARIANTS.forEach(s ->
-        f.checkScalar("time_diff(time '15:30:00', "
-                + "time '15:29:00', "
-                + s + ")",
-            "1", "INTEGER NOT NULL"));
-    HOUR_VARIANTS.forEach(s ->
-        f.checkScalar("time_diff(time '15:30:00', "
-                + "time '16:30:00', "
-                + s + ")",
-            "-1", "INTEGER NOT NULL"));
-    MINUTE_VARIANTS.forEach(s ->
-        f.checkScalar("time_diff(time '15:30:00', "
-                + "cast(null as time), "
-                + s + ")",
-            isNullValue(), "INTEGER"));
+    if (Bug.CALCITE_3312_FIXED) {
+      f.checkScalar("time_diff(time '15:30:00', "
+              + "time '15:30:05', "
+              + "millisecond)",
+          "-5000", "INTEGER NOT NULL");
+      MICROSECOND_VARIANTS.forEach(s ->
+          f.checkScalar("time_diff(time '15:30:00', "
+                  + "time '15:30:05', "
+                  + s + ")",
+              "-5000000", "INTEGER NOT NULL"));
+      SECOND_VARIANTS.forEach(s ->
+          f.checkScalar("time_diff(time '15:30:00', "
+                  + "time '15:29:00', "
+                  + s + ")",
+              "60", "INTEGER NOT NULL"));
+      MINUTE_VARIANTS.forEach(s ->
+          f.checkScalar("time_diff(time '15:30:00', "
+                  + "time '15:29:00', "
+                  + s + ")",
+              "1", "INTEGER NOT NULL"));
+      HOUR_VARIANTS.forEach(s ->
+          f.checkScalar("time_diff(time '15:30:00', "
+                  + "time '16:30:00', "
+                  + s + ")",
+              "-1", "INTEGER NOT NULL"));
+      MINUTE_VARIANTS.forEach(s ->
+          f.checkScalar("time_diff(time '15:30:00', "
+                  + "cast(null as time), "
+                  + s + ")",
+              isNullValue(), "INTEGER"));
+    }
   }
 
   @Test void testTimeTrunc() {

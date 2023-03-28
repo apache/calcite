@@ -2456,6 +2456,33 @@ class RelToSqlConverterTest {
     sql(parseDatetime).withLibrary(SqlLibrary.BIG_QUERY).ok(expectedParseDatetime);
   }
 
+  @Test void testBigQueryDatetimeDiffFunctions() {
+    final String timeDiff = "select time_diff(time '15:30:00', time '14:35:00', minute)\n"
+        + "from \"foodmart\".\"product\"\n";
+    final String expectedTimeDiff = "SELECT TIME_DIFF(TIME '15:30:00', TIME '14:35:00', MINUTE)\n"
+        + "FROM foodmart.product";
+
+    final String dateDiff = "select date_diff(date '2010-07-07', date '2008-12-25', day)\n"
+        + "from \"foodmart\".\"product\"\n";
+    final String expectedDateDiff = "SELECT DATE_DIFF(DATE '2010-07-07', DATE '2008-12-25', DAY)\n"
+        + "FROM foodmart.product";
+
+    final String timestampDiff =
+        "select timestamp_diff(timestamp '2010-07-07 10:20:00', timestamp '2008-12-25 15:30:00', "
+            + "day)\n"
+        + "from \"foodmart\".\"product\"\n";
+    final String expectedtimestampDiff =
+        "SELECT TIMESTAMP_DIFF(TIMESTAMP '2010-07-07 10:20:00', TIMESTAMP '2008-12-25 15:30:00', "
+            + "DAY)\n"
+        + "FROM foodmart.product";
+
+
+    final Sql sql = fixture().withBigQuery().withLibrary(SqlLibrary.BIG_QUERY);
+    sql.withSql(timeDiff).ok(expectedTimeDiff);
+    sql.withSql(dateDiff).ok(expectedDateDiff);
+    sql.withSql(timestampDiff).ok(expectedtimestampDiff);
+  }
+
   @Test void testBigQueryTimeTruncFunctions() {
     String timestampTrunc = "select timestamp_trunc(timestamp '2012-02-03 15:30:00', month)\n"
         + "from \"foodmart\".\"product\"\n";
