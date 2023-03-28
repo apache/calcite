@@ -337,11 +337,6 @@ public class SqlLiteral extends SqlNode {
         return clazz.cast(((BigDecimal) value).floatValue());
       }
       break;
-    case DATE:
-      if (clazz == Calendar.class) {
-        return clazz.cast(((DateString) value).toCalendar());
-      }
-      break;
     case TIME:
       if (clazz == Calendar.class) {
         return clazz.cast(((TimeString) value).toCalendar());
