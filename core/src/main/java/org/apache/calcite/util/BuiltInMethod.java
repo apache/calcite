@@ -748,6 +748,8 @@ public enum BuiltInMethod {
       DataContext.class, String.class, int.class, int.class),
   CUSTOM_DATE_DIFF(SqlFunctions.class, "customDateDiff",
       DataContext.class, String.class, int.class, int.class),
+  CUSTOM_DATE_EXTRACT(SqlFunctions.class, "customDateExtract",
+      DataContext.class, String.class, long.class),
   CUSTOM_DATE_FLOOR(SqlFunctions.class, "customDateFloor",
       DataContext.class, String.class, int.class),
   CUSTOM_DATE_CEIL(SqlFunctions.class, "customDateCeil",

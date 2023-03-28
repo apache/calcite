@@ -12378,12 +12378,29 @@ public class SqlOperatorTest {
         "2008", "BIGINT NOT NULL");
     f.checkScalar("extract(isoyear from date '2008-2-23')",
         "2008", "BIGINT NOT NULL");
-
+    f.checkScalar("extract(isoweek from date '2008-02-23')",
+        "8", "BIGINT NOT NULL");
+    f.checkScalar("extract(week(sunday) from date '2017-03-19')",
+        "12", "BIGINT NOT NULL");
+    f.checkScalar("extract(week(monday) from date '2018-03-19')",
+        "12", "BIGINT NOT NULL");
+    f.checkScalar("extract(week(tuesday) from date '2019-03-19')",
+        "12", "BIGINT NOT NULL");
+    f.checkScalar("extract(week(wednesday) from date '2014-03-19')",
+        "12", "BIGINT NOT NULL");
+    f.checkScalar("extract(week(thursday) from date '2015-03-19')",
+        "12", "BIGINT NOT NULL");
+    f.checkScalar("extract(week(friday) from date '2021-03-19')",
+        "12", "BIGINT NOT NULL");
+    f.checkScalar("extract(week(saturday) from date '2022-03-19')",
+        "12", "BIGINT NOT NULL");
     f.checkScalar("extract(doy from date '2008-2-23')",
         "54", "BIGINT NOT NULL");
     f.checkScalar("extract(dayofyear from date '2008-2-23')",
         "54", "BIGINT NOT NULL");
     f.checkScalar("extract(dow from date '2008-2-23')",
+        "7", "BIGINT NOT NULL");
+    f.checkScalar("extract(dayofweek from date '2008-2-23')",
         "7", "BIGINT NOT NULL");
     f.checkScalar("extract(dow from date '2008-2-24')",
         "1", "BIGINT NOT NULL");

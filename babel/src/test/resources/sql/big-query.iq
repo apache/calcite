@@ -410,14 +410,12 @@ SELECT
 # In the following example, EXTRACT returns values corresponding to
 # different date parts from a column of dates near the end of the
 # year.
-
-!if (false) {
 SELECT
   d,
   EXTRACT(ISOYEAR FROM d) AS isoyear,
-  EXTRACT(ISOWEEK FROM d) AS isoweek,
-  EXTRACT(YEAR FROM d) AS year,
-  EXTRACT(WEEK FROM d) AS week
+  EXTRACT(ISOWEEK FROM d) as isoweek,
+  EXTRACT(WEEK(TUESDAY) FROM d) AS week_tues,
+  EXTRACT(YEAR FROM d) AS year
 FROM UNNEST(
   ARRAY [DATE '2015-12-23',
          DATE '2015-12-24',
@@ -438,48 +436,62 @@ FROM UNNEST(
          DATE '2016-01-08',
          DATE '2016-01-09']) AS d
 ORDER BY d;
-+------------+---------+---------+------+------+
-| date       | isoyear | isoweek | year | week |
-+------------+---------+---------+------+------+
-| 2015-12-23 | 2015    | 52      | 2015 | 51   |
-| 2015-12-24 | 2015    | 52      | 2015 | 51   |
-| 2015-12-25 | 2015    | 52      | 2015 | 51   |
-| 2015-12-26 | 2015    | 52      | 2015 | 51   |
-| 2015-12-27 | 2015    | 52      | 2015 | 52   |
-| 2015-12-28 | 2015    | 53      | 2015 | 52   |
-| 2015-12-29 | 2015    | 53      | 2015 | 52   |
-| 2015-12-30 | 2015    | 53      | 2015 | 52   |
-| 2015-12-31 | 2015    | 53      | 2015 | 52   |
-| 2016-01-01 | 2015    | 53      | 2016 | 0    |
-| 2016-01-02 | 2015    | 53      | 2016 | 0    |
-| 2016-01-03 | 2015    | 53      | 2016 | 1    |
-| 2016-01-04 | 2016    | 1       | 2016 | 1    |
-| 2016-01-05 | 2016    | 1       | 2016 | 1    |
-| 2016-01-06 | 2016    | 1       | 2016 | 1    |
-| 2016-01-07 | 2016    | 1       | 2016 | 1    |
-| 2016-01-08 | 2016    | 1       | 2016 | 1    |
-| 2016-01-09 | 2016    | 1       | 2016 | 1    |
-+------------+---------+---------+------+------+
++------------+---------+---------+-----------+------+
+| d          | isoyear | isoweek | week_tues | year |
++------------+---------+---------+-----------+------+
+| 2015-12-23 |    2015 |      52 |        51 | 2015 |
+| 2015-12-24 |    2015 |      52 |        51 | 2015 |
+| 2015-12-25 |    2015 |      52 |        51 | 2015 |
+| 2015-12-26 |    2015 |      52 |        51 | 2015 |
+| 2015-12-27 |    2015 |      52 |        51 | 2015 |
+| 2015-12-28 |    2015 |      53 |        51 | 2015 |
+| 2015-12-29 |    2015 |      53 |        52 | 2015 |
+| 2015-12-30 |    2015 |      53 |        52 | 2015 |
+| 2015-12-31 |    2015 |      53 |        52 | 2015 |
+| 2016-01-01 |    2015 |      53 |         0 | 2016 |
+| 2016-01-02 |    2015 |      53 |         0 | 2016 |
+| 2016-01-03 |    2015 |      53 |         0 | 2016 |
+| 2016-01-04 |    2016 |       1 |         0 | 2016 |
+| 2016-01-05 |    2016 |       1 |         1 | 2016 |
+| 2016-01-06 |    2016 |       1 |         1 | 2016 |
+| 2016-01-07 |    2016 |       1 |         1 | 2016 |
+| 2016-01-08 |    2016 |       1 |         1 | 2016 |
+| 2016-01-09 |    2016 |       1 |         1 | 2016 |
++------------+---------+---------+-----------+------+
+(18 rows)
+
 !ok
-!}
+
 
 # In the following example, date_expression falls on a Sunday. EXTRACT
 # calculates the first column using weeks that begin on Sunday, and it
 # calculates the second column using weeks that begin on Monday.
 
-!if (false) {
 WITH t AS (SELECT DATE('2017-11-05') AS d)
 SELECT
   d,
+  EXTRACT(ISOWEEK FROM d) AS isoweek,
   EXTRACT(WEEK(SUNDAY) FROM d) AS week_sunday,
   EXTRACT(WEEK(MONDAY) FROM d) AS week_monday FROM t;
-+------------+-------------+-------------+
-| date       | week_sunday | week_monday |
-+------------+-------------+-------------+
-| 2017-11-05 | 45          | 44          |
-+------------+-------------+-------------+
++------------+---------+-------------+-------------+
+| d          | isoweek | week_sunday | week_monday |
++------------+---------+-------------+-------------+
+| 2017-11-05 |      44 |          45 |          44 |
++------------+---------+-------------+-------------+
+(1 row)
+
 !ok
-!}
+
+SELECT EXTRACT(DAYOFWEEK FROM DATE '2008-12-25') as dow,
+    EXTRACT(DAYOFYEAR FROM DATE '2008-12-25') as doy;
++-----+-----+
+| dow | doy |
++-----+-----+
+|   5 | 360 |
++-----+-----+
+(1 row)
+
+!ok
 
 # In the following example, EXTRACT returns a value corresponding to
 # the HOUR time part.
