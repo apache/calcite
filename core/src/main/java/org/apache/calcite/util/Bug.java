@@ -151,6 +151,11 @@ public abstract class Bug {
   public static final boolean CALCITE_2869_FIXED = false;
 
   /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3312">[CALCITE-3312]
+   * TIMESTAMPDIFF cannot be converted to SQL</a> is fixed. */
+  public static final boolean CALCITE_3312_FIXED = false;
+
+  /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3243">[CALCITE-3243]
    * Incomplete validation of operands in JSON functions</a> is fixed. */
   public static final boolean CALCITE_3243_FIXED = false;

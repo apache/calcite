@@ -1598,6 +1598,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlSpecialOperator REINTERPRET =
       new SqlSpecialOperator("Reinterpret", SqlKind.REINTERPRET) {
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          call.operand(0).unparse(writer, leftPrec, rightPrec);
+        }
+
         @Override public SqlOperandCountRange getOperandCountRange() {
           return SqlOperandCountRanges.between(1, 2);
         }

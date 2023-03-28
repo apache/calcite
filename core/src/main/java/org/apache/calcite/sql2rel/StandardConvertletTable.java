@@ -80,6 +80,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -212,28 +213,36 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         new TimestampAddConvertlet());
     registerOp(SqlLibraryOperators.DATE_ADD_SPARK,
         new TimestampAddConvertlet());
-    registerOp(SqlLibraryOperators.DATE_DIFF,
-        new TimestampDiffConvertlet());
+    if (Bug.CALCITE_3312_FIXED) {
+      registerOp(SqlLibraryOperators.DATE_DIFF,
+          new TimestampDiffConvertlet());
+    }
     registerOp(SqlLibraryOperators.DATE_SUB,
         new TimestampSubConvertlet());
     registerOp(SqlLibraryOperators.DATE_SUB_SPARK,
         new TimestampSubConvertlet());
     registerOp(SqlLibraryOperators.DATETIME_ADD,
         new TimestampAddConvertlet());
-    registerOp(SqlLibraryOperators.DATETIME_DIFF,
-        new TimestampDiffConvertlet());
+    if (Bug.CALCITE_3312_FIXED) {
+      registerOp(SqlLibraryOperators.DATETIME_DIFF,
+          new TimestampDiffConvertlet());
+    }
     registerOp(SqlLibraryOperators.DATETIME_SUB,
         new TimestampSubConvertlet());
     registerOp(SqlLibraryOperators.TIME_ADD,
         new TimestampAddConvertlet());
-    registerOp(SqlLibraryOperators.TIME_DIFF,
-        new TimestampDiffConvertlet());
+    if (Bug.CALCITE_3312_FIXED) {
+      registerOp(SqlLibraryOperators.TIME_DIFF,
+          new TimestampDiffConvertlet());
+    }
     registerOp(SqlLibraryOperators.TIME_SUB,
         new TimestampSubConvertlet());
     registerOp(SqlLibraryOperators.TIMESTAMP_ADD2,
         new TimestampAddConvertlet());
-    registerOp(SqlLibraryOperators.TIMESTAMP_DIFF3,
-        new TimestampDiffConvertlet());
+    if (Bug.CALCITE_3312_FIXED) {
+      registerOp(SqlLibraryOperators.TIMESTAMP_DIFF3,
+          new TimestampDiffConvertlet());
+    }
     registerOp(SqlLibraryOperators.TIMESTAMP_SUB,
         new TimestampSubConvertlet());
 
