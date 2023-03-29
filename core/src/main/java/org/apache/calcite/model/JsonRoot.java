@@ -49,10 +49,11 @@ import static java.util.Objects.requireNonNull;
  *       {@link JsonTile} (in collection {@link JsonLattice#tiles tiles})
  *         {@link JsonMeasure} (in collection {@link JsonTile#measures measures})
  *     {@link JsonMaterialization} (in collection {@link JsonSchema#materializations materializations})
+ *   {@link JsonType} (in collection {@link JsonRoot#types types})
  * </pre>
  * <!-- CHECKSTYLE: ON -->
  *
- * <p>See the <a href="http://calcite.apache.org/docs/model.html">JSON
+ * <p>See the <a href="https://calcite.apache.org/docs/model.html">JSON
  * model reference</a>.
  */
 public class JsonRoot {
@@ -72,6 +73,14 @@ public class JsonRoot {
    * <p>The list may be empty.
    */
   public final List<JsonSchema> schemas = new ArrayList<>();
+
+  /** List of types in the root schema.
+   *
+   * <p>Such types global, that is, shared by all schemas in the model.
+   *
+   * <p>The list may be empty.
+   */
+  public final List<JsonType> types = new ArrayList<>();
 
   @JsonCreator
   public JsonRoot(

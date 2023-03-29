@@ -36,7 +36,8 @@ Models can also be built programmatically using the `Schema` SPI.
 {
   version: '1.0',
   defaultSchema: 'mongo',
-  schemas: [ Schema... ]
+  schemas: [ Schema... ],
+  types: [ Type... ]
 }
 {% endhighlight %}
 
@@ -46,6 +47,8 @@ version: 1.0
 defaultSchema: mongo
 schemas:
 - [Schema...]
+types:
+- [Type...]
 {% endhighlight %}
 
 `version` (required string) must have value `1.0`.
@@ -55,6 +58,8 @@ the name (case-sensitive) of a schema defined in this model, and will
 become the default schema for connections to Calcite that use this model.
 
 `schemas` (optional list of <a href="#schema">Schema</a> elements).
+
+`types` (optional list of <a href="#type">Type</a> elements shared by all schemas).
 
 ### Schema
 
@@ -496,7 +501,7 @@ if found, creates an aggregate function.
 
 ### Type
 
-Occurs within `root.schemas.types`.
+Occurs within `root.types` and `root.schemas.types`.
 
 #### JSON
 {% highlight json %}
