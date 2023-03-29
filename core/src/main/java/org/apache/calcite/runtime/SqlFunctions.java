@@ -51,6 +51,8 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
+import org.apache.commons.lang3.StringUtils;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
@@ -130,6 +132,43 @@ public class SqlFunctions {
   private static final int SOUNDEX_LENGTH = 4;
 
   private static final Pattern FROM_BASE64_REGEXP = Pattern.compile("[\\t\\n\\r\\s]");
+
+  // See https://www.postgresql.org/docs/current/functions-formatting.html
+  private static final String[][] POSTGRESQL_PATTERN_REPLACEMENTS = {
+      {"HH12", "hh"},
+      {"HH24", "HH"},
+      {"MI", "mm"},
+      {"SS", "s"},
+      {"MS", "SSS"},
+      {"FF1", "S"},
+      {"FF2", "SS"},
+      {"FF3", "SSS"},
+      {"FF4", "SSSS"},
+      {"FF5", "SSSSS"},
+      {"FF6", "SSSSSS"},
+      {"YYYY", "yyyy"},
+      {"YY", "y"},
+      {"DAY", "A"},
+      {"DY", "a"},
+      {"MONTH", "B"},
+      {"MON", "b"},
+      {"MM", "MM"},
+      {"DDD", "D"},
+      {"DD", "dd"},
+      {"D", "E"},
+      {"WW", "W"},
+      {"IW", "V"},
+      {"Q", "Q"},
+      // Our implementation of TO_CHAR does not support TIMESTAMPTZ
+      // As PostgreSQL, we will skip the timezone when formatting TIMESTAMP values
+      {"TZ", ""}
+  };
+
+  private static final String[] POSTGRESQL_PATTERN_REPLACEMENTS_SEARCH =
+      Arrays.stream(POSTGRESQL_PATTERN_REPLACEMENTS).map(x -> x[0]).toArray(String[]::new);
+
+  private static final String[] POSTGRESQL_PATTERN_REPLACEMENTS_REPLACE =
+      Arrays.stream(POSTGRESQL_PATTERN_REPLACEMENTS).map(x -> x[1]).toArray(String[]::new);
 
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
       a0 -> a0 == null ? Linq4j.emptyEnumerable() : Linq4j.asEnumerable(a0);
@@ -2631,6 +2670,18 @@ public class SqlFunctions {
 
   public static String formatTimestamp(DataContext ctx, String fmtString, long timestamp) {
     return internalFormatDatetime(fmtString, internalToTimestamp(timestamp));
+  }
+
+  public static String toChar(DataContext ctx, long timestamp, String pattern) {
+    String replacedPattern = StringUtils.replaceEach(
+        pattern,
+        POSTGRESQL_PATTERN_REPLACEMENTS_SEARCH,
+        POSTGRESQL_PATTERN_REPLACEMENTS_REPLACE
+    ).trim();
+
+    return internalToTimestamp(timestamp)
+        .toLocalDateTime()
+        .format(DateTimeFormatter.ofPattern(replacedPattern));
   }
 
   public static String formatDate(DataContext ctx, String fmtString, int date) {

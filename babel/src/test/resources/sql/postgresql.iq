@@ -57,3 +57,8 @@ SELECT * FROM sal_emp;
 NAME, PAY_BY_QUARTER, SCHEDULE
 Bill, [10000, 10000, 10000, 10000], [[meeting, lunch], [training, presentation]]
 !ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'YYYY-MM-DD HH24:MI:SS.MS TZ');
+EXPR$0
+2022-06-03 12:15:48.678
+!ok

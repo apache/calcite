@@ -185,6 +185,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_DATE;
@@ -586,6 +587,7 @@ public class RexImpTable {
       defineMethod(TIME, "time", NullPolicy.STRICT);
 
       // Datetime formatting methods
+      map.put(TO_CHAR, new ToCharImplementor());
       final FormatDatetimeImplementor datetimeFormatImpl = new FormatDatetimeImplementor();
       map.put(FORMAT_TIMESTAMP, datetimeFormatImpl);
       map.put(FORMAT_DATE, datetimeFormatImpl);
@@ -2399,6 +2401,25 @@ public class RexImpTable {
         method = BuiltInMethod.FORMAT_TIMESTAMP.method;
       }
       return Expressions.call(method, translator.getRoot(), operand0, operand1);
+    }
+  }
+
+  /**
+   * Implementor for the {@code TO_CHAR}.
+   */
+  private static class ToCharImplementor extends MethodNameImplementor {
+    ToCharImplementor() {
+      super("toChar", NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      return Expressions.call(
+          BuiltInMethod.TO_CHAR.method,
+          translator.getRoot(),
+          argValueList.get(0),
+          argValueList.get(1)
+      );
     }
   }
 

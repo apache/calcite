@@ -509,6 +509,7 @@ public enum BuiltInMethod {
       "timestampWithLocalTimeZoneToString", long.class, TimeZone.class),
   FORMAT_TIMESTAMP(SqlFunctions.class, "formatTimestamp", DataContext.class,
       String.class, long.class),
+  TO_CHAR(SqlFunctions.class, "toChar", DataContext.class, long.class, String.class),
   FORMAT_DATE(SqlFunctions.class, "formatDate", DataContext.class, String.class,
       int.class),
   FORMAT_TIME(SqlFunctions.class, "formatTime", DataContext.class, String.class,
