@@ -1024,6 +1024,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "FORMAT_DATETIME":
       unparseFormatDatetime(writer, call, leftPrec, rightPrec);
       break;
+    case "PARSE_DATETIME":
     case "PARSE_TIMESTAMP":
       String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
           ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
@@ -1048,13 +1049,6 @@ public class BigQuerySqlDialect extends SqlDialect {
         operand.unparse(writer, leftPrec, rightPrec);
       }
       writer.endFunCall(substringFrame);
-      break;
-    case "TO_DATE":
-      SqlCall parseToDateCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
-          call.operand(1), call.operand(0));
-      final SqlWriter.Frame timestampSecond = writer.startFunCall("DATE");
-      unparseCall(writer, parseToDateCall, leftPrec, rightPrec);
-      writer.endFunCall(timestampSecond);
       break;
     case "TO_TIMESTAMP":
       if (call.getOperandList().size() == 1) {
