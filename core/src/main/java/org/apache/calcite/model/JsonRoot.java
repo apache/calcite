@@ -73,6 +73,12 @@ public class JsonRoot {
    */
   public final List<JsonSchema> schemas = new ArrayList<>();
 
+  /** Types in the root schema. Shared by all schemas in the model.
+   *
+   * <p>The list may be empty.
+   */
+  public final List<JsonType> types = new ArrayList<>();
+
   @JsonCreator
   public JsonRoot(
       @JsonProperty(value = "version", required = true) String version,

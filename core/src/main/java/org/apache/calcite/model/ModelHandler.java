@@ -196,6 +196,9 @@ public class ModelHandler {
     final Pair<@Nullable String, SchemaPlus> pair =
         Pair.of(null, connection.getRootSchema());
     schemaStack.push(pair);
+    for (JsonType rootType : jsonRoot.types) {
+      rootType.accept(this);
+    }
     for (JsonSchema schema : jsonRoot.schemas) {
       schema.accept(this);
     }
