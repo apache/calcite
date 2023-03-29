@@ -316,7 +316,9 @@ public class TimeFrameSet {
     int date2 = floorDate(y0, timeFrame);
 
     // For WEEK(WEEKDAY), if year starts on WEEKDAY then offset of +1 is required.
-    if (date2 == y0 && timeUnitRange != TimeUnitRange.ISOYEAR) { offset += 1; }
+    if (date2 == y0 && timeUnitRange != TimeUnitRange.ISOYEAR) {
+      offset += 1;
+    }
     return diffDate(date2, date, timeFrame) + offset;
   }
 

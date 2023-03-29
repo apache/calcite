@@ -450,7 +450,6 @@ ORDER BY d;
 
 !ok
 
-
 # In the following example, date_expression falls on a Sunday. EXTRACT
 # calculates the first column using weeks that begin on Sunday, and it
 # calculates the second column using weeks that begin on Monday.
