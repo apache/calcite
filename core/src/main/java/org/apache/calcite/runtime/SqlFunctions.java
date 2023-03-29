@@ -2633,6 +2633,15 @@ public class SqlFunctions {
     return internalFormatDatetime(fmtString, internalToTimestamp(timestamp));
   }
 
+  public static String toChar(long timestamp, String pattern) {
+    List<FormatElement> elements = FormatModels.POSTGRESQL.parse(pattern);
+
+    return elements.stream()
+        .map(ele -> ele.format(internalToTimestamp(timestamp)))
+        .collect(Collectors.joining())
+        .trim();
+  }
+
   public static String formatDate(DataContext ctx, String fmtString, int date) {
     return internalFormatDatetime(fmtString, internalToDate(date));
   }

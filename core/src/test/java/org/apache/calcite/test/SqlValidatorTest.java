@@ -1517,6 +1517,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "Was expecting 3 arguments");
   }
 
+  @Test void testToCharFunction() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.POSTGRESQL);
+    expr("TO_CHAR(CURRENT_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS.MS TZ')")
+        .withOperatorTable(opTable)
+        .ok();
+    expr("^TO_CHAR(1680080352, 'YYYY-MM-DD HH24:MI:SS.MS TZ')^")
+        .withOperatorTable(opTable)
+        .fails("Cannot apply 'TO_CHAR' to arguments of type "
+            + "'TO_CHAR\\(<INTEGER>, <CHAR\\(27\\)>\\)'\\. Supported form\\(s\\): "
+            + "'TO_CHAR\\(<TIMESTAMP>, <STRING>\\)'");
+  }
+
   @Test void testToDateFunction() {
     wholeExpr("TO_DATE('2000-01-01', 'YYYY-MM-DD')")
         .fails("No match found for function signature "

@@ -108,6 +108,14 @@ public enum FormatElementEnum implements FormatElement {
       return work.ssssssFormat.format(date);
     }
   },
+  HH12("The hour (12-hour clock) as a decimal number (01-12)") {
+    @Override public String format(Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      int hour = calendar.get(Calendar.HOUR);
+      return String.format(Locale.ROOT, "%02d", hour == 0 ? 12 : hour);
+    }
+  },
   HH24("The hour (24-hour clock) as a decimal number (00-23)") {
     @Override public String format(Date date) {
       final Calendar calendar = Work.get().calendar;
@@ -165,10 +173,17 @@ public enum FormatElementEnum implements FormatElement {
       return String.format(Locale.ROOT, "%02d", calendar.get(Calendar.SECOND));
     }
   },
+  MS("The millisecond as a decimal number (000-999)") {
+    @Override public String format(Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      return String.format(Locale.ROOT, "%03d", calendar.get(Calendar.MILLISECOND));
+    }
+  },
   TZR("The time zone name") {
     @Override public String format(Date date) {
       // TODO: how to support timezones?
-      throw new UnsupportedOperationException();
+      return "";
     }
   },
   WW("The week number of the year (Sunday as the first day of the week) as a decimal "
@@ -219,7 +234,9 @@ public enum FormatElementEnum implements FormatElement {
 
     final Calendar calendar =
         Calendar.getInstance(DateTimeUtils.DEFAULT_ZONE, Locale.ROOT);
-    final DateFormat eeeeFormat = new SimpleDateFormat("EEEE", Locale.ROOT);
+
+    /** Uses Locale.US instead of Locale.ROOT to fix formatting in Java 11 */
+    final DateFormat eeeeFormat = new SimpleDateFormat("EEEE", Locale.US);
     final DateFormat eeeFormat = new SimpleDateFormat("EEE", Locale.ROOT);
     final DateFormat mmmFormat = new SimpleDateFormat("MMM", Locale.ROOT);
     final DateFormat mmmmFormat = new SimpleDateFormat("MMMM", Locale.ROOT);

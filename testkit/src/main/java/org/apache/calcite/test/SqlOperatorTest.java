@@ -3795,6 +3795,14 @@ public class SqlOperatorTest {
     f.checkString("to_base64(x'61')", "YQ==", "VARCHAR NOT NULL");
   }
 
+  @Test void testToChar() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL);
+    f.setFor(SqlLibraryOperators.TO_CHAR);
+    f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'YYYY-MM-DD HH24:MI:SS.MS TZ')",
+        "2022-06-03 12:15:48.678",
+        "VARCHAR(2000) NOT NULL");
+  }
+
   @Test void testFromBase64() {
     final SqlOperatorFixture f0 = fixture()
         .setFor(SqlLibraryOperators.FROM_BASE64);

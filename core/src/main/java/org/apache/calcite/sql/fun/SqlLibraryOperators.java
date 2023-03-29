@@ -863,6 +863,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
+  /** The "TO_CHAR(timestamp, format)" function;
+   * converts {@code timestamp} to string according to the given {@code format}.
+   */
+  @LibraryOperator(libraries = {MYSQL, ORACLE, POSTGRESQL})
+  public static final SqlFunction TO_CHAR =
+      SqlBasicFunction.create("TO_CHAR",
+          ReturnTypes.VARCHAR_2000,
+          OperandTypes.TIMESTAMP_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
   /** The "TO_DATE(string1, string2)" function; casts string1
    * to a DATE using the format specified in string2. */
   @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
