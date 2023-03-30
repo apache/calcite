@@ -1219,7 +1219,12 @@ public abstract class SqlLibraryOperators {
    * error. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction SAFE_CAST =
-      new SqlCastFunction(SqlKind.SAFE_CAST);
+      new SqlCastFunction("SAFE_CAST", SqlKind.SAFE_CAST);
+
+  /** The "TRY_CAST(expr AS type)" function, equivalent to SAFE_CAST. */
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction TRY_CAST =
+      new SqlCastFunction("TRY_CAST", SqlKind.SAFE_CAST);
 
   /** NULL-safe "&lt;=&gt;" equal operator used by MySQL, for example
    * {@code 1<=>NULL}. */
