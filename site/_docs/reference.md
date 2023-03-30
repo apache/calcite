@@ -1061,6 +1061,7 @@ TRIGGER_SCHEMA,
 **TRIM_ARRAY**,
 **TRUE**,
 **TRUNCATE**,
+**TRY_CAST**,
 **TUESDAY**,
 TUMBLE,
 TYPE,
@@ -2758,6 +2759,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | b o p | TRANSLATE(expr, fromString, toString)      | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
 | b | TRUNC(numeric1 [, numeric2 ])                  | Truncates *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point
+| q | TRY_CAST(value AS type)                        | Converts *value* to *type*, returning NULL if conversion fails
 | b | UNIX_MICROS(timestamp)                         | Returns the number of microseconds since 1970-01-01 00:00:00
 | b | UNIX_MILLIS(timestamp)                         | Returns the number of milliseconds since 1970-01-01 00:00:00
 | b | UNIX_SECONDS(timestamp)                        | Returns the number of seconds since 1970-01-01 00:00:00

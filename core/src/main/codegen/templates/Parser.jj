@@ -6004,6 +6004,7 @@ SqlNode BuiltinFunctionCall() :
     (
         (  <CAST> { f = SqlStdOperatorTable.CAST; }
         | <SAFE_CAST> { f = SqlLibraryOperators.SAFE_CAST; }
+        | <TRY_CAST> { f = SqlLibraryOperators.TRY_CAST; }
         )
         { s = span(); }
         <LPAREN> AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
@@ -8353,6 +8354,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < TRIM_ARRAY: "TRIM_ARRAY" >
 |   < TRUE: "TRUE" >
 |   < TRUNCATE: "TRUNCATE" >
+|   < TRY_CAST: "TRY_CAST" >
 |   < TUESDAY: "TUESDAY" >
 |   < TUMBLE: "TUMBLE" >
 |   < TYPE: "TYPE" >

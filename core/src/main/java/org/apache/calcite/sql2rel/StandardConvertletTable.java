@@ -136,6 +136,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     // Register convertlets for specific objects.
     registerOp(SqlStdOperatorTable.CAST, this::convertCast);
     registerOp(SqlLibraryOperators.SAFE_CAST, this::convertCast);
+    registerOp(SqlLibraryOperators.TRY_CAST, this::convertCast);
     registerOp(SqlLibraryOperators.INFIX_CAST, this::convertCast);
     registerOp(SqlStdOperatorTable.IS_DISTINCT_FROM,
         (cx, call) -> convertIsDistinctFrom(cx, call, false));

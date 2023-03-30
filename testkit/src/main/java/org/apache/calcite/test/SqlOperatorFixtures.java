@@ -30,15 +30,15 @@ class SqlOperatorFixtures {
   }
 
   /** Returns a fixture that converts each CAST test into a test for
-   * SAFE_CAST. */
-  static SqlOperatorFixture safeCastWrapper(SqlOperatorFixture fixture) {
+   * SAFE_CAST or TRY_CAST. */
+  static SqlOperatorFixture safeCastWrapper(SqlOperatorFixture fixture, String functionName) {
     return (SqlOperatorFixture) Proxy.newProxyInstance(
         SqlOperatorTest.class.getClassLoader(),
         new Class[]{SqlOperatorFixture.class},
-        new SqlOperatorFixtureInvocationHandler(fixture));
+        new SqlOperatorFixtureInvocationHandler(fixture, functionName));
   }
 
-  /** A helper for {@link #safeCastWrapper(SqlOperatorFixture)} that provides
+  /** A helper for {@link #safeCastWrapper(SqlOperatorFixture, String)} that provides
    * alternative implementations of methods in {@link SqlOperatorFixture}.
    *
    * <p>Must be public, so that its methods can be seen via reflection. */
@@ -49,9 +49,11 @@ class SqlOperatorFixtures {
     static final Pattern NOT_NULL_PATTERN = Pattern.compile(" NOT NULL");
 
     final SqlOperatorFixture f;
+    final String functionName;
 
-    SqlOperatorFixtureInvocationHandler(SqlOperatorFixture f) {
+    SqlOperatorFixtureInvocationHandler(SqlOperatorFixture f, String functionName) {
       this.f = f;
+      this.functionName = functionName;
     }
 
     @Override protected Object getTarget() {
@@ -59,7 +61,7 @@ class SqlOperatorFixtures {
     }
 
     String addSafe(String sql) {
-      return CAST_PATTERN.matcher(sql).replaceAll("SAFE_CAST(");
+      return CAST_PATTERN.matcher(sql).replaceAll(functionName + "(");
     }
 
     String removeNotNull(String type) {
@@ -67,11 +69,11 @@ class SqlOperatorFixtures {
     }
 
     /** Proxy for
-     * {@link SqlOperatorFixture#checkCastToString(String, String, String, boolean)}. */
+     * {@link SqlOperatorFixture#checkCastToString(String, String, String, SqlOperatorFixture.CastType)}. */
     public void checkCastToString(String value, @Nullable String type,
-        @Nullable String expected, boolean safe) {
+        @Nullable String expected, SqlOperatorFixture.CastType castType) {
       f.checkCastToString(addSafe(value),
-          type == null ? null : removeNotNull(type), expected, safe);
+          type == null ? null : removeNotNull(type), expected, castType);
     }
 
     /** Proxy for {@link SqlOperatorFixture#checkBoolean(String, Boolean)}. */

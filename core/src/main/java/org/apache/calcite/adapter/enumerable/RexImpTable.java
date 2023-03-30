@@ -186,6 +186,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUNC;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRY_CAST;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MICROS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MILLIS;
@@ -665,6 +666,7 @@ public class RexImpTable {
       map.put(COALESCE, new CoalesceImplementor());
       map.put(CAST, new CastImplementor());
       map.put(SAFE_CAST, new CastImplementor());
+      map.put(TRY_CAST, new CastImplementor());
 
       map.put(REINTERPRET, new ReinterpretImplementor());
 
