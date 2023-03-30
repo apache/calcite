@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.util;
 
-import java.util.ArrayList;
-
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -29,6 +27,7 @@ import com.google.common.collect.RangeSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.function.BiConsumer;
 

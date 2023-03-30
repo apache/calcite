@@ -49,7 +49,6 @@ import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilder;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlExplainFormat;
@@ -99,6 +98,7 @@ import java.util.stream.Stream;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -827,7 +827,7 @@ class RelWriterTest {
         .assertThatPlan(isLinux(expected));
   }
 
-  @Test void testSearchOperator() {
+  @Test void testSearchOperator() throws JsonProcessingException {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder b = RelBuilder.create(config);
     // Commented out but we should also get this passing! SEARCH in a relnode using the json writer
@@ -848,9 +848,6 @@ class RelWriterTest {
     // final String expected = "<TODO>";
     // assertThat(result, isLinux(expected));
 
-    final RexBuilder rb = b.getRexBuilder();
-    final RelDataTypeFactory typeFactory = rb.getTypeFactory();
-
     RexNode between =
         b.getRexBuilder().makeBetween(b.literal(45),
         b.literal(20),
@@ -863,28 +860,25 @@ class RelWriterTest {
 
 
     RelJson relJson = RelJson.create().withJsonBuilder(new JsonBuilder());
-    RexNode expandedNode = RexUtil.expandSearch(new RexBuilder(typeFactory), null, between);
-
-    Object rexified = relJson.toJson(between);
-    // Object rexified = relJson.toJson(inNode);
-    RexNode deserialize = relJson.toRex(b.getCluster(), rexified);
-
     final ObjectMapper mapper = new ObjectMapper();
     final TypeReference<LinkedHashMap<String, Object>> typeRef =
-        new TypeReference<LinkedHashMap<String, Object>>() {
-        };
-    try {
-      final Map<String, Object> o;
-      String test = mapper.writeValueAsString(rexified);
-      o = mapper
+        new TypeReference<LinkedHashMap<String, Object>>() {};
+    List<RexNode> testNodes = ImmutableList.of(between, inNode);
+    for (RexNode node: testNodes){
+      Object rexified = relJson.toJson(node);
+      // Test toJson -> toRex -> toJson is the same.
+      RexNode deserialized = relJson.toRex(b.getCluster(), rexified);
+      assertThat(rexified, equalTo(relJson.toJson(deserialized)));
+
+      String rexNodeAsJsonString = mapper.writeValueAsString(rexified);
+      final Map<String, Object> deserializedMap = mapper
           .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
-          .readValue(test, typeRef);
-      System.out.println(o);
-    } catch (JsonProcessingException e) {
-      throw TestUtil.rethrow(e);
+          .readValue(rexNodeAsJsonString, typeRef);
+      String deserializedObjAsJsonString = mapper.writeValueAsString(deserializedMap);
+
+      assertThat(rexNodeAsJsonString, is(deserializedObjAsJsonString));
     }
 
-    assertThat(deserialize.hashCode(), is(between.hashCode()));
   }
 
   @ParameterizedTest

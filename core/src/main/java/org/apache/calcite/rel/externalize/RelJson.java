@@ -89,6 +89,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.apache.calcite.rel.RelDistributions.EMPTY;
+import static org.apache.calcite.util.Bug.CALCITE_5614_FIXED;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -434,10 +435,13 @@ public class RelJson {
         || value instanceof Boolean) {
       return value;
     } else if (value instanceof RexNode) {
-      // Expanding SEARCH operator because toJson doesn't currently support handling Sarg
-      if (((RexNode) value).getKind().equals(SqlKind.SEARCH)){
-        Object n = RexUtil.expandSearch(new RexBuilder(new JavaTypeFactoryImpl()), null, (RexNode) value);
-        return toJson(n);
+      if(!CALCITE_5614_FIXED){
+        // Expanding SEARCH operator because toJson doesn't currently support handling Sarg
+        if (((RexNode) value).getKind().equals(SqlKind.SEARCH)){
+          Object expandedNode =
+              RexUtil.expandSearch(new RexBuilder(new JavaTypeFactoryImpl()), null, (RexNode) value);
+          return toJson(expandedNode);
+        }
       }
       return toJson((RexNode) value);
     } else if (value instanceof RexWindow) {
