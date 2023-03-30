@@ -4058,8 +4058,10 @@ SqlNode AtomicRowExpression() :
         e = JdbcFunctionCall()
     |
         e = MultisetConstructor()
+<#if (parser.includeArrayConstructor!default.parser.includeArrayConstructor) >
     |
         e = ArrayConstructor()
+</#if>
     |
         LOOKAHEAD(3)
         e = MapConstructor()

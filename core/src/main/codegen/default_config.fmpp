@@ -445,4 +445,5 @@ parser: {
   includeBraces: true
   includeAdditionalDeclarations: false
   includeParsingStringLiteralAsArrayLiteral: false
+  includeArrayConstructor: true
 }
