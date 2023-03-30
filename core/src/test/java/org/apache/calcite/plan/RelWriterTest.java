@@ -49,6 +49,7 @@ import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlExplainFormat;
@@ -847,6 +848,9 @@ class RelWriterTest {
     // final String expected = "<TODO>";
     // assertThat(result, isLinux(expected));
 
+    final RexBuilder rb = b.getRexBuilder();
+    final RelDataTypeFactory typeFactory = rb.getTypeFactory();
+
     RexNode between =
         b.getRexBuilder().makeBetween(b.literal(45),
         b.literal(20),
@@ -859,8 +863,10 @@ class RelWriterTest {
 
 
     RelJson relJson = RelJson.create().withJsonBuilder(new JsonBuilder());
+    RexNode expandedNode = RexUtil.expandSearch(new RexBuilder(typeFactory), null, between);
 
-    Object rexified = relJson.toJson(inNode);
+    Object rexified = relJson.toJson(between);
+    // Object rexified = relJson.toJson(inNode);
     RexNode deserialize = relJson.toRex(b.getCluster(), rexified);
 
     final ObjectMapper mapper = new ObjectMapper();

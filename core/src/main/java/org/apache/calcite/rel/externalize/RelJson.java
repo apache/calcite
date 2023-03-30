@@ -18,6 +18,7 @@ package org.apache.calcite.rel.externalize;
 
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
@@ -45,6 +46,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexSlot;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
@@ -432,6 +434,11 @@ public class RelJson {
         || value instanceof Boolean) {
       return value;
     } else if (value instanceof RexNode) {
+      // Expanding SEARCH operator because toJson doesn't currently support handling Sarg
+      if (((RexNode) value).getKind().equals(SqlKind.SEARCH)){
+        Object n = RexUtil.expandSearch(new RexBuilder(new JavaTypeFactoryImpl()), null, (RexNode) value);
+        return toJson(n);
+      }
       return toJson((RexNode) value);
     } else if (value instanceof RexWindow) {
       return toJson((RexWindow) value);
@@ -565,7 +572,7 @@ public class RelJson {
       final Object value = literal.getValue3();
       map = jsonBuilder().map();
       if (((RexLiteral) node).getTypeName().getName().equalsIgnoreCase(Sarg.class.getSimpleName())) {
-        map.put("sargLiteral", toJson((Sarg)value));
+        map.put("sargLiteral", toJson(node));
       } else {
         map.put("literal", RelEnumTypes.fromEnum(value));
       }
