@@ -4699,6 +4699,8 @@ SqlNode MultisetConstructor() :
     )
 }
 
+<#if (parser.includeArrayConstructor!default.parser.includeArrayConstructor) >
+
 /** Parses an ARRAY constructor */
 SqlNode ArrayConstructor() :
 {
@@ -4745,6 +4747,7 @@ SqlNode ArrayConstructor() :
 </#if>
     )
 }
+</#if>
 
 SqlCall ArrayLiteral() :
 {
@@ -7309,6 +7312,9 @@ SqlIdentifier ReservedFunctionName() :
     (
         <ABS>
     |   <AVG>
+<#if (!parser.includeArrayConstructor!default.parser.includeArrayConstructor) >
+    |   <ARRAY>
+</#if>
     |   <CARDINALITY>
     |   <CEILING>
     |   <CHAR>
