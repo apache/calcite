@@ -35,6 +35,10 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
+import java.util.function.IntPredicate;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -42,6 +46,7 @@ import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -55,6 +60,49 @@ class ImmutableBitSetTest {
     assertToIterBitSet("0", ImmutableBitSet.of(0));
     assertToIterBitSet("0, 1", ImmutableBitSet.of(0, 1));
     assertToIterBitSet("10", ImmutableBitSet.of(10));
+
+    check((bitSet, list) -> {
+      final List<Integer> list2 = new ArrayList<>();
+      for (Integer integer : bitSet) {
+        list2.add(integer);
+      }
+      assertThat(list2, equalTo(list));
+    });
+  }
+
+  /** Tests the method {@link ImmutableBitSet#of(int)}. */
+  @Test void testSingletonConstructor() {
+    IntConsumer c = i -> {
+      final ImmutableBitSet s0 = ImmutableBitSet.of(i);
+      final ImmutableBitSet s1 = ImmutableBitSet.of(ImmutableIntList.of(i));
+      final ImmutableBitSet s2 = ImmutableBitSet.of(Collections.singleton(i));
+      final ImmutableBitSet s3 =
+          ImmutableBitSet.of(99, 100).set(i).clear(100).clear(99);
+      assertThat(s0.cardinality(), is(1));
+      assertThat(s0, is(s1));
+      assertThat(s0, is(s2));
+      assertThat(s0, is(s3));
+      assertThat(s1, is(s2));
+      assertThat(s1, is(s3));
+      assertThat(s2, is(s3));
+    };
+    c.accept(0);
+    c.accept(1);
+    c.accept(63);
+    c.accept(64);
+  }
+
+  @Test void testNegative() {
+    assertThrows(IndexOutOfBoundsException.class,
+        () -> ImmutableBitSet.of(-1));
+    assertThrows(IndexOutOfBoundsException.class,
+        () -> ImmutableBitSet.of(-2));
+    assertThrows(IndexOutOfBoundsException.class,
+        () -> ImmutableBitSet.of(1, 10, -1, 63));
+    assertThrows(IndexOutOfBoundsException.class,
+        () -> ImmutableBitSet.of(-1, 10));
+    assertThrows(IndexOutOfBoundsException.class,
+        () -> ImmutableBitSet.of(Collections.singleton(-2)));
   }
 
   /**
@@ -80,18 +128,42 @@ class ImmutableBitSetTest {
    * {@link org.apache.calcite.util.ImmutableBitSet#toList()}.
    */
   @Test void testToList() {
-    assertThat(ImmutableBitSet.of().toList(),
-        equalTo(Collections.<Integer>emptyList()));
-    assertThat(ImmutableBitSet.of(5).toList(), equalTo(Arrays.asList(5)));
-    assertThat(ImmutableBitSet.of(3, 5).toList(), equalTo(Arrays.asList(3, 5)));
-    assertThat(ImmutableBitSet.of(63).toList(), equalTo(Arrays.asList(63)));
-    assertThat(ImmutableBitSet.of(64).toList(), equalTo(Arrays.asList(64)));
-    assertThat(ImmutableBitSet.of(3, 63).toList(),
-        equalTo(Arrays.asList(3, 63)));
-    assertThat(ImmutableBitSet.of(3, 64).toList(),
-        equalTo(Arrays.asList(3, 64)));
-    assertThat(ImmutableBitSet.of(0, 4, 2).toList(),
-        equalTo(Arrays.asList(0, 2, 4)));
+    check((bitSet, list) -> assertThat(bitSet.toList(), equalTo(list)));
+  }
+
+  /**
+   * Tests the method
+   * {@link org.apache.calcite.util.ImmutableBitSet#forEachInt}.
+   */
+  @Test void testForEachInt() {
+    check((bitSet, list) -> {
+      final List<Integer> list2 = new ArrayList<>();
+      bitSet.forEachInt(list2::add);
+      assertThat(list2, equalTo(list));
+    });
+  }
+
+  /**
+   * Tests the method
+   * {@link org.apache.calcite.util.ImmutableBitSet#forEach}.
+   */
+  @Test void testForEachInteger() {
+    check((bitSet, list) -> {
+      final List<Integer> list2 = new ArrayList<>();
+      bitSet.forEach(list2::add);
+      assertThat(list2, equalTo(list));
+    });
+  }
+
+  private void check(BiConsumer<ImmutableBitSet, List<Integer>> consumer) {
+    consumer.accept(ImmutableBitSet.of(), Collections.emptyList());
+    consumer.accept(ImmutableBitSet.of(5), Collections.singletonList(5));
+    consumer.accept(ImmutableBitSet.of(3, 5), Arrays.asList(3, 5));
+    consumer.accept(ImmutableBitSet.of(63), Collections.singletonList(63));
+    consumer.accept(ImmutableBitSet.of(64), Collections.singletonList(64));
+    consumer.accept(ImmutableBitSet.of(3, 63), Arrays.asList(3, 63));
+    consumer.accept(ImmutableBitSet.of(3, 64), Arrays.asList(3, 64));
+    consumer.accept(ImmutableBitSet.of(0, 4, 2), Arrays.asList(0, 2, 4));
   }
 
   /**
@@ -591,6 +663,46 @@ class ImmutableBitSetTest {
     assertTrue(ImmutableBitSet.allContain(collection2, 2));
     assertTrue(ImmutableBitSet.allContain(collection2, 3));
     assertFalse(ImmutableBitSet.allContain(collection2, 4));
+  }
+
+  /**
+   * Test case for {@link ImmutableBitSet#anyMatch(IntPredicate)}
+   * and {@link ImmutableBitSet#allMatch(IntPredicate)}.
+   *
+   * <p>Checks a variety of predicates (is even, is zero, always true,
+   * always false) and their negations on a variety of bit sets.
+   */
+  @Test void testAnyMatch() {
+    BiConsumer<ImmutableBitSet, IntPredicate> c = (bitSet, predicate) -> {
+      final Set<Integer> integerSet = new HashSet<>(bitSet.asList());
+      assertThat(bitSet.anyMatch(predicate),
+          is(integerSet.stream().anyMatch(predicate::test)));
+      assertThat(bitSet.allMatch(predicate),
+          is(integerSet.stream().allMatch(predicate::test)));
+    };
+
+    BiConsumer<ImmutableBitSet, IntPredicate> c2 = (bitSet, predicate) -> {
+      c.accept(bitSet, predicate);
+      c.accept(bitSet, predicate.negate());
+    };
+
+    final ImmutableBitSet set0 = ImmutableBitSet.of();
+    final ImmutableBitSet set1 = ImmutableBitSet.of(0, 1, 2, 3);
+    final ImmutableBitSet set2 = ImmutableBitSet.of(0, 2, 4, 8);
+    Consumer<IntPredicate> c3 = predicate -> {
+      c2.accept(set0, predicate);
+      c2.accept(set1, predicate);
+      c2.accept(set2, predicate);
+    };
+
+    final IntPredicate isZero = i -> i == 0;
+    final IntPredicate isEven = i -> i % 2 == 0;
+    final IntPredicate alwaysTrue = i -> true;
+    final IntPredicate alwaysFalse = i -> false;
+    c3.accept(isZero);
+    c3.accept(isEven);
+    c3.accept(alwaysTrue);
+    c3.accept(alwaysFalse);
   }
 
   /** Test case for

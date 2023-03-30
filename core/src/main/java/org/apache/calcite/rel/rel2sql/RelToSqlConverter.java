@@ -580,7 +580,7 @@ public class RelToSqlConverter extends SqlImplementor
       // it out using a "HAVING GROUPING(groupSets) <> 0".
       // We want to generate the
       final SqlNodeList groupingList = new SqlNodeList(POS);
-      e.getGroupSet().forEach(g ->
+      e.getGroupSet().forEachInt(g ->
           groupingList.add(builder.context.field(g)));
       builder.setHaving(
           SqlStdOperatorTable.NOT_EQUALS.createCall(POS,
