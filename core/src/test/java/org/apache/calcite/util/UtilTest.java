@@ -97,6 +97,7 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.ObjIntConsumer;
 import java.util.function.Predicate;
@@ -1233,6 +1234,32 @@ class UtilTest {
   }
 
   @Test void testImmutableIntList() {
+    final BiConsumer<ImmutableIntList, List<Integer>> c2 = (intList, list) -> {
+      assertThat(list.size(), is(intList.size()));
+      assertThat(list, is(intList));
+      assertThat(list.toString(), is(intList.toString()));
+      assertThat(list.hashCode(), is(intList.hashCode()));
+    };
+
+    final Consumer<ImmutableIntList> c = list -> {
+      final List<Integer> arrayList = new ArrayList<>(list);
+      c2.accept(list, arrayList);
+
+      final List<Integer> arrayList2 = new ArrayList<>();
+      //noinspection CollectionAddAllCanBeReplacedWithConstructor
+      arrayList2.addAll(list);
+      c2.accept(list, arrayList2);
+
+      final List<Integer> arrayList3 = new ArrayList<>();
+      //noinspection UseBulkOperation
+      list.forEach(arrayList3::add);
+      c2.accept(list, arrayList3);
+
+      final List<Integer> arrayList4 = new ArrayList<>();
+      list.forEachInt(arrayList4::add);
+      c2.accept(list, arrayList4);
+    };
+
     final ImmutableIntList list = ImmutableIntList.of();
     assertEquals(0, list.size());
     assertEquals(list, Collections.<Integer>emptyList());
@@ -1263,6 +1290,10 @@ class UtilTest {
     assertThat(
         Arrays.toString(ImmutableIntList.of(1).toArray(new Integer[]{5, 6, 7})),
         is("[1, null, 7]"));
+
+    c.accept(list);
+    c.accept(list2);
+    c.accept(ImmutableIntList.of(-2, 10, 1, -2));
   }
 
   /** Unit test for {@link IdPair}. */

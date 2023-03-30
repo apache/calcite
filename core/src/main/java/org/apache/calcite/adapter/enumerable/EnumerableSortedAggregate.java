@@ -93,7 +93,8 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
     } else if (groupKeys.contains(requiredKeys)) {
       // group by a,b,c order by c,b
       List<RelFieldCollation> list = new ArrayList<>(collation.getFieldCollations());
-      groupKeys.except(requiredKeys).forEach(k -> list.add(new RelFieldCollation(k)));
+      groupKeys.except(requiredKeys).forEachInt(k ->
+          list.add(new RelFieldCollation(k)));
       RelCollation aggCollation = RelCollations.of(list);
       RelCollation inputCollation = RexUtil.apply(mapping, aggCollation);
       return Pair.of(traitSet.replace(aggCollation),
