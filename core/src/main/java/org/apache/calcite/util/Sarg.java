@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import java.util.ArrayList;
+
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -27,6 +29,7 @@ import com.google.common.collect.RangeSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Map;
 import java.util.function.BiConsumer;
 
 import static java.util.Objects.requireNonNull;
@@ -151,6 +154,16 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
       }
     }
     return new Sarg<>(ImmutableRangeSet.copyOf(rangeSet), nullAs);
+  }
+
+  public static <C extends Comparable<C>> Sarg<C> fromJson(Map o){
+    if (Map.class.isAssignableFrom(o.getClass())){
+      RexUnknownAs unknownAs = RexUnknownAs.toEnum(o.get("nullAs").toString());
+      // o.get("rangeSet") is stored as a list of ranges
+      RangeSet rangeSet = RangeSets.fromJson((ArrayList) o.get("rangeSet"));
+      return new Sarg<>(ImmutableRangeSet.copyOf(rangeSet), unknownAs);
+    }
+    throw new RuntimeException("Failed to create Sarg from JSON");
   }
 
   /**

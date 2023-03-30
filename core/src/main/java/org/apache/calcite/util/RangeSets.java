@@ -22,7 +22,12 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
+import java.lang.reflect.Constructor;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -268,6 +273,61 @@ public class RangeSets {
       }
     } else {
       consumer.all();
+    }
+  }
+
+  public static <C extends Comparable<C>> RangeSet<C> fromJson(ArrayList rangeSetsJson)
+  {
+    final ImmutableRangeSet.Builder<C> builder = ImmutableRangeSet.builder();
+    List<Range<C>> rangeList = Collections.emptyList();
+    try {
+      for (Object o : rangeSetsJson) {
+        // TODO: Throw if can't convert to Map
+        Map<String, String> rangeMap = (Map) o;
+        Range range = rangeFromJson(rangeMap);
+        rangeList.add(range);
+      }
+      builder.addAll(rangeList);
+      return builder.build();
+    } catch (Exception e) {
+      throw new RuntimeException("Error creating RangeSet from JSON: ", e);
+    }
+  }
+
+  public static BoundType boundTypeNameToEnum(String name){
+    switch (name){
+    case "OPEN":
+      return BoundType.OPEN;
+    case "CLOSED":
+      return BoundType.CLOSED;
+    default:
+      throw new IllegalArgumentException("Unknown BoundType enum name");
+    }
+  }
+
+  public static <C extends Comparable<C>> Range<C> rangeFromJson(Map<String, String> rangeMap) {
+    try {
+      // Can I cast a variable to a class from a name?
+      // This part is WIP (doesn't work)
+
+      Class<?> clazz = Class.forName(rangeMap.get("lowerEndpointType"));
+      Constructor<?> constructor = clazz.getConstructor();
+      C lower = (C) constructor.newInstance(rangeMap.get("lowerEndpoint"));
+      // C lower = (C) rangeMap.get("lowerEndpoint");
+
+
+      // String upperEndpointType = rangeMap.get("lowerEndpointType");
+      // Class upperEndpointTypeClass = Class.forName(upperEndpointType);
+      // Comparable<C> upper = ((Comparable<C>) rangeMap.get("upperEndPoint"));
+      C upper = lower;
+
+      BoundType lowerBoundType = boundTypeNameToEnum(rangeMap.get("lowerBoundType"));
+      BoundType upperBoundType = boundTypeNameToEnum(rangeMap.get("upperBoundType"));
+
+      Range range = Range.range(lower, lowerBoundType, upper, upperBoundType);
+      return range;
+    } catch (Exception e){
+      throw new RuntimeException("Error creating Range from JSON: ", e);
     }
   }
 

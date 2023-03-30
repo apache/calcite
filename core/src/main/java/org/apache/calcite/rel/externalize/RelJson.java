@@ -65,9 +65,12 @@ import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
@@ -212,7 +215,7 @@ public class RelJson {
    * Converts a type name to a class. E.g. {@code getClass("LogicalProject")}
    * returns {@link org.apache.calcite.rel.logical.LogicalProject}.class.
    */
-  public Class typeNameToClass(String type) {
+  public static Class typeNameToClass(String type) {
     if (!type.contains(".")) {
       for (String package_ : PACKAGES) {
         try {
@@ -466,6 +469,37 @@ public class RelJson {
     }
   }
 
+  private Object toJson(Sarg node) {
+    final Map<String, @Nullable Object> map = jsonBuilder().map();
+    map.put("isComplementedPoints", node.isComplementedPoints());
+    map.put("pointCount", node.pointCount);
+    map.put("isAll", node.isAll());
+    map.put("isNone", node.isNone());
+    map.put("isPoints", node.isPoints());
+    map.put("rangeSet", toJson(node.rangeSet));
+    map.put("nullAs", node.nullAs);
+    return map;
+  }
+
+  private <C extends Comparable<C>> Object toJson(RangeSet<C> rangeSet){
+    final List<@Nullable Object> list = jsonBuilder().list();
+    for (Range<C> o : rangeSet.asRanges()) {
+      list.add(toJson(o));
+    }
+    return list;
+  }
+
+  private <C extends Comparable<C>> Object toJson(Range<C> range){
+    final Map<String, @Nullable Object> map = jsonBuilder().map();
+    map.put("lowerEndpoint", range.lowerEndpoint());
+    map.put("lowerEndpointType", range.lowerEndpoint().getClass());
+    map.put("lowerBoundType", range.lowerBoundType().toString());
+    map.put("upperEndpoint", range.upperEndpoint());
+    map.put("upperEndpointType", range.upperEndpoint().getClass());
+    map.put("upperBoundType", range.upperBoundType().toString());
+    return map;
+  }
+
   private Object toJson(RelDataType node) {
     final Map<String, @Nullable Object> map = jsonBuilder().map();
     if (node.isStruct()) {
@@ -530,7 +564,11 @@ public class RelJson {
       final RexLiteral literal = (RexLiteral) node;
       final Object value = literal.getValue3();
       map = jsonBuilder().map();
-      map.put("literal", RelEnumTypes.fromEnum(value));
+      if (((RexLiteral) node).getTypeName().getName().equalsIgnoreCase(Sarg.class.getSimpleName())) {
+        map.put("sargLiteral", toJson((Sarg)value));
+      } else {
+        map.put("literal", RelEnumTypes.fromEnum(value));
+      }
       map.put("type", toJson(node.getType()));
       return map;
     case INPUT_REF:
@@ -750,6 +788,16 @@ public class RelJson {
           literal = RelEnumTypes.toEnum((String) literal);
         }
         return rexBuilder.makeLiteral(literal, type);
+      }
+      if (map.containsKey("sargLiteral")) {
+        Object sargObject = map.get("sargLiteral");
+        if (sargObject == null) {
+          final RelDataType type = toType(typeFactory, get(map, "type"));
+          return rexBuilder.makeNullLiteral(type);
+        }
+        final RelDataType type = toType(typeFactory, get(map, "type"));
+        Sarg sarg = Sarg.fromJson((Map) sargObject);
+        return rexBuilder.makeSearchArgumentLiteral((Sarg) sarg, type);
       }
       throw new UnsupportedOperationException("cannot convert to rex " + o);
     } else if (o instanceof Boolean) {

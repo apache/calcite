@@ -847,13 +847,37 @@ class RelWriterTest {
     // final String expected = "<TODO>";
     // assertThat(result, isLinux(expected));
 
-    RexNode between = b.getRexBuilder().makeBetween(
-        b.literal(45),
+    RexNode between =
+        b.getRexBuilder().makeBetween(b.literal(45),
         b.literal(20),
         b.literal(30));
+    RexNode inNode =
+        b.getRexBuilder().makeIn(b.literal(12),
+        ImmutableList.of(
+          b.literal(20),
+          b.literal(14)));
+
+
     RelJson relJson = RelJson.create().withJsonBuilder(new JsonBuilder());
-    Object rexified = relJson.toJson(between);
+
+    Object rexified = relJson.toJson(inNode);
     RexNode deserialize = relJson.toRex(b.getCluster(), rexified);
+
+    final ObjectMapper mapper = new ObjectMapper();
+    final TypeReference<LinkedHashMap<String, Object>> typeRef =
+        new TypeReference<LinkedHashMap<String, Object>>() {
+        };
+    try {
+      final Map<String, Object> o;
+      String test = mapper.writeValueAsString(rexified);
+      o = mapper
+          .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
+          .readValue(test, typeRef);
+      System.out.println(o);
+    } catch (JsonProcessingException e) {
+      throw TestUtil.rethrow(e);
+    }
+
     assertThat(deserialize.hashCode(), is(between.hashCode()));
   }
 
