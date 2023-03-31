@@ -552,7 +552,7 @@ class RelToSqlConverterTest {
         + " \"product\" group by 'literal', sku + 1";
     final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS B\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY 1, B";
+        + "GROUP BY a, B";
     sql(query)
         .withBigQuery()
         .ok(bigQueryExpected);
@@ -563,7 +563,7 @@ class RelToSqlConverterTest {
         + " \"product\" group by sku + 1, 'literal'";
     final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS b, SUM(product_id)\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY b, 1";
+        + "GROUP BY b, a";
     sql(query)
         .withBigQuery()
         .ok(bigQueryExpected);
@@ -578,10 +578,10 @@ class RelToSqlConverterTest {
         + "GROUP BY '1', SKU + 1";
     final String bigQueryExpected = "SELECT '1' AS a, SKU + 1 AS B, '1' AS d\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY 1, B";
+        + "GROUP BY d, B";
     final String expectedSpark = "SELECT '1' a, SKU + 1 B, '1' d\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY 1, B";
+        + "GROUP BY d, B";
     sql(query)
         .withHive()
         .ok(expectedSql)
@@ -11621,5 +11621,16 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP\n"
         + "ORDER BY 1 IS NULL, 1";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testSubstr4() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode substr4Call = builder.call(SqlLibraryOperators.SUBSTR4, builder.field(0),
+        builder.literal(1));
+    RelNode root = builder
+        .project(substr4Call)
+        .build();
+    final String expectedOracleSql = "SELECT SUBSTR4(\"EMPNO\", 1) \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 }
