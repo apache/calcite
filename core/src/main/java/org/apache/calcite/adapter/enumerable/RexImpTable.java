@@ -587,7 +587,7 @@ public class RexImpTable {
       defineMethod(TIME, "time", NullPolicy.STRICT);
 
       // Datetime formatting methods
-      map.put(TO_CHAR, new ToCharImplementor());
+      defineMethod(TO_CHAR, "toChar", NullPolicy.STRICT);
       final FormatDatetimeImplementor datetimeFormatImpl = new FormatDatetimeImplementor();
       map.put(FORMAT_TIMESTAMP, datetimeFormatImpl);
       map.put(FORMAT_DATE, datetimeFormatImpl);

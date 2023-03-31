@@ -2672,7 +2672,7 @@ public class SqlFunctions {
     return internalFormatDatetime(fmtString, internalToTimestamp(timestamp));
   }
 
-  public static String toChar(DataContext ctx, long timestamp, String pattern) {
+  public static String toChar(long timestamp, String pattern) {
     String replacedPattern = StringUtils.replaceEach(
         pattern,
         POSTGRESQL_PATTERN_REPLACEMENTS_SEARCH,
