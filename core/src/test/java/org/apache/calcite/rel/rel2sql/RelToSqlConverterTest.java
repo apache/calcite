@@ -561,7 +561,7 @@ class RelToSqlConverterTest {
         + " \"product\" group by 'literal', sku + 1";
     final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS B\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY a, B";
+        + "GROUP BY 1, B";
     sql(query)
         .withBigQuery()
         .ok(bigQueryExpected);
@@ -572,7 +572,7 @@ class RelToSqlConverterTest {
         + " \"product\" group by sku + 1, 'literal'";
     final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS b, SUM(product_id)\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY b, a";
+        + "GROUP BY b, 1";
     sql(query)
         .withBigQuery()
         .ok(bigQueryExpected);
@@ -587,10 +587,10 @@ class RelToSqlConverterTest {
         + "GROUP BY '1', SKU + 1";
     final String bigQueryExpected = "SELECT '1' AS a, SKU + 1 AS B, '1' AS d\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY d, B";
+        + "GROUP BY 1, B";
     final String expectedSpark = "SELECT '1' a, SKU + 1 B, '1' d\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY d, B";
+        + "GROUP BY 1, B";
     sql(query)
         .withHive()
         .ok(expectedSql)
@@ -11598,5 +11598,33 @@ class RelToSqlConverterTest {
         + "INNER JOIN foodmart.sales_fact_1997 ON product.product_id IN (sales_fact_1997.product_id)";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedBigQuery));
+  }
+
+  @Test public void testSortByOrdinal() {
+    RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .sort(builder.ordinal(0))
+        .build();
+    final String expectedBQSql = "SELECT *\n"
+        + "FROM scott.EMP\n"
+        + "ORDER BY 1 IS NULL, 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testSortByOrdinalWithExprForBigQuery() {
+    RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.SATURDAY.name()));
+    RelNode root = builder
+        .scan("EMP")
+        .project(nextDayRexNode)
+        .sort(builder.ordinal(0))
+        .build();
+    final String expectedBQSql =
+        "SELECT NEXT_DAY(CURRENT_DATE, 'SATURDAY') AS `$f0`\n"
+        + "FROM scott.EMP\n"
+        + "ORDER BY 1 IS NULL, 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 }
