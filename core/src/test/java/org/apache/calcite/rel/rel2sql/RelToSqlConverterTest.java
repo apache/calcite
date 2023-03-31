@@ -11599,4 +11599,15 @@ class RelToSqlConverterTest {
         + "ORDER BY 1 IS NULL, 1";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
+
+  @Test public void testSubstr4() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode substr4Call = builder.call(SqlLibraryOperators.SUBSTR4, builder.field(0),
+        builder.literal(1));
+    RelNode root = builder
+        .project(substr4Call)
+        .build();
+    final String expectedOracleSql = "SELECT SUBSTR4(\"EMPNO\", 1) \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
 }
