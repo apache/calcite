@@ -4060,9 +4060,11 @@ SqlNode AtomicRowExpression() :
         e = MultisetConstructor()
     |
         e = ArrayConstructor()
+<#if (parser.includeMapConstructor!default.parser.includeMapConstructor) >
     |
         LOOKAHEAD(3)
         e = MapConstructor()
+</#if>
     |
         e = PeriodConstructor()
     |
@@ -4766,6 +4768,7 @@ SqlCall ArrayLiteral() :
     }
 }
 
+<#if (parser.includeMapConstructor!default.parser.includeMapConstructor) >
 /** Parses a MAP constructor */
 SqlNode MapConstructor() :
 {
@@ -4800,6 +4803,7 @@ SqlNode MapConstructor() :
         }
     )
 }
+</#if>
 
 /** Parses a PERIOD constructor */
 SqlNode PeriodConstructor() :
@@ -7339,6 +7343,9 @@ SqlIdentifier ReservedFunctionName() :
     |   <LOCALTIME>
     |   <LOCALTIMESTAMP>
     |   <LOWER>
+<#if (!parser.includeMapConstructor!default.parser.includeMapConstructor) >
+    |   <MAP>
+</#if>
     |   <MAX>
     |   <MIN>
     |   <MINUTE>
