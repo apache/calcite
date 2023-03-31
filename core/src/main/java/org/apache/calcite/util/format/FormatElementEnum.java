@@ -165,10 +165,17 @@ public enum FormatElementEnum implements FormatElement {
       return String.format(Locale.ROOT, "%02d", calendar.get(Calendar.SECOND));
     }
   },
+  MS("The millisecond as a decimal number (00-60)") {
+    @Override public String format(Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      return String.format(Locale.ROOT, "%02d", calendar.get(Calendar.MILLISECOND));
+    }
+  },
   TZR("The time zone name") {
     @Override public String format(Date date) {
       // TODO: how to support timezones?
-      throw new UnsupportedOperationException();
+      return "";
     }
   },
   WW("The week number of the year (Sunday as the first day of the week) as a decimal "

@@ -20,7 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Date;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,6 +47,7 @@ import static org.apache.calcite.util.format.FormatElementEnum.MON;
 import static org.apache.calcite.util.format.FormatElementEnum.MONTH;
 import static org.apache.calcite.util.format.FormatElementEnum.Q;
 import static org.apache.calcite.util.format.FormatElementEnum.SS;
+import static org.apache.calcite.util.format.FormatElementEnum.MS;
 import static org.apache.calcite.util.format.FormatElementEnum.TZR;
 import static org.apache.calcite.util.format.FormatElementEnum.WW;
 import static org.apache.calcite.util.format.FormatElementEnum.YY;
@@ -76,8 +77,16 @@ public class FormatModels {
    */
   public static final FormatModel BIG_QUERY;
 
+  /** Format model for PostgreSQL.
+   *
+   * <p>PostgreSQL format element reference:
+   * <a href="https://www.postgresql.org/docs/current/functions-formatting.html">
+   * PostgreSQL Standard SQL Format Elements</a>.
+   */
+  public static final FormatModel POSTGRESQL;
+
   static {
-    final Map<String, FormatElement> map = new HashMap<>();
+    final Map<String, FormatElement> map = new LinkedHashMap<>();
     for (FormatElementEnum fe : FormatElementEnum.values()) {
       map.put(fe.toString(), fe);
     }
@@ -120,6 +129,35 @@ public class FormatModels {
     map.put("%y", YY);
     map.put("%Z", TZR);
     BIG_QUERY = create(map);
+
+    map.clear();
+    map.put("HH24", HH24);
+    map.put("MI", MI);
+    map.put("SS", SS);
+    map.put("MS", MS);
+    map.put("FF1", FF1);
+    map.put("FF2", FF2);
+    map.put("FF3", FF3);
+    map.put("FF4", FF4);
+    map.put("FF5", FF5);
+    map.put("FF6", FF6);
+    map.put("YYYY", YYYY);
+    map.put("YY", YY);
+    map.put("DAY", DAY);
+    map.put("DY", DY);
+    map.put("MONTH", MONTH);
+    map.put("MON", MON);
+    map.put("MM", MM);
+    map.put("DDD", DDD);
+    map.put("DD", DD);
+    map.put("D", D);
+    map.put("WW", WW);
+    map.put("IW", IW);
+    map.put("Q", Q);
+    // Our implementation of TO_CHAR does not support TIMESTAMPTZ
+    // As PostgreSQL, we will skip the timezone when formatting TIMESTAMP values
+    map.put("TZ", TZR);
+    POSTGRESQL = create(map);
   }
 
   /**
