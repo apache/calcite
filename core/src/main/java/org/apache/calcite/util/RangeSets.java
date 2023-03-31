@@ -283,9 +283,7 @@ public class RangeSets {
     List<Range<C>> rangeList = new ArrayList<>();
     try {
       for (Object o : rangeSetsJson) {
-        // TODO: Throw if can't convert to Map
-        String rangeMap = (String) o;
-        Range range = rangeFromJson(rangeMap);
+        Range range = rangeFromJson(o.toString());
         rangeList.add(range);
       }
       builder.addAll(rangeList);
