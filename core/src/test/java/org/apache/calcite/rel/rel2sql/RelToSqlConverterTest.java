@@ -11599,4 +11599,19 @@ class RelToSqlConverterTest {
         + "ORDER BY 1 IS NULL, 1";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
+
+  @Test public void testIfNullToNVLInHive() {
+    final RelBuilder builder = relBuilder();
+    final RexNode rexNode = builder.call(SqlLibraryOperators.IFNULL,
+        builder.literal(12), builder.literal(0));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(rexNode, "nvl"))
+        .build();
+    final String expectedSql =
+        "SELECT NVL(12, 0) nvl\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedSql));
+  }
 }

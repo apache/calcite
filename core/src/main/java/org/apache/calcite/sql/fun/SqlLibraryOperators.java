@@ -153,7 +153,7 @@ public abstract class SqlLibraryOperators {
         null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
 
   /** The "IFNULL(value, value)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, SPARK, SNOWFLAKE})
   public static final SqlFunction IFNULL =
       new SqlFunction("IFNULL", SqlKind.OTHER_FUNCTION,
           ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
