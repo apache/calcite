@@ -16,18 +16,19 @@
  */
 package org.apache.calcite.util;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
-import java.lang.reflect.Constructor;
+import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -279,11 +280,11 @@ public class RangeSets {
   public static <C extends Comparable<C>> RangeSet<C> fromJson(ArrayList rangeSetsJson)
   {
     final ImmutableRangeSet.Builder<C> builder = ImmutableRangeSet.builder();
-    List<Range<C>> rangeList = Collections.emptyList();
+    List<Range<C>> rangeList = new ArrayList<>();
     try {
       for (Object o : rangeSetsJson) {
         // TODO: Throw if can't convert to Map
-        Map<String, String> rangeMap = (Map) o;
+        String rangeMap = (String) o;
         Range range = rangeFromJson(rangeMap);
         rangeList.add(range);
       }
@@ -294,41 +295,40 @@ public class RangeSets {
     }
   }
 
-  public static BoundType boundTypeNameToEnum(String name){
-    switch (name){
-    case "OPEN":
-      return BoundType.OPEN;
-    case "CLOSED":
-      return BoundType.CLOSED;
-    default:
-      throw new IllegalArgumentException("Unknown BoundType enum name");
-    }
-  }
-
-  public static <C extends Comparable<C>> Range<C> rangeFromJson(Map<String, String> rangeMap) {
+  public static <C extends Comparable<C>> Range<C> rangeFromJson(String rangeJson) {
     try {
-      // Can I cast a variable to a class from a name?
-      // This part is WIP (doesn't work)
-
-      Class<?> clazz = Class.forName(rangeMap.get("lowerEndpointType"));
-      Constructor<?> constructor = clazz.getConstructor();
-      C lower = (C) constructor.newInstance(rangeMap.get("lowerEndpoint"));
-      // C lower = (C) rangeMap.get("lowerEndpoint");
-
-
-      // String upperEndpointType = rangeMap.get("lowerEndpointType");
-      // Class upperEndpointTypeClass = Class.forName(upperEndpointType);
-      // Comparable<C> upper = ((Comparable<C>) rangeMap.get("upperEndPoint"));
-      C upper = lower;
-
-      BoundType lowerBoundType = boundTypeNameToEnum(rangeMap.get("lowerBoundType"));
-      BoundType upperBoundType = boundTypeNameToEnum(rangeMap.get("upperBoundType"));
-
-      Range range = Range.range(lower, lowerBoundType, upper, upperBoundType);
-      return range;
+      ObjectMapper mapper = new ObjectMapper()
+          .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
+          .registerModule(new GuavaModule());
+      Range range = mapper.readValue(rangeJson, Range.class);
+      Range rangeFixed = fixRangeNumericTypes(range);
+      return rangeFixed;
     } catch (Exception e){
       throw new RuntimeException("Error creating Range from JSON: ", e);
     }
+  }
+
+  // When deserializing Range from a JSON string, the numerics are of type "Integer" and
+  // RexLiteral has a precondition check that validates values are of BigDecimal type.
+  private static <C extends Comparable<C>> Range<C>  fixRangeNumericTypes(Range range){
+    if (!(range.lowerEndpoint() instanceof Number)) {
+      return range;
+    }
+    BoundType lowerBoundType = range.lowerBoundType();
+    BoundType upperBoundType = range.upperBoundType();
+
+    Comparable<C> lowerEndpoint = range.lowerEndpoint();
+    Comparable<C> upperEndpoint = range.upperEndpoint();
+
+    BigDecimal fixedLower;
+    BigDecimal fixedUpper;
+    if (lowerEndpoint instanceof Number){
+      fixedLower = BigDecimal.valueOf(((Number) lowerEndpoint).longValue());
+      fixedUpper = BigDecimal.valueOf(((Number) upperEndpoint).longValue());
+      Range fixedRange = Range.range(fixedLower, lowerBoundType, fixedUpper, upperBoundType);
+      return fixedRange;
+    }
+    return range;
   }
 
   /** Creates a consumer that prints values to a {@link StringBuilder}. */

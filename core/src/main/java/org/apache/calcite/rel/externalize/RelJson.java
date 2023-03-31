@@ -18,7 +18,6 @@ package org.apache.calcite.rel.externalize;
 
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
@@ -46,7 +45,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexSlot;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
@@ -70,6 +68,9 @@ import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.Util;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -89,7 +90,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.apache.calcite.rel.RelDistributions.EMPTY;
-import static org.apache.calcite.util.Bug.CALCITE_5614_FIXED;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -435,14 +435,6 @@ public class RelJson {
         || value instanceof Boolean) {
       return value;
     } else if (value instanceof RexNode) {
-      if(!CALCITE_5614_FIXED){
-        // Expanding SEARCH operator because toJson doesn't currently support handling Sarg
-        if (((RexNode) value).getKind().equals(SqlKind.SEARCH)){
-          Object expandedNode =
-              RexUtil.expandSearch(new RexBuilder(new JavaTypeFactoryImpl()), null, (RexNode) value);
-          return toJson(expandedNode);
-        }
-      }
       return toJson((RexNode) value);
     } else if (value instanceof RexWindow) {
       return toJson((RexWindow) value);
@@ -492,23 +484,20 @@ public class RelJson {
     return map;
   }
 
-  private <C extends Comparable<C>> Object toJson(RangeSet<C> rangeSet){
+  private <C extends Comparable<C>> Object toJson(RangeSet<C> rangeSet) {
     final List<@Nullable Object> list = jsonBuilder().list();
-    for (Range<C> o : rangeSet.asRanges()) {
-      list.add(toJson(o));
+    try {
+      for (Range<C> o : rangeSet.asRanges()) {
+        ObjectMapper mapper = new ObjectMapper()
+            .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
+            .registerModule(new GuavaModule());
+        String jsonString = mapper.writeValueAsString(o);
+        list.add(jsonString);
+      }
+    } catch (Exception e){
+      throw new RuntimeException("Failed to serialize RangeSet: ", e);
     }
     return list;
-  }
-
-  private <C extends Comparable<C>> Object toJson(Range<C> range){
-    final Map<String, @Nullable Object> map = jsonBuilder().map();
-    map.put("lowerEndpoint", range.lowerEndpoint());
-    map.put("lowerEndpointType", range.lowerEndpoint().getClass());
-    map.put("lowerBoundType", range.lowerBoundType().toString());
-    map.put("upperEndpoint", range.upperEndpoint());
-    map.put("upperEndpointType", range.upperEndpoint().getClass());
-    map.put("upperBoundType", range.upperBoundType().toString());
-    return map;
   }
 
   private Object toJson(RelDataType node) {
@@ -576,7 +565,7 @@ public class RelJson {
       final Object value = literal.getValue3();
       map = jsonBuilder().map();
       if (((RexLiteral) node).getTypeName().getName().equalsIgnoreCase(Sarg.class.getSimpleName())) {
-        map.put("sargLiteral", toJson(node));
+        map.put("sargLiteral", toJson((Sarg) value));
       } else {
         map.put("literal", RelEnumTypes.fromEnum(value));
       }
@@ -808,7 +797,7 @@ public class RelJson {
         }
         final RelDataType type = toType(typeFactory, get(map, "type"));
         Sarg sarg = Sarg.fromJson((Map) sargObject);
-        return rexBuilder.makeSearchArgumentLiteral((Sarg) sarg, type);
+        return rexBuilder.makeSearchArgumentLiteral(sarg, type);
       }
       throw new UnsupportedOperationException("cannot convert to rex " + o);
     } else if (o instanceof Boolean) {

@@ -23,6 +23,7 @@ dependencies {
     api("org.checkerframework:checker-qual")
 
     implementation(platform("org.junit:junit-bom"))
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-guava")
     implementation(kotlin("stdlib-jdk8"))
     implementation("net.hydromatic:quidem")
     implementation("net.hydromatic:foodmart-data-hsqldb")

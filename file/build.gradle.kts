@@ -35,6 +35,7 @@ dependencies {
     implementation("org.jsoup:jsoup")
     implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.core:jackson-databind")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-guava")
 
     testImplementation(project(":testkit"))
     annotationProcessor("org.immutables:value")

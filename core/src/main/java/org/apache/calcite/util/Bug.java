@@ -206,11 +206,6 @@ public abstract class Bug {
    * MILLISECOND and MICROSECOND units in INTERVAL literal</a> is fixed. */
   public static final boolean CALCITE_5422_FIXED = false;
 
-  /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5614">[CALCITE-5614]
-   * Serialize and deserialize Sarg objects</a> is fixed. */
-  public static final boolean CALCITE_5614_FIXED = false;
-
   /**
    * Use this to flag temporary code.
    */
