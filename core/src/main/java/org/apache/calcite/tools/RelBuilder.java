@@ -73,6 +73,7 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOrdinalRef;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
@@ -473,6 +474,14 @@ public class RelBuilder {
     }
   }
 
+  /** Creates a reference to an input field of type ordinal.
+   *
+   * @param fieldOrdinal Field Ordinal
+   */
+  public RexOrdinalRef ordinal(int fieldOrdinal) {
+    return RexOrdinalRef.of(field(fieldOrdinal));
+  }
+
   /** Creates a reference to an input field by ordinal.
    *
    * <p>Equivalent to {@code field(1, 0, ordinal)}.
@@ -657,10 +666,6 @@ public class RelBuilder {
         return (RexCall) not(call(SqlStdOperatorTable.SIMILAR_TO, operandList));
       }
       break;
-    case BETWEEN:
-      assert operandList.size() == 3;
-      return (RexCall) between(operandList.get(0), operandList.get(1),
-          operandList.get(2));
     default:
       break;
     }
@@ -2890,6 +2895,9 @@ public class RelBuilder {
     case INPUT_REF:
       return new RelFieldCollation(((RexInputRef) node).getIndex(), direction,
           Util.first(nullDirection, direction.defaultNullDirection()));
+    case ORDINAL_REF:
+      return new RelFieldCollation(((RexInputRef) node).getIndex(), direction,
+          Util.first(nullDirection, direction.defaultNullDirection()), true);
     case DESCENDING:
       return collation(((RexCall) node).getOperands().get(0),
           RelFieldCollation.Direction.DESCENDING,

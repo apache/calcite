@@ -264,6 +264,12 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
   public static final SqlFunction TRANSLATE3 = new SqlTranslate3Function();
 
+  @LibraryOperator(libraries = {ORACLE, POSTGRESQL, MYSQL, NETEZZA, TERADATA})
+  public static final SqlFunction BETWEEN = new SqlBetweenAsymmetricOperator(false);
+
+  @LibraryOperator(libraries = {ORACLE, POSTGRESQL, MYSQL, NETEZZA, TERADATA})
+  public static final SqlFunction NOT_BETWEEN = new SqlBetweenAsymmetricOperator(true);
+
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
 
@@ -487,7 +493,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("TIME_ADD",
           SqlKind.PLUS,
           ReturnTypes.TIME, null,
-          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIME),
+          OperandTypes.DATETIME_INTERVAL,
           SqlFunctionCategory.TIMEDATE) {
 
     @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

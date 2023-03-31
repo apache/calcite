@@ -676,6 +676,14 @@ public abstract class SqlImplementor {
       return field(ordinal);
     }
 
+    public SqlNode orderField(RelFieldCollation collation) {
+      if (collation.isOrdinal) {
+        return SqlLiteral.createExactNumeric(
+            Integer.toString(collation.getFieldIndex() + 1), SqlParserPos.ZERO);
+      }
+      return orderField(collation.getFieldIndex());
+    }
+
     /** Converts an expression from {@link RexNode} to {@link SqlNode}
      * format.
      *
@@ -1154,13 +1162,13 @@ public abstract class SqlImplementor {
         final boolean first =
             field.nullDirection == RelFieldCollation.NullDirection.FIRST;
         SqlNode nullDirectionNode =
-            dialect.emulateNullDirection(field(field.getFieldIndex()),
+            dialect.emulateNullDirection(orderField(field),
                 first, field.direction.isDescending());
         if (nullDirectionNode != null) {
           orderByList.add(nullDirectionNode);
           field = new RelFieldCollation(field.getFieldIndex(),
               field.getDirection(),
-              RelFieldCollation.NullDirection.UNSPECIFIED);
+              RelFieldCollation.NullDirection.UNSPECIFIED, field.isOrdinal);
         }
       }
       orderByList.add(toSql(field));
@@ -1281,7 +1289,7 @@ public abstract class SqlImplementor {
 
     /** Converts a collation to an ORDER BY item. */
     public SqlNode toSql(RelFieldCollation collation) {
-      SqlNode node = orderField(collation.getFieldIndex());
+      SqlNode node = orderField(collation);
       switch (collation.getDirection()) {
       case DESCENDING:
       case STRICTLY_DESCENDING:
