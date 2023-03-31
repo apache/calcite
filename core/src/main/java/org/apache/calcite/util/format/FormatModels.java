@@ -39,6 +39,7 @@ import static org.apache.calcite.util.format.FormatElementEnum.FF3;
 import static org.apache.calcite.util.format.FormatElementEnum.FF4;
 import static org.apache.calcite.util.format.FormatElementEnum.FF5;
 import static org.apache.calcite.util.format.FormatElementEnum.FF6;
+import static org.apache.calcite.util.format.FormatElementEnum.HH12;
 import static org.apache.calcite.util.format.FormatElementEnum.HH24;
 import static org.apache.calcite.util.format.FormatElementEnum.IW;
 import static org.apache.calcite.util.format.FormatElementEnum.MI;
@@ -131,6 +132,7 @@ public class FormatModels {
     BIG_QUERY = create(map);
 
     map.clear();
+    map.put("HH12", HH12);
     map.put("HH24", HH24);
     map.put("MI", MI);
     map.put("SS", SS);
@@ -143,10 +145,10 @@ public class FormatModels {
     map.put("FF6", FF6);
     map.put("YYYY", YYYY);
     map.put("YY", YY);
-    map.put("DAY", DAY);
+    map.put("Day", DAY);
     map.put("DY", DY);
-    map.put("MONTH", MONTH);
-    map.put("MON", MON);
+    map.put("Month", MONTH);
+    map.put("Mon", MON);
     map.put("MM", MM);
     map.put("DDD", DDD);
     map.put("DD", DD);

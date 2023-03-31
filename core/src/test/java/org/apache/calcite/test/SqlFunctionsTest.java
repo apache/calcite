@@ -58,6 +58,7 @@ import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
+import static org.apache.calcite.runtime.SqlFunctions.toChar;
 import static org.apache.calcite.runtime.SqlFunctions.toInt;
 import static org.apache.calcite.runtime.SqlFunctions.toIntOptional;
 import static org.apache.calcite.runtime.SqlFunctions.toLong;
@@ -1281,6 +1282,39 @@ class SqlFunctionsTest {
   @Test void testInternalToTime() {
     assertThat(internalToTime(0), is(Time.valueOf("00:00:00")));
     assertThat(internalToTime(86399000), is(Time.valueOf("23:59:59")));
+  }
+
+  /**
+   * Tests that timestamp can be converted to a string given a custom pattern.
+   */
+  @Test void testToChar() {
+    String pattern1 = "YYYY-MM-DD HH24:MI:SS.MS";
+    String pattern2 = "Day, DD HH12:MI:SS";
+
+    assertThat(
+        toChar(0, pattern1),
+        is("1970-01-01 00:00:00.000")
+    );
+
+    assertThat(
+        toChar(0, pattern2),
+        is("Thursday, 01 12:00:00")
+    );
+
+    assertThat(
+        toChar(timestampStringToUnixDate("2014-09-30 15:28:27.356"), pattern1),
+        is("2014-09-30 15:28:27.356")
+    );
+
+    assertThat(
+        toChar(timestampStringToUnixDate("2014-09-30 15:28:27.356"), pattern2),
+        is("Tuesday, 30 03:28:27")
+    );
+
+    assertThat(
+        toChar(timestampStringToUnixDate("1500-04-30 12:00:00.123"), pattern1),
+        is("1500-04-30 12:00:00.123")
+    );
   }
 
   /**
