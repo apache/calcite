@@ -1751,7 +1751,7 @@ public abstract class SqlImplementor {
                 if (selectItem.i != ordinal) {
                   final @Nullable String alias =
                       SqlValidatorUtil.alias(selectItem.e);
-                  if (name.equalsIgnoreCase(alias)) {
+                  if (name.equalsIgnoreCase(alias) && dialect.getConformance().isSortByAlias()) {
                     return SqlLiteral.createExactNumeric(
                         Integer.toString(ordinal + 1), SqlParserPos.ZERO);
                   }

@@ -908,12 +908,11 @@ class RelToSqlConverterTest {
         + "ORDER BY 2) AS \"t0\"";
     String actualSql1 = toSql(base);
     assertThat(actualSql1, isLinux(expectedSql1));
-    // SqlConformance#isSortByAlias is false for Spark.
-    String actualSql2 = toSql(base, DatabaseProduct.SPARK.getDialect());
-    String expectedSql2 = "SELECT EMPNO\n"
-        + "FROM (SELECT UPPER(ENAME) EMPNO, EMPNO EMPNO0\n"
+
+    String actualSql2 = toSql(base, nonOrdinalDialect());
+    String expectedSql2 = "SELECT UPPER(ENAME) AS EMPNO\n"
         + "FROM scott.EMP\n"
-        + "ORDER BY 2 NULLS LAST) t0";
+        + "ORDER BY EMPNO";
     assertThat(actualSql2, isLinux(expectedSql2));
   }
 
@@ -944,12 +943,11 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"\n"
         + "ORDER BY 2) AS \"t0\"";
     assertThat(actualSql1, isLinux(expectedSql1));
-    // SqlConformance#isSortByAlias is false for Spark.
-    String actualSql2 = toSql(base, DatabaseProduct.SPARK.getDialect());
-    String expectedSql2 = "SELECT EMPNO\n"
-        + "FROM (SELECT UPPER(ENAME) EMPNO, EMPNO + 1 $f1\n"
+
+    String actualSql2 = toSql(base, nonOrdinalDialect());
+    String expectedSql2 = "SELECT UPPER(ENAME) AS EMPNO\n"
         + "FROM scott.EMP\n"
-        + "ORDER BY 2 NULLS LAST) t0";
+        + "ORDER BY EMPNO + 1";
     assertThat(actualSql2, isLinux(expectedSql2));
   }
 
