@@ -133,6 +133,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALEN
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -240,6 +241,14 @@ class RelToSqlConverterTest {
   /** Creates a RelBuilder. */
   private static RelBuilder relBuilder() {
     return RelBuilder.create(RelBuilderTest.config().build());
+  }
+
+  private static RelBuilder foodmartRelBuilder() {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    FrameworkConfig foodmartConfig = RelBuilderTest.config()
+        .defaultSchema(CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.JDBC_FOODMART))
+        .build();
+    return RelBuilder.create(foodmartConfig);
   }
 
   /** Converts a relational expression to SQL. */
@@ -11570,5 +11579,63 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedBigQuery));
+  }
+
+  @Test void testBracesJoinConditionInClause() {
+    RelBuilder builder = foodmartRelBuilder();
+    builder = builder.scan("foodmart", "product");
+    final RelNode root = builder
+        .scan("foodmart", "sales_fact_1997")
+        .join(
+            JoinRelType.INNER, builder.call(IN,
+              builder.field(2, 0, "product_id"),
+              builder.field(2, 1, "product_id")))
+        .project(builder.field("store_id"))
+        .build();
+
+    String expectedBigQuery = "SELECT sales_fact_1997.store_id\n"
+        + "FROM foodmart.product\n"
+        + "INNER JOIN foodmart.sales_fact_1997 ON product.product_id IN (sales_fact_1997.product_id)";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
+  @Test public void testSortByOrdinal() {
+    RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .sort(builder.ordinal(0))
+        .build();
+    final String expectedBQSql = "SELECT *\n"
+        + "FROM scott.EMP\n"
+        + "ORDER BY 1 IS NULL, 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testSortByOrdinalWithExprForBigQuery() {
+    RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.SATURDAY.name()));
+    RelNode root = builder
+        .scan("EMP")
+        .project(nextDayRexNode)
+        .sort(builder.ordinal(0))
+        .build();
+    final String expectedBQSql =
+        "SELECT NEXT_DAY(CURRENT_DATE, 'SATURDAY') AS `$f0`\n"
+        + "FROM scott.EMP\n"
+        + "ORDER BY 1 IS NULL, 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testSubstr4() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode substr4Call = builder.call(SqlLibraryOperators.SUBSTR4, builder.field(0),
+        builder.literal(1));
+    RelNode root = builder
+        .project(substr4Call)
+        .build();
+    final String expectedOracleSql = "SELECT SUBSTR4(\"EMPNO\", 1) \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 }

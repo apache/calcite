@@ -326,7 +326,6 @@ public abstract class SqlImplementor {
       return SqlUtil.createCall(op, POS, sqlOperands);
 
     case EQUALS:
-    case IN:
     case NOT:
     case IS_DISTINCT_FROM:
     case IS_NOT_DISTINCT_FROM:
@@ -674,6 +673,14 @@ public abstract class SqlImplementor {
      */
     public SqlNode orderField(int ordinal) {
       return field(ordinal);
+    }
+
+    public SqlNode orderField(RelFieldCollation collation) {
+      if (collation.isOrdinal) {
+        return SqlLiteral.createExactNumeric(
+            Integer.toString(collation.getFieldIndex() + 1), SqlParserPos.ZERO);
+      }
+      return orderField(collation.getFieldIndex());
     }
 
     /** Converts an expression from {@link RexNode} to {@link SqlNode}
@@ -1154,13 +1161,13 @@ public abstract class SqlImplementor {
         final boolean first =
             field.nullDirection == RelFieldCollation.NullDirection.FIRST;
         SqlNode nullDirectionNode =
-            dialect.emulateNullDirection(field(field.getFieldIndex()),
+            dialect.emulateNullDirection(orderField(field),
                 first, field.direction.isDescending());
         if (nullDirectionNode != null) {
           orderByList.add(nullDirectionNode);
           field = new RelFieldCollation(field.getFieldIndex(),
               field.getDirection(),
-              RelFieldCollation.NullDirection.UNSPECIFIED);
+              RelFieldCollation.NullDirection.UNSPECIFIED, field.isOrdinal);
         }
       }
       orderByList.add(toSql(field));
@@ -1281,7 +1288,7 @@ public abstract class SqlImplementor {
 
     /** Converts a collation to an ORDER BY item. */
     public SqlNode toSql(RelFieldCollation collation) {
-      SqlNode node = orderField(collation.getFieldIndex());
+      SqlNode node = orderField(collation);
       switch (collation.getDirection()) {
       case DESCENDING:
       case STRICTLY_DESCENDING:

@@ -573,6 +573,11 @@ public enum SqlKind {
   INPUT_REF,
 
   /**
+   * Reference to an ordinal field exclusively.
+   */
+  ORDINAL_REF,
+
+  /**
    * Reference to an input field, with a qualified name and an identifier.
    *
    * <p>(Only used at the RexNode level.)</p>
