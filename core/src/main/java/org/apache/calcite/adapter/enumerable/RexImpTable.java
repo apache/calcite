@@ -2404,24 +2404,6 @@ public class RexImpTable {
     }
   }
 
-  /**
-   * Implementor for the {@code TO_CHAR}.
-   */
-  private static class ToCharImplementor extends MethodNameImplementor {
-    ToCharImplementor() {
-      super("toChar", NullPolicy.STRICT, false);
-    }
-
-    @Override Expression implementSafe(final RexToLixTranslator translator,
-        final RexCall call, final List<Expression> argValueList) {
-      return Expressions.call(
-          BuiltInMethod.TO_CHAR.method,
-          translator.getRoot(),
-          argValueList.get(0),
-          argValueList.get(1));
-    }
-  }
-
   /** Implementor for a function that generates calls to a given method. */
   private static class MethodImplementor extends AbstractRexCallImplementor {
     protected final Method method;
