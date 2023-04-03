@@ -7876,12 +7876,40 @@ public class SqlOperatorTest {
   @Test void testArrayValueConstructor() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, VmName.EXPAND);
+    f.checkScalar("Array['foo']",
+        "[foo]", "CHAR(3) NOT NULL ARRAY NOT NULL");
     f.checkScalar("Array['foo', 'bar']",
         "[foo, bar]", "CHAR(3) NOT NULL ARRAY NOT NULL");
-
+    f.checkScalar("Array['foo', null]",
+        "[foo, null]", "CHAR(3) ARRAY NOT NULL");
+    f.checkScalar("Array[null]",
+        "[null]", "NULL ARRAY NOT NULL");
     // empty array is illegal per SQL spec. presumably because one can't
     // infer type
     f.checkFails("^Array[]^", "Require at least 1 argument", false);
+  }
+
+  /** Test case for {@link SqlLibraryOperators#ARRAY} (Spark). */
+  @Test void testArrayFunction() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.ARRAY, VmName.EXPAND);
+    f.checkFails("^array()^",
+        "No match found for function signature ARRAY\\(\\)", false);
+    f.checkFails("^array('foo')^",
+        "No match found for function signature ARRAY\\(<CHARACTER>\\)", false);
+    final SqlOperatorFixture f2 = f.withLibrary(SqlLibrary.SPARK);
+    f2.checkScalar("array('foo')",
+        "[foo]", "CHAR(3) NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array('foo', 'bar')",
+        "[foo, bar]", "CHAR(3) NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array()",
+        "[]", "UNKNOWN NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array('foo', null)",
+        "[foo, null]", "CHAR(3) ARRAY NOT NULL");
+    f2.checkScalar("array(null, 'foo')",
+        "[null, foo]", "CHAR(3) ARRAY NOT NULL");
+    f2.checkScalar("array(null)",
+        "[null]", "NULL ARRAY NOT NULL");
   }
 
   /**

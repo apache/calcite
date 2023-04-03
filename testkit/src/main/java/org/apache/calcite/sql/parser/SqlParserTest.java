@@ -5873,6 +5873,11 @@ public class SqlParserTest {
         .ok("(ARRAY[(ROW(1, 'a')), (ROW(2, 'b'))])");
   }
 
+  @Test void testArrayFunction() {
+    expr("array()").ok("ARRAY()");
+    expr("array(1)").ok("ARRAY(1)");
+  }
+
   @Test void testArrayQueryConstructor() {
     sql("SELECT array(SELECT x FROM (VALUES(1)) x)")
         .ok("SELECT (ARRAY ((SELECT `X`\n"
@@ -5881,6 +5886,10 @@ public class SqlParserTest {
         .ok("SELECT (ARRAY (SELECT `X`\n"
             + "FROM (VALUES (ROW(1))) AS `X`\n"
             + "ORDER BY `X`))");
+    sql("SELECT array(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")
+      .fails("(?s)Incorrect syntax near the keyword 'SELECT' at.*");
+    sql("SELECT array(1, ^SELECT^ x FROM (VALUES(1)) x)")
+      .fails("(?s)Incorrect syntax near the keyword 'SELECT'.*");
   }
 
   @Test void testCastAsCollectionType() {

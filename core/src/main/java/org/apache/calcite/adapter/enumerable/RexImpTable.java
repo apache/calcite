@@ -112,6 +112,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.THROW_UNLESS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
@@ -709,6 +710,7 @@ public class RexImpTable {
       final RexCallImplementor value = new ValueConstructorImplementor();
       map.put(MAP_VALUE_CONSTRUCTOR, value);
       map.put(ARRAY_VALUE_CONSTRUCTOR, value);
+      defineMethod(ARRAY, BuiltInMethod.ARRAYS_AS_LIST.method, NullPolicy.NONE);
 
       // ITEM operator
       map.put(ITEM, new ItemImplementor());

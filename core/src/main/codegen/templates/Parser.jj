@@ -4718,7 +4718,7 @@ SqlNode MultisetConstructor() :
 /** Parses an ARRAY constructor */
 SqlNode ArrayConstructor() :
 {
-    SqlNodeList args;
+    final SqlNodeList args;
     SqlNode e;
     final Span s;
     final String p;
@@ -4726,14 +4726,22 @@ SqlNode ArrayConstructor() :
 {
     <ARRAY> { s = span(); }
     (
-        LOOKAHEAD(1)
-        <LPAREN>
-        // by sub query "MULTISET(SELECT * FROM T)"
-        e = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
-        <RPAREN>
+        (
+            // nullary array function call: "array()" (Apache Spark)
+            LOOKAHEAD(2)
+            <LPAREN> <RPAREN> { args = SqlNodeList.EMPTY; }
+        |
+            args = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_ALL)
+        )
         {
-            return SqlStdOperatorTable.ARRAY_QUERY.createCall(
-                s.end(this), e);
+            if (args.size() == 1 && args.get(0).isA(SqlKind.QUERY)) {
+                // Array query constructor, 'ARRAY (SELECT * FROM t)'
+                return SqlStdOperatorTable.ARRAY_QUERY.createCall(s.end(this), args.get(0));
+            } else {
+                // Spark ARRAY function, 'ARRAY(1, 2)',
+                // equivalent to standard 'ARRAY [1, 2]'
+                return SqlLibraryOperators.ARRAY.createCall(s.end(this), args.getList());
+            }
         }
     |
         // by enumeration "ARRAY[e0, e1, ..., eN]"
