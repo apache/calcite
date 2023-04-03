@@ -2418,8 +2418,7 @@ public class RexImpTable {
           BuiltInMethod.TO_CHAR.method,
           translator.getRoot(),
           argValueList.get(0),
-          argValueList.get(1)
-      );
+          argValueList.get(1));
     }
   }
 

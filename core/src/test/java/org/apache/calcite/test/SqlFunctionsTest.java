@@ -1293,28 +1293,23 @@ class SqlFunctionsTest {
 
     assertThat(
         toChar(0, pattern1),
-        is("1970-01-01 00:00:00.000")
-    );
+        is("1970-01-01 00:00:00.000"));
 
     assertThat(
         toChar(0, pattern2),
-        is("Thursday, 01 12:00:00")
-    );
+        is("Thursday, 01 12:00:00"));
 
     assertThat(
         toChar(timestampStringToUnixDate("2014-09-30 15:28:27.356"), pattern1),
-        is("2014-09-30 15:28:27.356")
-    );
+        is("2014-09-30 15:28:27.356"));
 
     assertThat(
         toChar(timestampStringToUnixDate("2014-09-30 15:28:27.356"), pattern2),
-        is("Tuesday, 30 03:28:27")
-    );
+        is("Tuesday, 30 03:28:27"));
 
     assertThat(
         toChar(timestampStringToUnixDate("1500-04-30 12:00:00.123"), pattern1),
-        is("1500-04-30 12:00:00.123")
-    );
+        is("1500-04-30 12:00:00.123"));
   }
 
   /**
