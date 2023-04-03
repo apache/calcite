@@ -29,6 +29,7 @@ import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.LogicalTableCreate;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.RowSample;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
@@ -532,6 +533,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   public void rewriteRel(LogicalTableFunctionScan rel) {
+    rewriteGeneric(rel);
+  }
+
+  public void rewriteRel(RowSample rel) {
     rewriteGeneric(rel);
   }
 
