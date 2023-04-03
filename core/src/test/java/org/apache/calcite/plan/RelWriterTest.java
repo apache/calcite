@@ -65,6 +65,7 @@ import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
@@ -78,6 +79,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+
+import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
@@ -858,12 +861,22 @@ class RelWriterTest {
           b.literal(20),
           b.literal(14)));
 
+    final DateString d1 = DateString.fromDaysSinceEpoch(0);
+    final DateString d2 = DateString.fromDaysSinceEpoch(100);
+    final DateString d3 = DateString.fromDaysSinceEpoch(1000);
+    RexNode dateNode = b.getRexBuilder().makeBetween(
+        b.getRexBuilder().makeDateLiteral(d2),
+        b.getRexBuilder().makeDateLiteral(d1),
+        b.getRexBuilder().makeDateLiteral(d3)
+    );
+
 
     RelJson relJson = RelJson.create().withJsonBuilder(new JsonBuilder());
     final ObjectMapper mapper = new ObjectMapper();
     final TypeReference<LinkedHashMap<String, Object>> typeRef =
         new TypeReference<LinkedHashMap<String, Object>>() {};
-    List<RexNode> testNodes = ImmutableList.of(between, inNode);
+    // List<RexNode> testNodes = ImmutableList.of(between, inNode, dateNode);
+    List<RexNode> testNodes = ImmutableList.of(dateNode);
     for (RexNode node: testNodes){
       Object rexified = relJson.toJson(node);
       // Test toJson -> toRex -> toJson is the same.
