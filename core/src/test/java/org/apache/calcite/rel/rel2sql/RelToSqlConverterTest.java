@@ -8634,8 +8634,7 @@ class RelToSqlConverterTest {
         "SELECT TO_DATE('2009/03/20', 'yyyy/MM/dd') AS \"date_value\"\n"
             + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery =
-        "SELECT DATE(PARSE_DATETIME('%Y/%m/%d', '2009/03/20')) AS date_value\n"
-            + "FROM scott.EMP";
+        "SELECT TO_DATE('2009/03/20', 'yyyy/MM/dd') AS date_value\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
@@ -11641,7 +11640,9 @@ class RelToSqlConverterTest {
 
   @Test public void testToDateforOracle() {
     RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode oracleToDateCall = builder.call(SqlLibraryOperators.ORACLE_TO_DATE, builder.call(SqlStdOperatorTable.CURRENT_DATE));
+    final RexNode oracleToDateCall =
+        builder.call(SqlLibraryOperators.ORACLE_TO_DATE,
+            builder.call(SqlStdOperatorTable.CURRENT_DATE));
     RelNode root = builder
         .project(oracleToDateCall)
         .build();
