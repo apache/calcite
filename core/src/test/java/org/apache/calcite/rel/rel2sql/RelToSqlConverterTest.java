@@ -3837,6 +3837,23 @@ class RelToSqlConverterTest {
     sql(query).withSpark().ok(expected);
   }
 
+  @Test void testArrayFunction() {
+    final String query = "SELECT ARRAY(1, 2)";
+    final String expected = "SELECT ARRAY(1, 2)\n"
+        + "FROM (VALUES (0)) t (ZERO)";
+
+    sql(query)
+      .parserConfig(SqlParser.Config.DEFAULT.withConformance(SqlConformanceEnum.SPARK))
+      .withSpark()
+      .withLibrary(SqlLibrary.SPARK)
+      .ok(expected); 
+  }
+
+  @Test void testArrayFunctionFail() {
+    final String query = "SELECT ARRAY(1, 2)";
+    sql(query).throws_("Got array function call, however conformance allowArrayFunction is false"); 
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5577">[CALCITE-5577]
    * Map value constructor is unparsed incorrectly for SparkSqlDialect</a>.*/

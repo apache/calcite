@@ -147,6 +147,10 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.semantics();
   }
 
+  @Override public boolean allowArrayFunction() {
+    return delegate.allowArrayFunction();
+  }
+
   @Override public boolean allowCoercionStringToArray() {
     return delegate.allowCoercionStringToArray();
   }

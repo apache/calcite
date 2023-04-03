@@ -4728,13 +4728,28 @@ SqlNode ArrayConstructor() :
     (
         LOOKAHEAD(1)
         <LPAREN>
-        // by sub query "MULTISET(SELECT * FROM T)"
-        e = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
-        <RPAREN>
-        {
-            return SqlStdOperatorTable.ARRAY_QUERY.createCall(
-                s.end(this), e);
-        }
+        (
+            (
+                args = ExpressionCommaList(s, ExprContext.ACCEPT_NON_QUERY)
+            |
+                { args = SqlNodeList.EMPTY; }
+            )
+            <RPAREN>
+            {
+                if (!this.conformance.allowArrayFunction()) {
+                    throw SqlUtil.newContextException(getPos(), RESOURCE.arrayFunctionCallNotAllowed());
+                }
+                return SqlLibraryOperators.ARRAY.createCall(s.end(this), args.getList());
+            }
+        |
+            // by sub query "MULTISET(SELECT * FROM T)"
+            e = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
+            <RPAREN>
+            {
+                return SqlStdOperatorTable.ARRAY_QUERY.createCall(
+                    s.end(this), e);
+            }
+        )
     |
         // by enumeration "ARRAY[e0, e1, ..., eN]"
         <LBRACKET> // TODO: do trigraph as well ??( ??)

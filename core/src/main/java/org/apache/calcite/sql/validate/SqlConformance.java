@@ -576,4 +576,26 @@ public interface SqlConformance {
    */
   @Experimental
   boolean allowCoercionStringToArray();
+
+
+  /**
+   * Whether {@code ARRAY} is a built-in SQL concept or if it's implemented
+   * using a function
+   *
+   * <p>For example,
+   *
+   * <blockquote><pre>SELECT ARRAY[0,1,2]
+   * </pre></blockquote>
+   * 
+   * vs
+   * 
+   * <blockquote><pre>SELECT array(0,1,2)
+   * </pre></blockquote>
+   *
+   * <p>
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#SPARK},
+   * false otherwise.
+   */  
+  boolean allowArrayFunction();
 }
