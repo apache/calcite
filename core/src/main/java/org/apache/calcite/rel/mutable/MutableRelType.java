@@ -29,6 +29,7 @@ enum MutableRelType {
   MATCH,
   MINUS,
   PROJECT,
+  ROW_SAMPLE,
   SAMPLE,
   SORT,
   TABLE_FUNCTION_SCAN,

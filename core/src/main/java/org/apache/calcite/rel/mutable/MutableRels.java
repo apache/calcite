@@ -32,6 +32,7 @@ import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.RowSample;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
@@ -281,6 +282,10 @@ public abstract class MutableRels {
       return LogicalTableModify.create(modify.table, modify.catalogReader,
           fromMutable(modify.getInput(), relBuilder), modify.operation, modify.updateColumnList,
           modify.sourceExpressionList,  modify.flattened);
+    case ROW_SAMPLE:
+      final MutableRowSample rowSample = (MutableRowSample) node;
+      return new RowSample(rowSample.cluster, fromMutable(rowSample.getInput(), relBuilder),
+          rowSample.params);
     case SAMPLE:
       final MutableSample sample = (MutableSample) node;
       return new Sample(sample.cluster, fromMutable(sample.getInput(), relBuilder), sample.params);
@@ -410,6 +415,11 @@ public abstract class MutableRels {
       return MutableTableModify.of(modify.getRowType(), input, modify.getTable(),
           modify.getCatalogReader(), modify.getOperation(), modify.getUpdateColumnList(),
           modify.getSourceExpressionList(), modify.isFlattened());
+    }
+    if (rel instanceof RowSample) {
+      final RowSample rowSample = (RowSample) rel;
+      final MutableRel input = toMutable(rowSample.getInput());
+      return MutableRowSample.of(input, rowSample.getRowSamplingParameters());
     }
     if (rel instanceof Sample) {
       final Sample sample = (Sample) rel;

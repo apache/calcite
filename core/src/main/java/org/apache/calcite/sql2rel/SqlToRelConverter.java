@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRowSamplingParameters;
 import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -45,6 +46,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.LogicalTableCreate;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.RowSample;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.hint.HintStrategyTable;
@@ -2451,6 +2453,17 @@ public class SqlToRelConverter {
                 tableSampleSpec.isRepeatable(),
                 tableSampleSpec.getRepeatableSeed());
         bb.setRoot(new Sample(cluster, bb.root(), params), false);
+      } else if (sampleSpec instanceof SqlSampleSpec.SqlTableSampleRowLimitSpec) {
+        SqlSampleSpec.SqlTableSampleRowLimitSpec tableSampleRowLimitSpec =
+            (SqlSampleSpec.SqlTableSampleRowLimitSpec) sampleSpec;
+        convertFrom(bb, operands.get(0));
+        RelOptRowSamplingParameters params =
+            new RelOptRowSamplingParameters(
+                tableSampleRowLimitSpec.isBernoulli(),
+                tableSampleRowLimitSpec.getNumberOfRows().intValue(),
+                tableSampleRowLimitSpec.isRepeatable(),
+                tableSampleRowLimitSpec.getRepeatableSeed());
+        bb.setRoot(new RowSample(cluster, bb.root(), params), false);
       } else {
         throw new AssertionError("unknown TABLESAMPLE type: " + sampleSpec);
       }
