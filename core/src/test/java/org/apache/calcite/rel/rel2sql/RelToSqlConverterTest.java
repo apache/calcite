@@ -11640,9 +11640,8 @@ class RelToSqlConverterTest {
 
   @Test public void testToDateforOracle() {
     RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode oracleToDateCall =
-        builder.call(SqlLibraryOperators.ORACLE_TO_DATE,
-            builder.call(SqlStdOperatorTable.CURRENT_DATE));
+    final RexNode oracleToDateCall = builder.call(SqlLibraryOperators.ORACLE_TO_DATE,
+        builder.call(SqlStdOperatorTable.CURRENT_DATE));
     RelNode root = builder
         .project(oracleToDateCall)
         .build();
