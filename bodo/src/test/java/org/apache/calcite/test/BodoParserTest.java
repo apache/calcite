@@ -99,7 +99,7 @@ public class BodoParserTest extends SqlParserTest {
    * parser because it is a reserved keyword.
    * (Curiously, TIMESTAMP and TIME are not functions.) */
   @Test void testDateFunction() {
-    final String expected = "SELECT `DATE`(`X`)\n"
+    final String expected = "SELECT DATE(`X`)\n"
         + "FROM `T`";
     sql("select date(x) from t").ok(expected);
   }

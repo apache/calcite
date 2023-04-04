@@ -5038,6 +5038,20 @@ public class SqlParserTest {
         .ok("CAST(DATE '2004-12-21' AS VARCHAR(10))");
   }
 
+  @Test void testDateFunction() {
+    expr("date('2000-01-01')")
+        .ok("DATE('2000-01-01')");
+    expr("date(date '2000-01-01')")
+        .ok("DATE(DATE '2000-01-01')");
+    expr("date(timestamp '2000-01-01 23:59:59.1')")
+        .ok("DATE(TIMESTAMP '2000-01-01 23:59:59.1')");
+    expr("date('123456')")
+        .ok("DATE('123456')");
+
+    expr("date('01-01-2000', 'MM-DD-YYYY')")
+        .ok("DATE('01-01-2000', 'MM-DD-YYYY')");
+  }
+
   @Test void testTrim() {
     expr("trim('mustache', 'a')")
         .ok("TRIM(BOTH 'a' FROM 'mustache')");

@@ -1475,6 +1475,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("CAST( '2004-12-21 10:12:21' AS TIMESTAMP)").ok();
   }
 
+  @Test void testDateFunction() {
+    expr("date('2000-01-01')").ok();
+    expr("date(date '2000-01-01')").ok();
+    expr("date(timestamp '2000-01-01 23:59:59.1')").ok();
+    expr("date('123456')").ok();
+
+    expr("date('01-01-2000', 'MM-DD-YYYY')").ok();
+  }
+
   @Test void testConvertTimezoneFunction() {
     wholeExpr("CONVERT_TIMEZONE('UTC', 'America/Los_Angeles',"
         + " CAST('2000-01-01' AS TIMESTAMP))")

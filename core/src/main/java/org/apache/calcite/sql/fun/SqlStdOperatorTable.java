@@ -2027,6 +2027,34 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction CAST = new SqlCastFunction();
 
   /**
+   * The Snowflake <code>DATE</code> function.
+   * The SQL syntaxs are
+   *
+   * DATE(string_expr [, format])
+   * DATE(timestamp_expr)
+   * DATE('integer>')
+   * DATE(variant_expr)
+   *  For conversion to date, snowflake allows a string, datetime, or integer.
+   *            If the first argument is string, an optional format string is allowed
+   *            as a second argument.
+   */
+  public static final SqlFunction DATE =
+      new SqlFunction(
+          "DATE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE,
+          null,
+          OperandTypes.or(
+              OperandTypes.or(
+                  OperandTypes.STRING,
+                  OperandTypes.DATETIME,
+                  OperandTypes.DATE,
+                  OperandTypes.TIMESTAMP,
+                  OperandTypes.INTEGER),
+              OperandTypes.STRING_STRING),
+          SqlFunctionCategory.TIMEDATE);
+
+  /**
    * The SQL <code>EXTRACT</code> operator. Extracts a specified field value
    * from a DATETIME or an INTERVAL. E.g.<br>
    * <code>EXTRACT(HOUR FROM INTERVAL '364 23:59:59')</code> returns <code>

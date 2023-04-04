@@ -6177,6 +6177,21 @@ SqlNode BuiltinFunctionCall() :
             return SqlStdOperatorTable.EXTRACT.createCall(s.end(this), args);
         }
     |
+        <DATE> { s = span(); }
+        <LPAREN>
+        e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
+            args = startList(e);
+        }
+        [
+        <COMMA>
+        e = Expression(ExprContext.ACCEPT_SUB_QUERY) {
+            args.add(e);
+        }
+        ]
+        <RPAREN> {
+            return SqlStdOperatorTable.DATE.createCall(s.end(this), args);
+        }
+    |
         <POSITION> { s = span(); }
         <LPAREN>
         // FIXME jvs 31-Aug-2006:  FRG-192:  This should be
