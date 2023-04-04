@@ -577,7 +577,6 @@ public interface SqlConformance {
   @Experimental
   boolean allowCoercionStringToArray();
 
-
   /**
    * Whether {@code ARRAY} is a built-in SQL concept or if it's implemented
    * using a function
