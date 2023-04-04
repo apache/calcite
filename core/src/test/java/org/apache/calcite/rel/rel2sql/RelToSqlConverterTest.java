@@ -11648,4 +11648,16 @@ class RelToSqlConverterTest {
     final String expectedOracleSql = "SELECT TO_DATE(CURRENT_DATE) \"$f0\"\nFROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
+
+  @Test public void testMONDateFormatforOracle() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode oracleToDateCall = builder.call(SqlLibraryOperators.PARSE_DATETIME,
+        builder.literal("DDMON-YYYY"), builder.literal("23FEB-2021"));
+    RelNode root = builder
+        .project(oracleToDateCall)
+        .build();
+    final String expectedBQSql = "SELECT PARSE_DATETIME('%d%b-%Y', '23FEB-2021') AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
 }
