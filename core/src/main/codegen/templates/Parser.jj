@@ -4729,27 +4729,30 @@ SqlNode ArrayConstructor() :
         LOOKAHEAD(1)
         <LPAREN>
         (
-            (
-                args = ExpressionCommaList(s, ExprContext.ACCEPT_NON_QUERY)
-            |
-                { args = SqlNodeList.EMPTY; }
-            )
-            <RPAREN>
-            {
+            // by function call "array(e0, e1, ..., eN)" (Apache Spark)
+            args = ExpressionCommaList(s, ExprContext.ACCEPT_NON_QUERY) {
+                e = null;
+            }
+
+        |
+            // by sub query "ARRAY(SELECT * FROM T)"
+            e = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY) {
+                args = null;
+            }
+        )
+        <RPAREN>
+        {
+            if (e != null) {
+                return SqlStdOperatorTable.ARRAY_QUERY.createCall(s.end(this), e);
+
+            } else {
                 if (!this.conformance.allowArrayFunction()) {
                     throw SqlUtil.newContextException(getPos(), RESOURCE.arrayFunctionCallNotAllowed());
                 }
                 return SqlLibraryOperators.ARRAY.createCall(s.end(this), args.getList());
             }
-        |
-            // by sub query "MULTISET(SELECT * FROM T)"
-            e = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
-            <RPAREN>
-            {
-                return SqlStdOperatorTable.ARRAY_QUERY.createCall(
-                    s.end(this), e);
-            }
-        )
+        }
+        
     |
         // by enumeration "ARRAY[e0, e1, ..., eN]"
         <LBRACKET> // TODO: do trigraph as well ??( ??)
