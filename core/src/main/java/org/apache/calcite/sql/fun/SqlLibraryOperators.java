@@ -614,6 +614,16 @@ public abstract class SqlLibraryOperators {
         OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
         SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction ORACLE_ADD_MONTHS =
+      new SqlFunction(
+          "ADD_MONTHS",
+          SqlKind.PLUS,
+          ReturnTypes.ARG0_NULLABLE,
+          null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.TIMEDATE);
+
   /** The "DAYNAME(datetime)" function; returns the name of the day of the week,
    * in the current locale, of a TIMESTAMP or DATE argument. */
   @LibraryOperator(libraries = {MYSQL})
