@@ -494,7 +494,9 @@ public class RelJson {
     }
     return list;
   }
-    private <C extends Comparable<C>> Object toJson(Range<C> range){
+  /** Serializes a {@link Range} that can be deserialized using
+   * {@link org.apache.calcite.util.RangeSets#rangeFromJson(Object)} */
+  private <C extends Comparable<C>> Object toJson(Range<C> range){
       return Arrays.asList(
           range.lowerBoundType() == BoundType.OPEN ? "(": "[",
           range.lowerEndpoint(),

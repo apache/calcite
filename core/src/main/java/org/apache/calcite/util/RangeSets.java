@@ -286,9 +286,13 @@ public class RangeSets {
     }
     return builder.addAll(rangeList).build();
   }
+  /** Creates a {@link Range} from the string representation of a {@link Range}
+   * serialized using {@link org.apache.calcite.rel.externalize.RelJson#toJson(Range)} */
   private static <C extends Comparable<C>> Range<C> rangeFromJson(Object rangeJson) {
     List list = (List) rangeJson;
-    if (list.size() != 4) throw new IllegalArgumentException();
+    if (list.size() != 4) {
+      throw new IllegalArgumentException("Serialized Range object should be an ArrayList with 4 entries.");
+    }
     BoundType lowerType = list.get(0).equals("(") ? BoundType.OPEN : BoundType.CLOSED;
     Object lower = list.get(1);
     Object upper = list.get(2);
