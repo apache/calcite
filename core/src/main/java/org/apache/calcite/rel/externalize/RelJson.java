@@ -68,9 +68,7 @@ import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.Util;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -82,6 +80,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -485,20 +484,23 @@ public class RelJson {
   }
 
   private <C extends Comparable<C>> Object toJson(RangeSet<C> rangeSet) {
-    final List<@Nullable Object> list = jsonBuilder().list();
+    final List<Object> list = jsonBuilder().list();
     try {
-      for (Range<C> o : rangeSet.asRanges()) {
-        ObjectMapper mapper = new ObjectMapper()
-            .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
-            .registerModule(new GuavaModule());
-        String jsonString = mapper.writeValueAsString(o);
-        list.add(jsonString);
+      for (Range<C> range : rangeSet.asRanges()) {
+        list.add(toJson(range));
       }
     } catch (Exception e){
       throw new RuntimeException("Failed to serialize RangeSet: ", e);
     }
     return list;
   }
+    private <C extends Comparable<C>> Object toJson(Range<C> range){
+      return Arrays.asList(
+          range.lowerBoundType() == BoundType.OPEN ? "(": "[",
+          range.lowerEndpoint(),
+          range.upperEndpoint(),
+          range.upperBoundType() == BoundType.OPEN ? ")" : "]");
+    }
 
   private Object toJson(RelDataType node) {
     final Map<String, @Nullable Object> map = jsonBuilder().map();
