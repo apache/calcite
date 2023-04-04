@@ -92,8 +92,8 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.ANTE_MERIDIAN_INDICATOR_W
 import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFMONTH;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFYEAR;
-import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMMYY;
-import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMMYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMONYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMONYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMON;
@@ -249,8 +249,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(DDMON, "%d%b");
         put(MONYY, "%b%y");
         put(MONYYYY, "%b%Y");
-        put(DDMMMYYYY, "%d%b%Y");
-        put(DDMMMYY, "%d%b%y");
+        put(DDMONYYYY, "%d%b%Y");
+        put(DDMONYY, "%d%b%y");
         put(DAYOFWEEK, "%A");
         put(ABBREVIATEDDAYOFWEEK, "%a");
         put(TWENTYFOURHOUR, "%H");
