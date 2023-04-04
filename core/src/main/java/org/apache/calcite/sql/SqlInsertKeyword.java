@@ -22,5 +22,7 @@ package org.apache.calcite.sql;
  * <p>Standard SQL has no such keywords, but extension projects may define them.
  */
 public enum SqlInsertKeyword implements Symbolizable {
-  UPSERT
+  UPSERT,
+  OVERWRITE;
+
 }

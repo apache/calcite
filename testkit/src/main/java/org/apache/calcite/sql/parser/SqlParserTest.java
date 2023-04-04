@@ -4387,6 +4387,14 @@ public class SqlParserTest {
         .ok(expected);
   }
 
+  @Test void testInsertOverwrite() {
+    final String expected = "INSERT OVERWRITE INTO `EMPS`\n"
+        + "VALUES (ROW(1, 'Fredkin'))";
+    sql("insert overwrite into emps values (1,'Fredkin')")
+        .ok(expected)
+        .node(not(isDdl()));
+  }
+
   @Test void testExplainInsert() {
     final String expected = "EXPLAIN PLAN INCLUDING ATTRIBUTES"
         + " WITH IMPLEMENTATION FOR\n"

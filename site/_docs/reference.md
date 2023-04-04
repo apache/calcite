@@ -116,219 +116,219 @@ form.
 
 {% highlight sql %}
 statement:
-      setStatement
-  |   resetStatement
-  |   explain
-  |   describe
-  |   insert
-  |   update
-  |   merge
-  |   delete
-  |   query
+setStatement
+|   resetStatement
+|   explain
+|   describe
+|   insert
+|   update
+|   merge
+|   delete
+|   query
 
 statementList:
-      statement [ ';' statement ]* [ ';' ]
+statement [ ';' statement ]* [ ';' ]
 
 setStatement:
-      [ ALTER { SYSTEM | SESSION } ] SET identifier '=' expression
+[ ALTER { SYSTEM | SESSION } ] SET identifier '=' expression
 
 resetStatement:
-      [ ALTER { SYSTEM | SESSION } ] RESET identifier
-  |   [ ALTER { SYSTEM | SESSION } ] RESET ALL
+[ ALTER { SYSTEM | SESSION } ] RESET identifier
+|   [ ALTER { SYSTEM | SESSION } ] RESET ALL
 
 explain:
-      EXPLAIN PLAN
-      [ WITH TYPE | WITH IMPLEMENTATION | WITHOUT IMPLEMENTATION ]
-      [ EXCLUDING ATTRIBUTES | INCLUDING [ ALL ] ATTRIBUTES ]
-      [ AS JSON | AS XML | AS DOT ]
-      FOR { query | insert | update | merge | delete }
+EXPLAIN PLAN
+[ WITH TYPE | WITH IMPLEMENTATION | WITHOUT IMPLEMENTATION ]
+[ EXCLUDING ATTRIBUTES | INCLUDING [ ALL ] ATTRIBUTES ]
+[ AS JSON | AS XML | AS DOT ]
+FOR { query | insert | update | merge | delete }
 
 describe:
-      DESCRIBE DATABASE databaseName
-  |   DESCRIBE CATALOG [ databaseName . ] catalogName
-  |   DESCRIBE SCHEMA [ [ databaseName . ] catalogName ] . schemaName
-  |   DESCRIBE [ TABLE ] [ [ [ databaseName . ] catalogName . ] schemaName . ] tableName [ columnName ]
-  |   DESCRIBE [ STATEMENT ] { query | insert | update | merge | delete }
+DESCRIBE DATABASE databaseName
+|   DESCRIBE CATALOG [ databaseName . ] catalogName
+|   DESCRIBE SCHEMA [ [ databaseName . ] catalogName ] . schemaName
+|   DESCRIBE [ TABLE ] [ [ [ databaseName . ] catalogName . ] schemaName . ] tableName [ columnName ]
+|   DESCRIBE [ STATEMENT ] { query | insert | update | merge | delete }
 
 insert:
-      { INSERT | UPSERT } INTO tablePrimary
-      [ '(' column [, column ]* ')' ]
-      query
+{ INSERT | UPSERT } INTO tablePrimary
+[ '(' column [, column ]* ')' ]
+query
 
 update:
-      UPDATE tablePrimary
-      SET assign [, assign ]*
-      [ WHERE booleanExpression ]
+UPDATE tablePrimary
+SET assign [, assign ]*
+[ WHERE booleanExpression ]
 
 assign:
-      identifier '=' expression
+identifier '=' expression
 
 merge:
-      MERGE INTO tablePrimary [ [ AS ] alias ]
-      USING tablePrimary
-      ON booleanExpression
-      [ WHEN MATCHED THEN UPDATE SET assign [, assign ]* ]
-      [ WHEN NOT MATCHED THEN INSERT VALUES '(' value [ , value ]* ')' ]
+MERGE INTO tablePrimary [ [ AS ] alias ]
+USING tablePrimary
+ON booleanExpression
+[ WHEN MATCHED THEN UPDATE SET assign [, assign ]* ]
+[ WHEN NOT MATCHED THEN INSERT VALUES '(' value [ , value ]* ')' ]
 
 delete:
-      DELETE FROM tablePrimary [ [ AS ] alias ]
-      [ WHERE booleanExpression ]
+DELETE FROM tablePrimary [ [ AS ] alias ]
+[ WHERE booleanExpression ]
 
 query:
-      values
-  |   WITH withItem [ , withItem ]* query
-  |   {
-          select
-      |   selectWithoutFrom
-      |   query UNION [ ALL | DISTINCT ] query
-      |   query EXCEPT [ ALL | DISTINCT ] query
-      |   query MINUS [ ALL | DISTINCT ] query
-      |   query INTERSECT [ ALL | DISTINCT ] query
-      }
-      [ ORDER BY orderItem [, orderItem ]* ]
-      [ LIMIT [ start, ] { count | ALL } ]
-      [ OFFSET start { ROW | ROWS } ]
-      [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]
+values
+|   WITH withItem [ , withItem ]* query
+|   {
+select
+|   selectWithoutFrom
+|   query UNION [ ALL | DISTINCT ] query
+|   query EXCEPT [ ALL | DISTINCT ] query
+|   query MINUS [ ALL | DISTINCT ] query
+|   query INTERSECT [ ALL | DISTINCT ] query
+}
+[ ORDER BY orderItem [, orderItem ]* ]
+[ LIMIT [ start, ] { count | ALL } ]
+[ OFFSET start { ROW | ROWS } ]
+[ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]
 
 withItem:
-      name
-      [ '(' column [, column ]* ')' ]
-      AS '(' query ')'
+name
+[ '(' column [, column ]* ')' ]
+AS '(' query ')'
 
 orderItem:
-      expression [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ]
+expression [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ]
 
 select:
-      SELECT [ hintComment ] [ STREAM ] [ ALL | DISTINCT ]
-          { * | projectItem [, projectItem ]* }
-      FROM tableExpression
-      [ WHERE booleanExpression ]
-      [ GROUP BY { groupItem [, groupItem ]* } ]
-      [ HAVING booleanExpression ]
-      [ QUALIFY booleanExpression ]
-      [ WINDOW windowName AS windowSpec [, windowName AS windowSpec ]* ]
+SELECT [ hintComment ] [ STREAM ] [ ALL | DISTINCT ]
+{ * | projectItem [, projectItem ]* }
+FROM tableExpression
+[ WHERE booleanExpression ]
+[ GROUP BY { groupItem [, groupItem ]* } ]
+[ HAVING booleanExpression ]
+[ QUALIFY booleanExpression ]
+[ WINDOW windowName AS windowSpec [, windowName AS windowSpec ]* ]
 
 selectWithoutFrom:
-      SELECT [ ALL | DISTINCT ]
-          { * | projectItem [, projectItem ]* }
+SELECT [ ALL | DISTINCT ]
+{ * | projectItem [, projectItem ]* }
 
 projectItem:
-      expression [ [ AS ] columnAlias ]
-  |   tableAlias . *
+expression [ [ AS ] columnAlias ]
+|   tableAlias . *
 
 tableExpression:
-      tableReference [, tableReference ]*
-  |   tableExpression [ NATURAL ] [ { LEFT | RIGHT | FULL } [ OUTER ] ] JOIN tableExpression [ joinCondition ]
-  |   tableExpression CROSS JOIN tableExpression
-  |   tableExpression [ CROSS | OUTER ] APPLY tableExpression
+tableReference [, tableReference ]*
+|   tableExpression [ NATURAL ] [ { LEFT | RIGHT | FULL } [ OUTER ] ] JOIN tableExpression [ joinCondition ]
+|   tableExpression CROSS JOIN tableExpression
+|   tableExpression [ CROSS | OUTER ] APPLY tableExpression
 
 joinCondition:
-      ON booleanExpression
-  |   USING '(' column [, column ]* ')'
+ON booleanExpression
+|   USING '(' column [, column ]* ')'
 
 tableReference:
-      tablePrimary
-      [ FOR SYSTEM_TIME AS OF expression ]
-      [ pivot ]
-      [ unpivot ]
-      [ matchRecognize ]
-      [ [ AS ] alias [ '(' columnAlias [, columnAlias ]* ')' ] ]
+tablePrimary
+[ FOR SYSTEM_TIME AS OF expression ]
+[ pivot ]
+[ unpivot ]
+[ matchRecognize ]
+[ [ AS ] alias [ '(' columnAlias [, columnAlias ]* ')' ] ]
 
 tablePrimary:
-      [ [ catalogName . ] schemaName . ] tableName
-      '(' TABLE [ [ catalogName . ] schemaName . ] tableName ')'
-  |   tablePrimary [ hintComment ] [ EXTEND ] '(' columnDecl [, columnDecl ]* ')'
-  |   [ LATERAL ] '(' query ')'
-  |   UNNEST '(' expression ')' [ WITH ORDINALITY ]
-  |   [ LATERAL ] TABLE '(' [ SPECIFIC ] functionName '(' expression [, expression ]* ')' ')'
+[ [ catalogName . ] schemaName . ] tableName
+'(' TABLE [ [ catalogName . ] schemaName . ] tableName ')'
+|   tablePrimary [ hintComment ] [ EXTEND ] '(' columnDecl [, columnDecl ]* ')'
+|   [ LATERAL ] '(' query ')'
+|   UNNEST '(' expression ')' [ WITH ORDINALITY ]
+|   [ LATERAL ] TABLE '(' [ SPECIFIC ] functionName '(' expression [, expression ]* ')' ')'
 
 columnDecl:
-      column type [ NOT NULL ]
+column type [ NOT NULL ]
 
 hint:
-      hintName
-  |   hintName '(' hintOptions ')'
+hintName
+|   hintName '(' hintOptions ')'
 
 hintOptions:
-      hintKVOption [, hintKVOption ]*
-  |   optionName [, optionName ]*
-  |   optionValue [, optionValue ]*
+hintKVOption [, hintKVOption ]*
+|   optionName [, optionName ]*
+|   optionValue [, optionValue ]*
 
 hintKVOption:
-      optionName '=' stringLiteral
-  |   stringLiteral '=' stringLiteral
+optionName '=' stringLiteral
+|   stringLiteral '=' stringLiteral
 
 optionValue:
-      stringLiteral
-  |   numericLiteral
+stringLiteral
+|   numericLiteral
 
 columnOrList:
-      column
-  |   '(' column [, column ]* ')'
+column
+|   '(' column [, column ]* ')'
 
 exprOrList:
-      expr
-  |   '(' expr [, expr ]* ')'
+expr
+|   '(' expr [, expr ]* ')'
 
 pivot:
-      PIVOT '('
-      pivotAgg [, pivotAgg ]*
-      FOR pivotList
-      IN '(' pivotExpr [, pivotExpr ]* ')'
-      ')'
+PIVOT '('
+pivotAgg [, pivotAgg ]*
+FOR pivotList
+IN '(' pivotExpr [, pivotExpr ]* ')'
+')'
 
 pivotAgg:
-      agg '(' [ ALL | DISTINCT ] value [, value ]* ')'
-      [ [ AS ] alias ]
+agg '(' [ ALL | DISTINCT ] value [, value ]* ')'
+[ [ AS ] alias ]
 
 pivotList:
-      columnOrList
+columnOrList
 
 pivotExpr:
-      exprOrList [ [ AS ] alias ]
+exprOrList [ [ AS ] alias ]
 
 unpivot:
-      UNPIVOT [ INCLUDING NULLS | EXCLUDING NULLS ] '('
-      unpivotMeasureList
-      FOR unpivotAxisList
-      IN '(' unpivotValue [, unpivotValue ]* ')'
-      ')'
+UNPIVOT [ INCLUDING NULLS | EXCLUDING NULLS ] '('
+unpivotMeasureList
+FOR unpivotAxisList
+IN '(' unpivotValue [, unpivotValue ]* ')'
+')'
 
 unpivotMeasureList:
-      columnOrList
+columnOrList
 
 unpivotAxisList:
-      columnOrList
+columnOrList
 
 unpivotValue:
-      column [ AS literal ]
-  |   '(' column [, column ]* ')' [ AS '(' literal [, literal ]* ')' ]
+column [ AS literal ]
+|   '(' column [, column ]* ')' [ AS '(' literal [, literal ]* ')' ]
 
 values:
-      VALUES expression [, expression ]*
+VALUES expression [, expression ]*
 
 groupItem:
-      expression
-  |   '(' ')'
-  |   '(' expression [, expression ]* ')'
-  |   CUBE '(' expression [, expression ]* ')'
-  |   ROLLUP '(' expression [, expression ]* ')'
-  |   GROUPING SETS '(' groupItem [, groupItem ]* ')'
+expression
+|   '(' ')'
+|   '(' expression [, expression ]* ')'
+|   CUBE '(' expression [, expression ]* ')'
+|   ROLLUP '(' expression [, expression ]* ')'
+|   GROUPING SETS '(' groupItem [, groupItem ]* ')'
 
 window:
-      windowName
-  |   windowSpec
+windowName
+|   windowSpec
 
 windowSpec:
-      '('
-      [ windowName ]
-      [ ORDER BY orderItem [, orderItem ]* ]
-      [ PARTITION BY expression [, expression ]* ]
-      [
-          RANGE numericOrIntervalExpression { PRECEDING | FOLLOWING }
-      |   ROWS numericExpression { PRECEDING | FOLLOWING }
-      ]
-      ')'
+'('
+[ windowName ]
+[ ORDER BY orderItem [, orderItem ]* ]
+[ PARTITION BY expression [, expression ]* ]
+[
+RANGE numericOrIntervalExpression { PRECEDING | FOLLOWING }
+|   ROWS numericExpression { PRECEDING | FOLLOWING }
+]
+')'
 {% endhighlight %}
 
 In *insert*, if the INSERT or UPSERT statement does not specify a
@@ -783,6 +783,7 @@ OUTPUT,
 **OVERLAPS**,
 **OVERLAY**,
 OVERRIDING,
+OVERWRITE,
 PAD,
 **PARAMETER**,
 PARAMETER_MODE,
@@ -1138,7 +1139,7 @@ Where:
 
 {% highlight sql %}
 timeUnit:
-  MILLENNIUM | CENTURY | DECADE | YEAR | QUARTER | MONTH | WEEK | DOY | DOW | DAY | HOUR | MINUTE | SECOND | EPOCH
+MILLENNIUM | CENTURY | DECADE | YEAR | QUARTER | MONTH | WEEK | DOY | DOW | DAY | HOUR | MINUTE | SECOND | EPOCH
 {% endhighlight %}
 
 Note:
@@ -1256,13 +1257,13 @@ completeness.
 
 {% highlight sql %}
 comp:
-      =
-  |   <>
-  |   >
-  |   >=
-  |   <
-  |   <=
-  |   <=>
+=
+|   <>
+|   >
+|   >=
+|   <
+|   <=
+|   <=>
 {% endhighlight %}
 
 ### Logical operators
@@ -1437,73 +1438,73 @@ Supported data types syntax:
 
 {% highlight sql %}
 type:
-      typeName
-      [ collectionsTypeName ]*
+typeName
+[ collectionsTypeName ]*
 
 typeName:
-      sqlTypeName
-  |   rowTypeName
-  |   compoundIdentifier
+sqlTypeName
+|   rowTypeName
+|   compoundIdentifier
 
 sqlTypeName:
-      char [ precision ] [ charSet ]
-  |   varchar [ precision ] [ charSet ]
-  |   DATE
-  |   time
-  |   timestamp
-  |   GEOMETRY
-  |   decimal [ precision [, scale] ]
-  |   BOOLEAN
-  |   integer
-  |   BINARY [ precision ]
-  |   varbinary [ precision ]
-  |   TINYINT
-  |   SMALLINT
-  |   BIGINT
-  |   REAL
-  |   double
-  |   FLOAT
-  |   ANY [ precision [, scale] ]
+char [ precision ] [ charSet ]
+|   varchar [ precision ] [ charSet ]
+|   DATE
+|   time
+|   timestamp
+|   GEOMETRY
+|   decimal [ precision [, scale] ]
+|   BOOLEAN
+|   integer
+|   BINARY [ precision ]
+|   varbinary [ precision ]
+|   TINYINT
+|   SMALLINT
+|   BIGINT
+|   REAL
+|   double
+|   FLOAT
+|   ANY [ precision [, scale] ]
 
 collectionsTypeName:
-      ARRAY | MULTISET
+ARRAY | MULTISET
 
 rowTypeName:
-      ROW '('
-      fieldName1 fieldType1 [ NULL | NOT NULL ]
-      [ , fieldName2 fieldType2 [ NULL | NOT NULL ] ]*
-      ')'
+ROW '('
+fieldName1 fieldType1 [ NULL | NOT NULL ]
+[ , fieldName2 fieldType2 [ NULL | NOT NULL ] ]*
+')'
 
 char:
-      CHARACTER | CHAR
+CHARACTER | CHAR
 
 varchar:
-      char VARYING | VARCHAR
+char VARYING | VARCHAR
 
 decimal:
-      DECIMAL | DEC | NUMERIC
+DECIMAL | DEC | NUMERIC
 
 integer:
-      INTEGER | INT
+INTEGER | INT
 
 varbinary:
-      BINARY VARYING | VARBINARY
+BINARY VARYING | VARBINARY
 
 double:
-      DOUBLE [ PRECISION ]
+DOUBLE [ PRECISION ]
 
 time:
-      TIME [ precision ] [ timeZone ]
+TIME [ precision ] [ timeZone ]
 
 timestamp:
-      TIMESTAMP [ precision ] [ timeZone ]
+TIMESTAMP [ precision ] [ timeZone ]
 
 charSet:
-      CHARACTER SET charSetName
+CHARACTER SET charSetName
 
 timeZone:
-      WITHOUT TIME ZONE
-  |   WITH LOCAL TIME ZONE
+WITHOUT TIME ZONE
+|   WITH LOCAL TIME ZONE
 {% endhighlight %}
 
 #### Implicit Type Conversion
@@ -1707,10 +1708,10 @@ Where *period1* and *period2* are period expressions:
 
 {% highlight sql %}
 period:
-      (datetime, datetime)
-  |   (datetime, interval)
-  |   PERIOD (datetime, datetime)
-  |   PERIOD (datetime, interval)
+(datetime, datetime)
+|   (datetime, interval)
+|   PERIOD (datetime, datetime)
+|   PERIOD (datetime, interval)
 {% endhighlight %}
 
 ### JDBC function escape
@@ -1809,11 +1810,11 @@ Syntax:
 
 {% highlight sql %}
 aggregateCall:
-      agg '(' [ ALL | DISTINCT ] value [, value ]* ')'
-      [ WITHIN DISTINCT '(' expression [, expression ]* ')' ]
-      [ WITHIN GROUP '(' ORDER BY orderItem [, orderItem ]* ')' ]
-      [ FILTER '(' WHERE condition ')' ]
-  |   agg '(' '*' ')' [ FILTER (WHERE condition) ]
+agg '(' [ ALL | DISTINCT ] value [, value ]* ')'
+[ WITHIN DISTINCT '(' expression [, expression ]* ')' ]
+[ WITHIN GROUP '(' ORDER BY orderItem [, orderItem ]* ')' ]
+[ FILTER '(' WHERE condition ')' ]
+|   agg '(' '*' ')' [ FILTER (WHERE condition) ]
 {% endhighlight %}
 
 where *agg* is one of the operators in the following table, or a user-defined
@@ -1896,14 +1897,14 @@ Syntax:
 
 {% highlight sql %}
 windowedAggregateCall:
-      agg '(' [ ALL | DISTINCT ] value [, value ]* ')'
-      [ RESPECT NULLS | IGNORE NULLS ]
-      [ WITHIN GROUP '(' ORDER BY orderItem [, orderItem ]* ')' ]
-      [ FILTER '(' WHERE condition ')' ]
-      OVER window
-  |   agg '(' '*' ')'
-      [ FILTER  '(' WHERE condition ')' ]
-      OVER window
+agg '(' [ ALL | DISTINCT ] value [, value ]* ')'
+[ RESPECT NULLS | IGNORE NULLS ]
+[ WITHIN GROUP '(' ORDER BY orderItem [, orderItem ]* ')' ]
+[ FILTER '(' WHERE condition ')' ]
+OVER window
+|   agg '(' '*' ')'
+[ FILTER  '(' WHERE condition ')' ]
+OVER window
 {% endhighlight %}
 
 where *agg* is one of the operators in the following table, or a user-defined
@@ -1977,18 +1978,18 @@ Here is an example:
 
 {% highlight sql %}
 SELECT * FROM TABLE(
-  TUMBLE(
-    TABLE orders,
-    DESCRIPTOR(rowtime),
-    INTERVAL '1' MINUTE));
+TUMBLE(
+TABLE orders,
+DESCRIPTOR(rowtime),
+INTERVAL '1' MINUTE));
 
 -- or with the named params
 -- note: the DATA param must be the first
 SELECT * FROM TABLE(
-  TUMBLE(
-    DATA => TABLE orders,
-    TIMECOL => DESCRIPTOR(rowtime),
-    SIZE => INTERVAL '1' MINUTE));
+TUMBLE(
+DATA => TABLE orders,
+TIMECOL => DESCRIPTOR(rowtime),
+SIZE => INTERVAL '1' MINUTE));
 {% endhighlight %}
 
 applies a tumbling window with a one minute range to rows from the `orders`
@@ -2009,20 +2010,20 @@ Here is an example:
 
 {% highlight sql %}
 SELECT * FROM TABLE(
-  HOP(
-    TABLE orders,
-    DESCRIPTOR(rowtime),
-    INTERVAL '2' MINUTE,
-    INTERVAL '5' MINUTE));
+HOP(
+TABLE orders,
+DESCRIPTOR(rowtime),
+INTERVAL '2' MINUTE,
+INTERVAL '5' MINUTE));
 
 -- or with the named params
 -- note: the DATA param must be the first
 SELECT * FROM TABLE(
-  HOP(
-    DATA => TABLE orders,
-    TIMECOL => DESCRIPTOR(rowtime),
-    SLIDE => INTERVAL '2' MINUTE,
-    SIZE => INTERVAL '5' MINUTE));
+HOP(
+DATA => TABLE orders,
+TIMECOL => DESCRIPTOR(rowtime),
+SLIDE => INTERVAL '2' MINUTE,
+SIZE => INTERVAL '5' MINUTE));
 {% endhighlight %}
 
 applies hopping with 5-minute interval size on rows from table `orders`
@@ -2043,20 +2044,20 @@ Here is an example:
 
 {% highlight sql %}
 SELECT * FROM TABLE(
-  SESSION(
-    TABLE orders,
-    DESCRIPTOR(rowtime),
-    DESCRIPTOR(product),
-    INTERVAL '20' MINUTE));
+SESSION(
+TABLE orders,
+DESCRIPTOR(rowtime),
+DESCRIPTOR(product),
+INTERVAL '20' MINUTE));
 
 -- or with the named params
 -- note: the DATA param must be the first
 SELECT * FROM TABLE(
-  SESSION(
-    DATA => TABLE orders,
-    TIMECOL => DESCRIPTOR(rowtime),
-    KEY => DESCRIPTOR(product),
-    SIZE => INTERVAL '20' MINUTE));
+SESSION(
+DATA => TABLE orders,
+TIMECOL => DESCRIPTOR(rowtime),
+KEY => DESCRIPTOR(product),
+SIZE => INTERVAL '20' MINUTE));
 {% endhighlight %}
 
 applies a session with 20-minute inactive gap on rows from table `orders`.
@@ -2077,7 +2078,7 @@ that represents a window containing several rows.
 In some window functions, a row may belong to more than one window.
 For example, if a query is grouped using
 `HOP(t, INTERVAL '2' HOUR, INTERVAL '1' HOUR)`, a row with timestamp '10:15:00'
- will occur in both the 10:00 - 11:00 and 11:00 - 12:00 totals.
+will occur in both the 10:00 - 11:00 and 11:00 - 12:00 totals.
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
@@ -2465,15 +2466,15 @@ Not implemented:
 
 {% highlight sql %}
 jsonKeyVal:
-      [ KEY ] name VALUE value [ FORMAT JSON ]
-  |   name : value [ FORMAT JSON ]
+[ KEY ] name VALUE value [ FORMAT JSON ]
+|   name : value [ FORMAT JSON ]
 
 jsonVal:
-      value [ FORMAT JSON ]
+value [ FORMAT JSON ]
 
 nullBehavior:
-      NULL ON NULL
-  |   ABSENT ON NULL
+NULL ON NULL
+|   ABSENT ON NULL
 {% endhighlight %}
 
 Note:
@@ -2594,23 +2595,23 @@ Note:
 * `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` / `JSON_STORAGE_SIZE` return null if the argument is null
 * `JSON_LENGTH` / `JSON_KEYS` / `JSON_REMOVE` return null if the first argument is null
 * `JSON_TYPE` generally returns an upper-case string flag indicating the type of the JSON input. Currently supported supported type flags are:
-  * INTEGER
-  * STRING
-  * FLOAT
-  * DOUBLE
-  * LONG
-  * BOOLEAN
-  * DATE
-  * OBJECT
-  * ARRAY
-  * NULL
+    * INTEGER
+    * STRING
+    * FLOAT
+    * DOUBLE
+    * LONG
+    * BOOLEAN
+    * DATE
+    * OBJECT
+    * ARRAY
+    * NULL
 * `JSON_DEPTH` defines a JSON value's depth as follows:
-  * An empty array, empty object, or scalar value has depth 1;
-  * A non-empty array containing only elements of depth 1 or non-empty object containing only member values of depth 1 has depth 2;
-  * Otherwise, a JSON document has depth greater than 2.
+    * An empty array, empty object, or scalar value has depth 1;
+    * A non-empty array containing only elements of depth 1 or non-empty object containing only member values of depth 1 has depth 2;
+    * Otherwise, a JSON document has depth greater than 2.
 * `JSON_LENGTH` defines a JSON value's length as follows:
-  * A scalar value has length 1;
-  * The length of array or object is the number of elements is contains.
+    * A scalar value has length 1;
+    * The length of array or object is the number of elements is contains.
 
 Dialect-specific aggregate functions.
 
@@ -2634,9 +2635,9 @@ SQL
 
 {% highlight sql %}
 SELECT JSON_TYPE(v) AS c1,
-  JSON_TYPE(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2,
-  JSON_TYPE(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3,
-  JSON_TYPE(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
+JSON_TYPE(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2,
+JSON_TYPE(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3,
+JSON_TYPE(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
 FROM (VALUES ('{"a": [10, true],"b": "[10, true]"}')) AS t(v)
 LIMIT 10;
 {% endhighlight %}
@@ -2653,9 +2654,9 @@ SQL
 
 {% highlight sql %}
 SELECT JSON_DEPTH(v) AS c1,
-  JSON_DEPTH(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2,
-  JSON_DEPTH(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3,
-  JSON_DEPTH(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
+JSON_DEPTH(JSON_VALUE(v, 'lax $.b' ERROR ON ERROR)) AS c2,
+JSON_DEPTH(JSON_VALUE(v, 'strict $.a[0]' ERROR ON ERROR)) AS c3,
+JSON_DEPTH(JSON_VALUE(v, 'strict $.a[1]' ERROR ON ERROR)) AS c4
 FROM (VALUES ('{"a": [10, true],"b": "[10, true]"}')) AS t(v)
 LIMIT 10;
 {% endhighlight %}
@@ -2672,9 +2673,9 @@ SQL
 
 {% highlight sql %}
 SELECT JSON_LENGTH(v) AS c1,
-  JSON_LENGTH(v, 'lax $.a') AS c2,
-  JSON_LENGTH(v, 'strict $.a[0]') AS c3,
-  JSON_LENGTH(v, 'strict $.a[1]') AS c4
+JSON_LENGTH(v, 'lax $.a') AS c2,
+JSON_LENGTH(v, 'strict $.a[0]') AS c3,
+JSON_LENGTH(v, 'strict $.a[1]') AS c4
 FROM (VALUES ('{"a": [10, true]}')) AS t(v)
 LIMIT 10;
 {% endhighlight %}
@@ -2691,15 +2692,15 @@ SQL
 
 {% highlight sql %}
 SELECT JSON_KEYS(v) AS c1,
-  JSON_KEYS(v, 'lax $.a') AS c2,
-  JSON_KEYS(v, 'lax $.b') AS c2,
-  JSON_KEYS(v, 'strict $.a[0]') AS c3,
-  JSON_KEYS(v, 'strict $.a[1]') AS c4
+JSON_KEYS(v, 'lax $.a') AS c2,
+JSON_KEYS(v, 'lax $.b') AS c2,
+JSON_KEYS(v, 'strict $.a[0]') AS c3,
+JSON_KEYS(v, 'strict $.a[1]') AS c4
 FROM (VALUES ('{"a": [10, true],"b": {"c": 30}}')) AS t(v)
 LIMIT 10;
 {% endhighlight %}
 
- Result
+Result
 
 | c1         | c2   | c3    | c4   | c5   |
 |:----------:|:----:|:-----:|:----:|:----:|
@@ -2715,7 +2716,7 @@ FROM (VALUES ('["a", ["b", "c"], "d"]')) AS t(v)
 LIMIT 10;
 {% endhighlight %}
 
- Result
+Result
 
 | c1         |
 |:----------:|
@@ -2735,7 +2736,7 @@ JSON_STORAGE_SIZE('[100, \"json\", [[10, 20, 30], 3, 5], 425.05]') AS c4
 limit 10;
 {% endhighlight %}
 
- Result
+Result
 
 | c1 | c2 | c3 | c4 |
 |:--:|:---:|:---:|:--:|
@@ -2748,14 +2749,14 @@ SQL
 
 {% highlight sql %}
 SELECT DECODE(f1, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c1,
-  DECODE(f2, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c2,
-  DECODE(f3, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c3,
-  DECODE(f4, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c4,
-  DECODE(f5, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c5
+DECODE(f2, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c2,
+DECODE(f3, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c3,
+DECODE(f4, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c4,
+DECODE(f5, 1, 'aa', 2, 'bb', 3, 'cc', 4, 'dd', 'ee') as c5
 FROM (VALUES (1, 2, 3, 4, 5)) AS t(f1, f2, f3, f4, f5);
 {% endhighlight %}
 
- Result
+Result
 
 | c1          | c2          | c3          | c4          | c5          |
 |:-----------:|:-----------:|:-----------:|:-----------:|:-----------:|
@@ -2767,9 +2768,9 @@ SQL
 
 {% highlight sql %}
 SELECT TRANSLATE('Aa*Bb*Cc''D*d', ' */''%', '_') as c1,
-  TRANSLATE('Aa/Bb/Cc''D/d', ' */''%', '_') as c2,
-  TRANSLATE('Aa Bb Cc''D d', ' */''%', '_') as c3,
-  TRANSLATE('Aa%Bb%Cc''D%d', ' */''%', '_') as c4
+TRANSLATE('Aa/Bb/Cc''D/d', ' */''%', '_') as c2,
+TRANSLATE('Aa Bb Cc''D d', ' */''%', '_') as c3,
+TRANSLATE('Aa%Bb%Cc''D%d', ' */''%', '_') as c4
 FROM (VALUES (true)) AS t(f0);
 {% endhighlight %}
 
@@ -2867,11 +2868,11 @@ Suppose you have a function `f`, declared as in the following pseudo syntax:
 
 {% highlight sql %}
 FUNCTION f(
-  INTEGER a,
-  INTEGER b DEFAULT NULL,
-  INTEGER c,
-  INTEGER d DEFAULT NULL,
-  INTEGER e DEFAULT NULL) RETURNS INTEGER
+INTEGER a,
+INTEGER b DEFAULT NULL,
+INTEGER c,
+INTEGER d DEFAULT NULL,
+INTEGER e DEFAULT NULL) RETURNS INTEGER
 {% endhighlight %}
 
 All of the function's parameters have names, and parameters `b`, `d` and `e`
@@ -2910,15 +2911,15 @@ A hint is an instruction to the optimizer. When writing SQL, you may know inform
 the data unknown to the optimizer. Hints enable you to make decisions normally made by the optimizer.
 
 * Planner enforcers: there's no perfect planner, so it makes sense to implement hints to
-allow user better control the execution. For instance: "never merge this subquery with others" (`/*+ no_merge */`);
-“treat those tables as leading ones" (`/*+ leading */`) to affect join ordering, etc;
+  allow user better control the execution. For instance: "never merge this subquery with others" (`/*+ no_merge */`);
+  “treat those tables as leading ones" (`/*+ leading */`) to affect join ordering, etc;
 * Append meta data/statistics: some statistics like “table index for scan” or “skew info of some shuffle keys”
-are somehow dynamic for the query, it would be very convenient to config them with hints because
-our planning metadata from the planner is very often not very accurate;
+  are somehow dynamic for the query, it would be very convenient to config them with hints because
+  our planning metadata from the planner is very often not very accurate;
 * Operator resource constraints: for many cases, we would give a default resource configuration
-for the execution operators,
-i.e. min parallelism, memory (resource consuming UDF), special resource requirement (GPU or SSD disk) ...
-It would be very flexible to profile the resource with hints per query (not the Job).
+  for the execution operators,
+  i.e. min parallelism, memory (resource consuming UDF), special resource requirement (GPU or SSD disk) ...
+  It would be very flexible to profile the resource with hints per query (not the Job).
 
 #### Syntax
 
@@ -2932,9 +2933,9 @@ For example:
 SELECT /*+ hint1, hint2(a=1, b=2) */
 ...
 FROM
-  tableName /*+ hint3(5, 'x') */
+tableName /*+ hint3(5, 'x') */
 JOIN
-  tableName /*+ hint4(c=id), hint5 */
+tableName /*+ hint4(c=id), hint5 */
 ...
 {% endhighlight %}
 
@@ -2942,24 +2943,24 @@ The syntax is as follows:
 
 {% highlight sql %}
 hintComment:
-      '/*+' hint [, hint ]* '*/'
+'/*+' hint [, hint ]* '*/'
 
 hint:
-      hintName
-  |   hintName '(' optionKey '=' optionVal [, optionKey '=' optionVal ]* ')'
-  |   hintName '(' hintOption [, hintOption ]* ')'
+hintName
+|   hintName '(' optionKey '=' optionVal [, optionKey '=' optionVal ]* ')'
+|   hintName '(' hintOption [, hintOption ]* ')'
 
 optionKey:
-      simpleIdentifier
-  |   stringLiteral
+simpleIdentifier
+|   stringLiteral
 
 optionVal:
-      stringLiteral
+stringLiteral
 
 hintOption:
-      simpleIdentifier
-   |  numericLiteral
-   |  stringLiteral
+simpleIdentifier
+|  numericLiteral
+|  stringLiteral
 {% endhighlight %}
 
 It is experimental in Calcite, and yet not fully implemented, what we have implemented are:
@@ -2981,60 +2982,60 @@ It is experimental in Calcite, and yet not fully implemented.
 
 {% highlight sql %}
 matchRecognize:
-      MATCH_RECOGNIZE '('
-      [ PARTITION BY expression [, expression ]* ]
-      [ ORDER BY orderItem [, orderItem ]* ]
-      [ MEASURES measureColumn [, measureColumn ]* ]
-      [ ONE ROW PER MATCH | ALL ROWS PER MATCH ]
-      [ AFTER MATCH skip ]
-      PATTERN '(' pattern ')'
-      [ WITHIN intervalLiteral ]
-      [ SUBSET subsetItem [, subsetItem ]* ]
-      DEFINE variable AS condition [, variable AS condition ]*
-      ')'
+MATCH_RECOGNIZE '('
+[ PARTITION BY expression [, expression ]* ]
+[ ORDER BY orderItem [, orderItem ]* ]
+[ MEASURES measureColumn [, measureColumn ]* ]
+[ ONE ROW PER MATCH | ALL ROWS PER MATCH ]
+[ AFTER MATCH skip ]
+PATTERN '(' pattern ')'
+[ WITHIN intervalLiteral ]
+[ SUBSET subsetItem [, subsetItem ]* ]
+DEFINE variable AS condition [, variable AS condition ]*
+')'
 
 skip:
-      SKIP TO NEXT ROW
-  |   SKIP PAST LAST ROW
-  |   SKIP TO FIRST variable
-  |   SKIP TO LAST variable
-  |   SKIP TO variable
+SKIP TO NEXT ROW
+|   SKIP PAST LAST ROW
+|   SKIP TO FIRST variable
+|   SKIP TO LAST variable
+|   SKIP TO variable
 
 subsetItem:
-      variable = '(' variable [, variable ]* ')'
+variable = '(' variable [, variable ]* ')'
 
 measureColumn:
-      expression AS alias
+expression AS alias
 
 pattern:
-      patternTerm [ '|' patternTerm ]*
+patternTerm [ '|' patternTerm ]*
 
 patternTerm:
-      patternFactor [ patternFactor ]*
+patternFactor [ patternFactor ]*
 
 patternFactor:
-      patternPrimary [ patternQuantifier ]
+patternPrimary [ patternQuantifier ]
 
 patternPrimary:
-      variable
-  |   '$'
-  |   '^'
-  |   '(' [ pattern ] ')'
-  |   '{-' pattern '-}'
-  |   PERMUTE '(' pattern [, pattern ]* ')'
+variable
+|   '$'
+|   '^'
+|   '(' [ pattern ] ')'
+|   '{-' pattern '-}'
+|   PERMUTE '(' pattern [, pattern ]* ')'
 
 patternQuantifier:
-      '*'
-  |   '*?'
-  |   '+'
-  |   '+?'
-  |   '?'
-  |   '??'
-  |   '{' { [ minRepeat ], [ maxRepeat ] } '}' ['?']
-  |   '{' repeat '}'
+'*'
+|   '*?'
+|   '+'
+|   '+?'
+|   '?'
+|   '??'
+|   '{' { [ minRepeat ], [ maxRepeat ] } '}' ['?']
+|   '{' repeat '}'
 
 intervalLiteral:
-      INTERVAL 'string' timeUnit [ TO timeUnit ]
+INTERVAL 'string' timeUnit [ TO timeUnit ]
 {% endhighlight %}
 
 In *patternQuantifier*, *repeat* is a positive integer,
@@ -3050,113 +3051,113 @@ to the JDBC connect string (see connect string property
 
 {% highlight sql %}
 ddlStatement:
-      createSchemaStatement
-  |   createForeignSchemaStatement
-  |   createTableStatement
-  |   createViewStatement
-  |   createMaterializedViewStatement
-  |   createTypeStatement
-  |   createFunctionStatement
-  |   dropSchemaStatement
-  |   dropForeignSchemaStatement
-  |   dropTableStatement
-  |   dropViewStatement
-  |   dropMaterializedViewStatement
-  |   dropTypeStatement
-  |   dropFunctionStatement
+createSchemaStatement
+|   createForeignSchemaStatement
+|   createTableStatement
+|   createViewStatement
+|   createMaterializedViewStatement
+|   createTypeStatement
+|   createFunctionStatement
+|   dropSchemaStatement
+|   dropForeignSchemaStatement
+|   dropTableStatement
+|   dropViewStatement
+|   dropMaterializedViewStatement
+|   dropTypeStatement
+|   dropFunctionStatement
 
 createSchemaStatement:
-      CREATE [ OR REPLACE ] SCHEMA [ IF NOT EXISTS ] name
+CREATE [ OR REPLACE ] SCHEMA [ IF NOT EXISTS ] name
 
 createForeignSchemaStatement:
-      CREATE [ OR REPLACE ] FOREIGN SCHEMA [ IF NOT EXISTS ] name
-      (
-          TYPE 'type'
-      |   LIBRARY 'com.example.calcite.ExampleSchemaFactory'
-      )
-      [ OPTIONS '(' option [, option ]* ')' ]
+CREATE [ OR REPLACE ] FOREIGN SCHEMA [ IF NOT EXISTS ] name
+(
+TYPE 'type'
+|   LIBRARY 'com.example.calcite.ExampleSchemaFactory'
+)
+[ OPTIONS '(' option [, option ]* ')' ]
 
 option:
-      name literal
+name literal
 
 createTableStatement:
-      CREATE TABLE [ IF NOT EXISTS ] name
-      [ '(' tableElement [, tableElement ]* ')' ]
-      [ AS query ]
+CREATE TABLE [ IF NOT EXISTS ] name
+[ '(' tableElement [, tableElement ]* ')' ]
+[ AS query ]
 
 createTypeStatement:
-      CREATE [ OR REPLACE ] TYPE name AS
-      {
-          baseType
-      |   '(' attributeDef [, attributeDef ]* ')'
-      }
+CREATE [ OR REPLACE ] TYPE name AS
+{
+baseType
+|   '(' attributeDef [, attributeDef ]* ')'
+}
 
 attributeDef:
-      attributeName type
-      [ COLLATE collation ]
-      [ NULL | NOT NULL ]
-      [ DEFAULT expression ]
+attributeName type
+[ COLLATE collation ]
+[ NULL | NOT NULL ]
+[ DEFAULT expression ]
 
 tableElement:
-      columnName type [ columnGenerator ] [ columnConstraint ]
-  |   columnName
-  |   tableConstraint
+columnName type [ columnGenerator ] [ columnConstraint ]
+|   columnName
+|   tableConstraint
 
 columnGenerator:
-      DEFAULT expression
-  |   [ GENERATED ALWAYS ] AS '(' expression ')'
-      { VIRTUAL | STORED }
+DEFAULT expression
+|   [ GENERATED ALWAYS ] AS '(' expression ')'
+{ VIRTUAL | STORED }
 
 columnConstraint:
-      [ CONSTRAINT name ]
-      [ NOT ] NULL
+[ CONSTRAINT name ]
+[ NOT ] NULL
 
 tableConstraint:
-      [ CONSTRAINT name ]
-      {
-          CHECK '(' expression ')'
-      |   PRIMARY KEY '(' columnName [, columnName ]* ')'
-      |   UNIQUE '(' columnName [, columnName ]* ')'
-      }
+[ CONSTRAINT name ]
+{
+CHECK '(' expression ')'
+|   PRIMARY KEY '(' columnName [, columnName ]* ')'
+|   UNIQUE '(' columnName [, columnName ]* ')'
+}
 
 createViewStatement:
-      CREATE [ OR REPLACE ] VIEW name
-      [ '(' columnName [, columnName ]* ')' ]
-      AS query
+CREATE [ OR REPLACE ] VIEW name
+[ '(' columnName [, columnName ]* ')' ]
+AS query
 
 createMaterializedViewStatement:
-      CREATE MATERIALIZED VIEW [ IF NOT EXISTS ] name
-      [ '(' columnName [, columnName ]* ')' ]
-      AS query
+CREATE MATERIALIZED VIEW [ IF NOT EXISTS ] name
+[ '(' columnName [, columnName ]* ')' ]
+AS query
 
 createFunctionStatement:
-      CREATE [ OR REPLACE ] FUNCTION [ IF NOT EXISTS ] name
-      AS classNameLiteral
-      [ USING  usingFile [, usingFile ]* ]
+CREATE [ OR REPLACE ] FUNCTION [ IF NOT EXISTS ] name
+AS classNameLiteral
+[ USING  usingFile [, usingFile ]* ]
 
 usingFile:
-      { JAR | FILE | ARCHIVE } filePathLiteral
+{ JAR | FILE | ARCHIVE } filePathLiteral
 
 dropSchemaStatement:
-      DROP SCHEMA [ IF EXISTS ] name
+DROP SCHEMA [ IF EXISTS ] name
 
 dropForeignSchemaStatement:
-      DROP FOREIGN SCHEMA [ IF EXISTS ] name
+DROP FOREIGN SCHEMA [ IF EXISTS ] name
 
 dropTableStatement:
-      DROP TABLE [ IF EXISTS ] name
+DROP TABLE [ IF EXISTS ] name
 
 dropViewStatement:
-      DROP VIEW [ IF EXISTS ] name
+DROP VIEW [ IF EXISTS ] name
 
 dropMaterializedViewStatement:
-      DROP MATERIALIZED VIEW [ IF EXISTS ] name
+DROP MATERIALIZED VIEW [ IF EXISTS ] name
 
 dropTypeStatement:
-      DROP TYPE [ IF EXISTS ] name
+DROP TYPE [ IF EXISTS ] name
 
 dropFunctionStatement:
-      DROP FUNCTION [ IF EXISTS ] name
+DROP FUNCTION [ IF EXISTS ] name
 {% endhighlight %}
 
 In *createTableStatement*, if you specify *AS query*, you may omit the list of
@@ -3183,30 +3184,30 @@ For example, we can declare types `address_typ` and `employee_typ`:
 
 {% highlight sql %}
 CREATE TYPE address_typ AS OBJECT (
-   street          VARCHAR2(30),
-   city            VARCHAR2(20),
-   state           CHAR(2),
-   postal_code     VARCHAR2(6));
+street          VARCHAR2(30),
+city            VARCHAR2(20),
+state           CHAR(2),
+postal_code     VARCHAR2(6));
 
 CREATE TYPE employee_typ AS OBJECT (
-  employee_id       NUMBER(6),
-  first_name        VARCHAR2(20),
-  last_name         VARCHAR2(25),
-  email             VARCHAR2(25),
-  phone_number      VARCHAR2(20),
-  hire_date         DATE,
-  job_id            VARCHAR2(10),
-  salary            NUMBER(8,2),
-  commission_pct    NUMBER(2,2),
-  manager_id        NUMBER(6),
-  department_id     NUMBER(4),
-  address           address_typ);
+employee_id       NUMBER(6),
+first_name        VARCHAR2(20),
+last_name         VARCHAR2(25),
+email             VARCHAR2(25),
+phone_number      VARCHAR2(20),
+hire_date         DATE,
+job_id            VARCHAR2(10),
+salary            NUMBER(8,2),
+commission_pct    NUMBER(2,2),
+manager_id        NUMBER(6),
+department_id     NUMBER(4),
+address           address_typ);
 {% endhighlight %}
 
 Using these types, you can instantiate objects as follows:
 
 {% highlight sql %}
 employee_typ(315, 'Francis', 'Logan', 'FLOGAN',
-    '555.777.2222', '01-MAY-04', 'SA_MAN', 11000, .15, 101, 110,
-     address_typ('376 Mission', 'San Francisco', 'CA', '94222'))
+'555.777.2222', '01-MAY-04', 'SA_MAN', 11000, .15, 101, 110,
+address_typ('376 Mission', 'San Francisco', 'CA', '94222'))
 {% endhighlight %}

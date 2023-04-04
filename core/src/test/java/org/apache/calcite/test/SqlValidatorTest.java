@@ -9940,6 +9940,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     sql("insert into empnullables (empno, ename)\n"
         + "values (1, 'Karl')").ok();
+
+    sql("insert overwrite into empnullables (empno, ename)\n"
+        + "values (1, 'Karl')").ok();
   }
 
   @Test void testInsertWithNonEqualSourceSinkFieldsNum() {

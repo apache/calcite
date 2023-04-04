@@ -324,7 +324,7 @@ void SqlSelectKeywords(List<SqlLiteral> keywords) :
 void SqlInsertKeywords(List<SqlLiteral> keywords) :
 {}
 {
-    E()
+    [<OVERWRITE> {keywords.add(SqlInsertKeyword.OVERWRITE.symbol(getPos()));}]
 }
 
 /*
@@ -8100,6 +8100,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < OVERLAPS: "OVERLAPS" >
 |   < OVERLAY: "OVERLAY" >
 |   < OVERRIDING: "OVERRIDING" >
+|   < OVERWRITE: "OVERWRITE" >
 |   < PAD: "PAD" >
 |   < PARAMETER: "PARAMETER" >
 |   < PARAMETER_MODE: "PARAMETER_MODE" >
@@ -8433,6 +8434,7 @@ String NonReservedKeyWord() :
     |   <CONTAINS>
     |   <INSERT>
     |   <DAY>
+    |   <OVERWRITE>
     )
     {
         return unquotedIdentifier();
