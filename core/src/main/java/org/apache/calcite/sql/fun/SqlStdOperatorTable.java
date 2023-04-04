@@ -2032,7 +2032,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    *
    * DATE(string_expr [, format])
    * DATE(timestamp_expr)
-   * DATE('integer>')
+   * DATE('integer')
    * DATE(variant_expr)
    *  For conversion to date, snowflake allows a string, datetime, or integer.
    *            If the first argument is string, an optional format string is allowed
