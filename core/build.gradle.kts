@@ -59,7 +59,6 @@ dependencies {
 
     implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.core:jackson-databind")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-guava")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
     implementation("com.google.uzaygezen:uzaygezen-core") {
         exclude("log4j", "log4j").because("conflicts with log4j-slf4j-impl which uses log4j2 and" +

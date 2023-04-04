@@ -217,7 +217,7 @@ public class RelJson {
    * Converts a type name to a class. E.g. {@code getClass("LogicalProject")}
    * returns {@link org.apache.calcite.rel.logical.LogicalProject}.class.
    */
-  public static Class typeNameToClass(String type) {
+  public Class typeNameToClass(String type) {
     if (!type.contains(".")) {
       for (String package_ : PACKAGES) {
         try {

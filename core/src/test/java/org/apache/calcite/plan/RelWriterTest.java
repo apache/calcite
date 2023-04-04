@@ -47,6 +47,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexWindowBounds;
@@ -70,6 +71,7 @@ import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -831,6 +833,7 @@ class RelWriterTest {
   @Test void testSearchOperator() throws JsonProcessingException {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder b = RelBuilder.create(config);
+    final RexBuilder rexBuilder = b.getRexBuilder();
     // Commented out but we should also get this passing! SEARCH in a relnode using the json writer
     // also leads to failures.
     // final RelNode rel = b
@@ -851,11 +854,11 @@ class RelWriterTest {
     // assertThat(result, isLinux(expected));
 
     RexNode between =
-        b.getRexBuilder().makeBetween(b.literal(45),
+        rexBuilder.makeBetween(b.literal(45),
         b.literal(20),
         b.literal(30));
     RexNode inNode =
-        b.getRexBuilder().makeIn(b.literal(12),
+        rexBuilder.makeIn(b.literal(12),
         ImmutableList.of(
           b.literal(20),
           b.literal(14)));
@@ -866,30 +869,30 @@ class RelWriterTest {
     final DateString d2 = DateString.fromDaysSinceEpoch(100);
     final DateString d3 = DateString.fromDaysSinceEpoch(1000);
     RexNode dateNode =
-        b.getRexBuilder().makeBetween(b.getRexBuilder().makeDateLiteral(d2),
-        b.getRexBuilder().makeDateLiteral(d1),
-        b.getRexBuilder().makeDateLiteral(d3));
+        rexBuilder.makeBetween(rexBuilder.makeDateLiteral(d2),
+            rexBuilder.makeDateLiteral(d1),
+            rexBuilder.makeDateLiteral(d3));
 
+
+    final RexLiteral t1 =
+        rexBuilder.makeTimeLiteral(new TimeString(1, 0, 0), 0);
+    final RexLiteral t2 = rexBuilder.makeTimeLiteral(new TimeString(2, 2, 2), 6);
+    final RexLiteral t3 = rexBuilder.makeTimeLiteral(new TimeString(3, 3, 3), 9);
+
+    RexNode timeNode = rexBuilder.makeBetween(t2, t1, t3);
 
     RelJson relJson = RelJson.create().withJsonBuilder(new JsonBuilder());
     final ObjectMapper mapper = new ObjectMapper();
     final TypeReference<LinkedHashMap<String, Object>> typeRef =
         new TypeReference<LinkedHashMap<String, Object>>() { };
-    List<RexNode> testNodes = ImmutableList.of(between, inNode, dateNode);
-    // List<RexNode> testNodes = ImmutableList.of(dateNode);
-    for (RexNode node: testNodes) {
-      Object rexified = relJson.toJson(node);
+    List<RexNode> testNodes = ImmutableList.of(between, inNode, dateNode, timeNode);
+
+    for (RexNode originalNode: testNodes) {
+      Object jsonRepresentation = relJson.toJson(originalNode);
+      RexNode deserialized = relJson.toRex(b.getCluster(), jsonRepresentation);
+      assertThat(originalNode, equalTo(deserialized));
       // Test toJson -> toRex -> toJson is the same.
-      RexNode deserialized = relJson.toRex(b.getCluster(), rexified);
-      assertThat(rexified, equalTo(relJson.toJson(deserialized)));
-
-      String rexNodeAsJsonString = mapper.writeValueAsString(rexified);
-      final Map<String, Object> deserializedMap = mapper
-          .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
-          .readValue(rexNodeAsJsonString, typeRef);
-      String deserializedObjAsJsonString = mapper.writeValueAsString(deserializedMap);
-
-      assertThat(rexNodeAsJsonString, is(deserializedObjAsJsonString));
+      assertThat(jsonRepresentation, equalTo(relJson.toJson(deserialized)));
     }
 
   }
