@@ -7884,6 +7884,17 @@ public class SqlOperatorTest {
     f.checkFails("^Array[]^", "Require at least 1 argument", false);
   }
 
+  @Test void testArrayFunctionConstructor() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.ARRAY, VmName.EXPAND);
+    final SqlOperatorFixture f2 = 
+      f.withConformance(SqlConformanceEnum.SPARK)
+       .withLibrary(SqlLibrary.SPARK);
+
+    f2.checkScalar("Array('foo', 'bar')",
+        "[foo, bar]", "CHAR(3) NOT NULL ARRAY NOT NULL");    
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4999">[CALCITE-4999]

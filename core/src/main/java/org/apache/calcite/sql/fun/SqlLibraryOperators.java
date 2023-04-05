@@ -828,7 +828,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY =
       SqlBasicFunction.create("ARRAY",
-          ReturnTypes.LEAST_RESTRICTIVE,
+          ReturnTypes.TO_ARRAY,
           OperandTypes.AT_LEAST_ONE_SAME_VARIADIC);
 
   /** The "ARRAY_DISTINCT(array)" function. */
