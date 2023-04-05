@@ -273,11 +273,11 @@ public class RangeSets {
     }
   }
 
-  public static <C extends Comparable<C>> RangeSet<C> fromJson(ArrayList rangeSetsJson) {
+  public static <C extends Comparable<C>> RangeSet<C> fromJson(Object rangeSetsJson) {
     final ImmutableRangeSet.Builder<C> builder = ImmutableRangeSet.builder();
     List<Range<C>> rangeList = new ArrayList<>();
     try {
-      for (Object o : rangeSetsJson) {
+      for (Object o : (ArrayList) rangeSetsJson) {
         Range range = rangeFromJson(o);
         rangeList.add(range);
       }
@@ -288,17 +288,37 @@ public class RangeSets {
   }
   /** Creates a {@link Range} from the string representation of a {@link Range}
    * serialized using {@link org.apache.calcite.rel.externalize.RelJson#toJson(Range)} */
-  private static <C extends Comparable<C>> Range<C> rangeFromJson(Object rangeJson) {
+  public static <C extends Comparable<C>> Range<C> rangeFromJson(Object rangeJson) {
     List list = (List) rangeJson;
     if (list.size() != 4) {
-      throw new IllegalArgumentException("Serialized Range object should be an ArrayList with 4 entries.");
+      throw new IllegalArgumentException("Serialized Range object should be a list with 4 entries.");
     }
     BoundType lowerType = list.get(0).equals("(") ? BoundType.OPEN : BoundType.CLOSED;
     Object lower = list.get(1);
     Object upper = list.get(2);
     BoundType upperType = list.get(3).equals(")") ? BoundType.OPEN : BoundType.CLOSED;
-    return Range.range((C) lower, lowerType, (C)upper, upperType);
+
+    if (lower == RANGE_UNBOUNDED && upper == RANGE_UNBOUNDED) { return Range.all(); }
+    else if (lower == RANGE_UNBOUNDED) {
+      if (upperType == BoundType.OPEN) {
+        return Range.lessThan((C)upper);
+      } else {
+        return Range.atMost((C)upper);
+      }
+    } else if (upper == RANGE_UNBOUNDED) {
+      if (lowerType == BoundType.OPEN) {
+        return Range.greaterThan((C)lower);
+      } else {
+        return Range.atLeast((C)lower);
+      }
+    }
+    else {
+      return Range.range((C) lower, lowerType, (C)upper, upperType);
+    }
   };
+
+  /** Used when serializing {@link Range} if it does not contain a lower or upper endpoint.*/
+  public static final String RANGE_UNBOUNDED = "_";
 
   /** Creates a consumer that prints values to a {@link StringBuilder}. */
   public static <C extends Comparable<C>> Consumer<C> printer(StringBuilder sb,

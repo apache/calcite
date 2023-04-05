@@ -17,6 +17,7 @@
 package org.apache.calcite.util;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.externalize.RelJson;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeSet;
@@ -44,6 +45,55 @@ import static org.hamcrest.MatcherAssert.assertThat;
  */
 @SuppressWarnings("UnstableApiUsage")
 class RangeSetTest {
+
+  /** Tests {@link org.apache.calcite.rel.externalize.RelJson#toJson(Range)} and
+   *  {@link RangeSets#rangeFromJson(Object)}.
+   */
+  @Test void testRangeSetSerializeDeserialize() {
+    RelJson relJson = RelJson.create();
+    final Range<Integer> point = Range.singleton(0);
+    final Range<Integer> closedRange1 = Range.closed(0, 5);
+    final Range<Integer> closedRange2 = Range.closed(6, 10);
+
+    final Range<Integer> gt1 = Range.greaterThan(7);
+    final Range<Integer> al1 = Range.atLeast(8);
+    final Range<Integer> lt1 = Range.lessThan(4);
+    final Range<Integer> am1 = Range.atMost(3);
+
+    // Test serialize/deserialize Range
+    //    Point
+    assertThat(RangeSets.rangeFromJson(relJson.toJson(point)), is(point));
+    //    Closed Range
+    assertThat(RangeSets.rangeFromJson(relJson.toJson(closedRange1)), is(closedRange1));
+    //    Open Range
+    assertThat(RangeSets.rangeFromJson(relJson.toJson(gt1)), is(gt1));
+    assertThat(RangeSets.rangeFromJson(relJson.toJson(al1)), is(al1));
+    assertThat(RangeSets.rangeFromJson(relJson.toJson(lt1)), is(lt1));
+    assertThat(RangeSets.rangeFromJson(relJson.toJson(am1)), is(am1));
+    // Test closed single RangeSet
+    final RangeSet<Integer> closedRangeSet = ImmutableRangeSet.of(closedRange1);
+    assertThat(RangeSets.fromJson(relJson.toJson(closedRangeSet)), is(closedRangeSet));
+    // Test complex RangeSets
+    final RangeSet<Integer> complexClosedRangeSet1 = ImmutableRangeSet.<Integer>builder()
+        .add(closedRange1)
+        .add(closedRange2)
+        .build();
+    assertThat(RangeSets.fromJson(relJson.toJson(complexClosedRangeSet1)),
+        is(complexClosedRangeSet1));
+    final RangeSet<Integer> complexClosedRangeSet2 = ImmutableRangeSet.<Integer>builder()
+        .add(gt1)
+        .add(am1)
+        .build();
+    assertThat(RangeSets.fromJson(relJson.toJson(complexClosedRangeSet2)),
+        is(complexClosedRangeSet2));
+
+    // Test None and All
+    final RangeSet<Integer> setNone = ImmutableRangeSet.of();
+    final RangeSet<Integer> setAll = setNone.complement();
+    assertThat(RangeSets.fromJson(relJson.toJson(setNone)), is(setNone));
+    assertThat(RangeSets.fromJson(relJson.toJson(setAll)), is(setAll));
+  }
+
   /** Tests {@link RangeSets#minus(RangeSet, Range)}. */
   @SuppressWarnings("UnstableApiUsage")
   @Test void testRangeSetMinus() {
