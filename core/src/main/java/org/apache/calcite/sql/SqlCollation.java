@@ -22,6 +22,10 @@ import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.SerializableCharset;
 import org.apache.calcite.util.Util;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
@@ -95,9 +99,10 @@ public class SqlCollation implements Serializable {
    * @param collation    Collation specification
    * @param coercibility Coercibility
    */
+  @JsonCreator
   public SqlCollation(
-      String collation,
-      Coercibility coercibility) {
+      @JsonProperty("collationName") String collation,
+      @JsonProperty("coercibility") Coercibility coercibility) {
     this.coercibility = coercibility;
     SqlParserUtil.ParsedCollation parseValues =
         SqlParserUtil.parseCollation(collation);
@@ -290,6 +295,7 @@ public class SqlCollation implements Serializable {
     writer.identifier(collationName, false);
   }
 
+  @JsonIgnore
   public Charset getCharset() {
     return wrappedCharset.getCharset();
   }
@@ -312,6 +318,7 @@ public class SqlCollation implements Serializable {
    * which case {@link String#compareTo} will be used.
    */
   @Pure
+  @JsonIgnore
   public @Nullable Collator getCollator() {
     return null;
   }

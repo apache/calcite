@@ -28,6 +28,7 @@ import com.google.common.collect.TreeRangeSet;
 
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -51,14 +52,16 @@ class RangeSetTest {
    */
   @Test void testRangeSetSerializeDeserialize() {
     RelJson relJson = RelJson.create();
-    final Range<Integer> point = Range.singleton(0);
-    final Range<Integer> closedRange1 = Range.closed(0, 5);
-    final Range<Integer> closedRange2 = Range.closed(6, 10);
+    final Range<BigDecimal> point = Range.singleton(BigDecimal.valueOf(0));
+    final Range<BigDecimal> closedRange1 = Range.closed(
+        BigDecimal.valueOf(0), BigDecimal.valueOf(5));
+    final Range<BigDecimal> closedRange2 = Range.closed(
+        BigDecimal.valueOf(6), BigDecimal.valueOf(10));
 
-    final Range<Integer> gt1 = Range.greaterThan(7);
-    final Range<Integer> al1 = Range.atLeast(8);
-    final Range<Integer> lt1 = Range.lessThan(4);
-    final Range<Integer> am1 = Range.atMost(3);
+    final Range<BigDecimal> gt1 = Range.greaterThan(BigDecimal.valueOf(7));
+    final Range<BigDecimal> al1 = Range.atLeast(BigDecimal.valueOf(8));
+    final Range<BigDecimal> lt1 = Range.lessThan(BigDecimal.valueOf(4));
+    final Range<BigDecimal> am1 = Range.atMost(BigDecimal.valueOf(3));
 
     // Test serialize/deserialize Range
     //    Point
@@ -71,16 +74,16 @@ class RangeSetTest {
     assertThat(RangeSets.rangeFromJson(relJson.toJson(lt1)), is(lt1));
     assertThat(RangeSets.rangeFromJson(relJson.toJson(am1)), is(am1));
     // Test closed single RangeSet
-    final RangeSet<Integer> closedRangeSet = ImmutableRangeSet.of(closedRange1);
+    final RangeSet<BigDecimal> closedRangeSet = ImmutableRangeSet.of(closedRange1);
     assertThat(RangeSets.fromJson(relJson.toJson(closedRangeSet)), is(closedRangeSet));
     // Test complex RangeSets
-    final RangeSet<Integer> complexClosedRangeSet1 = ImmutableRangeSet.<Integer>builder()
+    final RangeSet<BigDecimal> complexClosedRangeSet1 = ImmutableRangeSet.<BigDecimal>builder()
         .add(closedRange1)
         .add(closedRange2)
         .build();
     assertThat(RangeSets.fromJson(relJson.toJson(complexClosedRangeSet1)),
         is(complexClosedRangeSet1));
-    final RangeSet<Integer> complexClosedRangeSet2 = ImmutableRangeSet.<Integer>builder()
+    final RangeSet<BigDecimal> complexClosedRangeSet2 = ImmutableRangeSet.<BigDecimal>builder()
         .add(gt1)
         .add(am1)
         .build();
@@ -88,8 +91,8 @@ class RangeSetTest {
         is(complexClosedRangeSet2));
 
     // Test None and All
-    final RangeSet<Integer> setNone = ImmutableRangeSet.of();
-    final RangeSet<Integer> setAll = setNone.complement();
+    final RangeSet<BigDecimal> setNone = ImmutableRangeSet.of();
+    final RangeSet<BigDecimal> setAll = setNone.complement();
     assertThat(RangeSets.fromJson(relJson.toJson(setNone)), is(setNone));
     assertThat(RangeSets.fromJson(relJson.toJson(setAll)), is(setAll));
   }

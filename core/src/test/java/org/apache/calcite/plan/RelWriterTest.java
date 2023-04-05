@@ -70,6 +70,7 @@ import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
@@ -865,7 +866,8 @@ class RelWriterTest {
 
 
     // Test Calcite DateString class works in a Range
-    final DateString d1 = DateString.fromDaysSinceEpoch(0);
+    final DateString d1 = DateString.fromCalendarFields(
+        new TimestampString(1970, 2, 1, 1, 1, 0).toCalendar());
     final DateString d2 = DateString.fromDaysSinceEpoch(100);
     final DateString d3 = DateString.fromDaysSinceEpoch(1000);
     RexNode dateNode =
@@ -873,7 +875,7 @@ class RelWriterTest {
             rexBuilder.makeDateLiteral(d1),
             rexBuilder.makeDateLiteral(d3));
 
-
+    // Test Calcite TimeString
     final RexLiteral t1 =
         rexBuilder.makeTimeLiteral(new TimeString(1, 0, 0), 0);
     final RexLiteral t2 = rexBuilder.makeTimeLiteral(new TimeString(2, 2, 2), 6);
@@ -881,12 +883,19 @@ class RelWriterTest {
 
     RexNode timeNode = rexBuilder.makeBetween(t2, t1, t3);
 
-    RelJson relJson = RelJson.create().withJsonBuilder(new JsonBuilder());
-    final ObjectMapper mapper = new ObjectMapper();
-    final TypeReference<LinkedHashMap<String, Object>> typeRef =
-        new TypeReference<LinkedHashMap<String, Object>>() { };
-    List<RexNode> testNodes = ImmutableList.of(between, inNode, dateNode, timeNode);
+    // Test Calcite NlsString
+    final NlsString nls1 = new NlsString("one", null, null);
+    final NlsString nls2 = new NlsString("ten", null, null);
+    final NlsString nls3 = new NlsString("sixteen", null, null);
+    RexNode nlsNode =
+        rexBuilder.makeIn(
+            rexBuilder.makeCharLiteral(nls2), ImmutableList.of(
+            rexBuilder.makeCharLiteral(nls1),
+            rexBuilder.makeCharLiteral(nls3)
+        ));
 
+    List<RexNode> testNodes = ImmutableList.of(between, inNode, dateNode, timeNode, nlsNode);
+    RelJson relJson = RelJson.create().withJsonBuilder(new JsonBuilder());
     for (RexNode originalNode: testNodes) {
       Object jsonRepresentation = relJson.toJson(originalNode);
       RexNode deserialized = relJson.toRex(b.getCluster(), jsonRepresentation);

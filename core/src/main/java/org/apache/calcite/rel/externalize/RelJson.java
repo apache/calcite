@@ -69,6 +69,8 @@ import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.Util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
@@ -347,10 +349,9 @@ public class RelJson {
       final boolean nullable = get(map, "nullable");
       return typeFactory.createTypeWithNullability(type, nullable);
     } else {
-      final SqlTypeName sqlTypeName =
-          requireNonNull(Util.enumVal(SqlTypeName.class, (String) o),
-              () -> "unable to find enum value " + o
-                  + " in class " + SqlTypeName.class);
+      final SqlTypeName sqlTypeName = requireNonNull(
+          Util.enumVal(SqlTypeName.class, (String) o),
+          () -> "unable to find enum value " + o + " in class " + SqlTypeName.class);
       return typeFactory.createSqlType(sqlTypeName);
     }
   }
@@ -505,11 +506,25 @@ public class RelJson {
   /** Serializes a {@link Range} that can be deserialized using
    * {@link org.apache.calcite.util.RangeSets#rangeFromJson(Object)} */
   private <C extends Comparable<C>> Object toJson(Range<C> range){
-      return Arrays.asList(
-          !range.hasLowerBound() || range.lowerBoundType() == BoundType.OPEN ? "(": "[",
-          range.hasLowerBound() ? range.lowerEndpoint() : RangeSets.RANGE_UNBOUNDED,
-          range.hasUpperBound() ? range.upperEndpoint() : RangeSets.RANGE_UNBOUNDED,
-          !range.hasUpperBound() || range.upperBoundType() == BoundType.OPEN ? ")" : "]");
+    String lowerBoundType = !range.hasLowerBound() || range.lowerBoundType() == BoundType.OPEN ?
+        "(": "[";
+    String upperBoundType = !range.hasUpperBound() || range.upperBoundType() == BoundType.OPEN ?
+        ")" : "]";
+    String lowerEndpoint = range.hasLowerBound() ? rexLiteralObjectToString(range.lowerEndpoint())
+        : RangeSets.RANGE_UNBOUNDED;
+    String upperEndpoint = range.hasUpperBound() ? rexLiteralObjectToString(range.upperEndpoint())
+        : RangeSets.RANGE_UNBOUNDED;
+
+    return Arrays.asList(lowerBoundType, lowerEndpoint, upperEndpoint, upperBoundType);
+    }
+
+    private <C extends Comparable<C>> String rexLiteralObjectToString(C endpoint) {
+    try {
+      ObjectMapper mapper = new ObjectMapper();
+      return mapper.writeValueAsString(endpoint);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to serialize Range endpoint: ", e);
+    }
     }
 
   private Object toJson(RelDataType node) {
@@ -681,9 +696,8 @@ public class RelJson {
       map.put("type", windowBound.isPreceding() ? "UNBOUNDED_PRECEDING" : "UNBOUNDED_FOLLOWING");
     } else {
       map.put("type", windowBound.isPreceding() ? "PRECEDING" : "FOLLOWING");
-      RexNode offset =
-          requireNonNull(windowBound.getOffset(),
-              () -> "getOffset for window bound " + windowBound);
+      RexNode offset = requireNonNull(windowBound.getOffset(),
+          () -> "getOffset for window bound " + windowBound);
       map.put("offset", toJson(offset));
     }
     return map;

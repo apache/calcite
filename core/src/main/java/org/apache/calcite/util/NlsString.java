@@ -23,6 +23,8 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -72,6 +74,7 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
               });
 
   private final @Nullable String stringValue;
+  @JsonProperty("valueBytes")
   private final @Nullable ByteString bytesValue;
   private final @Nullable String charsetName;
   private final @Nullable Charset charset;
@@ -111,8 +114,10 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
    * @throws RuntimeException If the given value cannot be represented in the
    *     given charset
    */
-  public NlsString(String stringValue, @Nullable String charsetName,
-      @Nullable SqlCollation collation) {
+  @JsonCreator
+  public NlsString(@JsonProperty("value") String stringValue,
+      @JsonProperty("charsetName") @Nullable String charsetName,
+      @JsonProperty("collation") @Nullable SqlCollation collation) {
     this(Objects.requireNonNull(stringValue, "stringValue"), null, charsetName, collation);
   }
 
