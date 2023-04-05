@@ -228,7 +228,7 @@ public class SqlFunction extends SqlOperator {
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
-    return deriveType(validator, scope, call, true);
+    return deriveType(validator, scope, call, false);
   }
 
   private RelDataType deriveType(
@@ -288,8 +288,6 @@ public class SqlFunction extends SqlOperator {
             }
           }
           return deriveType(validator, scope, call, false);
-        } else if (function != null) {
-          validator.validateColumnListParams(function, argTypes, args);
         }
       }
 

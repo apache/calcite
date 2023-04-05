@@ -327,18 +327,6 @@ public interface SqlValidator {
       SqlValidatorScope scope);
 
   /**
-   * Validates a COLUMN_LIST parameter.
-   *
-   * @param function function containing COLUMN_LIST parameter
-   * @param argTypes function arguments
-   * @param operands operands passed into the function call
-   */
-  void validateColumnListParams(
-      SqlFunction function,
-      List<RelDataType> argTypes,
-      List<SqlNode> operands);
-
-  /**
    * If an identifier is a legitimate call to a function that has no
    * arguments and requires no parentheses (for example "CURRENT_USER"),
    * returns a call to that function, otherwise returns null.

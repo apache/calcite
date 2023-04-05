@@ -7843,6 +7843,66 @@ public class SqlOperatorTest {
         "Third argument (pad pattern) for LPAD/RPAD must not be empty", true);
   }
 
+  @Test void testContainsSubstrFunc() {
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.CONTAINS_SUBSTR)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    // Strings
+    f.checkBoolean("CONTAINS_SUBSTR('abc', 'a')", true);
+    f.checkBoolean("CONTAINS_SUBSTR('abc', 'd')", false);
+    f.checkBoolean("CONTAINS_SUBSTR('ABC', 'a')", true);
+    f.checkBoolean("CONTAINS_SUBSTR('abc', '')", true);
+    f.checkBoolean("CONTAINS_SUBSTR('', '')", true);
+    // Only the values of ROWs and ARRAYs should be searched, their opening/closing
+    // parentheses/brackets should not be included
+    f.checkBoolean("CONTAINS_SUBSTR((23, 35, 41), '35')", true);
+    f.checkBoolean("CONTAINS_SUBSTR((23, 35, 41), '1)')", false);
+    // Arrays and nested rows
+    f.checkBoolean("CONTAINS_SUBSTR(('abc', ('def', 'ghi', 'jkl'), 'mno'), 'jk')",
+        true);
+    f.checkBoolean("CONTAINS_SUBSTR(('abc', ARRAY['def', 'ghi', 'jkl'], 'mno'), 'jk')",
+        true);
+    f.checkBoolean("CONTAINS_SUBSTR(('abc', ARRAY['def', 'ghi', 'jkl'], 'mno'), 'xyz')",
+        false);
+    f.checkBoolean("CONTAINS_SUBSTR(('abc', ARRAY['def', 'ghi', 'jkl'], (1, 2, 3)), 'xyz')",
+        false);
+    // Boolean types
+    f.checkBoolean("CONTAINS_SUBSTR(false, 'fal')", true);
+    f.checkBoolean("CONTAINS_SUBSTR(false, 'true')", false);
+    // DATETIME types should lose keyword (DATE '2008-12-25' should be searched as '2008-12-25')
+    f.checkBoolean("CONTAINS_SUBSTR(DATE '2008-12-25', '2008-12-25')",
+        true);
+    f.checkBoolean("CONTAINS_SUBSTR(TIME '15:30:00', '15:30:00')",
+        true);
+    f.checkBoolean("CONTAINS_SUBSTR(TIMESTAMP '2008-12-25 15:30:00', '5 1')",
+        true);
+    f.checkBoolean("CONTAINS_SUBSTR(TIMESTAMP '2008-12-25 15:30:00', 'TI')",
+        false);
+    // Numeric types
+    f.checkBoolean("CONTAINS_SUBSTR(cast(1 as tinyint), '1')", true);
+    f.checkBoolean("CONTAINS_SUBSTR(cast(1 as smallint), '1')", true);
+    f.checkBoolean("CONTAINS_SUBSTR(cast(1 as integer), '1')", true);
+    f.checkBoolean("CONTAINS_SUBSTR(cast(1 as bigint), '1')", true);
+    f.checkBoolean("CONTAINS_SUBSTR(cast(1.2345 as decimal(5, 4)), '1')",
+        true);
+    // JSON
+    f.checkBoolean("CONTAINS_SUBSTR('{\"foo\":\"bar\"}', 'bar')",
+        true);
+    f.checkBoolean("CONTAINS_SUBSTR('{\"foo\":\"bar\"}', 'BAR')",
+        true);
+    f.checkBoolean("CONTAINS_SUBSTR('{\"foo\":\"bar\"}', 'bar', json_scope=>'JSON_KEYS')",
+        false);
+    f.checkBoolean("CONTAINS_SUBSTR('{\"foo\":\"bar\"}', 'bar', "
+            + "json_scope=>'JSON_VALUES')", true);
+    f.checkBoolean("CONTAINS_SUBSTR('{\"foo\":\"bar\"}', 'bar', "
+            + "json_scope=>'JSON_KEYS_AND_VALUES')", true);
+    f.checkFails("CONTAINS_SUBSTR('{\"foo\":\"bar\"}', 'bar', json_scope=>'JSON_JSON')",
+        "json_scope argument must be one of: \"JSON_KEYS\", \"JSON_VALUES\", "
+            + "\"JSON_KEYS_AND_VALUES\".", true);
+    // Null behavior
+    f.checkNull("CONTAINS_SUBSTR(cast(null as integer), 'hello')");
+    f.checkNull("CONTAINS_SUBSTR(null, 'a')");
+  }
+
   @Test void testStrposFunction() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.STRPOS);
     f0.checkFails("^strpos('abc', 'a')^",

@@ -79,6 +79,7 @@ parser: {
     "CONSTRAINTS"
     "CONSTRAINT_SCHEMA"
     "CONSTRUCTOR"
+    "CONTAINS_SUBSTR"
     "CONTINUE"
     "CURSOR_NAME"
     "DATA"

@@ -50,6 +50,7 @@ import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
 import com.google.common.base.Splitter;
@@ -74,6 +75,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.Normalizer;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -605,6 +607,96 @@ public class SqlFunctions {
       list.add(s.substring(i, j));
       i = j + delimiter.length();
     }
+  }
+
+  /** SQL <code>CONTAINS_SUBSTR(rows, substr)</code> operator. */
+  public static @Nullable Boolean containsSubstr(Object [] rows,
+      String substr) {
+    // If rows have null arguments, it should return TRUE if substr is found, otherwise NULL
+    boolean nullFlag = false;
+    for (Object row : rows) {
+      if (row == null) {
+        nullFlag = true;
+      } else if (row instanceof Object[]) {
+        return containsSubstr((Object[]) row, substr);
+      } else if (row instanceof ArrayList) {
+        return containsSubstr((List) row, substr);
+      } else if (normalize(row.toString()).contains(normalize(substr))) {
+        return true;
+      }
+    }
+    return nullFlag ? null : false;
+  }
+
+  /** SQL <code>CONTAINS_SUBSTR(arr, substr)</code> operator. */
+  public static @Nullable Boolean containsSubstr(List arr, String substr) {
+    // If array has null arguments, it should return TRUE if substr is found, otherwise NULL
+    boolean nullFlag = false;
+    for (Object item : arr) {
+      if (item == null) {
+        nullFlag = true;
+      }
+      if (item != null && containsSubstr(item, substr)) {
+        return true;
+      }
+    }
+    return nullFlag ? null : false;
+  }
+
+  /** SQL <code>CONTAINS_SUBSTR(jsonString, substr, json_scope&#61;&#62;jsonScope)</code>
+  * operator. */
+  public static boolean containsSubstr(String jsonString, String substr,
+      String jsonScope) {
+    LinkedHashMap<String, String> map =
+        (LinkedHashMap<String, String>) JsonFunctions.dejsonize(jsonString);
+    assert map != null;
+    Set<String> keys = map.keySet();
+    Collection<String> values = map.values();
+    switch (JsonScope.valueOf(jsonScope)) {
+    case JSON_KEYS:
+      return keys.contains(substr);
+    case JSON_KEYS_AND_VALUES:
+      return keys.contains(substr) || values.contains(substr);
+    case JSON_VALUES:
+      return values.contains(substr);
+    default:
+      throw new IllegalArgumentException("json_scope argument must be one of: \"JSON_KEYS\", "
+          + "\"JSON_VALUES\", \"JSON_KEYS_AND_VALUES\".");
+    }
+  }
+
+  /** SQL <code>CONTAINS_SUBSTR(expr, substr)</code> operator. */
+  public static boolean containsSubstr(Object expr, String substr) {
+    expr = normalize(expr.toString());
+    substr = normalize(substr);
+    if (JsonFunctions.isJsonObject(expr.toString())) {
+      return containsSubstr(expr.toString(), substr, "JSON_VALUES");
+    }
+    return ((String) expr).contains(substr);
+  }
+
+  /** SQL <code>CONTAINS_SUBSTR(boolean, substr)</code> operator. */
+  public static boolean containsSubstr(boolean s, String substr) {
+    return containsSubstr(String.valueOf(s), substr);
+  }
+
+  /** SQL <code>CONTAINS_SUBSTR(int, substr)</code> operator. */
+  public static boolean containsSubstr(int s, String substr) {
+    return containsSubstr(String.valueOf(s), substr);
+  }
+
+  /** SQL <code>CONTAINS_SUBSTR(long, substr)</code> operator. */
+  public static boolean containsSubstr(long s, String substr) {
+    return containsSubstr(String.valueOf(s), substr);
+  }
+
+  /** Helper for CONTAINS_SUBSTR. */
+  private static String normalize(String s) {
+    // Before values are compared, should be case folded and normalized using NFKC normalization
+    s = StringEscapeUtils.unescapeJava(s);
+    s = Normalizer.normalize(s, Normalizer.Form.NFKC);
+    s = lower(s);
+    return s;
   }
 
   /** SQL SUBSTRING(string FROM ...) function. */
@@ -4950,6 +5042,11 @@ public class SqlFunctions {
         ordinality = 0;
       }
     }
+  }
+
+  /** Specifies scope to search for {@code #containsSubstr}.  */
+  public enum JsonScope {
+    JSON_KEYS, JSON_KEYS_AND_VALUES, JSON_VALUES
   }
 
   /** Type of argument passed into {@link #flatProduct}. */

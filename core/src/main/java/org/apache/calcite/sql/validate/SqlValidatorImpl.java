@@ -6388,13 +6388,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         });
   }
 
-  @Override public void validateColumnListParams(
-      SqlFunction function,
-      List<RelDataType> argTypes,
-      List<SqlNode> operands) {
-    throw new UnsupportedOperationException();
-  }
-
   private static boolean isPhysicalNavigation(SqlKind kind) {
     return kind == SqlKind.PREV || kind == SqlKind.NEXT;
   }

@@ -146,6 +146,7 @@ data: {
       "CONSTRAINTS"
       "CONSTRUCTOR"
       "CONTAINS"
+      "CONTAINS_SUBSTR"
       "CONTINUE"
       "CONVERT"
       "CORR"
