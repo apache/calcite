@@ -326,7 +326,6 @@ public abstract class SqlImplementor {
       return SqlUtil.createCall(op, POS, sqlOperands);
 
     case EQUALS:
-    case IN:
     case NOT:
     case IS_DISTINCT_FROM:
     case IS_NOT_DISTINCT_FROM:
