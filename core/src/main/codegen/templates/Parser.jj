@@ -4739,6 +4739,12 @@ SqlNode ArrayConstructor() :
             e = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY) {
                 args = null;
             }
+        |
+            // by nullary function call "array()" (Apache Spark)
+            {
+                e = null;
+                args = SqlNodeList.EMPTY;
+            }
         )
         <RPAREN>
         {

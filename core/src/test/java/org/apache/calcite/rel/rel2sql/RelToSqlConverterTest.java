@@ -3837,16 +3837,20 @@ class RelToSqlConverterTest {
     sql(query).withSpark().ok(expected);
   }
 
+  private Sql sqlSpark(String query, String expected) {
+    return sql(query)
+      .parserConfig(SqlParser.Config.DEFAULT.withConformance(SqlConformanceEnum.SPARK))
+      .withSpark()
+      .withLibrary(SqlLibrary.SPARK)
+      .ok(expected);
+  }
+
   @Test void testArrayFunction() {
     final String query = "SELECT ARRAY(1, 2)";
     final String expected = "SELECT ARRAY(1, 2)\n"
         + "FROM (VALUES (0)) t (ZERO)";
 
-    sql(query)
-      .parserConfig(SqlParser.Config.DEFAULT.withConformance(SqlConformanceEnum.SPARK))
-      .withSpark()
-      .withLibrary(SqlLibrary.SPARK)
-      .ok(expected); 
+    sqlSpark(query, expected);
   }
 
   @Test void testArrayFunctionFail() {
