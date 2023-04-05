@@ -155,6 +155,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION_WITH_NULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS_MSSQL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONTAINS_SUBSTR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CSC;
@@ -558,6 +559,8 @@ public class RexImpTable {
       defineMethod(REGEXP_CONTAINS, "regexpContains", NullPolicy.STRICT);
 
       map.put(TRIM, new TrimImplementor());
+
+      map.put(CONTAINS_SUBSTR, new ContainsSubstrImplementor());
 
       // logical
       map.put(AND, new LogicalAndImplementor());
@@ -2329,6 +2332,43 @@ public class RexImpTable {
           argValueList.get(1),
           argValueList.get(2),
           Expressions.constant(strict));
+    }
+  }
+
+  /** Implementor for the {@code CONTAINS_SUBSTR} function. */
+  private static class ContainsSubstrImplementor extends AbstractRexCallImplementor {
+    ContainsSubstrImplementor() {
+      super("contains_substr", NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      // If there are three arguments, the first argument is a JSON string
+      // so the rest of the logic is irrelevant
+      if (argValueList.size() == 3) {
+        return Expressions.call(SqlFunctions.class, "containsSubstr", argValueList);
+      }
+      Expression expr = argValueList.get(0);
+      SqlTypeName type = call.getOperands().get(0).getType().getSqlTypeName();
+      // To prevent DATETIME types from getting converted to their numerical form, convert
+      // them to STRINGs
+      switch (type) {
+      case DATE:
+        expr = Expressions.call(BuiltInMethod.UNIX_DATE_TO_STRING.method, expr);
+        break;
+      case TIME:
+        expr = Expressions.call(BuiltInMethod.UNIX_TIME_TO_STRING.method, expr);
+        break;
+      // Search does not include TZ so this conversion is okay
+      case TIMESTAMP:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+        expr = Expressions.call(BuiltInMethod.UNIX_TIMESTAMP_TO_STRING.method, expr);
+        break;
+      default:
+        break;
+      }
+      return Expressions.call(SqlFunctions.class, "containsSubstr", expr,
+          argValueList.get(1));
     }
   }
 

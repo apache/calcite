@@ -6303,6 +6303,8 @@ SqlNode BuiltinFunctionCall() :
             return SqlStdOperatorTable.TRIM.createCall(s.end(this), args);
         }
     |
+        node = ContainsSubstrFunctionCall() { return node; }
+    |
         node = DateTimeConstructorCall() { return node; }
     |
         node = DateDiffFunctionCall() { return node; }
@@ -6822,6 +6824,32 @@ SqlCall JsonArrayAggFunctionCall() :
             .createCall(span.end(this), valueExpr, orderList);
     }
 }
+
+ /**
+ * Parses the CONTAINS_SUBSTR function, which has a unique optional third argument "JSON_SCOPE"
+ * that specifies what scope to search if the first argument is a JSON string.
+ */
+ SqlCall ContainsSubstrFunctionCall() :
+ {
+    final List<SqlNode> args = new ArrayList<SqlNode>();
+    final Span s;
+    SqlNode e;
+ }
+ {
+     <CONTAINS_SUBSTR> { s = span(); }
+     <LPAREN>
+     AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+     <COMMA>
+     AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+     (
+        <RPAREN>
+     |
+        <COMMA>
+        <JSON_SCOPE>
+        <NAMED_ARGUMENT_ASSIGNMENT> e = Expression(ExprContext.ACCEPT_SUB_QUERY)  { args.add(e); }
+        <RPAREN>
+     ) { return SqlLibraryOperators.CONTAINS_SUBSTR.createCall(s.end(this), args); }
+ }
 
 /**
  * Parses a call to BigQuery's DATE_DIFF.
@@ -7538,6 +7566,12 @@ SqlNode JdbcFunctionCall() :
     }
     (
         LOOKAHEAD(1)
+        call = ContainsSubstrFunctionCall() {
+            name = call.getOperator().getName();
+            args = new SqlNodeList(call.getOperandList(), getPos());
+        }
+    |
+        LOOKAHEAD(1)
         call = DateDiffFunctionCall() {
             name = call.getOperator().getName();
             args = new SqlNodeList(call.getOperandList(), getPos());
@@ -7924,6 +7958,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < CONSTRAINTS: "CONSTRAINTS" >
 |   < CONSTRUCTOR: "CONSTRUCTOR" >
 |   < CONTAINS: "CONTAINS" >
+|   < CONTAINS_SUBSTR: "CONTAINS_SUBSTR" >
 |   < CONTINUE: "CONTINUE" >
 |   < CONVERT: "CONVERT" >
 |   < CORR: "CORR" >
@@ -8110,6 +8145,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < JSON_OBJECT: "JSON_OBJECT">
 |   < JSON_OBJECTAGG: "JSON_OBJECTAGG">
 |   < JSON_QUERY: "JSON_QUERY" >
+|   < JSON_SCOPE: "JSON_SCOPE" >
 |   < JSON_VALUE: "JSON_VALUE" >
 |   < K: "K" >
 |   < KEY: "KEY" >

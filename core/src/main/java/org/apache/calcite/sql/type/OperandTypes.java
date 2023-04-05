@@ -878,6 +878,10 @@ public abstract class OperandTypes {
       family(SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC, SqlTypeFamily.ANY);
   public static final SqlSingleOperandTypeChecker ANY_STRING_STRING =
       family(SqlTypeFamily.ANY, SqlTypeFamily.STRING, SqlTypeFamily.STRING);
+  public static final SqlSingleOperandTypeChecker ANY_STRING_OPTIONAL_STRING =
+      family(ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+          // Third operand optional (operand index 0, 1, 2)
+          number -> number == 2);
 
   /**
    * Operand type-checking strategy used by {@code ARG_MIN(value, comp)} and

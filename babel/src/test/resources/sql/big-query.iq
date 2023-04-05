@@ -1321,6 +1321,143 @@ SELECT STRPOS("abcabc", "bc") as result;
 !ok
 
 #####################################################################
+# CONTAINS_SUBSTR
+#
+# CONTAINS_SUBSTR(expression, search_value_literal[, json_scope=>json_scope_value])
+#
+# Performs a normalized, case-insensitive search to see if a value
+# exists as a substring in an expression. Returns TRUE if the value
+# exists, otherwise returns FALSE.
+SELECT CONTAINS_SUBSTR('the blue house', 'Blue house') AS result;
++--------+
+| result |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+SELECT CONTAINS_SUBSTR('the red house', 'blue') AS result;
++--------+
+| result |
++--------+
+| false  |
++--------+
+(1 row)
+
+!ok
+
+SELECT '\u2168 day' AS a, 'IX' AS b, CONTAINS_SUBSTR('\u2168', 'IX') AS result;
++------------+----+--------+
+| a          | b  | result |
++------------+----+--------+
+| \u2168 day | IX | true   |
++------------+----+--------+
+(1 row)
+
+!ok
+
+SELECT CONTAINS_SUBSTR((23, 35, 41), '35') AS result;
++--------+
+| result |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+SELECT CONTAINS_SUBSTR(TIMESTAMP '2008-12-25 15:30:00', '15:30') AS result;
++--------+
+| result |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+SELECT CONTAINS_SUBSTR((23, NULL, 41), '41') AS result;
++--------+
+| result |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+SELECT CONTAINS_SUBSTR((23, NULL, 41), '35') AS result;
++--------+
+| result |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+# Search column references
+WITH Recipes AS
+ (SELECT 'Blueberry pancakes' as Breakfast, 'Egg salad sandwich' as Lunch, 'Potato dumplings' as Dinner UNION ALL
+  SELECT 'Potato pancakes', 'Toasted cheese sandwich', 'Beef stroganoff' UNION ALL
+  SELECT 'Ham scramble', 'Steak avocado salad', 'Tomato pasta' UNION ALL
+  SELECT 'Avocado toast', 'Tomato soup', 'Blueberry salmon' UNION ALL
+  SELECT 'Corned beef hash', 'Lentil potato soup', 'Glazed ham')
+SELECT * FROM Recipes WHERE CONTAINS_SUBSTR((Lunch, Dinner), 'potato');
++--------------------+-------------------------+------------------+
+| Breakfast          | Lunch                   | Dinner           |
++--------------------+-------------------------+------------------+
+| Blueberry pancakes | Egg salad sandwich      | Potato dumplings |
+| Corned beef hash   | Lentil potato soup      | Glazed ham       |
++--------------------+-------------------------+------------------+
+(2 rows)
+
+!ok
+
+# If no JSON_SCOPE is specified, "JSON_VALUES" is the default
+SELECT CONTAINS_SUBSTR('{"lunch":"soup"}', "lunch") AS result;
++--------+
+| result |
++--------+
+| false  |
++--------+
+(1 row)
+
+!ok
+
+SELECT CONTAINS_SUBSTR('{"lunch":"soup"}', "lunch", json_scope=>"JSON_KEYS") AS result;
++--------+
+| result |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+SELECT CONTAINS_SUBSTR('{"lunch":"soup"}', "lunch", json_scope=>"JSON_VALUES") AS result;
++--------+
+| result |
++--------+
+| false  |
++--------+
+(1 row)
+
+!ok
+
+SELECT CONTAINS_SUBSTR('{"lunch":"soup"}', "lunch", json_scope=>"JSON_KEYS_AND_VALUES") AS result;
++--------+
+| result |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+#####################################################################
 # DATE
 #
 # 0. DATE(string)

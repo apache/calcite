@@ -513,6 +513,7 @@ CONSTRAINT_NAME,
 CONSTRAINT_SCHEMA,
 CONSTRUCTOR,
 **CONTAINS**,
+CONTAINS_SUBSTR,
 CONTINUE,
 **CONVERT**,
 **CORR**,
@@ -699,6 +700,7 @@ JSON,
 **JSON_OBJECT**,
 **JSON_OBJECTAGG**,
 **JSON_QUERY**,
+**JSON_SCOPE**,
 **JSON_VALUE**,
 K,
 KEY,
@@ -2688,6 +2690,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | m p | CONCAT_WS(separator, str1 [, string ]*)      | Concatenates one or more strings, returns null only when separator is null, otherwise treats null arguments as empty strings
 | q | CONCAT_WS(separator, str1, str2 [, string ]*)  | Concatenates two or more strings, requires at least 3 arguments (up to 254), treats null arguments as empty strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string
+| b | CONTAINS_SUBSTR(expression, string [ , json_scope&#61;&#62;json_scope_value ]) | Returns whether *string* exists as a substring in *expression*. Optional *json_scope* argument specifies what scope to search if *expression* is in JSON format. Returns NULL if a NULL exists in *expression* that does not result in a match
 | q | CONVERT(type, expression [ , style ])          | Equivalent to `CAST(expression AS type)`; ignores the *style* operand
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
 | * | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*

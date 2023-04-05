@@ -851,6 +851,9 @@ public enum SqlKind {
    * TABLE(udx(CURSOR(SELECT ...), x, y, z))</code>. */
   CURSOR,
 
+  /** {@code CONTAINS_SUBSTR} function (BigQuery semantics). */
+  CONTAINS_SUBSTR,
+
   // internal operators (evaluated in validator) 200-299
 
   /** The {@code LITERAL_AGG} aggregate function that always returns the same
