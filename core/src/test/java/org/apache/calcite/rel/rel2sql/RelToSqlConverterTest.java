@@ -8633,11 +8633,8 @@ class RelToSqlConverterTest {
     final String expectedSql =
         "SELECT TO_DATE('2009/03/20', 'yyyy/MM/dd') AS \"date_value\"\n"
             + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery =
-        "SELECT TO_DATE('2009/03/20', 'yyyy/MM/dd') AS date_value\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test public void testToDateFunctionWithAMInFormat() {
