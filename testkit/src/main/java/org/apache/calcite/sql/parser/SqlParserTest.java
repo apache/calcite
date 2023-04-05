@@ -2294,6 +2294,22 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testWithMultiple() {
+    // Tests parsing multiple "with" elements in the same query
+    final String sql = "with emp2 as (select * from emp), emp3 as (select * from emp)\n"
+        + "select * from emp2\n"
+        + "union\n"
+        + "select * from emp2\n";
+    final String expected = "WITH `EMP2` AS (SELECT *\n"
+        + "FROM `EMP`), `EMP3` AS (SELECT *\n"
+        + "FROM `EMP`) (SELECT *\n"
+        + "FROM `EMP2`\n"
+        + "UNION\n"
+        + "SELECT *\n"
+        + "FROM `EMP2`)";
+    sql(sql).ok(expected);
+  }
+
   @Test void testIdentifier() {
     expr("ab").ok("`AB`");
     expr("     \"a  \"\" b!c\"").ok("`a  \" b!c`");
@@ -5086,7 +5102,7 @@ public class SqlParserTest {
     expr("trim('mustache' FROM 'beard'^,^ 'a')")
         .fails("(?s).*Encountered \",\" at.*");
 
-    //Sanity check that lookahead isn't going to be an issue
+    // Sanity check that lookahead isn't going to be an issue
     expr("trim('mustache'||'beard'||'hello'||'beard'||'hello', "
         + "'hello'||'beard'||'hello'||'beard'||'hello')")
         .ok("TRIM(BOTH (((('hello' || 'beard') || 'hello') || 'beard') || 'hello') "
@@ -9955,6 +9971,43 @@ public class SqlParserTest {
     final String expected = "DELETE FROM `EMPS`\n"
         + "/*+ `PROPERTIES`(`K1` = 'v1', `K2` = 'v2'), `INDEX`(`IDX1`, `IDX2`), `NO_HASH_JOIN` */\n"
         + "WHERE (`EMPNO` = 12)";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testUsingTableInDelete() {
+    final String sql = "delete from emps\n"
+        + "using dept\n"
+        + "where empno = (SELECT MAX(deptno) from dept)\n";
+    final String expected = "DELETE FROM `EMPS` USING `DEPT`\n"
+        + "WHERE (`EMPNO` = (SELECT MAX(`DEPTNO`)\n"
+        + "FROM `DEPT`))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testUsingSubqueryInDelete() {
+    final String sql = "delete from emps\n"
+        + "using (Select * from dept where deptno < 10) as dept_filtered\n"
+        + "where empno = (SELECT MAX(deptno) from dept_filtered)\n";
+    final String expected = "DELETE FROM `EMPS` USING ((SELECT *\n"
+        + "FROM `DEPT`\n"
+        + "WHERE (`DEPTNO` < 10))) AS `DEPT_FILTERED`\n"
+        + "WHERE (`EMPNO` = (SELECT MAX(`DEPTNO`)\n"
+        + "FROM `DEPT_FILTERED`))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testUsingMultipleValuesInDelete() {
+    final String sql = "delete from emps\n"
+        + "using (Select * from dept where deptno < 10) as dept_filtered, (Select * from dept where deptno > 10) as dept_filtered_2\n"
+        + "where empno = (SELECT MAX(deptno) from dept_filtered) and empno = (SELECT MAX(deptno) from dept_filtered_2)\n";
+    final String expected = "DELETE FROM `EMPS` USING ((SELECT *\n"
+        + "FROM `DEPT`\n"
+        + "WHERE (`DEPTNO` < 10))) AS `DEPT_FILTERED`, ((SELECT *\n"
+        + "FROM `DEPT`\n"
+        + "WHERE (`DEPTNO` > 10))) AS `DEPT_FILTERED_2`\n"
+        + "WHERE ((`EMPNO` = (SELECT MAX(`DEPTNO`)\n"
+        + "FROM `DEPT_FILTERED`)) AND (`EMPNO` = (SELECT MAX(`DEPTNO`)\n"
+        + "FROM `DEPT_FILTERED_2`)))";
     sql(sql).ok(expected);
   }
 

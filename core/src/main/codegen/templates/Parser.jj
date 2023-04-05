@@ -107,6 +107,7 @@ import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
+import org.apache.calcite.sql.SqlDeleteUsingItem;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
@@ -1713,8 +1714,10 @@ SqlNode SqlDelete() :
     SqlNode table;
     SqlNodeList extendList = null;
     SqlIdentifier alias = null;
+    SqlNodeList using = null;
     final SqlNode condition;
     final Span s;
+    final SqlDelete delete;
 }
 {
     <DELETE> {
@@ -1728,10 +1731,67 @@ SqlNode SqlDelete() :
         }
     ]
     [ [ <AS> ] alias = SimpleIdentifier() ]
+    [ <USING> using = SqlDeleteUsingList() ]
     condition = WhereOpt()
     {
-        return new SqlDelete(s.add(table).addIf(extendList).addIf(alias)
+        delete = new SqlDelete(s.add(table).addIf(extendList).addIf(alias).addIf(using)
             .addIf(condition).pos(), table, condition, null, alias);
+        delete.setUsingList(using);
+        return delete;
+    }
+}
+
+
+SqlNodeList SqlDeleteUsingList() :
+{
+    SqlNodeList usingList;
+    SqlNode deleteUsingElement = null;
+    final Span s;
+}
+{
+
+    deleteUsingElement = SqlDeleteUsingElement() {
+        s = span();
+        usingList = new SqlNodeList(s.pos());
+        usingList.add(deleteUsingElement);
+    }
+    (
+    <COMMA>
+    deleteUsingElement = SqlDeleteUsingElement() {usingList.add(deleteUsingElement);}
+    )*
+
+    {
+        return usingList;
+    }
+}
+
+
+SqlDeleteUsingItem SqlDeleteUsingElement() :
+{
+    SqlNode deleteUsingElement;
+    SqlIdentifier alias = null;
+    SqlParserPos s;
+}
+{
+    // Based on my reading of with parsing, this should allow
+    // for either a table identifier, or
+    // any subquery valid in a WITH clause (which is the expected
+    // behavior)
+    (
+    deleteUsingElement = ParenthesizedExpression(ExprContext.ACCEPT_QUERY)
+    | deleteUsingElement = TableRefWithHintsOpt()
+    ) {s = deleteUsingElement.getParserPosition();}
+    [
+     (
+         (<AS> alias = SimpleIdentifier())
+         | alias = SimpleIdentifier()
+     ){s = s.plus(alias.getParserPosition());}
+    ]
+    {
+        return new SqlDeleteUsingItem(
+            s,
+            alias,
+            deleteUsingElement);
     }
 }
 

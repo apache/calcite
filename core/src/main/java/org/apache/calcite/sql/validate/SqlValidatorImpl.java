@@ -50,6 +50,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlCreate;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDelete;
+import org.apache.calcite.sql.SqlDeleteUsingItem;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlFunction;
@@ -1360,6 +1361,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         } else {
           childUnderFrom = false;
         }
+
         SqlNode newOperand =
             performUnconditionalRewrites(operand, childUnderFrom);
         if (newOperand != null && newOperand != operand) {
@@ -1480,8 +1482,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     case DELETE: {
       SqlDelete call = (SqlDelete) node;
-      SqlSelect select = createSourceSelectForDelete(call);
-      call.setSourceSelect(select);
+      if (call.getUsing() != null) {
+        // If we have a USING clause, we rewrite the delete as a merge operation
+        node = rewriteDeleteToMerge(call);
+      } else {
+        // Otherwise, we leave it as is, and just generate the source select
+        SqlSelect select = createSourceSelectForDelete(call);
+        call.setSourceSelect(select);
+      }
       break;
     }
 
@@ -1573,7 +1581,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      * be present in the various conditions/clauses.
      */
 
-    SqlNode targetTable = call.getTargetTable();
+    SqlNode origTargetTable = call.getTargetTable();
 
     // NOTE, we add a projection onto the dest/target table, which adds a literal TRUE
     // This is used for checking if a merge has occurred later on. For all rows which did not match
@@ -1583,14 +1591,37 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     targetTableSelectList.add(SqlIdentifier.star(SqlParserPos.ZERO));
     targetTableSelectList.add(SqlLiteral.createBoolean(true, SqlParserPos.ZERO));
 
-    targetTable = new SqlSelect(SqlParserPos.ZERO, null, targetTableSelectList,
-        targetTable, null, null, null, null, null,
+    SqlNode targetTable = new SqlSelect(SqlParserPos.ZERO, null, targetTableSelectList,
+        origTargetTable, null, null, null, null, null,
         null, null, null, null);
     if (call.getAlias() != null) {
       targetTable =
           SqlValidatorUtil.addAlias(
               targetTable,
               call.getAlias().getSimple());
+    } else {
+      // Due to the manner in which calcite handles subqueries, we need to explicitly add an
+      // alias here in order to handle fully qualified table names.
+      //
+      // For example this will succseed:
+      //
+      // SELECT *, True from dept inner join (SELECT *, True from emp) as emp on emp.ename = 1
+      //                                                               ^^^^^^
+      // But this will not:
+      //
+      // SELECT *, True from dept inner join (SELECT *, True from emp) on emp.ename = 1
+      //
+      // Therefore, we need add this explicit alias because we expect a query like:
+      // ... using table T1
+      // WHEN MATCHED AND T1.foo > 1
+      //
+      // to be able to properly handle the fully qualified reference to T1.foo
+      //
+      targetTable =
+          SqlValidatorUtil.addAlias(
+              targetTable,
+              ((SqlIdentifier) origTargetTable).getSimple()
+      );
     }
 
     // Provided there is an insert sub statement, the source select for
@@ -1702,6 +1733,89 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       insertCall.setSource(select);
     }
 
+  }
+
+
+
+  /**
+   * Used in UnconditonalRewrites. In the case that we have a DELETE with a USING clause.
+   *
+   * DELETE FROM target using T1, T2, ... where (cond) is equivalent to
+   *
+   * MERGE INTO target using (T1 full outer join T2...) on (cond) WHEN MATCHED THEN DELETE
+   *
+   * We choose to do this rewrite (similar to rewriteUpdateToMerge), in order to simplify validation
+   * and sqlToRel code generation.
+   *
+   * @param originalDeleteCall The DELETE call to transform. Must have at least one table/subquery
+   *                           in the "USING" clause.
+   * @return A new SqlMerge, which is equivalent to the original SqlDelete call.
+   */
+  private SqlMerge rewriteDeleteToMerge(
+      SqlDelete originalDeleteCall
+  ) {
+    //This should already be enforced in the one location we call this helper, but just to be safe
+    SqlNodeList usingClauses = requireNonNull(originalDeleteCall.getUsing(),
+        "rewriteDeleteToMerge called on a delete with no 'USING' clause");
+
+    //This should be required by parsing, but to be safe:
+    assert usingClauses.size() >= 1
+        :
+        "rewriteDeleteToMerge called on a delete with no 'USING' clause";
+    SqlNode targetTable = originalDeleteCall.getTargetTable();
+    SqlNode condition = originalDeleteCall.getCondition();
+    if (condition == null) {
+      condition = SqlLiteral.createBoolean(true, SqlParserPos.ZERO);
+    }
+    SqlIdentifier alias = originalDeleteCall.getAlias();
+
+    SqlNodeList matchedCallList = SqlNodeList.EMPTY.clone(originalDeleteCall.getParserPosition());
+
+    SqlDelete matchedDeleteExpression = new
+        SqlDelete(originalDeleteCall.getParserPosition(),
+        targetTable, null, null, alias);
+
+    // TODO(keaton)
+    // There's a wierd issue here. Essentially, in validation, it will infer
+    // the row type of EMP as the row type from the merge in one location, but
+    // as the emp from the original table in another location, which causes a number conflicts.
+    //
+    // I spent about a day trying to resolve this, but all the fixes I tried ended up breaking
+    // existing merge into paths, and we don't even use the created Delete List anywhere
+    // in the merge path, I'm just going to set this to something arbitrary, and leave this as
+    // technical debt to figure out later.
+    SqlSelect select = createSourceSelectForDelete(matchedDeleteExpression);
+    select.getSelectList().remove(0);
+    select.getSelectList().add(SqlLiteral.createBoolean(true, SqlParserPos.ZERO));
+    matchedDeleteExpression.setSourceSelect(select);
+
+    matchedCallList.add(matchedDeleteExpression);
+    SqlNodeList unMatchedCallList = SqlNodeList.EMPTY.clone(originalDeleteCall.getParserPosition());
+
+    //Set source to be the join of all the tables in Using.
+    //We're relying on the optimizer to push filters from the ON clause
+    //into the source table when appropriate.
+    SqlNode source = ((SqlDeleteUsingItem) usingClauses.get(0)).getSqlDeleteItemAsJoinExpression();
+    for (int i = 1; i < usingClauses.size(); i++) {
+      SqlNode newExpr = ((SqlDeleteUsingItem) usingClauses.get(i))
+          .getSqlDeleteItemAsJoinExpression();
+      source = new SqlJoin(SqlParserPos.ZERO,
+          source,
+          SqlLiteral.createBoolean(false, SqlParserPos.ZERO),
+          JoinType.FULL.symbol(SqlParserPos.ZERO),
+          newExpr,
+          JoinConditionType.ON.symbol(SqlParserPos.ZERO),
+          SqlLiteral.createBoolean(true, SqlParserPos.ZERO));
+    }
+
+    SqlMerge mergeCall =
+        new SqlMerge(originalDeleteCall.getParserPosition(), targetTable, condition, source,
+            matchedCallList, unMatchedCallList, null,
+            alias);
+
+    //Run rewrite merge, so that it can apply whatever changes it needs to.
+    rewriteMerge(mergeCall);
+    return mergeCall;
   }
 
   private SqlNode rewriteUpdateToMerge(

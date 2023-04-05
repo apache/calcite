@@ -35,6 +35,8 @@ public class SqlDelete extends SqlCall {
       new SqlSpecialOperator("DELETE", SqlKind.DELETE);
 
   SqlNode targetTable;
+
+  @Nullable SqlNodeList usingList;
   @Nullable SqlNode condition;
   @Nullable SqlSelect sourceSelect;
   @Nullable SqlIdentifier alias;
@@ -52,9 +54,14 @@ public class SqlDelete extends SqlCall {
     this.condition = condition;
     this.sourceSelect = sourceSelect;
     this.alias = alias;
+    this.usingList = null;
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  public void setUsingList(SqlNodeList list) {
+    this.usingList = list;
+  }
 
   @Override public SqlKind getKind() {
     return SqlKind.DELETE;
@@ -124,6 +131,10 @@ public class SqlDelete extends SqlCall {
     return sourceSelect;
   }
 
+  public @Nullable SqlNodeList getUsing() {
+    return usingList;
+  }
+
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.SELECT, "DELETE FROM", "");
@@ -134,6 +145,19 @@ public class SqlDelete extends SqlCall {
     if (alias != null) {
       writer.keyword("AS");
       alias.unparse(writer, opLeft, opRight);
+    }
+    SqlNodeList using = this.usingList;
+    if (using != null) {
+      final SqlWriter.Frame frame1 =
+          writer.startList(SqlWriter.FrameTypeEnum.WITH, "USING", "");
+      for (int i = 0; i < using.size(); i++) {
+        if (i != 0) {
+          writer.sep(",");
+        }
+        SqlNode val = using.get(i);
+        val.unparse(writer, 0, 0);
+      }
+      writer.endList(frame1);
     }
     SqlNode condition = this.condition;
     if (condition != null) {
