@@ -3853,6 +3853,14 @@ class RelToSqlConverterTest {
     sqlSpark(query, expected);
   }
 
+  @Test void testArrayFunctionNullary() {
+    final String query = "SELECT ARRAY()";
+    final String expected = "SELECT ARRAY()\n"
+        + "FROM (VALUES (0)) t (ZERO)";
+  
+    sqlSpark(query, expected);
+  }
+
   @Test void testArrayFunctionFail() {
     final String query = "SELECT ARRAY(1, 2)";
     sql(query).throws_("Got array function call, however conformance allowArrayFunction is false"); 

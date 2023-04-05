@@ -7891,8 +7891,11 @@ public class SqlOperatorTest {
       f.withConformance(SqlConformanceEnum.SPARK)
        .withLibrary(SqlLibrary.SPARK);
 
-    f2.checkScalar("Array('foo', 'bar')",
+    f2.checkScalar("array('foo', 'bar')",
         "[foo, bar]", "CHAR(3) NOT NULL ARRAY NOT NULL");    
+
+    f2.checkScalar("array()",
+        "[]", "UNKNOWN NOT NULL ARRAY NOT NULL");    
   }
 
   /**
