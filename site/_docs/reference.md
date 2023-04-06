@@ -2688,7 +2688,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | FORMAT_DATETIME(string, timestamp)             | Formats *timestamp* according to the specified format *string*
 | b | FORMAT_TIME(string, time)                      | Formats *time* according to the specified format *string*
 | b | FORMAT_TIMESTAMP(string timestamp)             | Formats *timestamp* according to the specified format *string*
-| b o | GREATEST(expr [, expr ]*)                    | Returns the greatest of the expressions
+| b o p | GREATEST(expr [, expr ]*)                  | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
 | b | IFNULL(value1, value2)                         | Equivalent to `NVL(value1, value2)`
 | p | string1 ILIKE string2 [ ESCAPE string3 ]       | Whether *string1* matches pattern *string2*, ignoring case (similar to `LIKE`)
@@ -2703,7 +2703,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | m | JSON_REPLACE(jsonValue, path, val[, path, val]*)  | Returns a JSON document replace a data of *jsonValue*, *path*, *val*
 | m | JSON_SET(jsonValue, path, val[, path, val]*)  | Returns a JSON document set a data of *jsonValue*, *path*, *val*
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of *jsonValue*
-| b o | LEAST(expr [, expr ]* )                      | Returns the least of the expressions
+| b o p | LEAST(expr [, expr ]* )                    | Returns the least of the expressions
 | b m p | LEFT(string, length)                       | Returns the leftmost *length* characters from the *string*
 | b | LENGTH(string)                                 | Equivalent to `CHAR_LENGTH(string)`
 | b o | LPAD(string, length[, pattern ])             | Returns a string or bytes value that consists of *string* prepended to *length* with *pattern*
