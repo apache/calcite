@@ -42,7 +42,7 @@ import static java.util.Objects.requireNonNull;
  * behavior only by providing strategy objects, not by overriding methods in a
  * subclass.
  */
-public class SqlBasicFunction extends SqlFunction {
+public final class SqlBasicFunction extends SqlFunction {
   private final SqlSyntax syntax;
   private final boolean deterministic;
   private final SqlOperandHandler operandHandler;

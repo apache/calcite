@@ -7793,7 +7793,7 @@ public class SqlParserTest {
     SqlSetOption opt = (SqlSetOption) node;
     assertThat(opt.getScope(), equalTo("SYSTEM"));
     SqlPrettyWriter writer = new SqlPrettyWriter();
-    assertThat(writer.format(opt.getName()), equalTo("\"SCHEMA\""));
+    assertThat(writer.format(opt.name()), equalTo("\"SCHEMA\""));
     writer = new SqlPrettyWriter();
     assertThat(writer.format(opt.getValue()), equalTo("TRUE"));
     writer = new SqlPrettyWriter();
@@ -7825,7 +7825,7 @@ public class SqlParserTest {
     opt = (SqlSetOption) node;
     assertThat(opt.getScope(), equalTo(null));
     writer = new SqlPrettyWriter();
-    assertThat(writer.format(opt.getName()), equalTo("\"SCHEMA\""));
+    assertThat(writer.format(opt.name()), equalTo("\"SCHEMA\""));
     assertThat(opt.getValue(), equalTo(null));
     writer = new SqlPrettyWriter();
     assertThat(writer.format(opt),
