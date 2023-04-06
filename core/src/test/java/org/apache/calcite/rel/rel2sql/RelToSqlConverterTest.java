@@ -2370,14 +2370,14 @@ class RelToSqlConverterTest {
                 RexSubQuery.scalar(scalarQueryRel)).as("SC_DEPTNO"),
             builder.count(builder.literal(1)).as("pid"))
         .build();
-    final String expectedBigQuery = "SELECT EMPNO, (((SELECT DEPTNO\n"
+    final String expectedBigQuery = "SELECT EMPNO, (SELECT DEPTNO\n"
         + "FROM scott.DEPT\n"
-        + "WHERE DEPTNO = 40))) AS SC_DEPTNO, COUNT(1) AS pid\n"
+        + "WHERE DEPTNO = 40) AS SC_DEPTNO, COUNT(1) AS pid\n"
         + "FROM scott.EMP\n"
         + "GROUP BY EMPNO";
-    final String expectedSnowflake = "SELECT \"EMPNO\", (((SELECT \"DEPTNO\"\n"
+    final String expectedSnowflake = "SELECT \"EMPNO\", (SELECT \"DEPTNO\"\n"
         + "FROM \"scott\".\"DEPT\"\n"
-        + "WHERE \"DEPTNO\" = 40))) AS \"SC_DEPTNO\", COUNT(1) AS \"pid\"\n"
+        + "WHERE \"DEPTNO\" = 40) AS \"SC_DEPTNO\", COUNT(1) AS \"pid\"\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "GROUP BY \"EMPNO\"";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
@@ -11311,9 +11311,9 @@ class RelToSqlConverterTest {
 
     final String expectedBigQuery = "SELECT *\n"
         + "FROM scott.EMP\n"
-        + "WHERE (EMPNO, HIREDATE) = (((SELECT (EMPNO, HIREDATE) AS `$f0`\n"
+        + "WHERE (EMPNO, HIREDATE) = (SELECT (EMPNO, HIREDATE) AS `$f0`\n"
         + "FROM scott.EMP\n"
-        + "WHERE EMPNO = '100')))";
+        + "WHERE EMPNO = '100')";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedBigQuery));
@@ -11596,6 +11596,29 @@ class RelToSqlConverterTest {
     String expectedBigQuery = "SELECT sales_fact_1997.store_id\n"
         + "FROM foodmart.product\n"
         + "INNER JOIN foodmart.sales_fact_1997 ON product.product_id IN (sales_fact_1997.product_id)";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
+  @Test public void testBracesForScalarSubQuery() {
+    final RelBuilder builder = relBuilder();
+    final RelNode scalarQueryRel = builder.
+        scan("DEPT")
+        .filter(builder.equals(builder.field("DEPTNO"), builder.literal(40)))
+        .project(builder.field(0))
+        .build();
+    final RelNode root = builder
+        .scan("EMP")
+        .aggregate(builder.groupKey("EMPNO"),
+            builder.aggregateCall(SqlStdOperatorTable.SINGLE_VALUE,
+                RexSubQuery.scalar(scalarQueryRel)).as("t"),
+            builder.count(builder.literal(1)).as("pid"))
+        .build();
+    final String expectedBigQuery = "SELECT EMPNO, (SELECT DEPTNO\n"
+        + "FROM scott.DEPT\n"
+        + "WHERE DEPTNO = 40) AS t, COUNT(1) AS pid\n"
+        + "FROM scott.EMP\n"
+        + "GROUP BY EMPNO";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedBigQuery));
   }
