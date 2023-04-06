@@ -18,4 +18,4 @@
 /**
  * Parse tree for PostgreSQL extensions used by the Babel parser.
  */
-package org.apache.calcite.sql.babel.postgresql;
+package org.apache.calcite.sql.babel.postgres;
