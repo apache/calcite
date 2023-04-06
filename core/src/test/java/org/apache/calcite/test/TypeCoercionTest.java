@@ -29,10 +29,12 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.implicit.AbstractTypeCoercion;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
+import org.apache.calcite.test.catalog.MockCatalogReaderSimple;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -58,6 +60,10 @@ class TypeCoercionTest {
 
   public Fixture fixture() {
     return DEFAULT_FIXTURE;
+  }
+
+  @BeforeEach public void setup() {
+    fixture().mockCatalogReader.clearRootSchemaTypeMap();
   }
 
   public static SqlValidatorFixture sql(String sql) {
@@ -566,6 +572,51 @@ class TypeCoercionTest {
     f.shouldNotCast(checkedType15, SqlTypeFamily.INTEGER);
   }
 
+  @Test void testImplicitCastRespectsCatalogTypeMap() {
+    final Fixture f = fixture();
+
+    // Add some type mappings:
+    // A BigQuery "TIMESTAMP" is equivalent to "TIMESTAMP WITH LOCAL TIME ZONE" in ISO SQL.
+    f.mockCatalogReader.addNamedTypeToRootSchema(
+        "TIMESTAMP", f.typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE));
+    // The rest of the mappings take standard SQL types and map them all to "DOUBLE".
+    // This would probably never occur in real life, but is necessary to unit-test all code paths.
+    f.mockCatalogReader.addNamedTypeToRootSchema(
+        "VARCHAR", f.typeFactory.createSqlType(SqlTypeName.DOUBLE));
+    f.mockCatalogReader.addNamedTypeToRootSchema(
+        "VARBINARY", f.typeFactory.createSqlType(SqlTypeName.DOUBLE));
+    f.mockCatalogReader.addNamedTypeToRootSchema(
+        "DECIMAL", f.typeFactory.createSqlType(SqlTypeName.DOUBLE));
+    f.mockCatalogReader.addNamedTypeToRootSchema(
+        "DATE", f.typeFactory.createSqlType(SqlTypeName.DOUBLE));
+    f.mockCatalogReader.addNamedTypeToRootSchema(
+        "GEOMETRY", f.typeFactory.createSqlType(SqlTypeName.DOUBLE));
+
+    // No-op cast with mapping:
+    f.shouldCast(
+        SqlTypeName.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+
+    // Null cast with mapping:
+    f.shouldCast(
+        SqlTypeName.NULL, SqlTypeFamily.TIMESTAMP, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+
+    // Exact-to-decimal cast with mapping:
+    f.shouldCast(SqlTypeName.INTEGER, SqlTypeFamily.DECIMAL, SqlTypeName.DOUBLE);
+
+    // Inexact-to-decimal cast with mapping:
+    f.shouldCast(SqlTypeName.DOUBLE, SqlTypeFamily.DECIMAL, SqlTypeName.DOUBLE);
+
+    // Other explicit coercions:
+    f.shouldCast(
+        SqlTypeName.DATE, SqlTypeFamily.TIMESTAMP, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+    f.shouldCast(
+        SqlTypeName.VARCHAR, SqlTypeFamily.TIMESTAMP, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+    f.shouldCast(SqlTypeName.VARCHAR, SqlTypeFamily.DECIMAL, SqlTypeName.DOUBLE);
+    f.shouldCast(SqlTypeName.VARCHAR, SqlTypeFamily.BINARY, SqlTypeName.DOUBLE);
+    f.shouldCast(SqlTypeName.INTEGER, SqlTypeFamily.CHARACTER, SqlTypeName.DOUBLE);
+    f.shouldCast(SqlTypeName.VARCHAR, SqlTypeFamily.GEO, SqlTypeName.DOUBLE);
+  }
+
   /** Test case for {@link TypeCoercion#builtinFunctionCoercion}. */
   @Test void testBuiltinFunctionCoercion() {
     // concat
@@ -623,6 +674,7 @@ class TypeCoercionTest {
 
   /** Everything you need to run a test. */
   static class Fixture {
+    final MockCatalogReaderSimple mockCatalogReader;
     final TypeCoercion typeCoercion;
     final RelDataTypeFactory typeFactory;
 
@@ -658,13 +710,15 @@ class TypeCoercionTest {
     /** Creates a Fixture. */
     public static Fixture create(SqlTestFactory testFactory) {
       final SqlValidator validator = testFactory.createValidator();
-      return new Fixture(validator.getTypeFactory(), validator.getTypeCoercion());
+      return new Fixture(validator.getTypeFactory(), validator.getTypeCoercion(),
+          (MockCatalogReaderSimple) validator.getCatalogReader());
     }
 
     protected Fixture(RelDataTypeFactory typeFactory,
-        TypeCoercion typeCoercion) {
+        TypeCoercion typeCoercion, MockCatalogReaderSimple mockCatalogReader) {
       this.typeFactory = typeFactory;
       this.typeCoercion = typeCoercion;
+      this.mockCatalogReader = mockCatalogReader;
 
       // Initialize single types
       nullType = this.typeFactory.createSqlType(SqlTypeName.NULL);
@@ -755,7 +809,7 @@ class TypeCoercionTest {
     }
 
     public Fixture withTypeFactory(RelDataTypeFactory typeFactory) {
-      return new Fixture(typeFactory, typeCoercion);
+      return new Fixture(typeFactory, typeCoercion, mockCatalogReader);
     }
 
     //~ Tool methods -----------------------------------------------------------
@@ -799,6 +853,11 @@ class TypeCoercionTest {
               || SqlTypeUtil.equalSansNullability(typeFactory, castedType, expected)
               || expected.getSqlTypeName().getFamily().contains(castedType),
           is(true));
+    }
+
+    /** Convenience method to call {@link #shouldCast(RelDataType, SqlTypeFamily, RelDataType)}. */
+    private void shouldCast(SqlTypeName from, SqlTypeFamily family, SqlTypeName expected) {
+      shouldCast(typeFactory.createSqlType(from), family, typeFactory.createSqlType(expected));
     }
 
     private void shouldNotCast(

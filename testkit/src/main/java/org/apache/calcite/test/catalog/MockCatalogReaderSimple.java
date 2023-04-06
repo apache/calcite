@@ -35,9 +35,11 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -45,6 +47,7 @@ import java.util.List;
  */
 public class MockCatalogReaderSimple extends MockCatalogReader {
   private final ObjectSqlType addressType;
+  private final HashMap<String, RelDataType> rootSchemaTypeMap;
 
   /**
    * Creates a MockCatalogReader.
@@ -60,6 +63,7 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     super(typeFactory, caseSensitive);
 
     addressType = new Fixture(typeFactory).addressType;
+    rootSchemaTypeMap = new HashMap();
   }
 
   /** Creates and initializes a MockCatalogReaderSimple. */
@@ -68,12 +72,21 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     return new MockCatalogReaderSimple(typeFactory, caseSensitive).init();
   }
 
-  @Override public RelDataType getNamedType(SqlIdentifier typeName) {
+  @Override public @Nullable RelDataType getNamedType(SqlIdentifier typeName) {
     if (typeName.equalsDeep(addressType.getSqlIdentifier(), Litmus.IGNORE)) {
       return addressType;
     } else {
-      return super.getNamedType(typeName);
+      RelDataType r = rootSchemaTypeMap.get(typeName.getSimple());
+      return r != null ? r : super.getNamedType(typeName);
     }
+  }
+
+  public void addNamedTypeToRootSchema(String name, RelDataType dataType) {
+    rootSchemaTypeMap.put(name, dataType);
+  }
+
+  public void clearRootSchemaTypeMap() {
+    rootSchemaTypeMap.clear();
   }
 
   private void registerTableEmp(MockTable empTable, Fixture fixture) {
