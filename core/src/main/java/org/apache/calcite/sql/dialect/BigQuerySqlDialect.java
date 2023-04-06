@@ -1165,8 +1165,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "HASHROW":
       unparseHashrowFunction(writer, call, leftPrec, rightPrec);
       break;
-    case "TRUNC":
-      final SqlWriter.Frame trunc = getTruncFrame(writer, call);
+    case "DATE_TRUNC":
+      final SqlWriter.Frame trunc = writer.startFunCall("DATE_TRUNC");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.print(",");
       writer.sep(removeSingleQuotes(call.operand(1)));
@@ -1951,29 +1951,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlCall farmFingerprintCall = FARM_FINGERPRINT.createCall(SqlParserPos.ZERO,
         farmFingerprintOperandCall);
     super.unparseCall(writer, farmFingerprintCall, leftPrec, rightPrec);
-  }
-
-  private SqlWriter.Frame getTruncFrame(SqlWriter writer, SqlCall call) {
-    SqlWriter.Frame frame = null;
-    String dateFormatOperand = call.operand(1).toString();
-    boolean isDateTimeOperand = call.operand(0).toString().contains("DATETIME");
-    if (isDateTimeOperand) {
-      frame = writer.startFunCall("DATETIME_TRUNC");
-    } else {
-      switch (dateFormatOperand) {
-      case "'HOUR'":
-      case "'MINUTE'":
-      case "'SECOND'":
-      case "'MILLISECOND'":
-      case "'MICROSECOND'":
-        frame = writer.startFunCall("TIME_TRUNC");
-        break;
-      default:
-        frame = writer.startFunCall("DATE_TRUNC");
-
-      }
-    }
-    return frame;
   }
 
   private SqlWriter.Frame getColumnListFrame(SqlWriter writer, SqlCall call) {
