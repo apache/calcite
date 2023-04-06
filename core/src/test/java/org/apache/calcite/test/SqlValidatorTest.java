@@ -1524,9 +1524,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
     expr("^TO_CHAR(1680080352, 'YYYY-MM-DD HH24:MI:SS.MS TZ')^")
         .withOperatorTable(opTable)
-        .fails("Cannot apply 'TO_CHAR' to arguments of type " +
-            "'TO_CHAR\\(<INTEGER>, <CHAR\\(27\\)>\\)'\\. Supported form\\(s\\): " +
-            "'TO_CHAR\\(<TIMESTAMP>, <STRING>\\)'");
+        .fails("Cannot apply 'TO_CHAR' to arguments of type "
+            + "'TO_CHAR\\(<INTEGER>, <CHAR\\(27\\)>\\)'\\. Supported form\\(s\\): "
+            + "'TO_CHAR\\(<TIMESTAMP>, <STRING>\\)'");
   }
 
   @Test void testToDateFunction() {
