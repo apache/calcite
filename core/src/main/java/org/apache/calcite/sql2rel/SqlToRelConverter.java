@@ -1282,11 +1282,11 @@ public class SqlToRelConverter {
                 null,
                 ImmutableList.of(
                     AggregateCall.create(SqlStdOperatorTable.COUNT, false,
-                        false, false, ImmutableList.of(), -1, null,
-                        RelCollations.EMPTY, longType, null),
+                        false, false, ImmutableList.of(), ImmutableList.of(),
+                        -1, null, RelCollations.EMPTY, longType, null),
                     AggregateCall.create(SqlStdOperatorTable.COUNT, false,
-                        false, false, args, -1, null,
-                        RelCollations.EMPTY, longType, null)));
+                        false, false, ImmutableList.of(), args,
+                        -1, null, RelCollations.EMPTY, longType, null)));
         LogicalJoin join =
             LogicalJoin.create(bb.root(), aggregate, ImmutableList.of(),
                 rexBuilder.makeLiteral(true), ImmutableSet.of(), JoinRelType.INNER);
@@ -6216,6 +6216,7 @@ public class SqlToRelConverter {
               distinct,
               approximate,
               ignoreNulls,
+              ImmutableList.of(),
               args,
               filterArg,
               distinctKeys,

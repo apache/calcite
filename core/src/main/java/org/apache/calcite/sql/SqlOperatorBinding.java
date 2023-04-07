@@ -208,8 +208,15 @@ public abstract class SqlOperatorBinding {
             getOperandType(ordinal).getSqlTypeName());
   }
 
-  /** Returns the number of bound operands. */
+  /** Returns the number of bound operands.
+   * Includes pre-operands and regular operands. */
   public abstract int getOperandCount();
+
+  /** Returns the number of pre-operands.
+   * Zero except for a few aggregate functions. */
+  public int getPreOperandCount() {
+    return 0;
+  }
 
   /**
    * Gets the type of a bound operand.

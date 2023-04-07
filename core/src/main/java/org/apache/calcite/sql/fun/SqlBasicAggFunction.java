@@ -58,7 +58,8 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
   private SqlBasicAggFunction(String name, @Nullable SqlIdentifier sqlIdentifier,
       SqlKind kind, SqlReturnTypeInference returnTypeInference,
       @Nullable SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker, SqlFunctionCategory funcType,
+      SqlOperandTypeChecker operandTypeChecker,
+      SqlFunctionCategory funcType,
       boolean requiresOrder, boolean requiresOver,
       Optionality requiresGroupOrder, Optionality distinctOptionality,
       SqlSyntax syntax, boolean allowsNullTreatment, boolean allowsSeparator,
@@ -68,7 +69,8 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         requireNonNull(operandTypeChecker, "operandTypeChecker"),
         requireNonNull(funcType, "funcType"), requiresOrder, requiresOver,
         requiresGroupOrder);
-    this.distinctOptionality = requireNonNull(distinctOptionality, "distinctOptionality");
+    this.distinctOptionality =
+        requireNonNull(distinctOptionality, "distinctOptionality");
     this.syntax = requireNonNull(syntax, "syntax");
     this.allowsNullTreatment = allowsNullTreatment;
     this.allowsSeparator = allowsSeparator;
@@ -93,6 +95,10 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public <T> @Nullable T unwrap(Class<T> clazz) {
+    return super.unwrap(clazz);
+  }
 
   @Override public RelDataType deriveType(SqlValidator validator,
       SqlValidatorScope scope, SqlCall call) {
@@ -217,4 +223,5 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         requiresOver(), groupOrder, distinctOptionality, syntax,
         allowsNullTreatment, allowsSeparator, percentile);
   }
+
 }

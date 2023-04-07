@@ -86,7 +86,7 @@ public class NormalizationTrimFieldTest extends SqlToRelTestBase {
     final AggregateCall call =
         AggregateCall.create(count.getAggregation(),
             count.isDistinct(), count.isApproximate(),
-            count.ignoreNulls(), ImmutableList.of(3),
+            count.ignoreNulls(), count.rexList, ImmutableList.of(3),
             count.filterArg, null, count.collation,
             count.getType(), count.getName());
     final RelNode query =

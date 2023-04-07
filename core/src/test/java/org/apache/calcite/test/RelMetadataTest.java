@@ -1898,8 +1898,8 @@ public class RelMetadataTest {
             bitSetOf(2, 0),
             ImmutableList.of(),
             ImmutableList.of(
-                AggregateCall.create(SqlStdOperatorTable.COUNT,
-                    false, false, false, ImmutableIntList.of(),
+                AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
+                    false, ImmutableList.of(), ImmutableIntList.of(),
                     -1, null, RelCollations.EMPTY, 2, join, null, null)));
     rowSize = mq.getAverageRowSize(aggregate);
     columnSizes = mq.getAverageColumnSizes(aggregate);
