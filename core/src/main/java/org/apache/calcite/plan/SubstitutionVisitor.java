@@ -1979,6 +1979,7 @@ public class SubstitutionVisitor {
               newAggCall =
                   AggregateCall.create(aggFunction, aggregateCall.isDistinct(),
                       aggregateCall.isApproximate(), aggregateCall.ignoreNulls(),
+                      aggregateCall.rexList,
                       ImmutableList.of(target.groupSet.cardinality() + i), -1,
                       aggregateCall.distinctKeys, aggregateCall.collation,
                       aggregateCall.type, aggregateCall.name);
@@ -2048,7 +2049,7 @@ public class SubstitutionVisitor {
     }
     return AggregateCall.create(aggregation,
         queryAggCall.isDistinct(), queryAggCall.isApproximate(),
-        queryAggCall.ignoreNulls(),
+        queryAggCall.ignoreNulls(), queryAggCall.rexList,
         newArgList, -1, queryAggCall.distinctKeys,
         queryAggCall.collation, queryAggCall.type,
         queryAggCall.name);

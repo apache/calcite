@@ -684,8 +684,7 @@ class RelToSqlConverterTest {
         + "INNER JOIN "
         + "(SELECT 1 AS \"K\"\n"
         + "FROM (SELECT COUNT(\"ENAME\") AS \"DUMMY\"\n"
-        + "FROM \"scott\".\"EMP\") AS \"t0\") AS \"t1\" "
-        + "ON \"t\".\"K\" = \"t1\".\"K\"");
+        + "FROM \"scott\".\"EMP\") AS \"t0\") AS \"t1\" ON \"t\".\"K\" = \"t1\".\"K\"");
   }
 
   /** Tests GROUP BY ROLLUP of two columns. The SQL for MySQL has

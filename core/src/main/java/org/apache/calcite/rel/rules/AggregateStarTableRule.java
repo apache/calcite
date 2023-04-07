@@ -194,14 +194,14 @@ public class AggregateStarTableRule
     call.transformTo(relBuilder.build());
   }
 
-  private static @Nullable AggregateCall rollUp(int groupCount, RelBuilder relBuilder,
-      AggregateCall aggregateCall, TileKey tileKey) {
-    if (aggregateCall.isDistinct()) {
+  private static @Nullable AggregateCall rollUp(int groupCount,
+      RelBuilder relBuilder, AggregateCall call, TileKey tileKey) {
+    if (call.isDistinct()) {
       return null;
     }
-    final SqlAggFunction aggregation = aggregateCall.getAggregation();
+    final SqlAggFunction aggregation = call.getAggregation();
     final Pair<SqlAggFunction, List<Integer>> seek =
-        Pair.of(aggregation, aggregateCall.getArgList());
+        Pair.of(aggregation, call.getArgList());
     final int offset = tileKey.dimensions.cardinality();
     final ImmutableList<Lattice.Measure> measures = tileKey.measures;
 
@@ -214,17 +214,17 @@ public class AggregateStarTableRule
       if (roll == null) {
         break tryRoll;
       }
-      return AggregateCall.create(roll, false, aggregateCall.isApproximate(),
-          aggregateCall.ignoreNulls(), ImmutableList.of(offset + i), -1,
-          aggregateCall.distinctKeys, aggregateCall.collation,
-          groupCount, relBuilder.peek(), null, aggregateCall.name);
+      return AggregateCall.create(roll, false, call.isApproximate(),
+          call.ignoreNulls(), call.rexList, ImmutableList.of(offset + i), -1,
+          call.distinctKeys, call.collation,
+          groupCount, relBuilder.peek(), null, call.name);
     }
 
     // Second, try to satisfy the aggregation based on group set columns.
   tryGroup:
     {
       List<Integer> newArgs = new ArrayList<>();
-      for (Integer arg : aggregateCall.getArgList()) {
+      for (Integer arg : call.getArgList()) {
         int z = tileKey.dimensions.indexOf(arg);
         if (z < 0) {
           break tryGroup;
@@ -232,9 +232,9 @@ public class AggregateStarTableRule
         newArgs.add(z);
       }
       return AggregateCall.create(aggregation, false,
-          aggregateCall.isApproximate(), aggregateCall.ignoreNulls(),
-          newArgs, -1, aggregateCall.distinctKeys, aggregateCall.collation,
-          groupCount, relBuilder.peek(), null, aggregateCall.name);
+          call.isApproximate(), call.ignoreNulls(), call.rexList,
+          newArgs, -1, call.distinctKeys, call.collation,
+          groupCount, relBuilder.peek(), null, call.name);
     }
 
     // No roll up possible.

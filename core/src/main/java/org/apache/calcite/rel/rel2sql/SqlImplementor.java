@@ -88,6 +88,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
@@ -1834,15 +1835,26 @@ public abstract class SqlImplementor {
       if (rel instanceof Project) {
         Project project = (Project) rel;
         RelNode input = project.getInput();
-        // Cannot merge because "select 1 from t"
-        // is different from "select 1 from (select count(1) from t)"
-        final boolean hasInputRef = project.getProjects()
-            .stream()
-            .anyMatch(rex -> RexUtil.containsInputRef(rex));
-        final boolean hasAggregate =
-            input instanceof Aggregate && input.getRowType().getFieldCount() > 0;
-        if (!hasInputRef && hasAggregate) {
-          return true;
+        if (input instanceof Aggregate) {
+          // Cannot merge because "select 1 from t"
+          // is different from "select 1 from (select count(1) from t)"
+          //
+          // Some databases don't allow "GROUP BY ()". On those databases,
+          //   SELECT MIN(1) FROM t
+          // is valid and
+          //   SELECT 1 FROM t GROUP BY ()
+          // is not. So, if an aggregate has no group keys we can only remove
+          // the subquery if there is at least one aggregate function.
+          // See RelToSqlConverter.buildAggregate.
+          final Aggregate aggregate = (Aggregate) input;
+          final ImmutableBitSet fieldsUsed =
+              RelOptUtil.InputFinder.bits(project.getProjects(), null);
+          final boolean hasAggregate =
+              !aggregate.getGroupSet().isEmpty()
+                  || !aggregate.getAggCallList().isEmpty();
+          if (hasAggregate && fieldsUsed.isEmpty()) {
+            return true;
+          }
         }
       }
 

@@ -371,12 +371,13 @@ public class AggregateReduceFunctionsRule
       int filter) {
     final Aggregate.AggCallBinding binding =
         new Aggregate.AggCallBinding(typeFactory, aggFunction,
-            ImmutableList.of(operandType), oldAggRel.getGroupCount(),
-            filter >= 0);
+            ImmutableList.of(), ImmutableList.of(operandType),
+            oldAggRel.getGroupCount(), filter >= 0);
     return AggregateCall.create(aggFunction,
         oldCall.isDistinct(),
         oldCall.isApproximate(),
         oldCall.ignoreNulls(),
+        oldCall.rexList,
         ImmutableIntList.of(argOrdinal),
         filter,
         oldCall.distinctKeys,
@@ -398,6 +399,7 @@ public class AggregateReduceFunctionsRule
             oldCall.isDistinct(),
             oldCall.isApproximate(),
             oldCall.ignoreNulls(),
+            oldCall.rexList,
             oldCall.getArgList(),
             oldCall.filterArg,
             oldCall.distinctKeys,
@@ -411,6 +413,7 @@ public class AggregateReduceFunctionsRule
             oldCall.isDistinct(),
             oldCall.isApproximate(),
             oldCall.ignoreNulls(),
+            oldCall.rexList,
             oldCall.getArgList(),
             oldCall.filterArg,
             oldCall.distinctKeys,
@@ -455,7 +458,7 @@ public class AggregateReduceFunctionsRule
 
     final AggregateCall sumZeroCall =
         AggregateCall.create(SqlStdOperatorTable.SUM0, oldCall.isDistinct(),
-            oldCall.isApproximate(), oldCall.ignoreNulls(),
+            oldCall.isApproximate(), oldCall.ignoreNulls(), oldCall.rexList,
             oldCall.getArgList(), oldCall.filterArg, oldCall.distinctKeys,
             oldCall.collation, oldAggRel.getGroupCount(), oldAggRel.getInput(),
             null, oldCall.name);
@@ -464,6 +467,7 @@ public class AggregateReduceFunctionsRule
             oldCall.isDistinct(),
             oldCall.isApproximate(),
             oldCall.ignoreNulls(),
+            oldCall.rexList,
             oldCall.getArgList(),
             oldCall.filterArg,
             oldCall.distinctKeys,
@@ -554,6 +558,7 @@ public class AggregateReduceFunctionsRule
             oldCall.isDistinct(),
             oldCall.isApproximate(),
             oldCall.ignoreNulls(),
+            oldCall.rexList,
             ImmutableIntList.of(argOrdinal),
             oldCall.filterArg,
             oldCall.distinctKeys,
@@ -579,6 +584,7 @@ public class AggregateReduceFunctionsRule
             oldCall.isDistinct(),
             oldCall.isApproximate(),
             oldCall.ignoreNulls(),
+            oldCall.rexList,
             oldCall.getArgList(),
             oldCall.filterArg,
             oldCall.distinctKeys,
@@ -643,6 +649,7 @@ public class AggregateReduceFunctionsRule
             oldCall.isDistinct(),
             oldCall.isApproximate(),
             oldCall.ignoreNulls(),
+            oldCall.rexList,
             ImmutableIntList.of(argOrdinal),
             filterArg,
             oldCall.distinctKeys,
@@ -688,6 +695,7 @@ public class AggregateReduceFunctionsRule
             oldCall.isDistinct(),
             oldCall.isApproximate(),
             oldCall.ignoreNulls(),
+            oldCall.rexList,
             argOrdinals,
             filterArg,
             oldCall.distinctKeys,
