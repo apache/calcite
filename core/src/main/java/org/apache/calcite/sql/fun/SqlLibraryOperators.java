@@ -1367,6 +1367,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATE,
           SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction TRUNC_ORACLE =
+      new SqlFunction(
+          "TRUNC",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP,
+          null,
+          OperandTypes.family(SqlTypeFamily.DATETIME,
+              SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
+
   /** The function "DATE_TRUNC(STRING, DATETIME)" function;
    * returns timestamp, if second operand is a date also
    * For example select DATE_TRUNC('MM', DATE '2009-08-25') returns 2009-08-01 00:00:00.000.
