@@ -111,6 +111,7 @@ import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -1741,16 +1742,12 @@ public abstract class SqlImplementor {
       final Set<Clause> clauses2 = ignoreClauses ? ImmutableSet.of() : clauses;
       boolean needNew = needNewSubQuery(rel, this.clauses, clauses2);
       assert needNew == this.needNew;
-      boolean keepColumnAlias = false;
-
-      if (rel instanceof LogicalSort
-          && dialect.getConformance().isSortByAlias()) {
-        keepColumnAlias = true;
-      }
+      boolean keepColumnAlias = rel instanceof LogicalSort
+          && dialect.getConformance().isSortByAlias();
 
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
-      if (needNew) {
+      if (needNew || isCorrelated(rel)) {
         select = subSelect();
       } else {
         select = asSelect();
@@ -1770,8 +1767,7 @@ public abstract class SqlImplementor {
 
           @Override public SqlNode field(int ordinal) {
             final SqlNode selectItem = selectList.get(ordinal);
-            switch (selectItem.getKind()) {
-            case AS:
+            if (selectItem.getKind() == SqlKind.AS) {
               final SqlCall asCall = (SqlCall) selectItem;
               if (aliasRef) {
                 // For BigQuery, given the query
@@ -1782,16 +1778,13 @@ public abstract class SqlImplementor {
                 return asCall.operand(1);
               }
               return asCall.operand(0);
-            default:
-              break;
             }
             return selectItem;
           }
 
           public SqlNode field(int ordinal, boolean useAlias) {
             final SqlNode selectItem = selectList.get(ordinal);
-            switch (selectItem.getKind()) {
-            case AS:
+            if (selectItem.getKind() == SqlKind.AS) {
               if (useAlias) {
                 return ((SqlCall) selectItem).operand(1);
               }
@@ -1848,6 +1841,41 @@ public abstract class SqlImplementor {
       }
       return new Builder(rel, clauseList, select, newContext, isAnon(),
           needNew && !aliases.containsKey(neededAlias) ? newAliases : aliases);
+    }
+
+    boolean isCorrelated(RelNode rel) {
+      if (rel instanceof LogicalFilter && !rel.getVariablesSet().isEmpty()) {
+        List<SqlOperator> correlOperators =
+            Arrays.asList(SqlStdOperatorTable.EXISTS, SqlStdOperatorTable.IN,
+                SqlStdOperatorTable.SCALAR_QUERY);
+
+        List<SqlKind> comparisonOperators =
+            Arrays.asList(SqlKind.NOT, SqlKind.OR,
+                SqlKind.LESS_THAN, SqlKind.GREATER_THAN);
+
+        SqlOperator op = null;
+        RexNode condition = ((LogicalFilter) rel).getCondition();
+        if (condition instanceof RexSubQuery) {
+          op = ((RexSubQuery) (((LogicalFilter) rel).getCondition())).op;
+        } else if (condition instanceof RexCall) {
+          SqlOperator operator = ((RexCall) condition).op;
+          if (comparisonOperators.contains(operator.getKind())) {
+            List<RexNode> operands = ((RexCall) condition).operands;
+            int index = operands.get(0) instanceof RexSubQuery ? 0
+                : (operands.size() == 2 ? (operands.get(1) instanceof RexSubQuery ? 1 : -1) : -1);
+
+            op = index >= 0
+                ? (
+                (RexSubQuery) (
+                    (
+                        (RexCall) (((LogicalFilter) rel)
+                            .getCondition())).operands.get(index))).op : null;
+          }
+        }
+        return correlOperators.contains(op);
+      } else {
+        return false;
+      }
     }
 
     private boolean hasAnalyticalFunctionInAggregate(Aggregate rel) {
@@ -2282,7 +2310,7 @@ public abstract class SqlImplementor {
           // This is especially relevant for the VALUES clause rendering
           SqlCall sqlCall = (SqlCall) node;
           @SuppressWarnings("assignment.type.incompatible")
-          SqlNode[] operands = sqlCall.getOperandList().toArray(new SqlNode[0]);
+          SqlNode[] operands = sqlCall.getOperandList().toArray(SqlNode.EMPTY_ARRAY);
           operands[1] = new SqlIdentifier(neededAlias, POS);
           return SqlStdOperatorTable.AS.createCall(POS, operands);
         } else {
