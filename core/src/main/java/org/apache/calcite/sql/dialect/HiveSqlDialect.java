@@ -86,6 +86,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_UNIXTIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IF;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.NVL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
@@ -647,6 +648,11 @@ public class HiveSqlDialect extends SqlDialect {
       break;
     case "DATE_DIFF":
       unparseDateDiff(writer, call, leftPrec, rightPrec);
+      break;
+    case "IFNULL":
+      SqlCall nvlCall = NVL.createCall(SqlParserPos.ZERO, call.operand(0),
+          call.operand(1));
+      unparseCall(writer, nvlCall, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
