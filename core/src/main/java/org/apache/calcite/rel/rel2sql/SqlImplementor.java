@@ -1742,8 +1742,12 @@ public abstract class SqlImplementor {
       final Set<Clause> clauses2 = ignoreClauses ? ImmutableSet.of() : clauses;
       boolean needNew = needNewSubQuery(rel, this.clauses, clauses2);
       assert needNew == this.needNew;
-      boolean keepColumnAlias = rel instanceof LogicalSort
-          && dialect.getConformance().isSortByAlias();
+      boolean keepColumnAlias = false;
+
+      if (rel instanceof LogicalSort
+          && dialect.getConformance().isSortByAlias()) {
+        keepColumnAlias = true;
+      }
 
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
@@ -1767,7 +1771,8 @@ public abstract class SqlImplementor {
 
           @Override public SqlNode field(int ordinal) {
             final SqlNode selectItem = selectList.get(ordinal);
-            if (selectItem.getKind() == SqlKind.AS) {
+            switch (selectItem.getKind()) {
+            case AS:
               final SqlCall asCall = (SqlCall) selectItem;
               if (aliasRef) {
                 // For BigQuery, given the query
@@ -1778,13 +1783,16 @@ public abstract class SqlImplementor {
                 return asCall.operand(1);
               }
               return asCall.operand(0);
+            default:
+              break;
             }
             return selectItem;
           }
 
           public SqlNode field(int ordinal, boolean useAlias) {
             final SqlNode selectItem = selectList.get(ordinal);
-            if (selectItem.getKind() == SqlKind.AS) {
+            switch (selectItem.getKind()) {
+            case AS:
               if (useAlias) {
                 return ((SqlCall) selectItem).operand(1);
               }
@@ -2310,7 +2318,7 @@ public abstract class SqlImplementor {
           // This is especially relevant for the VALUES clause rendering
           SqlCall sqlCall = (SqlCall) node;
           @SuppressWarnings("assignment.type.incompatible")
-          SqlNode[] operands = sqlCall.getOperandList().toArray(SqlNode.EMPTY_ARRAY);
+          SqlNode[] operands = sqlCall.getOperandList().toArray(new SqlNode[0]);
           operands[1] = new SqlIdentifier(neededAlias, POS);
           return SqlStdOperatorTable.AS.createCall(POS, operands);
         } else {
