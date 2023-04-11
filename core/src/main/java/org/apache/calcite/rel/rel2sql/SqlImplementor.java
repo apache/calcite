@@ -1864,20 +1864,15 @@ public abstract class SqlImplementor {
         SqlOperator op = null;
         RexNode condition = ((LogicalFilter) rel).getCondition();
         if (condition instanceof RexSubQuery) {
-          op = ((RexSubQuery) (((LogicalFilter) rel).getCondition())).op;
+          op = ((RexSubQuery) condition).op;
         } else if (condition instanceof RexCall) {
           SqlOperator operator = ((RexCall) condition).op;
           if (comparisonOperators.contains(operator.getKind())) {
             List<RexNode> operands = ((RexCall) condition).operands;
             int index = operands.get(0) instanceof RexSubQuery ? 0
                 : (operands.size() == 2 ? (operands.get(1) instanceof RexSubQuery ? 1 : -1) : -1);
-
             op = index >= 0
-                ? (
-                (RexSubQuery) (
-                    (
-                        (RexCall) (((LogicalFilter) rel)
-                            .getCondition())).operands.get(index))).op : null;
+                ? ((RexSubQuery) (((RexCall) condition).operands.get(index))).op : null;
           }
         }
         return correlOperators.contains(op);

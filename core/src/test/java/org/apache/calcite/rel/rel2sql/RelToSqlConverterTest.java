@@ -4531,6 +4531,32 @@ class RelToSqlConverterTest {
     sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
   }
 
+  @Test void testExistsCorrelation() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where exists (select count(*) "
+        + "from \"sales_fact_1997\"b "
+        + "where b.\"product_id\" = a.\"product_id\")";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE EXISTS (SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "WHERE \"product_id\" = \"product\".\"product_id\")";
+    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
+  }
+
+  @Test void testNotExistsCorrelation() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where not exists (select count(*) "
+        + "from \"sales_fact_1997\"b "
+        + "where b.\"product_id\" = a.\"product_id\")";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE NOT EXISTS (SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "WHERE \"product_id\" = \"product\".\"product_id\")";
+    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
+  }
+
   @Test void testSubQueryInWithExpand() {
     String query = "select \"product_name\" from \"product\" a "
         + "where \"product_id\" in (select \"product_id\" "
