@@ -831,7 +831,7 @@ class RelWriterTest {
         .assertThatPlan(isLinux(expected));
   }
 
-  @Test void testSearchOperator() throws JsonProcessingException {
+  @Test void testSearchOperator() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder b = RelBuilder.create(config);
     final RexBuilder rexBuilder = b.getRexBuilder();

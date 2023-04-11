@@ -349,9 +349,10 @@ public class RelJson {
       final boolean nullable = get(map, "nullable");
       return typeFactory.createTypeWithNullability(type, nullable);
     } else {
-      final SqlTypeName sqlTypeName = requireNonNull(
-          Util.enumVal(SqlTypeName.class, (String) o),
-          () -> "unable to find enum value " + o + " in class " + SqlTypeName.class);
+      final SqlTypeName sqlTypeName =
+          requireNonNull(Util.enumVal(SqlTypeName.class, (String) o),
+              () -> "unable to find enum value " + o
+                  + " in class " + SqlTypeName.class);
       return typeFactory.createSqlType(sqlTypeName);
     }
   }
@@ -482,11 +483,6 @@ public class RelJson {
 
   private Object toJson(Sarg node) {
     final Map<String, @Nullable Object> map = jsonBuilder().map();
-    map.put("isComplementedPoints", node.isComplementedPoints());
-    map.put("pointCount", node.pointCount);
-    map.put("isAll", node.isAll());
-    map.put("isNone", node.isNone());
-    map.put("isPoints", node.isPoints());
     map.put("rangeSet", toJson(node.rangeSet));
     map.put("nullAs", node.nullAs);
     return map;
@@ -503,9 +499,10 @@ public class RelJson {
     }
     return list;
   }
+
   /** Serializes a {@link Range} that can be deserialized using
    * {@link org.apache.calcite.util.RangeSets#rangeFromJson(Object)} */
-  private <C extends Comparable<C>> Object toJson(Range<C> range){
+  private <C extends Comparable<C>> Object toJson(Range<C> range) {
     String lowerBoundType = !range.hasLowerBound() || range.lowerBoundType() == BoundType.OPEN ?
         "(": "[";
     String upperBoundType = !range.hasUpperBound() || range.upperBoundType() == BoundType.OPEN ?
@@ -519,12 +516,12 @@ public class RelJson {
     }
 
     private <C extends Comparable<C>> String rexLiteralObjectToString(C endpoint) {
-    try {
-      ObjectMapper mapper = new ObjectMapper();
-      return mapper.writeValueAsString(endpoint);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException("Failed to serialize Range endpoint: ", e);
-    }
+      try {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.writeValueAsString(endpoint);
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException("Failed to serialize Range endpoint: ", e);
+      }
     }
 
   private Object toJson(RelDataType node) {
@@ -721,6 +718,7 @@ public class RelJson {
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     if (o == null) {
       return null;
+    // Support JSON deserializing of non-default Map classes such as gson LinkedHashMap
     } else if (Map.class.isAssignableFrom(o.getClass())) {
       final Map<String, @Nullable Object> map = (Map) o;
       final RelDataTypeFactory typeFactory = cluster.getTypeFactory();

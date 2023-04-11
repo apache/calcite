@@ -67,6 +67,7 @@ public abstract class RelEnumTypes {
         ImmutableMap.builder();
     register(enumByName, JoinConditionType.class);
     register(enumByName, JoinType.class);
+    register(enumByName, RexUnknownAs.class);
     register(enumByName, SqlExplain.Depth.class);
     register(enumByName, SqlExplainFormat.class);
     register(enumByName, SqlExplainLevel.class);
@@ -79,7 +80,6 @@ public abstract class RelEnumTypes {
     register(enumByName, SqlTrimFunction.Flag.class);
     register(enumByName, TimeUnitRange.class);
     register(enumByName, TableModify.Operation.class);
-    register(enumByName, RexUnknownAs.class);
     ENUM_BY_NAME = enumByName.build();
   }
 
