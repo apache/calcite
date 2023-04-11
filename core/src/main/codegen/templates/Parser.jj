@@ -4741,7 +4741,11 @@ SqlNode ArrayConstructor() :
             if (!this.conformance.allowArrayFunction()) {
                 // by sub query "ARRAY(SELECT * FROM T)"
                 if (args.size() == 1) {
-                    return SqlStdOperatorTable.ARRAY_QUERY.createCall(s.end(this), args.get(0));
+                    e = args.get(0);
+                    if (!e.isA(SqlKind.QUERY)) {
+                        throw SqlUtil.newContextException(e.getParserPosition(), RESOURCE.illegalNonQueryExpression());
+                    }
+                    return SqlStdOperatorTable.ARRAY_QUERY.createCall(s.end(this), e);
                 } else {
                     throw SqlUtil.newContextException(getPos(), RESOURCE.arrayFunctionCallNotAllowed());
                 }
@@ -4749,7 +4753,7 @@ SqlNode ArrayConstructor() :
                 // validate we don't have queries
                 for (SqlNode node : args) {
                     if (node.isA(SqlKind.QUERY)) {
-                        throw SqlUtil.newContextException(getPos(), RESOURCE.illegalQueryExpression());
+                        throw SqlUtil.newContextException(node.getParserPosition(), RESOURCE.illegalQueryExpression());
                     }
                 }
 
