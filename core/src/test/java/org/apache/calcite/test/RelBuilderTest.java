@@ -1191,14 +1191,19 @@ public class RelBuilderTest {
         builder.getTypeFactory().builder()
             .add("a", SqlTypeName.BIGINT)
             .add("b", SqlTypeName.VARCHAR, 10)
-            .add("c", SqlTypeName.VARCHAR, 10)
+            .add("c", SqlTypeName.VARCHAR, 10).nullable(true)
+            .add("d", SqlTypeName.INTEGER).nullable(true)
             .build();
     RelNode root =
         builder.scan("DEPT")
+            .projectPlus(builder.alias(builder.literal(2), "two"))
             .convert(rowType, false)
             .build();
     final String expected = ""
-        + "LogicalProject(DEPTNO=[CAST($0):BIGINT NOT NULL], DNAME=[CAST($1):VARCHAR(10) NOT NULL], LOC=[CAST($2):VARCHAR(10) NOT NULL])\n"
+        + "LogicalProject(DEPTNO=[CAST($0):BIGINT NOT NULL], "
+        + "DNAME=[CAST($1):VARCHAR(10) NOT NULL], "
+        + "LOC=[CAST($2):VARCHAR(10)], "
+        + "two=[CAST(2):INTEGER])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(root, hasTree(expected));
   }
