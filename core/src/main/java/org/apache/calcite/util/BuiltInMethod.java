@@ -485,7 +485,7 @@ public enum BuiltInMethod {
   TIME_STRING_TO_TIME_WITH_LOCAL_TIME_ZONE(SqlFunctions.class, "toTimeWithLocalTimeZone",
       String.class, TimeZone.class),
   STRING_TO_TIMESTAMP_WITH_LOCAL_TIME_ZONE(SqlFunctions.class, "toTimestampWithLocalTimeZone",
-      String.class),
+      DataContext.class, String.class),
   TIMESTAMP_STRING_TO_TIMESTAMP_WITH_LOCAL_TIME_ZONE(SqlFunctions.class,
       "toTimestampWithLocalTimeZone", String.class, TimeZone.class),
   TIME_WITH_LOCAL_TIME_ZONE_TO_TIME(SqlFunctions.class, "timeWithLocalTimeZoneToTime",

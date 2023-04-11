@@ -401,7 +401,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       case VARCHAR:
         return Expressions.call(
             BuiltInMethod.STRING_TO_TIMESTAMP_WITH_LOCAL_TIME_ZONE.method,
-            operand);
+            getRoot(), operand);
 
       case DATE:
         return Expressions.call(
