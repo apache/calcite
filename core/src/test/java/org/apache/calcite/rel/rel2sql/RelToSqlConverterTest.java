@@ -3837,28 +3837,28 @@ class RelToSqlConverterTest {
     sql(query).withSpark().ok(expected);
   }
 
-  private Sql sqlSpark(String query, String expected) {
+  private Sql sqlSpark(String query) {
     return sql(query)
       .parserConfig(SqlParser.Config.DEFAULT.withConformance(SqlConformanceEnum.SPARK))
       .withSpark()
-      .withLibrary(SqlLibrary.SPARK)
-      .ok(expected);
+      .withLibrary(SqlLibrary.SPARK);
   }
 
   @Test void testArrayFunction() {
-    final String query = "SELECT ARRAY(1, 2)";
-    final String expected = "SELECT ARRAY(1, 2)\n"
-        + "FROM (VALUES (0)) t (ZERO)";
-
-    sqlSpark(query, expected);
+    sqlSpark("SELECT ARRAY(1, 2)")
+      .ok("SELECT ARRAY(1, 2)\n"
+          + "FROM (VALUES (0)) t (ZERO)");
   }
 
   @Test void testArrayFunctionNullary() {
-    final String query = "SELECT ARRAY()";
-    final String expected = "SELECT ARRAY()\n"
-        + "FROM (VALUES (0)) t (ZERO)";
-  
-    sqlSpark(query, expected);
+    sqlSpark("SELECT ARRAY()")
+      .ok("SELECT ARRAY()\n"
+          + "FROM (VALUES (0)) t (ZERO)");
+  }
+
+  @Test void testArrayQueryInvalid() {  
+    sqlSpark("SELECT array(SELECT x FROM (VALUES(1)) x)")
+      .throws_("Query expression encountered in illegal context");
   }
 
   @Test void testArrayFunctionFail() {

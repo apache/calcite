@@ -4726,39 +4726,37 @@ SqlNode ArrayConstructor() :
 {
     <ARRAY> { s = span(); }
     (
-        LOOKAHEAD(1)
-        <LPAREN>
-        (
-            // by function call "array(e0, e1, ..., eN)" (Apache Spark)
-            args = ExpressionCommaList(s, ExprContext.ACCEPT_NON_QUERY) {
-                e = null;
-            }
-
-        |
-            // by sub query "ARRAY(SELECT * FROM T)"
-            e = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY) {
-                args = null;
-            }
-        |
-            // by nullary function call "array()" (Apache Spark)
-            {
-                e = null;
-                args = SqlNodeList.EMPTY;
-            }
-        )
-        <RPAREN>
-        {
-            if (e != null) {
-                return SqlStdOperatorTable.ARRAY_QUERY.createCall(s.end(this), e);
-
+        // nullary array function call: "array()" (Apache Spark)
+        LOOKAHEAD(2)
+        <LPAREN> <RPAREN> {
+            if (this.conformance.allowArrayFunction()) {
+                return SqlLibraryOperators.ARRAY.createCall(s.end(this), SqlNodeList.EMPTY.getList());                
             } else {
-                if (!this.conformance.allowArrayFunction()) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.arrayFunctionCallNotAllowed());
+            }
+        }
+    |
+        args = ParenthesizedQueryOrCommaList(ExprContext.ACCEPT_ALL)
+        {
+            if (!this.conformance.allowArrayFunction()) {
+                // by sub query "ARRAY(SELECT * FROM T)"
+                if (args.size() == 1) {
+                    return SqlStdOperatorTable.ARRAY_QUERY.createCall(s.end(this), args.get(0));
+                } else {
                     throw SqlUtil.newContextException(getPos(), RESOURCE.arrayFunctionCallNotAllowed());
                 }
+            } else {
+                // validate we don't have queries
+                for (SqlNode node : args) {
+                    if (node.isA(SqlKind.QUERY)) {
+                        throw SqlUtil.newContextException(getPos(), RESOURCE.illegalQueryExpression());
+                    }
+                }
+
+                // by function call "array(e0, e1, ..., eN)" (Apache Spark)
                 return SqlLibraryOperators.ARRAY.createCall(s.end(this), args.getList());
             }
         }
-        
     |
         // by enumeration "ARRAY[e0, e1, ..., eN]"
         <LBRACKET> // TODO: do trigraph as well ??( ??)

@@ -7892,7 +7892,7 @@ public class SqlOperatorTest {
        .withLibrary(SqlLibrary.SPARK);
 
     f2.checkScalar("array('foo', 'bar')",
-        "[foo, bar]", "CHAR(3) NOT NULL ARRAY NOT NULL");    
+        "[foo, bar]", "CHAR(3) NOT NULL ARRAY NOT NULL");
 
     f2.checkScalar("array()",
         "[]", "UNKNOWN NOT NULL ARRAY NOT NULL");    
