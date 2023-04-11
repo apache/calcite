@@ -3288,6 +3288,57 @@ class RexProgramTest extends RexProgramTestBase {
         not(rexBuilder.makeCall(SqlStdOperatorTable.SIMILAR_TO, ref, literal("%"))));
   }
 
+  @Test void testSimplifyNullCheckInFilter() {
+    final RexNode iRef = input(tInt(true), 0);
+    final RexNode vRef = input(tVarchar(true, 10), 1);
+    final RexNode iRef2 = input(tInt(true), 2);
+    final RexNode vRef2 = input(tVarchar(true, 10), 3);
+    final RexNode fieldRef = vVarchar();
+
+    // CAST(x) > 1 AND x IS NOT NULL
+    RelDataType longType =
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.BIGINT), false);
+    checkSimplifyFilter(and(isNotNull(iRef), gt(cast(iRef, longType), literal(BigDecimal.ONE))),
+        ">(CAST($0):BIGINT NOT NULL, 1)");
+
+    // LIKE
+    checkSimplifyFilter(and(isNotNull(vRef), like(vRef, literal("%hello%"))),
+        "LIKE($1, '%hello%')");
+
+    // LIKE on field ref
+    checkSimplifyFilter(and(isNotNull(fieldRef), like(fieldRef, literal("%hello%"))),
+        "LIKE(?0.varchar0, '%hello%')");
+
+    // NOT LIKE
+    checkSimplifyFilter(and(isNotNull(vRef), not(like(vRef, literal("%hello%")))),
+        "NOT(LIKE($1, '%hello%'))");
+
+    // OR(LIKE, LIKE)
+    checkSimplifyFilter(
+        and(isNotNull(vRef),
+            or(like(vRef, literal("%hello%")), like(vRef, literal("%bye%")))),
+        "OR(LIKE($1, '%hello%'), LIKE($1, '%bye%'))");
+
+    // SIMILAR TO
+    checkSimplifyFilter(and(isNotNull(vRef), similar(vRef, literal("%hello%"))),
+        "SIMILAR TO($1, '%hello%')");
+
+    // Arithmetic expression compared to value and checked for not null
+    checkSimplifyFilter(and(isNotNull(mul(iRef, iRef2)), gt(mul(iRef, iRef2), literal(10))),
+        ">(*($0, $2), 10)");
+
+    // COALESCE: not simplified because expression is not strong
+    checkSimplifyFilter(and(isNotNull(vRef2), coalesce(vRef, vRef2)),
+        "AND(COALESCE($1, $3), IS NOT NULL($3))");
+
+    // Not simplified because expression is not strong
+    checkSimplifyFilter(
+        and(isNotNull(vRef),
+            or(like(vRef, literal("%hello%")), like(vRef2, literal("%bye%")))),
+        "AND(OR(LIKE($1, '%hello%'), LIKE($3, '%bye%')), IS NOT NULL($1))");
+  }
+
   @Test void testSimplifyNonDeterministicFunction() {
     final SqlOperator ndc =
         SqlBasicFunction.create("NDC", ReturnTypes.BOOLEAN,
