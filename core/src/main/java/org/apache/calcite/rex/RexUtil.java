@@ -147,7 +147,7 @@ public class RexUtil {
       if (lhsType.equals(rhsType)) {
         castExps.add(rhsExp);
       } else {
-        castExps.add(rexBuilder.makeCast(lhsType, rhsExp));
+        castExps.add(rexBuilder.makeCast(lhsType, rhsExp, true, false));
       }
     }
     return castExps;

@@ -37,6 +37,7 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
@@ -213,6 +214,24 @@ public abstract class Project extends SingleRel implements Hintable {
    */
   public final List<Pair<RexNode, String>> getNamedProjects() {
     return Pair.zip(getProjects(), getRowType().getFieldNames());
+  }
+
+  /** Returns a list of project expressions, each of which is wrapped in a
+   * call to {@code AS} if its field name differs from the default.
+   *
+   * <p>This method has a similar effect to {@link #getNamedProjects()},
+   * but the single list is easier to manage.
+   *
+   * @see org.apache.calcite.tools.RelBuilder#alias(RexNode, String)
+   */
+  // TODO: move to RelBuilder?
+  // TODO: replace calls to getNamedProjects
+  public final List<RexNode> getAliasedProjects(RelBuilder b) {
+    final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
+    Pair.forEach(exps, getRowType().getFieldList(), (e, f) -> {
+      builder.add(b.alias(e, f.getName()));
+    });
+    return builder.build();
   }
 
   @Override public ImmutableList<RelHint> getHints() {

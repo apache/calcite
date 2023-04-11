@@ -1860,26 +1860,32 @@ public class RelDecorrelator implements ReflectiveVisitor {
   /**
    * Rule to remove an Aggregate with SINGLE_VALUE. For cases like:
    *
+   * <pre>{@code
    * Aggregate(SINGLE_VALUE)
    *   Project(single expression)
    *     Aggregate
+   * }</pre>
    *
-   * For instance (subtree taken from TPCH query 17):
+   * <p>For instance, the following subtree from TPCH query 17:
    *
+   * <pre>{@code
    * LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
    *   LogicalProject(EXPR$0=[*(0.2:DECIMAL(2, 1), $0)])
    *     LogicalAggregate(group=[{}], agg#0=[AVG($0)])
    *       LogicalProject(L_QUANTITY=[$4])
    *         LogicalFilter(condition=[=($1, $cor0.P_PARTKEY)])
    *           LogicalTableScan(table=[[TPCH_01, LINEITEM]])
+   * }</pre>
    *
-   * Will be converted into:
+   * <p>will be converted into:
    *
+   * <pre>{@code
    * LogicalProject($f0=[*(0.2:DECIMAL(2, 1), $0)])
    *   LogicalAggregate(group=[{}], agg#0=[AVG($0)])
    *     LogicalProject(L_QUANTITY=[$4])
    *       LogicalFilter(condition=[=($1, $cor0.P_PARTKEY)])
    *         LogicalTableScan(table=[[TPCH_01, LINEITEM]])
+   * }</pre>
    */
   public static final class RemoveSingleAggregateRule
       extends RelRule<RemoveSingleAggregateRule.RemoveSingleAggregateRuleConfig> {
@@ -1923,13 +1929,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       // ensure we keep the same type after removing the SINGLE_VALUE Aggregate
       final RelBuilder relBuilder = call.builder();
-      final RelDataType singleAggType =
-          singleAggregate.getRowType().getFieldList().get(0).getType();
-      final RexNode oldProjectExp = projExprs.get(0);
-      final RexNode newProjectExp = singleAggType.equals(oldProjectExp.getType())
-              ? oldProjectExp
-              : relBuilder.getRexBuilder().makeCast(singleAggType, oldProjectExp);
-      relBuilder.push(aggregate).project(newProjectExp);
+      relBuilder.push(aggregate)
+          .project(project.getAliasedProjects(relBuilder))
+          .convert(singleAggregate.getRowType(), false);
       call.transformTo(relBuilder.build());
     }
 
