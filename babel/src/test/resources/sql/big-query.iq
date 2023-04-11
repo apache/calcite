@@ -2152,24 +2152,79 @@ SELECT
 
 !ok
 
-# The following example shows the result of DATETIME_DIFF for two days
-# in succession. The first date falls on a Monday and the second date
-# falls on a Sunday. DATETIME_DIFF with the date part WEEK returns 0
-# because this time part uses weeks that begin on
-# Sunday. DATETIME_DIFF with the date part WEEK(MONDAY) returns
-# 1. DATETIME_DIFF with the date part ISOWEEK also returns 1 because
-# ISO weeks begin on Monday.
+# The following example shows the result of DATETIME_DIFF for many nearby dates.
+# 2017-12-18 is a Monday and the other date is between 2017-12-25 (a Friday)
+# and 2017-12-09 (a Saturday). The date part WEEK treats weeks as starting on
+# Sunday, whereas WEEK(MONDAY) and ISOWEEK both treat weeks as starting on
+# Monday.
 
-SELECT
-  DATETIME_DIFF('2017-12-18', '2017-12-17', WEEK) AS week_diff,
-  DATETIME_DIFF('2017-12-18', '2017-12-17', WEEK(MONDAY)) AS week_weekday_diff,
-  DATETIME_DIFF('2017-12-18', '2017-12-17', ISOWEEK) AS isoweek_diff;
+WITH Diffs AS (
+  SELECT
+    DATETIME_DIFF('2017-12-18', '2017-12-25', WEEK) AS week_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-25', WEEK(MONDAY)) AS week_weekday_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-25', ISOWEEK) AS isoweek_diff
+  UNION ALL SELECT
+    DATETIME_DIFF('2017-12-18', '2017-12-24', WEEK) AS week_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-24', WEEK(MONDAY)) AS week_weekday_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-24', ISOWEEK) AS isoweek_diff
+  UNION ALL SELECT
+    DATETIME_DIFF('2017-12-18', '2017-12-23', WEEK) AS week_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-23', WEEK(MONDAY)) AS week_weekday_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-23', ISOWEEK) AS isoweek_diff
+  UNION ALL SELECT
+    DATETIME_DIFF('2017-12-18', '2017-12-19', WEEK) AS week_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-19', WEEK(MONDAY)) AS week_weekday_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-19', ISOWEEK) AS isoweek_diff
+  UNION ALL SELECT
+    DATETIME_DIFF('2017-12-18', '2017-12-18', WEEK) AS week_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-18', WEEK(MONDAY)) AS week_weekday_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-18', ISOWEEK) AS isoweek_diff
+  UNION ALL SELECT
+    DATETIME_DIFF('2017-12-18', '2017-12-17', WEEK) AS week_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-17', WEEK(MONDAY)) AS week_weekday_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-17', ISOWEEK) AS isoweek_diff
+  UNION ALL SELECT
+    DATETIME_DIFF('2017-12-18', '2017-12-16', WEEK) AS week_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-16', WEEK(MONDAY)) AS week_weekday_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-16', ISOWEEK) AS isoweek_diff
+  UNION ALL SELECT
+    DATETIME_DIFF('2017-12-18', '2017-12-15', WEEK) AS week_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-15', WEEK(MONDAY)) AS week_weekday_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-15', ISOWEEK) AS isoweek_diff
+  UNION ALL SELECT
+    DATETIME_DIFF('2017-12-18', '2017-12-12', WEEK) AS week_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-12', WEEK(MONDAY)) AS week_weekday_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-12', ISOWEEK) AS isoweek_diff
+  UNION ALL SELECT
+    DATETIME_DIFF('2017-12-18', '2017-12-11', WEEK) AS week_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-11', WEEK(MONDAY)) AS week_weekday_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-11', ISOWEEK) AS isoweek_diff
+  UNION ALL SELECT
+    DATETIME_DIFF('2017-12-18', '2017-12-10', WEEK) AS week_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-10', WEEK(MONDAY)) AS week_weekday_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-10', ISOWEEK) AS isoweek_diff
+  UNION ALL SELECT
+    DATETIME_DIFF('2017-12-18', '2017-12-09', WEEK) AS week_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-09', WEEK(MONDAY)) AS week_weekday_diff,
+    DATETIME_DIFF('2017-12-18', '2017-12-09', ISOWEEK) AS isoweek_diff
+) SELECT * FROM Diffs;
 +-----------+-------------------+--------------+
 | week_diff | week_weekday_diff | isoweek_diff |
 +-----------+-------------------+--------------+
+|        -1 |                -1 |           -1 |
+|        -1 |                 0 |            0 |
+|         0 |                 0 |            0 |
+|         0 |                 0 |            0 |
+|         0 |                 0 |            0 |
 |         0 |                 1 |            1 |
+|         1 |                 1 |            1 |
+|         1 |                 1 |            1 |
+|         1 |                 1 |            1 |
+|         1 |                 1 |            1 |
+|         1 |                 2 |            2 |
+|         2 |                 2 |            2 |
 +-----------+-------------------+--------------+
-(1 row)
+(12 rows)
 
 !ok
 

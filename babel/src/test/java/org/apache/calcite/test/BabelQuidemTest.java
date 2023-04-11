@@ -113,6 +113,8 @@ class BabelQuidemTest extends QuidemTest {
               .with(CalciteConnectionProperty.CONFORMANCE,
                   SqlConformanceEnum.BABEL)
               .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
+              // BigQuery always assumes UTC by default.
+              .with(CalciteConnectionProperty.TIME_ZONE, "UTC")
               .with(
                   ConnectionFactories.addType("DATETIME", typeFactory ->
                       typeFactory.createSqlType(SqlTypeName.TIMESTAMP)))

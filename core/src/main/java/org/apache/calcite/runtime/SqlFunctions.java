@@ -38,6 +38,7 @@ import org.apache.calcite.runtime.FlatLists.ComparableList;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
@@ -2971,10 +2972,14 @@ public class SqlFunctions {
     if (v == null) {
       return castNonNull(null);
     }
-    return new TimestampWithTimeZoneString(v)
-        .withTimeZone(DateTimeUtils.UTC_ZONE)
-        .getLocalTimestampString()
-        .getMillisSinceEpoch();
+    try {
+      return new TimestampWithTimeZoneString(v)
+          .withTimeZone(DateTimeUtils.UTC_ZONE)
+          .getLocalTimestampString()
+          .getMillisSinceEpoch();
+    } catch (StringIndexOutOfBoundsException e) {
+      return DateTimeUtils.timestampStringToUnixDate(v);
+    }
   }
 
   public static @PolyNull Long toTimestampWithLocalTimeZone(@PolyNull String v,
