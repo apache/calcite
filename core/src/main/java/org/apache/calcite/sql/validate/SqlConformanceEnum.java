@@ -78,7 +78,7 @@ public enum SqlConformanceEnum implements SqlConformance {
   PRESTO,
 
   /** Conformance value that instructs Calcite to use SQL semantics
-   * consistent with Spark. */
+   * consistent with Apache Spark. */
   SPARK,
 
   /** Conformance value that instructs Calcite to use SQL semantics
