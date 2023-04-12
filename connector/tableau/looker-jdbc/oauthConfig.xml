@@ -19,7 +19,7 @@
 <!-- Oauth Config, part of the Tableau connector SDK; see manifest.xml. -->
 <pluginOAuthConfig>
     <!-- must be the same as "class" attribute for the connector-plugin element in manifest.xml. -->
-	<dbclass>calcite-jdbc</dbclass>
+	<dbclass>looker-jdbc</dbclass>
 
     <!-- clientSecret, clientId, and redirectUri must exactly match the registered OAuth client on the Looker instance. -->
     <clientIdDesktop>35FBB268-0CB0-4822-AFE3-28638C1C6269</clientIdDesktop>

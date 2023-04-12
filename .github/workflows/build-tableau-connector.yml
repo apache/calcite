@@ -35,7 +35,7 @@ jobs:
           python3 -m venv venv
           source venv/bin/activate
           python3 setup.py install
-          python3 -m connector_packager.package ../../calcite-jdbc
+          python3 -m connector_packager.package ../../looker-jdbc
           popd
       - name: Upload release asset
         run: |
@@ -44,5 +44,5 @@ jobs:
             -H 'Accept: application/vnd.github+json' \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H 'Content-Type: application/octet-stream' \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }}/assets?name=calcite-jdbc.taco" \
-            --data-binary '@connector/tableau/connector-plugin-sdk/connector-packager/packaged-connector/calcite-jdbc.taco'
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }}/assets?name=looker-jdbc.taco" \
+            --data-binary '@connector/tableau/connector-plugin-sdk/connector-packager/packaged-connector/looker-jdbc.taco'

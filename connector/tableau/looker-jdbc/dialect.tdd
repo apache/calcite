@@ -17,7 +17,7 @@
   -->
 <!-- See notes below for definitions that require 2020.3 or newer -->
 <dialect name='CalciteJDBC'
-         class='calcite-jdbc'
+         class='looker-jdbc'
          base='BigQuerySQLDialect'
          version='18.1'>
   <function-map>
