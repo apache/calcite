@@ -17,13 +17,13 @@
   -->
 
 <!-- Oauth Config, part of the Tableau connector SDK; see manifest.xml. -->
-<pluginOAuthConfig> 
+<pluginOAuthConfig>
     <!-- must be the same as "class" attribute for the connector-plugin element in manifest.xml. -->
 	<dbclass>calcite-jdbc</dbclass>
 
     <!-- clientSecret, clientId, and redirectUri must exactly match the registered OAuth client on the Looker instance. -->
-    <clientIdDesktop>tableau_client_id</clientIdDesktop>
-    <clientSecretDesktop>tableau_client_secret</clientSecretDesktop>
+    <clientIdDesktop>35FBB268-0CB0-4822-AFE3-28638C1C6269</clientIdDesktop>
+    <clientSecretDesktop>doesnt_matter</clientSecretDesktop>
     <redirectUrisDesktop>https://localhost:55556/Callback</redirectUrisDesktop>
 
     <!-- /auth endpoint to authenticate as a Looker user. -->
@@ -48,7 +48,7 @@
             <value>true</value>
         </entry>
 
-        <!-- Looker requires a client_id and client_secret to be in the access_token request. -->
+        <!-- Looker requires a client_id and client_secret to be in the access_token request but client_secret is not used. -->
         <entry>
             <key>OAUTH_CAP_CLIENT_SECRET_IN_URL_QUERY_PARAM</key>
             <value>true</value>
