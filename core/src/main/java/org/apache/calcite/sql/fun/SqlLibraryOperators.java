@@ -826,12 +826,13 @@ public abstract class SqlLibraryOperators {
           .withKind(SqlKind.CONCAT2);
 
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
-    RelDataType elementType =
-      opBinding.getOperandCount() > 1 ?
-        opBinding.getOperandType(1) :
+    RelDataType type =
+      opBinding.getOperandCount() > 0 ?
+        ReturnTypes.LEAST_RESTRICTIVE.inferReturnType(opBinding) :
         opBinding.getTypeFactory().createUnknownType();
 
-    return opBinding.getTypeFactory().createArrayType(elementType, -1);
+    
+    return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, false);
   }
 
   @LibraryOperator(libraries = {SPARK})
