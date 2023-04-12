@@ -825,20 +825,19 @@ public abstract class SqlLibraryOperators {
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT2);
 
-  private static final SqlReturnTypeInference ARRAY_RETURN_TYPE =
-      opBinding -> {
-        RelDataType elementType =
-          opBinding.getOperandCount() > 1 ?
-            opBinding.getOperandType(1) :
-            opBinding.getTypeFactory().createUnknownType();
+  private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
+    RelDataType elementType =
+      opBinding.getOperandCount() > 1 ?
+        opBinding.getOperandType(1) :
+        opBinding.getTypeFactory().createUnknownType();
 
-        return opBinding.getTypeFactory().createArrayType(elementType, -1);
-      };
+    return opBinding.getTypeFactory().createArrayType(elementType, -1);
+  }
 
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY =
       SqlBasicFunction.create("ARRAY",
-          ARRAY_RETURN_TYPE,
+          SqlLibraryOperators::arrayReturnType,
           OperandTypes.SAME_VARIADIC);
 
   /** The "ARRAY_DISTINCT(array)" function. */
