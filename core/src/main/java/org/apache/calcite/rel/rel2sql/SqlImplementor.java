@@ -623,6 +623,36 @@ public abstract class SqlImplementor {
         SqlNodeList.EMPTY, null, null, null, null);
   }
 
+  boolean isCorrelated(LogicalFilter rel) {
+    if (!rel.getVariablesSet().isEmpty()) {
+      List<SqlOperator> correlOperators =
+          Arrays.asList(SqlStdOperatorTable.EXISTS, SqlStdOperatorTable.IN,
+              SqlStdOperatorTable.SCALAR_QUERY);
+
+      List<SqlKind> comparisonOperators =
+          Arrays.asList(SqlKind.NOT, SqlKind.OR,
+              SqlKind.LESS_THAN, SqlKind.GREATER_THAN);
+
+      SqlOperator op = null;
+      RexNode condition = rel.getCondition();
+      if (condition instanceof RexSubQuery) {
+        op = ((RexSubQuery) condition).op;
+      } else if (condition instanceof RexCall) {
+        SqlOperator operator = ((RexCall) condition).op;
+        if (comparisonOperators.contains(operator.getKind())) {
+          List<RexNode> operands = ((RexCall) condition).operands;
+          int index = operands.get(0) instanceof RexSubQuery ? 0
+              : (operands.size() == 2 ? (operands.get(1) instanceof RexSubQuery ? 1 : -1) : -1);
+          op = index >= 0
+              ? ((RexSubQuery) (((RexCall) condition).operands.get(index))).op : null;
+        }
+      }
+      return correlOperators.contains(op);
+    } else {
+      return false;
+    }
+  }
+
   /** Returns whether we need to add an alias if this node is to be the FROM
    * clause of a SELECT. */
   private boolean requiresAlias(SqlNode node) {
@@ -1751,7 +1781,7 @@ public abstract class SqlImplementor {
 
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
-      if (needNew || isCorrelated(rel)) {
+      if (needNew || (rel instanceof LogicalFilter && isCorrelated((LogicalFilter) rel))) {
         select = subSelect();
       } else {
         select = asSelect();
@@ -1849,36 +1879,6 @@ public abstract class SqlImplementor {
       }
       return new Builder(rel, clauseList, select, newContext, isAnon(),
           needNew && !aliases.containsKey(neededAlias) ? newAliases : aliases);
-    }
-
-    boolean isCorrelated(RelNode rel) {
-      if (rel instanceof LogicalFilter && !rel.getVariablesSet().isEmpty()) {
-        List<SqlOperator> correlOperators =
-            Arrays.asList(SqlStdOperatorTable.EXISTS, SqlStdOperatorTable.IN,
-                SqlStdOperatorTable.SCALAR_QUERY);
-
-        List<SqlKind> comparisonOperators =
-            Arrays.asList(SqlKind.NOT, SqlKind.OR,
-                SqlKind.LESS_THAN, SqlKind.GREATER_THAN);
-
-        SqlOperator op = null;
-        RexNode condition = ((LogicalFilter) rel).getCondition();
-        if (condition instanceof RexSubQuery) {
-          op = ((RexSubQuery) condition).op;
-        } else if (condition instanceof RexCall) {
-          SqlOperator operator = ((RexCall) condition).op;
-          if (comparisonOperators.contains(operator.getKind())) {
-            List<RexNode> operands = ((RexCall) condition).operands;
-            int index = operands.get(0) instanceof RexSubQuery ? 0
-                : (operands.size() == 2 ? (operands.get(1) instanceof RexSubQuery ? 1 : -1) : -1);
-            op = index >= 0
-                ? ((RexSubQuery) (((RexCall) condition).operands.get(index))).op : null;
-          }
-        }
-        return correlOperators.contains(op);
-      } else {
-        return false;
-      }
     }
 
     private boolean hasAnalyticalFunctionInAggregate(Aggregate rel) {
