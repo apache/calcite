@@ -831,7 +831,6 @@ public abstract class SqlLibraryOperators {
         ReturnTypes.LEAST_RESTRICTIVE.inferReturnType(opBinding) :
         opBinding.getTypeFactory().createUnknownType();
 
-    
     return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, false);
   }
 
