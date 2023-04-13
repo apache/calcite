@@ -361,6 +361,8 @@ public enum BuiltInMethod {
   FROM_BASE64(SqlFunctions.class, "fromBase64", String.class),
   MD5(SqlFunctions.class, "md5", String.class),
   SHA1(SqlFunctions.class, "sha1", String.class),
+  SHA256(SqlFunctions.class, "sha256", String.class),
+  SHA512(SqlFunctions.class, "sha512", String.class),
   THROW_UNLESS(SqlFunctions.class, "throwUnless", boolean.class, String.class),
   COMPRESS(CompressionFunctions.class, "compress", String.class),
   EXTRACT_VALUE(XmlFunctions.class, "extractValue", String.class, String.class),

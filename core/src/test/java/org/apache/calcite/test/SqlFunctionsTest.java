@@ -57,6 +57,8 @@ import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
+import static org.apache.calcite.runtime.SqlFunctions.sha256;
+import static org.apache.calcite.runtime.SqlFunctions.sha512;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
 import static org.apache.calcite.runtime.SqlFunctions.toChar;
 import static org.apache.calcite.runtime.SqlFunctions.toInt;
@@ -1009,6 +1011,44 @@ class SqlFunctionsTest {
         is(sha1(new ByteString("ABC".getBytes(UTF_8)))));
     try {
       String o = sha1((String) null);
+      fail("Expected NPE, got " + o);
+    } catch (NullPointerException e) {
+      // ok
+    }
+  }
+
+  @Test void testSha256() {
+    assertThat("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        is(sha256("")));
+    assertThat("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        is(sha256(ByteString.of("", 16))));
+    assertThat("a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e",
+        is(sha256("Hello World")));
+    assertThat("a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e",
+        is(sha256(new ByteString("Hello World".getBytes(UTF_8)))));
+    try {
+      String o = sha256((String) null);
+      fail("Expected NPE, got " + o);
+    } catch (NullPointerException e) {
+      // ok
+    }
+  }
+
+  @Test void testSha512() {
+    assertThat("cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5"
+            + "d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+        is(sha512("")));
+    assertThat("cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5"
+            + "d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+        is(sha512(ByteString.of("", 16))));
+    assertThat("2c74fd17edafd80e8447b0d46741ee243b7eb74dd2149a0ab1b9246fb30382f27e853d858"
+            + "5719e0e67cbda0daa8f51671064615d645ae27acb15bfb1447f459b",
+        is(sha512("Hello World")));
+    assertThat("2c74fd17edafd80e8447b0d46741ee243b7eb74dd2149a0ab1b9246fb30382f27e853d858"
+            + "5719e0e67cbda0daa8f51671064615d645ae27acb15bfb1447f459b",
+        is(sha512(new ByteString("Hello World".getBytes(UTF_8)))));
+    try {
+      String o = sha512((String) null);
       fail("Expected NPE, got " + o);
     } catch (NullPointerException e) {
       // ok
