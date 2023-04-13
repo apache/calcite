@@ -1188,6 +1188,22 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
+  public static final SqlFunction SHA256 =
+      SqlBasicFunction.create("SHA256",
+          ReturnTypes.explicit(SqlTypeName.VARCHAR)
+              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          OperandTypes.STRING.or(OperandTypes.BINARY),
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
+  public static final SqlFunction SHA512 =
+      SqlBasicFunction.create("SHA512",
+          ReturnTypes.explicit(SqlTypeName.VARCHAR)
+              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          OperandTypes.STRING.or(OperandTypes.BINARY),
+          SqlFunctionCategory.STRING);
+
   /** The "LOG(value [, value2])" function.
    *
    * @see SqlStdOperatorTable#LN

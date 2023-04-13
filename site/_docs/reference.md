@@ -2727,6 +2727,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b o | RTRIM(string)                                | Returns *string* with all blanks removed from the end
 | b | SAFE_CAST(value AS type)                       | Converts *value* to *type*, returning NULL if conversion fails
 | b m p | SHA1(string)                               | Calculates a SHA-1 hash value of *string* and returns it as a hex string
+| b p | SHA256(string)                               | Calculates a SHA-256 hash value of *string* and returns it as a hex string
+| b p | SHA512(string)                               | Calculates a SHA-512 hash value of *string* and returns it as a hex string
 | * | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
 | b m o p | SOUNDEX(string)                          | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1

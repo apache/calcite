@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.linq4j.Linq4j;
@@ -134,6 +135,8 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Contains unit tests for all operators. Each of the methods is named after an
@@ -3879,6 +3882,61 @@ public class SqlOperatorTest {
           "VARCHAR NOT NULL");
       f.checkString("sha1(x'414243')",
           "3c01bdbb26f358bab27f267924aa2c9a03fcfdb8",
+          "VARCHAR NOT NULL");
+    };
+    f0.forEachLibrary(libraries, consumer);
+  }
+
+  @Test void testSha256() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SHA1);
+    f0.checkFails("^sha256(x'')^",
+        "No match found for function signature SHA256\\(<BINARY>\\)",
+        false);
+
+    final List<SqlLibrary> libraries =
+        ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("sha256('')",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "VARCHAR NOT NULL");
+      f.checkString("sha256(x'')",
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "VARCHAR NOT NULL");
+      f.checkString("sha256('Hello World')",
+          "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e",
+          "VARCHAR NOT NULL");
+      f.checkString("sha256(x'48656c6c6f20576f726c64')",
+          "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e",
+          "VARCHAR NOT NULL");
+    };
+    f0.forEachLibrary(libraries, consumer);
+  }
+
+  @Test void testSha512() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SHA1);
+    f0.checkFails("^sha512(x'')^",
+        "No match found for function signature SHA512\\(<BINARY>\\)",
+        false);
+
+    final List<SqlLibrary> libraries =
+        ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("sha512('')",
+          "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2"
+              + "b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+          "VARCHAR NOT NULL");
+      f.checkString("sha512(x'')",
+          "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b"
+              + "0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+          "VARCHAR NOT NULL");
+      f.checkString("sha512('Hello World')",
+          "2c74fd17edafd80e8447b0d46741ee243b7eb74dd2149a0ab1b9246fb30382f27e853d8585719e0"
+              + "e67cbda0daa8f51671064615d645ae27acb15bfb1447f459b",
+          "VARCHAR NOT NULL");
+      String hexString = new ByteString("Hello World".getBytes(UTF_8)).toString();
+      f.checkString("sha512(x'" + hexString + "')",
+          "2c74fd17edafd80e8447b0d46741ee243b7eb74dd2149a0ab1b9246fb30382f27e853d8585719e0"
+              + "e67cbda0daa8f51671064615d645ae27acb15bfb1447f459b",
           "VARCHAR NOT NULL");
     };
     f0.forEachLibrary(libraries, consumer);
