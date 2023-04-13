@@ -1,6 +1,7 @@
 /*
  * Copyright 2022 VMware, Inc.
  * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,9 +37,9 @@ public class NoExecutor extends SqlSLTTestExecutor {
   public TestStatistics execute(SLTTestFile testFile, ExecutionOptions options) {
     TestStatistics result = new TestStatistics(options.stopAtFirstError);
     this.startTest();
-    result.failed = 0;
-    result.ignored = testFile.getTestCount();
-    result.passed = 0;
+    result.setFailed(0);
+    result.setIgnored(testFile.getTestCount());
+    result.setPassed(0);
     this.reportTime(testFile.getTestCount());
     return result;
   }

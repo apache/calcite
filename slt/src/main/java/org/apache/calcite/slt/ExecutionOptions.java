@@ -1,6 +1,7 @@
 /*
  * Copyright 2022 VMware, Inc.
  * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -49,7 +50,7 @@ import javax.annotation.Nullable;
 @SuppressWarnings("CanBeFinal")
 public class ExecutionOptions {
   public static class ExecutorValidator implements IParameterValidator {
-    final private Set<String> legalExecutors;
+    private final Set<String> legalExecutors;
 
     public ExecutorValidator() {
       this.legalExecutors = new HashSet<>();
@@ -68,7 +69,9 @@ public class ExecutionOptions {
   }
 
   @Parameter(names = "-h", description = "Show this help message and exit")
-  public boolean help;
+  public boolean help = false;
+  @Parameter(names = "-i", description = "Install the SLT tests if the directory does not exist")
+  public boolean install = false;
   @Parameter(names = "-d", description = "Directory with SLT tests")
   public String sltDirectory;
   @Parameter(names = "-x", description = "Stop at the first encountered query error")
@@ -78,7 +81,7 @@ public class ExecutionOptions {
   @Parameter(names = "-n", description = "Do not execute, just parse the test files")
   boolean doNotExecute;
   @Parameter(names = "-e", description = "Executor to use; one of 'none, JDBC, calcite'", validateWith = ExecutorValidator.class)
-  String executor = "none";
+  String executor = "calcite";
   @Parameter(names = "-s", description = "Ignore the status of SQL commands executed")
   boolean validateStatus;
   @Parameter(names = "-b", description = "Load a list of buggy commands to skip from this file")
@@ -109,14 +112,14 @@ public class ExecutionOptions {
     return "jdbc:hsqldb:mem:db";
   }
 
-  JDBCExecutor jdbcExecutor(HashSet<String> sltBugs) throws ClassNotFoundException {
+  JDBCExecutor jdbcExecutor(HashSet<String> sltBugs) {
     JDBCExecutor jdbc = new JDBCExecutor(this.jdbcConnectionString());
     jdbc.avoid(sltBugs);
     jdbc.setValidateStatus(this.validateStatus);
     return jdbc;
   }
 
-  SqlSLTTestExecutor getExecutor() throws IOException, SQLException, ClassNotFoundException {
+  SqlSLTTestExecutor getExecutor() throws IOException, SQLException {
     HashSet<String> sltBugs = new HashSet<>();
     if (this.bugsFile != null) {
       sltBugs = this.readBugsFile(this.bugsFile);
@@ -135,6 +138,8 @@ public class ExecutionOptions {
       result.setValidateStatus(this.validateStatus);
       return result;
     }
+    default:
+      break;
     }
     throw new RuntimeException("Unknown executor: " + this.executor);  // unreachable
   }
@@ -150,7 +155,7 @@ public class ExecutionOptions {
       this.commander.setProgramName("slt");
   }
 
-  public void help() {
+  public void usage() {
     this.commander.usage();
   }
 

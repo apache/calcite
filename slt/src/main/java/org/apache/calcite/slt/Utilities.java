@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.function.Function;
 
 public class Utilities {
+  private Utilities() {}
+
   /**
    * Just adds single quotes around a string.  No escaping is performed.
    */

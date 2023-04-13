@@ -1,18 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to you under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright 2023 VMware, Inc.
+ * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: Apache-2.0
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 package org.apache.calcite.slt;
@@ -40,15 +47,47 @@ public class TestStatistics {
     }
   }
 
-  public int failed;
-  public int passed;
-  public int ignored;
+  int failed;
+  int passed;
+  int ignored;
+
+  public void incPassed() {
+    this.passed++;
+  }
+
+  public void incIgnored() {
+    this.ignored++;
+  }
+
+  public void setPassed(int n) {
+    this.passed = n;
+  }
+
+  public void setFailed(int n) {
+    this.failed = n;
+  }
+
+  public void setIgnored(int n) {
+    this.failed = n;
+  }
 
   public void add(TestStatistics stats) {
     this.failed += stats.failed;
     this.passed += stats.passed;
     this.ignored += stats.ignored;
     this.failures.addAll(stats.failures);
+  }
+
+  public int getFailed() {
+    return this.failed;
+  }
+
+  public int getPassed() {
+    return this.passed;
+  }
+
+  public int getIgnored() {
+    return this.ignored;
   }
 
   List<FailedTestDescription> failures = new ArrayList<>();
@@ -70,7 +109,7 @@ public class TestStatistics {
   @Override
   public String toString() {
     StringBuilder result = new StringBuilder();
-    if (this.failures.size() > 0)
+    if (!this.failures.isEmpty())
       result.append(this.failures.size())
           .append(" failures:\n");
     for (FailedTestDescription failure : this.failures)

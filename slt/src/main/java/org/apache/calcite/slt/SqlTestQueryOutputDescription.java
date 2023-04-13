@@ -1,6 +1,7 @@
 /*
  * Copyright 2022 VMware, Inc.
  * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,13 +29,14 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 public class SqlTestQueryOutputDescription {
+  // These correspond directly to SLT strings.
   public enum SortOrder {
-    None,
-    Row,
-    Value
+    NONE,
+    ROW,
+    VALUE
   }
 
-  public int valueCount;
+  int valueCount;
   /**
    * Encoded types of columns expected in result.
    */
@@ -45,16 +47,29 @@ public class SqlTestQueryOutputDescription {
   /**
    * How results are sorted.
    */
-  public SortOrder order;
+  SortOrder order;
   @Nullable
-  public List<String> queryResults;
+  List<String> queryResults;
 
   public SqlTestQueryOutputDescription() {
     this.columnTypes = null;
     this.valueCount = 0;
     this.hash = null;
     this.queryResults = null;
-    this.order = SortOrder.None;
+    this.order = SortOrder.NONE;
+  }
+
+  public SortOrder getOrder() {
+    return this.order;
+  }
+
+  @Nullable
+  public List<String> getQueryResults() {
+    return this.queryResults;
+  }
+
+  public int getValueCount() {
+    return this.valueCount;
   }
 
   public void clearResults() {
@@ -105,13 +120,13 @@ public class SqlTestQueryOutputDescription {
   @Nullable
   String parseOrder(String orderDescription) {
     if (orderDescription.startsWith("nosort")) {
-      this.order = SortOrder.None;
+      this.order = SortOrder.NONE;
       return orderDescription.substring("nosort" .length());
     } else if (orderDescription.startsWith("rowsort")) {
-      this.order = SortOrder.Row;
+      this.order = SortOrder.ROW;
       return orderDescription.substring("rowsort" .length());
     } else if (orderDescription.startsWith("valuesort")) {
-      this.order = SortOrder.Value;
+      this.order = SortOrder.VALUE;
       return orderDescription.substring("valuesort" .length());
     }
     return null;

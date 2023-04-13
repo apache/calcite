@@ -1,6 +1,7 @@
 /*
  * Copyright 2023 VMware, Inc.
  * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,5 +38,5 @@ public abstract class SqlSLTTestExecutor extends SqlTestExecutor {
    * Execute the specified test file.
    */
   public abstract TestStatistics execute(SLTTestFile testFile, ExecutionOptions options)
-      throws SqlParseException, IOException, InterruptedException, SQLException, NoSuchAlgorithmException;
+      throws SqlParseException, IOException, SQLException, NoSuchAlgorithmException;
 }

@@ -1,6 +1,7 @@
 /*
  * Copyright 2023 VMware, Inc.
  * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +28,6 @@ import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.slt.*;
-import org.apache.calcite.sql.parser.SqlParseException;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -66,8 +66,8 @@ public class CalciteExecutor extends SqlSLTTestExecutor {
   }
 
   void query(SqlTestQuery query, TestStatistics statistics) throws UnsupportedEncodingException {
-    String q = query.query;
-    logger.info("Executing query " + q);
+    String q = query.getQuery();
+    logger.info(() -> "Executing query " + q);
     try (PreparedStatement ps = this.connection.prepareStatement(q)) {
       ps.execute();
       try (ResultSet resultSet = ps.getResultSet()) {
@@ -85,11 +85,10 @@ public class CalciteExecutor extends SqlSLTTestExecutor {
 
   @Override
   public TestStatistics execute(SLTTestFile file, ExecutionOptions options)
-      throws SqlParseException, IOException, InterruptedException, SQLException, NoSuchAlgorithmException {
+      throws IOException, SQLException {
     this.statementExecutor.establishConnection();
     this.statementExecutor.dropAllViews();
     this.statementExecutor.dropAllTables();
-    //Hook.QUERY_PLAN.addThread((Consumer<String>)(System.out::println));
 
     TestStatistics result = new TestStatistics(options.stopAtFirstError);
     for (ISqlTestOperation operation : file.fileContents) {
@@ -98,7 +97,7 @@ public class CalciteExecutor extends SqlSLTTestExecutor {
         boolean status;
         try {
           if (this.buggyOperations.contains(stat.statement)) {
-            logger.info("Skipping buggy test " + stat.statement);
+            logger.info(() -> "Skipping buggy test " + stat.statement);
             status = stat.shouldPass;
           } else {
             status = this.statement(stat);
@@ -113,16 +112,16 @@ public class CalciteExecutor extends SqlSLTTestExecutor {
           throw new RuntimeException("Statement " + stat.statement + " status " + status + " expected " + stat.shouldPass);
       } else {
         SqlTestQuery query = operation.to(SqlTestQuery.class);
-        if (this.buggyOperations.contains(query.query)) {
-          logger.info("Skipping buggy test " + query.query);
-          result.ignored++;
+        if (this.buggyOperations.contains(query.getQuery())) {
+          logger.info(() -> "Skipping buggy test " + query.getQuery());
+          result.incIgnored();
           continue;
         }
         this.query(query, result);
       }
     }
     this.statementExecutor.closeConnection();
-    this.reportTime(result.passed);
+    this.reportTime(result.getPassed());
     logger.info("Finished executing " + file);
     return result;
   }

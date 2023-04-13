@@ -45,6 +45,9 @@ Default: none
 -h
 Show this help message and exit
 Default: false
+-i
+Install the SLT tests if the directory does not exist
+Default: false
 -n
 Do not execute, just parse the test files
 Default: false

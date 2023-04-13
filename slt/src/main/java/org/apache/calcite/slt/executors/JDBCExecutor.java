@@ -1,6 +1,7 @@
 /*
  * Copyright 2022 VMware, Inc.
  * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,9 +38,14 @@ import javax.annotation.Nullable;
 @SuppressWarnings({"SqlDialectInspection", "SqlNoDataSourceInspection"})
 public class JDBCExecutor extends SqlSLTTestExecutor {
   Logger logger = Logger.getLogger("JDBCExecutor");
-  public final String db_url;
+  public final String dbUrl;
   @Nullable
   Connection connection;
+
+  // These could be static final, but then perhaps this would be flagged as a security vulnerability.
+  // There is no security issue because we use a local temporary hsqldb database.
+  String DEFAULT_USER = "";  // no user needed for hsqldb
+  String DEFAULT_PASSWORD = "";  // no password needed for hsqldb
 
   // In the end everything is decoded as a string
   static class Row {
@@ -60,60 +66,64 @@ public class JDBCExecutor extends SqlSLTTestExecutor {
   }
 
   static class Rows {
-    public List<Row> rows;
+    List<Row> allRows;
 
     Rows() {
-      this.rows = new ArrayList<>();
+      this.allRows = new ArrayList<>();
     }
 
     void add(Row row) {
-      this.rows.add(row);
+      this.allRows.add(row);
     }
 
     @Override
     public String toString() {
-      return String.join("\n", Utilities.map(this.rows, Row::toString));
+      return String.join("\n", Utilities.map(this.allRows, Row::toString));
     }
 
     public int size() {
-      return this.rows.size();
+      return this.allRows.size();
     }
 
     public void sort(SqlTestQueryOutputDescription.SortOrder order) {
       switch (order) {
-      case None:
+      case NONE:
         break;
-      case Row:
-        this.rows.sort(new RowComparator());
+      case ROW:
+        this.allRows.sort(new RowComparator());
         break;
-      case Value:
-        this.rows = Utilities.flatMap(this.rows,
+      case VALUE:
+        this.allRows = Utilities.flatMap(this.allRows,
             r -> Utilities.map(r.values,
                 r0 -> {
                   Row res = new Row();
                   res.add(r0);
                   return res;
                 }));
-        this.rows.sort(new RowComparator());
+        this.allRows.sort(new RowComparator());
         break;
       }
+    }
+
+    List<Row> getRows() {
+      return this.allRows;
     }
   }
 
   public JDBCExecutor(String db_url) {
-    this.db_url = db_url;
+    this.dbUrl = db_url;
     this.connection = null;
   }
 
   void statement(SLTSqlStatement statement) throws SQLException {
-    logger.info(this.statementsExecuted + ": " + statement.statement);
+    logger.info(() -> this.statementsExecuted + ": " + statement.statement);
     assert this.connection != null;
-    Statement stmt = this.connection.createStatement();
-    try {
+    try (Statement stmt = this.connection.createStatement()) {
       stmt.execute(statement.statement);
     } catch (SQLException ex) {
-      stmt.close();
       logger.severe("ERROR: " + ex.getMessage());
+      // Failures during the execution of statements are fatal.
+      // Only failures in queries are handled.
       throw ex;
     }
     this.statementsExecuted++;
@@ -121,16 +131,16 @@ public class JDBCExecutor extends SqlSLTTestExecutor {
 
   void query(SqlTestQuery query, TestStatistics statistics) throws SQLException, NoSuchAlgorithmException {
     assert this.connection != null;
-    if (this.buggyOperations.contains(query.query)) {
-      logger.warning("Skipping " + query.query);
+    if (this.buggyOperations.contains(query.getQuery())) {
+      logger.warning(() -> "Skipping " + query.getQuery());
       return;
     }
-    Statement stmt = this.connection.createStatement();
-    ResultSet resultSet = stmt.executeQuery(query.query);
-    this.validate(query, resultSet, query.outputDescription, statistics);
-    stmt.close();
-    resultSet.close();
-    logger.info(statistics.testsRun() + ": " + query.query);
+    try (Statement stmt = this.connection.createStatement()) {
+      ResultSet resultSet = stmt.executeQuery(query.getQuery());
+      this.validate(query, resultSet, query.outputDescription, statistics);
+      resultSet.close();
+    }
+    logger.info(() -> statistics.testsRun() + ": " + query.getQuery());
   }
 
   Row getValue(ResultSet rs, String columnTypes) throws SQLException {
@@ -197,6 +207,7 @@ public class JDBCExecutor extends SqlSLTTestExecutor {
     }
   }
 
+  @SuppressWarnings("java:S4790")  // MD5 checksum
   void validate(SqlTestQuery query, ResultSet rs,
       SqlTestQueryOutputDescription description,
       TestStatistics statistics)
@@ -207,16 +218,16 @@ public class JDBCExecutor extends SqlSLTTestExecutor {
       Row row = this.getValue(rs, description.columnTypes);
       rows.add(row);
     }
-    if (description.valueCount != rows.size() * description.columnTypes.length()) {
+    if (description.getValueCount() != rows.size() * description.columnTypes.length()) {
       statistics.addFailure(new TestStatistics.FailedTestDescription(
-          query, "Expected " + description.valueCount + " rows, got " +
+          query, "Expected " + description.getValueCount() + " rows, got " +
           rows.size() * description.columnTypes.length()));
       return;
     }
-    rows.sort(description.order);
-    if (description.queryResults != null) {
+    rows.sort(description.getOrder());
+    if (description.getQueryResults() != null) {
       String r = rows.toString();
-      String q = String.join("\n", description.queryResults);
+      String q = String.join("\n", description.getQueryResults());
       if (!r.equals(q)) {
         statistics.addFailure(new TestStatistics.FailedTestDescription(
             query, "Output differs: computed\n" + r + "\nExpected:\n" + q));
@@ -224,6 +235,8 @@ public class JDBCExecutor extends SqlSLTTestExecutor {
       }
     }
     if (description.hash != null) {
+      // MD5 is considered insecure, but we have no choice because this is
+      // the algorithm used to compute the checksums by SLT.
       MessageDigest md = MessageDigest.getInstance("MD5");
       String repr = rows + "\n";
       md.update(repr.getBytes());
@@ -235,7 +248,7 @@ public class JDBCExecutor extends SqlSLTTestExecutor {
         return;
       }
     }
-    statistics.passed++;
+    statistics.incPassed();
   }
 
   List<String> getTableList() throws SQLException {
@@ -271,11 +284,12 @@ public class JDBCExecutor extends SqlSLTTestExecutor {
     assert this.connection != null;
     List<String> tables = this.getTableList();
     for (String tableName : tables) {
-      String del = "DROP TABLE " + tableName;
+      String del = "DROP TABLE ?";
       logger.info(del);
-      Statement drop = this.connection.createStatement();
-      drop.execute(del);
-      drop.close();
+      try (PreparedStatement drop = this.connection.prepareStatement(del)) {
+        drop.setString(1, tableName);
+        drop.execute(del);
+      }
     }
   }
 
@@ -283,20 +297,22 @@ public class JDBCExecutor extends SqlSLTTestExecutor {
     assert this.connection != null;
     List<String> tables = this.getViewList();
     for (String tableName : tables) {
-      String del = "DROP VIEW IF EXISTS " + tableName + " CASCADE";
+      String del = "DROP VIEW IF EXISTS ? CASCADE";
       logger.info(del);
-      Statement drop = this.connection.createStatement();
-      drop.execute(del);
-      drop.close();
+      try (PreparedStatement drop = this.connection.prepareStatement(del)) {
+        drop.setString(1, tableName);
+        drop.execute(del);
+      }
     }
   }
 
   public void establishConnection() throws SQLException {
-    this.connection = DriverManager.getConnection(this.db_url, "", "");
+    this.connection = DriverManager.getConnection(this.dbUrl, DEFAULT_USER, DEFAULT_PASSWORD);
     assert this.connection != null;
-    Statement statement = this.connection.createStatement();
-    // Enable postgres compatibility
-    statement.execute("SET DATABASE SQL SYNTAX PGS TRUE");
+    try (Statement statement = this.connection.createStatement()) {
+      // Enable postgres compatibility
+      statement.execute("SET DATABASE SQL SYNTAX PGS TRUE");
+    }
   }
 
   public void closeConnection() throws SQLException {
@@ -326,7 +342,7 @@ public class JDBCExecutor extends SqlSLTTestExecutor {
       }
     }
     this.closeConnection();
-    this.reportTime(result.passed);
+    this.reportTime(result.getPassed());
     return result;
   }
 }

@@ -1,6 +1,7 @@
 /*
  * Copyright 2023 VMware, Inc.
  * SPDX-License-Identifier: MIT
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -52,7 +53,7 @@ public class SqlTestExecutor implements ICastable {
     return (end - start) / 1000000000;
   }
 
-  public void avoid(HashSet<String> statementsToSkip) {
+  public void avoid(Set<String> statementsToSkip) {
     this.buggyOperations.addAll(statementsToSkip);
   }
 
