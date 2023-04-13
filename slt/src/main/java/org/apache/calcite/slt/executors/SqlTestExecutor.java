@@ -61,6 +61,7 @@ public class SqlTestExecutor implements ICastable {
     this.validateStatus = validate;
   }
 
+  @SuppressWarnings("java:S2696")  // static variable accessed
   protected void reportTime(int tests) {
     long end = System.nanoTime();
     totalTests += tests;
@@ -70,6 +71,7 @@ public class SqlTestExecutor implements ICastable {
         df.format(seconds(end, startTime)) + "s");
   }
 
+  @SuppressWarnings("java:S2696")  // static variable accessed
   protected void startTest() {
     this.lastTestStartTime = System.nanoTime();
     if (startTime == -1)

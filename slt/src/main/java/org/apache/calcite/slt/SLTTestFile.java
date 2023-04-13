@@ -275,7 +275,7 @@ public class SLTTestFile {
   }
 
   private void add(ISqlTestOperation operation) {
-    logger.info("Operation added " + operation.toString());
+    logger.info(() -> "Operation added " + operation.toString());
     this.fileContents.add(operation);
     if (operation.is(SqlTestQuery.class))
       this.testCount++;

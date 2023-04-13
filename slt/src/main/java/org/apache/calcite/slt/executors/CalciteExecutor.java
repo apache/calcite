@@ -122,7 +122,7 @@ public class CalciteExecutor extends SqlSLTTestExecutor {
     }
     this.statementExecutor.closeConnection();
     this.reportTime(result.getPassed());
-    logger.info("Finished executing " + file);
+    logger.info(() -> "Finished executing " + file);
     return result;
   }
 }

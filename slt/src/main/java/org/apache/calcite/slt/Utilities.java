@@ -64,4 +64,8 @@ public class Utilities {
       result.addAll(function.apply(aData));
     return result;
   }
+
+  public static String getEmptyString() {
+    return "";
+  }
 }

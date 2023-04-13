@@ -42,11 +42,6 @@ public class JDBCExecutor extends SqlSLTTestExecutor {
   @Nullable
   Connection connection;
 
-  // These could be static final, but then perhaps this would be flagged as a security vulnerability.
-  // There is no security issue because we use a local temporary hsqldb database.
-  String DEFAULT_USER = "";  // no user needed for hsqldb
-  String DEFAULT_PASSWORD = "";  // no password needed for hsqldb
-
   // In the end everything is decoded as a string
   static class Row {
     public final List<String> values;
@@ -110,8 +105,8 @@ public class JDBCExecutor extends SqlSLTTestExecutor {
     }
   }
 
-  public JDBCExecutor(String db_url) {
-    this.dbUrl = db_url;
+  public JDBCExecutor(String dbUrl) {
+    this.dbUrl = dbUrl;
     this.connection = null;
   }
 
@@ -306,8 +301,12 @@ public class JDBCExecutor extends SqlSLTTestExecutor {
     }
   }
 
+  @SuppressWarnings("java:S2115")
   public void establishConnection() throws SQLException {
-    this.connection = DriverManager.getConnection(this.dbUrl, DEFAULT_USER, DEFAULT_PASSWORD);
+    // The empty string for the user and password is not a security a problem
+    // because this is a temporary in-memory database.
+    this.connection = DriverManager.getConnection(
+        this.dbUrl, Utilities.getEmptyString(), Utilities.getEmptyString());
     assert this.connection != null;
     try (Statement statement = this.connection.createStatement()) {
       // Enable postgres compatibility
