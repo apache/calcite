@@ -78,10 +78,6 @@ public enum SqlConformanceEnum implements SqlConformance {
   PRESTO,
 
   /** Conformance value that instructs Calcite to use SQL semantics
-   * consistent with Apache Spark. */
-  SPARK,
-
-  /** Conformance value that instructs Calcite to use SQL semantics
    * consistent with Microsoft SQL Server version 2008. */
   SQL_SERVER_2008;
 
@@ -159,7 +155,6 @@ public enum SqlConformanceEnum implements SqlConformance {
     case PRAGMATIC_2003:
     case SQL_SERVER_2008:
     case PRESTO:
-    case SPARK:
       return true;
     default:
       return false;
@@ -177,7 +172,6 @@ public enum SqlConformanceEnum implements SqlConformance {
     case ORACLE_12:
     case STRICT_92:
     case SQL_SERVER_2008:
-    case SPARK:
       return true;
     default:
       return false;
@@ -301,7 +295,6 @@ public enum SqlConformanceEnum implements SqlConformance {
     case DEFAULT:
     case LENIENT:
     case PRESTO:
-    case SPARK:
       return true;
     default:
       return false;
