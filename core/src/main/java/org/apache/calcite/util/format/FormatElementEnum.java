@@ -234,6 +234,8 @@ public enum FormatElementEnum implements FormatElement {
 
     final Calendar calendar =
         Calendar.getInstance(DateTimeUtils.DEFAULT_ZONE, Locale.ROOT);
+
+    /** @implNote Uses Locale.US instead of Locale.ROOT to fix formatting in Java 11 */
     final DateFormat eeeeFormat = new SimpleDateFormat("EEEE", Locale.US);
     final DateFormat eeeFormat = new SimpleDateFormat("EEE", Locale.ROOT);
     final DateFormat mmmFormat = new SimpleDateFormat("MMM", Locale.ROOT);
