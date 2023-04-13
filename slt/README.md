@@ -27,8 +27,6 @@ They only test core aspects of SQL.  For example, the tests only
 cover integers, strings, and floating point values, and do not test
 corner cases, such as overflows.
 
-## Installing the tests
-
 The tests in the SQL logic test suite are given as ".test" files.
 Each test file is a combination of SQL statements that set up the test
 by creating and populating tables, followed by a sequence of queries
@@ -40,10 +38,6 @@ our implementation we use the Postgres dialect.
 
 This program only exercises Calcite for executing the queries; the statements
 themselves are delegated to be executed directly by a database engine.
-
-In order to run the tests you first need to install SqlLogicTest itself.
-One way the source tree can be obtained is
-from the git mirror: <https://github.com/gregrahn/sqllogictest.git>.
 
 ## Running the tests
 
@@ -85,7 +79,7 @@ Here is an example invocation:
 This invocation assumes that the `sqllogictest` scripts have been installed at `~/git/sqllogictest`,
 will run the tests through Calcite, and will execute the test script `select1.test` and
 all the test scripts in the `index` directory.  (All these files are relative to the `~/git/sqllogictest/test`
-directory).
+directory).  Installation of the tests is performed if the `-i` flag is provided.
 
 If some statements or queries are expected to fail, they can be added to a file
 which is supplied with the `-b` flag.  Each such statement/query must be on a separate line of the file
