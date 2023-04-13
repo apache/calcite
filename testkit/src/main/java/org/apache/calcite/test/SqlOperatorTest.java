@@ -7887,8 +7887,6 @@ public class SqlOperatorTest {
     // empty array is illegal per SQL spec. presumably because one can't
     // infer type
     f.checkFails("^Array[]^", "Require at least 1 argument", false);
-
-
   }
 
   /**
@@ -7897,6 +7895,7 @@ public class SqlOperatorTest {
   @Test void testArrayFunction() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlLibraryOperators.ARRAY, VmName.EXPAND);
+    f.checkFails("^array()^", "No match found for function signature ARRAY\\(\\)", false);    
     f.checkFails("^array('foo')^", "No match found for function signature ARRAY\\(<CHARACTER>\\)", false);    
     final SqlOperatorFixture f2 = f.withLibrary(SqlLibrary.SPARK);
     f2.checkScalar("array('foo')",

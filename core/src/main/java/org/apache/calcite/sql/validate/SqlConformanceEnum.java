@@ -446,13 +446,4 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
-
-  @Override public boolean allowArrayFunction() {
-    switch (this) {
-    case SPARK:
-      return true;
-    default:
-      return false;
-    }
-  }
 }
