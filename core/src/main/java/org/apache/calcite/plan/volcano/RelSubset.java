@@ -33,7 +33,6 @@ import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -51,6 +50,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -172,8 +172,7 @@ public class RelSubset extends AbstractRelNode {
   private void computeBestCost(
       @UnderInitialization RelSubset this,
       RelOptCluster cluster,
-      RelOptPlanner planner
-  ) {
+      RelOptPlanner planner) {
     bestCost = planner.getCostFactory().makeInfiniteCost();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     @SuppressWarnings("method.invocation.invalid")
@@ -364,12 +363,6 @@ public class RelSubset extends AbstractRelNode {
       planner.getListener().relEquivalenceFound(event);
     }
 
-    // If this isn't the first rel in the set, it must have compatible
-    // row type.
-    if (set.rel != null) {
-      RelOptUtil.equal("rowtype of new rel", rel.getRowType(),
-          "rowtype of set", getRowType(), Litmus.THROW);
-    }
     set.addInternal(rel);
     if (false) {
       Set<CorrelationId> variablesSet = RelOptUtil.getVariablesSet(rel);
@@ -605,6 +598,7 @@ public class RelSubset extends AbstractRelNode {
    */
   static class CheapestPlanReplacer {
     VolcanoPlanner planner;
+    final Map<Integer, RelNode> visited = new HashMap<>();
 
     CheapestPlanReplacer(VolcanoPlanner planner) {
       super();
@@ -623,6 +617,13 @@ public class RelSubset extends AbstractRelNode {
         RelNode p,
         int ordinal,
         @Nullable RelNode parent) {
+      final int pId = p.getId();
+      RelNode prevVisit = visited.get(pId);
+      if (prevVisit != null) {
+        // return memoized result of previous visit if available
+        return prevVisit;
+      }
+
       if (p instanceof RelSubset) {
         RelSubset subset = (RelSubset) p;
         RelNode cheapest = subset.best;
@@ -737,6 +738,7 @@ public class RelSubset extends AbstractRelNode {
         planner.provenanceMap.put(
             p, new VolcanoPlanner.DirectProvenance(pOld));
       }
+      visited.put(pId, p); // memoize result for pId
       return p;
     }
   }

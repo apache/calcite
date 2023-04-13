@@ -114,15 +114,52 @@ class EmbeddedElasticsearchPolicy {
 
     ObjectNode mappings = mapper().createObjectNode();
 
-    ObjectNode properties = mappings.with("mappings").with("properties");
+    ObjectNode properties = mappings.withObject("/mappings")
+        .withObject("/properties");
     for (Map.Entry<String, String> entry: mapping.entrySet()) {
       applyMapping(properties, entry.getKey(), entry.getValue());
     }
 
     // create index and mapping
-    final HttpEntity entity = new StringEntity(mapper().writeValueAsString(mappings),
-        ContentType.APPLICATION_JSON);
+    final HttpEntity entity =
+        new StringEntity(mapper().writeValueAsString(mappings),
+            ContentType.APPLICATION_JSON);
     final Request r = new Request("PUT", "/" + index);
+    r.setEntity(entity);
+    restClient().performRequest(r);
+  }
+
+  /**
+   * Creates alias in elastic search given an index.
+   * as dots({@code .}).
+   *
+   * <p>Example
+   * <pre>
+   *  {@code
+   *     b.a: long
+   *     b.b: keyword
+   *  }
+   * </pre>
+   *
+   * @param index index of the index
+   * @param alias alias of the index
+   * @throws IOException if there is an error
+   */
+  void createAlias(String index, String alias) throws IOException {
+    Objects.requireNonNull(index, "index");
+    Objects.requireNonNull(alias, "alias");
+
+    ObjectNode actions = mapper().createObjectNode();
+
+    ObjectNode properties = actions.withObject("/actions").withObject("/add");
+    properties.put("index", index);
+    properties.put("alias", alias);
+
+    // create alias
+    final HttpEntity entity =
+        new StringEntity(mapper().writeValueAsString(actions),
+            ContentType.APPLICATION_JSON);
+    final Request r = new Request("POST", "/_aliases");
     r.setEntity(entity);
     restClient().performRequest(r);
   }
@@ -139,19 +176,19 @@ class EmbeddedElasticsearchPolicy {
     if (index > -1) {
       String prefix  = key.substring(0, index);
       String suffix = key.substring(index + 1, key.length());
-      applyMapping(parent.with(prefix).with("properties"), suffix, type);
+      applyMapping(parent.withObject("/" + prefix).withObject("/properties"), suffix, type);
     } else {
-      parent.with(key).put("type", type);
+      parent.withObject("/" + key).put("type", type);
     }
   }
 
   void insertDocument(String index, ObjectNode document) throws IOException {
     Objects.requireNonNull(index, "index");
     Objects.requireNonNull(document, "document");
-    String uri = String.format(Locale.ROOT,
-          "/%s/_doc?refresh", index);
-    StringEntity entity = new StringEntity(mapper().writeValueAsString(document),
-        ContentType.APPLICATION_JSON);
+    String uri = String.format(Locale.ROOT, "/%s/_doc?refresh", index);
+    StringEntity entity =
+        new StringEntity(mapper().writeValueAsString(document),
+            ContentType.APPLICATION_JSON);
     final Request r = new Request("POST", uri);
     r.setEntity(entity);
     restClient().performRequest(r);
@@ -172,8 +209,9 @@ class EmbeddedElasticsearchPolicy {
       bulk.add(mapper().writeValueAsString(doc));
     }
 
-    final StringEntity entity = new StringEntity(String.join("\n", bulk) + "\n",
-        ContentType.APPLICATION_JSON);
+    final StringEntity entity =
+        new StringEntity(String.join("\n", bulk) + "\n",
+            ContentType.APPLICATION_JSON);
 
     final Request r = new Request("POST", "/_bulk?refresh");
     r.setEntity(entity);

@@ -127,12 +127,13 @@ public class ProjectJoinJoinRemoveRule
     int offset = bottomJoin.getRight().getRowType().getFieldCount();
     final RelBuilder relBuilder = call.builder();
 
-    final RexNode condition = RexUtil.shift(topJoin.getCondition(),
-        leftBottomChildSize, -offset);
-    final RelNode join = relBuilder.push(bottomJoin.getLeft())
-        .push(topJoin.getRight())
-        .join(topJoin.getJoinType(), condition)
-        .build();
+    final RexNode condition =
+        RexUtil.shift(topJoin.getCondition(), leftBottomChildSize, -offset);
+    final RelNode join =
+        relBuilder.push(bottomJoin.getLeft())
+            .push(topJoin.getRight())
+            .join(topJoin.getJoinType(), condition)
+            .build();
 
     final List<RexNode> newExprs = project.getProjects().stream()
         .map(expr -> RexUtil.shift(expr, leftBottomChildSize, -offset))

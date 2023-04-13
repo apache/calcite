@@ -56,10 +56,10 @@ class SqlSetOptionOperatorTest {
 
   private static void checkSqlSetOptionSame(SqlNode node) {
     SqlSetOption opt = (SqlSetOption) node;
-    SqlCall returned = opt.getOperator().createCall(
-        opt.getFunctionQuantifier(),
-        opt.getParserPosition(),
-        opt.getOperandList());
+    SqlCall returned =
+        opt.getOperator().createCall(opt.getFunctionQuantifier(),
+            opt.getParserPosition(),
+            opt.getOperandList());
     assertThat(opt.getClass(), equalTo(returned.getClass()));
     SqlSetOption optRet = (SqlSetOption) returned;
     assertThat(optRet.getScope(), is(opt.getScope()));

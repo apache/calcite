@@ -40,6 +40,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -113,6 +114,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collector;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Miscellaneous utility functions.
@@ -919,12 +922,19 @@ public class Util {
     return new AssertionError("Internal error: " + s, e);
   }
 
+  /** Until we upgrade to Guava 19. */
+  @CanIgnoreReturnValue
+  public static <T> T verifyNotNull(@Nullable T reference) {
+    Bug.upgrade("Remove when minimum Guava version is 17");
+    return requireNonNull(reference, "expected a non-null reference");
+  }
+
   /** As {@link Throwables}{@code .throwIfUnchecked(Throwable)},
    * which was introduced in Guava 20,
    * but we don't require Guava version 20 yet. */
   public static void throwIfUnchecked(Throwable throwable) {
     Bug.upgrade("Remove when minimum Guava version is 20");
-    Objects.requireNonNull(throwable, "throwable");
+    requireNonNull(throwable, "throwable");
     if (throwable instanceof RuntimeException) {
       throw (RuntimeException) throwable;
     }
@@ -1560,9 +1570,9 @@ public class Util {
   }
 
   private static int groupAsInt(Matcher matcher, int index) {
-    String value = Objects.requireNonNull(
-        matcher.group(index),
-        () -> "no group for index " + index + ", matcher " + matcher);
+    String value =
+        requireNonNull(matcher.group(index),
+            () -> "no group for index " + index + ", matcher " + matcher);
     return Integer.parseInt(value);
   }
 
@@ -1792,11 +1802,12 @@ public class Util {
    * <p>The returned object is an {@link Iterable},
    * which makes it ideal for use with the 'foreach' construct. For example,
    *
-   * <blockquote><code>List&lt;Number&gt; numbers = Arrays.asList(1, 2, 3.14,
-   * 4, null, 6E23);<br>
-   * for (int myInt : filter(numbers, Integer.class)) {<br>
-   * &nbsp;&nbsp;&nbsp;&nbsp;print(i);<br>
-   * }</code></blockquote>
+   * <blockquote><pre>{@code
+   *   List<Number> numbers = Arrays.asList(1, 2, 3.14, 4, null, 6E23);
+   *   for (int myInt : filter(numbers, Integer.class)) {
+   *     print(i);
+   *   }
+   * }</pre></blockquote>
    *
    * <p>will print 1, 2, 4.
    *

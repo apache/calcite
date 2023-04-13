@@ -112,8 +112,9 @@ class BlockBuilderTest {
   }
 
   @Test void testRenameVariablesWithInitializer() {
-    BlockBuilder outer = appendBlockWithSameVariable(
-        Expressions.constant(7), Expressions.constant(8));
+    BlockBuilder outer =
+        appendBlockWithSameVariable(Expressions.constant(7),
+            Expressions.constant(8));
 
     assertEquals("{\n"
             + "  int x = 7;\n"

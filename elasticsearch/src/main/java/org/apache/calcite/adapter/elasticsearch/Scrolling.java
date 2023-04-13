@@ -63,9 +63,9 @@ class Scrolling {
     final ElasticsearchJson.Result first = transport
         .search(Collections.singletonMap("scroll", "1m")).apply(query);
 
-    AutoClosingIterator iterator = new AutoClosingIterator(
-        new SequentialIterator(first, transport, limit),
-        scrollId -> transport.closeScroll(Collections.singleton(scrollId)));
+    AutoClosingIterator iterator =
+        new AutoClosingIterator(new SequentialIterator(first, transport, limit),
+            scrollId -> transport.closeScroll(Collections.singleton(scrollId)));
 
     Iterator<ElasticsearchJson.SearchHit> result = flatten(iterator);
     // apply limit
@@ -82,8 +82,9 @@ class Scrolling {
    */
   private static Iterator<ElasticsearchJson.SearchHit> flatten(
       Iterator<ElasticsearchJson.Result> results) {
-    final Iterator<Iterator<ElasticsearchJson.SearchHit>> inputs = Iterators.transform(results,
-        input -> input.searchHits().hits().iterator());
+    final Iterator<Iterator<ElasticsearchJson.SearchHit>> inputs =
+        Iterators.transform(results,
+            input -> input.searchHits().hits().iterator());
     return Iterators.concat(inputs);
   }
 

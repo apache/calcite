@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Util;
 
@@ -26,6 +27,7 @@ import com.google.common.base.Preconditions;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import static java.util.Objects.requireNonNull;
 
@@ -33,7 +35,10 @@ import static java.util.Objects.requireNonNull;
  * Parse tree node representing a {@code JOIN} clause.
  */
 public class SqlJoin extends SqlCall {
-  public static final SqlJoinOperator OPERATOR = new SqlJoinOperator();
+  static final SqlJoinOperator COMMA_OPERATOR =
+      new SqlJoinOperator("COMMA-JOIN", 16);
+  public static final SqlJoinOperator OPERATOR =
+      new SqlJoinOperator("JOIN", 18);
 
   SqlNode left;
 
@@ -78,7 +83,13 @@ public class SqlJoin extends SqlCall {
   //~ Methods ----------------------------------------------------------------
 
   @Override public SqlOperator getOperator() {
-    return OPERATOR;
+    //noinspection SwitchStatementWithTooFewBranches
+    switch (getJoinType()) {
+    case COMMA:
+      return COMMA_OPERATOR;
+    default:
+      return OPERATOR;
+    }
   }
 
   @Override public SqlKind getKind() {
@@ -163,10 +174,9 @@ public class SqlJoin extends SqlCall {
     this.right = right;
   }
 
-  /**
-   * <code>SqlJoinOperator</code> describes the syntax of the SQL <code>
-   * JOIN</code> operator. Since there is only one such operator, this class is
-   * almost certainly a singleton.
+  /** Describes the syntax of the SQL {@code JOIN} operator.
+   *
+   * <p>A variant describes the comma operator, which has lower precedence.
    */
   public static class SqlJoinOperator extends SqlOperator {
     private static final SqlWriter.FrameType FRAME_TYPE =
@@ -174,8 +184,8 @@ public class SqlJoin extends SqlCall {
 
     //~ Constructors -----------------------------------------------------------
 
-    private SqlJoinOperator() {
-      super("JOIN", SqlKind.JOIN, 16, true, null, null, null);
+    private SqlJoinOperator(String name, int prec) {
+      super(name, SqlKind.JOIN, prec, true, null, null, null);
     }
 
     //~ Methods ----------------------------------------------------------------
@@ -258,5 +268,13 @@ public class SqlJoin extends SqlCall {
         }
       }
     }
+  }
+
+  @Override public SqlString toSqlString(UnaryOperator<SqlWriterConfig> transform) {
+    SqlNode selectWrapper =
+        new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY,
+            SqlNodeList.SINGLETON_STAR, this, null, null, null,
+            SqlNodeList.EMPTY, null, null, null, null, SqlNodeList.EMPTY);
+    return selectWrapper.toSqlString(transform);
   }
 }

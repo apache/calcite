@@ -82,7 +82,8 @@ public class RexSimplify {
   final RexUnknownAs defaultUnknownAs;
   final boolean predicateElimination;
   private final RexExecutor executor;
-  private final Strong strong;
+
+  private static final Strong STRONG = new Strong();
 
   /**
    * Creates a RexSimplify.
@@ -106,7 +107,6 @@ public class RexSimplify {
     this.predicateElimination = predicateElimination;
     this.paranoid = paranoid;
     this.executor = requireNonNull(executor, "executor");
-    this.strong = new Strong();
   }
 
   @Deprecated // to be removed before 2.0
@@ -192,7 +192,7 @@ public class RexSimplify {
         && SqlTypeUtil.equalSansNullability(rexBuilder.typeFactory, e2.getType(), e.getType())) {
       return e2;
     }
-    final RexNode e3 = rexBuilder.makeCast(e.getType(), e2, matchNullability);
+    final RexNode e3 = rexBuilder.makeCast(e.getType(), e2, matchNullability, false);
     if (e3.equals(e)) {
       return e;
     }
@@ -260,7 +260,7 @@ public class RexSimplify {
    * Verify adds an overhead that is only acceptable for a top-level call.
    */
   RexNode simplify(RexNode e, RexUnknownAs unknownAs) {
-    if (strong.isNull(e)) {
+    if (STRONG.isNull(e)) {
       // Only boolean NULL (aka UNKNOWN) can be converted to FALSE. Even in
       // unknownAs=FALSE mode, we must not convert a NULL integer (say) to FALSE
       if (e.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
@@ -286,6 +286,7 @@ public class RexSimplify {
     case COALESCE:
       return simplifyCoalesce((RexCall) e);
     case CAST:
+    case SAFE_CAST:
       return simplifyCast((RexCall) e);
     case CEIL:
     case FLOOR:
@@ -515,17 +516,19 @@ public class RexSimplify {
       case GREATER_THAN_OR_EQUAL:
       case LESS_THAN_OR_EQUAL:
         // "x = x" simplifies to "null or x is not null" (similarly <= and >=)
-        newExpr = rexBuilder.makeCall(SqlStdOperatorTable.OR,
-            rexBuilder.makeNullLiteral(e.getType()),
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, o0));
+        newExpr =
+            rexBuilder.makeCall(SqlStdOperatorTable.OR,
+                rexBuilder.makeNullLiteral(e.getType()),
+                rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, o0));
         return simplify(newExpr, unknownAs);
       case NOT_EQUALS:
       case LESS_THAN:
       case GREATER_THAN:
         // "x != x" simplifies to "null and x is null" (similarly < and >)
-        newExpr = rexBuilder.makeCall(SqlStdOperatorTable.AND,
-            rexBuilder.makeNullLiteral(e.getType()),
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, o0));
+        newExpr =
+            rexBuilder.makeCall(SqlStdOperatorTable.AND,
+                rexBuilder.makeNullLiteral(e.getType()),
+                rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, o0));
         return simplify(newExpr, unknownAs);
       default:
         // unknown kind
@@ -671,8 +674,9 @@ public class RexSimplify {
         continue;
       }
       terms.set(i, simplify.simplify(t, unknownAs));
-      RelOptPredicateList newPredicates = simplify.predicates.union(rexBuilder,
-          RelOptPredicateList.of(rexBuilder, terms.subList(i, i + 1)));
+      RelOptPredicateList newPredicates =
+          simplify.predicates.union(rexBuilder,
+              RelOptPredicateList.of(rexBuilder, terms.subList(i, i + 1)));
       simplify = simplify.withPredicates(newPredicates);
     }
     for (int i = 0; i < terms.size(); i++) {
@@ -707,8 +711,9 @@ public class RexSimplify {
       terms.set(i, t2);
       final RexNode inverse =
           simplify.simplify(isNotTrue(t2), RexUnknownAs.UNKNOWN);
-      final RelOptPredicateList newPredicates = simplify.predicates.union(rexBuilder,
-          RelOptPredicateList.of(rexBuilder, ImmutableList.of(inverse)));
+      final RelOptPredicateList newPredicates =
+          simplify.predicates.union(rexBuilder,
+              RelOptPredicateList.of(rexBuilder, ImmutableList.of(inverse)));
       simplify = simplify.withPredicates(newPredicates);
     }
     for (int i = 0; i < terms.size(); i++) {
@@ -1193,7 +1198,7 @@ public class RexSimplify {
       if (sameTypeOrNarrowsNullability(caseType, value.getType())) {
         return value;
       } else {
-        return rexBuilder.makeAbstractCast(caseType, value);
+        return rexBuilder.makeAbstractCast(caseType, value, false);
       }
     }
 
@@ -1413,7 +1418,7 @@ public class RexSimplify {
       final RexNode cond = isTrue(branch.cond);
       final RexNode value;
       if (!branchType.equals(branch.value.getType())) {
-        value = rexBuilder.makeAbstractCast(branchType, branch.value);
+        value = rexBuilder.makeAbstractCast(branchType, branch.value, false);
       } else {
         value = branch.value;
       }
@@ -1603,8 +1608,9 @@ public class RexSimplify {
           && comparison.kind != SqlKind.NOT_EQUALS) { // not supported yet
         final C v0 = comparison.literal.getValueAs(clazz);
         if (v0 != null) {
-          final RexNode result = processRange(rexBuilder, terms, rangeTerms,
-              predicate, comparison.ref, v0, comparison.kind);
+          final RexNode result =
+              processRange(rexBuilder, terms, rangeTerms,
+                  predicate, comparison.ref, v0, comparison.kind);
           if (result != null) {
             // Not satisfiable
             return result;
@@ -1704,8 +1710,9 @@ public class RexSimplify {
           if (constant == null) {
             break;
           }
-          final RexNode result = processRange(rexBuilder, terms, rangeTerms,
-              term, comparison.ref, constant, comparison.kind);
+          final RexNode result =
+              processRange(rexBuilder, terms, rangeTerms,
+                  term, comparison.ref, constant, comparison.kind);
           if (result != null) {
             // Not satisfiable
             return result;
@@ -2014,12 +2021,15 @@ public class RexSimplify {
                   && comparable1.compareTo(comparable2) != 0) {
                 // X <> A OR X <> B => X IS NOT NULL OR NULL
                 final RexNode isNotNull =
-                    rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, notEqualsComparison.ref);
+                    rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL,
+                        notEqualsComparison.ref);
                 final RexNode constantNull =
                     rexBuilder.makeNullLiteral(trueLiteral.getType());
-                final RexNode newCondition = simplify(
-                    rexBuilder.makeCall(SqlStdOperatorTable.OR, isNotNull, constantNull),
-                    unknownAs);
+                final RexNode newCondition =
+                    simplify(
+                        rexBuilder.makeCall(SqlStdOperatorTable.OR, isNotNull,
+                            constantNull),
+                        unknownAs);
                 if (newCondition.isAlwaysTrue()) {
                   return trueLiteral;
                 }
@@ -2142,7 +2152,7 @@ public class RexSimplify {
       return operand;
     }
     if (RexUtil.isLosslessCast(operand)) {
-      // x :: y below means cast(x as y) (which is PostgreSQL-specifiic cast by the way)
+      // x :: y below means cast(x as y) (which is PostgreSQL-specific cast by the way)
       // A) Remove lossless casts:
       // A.1) intExpr :: bigint :: int => intExpr
       // A.2) char2Expr :: char(5) :: char(2) => char2Expr
@@ -2184,6 +2194,7 @@ public class RexSimplify {
         return rexBuilder.makeCast(e.getType(), intExpr);
       }
     }
+    final boolean safe = e.getKind() == SqlKind.SAFE_CAST;
     switch (operand.getKind()) {
     case LITERAL:
       final RexLiteral literal = (RexLiteral) operand;
@@ -2212,7 +2223,8 @@ public class RexSimplify {
         break;
       }
       final List<RexNode> reducedValues = new ArrayList<>();
-      final RexNode simplifiedExpr = rexBuilder.makeCast(e.getType(), operand);
+      final RexNode simplifiedExpr =
+          rexBuilder.makeCast(e.getType(), operand, safe, safe);
       executor.reduce(rexBuilder, ImmutableList.of(simplifiedExpr), reducedValues);
       return requireNonNull(
           Iterables.getOnlyElement(reducedValues));
@@ -2220,7 +2232,7 @@ public class RexSimplify {
       if (operand == e.getOperands().get(0)) {
         return e;
       } else {
-        return rexBuilder.makeCast(e.getType(), operand);
+        return rexBuilder.makeCast(e.getType(), operand, safe, safe);
       }
     }
   }
@@ -2371,8 +2383,9 @@ public class RexSimplify {
               return rexBuilder.makeLiteral(false);
             }
             // a <= x < b OR a < x < b
-            r = Range.range(r.lowerEndpoint(), r.lowerBoundType(),
-                    v0, BoundType.OPEN);
+            r =
+                Range.range(r.lowerEndpoint(), r.lowerBoundType(), v0,
+                    BoundType.OPEN);
           } else {
             // x < b
             r = Range.lessThan(v0);
@@ -2405,8 +2418,9 @@ public class RexSimplify {
               return rexBuilder.makeLiteral(false);
             }
             // a <= x <= b OR a < x <= b
-            r = Range.range(r.lowerEndpoint(), r.lowerBoundType(),
-                    v0, BoundType.CLOSED);
+            r =
+                Range.range(r.lowerEndpoint(), r.lowerBoundType(), v0,
+                    BoundType.CLOSED);
           } else {
             // x <= b
             r = Range.atMost(v0);
@@ -2440,8 +2454,9 @@ public class RexSimplify {
               return rexBuilder.makeLiteral(false);
             }
             // a < x <= b OR a < x < b
-            r = Range.range(v0, BoundType.OPEN,
-                    r.upperEndpoint(), r.upperBoundType());
+            r =
+                Range.range(v0, BoundType.OPEN, r.upperEndpoint(),
+                    r.upperBoundType());
           } else {
             // x > a
             r = Range.greaterThan(v0);
@@ -2474,8 +2489,9 @@ public class RexSimplify {
               return rexBuilder.makeLiteral(false);
             }
             // a <= x <= b OR a <= x < b
-            r = Range.range(v0, BoundType.CLOSED,
-                    r.upperEndpoint(), r.upperBoundType());
+            r =
+                Range.range(v0, BoundType.CLOSED, r.upperEndpoint(),
+                    r.upperBoundType());
           } else {
             // x >= a
             r = Range.atLeast(v0);
@@ -2806,6 +2822,7 @@ public class RexSimplify {
       switch (left.getKind()) {
       case INPUT_REF:
       case FIELD_ACCESS:
+      case CAST:
         switch (right.getKind()) {
         case LITERAL:
           return accept2b(left, kind, (RexLiteral) right, newTerms);
@@ -2817,6 +2834,7 @@ public class RexSimplify {
         switch (right.getKind()) {
         case INPUT_REF:
         case FIELD_ACCESS:
+        case CAST:
           return accept2b(right, kind.reverse(), (RexLiteral) left, newTerms);
         default:
           break;
@@ -2900,14 +2918,16 @@ public class RexSimplify {
     boolean needToFix() {
       // Fix and converts to SEARCH if:
       // 1. A Sarg has complexity greater than 1;
-      // 2. The terms are reduced as simpler Sarg points;
-      // 3. The terms are reduced as simpler Sarg comparison.
+      // 2. A Sarg was merged with another Sarg or range;
+      // 3. The terms are reduced as simpler Sarg points;
+      // 4. The terms are reduced as simpler Sarg comparison.
 
       // Ignore 'negate' just to be compatible with previous versions of this
       // method. "build().complexity()" would be a better estimate, if we could
       // switch to it breaking lots of plans.
       final Collection<RexSargBuilder> builders = map.values();
-      return builders.stream().anyMatch(b -> b.build(false).complexity() > 1)
+      return builders.stream()
+          .anyMatch(b -> b.build(false).complexity() > 1 || b.mergedSarg)
           || newTermsCount == 1
           && builders.stream().allMatch(b -> simpleSarg(b.build()));
     }
@@ -2917,7 +2937,9 @@ public class RexSimplify {
      * the IN call or single comparison.
      */
     private static boolean simpleSarg(Sarg sarg) {
-      return sarg.isPoints() || RangeSets.isOpenInterval(sarg.rangeSet);
+      return sarg.isPoints()
+          || RangeSets.isOpenInterval(sarg.rangeSet)
+          || sarg.isComplementedPoints();
     }
 
     /** If a term is a call to {@code SEARCH} on a {@link RexSargBuilder},
@@ -2968,6 +2990,8 @@ public class RexSimplify {
     final boolean negate;
     final List<RelDataType> types = new ArrayList<>();
     final RangeSet<Comparable> rangeSet = TreeRangeSet.create();
+    boolean hasSarg;
+    boolean mergedSarg;
     RexUnknownAs nullAs = FALSE;
 
     RexSargBuilder(RexNode ref, RexBuilder rexBuilder, boolean negate) {
@@ -3029,6 +3053,7 @@ public class RexSimplify {
     void addRange(Range<Comparable> range, RelDataType type) {
       types.add(type);
       rangeSet.add(range);
+      mergedSarg |= hasSarg;
       nullAs = nullAs.or(UNKNOWN);
     }
 
@@ -3045,6 +3070,8 @@ public class RexSimplify {
       }
       types.add(type);
       rangeSet.addAll(r);
+      mergedSarg |= !rangeSet.isEmpty();
+      hasSarg = true;
       switch (nullAs) {
       case TRUE:
         this.nullAs = this.nullAs.or(TRUE);

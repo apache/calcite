@@ -44,8 +44,8 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
       DruidQuery druidQuery) {
 
     final RexNode operand = ((RexCall) rexNode).getOperands().get(0);
-    final String operandExpression = DruidExpressions.toDruidExpression(operand,
-        topRel, druidQuery);
+    final String operandExpression =
+        DruidExpressions.toDruidExpression(operand, topRel, druidQuery);
 
     if (operandExpression == null) {
       return null;
@@ -110,9 +110,9 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
       }
       final String typeCastExpression;
       if (fromExprType != toExprType) {
-        typeCastExpression = DruidQuery.format("CAST(%s, '%s')", operandExpression,
-            toExprType
-            .toString());
+        typeCastExpression =
+            DruidQuery.format("CAST(%s, '%s')", operandExpression,
+                toExprType.toString());
       } else {
         // case it is the same type it is ok to skip CAST
         typeCastExpression = operandExpression;
@@ -137,12 +137,11 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
       String operand,
       final SqlTypeName toType, String format) {
     // Cast strings to date times by parsing them from SQL format.
-    final String timestampExpression = DruidExpressions.functionCall(
-        "timestamp_parse",
-        ImmutableList.of(
-            operand,
-            DruidExpressions.stringLiteral(format),
-            DruidExpressions.stringLiteral(timeZone.getID())));
+    final String timestampExpression =
+        DruidExpressions.functionCall("timestamp_parse",
+            ImmutableList.of(operand,
+                DruidExpressions.stringLiteral(format),
+                DruidExpressions.stringLiteral(timeZone.getID())));
 
     if (toType == SqlTypeName.DATE) {
       // case to date we need to floor to day first

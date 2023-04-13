@@ -80,8 +80,9 @@ class ElasticsearchMapping {
    */
   Optional<JsonNode> missingValueFor(String fieldName) {
     if (!mapping().containsKey(fieldName)) {
-      final String message = String.format(Locale.ROOT,
-          "Field %s not defined for %s", fieldName, index);
+      final String message =
+          String.format(Locale.ROOT,
+              "Field %s not defined for %s", fieldName, index);
       throw new IllegalArgumentException(message);
     }
 

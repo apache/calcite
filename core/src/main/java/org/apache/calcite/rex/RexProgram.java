@@ -245,10 +245,10 @@ public class RexProgram {
    * In this case, the input is mainly from the output json string of {@link RelJsonWriter}
    */
   public static RexProgram create(RelInput input) {
-    final List<RexNode> exprs = requireNonNull(input.getExpressionList("exprs"), "exprs");
-    final List<RexNode> projectRexNodes = requireNonNull(
-        input.getExpressionList("projects"),
-        "projects");
+    final List<RexNode> exprs =
+        requireNonNull(input.getExpressionList("exprs"), "exprs");
+    final List<RexNode> projectRexNodes =
+        requireNonNull(input.getExpressionList("projects"), "projects");
     final List<RexLocalRef> projects = new ArrayList<>(projectRexNodes.size());
     for (RexNode rexNode: projectRexNodes) {
       projects.add((RexLocalRef) rexNode);

@@ -113,7 +113,7 @@ public class ElasticsearchChecker {
       final String[] names = property.split("\\.");
       ObjectNode copy2 = copy;
       for (int i = 0; i < names.length - 1; i++) {
-        copy2 = copy2.with(names[i]);
+        copy2 = copy2.withObject("/" + names[i]);
       }
       copy2.set(names[names.length - 1], expandDots(node));
     });

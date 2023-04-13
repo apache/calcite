@@ -46,13 +46,17 @@ class MutableNode {
       Ordering.from(
           new Comparator<MutableNode>() {
             @Override public int compare(MutableNode o1, MutableNode o2) {
-              int c = Ordering.<String>natural().lexicographical().compare(
-                  o1.table.t.getQualifiedName(), o2.table.t.getQualifiedName());
+              int c =
+                  Ordering.<String>natural().lexicographical()
+                      .compare(o1.table.t.getQualifiedName(),
+                          o2.table.t.getQualifiedName());
               if (c == 0 && o1.step != null && o2.step != null) {
                 // The nodes have the same table. Now compare them based on the
                 // columns they use as foreign key.
-                c = Ordering.<Integer>natural().lexicographical().compare(
-                    IntPair.left(o1.step.keys), IntPair.left(o2.step.keys));
+                c =
+                    Ordering.<Integer>natural().lexicographical()
+                        .compare(IntPair.left(o1.step.keys),
+                            IntPair.left(o2.step.keys));
               }
               return c;
             }

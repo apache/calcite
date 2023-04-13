@@ -305,7 +305,7 @@ public class SplunkPushDownRule
       return rel;
     }
     return LogicalProject.create(rel, proj.getHints(),
-        proj.getProjects(), proj.getRowType());
+        proj.getProjects(), proj.getRowType(), proj.getVariablesSet());
   }
 
   // TODO: use StringBuilder instead of String

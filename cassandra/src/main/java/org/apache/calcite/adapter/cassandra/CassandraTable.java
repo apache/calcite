@@ -47,7 +47,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on a Cassandra column family.
@@ -58,10 +60,13 @@ public class CassandraTable extends AbstractQueryableTable
   List<String> partitionKeys;
   List<String> clusteringKeys;
   List<RelFieldCollation> clusteringOrder;
+  private final Optional<String> keyspace;
   private final String columnFamily;
 
+  @Deprecated // to be removed before 2.0
   public CassandraTable(CassandraSchema schema, String columnFamily, boolean isView) {
     super(Object[].class);
+    this.keyspace = Optional.empty();
     this.columnFamily = columnFamily;
     this.protoRowType = schema.getRelDataType(columnFamily, isView);
     this.partitionKeys = schema.getPartitionKeys(columnFamily, isView);
@@ -69,8 +74,27 @@ public class CassandraTable extends AbstractQueryableTable
     this.clusteringOrder = schema.getClusteringOrder(columnFamily, isView);
   }
 
+  public CassandraTable(
+      CassandraSchema schema,
+      String keyspace,
+      String columnFamily,
+      boolean isView) {
+    super(Object[].class);
+    this.keyspace = Optional.of(keyspace);
+    this.columnFamily = columnFamily;
+    this.protoRowType = schema.getRelDataType(columnFamily, isView);
+    this.partitionKeys = schema.getPartitionKeys(columnFamily, isView);
+    this.clusteringKeys = schema.getClusteringKeys(columnFamily, isView);
+    this.clusteringOrder = schema.getClusteringOrder(columnFamily, isView);
+  }
+
+  @Deprecated // to be removed before 2.0
   public CassandraTable(CassandraSchema schema, String columnFamily) {
     this(schema, columnFamily, false);
+  }
+
+  public CassandraTable(CassandraSchema schema, String keyspace, String columnFamily) {
+    this(schema, keyspace, columnFamily, false);
   }
 
   @Override public String toString() {
@@ -115,8 +139,8 @@ public class CassandraTable extends AbstractQueryableTable
     final RelDataType rowType = getRowType(typeFactory);
 
     Function1<String, Void> addField = fieldName -> {
-      RelDataType relDataType = Objects.requireNonNull(
-              rowType.getField(fieldName, true, false)).getType();
+      RelDataType relDataType =
+          requireNonNull(rowType.getField(fieldName, true, false)).getType();
       fieldInfo.add(fieldName, relDataType).nullable(true);
       return null;
     };
@@ -168,11 +192,18 @@ public class CassandraTable extends AbstractQueryableTable
 
     // Build and issue the query and return an Enumerator over the results
     StringBuilder queryBuilder = new StringBuilder("SELECT ");
-    queryBuilder.append(selectString)
-        .append(" FROM \"")
+    queryBuilder
+        .append(selectString)
+        .append(" FROM \"");
+
+    keyspace.ifPresent(s ->
+        queryBuilder.append(s).append("\".\""));
+
+    queryBuilder
         .append(columnFamily)
         .append("\"")
         .append(whereClause);
+
     if (!order.isEmpty()) {
       queryBuilder.append(Util.toString(order, " ORDER BY ", ", ", ""));
     }
@@ -236,7 +267,7 @@ public class CassandraTable extends AbstractQueryableTable
     }
 
     private CqlSession getSession() {
-      return Objects.requireNonNull(schema.unwrap(CassandraSchema.class)).session;
+      return requireNonNull(schema.unwrap(CassandraSchema.class)).session;
     }
 
     /** Called via code-generation.

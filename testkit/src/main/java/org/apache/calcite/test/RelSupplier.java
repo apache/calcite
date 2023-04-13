@@ -97,7 +97,7 @@ interface RelSupplier {
       return fixture.tester
           .convertSqlToRel(fixture.factory, sql2, fixture.decorrelate,
               fixture.factory.sqlToRelConfig.isTrimUnusedFields())
-          .rel;
+          .project();
     }
 
     @Override public RelNode apply2(RelMetadataFixture metadataFixture) {

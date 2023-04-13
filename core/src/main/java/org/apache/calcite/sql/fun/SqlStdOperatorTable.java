@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDescriptorOperator;
@@ -47,6 +48,7 @@ import org.apache.calcite.sql.SqlRankFunction;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSessionTableFunction;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlSetSemanticsTableOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlTumbleTableFunction;
@@ -61,6 +63,8 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -248,7 +252,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlInternalOperator EXTEND = new SqlExtendOperator();
 
   /**
-   * String concatenation operator, '<code>||</code>'.
+   * String and array-to-array concatenation operator, '<code>||</code>'.
    *
    * @see SqlLibraryOperators#CONCAT_FUNCTION
    */
@@ -258,9 +262,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER,
           60,
           true,
-          ReturnTypes.DYADIC_STRING_SUM_PRECISION_NULLABLE,
+          ReturnTypes.ARG0.andThen((opBinding, typeToTransform) -> {
+            SqlReturnTypeInference returnType =
+                typeToTransform.getSqlTypeName().getFamily() == SqlTypeFamily.ARRAY
+                    ? ReturnTypes.LEAST_RESTRICTIVE
+                    : ReturnTypes.DYADIC_STRING_SUM_PRECISION_NULLABLE;
+
+            return requireNonNull(returnType.inferReturnType(opBinding),
+                "inferred CONCAT element type");
+          }),
           null,
-          OperandTypes.STRING_SAME_SAME);
+          OperandTypes.STRING_SAME_SAME_OR_ARRAY_SAME_SAME);
+
 
   /**
    * Arithmetic division operator, '<code>/</code>'.
@@ -287,7 +300,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.MOD,
           60,
           true,
-          ReturnTypes.ARG1_NULLABLE,
+          ReturnTypes.NULLABLE_MOD,
           null,
           OperandTypes.EXACT_NUMERIC_EXACT_NUMERIC);
 
@@ -464,6 +477,21 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlQuantifyOperator ALL_NE =
       new SqlQuantifyOperator(SqlKind.ALL, SqlKind.NOT_EQUALS);
+
+  public static final List<SqlQuantifyOperator> QUANTIFY_OPERATORS =
+      ImmutableList.of(SqlStdOperatorTable.SOME_EQ,
+          SqlStdOperatorTable.SOME_GT,
+          SqlStdOperatorTable.SOME_GE,
+          SqlStdOperatorTable.SOME_LE,
+          SqlStdOperatorTable.SOME_LT,
+          SqlStdOperatorTable.SOME_NE,
+
+          SqlStdOperatorTable.ALL_EQ,
+          SqlStdOperatorTable.ALL_GT,
+          SqlStdOperatorTable.ALL_GE,
+          SqlStdOperatorTable.ALL_LE,
+          SqlStdOperatorTable.ALL_LT,
+          SqlStdOperatorTable.ALL_NE);
 
   /**
    * Logical less-than operator, '<code>&lt;</code>'.
@@ -842,6 +870,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlPostfixOperator JSON_VALUE_EXPRESSION =
       new SqlJsonValueExpressionOperator();
 
+  public static final SqlJsonTypeOperator JSON_TYPE_OPERATOR =
+      new SqlJsonTypeOperator();
+
 
   //-------------------------------------------------------------
   //                   PREFIX OPERATORS
@@ -987,6 +1018,24 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlAggFunction APPROX_COUNT_DISTINCT =
       new SqlCountAggFunction("APPROX_COUNT_DISTINCT");
+
+  /**
+   * <code>ARG_MAX</code> aggregate function.
+   */
+  public static final SqlBasicAggFunction ARG_MAX =
+      SqlBasicAggFunction.create("ARG_MAX", SqlKind.ARG_MAX,
+          ReturnTypes.ARG0_NULLABLE_IF_EMPTY, OperandTypes.ANY_COMPARABLE)
+          .withGroupOrder(Optionality.FORBIDDEN)
+          .withFunctionType(SqlFunctionCategory.SYSTEM);
+
+  /**
+   * <code>ARG_MIN</code> aggregate function.
+   */
+  public static final SqlBasicAggFunction ARG_MIN =
+      SqlBasicAggFunction.create("ARG_MIN", SqlKind.ARG_MIN,
+              ReturnTypes.ARG0_NULLABLE_IF_EMPTY, OperandTypes.ANY_COMPARABLE)
+          .withGroupOrder(Optionality.FORBIDDEN)
+          .withFunctionType(SqlFunctionCategory.SYSTEM);
 
   /**
    * <code>MIN</code> aggregate function.
@@ -1164,11 +1213,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>HISTOGRAM_MIN</code> window aggregate function.
    */
   public static final SqlFunction HISTOGRAM_MIN =
-      new SqlFunction(
-          "$HISTOGRAM_MIN",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("$HISTOGRAM_MIN",
           ReturnTypes.ARG0_NULLABLE,
-          null,
           OperandTypes.NUMERIC_OR_STRING,
           SqlFunctionCategory.NUMERIC);
 
@@ -1176,11 +1222,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>HISTOGRAM_MAX</code> window aggregate function.
    */
   public static final SqlFunction HISTOGRAM_MAX =
-      new SqlFunction(
-          "$HISTOGRAM_MAX",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("$HISTOGRAM_MAX",
           ReturnTypes.ARG0_NULLABLE,
-          null,
           OperandTypes.NUMERIC_OR_STRING,
           SqlFunctionCategory.NUMERIC);
 
@@ -1188,11 +1231,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>HISTOGRAM_FIRST_VALUE</code> window aggregate function.
    */
   public static final SqlFunction HISTOGRAM_FIRST_VALUE =
-      new SqlFunction(
-          "$HISTOGRAM_FIRST_VALUE",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("$HISTOGRAM_FIRST_VALUE",
           ReturnTypes.ARG0_NULLABLE,
-          null,
           OperandTypes.NUMERIC_OR_STRING,
           SqlFunctionCategory.NUMERIC);
 
@@ -1200,11 +1240,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>HISTOGRAM_LAST_VALUE</code> window aggregate function.
    */
   public static final SqlFunction HISTOGRAM_LAST_VALUE =
-      new SqlFunction(
-          "$HISTOGRAM_LAST_VALUE",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("$HISTOGRAM_LAST_VALUE",
           ReturnTypes.ARG0_NULLABLE,
-          null,
           OperandTypes.NUMERIC_OR_STRING,
           SqlFunctionCategory.NUMERIC);
 
@@ -1273,7 +1310,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * additional interval qualifier specification.</p>
    */
   public static final SqlDatetimeSubtractionOperator MINUS_DATE =
-      new SqlDatetimeSubtractionOperator();
+      new SqlDatetimeSubtractionOperator("-", ReturnTypes.ARG2_NULLABLE);
 
   /**
    * The MULTISET Value Constructor. e.g. "<code>MULTISET[1,2,3]</code>".
@@ -1390,25 +1427,37 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction JSON_ARRAY = new SqlJsonArrayFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_TYPE = SqlLibraryOperators.JSON_TYPE;
+  public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_DEPTH = SqlLibraryOperators.JSON_DEPTH;
+  public static final SqlFunction JSON_DEPTH = new SqlJsonDepthFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_LENGTH = SqlLibraryOperators.JSON_LENGTH;
+  public static final SqlFunction JSON_LENGTH = new SqlJsonLengthFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_KEYS = SqlLibraryOperators.JSON_KEYS;
+  public static final SqlFunction JSON_KEYS = new SqlJsonKeysFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_PRETTY = SqlLibraryOperators.JSON_PRETTY;
+  public static final SqlFunction JSON_PRETTY = new SqlJsonPrettyFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_REMOVE = SqlLibraryOperators.JSON_REMOVE;
+  public static final SqlFunction JSON_REMOVE = new SqlJsonRemoveFunction();
 
   @Deprecated // to be removed before 2.0
-  public static final SqlFunction JSON_STORAGE_SIZE = SqlLibraryOperators.JSON_STORAGE_SIZE;
+  public static final SqlFunction JSON_STORAGE_SIZE = new SqlJsonStorageSizeFunction();
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_INSERT =
+      new SqlJsonModifyFunction("JSON_INSERT");
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_REPLACE =
+      new SqlJsonModifyFunction("JSON_REPLACE");
+
+  @Deprecated // to be removed before 2.0
+  public static final SqlFunction JSON_SET =
+      new SqlJsonModifyFunction("JSON_SET");
 
   public static final SqlJsonArrayAggAggFunction JSON_ARRAYAGG =
       new SqlJsonArrayAggAggFunction(SqlKind.JSON_ARRAYAGG,
@@ -1523,8 +1572,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** The {@code REPLACE(string, search, replace)} function. Not standard SQL,
    * but in Oracle and Postgres. */
   public static final SqlFunction REPLACE =
-      new SqlFunction("REPLACE", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null,
+      SqlBasicFunction.create("REPLACE", ReturnTypes.ARG0_NULLABLE_VARYING,
           OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
 
   public static final SqlFunction CONVERT =
@@ -1545,95 +1593,66 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** The "TRIM" function. */
   public static final SqlFunction TRIM = SqlTrimFunction.INSTANCE;
 
-  public static final SqlFunction POSITION = new SqlPositionFunction();
+  public static final SqlFunction POSITION = new SqlPositionFunction("POSITION");
 
-  public static final SqlFunction CHAR_LENGTH =
-      new SqlFunction(
-          "CHAR_LENGTH",
-          SqlKind.OTHER_FUNCTION,
+  public static final SqlBasicFunction CHAR_LENGTH =
+      SqlBasicFunction.create("CHAR_LENGTH",
           ReturnTypes.INTEGER_NULLABLE,
-          null,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.NUMERIC);
 
   /** Alias for {@link #CHAR_LENGTH}. */
   public static final SqlFunction CHARACTER_LENGTH =
-      new SqlFunction(
-          "CHARACTER_LENGTH",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER_NULLABLE,
-          null,
-          OperandTypes.CHARACTER,
-          SqlFunctionCategory.NUMERIC);
+      CHAR_LENGTH.withName("CHARACTER_LENGTH");
 
   public static final SqlFunction OCTET_LENGTH =
-      new SqlFunction(
-          "OCTET_LENGTH",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("OCTET_LENGTH",
           ReturnTypes.INTEGER_NULLABLE,
-          null,
           OperandTypes.BINARY,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction UPPER =
-      new SqlFunction(
-          "UPPER",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("UPPER",
           ReturnTypes.ARG0_NULLABLE,
-          null,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
   public static final SqlFunction LOWER =
-      new SqlFunction(
-          "LOWER",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("LOWER",
           ReturnTypes.ARG0_NULLABLE,
-          null,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
   public static final SqlFunction INITCAP =
-      new SqlFunction(
-          "INITCAP",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("INITCAP",
           ReturnTypes.ARG0_NULLABLE,
-          null,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
   public static final SqlFunction ASCII =
-      new SqlFunction(
-          "ASCII",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("ASCII",
           ReturnTypes.INTEGER_NULLABLE,
-          null,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
-  /**
-   * Uses SqlOperatorTable.useDouble for its return type since we don't know
+  /** The {@code POWER(numeric, numeric)} function.
+   *
+   * <p>The return type is always {@code DOUBLE} since we don't know
    * what the result type will be by just looking at the operand types. For
-   * example POW(int, int) can return a non integer if the second operand is
-   * negative.
+   * example {@code POWER(INTEGER, INTEGER)} can return a non-INTEGER if the
+   * second operand is negative.
    */
-  public static final SqlFunction POWER =
-      new SqlFunction(
-          "POWER",
-          SqlKind.OTHER_FUNCTION,
+  public static final SqlBasicFunction POWER =
+      SqlBasicFunction.create("POWER",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code SQRT(numeric)} function. */
   public static final SqlFunction SQRT =
-      new SqlFunction(
-          "SQRT",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("SQRT",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
-          OperandTypes.NUMERIC,
-          SqlFunctionCategory.NUMERIC);
+          OperandTypes.NUMERIC);
 
   /**
    * Arithmetic remainder function {@code MOD}.
@@ -1643,193 +1662,149 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction MOD =
       // Return type is same as divisor (2nd operand)
       // SQL2003 Part2 Section 6.27, Syntax Rules 9
-      new SqlFunction(
-          "MOD",
-          SqlKind.MOD,
+      SqlBasicFunction.create(SqlKind.MOD,
           ReturnTypes.NULLABLE_MOD,
-          null,
-          OperandTypes.EXACT_NUMERIC_EXACT_NUMERIC,
-          SqlFunctionCategory.NUMERIC);
+          OperandTypes.EXACT_NUMERIC_EXACT_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
 
+  /** The {@code LN(numeric)} function. */
   public static final SqlFunction LN =
-      new SqlFunction(
-          "LN",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("LN",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code LOG10(numeric)} function. */
   public static final SqlFunction LOG10 =
-      new SqlFunction(
-          "LOG10",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("LOG10",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code ABS(numeric)} function. */
   public static final SqlFunction ABS =
-      new SqlFunction(
-          "ABS",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("ABS",
           ReturnTypes.ARG0,
-          null,
           OperandTypes.NUMERIC_OR_INTERVAL,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code ACOS(numeric)} function. */
   public static final SqlFunction ACOS =
-      new SqlFunction(
-          "ACOS",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("ACOS",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code ASIN(numeric)} function. */
   public static final SqlFunction ASIN =
-      new SqlFunction(
-          "ASIN",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("ASIN",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code ATAN(numeric)} function. */
   public static final SqlFunction ATAN =
-      new SqlFunction(
-          "ATAN",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("ATAN",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code ATAN2(numeric, numeric)} function. */
   public static final SqlFunction ATAN2 =
-      new SqlFunction(
-          "ATAN2",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("ATAN2",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code CBRT(numeric)} function. */
   public static final SqlFunction CBRT =
-      new SqlFunction(
-          "CBRT",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("CBRT",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code COS(numeric)} function. */
   public static final SqlFunction COS =
-      new SqlFunction(
-          "COS",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("COS",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code COT(numeric)} function. */
   public static final SqlFunction COT =
-      new SqlFunction(
-          "COT",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("COT",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code DEGREES(numeric)} function. */
   public static final SqlFunction DEGREES =
-      new SqlFunction(
-          "DEGREES",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("DEGREES",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code EXP(numeric)} function. */
   public static final SqlFunction EXP =
-      new SqlFunction(
-          "EXP",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("EXP",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code RADIANS(numeric)} function. */
   public static final SqlFunction RADIANS =
-      new SqlFunction(
-          "RADIANS",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("RADIANS",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code ROUND(numeric [, numeric])} function. */
   public static final SqlFunction ROUND =
-      new SqlFunction(
-          "ROUND",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("ROUND",
           ReturnTypes.ARG0_NULLABLE,
-          null,
           OperandTypes.NUMERIC_OPTIONAL_INTEGER,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code SIGN(numeric)} function. */
   public static final SqlFunction SIGN =
-      new SqlFunction(
-          "SIGN",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("SIGN",
           ReturnTypes.ARG0,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code SIN(numeric)} function. */
   public static final SqlFunction SIN =
-      new SqlFunction(
-          "SIN",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("SIN",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code TAN(numeric)} function. */
   public static final SqlFunction TAN =
-      new SqlFunction(
-          "TAN",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("TAN",
           ReturnTypes.DOUBLE_NULLABLE,
-          null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
-  public static final SqlFunction TRUNCATE =
-      new SqlFunction(
-          "TRUNCATE",
-          SqlKind.OTHER_FUNCTION,
+  /** The {@code TRUNCATE(numeric [, numeric])} function. */
+  public static final SqlBasicFunction TRUNCATE =
+      SqlBasicFunction.create("TRUNCATE",
           ReturnTypes.ARG0_NULLABLE,
-          null,
           OperandTypes.NUMERIC_OPTIONAL_INTEGER,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code PI} function. */
   public static final SqlFunction PI =
-      new SqlFunction(
-          "PI",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DOUBLE,
-          null,
-          OperandTypes.NILADIC,
-          SqlFunctionCategory.NUMERIC) {
-        @Override public SqlSyntax getSyntax() {
-          return SqlSyntax.FUNCTION_ID;
-        }
-      };
+      SqlBasicFunction.create("PI", ReturnTypes.DOUBLE, OperandTypes.NILADIC,
+          SqlFunctionCategory.NUMERIC)
+          .withSyntax(SqlSyntax.FUNCTION_ID);
 
   /** {@code FIRST} function to be used within {@code MATCH_RECOGNIZE}. */
   public static final SqlFunction FIRST =
-      new SqlFunction("FIRST", SqlKind.FIRST, ReturnTypes.ARG0_NULLABLE,
-          null, OperandTypes.ANY_NUMERIC, SqlFunctionCategory.MATCH_RECOGNIZE);
+      SqlBasicFunction.create(SqlKind.FIRST,
+          ReturnTypes.ARG0_NULLABLE,
+          OperandTypes.ANY_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.MATCH_RECOGNIZE);
 
   /** {@code LAST} function to be used within {@code MATCH_RECOGNIZE}. */
   public static final SqlMatchFunction LAST =
@@ -1843,8 +1818,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** {@code NEXT} function to be used within {@code MATCH_RECOGNIZE}. */
   public static final SqlFunction NEXT =
-      new SqlFunction("NEXT", SqlKind.NEXT, ReturnTypes.ARG0_NULLABLE, null,
-          OperandTypes.ANY_NUMERIC, SqlFunctionCategory.MATCH_RECOGNIZE);
+      SqlBasicFunction.create(SqlKind.NEXT, ReturnTypes.ARG0_NULLABLE,
+          OperandTypes.ANY_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.MATCH_RECOGNIZE);
 
   /** {@code CLASSIFIER} function to be used within {@code MATCH_RECOGNIZE}. */
   public static final SqlMatchFunction CLASSIFIER =
@@ -1853,8 +1829,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** {@code MATCH_NUMBER} function to be used within {@code MATCH_RECOGNIZE}. */
   public static final SqlFunction MATCH_NUMBER =
-      new SqlFunction("MATCH_NUMBER ", SqlKind.MATCH_NUMBER, ReturnTypes.BIGINT_NULLABLE,
-          null, OperandTypes.NILADIC, SqlFunctionCategory.MATCH_RECOGNIZE);
+      SqlBasicFunction.create(SqlKind.MATCH_NUMBER, ReturnTypes.BIGINT_NULLABLE,
+          OperandTypes.NILADIC)
+          .withFunctionType(SqlFunctionCategory.MATCH_RECOGNIZE);
 
   public static final SqlFunction NULLIF = new SqlNullifFunction();
 
@@ -1952,10 +1929,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlCurrentDateFunction();
 
   /** The <code>TIMESTAMPADD</code> function. */
-  public static final SqlFunction TIMESTAMP_ADD = new SqlTimestampAddFunction();
+  public static final SqlFunction TIMESTAMP_ADD =
+      new SqlTimestampAddFunction("TIMESTAMPADD");
 
   /** The <code>TIMESTAMPDIFF</code> function. */
-  public static final SqlFunction TIMESTAMP_DIFF = new SqlTimestampDiffFunction();
+  public static final SqlFunction TIMESTAMP_DIFF =
+      new SqlTimestampDiffFunction("TIMESTAMPDIFF",
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATETIME,
+              SqlTypeFamily.DATETIME));
 
   /**
    * Use of the <code>IN_FENNEL</code> operator forces the argument to be
@@ -2001,7 +1982,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>EXTRACT(HOUR FROM INTERVAL '364 23:59:59')</code> returns <code>
    * 23</code>
    */
-  public static final SqlFunction EXTRACT = new SqlExtractFunction();
+  public static final SqlFunction EXTRACT = new SqlExtractFunction("EXTRACT");
 
   /**
    * The SQL <code>YEAR</code> operator. Returns the Year
@@ -2093,12 +2074,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlDatePartFunction SECOND =
       new SqlDatePartFunction("SECOND", TimeUnit.SECOND);
 
+  /** The {@code LAST_DAY(date)} function. */
   public static final SqlFunction LAST_DAY =
-      new SqlFunction(
-          "LAST_DAY",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("LAST_DAY",
           ReturnTypes.DATE_NULLABLE,
-          null,
           OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
@@ -2107,13 +2086,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * "regular" type. Example ... log(ELEMENT(MULTISET[1])) ...
    */
   public static final SqlFunction ELEMENT =
-      new SqlFunction(
-          "ELEMENT",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("ELEMENT",
           ReturnTypes.MULTISET_ELEMENT_NULLABLE,
-          null,
-          OperandTypes.COLLECTION,
-          SqlFunctionCategory.SYSTEM);
+          OperandTypes.COLLECTION);
 
   /**
    * The item operator {@code [ ... ]}, used to access a given element of an
@@ -2246,13 +2221,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * MULTISET, ARRAY or MAP.
    */
   public static final SqlFunction CARDINALITY =
-      new SqlFunction(
-          "CARDINALITY",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("CARDINALITY",
           ReturnTypes.INTEGER_NULLABLE,
-          null,
-          OperandTypes.COLLECTION_OR_MAP,
-          SqlFunctionCategory.SYSTEM);
+          OperandTypes.COLLECTION_OR_MAP);
 
   /**
    * The COLLECT operator. Multiset aggregator function.
@@ -2267,11 +2238,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * {@code PERCENTILE_CONT} inverse distribution aggregate function.
    *
    * <p>The argument must be a numeric literal in the range 0 to 1 inclusive
-   * (representing a percentage), and the return type is {@code DOUBLE}.
+   * (representing a percentage), and the return type is the type of the
+   * {@code ORDER BY} expression.
    */
   public static final SqlAggFunction PERCENTILE_CONT =
       SqlBasicAggFunction
-          .create(SqlKind.PERCENTILE_CONT, ReturnTypes.DOUBLE,
+          .create(SqlKind.PERCENTILE_CONT, ReturnTypes.PERCENTILE_DISC_CONT,
               OperandTypes.UNIT_INTERVAL_NUMERIC_LITERAL)
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withGroupOrder(Optionality.MANDATORY)
@@ -2281,13 +2253,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * {@code PERCENTILE_DISC} inverse distribution aggregate function.
    *
    * <p>The argument must be a numeric literal in the range 0 to 1 inclusive
-   * (representing a percentage), and the return type is {@code DOUBLE}.
-   * (The return type should determined by the type of the {@code ORDER BY}
-   * expression, but this cannot be determined by the function itself.)
+   * (representing a percentage), and the return type is the type of the
+   * {@code ORDER BY} expression.
    */
   public static final SqlAggFunction PERCENTILE_DISC =
       SqlBasicAggFunction
-          .create(SqlKind.PERCENTILE_DISC, ReturnTypes.DOUBLE,
+          .create(SqlKind.PERCENTILE_DISC, ReturnTypes.PERCENTILE_DISC_CONT,
               OperandTypes.UNIT_INTERVAL_NUMERIC_LITERAL)
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withGroupOrder(Optionality.MANDATORY)
@@ -2391,8 +2362,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlGroupedWindowFunction TUMBLE_OLD =
       new SqlGroupedWindowFunction("$TUMBLE", SqlKind.TUMBLE,
           null, ReturnTypes.ARG0, null,
-          OperandTypes.or(OperandTypes.DATETIME_INTERVAL,
-              OperandTypes.DATETIME_INTERVAL_TIME),
+          OperandTypes.DATETIME_INTERVAL
+              .or(OperandTypes.DATETIME_INTERVAL_TIME),
           SqlFunctionCategory.SYSTEM) {
         @Override public List<SqlGroupedWindowFunction> getAuxiliaryFunctions() {
           return ImmutableList.of(TUMBLE_START, TUMBLE_END);
@@ -2413,8 +2384,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlGroupedWindowFunction HOP_OLD =
       new SqlGroupedWindowFunction("$HOP", SqlKind.HOP, null,
           ReturnTypes.ARG0, null,
-          OperandTypes.or(OperandTypes.DATETIME_INTERVAL_INTERVAL,
-              OperandTypes.DATETIME_INTERVAL_INTERVAL_TIME),
+          OperandTypes.DATETIME_INTERVAL_INTERVAL
+              .or(OperandTypes.DATETIME_INTERVAL_INTERVAL_TIME),
           SqlFunctionCategory.SYSTEM) {
         @Override public List<SqlGroupedWindowFunction> getAuxiliaryFunctions() {
           return ImmutableList.of(HOP_START, HOP_END);
@@ -2435,8 +2406,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlGroupedWindowFunction SESSION_OLD =
       new SqlGroupedWindowFunction("$SESSION", SqlKind.SESSION,
           null, ReturnTypes.ARG0, null,
-          OperandTypes.or(OperandTypes.DATETIME_INTERVAL,
-              OperandTypes.DATETIME_INTERVAL_TIME),
+          OperandTypes.DATETIME_INTERVAL
+              .or(OperandTypes.DATETIME_INTERVAL_TIME),
           SqlFunctionCategory.SYSTEM) {
         @Override public List<SqlGroupedWindowFunction> getAuxiliaryFunctions() {
           return ImmutableList.of(SESSION_START, SESSION_END);
@@ -2547,6 +2518,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           writer.endList(frame);
         }
       };
+
+  /** SetSemanticsTable represents as an input table with set semantics. */
+  public static final SqlInternalOperator SET_SEMANTICS_TABLE = new SqlSetSemanticsTableOperator();
 
   //~ Methods ----------------------------------------------------------------
 

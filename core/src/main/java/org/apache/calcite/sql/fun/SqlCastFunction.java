@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
@@ -33,16 +34,18 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
-import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 
 import java.text.Collator;
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -83,39 +86,44 @@ public class SqlCastFunction extends SqlFunction {
   //~ Constructors -----------------------------------------------------------
 
   public SqlCastFunction() {
-    super("CAST",
-        SqlKind.CAST,
-        null,
-        InferTypes.FIRST_KNOWN,
-        null,
-        SqlFunctionCategory.SYSTEM);
+    this(SqlKind.CAST);
+  }
+
+  public SqlCastFunction(SqlKind kind) {
+    super(kind.toString(), kind, returnTypeInference(kind == SqlKind.SAFE_CAST),
+        InferTypes.FIRST_KNOWN, null, SqlFunctionCategory.SYSTEM);
+    checkArgument(kind == SqlKind.CAST || kind == SqlKind.SAFE_CAST, kind);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public RelDataType inferReturnType(
-      SqlOperatorBinding opBinding) {
-    assert opBinding.getOperandCount() == 2;
-    RelDataType ret = opBinding.getOperandType(1);
-    RelDataType firstType = opBinding.getOperandType(0);
-    ret =
-        opBinding.getTypeFactory().createTypeWithNullability(
-            ret,
-            firstType.isNullable());
-    if (opBinding instanceof SqlCallBinding) {
-      SqlCallBinding callBinding = (SqlCallBinding) opBinding;
-      SqlNode operand0 = callBinding.operand(0);
+  static SqlReturnTypeInference returnTypeInference(boolean safe) {
+    return opBinding -> {
+      assert opBinding.getOperandCount() == 2;
+      final RelDataType ret =
+          deriveType(opBinding.getTypeFactory(), opBinding.getOperandType(0),
+              opBinding.getOperandType(1), safe);
 
-      // dynamic parameters and null constants need their types assigned
-      // to them using the type they are casted to.
-      if (SqlUtil.isNullLiteral(operand0, false)
-          || (operand0 instanceof SqlDynamicParam)) {
-        final SqlValidatorImpl validator =
-            (SqlValidatorImpl) callBinding.getValidator();
-        validator.setValidatedNodeType(operand0, ret);
+      if (opBinding instanceof SqlCallBinding) {
+        final SqlCallBinding callBinding = (SqlCallBinding) opBinding;
+        SqlNode operand0 = callBinding.operand(0);
+
+        // dynamic parameters and null constants need their types assigned
+        // to them using the type they are casted to.
+        if (SqlUtil.isNullLiteral(operand0, false)
+            || operand0 instanceof SqlDynamicParam) {
+          callBinding.getValidator().setValidatedNodeType(operand0, ret);
+        }
       }
-    }
-    return ret;
+      return ret;
+    };
+  }
+
+  /** Derives the type of "CAST(expression AS targetType)". */
+  public static RelDataType deriveType(RelDataTypeFactory typeFactory,
+      RelDataType expressionType, RelDataType targetType, boolean safe) {
+    return typeFactory.createTypeWithNullability(targetType,
+        expressionType.isNullable() || safe);
   }
 
   @Override public String getSignatureTemplate(final int operandsCount) {

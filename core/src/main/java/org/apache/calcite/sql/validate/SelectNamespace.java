@@ -21,8 +21,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -55,8 +53,7 @@ public class SelectNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement SqlValidatorNamespace, overriding return type
-  @Override public @Nullable SqlNode getNode() {
+  @Override public SqlSelect getNode() {
     return select;
   }
 
@@ -72,12 +69,12 @@ public class SelectNamespace extends AbstractNamespace {
   @Override public SqlMonotonicity getMonotonicity(String columnName) {
     final RelDataType rowType = this.getRowTypeSansSystemColumns();
     final int field = SqlTypeUtil.findField(rowType, columnName);
-    SelectScope selectScope = requireNonNull(
-        validator.getRawSelectScope(select),
-        () -> "rawSelectScope for " + select);
-    final SqlNode selectItem = requireNonNull(
-        selectScope.getExpandedSelectList(),
-        () -> "expandedSelectList for selectScope of " + select).get(field);
+    SelectScope selectScope =
+        requireNonNull(validator.getRawSelectScope(select),
+            () -> "rawSelectScope for " + select);
+    final SqlNode selectItem =
+        requireNonNull(selectScope.getExpandedSelectList(),
+            () -> "expandedSelectList for selectScope of " + select).get(field);
     return validator.getSelectScope(select).getMonotonicity(selectItem);
   }
 }

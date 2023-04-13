@@ -75,6 +75,21 @@ public class Nullness {
   }
 
   /**
+   * Allows you to treat an array of nullable values as an array of non-nullable
+   * values.
+   *
+   * @param <T>     Type of the array elements
+   * @param ts      Array
+   * @return the argument, cast so that elements are @NonNull
+   */
+  @Pure
+  public static <T> @NonNull T[] castNonNullArray(
+      @Nullable T[] ts) {
+    //noinspection ConstantConditions,unchecked
+    return (@NonNull T []) (Object) ts;
+  }
+
+  /**
    * Allows you to treat an uninitialized or under-initialization object as
    * initialized with no assertions.
    *

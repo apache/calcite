@@ -17,14 +17,18 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 /**
  * The <code>TIMESTAMPDIFF</code> function, which calculates the difference
@@ -54,25 +58,58 @@ import org.apache.calcite.sql.type.SqlTypeName;
  * interval.
  */
 class SqlTimestampDiffFunction extends SqlFunction {
-  /** Creates a SqlTimestampDiffFunction. */
-  private static final SqlReturnTypeInference RETURN_TYPE_INFERENCE =
-      opBinding -> {
-        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-        SqlTypeName sqlTypeName =
-            opBinding.getOperandLiteralValue(0, TimeUnit.class) == TimeUnit.NANOSECOND
-                ? SqlTypeName.BIGINT
-                : SqlTypeName.INTEGER;
-        return typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(sqlTypeName),
-            opBinding.getOperandType(1).isNullable()
-            || opBinding.getOperandType(2).isNullable());
-      };
+  private static RelDataType inferReturnType2(SqlOperatorBinding opBinding) {
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    final TimeUnit timeUnit;
+    final RelDataType type1;
+    final RelDataType type2;
+    if (opBinding.isOperandTimeFrame(0)) {
+      timeUnit = opBinding.getOperandLiteralValue(0, TimeUnit.class);
+      type1 = opBinding.getOperandType(1);
+      type2 = opBinding.getOperandType(2);
+    } else {
+      type1 = opBinding.getOperandType(0);
+      type2 = opBinding.getOperandType(1);
+      timeUnit = opBinding.getOperandLiteralValue(2, TimeUnit.class);
+    }
+    SqlTypeName sqlTypeName =
+        timeUnit == TimeUnit.NANOSECOND
+            ? SqlTypeName.BIGINT
+            : SqlTypeName.INTEGER;
+    return typeFactory.createTypeWithNullability(
+        typeFactory.createSqlType(sqlTypeName),
+        type1.isNullable()
+            || type2.isNullable());
+  }
 
-  SqlTimestampDiffFunction() {
-    super("TIMESTAMPDIFF", SqlKind.TIMESTAMP_DIFF,
-        RETURN_TYPE_INFERENCE, null,
-        OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATETIME,
-            SqlTypeFamily.DATETIME),
+  /** Creates a SqlTimestampDiffFunction. */
+  SqlTimestampDiffFunction(String name, SqlOperandTypeChecker operandTypeChecker) {
+    super(name, SqlKind.TIMESTAMP_DIFF,
+        SqlTimestampDiffFunction::inferReturnType2, null, operandTypeChecker,
         SqlFunctionCategory.TIMEDATE);
+  }
+
+  @Override public void validateCall(SqlCall call, SqlValidator validator,
+      SqlValidatorScope scope, SqlValidatorScope operandScope) {
+    super.validateCall(call, validator, scope, operandScope);
+
+    // This is either a time unit or a time frame:
+    //
+    //  * In "TIMESTAMPDIFF(YEAR, timestamp1, timestamp2)" operand 0 is a
+    //    SqlIntervalQualifier with startUnit = YEAR and timeFrameName = null.
+    //    The same is true for BigQuery's TIMESTAMP_DIFF(), however the
+    //    SqlIntervalQualifier is operand 2 due to differing parameter orders.
+    //
+    //  * In "TIMESTAMP_ADD(MINUTE15, timestamp1, timestamp2) operand 0 is a
+    //    SqlIntervalQualifier with startUnit = EPOCH and timeFrameName =
+    //    'MINUTE15'. As above, for BigQuery's TIMESTAMP_DIFF() the
+    //    SqlIntervalQualifier is found in operand 2 instead.
+    //
+    // If the latter, check that timeFrameName is valid.
+    if (call.operand(2) instanceof SqlIntervalQualifier) {
+      validator.validateTimeFrame(call.operand(2));
+    } else {
+      validator.validateTimeFrame(call.operand(0));
+    }
   }
 }

@@ -39,7 +39,6 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.materialize.Lattice;
@@ -48,6 +47,8 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.TimeFrameSet;
+import org.apache.calcite.rel.type.TimeFrames;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
@@ -85,6 +86,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -102,7 +104,7 @@ abstract class CalciteConnectionImpl
   public final JavaTypeFactory typeFactory;
 
   final CalciteSchema rootSchema;
-  final Function0<CalcitePrepare> prepareFactory;
+  final Supplier<CalcitePrepare> prepareFactory;
   final CalciteServer server = new CalciteServerImpl();
 
   // must be package-protected
@@ -125,7 +127,7 @@ abstract class CalciteConnectionImpl
       @Nullable JavaTypeFactory typeFactory) {
     super(driver, factory, url, info);
     CalciteConnectionConfig cfg = new CalciteConnectionConfigImpl(info);
-    this.prepareFactory = driver.prepareFactory;
+    this.prepareFactory = driver::createPrepare;
     if (typeFactory != null) {
       this.typeFactory = typeFactory;
     } else {
@@ -230,7 +232,7 @@ abstract class CalciteConnectionImpl
       CalcitePrepare.Context prepareContext, long maxRowCount) {
     CalcitePrepare.Dummy.push(prepareContext);
     try {
-      final CalcitePrepare prepare = prepareFactory.apply();
+      final CalcitePrepare prepare = prepareFactory.get();
       return prepare.prepareSql(prepareContext, query, Object[].class,
           maxRowCount);
     } finally {
@@ -419,6 +421,9 @@ abstract class CalciteConnectionImpl
       Hook.CURRENT_TIME.run(timeHolder);
       final long time = timeHolder.get();
       final TimeZone timeZone = connection.getTimeZone();
+      final TimeFrameSet timeFrameSet =
+          connection.typeFactory.getTypeSystem()
+              .deriveTimeFrameSet(TimeFrames.CORE);
       final long localOffset = timeZone.getOffset(time);
       final long currentOffset = localOffset;
       final String user = "sa";
@@ -437,6 +442,7 @@ abstract class CalciteConnectionImpl
           .put(Variable.CURRENT_TIMESTAMP.camelName, time + currentOffset)
           .put(Variable.LOCAL_TIMESTAMP.camelName, time + localOffset)
           .put(Variable.TIME_ZONE.camelName, timeZone)
+          .put(Variable.TIME_FRAME_SET.camelName, timeFrameSet)
           .put(Variable.USER.camelName, user)
           .put(Variable.SYSTEM_USER.camelName, systemUser)
           .put(Variable.LOCALE.camelName, locale)

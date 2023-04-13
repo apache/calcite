@@ -43,10 +43,8 @@ public class CeilOperatorConversion implements DruidSqlOperatorConverter {
       DruidQuery query) {
     final RexCall call = (RexCall) rexNode;
     final RexNode arg = call.getOperands().get(0);
-    final String druidExpression = DruidExpressions.toDruidExpression(
-        arg,
-        rowType,
-        query);
+    final String druidExpression =
+        DruidExpressions.toDruidExpression(arg, rowType, query);
     if (druidExpression == null) {
       return null;
     } else if (call.getOperands().size() == 1) {

@@ -141,9 +141,10 @@ public class RexProgramBuilder {
     // Register the condition, if there is one.
     if (condition != null) {
       if (simplify != null) {
-        condition = simplify.simplify(
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE,
-                condition.accept(expander)));
+        condition =
+            simplify.simplify(
+                rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE,
+                    condition.accept(expander)));
         if (condition.isAlwaysTrue()) {
           condition = null;
         }
@@ -554,8 +555,8 @@ public class RexProgramBuilder {
       boolean simplify_) {
     RexSimplify simplify = null;
     if (simplify_) {
-      simplify = new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY,
-          RexUtil.EXECUTOR);
+      simplify =
+          new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR);
     }
     return new RexProgramBuilder(rexBuilder, inputRowType, exprList,
         projectList, condition, outputRowType, normalize, simplify);

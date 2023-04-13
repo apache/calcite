@@ -119,7 +119,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
       if (expectedMsgPattern == null) {
         throw new RuntimeException("Error while parsing query:" + sap, spe);
       } else if (errMessage == null
-          || !errMessage.matches(expectedMsgPattern)) {
+          || !Util.toLinux(errMessage).matches(expectedMsgPattern)) {
         throw new RuntimeException("Error did not match expected ["
             + expectedMsgPattern + "] while parsing query ["
             + sap + "]", spe);
@@ -325,9 +325,10 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
    * @return Query that evaluates a scalar expression
    */
   protected String buildQuery2(SqlTestFactory factory, String expression) {
-    if (expression.matches("(?i).*percentile_(cont|disc).*")) {
+    if (expression.matches("(?i).*(percentile_(cont|disc)|convert)\\(.*")) {
       // PERCENTILE_CONT requires its argument to be a literal,
       // so converting its argument to a column will cause false errors.
+      // Similarly, MSSQL-style CONVERT.
       return buildQuery(expression);
     }
     // "values (1 < 5)"
@@ -362,15 +363,18 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
           @Override public SqlNode visit(SqlCall call) {
             SqlOperator operator = call.getOperator();
             if (operator instanceof SqlUnresolvedFunction) {
-              final SqlUnresolvedFunction unresolvedFunction = (SqlUnresolvedFunction) operator;
-              final SqlOperator lookup = SqlValidatorUtil.lookupSqlFunctionByID(
-                  SqlStdOperatorTable.instance(),
-                  unresolvedFunction.getSqlIdentifier(),
-                  unresolvedFunction.getFunctionType());
+              final SqlUnresolvedFunction unresolvedFunction =
+                  (SqlUnresolvedFunction) operator;
+              final SqlOperator lookup =
+                  SqlValidatorUtil.lookupSqlFunctionByID(
+                      SqlStdOperatorTable.instance(),
+                      unresolvedFunction.getSqlIdentifier(),
+                      unresolvedFunction.getFunctionType());
               if (lookup != null) {
                 operator = lookup;
-                call = operator.createCall(call.getFunctionQuantifier(),
-                    call.getParserPosition(), call.getOperandList());
+                call =
+                    operator.createCall(call.getFunctionQuantifier(),
+                        call.getParserPosition(), call.getOperandList());
               }
             }
             if (operator == SqlStdOperatorTable.CAST

@@ -69,8 +69,8 @@ public enum SqlTypeName {
       SqlTypeFamily.TIME),
   TIMESTAMP(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.TIMESTAMP,
       SqlTypeFamily.TIMESTAMP),
-  TIMESTAMP_WITH_LOCAL_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
-      SqlTypeFamily.TIMESTAMP),
+  TIMESTAMP_WITH_LOCAL_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false,
+      Types.TIMESTAMP, SqlTypeFamily.TIMESTAMP),
   INTERVAL_YEAR(PrecScale.NO_NO, false, Types.OTHER,
       SqlTypeFamily.INTERVAL_YEAR_MONTH),
   INTERVAL_YEAR_MONTH(PrecScale.NO_NO, false, Types.OTHER,
@@ -126,6 +126,7 @@ public enum SqlTypeName {
   /** Spatial type. Though not standard, it is common to several DBs, so we
    * do not flag it 'special' (internal). */
   GEOMETRY(PrecScale.NO_NO, false, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO),
+  MEASURE(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
   SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY);
 
   public static final int MAX_DATETIME_PRECISION = 3;
@@ -187,6 +188,9 @@ public enum SqlTypeName {
   public static final List<SqlTypeName> STRING_TYPES =
       combine(CHAR_TYPES, BINARY_TYPES);
 
+  public static final List<SqlTypeName> GEOMETRY_TYPES =
+      ImmutableList.of(GEOMETRY);
+
   public static final List<SqlTypeName> DATETIME_TYPES =
       ImmutableList.of(DATE, TIME, TIME_WITH_LOCAL_TIME_ZONE,
           TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE);
@@ -211,6 +215,12 @@ public enum SqlTypeName {
   public static final Set<SqlTypeName> INTERVAL_TYPES =
       Sets.immutableEnumSet(
           Iterables.concat(YEAR_INTERVAL_TYPES, DAY_INTERVAL_TYPES));
+
+  /** The possible types of a time frame argument to a function such as
+   * {@code TIMESTAMP_DIFF}. */
+  public static final Set<SqlTypeName> TIME_FRAME_TYPES =
+      Sets.immutableEnumSet(
+          Iterables.concat(INTERVAL_TYPES, ImmutableList.of(SYMBOL)));
 
   private static final Map<Integer, SqlTypeName> JDBC_TYPE_TO_NAME =
       ImmutableMap.<Integer, SqlTypeName>builder()
@@ -292,6 +302,14 @@ public enum SqlTypeName {
       }
     }
     return VALUES_MAP.get(name);
+  }
+
+  /** Returns the SqlTypeName value whose name or {@link #getSpaceName()}
+   * matches the given name, or throws {@link IllegalArgumentException}; never
+   * returns null. */
+  public static SqlTypeName lookup(String tag) {
+    String tag2 = tag.replace(' ', '_');
+    return valueOf(tag2);
   }
 
   public boolean allowsNoPrecNoScale() {
@@ -941,7 +959,7 @@ public enum SqlTypeName {
           ? TimeString.fromCalendarFields((Calendar) o)
           : (TimeString) o, 0 /* todo */, pos);
     case TIMESTAMP:
-      return SqlLiteral.createTimestamp(o instanceof Calendar
+      return SqlLiteral.createTimestamp(this, o instanceof Calendar
           ? TimestampString.fromCalendarFields((Calendar) o)
           : (TimestampString) o, 0 /* todo */, pos);
     default:
@@ -951,7 +969,13 @@ public enum SqlTypeName {
 
   /** Returns the name of this type. */
   public String getName() {
-    return toString();
+    return name();
+  }
+
+  /** Returns the name of this type, with underscores converted to spaces,
+   * for example "TIMESTAMP WITH LOCAL TIME ZONE", "DATE". */
+  public String getSpaceName() {
+    return name().replace('_', ' ');
   }
 
   /**

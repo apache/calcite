@@ -78,7 +78,7 @@ Need help with Calcite? Try these resources:
   your question.
 * **Browse the code**.
   One of the advantages of open source software is that you can browse the code.
-  The code is available on [github](https://github.com/apache/calcite/tree/master).
+  The code is available on [GitHub](https://github.com/apache/calcite/tree/main).
 
 # Talks
 
@@ -87,12 +87,32 @@ Want to learn more about Calcite?
 Watch some presentations and read through some slide decks about
 Calcite, or attend one of the [upcoming talks](#upcoming-talks).
 
+## Adding measures to Calcite SQL
+
+At [Calcite Virtual Meetup](https://www.meetup.com/apache-calcite/events/291489488/), March 2023;
+[[slides](https://www.slideshare.net/julianhyde/adding-measures-to-calcite-sql)],
+[[video](https://youtu.be/COFQrSEX_iI)].
+
+## Building a streaming incremental view maintenance engine with Calcite
+
+At [Calcite Virtual Meetup](https://www.meetup.com/apache-calcite/events/291489488/), March 2023;
+[[slides](http://budiu.info/work/dbsp-calcite23.pptx)],
+[[video](https://youtu.be/iT4k5DCnvPU)].
+
+## Debugging planning issues using Calcite's built in loggers
+
+At [Calcite Virtual Meetup](https://www.meetup.com/apache-calcite/events/291489488/), March 2023;
+[[summary](https://github.com/zabetak/slides/blob/master/2023/calcite-meetup-march/debugging-planning-issues-using-calcites-built-in-loggers.md)],
+[[slides](https://www.slideshare.net/StamatisZampetakis/debugging-planning-issues-using-calcites-builtin-loggers)],
+[[pdf](https://github.com/zabetak/slides/blob/master/2023/calcite-meetup-march/debugging-planning-issues-using-calcites-built-in-loggers.pdf)],
+[[video](https://youtu.be/_phzRNCWJfw)].
+
 ## calcite-clj - Use Calcite with Clojure
 
-At [Apache Calcite Online Meetup January 2022](https://www.meetup.com/Apache-Calcite/events/282836907/)
-[[slides]](https://ieugen.github.io/calcite-clj/)
-[[video]](https://www.youtube.com/watch?v=9CUWX8JHA90)
-[[code]](https://github.com/ieugen/calcite-clj)
+At [Calcite Virtual Meetup](https://www.meetup.com/Apache-Calcite/events/282836907/), January 2022;
+[[slides](https://ieugen.github.io/calcite-clj/)],
+[[video](https://www.youtube.com/watch?v=9CUWX8JHA90)],
+[[code](https://github.com/ieugen/calcite-clj)].
 
 ## Morel, a functional query language (Julian Hyde)
 
@@ -109,7 +129,8 @@ At [ApacheCon 2021](https://www.apachecon.com/acah2021/tracks/bigdatasql.html), 
 At [BOSS 2021](https://boss-workshop.github.io/boss-2021/), Copenhagen, Denmark, August 16, 2021;
 [[summary](https://github.com/zabetak/slides/blob/master/2021/boss-workshop/apache-calcite-tutorial.md)],
 [[slides](https://www.slideshare.net/StamatisZampetakis/apache-calcite-tutorial-boss-21)],
-[[pdf](https://github.com/zabetak/slides/blob/master/2021/boss-workshop/apache-calcite-tutorial.pdf)].
+[[pdf](https://github.com/zabetak/slides/blob/master/2021/boss-workshop/apache-calcite-tutorial.pdf)],
+[[video](https://youtu.be/meI0W12f_nw)].
 
 ## An introduction to query processing & Apache Calcite
 
@@ -146,7 +167,7 @@ At [SIGMOD/PODS 2019](https://sigmod2019.org/sigmod_industry_list), Amsterdam, N
 and [Beam Summit Europe 2019](https://beam-summit.firebaseapp.com/schedule/);
 [[paper](https://arxiv.org/abs/1905.12133)],
 [[review](https://blog.acolyer.org/2019/07/03/one-sql-to-rule-them-all/)],
-[[pdf](https://github.com/julianhyde/share/blob/master/slides/one-sql-to-rule-them-all-beam-summit-2019.pdf?raw=true)],
+[[pdf](https://github.com/julianhyde/share/blob/main/slides/one-sql-to-rule-them-all-beam-summit-2019.pdf?raw=true)],
 [[video](https://www.youtube.com/watch?v=9f4igtyNseo)].
 
 ## Apache Calcite: A Foundational Framework for Optimized Query Processing Over Heterogeneous Data Sources
@@ -154,13 +175,13 @@ and [Beam Summit Europe 2019](https://beam-summit.firebaseapp.com/schedule/);
 At [SIGMOD/PODS 2018](https://sigmod2018.org/index.shtml), Houston, TX, 2018;
 [[paper](https://arxiv.org/pdf/1802.10233)],
 [[slides](https://www.slideshare.net/julianhyde/apache-calcite-a-foundational-framework-for-optimized-query-processing-over-heterogeneous-data-sources)],
-[[pdf](https://github.com/julianhyde/share/blob/master/slides/calcite-sigmod-2018.pdf?raw=true)].
+[[pdf](https://github.com/julianhyde/share/blob/main/slides/calcite-sigmod-2018.pdf?raw=true)].
 
 ## Spatial query on vanilla databases
 
 At ApacheCon North America, 2018;
 [[slides](https://www.slideshare.net/julianhyde/spatial-query-on-vanilla-databases)],
-[[pdf](https://github.com/julianhyde/share/blob/master/slides/calcite-spatial-apache-con-2018.pdf?raw=true).
+[[pdf](https://github.com/julianhyde/share/blob/main/slides/calcite-spatial-apache-con-2018.pdf?raw=true).
 
 ## Apache Calcite: One planner fits all
 
@@ -168,25 +189,19 @@ Voted [Best Lightning Talk at XLDB-2015](https://www.xldb.org/archives/2015/05/b
 [[video](https://www.youtube.com/watch?v=5_MyORYjq3w)],
 [[slides](https://www.slideshare.net/julianhyde/apache-calcite-one-planner-fits-all)].
 
-{% oembed https://www.youtube.com/watch?v=5_MyORYjq3w %}
-
 ## Streaming SQL
 
 At Hadoop Summit, San Jose, CA, 2016
 [[video](https://www.youtube.com/watch?v=b7HENkvd1uU)],
 [[slides](https://www.slideshare.net/julianhyde/streaming-sql-63554778)],
-[[pdf](https://github.com/julianhyde/share/blob/master/slides/calcite-streaming-sql-san-jose-2016.pdf?raw=true)].
-
-{% oembed https://www.youtube.com/watch?v=b7HENkvd1uU %}
+[[pdf](https://github.com/julianhyde/share/blob/main/slides/calcite-streaming-sql-san-jose-2016.pdf?raw=true)].
 
 ## Cost-based Query Optimization in Apache Phoenix using Apache Calcite
 
 At Hadoop Summit, San Jose, CA, 2016
 [[video](https://www.youtube.com/watch?v=gz9X7JD8BAU)],
 [[slides](https://www.slideshare.net/julianhyde/costbased-query-optimization-in-apache-phoenix-using-apache-calcite)],
-[[pdf](https://github.com/julianhyde/share/blob/master/slides/phoenix-on-calcite-hadoop-summit-2016.pdf?raw=true)].
-
-{% oembed https://www.youtube.com/watch?v=gz9X7JD8BAU %}
+[[pdf](https://github.com/julianhyde/share/blob/main/slides/phoenix-on-calcite-hadoop-summit-2016.pdf?raw=true)].
 
 ## Planning with Polyalgebra: Bringing together relational, complex and machine learning algebra
 
@@ -194,15 +209,13 @@ As Hadoop Summit, Dublin, 2016
 [[video](https://www.youtube.com/watch?v=fHZqbe3iPMc)],
 [[slides](https://www.slideshare.net/julianhyde/planning-with-polyalgebra-bringing-together-relational-complex-and-machine-learning-algebra)].
 
-{% oembed https://www.youtube.com/watch?v=fHZqbe3iPMc %}
-
 ## More talks
 
-* <a href="https://github.com/julianhyde/share/blob/master/slides/calcite-algebra-edw-2015.pdf?raw=true">Why you care about relational algebra (even though you didn't know it)</a> (Washington DC, 2015)
-* <a href="https://github.com/julianhyde/share/blob/master/slides/hive-cbo-seattle-2014.pdf?raw=true">Cost-based optimization in Hive 0.14</a> (Seattle, 2014)
-* <a href="https://github.com/julianhyde/share/blob/master/slides/dmmq-summit-2014.pdf?raw=true">Discardable, in-memory materialized query for Hadoop</a> (<a href="https://www.youtube.com/watch?v=CziGOa8GXqI">video</a>) (Hadoop Summit, 2014)
-* <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-nosql-now-2013.pdf?raw=true">SQL Now!</a> (NoSQL Now! conference, 2013)
-* <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-drill-user-group-2013.pdf?raw=true">Drill / SQL / Optiq</a> (2013)
+* <a href="https://github.com/julianhyde/share/blob/main/slides/calcite-algebra-edw-2015.pdf?raw=true">Why you care about relational algebra (even though you didn't know it)</a> (Washington DC, 2015)
+* <a href="https://github.com/julianhyde/share/blob/main/slides/hive-cbo-seattle-2014.pdf?raw=true">Cost-based optimization in Hive 0.14</a> (Seattle, 2014)
+* <a href="https://github.com/julianhyde/share/blob/main/slides/dmmq-summit-2014.pdf?raw=true">Discardable, in-memory materialized query for Hadoop</a> (<a href="https://www.youtube.com/watch?v=CziGOa8GXqI">video</a>) (Hadoop Summit, 2014)
+* <a href="https://github.com/julianhyde/share/blob/main/slides/optiq-nosql-now-2013.pdf?raw=true">SQL Now!</a> (NoSQL Now! conference, 2013)
+* <a href="https://github.com/julianhyde/share/blob/main/slides/optiq-drill-user-group-2013.pdf?raw=true">Drill / SQL / Optiq</a> (2013)
 * <a href="https://www.slideshare.net/julianhyde/how-to-integrate-splunk-with-any-data-solution">How to integrate Splunk with any data solution</a> (Splunk User Conference, 2012)
 
 # External resources

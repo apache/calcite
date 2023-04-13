@@ -229,8 +229,9 @@ public class DruidRules {
         final String timeZone = cluster.getPlanner().getContext()
             .unwrap(CalciteConnectionConfig.class).timeZone();
         assert timeZone != null;
-        intervals = DruidDateTimeUtils.createInterval(
-            RexUtil.composeConjunction(rexBuilder, triple.getLeft()));
+        intervals =
+            DruidDateTimeUtils.createInterval(
+                RexUtil.composeConjunction(rexBuilder, triple.getLeft()));
         if (intervals == null || intervals.isEmpty()) {
           // Case we have a filter with extract that can not be written as interval push down
           triple.getMiddle().addAll(triple.getLeft());
@@ -238,8 +239,9 @@ public class DruidRules {
       }
 
       if (!triple.getMiddle().isEmpty()) {
-        final RelNode newFilter = filter.copy(filter.getTraitSet(), Util.last(query.rels),
-            RexUtil.composeConjunction(rexBuilder, triple.getMiddle()));
+        final RelNode newFilter =
+            filter.copy(filter.getTraitSet(), Util.last(query.rels),
+                RexUtil.composeConjunction(rexBuilder, triple.getMiddle()));
         newDruidQuery = DruidQuery.extendQuery(query, newFilter);
       }
       if (intervals != null && !intervals.isEmpty()) {
@@ -356,6 +358,11 @@ public class DruidRules {
       super(config);
     }
 
+    @Override public boolean matches(RelOptRuleCall call) {
+      final Project project = call.rel(0);
+      return project.getVariablesSet().isEmpty();
+    }
+
     @Override public void onMatch(RelOptRuleCall call) {
       final Project project = call.rel(0);
       final DruidQuery query = call.rel(1);
@@ -368,8 +375,9 @@ public class DruidRules {
       if (DruidQuery.computeProjectAsScan(project, query.getTable().getRowType(), query)
           != null) {
         // All expressions can be pushed to Druid in their entirety.
-        final RelNode newProject = project.copy(project.getTraitSet(),
-            ImmutableList.of(Util.last(query.rels)));
+        final RelNode newProject =
+            project.copy(project.getTraitSet(),
+                ImmutableList.of(Util.last(query.rels)));
         RelNode newNode = DruidQuery.extendQuery(query, newProject);
         call.transformTo(newNode);
         return;
@@ -395,10 +403,12 @@ public class DruidRules {
         }
         builder.add(name, e.getType());
       }
-      final RelNode newProject = project.copy(project.getTraitSet(), input, below, builder.build());
+      final RelNode newProject =
+          project.copy(project.getTraitSet(), input, below, builder.build());
       final DruidQuery newQuery = DruidQuery.extendQuery(query, newProject);
-      final RelNode newProject2 = project.copy(project.getTraitSet(), newQuery, above,
-              project.getRowType());
+      final RelNode newProject2 =
+              project.copy(project.getTraitSet(), newQuery, above,
+                  project.getRowType());
       call.transformTo(newProject2);
     }
 
@@ -595,15 +605,18 @@ public class DruidRules {
           == null) {
         return;
       }
-      final RelNode newProject = project.copy(project.getTraitSet(),
+      final RelNode newProject =
+          project.copy(project.getTraitSet(),
               ImmutableList.of(Util.last(query.rels)));
-      final RelNode newAggregate = aggregate.copy(aggregate.getTraitSet(),
+      final RelNode newAggregate =
+          aggregate.copy(aggregate.getTraitSet(),
               ImmutableList.of(newProject));
       List<Integer> filterRefs = getFilterRefs(aggregate.getAggCallList());
       final DruidQuery query2;
       if (filterRefs.size() > 0) {
-        query2 = optimizeFilteredAggregations(call, query, (Project) newProject,
-            (Aggregate) newAggregate);
+        query2 =
+            optimizeFilteredAggregations(call, query, (Project) newProject,
+                (Aggregate) newAggregate);
       } else {
         final DruidQuery query1 = DruidQuery.extendQuery(query, newProject);
         query2 = DruidQuery.extendQuery(query1, newAggregate);
@@ -689,8 +702,9 @@ public class DruidRules {
         }
         newCalls.add(aggCall);
       }
-      aggregate = aggregate.copy(aggregate.getTraitSet(), aggregate.getInput(),
-          aggregate.getGroupSet(), aggregate.getGroupSets(), newCalls);
+      aggregate =
+          aggregate.copy(aggregate.getTraitSet(), aggregate.getInput(),
+              aggregate.getGroupSet(), aggregate.getGroupSets(), newCalls);
 
       if (containsFilter) {
         // AND the current filterNode with the filter node inside filter
@@ -720,7 +734,8 @@ public class DruidRules {
       // TableScan nodes (which are always present)
       int startIndex = containsFilter && addNewFilter ? 2 : 1;
 
-      List<RelNode> newNodes = constructNewNodes(query.rels, addNewFilter, startIndex,
+      List<RelNode> newNodes =
+          constructNewNodes(query.rels, addNewFilter, startIndex,
               filter, project, aggregate);
 
       return DruidQuery.create(query.getCluster(),

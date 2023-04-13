@@ -1058,8 +1058,8 @@ class MaterializedViewRelOptRulesTest {
             + " where s.\"store_id\" = 1")
         .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.JDBC_FOODMART)
         .checkingThatResultContains(""
-            + "EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1], expr#9=[>=($t1, $t8)],"
-            + " expr#10=[3], expr#11=[<=($t1, $t10)], expr#12=[AND($t9, $t11)], $f0=[$t12])\n"
+            + "EnumerableCalc(expr#0..7=[{inputs}], expr#8=[Sarg[[1..3]]], "
+            + "expr#9=[SEARCH($t1, $t8)], $f0=[$t9])\n"
             + "  EnumerableTableScan(table=[[foodmart, MV0]])")
         .ok();
   }
@@ -1075,8 +1075,8 @@ class MaterializedViewRelOptRulesTest {
             + " where s.\"store_id\" = 1")
         .withDefaultSchemaSpec(CalciteAssert.SchemaSpec.JDBC_FOODMART)
         .checkingThatResultContains(""
-            + "EnumerableCalc(expr#0..17=[{inputs}], expr#18=[1], expr#19=[>=($t8, $t18)], "
-            + "expr#20=[3], expr#21=[<=($t8, $t20)], expr#22=[AND($t19, $t21)], $f0=[$t22])\n"
+            + "EnumerableCalc(expr#0..17=[{inputs}], expr#18=[Sarg[[1..3]]], "
+            + "expr#19=[SEARCH($t8, $t18)], $f0=[$t19])\n"
             + "  EnumerableTableScan(table=[[foodmart, MV0]])")
         .ok();
   }

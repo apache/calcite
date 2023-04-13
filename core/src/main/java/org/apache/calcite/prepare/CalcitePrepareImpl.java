@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.prepare;
 
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.enumerable.EnumerableCalc;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
@@ -72,6 +73,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
@@ -110,7 +112,6 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -128,6 +129,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -442,6 +444,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
     final VolcanoPlanner planner =
         new VolcanoPlanner(costFactory, externalContext);
+    planner.setExecutor(new RexExecutorImpl(DataContexts.EMPTY));
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     if (CalciteSystemProperty.ENABLE_COLLATION_TRAIT.value()) {
       planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
@@ -511,13 +514,40 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         throw new AssertionError("factory returned null planner");
       }
       try {
+        CalcitePreparingStmt preparingStmt =
+            getPreparingStmt(context, elementType, catalogReader, planner);
         return prepare2_(context, query, elementType, maxRowCount,
-            catalogReader, planner);
+            catalogReader, preparingStmt);
       } catch (RelOptPlanner.CannotPlanException e) {
         exception = e;
       }
     }
     throw exception;
+  }
+
+  /** Returns CalcitePreparingStmt
+   *
+   * <p>Override this function to return a custom {@link CalcitePreparingStmt} and
+   * {@link #createSqlValidator} to enable custom validation logic.
+   */
+  protected CalcitePreparingStmt getPreparingStmt(
+      Context context,
+      Type elementType,
+      CalciteCatalogReader catalogReader,
+      RelOptPlanner planner) {
+    final JavaTypeFactory typeFactory = context.getTypeFactory();
+    final EnumerableRel.Prefer prefer;
+    if (elementType == Object[].class) {
+      prefer = EnumerableRel.Prefer.ARRAY;
+    } else {
+      prefer = EnumerableRel.Prefer.CUSTOM;
+    }
+    final Convention resultConvention =
+        enableBindable ? BindableConvention.INSTANCE
+            : EnumerableConvention.INSTANCE;
+    return new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
+            context.getRootSchema(), prefer, createCluster(planner, new RexBuilder(typeFactory)),
+            resultConvention, createConvertletTable());
   }
 
   /** Quickly prepares a simple SQL statement, circumventing the usual
@@ -587,21 +617,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       Type elementType,
       long maxRowCount,
       CalciteCatalogReader catalogReader,
-      RelOptPlanner planner) {
+      CalcitePreparingStmt preparingStmt) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
-    final EnumerableRel.Prefer prefer;
-    if (elementType == Object[].class) {
-      prefer = EnumerableRel.Prefer.ARRAY;
-    } else {
-      prefer = EnumerableRel.Prefer.CUSTOM;
-    }
-    final Convention resultConvention =
-        enableBindable ? BindableConvention.INSTANCE
-            : EnumerableConvention.INSTANCE;
-    final CalcitePreparingStmt preparingStmt =
-        new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
-            context.getRootSchema(), prefer, createCluster(planner, new RexBuilder(typeFactory)),
-            resultConvention, createConvertletTable());
 
     final RelDataType x;
     final Prepare.PreparedResult preparedResult;
@@ -642,11 +659,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             Meta.StatementType.OTHER_DDL);
       }
 
-      final SqlValidator validator =
-          createSqlValidator(context, catalogReader);
+      final SqlValidator validator = preparingStmt.createSqlValidator(catalogReader);
 
-      preparedResult = preparingStmt.prepareSql(
-          sqlNode, Object.class, validator, true);
+      preparedResult =
+          preparingStmt.prepareSql(sqlNode, Object.class, validator, true);
       switch (sqlNode.getKind()) {
       case INSERT:
       case DELETE:
@@ -934,8 +950,12 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         prepareContext.getRootSchema().plus(), statement);
   }
 
-  /** Holds state for the process of preparing a SQL statement. */
-  static class CalcitePreparingStmt extends Prepare
+  /** Holds state for the process of preparing a SQL statement.
+   *
+   * <p>Overload this class and {@link #createSqlValidator} to provide desired SqlValidator
+   * and custom validation logic.</p>
+   */
+  public static class CalcitePreparingStmt extends Prepare
       implements RelOptTable.ViewExpander {
     protected final RelOptPlanner planner;
     protected final RexBuilder rexBuilder;
@@ -951,7 +971,12 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     private int expansionDepth;
     private @Nullable SqlValidator sqlValidator;
 
-    CalcitePreparingStmt(CalcitePrepareImpl prepare,
+    /** Constructor.
+     *
+     * <p>Overload this constructor and {@link #createSqlValidator} to provide desired
+     *  SqlValidaor and custom validation logic.</p>
+     */
+    public CalcitePreparingStmt(CalcitePrepareImpl prepare,
         Context context,
         CatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
@@ -1003,8 +1028,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           rel instanceof Sort
               ? ((Sort) rel).collation
               : RelCollations.EMPTY;
-      RelRoot root = new RelRoot(rel, resultType, SqlKind.SELECT, fields,
-          collation, new ArrayList<>());
+      RelRoot root =
+          new RelRoot(rel, resultType, SqlKind.SELECT, fields, collation,
+              new ArrayList<>());
 
       if (timingTracer != null) {
         timingTracer.traceTime("end sql2rel");
@@ -1119,8 +1145,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           for (int field : Pair.left(root.fields)) {
             projects.add(rexBuilder.makeInputRef(enumerable, field));
           }
-          RexProgram program = RexProgram.create(enumerable.getRowType(),
-              projects, null, root.validatedRowType, rexBuilder);
+          RexProgram program =
+              RexProgram.create(enumerable.getRowType(), projects, null,
+                  root.validatedRowType, rexBuilder);
           enumerable = EnumerableCalc.create(enumerable, program);
         }
 
@@ -1128,9 +1155,10 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           CatalogReader.THREAD_LOCAL.set(catalogReader);
           final SqlConformance conformance = context.config().conformance();
           internalParameters.put("_conformance", conformance);
-          bindable = EnumerableInterpretable.toBindable(internalParameters,
-              context.spark(), enumerable,
-              requireNonNull(prefer, "EnumerableRel.Prefer prefer"));
+          bindable =
+              EnumerableInterpretable.toBindable(internalParameters,
+                  context.spark(), enumerable,
+                  requireNonNull(prefer, "EnumerableRel.Prefer prefer"));
         } finally {
           CatalogReader.THREAD_LOCAL.remove();
         }
@@ -1259,10 +1287,11 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         // Case-sensitive name match because name was previously resolved.
         MemberExpression memberExpression = (MemberExpression) expression;
         PseudoField field = memberExpression.field;
-        Expression targetExpression = requireNonNull(memberExpression.expression,
-            () -> "static field access is not implemented yet."
-                + " field.name=" + field.getName()
-                + ", field.declaringClass=" + field.getDeclaringClass());
+        Expression targetExpression =
+            requireNonNull(memberExpression.expression,
+                () -> "static field access is not implemented yet."
+                    + " field.name=" + field.getName()
+                    + ", field.declaringClass=" + field.getDeclaringClass());
         return rexBuilder.makeFieldAccess(
             toRex(targetExpression),
             field.getName(),

@@ -55,11 +55,11 @@ public class GeodeSimpleSchema extends AbstractSchema {
     this.regionNames = regionNames;
     this.pdxAutoSerializerPackageExp = pdxAutoSerializerPackageExp;
 
-    this.clientCache = GeodeUtils.createClientCache(
-        locatorHost,
-        locatorPort,
-        pdxAutoSerializerPackageExp,
-        true);
+    this.clientCache =
+        GeodeUtils.createClientCache(locatorHost,
+            locatorPort,
+            pdxAutoSerializerPackageExp,
+            true);
   }
 
   @Override protected Map<String, Table> getTableMap() {
@@ -71,8 +71,9 @@ public class GeodeSimpleSchema extends AbstractSchema {
 
         Region region = GeodeUtils.createRegion(clientCache, regionName);
 
-        Table table = new GeodeSimpleScannableTable(regionName, autodetectRelTypeFromRegion(region),
-            clientCache);
+        Table table =
+            new GeodeSimpleScannableTable(regionName,
+                autodetectRelTypeFromRegion(region), clientCache);
 
         builder.put(regionName, table);
       }

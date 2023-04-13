@@ -54,7 +54,10 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -73,6 +76,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -92,6 +96,7 @@ public class RelJson {
   private final Map<String, Constructor> constructorMap = new HashMap<>();
   private final @Nullable JsonBuilder jsonBuilder;
   private final InputTranslator inputTranslator;
+  private final SqlOperatorTable operatorTable;
 
   public static final List<String> PACKAGES =
       ImmutableList.of(
@@ -103,14 +108,34 @@ public class RelJson {
 
   /** Private constructor. */
   private RelJson(@Nullable JsonBuilder jsonBuilder,
-      InputTranslator inputTranslator) {
+      InputTranslator inputTranslator, SqlOperatorTable operatorTable) {
     this.jsonBuilder = jsonBuilder;
     this.inputTranslator = requireNonNull(inputTranslator, "inputTranslator");
+    this.operatorTable = requireNonNull(operatorTable, "operatorTable");
   }
 
   /** Creates a RelJson. */
+  public static RelJson create() {
+    return new RelJson(null, RelJson::translateInput,
+        SqlStdOperatorTable.instance());
+  }
+
+  /** Creates a RelJson.
+   *
+   * @deprecated Use {@link RelJson#create}, followed by
+   * {@link #withJsonBuilder} if {@code jsonBuilder} is not null. */
+  @Deprecated // to be removed before 2.0
   public RelJson(@Nullable JsonBuilder jsonBuilder) {
-    this(jsonBuilder, RelJson::translateInput);
+    this(jsonBuilder, RelJson::translateInput, SqlStdOperatorTable.instance());
+  }
+
+  /** Returns a RelJson with a given JsonBuilder. */
+  public RelJson withJsonBuilder(JsonBuilder jsonBuilder) {
+    requireNonNull(jsonBuilder, "jsonBuilder");
+    if (jsonBuilder == this.jsonBuilder) {
+      return this;
+    }
+    return new RelJson(jsonBuilder, inputTranslator, operatorTable);
   }
 
   /** Returns a RelJson with a given InputTranslator. */
@@ -118,7 +143,23 @@ public class RelJson {
     if (inputTranslator == this.inputTranslator) {
       return this;
     }
-    return new RelJson(jsonBuilder, inputTranslator);
+    return new RelJson(jsonBuilder, inputTranslator, operatorTable);
+  }
+
+  /** Returns a RelJson with a given operator table. */
+  public RelJson withOperatorTable(SqlOperatorTable operatorTable) {
+    if (operatorTable == this.operatorTable) {
+      return this;
+    }
+    return new RelJson(jsonBuilder, inputTranslator, operatorTable);
+  }
+
+  /** Returns a RelJson with an operator table that consists of the standard
+   * operators plus operators in all libraries. */
+  public RelJson withLibraryOperatorTable() {
+    return withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+            SqlLibrary.values()));
   }
 
   private JsonBuilder jsonBuilder() {
@@ -300,9 +341,10 @@ public class RelJson {
       final boolean nullable = get(map, "nullable");
       return typeFactory.createTypeWithNullability(type, nullable);
     } else {
-      final SqlTypeName sqlTypeName = requireNonNull(
-          Util.enumVal(SqlTypeName.class, (String) o),
-          () -> "unable to find enum value " + o + " in class " + SqlTypeName.class);
+      final SqlTypeName sqlTypeName =
+          requireNonNull(Util.enumVal(SqlTypeName.class, (String) o),
+              () -> "unable to find enum value " + o
+                  + " in class " + SqlTypeName.class);
       return typeFactory.createSqlType(sqlTypeName);
     }
   }
@@ -396,9 +438,9 @@ public class RelJson {
       return toJson((RexWindowBound) value);
     } else if (value instanceof CorrelationId) {
       return toJson((CorrelationId) value);
-    } else if (value instanceof List) {
+    } else if (value instanceof List || value instanceof Set) {
       final List<@Nullable Object> list = jsonBuilder().list();
-      for (Object o : (List<?>) value) {
+      for (Object o : (Collection<?>) value) {
         list.add(toJson(o));
       }
       return list;
@@ -589,11 +631,24 @@ public class RelJson {
       map.put("type", windowBound.isPreceding() ? "UNBOUNDED_PRECEDING" : "UNBOUNDED_FOLLOWING");
     } else {
       map.put("type", windowBound.isPreceding() ? "PRECEDING" : "FOLLOWING");
-      RexNode offset = requireNonNull(windowBound.getOffset(),
-          () -> "getOffset for window bound " + windowBound);
+      RexNode offset =
+          requireNonNull(windowBound.getOffset(),
+              () -> "getOffset for window bound " + windowBound);
       map.put("offset", toJson(offset));
     }
     return map;
+  }
+
+  /**
+   * Translates a JSON expression into a RexNode.
+   *
+   * @param cluster The optimization environment
+   * @param o JSON object
+   * @return the transformed RexNode
+   */
+  public RexNode toRex(RelOptCluster cluster, Object o) {
+    RelInput input = new RelInputForCluster(cluster);
+    return toRex(input, o);
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
@@ -774,15 +829,15 @@ public class RelJson {
     String kind = get(map, "kind");
     String syntax = get(map, "syntax");
     SqlKind sqlKind = SqlKind.valueOf(kind);
-    SqlSyntax  sqlSyntax = SqlSyntax.valueOf(syntax);
+    SqlSyntax sqlSyntax = SqlSyntax.valueOf(syntax);
     List<SqlOperator> operators = new ArrayList<>();
-    SqlStdOperatorTable.instance().lookupOperatorOverloads(
+    operatorTable.lookupOperatorOverloads(
         new SqlIdentifier(name, new SqlParserPos(0, 0)),
         null,
         sqlSyntax,
         operators,
         SqlNameMatchers.liberal());
-    for (SqlOperator operator: operators) {
+    for (SqlOperator operator : operators) {
       if (operator.kind == sqlKind) {
         return operator;
       }
@@ -816,11 +871,14 @@ public class RelJson {
    * @param translator Input translator
    * @param o JSON object
    * @return the transformed RexNode
+   *
+   * @deprecated Use {@link #toRex(RelOptCluster, Object)}
    */
+  @Deprecated // to be removed before 2.0
   public static RexNode readExpression(RelOptCluster cluster,
       InputTranslator translator, Map<String, Object> o) {
     RelInput relInput = new RelInputForCluster(cluster);
-    return new RelJson(null, translator).toRex(relInput, o);
+    return new RelJson(null, translator, SqlStdOperatorTable.instance()).toRex(relInput, o);
   }
 
   /**

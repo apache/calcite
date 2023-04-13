@@ -171,8 +171,9 @@ public class AggregateJoinTransposeRule
     // Do the columns used by the join appear in the output of the aggregate?
     final ImmutableBitSet aggregateColumns = aggregate.getGroupSet();
     final RelMetadataQuery mq = call.getMetadataQuery();
-    final ImmutableBitSet keyColumns = keyColumns(aggregateColumns,
-        mq.getPulledUpPredicates(join).pulledUpPredicates);
+    final ImmutableBitSet keyColumns =
+        keyColumns(aggregateColumns,
+            mq.getPulledUpPredicates(join).pulledUpPredicates);
     final ImmutableBitSet joinColumns =
         RelOptUtil.InputFinder.bits(join.getCondition());
     final boolean allColumnsInAggregate =
@@ -230,7 +231,7 @@ public class AggregateJoinTransposeRule
         // metadata more robust" is fixed) places a heavy load on
         // the metadata system.
         //
-        // So we choose to imagine the the input is already unique, which is
+        // So we choose to imagine the input is already unique, which is
         // untrue but harmless.
         //
         Util.discard(Bug.CALCITE_1048_FIXED);
@@ -254,8 +255,9 @@ public class AggregateJoinTransposeRule
               aggregation.unwrapOrThrow(SqlSplittableAggFunction.class);
           if (!aggCall.e.getArgList().isEmpty()
               && fieldSet.contains(ImmutableBitSet.of(aggCall.e.getArgList()))) {
-            final RexNode singleton = splitter.singleton(rexBuilder,
-                joinInput.getRowType(), aggCall.e.transform(mapping));
+            final RexNode singleton =
+                splitter.singleton(rexBuilder, joinInput.getRowType(),
+                    aggCall.e.transform(mapping));
 
             if (singleton instanceof RexInputRef) {
               final int index = ((RexInputRef) singleton).getIndex();
@@ -287,8 +289,9 @@ public class AggregateJoinTransposeRule
           final AggregateCall call1;
           if (fieldSet.contains(ImmutableBitSet.of(aggCall.e.getArgList()))) {
             final AggregateCall splitCall = splitter.split(aggCall.e, mapping);
-            call1 = splitCall.adaptTo(joinInput, splitCall.getArgList(),
-                splitCall.filterArg, oldGroupKeyCount, newGroupKeyCount);
+            call1 =
+                splitCall.adaptTo(joinInput, splitCall.getArgList(),
+                    splitCall.filterArg, oldGroupKeyCount, newGroupKeyCount);
           } else {
             call1 = splitter.other(rexBuilder.getTypeFactory(), aggCall.e);
           }
@@ -315,10 +318,10 @@ public class AggregateJoinTransposeRule
     }
 
     // Update condition
-    final Mapping mapping = (Mapping) Mappings.target(
-        map::get,
-        join.getRowType().getFieldCount(),
-        belowOffset);
+    final Mapping mapping =
+        (Mapping) Mappings.target(map::get,
+            join.getRowType().getFieldCount(),
+            belowOffset);
     final RexNode newCondition =
         RexUtil.apply(mapping, join.getCondition());
 

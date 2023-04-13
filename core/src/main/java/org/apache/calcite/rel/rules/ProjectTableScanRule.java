@@ -128,8 +128,9 @@ public class ProjectTableScanRule
       filtersPushDown = ImmutableList.of();
       projectsPushDown = selectedColumns;
     }
-    Bindables.BindableTableScan newScan = Bindables.BindableTableScan.create(
-        scan.getCluster(), scan.getTable(), filtersPushDown, projectsPushDown);
+    Bindables.BindableTableScan newScan =
+        Bindables.BindableTableScan.create(scan.getCluster(), scan.getTable(),
+            filtersPushDown, projectsPushDown);
     Mapping mapping =
         Mappings.target(selectedColumns, scan.getRowType().getFieldCount());
     final List<RexNode> newProjectRexNodes =

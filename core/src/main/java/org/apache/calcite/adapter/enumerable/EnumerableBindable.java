@@ -65,8 +65,9 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
 
   @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
     final ImmutableMap<String, Object> map = ImmutableMap.of();
-    final Bindable bindable = EnumerableInterpretable.toBindable(map, null,
-        (EnumerableRel) getInput(), EnumerableRel.Prefer.ARRAY);
+    final Bindable bindable =
+        EnumerableInterpretable.toBindable(map, null,
+            (EnumerableRel) getInput(), EnumerableRel.Prefer.ARRAY);
     final ArrayBindable arrayBindable = EnumerableInterpretable.box(bindable);
     return arrayBindable.bind(dataContext);
   }

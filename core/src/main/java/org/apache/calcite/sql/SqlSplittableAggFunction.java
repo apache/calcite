@@ -189,8 +189,8 @@ public interface SqlSplittableAggFunction {
       }
       final RexNode predicate =
           RexUtil.composeConjunction(rexBuilder, predicates, true);
-      final RexNode rexOne = rexBuilder.makeExactLiteral(
-          BigDecimal.ONE, aggregateCall.getType());
+      final RexNode rexOne =
+          rexBuilder.makeExactLiteral(BigDecimal.ONE, aggregateCall.getType());
       if (predicate == null) {
         return rexOne;
       } else {
@@ -302,7 +302,7 @@ public interface SqlSplittableAggFunction {
         break;
       case 2:
         node = rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, merges);
-        node = rexBuilder.makeAbstractCast(aggregateCall.type, node);
+        node = rexBuilder.makeAbstractCast(aggregateCall.type, node, false);
         break;
       default:
         throw new AssertionError("unexpected count " + merges);

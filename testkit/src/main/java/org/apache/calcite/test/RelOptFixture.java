@@ -77,14 +77,14 @@ import static java.util.Objects.requireNonNull;
  * set up (for example, the same SQL expression and set of planner rules), it is
  * safe to use the same fixture object as a starting point for both tests.
  */
-class RelOptFixture {
+public class RelOptFixture {
   static final RelOptFixture DEFAULT =
       new RelOptFixture(SqlToRelFixture.TESTER, SqlTestFactory.INSTANCE,
           null, RelSupplier.NONE, null, null,
           ImmutableMap.of(), (f, r) -> r, (f, r) -> r, false, false)
           .withFactory(f ->
-              f.withValidatorConfig(c ->
-                  c.withIdentifierExpansion(true)))
+              f.withValidatorConfig(c -> c.withIdentifierExpansion(true))
+                  .withSqlToRelConfig(c -> c.withExpand(false)))
           .withRelBuilderConfig(b -> b.withPruneInputOfAggregate(false));
 
   /**
@@ -369,8 +369,9 @@ class RelOptFixture {
 
     final RelNode r2;
     if (planner instanceof VolcanoPlanner) {
-      r2 = planner.changeTraits(relBefore,
-          relBefore.getTraitSet().replace(EnumerableConvention.INSTANCE));
+      r2 =
+          planner.changeTraits(relBefore,
+              relBefore.getTraitSet().replace(EnumerableConvention.INSTANCE));
     } else {
       r2 = relBefore;
     }

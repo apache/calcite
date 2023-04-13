@@ -309,6 +309,10 @@ LogicalRepeatUnion(all=[true])
         LogicalTableScan(table=[[aux]])
 {% endhighlight %}
 
+Note that there is no support for recursive queries in the SQL layer yet
+([CALCITE-129](https://issues.apache.org/jira/browse/CALCITE-129));
+the `WITH RECURSIVE` query above is only for illustrative purposes.
+
 ### API summary
 
 #### Relational operators

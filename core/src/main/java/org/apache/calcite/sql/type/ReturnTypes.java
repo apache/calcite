@@ -329,6 +329,13 @@ public abstract class ReturnTypes {
       TIMESTAMP.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy whereby the result type of a call is TIMESTAMP
+   * WITH LOCAL TIME ZONE.
+   */
+  public static final SqlReturnTypeInference TIMESTAMP_LTZ =
+      explicit(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+
+  /**
    * Type-inference strategy whereby the result type of a call is Double.
    */
   public static final SqlReturnTypeInference DOUBLE =
@@ -346,6 +353,13 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference CHAR =
           explicit(SqlTypeName.CHAR);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is a nullable
+   * CHAR(1).
+   */
+  public static final SqlReturnTypeInference CHAR_FORCE_NULLABLE =
+      CHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is an Integer.
@@ -514,6 +528,12 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference TO_MAP =
       ARG0.andThen(SqlTypeTransforms.TO_MAP);
+
+  /**
+   * Type-inference strategy that always returns GEOMETRY.
+   */
+  public static final SqlReturnTypeInference GEOMETRY =
+      explicit(SqlTypeName.GEOMETRY);
 
   /**
    * Type-inference strategy whereby the result type of a call is
@@ -723,10 +743,12 @@ public abstract class ReturnTypes {
                     argType1.getFullTypeString()));
           }
 
-          pickedCollation = requireNonNull(
-              SqlCollation.getCoercibilityDyadicOperator(
-                  getCollation(argType0), getCollation(argType1)),
-              () -> "getCoercibilityDyadicOperator is null for " + argType0 + " and " + argType1);
+          pickedCollation =
+              requireNonNull(
+                  SqlCollation.getCoercibilityDyadicOperator(
+                      getCollation(argType0), getCollation(argType1)),
+                  () -> "getCoercibilityDyadicOperator is null for " + argType0
+                      + " and " + argType1);
         }
 
         // Determine whether result is variable-length
@@ -766,8 +788,9 @@ public abstract class ReturnTypes {
                   getCharset(pickedType), getCollation(pickedType));
         }
         if (ret.getSqlTypeName() == SqlTypeName.NULL) {
-          ret = typeFactory.createTypeWithNullability(
-              typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
+          ret =
+              typeFactory.createTypeWithNullability(
+                  typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
         }
         return ret;
       };
@@ -988,4 +1011,7 @@ public abstract class ReturnTypes {
       return relDataType;
     }
   };
+
+  public static final SqlReturnTypeInference PERCENTILE_DISC_CONT = opBinding ->
+      opBinding.getCollationType();
 }

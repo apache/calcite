@@ -3,13 +3,13 @@ name: Seed build cache
 on:
   push:
     branches:
-      - master
+      - main
 
 concurrency:
-  # On master/release, we don't want any jobs cancelled so the sha is used to name the group
+  # On main/release, we don't want any jobs cancelled so the sha is used to name the group
   # On PR branches, we cancel the job if new commits are pushed
   # More info: https://stackoverflow.com/a/68422069/253468
-  group: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release' ) && format('ci-buildcache-{0}', github.sha) || format('ci-buildcache-{0}', github.ref) }}
+  group: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release' ) && format('ci-buildcache-{0}', github.sha) || format('ci-buildcache-{0}', github.ref) }}
   cancel-in-progress: true
 
 jobs:
@@ -25,13 +25,14 @@ jobs:
     name: '${{ matrix.os }}, ${{ matrix.jdk }} seed build cache'
     runs-on: ${{ matrix.os }}-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 50
       - name: 'Set up JDK ${{ matrix.jdk }}'
         uses: actions/setup-java@v1
         with:
           java-version: ${{ matrix.jdk }}
+          distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Build Calcite
         env:

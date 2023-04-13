@@ -53,7 +53,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
@@ -254,7 +253,7 @@ public abstract class MutableRels {
     case COLLECT: {
       final MutableCollect collect = (MutableCollect) node;
       final RelNode child = fromMutable(collect.getInput(), relBuilder);
-      return Collect.create(child, SqlTypeName.MULTISET, collect.fieldName);
+      return Collect.create(child, collect.rowType);
     }
     case UNCOLLECT: {
       final MutableUncollect uncollect = (MutableUncollect) node;
@@ -336,8 +335,9 @@ public abstract class MutableRels {
       RelSubset subset = (RelSubset) rel;
       RelNode best = subset.getBest();
       if (best == null) {
-        best = requireNonNull(subset.getOriginal(),
-            () -> "subset.getOriginal() is null for " + subset);
+        best =
+            requireNonNull(subset.getOriginal(),
+                () -> "subset.getOriginal() is null for " + subset);
       }
       return toMutable(best);
     }

@@ -21,6 +21,8 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 
 /**
  * Common base for the <code>CONVERT</code> and <code>TRANSLATE</code>
@@ -33,9 +35,9 @@ public class SqlConvertFunction extends SqlFunction {
     super(
         name,
         SqlKind.OTHER_FUNCTION,
+        ReturnTypes.ARG0,
         null,
-        null,
-        null,
+        OperandTypes.ANY_ANY,
         SqlFunctionCategory.STRING);
   }
 

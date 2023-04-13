@@ -48,6 +48,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -156,12 +157,14 @@ public class RelMdUniqueKeys
       // select id, id, id, unique2, unique2
       // the resulting unique keys would be {{0},{3}}, {{0},{4}}, {{0},{1},{4}}, ...
 
-      Iterable<List<ImmutableBitSet>> product = Linq4j.product(
-          Util.transform(colMask,
-              in -> Util.filter(
-                  requireNonNull(mapInToOutPos.get(in),
-                      () -> "no entry for column " + in + " in mapInToOutPos: " + mapInToOutPos)
-                      .powerSet(), bs -> !bs.isEmpty())));
+      Iterable<List<ImmutableBitSet>> product =
+          Linq4j.product(
+              Util.transform(colMask, in ->
+                  Util.filter(
+                      requireNonNull(mapInToOutPos.get(in),
+                          () -> "no entry for column " + in
+                              + " in mapInToOutPos: " + mapInToOutPos).powerSet(),
+                      bs -> !bs.isEmpty())));
 
       resultBuilder.addAll(Util.transform(product, ImmutableBitSet::union));
     }
@@ -247,7 +250,19 @@ public class RelMdUniqueKeys
 
   public Set<ImmutableBitSet> getUniqueKeys(Aggregate rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
-    if (Aggregate.isSimple(rel) || ignoreNulls) {
+    if (Aggregate.isSimple(rel)) {
+      final ImmutableBitSet groupKeys = rel.getGroupSet();
+      final Set<ImmutableBitSet> inputUniqueKeys = mq
+          .getUniqueKeys(rel.getInput(), ignoreNulls);
+      if (inputUniqueKeys == null) {
+        return ImmutableSet.of(groupKeys);
+      }
+
+      // Try to find more precise unique keys.
+      final Set<ImmutableBitSet> preciseUniqueKeys = inputUniqueKeys.stream()
+          .filter(groupKeys::contains).collect(Collectors.toSet());
+      return preciseUniqueKeys.isEmpty() ? ImmutableSet.of(groupKeys) : preciseUniqueKeys;
+    } else if (ignoreNulls) {
       // group by keys form a unique key
       return ImmutableSet.of(rel.getGroupSet());
     } else {
@@ -309,6 +324,12 @@ public class RelMdUniqueKeys
 
   public @Nullable Set<ImmutableBitSet> getUniqueKeys(TableScan rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
+    final BuiltInMetadata.UniqueKeys.Handler handler =
+        rel.getTable().unwrap(BuiltInMetadata.UniqueKeys.Handler.class);
+    if (handler != null) {
+      return handler.getUniqueKeys(rel, mq, ignoreNulls);
+    }
+
     final List<ImmutableBitSet> keys = rel.getTable().getKeys();
     if (keys == null) {
       return null;

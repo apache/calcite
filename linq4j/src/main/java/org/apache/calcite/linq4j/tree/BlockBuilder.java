@@ -143,10 +143,10 @@ public class BlockBuilder {
           if (declaration.initializer != null && isSafeForReuse(declaration)) {
             x = append(newName, declaration.initializer);
           } else {
-            ParameterExpression pe = Expressions.parameter(
-                declaration.parameter.type, newName);
-            DeclarationStatement newDeclaration = Expressions.declare(
-                declaration.modifiers, pe, declaration.initializer);
+            ParameterExpression pe =
+                Expressions.parameter(declaration.parameter.type, newName);
+            DeclarationStatement newDeclaration =
+                Expressions.declare(declaration.modifiers, pe, declaration.initializer);
             x = pe;
             add(newDeclaration);
           }
@@ -166,15 +166,17 @@ public class BlockBuilder {
           result = ((DeclarationStatement) statement).parameter;
         } else if (statement instanceof GotoStatement) {
           statements.remove(statements.size() - 1);
-          result = append_(name,
-              requireNonNull(((GotoStatement) statement).expression, "expression"),
-              optimize);
+          final GotoStatement gotoStatement = (GotoStatement) statement;
+          result =
+              append_(name,
+                  requireNonNull(gotoStatement.expression, "expression"),
+                  optimize);
           if (isSimpleExpression(result)) {
             // already simple; no need to declare a variable or
             // even to evaluate the expression
           } else {
-            DeclarationStatement declare = Expressions.declare(Modifier.FINAL,
-                newName(name, optimize), result);
+            DeclarationStatement declare =
+                Expressions.declare(Modifier.FINAL, newName(name, optimize), result);
             add(declare);
             result = declare.parameter;
           }
@@ -236,8 +238,8 @@ public class BlockBuilder {
         return decl.parameter;
       }
     }
-    DeclarationStatement declare = Expressions.declare(Modifier.FINAL,
-        newName(name, optimize), expression);
+    DeclarationStatement declare =
+        Expressions.declare(Modifier.FINAL, newName(name, optimize), expression);
     add(declare);
     return declare.parameter;
   }
@@ -367,8 +369,7 @@ public class BlockBuilder {
     }
     final IdentityHashMap<ParameterExpression, Expression> subMap =
         new IdentityHashMap<>(useCounter.map.size());
-    final Shuttle visitor = new InlineVariableVisitor(
-        subMap);
+    final Shuttle visitor = new InlineVariableVisitor(subMap);
     final ArrayList<Statement> oldStatements = new ArrayList<>(statements);
     statements.clear();
 

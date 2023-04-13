@@ -29,6 +29,7 @@ import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.test.SqlTester.ResultChecker;
 import org.apache.calcite.sql.test.SqlTester.TypeChecker;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.ConnectionFactories;
@@ -38,6 +39,7 @@ import org.apache.calcite.util.Bug;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
@@ -561,6 +563,30 @@ public interface SqlOperatorFixture extends AutoCloseable {
                 .with(CalciteConnectionProperty.FUN, library.fun));
   }
 
+  /** Applies this fixture to some code for each of the given libraries. */
+  default void forEachLibrary(Iterable<? extends SqlLibrary> libraries,
+      Consumer<SqlOperatorFixture> consumer) {
+    libraries.forEach(library -> {
+      try {
+        consumer.accept(this.withLibrary(library));
+      } catch (Exception e) {
+        throw new RuntimeException("for library " + library, e);
+      }
+    });
+  }
+
+  /** Applies this fixture to some code for each of the given conformances. */
+  default void forEachConformance(Iterable<? extends SqlConformanceEnum> conformances,
+      Consumer<SqlOperatorFixture> consumer) {
+    conformances.forEach(conformance -> {
+      try {
+        consumer.accept(this.withConformance(conformance));
+      } catch (Exception e) {
+        throw new RuntimeException("for conformance " + conformance, e);
+      }
+    });
+  }
+
   default SqlOperatorFixture forOracle(SqlConformance conformance) {
     return withConformance(conformance)
         .withOperatorTable(
@@ -574,71 +600,78 @@ public interface SqlOperatorFixture extends AutoCloseable {
   default String getCastString(
       String value,
       String targetType,
-      boolean errorLoc) {
+      boolean errorLoc,
+      boolean safe) {
     if (errorLoc) {
       value = "^" + value + "^";
     }
-    return "cast(" + value + " as " + targetType + ")";
+    String function = safe ? "safe_cast" : "cast";
+    return function + "(" + value + " as " + targetType + ")";
   }
 
   default void checkCastToApproxOkay(String value, String targetType,
-      Object expected) {
-    checkScalarApprox(getCastString(value, targetType, false),
-        targetType + NON_NULLABLE_SUFFIX, expected);
+      Object expected, boolean safe) {
+    checkScalarApprox(getCastString(value, targetType, false, safe),
+        getTargetType(targetType, safe), expected);
   }
 
   default void checkCastToStringOkay(String value, String targetType,
-      String expected) {
-    checkString(getCastString(value, targetType, false), expected,
-        targetType + NON_NULLABLE_SUFFIX);
+      String expected, boolean safe) {
+    final String castString = getCastString(value, targetType, false, safe);
+    checkString(castString, expected, getTargetType(targetType, safe));
   }
 
   default void checkCastToScalarOkay(String value, String targetType,
-      String expected) {
-    checkScalarExact(getCastString(value, targetType, false),
-        targetType + NON_NULLABLE_SUFFIX,
-        expected);
+      String expected, boolean safe) {
+    final String castString = getCastString(value, targetType, false, safe);
+    checkScalarExact(castString, getTargetType(targetType, safe), expected);
   }
 
-  default void checkCastToScalarOkay(String value, String targetType) {
-    checkCastToScalarOkay(value, targetType, value);
+  default String getTargetType(String targetType, boolean safe) {
+    return safe ? targetType : targetType + NON_NULLABLE_SUFFIX;
+  }
+
+  default void checkCastToScalarOkay(String value, String targetType,
+      boolean safe) {
+    checkCastToScalarOkay(value, targetType, value, safe);
   }
 
   default void checkCastFails(String value, String targetType,
-      String expectedError, boolean runtime) {
-    checkFails(getCastString(value, targetType, !runtime), expectedError,
-        runtime);
+      String expectedError, boolean runtime, boolean safe) {
+    final String castString = getCastString(value, targetType, !runtime, safe);
+    checkFails(castString, expectedError, runtime);
   }
 
-  default void checkCastToString(String value, String type,
-      @Nullable String expected) {
+  default void checkCastToString(String value, @Nullable String type,
+      @Nullable String expected, boolean safe) {
     String spaces = "     ";
     if (expected == null) {
       expected = value.trim();
     }
     int len = expected.length();
     if (type != null) {
-      value = getCastString(value, type, false);
+      value = getCastString(value, type, false, safe);
     }
 
     // currently no exception thrown for truncation
     if (Bug.DT239_FIXED) {
       checkCastFails(value,
           "VARCHAR(" + (len - 1) + ")", STRING_TRUNC_MESSAGE,
-          true);
+          true, safe);
     }
 
-    checkCastToStringOkay(value, "VARCHAR(" + len + ")", expected);
-    checkCastToStringOkay(value, "VARCHAR(" + (len + 5) + ")", expected);
+    checkCastToStringOkay(value, "VARCHAR(" + len + ")", expected, safe);
+    checkCastToStringOkay(value, "VARCHAR(" + (len + 5) + ")", expected, safe);
 
     // currently no exception thrown for truncation
     if (Bug.DT239_FIXED) {
       checkCastFails(value,
           "CHAR(" + (len - 1) + ")", STRING_TRUNC_MESSAGE,
-          true);
+          true, safe);
     }
 
-    checkCastToStringOkay(value, "CHAR(" + len + ")", expected);
-    checkCastToStringOkay(value, "CHAR(" + (len + 5) + ")", expected + spaces);
+    checkCastToStringOkay(value, "CHAR(" + len + ")", expected, safe);
+    checkCastToStringOkay(value, "CHAR(" + (len + 5) + ")",
+        expected + spaces, safe);
   }
 }

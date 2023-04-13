@@ -44,10 +44,6 @@ import static java.util.Objects.requireNonNull;
 public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean isOptional(int i) {
-    return false;
-  }
-
   @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
@@ -121,10 +117,9 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
             TypeCoercion typeCoercion = validator.getTypeCoercion();
             RelDataType widenType = typeCoercion.getWiderTypeFor(columnIthTypes, true);
             if (null != widenType) {
-              coerced = typeCoercion.rowTypeCoercion(
-                  callBinding.getScope(),
-                  callBinding.operand(j), i, widenType)
-                  || coerced;
+              coerced =
+                  typeCoercion.rowTypeCoercion(callBinding.getScope(),
+                      callBinding.operand(j), i, widenType) || coerced;
             }
           }
         }
@@ -151,9 +146,5 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
 
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return "{0} " + opName + " {1}";
-  }
-
-  @Override public Consistency getConsistency() {
-    return Consistency.NONE;
   }
 }

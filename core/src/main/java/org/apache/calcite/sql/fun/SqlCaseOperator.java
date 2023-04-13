@@ -252,8 +252,9 @@ public class SqlCaseOperator extends SqlOperator {
       }
     }
 
-    SqlNode elseOp = requireNonNull(caseCall.getElseOperand(),
-        () -> "elseOperand for " + caseCall);
+    SqlNode elseOp =
+        requireNonNull(caseCall.getElseOperand(),
+            () -> "elseOperand for " + caseCall);
     argTypes.add(
         SqlTypeUtil.deriveType(callBinding, elseOp));
     if (SqlUtil.isNullLiteral(elseOp, false)) {

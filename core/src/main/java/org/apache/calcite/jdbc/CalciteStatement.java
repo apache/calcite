@@ -68,7 +68,7 @@ public abstract class CalciteStatement extends AvaticaStatement {
   protected <T> CalcitePrepare.CalciteSignature<T> prepare(
       Queryable<T> queryable) {
     final CalciteConnectionImpl calciteConnection = getConnection();
-    final CalcitePrepare prepare = calciteConnection.prepareFactory.apply();
+    final CalcitePrepare prepare = calciteConnection.prepareFactory.get();
     final CalciteServerStatement serverStatement;
     try {
       serverStatement = calciteConnection.server.getStatement(handle);

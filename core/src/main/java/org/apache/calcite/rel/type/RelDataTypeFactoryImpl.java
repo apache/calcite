@@ -251,9 +251,9 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       // first type?
       final int k = j;
 
-      RelDataType type = leastRestrictive(
-          Util.transform(types, t -> t.getFieldList().get(k).getType())
-      );
+      RelDataType type =
+          leastRestrictive(
+              Util.transform(types, t -> t.getFieldList().get(k).getType()));
       if (type == null) {
         return null;
       }
@@ -274,11 +274,12 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       }
       isNullable |= type.isNullable();
     }
-    final RelDataType type = leastRestrictive(
-        Util.transform(types,
-            t -> t instanceof ArraySqlType
-                ? ((ArraySqlType) t).getComponentType()
-                : ((MultisetSqlType) t).getComponentType()));
+    final RelDataType type =
+        leastRestrictive(
+            Util.transform(types,
+                t -> t instanceof ArraySqlType
+                    ? ((ArraySqlType) t).getComponentType()
+                    : ((MultisetSqlType) t).getComponentType()));
     if (type == null) {
       return null;
     }
@@ -297,13 +298,15 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       }
       isNullable |= type.isNullable();
     }
-    final RelDataType keyType = leastRestrictive(
-        Util.transform(types, t -> ((MapSqlType) t).getKeyType()));
+    final RelDataType keyType =
+        leastRestrictive(
+            Util.transform(types, t -> ((MapSqlType) t).getKeyType()));
     if (keyType == null) {
       return null;
     }
-    final RelDataType valueType = leastRestrictive(
-        Util.transform(types, t -> ((MapSqlType) t).getValueType()));
+    final RelDataType valueType =
+        leastRestrictive(
+            Util.transform(types, t -> ((MapSqlType) t).getValueType()));
     if (valueType == null) {
       return null;
     }
@@ -418,8 +421,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       final List<String> names,
       final List<RelDataType> types,
       final boolean nullable) {
-    final RelDataType type = KEY2TYPE_CACHE.getIfPresent(
-        new Key(kind, names, types, nullable));
+    final RelDataType type =
+        KEY2TYPE_CACHE.getIfPresent(new Key(kind, names, types, nullable));
     if (type != null) {
       return type;
     }
@@ -449,11 +452,11 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * Returns a list of all atomic types in a list.
    */
   private static void getTypeList(
-      ImmutableList<RelDataType> inTypes,
+      List<RelDataType> inTypes,
       List<RelDataType> flatTypes) {
     for (RelDataType inType : inTypes) {
       if (inType instanceof RelCrossType) {
-        getTypeList(((RelCrossType) inType).types, flatTypes);
+        getTypeList(((RelCrossType) inType).getTypes(), flatTypes);
       } else {
         flatTypes.add(inType);
       }
@@ -470,15 +473,16 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       List<RelDataTypeField> fieldList) {
     if (type instanceof RelCrossType) {
       final RelCrossType crossType = (RelCrossType) type;
-      for (RelDataType type1 : crossType.types) {
+      for (RelDataType type1 : crossType.getTypes()) {
         addFields(type1, fieldList);
       }
     } else {
       List<RelDataTypeField> fields = type.getFieldList();
       for (RelDataTypeField field : fields) {
         if (field.getIndex() != fieldList.size()) {
-          field = new RelDataTypeFieldImpl(field.getName(), fieldList.size(),
-              field.getType());
+          field =
+              new RelDataTypeFieldImpl(field.getName(), fieldList.size(),
+                  field.getType());
         }
         fieldList.add(field);
       }

@@ -82,11 +82,8 @@ class SourceTest {
         arguments("abc def.txt", "file:abc%20def.txt"),
         arguments("abc+def.txt", "file:abc+def.txt"),
         arguments("path 1/ subfolder 2/abc.t x t", "file:path%201/%20subfolder%202/abc.t%20x%20t"),
-        arguments(
-            "маленькой ёлочке холодно зимой.txt",
-            "file:маленькой%20ёлочке%20холодно%20зимой.txt"
-        )
-    );
+        arguments("маленькой ёлочке холодно зимой.txt",
+            "file:маленькой%20ёлочке%20холодно%20зимой.txt"));
   }
 
   private static String slashify(String path) {

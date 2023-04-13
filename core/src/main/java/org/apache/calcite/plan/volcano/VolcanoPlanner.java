@@ -1173,8 +1173,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Was the set we merged with the root? If so, the result is the new
     // root.
     if (set2 == getSet(root)) {
-      root = set1.getOrCreateSubset(
-          root.getCluster(), root.getTraitSet(), root.isRequired());
+      root =
+          set1.getOrCreateSubset(root.getCluster(), root.getTraitSet(),
+              root.isRequired());
       ensureRootConverters();
     }
 
@@ -1346,12 +1347,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Place the expression in the appropriate equivalence set.
     if (set == null) {
-      set = new RelSet(
-          nextSetId++,
-          Util.minus(
-              RelOptUtil.getVariablesSet(rel),
-              rel.getVariablesSet()),
-          RelOptUtil.getVariablesUsed(rel));
+      set =
+          new RelSet(nextSetId++,
+              Util.minus(RelOptUtil.getVariablesSet(rel),
+                  rel.getVariablesSet()),
+              RelOptUtil.getVariablesUsed(rel));
       this.allSets.add(set);
     }
 

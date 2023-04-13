@@ -133,8 +133,8 @@ public interface RexImplicationCheckerFixtures {
           .add("string", stringDataType)
           .build();
 
-      executor = Frameworks.withPrepare(
-          (cluster, relOptSchema, rootSchema, statement) ->
+      executor =
+          Frameworks.withPrepare((cluster, relOptSchema, rootSchema, statement) ->
               new RexExecutorImpl(
                   DataContexts.of(statement.getConnection(), rootSchema)));
       simplify =
@@ -230,7 +230,7 @@ public interface RexImplicationCheckerFixtures {
     }
 
     public RexNode cast(RelDataType type, RexNode exp) {
-      return rexBuilder.makeCast(type, exp, true);
+      return rexBuilder.makeCast(type, exp, true, false);
     }
 
     void checkImplies(RexNode node1, RexNode node2) {

@@ -76,10 +76,11 @@ public class SqlSelectOperator extends SqlOperator {
         (SqlNodeList) operands[4],
         operands[5],
         (SqlNodeList) operands[6],
-        (SqlNodeList) operands[7],
-        operands[8],
+        operands[7],
+        (SqlNodeList) operands[8],
         operands[9],
-        (SqlNodeList) operands[10]);
+        operands[10],
+        (SqlNodeList) operands[11]);
   }
 
   /**
@@ -96,6 +97,7 @@ public class SqlSelectOperator extends SqlOperator {
       SqlNodeList groupBy,
       SqlNode having,
       SqlNodeList windowDecls,
+      SqlNode qualify,
       SqlNodeList orderBy,
       SqlNode offset,
       SqlNode fetch,
@@ -110,6 +112,7 @@ public class SqlSelectOperator extends SqlOperator {
         groupBy,
         having,
         windowDecls,
+        qualify,
         orderBy,
         offset,
         fetch,
@@ -165,8 +168,8 @@ public class SqlSelectOperator extends SqlOperator {
           writer.startList(SqlWriter.FrameTypeEnum.FROM_LIST);
       select.from.unparse(
           writer,
-          SqlJoin.OPERATOR.getLeftPrec() - 1,
-          SqlJoin.OPERATOR.getRightPrec() - 1);
+          SqlJoin.COMMA_OPERATOR.getLeftPrec() - 1,
+          SqlJoin.COMMA_OPERATOR.getRightPrec() - 1);
       writer.endList(fromFrame);
     }
 
@@ -202,10 +205,18 @@ public class SqlSelectOperator extends SqlOperator {
       }
     }
     if (select.groupBy != null) {
-      writer.sep("GROUP BY");
-      final SqlNodeList groupBy =
+      SqlNodeList groupBy =
           select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY
               : select.groupBy;
+      // if the DISTINCT keyword of GROUP BY is present it can be the only item
+      if (groupBy.size() == 1 && groupBy.get(0) != null
+          && groupBy.get(0).getKind() == SqlKind.GROUP_BY_DISTINCT) {
+        writer.sep("GROUP BY DISTINCT");
+        List<SqlNode> operandList = ((SqlCall) groupBy.get(0)).getOperandList();
+        groupBy = new SqlNodeList(operandList, groupBy.getParserPosition());
+      } else {
+        writer.sep("GROUP BY");
+      }
       writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA,
           groupBy);
     }
@@ -217,6 +228,10 @@ public class SqlSelectOperator extends SqlOperator {
       writer.sep("WINDOW");
       writer.list(SqlWriter.FrameTypeEnum.WINDOW_DECL_LIST, SqlWriter.COMMA,
           select.windowDecls);
+    }
+    if (select.qualify != null) {
+      writer.sep("QUALIFY");
+      select.qualify.unparse(writer, 0, 0);
     }
     if (select.orderBy != null && select.orderBy.size() > 0) {
       writer.sep("ORDER BY");

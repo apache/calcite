@@ -77,8 +77,8 @@ public class SortJoinTransposeRule
     final Sort sort = call.rel(0);
     final Join join = call.rel(1);
     final RelMetadataQuery mq = call.getMetadataQuery();
-    final JoinInfo joinInfo = JoinInfo.of(
-        join.getLeft(), join.getRight(), join.getCondition());
+    final JoinInfo joinInfo =
+        JoinInfo.of(join.getLeft(), join.getRight(), join.getCondition());
 
     // 1) If join is not a left or right outer, we bail out
     // 2) If sort is not a trivial order-by, and if there is
@@ -139,8 +139,9 @@ public class SortJoinTransposeRule
           sort.getCollation(), sort.offset, sort.fetch)) {
         return;
       }
-      newLeftInput = sort.copy(sort.getTraitSet(), join.getLeft(), sort.getCollation(),
-          sort.offset, sort.fetch);
+      newLeftInput =
+          sort.copy(sort.getTraitSet(), join.getLeft(), sort.getCollation(),
+              sort.offset, sort.fetch);
       newRightInput = join.getRight();
     } else {
       final RelCollation rightCollation =
@@ -154,14 +155,17 @@ public class SortJoinTransposeRule
         return;
       }
       newLeftInput = join.getLeft();
-      newRightInput = sort.copy(sort.getTraitSet().replace(rightCollation),
-          join.getRight(), rightCollation, sort.offset, sort.fetch);
+      newRightInput =
+          sort.copy(sort.getTraitSet().replace(rightCollation),
+              join.getRight(), rightCollation, sort.offset, sort.fetch);
     }
     // We copy the join and the top sort operator
-    final RelNode joinCopy = join.copy(join.getTraitSet(), join.getCondition(), newLeftInput,
-        newRightInput, join.getJoinType(), join.isSemiJoinDone());
-    final RelNode sortCopy = sort.copy(sort.getTraitSet(), joinCopy, sort.getCollation(),
-        sort.offset, sort.fetch);
+    final RelNode joinCopy =
+        join.copy(join.getTraitSet(), join.getCondition(), newLeftInput,
+            newRightInput, join.getJoinType(), join.isSemiJoinDone());
+    final RelNode sortCopy =
+        sort.copy(sort.getTraitSet(), joinCopy, sort.getCollation(),
+            sort.offset, sort.fetch);
 
     call.transformTo(sortCopy);
   }

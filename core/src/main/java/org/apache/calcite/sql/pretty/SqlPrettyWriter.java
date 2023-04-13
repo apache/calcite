@@ -396,8 +396,9 @@ public class SqlPrettyWriter implements SqlWriter {
 
   @Override public boolean inQuery() {
     return (frame == null)
+        || (frame.frameType == FrameTypeEnum.SELECT)
         || (frame.frameType == FrameTypeEnum.ORDER_BY)
-        || (frame.frameType == FrameTypeEnum.WITH)
+        || (frame.frameType == FrameTypeEnum.WITH_BODY)
         || (frame.frameType == FrameTypeEnum.SETOP);
   }
 
@@ -1387,7 +1388,7 @@ public class SqlPrettyWriter implements SqlWriter {
       for (Method method : o.getClass().getMethods()) {
         if (method.getName().startsWith("set")
             && (method.getReturnType() == Void.class)
-            && (method.getParameterTypes().length == 1)) {
+            && (method.getParameterCount() == 1)) {
           String attributeName =
               stripPrefix(
                   method.getName(),
@@ -1396,7 +1397,7 @@ public class SqlPrettyWriter implements SqlWriter {
         }
         if (method.getName().startsWith("get")
             && (method.getReturnType() != Void.class)
-            && (method.getParameterTypes().length == 0)) {
+            && (method.getParameterCount() == 0)) {
           String attributeName =
               stripPrefix(
                   method.getName(),
@@ -1405,7 +1406,7 @@ public class SqlPrettyWriter implements SqlWriter {
         }
         if (method.getName().startsWith("is")
             && (method.getReturnType() == Boolean.class)
-            && (method.getParameterTypes().length == 0)) {
+            && (method.getParameterCount() == 0)) {
           String attributeName =
               stripPrefix(
                   method.getName(),
@@ -1421,10 +1422,9 @@ public class SqlPrettyWriter implements SqlWriter {
     }
 
     public void set(String name, String value) {
-      final Method method = requireNonNull(
-          setterMethods.get(name),
-          () -> "setter method " + name + " not found"
-      );
+      final Method method =
+          requireNonNull(setterMethods.get(name),
+              () -> "setter method " + name + " not found");
       try {
         method.invoke(o, value);
       } catch (IllegalAccessException | InvocationTargetException e) {
@@ -1433,10 +1433,9 @@ public class SqlPrettyWriter implements SqlWriter {
     }
 
     public @Nullable Object get(String name) {
-      final Method method = requireNonNull(
-          getterMethods.get(name),
-          () -> "getter method " + name + " not found"
-      );
+      final Method method =
+          requireNonNull(getterMethods.get(name),
+              () -> "getter method " + name + " not found");
       try {
         return method.invoke(o);
       } catch (IllegalAccessException | InvocationTargetException e) {

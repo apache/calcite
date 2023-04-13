@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.sql.fun.SqlLibrary;
 
 /**
@@ -155,6 +156,7 @@ public interface SqlConformance {
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#DEFAULT},
    * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#BIG_QUERY},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#ORACLE_10},
@@ -402,6 +404,24 @@ public interface SqlConformance {
   boolean isLimitStartCountAllowed();
 
   /**
+   * Whether to allow the SQL syntax "{@code OFFSET start LIMIT count}"
+   * (that is, {@code OFFSET} before {@code LIMIT},
+   * in addition to {@code LIMIT} before {@code OFFSET}
+   * and {@code OFFSET} before {@code FETCH}).
+   *
+   * <p>The equivalent syntax in standard SQL is
+   * "{@code OFFSET start ROW FETCH FIRST count ROWS ONLY}".
+   *
+   * <p>Trino allows this behavior.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean isOffsetLimitAllowed();
+
+  /**
    * Whether to allow geo-spatial extensions, including the GEOMETRY type.
    *
    * <p>Among the built-in conformance levels, true in
@@ -505,6 +525,18 @@ public interface SqlConformance {
   boolean allowQualifyingCommonColumn();
 
   /**
+   * Whether {@code VALUE} is allowed as an alternative to {@code VALUES} in
+   * the parser.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5};
+   * false otherwise.
+   */
+  boolean isValueAllowed();
+
+  /**
    * Controls the behavior of operators that are part of Standard SQL but
    * nevertheless have different behavior in different databases.
    *
@@ -529,4 +561,19 @@ public interface SqlConformance {
    * </ul>
    */
   SqlLibrary semantics();
+
+  /**
+   * Whether to allow coercion string literal to array literal
+   *
+   * <p>For example,
+   *
+   * <blockquote><pre>SELECT ARRAY[0,1,2] == '{0,1,2}'
+   * </pre></blockquote>
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * false otherwise.
+   */
+  @Experimental
+  boolean allowCoercionStringToArray();
 }

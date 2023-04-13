@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
 
@@ -39,9 +38,9 @@ class SchemaNamespace extends AbstractNamespace {
   private final ImmutableList<String> names;
 
   /** Creates a SchemaNamespace. */
-  SchemaNamespace(SqlValidatorImpl validator, ImmutableList<String> names) {
+  SchemaNamespace(SqlValidatorImpl validator, List<String> names) {
     super(validator, null);
-    this.names = Objects.requireNonNull(names, "names");
+    this.names = ImmutableList.copyOf(names);
   }
 
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {
@@ -50,9 +49,9 @@ class SchemaNamespace extends AbstractNamespace {
     for (SqlMoniker moniker
         : validator.catalogReader.getAllSchemaObjectNames(names)) {
       final List<String> names1 = moniker.getFullyQualifiedNames();
-      final SqlValidatorTable table = requireNonNull(
-          validator.catalogReader.getTable(names1),
-          () -> "table " + names1 + " is not found in scope " + names);
+      final SqlValidatorTable table =
+          requireNonNull(validator.catalogReader.getTable(names1),
+              () -> "table " + names1 + " is not found in scope " + names);
       builder.add(Util.last(names1), table.getRowType());
     }
     return builder.build();

@@ -175,6 +175,17 @@ public abstract class SqlTypeTransforms {
           opBinding.getTypeFactory().createMultisetType(typeToTransform, -1);
 
   /**
+   * Parameter type-inference transform strategy that wraps a given type in a multiset or
+   * wraps a field of the given type in a multiset if the given type is struct with one field.
+   * It is used when a multiset input is a sub-query.
+   */
+  public static final SqlTypeTransform TO_MULTISET_QUERY =
+      (opBinding, typeToTransform) ->
+          TO_MULTISET.transformType(opBinding,
+              SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.MULTISET,
+                  typeToTransform));
+
+  /**
    * Parameter type-inference transform strategy that wraps a given type
    * in a array.
    *
@@ -183,6 +194,28 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform TO_ARRAY =
       (opBinding, typeToTransform) ->
           opBinding.getTypeFactory().createArrayType(typeToTransform, -1);
+
+  /** Parameter type-inference transform that transforms {@code T} to
+   * {@code MEASURE<T>} for some type T. */
+  public static final SqlTypeTransform TO_MEASURE =
+      (opBinding, typeToTransform) ->
+          opBinding.getTypeFactory().createMeasureType(typeToTransform);
+
+  /** Parameter type-inference transform that transforms {@code MEASURE<T>} to
+   * {@code T} for some type T. Inverse of {@link #TO_MEASURE}. */
+  public static final SqlTypeTransform FROM_MEASURE =
+      (opBinding, typeToTransform) ->
+          ((MeasureSqlType) typeToTransform).types.get(0);
+
+  /**
+   * Parameter type-inference transform strategy that wraps a given type in an array or
+   * wraps a field of the given type in an array if the given type is struct with one field.
+   * It is used when an array input is a sub-query.
+   */
+  public static final SqlTypeTransform TO_ARRAY_QUERY =
+      (opBinding, typeToTransform) ->
+        TO_ARRAY.transformType(opBinding,
+            SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.ARRAY, typeToTransform));
 
   /**
    * Parameter type-inference transform strategy that converts a two-field
@@ -206,4 +239,5 @@ public abstract class SqlTypeTransforms {
         assert fields.size() == 1;
         return fields.get(0).getType();
       };
+
 }

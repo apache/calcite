@@ -83,8 +83,14 @@ parser: {
     "CURSOR_NAME"
     "DATA"
     "DATABASE"
+    "DATE_DIFF"
+    "DATE_TRUNC"
+    "DATETIME_DIFF"
     "DATETIME_INTERVAL_CODE"
     "DATETIME_INTERVAL_PRECISION"
+    "DATETIME_TRUNC"
+    "DAYOFWEEK"
+    "DAYOFYEAR"
     "DAYS"
     "DECADE"
     "DEFAULTS"
@@ -213,6 +219,7 @@ parser: {
     "PRIVILEGES"
     "PUBLIC"
     "QUARTER"
+    "QUARTERS"
     "READ"
     "RELATIVE"
     "REPEATABLE"
@@ -314,8 +321,12 @@ parser: {
     "TABLE_NAME"
     "TEMPORARY"
     "TIES"
+    "TIME_DIFF"
+    "TIME_TRUNC"
     "TIMESTAMPADD"
     "TIMESTAMPDIFF"
+    "TIMESTAMP_DIFF"
+    "TIMESTAMP_TRUNC"
     "TOP_LEVEL_COUNT"
     "TRANSACTION"
     "TRANSACTIONS_ACTIVE"
@@ -345,6 +356,7 @@ parser: {
     "VERSION"
     "VIEW"
     "WEEK"
+    "WEEKS"
     "WORK"
     "WRAPPER"
     "WRITE"
@@ -388,7 +400,7 @@ parser: {
 
   # List of methods for parsing builtin function calls.
   # Return type of method implementation should be "SqlNode".
-  # Example: "DateFunctionCall()".
+  # Example: "DateTimeConstructorCall()".
   builtinFunctionCallMethods: [
   ]
 
@@ -432,4 +444,5 @@ parser: {
   includeCompoundIdentifier: true
   includeBraces: true
   includeAdditionalDeclarations: false
+  includeParsingStringLiteralAsArrayLiteral: false
 }

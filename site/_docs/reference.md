@@ -38,6 +38,7 @@ here to appease testAllFunctionsAreDocumented:
 | JSON_OBJECTAGG_NULL_ON_NULL() | Covered by JSON_OBJECTAGG
 | JSON_VALUE_ANY() | Covered by JSON_VALUE
 | LAST()         | TODO: document with MATCH_RECOGNIZE
+| MATCH_NUMBER() | Documented with MATCH_RECOGNIZE
 | NEW            | TODO: document
 | NEXT()         | Documented with MATCH_RECOGNIZE
 | OVERLAPS       | Documented as a period operator
@@ -49,6 +50,12 @@ here to appease testAllFunctionsAreDocumented:
 | SUCCEEDS       | Documented as a period operator
 | TABLE          | Documented as part of FROM syntax
 | VARIANCE()     | In SqlStdOperatorTable, but not fully implemented
+
+Dialect-specific:
+
+| C | Function       | Reason not documented
+|:--|:-------------- |:---------------------
+
 {% endcomment %}
 -->
 
@@ -186,7 +193,7 @@ query:
       |   query INTERSECT [ ALL | DISTINCT ] query
       }
       [ ORDER BY orderItem [, orderItem ]* ]
-      [ LIMIT [ start, ] { count | ALL } ]
+      [ LIMIT { [ start, ] count | ALL } ]
       [ OFFSET start { ROW | ROWS } ]
       [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]
 
@@ -203,9 +210,10 @@ select:
           { * | projectItem [, projectItem ]* }
       FROM tableExpression
       [ WHERE booleanExpression ]
-      [ GROUP BY { groupItem [, groupItem ]* } ]
+      [ GROUP BY [ ALL | DISTINCT ] { groupItem [, groupItem ]* } ]
       [ HAVING booleanExpression ]
       [ WINDOW windowName AS windowSpec [, windowName AS windowSpec ]* ]
+      [ QUALIFY booleanExpression ]
 
 selectWithoutFrom:
       SELECT [ ALL | DISTINCT ]
@@ -304,7 +312,7 @@ unpivotValue:
   |   '(' column [, column ]* ')' [ AS '(' literal [, literal ]* ')' ]
 
 values:
-      VALUES expression [, expression ]*
+      { VALUES | VALUE } expression [, expression ]*
 
 groupItem:
       expression
@@ -370,6 +378,11 @@ function).
 An IN, EXISTS, UNIQUE or scalar sub-query may be correlated; that is, it
 may refer to tables in the FROM clause of an enclosing query.
 
+GROUP BY DISTINCT removes duplicate grouping sets (for example,
+"GROUP BY DISTINCT GROUPING SETS ((a), (a, b), (a))" is equivalent to
+"GROUP BY GROUPING SETS ((a), (a, b))");
+GROUP BY ALL is equivalent to GROUP BY.
+
 *selectWithoutFrom* is equivalent to VALUES,
 but is not standard SQL and is only allowed in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isFromRequired--).
@@ -384,6 +397,13 @@ CROSS APPLY and OUTER APPLY are only allowed in certain
 "LIMIT start, count" is equivalent to "LIMIT count OFFSET start"
 but is only allowed in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isLimitStartCountAllowed--).
+
+"OFFSET start" may occur before "LIMIT count" in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isOffsetLimitAllowed--).
+
+VALUE is equivalent to VALUES,
+but is not standard SQL and is only allowed in certain
+[conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isValueAllowed--).
 
 ## Keywords
 
@@ -523,9 +543,16 @@ CURSOR_NAME,
 DATA,
 DATABASE,
 **DATE**,
+**DATETIME**,
+DATETIME_DIFF,
 DATETIME_INTERVAL_CODE,
 DATETIME_INTERVAL_PRECISION,
+DATETIME_TRUNC,
+DATE_DIFF,
+DATE_TRUNC,
 **DAY**,
+DAYOFWEEK,
+DAYOFYEAR,
 DAYS,
 **DEALLOCATE**,
 **DEC**,
@@ -607,6 +634,7 @@ FOUND,
 FRAC_SECOND,
 **FRAME_ROW**,
 **FREE**,
+**FRIDAY**,
 **FROM**,
 **FULL**,
 **FUNCTION**,
@@ -726,6 +754,7 @@ MINVALUE,
 **MOD**,
 **MODIFIES**,
 **MODULE**,
+**MONDAY**,
 **MONTH**,
 MONTHS,
 MORE,
@@ -822,7 +851,9 @@ PRIOR,
 PRIVILEGES,
 **PROCEDURE**,
 PUBLIC,
+**QUALIFY**,
 QUARTER,
+QUARTERS,
 **RANGE**,
 **RANK**,
 READ,
@@ -872,6 +903,8 @@ ROUTINE_SCHEMA,
 ROW_COUNT,
 **ROW_NUMBER**,
 **RUNNING**,
+**SAFE_CAST**,
+**SATURDAY**,
 **SAVEPOINT**,
 SCALAR,
 SCALE,
@@ -984,6 +1017,7 @@ SUBSTITUTE,
 **SUBSTRING_REGEX**,
 **SUCCEEDS**,
 **SUM**,
+**SUNDAY**,
 **SYMMETRIC**,
 **SYSTEM**,
 **SYSTEM_TIME**,
@@ -993,13 +1027,18 @@ SUBSTITUTE,
 TABLE_NAME,
 TEMPORARY,
 **THEN**,
+**THURSDAY**,
 TIES,
 **TIME**,
 **TIMESTAMP**,
 TIMESTAMPADD,
 TIMESTAMPDIFF,
+TIMESTAMP_DIFF,
+TIMESTAMP_TRUNC,
 **TIMEZONE_HOUR**,
 **TIMEZONE_MINUTE**,
+TIME_DIFF,
+TIME_TRUNC,
 **TINYINT**,
 **TO**,
 TOP_LEVEL_COUNT,
@@ -1022,6 +1061,7 @@ TRIGGER_SCHEMA,
 **TRIM_ARRAY**,
 **TRUE**,
 **TRUNCATE**,
+**TUESDAY**,
 TUMBLE,
 TYPE,
 **UESCAPE**,
@@ -1059,7 +1099,9 @@ UTF8,
 VERSION,
 **VERSIONING**,
 VIEW,
+**WEDNESDAY**,
 WEEK,
+WEEKS,
 **WHEN**,
 **WHENEVER**,
 **WHERE**,
@@ -1113,7 +1155,7 @@ name will have been converted to upper case also.
 | NUMERIC     | Fixed point               |
 | REAL, FLOAT | 4 byte floating point     | 6 decimal digits precision
 | DOUBLE      | 8 byte floating point     | 15 decimal digits precision
-| CHAR(n), CHARACTER(n) | Fixed-width character string | 'Hello', '' (empty string), _latin1'Hello', n'Hello', _UTF16'Hello', 'Hello' 'there' (literal split into multiple parts)
+| CHAR(n), CHARACTER(n) | Fixed-width character string | 'Hello', '' (empty string), _latin1'Hello', n'Hello', _UTF16'Hello', 'Hello' 'there' (literal split into multiple parts), e'Hello\nthere' (literal containing C-style escapes)
 | VARCHAR(n), CHARACTER VARYING(n) | Variable-length character string | As CHAR(n)
 | BINARY(n)   | Fixed-width binary string | x'45F0AB', x'' (empty binary string), x'AB' 'CD' (multi-part binary string literal)
 | VARBINARY(n), BINARY VARYING(n) | Variable-length binary string | As BINARY(n)
@@ -1142,9 +1184,9 @@ Note:
 * GEOMETRY is allowed only in certain
   [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowGeometry--).
 * Interval literals may only use time units
-  YEAR, MONTH, DAY, HOUR, MINUTE and SECOND. In certain
+  YEAR, QUARTER, MONTH, WEEK, DAY, HOUR, MINUTE and SECOND. In certain
   [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowPluralTimeUnits--),
-  we also allow their plurals, YEARS, MONTHS, DAYS, HOURS, MINUTES and SECONDS.
+  we also allow their plurals, YEARS, QUARTERS, MONTHS, WEEKS, DAYS, HOURS, MINUTES and SECONDS.
 
 ### Non-scalar types
 
@@ -1173,11 +1215,11 @@ or binary strings encoded as
 Where you would use a literal, apply the `ST_GeomFromText` function,
 for example `ST_GeomFromText('POINT (30 10)')`.
 
-| Data type   | Type code | Examples in WKT
-|:----------- |:--------- |:---------------------
+| Data type          | Type code | Examples in WKT
+|:-------------------|:--------- |:---------------------
 | GEOMETRY           |  0 | generalization of Point, Curve, Surface, GEOMETRYCOLLECTION
 | POINT              |  1 | <code>ST_GeomFromText(&#8203;'POINT (30 10)')</code> is a point in 2D space; <code>ST_GeomFromText(&#8203;'POINT Z(30 10 2)')</code> is point in 3D space
-| CURVE            | 13 | generalization of LINESTRING
+| CURVE              | 13 | generalization of LINESTRING
 | LINESTRING         |  2 | <code>ST_GeomFromText(&#8203;'LINESTRING (30 10, 10 30, 40 40)')</code>
 | SURFACE            | 14 | generalization of Polygon, PolyhedralSurface
 | POLYGON            |  3 | <code>ST_GeomFromText(&#8203;'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')</code> is a pentagon; <code>ST_GeomFromText(&#8203;'POLYGON ((35 10, 45 45, 15 40, 10 20, 35 10), (20 30, 35 35, 30 20, 20 30))')</code> is a pentagon with a quadrilateral hole
@@ -1219,7 +1261,7 @@ completeness.
 |:------------------------------------------------- |:-----------
 | value1 = value2                                   | Equals
 | value1 <> value2                                  | Not equal
-| value1 != value2                                  | Not equal (only available at some conformance levels)
+| value1 != value2                                  | Not equal (only in certain [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isBangEqualAllowed--))
 | value1 > value2                                   | Greater than
 | value1 >= value2                                  | Greater than or equal
 | value1 < value2                                   | Less than
@@ -1239,9 +1281,9 @@ completeness.
 | value NOT IN (value [, value]*)                   | Whether *value* is not equal to every value in a list
 | value IN (sub-query)                              | Whether *value* is equal to a row returned by *sub-query*
 | value NOT IN (sub-query)                          | Whether *value* is not equal to every row returned by *sub-query*
-| value comparison SOME (sub-query)                 | Whether *value* *comparison* at least one row returned by *sub-query*
-| value comparison ANY (sub-query)                  | Synonym for `SOME`
-| value comparison ALL (sub-query)                  | Whether *value* *comparison* every row returned by *sub-query*
+| value comparison SOME (sub-query or collection)   | Whether *value* *comparison* at least one row returned by *sub-query* or *collection*
+| value comparison ANY (sub-query or collection)    | Synonym for `SOME`
+| value comparison ALL (sub-query or collection)    | Whether *value* *comparison* every row returned by *sub-query* or *collection*
 | EXISTS (sub-query)                                | Whether *sub-query* returns at least one row
 | UNIQUE (sub-query)                                | Whether the rows returned by *sub-query* are unique (ignoring null values)
 
@@ -1317,8 +1359,8 @@ comp:
 | CHARACTER_LENGTH(string)   | As CHAR_LENGTH(*string*)
 | UPPER(string)              | Returns a character string converted to upper case
 | LOWER(string)              | Returns a character string converted to lower case
-| POSITION(string1 IN string2) | Returns the position of the first occurrence of *string1* in *string2*
-| POSITION(string1 IN string2 FROM integer) | Returns the position of the first occurrence of *string1* in *string2* starting at a given point (not standard SQL)
+| POSITION(substring IN string) | Returns the position of the first occurrence of *substring* in *string*
+| POSITION(substring IN string FROM integer) | Returns the position of the first occurrence of *substring* in *string* starting at a given point (not standard SQL)
 | TRIM( { BOTH &#124; LEADING &#124; TRAILING } string1 FROM string2) | Removes the longest string containing only the characters in *string1* from the start/end/both ends of *string1*
 | OVERLAY(string1 PLACING string2 FROM integer [ FOR integer2 ]) | Replaces a substring of *string1* with *string2*
 | SUBSTRING(string FROM integer)  | Returns a substring of a character string starting at a given point
@@ -1505,23 +1547,25 @@ Calcite type conversions. The table shows all possible conversions,
 without regard to the context in which it is made. The rules governing
 these details follow the table.
 
-| FROM - TO           | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | DECIMAL | FLOAT or REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | CHAR or VARCHAR | BINARY or VARBINARY
-|:------------------- |:---- |:------- |:------- |:-------- |:--- |:------ |:------- |:------------- |:------ |:-------- |:---- |:---- |:--------- |:--------------- |:-----------
-| NULL                | i    | i       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i
-| BOOLEAN             | x    | i       | e       | e        | e   | e      | e       | e             | e      | x        | x    | x    | x         | i               | x
-| TINYINT             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
-| SMALLINT            | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
-| INT                 | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
-| BIGINT              | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
-| DECIMAL             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
-| FLOAT/REAL          | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x
-| DOUBLE              | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x
-| INTERVAL            | x    | x       | e       | e        | e   | e      | e       | x             | x      | i        | x    | x    | x         | e               | x
-| DATE                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | i    | x    | i         | i               | x
-| TIME                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | i    | e         | i               | x
-| TIMESTAMP           | x    | x       | e       | e        | e   | e      | e       | e             | e      | x        | i    | e    | i         | i               | x
-| CHAR or VARCHAR     | x    | e       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i
-| BINARY or VARBINARY | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | e    | e    | e         | i               | i
+| FROM - TO           | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | DECIMAL | FLOAT or REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | CHAR or VARCHAR | BINARY or VARBINARY | GEOMETRY | ARRAY |
+|:--------------------|:-----|:--------|:--------|:---------|:----|:-------|:--------|:--------------|:-------|:---------|:-----|:-----|:----------|:----------------|:--------------------|:---------|:------|
+| NULL                | i    | i       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | x     |
+| BOOLEAN             | x    | i       | e       | e        | e   | e      | e       | e             | e      | x        | x    | x    | x         | i               | x                   | x        | x     |
+| TINYINT             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
+| SMALLINT            | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
+| INT                 | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
+| BIGINT              | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
+| DECIMAL             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x                   | x        | x     |
+| FLOAT/REAL          | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     |
+| DOUBLE              | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x                   | x        | x     |
+| INTERVAL            | x    | x       | e       | e        | e   | e      | e       | x             | x      | i        | x    | x    | x         | e               | x                   | x        | x     |
+| DATE                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | i    | x    | i         | i               | x                   | x        | x     |
+| TIME                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | i    | e         | i               | x                   | x        | x     |
+| TIMESTAMP           | x    | x       | e       | e        | e   | e      | e       | e             | e      | x        | i    | e    | i         | i               | x                   | x        | x     |
+| CHAR or VARCHAR     | x    | e       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i                   | i        | i     |
+| BINARY or VARBINARY | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | e    | e    | e         | i               | i                   | x        | x     |
+| GEOMETRY            | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | i               | x                   | i        | x     |
+| ARRAY               | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | x    | x         | x               | x                   | x        | i     |
 
 i: implicit cast / e: explicit cast / x: not allowed
 
@@ -1741,6 +1785,7 @@ period:
 | Operator syntax | Description
 |:--------------- |:-----------
 | {fn ASCII(string)} | Returns the ASCII code of the first character of *string*; if the first character is a non-ASCII character, returns its Unicode code point; returns 0 if *string* is empty
+| {fn CHAR(integer)} | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
 | {fn CONCAT(character, character)} | Returns the concatenation of character strings
 | {fn INSERT(string1, start, length, string2)} | Inserts *string2* into a slot in *string1*
 | {fn LCASE(string)} | Returns a string in which all alphabetic characters in *string* have been converted to lower case
@@ -1750,14 +1795,10 @@ period:
 | {fn LTRIM(string)} | Returns *string* with leading space characters removed
 | {fn REPLACE(string, search, replacement)} | Returns a string in which all the occurrences of *search* in *string* are replaced with *replacement*; if *replacement* is the empty string, the occurrences of *search* are removed
 | {fn REVERSE(string)} | Returns *string* with the order of the characters reversed
-| {fn RIGHT(string, integer)} | Returns the rightmost *length* characters from *string*
+| {fn RIGHT(string, length)} | Returns the rightmost *length* characters from *string*
 | {fn RTRIM(string)} | Returns *string* with trailing space characters removed
 | {fn SUBSTRING(string, offset, length)} | Returns a character string that consists of *length* characters from *string* starting at the *offset* position
 | {fn UCASE(string)} | Returns a string in which all alphabetic characters in *string* have been converted to upper case
-
-Not implemented:
-
-* {fn CHAR(string)}
 
 #### Date/time
 
@@ -1829,6 +1870,8 @@ and `LISTAGG`).
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
 | ANY_VALUE( [ ALL &#124; DISTINCT ] value)     | Returns one of the values of *value* across all input values; this is NOT specified in the SQL standard
+| ARG_MAX(value, comp)                          | Returns *value* for the maximum value of *comp* in the group
+| ARG_MIN(value, comp)                          | Returns *value* for the minimum value of *comp* in the group
 | APPROX_COUNT_DISTINCT(value [, value ]*)      | Returns the approximate number of distinct values of *value*; the database is allowed to use an approximation but is not required to
 | AVG( [ ALL &#124; DISTINCT ] numeric)         | Returns the average (arithmetic mean) of *numeric* across all input values
 | BIT_AND( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise AND of all non-null input values, or null if none; integer and binary types are supported
@@ -1953,12 +1996,46 @@ Not implemented:
 
 Table functions occur in the `FROM` clause.
 
+Table functions may have generic table parameters (i.e., no row type is
+declared when the table function is created), and the row type of the result
+ might depend on the row type(s) of the input tables.
+Besides, input tables are classified by three characteristics.
+The first characteristic is semantics. Input tables have either row semantics
+or set semantics, as follows:
+* Row semantics means that the result of the table function depends on a
+row-by-row basis.
+* Set semantics means that the outcome of the function depends on how the
+data is partitioned.
+
+The second characteristic, which applies only to input tables with
+set semantics, is whether the table function can generate a result row
+even if the input table is empty.
+* If the table function can generate a result row on empty input,
+the table is said to be "keep when empty".
+* The alternative is called "prune when empty", meaning that
+the result would be pruned out if the input table is empty.
+
+The third characteristic is whether the input table supports
+pass-through columns or not. Pass-through columns is a mechanism
+enabling the table function to copy every column of an input row
+into columns of an output row.
+
+The input tables with set semantics may be partitioned on one or more columns.
+The input tables with set semantics may be ordered on one or more columns.
+
+Note:
+* The input tables with row semantics may not be partitioned or ordered.
+* A polymorphic table function may have multiple input tables. However,
+at most one input table could have row semantics.
+
 #### TUMBLE
 
 In streaming queries, TUMBLE assigns a window for each row of a relation based
 on a timestamp column. An assigned window is specified by its beginning and
 ending. All assigned windows have the same length, and that's why tumbling
 sometimes is named as "fixed windowing".
+The first parameter of the TUMBLE table function is a generic table parameter.
+The input table has row semantics and supports pass-through columns.
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
@@ -1990,7 +2067,8 @@ whether data is complete.
 
 In streaming queries, HOP assigns windows that cover rows within the interval of *size* and shifting every *slide* based
 on a timestamp column. Windows assigned could have overlapping so hopping sometime is named as "sliding windowing".
-
+The first parameter of the HOP table function is a generic table parameter.
+The input table has row semantics and supports pass-through columns.
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
@@ -2024,7 +2102,10 @@ orders that tells data completeness.
 
 In streaming queries, SESSION assigns windows that cover rows based on *datetime*. Within a session window, distances
 of rows are less than *interval*. Session window is applied per *key*.
-
+The first parameter of the SESSION table function is a generic table parameter.
+The input table has set semantics and supports pass-through columns.
+Besides, the SESSION table function would not generate a result row
+if the input table is empty.
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
@@ -2035,18 +2116,16 @@ Here is an example:
 {% highlight sql %}
 SELECT * FROM TABLE(
   SESSION(
-    TABLE orders,
+    TABLE orders PARTITION BY product,
     DESCRIPTOR(rowtime),
-    DESCRIPTOR(product),
     INTERVAL '20' MINUTE));
 
 -- or with the named params
 -- note: the DATA param must be the first
 SELECT * FROM TABLE(
   SESSION(
-    DATA => TABLE orders,
+    DATA => TABLE orders PARTITION BY product,
     TIMECOL => DESCRIPTOR(rowtime),
-    KEY => DESCRIPTOR(product),
     SIZE => INTERVAL '20' MINUTE));
 {% endhighlight %}
 
@@ -2118,59 +2197,68 @@ implements the OpenGIS Simple Features Implementation Specification for SQL,
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
+| p | ST_AsBinary(geom) | Synonym for `ST_AsWKB`
+| p | ST_AsEWKB(geom) | Synonym for `ST_AsWKB`
+| p | ST_AsEWKT(geom) | Converts GEOMETRY → EWKT
+| p | ST_AsGeoJSON(geom) | Converts GEOMETRY → GeoJSON
+| p | ST_AsGML(geom) | Converts GEOMETRY → GML
 | p | ST_AsText(geom) | Synonym for `ST_AsWKT`
-| o | ST_AsWKT(geom) | Converts *geom* → WKT
-| o | ST_GeomFromText(wkt [, srid ]) | Returns a specified GEOMETRY value from WKT representation
+| o | ST_AsWKB(geom) | Converts GEOMETRY → WKB
+| o | ST_AsWKT(geom) | Converts GEOMETRY → WKT
+| o | ST_Force2D(geom) | 3D GEOMETRY → 2D GEOMETRY
+| o | ST_GeomFromEWKB(wkb [, srid ]) | Synonym for `ST_GeomFromWKB`
+| o | ST_GeomFromEWKT(wkb [, srid ]) | Converts EWKT → GEOMETRY
+| o | ST_GeomFromGeoJSON(json) | Converts GeoJSON → GEOMETRY
+| o | ST_GeomFromGML(wkb [, srid ]) | Converts GML → GEOMETRY
+| o | ST_GeomFromText(wkt [, srid ]) | Synonym for `ST_GeomFromWKT`
+| o | ST_GeomFromWKB(wkb [, srid ]) | Converts WKB → GEOMETRY
+| o | ST_GeomFromWKT(wkb [, srid ]) | Converts WKT → GEOMETRY
 | o | ST_LineFromText(wkt [, srid ]) | Converts WKT → LINESTRING
+| o | ST_LineFromWKB(wkt [, srid ]) | Converts WKT → LINESTRING
 | o | ST_MLineFromText(wkt [, srid ]) | Converts WKT → MULTILINESTRING
 | o | ST_MPointFromText(wkt [, srid ]) | Converts WKT → MULTIPOINT
 | o | ST_MPolyFromText(wkt [, srid ]) Converts WKT → MULTIPOLYGON
 | o | ST_PointFromText(wkt [, srid ]) | Converts WKT → POINT
+| o | ST_PointFromWKB(wkt [, srid ]) | Converts WKB → POINT
 | o | ST_PolyFromText(wkt [, srid ]) | Converts WKT → POLYGON
+| o | ST_PolyFromWKB(wkt [, srid ]) | Converts WKB → POLYGON
+| p | ST_ReducePrecision(geom, gridSize) | Reduces the precision of a *geom* to the provided *gridSize*
+| h | ST_ToMultiPoint(geom) | Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTIPOINT
+| h | ST_ToMultiLine(geom) | Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTILINESTRING
+| h | ST_ToMultiSegments(geom) | Converts *geom* (which may be a GEOMETRYCOLLECTION) into a set of distinct segments stored in a MULTILINESTRING
 
 Not implemented:
 
-* ST_AsBinary(geom) GEOMETRY → WKB
-* ST_AsGML(geom) GEOMETRY → GML
-* ST_Force2D(geom) 3D GEOMETRY → 2D GEOMETRY
-* ST_GeomFromGML(gml [, srid ]) GML → GEOMETRY
-* ST_GeomFromWKB(wkb [, srid ]) WKB → GEOMETRY
 * ST_GoogleMapLink(geom [, layerType [, zoom ]]) GEOMETRY → Google map link
-* ST_LineFromWKB(wkb [, srid ]) WKB → LINESTRING
 * ST_OSMMapLink(geom [, marker ]) GEOMETRY → OSM map link
-* ST_PointFromWKB(wkb [, srid ]) WKB → POINT
-* ST_PolyFromWKB(wkb [, srid ]) WKB → POLYGON
-* ST_ToMultiLine(geom) Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTILINESTRING
-* ST_ToMultiPoint(geom)) Converts the coordinates of *geom* (which may be a GEOMETRYCOLLECTION) into a MULTIPOINT
-* ST_ToMultiSegments(geom) Converts *geom* (which may be a GEOMETRYCOLLECTION) into a set of distinct segments stored in a MULTILINESTRING
 
 #### Geometry conversion functions (3D)
 
-Not implemented:
-
-* ST_Force3D(geom) 2D GEOMETRY → 3D GEOMETRY
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_Force3D(geom) | 2D GEOMETRY → 3D GEOMETRY
 
 #### Geometry creation functions (2D)
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
+| h | ST_BoundingCircle(geom) | Returns the minimum bounding circle of *geom*
+| h | ST_Expand(geom, distance) | Expands *geom*'s envelope
+| h | ST_Expand(geom, deltaX, deltaY) | Expands *geom*'s envelope
+| h | ST_MakeEllipse(point, width, height) | Constructs an ellipse
 | p | ST_MakeEnvelope(xMin, yMin, xMax, yMax  [, srid ]) | Creates a rectangular POLYGON
 | h | ST_MakeGrid(geom, deltaX, deltaY) | Calculates a regular grid of POLYGONs based on *geom*
 | h | ST_MakeGridPoints(geom, deltaX, deltaY) | Calculates a regular grid of points based on *geom*
 | o | ST_MakeLine(point1 [, point ]*) | Creates a line-string from the given POINTs (or MULTIPOINTs)
 | p | ST_MakePoint(x, y [, z ]) | Synonym for `ST_Point`
+| p | ST_MakePolygon(lineString [, hole ]*)| Creates a POLYGON from *lineString* with the given holes (which are required to be closed LINESTRINGs)
+| h | ST_MinimumDiameter(geom) | Returns the minimum diameter of *geom*
+| h | ST_MinimumRectangle(geom) | Returns the minimum rectangle enclosing *geom*
+| h | ST_OctogonalEnvelope(geom) | Returns the octogonal envelope of *geom*
 | o | ST_Point(x, y [, z ]) | Constructs a point from two or three coordinates
 
 Not implemented:
 
-* ST_BoundingCircle(geom) Returns the minimum bounding circle of *geom*
-* ST_Expand(geom, distance) Expands *geom*'s envelope
-* ST_Expand(geom, deltaX, deltaY) Expands *geom*'s envelope
-* ST_MakeEllipse(point, width, height) Constructs an ellipse
-* ST_MakePolygon(lineString [, hole ]*) Creates a POLYGON from *lineString* with the given holes (which are required to be closed LINESTRINGs)
-* ST_MinimumDiameter(geom) Returns the minimum diameter of *geom*
-* ST_MinimumRectangle(geom) Returns the minimum rectangle enclosing *geom*
-* ST_OctogonalEnvelope(geom) Returns the octogonal envelope of *geom*
 * ST_RingBuffer(geom, distance, bufferCount [, endCapStyle [, doDifference]]) Returns a MULTIPOLYGON of buffers centered at *geom* and of increasing buffer size
 
 ### Geometry creation functions (3D)
@@ -2186,47 +2274,47 @@ Not implemented:
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
 | o | ST_Boundary(geom [, srid ]) | Returns the boundary of *geom*
+| o | ST_Centroid(geom) | Returns the centroid of *geom*
+| o | ST_CoordDim(geom) | Returns the dimension of the coordinates of *geom*
+| o | ST_Dimension(geom) | Returns the dimension of *geom*
 | o | ST_Distance(geom1, geom2) | Returns the distance between *geom1* and *geom2*
+| h | ST_ExteriorRing(geom) | Returns the exterior ring of *geom*, or null if *geom* is not a polygon
 | o | ST_GeometryType(geom) | Returns the type of *geom*
 | o | ST_GeometryTypeCode(geom) | Returns the OGC SFS type code of *geom*
+| p | ST_EndPoint(lineString) | Returns the last coordinate of *geom*
 | o | ST_Envelope(geom [, srid ]) | Returns the envelope of *geom* (which may be a GEOMETRYCOLLECTION) as a GEOMETRY
+| o | ST_Extent(geom) | Returns the minimum bounding box of *geom* (which may be a GEOMETRYCOLLECTION)
+| h | ST_GeometryN(geomCollection, n) | Returns the *n*th GEOMETRY of *geomCollection*
+| h | ST_InteriorRingN(geom) | Returns the nth interior ring of *geom*, or null if *geom* is not a polygon
+| h | ST_IsClosed(geom) | Returns whether *geom* is a closed LINESTRING or MULTILINESTRING
+| o | ST_IsEmpty(geom) | Returns whether *geom* is empty
+| o | ST_IsRectangle(geom) | Returns whether *geom* is a rectangle
+| h | ST_IsRing(geom) | Returns whether *geom* is a closed and simple line-string or MULTILINESTRING
+| o | ST_IsSimple(geom) | Returns whether *geom* is simple
+| o | ST_IsValid(geom) | Returns whether *geom* is valid
+| h | ST_NPoints(geom)  | Returns the number of points in *geom*
+| h | ST_NumGeometries(geom) | Returns the number of geometries in *geom* (1 if it is not a GEOMETRYCOLLECTION)
+| h | ST_NumInteriorRing(geom) | Synonym for `ST_NumInteriorRings`
+| h | ST_NumInteriorRings(geom) | Returns the number of interior rings of *geom*
+| h | ST_NumPoints(geom) | Returns the number of points in *geom*
+| p | ST_PointN(geom, n) | Returns the *n*th point of a *geom*
+| p | ST_PointOnSurface(geom) | Returns an interior or boundary point of *geom*
+| o | ST_SRID(geom) | Returns SRID value of *geom* or 0 if it does not have one
+| p | ST_StartPoint(geom) | Returns the first point of *geom*
 | o | ST_X(geom) | Returns the x-value of the first coordinate of *geom*
+| o | ST_XMax(geom) | Returns the maximum x-value of *geom*
+| o | ST_XMin(geom) | Returns the minimum x-value of *geom*
 | o | ST_Y(geom) | Returns the y-value of the first coordinate of *geom*
+| o | ST_YMax(geom) | Returns the maximum y-value of *geom*
+| o | ST_YMin(geom) | Returns the minimum y-value of *geom*
 
 Not implemented:
 
-* ST_Centroid(geom) Returns the centroid of *geom* (which may be a GEOMETRYCOLLECTION)
 * ST_CompactnessRatio(polygon) Returns the square root of *polygon*'s area divided by the area of the circle with circumference equal to its perimeter
-* ST_CoordDim(geom) Returns the dimension of the coordinates of *geom*
-* ST_Dimension(geom) Returns the dimension of *geom*
-* ST_EndPoint(lineString) Returns the last coordinate of *lineString*
-* ST_Envelope(geom [, srid ]) Returns the envelope of *geom* (which may be a GEOMETRYCOLLECTION) as a GEOMETRY
 * ST_Explode(query [, fieldName]) Explodes the GEOMETRYCOLLECTIONs in the *fieldName* column of a query into multiple geometries
-* ST_Extent(geom) Returns the minimum bounding box of *geom* (which may be a GEOMETRYCOLLECTION)
-* ST_ExteriorRing(polygon) Returns the exterior ring of *polygon* as a linear-ring
-* ST_GeometryN(geomCollection, n) Returns the *n*th GEOMETRY of *geomCollection*
-* ST_InteriorRingN(polygon, n) Returns the *n*th interior ring of *polygon*
-* ST_IsClosed(geom) Returns whether *geom* is a closed LINESTRING or MULTILINESTRING
-* ST_IsEmpty(geom) Returns whether *geom* is empty
-* ST_IsRectangle(geom) Returns whether *geom* is a rectangle
-* ST_IsRing(geom) Returns whether *geom* is a closed and simple line-string or MULTILINESTRING
-* ST_IsSimple(geom) Returns whether *geom* is simple
-* ST_IsValid(geom) Returns whether *geom* is valid
 * ST_IsValidDetail(geom [, selfTouchValid ]) Returns a valid detail as an array of objects
 * ST_IsValidReason(geom [, selfTouchValid ]) Returns text stating whether *geom* is valid, and if not valid, a reason why
-* ST_NPoints(geom) Returns the number of points in *geom*
-* ST_NumGeometries(geom) Returns the number of geometries in *geom* (1 if it is not a GEOMETRYCOLLECTION)
-* ST_NumInteriorRing(geom) Synonym for `ST_NumInteriorRings`
-* ST_NumInteriorRings(geom) Returns the number of interior rings of *geom*
-* ST_NumPoints(lineString) Returns the number of points in *lineString*
-* ST_PointN(geom, n) Returns the *n*th point of a *lineString*
-* ST_PointOnSurface(geom) Returns an interior or boundary point of *geom*
-* ST_SRID(geom) Returns SRID value of *geom* or 0 if it does not have one
-* ST_StartPoint(lineString) Returns the first coordinate of *lineString*
-* ST_XMax(geom) Returns the maximum x-value of *geom*
-* ST_XMin(geom) Returns the minimum x-value of *geom*
-* ST_YMax(geom) Returns the maximum y-value of *geom*
-* ST_YMin(geom) Returns the minimum y-value of *geom*
+
 
 #### Geometry properties (3D)
 
@@ -2234,11 +2322,8 @@ Not implemented:
 |:- |:-------------------- |:-----------
 | p | ST_Is3D(s) | Returns whether *geom* has at least one z-coordinate
 | o | ST_Z(geom) | Returns the z-value of the first coordinate of *geom*
-
-Not implemented:
-
-* ST_ZMax(geom) Returns the maximum z-value of *geom*
-* ST_ZMin(geom) Returns the minimum z-value of *geom*
+| o | ST_ZMax(geom) | Returns the maximum z-value of *geom*
+| o | ST_ZMin(geom) | Returns the minimum z-value of *geom*
 
 ### Geometry predicates
 
@@ -2246,6 +2331,8 @@ Not implemented:
 |:- |:-------------------- |:-----------
 | o | ST_Contains(geom1, geom2) | Returns whether *geom1* contains *geom2*
 | p | ST_ContainsProperly(geom1, geom2) | Returns whether *geom1* contains *geom2* but does not intersect its boundary
+| p | ST_CoveredBy(geom1, geom2) | Returns whether no point in *geom1* is outside *geom2*.
+| p | ST_Covers(geom1, geom2) | Returns whether no point in *geom2* is outside *geom1*
 | o | ST_Crosses(geom1, geom2) | Returns whether *geom1* crosses *geom2*
 | o | ST_Disjoint(geom1, geom2) | Returns whether *geom1* and *geom2* are disjoint
 | p | ST_DWithin(geom1, geom2, distance) | Returns whether *geom1* and *geom* are within *distance* of one another
@@ -2253,15 +2340,14 @@ Not implemented:
 | o | ST_Equals(geom1, geom2) | Returns whether *geom1* equals *geom2*
 | o | ST_Intersects(geom1, geom2) | Returns whether *geom1* intersects *geom2*
 | o | ST_Overlaps(geom1, geom2) | Returns whether *geom1* overlaps *geom2*
+| o | ST_Relate(geom1, geom2) | Returns the DE-9IM intersection matrix of *geom1* and *geom2*
+| o | ST_Relate(geom1, geom2, iMatrix) | Returns whether *geom1* and *geom2* are related by the given intersection matrix *iMatrix*
 | o | ST_Touches(geom1, geom2) | Returns whether *geom1* touches *geom2*
 | o | ST_Within(geom1, geom2) | Returns whether *geom1* is within *geom2*
 
 Not implemented:
 
-* ST_Covers(geom1, geom2) Returns whether no point in *geom2* is outside *geom1*
 * ST_OrderingEquals(geom1, geom2) Returns whether *geom1* equals *geom2* and their coordinates and component Geometries are listed in the same order
-* ST_Relate(geom1, geom2) Returns the DE-9IM intersection matrix of *geom1* and *geom2*
-* ST_Relate(geom1, geom2, iMatrix) Returns whether *geom1* and *geom2* are related by the given intersection matrix *iMatrix*
 
 #### Geometry operators (2D)
 
@@ -2269,24 +2355,30 @@ The following functions combine 2D geometries.
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
-| o | ST_Buffer(geom, distance [, quadSegs \| style ]) | Computes a buffer around *geom*
+| p | ST_Buffer(geom, distance [, quadSegs, endCapStyle ]) | Computes a buffer around *geom*
+| p | ST_Buffer(geom, distance [, bufferStyle ]) | Computes a buffer around *geom*
+| o | ST_ConvexHull(geom) | Computes the smallest convex polygon that contains all the points in *geom*
+| o | ST_Difference(geom1, geom2) | Computes the difference between two geometries
+| o | ST_SymDifference(geom1, geom2) | Computes the symmetric difference between two geometries
+| o | ST_Intersection(geom1, geom2) | Computes the intersection of *geom1* and *geom2*
+| p | ST_OffsetCurve(geom, distance, bufferStyle) | Computes an offset line for *linestring*
 | o | ST_Union(geom1, geom2) | Computes the union of *geom1* and *geom2*
 | o | ST_Union(geomCollection) | Computes the union of the geometries in *geomCollection*
 
 See also: the `ST_Union` aggregate function.
 
-Not implemented:
-
-* ST_ConvexHull(geom) Computes the smallest convex polygon that contains all the points in *geom*
-* ST_Difference(geom1, geom2) Computes the difference between two geometries
-* ST_Intersection(geom1, geom2) Computes the intersection of two geometries
-* ST_SymDifference(geom1, geom2) Computes the symmetric difference between two geometries
-
 #### Affine transformation functions (3D and 2D)
 
+The following functions transform 2D geometries.
+
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_Rotate(geom, angle [, origin \| x, y]) | Rotates a *geom* counter-clockwise by *angle* (in radians) about *origin* (or the point (*x*, *y*))
+| o | ST_Scale(geom, xFactor, yFactor) | Scales *geom* by multiplying the ordinates by the indicated scale factors
+| o | ST_Translate(geom, x, y) | Translates *geom* by the vector (x, y)
+
 Not implemented:
 
-* ST_Rotate(geom, angle [, origin \| x, y]) Rotates a *geom* counter-clockwise by *angle* (in radians) about *origin* (or the point (*x*, *y*))
 * ST_Scale(geom, xFactor, yFactor [, zFactor ]) Scales *geom* by multiplying the ordinates by the indicated scale factors
 * ST_Translate(geom, x, y, [, z]) Translates *geom*
 
@@ -2294,27 +2386,33 @@ Not implemented:
 
 The following functions modify 2D geometries.
 
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| p | ST_AddPoint(linestring, point [, index]) | Adds *point* to *linestring* at a given *index* (or at the end if *index* is not specified)
+| h | ST_Densify(geom, tolerance) | Densifies a *geom* by inserting extra vertices along the line segments
+| h | ST_FlipCoordinates(geom) | Flips the X and Y coordinates of the *geom*
+| h | ST_Holes(geom) | Returns the holes in the *geom* (which may be a GEOMETRYCOLLECTION)
+| h | ST_Normalize(geom) | Converts the *geom* to normal form
+| p | ST_RemoveRepeatedPoints(geom [, tolerance]) | Removes duplicated coordinates from the *geom*
+| h | ST_RemoveHoles(geom) | Removes the holes of the *geom*
+| p | ST_RemovePoint(linestring, index) | Remove *point* at given *index* in *linestring*
+| h | ST_Reverse(geom) | Reverses the order of the coordinates of the *geom*
+
 Not implemented:
 
-* ST_AddPoint(geom, point [, tolerance ]) Adds *point* to *geom* with a given *tolerance* (default 0)
 * ST_CollectionExtract(geom, dimension) Filters *geom*, returning a multi-geometry of those members with a given *dimension* (1 = point, 2 = line-string, 3 = polygon)
-* ST_Densify(geom, tolerance) Inserts extra vertices every *tolerance* along the line segments of *geom*
-* ST_FlipCoordinates(geom) Flips the X and Y coordinates of *geom*
-* ST_Holes(geom) Returns the holes in *geom* (which may be a GEOMETRYCOLLECTION)
-* ST_Normalize(geom) Converts *geom* to normal form
-* ST_RemoveDuplicatedCoordinates(geom) Removes duplicated coordinates from *geom*
-* ST_RemoveHoles(geom) Removes a *geom*'s holes
-* ST_RemovePoints(geom, poly) Removes all coordinates of *geom* located within *poly*; null if all coordinates are removed
-* ST_RemoveRepeatedPoints(geom, tolerance) Removes from *geom* all repeated points (or points within *tolerance* of another point)
-* ST_Reverse(geom) Reverses the vertex order of *geom*
 
 #### Geometry editing functions (3D)
 
 The following functions modify 3D geometries.
 
+
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| h | ST_AddZ(geom, zToAdd) | Adds *zToAdd* to the z-coordinate of *geom*
+
 Not implemented:
 
-* ST_AddZ(geom, zToAdd) Adds *zToAdd* to the z-coordinate of *geom*
 * ST_Interpolate3DLine(geom) Returns *geom* with an interpolation of z values, or null if it is not a line-string or MULTILINESTRING
 * ST_MultiplyZ(geom, zFactor) Returns *geom* with its z-values multiplied by *zFactor*
 * ST_Reverse3DLine(geom [, sortOrder ]) Potentially reverses *geom* according to the z-values of its first and last coordinates
@@ -2323,18 +2421,20 @@ Not implemented:
 
 #### Geometry measurement functions (2D)
 
-Not implemented:
+The following functions measure geometries.
 
-* ST_Area(geom) Returns the area of *geom* (which may be a GEOMETRYCOLLECTION)
-* ST_ClosestCoordinate(geom, point) Returns the coordinate(s) of *geom* closest to *point*
-* ST_ClosestPoint(geom1, geom2) Returns the point of *geom1* closest to *geom2*
-* ST_FurthestCoordinate(geom, point) Returns the coordinate(s) of *geom* that are furthest from *point*
-* ST_Length(lineString) Returns the length of *lineString*
-* ST_LocateAlong(geom, segmentLengthFraction, offsetDistance) Returns a MULTIPOINT containing points along the line segments of *geom* at *segmentLengthFraction* and *offsetDistance*
-* ST_LongestLine(geom1, geom2) Returns the 2-dimensional longest line-string between the points of *geom1* and *geom2*
-* ST_MaxDistance(geom1, geom2) Computes the maximum distance between *geom1* and *geom2*
-* ST_Perimeter(polygon) Returns the length of the perimeter of *polygon* (which may be a MULTIPOLYGON)
-* ST_ProjectPoint(point, lineString) Projects *point* onto a *lineString* (which may be a MULTILINESTRING)
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_Area(geom) | Returns the area of *geom* (which may be a GEOMETRYCOLLECTION)
+| h | ST_ClosestCoordinate(point, geom) | Returns the coordinate(s) of *geom* closest to *point*
+| h | ST_ClosestPoint(geom1, geom2) | Returns the point of *geom1* closest to *geom2*
+| h | ST_FurthestCoordinate(geom, point) | Returns the coordinate(s) of *geom* that are furthest from *point*
+| h | ST_Length(geom) | Returns the length of *geom*
+| h | ST_LocateAlong(geom, segmentLengthFraction, offsetDistance) | Returns a MULTIPOINT containing points along the line segments of *geom* at *segmentLengthFraction* and *offsetDistance*
+| h | ST_LongestLine(geom1, geom2) | Returns the 2-dimensional longest line-string between the points of *geom1* and *geom2*
+| h | ST_MaxDistance(geom1, geom2) | Computes the maximum distance between *geom1* and *geom2*
+| h | ST_Perimeter(polygon) | Returns the length of the perimeter of *polygon* (which may be a MULTIPOLYGON)
+| h | ST_ProjectPoint(point, lineString) | Projects *point* onto a *lineString* (which may be a MULTILINESTRING)
 
 #### Geometry measurement functions (3D)
 
@@ -2349,21 +2449,31 @@ Not implemented:
 
 The following functions process geometries.
 
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| o | ST_LineMerge(geom)  | Merges a collection of linear components to form a line-string of maximal length
+| o | ST_MakeValid(geom)  | Makes a valid geometry of a given invalid geometry
+| o | ST_Polygonize(geom)  | Creates a MULTIPOLYGON from edges of *geom*
+| o | ST_PrecisionReducer(geom, n) | Reduces *geom*'s precision to *n* decimal places
+| o | ST_Simplify(geom, distance)  | Simplifies *geom* using the [Douglas-Peuker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) with a *distance* tolerance
+| o | ST_SimplifyPreserveTopology(geom, distance) | Simplifies *geom*, preserving its topology
+| o | ST_Snap(geom1, geom2, tolerance) | Snaps *geom1* and *geom2* together
+| p | ST_Split(geom, blade) | Splits *geom* by *blade*
+
 Not implemented:
 
 * ST_LineIntersector(geom1, geom2) Splits *geom1* (a line-string) with *geom2*
 * ST_LineMerge(geom) Merges a collection of linear components to form a line-string of maximal length
 * ST_MakeValid(geom [, preserveGeomDim [, preserveDuplicateCoord [, preserveCoordDim]]]) Makes *geom* valid
-* ST_Polygonize(geom) Creates a MULTIPOLYGON from edges of *geom*
-* ST_PrecisionReducer(geom, n) Reduces *geom*'s precision to *n* decimal places
 * ST_RingSideBuffer(geom, distance, bufferCount [, endCapStyle [, doDifference]]) Computes a ring buffer on one side
 * ST_SideBuffer(geom, distance [, bufferStyle ]) Compute a single buffer on one side
-* ST_Simplify(geom, distance) Simplifies *geom* using the [Douglas-Peuker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm) with a *distance* tolerance
-* ST_SimplifyPreserveTopology(geom) Simplifies *geom*, preserving its topology
-* ST_Snap(geom1, geom2, tolerance) Snaps *geom1* and *geom2* together
-* ST_Split(geom1, geom2 [, tolerance]) Splits *geom1* by *geom2* using *tolerance* (default 1E-6) to determine where the point splits the line
 
 #### Geometry projection functions
+
+The EPSG dataset is released separately from Proj4J due
+to its restrictive [terms of use](https://epsg.org/terms-of-use.html).
+In order to use the projection functions in Apache Calcite,
+users must include the EPSG dataset in their dependencies.
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
@@ -2388,19 +2498,22 @@ Not implemented:
 
 #### Triangulation functions
 
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| h | ST_ConstrainedDelaunay(geom [, flag]) | Computes a constrained Delaunay triangulation based on *geom*
+| h | ST_Delaunay(geom [, flag]) | Computes a Delaunay triangulation based on points in *geom*
+
 Not implemented:
 
-* ST_ConstrainedDelaunay(geom [, flag [, quality ]]) Computes a constrained Delaunay triangulation based on *geom*
-* ST_Delaunay(geom [, flag [, quality ]]) Computes a Delaunay triangulation based on points
 * ST_Tessellate(polygon) Tessellates *polygon* (may be MULTIPOLYGON) with adaptive triangles
 
 #### Geometry aggregate functions
 
-Not implemented:
-
-* ST_Accum(geom) Accumulates *geom* into a GEOMETRYCOLLECTION (or MULTIPOINT, MULTILINESTRING or MULTIPOLYGON if possible)
-* ST_Collect(geom) Synonym for `ST_Accum`
-* ST_Union(geom) Computes the union of geometries
+| C | Operator syntax      | Description
+|:- |:-------------------- |:-----------
+| h | ST_Accum(geom) | Accumulates *geom* into an array
+| h | ST_Collect(geom) | Collects *geom* into a GeometryCollection
+| h | ST_Union(geom) | Computes the union of the geometries in *geom*
 
 ### JSON Functions
 
@@ -2504,14 +2617,27 @@ connect string parameter.
 
 The 'C' (compatibility) column contains value:
 * 'b' for Google BigQuery ('fun=bigquery' in the connect string),
+* 'c' for Apache Calcite ('fun=calcite' in the connect string),
 * 'h' for Apache Hive ('fun=hive' in the connect string),
 * 'm' for MySQL ('fun=mysql' in the connect string),
+* 'q' for Microsoft SQL Server ('fun=mssql' in the connect string),
 * 'o' for Oracle ('fun=oracle' in the connect string),
 * 'p' for PostgreSQL ('fun=postgresql' in the connect string),
 * 's' for Apache Spark ('fun=spark' in the connect string).
 
 One operator name may correspond to multiple SQL dialects, but with different
 semantics.
+
+BigQuery's type system uses confusingly different names for types and functions:
+* BigQuery's `DATETIME` type represents a local date time, and corresponds to
+  Calcite's `TIMESTAMP` type;
+* BigQuery's `TIMESTAMP` type represents an instant, and corresponds to
+  Calcite's `TIMESTAMP WITH LOCAL TIME ZONE` type;
+* The *timestampLtz* parameter, for instance in `DATE(timestampLtz)`, has
+  Calcite type `TIMESTAMP WITH LOCAL TIME ZONE`;
+* The `TIMESTAMP(string)` function, designed to be compatible the BigQuery
+  function, return a Calcite `TIMESTAMP WITH LOCAL TIME ZONE`;
+* Similarly, `DATETIME(string)` returns a Calcite `TIMESTAMP`.
 
 | C | Operator syntax                                | Description
 |:- |:-----------------------------------------------|:-----------
@@ -2520,60 +2646,119 @@ semantics.
 | b | ARRAY_CONCAT(array [, array ]*)                | Concatenates one or more arrays. If any input argument is `NULL` the function returns `NULL`
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
-| o | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
-| o | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
+| m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
+| b o p | CHR(integer)                               | Returns the character whose UTF-8 code is *integer*
+| b o | COSH(numeric)                                | Returns the hyperbolic cosine of *numeric*
 | o | CONCAT(string, string)                         | Concatenates two strings
-| m p | CONCAT(string [, string ]*)                  | Concatenates two or more strings
-| m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string.
+| b m p | CONCAT(string [, string ]*)                | Concatenates two or more strings
+| m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string
+| q | CONVERT(type, expression [ , style ])          | Equivalent to `CAST(expression AS type)`; ignores the *style* operand
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
-| b | CURRENT_DATETIME([timezone])                   | Returns the current time as a TIMESTAMP from *timezone*
+| b | CURRENT_DATETIME([ timeZone ])                 | Returns the current time as a TIMESTAMP from *timezone*
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
+| b | DATE(timestamp)                                | Extracts the DATE from a *timestamp*
+| b | DATE(timestampLtz)                             | Extracts the DATE from *timestampLtz* (an instant; BigQuery's TIMESTAMP type), assuming UTC
+| b | DATE(timestampLtz, timeZone)                   | Extracts the DATE from *timestampLtz* (an instant; BigQuery's TIMESTAMP type) in *timeZone*
 | b | DATE(string)                                   | Equivalent to `CAST(string AS DATE)`
+| b | DATE(year, month, day)                         | Returns a DATE value for *year*, *month*, and *day* (all of type INTEGER)
+| p q | DATEADD(timeUnit, integer, datetime)         | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
+| p q | DATEDIFF(timeUnit, datetime, datetime2)      | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
+| q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
+| b | DATETIME(date, time)                           | Converts *date* and *time* to a TIMESTAMP
+| b | DATETIME(date)                                 | Converts *date* to a TIMESTAMP value (at midnight)
+| b | DATETIME(date, timeZone)                       | Converts *date* to a TIMESTAMP value (at midnight), in *timeZone*
+| b | DATETIME(year, month, day, hour, minute, second) | Creates a TIMESTAMP for *year*, *month*, *day*, *hour*, *minute*, *second* (all of type INTEGER)
+| b | DATETIME_ADD(timestamp, interval)              | Returns the TIMESTAMP value that occurs *interval* after *timestamp*
+| b | DATETIME_DIFF(timestamp, timestamp2, timeUnit) | Returns the whole number of *timeUnit* between *timestamp* and *timestamp2*
+| b | DATETIME_SUB(timestamp, interval)              | Returns the TIMESTAMP that occurs *interval* before *timestamp*
+| b | DATETIME_TRUNC(timestamp, timeUnit)            | Truncates *timestamp* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
+| p | DATE_PART(timeUnit, datetime)                  | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
+| b | DATE_ADD(date, interval)                       | Returns the DATE value that occurs *interval* after *date*
+| b | DATE_DIFF(date, date2, timeUnit)               | Returns the whole number of *timeUnit* between *date* and *date2*
+| b | DATE_SUB(date, interval)                       | Returns the DATE value that occurs *interval* before *date*
+| b | DATE_TRUNC(date, timeUnit)                     | Truncates *date* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
+| b | ENDS_WITH(string1, string2)                    | Returns whether *string2* is a suffix of *string1*
 | o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the xml fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
 | o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
-| o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
+| b | FORMAT_DATE(string, date)                      | Formats *date* according to the specified format *string*
+| b | FORMAT_DATETIME(string, timestamp)             | Formats *timestamp* according to the specified format *string*
+| b | FORMAT_TIME(string, time)                      | Formats *time* according to the specified format *string*
+| b | FORMAT_TIMESTAMP(string timestamp)             | Formats *timestamp* according to the specified format *string*
+| b o | GREATEST(expr [, expr ]*)                    | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
+| b | IFNULL(value1, value2)                         | Equivalent to `NVL(value1, value2)`
 | p | string1 ILIKE string2 [ ESCAPE string3 ]       | Whether *string1* matches pattern *string2*, ignoring case (similar to `LIKE`)
 | p | string1 NOT ILIKE string2 [ ESCAPE string3 ]   | Whether *string1* does not match pattern *string2*, ignoring case (similar to `NOT LIKE`)
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of *jsonValue*
 | m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of *jsonValue*
 | m | JSON_PRETTY(jsonValue)                         | Returns a pretty-printing of *jsonValue*
 | m | JSON_LENGTH(jsonValue [, path ])               | Returns a integer indicating the length of *jsonValue*
+| m | JSON_INSERT(jsonValue, path, val[, path, val]*)  | Returns a JSON document insert a data of *jsonValue*, *path*, *val*
 | m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
 | m | JSON_REMOVE(jsonValue, path[, path])           | Removes data from *jsonValue* using a series of *path* expressions and returns the result
+| m | JSON_REPLACE(jsonValue, path, val[, path, val]*)  | Returns a JSON document replace a data of *jsonValue*, *path*, *val*
+| m | JSON_SET(jsonValue, path, val[, path, val]*)  | Returns a JSON document set a data of *jsonValue*, *path*, *val*
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of *jsonValue*
-| o | LEAST(expr [, expr ]* )                        | Returns the least of the expressions
-| m p | LEFT(string, length)                         | Returns the leftmost *length* characters from the *string*
+| b o | LEAST(expr [, expr ]* )                      | Returns the least of the expressions
+| b m p | LEFT(string, length)                       | Returns the leftmost *length* characters from the *string*
+| b | LENGTH(string)                                 | Equivalent to `CHAR_LENGTH(string)`
+| b | LOG(numeric1 [, numeric2 ])                    | Returns the logarithm of *numeric1* to base *numeric2*, or base e if *numeric2* is not present
+| b o | LPAD(string, length[, pattern ])             | Returns a string or bytes value that consists of *string* prepended to *length* with *pattern*
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
-| m | FROM_BASE64(string)                            | Returns the decoded result of a base-64 *string* as a string
-| o | LTRIM(string)                                  | Returns *string* with all blanks removed from the start
-| m p | MD5(string)                                  | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
+| b m | FROM_BASE64(string)                          | Returns the decoded result of a base-64 *string* as a string
+| b o | LTRIM(string)                                | Returns *string* with all blanks removed from the start
+| b m p | MD5(string)                                | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
+| b | POW(numeric1, numeric2)                        | Returns *numeric1* raised to the power *numeric2*
 | m o | REGEXP_REPLACE(string, regexp, rep, [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* means which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
-| m p | REPEAT(string, integer)                      | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
-| m | REVERSE(string)                                | Returns *string* with the order of the characters reversed
-| m p | RIGHT(string, length)                        | Returns the rightmost *length* characters from the *string*
+| b m p | REPEAT(string, integer)                    | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
+| b m | REVERSE(string)                              | Returns *string* with the order of the characters reversed
+| b m p | RIGHT(string, length)                      | Returns the rightmost *length* characters from the *string*
 | h s | string1 RLIKE string2                        | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
 | h s | string1 NOT RLIKE string2                    | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
-| o | RTRIM(string)                                  | Returns *string* with all blanks removed from the end
-| m p | SHA1(string)                                 | Calculates a SHA-1 hash value of *string* and returns it as a hex string
-| o | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
-| m o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
+| b o | RPAD(string, length[, pattern ])             | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
+| b o | RTRIM(string)                                | Returns *string* with all blanks removed from the end
+| b | SAFE_CAST(value AS type)                       | Converts *value* to *type*, returning NULL if conversion fails
+| b m p | SHA1(string)                               | Calculates a SHA-1 hash value of *string* and returns it as a hex string
+| b o | SINH(numeric)                                | Returns the hyperbolic sine of *numeric*
+| b m o p | SOUNDEX(string)                          | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
-| b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| b | SPLIT(string [, delimiter ])                   | Returns the string array of *string* split at *delimiter* (if omitted, default is comma)
+| b | STARTS_WITH(string1, string2)                  | Returns whether *string2* is a prefix of *string1*
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
-| o | TANH(numeric)                                  | Returns the hyperbolic tangent of *numeric*
+| b p | STRPOS(string, substring)                    | Equivalent to `POSITION(substring IN string)`
+| b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| b o | TANH(numeric)                                | Returns the hyperbolic tangent of *numeric*
+| b | TIME(hour, minute, second)                     | Returns a TIME value *hour*, *minute*, *second* (all of type INTEGER)
+| b | TIME(timestamp)                                | Extracts the TIME from *timestamp* (a local time; BigQuery's DATETIME type)
+| b | TIME(instant)                                  | Extracts the TIME from *timestampLtz* (an instant; BigQuery's TIMESTAMP type), assuming UTC
+| b | TIME(instant, timeZone)                        | Extracts the time from *timestampLtz* (an instant; BigQuery's TIMESTAMP type), in *timeZone*
+| b | TIMESTAMP(string)                              | Equivalent to `CAST(string AS TIMESTAMP WITH LOCAL TIME ZONE)`
+| b | TIMESTAMP(string, timeZone)                    | Equivalent to `CAST(string AS TIMESTAMP WITH LOCAL TIME ZONE)`, converted to *timeZone*
+| b | TIMESTAMP(date)                                | Converts *date* to a TIMESTAMP WITH LOCAL TIME ZONE value (at midnight)
+| b | TIMESTAMP(date, timeZone)                      | Converts *date* to a TIMESTAMP WITH LOCAL TIME ZONE value (at midnight), in *timeZone*
+| b | TIMESTAMP(timestamp)                           | Converts *timestamp* to a TIMESTAMP WITH LOCAL TIME ZONE, assuming a UTC
+| b | TIMESTAMP(timestamp, timeZone)                 | Converts *timestamp* to a TIMESTAMP WITH LOCAL TIME ZONE, in *timeZone*
+| b | TIMESTAMP_ADD(timestamp, interval)             | Returns the TIMESTAMP value that occurs *interval* after *timestamp*
+| b | TIMESTAMP_DIFF(timestamp, timestamp2, timeUnit) | Returns the whole number of *timeUnit* between *timestamp* and *timestamp2*. Equivalent to `TIMESTAMPDIFF(timeUnit, timestamp2, timestamp)` and `(timestamp - timestamp2) timeUnit`
 | b | TIMESTAMP_MICROS(integer)                      | Returns the TIMESTAMP that is *integer* microseconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_MILLIS(integer)                      | Returns the TIMESTAMP that is *integer* milliseconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_SECONDS(integer)                     | Returns the TIMESTAMP that is *integer* seconds after 1970-01-01 00:00:00
+| b | TIMESTAMP_SUB(timestamp, interval)             | Returns the TIMESTAMP value that is *interval* before *timestamp*
+| b | TIMESTAMP_TRUNC(timestamp, timeUnit)           | Truncates *timestamp* to the granularity of *timeUnit*, rounding to the beginning of the unit
+| b | TIME_ADD(time, interval)                       | Adds *interval* to *time*, independent of any time zone
+| b | TIME_DIFF(time, time2, timeUnit)               | Returns the whole number of *timeUnit* between *time* and *time2*
+| b | TIME_SUB(time, interval)                       | Returns the TIME value that is *interval* before *time*
+| b | TIME_TRUNC(time, timeUnit)                     | Truncates *time* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
-| o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| b o p | TRANSLATE(expr, fromString, toString)      | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| b | TRUNC(numeric1 [, numeric2 ])                  | Truncates *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point
 | b | UNIX_MICROS(timestamp)                         | Returns the number of microseconds since 1970-01-01 00:00:00
 | b | UNIX_MILLIS(timestamp)                         | Returns the number of milliseconds since 1970-01-01 00:00:00
 | b | UNIX_SECONDS(timestamp)                        | Returns the number of seconds since 1970-01-01 00:00:00
@@ -2582,6 +2767,11 @@ semantics.
 
 Note:
 
+* Calcite has no Redshift library, so the Postgres library
+  is used instead. The functions `DATEADD`, `DATEDIFF` are
+  implemented in Redshift and not Postgres but nevertheless
+  appear in Calcite's Postgres library
+* Functions `DATEADD`, `DATEDIFF`, `DATE_PART` require the Babel parser
 * `JSON_TYPE` / `JSON_DEPTH` / `JSON_PRETTY` / `JSON_STORAGE_SIZE` return null if the argument is null
 * `JSON_LENGTH` / `JSON_KEYS` / `JSON_REMOVE` return null if the first argument is null
 * `JSON_TYPE` generally returns an upper-case string flag indicating the type of the JSON input. Currently supported supported type flags are:
@@ -2607,6 +2797,7 @@ Dialect-specific aggregate functions.
 
 | C | Operator syntax                                | Description
 |:- |:-----------------------------------------------|:-----------
+| c | AGGREGATE(m)                                   | Computes measure *m* in the context of the current GROUP BY key
 | b p | ARRAY_AGG( [ ALL &#124; DISTINCT ] value [ RESPECT NULLS &#124; IGNORE NULLS ] [ ORDER BY orderItem [, orderItem ]* ] ) | Gathers values into arrays
 | b p | ARRAY_CONCAT_AGG( [ ALL &#124; DISTINCT ] value [ ORDER BY orderItem [, orderItem ]* ] ) | Concatenates arrays into arrays
 | p | BOOL_AND(condition)                            | Synonym for `EVERY`
@@ -2615,6 +2806,8 @@ Dialect-specific aggregate functions.
 | m | GROUP_CONCAT( [ ALL &#124; DISTINCT ] value [, value ]* [ ORDER BY orderItem [, orderItem ]* ] [ SEPARATOR separator ] ) | MySQL-specific variant of `LISTAGG`
 | b | LOGICAL_AND(condition)                         | Synonym for `EVERY`
 | b | LOGICAL_OR(condition)                          | Synonym for `SOME`
+| s | MAX_BY(value, comp)                            | Synonym for `ARG_MAX`
+| s | MIN_BY(value, comp)                            | Synonym for `ARG_MIN`
 | b p | STRING_AGG( [ ALL &#124; DISTINCT ] value [, separator] [ ORDER BY orderItem [, orderItem ]* ] ) | Synonym for `LISTAGG`
 
 Usage Examples:
@@ -2676,6 +2869,23 @@ Result
 |:------:|:-----:|:-------:|:-------:|
 | 1      | 2     | 1       | 1       |
 
+##### JSON_INSERT example
+
+SQL
+
+```SQL
+SELECT JSON_INSERT(v, '$.a', 10, '$.c', '[1]') AS c1,
+  JSON_INSERT(v, '$', 10, '$.c', '[1]') AS c2
+FROM (VALUES ('{"a": [10, true]}')) AS t(v)
+LIMIT 10;
+```
+
+Result
+
+| c1                             | c2                            |
+| ------------------------------ | ----------------------------- |
+| {"a":1 , "b":[2] , "c":"[1]"}  | {"a":1 , "b":[2] , "c":"[1]"} |
+
 ##### JSON_KEYS example
 
 SQL
@@ -2712,6 +2922,41 @@ LIMIT 10;
 |:----------:|
 | ["a", "d"] |
 
+##### JSON_REPLACE example
+
+SQL
+
+ ```SQL
+SELECT
+JSON_REPLACE(v, '$.a', 10, '$.c', '[1]') AS c1,
+JSON_REPLACE(v, '$', 10, '$.c', '[1]') AS c2
+FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)
+limit 10;
+```
+
+ Result
+
+| c1                             | c2                              |
+| ------------------------------ | ------------------------------- |
+| {"a":1 , "b":[2] , "c":"[1]"}  | {"a":1 , "b":[2] , "c":"[1]"}") |
+
+##### JSON_SET example
+
+SQL
+
+ ```SQL
+SELECT
+JSON_SET(v, '$.a', 10, '$.c', '[1]') AS c1,
+JSON_SET(v, '$', 10, '$.c', '[1]') AS c2
+FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)
+limit 10;
+```
+
+ Result
+
+| c1                 | c2 |
+| -------------------| -- |
+| {"a":10, "b":[2]}  | 10 |
 
 ##### JSON_STORAGE_SIZE example
 
@@ -2769,12 +3014,6 @@ Result
 | c1          | c2          | c3          | c4          |
 |:-----------:|:-----------:|:-----------:|:-----------:|
 | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d |
-
-Not implemented:
-
-* JSON_INSERT
-* JSON_SET
-* JSON_REPLACE
 
 ## User-defined functions
 

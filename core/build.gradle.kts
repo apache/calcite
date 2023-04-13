@@ -46,7 +46,9 @@ val testMysql by configurations.creating(integrationTestConfig)
 dependencies {
     api(project(":linq4j"))
 
-    api("com.esri.geometry:esri-geometry-api")
+    api("org.locationtech.jts:jts-core")
+    api("org.locationtech.jts.io:jts-io-common")
+    api("org.locationtech.proj4j:proj4j")
     api("com.fasterxml.jackson.core:jackson-annotations")
     api("com.google.errorprone:error_prone_annotations")
     api("com.google.guava:guava")
@@ -68,6 +70,7 @@ dependencies {
     implementation("net.hydromatic:aggdesigner-algorithm")
     implementation("org.apache.commons:commons-dbcp2")
     implementation("org.apache.commons:commons-lang3")
+    implementation("org.apache.commons:commons-math3")
     implementation("commons-io:commons-io")
     implementation("org.codehaus.janino:commons-compiler")
     implementation("org.codehaus.janino:janino")
@@ -85,6 +88,7 @@ dependencies {
 
     testImplementation(project(":testkit"))
     testImplementation("commons-lang:commons-lang")
+    testImplementation("net.bytebuddy:byte-buddy")
     testImplementation("net.hydromatic:foodmart-queries")
     testImplementation("net.hydromatic:quidem")
     testImplementation("org.apache.calcite.avatica:avatica-server")
@@ -94,6 +98,10 @@ dependencies {
     testImplementation(kotlin("stdlib-jdk8"))
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
+
+    // proj4j-epsg must not be converted to 'implementation' due to its license
+    testRuntimeOnly("org.locationtech.proj4j:proj4j-epsg")
+
     testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }
 

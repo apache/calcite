@@ -25,6 +25,7 @@ import org.apache.calcite.sql.dialect.Db2SqlDialect;
 import org.apache.calcite.sql.dialect.DerbySqlDialect;
 import org.apache.calcite.sql.dialect.ExasolSqlDialect;
 import org.apache.calcite.sql.dialect.FirebirdSqlDialect;
+import org.apache.calcite.sql.dialect.FireboltSqlDialect;
 import org.apache.calcite.sql.dialect.H2SqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.HsqldbSqlDialect;
@@ -89,6 +90,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return new DerbySqlDialect(c);
     case "EXASOL":
       return new ExasolSqlDialect(c);
+    case "FIREBOLT":
+      return new FireboltSqlDialect(c);
     case "HIVE":
       return new HiveSqlDialect(c);
     case "INGRES":
@@ -104,6 +107,9 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return new OracleSqlDialect(c);
     case "PHOENIX":
       return new PhoenixSqlDialect(c);
+    case "PRESTO":
+    case "AWS.ATHENA":
+      return new PrestoSqlDialect(c);
     case "MYSQL (INFOBRIGHT)":
       return new InfobrightSqlDialect(c);
     case "MYSQL":
@@ -120,17 +126,22 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       break;
     }
     // Now the fuzzy matches.
-    if (databaseProductName.startsWith("DB2")) {
+    if (upperProductName.startsWith("DB2")) {
       return new Db2SqlDialect(c);
     } else if (upperProductName.contains("FIREBIRD")) {
       return new FirebirdSqlDialect(c);
-    } else if (databaseProductName.startsWith("Informix")) {
+    } else if (upperProductName.contains("FIREBOLT")) {
+      return new FireboltSqlDialect(c);
+    } else if (upperProductName.contains("GOOGLE BIGQUERY")
+        || upperProductName.contains("GOOGLE BIG QUERY")) {
+      return new BigQuerySqlDialect(c);
+    } else if (upperProductName.startsWith("INFORMIX")) {
       return new InformixSqlDialect(c);
     } else if (upperProductName.contains("NETEZZA")) {
       return new NetezzaSqlDialect(c);
     } else if (upperProductName.contains("PARACCEL")) {
       return new ParaccelSqlDialect(c);
-    } else if (databaseProductName.startsWith("HP Neoview")) {
+    } else if (upperProductName.startsWith("HP NEOVIEW")) {
       return new NeoviewSqlDialect(c);
     } else if (upperProductName.contains("POSTGRE")) {
       return new PostgresqlSqlDialect(
@@ -175,6 +186,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return ExasolSqlDialect.DEFAULT;
     case FIREBIRD:
       return FirebirdSqlDialect.DEFAULT;
+    case FIREBOLT:
+      return FireboltSqlDialect.DEFAULT;
     case H2:
       return H2SqlDialect.DEFAULT;
     case HIVE:

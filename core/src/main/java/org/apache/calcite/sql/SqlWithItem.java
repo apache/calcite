@@ -97,7 +97,7 @@ public class SqlWithItem extends SqlCall {
         withItem.columnList.unparse(writer, getLeftPrec(), getRightPrec());
       }
       writer.keyword("AS");
-      withItem.query.unparse(writer, 10, 10);
+      withItem.query.unparse(writer, MDX_PRECEDENCE, MDX_PRECEDENCE);
     }
 
     @SuppressWarnings("argument.type.incompatible")

@@ -133,6 +133,14 @@ public interface RelDataTypeFactory {
       RelDataType valueType);
 
   /**
+   * Creates a measure type.
+   *
+   * @param valueType type of the values of the measure
+   * @return canonical measure type descriptor
+   */
+  RelDataType createMeasureType(RelDataType valueType);
+
+  /**
    * Creates a multiset type. Multisets are unordered collections of elements.
    *
    * @param elementType    type of the elements of the multiset
@@ -560,8 +568,9 @@ public interface RelDataTypeFactory {
      * Makes sure that field names are unique.
      */
     public Builder uniquify() {
-      final List<String> uniqueNames = SqlValidatorUtil.uniquify(names,
-          typeFactory.getTypeSystem().isSchemaCaseSensitive());
+      final List<String> uniqueNames =
+          SqlValidatorUtil.uniquify(names,
+              typeFactory.getTypeSystem().isSchemaCaseSensitive());
       if (uniqueNames != names) {
         names.clear();
         names.addAll(uniqueNames);

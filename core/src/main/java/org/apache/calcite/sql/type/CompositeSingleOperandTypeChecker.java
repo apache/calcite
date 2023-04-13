@@ -35,15 +35,14 @@ public class CompositeSingleOperandTypeChecker
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Package private. Use {@link org.apache.calcite.sql.type.OperandTypes#and},
-   * {@link org.apache.calcite.sql.type.OperandTypes#or}.
-   */
+  /** Creates a CompositeSingleOperandTypeChecker. Outside this package, use
+   * {@link SqlSingleOperandTypeChecker#and(SqlSingleOperandTypeChecker)},
+   * {@link OperandTypes#and}, {@link OperandTypes#or} and similar. */
   CompositeSingleOperandTypeChecker(
       CompositeOperandTypeChecker.Composition composition,
       ImmutableList<? extends SqlSingleOperandTypeChecker> allowedRules,
       @Nullable String allowedSignatures) {
-    super(composition, allowedRules, allowedSignatures, null);
+    super(composition, allowedRules, allowedSignatures, null, null);
   }
 
   //~ Methods ----------------------------------------------------------------

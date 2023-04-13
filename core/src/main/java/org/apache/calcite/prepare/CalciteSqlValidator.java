@@ -22,10 +22,11 @@ import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
-/** Validator. */
-class CalciteSqlValidator extends SqlValidatorImpl {
+/** Validator.
+ */
+public class CalciteSqlValidator extends SqlValidatorImpl {
 
-  CalciteSqlValidator(SqlOperatorTable opTab,
+  public CalciteSqlValidator(SqlOperatorTable opTab,
       CalciteCatalogReader catalogReader, JavaTypeFactory typeFactory,
       Config config) {
     super(opTab, catalogReader, typeFactory, config);

@@ -32,7 +32,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * The name-resolution scope of a SELECT clause. The objects visible are those
@@ -135,12 +136,13 @@ public class SelectScope extends ListScope {
   }
 
   @Override public @Nullable SqlWindow lookupWindow(String name) {
-    final SqlNodeList windowList = select.getWindowList();
-    for (int i = 0; i < windowList.size(); i++) {
-      SqlWindow window = (SqlWindow) windowList.get(i);
-      final SqlIdentifier declId = Objects.requireNonNull(
-          window.getDeclName(),
-          () -> "declName of window " + window);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    final List<SqlWindow> windowList =
+        (List<SqlWindow>) (List) select.getWindowList();
+    for (SqlWindow window : windowList) {
+      final SqlIdentifier declId =
+          requireNonNull(window.getDeclName(),
+              () -> "declName of window " + window);
       assert declId.isSimple();
       if (declId.names.get(0).equals(name)) {
         return window;

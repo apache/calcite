@@ -38,6 +38,8 @@ import org.apache.calcite.sql.type.AbstractSqlType;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.format.FormatModel;
+import org.apache.calcite.util.format.FormatModels;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
@@ -274,6 +276,8 @@ public class SqlDialect {
       return DatabaseProduct.DERBY;
     case "EXASOL":
       return DatabaseProduct.EXASOL;
+    case "FIREBOLT":
+      return DatabaseProduct.FIREBOLT;
     case "HIVE":
       return DatabaseProduct.HIVE;
     case "INGRES":
@@ -287,6 +291,7 @@ public class SqlDialect {
     case "PHOENIX":
       return DatabaseProduct.PHOENIX;
     case "PRESTO":
+    case "AWS.ATHENA":
       return DatabaseProduct.PRESTO;
     case "MYSQL (INFOBRIGHT)":
       return DatabaseProduct.INFOBRIGHT;
@@ -324,7 +329,8 @@ public class SqlDialect {
       return DatabaseProduct.H2;
     } else if (upperProductName.contains("VERTICA")) {
       return DatabaseProduct.VERTICA;
-    } else if (upperProductName.contains("GOOGLE BIGQUERY")) {
+    } else if (upperProductName.contains("GOOGLE BIGQUERY")
+        || upperProductName.contains("GOOGLE BIG QUERY")) {
       return DatabaseProduct.BIG_QUERY;
     } else {
       return DatabaseProduct.UNKNOWN;
@@ -485,6 +491,10 @@ public class SqlDialect {
    * <code>INTERVAL '1 2:3:4' DAY(4) TO SECOND(4)</code>. */
   public void unparseSqlIntervalQualifier(SqlWriter writer,
       SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
+    if (qualifier.timeFrameName != null) {
+      SqlIntervalQualifier.asIdentifier(qualifier).unparse(writer, 0, 0);
+      return;
+    }
     final String start = qualifier.timeUnitRange.startUnit.name();
     final int fractionalSecondPrecision =
         qualifier.getFractionalSecondPrecision(typeSystem);
@@ -681,7 +691,7 @@ public class SqlDialect {
    * @return SQL timestamp literal
    */
   public String quoteTimestampLiteral(Timestamp timestamp) {
-    final SimpleDateFormat format = getDateFormatter("'TIMESTAMP' ''yyyy-MM-DD HH:mm:SS''");
+    final SimpleDateFormat format = getDateFormatter("'TIMESTAMP' ''yyyy-MM-dd HH:mm:ss''");
     return format.format(timestamp);
   }
 
@@ -995,6 +1005,18 @@ public class SqlDialect {
   }
 
   /**
+   * Returns a description of the format string used by functions in this
+   * dialect.
+   *
+   * <p>Dialects may need to override this element mapping if they differ from
+   * <a href="https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Format-Models.html">
+   * Oracle's format elements</a>. By default, this returns {@link FormatModels#DEFAULT}.
+   */
+  public FormatModel getFormatModel() {
+    return FormatModels.DEFAULT;
+  }
+
+  /**
    * Returns whether the dialect supports nested aggregations, for instance
    * {@code SELECT SUM(SUM(1)) }.
    */
@@ -1305,6 +1327,7 @@ public class SqlDialect {
     DB2("IBM DB2", null, NullCollation.HIGH),
     EXASOL("Exasol", "\"", NullCollation.LOW),
     FIREBIRD("Firebird", null, NullCollation.HIGH),
+    FIREBOLT("Firebolt", "\"", NullCollation.LOW),
     H2("H2", "\"", NullCollation.HIGH),
     HIVE("Apache Hive", null, NullCollation.LOW),
     INFORMIX("Informix", null, NullCollation.HIGH),

@@ -100,11 +100,11 @@ public class HintStrategyTable {
    */
   public boolean validateHint(RelHint hint) {
     final Key key = Key.of(hint.hintName);
-    boolean hintExists = this.errorHandler.check(
-        this.strategies.containsKey(key),
-        "Hint: {} should be registered in the {}",
-        hint.hintName,
-        this.getClass().getSimpleName());
+    boolean hintExists =
+        this.errorHandler.check(this.strategies.containsKey(key),
+            "Hint: {} should be registered in the {}",
+            hint.hintName,
+            this.getClass().getSimpleName());
     if (!hintExists) {
       return false;
     }
@@ -232,19 +232,6 @@ public class HintStrategyTable {
     @Override public boolean fail(@Nullable String message, @Nullable Object... args) {
       LOGGER.warn(requireNonNull(message, "message"), args);
       return false;
-    }
-
-    @Override public boolean succeed() {
-      return true;
-    }
-
-    @Override public boolean check(boolean condition, @Nullable String message,
-        @Nullable Object... args) {
-      if (condition) {
-        return succeed();
-      } else {
-        return fail(message, args);
-      }
     }
   }
 }

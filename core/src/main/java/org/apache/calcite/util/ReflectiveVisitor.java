@@ -22,7 +22,7 @@ package org.apache.calcite.util;
  *
  * <p>This is a tagging interface: it has no methods, and is not even required
  * in order to use reflective visitation, but serves to advise users of the
- * class of the intended use of the class and refer them to auxilliary classes.
+ * class of the intended use of the class and refer them to auxiliary classes.
  */
 public interface ReflectiveVisitor {
 }

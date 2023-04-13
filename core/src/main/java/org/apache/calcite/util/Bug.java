@@ -25,14 +25,15 @@ package org.apache.calcite.util;
  * incorrect row-count, and you want to disable unit tests. You might use the
  * constant in your code as follows:
  *
- * <blockquote>
- * <pre>Statement stmt = connection.createStatement();
- * int rowCount = stmt.execute(
- *     "INSERT INTO FemaleEmps SELECT * FROM Emps WHERE gender = 'F'");
- * if (Bug.CALCITE_123_FIXED) {
- *    assertEquals(rowCount, 5);
- * }</pre>
- * </blockquote>
+ * <blockquote><pre>{@code
+ *   Statement stmt = connection.createStatement();
+ *   int rowCount =
+ *       stmt.execute("INSERT INTO FemaleEmps\n"
+ *           + "SELECT * FROM Emps WHERE gender = 'F'");
+ *   if (Bug.CALCITE_123_FIXED) {
+ *      assertEquals(rowCount, 5);
+ *   }
+ * }</pre></blockquote>
  *
  * <p>The usage of the constant is a convenient way to identify the impact of
  * the bug. When someone fixes the bug, they will remove the constant and all
@@ -152,14 +153,6 @@ public abstract class Bug {
    * Decorrelate sub-queries in Project and Join</a> is fixed. */
   public static final boolean CALCITE_1045_FIXED = false;
 
-  /**
-   * Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2223">[CALCITE-2223]
-   * ProjectMergeRule is infinitely matched when is applied after ProjectReduceExpressions Rule</a>
-   * is fixed.
-   */
-  public static final boolean CALCITE_2223_FIXED = false;
-
   /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2400">[CALCITE-2400]
    * Allow standards-compliant column ordering for NATURAL JOIN and JOIN USING
@@ -191,6 +184,7 @@ public abstract class Bug {
    * Intermittent precision in Druid results when using aggregation functions over columns of type
    * DOUBLE</a> is fixed. */
   public static final boolean CALCITE_4204_FIXED = false;
+
   /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4205">[CALCITE-4205]
    * DruidAdapterIT#testDruidTimeFloorAndTimeParseExpressions2 fails</a> is fixed. */
@@ -200,11 +194,17 @@ public abstract class Bug {
    * Druid plans with small intervals should be chosen over full interval scan plus filter</a> is
    * fixed. */
   public static final boolean CALCITE_4213_FIXED = false;
+
   /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4645">[CALCITE-4645]
    * In Elasticsearch adapter, a range predicate should be translated to a range query</a> is
    * fixed. */
   public static final boolean CALCITE_4645_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5422">[CALCITE-5422]
+   * MILLISECOND and MICROSECOND units in INTERVAL literal</a> is fixed. */
+  public static final boolean CALCITE_5422_FIXED = false;
 
   /**
    * Use this to flag temporary code.

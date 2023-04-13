@@ -135,8 +135,9 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final ConversionData conversionData = getConversionData(planner);
 
-    final Convention fromConvention = requireNonNull(rel.getConvention(),
-        () -> "convention is null for rel " + rel);
+    final Convention fromConvention =
+        requireNonNull(rel.getConvention(),
+            () -> "convention is null for rel " + rel);
 
     List<List<Convention>> conversionPaths =
         conversionData.getPaths(fromConvention, toConvention);

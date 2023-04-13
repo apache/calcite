@@ -43,6 +43,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.format.FormatModel;
+import org.apache.calcite.util.format.FormatModels;
 
 import com.google.common.collect.ImmutableList;
 
@@ -271,6 +273,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @see FormatModels#BIG_QUERY
+   */
+  @Override public FormatModel getFormatModel() {
+    return FormatModels.BIG_QUERY;
+  }
+
   /** {@inheritDoc}
    *
    * <p>BigQuery data type reference:
@@ -316,16 +327,16 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
       SqlTypeName typeName) {
-    SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
-        typeAlias, typeName, SqlParserPos.ZERO);
+    SqlAlienSystemTypeNameSpec typeNameSpec =
+        new SqlAlienSystemTypeNameSpec(typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
   }
 
   /**
    * List of BigQuery Specific Operators needed to form Syntactically Correct SQL.
    */
-  private static final SqlOperator UNION_DISTINCT = new SqlSetOperator(
-      "UNION DISTINCT", SqlKind.UNION, 14, false);
+  private static final SqlOperator UNION_DISTINCT =
+      new SqlSetOperator("UNION DISTINCT", SqlKind.UNION, 14, false);
 
   private static final SqlSetOperator EXCEPT_DISTINCT =
       new SqlSetOperator("EXCEPT DISTINCT", SqlKind.EXCEPT, 14, false);

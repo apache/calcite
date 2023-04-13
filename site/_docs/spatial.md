@@ -151,7 +151,7 @@ But for safety, Calcite applies the original predicate, to remove false positive
 ## Acknowledgements
 
 Calcite's OpenGIS implementation uses the
-[Esri geometry API](https://github.com/Esri/geometry-api-java). Thanks for the
+[JTS Topology Suite](https://github.com/locationtech/jts). Thanks for the
 help we received from their community.
 
 While developing this feature, we made extensive use of the

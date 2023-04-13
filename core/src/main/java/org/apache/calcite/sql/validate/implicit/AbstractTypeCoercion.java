@@ -23,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -30,7 +31,9 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -103,12 +106,17 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return false;
     }
     requireNonNull(scope, "scope");
+    RelDataType operandType = validator.deriveType(scope, operand);
+    if (coerceStringToArray(call, operand, index, operandType, targetType)) {
+      return true;
+    }
+
     // Check it early.
     if (!needToCast(scope, operand, targetType)) {
       return false;
     }
     // Fix up nullable attr.
-    RelDataType targetType1 = syncAttributes(validator.deriveType(scope, operand), targetType);
+    RelDataType targetType1 = syncAttributes(operandType, targetType);
     SqlNode desired = castTo(operand, targetType1);
     call.setOperand(index, desired);
     updateInferredType(desired, targetType1);
@@ -221,9 +229,9 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
         Charset charset = fromType.getCharset();
         if (charset != null && SqlTypeUtil.inCharFamily(syncedType)) {
           SqlCollation collation = getCollation(fromType);
-          syncedType = factory.createTypeWithCharsetAndCollation(syncedType,
-              charset,
-              collation);
+          syncedType =
+              factory.createTypeWithCharsetAndCollation(syncedType, charset,
+                  collation);
         }
       }
     }
@@ -394,8 +402,9 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
 
     if (SqlTypeUtil.isArray(type1) && SqlTypeUtil.isArray(type2)) {
       if (SqlTypeUtil.equalSansNullability(factory, type1, type2)) {
-        resultType = factory.createTypeWithNullability(type1,
-            type1.isNullable() || type2.isNullable());
+        resultType =
+            factory.createTypeWithNullability(type1,
+                type1.isNullable() || type2.isNullable());
       }
     }
 
@@ -525,6 +534,16 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return type2;
     }
 
+    if (validator.config().conformance().allowCoercionStringToArray()) {
+      if (SqlTypeUtil.isString(type1) && SqlTypeUtil.isArray(type2)) {
+        return type2;
+      }
+
+      if (SqlTypeUtil.isString(type2) && SqlTypeUtil.isArray(type1)) {
+        return type1;
+      }
+    }
+
     return null;
   }
 
@@ -549,8 +568,9 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     }
     if (null == resultType) {
       if (SqlTypeUtil.isArray(type1) && SqlTypeUtil.isArray(type2)) {
-        RelDataType valType = getWiderTypeForTwo(type1.getComponentType(),
-            type2.getComponentType(), stringPromotion);
+        RelDataType valType =
+            getWiderTypeForTwo(type1.getComponentType(),
+                type2.getComponentType(), stringPromotion);
         if (null != valType) {
           resultType = factory.createArrayType(valType, -1);
         }
@@ -666,14 +686,13 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * @return common type of implicit cast, null if we do not find any
    */
   public @Nullable RelDataType implicitCast(RelDataType in, SqlTypeFamily expected) {
-    List<SqlTypeFamily> numericFamilies = ImmutableList.of(
-        SqlTypeFamily.NUMERIC,
-        SqlTypeFamily.DECIMAL,
-        SqlTypeFamily.APPROXIMATE_NUMERIC,
-        SqlTypeFamily.EXACT_NUMERIC,
-        SqlTypeFamily.INTEGER);
-    List<SqlTypeFamily> dateTimeFamilies = ImmutableList.of(SqlTypeFamily.DATE,
-        SqlTypeFamily.TIME, SqlTypeFamily.TIMESTAMP);
+    List<SqlTypeFamily> numericFamilies =
+        ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.DECIMAL,
+            SqlTypeFamily.APPROXIMATE_NUMERIC, SqlTypeFamily.EXACT_NUMERIC,
+            SqlTypeFamily.INTEGER);
+    List<SqlTypeFamily> dateTimeFamilies =
+        ImmutableList.of(SqlTypeFamily.DATE, SqlTypeFamily.TIME,
+            SqlTypeFamily.TIMESTAMP);
     // If the expected type is already a parent of the input type, no need to cast.
     if (expected.getTypeNames().contains(in.getSqlTypeName())) {
       return in;
@@ -719,6 +738,37 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
         || expected == SqlTypeFamily.CHARACTER)) {
       return expected.getDefaultConcreteType(factory);
     }
+    // CHAR -> GEOMETRY
+    if (SqlTypeUtil.isCharacter(in) && expected == SqlTypeFamily.GEO) {
+      return expected.getDefaultConcreteType(factory);
+    }
     return null;
+  }
+
+  /**
+   * Coerce STRING type to ARRAY type.
+   */
+  protected Boolean coerceStringToArray(
+      SqlCall call,
+      SqlNode operand,
+      int index,
+      RelDataType fromType,
+      RelDataType targetType) {
+    if (validator.config().conformance().allowCoercionStringToArray()
+        && SqlTypeUtil.isString(fromType)
+        && SqlTypeUtil.isArray(targetType)
+        && operand instanceof SqlCharStringLiteral) {
+      try {
+        SqlNode arrayValue =
+            SqlParserUtil.parseArrayLiteral(
+                ((SqlCharStringLiteral) operand).getValueAs(String.class));
+        call.setOperand(index, arrayValue);
+        updateInferredType(arrayValue, targetType);
+      } catch (SqlParseException e) {
+        return false;
+      }
+      return true;
+    }
+    return false;
   }
 }

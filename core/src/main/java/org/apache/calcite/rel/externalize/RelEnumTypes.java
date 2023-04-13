@@ -33,9 +33,12 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /** Registry of {@link Enum} classes that can be serialized to JSON.
  *
@@ -103,8 +106,11 @@ public abstract class RelEnumTypes {
   }
 
   /** Converts a string to an enum value.
-   * The converse of {@link #fromEnum(Enum)}. */
-  static <E extends Enum<E>> E toEnum(String name) {
-    return (E) ENUM_BY_NAME.get(name);
+   * The converse of {@link #fromEnum(Enum)}.
+   *
+   * @throws NullPointerException if there is no corresponding registered {@link Enum}
+   * */
+  static <E extends Enum<E>> @NonNull E toEnum(String name) {
+    return (E) requireNonNull(ENUM_BY_NAME.get(name));
   }
 }

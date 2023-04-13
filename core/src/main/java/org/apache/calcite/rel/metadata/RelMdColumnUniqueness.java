@@ -78,9 +78,14 @@ public class RelMdColumnUniqueness
     return BuiltInMetadata.ColumnUniqueness.DEF;
   }
 
-  public Boolean areColumnsUnique(TableScan rel, RelMetadataQuery mq,
+  public Boolean areColumnsUnique(TableScan scan, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    return rel.getTable().isKey(columns);
+    final BuiltInMetadata.ColumnUniqueness.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.ColumnUniqueness.Handler.class);
+    if (handler != null) {
+      return handler.areColumnsUnique(scan, mq, columns, ignoreNulls);
+    }
+    return scan.getTable().isKey(columns);
   }
 
   public @Nullable Boolean areColumnsUnique(Filter rel, RelMetadataQuery mq,
@@ -248,9 +253,9 @@ public class RelMdColumnUniqueness
         RelDataType castType =
             typeFactory.createTypeWithNullability(
                 projExpr.getType(), true);
-        RelDataType origType = typeFactory.createTypeWithNullability(
-            castOperand.getType(),
-            true);
+        RelDataType origType =
+            typeFactory.createTypeWithNullability(castOperand.getType(),
+                true);
         if (castType.equals(origType)) {
           childColumns.set(((RexInputRef) castOperand).getIndex());
         }
@@ -351,8 +356,24 @@ public class RelMdColumnUniqueness
     if (Aggregate.isSimple(rel) || ignoreNulls) {
       columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
       // group by keys form a unique key
-      ImmutableBitSet groupKey = ImmutableBitSet.range(rel.getGroupCount());
-      return columns.contains(groupKey);
+      final ImmutableBitSet groupKey = ImmutableBitSet.range(rel.getGroupCount());
+      final boolean contained = columns.contains(groupKey);
+      if (contained) {
+        return true;
+      } else if (!Aggregate.isSimple(rel)) {
+        return false;
+      }
+
+      final ImmutableBitSet commonKeys = columns.intersect(groupKey);
+      if (commonKeys.isEmpty()) {
+        return false;
+      }
+      final ImmutableBitSet.Builder targetColumns = ImmutableBitSet.builder();
+      for (int key: commonKeys) {
+        targetColumns.set(rel.getGroupSet().nth(key));
+      }
+
+      return mq.areColumnsUnique(rel.getInput(), targetColumns.build(), ignoreNulls);
     }
     return null;
   }

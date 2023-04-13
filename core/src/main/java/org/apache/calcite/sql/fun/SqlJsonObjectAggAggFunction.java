@@ -30,7 +30,6 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
 
@@ -49,10 +48,11 @@ public class SqlJsonObjectAggAggFunction extends SqlAggFunction {
         (callBinding, returnType, operandTypes) -> {
           RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
           operandTypes[0] = typeFactory.createSqlType(SqlTypeName.VARCHAR);
-          operandTypes[1] = typeFactory.createTypeWithNullability(
-              typeFactory.createSqlType(SqlTypeName.ANY), true);
-        }, OperandTypes.family(SqlTypeFamily.CHARACTER,
-            SqlTypeFamily.ANY),
+          operandTypes[1] =
+              typeFactory.createTypeWithNullability(
+                  typeFactory.createSqlType(SqlTypeName.ANY), true);
+        },
+        OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.ANY),
         SqlFunctionCategory.SYSTEM, false, false, Optionality.FORBIDDEN);
     this.nullClause = Objects.requireNonNull(nullClause, "nullClause");
   }
@@ -74,7 +74,7 @@ public class SqlJsonObjectAggAggFunction extends SqlAggFunction {
     // To prevent operator rewriting by SqlFunction#deriveType.
     for (SqlNode operand : call.getOperandList()) {
       RelDataType nodeType = validator.deriveType(scope, operand);
-      ((SqlValidatorImpl) validator).setValidatedNodeType(operand, nodeType);
+      validator.setValidatedNodeType(operand, nodeType);
     }
     return validateOperands(validator, scope, call);
   }

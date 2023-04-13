@@ -59,9 +59,9 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  * @param <E> Row type
  */
 public class CsvEnumerator<E> implements Enumerator<E> {
+  private static final CalciteLogger LOGGER =
+      new CalciteLogger(LoggerFactory.getLogger(CsvEnumerator.class));
 
-  private static final CalciteLogger LOGGER = new CalciteLogger(
-      LoggerFactory.getLogger(CsvEnumerator.class));
   private final CSVReader reader;
   private final @Nullable List<@Nullable String> filterValues;
   private final AtomicBoolean cancelFlag;

@@ -347,8 +347,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
 
     @Override public void send(Row row) {
-      @Nullable Object[] sendValues = requireNonNull(def.sendContext.values,
-          "def.sendContext.values");
+      @Nullable Object[] sendValues =
+          requireNonNull(def.sendContext.values, "def.sendContext.values");
       System.arraycopy(row.getValues(), 0, sendValues, 0,
           def.rowLength);
       System.arraycopy(this.values, 0, sendValues, def.rowLength,
@@ -763,8 +763,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       }
       final @Nullable Object[] args = {value};
       try {
-        AggregateFunctionImpl aggFunction = requireNonNull(factory.aggFunction,
-            "factory.aggFunction");
+        AggregateFunctionImpl aggFunction =
+            requireNonNull(factory.aggFunction, "factory.aggFunction");
         return requireNonNull(aggFunction.resultMethod, "aggFunction.resultMethod")
             .invoke(factory.instance, args);
       } catch (IllegalAccessException | InvocationTargetException e) {

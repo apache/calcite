@@ -258,8 +258,8 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
         }
       }
       @SuppressWarnings("unchecked")
-      final E element = (E) element(currentChunk(),
-          HEADER_SIZE + (lastRet = cursor++) - start);
+      final E element =
+          (E) element(currentChunk(), HEADER_SIZE + (lastRet = cursor++) - start);
       return element;
     }
 

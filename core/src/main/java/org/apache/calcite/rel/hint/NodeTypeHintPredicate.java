@@ -20,9 +20,15 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Snapshot;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.core.Window;
 
 /**
  * A hint predicate that specifies which kind of relational
@@ -69,7 +75,37 @@ public class NodeTypeHintPredicate implements HintPredicate {
     /**
      * The hint would be propagated to the Correlate nodes.
      */
-    CORRELATE(Correlate.class);
+    CORRELATE(Correlate.class),
+
+    /**
+     * The hint would be propagated to the Filter nodes.
+     */
+    FILTER(Filter.class),
+
+    /**
+     * The hint would be propagated to the SetOp(Union, Intersect, Minus) nodes.
+     */
+    SETOP(SetOp.class),
+
+    /**
+     * The hint would be propagated to the Sort nodes.
+     */
+    SORT(Sort.class),
+
+    /**
+     * The hint would be propagated to the Values nodes.
+     */
+    VALUES(Values.class),
+
+    /**
+     * The hint would be propagated to the Window nodes.
+     */
+    WINDOW(Window.class),
+
+    /**
+     * The hint would be propagated to the Snapshot nodes.
+     */
+    SNAPSHOT(Snapshot.class);
 
     /** Relational expression clazz that the hint can apply to. */
     @SuppressWarnings("ImmutableEnumChecker")

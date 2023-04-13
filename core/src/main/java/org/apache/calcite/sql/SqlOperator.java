@@ -586,8 +586,8 @@ public abstract class SqlOperator {
 
     final List<SqlNode> args = constructOperandList(validator, call, null);
 
-    final List<RelDataType> argTypes = constructArgTypeList(validator, scope,
-        call, args, false);
+    final List<RelDataType> argTypes =
+        constructArgTypeList(validator, scope, call, args, false);
 
     // Always disable type coercion for builtin operator operands,
     // they are handled by the TypeCoercion specifically.
@@ -665,8 +665,9 @@ public abstract class SqlOperator {
     final SqlValidatorScope operandScope = scope.getOperandScope(call);
 
     final ImmutableList.Builder<RelDataType> argTypeBuilder =
-            ImmutableList.builder();
-    for (SqlNode operand : args) {
+        ImmutableList.builder();
+    for (int i = 0; i < args.size(); i++) {
+      SqlNode operand = args.get(i);
       RelDataType nodeType;
       // for row arguments that should be converted to ColumnList
       // types, set the nodeType to a ColumnList type but defer
@@ -675,14 +676,19 @@ public abstract class SqlOperator {
       if (operand.getKind() == SqlKind.ROW && convertRowArgToColumnList) {
         RelDataTypeFactory typeFactory = validator.getTypeFactory();
         nodeType = typeFactory.createSqlType(SqlTypeName.COLUMN_LIST);
-        ((SqlValidatorImpl) validator).setValidatedNodeType(operand, nodeType);
+        validator.setValidatedNodeType(operand, nodeType);
       } else {
-        nodeType = validator.deriveType(operandScope, operand);
+        nodeType = deriveOperandType(validator, operandScope, i, operand);
       }
       argTypeBuilder.add(nodeType);
     }
 
     return argTypeBuilder.build();
+  }
+
+  protected RelDataType deriveOperandType(SqlValidator validator,
+      SqlValidatorScope scope, int i, SqlNode operand) {
+    return validator.deriveType(scope, operand);
   }
 
   /**

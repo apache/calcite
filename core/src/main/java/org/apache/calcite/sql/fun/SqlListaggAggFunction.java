@@ -31,7 +31,7 @@ class SqlListaggAggFunction extends SqlAggFunction {
   SqlListaggAggFunction(SqlKind kind,
       SqlReturnTypeInference returnTypeInference) {
     super(kind.name(), null, kind, returnTypeInference,
-        null, OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
+        null, OperandTypes.STRING.or(OperandTypes.STRING_STRING),
         SqlFunctionCategory.SYSTEM, false, false, Optionality.OPTIONAL);
   }
 }

@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.test;
 
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -24,8 +25,16 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.test.DiffRepository;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
+import static org.apache.calcite.test.Matchers.isLinux;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.notNullValue;
 
 /**
  * Unit test for {@link SqlPrettyWriter}.
@@ -42,8 +51,19 @@ class SqlPrettyWriterTest {
   private static final SqlPrettyWriterFixture LOCAL_FIXTURE =
       FIXTURE.withDiffRepos(DiffRepository.lookup(SqlPrettyWriterTest.class));
 
+  @Nullable
+  private static DiffRepository diffRepos = null;
+
+  @AfterAll
+  public static void checkActualAndReferenceFiles() {
+    if (diffRepos != null) {
+      diffRepos.checkActualAndReferenceFiles();
+    }
+  }
+
   /** Returns the default fixture for tests. Sub-classes may override. */
   protected SqlPrettyWriterFixture fixture() {
+    diffRepos = LOCAL_FIXTURE.diffRepos();
     return LOCAL_FIXTURE;
   }
 
@@ -367,6 +387,33 @@ class SqlPrettyWriterTest {
     sql(sql)
         .withWriter(c -> c.withLineFolding(SqlWriterConfig.LineFolding.TALL))
         .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4401">[CALCITE-4401]
+   * SqlJoin toString throws RuntimeException</a>. */
+  @Test void testJoinClauseToString() {
+    final String sql = "SELECT t.region_name, t0.o_totalprice\n"
+        + "FROM (SELECT c_custkey, region_name\n"
+        + "FROM tpch.out_tpch_vw__customer) AS t\n"
+        + "INNER JOIN (SELECT o_custkey, o_totalprice\n"
+        + "FROM tpch.out_tpch_vw__orders) AS t0 ON t.c_custkey = t0.o_custkey";
+
+    final String expectedJoinString = "SELECT *\n"
+        + "FROM (SELECT `C_CUSTKEY`, `REGION_NAME`\n"
+        + "FROM `TPCH`.`OUT_TPCH_VW__CUSTOMER`) AS `T`\n"
+        + "INNER JOIN (SELECT `O_CUSTKEY`, `O_TOTALPRICE`\n"
+        + "FROM `TPCH`.`OUT_TPCH_VW__ORDERS`) AS `T0`"
+        + " ON `T`.`C_CUSTKEY` = `T0`.`O_CUSTKEY`";
+
+    sql(sql)
+        .checkTransformedNode(root -> {
+          assertThat(root, instanceOf(SqlSelect.class));
+          SqlNode from = ((SqlSelect) root).getFrom();
+          assertThat(from, notNullValue());
+          assertThat(from.toString(), isLinux(expectedJoinString));
+          return from;
+        });
   }
 
   @Test void testWhereListItemsOnSeparateLinesOr() {

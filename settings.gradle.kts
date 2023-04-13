@@ -33,11 +33,13 @@ pluginManagement {
         idv("com.github.vlsi.stage-vote-release", "com.github.vlsi.vlsi-release-plugins")
         idv("com.google.protobuf")
         idv("de.thetaphi.forbiddenapis")
+        idv("jacoco")
         idv("me.champeau.gradle.jmh")
         idv("net.ltgt.errorprone")
         idv("org.jetbrains.gradle.plugin.idea-ext")
         idv("org.nosphere.apache.rat")
         idv("org.owasp.dependencycheck")
+        idv("org.sonarqube")
         kotlin("jvm") version "kotlin".v()
     }
     if (extra.has("enableMavenLocal") && extra["enableMavenLocal"].toString().ifBlank { "true" }.toBoolean()) {
@@ -110,7 +112,8 @@ if (isCiServer) {
 
 // Cache build artifacts, so expensive operations do not need to be re-computed
 // The logic is as follows:
-//  1. Cache is populated only in CI that has S3_BUILD_CACHE_ACCESS_KEY_ID and S3_BUILD_CACHE_SECRET_KEY (GitHub Actions in master branch)
+//  1. Cache is populated only in CI that has S3_BUILD_CACHE_ACCESS_KEY_ID and
+//     S3_BUILD_CACHE_SECRET_KEY (GitHub Actions in main branch)
 //  2. Otherwise the cache is read-only (e.g. everyday builds and PR builds)
 buildCache {
     local {

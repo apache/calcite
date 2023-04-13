@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Pair;
 
@@ -147,7 +148,17 @@ public interface SqlValidatorNamespace {
    * @param name Field name
    * @return Whether field exists
    */
-  boolean fieldExists(String name);
+  default boolean fieldExists(String name) {
+    return field(name) != null;
+  }
+
+  /**
+   * Returns a field of a given name, or null.
+   *
+   * @param name Field name
+   * @return Field, or null
+   */
+  @Nullable RelDataTypeField field(String name);
 
   /**
    * Returns a list of expressions which are monotonic in this namespace. For

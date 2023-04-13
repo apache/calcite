@@ -39,12 +39,23 @@
   apacheId: sereda
   githubId: asereda-gs
   org:
-  role: Committer
+  role: PMC
 - name: Ashutosh Chauhan
   apacheId: hashutosh
   githubId: ashutoshc
   org: Hortonworks
   role: PMC
+- name: Benchao Li
+  apacheId: libenchao
+  githubId: libenchao
+  pronouns: he/him
+  org: ByteDance
+  role: PMC
+- name: Bertil Chapuis
+  apacheId: bchapuis
+  githubId: bchapuis
+  org: HEIG-VD
+  role: Committer
 - name: Chris Baynes
   apacheId: cbaynes
   githubId: chris-baynes
@@ -59,12 +70,17 @@
   apacheId: chunwei
   githubId: chunweilei
   org: Alibaba
-  role: Committer
+  role: PMC
 - name: Danny Chan
   apacheId: danny0405
   githubId: danny0405
   org: Alibaba
   role: PMC
+- name: Dmitry Sysolyatin
+  apacheId: dmsysolyatin
+  githubId: dssysolyatin
+  org: Intertrust Technologies
+  role: Committer
 - name: Edmon Begoli
   apacheId: ebegoli
   githubId: ebegoli
@@ -101,6 +117,11 @@
   githubId: zhztheplayer
   org: Tencent
   role: Committer
+- name: Istvan Toth
+  apacheId: stoty
+  githubId: stoty
+  org: Cloudera
+  role: Committer
 - name: James R. Taylor
   apacheId: jamestaylor
   githubId: JamesRTaylor
@@ -121,11 +142,21 @@
   githubId: jcamachor
   org: Hortonworks
   role: PMC
+- name: Jiajun Xie
+  apacheId: jiajunxie
+  githubId: jiajunbernoulli
+  org: ByteDance
+  role: Committer
 - name: Jinfeng Ni
   apacheId: jni
   githubId: jinfengni
   org: MapR
   role: PMC
+- name: Jing Zhang
+  apacheId: jingzhang
+  githubId: beyond1920
+  org: Kuaishou
+  role: Committer
 - name: Jin Xing
   apacheId: jinxing
   githubId: jinxing64
@@ -216,7 +247,7 @@
   apacheId: rubenql
   githubId: rubenada
   org: TIBCO
-  role: PMC Chair
+  role: PMC
 - name: Rui Wang
   apacheId: amaliujia
   githubId: amaliujia
@@ -242,7 +273,7 @@
   githubId: zabetak
   pronouns: he/him
   org: Cloudera
-  role: PMC
+  role: PMC Chair
   homepage: https://people.apache.org/~zabetak/
 - name: Steven Noels
   apacheId: stevenn
@@ -254,7 +285,6 @@
   githubId: tdunning
   org: MapR
   role: PMC
-  avatar: https://mapr.com/blog/author/ted-dunning/assets/tdunning-panama.jpg
 - name: Vineet Garg
   apacheId: vgarg
   githubId: vineetgarg02
@@ -269,7 +299,7 @@
   apacheId: vozerov
   githubId: devozerov
   org: Querify Labs
-  role: Committer
+  role: PMC
 - name: Volodymyr Vysotskyi
   apacheId: volodymyr
   githubId: vvysotskyi

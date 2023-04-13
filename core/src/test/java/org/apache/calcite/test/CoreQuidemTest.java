@@ -17,8 +17,6 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.prepare.Prepare;
-import org.apache.calcite.util.TryThreadLocal;
 
 import net.hydromatic.quidem.Quidem;
 
@@ -43,7 +41,7 @@ class CoreQuidemTest extends QuidemTest {
   }
 
   /** For {@link QuidemTest#test(String)} parameters. */
-  public static Collection<Object[]> data() {
+  @Override public Collection<String> getPath() {
     // Start with a test file we know exists, then find the directory and list
     // its files.
     final String first = "sql/agg.iq";
@@ -60,9 +58,15 @@ class CoreQuidemTest extends QuidemTest {
                   ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
               .with(CalciteAssert.SchemaSpec.BLANK)
               .connect();
+        case "scott":
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
         default:
+          return super.connect(name, reference);
         }
-        return super.connect(name, reference);
       }
     };
   }
@@ -75,26 +79,6 @@ class CoreQuidemTest extends QuidemTest {
       // Oracle as the JDBC data source.
       return;
     }
-    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun(path);
-    }
+    checkRun(path);
   }
-
-  /** Override settings for "sql/scalar.iq". */
-  public void testSqlScalar(String path) throws Exception {
-    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun(path);
-    }
-  }
-
-  /** Runs the dummy script "sql/dummy.iq", which is checked in empty but
-   * which you may use as scratch space during development. */
-
-  // Do not disable this test; just remember not to commit changes to dummy.iq
-  public void testSqlDummy(String path) throws Exception {
-    try (TryThreadLocal.Memo ignored = Prepare.THREAD_EXPAND.push(true)) {
-      checkRun(path);
-    }
-  }
-
 }

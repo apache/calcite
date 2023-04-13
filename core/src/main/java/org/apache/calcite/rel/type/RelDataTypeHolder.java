@@ -67,10 +67,11 @@ class RelDataTypeHolder {
         ? SqlTypeName.DYNAMIC_STAR : SqlTypeName.ANY;
 
     // This field does not exist in our field list; add it
-    RelDataTypeField newField = new RelDataTypeFieldImpl(
-        fieldName,
-        fields.size(),
-        typeFactory.createTypeWithNullability(typeFactory.createSqlType(typeName), true));
+    RelDataTypeField newField =
+        new RelDataTypeFieldImpl(fieldName,
+            fields.size(),
+            typeFactory.createTypeWithNullability(
+                typeFactory.createSqlType(typeName), true));
 
     // Add the name to our list of field names
     fields.add(newField);

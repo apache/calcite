@@ -24,6 +24,8 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -37,6 +39,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -45,9 +48,11 @@ import java.util.stream.Collectors;
  * Relational expression whose value is a sequence of zero or more literal row
  * values.
  */
-public abstract class Values extends AbstractRelNode {
+public abstract class Values extends AbstractRelNode implements Hintable {
 
   public static final Predicate<? super Values> IS_EMPTY_J = Values::isEmpty;
+
+  protected final ImmutableList<RelHint> hints;
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
@@ -73,6 +78,34 @@ public abstract class Values extends AbstractRelNode {
    * call, otherwise bad things will happen.
    *
    * @param cluster Cluster that this relational expression belongs to
+   * @param hints   Hints for this node
+   * @param rowType Row type for tuples produced by this rel
+   * @param tuples  2-dimensional array of tuple values to be produced; outer
+   *                list contains tuples; each inner list is one tuple; all
+   *                tuples must be of same length, conforming to rowType
+   */
+  @SuppressWarnings("method.invocation.invalid")
+  protected Values(
+      RelOptCluster cluster,
+      List<RelHint> hints,
+      RelDataType rowType,
+      ImmutableList<ImmutableList<RexLiteral>> tuples,
+      RelTraitSet traits) {
+    super(cluster, traits);
+    this.rowType = rowType;
+    this.tuples = tuples;
+    this.hints = ImmutableList.copyOf(hints);
+    assert assertRowType();
+  }
+
+  /**
+   * Creates a new Values.
+   *
+   * <p>Note that tuples passed in become owned by
+   * this rel (without a deep copy), so caller must not modify them after this
+   * call, otherwise bad things will happen.
+   *
+   * @param cluster Cluster that this relational expression belongs to
    * @param rowType Row type for tuples produced by this rel
    * @param tuples  2-dimensional array of tuple values to be produced; outer
    *                list contains tuples; each inner list is one tuple; all
@@ -84,10 +117,7 @@ public abstract class Values extends AbstractRelNode {
       RelDataType rowType,
       ImmutableList<ImmutableList<RexLiteral>> tuples,
       RelTraitSet traits) {
-    super(cluster, traits);
-    this.rowType = rowType;
-    this.tuples = tuples;
-    assert assertRowType();
+    this(cluster, Collections.emptyList(), rowType, tuples, traits);
   }
 
   /**
@@ -198,5 +228,9 @@ public abstract class Values extends AbstractRelNode {
               .collect(Collectors.joining(", ", "[", "]")));
     }
     return relWriter;
+  }
+
+  @Override public ImmutableList<RelHint> getHints() {
+    return hints;
   }
 }

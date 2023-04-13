@@ -21,7 +21,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelRecordType;
-import org.apache.calcite.sql.type.SqlTypeFactoryImpl.UnknownSqlType;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -151,6 +150,34 @@ class SqlTypeFactoryTest {
     assertThat(leastRestrictive.getValueType().getPrecision(), is(10));
   }
 
+  @Test void testLeastRestrictiveForTimestamps() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlTimestampPrec0, f.sqlTimestampPrec3));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.TIMESTAMP));
+    assertThat(leastRestrictive.isNullable(), is(false));
+    assertThat(leastRestrictive.getPrecision(), is(3));
+  }
+
+  @Test void testLeastRestrictiveForTimestamps2() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlTimestampPrec3, f.sqlTimestampPrec0));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.TIMESTAMP));
+    assertThat(leastRestrictive.isNullable(), is(false));
+    assertThat(leastRestrictive.getPrecision(), is(3));
+  }
+
+  @Test void testLeastRestrictiveForTimestampAndDate() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlTimestampPrec3, f.sqlDate));
+    assertNull(leastRestrictive);
+  }
+
   @Test void testLeastRestrictiveForImpossibleWithMaps() {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataType leastRestrictive =
@@ -217,14 +244,17 @@ class SqlTypeFactoryTest {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataTypeFactory typeFactory = f.typeFactory;
     List<RelDataTypeField> fields = new ArrayList<>();
-    RelDataTypeField field0 = new RelDataTypeFieldImpl(
-            "i", 0, typeFactory.createSqlType(SqlTypeName.INTEGER));
-    RelDataTypeField field1 = new RelDataTypeFieldImpl(
-            "s", 1, typeFactory.createSqlType(SqlTypeName.VARCHAR));
+    RelDataTypeField field0 =
+        new RelDataTypeFieldImpl("i", 0,
+            typeFactory.createSqlType(SqlTypeName.INTEGER));
+    RelDataTypeField field1 =
+        new RelDataTypeFieldImpl("s", 1,
+            typeFactory.createSqlType(SqlTypeName.VARCHAR));
     fields.add(field0);
     fields.add(field1);
     final RelDataType recordType = new RelRecordType(fields); // nullable false by default
-    final RelDataType copyRecordType = typeFactory.createTypeWithNullability(recordType, true);
+    final RelDataType copyRecordType =
+        typeFactory.createTypeWithNullability(recordType, true);
     assertFalse(recordType.isNullable());
     assertTrue(copyRecordType.isNullable());
   }
@@ -288,18 +318,30 @@ class SqlTypeFactoryTest {
     assertThat(tsWithPrecision3 == tsWithPrecision8, is(true));
   }
 
-  /** Test that the {code UNKNOWN} type does not does not change class when nullified. */
+  /** Test that the {@code UNKNOWN} type is a {@link BasicSqlType} and remains
+   * so when nullified. */
   @Test void testUnknownCreateWithNullabilityTypeConsistency() {
-    SqlTypeFixture f = new SqlTypeFixture();
+    final SqlTypeFixture f = new SqlTypeFixture();
 
-    RelDataType unknownType  = f.typeFactory.createUnknownType();
-    assertThat(unknownType, isA(UnknownSqlType.class));
+    final RelDataType unknownType = f.typeFactory.createUnknownType();
+    assertThat(unknownType, isA(BasicSqlType.class));
     assertThat(unknownType.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
     assertFalse(unknownType.isNullable());
+    assertThat(unknownType.getFullTypeString(), is("UNKNOWN NOT NULL"));
 
-    RelDataType nullableRelDataType = f.typeFactory.createTypeWithNullability(unknownType, true);
-    assertThat(nullableRelDataType, isA(UnknownSqlType.class));
-    assertThat(nullableRelDataType.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
-    assertTrue(nullableRelDataType.isNullable());
+    final RelDataType nullableType =
+        f.typeFactory.createTypeWithNullability(unknownType, true);
+    assertThat(nullableType, isA(BasicSqlType.class));
+    assertThat(nullableType.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
+    assertTrue(nullableType.isNullable());
+    assertThat(nullableType.getFullTypeString(), is("UNKNOWN"));
+
+    final RelDataType unknownType2 =
+        f.typeFactory.createTypeWithNullability(nullableType, false);
+    assertThat(unknownType2, is(unknownType));
+    assertThat(unknownType2, isA(BasicSqlType.class));
+    assertThat(unknownType2.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
+    assertFalse(unknownType2.isNullable());
+    assertThat(unknownType2.getFullTypeString(), is("UNKNOWN NOT NULL"));
   }
 }

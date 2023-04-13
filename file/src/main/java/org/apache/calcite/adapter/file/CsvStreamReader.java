@@ -78,10 +78,12 @@ class CsvStreamReader extends CSVReader implements Closeable {
     super(new StringReader("")); // dummy call to base constructor
     contentQueue = new ArrayDeque<>();
     TailerListener listener = new CsvContentListener(contentQueue);
-    tailer = Tailer.create(source.file(), listener, DEFAULT_MONITOR_DELAY,
-        false, true, 4096);
-    this.parser = new CSVParser(separator, quoteChar, escape, strictQuotes,
-        ignoreLeadingWhiteSpace);
+    tailer =
+        Tailer.create(source.file(), listener, DEFAULT_MONITOR_DELAY,
+            false, true, 4096);
+    this.parser =
+        new CSVParser(separator, quoteChar, escape, strictQuotes,
+            ignoreLeadingWhiteSpace);
     this.skipLines = line;
     try {
       // wait for tailer to capture data

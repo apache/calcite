@@ -42,9 +42,9 @@ public class DirectOperatorConversion implements DruidSqlOperatorConverter {
   @Override public String toDruidExpression(RexNode rexNode, RelDataType rowType,
       DruidQuery druidQuery) {
     final RexCall call = (RexCall) rexNode;
-    final List<String> druidExpressions = DruidExpressions.toDruidExpressions(
-        druidQuery, rowType,
-        call.getOperands());
+    final List<String> druidExpressions =
+        DruidExpressions.toDruidExpressions(druidQuery, rowType,
+            call.getOperands());
     if (druidExpressions == null) {
       return null;
     }

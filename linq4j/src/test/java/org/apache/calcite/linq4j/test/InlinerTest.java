@@ -50,8 +50,8 @@ class InlinerTest {
   }
 
   @Test void testInlineSingleUsage() {
-    DeclarationStatement decl = Expressions.declare(16, "x",
-        Expressions.add(ONE, TWO));
+    DeclarationStatement decl =
+        Expressions.declare(16, "x", Expressions.add(ONE, TWO));
     b.add(decl);
     b.add(Expressions.return_(null, decl.parameter));
     assertEquals("{\n  return 1 + 2;\n}\n", b.toBlock().toString());
@@ -79,14 +79,13 @@ class InlinerTest {
   @Test void testNoInlineMultipleUsage() {
     ParameterExpression p1 = Expressions.parameter(int.class, "p1");
     ParameterExpression p2 = Expressions.parameter(int.class, "p2");
-    DeclarationStatement decl = Expressions.declare(16, "x",
-        Expressions.subtract(p1, p2));
+    DeclarationStatement decl =
+        Expressions.declare(16, "x", Expressions.subtract(p1, p2));
     b.add(decl);
     b.add(
         Expressions.return_(null,
             Expressions.add(decl.parameter, decl.parameter)));
-    assertEquals(
-        "{\n"
+    assertEquals("{\n"
             + "  final int x = p1 - p2;\n"
             + "  return x + x;\n"
             + "}\n",
@@ -101,16 +100,16 @@ class InlinerTest {
 
     builder.add(Expressions.declare(0, t, null));
 
-    Expression v = builder.append("v",
-        Expressions.makeTernary(ExpressionType.Conditional,
-            Expressions.makeBinary(ExpressionType.NotEqual,
-                Expressions.assign(t, Expressions.constant(1)),
-                Expressions.parameter(int.class, "a")),
-            t,
-            Expressions.parameter(int.class, "c")));
+    Expression v =
+        builder.append("v",
+            Expressions.makeTernary(ExpressionType.Conditional,
+                Expressions.makeBinary(ExpressionType.NotEqual,
+                    Expressions.assign(t, Expressions.constant(1)),
+                    Expressions.parameter(int.class, "a")),
+                t,
+                Expressions.parameter(int.class, "c")));
     builder.add(Expressions.return_(null, v));
-    assertEquals(
-        "{\n"
+    assertEquals("{\n"
             + "  int t;\n"
             + "  return (t = 1) != a ? t : c;\n"
             + "}\n",
@@ -141,13 +140,14 @@ class InlinerTest {
 
     builder.add(Expressions.declare(modifiers, t, null));
 
-    Expression v = builder.append("v",
-        Expressions.makeTernary(ExpressionType.Conditional,
-            Expressions.makeBinary(ExpressionType.NotEqual,
-                Expressions.assign(t, Expressions.constant(1)),
-                Expressions.parameter(int.class, "a")),
-            Expressions.parameter(int.class, "b"),
-            Expressions.parameter(int.class, "c")));
+    Expression v =
+        builder.append("v",
+            Expressions.makeTernary(ExpressionType.Conditional,
+                Expressions.makeBinary(ExpressionType.NotEqual,
+                    Expressions.assign(t, Expressions.constant(1)),
+                    Expressions.parameter(int.class, "a")),
+                Expressions.parameter(int.class, "b"),
+                Expressions.parameter(int.class, "c")));
     builder.add(Expressions.return_(null, v));
     assertThat(Expressions.toString(builder.toBlock()),
         CoreMatchers.equalTo(s));
@@ -161,16 +161,16 @@ class InlinerTest {
 
     builder.add(Expressions.declare(0, t, TWO));
 
-    Expression v = builder.append("v",
-        Expressions.makeTernary(ExpressionType.Conditional,
-            Expressions.makeBinary(ExpressionType.NotEqual,
-                Expressions.assign(t, Expressions.constant(1)),
-                Expressions.parameter(int.class, "a")),
-            t,
-            Expressions.parameter(int.class, "c")));
+    Expression v =
+        builder.append("v",
+            Expressions.makeTernary(ExpressionType.Conditional,
+                Expressions.makeBinary(ExpressionType.NotEqual,
+                    Expressions.assign(t, Expressions.constant(1)),
+                    Expressions.parameter(int.class, "a")),
+                t,
+                Expressions.parameter(int.class, "c")));
     builder.add(Expressions.return_(null, v));
-    assertEquals(
-        "{\n"
+    assertEquals("{\n"
             + "  int t = 2;\n"
             + "  return (t = 1) != a ? t : c;\n"
             + "}\n",
@@ -186,12 +186,12 @@ class InlinerTest {
     final ParameterExpression v = Expressions.parameter(int.class, "v");
 
     Expression t = builder.append("t", Expressions.add(u, v));
-    Expression b = builder.append("b",
-        Expressions.condition(Expressions.greaterThan(t, ONE), TRUE, TRUE));
+    Expression b =
+        builder.append("b",
+            Expressions.condition(Expressions.greaterThan(t, ONE), TRUE, TRUE));
 
     builder.add(Expressions.return_(null, Expressions.condition(b, t, TWO)));
-    assertEquals(
-        "{\n"
+    assertEquals("{\n"
             + "  return u + v;\n"
             + "}\n",
         Expressions.toString(builder.toBlock()));
@@ -203,15 +203,15 @@ class InlinerTest {
     builder.add(Expressions.declare(Modifier.FINAL, t, ONE));
     final ParameterExpression u = Expressions.parameter(int.class, "u");
     builder.add(Expressions.declare(Modifier.FINAL, u, null));
-    Statement st = Expressions.statement(
-        Expressions.assign(u,
-            Expressions.makeBinary(ExpressionType.Add, t, TWO)));
+    Statement st =
+        Expressions.statement(
+            Expressions.assign(u,
+                Expressions.makeBinary(ExpressionType.Add, t, TWO)));
     ParameterExpression e = Expressions.parameter(0, Exception.class, "e");
     CatchBlock cb = Expressions.catch_(e, Expressions.throw_(e));
     builder.add(Expressions.tryCatch(st, cb));
     builder.add(Expressions.return_(null, u));
-    assertEquals(
-        "{\n"
+    assertEquals("{\n"
             + "  final int u;\n"
             + "  try {\n"
             + "    u = 1 + 2;\n"

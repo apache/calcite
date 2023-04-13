@@ -76,15 +76,15 @@ class RexTransformerTest {
     rexBuilder = new RexBuilder(typeFactory);
     boolRelDataType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
 
-    x = new RexInputRef(
-        0,
-        typeFactory.createTypeWithNullability(boolRelDataType, true));
-    y = new RexInputRef(
-        1,
-        typeFactory.createTypeWithNullability(boolRelDataType, true));
-    z = new RexInputRef(
-        2,
-        typeFactory.createTypeWithNullability(boolRelDataType, true));
+    x =
+        new RexInputRef(0,
+            typeFactory.createTypeWithNullability(boolRelDataType, true));
+    y =
+        new RexInputRef(1,
+            typeFactory.createTypeWithNullability(boolRelDataType, true));
+    z =
+        new RexInputRef(2,
+            typeFactory.createTypeWithNullability(boolRelDataType, true));
     trueRex = rexBuilder.makeLiteral(true);
     falseRex = rexBuilder.makeLiteral(false);
   }
@@ -363,14 +363,10 @@ class RexTransformerTest {
     final List<RexNode> leftJoinKeys = new ArrayList<>();
     final List<RexNode> rightJoinKeys = new ArrayList<>();
     final ArrayList<RelDataTypeField> sysFieldList = new ArrayList<>();
-    final RexNode remaining = RelOptUtil.splitJoinCondition(sysFieldList,
-        join.getInputs().get(0),
-        join.getInputs().get(1),
-        join.getCondition(),
-        leftJoinKeys,
-        rightJoinKeys,
-        null,
-        null);
+    final RexNode remaining =
+        RelOptUtil.splitJoinCondition(sysFieldList, join.getInputs().get(0),
+            join.getInputs().get(1), join.getCondition(),
+            leftJoinKeys, rightJoinKeys, null, null);
 
     assertThat(remaining.toString(), is("<>($0, $9)"));
     assertThat(leftJoinKeys.isEmpty(), is(true));

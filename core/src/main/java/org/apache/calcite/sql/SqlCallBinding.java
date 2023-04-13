@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.TimeFrame;
+import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
@@ -177,9 +180,11 @@ public class SqlCallBinding extends SqlOperatorBinding {
   /** Returns the operands to a call permuted into the same order as the
    * formal parameters of the function. */
   private List<SqlNode> permutedOperands(final SqlCall call) {
-    final SqlOperandMetadata operandMetadata = requireNonNull(
-        (SqlOperandMetadata) call.getOperator().getOperandTypeChecker(),
-        () -> "operandTypeChecker is null for " + call + ", operator " + call.getOperator());
+    final SqlOperator operator = call.getOperator();
+    final SqlOperandMetadata operandMetadata =
+        requireNonNull((SqlOperandMetadata) operator.getOperandTypeChecker(),
+            () -> "operandTypeChecker is null for " + call
+                + ", operator " + operator);
     final List<String> paramNames = operandMetadata.paramNames();
     final List<SqlNode> permuted = new ArrayList<>();
     final SqlNameMatcher nameMatcher =
@@ -204,7 +209,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
           if (args != null) {
             throw SqlUtil.newContextException(args.right.getParserPosition(),
                 RESOURCE.paramNotFoundInFunctionDidYouMean(args.right.getSimple(),
-                    call.getOperator().getName(), args.left));
+                    operator.getName(), args.left));
           }
           if (operandMetadata.isFixedParameters()) {
             // Not like user defined functions, we do not patch up the operands
@@ -270,7 +275,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return valueAs(node, clazz);
   }
 
-  private static <T extends Object> @Nullable T valueAs(SqlNode node, Class<T> clazz) {
+  private <T extends Object> @Nullable T valueAs(SqlNode node, Class<T> clazz) {
     final SqlLiteral literal;
     switch (node.getKind()) {
     case ARRAY_VALUE_CONSTRUCTOR:
@@ -308,6 +313,21 @@ public class SqlCallBinding extends SqlOperatorBinding {
 
     case INTERVAL_QUALIFIER:
       final SqlIntervalQualifier q = (SqlIntervalQualifier) node;
+      if (q.timeFrameName != null) {
+        // Custom time frames can only be cast to String. You can do more with
+        // them when validator has resolved to a TimeFrame.
+        final TimeFrameSet timeFrameSet = validator.getTimeFrameSet();
+        final TimeFrame timeFrame = timeFrameSet.getOpt(q.timeFrameName);
+        if (clazz == String.class) {
+          return clazz.cast(q.timeFrameName);
+        }
+        if (clazz == TimeUnit.class
+            && timeFrame != null) {
+          TimeUnit timeUnit = timeFrameSet.getUnit(timeFrame);
+          return clazz.cast(timeUnit);
+        }
+        return null;
+      }
       final SqlIntervalLiteral.IntervalValue intervalValue =
           new SqlIntervalLiteral.IntervalValue(q, 1, q.toString());
       literal = new SqlLiteral(intervalValue, q.typeName(), q.pos);

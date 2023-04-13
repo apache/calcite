@@ -23,7 +23,6 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableMap;
@@ -372,31 +371,31 @@ public class SqlJdbcFunctionCall extends SqlFunction {
   //~ Static fields/initializers ---------------------------------------------
 
   /** List of all numeric function names defined by JDBC. */
-  private static final String NUMERIC_FUNCTIONS = constructFuncList(
-      "ABS", "ACOS", "ASIN", "ATAN", "ATAN2", "CBRT", "CEILING", "COS", "COT",
-      "DEGREES", "EXP", "FLOOR", "LOG", "LOG10", "MOD", "PI",
-      "POWER", "RADIANS", "RAND", "ROUND", "SIGN", "SIN", "SQRT",
-      "TAN", "TRUNCATE");
+  private static final String NUMERIC_FUNCTIONS =
+      constructFuncList("ABS", "ACOS", "ASIN", "ATAN", "ATAN2",
+          "CBRT", "CEILING", "COS", "COT",
+          "DEGREES", "EXP", "FLOOR", "LOG", "LOG10", "MOD", "PI",
+          "POWER", "RADIANS", "RAND", "ROUND", "SIGN", "SIN", "SQRT",
+          "TAN", "TRUNCATE");
 
   /** List of all string function names defined by JDBC. */
-  private static final String STRING_FUNCTIONS = constructFuncList(
-      "ASCII", "CHAR", "CONCAT", "DIFFERENCE", "INSERT", "LCASE",
-      "LEFT", "LENGTH", "LOCATE", "LTRIM", "REPEAT", "REPLACE",
-      "RIGHT", "RTRIM", "SOUNDEX", "SPACE", "SUBSTRING", "UCASE");
-      // "ASCII", "CHAR", "DIFFERENCE", "LOWER",
-      // "LEFT", "TRIM", "REPEAT", "REPLACE",
-      // "RIGHT", "SPACE", "SUBSTRING", "UPPER", "INITCAP", "OVERLAY"
+  private static final String STRING_FUNCTIONS =
+      constructFuncList("ASCII", "CHAR", "CONCAT",
+          "DIFFERENCE", "INSERT", "LCASE",
+          "LEFT", "LENGTH", "LOCATE", "LTRIM", "REPEAT", "REPLACE",
+          "RIGHT", "RTRIM", "SOUNDEX", "SPACE", "SUBSTRING", "UCASE");
 
   /** List of all time/date function names defined by JDBC. */
-  private static final String TIME_DATE_FUNCTIONS = constructFuncList(
-      "CONVERT_TIMEZONE", "CURDATE", "CURTIME", "DAYNAME", "DAYOFMONTH", "DAYOFWEEK",
-      "DAYOFYEAR", "HOUR", "MINUTE", "MONTH", "MONTHNAME", "NOW",
-      "QUARTER", "SECOND", "TIMESTAMPADD", "TIMESTAMPDIFF", "TO_DATE", "TO_TIMESTAMP",
-      "WEEK", "YEAR");
+  private static final String TIME_DATE_FUNCTIONS =
+      constructFuncList("CONVERT_TIMEZONE", "CURDATE", "CURTIME",
+          "DAYNAME", "DAYOFMONTH", "DAYOFWEEK",
+          "DAYOFYEAR", "HOUR", "MINUTE", "MONTH", "MONTHNAME", "NOW",
+          "QUARTER", "SECOND", "TIMESTAMPADD", "TIMESTAMPDIFF",
+          "TO_DATE", "TO_TIMESTAMP", "WEEK", "YEAR");
 
   /** List of all system function names defined by JDBC. */
-  private static final String SYSTEM_FUNCTIONS = constructFuncList(
-      "CONVERT", "DATABASE", "IFNULL", "USER");
+  private static final String SYSTEM_FUNCTIONS =
+      constructFuncList("CONVERT", "DATABASE", "IFNULL", "USER");
 
   //~ Instance fields --------------------------------------------------------
 
@@ -480,7 +479,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
     for (SqlNode operand : call.getOperandList()) {
       RelDataType nodeType = validator.deriveType(scope, operand);
-      ((SqlValidatorImpl) validator).setValidatedNodeType(operand, nodeType);
+      validator.setValidatedNodeType(operand, nodeType);
     }
     return validateOperands(validator, scope, call);
   }
@@ -709,6 +708,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("TRUNCATE", simple(SqlStdOperatorTable.TRUNCATE));
 
       map.put("ASCII", simple(SqlStdOperatorTable.ASCII));
+      map.put("CHAR", simple(SqlLibraryOperators.CHAR));
       map.put("CONCAT", simple(SqlStdOperatorTable.CONCAT));
       map.put("DIFFERENCE", simple(SqlLibraryOperators.DIFFERENCE));
       map.put("INSERT",

@@ -187,8 +187,9 @@ public class PigRelBuilder extends RelBuilder {
     if (udfClass == JythonFunction.class) {
       final String[] args = pigFunc.getCtorArgs();
       assert args != null && args.length == 2;
-      final String fileName = args[0].substring(args[0].lastIndexOf("/") + 1,
-          args[0].lastIndexOf(".py"));
+      final String fileName =
+          args[0].substring(args[0].lastIndexOf("/") + 1,
+              args[0].lastIndexOf(".py"));
       // key = [clas name]_[file name]_[function name]
       key = udfClass.getName() + "_" + fileName + "_" + args[1];
     }
@@ -262,8 +263,9 @@ public class PigRelBuilder extends RelBuilder {
    * @return This builder
    */
   private RelBuilder scan(RelOptTable tableSchema) {
-    final RelNode scan = getScanFactory().createScan(
-        ViewExpanders.simpleContext(cluster), tableSchema);
+    final RelNode scan =
+        getScanFactory()
+            .createScan(ViewExpanders.simpleContext(cluster), tableSchema);
     push(scan);
     return this;
   }
@@ -355,7 +357,8 @@ public class PigRelBuilder extends RelBuilder {
           projectionExprs.add(fieldProject);
         } else {
           // Different types, CAST is required
-          projectionExprs.add(getRexBuilder().makeCast(outputField.getType(), fieldProject));
+          projectionExprs.add(
+              getRexBuilder().makeCast(outputField.getType(), fieldProject));
         }
       } else {
         final RelDataType columnType = outputField.getType();
@@ -505,11 +508,11 @@ public class PigRelBuilder extends RelBuilder {
   public RelBuilder multiSetFlatten() {
     // [CALCITE-3193] Add RelBuilder.uncollect method, and interface
     // UncollectFactory, to instantiate Uncollect
-    Uncollect uncollect = Uncollect.create(
-        cluster.traitSetOf(Convention.NONE),
-        build(),
-        false,
-        Collections.emptyList());
+    Uncollect uncollect =
+        Uncollect.create(cluster.traitSetOf(Convention.NONE),
+            build(),
+            false,
+            Collections.emptyList());
     push(uncollect);
     return this;
   }
@@ -541,8 +544,9 @@ public class PigRelBuilder extends RelBuilder {
     final  RelNode inputRel = peek();
 
     // First project out a combined column which is a of all other columns
-    final RexNode row = getRexBuilder().makeCall(inputRel.getRowType(),
-        SqlStdOperatorTable.ROW, fields());
+    final RexNode row =
+        getRexBuilder()
+            .makeCall(inputRel.getRowType(), SqlStdOperatorTable.ROW, fields());
     project(ImmutableList.of(literal("all"), row));
 
     // Update the alias map for the new projected rel.

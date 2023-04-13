@@ -42,6 +42,7 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BarfingInvocationHandler;
 import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.Glossary;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -159,6 +160,18 @@ public abstract class SqlUtil {
       ret.add(node);
     }
     return ret;
+  }
+
+  /** Finds the index of an expression in a list, comparing using
+   * {@link SqlNode#equalsDeep(SqlNode, Litmus)}. */
+  public static int indexOfDeep(List<? extends SqlNode> list, SqlNode e,
+      Litmus litmus) {
+    for (int i = 0; i < list.size(); i++) {
+      if (e.equalsDeep(list.get(i), litmus)) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   /**
@@ -946,7 +959,7 @@ public abstract class SqlUtil {
   /**
    * Creates the type of an {@link org.apache.calcite.util.NlsString}.
    *
-   * <p>The type inherits the The NlsString's {@link Charset} and
+   * <p>The type inherits the NlsString's {@link Charset} and
    * {@link SqlCollation}, if they are set, otherwise it gets the system
    * defaults.
    *

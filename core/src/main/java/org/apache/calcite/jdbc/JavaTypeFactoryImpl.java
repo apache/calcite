@@ -27,7 +27,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelRecordType;
-import org.apache.calcite.runtime.Geometries;
 import org.apache.calcite.runtime.Unit;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.IntervalSqlType;
@@ -39,6 +38,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.locationtech.jts.geom.Geometry;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -216,7 +216,7 @@ public class JavaTypeFactoryImpl
       case VARBINARY:
         return ByteString.class;
       case GEOMETRY:
-        return Geometries.Geom.class;
+        return Geometry.class;
       case SYMBOL:
         return Enum.class;
       case ANY:
@@ -270,14 +270,14 @@ public class JavaTypeFactoryImpl
         // 1. type.getJavaClass() is collection with erased generic type
         // 2. ElementType returned by JavaType is also of JavaType,
         // and needs conversion using typeFactory
-        final RelDataType elementType = toSqlTypeWithNullToAny(
-            typeFactory, type.getComponentType());
+        final RelDataType elementType =
+            toSqlTypeWithNullToAny(typeFactory, type.getComponentType());
         relDataType = typeFactory.createArrayType(elementType, -1);
       } else if (SqlTypeUtil.isMap(type)) {
-        final RelDataType keyType = toSqlTypeWithNullToAny(
-            typeFactory, type.getKeyType());
-        final RelDataType valueType = toSqlTypeWithNullToAny(
-            typeFactory, type.getValueType());
+        final RelDataType keyType =
+            toSqlTypeWithNullToAny(typeFactory, type.getKeyType());
+        final RelDataType valueType =
+            toSqlTypeWithNullToAny(typeFactory, type.getValueType());
         relDataType = typeFactory.createMapType(keyType, valueType);
       } else {
         relDataType = typeFactory.createSqlType(sqlTypeName);

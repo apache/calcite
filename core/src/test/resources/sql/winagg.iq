@@ -78,12 +78,31 @@ from emp;
 
 !ok
 
+# STDDEV applied to nullable column
+select empno,
+  stddev(comm) over (order by empno rows unbounded preceding) as stdev
+from emp
+where deptno = 30
+order by 1;
++-------+-------------------------------------------------+
+| EMPNO | STDEV                                           |
++-------+-------------------------------------------------+
+|  7499 |                                                 |
+|  7521 |  141.421356237309510106570087373256683349609375 |
+|  7654 | 585.9465277082316561063635163009166717529296875 |
+|  7698 | 585.9465277082316561063635163009166717529296875 |
+|  7844 | 602.7713773341707792496890760958194732666015625 |
+|  7900 | 602.7713773341707792496890760958194732666015625 |
++-------+-------------------------------------------------+
+(6 rows)
+
+!ok
+
 !use post
 # [CALCITE-1540] Support multiple columns in PARTITION BY clause of window function
 select gender,deptno,
   count(*) over (partition by gender,deptno) as count1
 from emp;
-
 +--------+--------+--------+
 | GENDER | DEPTNO | COUNT1 |
 +--------+--------+--------+
@@ -106,7 +125,6 @@ from emp;
 select gender,deptno,
   count(*) over (partition by gender,gender) as count1
 from emp;
-
 +--------+--------+--------+
 | GENDER | DEPTNO | COUNT1 |
 +--------+--------+--------+
@@ -400,7 +418,6 @@ select min(deptno) as x, rank() over (order by ename) as y,
   max(ename) over (partition by deptno) as z
 from emp
 group by deptno, ename;
-
 +----+---+-------+
 | X  | Y | Z     |
 +----+---+-------+
@@ -447,7 +464,6 @@ select * from (
   select "empid", count(*) over () c
     from "hr"."emps"
 ) where "empid"=100;
-
 +-------+---+
 | empid | C |
 +-------+---+
@@ -469,7 +485,6 @@ join (
   window w as (partition by "deptno" order by "commission")) b
 on a."deptno" = b."deptno"
 order by "deptno", ar, br limit 5;
-
 +--------+-----+-----+
 | deptno | AR  | BR  |
 +--------+-----+-----+
@@ -494,7 +509,6 @@ join (
   window w as (partition by "deptno" order by "commission")) b
 on a."empid" = b."empid"
 limit 5;
-
 +-------+--------+------------+-----+-----+
 | empid | deptno | commission | AR  | BR  |
 +-------+--------+------------+-----+-----+
@@ -526,7 +540,6 @@ from
   from
    unnest(map[2,2]) k
  ) t2 on (t1.l = t2.l and t1.key + 1 = t2.key);
-
 +---+------+------+
 | L | KEY1 | KEY2 |
 +---+------+------+
@@ -738,6 +751,30 @@ from emp;
 |     60 | Grace | F |
 |        | Wilma | F |
 +--------+-------+---+
+(9 rows)
+
+!ok
+
+# [CALCITE-5283] Add ARG_MIN, ARG_MAX aggregate function
+
+# ARG_MIN, ARG_MAX function without ORDER BY.
+select gender,
+  arg_min(ename, deptno) over (partition by gender order by ename) as mi,
+  arg_max(ename, deptno) over (partition by gender order by ename) as ma
+from emp;
++--------+-------+-------+
+| GENDER | MI    | MA    |
++--------+-------+-------+
+| F      | Alice | Alice |
+| F      | Alice | Eve   |
+| F      | Alice | Grace |
+| F      | Jane  | Grace |
+| F      | Jane  | Grace |
+| F      | Jane  | Grace |
+| M      | Adam  | Adam  |
+| M      | Bob   | Adam  |
+| M      | Bob   | Adam  |
++--------+-------+-------+
 (9 rows)
 
 !ok

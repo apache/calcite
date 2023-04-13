@@ -28,7 +28,6 @@ select *
   from tmp
  where a = 1 or b = 1
  order by 1, 2;
-
 +---+---+
 | A | B |
 +---+---+
@@ -50,7 +49,6 @@ select *
   from tmp
  where not (a = 1 or b = 1)
  order by 1, 2;
-
 +---+---+
 | A | B |
 +---+---+
@@ -70,7 +68,6 @@ select *
   from tmp
  where a = 1 AND b = 1
  order by 1, 2;
-
 +---+---+
 | A | B |
 +---+---+
@@ -88,7 +85,6 @@ select *
   from tmp
  where not (a = 1 AND b = 1)
  order by 1, 2;
-
 +---+---+
 | A | B |
 +---+---+
@@ -105,7 +101,6 @@ select *
 # Test cases for CALCITE-980
 
 select "value" from "nullables" a where "value" = 'A' or "value" = 'B' order by 1;
-
 +-------+
 | value |
 +-------+
@@ -117,7 +112,6 @@ select "value" from "nullables" a where "value" = 'A' or "value" = 'B' order by 
 !ok
 
 select "value" from "nullables" a where not ("value" = 'A' or "value" = 'B') order by 1;
-
 +-------+
 | value |
 +-------+
@@ -128,7 +122,6 @@ select "value" from "nullables" a where not ("value" = 'A' or "value" = 'B') ord
 !ok
 
 select "value" from "nullables" a where not (not ("value" = 'A' or "value" = 'B')) order by 1;
-
 +-------+
 | value |
 +-------+
@@ -140,7 +133,6 @@ select "value" from "nullables" a where not (not ("value" = 'A' or "value" = 'B'
 !ok
 
 select "value" from "nullables" a where "value" = 'A' and "value" = 'B' order by 1;
-
 +-------+
 | value |
 +-------+
@@ -150,7 +142,6 @@ select "value" from "nullables" a where "value" = 'A' and "value" = 'B' order by
 !ok
 
 select "value" from "nullables" a where not ("value" = 'A' and "value" = 'B') order by 1;
-
 +-------+
 | value |
 +-------+
@@ -163,7 +154,6 @@ select "value" from "nullables" a where not ("value" = 'A' and "value" = 'B') or
 !ok
 
 select "value" from "nullables" a where not (not ("value" = 'A' and "value" = 'B')) order by 1;
-
 +-------+
 | value |
 +-------+
@@ -175,7 +165,6 @@ select "value" from "nullables" a where not (not ("value" = 'A' and "value" = 'B
 select "value" from "nullables" a
  where case when not ("value" = 'A' or "value" = 'B') then 1 else 0 end = 1
  order by 1;
-
 +-------+
 | value |
 +-------+
@@ -193,7 +182,6 @@ select "value" from "nullables" a
      else 0
    end = 2
  order by 1;
-
 +-------+
 | value |
 +-------+
@@ -211,7 +199,6 @@ select "value" from "nullables" a
      else 0
    end = 1 /* <- diff from above*/
  order by 1;
-
 +-------+
 | value |
 +-------+
@@ -229,7 +216,6 @@ select "value" from "nullables" a
      else 0
    end = 0 /* <- diff from above*/
  order by 1;
-
 +-------+
 | value |
 +-------+
@@ -249,7 +235,6 @@ select "value" from "nullables" a
      else 0
    end = 2 /* <- diff from above*/
  order by 1;
-
 +-------+
 | value |
 +-------+
@@ -273,7 +258,6 @@ from ax where ((s,t) in (('a','a'),(null, 'bb'))) is null;
 
 with ax(s) as (values (1),(0))
 select case when s=0 then false else 100/s > 0 end from ax;
-
 +--------+
 | EXPR$0 |
 +--------+
@@ -287,7 +271,6 @@ select case when s=0 then false else 100/s > 0 end from ax;
 # Test case for CALCITE-2783
 with ax(s) as (values (true),(false),(cast(null as boolean)))
 select s, (s or s is null), (s and s is not null) from ax;
-
 +-------+--------+--------+
 | S     | EXPR$1 | EXPR$2 |
 +-------+--------+--------+
@@ -326,5 +309,186 @@ where deptno > 5 AND deptno < 20 AND mgr IS NULL;
 (1 row)
 
 !ok
+
+# [CALCITE-1794] Expressions with numeric comparisons are not simplified when CAST is present
+
+# Pull up predicate simplified plan has only 'deptno = 25' and has dropped the 'deptno <> 20' condition.
+select * from "scott".emp where deptno = 25 and deptno <> 20;
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[25], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# SARGs simplified plan has only 'deptno = 25' and has dropped the 'deptno <> 20' condition.
+select * from "scott".emp where deptno <> 20 and deptno = 25;
++-------+-------+-----+-----+----------+-----+------+--------+
+| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
++-------+-------+-----+-----+----------+-----+------+--------+
++-------+-------+-----+-----+----------+-----+------+--------+
+(0 rows)
+
+!ok
+
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[25], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# [CALCITE-5138] Join on condition generates wrong plan when the condition is sub-query
+
+# Bad: more than one value returned by sub-query
+select empno
+from emp as r
+         left join dept as s on (select empno > 0 from emp);
+more than one value in agg SINGLE_VALUE
+!error
+
+# Bad: more than one value returned by sub-query
+select empno
+from emp as r
+         left join dept as s on (select true from emp);
+more than one value in agg SINGLE_VALUE
+!error
+
+# Bad: more than one column returned by sub-query
+select empno
+from emp as r
+         left join dept as s on (select true,true from emp);
+sub-query as condition must return only one column
+!error
+
+# Bad: column returned by sub-query is not a conditon
+select empno
+from emp as r
+         left join dept as s on (select empno from emp);
+ON clause must be a condition
+!error
+
+# sub-query return true
+select empno
+from emp as r
+         left join dept as s on (select count(true) > 0 from emp)
+where empno = 7369;
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7369 |
+|  7369 |
+|  7369 |
++-------+
+(4 rows)
+
+!ok
+
+EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t0])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], expr#9=[7369], expr#10=[=($t8, $t9)], EMPNO=[$t0], $condition=[$t10])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}], $condition=[$t1])
+      EnumerableNestedLoopJoin(condition=[true], joinType=[left])
+        EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+          EnumerableTableScan(table=[[scott, DEPT]])
+        EnumerableAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+          EnumerableCalc(expr#0=[{inputs}], expr#1=[0], expr#2=[>($t0, $t1)], EXPR$0=[$t2])
+            EnumerableAggregate(group=[{}], agg#0=[COUNT()])
+              EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# sub-query return true with Equal condition
+select r.empno, s.deptno
+from emp as r
+         left join dept as s on (select count(true) > 0 from emp) and s.deptno = r.deptno;
++-------+--------+
+| EMPNO | DEPTNO |
++-------+--------+
+|  7369 |     20 |
+|  7499 |     30 |
+|  7521 |     30 |
+|  7566 |     20 |
+|  7654 |     30 |
+|  7698 |     30 |
+|  7782 |     10 |
+|  7788 |     20 |
+|  7839 |     10 |
+|  7844 |     30 |
+|  7876 |     20 |
+|  7900 |     30 |
+|  7902 |     20 |
+|  7934 |     10 |
++-------+--------+
+(14 rows)
+
+!ok
+
+# sub-query return false
+select r.empno, s.deptno
+from emp as r
+         left join dept as s on (select count(job) > 0 from bonus);
++-------+--------+
+| EMPNO | DEPTNO |
++-------+--------+
+|  7369 |        |
+|  7499 |        |
+|  7521 |        |
+|  7566 |        |
+|  7654 |        |
+|  7698 |        |
+|  7782 |        |
+|  7788 |        |
+|  7839 |        |
+|  7844 |        |
+|  7876 |        |
+|  7900 |        |
+|  7902 |        |
+|  7934 |        |
++-------+--------+
+(14 rows)
+
+!ok
+
+# ON condition is a column
+select *
+from dept
+         LEFT JOIN (SELECT COUNT(*) > 0 AS "EXPR$0"
+                    FROM emp) AS "t0" ON "EXPR$0";
++--------+------------+----------+--------+
+| DEPTNO | DNAME      | LOC      | EXPR$0 |
++--------+------------+----------+--------+
+|     10 | ACCOUNTING | NEW YORK | true   |
+|     20 | RESEARCH   | DALLAS   | true   |
+|     30 | SALES      | CHICAGO  | true   |
+|     40 | OPERATIONS | BOSTON   | true   |
++--------+------------+----------+--------+
+(4 rows)
+
+!ok
+
+# As above, but complicated
+SELECT emp.empno
+FROM emp
+         LEFT JOIN (select *
+                    from dept
+                             LEFT JOIN (SELECT COUNT(*) > 0 AS "EXPR$0"
+                                        FROM emp) AS "t0" ON TRUE) as "dt0*" ON "EXPR$0"
+where emp.empno = 7902;
++-------+
+| EMPNO |
++-------+
+|  7902 |
+|  7902 |
+|  7902 |
+|  7902 |
++-------+
+(4 rows)
+
+!ok
+
 
 # End conditions.iq

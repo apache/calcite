@@ -34,12 +34,13 @@ import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Union} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
- * Performs a union (or union all) of all its inputs (which must be already sorted),
- * respecting the order. */
+ *
+ * <p>Performs a union (or union all) of all its inputs (which must be already
+ * sorted), respecting the order. */
 public class EnumerableMergeUnion extends EnumerableUnion {
 
-  protected EnumerableMergeUnion(RelOptCluster cluster, RelTraitSet traitSet, List<RelNode> inputs,
-      boolean all) {
+  protected EnumerableMergeUnion(RelOptCluster cluster, RelTraitSet traitSet,
+      List<RelNode> inputs, boolean all) {
     super(cluster, traitSet, inputs, all);
     final RelCollation collation = traitSet.getCollation();
     if (collation == null || collation.getFieldCollations().isEmpty()) {
@@ -48,33 +49,37 @@ public class EnumerableMergeUnion extends EnumerableUnion {
     for (RelNode input : inputs) {
       final RelCollation inputCollation = input.getTraitSet().getCollation();
       if (inputCollation == null || !inputCollation.satisfies(collation)) {
-        throw new IllegalArgumentException("EnumerableMergeUnion input does not satisfy collation. "
-            + "EnumerableMergeUnion collation: " + collation + ". Input collation: "
-            + inputCollation + ". Input: " + input);
+        throw new IllegalArgumentException("EnumerableMergeUnion input does "
+            + "not satisfy collation. EnumerableMergeUnion collation: "
+            + collation + ". Input collation: " + inputCollation + ". Input: "
+            + input);
       }
     }
   }
 
-  public static EnumerableMergeUnion create(RelCollation collation, List<RelNode> inputs,
-      boolean all) {
+  public static EnumerableMergeUnion create(RelCollation collation,
+      List<RelNode> inputs, boolean all) {
     final RelOptCluster cluster = inputs.get(0).getCluster();
-    final RelTraitSet traitSet = cluster.traitSetOf(EnumerableConvention.INSTANCE).replace(
-        collation);
+    final RelTraitSet traitSet =
+        cluster.traitSetOf(EnumerableConvention.INSTANCE).replace(collation);
     return new EnumerableMergeUnion(cluster, traitSet, inputs, all);
   }
 
-  @Override public EnumerableMergeUnion copy(RelTraitSet traitSet, List<RelNode> inputs,
-      boolean all) {
+  @Override public EnumerableMergeUnion copy(RelTraitSet traitSet,
+      List<RelNode> inputs, boolean all) {
     return new EnumerableMergeUnion(getCluster(), traitSet, inputs, all);
   }
 
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor,
+      Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
 
-    final ParameterExpression inputListExp = Expressions.parameter(
-        List.class,
-        builder.newName("mergeUnionInputs" + Integer.toUnsignedString(this.getId())));
-    builder.add(Expressions.declare(0, inputListExp, Expressions.new_(ArrayList.class)));
+    final ParameterExpression inputListExp =
+        Expressions.parameter(List.class,
+            builder.newName("mergeUnionInputs"
+                + Integer.toUnsignedString(this.getId())));
+    builder.add(
+        Expressions.declare(0, inputListExp, Expressions.new_(ArrayList.class)));
 
     for (Ord<RelNode> ord : Ord.zip(inputs)) {
       final EnumerableRel input = (EnumerableRel) ord.e;
@@ -82,13 +87,13 @@ public class EnumerableMergeUnion extends EnumerableUnion {
       final Expression childExp = builder.append("child" + ord.i, result.block);
       builder.add(
           Expressions.statement(
-              Expressions.call(inputListExp, BuiltInMethod.COLLECTION_ADD.method, childExp)));
+              Expressions.call(inputListExp,
+                  BuiltInMethod.COLLECTION_ADD.method, childExp)));
     }
 
-    final PhysType physType = PhysTypeImpl.of(
-        implementor.getTypeFactory(),
-        getRowType(),
-        pref.prefer(JavaRowFormat.CUSTOM));
+    final PhysType physType =
+        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(),
+            pref.prefer(JavaRowFormat.CUSTOM));
 
     final RelCollation collation = getTraitSet().getCollation();
     if (collation == null || collation.getFieldCollations().isEmpty()) {
@@ -100,17 +105,14 @@ public class EnumerableMergeUnion extends EnumerableUnion {
     final Expression sortKeySelector = pair.left;
     final Expression sortComparator = pair.right;
 
-    final Expression equalityComparator = Util.first(
-        physType.comparer(),
-        Expressions.call(BuiltInMethod.IDENTITY_COMPARER.method));
+    final Expression equalityComparator =
+        Util.first(physType.comparer(),
+            Expressions.call(BuiltInMethod.IDENTITY_COMPARER.method));
 
-    final Expression unionExp = Expressions.call(
-        BuiltInMethod.MERGE_UNION.method,
-        inputListExp,
-        sortKeySelector,
-        sortComparator,
-        Expressions.constant(all, boolean.class),
-        equalityComparator);
+    final Expression unionExp =
+        Expressions.call(BuiltInMethod.MERGE_UNION.method, inputListExp,
+            sortKeySelector, sortComparator,
+            Expressions.constant(all, boolean.class), equalityComparator);
     builder.add(unionExp);
 
     return implementor.result(physType, builder.toBlock());

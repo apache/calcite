@@ -79,6 +79,10 @@ public class SqlDelegatingConformance extends SqlAbstractConformance {
     return delegate.allowAliasUnnestItems();
   }
 
+  @Override public boolean isValueAllowed() {
+    return delegate.isValueAllowed();
+  }
+
   @Override public SqlLibrary semantics() {
     return delegate.semantics();
   }

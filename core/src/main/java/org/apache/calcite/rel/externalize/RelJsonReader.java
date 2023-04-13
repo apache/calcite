@@ -53,6 +53,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 import static java.util.Objects.requireNonNull;
 
@@ -68,15 +69,21 @@ public class RelJsonReader {
 
   private final RelOptCluster cluster;
   private final RelOptSchema relOptSchema;
-  private final RelJson relJson = new RelJson(null);
+  private final RelJson relJson;
   private final Map<String, RelNode> relMap = new LinkedHashMap<>();
   private @Nullable RelNode lastRel;
 
   public RelJsonReader(RelOptCluster cluster, RelOptSchema relOptSchema,
       Schema schema) {
+    this(cluster, relOptSchema, schema, UnaryOperator.identity());
+  }
+
+  public RelJsonReader(RelOptCluster cluster, RelOptSchema relOptSchema,
+      Schema schema, UnaryOperator<RelJson> relJsonTransform) {
     this.cluster = cluster;
     this.relOptSchema = relOptSchema;
     Util.discard(schema);
+    relJson = relJsonTransform.apply(RelJson.create());
   }
 
   public RelNode read(String s) throws IOException {
@@ -99,7 +106,7 @@ public class RelJsonReader {
     Map<String, Object> o = mapper
         .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
         .readValue(s, TYPE_REF);
-    return new RelJson(null).toType(typeFactory, o);
+    return RelJson.create().toType(typeFactory, o);
   }
 
   private void readRels(List<Map<String, Object>> jsonRels) {
@@ -122,12 +129,11 @@ public class RelJsonReader {
       }
 
       @Override public RelOptTable getTable(String table) {
-        final List<String> list = requireNonNull(
-            getStringList(table),
-            () -> "getStringList for " + table);
-        return requireNonNull(
-            relOptSchema.getTableForMember(list),
-            () -> "table " + table + " is not found in schema " + relOptSchema.toString());
+        final List<String> list =
+            requireNonNull(getStringList(table),
+                () -> "getStringList for " + table);
+        return requireNonNull(relOptSchema.getTableForMember(list),
+            () -> "table " + table + " is not found in schema " + relOptSchema);
       }
 
       @Override public RelNode getInput() {
@@ -302,20 +308,22 @@ public class RelJsonReader {
 
   private AggregateCall toAggCall(Map<String, Object> jsonAggCall) {
     @SuppressWarnings("unchecked")
-    final Map<String, Object> aggMap = (Map) requireNonNull(
-        jsonAggCall.get("agg"),
-        "agg key is not found");
-    final SqlAggFunction aggregation = requireNonNull(
-        relJson.toAggregation(aggMap),
-        () -> "relJson.toAggregation output for " + aggMap);
-    final Boolean distinct = (Boolean) requireNonNull(jsonAggCall.get("distinct"),
-        "jsonAggCall.distinct");
+    final Map<String, Object> aggMap =
+        (Map) requireNonNull(jsonAggCall.get("agg"),
+            "agg key is not found");
+    final SqlAggFunction aggregation =
+        requireNonNull(relJson.toAggregation(aggMap),
+            () -> "relJson.toAggregation output for " + aggMap);
+    final boolean distinct =
+        requireNonNull((Boolean) jsonAggCall.get("distinct"),
+            "jsonAggCall.distinct");
     @SuppressWarnings("unchecked")
-    final List<Integer> operands = (List<Integer>) requireNonNull(
-        jsonAggCall.get("operands"),
-        "jsonAggCall.operands");
+    final List<Integer> operands =
+        requireNonNull((List<Integer>) jsonAggCall.get("operands"),
+            "jsonAggCall.operands");
     final Integer filterOperand = (Integer) jsonAggCall.get("filter");
-    final Object jsonAggType = requireNonNull(jsonAggCall.get("type"), "jsonAggCall.type");
+    final Object jsonAggType =
+        requireNonNull(jsonAggCall.get("type"), "jsonAggCall.type");
     final RelDataType type =
         relJson.toType(cluster.getTypeFactory(), jsonAggType);
     final String name = (String) jsonAggCall.get("name");

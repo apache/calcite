@@ -29,7 +29,7 @@ collections:
     output: true
 
 # The URL where the code can be found
-sourceRoot: https://github.com/apache/calcite/blob/master
+sourceRoot: https://github.com/apache/calcite/blob/main
 
 # The URL where Javadocs are located
 apiRoot: /javadocAggregate
@@ -40,7 +40,7 @@ avaticaApiRoot: /avatica/apidocs
 # avaticaApiRoot: http://calcite.apache.org/avatica/apidocs
 
 # The URL where the JDK's Javadocs are located
-jdkApiRoot: https://docs.oracle.com/javase/8/docs/api/
+jdkApiRoot: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/
 
 # The base path where the website is deployed
 baseurl:
@@ -50,5 +50,4 @@ avaticaBaseurl: /avatica
 
 plugins:
     - jekyll-redirect-from
-
 # End _config.yml

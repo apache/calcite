@@ -30,15 +30,17 @@ public interface InitializerContext {
   RexBuilder getRexBuilder();
 
   /**
-   * Parse a column computation expression for a table. Usually this expression is declared
-   * in the create table statement, i.e.
-   * <pre>
+   * Parses a column computation expression for a table.
+   *
+   * <p>Usually this expression is declared in the {@code CREATE TABLE}
+   * statement, e.g.
+   *
+   * <blockquote><pre>{@code
    *   create table t(
    *     a int not null,
    *     b varchar(5) as (my_udf(a)) virtual,
-   *     c int not null as (a + 1)
-   *   );
-   * </pre>
+   *     c int not null as (a + 1));
+   * }</pre></blockquote>
    *
    * <p>You can use the string format expression "my_udf(a)" and "a + 1"
    * as the initializer expression of column b and c.

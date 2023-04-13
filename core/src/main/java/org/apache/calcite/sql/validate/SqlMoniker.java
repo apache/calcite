@@ -35,8 +35,9 @@ public interface SqlMoniker {
         @Override public int compare(SqlMoniker o1, SqlMoniker o2) {
           int c = o1.getType().compareTo(o2.getType());
           if (c == 0) {
-            c = listOrdering.compare(o1.getFullyQualifiedNames(),
-                o2.getFullyQualifiedNames());
+            c =
+                listOrdering.compare(o1.getFullyQualifiedNames(),
+                    o2.getFullyQualifiedNames());
           }
           return c;
         }

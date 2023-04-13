@@ -425,14 +425,6 @@ class SqlJsonFunctionsTest {
         JsonFunctions.JsonValueContext.withJavaObj(new HashMap<>()), is("{ }"));
     assertJsonPretty(
         JsonFunctions.JsonValueContext.withJavaObj(Longs.asList(1, 2)), is("[ 1, 2 ]"));
-
-    Object input = new Object() {
-      private final Object self = this;
-    };
-    CalciteException expected = new CalciteException(
-        "Cannot serialize object to JSON: '" + input + "'", null);
-    assertJsonPrettyFailed(
-        JsonFunctions.JsonValueContext.withJavaObj(input), errorMatches(expected));
   }
 
   @Test void testDejsonize() {
@@ -603,6 +595,39 @@ class SqlJsonFunctionsTest {
     assertIsJsonScalar("{]", is(false));
   }
 
+  @Test public void testJsonInsert() {
+    assertJsonInsert(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new Object[]{"$.a", 10, "$.c", "[true]"},
+        is("{\"a\":1,\"b\":[2],\"c\":\"[true]\"}"));
+    assertJsonInsert(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new Object[]{"$", 10, "$.c", "[true]"},
+        is("{\"a\":1,\"b\":[2],\"c\":\"[true]\"}"));
+  }
+
+  @Test public void testJsonReplace() {
+    assertJsonReplace(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new Object[]{"$.a", 10, "$.c", "[true]"},
+        is("{\"a\":10,\"b\":[2]}"));
+    assertJsonReplace(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new Object[]{"$", 10, "$.c", "[true]"},
+        is("10"));
+  }
+
+  @Test public void testJsonSet() {
+    assertJsonSet(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new Object[]{"$.a", 10, "$.c", "[true]"},
+        is("{\"a\":10,\"b\":[2],\"c\":\"[true]\"}"));
+    assertJsonSet(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new Object[]{"$", 10, "$.c", "[true]"},
+        is("10"));
+  }
+
   private void assertJsonValueExpression(String input,
       Matcher<? super JsonFunctions.JsonValueContext> matcher) {
     assertThat(
@@ -769,6 +794,30 @@ class SqlJsonFunctionsTest {
       Matcher<? super Throwable> matcher) {
     assertFailed(invocationDesc(BuiltInMethod.JSON_STORAGE_SIZE.getMethodName(), input),
         () -> JsonFunctions.jsonStorageSize(input),
+        matcher);
+  }
+
+  private void assertJsonInsert(JsonFunctions.JsonValueContext jsonDoc,
+      Object[] kvs,
+      Matcher<? super String> matcher) {
+    assertThat(invocationDesc(BuiltInMethod.JSON_INSERT.getMethodName(), jsonDoc, kvs),
+        JsonFunctions.jsonInsert(jsonDoc, kvs),
+        matcher);
+  }
+
+  private void assertJsonReplace(JsonFunctions.JsonValueContext jsonDoc,
+      Object[] kvs,
+      Matcher<? super String> matcher) {
+    assertThat(invocationDesc(BuiltInMethod.JSON_REPLACE.getMethodName(), jsonDoc, kvs),
+        JsonFunctions.jsonReplace(jsonDoc, kvs),
+        matcher);
+  }
+
+  private void assertJsonSet(JsonFunctions.JsonValueContext jsonDoc,
+      Object[] kvs,
+      Matcher<? super String> matcher) {
+    assertThat(invocationDesc(BuiltInMethod.JSON_SET.getMethodName(), jsonDoc, kvs),
+        JsonFunctions.jsonSet(jsonDoc, kvs),
         matcher);
   }
 

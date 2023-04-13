@@ -18,12 +18,15 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * Test cases for implicit type coercion converter. see {@link TypeCoercion} doc
+ * Test cases for implicit type coercion converter. See {@link TypeCoercion} doc
  * or <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a>
  * for conversion details.
+ * See {@link RelOptRulesTest} for an explanation of how to add tests.
  */
 class TypeCoercionConverterTest extends SqlToRelTestBase {
 
@@ -33,7 +36,18 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
           .withFactory(f -> f.withCatalogReader(TCatalogReader::create))
           .withDecorrelate(false);
 
+  @Nullable
+  private static DiffRepository diffRepos = null;
+
+  @AfterAll
+  public static void checkActualAndReferenceFiles() {
+    if (diffRepos != null) {
+      diffRepos.checkActualAndReferenceFiles();
+    }
+  }
+
   @Override public SqlToRelFixture fixture() {
+    diffRepos = FIXTURE.diffRepos();
     return FIXTURE;
   }
 
@@ -123,6 +137,39 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
   @Test void testInsertQuerySourceCoercion() {
     final String sql = "insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,\n"
         + "t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2";
+    sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4897">[CALCITE-4897]
+   * Set operation in DML, implicit type conversion is not complete</a>. */
+  @Test void testInsertUnionQuerySourceCoercion() {
+    final String sql = "insert into t1 "
+        + "select 'a', 1, 1.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union "
+        + "select 'b', 2, 2,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union "
+        + "select 'c', CAST(3 AS SMALLINT), 3.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union "
+        + "select 'd', 4, 4.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false union "
+        + "select 'e', 5, 5.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false";
+    sql(sql).ok();
+  }
+
+  @Test void testInsertValuesQuerySourceCoercion() {
+    final String sql = "insert into t1 values "
+        + "('a', 1, 1.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false), "
+        + "('b', 2,  2,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false), "
+        + "('c', CAST(3 AS SMALLINT),  3.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false), "
+        + "('d', 4, 4.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false), "
+        + "('e', 5, 5.0,"
+        + " 0, 0, 0, 0, TIMESTAMP '2021-11-28 00:00:00', date '2021-11-28', x'0A', false)";
     sql(sql).ok();
   }
 

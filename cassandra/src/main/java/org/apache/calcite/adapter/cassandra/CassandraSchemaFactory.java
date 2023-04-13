@@ -21,7 +21,9 @@ import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.google.common.collect.ImmutableSet;
 
 import org.slf4j.Logger;
@@ -41,8 +43,8 @@ public class CassandraSchemaFactory implements SchemaFactory {
   private static final int DEFAULT_CASSANDRA_PORT = 9042;
   private static final Map<Map<String, Object>, CqlSession> INFO_TO_SESSION =
       new ConcurrentHashMap<>();
-  private static final Set<String> SESSION_DEFINING_KEYS = ImmutableSet.of(
-      "host", "port", "keyspace", "username", "password");
+  private static final Set<String> SESSION_DEFINING_KEYS =
+      ImmutableSet.of("host", "port", "keyspace", "username", "password");
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   public CassandraSchemaFactory() {
@@ -56,7 +58,6 @@ public class CassandraSchemaFactory implements SchemaFactory {
 
     INFO_TO_SESSION.computeIfAbsent(sessionMap, m -> {
       String host = (String) m.get("host");
-      String keyspace = (String) m.get("keyspace");
       String username = (String) m.get("username");
       String password = (String) m.get("password");
       int port = getPort(m);
@@ -65,26 +66,34 @@ public class CassandraSchemaFactory implements SchemaFactory {
         LOGGER.debug("Creating session for info {}", m);
       }
       try {
-        if (username != null && password != null) {
-          return CqlSession.builder()
-              .addContactPoint(new InetSocketAddress(host, port))
-              .withAuthCredentials(username, password)
-              .withKeyspace(keyspace)
-              .withLocalDatacenter("datacenter1")
-              .build();
-        } else {
-          return CqlSession.builder()
-              .addContactPoint(new InetSocketAddress(host, port))
-              .withKeyspace(keyspace)
-              .withLocalDatacenter("datacenter1")
-              .build();
+        CqlSessionBuilder builder =
+            username != null && password != null
+                ? CqlSession.builder()
+                  .addContactPoint(new InetSocketAddress(host, port))
+                  .withAuthCredentials(username, password)
+                : CqlSession.builder()
+                  .addContactPoint(new InetSocketAddress(host, port));
+
+        if (m.containsKey("keyspace")) {
+          String keyspace = (String) m.get("keyspace");
+          builder = builder.withKeyspace(keyspace);
         }
+
+        return builder
+            .withLocalDatacenter("datacenter1")
+            .build();
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
     });
 
-    return new CassandraSchema(INFO_TO_SESSION.get(sessionMap), parentSchema, name);
+    CqlSession session = INFO_TO_SESSION.get(sessionMap);
+
+    String keyspace = session.getKeyspace()
+        .map(CqlIdentifier::asInternal)
+        .orElse(name);
+
+    return new CassandraSchema(session, parentSchema, keyspace, name);
   }
 
   private static Map<String, Object> projectMapOverKeys(

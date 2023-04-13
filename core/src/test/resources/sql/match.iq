@@ -102,7 +102,6 @@ from "hr"."emps" match_recognize (
     "empid" as empid
     pattern (s up)
     define up as up."commission" < prev(up."commission"));
-
 C    EMPID
 ---- -----
 1000   100
@@ -119,7 +118,6 @@ from "hr"."emps" match_recognize (
     CLASSIFIER() as cl
     pattern (s up)
     define up as up."commission" < prev(up."commission"));
-
 C    EMPID CL
 ---- ----- --
 1000   100 S
@@ -135,7 +133,6 @@ from "hr"."emps" match_recognize (
     LAST("empid") as empid
     pattern (s up)
     define up as up."commission" < prev(up."commission"));
-
 C    EMPID
 ---- -----
 1000   100
@@ -152,7 +149,6 @@ from "hr"."emps" match_recognize (
     LAST(S."empid") as empid
     pattern (s up)
     define up as up."commission" < prev(up."commission"));
-
 C    CL EMPID
 ---- -- -----
 1000 S    100

@@ -30,14 +30,25 @@ data: {
       "org.apache.calcite.sql.SqlCreate",
       "org.apache.calcite.sql.babel.SqlBabelCreateTable",
       "org.apache.calcite.sql.babel.TableCollectionType",
+      "org.apache.calcite.sql.babel.postgresql.AndChain",
+      "org.apache.calcite.sql.babel.postgresql.SqlBegin",
+      "org.apache.calcite.sql.babel.postgresql.SqlCommit",
+      "org.apache.calcite.sql.babel.postgresql.SqlDiscard",
+      "org.apache.calcite.sql.babel.postgresql.SqlRollback",
+      "org.apache.calcite.sql.babel.postgresql.SqlShow",
       "org.apache.calcite.sql.ddl.SqlDdlNodes",
     ]
 
     # List of new keywords. Example: "DATABASES", "TABLES". If the keyword is
     # not a reserved keyword, add it to the 'nonReservedKeywords' section.
     keywords: [
+      "DISCARD"
       "IF"
+      "PLANS"
+      "SEED"
       "SEMI"
+      "SEQUENCES"
+      "TEMP"
       "VOLATILE"
     ]
 
@@ -45,7 +56,13 @@ data: {
     # items in this list become non-reserved
     nonReservedKeywordsToAdd: [
       # not in core, added in babel
+      "DISCARD"
+      "IF"
+      "PLANS"
+      "SEED"
       "SEMI"
+      "SEQUENCES"
+      "TEMP"
 
       # The following keywords are reserved in core Calcite,
       # are reserved in some version of SQL,
@@ -156,6 +173,7 @@ data: {
       "CYCLE"
       "DATA"
 #     "DATE"
+      "DATETIME_DIFF"
       "DAY"
       "DEALLOCATE"
       "DEC"
@@ -236,7 +254,6 @@ data: {
       "HOLD"
       "HOUR"
       "IDENTITY"
-#     "IF" # not a keyword in Calcite
       "ILIKE"
       "IMMEDIATE"
       "IMMEDIATELY"
@@ -463,7 +480,11 @@ data: {
       "TEMPORARY"
 #     "THEN"
 #     "TIME"
+      "TIME_DIFF"
+      "TIME_TRUNC"
 #     "TIMESTAMP"
+      "TIMESTAMP_DIFF"
+      "TIMESTAMP_TRUNC"
       "TIMEZONE_HOUR"
       "TIMEZONE_MINUTE"
       "TINYINT"
@@ -528,9 +549,8 @@ data: {
 
     # List of methods for parsing builtin function calls.
     # Return type of method implementation should be "SqlNode".
-    # Example: "DateFunctionCall()".
+    # Example: "DateaddFunctionCall()".
     builtinFunctionCallMethods: [
-       "DateFunctionCall()"
        "DateaddFunctionCall()"
     ]
 
@@ -539,6 +559,15 @@ data: {
     # Example: "SqlCreateForeignSchema".
     createStatementParserMethods: [
       "SqlCreateTable"
+    ]
+    
+    statementParserMethods: [
+      "PostgresqlSqlShow()",
+      "PostgresqlSqlSetOption()",
+      "PostgresqlSqlBegin()",
+      "PostgresqlSqlDiscard()",
+      "PostgresqlSqlCommit()",
+      "PostgresqlSqlRollback()"
     ]
 
     # Binary operators tokens.
@@ -562,9 +591,11 @@ data: {
     # Example: "parserImpls.ftl".
     implementationFiles: [
       "parserImpls.ftl"
+      "parserPostgresqlImpls.ftl"
     ]
 
     includePosixOperators: true
+    includeParsingStringLiteralAsArrayLiteral: true
   }
 }
 

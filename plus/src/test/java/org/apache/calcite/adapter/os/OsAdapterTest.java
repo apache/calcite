@@ -240,18 +240,18 @@ class OsAdapterTest {
   }
 
   @Test void testStdin() throws SQLException {
-    try (Hook.Closeable ignore = Hook.STANDARD_STREAMS.addThread(
-        (Consumer<Holder<Object[]>>) o -> {
-          final Object[] values = o.get();
-          final InputStream in = (InputStream) values[0];
-          final String s = "First line\n"
-              + "Second line";
-          final ByteArrayInputStream in2 =
-              new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8));
-          final OutputStream out = (OutputStream) values[1];
-          final OutputStream err = (OutputStream) values[2];
-          o.set(new Object[] {in2, out, err});
-        })) {
+    try (Hook.Closeable ignore =
+             Hook.STANDARD_STREAMS.addThread((Consumer<Holder<Object[]>>) o -> {
+               final Object[] values = o.get();
+               final InputStream in = (InputStream) values[0];
+               final String s = "First line\n"
+                   + "Second line";
+               final ByteArrayInputStream in2 =
+                   new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8));
+               final OutputStream out = (OutputStream) values[1];
+               final OutputStream err = (OutputStream) values[2];
+               o.set(new Object[] {in2, out, err});
+             })) {
       assertThat(foo("select count(*) as c from stdin"), is("2\n"));
     }
   }

@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
+import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserFixture;
@@ -177,25 +178,52 @@ class BabelParserTest extends SqlParserTest {
     final String sql = "SELECT DATEADD(day, 1, t),\n"
         + " DATEDIFF(week, 2, t),\n"
         + " DATE_PART(year, t) FROM mytable";
-    final String expected = "SELECT `DATEADD`(DAY, 1, `T`),"
-        + " `DATEDIFF`(WEEK, 2, `T`), `DATE_PART`(YEAR, `T`)\n"
+    final String expected = "SELECT DATEADD(DAY, 1, `T`),"
+        + " DATEDIFF(WEEK, 2, `T`), DATE_PART(YEAR, `T`)\n"
         + "FROM `MYTABLE`";
 
     sql(sql).ok(expected);
   }
 
+  /** Overrides, adding tests for DATEADD, DATEDIFF, DATE_PART functions
+   * in addition to EXTRACT. */
+  @Test protected void testTimeUnitCodes() {
+    super.testTimeUnitCodes();
+
+    // As for FLOOR in the base class, so for DATEADD, DATEDIFF, DATE_PART.
+    // Extensions such as 'y' remain as identifiers; they are resolved in the
+    // validator.
+    final String ts = "'2022-06-03 12:00:00.000'";
+    final String ts2 = "'2022-06-03 15:30:00.000'";
+    expr("DATEADD(year, 1, " + ts + ")")
+        .ok("DATEADD(YEAR, 1, " + ts + ")");
+    expr("DATEADD(y, 1, " + ts + ")")
+        .ok("DATEADD(`Y`, 1, " + ts + ")");
+    expr("DATEDIFF(year, 1, " + ts + ", " + ts2 + ")")
+        .ok("DATEDIFF(YEAR, 1, '2022-06-03 12:00:00.000', "
+            + "'2022-06-03 15:30:00.000')");
+    expr("DATEDIFF(y, 1, " + ts + ", " + ts2 + ")")
+        .ok("DATEDIFF(`Y`, 1, '2022-06-03 12:00:00.000', "
+            + "'2022-06-03 15:30:00.000')");
+    expr("DATE_PART(year, " + ts + ")")
+        .ok("DATE_PART(YEAR, '2022-06-03 12:00:00.000')");
+    expr("DATE_PART(y, " + ts + ")")
+        .ok("DATE_PART(`Y`, '2022-06-03 12:00:00.000')");
+  }
+
   /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
    * date part. */
   @Test void testShortTimestampLiteral() {
+    // Parser doesn't actually check the contents of the string. The validator
+    // will convert it to '1969-07-20 00:00:00', when it has decided that
+    // TIMESTAMP maps to the TIMESTAMP type.
     sql("select timestamp '1969-07-20'")
-        .ok("SELECT TIMESTAMP '1969-07-20 00:00:00'");
+        .ok("SELECT TIMESTAMP '1969-07-20'");
     // PostgreSQL allows the following. We should too.
     sql("select ^timestamp '1969-07-20 1:2'^")
-        .fails("Illegal TIMESTAMP literal '1969-07-20 1:2': not in format "
-            + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 01:02:00
+        .ok("SELECT TIMESTAMP '1969-07-20 1:2'");
     sql("select ^timestamp '1969-07-20:23:'^")
-        .fails("Illegal TIMESTAMP literal '1969-07-20:23:': not in format "
-            + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 23:00:00
+        .ok("SELECT TIMESTAMP '1969-07-20:23:'");
   }
 
   /** Tests parsing PostgreSQL-style "::" cast operator. */
@@ -276,6 +304,113 @@ class BabelParserTest extends SqlParserTest {
     final String expected = "CREATE VOLATILE TABLE `FOO` "
         + "(`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
     sql(sql).ok(expected);
+  }
+
+  @Test void testArrayLiteralFromString() {
+    sql("select array '{1,2,3}'")
+        .ok("SELECT (ARRAY[1, 2, 3])");
+    sql("select array '{{1,2,5}, {3,4,7}}'")
+        .ok("SELECT (ARRAY[(ARRAY[1, 2, 5]), (ARRAY[3, 4, 7])])");
+    sql("select array '{}'")
+        .ok("SELECT (ARRAY[])");
+    sql("select array '{\"1\", \"2\", \"3\"}'")
+        .ok("SELECT (ARRAY['1', '2', '3'])");
+    sql("select array '{null, 1, null, 2}'")
+        .ok("SELECT (ARRAY[NULL, 1, NULL, 2])");
+
+    sql("select array ^'null, 1, null, 2'^")
+        .fails("Illegal array expression 'null, 1, null, 2'");
+  }
+
+  @Test void testArrayLiteralBigQuery() {
+    final SqlParserFixture f = fixture().withDialect(BIG_QUERY);
+    f.sql("select array '{1, 2}'")
+        .ok("SELECT (ARRAY[1, 2])");
+    f.sql("select array \"{1, 2}\"")
+        .ok("SELECT (ARRAY[1, 2])");
+    f.sql("select array '{\"a\", \"b\"}'")
+        .ok("SELECT (ARRAY['a', 'b'])");
+    f.sql("select array \"{\\\"a\\\", \\\"b\\\"}\"")
+        .ok("SELECT (ARRAY['a', 'b'])");
+  }
+
+  @Test void testPostgresqlShow() {
+    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    f.sql("SHOW autovacuum")
+        .ok("SHOW \"autovacuum\"");
+    f.sql("SHOW TRANSACTION ISOLATION LEVEL")
+        .ok("SHOW \"transaction_isolation\"");
+  }
+
+  @Test void testPostgresqlSetOption() {
+    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    f.sql("SET SESSION autovacuum = true")
+        .ok("ALTER SESSION SET \"autovacuum\" = TRUE");
+    f.sql("SET SESSION autovacuum = DEFAULT")
+        .ok("ALTER SESSION SET \"autovacuum\" = DEFAULT");
+    f.sql("SET LOCAL autovacuum TO 'DEFAULT'")
+        .ok("ALTER LOCAL SET \"autovacuum\" = 'DEFAULT'");
+
+    f.sql("SET SESSION TIME ZONE DEFAULT")
+        .ok("ALTER SESSION SET \"timezone\" = DEFAULT");
+    f.sql("SET SESSION TIME ZONE LOCAL")
+        .ok("ALTER SESSION SET \"timezone\" = 'LOCAL'");
+    f.sql("SET TIME ZONE 'PST8PDT'")
+        .ok("SET \"timezone\" = 'PST8PDT'");
+    f.sql("SET TIME ZONE INTERVAL '-08:00' HOUR TO MINUTE")
+        .ok("SET \"timezone\" = INTERVAL '-08:00' HOUR TO MINUTE");
+
+    f.sql("SET search_path = public,public,\"$user\"")
+        .ok("SET \"search_path\" = \"public\", \"public\", \"$user\"");
+    f.sql("SET SCHEMA public,public,\"$user\"")
+        .ok("SET \"search_path\" = \"public\", \"public\", \"$user\"");
+    f.sql("SET NAMES iso_8859_15_to_utf8")
+        .ok("SET \"client_encoding\" = \"iso_8859_15_to_utf8\"");
+  }
+
+  @Test void testPostgresqlBegin() {
+    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    f.sql("BEGIN").same();
+    f.sql("BEGIN READ ONLY").same();
+    f.sql("BEGIN TRANSACTION READ WRITE")
+        .ok("BEGIN READ WRITE");
+    f.sql("BEGIN WORK ISOLATION LEVEL SERIALIZABLE")
+        .ok("BEGIN ISOLATION LEVEL SERIALIZABLE");
+    f.sql("BEGIN ISOLATION LEVEL SERIALIZABLE, READ ONLY, DEFERRABLE").same();
+    f.sql("BEGIN ISOLATION LEVEL SERIALIZABLE, READ WRITE, NOT DEFERRABLE").same();
+  }
+
+  @Test void testPostgresqlCommit() {
+    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    f.sql("COMMIT").same();
+    f.sql("COMMIT WORK")
+        .ok("COMMIT");
+    f.sql("COMMIT TRANSACTION")
+        .ok("COMMIT");
+    f.sql("COMMIT AND NO CHAIN")
+        .ok("COMMIT");
+    f.sql("COMMIT AND CHAIN").same();
+  }
+
+  @Test void testPostgresqlRollback() {
+    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    f.sql("ROLLBACK").same();
+    f.sql("ROLLBACK WORK")
+        .ok("ROLLBACK");
+    f.sql("ROLLBACK TRANSACTION")
+        .ok("ROLLBACK");
+    f.sql("ROLLBACK AND NO CHAIN")
+        .ok("ROLLBACK");
+    f.sql("ROLLBACK AND CHAIN").same();
+  }
+
+  @Test void testPostgresqlDiscard() {
+    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    f.sql("DISCARD ALL").same();
+    f.sql("DISCARD PLANS").same();
+    f.sql("DISCARD SEQUENCES").same();
+    f.sql("DISCARD TEMPORARY").same();
+    f.sql("DISCARD TEMP").same();
   }
 
   /** Similar to {@link #testHoist()} but using custom parser. */

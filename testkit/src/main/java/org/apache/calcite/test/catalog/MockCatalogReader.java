@@ -40,6 +40,9 @@ import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.metadata.BuiltInMetadata;
+import org.apache.calcite.rel.metadata.MetadataDef;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.DynamicRecordTypeImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -86,6 +89,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -180,8 +184,9 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
   protected void registerType(final List<String> names, final RelProtoDataType relProtoDataType) {
     assert names.get(0).equals(DEFAULT_CATALOG);
     final List<String> schemaPath = Util.skipLast(names);
-    final CalciteSchema schema = SqlValidatorUtil.getSchema(rootSchema,
-        schemaPath, SqlNameMatchers.withCaseSensitive(true));
+    final CalciteSchema schema =
+        SqlValidatorUtil.getSchema(rootSchema,
+            schemaPath, SqlNameMatchers.withCaseSensitive(true));
     schema.add(Util.last(names), relProtoDataType);
   }
 
@@ -209,8 +214,9 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     assert names.get(0).equals(DEFAULT_CATALOG);
     List<String> schemaPath = Util.skipLast(names);
     String tableName = Util.last(names);
-    CalciteSchema schema = SqlValidatorUtil.getSchema(rootSchema,
-        schemaPath, SqlNameMatchers.withCaseSensitive(true));
+    CalciteSchema schema =
+        SqlValidatorUtil.getSchema(rootSchema,
+            schemaPath, SqlNameMatchers.withCaseSensitive(true));
     schema.removeTable(tableName);
     schema.add(tableName, table);
   }
@@ -219,8 +225,9 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     assert names.get(0).equals(DEFAULT_CATALOG);
     final List<String> schemaPath = Util.skipLast(names);
     final String tableName = Util.last(names);
-    final CalciteSchema schema = SqlValidatorUtil.getSchema(rootSchema,
-        schemaPath, SqlNameMatchers.withCaseSensitive(true));
+    final CalciteSchema schema =
+        SqlValidatorUtil.getSchema(rootSchema,
+            schemaPath, SqlNameMatchers.withCaseSensitive(true));
     schema.add(tableName, table);
   }
 
@@ -290,7 +297,9 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
    * Mock implementation of
    * {@link org.apache.calcite.prepare.Prepare.PreparingTable}.
    */
-  public static class MockTable extends Prepare.AbstractPreparingTable {
+  public static class MockTable extends Prepare.AbstractPreparingTable
+      implements BuiltInMetadata.MaxRowCount.Handler {
+
     protected final MockCatalogReader catalogReader;
     protected final boolean stream;
     protected final double rowCount;
@@ -302,6 +311,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     protected RelDataType rowType;
     protected List<RelCollation> collationList;
     protected final List<String> names;
+    protected final Double maxRowCount;
     protected final Set<String> monotonicColumnSet = new HashSet<>();
     protected StructKind kind = StructKind.FULLY_QUALIFIED;
     protected final ColumnResolver resolver;
@@ -320,7 +330,16 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
         InitializerExpressionFactory initializerFactory) {
       this(catalogReader, ImmutableList.of(catalogName, schemaName, name),
           stream, temporal, rowCount, resolver, initializerFactory,
-          ImmutableList.of());
+          ImmutableList.of(), Double.POSITIVE_INFINITY);
+    }
+
+    public MockTable(MockCatalogReader catalogReader, String catalogName,
+        String schemaName, String name, boolean stream, boolean temporal,
+        double rowCount, ColumnResolver resolver,
+        InitializerExpressionFactory initializerFactory, Double maxRowCount) {
+      this(catalogReader, ImmutableList.of(catalogName, schemaName, name),
+          stream, temporal, rowCount, resolver, initializerFactory,
+          ImmutableList.of(), maxRowCount);
     }
 
     public void registerRolledUpColumn(String columnName) {
@@ -330,7 +349,8 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     private MockTable(MockCatalogReader catalogReader, List<String> names,
         boolean stream, boolean temporal, double rowCount,
         ColumnResolver resolver,
-        InitializerExpressionFactory initializerFactory, List<Object> wraps) {
+        InitializerExpressionFactory initializerFactory, List<Object> wraps,
+        Double maxRowCount) {
       this.catalogReader = catalogReader;
       this.stream = stream;
       this.temporal = temporal;
@@ -339,6 +359,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       this.resolver = resolver;
       this.initializerFactory = initializerFactory;
       this.wraps = ImmutableList.copyOf(wraps);
+      this.maxRowCount = maxRowCount;
     }
 
     /**
@@ -359,6 +380,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       this.names = names;
       this.kind = kind;
       this.resolver = resolver;
+      this.maxRowCount = Double.POSITIVE_INFINITY;
       this.initializerFactory = initializerFactory;
       for (String name : monotonicColumnSet) {
         addMonotonic(name);
@@ -366,11 +388,19 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       this.wraps = ImmutableList.of();
     }
 
-    void addWrap(Object wrap) {
+    public void addWrap(Object wrap) {
       if (wraps instanceof ImmutableList) {
         wraps = new ArrayList<>(wraps);
       }
       wraps.add(wrap);
+    }
+
+    @Override public @Nullable Double getMaxRowCount(RelNode r, RelMetadataQuery mq) {
+      return maxRowCount;
+    }
+
+    @Override public MetadataDef<BuiltInMetadata.MaxRowCount> getDef() {
+      return BuiltInMetadata.MaxRowCount.Handler.super.getDef();
     }
 
     /** Implementation of AbstractModifiableTable. */
@@ -415,10 +445,11 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       @Override public Table extend(final List<RelDataTypeField> fields) {
         return new ModifiableTable(Util.last(names)) {
           @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-            ImmutableList<RelDataTypeField> allFields = ImmutableList.copyOf(
-                Iterables.concat(
-                    ModifiableTable.this.getRowType(typeFactory).getFieldList(),
-                    fields));
+            ImmutableList<RelDataTypeField> allFields =
+                ImmutableList.copyOf(
+                    Iterables.concat(
+                        ModifiableTable.this.getRowType(typeFactory).getFieldList(),
+                        fields));
             return typeFactory.createStructType(allFields);
           }
         };
@@ -442,7 +473,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
 
     @Override protected RelOptTable extend(final Table extendedTable) {
       return new MockTable(catalogReader, names, stream, temporal, rowCount,
-          resolver, initializerFactory, wraps) {
+          resolver, initializerFactory, wraps, maxRowCount) {
         @Override public RelDataType getRowType() {
           return extendedTable.getRowType(catalogReader.typeFactory);
         }
@@ -455,9 +486,14 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     }
 
     public static MockTable create(MockCatalogReader catalogReader,
+        MockSchema schema, String name, boolean stream, double rowCount, double maxRowCount) {
+      return create(catalogReader, schema, name, stream, rowCount, null, maxRowCount);
+    }
+
+    public static MockTable create(MockCatalogReader catalogReader,
         List<String> names, boolean stream, double rowCount) {
       return new MockTable(catalogReader, names, stream, false, rowCount, null,
-          NullInitializerExpressionFactory.INSTANCE, ImmutableList.of());
+          NullInitializerExpressionFactory.INSTANCE, ImmutableList.of(), Double.POSITIVE_INFINITY);
     }
 
     public static MockTable create(MockCatalogReader catalogReader,
@@ -465,6 +501,26 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
         ColumnResolver resolver) {
       return create(catalogReader, schema, name, stream, rowCount, resolver,
           NullInitializerExpressionFactory.INSTANCE, false);
+    }
+
+    public static MockTable create(MockCatalogReader catalogReader,
+        MockSchema schema, String name, boolean stream, double rowCount,
+        ColumnResolver resolver, double maxRowCount) {
+      return create(catalogReader, schema, name, stream, rowCount, resolver,
+          NullInitializerExpressionFactory.INSTANCE, false, maxRowCount);
+    }
+
+    public static MockTable create(MockCatalogReader catalogReader,
+        MockSchema schema, String name, boolean stream, double rowCount,
+        ColumnResolver resolver,
+        InitializerExpressionFactory initializerExpressionFactory,
+        boolean temporal, Double maxRowCount) {
+      MockTable table =
+          new MockTable(catalogReader, schema.getCatalogName(), schema.name,
+              name, stream, temporal, rowCount, resolver,
+              initializerExpressionFactory, maxRowCount);
+      schema.addTable(name);
+      return table;
     }
 
     public static MockTable create(MockCatalogReader catalogReader,
@@ -550,8 +606,9 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     }
 
     public void onRegister(RelDataTypeFactory typeFactory) {
-      rowType = typeFactory.createStructType(kind, Pair.right(columnList),
-          Pair.left(columnList));
+      rowType =
+          typeFactory.createStructType(kind, Pair.right(columnList),
+              Pair.left(columnList));
       collationList = deduceMonotonicity(this);
     }
 
@@ -630,7 +687,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
         InitializerExpressionFactory initializerExpressionFactory) {
       super(catalogReader, ImmutableList.of(catalogName, schemaName, name),
           stream, false, rowCount, resolver, initializerExpressionFactory,
-          ImmutableList.of());
+          ImmutableList.of(), Double.POSITIVE_INFINITY);
       this.modifiableViewTable = modifiableViewTable;
     }
 
@@ -743,7 +800,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
         InitializerExpressionFactory initializerExpressionFactory) {
       super(catalogReader, ImmutableList.of(catalogName, schemaName, name),
           stream, false, rowCount, resolver, initializerExpressionFactory,
-          ImmutableList.of());
+          ImmutableList.of(), Double.POSITIVE_INFINITY);
       this.viewTable = viewTable;
     }
 
@@ -883,11 +940,12 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     }
 
     @Override public RelNode toRel(ToRelContext context) {
-      RelNode rel = LogicalTableScan.create(context.getCluster(), fromTable,
-          context.getTableHints());
+      RelNode rel =
+          LogicalTableScan.create(context.getCluster(), fromTable,
+              context.getTableHints());
       final RexBuilder rexBuilder = context.getCluster().getRexBuilder();
-      rel = LogicalFilter.create(
-          rel, getConstraint(rexBuilder, rel.getRowType()));
+      rel =
+          LogicalFilter.create(rel, getConstraint(rexBuilder, rel.getRowType()));
       final List<RelDataTypeField> fieldList =
           rel.getRowType().getFieldList();
       final List<Pair<RexNode, String>> projects =
@@ -903,7 +961,8 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       return LogicalProject.create(rel,
           ImmutableList.of(),
           Pair.left(projects),
-          Pair.right(projects));
+          Pair.right(projects),
+          ImmutableSet.of());
     }
 
     @Override public <T> T unwrap(Class<T> clazz) {

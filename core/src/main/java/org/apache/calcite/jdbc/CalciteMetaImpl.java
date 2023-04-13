@@ -381,9 +381,10 @@ public class CalciteMetaImpl extends MetaImpl {
     final CalciteMetaSchema schema = (CalciteMetaSchema) schema_;
     return Linq4j.asEnumerable(schema.calciteSchema.getTableNames())
         .select((Function1<String, MetaTable>) name -> {
-          final Table table = requireNonNull(
-              schema.calciteSchema.getTable(name, true),
-              () -> "table " + name + " is not found (case sensitive)").getTable();
+          final Table table =
+              requireNonNull(schema.calciteSchema.getTable(name, true),
+                  () -> "table " + name + " is not found (case sensitive)")
+                  .getTable();
           return new CalciteMetaTable(table,
               schema.tableCatalog,
               schema.tableSchem,
@@ -509,8 +510,7 @@ public class CalciteMetaImpl extends MetaImpl {
             .selectMany(schema -> functions(schema, catalog, matcher(functionNamePattern)))
             .orderBy(x ->
                 (Comparable) FlatLists.of(
-                    x.functionCat, x.functionSchem, x.functionName, x.specificName
-                )),
+                    x.functionCat, x.functionSchem, x.functionName, x.specificName)),
         MetaFunction.class,
         "FUNCTION_CAT",
         "FUNCTION_SCHEM",
@@ -535,9 +535,7 @@ public class CalciteMetaImpl extends MetaImpl {
                   schema.getName(),
                   op.getName(),
                   (short) DatabaseMetaData.functionResultUnknown,
-                  op.getName()
-              )
-          );
+                  op.getName()));
     }
     return Linq4j.asEnumerable(schema.calciteSchema.getFunctionNames())
         .selectMany(name ->
@@ -664,8 +662,9 @@ public class CalciteMetaImpl extends MetaImpl {
       int fetchMaxRowCount) throws NoSuchStatementException {
     final CalciteConnectionImpl calciteConnection = getConnection();
     CalciteServerStatement stmt = calciteConnection.server.getStatement(h);
-    final Signature signature = requireNonNull(stmt.getSignature(),
-        () -> "stmt.getSignature() is null for " + stmt);
+    final Signature signature =
+        requireNonNull(stmt.getSignature(),
+            () -> "stmt.getSignature() is null for " + stmt);
     final Iterator<Object> iterator;
     Iterator<Object> stmtResultSet = stmt.getResultSet();
     if (stmtResultSet == null) {
@@ -697,8 +696,9 @@ public class CalciteMetaImpl extends MetaImpl {
       throws NoSuchStatementException {
     final CalciteConnectionImpl calciteConnection = getConnection();
     CalciteServerStatement stmt = calciteConnection.server.getStatement(h);
-    final Signature signature = requireNonNull(stmt.getSignature(),
-        () -> "stmt.getSignature() is null for " + stmt);
+    final Signature signature =
+        requireNonNull(stmt.getSignature(),
+            () -> "stmt.getSignature() is null for " + stmt);
 
     MetaResultSet metaResultSet;
     if (signature.statementType.canUpdate()) {
@@ -706,8 +706,9 @@ public class CalciteMetaImpl extends MetaImpl {
           _createIterable(h, signature, parameterValues, null);
       final Iterator<Object> iterator = iterable.iterator();
       stmt.setResultSet(iterator);
-      metaResultSet = MetaResultSet.count(h.connectionId, h.id,
-          ((Number) iterator.next()).intValue());
+      metaResultSet =
+          MetaResultSet.count(h.connectionId, h.id,
+              ((Number) iterator.next()).intValue());
     } else {
       // Don't populate the first frame.
       // It's not worth saving a round-trip, since we're local.

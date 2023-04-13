@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -123,7 +124,9 @@ public class RexSubQuery extends RexCall {
   public static RexSubQuery array(RelNode rel) {
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     final RelDataType type =
-        typeFactory.createArrayType(rel.getRowType(), -1L);
+        typeFactory.createArrayType(
+            SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.ARRAY, rel.getRowType()),
+            -1L);
     return new RexSubQuery(type, SqlStdOperatorTable.ARRAY_QUERY,
         ImmutableList.of(), rel);
   }
@@ -132,7 +135,9 @@ public class RexSubQuery extends RexCall {
   public static RexSubQuery multiset(RelNode rel) {
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     final RelDataType type =
-        typeFactory.createMultisetType(rel.getRowType(), -1L);
+        typeFactory.createMultisetType(
+            SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.MULTISET, rel.getRowType()),
+            -1L);
     return new RexSubQuery(type, SqlStdOperatorTable.MULTISET_QUERY,
         ImmutableList.of(), rel);
   }

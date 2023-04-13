@@ -28,6 +28,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link SqlStatisticProvider} that looks up values in a
  * table.
@@ -103,7 +105,7 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
             .map(value ->
                 Arrays.asList(value.jdbcSchemaName, value.jdbcTableName))
             .orElseGet(table::getQualifiedName);
-    return cardinalityMap.get(qualifiedName.toString());
+    return requireNonNull(cardinalityMap.get(qualifiedName.toString()));
   }
 
   @Override public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,

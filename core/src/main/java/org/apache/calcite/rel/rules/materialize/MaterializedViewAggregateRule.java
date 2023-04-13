@@ -184,9 +184,10 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
         ImmutableBitSet.range(
             aggregateViewNode.getInput().getRowType().getFieldCount(),
             aggregateViewNode.getInput().getRowType().getFieldCount() + offset));
-    final Aggregate newViewNode = aggregateViewNode.copy(
-        aggregateViewNode.getTraitSet(), relBuilder.build(),
-        groupSet.build(), null, aggregateViewNode.getAggCallList());
+    final Aggregate newViewNode =
+        aggregateViewNode.copy(aggregateViewNode.getTraitSet(),
+            relBuilder.build(), groupSet.build(), null,
+            aggregateViewNode.getAggCallList());
 
     relBuilder.push(newViewNode);
     List<RexNode> nodes = new ArrayList<>();
@@ -194,11 +195,11 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     if (topViewProject != null) {
       // Insert existing expressions (and shift aggregation arguments),
       // then append rest of columns
-      Mappings.TargetMapping shiftMapping = Mappings.createShiftMapping(
-          newViewNode.getRowType().getFieldCount(),
-          0, 0, aggregateViewNode.getGroupCount(),
-          newViewNode.getGroupCount(), aggregateViewNode.getGroupCount(),
-          aggregateViewNode.getAggCallList().size());
+      Mappings.TargetMapping shiftMapping =
+          Mappings.createShiftMapping(newViewNode.getRowType().getFieldCount(),
+              0, 0, aggregateViewNode.getGroupCount(),
+              newViewNode.getGroupCount(), aggregateViewNode.getGroupCount(),
+              aggregateViewNode.getAggCallList().size());
       for (int i = 0; i < topViewProject.getProjects().size(); i++) {
         nodes.add(
             topViewProject.getProjects().get(i).accept(
@@ -266,9 +267,10 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     // are contained in the query.
     List<RexNode> queryExprs = extractReferences(rexBuilder, target);
     if (!compensationColumnsEquiPred.isAlwaysTrue()) {
-      RexNode newCompensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
-          target, target, queryExprs, queryToViewTableMapping, queryEC, false,
-          compensationColumnsEquiPred);
+      RexNode newCompensationColumnsEquiPred =
+          rewriteExpression(rexBuilder, mq, target, target, queryExprs,
+              queryToViewTableMapping, queryEC, false,
+              compensationColumnsEquiPred);
       if (newCompensationColumnsEquiPred == null) {
         // Skip it
         return null;
@@ -277,19 +279,21 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     }
     // For the rest, we use the query equivalence classes
     if (!otherCompensationPred.isAlwaysTrue()) {
-      RexNode newOtherCompensationPred = rewriteExpression(rexBuilder, mq,
-          target, target, queryExprs, queryToViewTableMapping, viewEC, true,
-          otherCompensationPred);
+      RexNode newOtherCompensationPred =
+          rewriteExpression(rexBuilder, mq, target, target, queryExprs,
+              queryToViewTableMapping, viewEC, true,
+              otherCompensationPred);
       if (newOtherCompensationPred == null) {
         // Skip it
         return null;
       }
       otherCompensationPred = newOtherCompensationPred;
     }
-    final RexNode queryCompensationPred = RexUtil.not(
-        RexUtil.composeConjunction(rexBuilder,
-            ImmutableList.of(compensationColumnsEquiPred,
-                otherCompensationPred)));
+    final RexNode queryCompensationPred =
+        RexUtil.not(
+            RexUtil.composeConjunction(rexBuilder,
+                ImmutableList.of(compensationColumnsEquiPred,
+                    otherCompensationPred)));
 
     // Generate query rewriting.
     RelNode rewrittenPlan = relBuilder
@@ -417,9 +421,10 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
 
     // Create mapping from query columns to view columns
     final List<RexNode> rollupNodes = new ArrayList<>();
-    final Multimap<Integer, Integer> m = generateMapping(rexBuilder, simplify, mq,
-        queryAggregate.getInput(), viewAggregate.getInput(), indexes.build(),
-        queryToViewTableMapping, queryEC, rollupNodes);
+    final Multimap<Integer, Integer> m =
+        generateMapping(rexBuilder, simplify, mq,
+            queryAggregate.getInput(), viewAggregate.getInput(), indexes.build(),
+            queryToViewTableMapping, queryEC, rollupNodes);
     if (m == null) {
       // Bail out
       return null;
@@ -434,8 +439,10 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     int viewAggregateTotalFieldCount =
         viewAggregate.getRowType().getFieldCount() + rollupNodes.size();
     boolean forceRollup = false;
-    Mapping aggregateMapping = Mappings.create(MappingType.FUNCTION,
-        queryAggregate.getRowType().getFieldCount(), viewAggregateTotalFieldCount);
+    Mapping aggregateMapping =
+        Mappings.create(MappingType.FUNCTION,
+            queryAggregate.getRowType().getFieldCount(),
+            viewAggregateTotalFieldCount);
     for (int i = 0; i < queryAggregate.getGroupCount(); i++) {
       Collection<Integer> c = m.get(queryAggregate.getGroupSet().nth(i));
       for (int j : c) {
@@ -553,10 +560,10 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
           additionalViewExprs.add(
               new RexInputRef(targetIdx, targetNode.getType()));
           // We need to create the rollup expression
-          RexNode rollupExpression = requireNonNull(
-              shuttleReferences(rexBuilder, targetNode, exprsLineage),
-              () -> "shuttleReferences produced null for targetNode="
-                  + targetNode + ", exprsLineage=" + exprsLineage);
+          RexNode rollupExpression =
+              requireNonNull(shuttleReferences(rexBuilder, targetNode, exprsLineage),
+                  () -> "shuttleReferences produced null for targetNode="
+                      + targetNode + ", exprsLineage=" + exprsLineage);
           inputViewExprs.add(rollupExpression);
         } else {
           // This expression should be referenced directly
@@ -761,10 +768,9 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       final RexNode e = Iterables.getOnlyElement(s);
       // Rewrite expr to be expressed on query tables
       final RexNode simplified = simplify.simplifyUnknownAsFalse(e);
-      final RexNode expr = RexUtil.swapTableColumnReferences(rexBuilder,
-          simplified,
-          tableMapping.inverse(),
-          equivalenceClassesMap);
+      final RexNode expr =
+          RexUtil.swapTableColumnReferences(rexBuilder, simplified,
+              tableMapping.inverse(), equivalenceClassesMap);
       exprsLineage.put(expr, i);
       SqlTypeName sqlTypeName = expr.getType().getSqlTypeName();
       if (sqlTypeName == SqlTypeName.TIMESTAMP
@@ -779,8 +785,8 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     // FLOOR(ts to DAY) via FLOOR(FLOOR(ts to HOUR) to DAY)
     for (RexNode timestampExpr : timestampExprs) {
       for (TimeUnitRange value : SUPPORTED_DATE_TIME_ROLLUP_UNITS) {
-        final SqlFunction[] functions = {getCeilSqlFunction(value),
-            getFloorSqlFunction(value)};
+        final SqlFunction[] functions =
+            {getCeilSqlFunction(value), getFloorSqlFunction(value)};
         for (SqlFunction function : functions) {
           final RexNode call =
               rexBuilder.makeCall(function,
@@ -816,8 +822,9 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       final RexNode e = Iterables.getOnlyElement(s);
       // Rewrite expr to be expressed on query tables
       final RexNode simplified = simplify.simplifyUnknownAsFalse(e);
-      RexNode targetExpr = RexUtil.swapColumnReferences(rexBuilder,
-          simplified, equivalenceClassesMap);
+      RexNode targetExpr =
+          RexUtil.swapColumnReferences(rexBuilder, simplified,
+              equivalenceClassesMap);
       final Collection<Integer> c = exprsLineage.get(targetExpr);
       if (!c.isEmpty()) {
         for (Integer j : c) {

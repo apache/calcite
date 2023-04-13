@@ -241,7 +241,7 @@ public abstract class RexProgramBuilderBase {
    * @return call to CAST operator
    */
   protected RexNode abstractCast(RexNode e, RelDataType type) {
-    return rexBuilder.makeAbstractCast(type, e);
+    return rexBuilder.makeAbstractCast(type, e, false);
   }
 
   /**
@@ -321,11 +321,7 @@ public abstract class RexProgramBuilderBase {
   }
 
   protected RexNode item(RexNode inputRef, RexNode literal) {
-    RexNode rexNode = rexBuilder.makeCall(
-        SqlStdOperatorTable.ITEM,
-        inputRef,
-        literal);
-    return rexNode;
+    return rexBuilder.makeCall(SqlStdOperatorTable.ITEM, inputRef, literal);
   }
 
   /**

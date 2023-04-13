@@ -17,6 +17,7 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -27,10 +28,12 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.RexImplicationCheckerFixtures;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
@@ -97,10 +100,12 @@ class RexBuilderTest {
     final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RexBuilder builder = new RexBuilder(typeFactory);
 
-    RexNode node =  new RexLiteral(
-            Boolean.TRUE, typeFactory.createSqlType(SqlTypeName.BOOLEAN), SqlTypeName.BOOLEAN);
-    RexNode ensuredNode = builder.ensureType(
-            typeFactory.createSqlType(SqlTypeName.ANY), node, true);
+    RexNode node =
+        new RexLiteral(Boolean.TRUE,
+            typeFactory.createSqlType(SqlTypeName.BOOLEAN), SqlTypeName.BOOLEAN);
+    RexNode ensuredNode =
+        builder.ensureType(typeFactory.createSqlType(SqlTypeName.ANY), node,
+            true);
 
     assertEquals(node, ensuredNode);
   }
@@ -112,10 +117,12 @@ class RexBuilderTest {
     final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RexBuilder builder = new RexBuilder(typeFactory);
 
-    RexNode node =  new RexLiteral(
-            Boolean.TRUE, typeFactory.createSqlType(SqlTypeName.BOOLEAN), SqlTypeName.BOOLEAN);
-    RexNode ensuredNode = builder.ensureType(
-            typeFactory.createSqlType(SqlTypeName.BOOLEAN), node, true);
+    RexNode node =
+        new RexLiteral(Boolean.TRUE,
+            typeFactory.createSqlType(SqlTypeName.BOOLEAN), SqlTypeName.BOOLEAN);
+    RexNode ensuredNode =
+        builder.ensureType(typeFactory.createSqlType(SqlTypeName.BOOLEAN), node,
+            true);
 
     assertEquals(node, ensuredNode);
   }
@@ -127,10 +134,12 @@ class RexBuilderTest {
     final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RexBuilder builder = new RexBuilder(typeFactory);
 
-    RexNode node =  new RexLiteral(
-            Boolean.TRUE, typeFactory.createSqlType(SqlTypeName.BOOLEAN), SqlTypeName.BOOLEAN);
-    RexNode ensuredNode = builder.ensureType(
-            typeFactory.createSqlType(SqlTypeName.INTEGER), node, true);
+    RexNode node =
+        new RexLiteral(Boolean.TRUE,
+            typeFactory.createSqlType(SqlTypeName.BOOLEAN), SqlTypeName.BOOLEAN);
+    RexNode ensuredNode =
+        builder.ensureType(typeFactory.createSqlType(SqlTypeName.INTEGER), node,
+            true);
 
     assertNotEquals(node, ensuredNode);
     assertEquals(ensuredNode.getType(), typeFactory.createSqlType(SqlTypeName.INTEGER));
@@ -191,6 +200,16 @@ class RexBuilderTest {
     final RexLiteral literal4 = builder.makeLiteral(ts4, timestampType18);
     assertThat(literal4.getValueAs(TimestampString.class).toString(),
         is("1969-07-21 02:56:15.102"));
+  }
+
+  @Test void testTimestampString() {
+    final TimestampString ts = new TimestampString(1969, 7, 21, 2, 56, 15);
+    assertThat(ts.toString(), is("1969-07-21 02:56:15"));
+    assertThat(ts.round(1), is(ts));
+
+    // Now with milliseconds
+    final TimestampString ts2 = ts.withMillis(56);
+    assertThat(ts2.toString(), is("1969-07-21 02:56:15.056"));
 
     // toString
     assertThat(ts2.round(1).toString(), is("1969-07-21 02:56:15"));
@@ -207,8 +226,67 @@ class RexBuilderTest {
     assertThat(ts2.round(0).toString(1), is("1969-07-21 02:56:15.0"));
     assertThat(ts2.round(0).toString(2), is("1969-07-21 02:56:15.00"));
 
-    assertThat(TimestampString.fromMillisSinceEpoch(1456513560123L).toString(),
-        is("2016-02-26 19:06:00.123"));
+    // Now with milliseconds ending in zero (3 equivalent strings).
+    final TimestampString ts3 = ts.withMillis(10);
+    assertThat(ts3.toString(), is("1969-07-21 02:56:15.01"));
+
+    final TimestampString ts3b = new TimestampString("1969-07-21 02:56:15.01");
+    assertThat(ts3b.toString(), is("1969-07-21 02:56:15.01"));
+    assertThat(ts3b, is(ts3));
+
+    final TimestampString ts3c = new TimestampString("1969-07-21 02:56:15.010");
+    assertThat(ts3c.toString(), is("1969-07-21 02:56:15.01"));
+    assertThat(ts3c, is(ts3));
+
+    // Now with nanoseconds
+    final TimestampString ts4 = ts.withNanos(56);
+    assertThat(ts4.toString(), is("1969-07-21 02:56:15.000000056"));
+
+    // Check rounding; uses RoundingMode.DOWN
+    final TimestampString ts5 = ts.withNanos(2345670);
+    assertThat(ts5.toString(), is("1969-07-21 02:56:15.00234567"));
+    assertThat(ts5.round(0).toString(), is("1969-07-21 02:56:15"));
+    assertThat(ts5.round(1).toString(), is("1969-07-21 02:56:15"));
+    assertThat(ts5.round(2).toString(), is("1969-07-21 02:56:15"));
+    assertThat(ts5.round(3).toString(), is("1969-07-21 02:56:15.002"));
+    assertThat(ts5.round(4).toString(), is("1969-07-21 02:56:15.0023"));
+    assertThat(ts5.round(5).toString(), is("1969-07-21 02:56:15.00234"));
+    assertThat(ts5.round(6).toString(), is("1969-07-21 02:56:15.002345"));
+    assertThat(ts5.round(600).toString(), is("1969-07-21 02:56:15.00234567"));
+
+    // Now with a very long fraction
+    final TimestampString ts6 = ts.withFraction("102030405060708090102");
+    assertThat(ts6.toString(), is("1969-07-21 02:56:15.102030405060708090102"));
+
+    // From milliseconds
+    final TimestampString ts7 =
+        TimestampString.fromMillisSinceEpoch(1456513560123L);
+    assertThat(ts7.toString(), is("2016-02-26 19:06:00.123"));
+
+    final TimestampString ts8 =
+        TimestampString.fromMillisSinceEpoch(1456513560120L);
+    assertThat(ts8.toString(), is("2016-02-26 19:06:00.12"));
+
+    final TimestampString ts9 = ts8.withFraction("9876543210");
+    assertThat(ts9.toString(), is("2016-02-26 19:06:00.987654321"));
+
+    // TimestampString.toCalendar
+    final Calendar c = ts9.toCalendar();
+    assertThat(c.get(Calendar.ERA), is(1)); // CE
+    assertThat(c.get(Calendar.YEAR), is(2016));
+    assertThat(c.get(Calendar.MONTH), is(1)); // February
+    assertThat(c.get(Calendar.DATE), is(26));
+    assertThat(c.get(Calendar.HOUR_OF_DAY), is(19));
+    assertThat(c.get(Calendar.MINUTE), is(6));
+    assertThat(c.get(Calendar.SECOND), is(0));
+    assertThat(c.get(Calendar.MILLISECOND), is(987)); // RoundingMode.DOWN
+    assertThat(ts9.getMillisSinceEpoch(), is(c.getTimeInMillis()));
+
+    // TimestampString.fromCalendarFields
+    c.set(Calendar.YEAR, 1969);
+    final TimestampString ts10 = TimestampString.fromCalendarFields(c);
+    assertThat(ts10.toString(), is("1969-02-26 19:06:00.987"));
+    assertThat(ts10.getMillisSinceEpoch(), is(c.getTimeInMillis()));
   }
 
   private void checkTimestamp(RexLiteral literal) {
@@ -237,8 +315,9 @@ class RexBuilderTest {
     final RexBuilder builder = new RexBuilder(typeFactory);
 
     // The new way
-    final TimestampWithTimeZoneString ts = new TimestampWithTimeZoneString(
-        1969, 7, 21, 2, 56, 15, TimeZone.getTimeZone("PST").getID());
+    final TimestampWithTimeZoneString ts =
+        new TimestampWithTimeZoneString(1969, 7, 21, 2, 56, 15,
+            TimeZone.getTimeZone("PST").getID());
     checkTimestampWithLocalTimeZone(
         builder.makeLiteral(ts.getLocalTimestampString(), timestampType));
 
@@ -560,29 +639,29 @@ class RexBuilderTest {
 
     RexLiteral literal = builder.makePreciseStringLiteral("foobar");
     assertEquals("'foobar'", literal.toString());
-    literal = builder.makePreciseStringLiteral(
-        new ByteString(new byte[] { 'f', 'o', 'o', 'b', 'a', 'r'}),
-        "UTF8",
-        SqlCollation.IMPLICIT);
+    literal =
+        builder.makePreciseStringLiteral(
+            new ByteString(new byte[] { 'f', 'o', 'o', 'b', 'a', 'r'}),
+            "UTF8", SqlCollation.IMPLICIT);
     assertEquals("_UTF8'foobar'", literal.toString());
     assertEquals("_UTF8'foobar':CHAR(6) CHARACTER SET \"UTF-8\"",
-        ((RexLiteral) literal).computeDigest(RexDigestIncludeType.ALWAYS));
-    literal = builder.makePreciseStringLiteral(
-        new ByteString("\u82f1\u56fd".getBytes(StandardCharsets.UTF_8)),
-        "UTF8",
-        SqlCollation.IMPLICIT);
+        literal.computeDigest(RexDigestIncludeType.ALWAYS));
+    literal =
+        builder.makePreciseStringLiteral(
+            new ByteString("\u82f1\u56fd".getBytes(StandardCharsets.UTF_8)),
+            "UTF8", SqlCollation.IMPLICIT);
     assertEquals("_UTF8'\u82f1\u56fd'", literal.toString());
     // Test again to check decode cache.
-    literal = builder.makePreciseStringLiteral(
-        new ByteString("\u82f1".getBytes(StandardCharsets.UTF_8)),
-        "UTF8",
-        SqlCollation.IMPLICIT);
+    literal =
+        builder.makePreciseStringLiteral(
+            new ByteString("\u82f1".getBytes(StandardCharsets.UTF_8)),
+            "UTF8", SqlCollation.IMPLICIT);
     assertEquals("_UTF8'\u82f1'", literal.toString());
     try {
-      literal = builder.makePreciseStringLiteral(
-          new ByteString("\u82f1\u56fd".getBytes(StandardCharsets.UTF_8)),
-          "GB2312",
-          SqlCollation.IMPLICIT);
+      literal =
+          builder.makePreciseStringLiteral(
+              new ByteString("\u82f1\u56fd".getBytes(StandardCharsets.UTF_8)),
+              "GB2312", SqlCollation.IMPLICIT);
       fail("expected exception, got " + literal);
     } catch (RuntimeException e) {
       assertThat(e.getMessage(), containsString("Failed to encode"));
@@ -624,6 +703,44 @@ class RexBuilderTest {
     assertThat(inCall.getKind(), is(SqlKind.SEARCH));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4632">[CALCITE-4632]
+   * Find the least restrictive datatype for SARG</a>. */
+  @Test void testLeastRestrictiveTypeForSargMakeIn() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    final RelDataType decimalType = typeFactory.createSqlType(SqlTypeName.DECIMAL);
+    RexNode left = rexBuilder.makeInputRef(decimalType, 0);
+    final RexNode literal1 = rexBuilder.makeExactLiteral(new BigDecimal("1.0"));
+    final RexNode literal2 = rexBuilder.makeExactLiteral(new BigDecimal("20000.0"));
+
+    RexNode inCall = rexBuilder.makeIn(left, ImmutableList.of(literal1, literal2));
+    assertThat(inCall.getKind(), is(SqlKind.SEARCH));
+
+    final RexNode sarg = ((RexCall) inCall).operands.get(1);
+    RelDataType expected = typeFactory.createSqlType(SqlTypeName.DECIMAL, 6, 1);
+    assertEquals(sarg.getType(), expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4632">[CALCITE-4632]
+   * Find the least restrictive datatype for SARG</a>. */
+  @Test void testLeastRestrictiveTypeForSargMakeBetween() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    final RelDataType decimalType = typeFactory.createSqlType(SqlTypeName.DECIMAL);
+    RexNode left = rexBuilder.makeInputRef(decimalType, 0);
+    final RexNode literal1 = rexBuilder.makeExactLiteral(new BigDecimal("1.0"));
+    final RexNode literal2 = rexBuilder.makeExactLiteral(new BigDecimal("20000.0"));
+
+    RexNode betweenCall = rexBuilder.makeBetween(left, literal1, literal2);
+    assertThat(betweenCall.getKind(), is(SqlKind.SEARCH));
+
+    final RexNode sarg = ((RexCall) betweenCall).operands.get(1);
+    RelDataType expected = typeFactory.createSqlType(SqlTypeName.DECIMAL, 6, 1);
+    assertEquals(sarg.getType(), expected);
+  }
+
   /** Tests {@link RexCopier#visitOver(RexOver)}. */
   @Test void testCopyOver() {
     final RelDataTypeFactory sourceTypeFactory =
@@ -634,16 +751,16 @@ class RexBuilderTest {
         new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RexBuilder builder = new RexBuilder(targetTypeFactory);
 
-    final RexOver node = (RexOver) builder.makeOver(type,
-        SqlStdOperatorTable.COUNT,
-        ImmutableList.of(builder.makeInputRef(type, 0)),
-        ImmutableList.of(builder.makeInputRef(type, 1)),
-        ImmutableList.of(
-            new RexFieldCollation(
-                builder.makeInputRef(type, 2), ImmutableSet.of())),
-        RexWindowBounds.UNBOUNDED_PRECEDING,
-        RexWindowBounds.CURRENT_ROW,
-        true, true, false, false, false);
+    final RexOver node =
+        (RexOver) builder.makeOver(type, SqlStdOperatorTable.COUNT,
+            ImmutableList.of(builder.makeInputRef(type, 0)),
+            ImmutableList.of(builder.makeInputRef(type, 1)),
+            ImmutableList.of(
+                new RexFieldCollation(builder.makeInputRef(type, 2),
+                    ImmutableSet.of())),
+            RexWindowBounds.UNBOUNDED_PRECEDING,
+            RexWindowBounds.CURRENT_ROW,
+            true, true, false, false, false);
     final RexNode copy = builder.copy(node);
     assertTrue(copy instanceof RexOver);
 
@@ -759,8 +876,9 @@ class RexBuilderTest {
     RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     RelDataType longType = typeFactory.createSqlType(SqlTypeName.BIGINT);
 
-    RelDataType structType = typeFactory.createStructType(
-        Arrays.asList(intType, longType), Arrays.asList("x", "y"));
+    RelDataType structType =
+        typeFactory.createStructType(Arrays.asList(intType, longType),
+            Arrays.asList("x", "y"));
     RexInputRef inputRef = builder.makeInputRef(structType, 0);
 
     // construct RexFieldAccess fails because of negative index
@@ -811,5 +929,35 @@ class RexBuilderTest {
     // when the space before "NOT NULL" is missing, the digest is not correct
     // and the suffix should not be removed.
     assertThat(literal.digest, is("0L:(udt)NOT NULL"));
+  }
+
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5489">[CALCITE-5489]
+   * RexCall to TIMESTAMP_DIFF function fails to convert a TIMESTAMP literal to
+   * a org.apache.calcite.avatica.util.TimeUnit</a>. */
+  @Test void testTimestampDiffCall() {
+    final RexImplicationCheckerFixtures.Fixture f =
+        new RexImplicationCheckerFixtures.Fixture();
+    final TimestampString ts =
+        TimestampString.fromCalendarFields(Util.calendar());
+    final RexNode literal = f.timestampLiteral(ts);
+    final RexLiteral flag = f.rexBuilder.makeFlag(TimeUnit.QUARTER);
+    assertThat(
+        f.rexBuilder.makeCall(SqlLibraryOperators.DATEDIFF,
+            flag, literal, literal),
+        notNullValue());
+    assertThat(
+        f.rexBuilder.makeCall(SqlStdOperatorTable.TIMESTAMP_DIFF,
+            flag, literal, literal),
+        notNullValue());
+    assertThat(
+        f.rexBuilder.makeCall(SqlLibraryOperators.TIMESTAMP_DIFF3,
+            literal, literal, flag),
+        notNullValue());
+    assertThat(
+        f.rexBuilder.makeCall(SqlLibraryOperators.TIME_DIFF,
+            literal, literal, flag),
+        notNullValue());
   }
 }

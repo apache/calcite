@@ -80,8 +80,9 @@ class ToLogicalConverterTest {
 
   private static FrameworkConfig frameworkConfig() {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
-    final SchemaPlus schema = CalciteAssert.addSchema(rootSchema,
-        CalciteAssert.SchemaSpec.JDBC_FOODMART);
+    final SchemaPlus schema =
+        CalciteAssert.addSchema(rootSchema,
+            CalciteAssert.SchemaSpec.JDBC_FOODMART);
     return Frameworks.newConfigBuilder()
         .defaultSchema(schema)
         .sqlToRelConverterConfig(DEFAULT_REL_CONFIG)

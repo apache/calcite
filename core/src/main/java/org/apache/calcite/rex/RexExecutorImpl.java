@@ -129,8 +129,8 @@ public class RexExecutorImpl implements RexExecutor {
    */
   @Override public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
-    final String code = compile(rexBuilder, constExps,
-        (list, index, storageType) -> {
+    final String code =
+        compile(rexBuilder, constExps, (list, index, storageType) -> {
           throw new UnsupportedOperationException();
         });
 
@@ -156,14 +156,14 @@ public class RexExecutorImpl implements RexExecutor {
     }
 
     @Override public Expression field(BlockBuilder list, int index, @Nullable Type storageType) {
-      MethodCallExpression recFromCtx = Expressions.call(
-          DataContext.ROOT,
-          BuiltInMethod.DATA_CONTEXT_GET.method,
-          Expressions.constant("inputRecord"));
+      MethodCallExpression recFromCtx =
+          Expressions.call(DataContext.ROOT,
+              BuiltInMethod.DATA_CONTEXT_GET.method,
+              Expressions.constant("inputRecord"));
       Expression recFromCtxCasted =
           EnumUtils.convert(recFromCtx, Object[].class);
-      IndexExpression recordAccess = Expressions.arrayIndex(recFromCtxCasted,
-          Expressions.constant(index));
+      IndexExpression recordAccess =
+          Expressions.arrayIndex(recFromCtxCasted, Expressions.constant(index));
       if (storageType == null) {
         final RelDataType fieldType =
             rowType.getFieldList().get(index).getType();

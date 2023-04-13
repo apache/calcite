@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
@@ -35,6 +36,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
@@ -66,10 +68,8 @@ public class RelMdUtil {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final SqlFunction ARTIFICIAL_SELECTIVITY_FUNC =
-      new SqlFunction("ARTIFICIAL_SELECTIVITY",
-          SqlKind.OTHER_FUNCTION,
+      SqlBasicFunction.create("ARTIFICIAL_SELECTIVITY",
           ReturnTypes.BOOLEAN, // returns boolean since we'll AND it
-          null,
           OperandTypes.NUMERIC, // takes a numeric param
           SqlFunctionCategory.SYSTEM);
 
@@ -338,8 +338,91 @@ public class RelMdUtil {
 
     double res = 0;
     if (dSize > 0) {
-      double expo = numSel * Math.log(1.0 - 1.0 / dSize);
-      res = (1.0 - Math.exp(expo)) * dSize;
+      // We calculate the result in 3 cases:
+      // 1) If N and n are not very large values, we directly calculate
+      //    N * [1 - exp(n * ln(1 - 1 / N))]
+      // 2) If N or n are very large values, but n / N is not close to 0,
+      //    We compute the result by expanding the exponent n * ln(1 - 1 / N)
+      //    as a Taylor series.
+      // 3) If N or n are very large values, and n / N is close to 0,
+      //    we expand the whole formula as a Taylor series.
+      // We separate the 3 cases by trying to expand the exponent as a Taylor series.
+      // If the required number of terms for convergence is too big, it is case 1.
+      // If the required number of terms is too small, it is case 3. Otherwise,
+      // it is case 2.
+
+      // To expand the component as a Taylor series, we have:
+      // n * ln(1 - 1 / N)
+      //    = n * (- 1 / N - 1 / (2 * N ^ 2) - 1 / (3 * N ^ 3) - ...)
+      //
+      // To get an approximate result, we truncate the series after the first m terms.
+      // This leads to an error of:
+      // n * (1 / [(m + 1) * N ^ (m + 1)] + 1 / [(m + 2) * dSize ^ (m + 2) + ...])
+      // < n / (m + 1) / [N ^ m * (N - 1)] <  n / (N ^ m)
+      //
+      // To get an accurate result, the error should be smaller than 1e-16, because a
+      // double can represent at most 15 digits after the decimal point. Therefore, we need
+      // n / (N ^ m ) < 1e-16, or N ^ m / n > 1e16.
+      //
+      // The smallest value of m that satisfies the above formula is the
+      // number of terms required for convergence.
+
+      final int maxTerms = 32;
+      final int minTerms = 1;
+
+      int numTerms = 1;
+      if (dSize > 10) {
+        double dPower = dSize;
+        while (dPower / numSel <= 1e16) {
+          dPower = dPower * dPower;
+          numTerms *= 2;
+        }
+      } else {
+        // for small dSize, force case 1
+        numTerms = maxTerms + 1;
+      }
+
+      if (numTerms > maxTerms) {
+        // case 1
+        double expo = numSel * Math.log(1.0 - 1.0 / dSize);
+        res = (1.0 - Math.exp(expo)) * dSize;
+      } else if (numTerms > minTerms) {
+        // case 2
+        double expo = 0;
+        double dPower = dSize;
+        for (int i = 1; i <= numTerms; i++) {
+          expo -= numSel / dPower / i;
+          dPower *= dSize;
+        }
+        res = (1.0 - Math.exp(expo)) * dSize;
+      } else {
+        // numTerms <= minTerms
+        // case 3
+
+        // Since the ratio n / N is close to 0, we can expand the exponent as
+        // n * ln(1 - 1 / N) ≈ n * (- 1 / N) = - n / N.
+        // So N * [1 - (1 - 1 / N) ^ n ] = N * [1 - exp(n * ln(1 - 1 / N))]
+        // ≈ N * [1 - exp(- n / N)].
+        // Since exp(x) = 1 + x + x ^ 2 / 2 + x ^ 3 / 6 + ..., we have
+        // N * [1 - exp(- n / N)] = N * [n / N - n ^ 2 / (2 * N ^ 2) + n ^ 3 / (6 * N ^ 3) - ...]
+        // = n - n ^ 2 / (2 * N) + n ^ 3 / (6 * N ^ 2) - ...
+        // Since n / N is close to 0, and due to the factorial in the denominator,
+        // the above series converges to 0 very quickly.
+        res = 0;
+        numTerms = 5;
+        double selPower = numSel;
+        double domPower = 1;
+        int factorial = 1;
+        int sign = 1;
+        for (int i = 1; i < numTerms; i++) {
+          res += sign * selPower / factorial / domPower;
+
+          selPower *= numSel;
+          domPower *= dSize;
+          factorial *= i + 1;
+          sign *= -1;
+        }
+      }
     }
 
     // fix the boundary cases
@@ -672,9 +755,10 @@ public class RelMdUtil {
     }
 
     if (useMaxNdv) {
-      distRowCount = NumberUtil.max(
-          mq.getDistinctRowCount(left, leftMask.build(), leftPred),
-          mq.getDistinctRowCount(right, rightMask.build(), rightPred));
+      distRowCount =
+          NumberUtil.max(
+              mq.getDistinctRowCount(left, leftMask.build(), leftPred),
+              mq.getDistinctRowCount(right, rightMask.build(), rightPred));
     } else {
       distRowCount =
         multiply(
@@ -775,8 +859,8 @@ public class RelMdUtil {
   public static double estimateFilteredRows(RelNode child, @Nullable RexNode condition,
       RelMetadataQuery mq) {
     @SuppressWarnings("unboxing.of.nullable")
-    double result = multiply(mq.getRowCount(child),
-        mq.getSelectivity(child, condition));
+    double result =
+        multiply(mq.getRowCount(child), mq.getSelectivity(child, condition));
     return result;
   }
 
@@ -911,7 +995,7 @@ public class RelMdUtil {
       return true;
     }
     final Double rowCount = mq.getMaxRowCount(input);
-    if (rowCount == null) {
+    if (rowCount == null || offset instanceof RexDynamicParam || fetch instanceof RexDynamicParam) {
       // Cannot be determined
       return false;
     }

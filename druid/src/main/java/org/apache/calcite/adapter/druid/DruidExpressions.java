@@ -37,8 +37,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.TimeZone;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Expression utility class to transform Calcite expressions to Druid expressions when possible.
@@ -190,15 +191,14 @@ public class DruidExpressions {
   }
 
   public static String functionCall(final String functionName, final List<String> args) {
-    Objects.requireNonNull(functionName, "druid functionName");
-    Objects.requireNonNull(args, "args");
+    requireNonNull(functionName, "druid functionName");
+    requireNonNull(args, "args");
 
     final StringBuilder builder = new StringBuilder(functionName);
     builder.append("(");
     for (int i = 0; i < args.size(); i++) {
       int finalI = i;
-      final String arg = Objects.requireNonNull(args.get(i),
-          () -> "arg #" + finalI);
+      final String arg = requireNonNull(args.get(i), () -> "arg #" + finalI);
       builder.append(arg);
       if (i < args.size() - 1) {
         builder.append(",");
@@ -209,14 +209,13 @@ public class DruidExpressions {
   }
 
   public static String nAryOperatorCall(final String druidOperator, final List<String> args) {
-    Objects.requireNonNull(druidOperator, "druid operator missing");
-    Objects.requireNonNull(args, "args");
+    requireNonNull(druidOperator, "druid operator missing");
+    requireNonNull(args, "args");
     final StringBuilder builder = new StringBuilder();
     builder.append("(");
     for (int i = 0; i < args.size(); i++) {
       int finalI = i;
-      final String arg = Objects.requireNonNull(args.get(i),
-          () -> "arg #" + finalI);
+      final String arg = requireNonNull(args.get(i), () -> "arg #" + finalI);
       builder.append(arg);
       if (i < args.size() - 1) {
         builder.append(druidOperator);
@@ -254,8 +253,8 @@ public class DruidExpressions {
       final String granularity,
       final String origin,
       final TimeZone timeZone) {
-    Objects.requireNonNull(input, "input");
-    Objects.requireNonNull(granularity, "granularity");
+    requireNonNull(input, "input");
+    requireNonNull(granularity, "granularity");
     return DruidExpressions.functionCall(
         "timestamp_floor",
         ImmutableList.of(input,
@@ -269,8 +268,8 @@ public class DruidExpressions {
       final String granularity,
       final String origin,
       final TimeZone timeZone) {
-    Objects.requireNonNull(input, "input");
-    Objects.requireNonNull(granularity, "granularity");
+    requireNonNull(input, "input");
+    requireNonNull(granularity, "granularity");
     return DruidExpressions.functionCall(
         "timestamp_ceil",
         ImmutableList.of(input,

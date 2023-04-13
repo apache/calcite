@@ -114,11 +114,10 @@ public class FrameworksTest {
           };
 
           // "SELECT * FROM myTable"
-          final RelOptAbstractTable relOptTable = new RelOptAbstractTable(
-              relOptSchema,
-              "myTable",
-              table.getRowType(typeFactory)) {
-          };
+          final RelOptAbstractTable relOptTable =
+              new RelOptAbstractTable(relOptSchema, "myTable",
+                  table.getRowType(typeFactory)) {
+              };
           final EnumerableTableScan tableRel =
               EnumerableTableScan.create(cluster, relOptTable);
 
@@ -137,8 +136,7 @@ public class FrameworksTest {
           final RelOptPlanner planner = cluster.getPlanner();
           RelTraitSet desiredTraits =
               cluster.traitSet().replace(EnumerableConvention.INSTANCE);
-          final RelNode rootRel2 = planner.changeTraits(rootRel,
-              desiredTraits);
+          final RelNode rootRel2 = planner.changeTraits(rootRel, desiredTraits);
           planner.setRoot(rootRel2);
 
           // Now, plan.

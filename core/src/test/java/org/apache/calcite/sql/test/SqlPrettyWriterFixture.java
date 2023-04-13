@@ -138,17 +138,31 @@ class SqlPrettyWriterFixture {
   }
 
   SqlPrettyWriterFixture check() {
+    return checkTransformedNode(n -> n);
+  }
+
+  /** As {@link #check()}, but operates on a transformed node
+   * (say the 2nd child of the 1st child) rather than the root. */
+  SqlPrettyWriterFixture checkTransformedNode(
+      UnaryOperator<SqlNode> nodeTransformer) {
+    return check_(nodeTransformer);
+  }
+
+  private SqlPrettyWriterFixture check_(UnaryOperator<SqlNode> nodeTransformer) {
     final SqlWriterConfig config =
         transform.apply(SqlPrettyWriter.config()
             .withDialect(AnsiSqlDialect.DEFAULT));
     final SqlPrettyWriter prettyWriter = new SqlPrettyWriter(config);
     final SqlNode node;
+    final SqlNode node1;
     if (expression) {
       final SqlCall valuesCall = (SqlCall) parseQuery("VALUES (" + sql + ")");
       final SqlCall rowCall = valuesCall.operand(0);
       node = rowCall.operand(0);
+      node1 = node;
     } else {
       node = parseQuery(sql);
+      node1 = nodeTransformer.apply(node);
     }
 
     // Describe settings
@@ -175,11 +189,11 @@ class SqlPrettyWriterFixture {
       final SqlCall rowCall = valuesCall.operand(0);
       node2 = rowCall.operand(0);
     } else {
-      node2 = parseQuery(actual2);
+      SqlNode node2a = parseQuery(actual2);
+      node2 = nodeTransformer.apply(node2a);
     }
-    assertTrue(node.equalsDeep(node2, Litmus.THROW));
+    assertTrue(node1.equalsDeep(node2, Litmus.THROW));
 
     return this;
   }
-
 }

@@ -48,11 +48,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * An assistant which offers hints and corrections to a partially-formed SQL
@@ -369,11 +370,12 @@ public class SqlAdvisor {
 
   private static boolean isSelectListItem(SqlNode root,
       final SqlParserPos pos, String hintToken) {
-    List<SqlNode> nodes = SqlUtil.getAncestry(root,
-        input -> input instanceof SqlIdentifier
-            && ((SqlIdentifier) input).names.contains(hintToken),
-        input -> Objects.requireNonNull(input, "input").getParserPosition()
-            .startsAt(pos));
+    List<SqlNode> nodes =
+        SqlUtil.getAncestry(root,
+            input -> input instanceof SqlIdentifier
+                && ((SqlIdentifier) input).names.contains(hintToken),
+            input -> requireNonNull(input, "input")
+                .getParserPosition().startsAt(pos));
     assert nodes.get(0) == root;
     nodes = Lists.reverse(nodes);
     return nodes.size() > 2

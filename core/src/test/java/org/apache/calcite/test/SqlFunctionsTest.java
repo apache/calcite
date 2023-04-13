@@ -22,21 +22,33 @@ import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
 
+import com.google.common.collect.ImmutableList;
+
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 
-import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
-import static org.apache.calcite.runtime.SqlFunctions.addMonths;
+import static org.apache.calcite.avatica.util.DateTimeUtils.MILLIS_PER_DAY;
+import static org.apache.calcite.avatica.util.DateTimeUtils.dateStringToUnixDate;
+import static org.apache.calcite.avatica.util.DateTimeUtils.timeStringToUnixDate;
+import static org.apache.calcite.avatica.util.DateTimeUtils.timestampStringToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
+import static org.apache.calcite.runtime.SqlFunctions.internalToDate;
+import static org.apache.calcite.runtime.SqlFunctions.internalToTime;
+import static org.apache.calcite.runtime.SqlFunctions.internalToTimestamp;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
@@ -45,8 +57,11 @@ import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
-import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
+import static org.apache.calcite.runtime.SqlFunctions.toInt;
+import static org.apache.calcite.runtime.SqlFunctions.toIntOptional;
+import static org.apache.calcite.runtime.SqlFunctions.toLong;
+import static org.apache.calcite.runtime.SqlFunctions.toLongOptional;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
 import static org.apache.calcite.test.Matchers.within;
@@ -55,7 +70,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.AnyOf.anyOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -69,6 +83,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * rather than {@code assertEquals}.
  */
 class SqlFunctionsTest {
+  static <E> List<E> list(E... es) {
+    return Arrays.asList(es);
+  }
+
+  static <E> List<E> list() {
+    return ImmutableList.of();
+  }
+
   @Test void testCharLength() {
     assertThat(charLength("xyz"), is(3));
   }
@@ -157,7 +179,7 @@ class SqlFunctionsTest {
       fail("'regexp_replace' on an invalid pos is not possible");
     } catch (CalciteException e) {
       assertThat(e.getMessage(),
-          is("Not a valid input for REGEXP_REPLACE: '0'"));
+          is("Invalid input for REGEXP_REPLACE: '0'"));
     }
 
     try {
@@ -165,7 +187,7 @@ class SqlFunctionsTest {
       fail("'regexp_replace' on an invalid matchType is not possible");
     } catch (CalciteException e) {
       assertThat(e.getMessage(),
-          is("Not a valid input for REGEXP_REPLACE: 'WWW'"));
+          is("Invalid input for REGEXP_REPLACE: 'WWW'"));
     }
   }
 
@@ -284,47 +306,6 @@ class SqlFunctionsTest {
 
   static String trimSpacesBoth(String s) {
     return trim(true, true, " ", s);
-  }
-
-  @Test void testAddMonths() {
-    checkAddMonths(2016, 1, 1, 2016, 2, 1, 1);
-    checkAddMonths(2016, 1, 1, 2017, 1, 1, 12);
-    checkAddMonths(2016, 1, 1, 2017, 2, 1, 13);
-    checkAddMonths(2016, 1, 1, 2015, 1, 1, -12);
-    checkAddMonths(2016, 1, 1, 2018, 10, 1, 33);
-    checkAddMonths(2016, 1, 31, 2016, 4, 30, 3);
-    checkAddMonths(2016, 4, 30, 2016, 7, 30, 3);
-    checkAddMonths(2016, 1, 31, 2016, 2, 29, 1);
-    checkAddMonths(2016, 3, 31, 2016, 2, 29, -1);
-    checkAddMonths(2016, 3, 31, 2116, 3, 31, 1200);
-    checkAddMonths(2016, 2, 28, 2116, 2, 28, 1200);
-    checkAddMonths(2019, 9, 1, 2020, 3, 1, 6);
-    checkAddMonths(2019, 9, 1, 2016, 8, 1, -37);
-  }
-
-  private void checkAddMonths(int y0, int m0, int d0, int y1, int m1, int d1,
-      int months) {
-    final int date0 = ymdToUnixDate(y0, m0, d0);
-    final long date = addMonths(date0, months);
-    final int date1 = ymdToUnixDate(y1, m1, d1);
-    assertThat((int) date, is(date1));
-
-    assertThat(subtractMonths(date1, date0),
-        anyOf(is(months), is(months + 1)));
-    assertThat(subtractMonths(date1 + 1, date0),
-        anyOf(is(months), is(months + 1)));
-    assertThat(subtractMonths(date1, date0 + 1),
-        anyOf(is(months), is(months - 1)));
-    assertThat(subtractMonths(d2ts(date1, 1), d2ts(date0, 0)),
-        anyOf(is(months), is(months + 1)));
-    assertThat(subtractMonths(d2ts(date1, 0), d2ts(date0, 1)),
-        anyOf(is(months - 1), is(months), is(months + 1)));
-  }
-
-  /** Converts a date (days since epoch) and milliseconds (since midnight)
-   * into a timestamp (milliseconds since epoch). */
-  private long d2ts(int date, int millis) {
-    return date * DateTimeUtils.MILLIS_PER_DAY + millis;
   }
 
   @Test void testFloor() {
@@ -534,6 +515,64 @@ class SqlFunctionsTest {
     assertThat(SqlFunctions.sround(-11999, -3), within(-12000d, 0.001));
     assertThat(SqlFunctions.sround(-12000, -4), within(-10000d, 0.001));
     assertThat(SqlFunctions.sround(-12000, -5), within(0d, 0.001));
+  }
+
+  @Test void testSplit() {
+    assertThat("no occurrence of delimiter",
+        SqlFunctions.split("abc", ","), is(list("abc")));
+    assertThat("delimiter in middle",
+        SqlFunctions.split("abc", "b"), is(list("a", "c")));
+    assertThat("delimiter at end",
+        SqlFunctions.split("abc", "c"), is(list("ab", "")));
+    assertThat("delimiter at start",
+        SqlFunctions.split("abc", "a"), is(list("", "bc")));
+    assertThat("empty delimiter",
+        SqlFunctions.split("abc", ""), is(list("abc")));
+    assertThat("empty delimiter and string",
+        SqlFunctions.split("", ""), is(list()));
+    assertThat("empty string",
+        SqlFunctions.split("", ","), is(list()));
+    assertThat("long delimiter (occurs at start)",
+        SqlFunctions.split("abracadabra", "ab"), is(list("", "racad", "ra")));
+    assertThat("long delimiter (occurs at end)",
+        SqlFunctions.split("sabracadabrab", "ab"),
+        is(list("s", "racad", "r", "")));
+
+    // Same as above but for ByteString
+    final ByteString a = ByteString.of("aa", 16);
+    final ByteString ab = ByteString.of("aabb", 16);
+    final ByteString abc = ByteString.of("aabbcc", 16);
+    final ByteString abracadabra = ByteString.of("aabb44aaccaaddaabb44aa", 16);
+    final ByteString b = ByteString.of("bb", 16);
+    final ByteString bc = ByteString.of("bbcc", 16);
+    final ByteString c = ByteString.of("cc", 16);
+    final ByteString f = ByteString.of("ff", 16);
+    final ByteString r = ByteString.of("44", 16);
+    final ByteString ra = ByteString.of("44aa", 16);
+    final ByteString racad = ByteString.of("44aaccaadd", 16);
+    final ByteString empty = ByteString.of("", 16);
+    final ByteString s = ByteString.of("55", 16);
+    final ByteString sabracadabrab =
+        ByteString.of("55", 16).concat(abracadabra).concat(b);
+    assertThat("no occurrence of delimiter",
+        SqlFunctions.split(abc, f), is(list(abc)));
+    assertThat("delimiter in middle",
+        SqlFunctions.split(abc, b), is(list(a, c)));
+    assertThat("delimiter at end",
+        SqlFunctions.split(abc, c), is(list(ab, empty)));
+    assertThat("delimiter at start",
+        SqlFunctions.split(abc, a), is(list(empty, bc)));
+    assertThat("empty delimiter",
+        SqlFunctions.split(abc, empty), is(list(abc)));
+    assertThat("empty delimiter and string",
+        SqlFunctions.split(empty, empty), is(list()));
+    assertThat("empty string",
+        SqlFunctions.split(empty, f), is(list()));
+    assertThat("long delimiter (occurs at start)",
+        SqlFunctions.split(abracadabra, ab), is(list(empty, racad, ra)));
+    assertThat("long delimiter (occurs at end)",
+        SqlFunctions.split(sabracadabrab, ab),
+        is(list(s, racad, r, empty)));
   }
 
   @Test void testByteString() {
@@ -836,19 +875,19 @@ class SqlFunctionsTest {
     assertThat(SqlFunctions.multiplyAny(1, null), nullValue());
 
     // Numeric types
-    assertThat(SqlFunctions.multiplyAny(2, 1L), is((Object) new BigDecimal(2)));
+    assertThat(SqlFunctions.multiplyAny(2, 1L), is(new BigDecimal(2)));
     assertThat(SqlFunctions.multiplyAny(2, 1.0D),
-        is((Object) new BigDecimal(2)));
+        is(new BigDecimal(2)));
     assertThat(SqlFunctions.multiplyAny(2L, 1.0D),
-        is((Object) new BigDecimal(2)));
+        is(new BigDecimal(2)));
     assertThat(SqlFunctions.multiplyAny(new BigDecimal(2L), 1),
-        is((Object) new BigDecimal(2)));
+        is(new BigDecimal(2)));
     assertThat(SqlFunctions.multiplyAny(new BigDecimal(2L), 1L),
-        is((Object) new BigDecimal(2)));
+        is(new BigDecimal(2)));
     assertThat(SqlFunctions.multiplyAny(new BigDecimal(2L), 1.0D),
-        is((Object) new BigDecimal(2)));
+        is(new BigDecimal(2)));
     assertThat(SqlFunctions.multiplyAny(new BigDecimal(2L), new BigDecimal(1.0D)),
-        is((Object) new BigDecimal(2)));
+        is(new BigDecimal(2)));
 
     // Non-numeric type
     try {
@@ -869,19 +908,19 @@ class SqlFunctionsTest {
 
     // Numeric types
     assertThat(SqlFunctions.divideAny(5, 2L),
-        is((Object) new BigDecimal("2.5")));
+        is(new BigDecimal("2.5")));
     assertThat(SqlFunctions.divideAny(5, 2.0D),
-        is((Object) new BigDecimal("2.5")));
+        is(new BigDecimal("2.5")));
     assertThat(SqlFunctions.divideAny(5L, 2.0D),
-        is((Object) new BigDecimal("2.5")));
+        is(new BigDecimal("2.5")));
     assertThat(SqlFunctions.divideAny(new BigDecimal(5L), 2),
-        is((Object) new BigDecimal(2.5)));
+        is(new BigDecimal(2.5)));
     assertThat(SqlFunctions.divideAny(new BigDecimal(5L), 2L),
-        is((Object) new BigDecimal(2.5)));
+        is(new BigDecimal(2.5)));
     assertThat(SqlFunctions.divideAny(new BigDecimal(5L), 2.0D),
-        is((Object) new BigDecimal(2.5)));
+        is(new BigDecimal(2.5)));
     assertThat(SqlFunctions.divideAny(new BigDecimal(5L), new BigDecimal(2.0D)),
-        is((Object) new BigDecimal(2.5)));
+        is(new BigDecimal(2.5)));
 
     // Non-numeric type
     try {
@@ -973,5 +1012,330 @@ class SqlFunctionsTest {
     } catch (NullPointerException e) {
       // ok
     }
+  }
+
+  /**
+   * Tests that a date in the local time zone converts to a Unix timestamp in
+   * UTC.
+   */
+  @Test void testToIntWithSqlDate() {
+    assertThat(toInt(new java.sql.Date(0L)), is(0));  // rounded to closest day
+    assertThat(sqlDate("1970-01-01"), is(0));
+    assertThat(sqlDate("1500-04-30"), is(dateStringToUnixDate("1500-04-30")));
+  }
+
+  /**
+   * Test calendar conversion from the standard Gregorian calendar used by
+   * {@code java.sql} and the proleptic Gregorian calendar used by Unix
+   * timestamps.
+   */
+  @Test void testToIntWithSqlDateInGregorianShift() {
+    assertThat(sqlDate("1582-10-04"), is(dateStringToUnixDate("1582-10-04")));
+    assertThat(sqlDate("1582-10-05"), is(dateStringToUnixDate("1582-10-15")));
+    assertThat(sqlDate("1582-10-15"), is(dateStringToUnixDate("1582-10-15")));
+  }
+
+  /**
+   * Test date range 0001-01-01 to 9999-12-31 required by ANSI SQL.
+   *
+   * <p>Java may not be able to represent 0001-01-01 depending on the default
+   * time zone. If the date would fall outside of Anno Domini (AD) when
+   * converted to the default time zone, that date should not be tested.
+   *
+   * <p>Not every time zone has a January 1st 12:00am, so this test skips those
+   * dates.
+   */
+  @Test void testToIntWithSqlDateInAnsiDateRange() {
+    for (int i = 2; i <= 9999; ++i) {
+      final String str = String.format(Locale.ROOT, "%04d-01-01", i);
+      final java.sql.Date date = java.sql.Date.valueOf(str);
+      final Timestamp timestamp = new Timestamp(date.getTime());
+      if (timestamp.toString().endsWith("00:00:00.0")) {
+        // Test equality if the time is valid in Java
+        assertThat("Converts '" + str + "' from SQL to Unix date",
+            toInt(date),
+            is(dateStringToUnixDate(str)));
+      } else {
+        // Test result matches legacy behavior if the time cannot be
+        // represented in Java. This probably results in a different date but
+        // is pretty rare.
+        final long expected =
+            (date.getTime() + DateTimeUtils.DEFAULT_ZONE.getOffset(date.getTime()))
+                / DateTimeUtils.MILLIS_PER_DAY;
+        assertThat("Converts '" + str
+                + "' from SQL to Unix date using legacy behavior",
+            toInt(date),
+            is((int) expected));
+      }
+    }
+  }
+
+  /**
+   * Test using a custom {@link TimeZone} to calculate the Unix timestamp.
+   * Dates created by a {@link java.sql.Date} method should be converted
+   * relative to the local time and not UTC.
+   */
+  @Test public void testToIntWithTimeZone() {
+    // Dates created by a Calendar should be converted to a Unix date in that
+    // time zone
+    final Calendar utcCal =
+        Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.ROOT);
+    utcCal.set(1970, Calendar.JANUARY, 1, 0, 0, 0);
+    utcCal.set(Calendar.MILLISECOND, 0);
+    assertThat(
+        toInt(new java.sql.Date(utcCal.getTimeInMillis()),
+            utcCal.getTimeZone()),
+        is(0));
+
+    // Dates should be relative to the local time and not UTC
+    final java.sql.Date epoch = java.sql.Date.valueOf("1970-01-01");
+
+    final TimeZone minusDayZone = TimeZone.getDefault();
+    minusDayZone.setRawOffset((int) (minusDayZone.getRawOffset() - MILLIS_PER_DAY));
+    assertThat(toInt(epoch, minusDayZone), is(-1));
+
+    final TimeZone plusDayZone = TimeZone.getDefault();
+    plusDayZone.setRawOffset((int) (plusDayZone.getRawOffset() + MILLIS_PER_DAY));
+    assertThat(toInt(epoch, plusDayZone), is(1));
+  }
+
+  /**
+   * Tests that a nullable date in the local time zone converts to a Unix
+   * timestamp in UTC.
+   */
+  @Test void testToIntOptionalWithLocalTimeZone() {
+    assertThat(toIntOptional(java.sql.Date.valueOf("1970-01-01")), is(0));
+    assertThat(toIntOptional((java.sql.Date) null), is(nullValue()));
+  }
+
+  /**
+   * Tests that a nullable date in the given time zone converts to a Unix
+   * timestamp in UTC.
+   */
+  @Test void testToIntOptionalWithCustomTimeZone() {
+    final TimeZone utc = TimeZone.getTimeZone("UTC");
+    assertThat(toIntOptional(new java.sql.Date(0L), utc), is(0));
+    assertThat(toIntOptional(null, utc), is(nullValue()));
+  }
+
+  /**
+   * Tests that a time in the local time zone converts to a Unix time in UTC.
+   */
+  @Test void testToIntWithSqlTime() {
+    assertThat(sqlTime("00:00:00"), is(timeStringToUnixDate("00:00:00")));
+    assertThat(sqlTime("23:59:59"), is(timeStringToUnixDate("23:59:59")));
+  }
+
+  /**
+   * Tests that a nullable time in the local time zone converts to a Unix time
+   * in UTC.
+   */
+  @Test void testToIntOptionalWithSqlTime() {
+    assertThat(toIntOptional(Time.valueOf("00:00:00")), is(0));
+    assertThat(toIntOptional((Time) null), is(nullValue()));
+  }
+
+  /**
+   * Tests that a timestamp in the local time zone converts to a Unix timestamp
+   * in UTC.
+   */
+  @Test void testToLongWithSqlTimestamp() {
+    assertThat(sqlTimestamp("1970-01-01 00:00:00"), is(0L));
+    assertThat(sqlTimestamp("2014-09-30 15:28:27.356"),
+        is(timestampStringToUnixDate("2014-09-30 15:28:27.356")));
+    assertThat(sqlTimestamp("1500-04-30 12:00:00.123"),
+        is(timestampStringToUnixDate("1500-04-30 12:00:00.123")));
+  }
+
+  /**
+   * Test using a custom {@link TimeZone} to calculate the Unix timestamp.
+   * Timestamps created by a {@link Calendar} should be converted to a Unix
+   * timestamp in the given time zone. Timestamps created by a {@link Timestamp}
+   * method should be converted relative to the local time and not UTC.
+   */
+  @Test void testToLongWithSqlTimestampAndCustomTimeZone() {
+    final Timestamp epoch = java.sql.Timestamp.valueOf("1970-01-01 00:00:00");
+
+    final Calendar utcCal =
+        Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.ROOT);
+    utcCal.set(1970, Calendar.JANUARY, 1, 0, 0, 0);
+    utcCal.set(Calendar.MILLISECOND, 0);
+    assertThat(toLong(new Timestamp(utcCal.getTimeInMillis()), utcCal.getTimeZone()),
+        is(0L));
+
+    final TimeZone est = TimeZone.getTimeZone("GMT-5:00");
+    assertThat(toLong(epoch, est),
+        is(epoch.getTime() + est.getOffset(epoch.getTime())));
+
+    final TimeZone ist = TimeZone.getTimeZone("GMT+5:00");
+    assertThat(toLong(epoch, ist),
+        is(epoch.getTime() + ist.getOffset(epoch.getTime())));
+  }
+
+  /**
+   * Test calendar conversion from the standard Gregorian calendar used by
+   * {@code java.sql} and the proleptic Gregorian calendar used by Unix
+   * timestamps.
+   */
+  @Test void testToLongWithSqlTimestampInGregorianShift() {
+    assertThat(sqlTimestamp("1582-10-04 00:00:00"),
+        is(timestampStringToUnixDate("1582-10-04 00:00:00")));
+    assertThat(sqlTimestamp("1582-10-05 00:00:00"),
+        is(timestampStringToUnixDate("1582-10-15 00:00:00")));
+    assertThat(sqlTimestamp("1582-10-15 00:00:00"),
+        is(timestampStringToUnixDate("1582-10-15 00:00:00")));
+  }
+
+  /**
+   * Test date range 0001-01-01 to 9999-12-31 required by ANSI SQL.
+   *
+   * <p>Java may not be able to represent 0001-01-01 depending on the default
+   * time zone. If the date would fall outside of Anno Domini (AD) when
+   * converted to the default time zone, that date should not be tested.
+   *
+   * <p>Not every time zone has a January 1st 12:00am, so this test skips those
+   * dates.
+   */
+  @Test void testToLongWithSqlTimestampInAnsiDateRange() {
+    for (int i = 2; i <= 9999; ++i) {
+      final String str = String.format(Locale.ROOT, "%04d-01-01 00:00:00", i);
+      final Timestamp timestamp = Timestamp.valueOf(str);
+      if (timestamp.toString().endsWith("00:00:00.0")) {
+        // Test equality if the time is valid in Java
+        assertThat("Converts '" + str + "' from SQL to Unix timestamp",
+            toLong(timestamp),
+            is(timestampStringToUnixDate(str)));
+      } else {
+        // Test result matches legacy behavior if the time cannot be represented in Java
+        // This probably results in a different date but is pretty rare
+        final long expected = timestamp.getTime()
+            + DateTimeUtils.DEFAULT_ZONE.getOffset(timestamp.getTime());
+        assertThat("Converts '" + str
+                + "' from SQL to Unix timestamp using legacy behavior",
+            toLong(timestamp),
+            is(expected));
+      }
+    }
+  }
+
+  /**
+   * Tests that a nullable timestamp in the local time zone converts to a Unix
+   * timestamp in UTC.
+   */
+  @Test void testToLongOptionalWithLocalTimeZone() {
+    assertThat(toLongOptional(Timestamp.valueOf("1970-01-01 00:00:00")), is(0L));
+    assertThat(toLongOptional(null), is(nullValue()));
+  }
+
+  /**
+   * Tests that a nullable timestamp in the given time zone converts to a Unix
+   * timestamp in UTC.
+   */
+  @Test void testToLongOptionalWithCustomTimeZone() {
+    final TimeZone utc = TimeZone.getTimeZone("UTC");
+    assertThat(toLongOptional(new Timestamp(0L), utc), is(0L));
+    assertThat(toLongOptional(null, utc), is(nullValue()));
+  }
+
+  /**
+   * Tests that a Unix timestamp converts to a date in the local time zone.
+   */
+  @Test void testInternalToDate() {
+    assertThat(internalToDate(0), is(java.sql.Date.valueOf("1970-01-01")));
+    assertThat(internalToDate(dateStringToUnixDate("1500-04-30")),
+        is(java.sql.Date.valueOf("1500-04-30")));
+  }
+
+  /**
+   * Test calendar conversion from the standard Gregorian calendar used by
+   * {@code java.sql} and the proleptic Gregorian calendar used by Unix
+   * timestamps.
+   */
+  @Test void testInternalToDateWithGregorianShift() {
+    // Gregorian shift
+    assertThat(internalToDate(dateStringToUnixDate("1582-10-04")),
+        is(java.sql.Date.valueOf("1582-10-04")));
+    assertThat(internalToDate(dateStringToUnixDate("1582-10-05")),
+        is(java.sql.Date.valueOf("1582-10-15")));
+    assertThat(internalToDate(dateStringToUnixDate("1582-10-15")),
+        is(java.sql.Date.valueOf("1582-10-15")));
+  }
+
+  /**
+   * Test date range 0001-01-01 to 9999-12-31 required by ANSI SQL.
+   *
+   * <p>Java may not be able to represent all dates depending on the default time zone, but both
+   * the expected and actual assertion values handles that in the same way.
+   */
+  @Test void testInternalToDateWithAnsiDateRange() {
+    for (int i = 2; i <= 9999; ++i) {
+      final String str = String.format(Locale.ROOT, "%04d-01-01", i);
+      assertThat(internalToDate(dateStringToUnixDate(str)),
+          is(java.sql.Date.valueOf(str)));
+    }
+  }
+
+  /**
+   * Tests that a Unix time converts to a SQL time in the local time zone.
+   */
+  @Test void testInternalToTime() {
+    assertThat(internalToTime(0), is(Time.valueOf("00:00:00")));
+    assertThat(internalToTime(86399000), is(Time.valueOf("23:59:59")));
+  }
+
+  /**
+   * Tests that a Unix timestamp converts to a SQL timestamp in the local time
+   * zone.
+   */
+  @Test void testInternalToTimestamp() {
+    assertThat(internalToTimestamp(0),
+        is(Timestamp.valueOf("1970-01-01 00:00:00.0")));
+    assertThat(internalToTimestamp(timestampStringToUnixDate("2014-09-30 15:28:27.356")),
+        is(Timestamp.valueOf("2014-09-30 15:28:27.356")));
+    assertThat(internalToTimestamp(timestampStringToUnixDate("1500-04-30 12:00:00.123")),
+        is(Timestamp.valueOf("1500-04-30 12:00:00.123")));
+  }
+
+  /**
+   * Test calendar conversion from the standard Gregorian calendar used by
+   * {@code java.sql} and the proleptic Gregorian calendar used by Unix timestamps.
+   */
+  @Test void testInternalToTimestampWithGregorianShift() {
+    assertThat(
+        internalToTimestamp(timestampStringToUnixDate("1582-10-04 00:00:00")),
+        is(Timestamp.valueOf("1582-10-04 00:00:00.0")));
+    assertThat(
+        internalToTimestamp(timestampStringToUnixDate("1582-10-05 00:00:00")),
+        is(Timestamp.valueOf("1582-10-15 00:00:00.0")));
+    assertThat(
+        internalToTimestamp(timestampStringToUnixDate("1582-10-15 00:00:00")),
+        is(Timestamp.valueOf("1582-10-15 00:00:00.0")));
+  }
+
+  /**
+   * Test date range 0001-01-01 to 9999-12-31 required by ANSI SQL.
+   *
+   * <p>Java may not be able to represent all dates depending on the default
+   * time zone, but both the expected and actual assertion values handles that
+   * in the same way.
+   */
+  @Test void testInternalToTimestampWithAnsiDateRange() {
+    for (int i = 2; i <= 9999; ++i) {
+      final String str = String.format(Locale.ROOT, "%04d-01-01 00:00:00", i);
+      assertThat(internalToTimestamp(timestampStringToUnixDate(str)),
+          is(Timestamp.valueOf(str)));
+    }
+  }
+
+  private int sqlDate(String str) {
+    return toInt(java.sql.Date.valueOf(str));
+  }
+
+  private int sqlTime(String str) {
+    return toInt(java.sql.Time.valueOf(str));
+  }
+
+  private long sqlTimestamp(String str) {
+    return toLong(java.sql.Timestamp.valueOf(str));
   }
 }

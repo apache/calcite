@@ -565,8 +565,8 @@ public class XmlOutput {
      */
     public void defineEscape(char from, String to) {
       int i = (int) from;
-      List<@Nullable String> translationVector = requireNonNull(this.translationVector,
-          "translationVector");
+      List<@Nullable String> translationVector =
+          requireNonNull(this.translationVector, "translationVector");
       if (i >= translationVector.size()) {
         // Extend list by adding the requisite number of nulls.
         final int count = i + 1 - translationVector.size();
@@ -641,8 +641,9 @@ public class XmlOutput {
     public StringEscaper getMutableClone() {
       StringEscaper clone = clone();
       if (clone.translationVector == null) {
-        clone.translationVector = Lists.newArrayList(
-            requireNonNull(clone.translationTable, "clone.translationTable"));
+        clone.translationVector =
+            Lists.newArrayList(
+                requireNonNull(clone.translationTable, "clone.translationTable"));
         clone.translationTable = null;
       }
       return clone;

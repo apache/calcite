@@ -41,8 +41,8 @@ import java.util.stream.Collector;
 /**
  * A <code>SqlNode</code> is a SQL parse tree.
  *
- * <p>It may be an
- * {@link SqlOperator operator}, {@link SqlLiteral literal},
+ * <p>It may be a
+ * {@link SqlCall call}, {@link SqlLiteral literal},
  * {@link SqlIdentifier identifier}, and so forth.
  */
 public abstract class SqlNode implements Cloneable {
@@ -341,9 +341,10 @@ public abstract class SqlNode implements Cloneable {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 
-  /** Returns whether two lists of operands are equal. */
-  public static boolean equalDeep(List<SqlNode> operands0,
-      List<SqlNode> operands1, Litmus litmus) {
+  /** Returns whether two lists of operands are equal, comparing using
+   * {@link SqlNode#equalsDeep(SqlNode, Litmus)}. */
+  public static boolean equalDeep(List<? extends @Nullable SqlNode> operands0,
+      List<? extends @Nullable SqlNode> operands1, Litmus litmus) {
     if (operands0.size() != operands1.size()) {
       return litmus.fail(null);
     }

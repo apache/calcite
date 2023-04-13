@@ -73,6 +73,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -96,7 +97,9 @@ public class JdbcRules {
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   static final RelFactories.ProjectFactory PROJECT_FACTORY =
-      (input, hints, projects, fieldNames) -> {
+      (input, hints, projects, fieldNames, variablesSet) -> {
+        Preconditions.checkArgument(variablesSet.isEmpty(),
+            "JdbcProject does not allow variables");
         final RelOptCluster cluster = input.getCluster();
         final RelDataType rowType =
             RexUtil.createStructType(cluster.getTypeFactory(), projects,
@@ -116,8 +119,9 @@ public class JdbcRules {
   static final RelFactories.JoinFactory JOIN_FACTORY =
       (left, right, hints, condition, variablesSet, joinType, semiJoinDone) -> {
         final RelOptCluster cluster = left.getCluster();
-        final RelTraitSet traitSet = cluster.traitSetOf(
-            requireNonNull(left.getConvention(), "left.getConvention()"));
+        final RelTraitSet traitSet =
+            cluster.traitSetOf(
+                requireNonNull(left.getConvention(), "left.getConvention()"));
         try {
           return new JdbcJoin(cluster, traitSet, left, right, condition,
               variablesSet, joinType);
@@ -149,8 +153,9 @@ public class JdbcRules {
   public static final RelFactories.AggregateFactory AGGREGATE_FACTORY =
       (input, hints, groupSet, groupSets, aggCalls) -> {
         final RelOptCluster cluster = input.getCluster();
-        final RelTraitSet traitSet = cluster.traitSetOf(
-            requireNonNull(input.getConvention(), "input.getConvention()"));
+        final RelTraitSet traitSet =
+            cluster.traitSetOf(
+                requireNonNull(input.getConvention(), "input.getConvention()"));
         try {
           return new JdbcAggregate(cluster, traitSet, input, groupSet,
               groupSets, aggCalls);
@@ -170,8 +175,9 @@ public class JdbcRules {
       (kind, inputs, all) -> {
         RelNode input = inputs.get(0);
         RelOptCluster cluster = input.getCluster();
-        final RelTraitSet traitSet = cluster.traitSetOf(
-            requireNonNull(input.getConvention(), "input.getConvention()"));
+        final RelTraitSet traitSet =
+            cluster.traitSetOf(
+                requireNonNull(input.getConvention(), "input.getConvention()"));
         switch (kind) {
         case UNION:
           return new JdbcUnion(cluster, traitSet, inputs, all);
@@ -331,6 +337,9 @@ public class JdbcRules {
     private static boolean canJoinOnCondition(RexNode node) {
       final List<RexNode> operands;
       switch (node.getKind()) {
+      case LITERAL:
+        // literal on a join condition would be TRUE or FALSE
+        return true;
       case AND:
       case OR:
         operands = ((RexCall) node).getOperands();
@@ -507,6 +516,11 @@ public class JdbcRules {
       return false;
     }
 
+    @Override public boolean matches(RelOptRuleCall call) {
+      Project project = call.rel(0);
+      return project.getVariablesSet().isEmpty();
+    }
+
     @Override public @Nullable RelNode convert(RelNode rel) {
       final Project project = (Project) rel;
 
@@ -532,7 +546,7 @@ public class JdbcRules {
         RelNode input,
         List<? extends RexNode> projects,
         RelDataType rowType) {
-      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
       assert getConvention() instanceof JdbcConvention;
     }
 

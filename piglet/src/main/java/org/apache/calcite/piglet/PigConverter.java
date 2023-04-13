@@ -272,9 +272,10 @@ public class PigConverter extends PigServer {
           ? ((Sort) rel).collation
           : RelCollations.EMPTY;
       // Apply the planner to obtain the physical plan
-      final RelNode physicalPlan = program.run(planner, rel,
-          rel.getTraitSet().replace(EnumerableConvention.INSTANCE)
-              .replace(collation).simplify(),
+      final RelNode physicalPlan =
+          program.run(planner, rel,
+              rel.getTraitSet().replace(EnumerableConvention.INSTANCE)
+                  .replace(collation).simplify(),
           ImmutableList.of(), ImmutableList.of());
 
       // Then convert the physical plan back to logical plan

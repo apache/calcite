@@ -32,6 +32,8 @@ import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.rel.type.TimeFrame;
+import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.util.NumberUtil;
@@ -39,12 +41,15 @@ import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.format.FormatElement;
+import org.apache.calcite.util.format.FormatModels;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
@@ -57,15 +62,24 @@ import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
+import java.time.format.SignStyle;
+import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -77,6 +91,7 @@ import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -89,11 +104,11 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>Not present: and, or, not (builtin operators are better, because they
  * use lazy evaluation. Implementations do not check for null values; the
- * calling code must do that.</p>
+ * calling code must do that.
  *
  * <p>Many of the functions do not check for null values. This is intentional.
  * If null arguments are possible, the code-generation framework checks for
- * nulls before calling the functions.</p>
+ * nulls before calling the functions.
  */
 @SuppressWarnings("UnnecessaryUnboxing")
 @Deterministic
@@ -117,7 +132,7 @@ public class SqlFunctions {
   private static final Pattern FROM_BASE64_REGEXP = Pattern.compile("[\\t\\n\\r\\s]");
 
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
-      Linq4j::asEnumerable;
+      a0 -> a0 == null ? Linq4j.emptyEnumerable() : Linq4j.asEnumerable(a0);
 
   @SuppressWarnings("unused")
   private static final Function1<Object[], Enumerable<@Nullable Object[]>> ARRAY_CARTESIAN_PRODUCT =
@@ -144,6 +159,49 @@ public class SqlFunctions {
       ThreadLocal.withInitial(HashMap::new);
 
   private static final Pattern PATTERN_0_STAR_E = Pattern.compile("0*E");
+
+  /** A byte string consisting of a single byte that is the ASCII space
+   * character (0x20). */
+  private static final ByteString SINGLE_SPACE_BYTE_STRING =
+      ByteString.of("20", 16);
+
+  // Date formatter for BigQuery's timestamp literals:
+  // https://cloud.google.com/bigquery/docs/reference/standard-sql/lexical#timestamp_literals
+  private static final DateTimeFormatter BIG_QUERY_TIMESTAMP_LITERAL_FORMATTER =
+      new DateTimeFormatterBuilder()
+          // Unlike ISO 8601, BQ only supports years between 1 - 9999,
+          // but can support single-digit month and day parts.
+          .appendValue(ChronoField.YEAR, 4)
+          .appendLiteral('-')
+          .appendValue(ChronoField.MONTH_OF_YEAR, 1, 2, SignStyle.NOT_NEGATIVE)
+          .appendLiteral('-')
+          .appendValue(ChronoField.DAY_OF_MONTH, 1, 2, SignStyle.NOT_NEGATIVE)
+          // Everything after the date is optional. Optional sections can be nested.
+          .optionalStart()
+          // BQ accepts either a literal 'T' or a space to separate the date from the time,
+          // so make the 'T' optional but pad with 1 space if it's omitted.
+          .padNext(1, ' ')
+          .optionalStart()
+          .appendLiteral('T')
+          .optionalEnd()
+          // Unlike ISO 8601, BQ can support single-digit hour, minute, and second parts.
+          .appendValue(ChronoField.HOUR_OF_DAY, 1, 2, SignStyle.NOT_NEGATIVE)
+          .appendLiteral(':')
+          .appendValue(ChronoField.MINUTE_OF_HOUR, 1, 2, SignStyle.NOT_NEGATIVE)
+          .appendLiteral(':')
+          .appendValue(ChronoField.SECOND_OF_MINUTE, 1, 2, SignStyle.NOT_NEGATIVE)
+          // ISO 8601 supports up to nanosecond precision, but BQ only up to microsecond.
+          .optionalStart()
+          .appendFraction(ChronoField.MICRO_OF_SECOND, 0, 6, true)
+          .optionalEnd()
+          .optionalStart()
+          .parseLenient()
+          .appendOffsetId()
+          .toFormatter(Locale.ROOT);
+
+  /** Whether the current Java version is 8 (1.8). */
+  private static final boolean IS_JDK_8 =
+      System.getProperty("java.version").startsWith("1.8");
 
   private SqlFunctions() {
   }
@@ -264,6 +322,191 @@ public class SqlFunctions {
       }
     }
     return flags;
+  }
+
+  /** SQL {@code LPAD(string, integer, string)} function. */
+  public static String lpad(String originalValue, int returnLength,
+      String pattern) {
+    if (returnLength < 0) {
+      throw RESOURCE.illegalNegativePadLength().ex();
+    }
+    if (pattern.isEmpty()) {
+      throw RESOURCE.illegalEmptyPadPattern().ex();
+    }
+    if (returnLength <= originalValue.length()) {
+      return originalValue.substring(0, returnLength);
+    }
+    int paddingLengthRequired = returnLength - originalValue.length();
+    int patternLength = pattern.length();
+    final StringBuilder paddedS = new StringBuilder();
+    for (int i = 0; i < paddingLengthRequired; i++) {
+      char curChar = pattern.charAt(i % patternLength);
+      paddedS.append(curChar);
+    }
+    paddedS.append(originalValue);
+    return paddedS.toString();
+  }
+
+  /** SQL {@code LPAD(string, integer)} function. */
+  public static String lpad(String originalValue, int returnLength) {
+    return lpad(originalValue, returnLength, " ");
+  }
+
+  /** SQL {@code LPAD(binary, integer, binary)} function. */
+  public static ByteString lpad(ByteString originalValue, int returnLength,
+      ByteString pattern) {
+    if (returnLength < 0) {
+      throw RESOURCE.illegalNegativePadLength().ex();
+    }
+    if (pattern.length() == 0) {
+      throw RESOURCE.illegalEmptyPadPattern().ex();
+    }
+    if (returnLength <= originalValue.length()) {
+      return originalValue.substring(0, returnLength);
+    }
+    int paddingLengthRequired = returnLength - originalValue.length();
+    int patternLength = pattern.length();
+    byte[] bytes = new byte[returnLength];
+    for (int i = 0; i < paddingLengthRequired; i++) {
+      byte curByte = pattern.byteAt(i % patternLength);
+      bytes[i] = curByte;
+    }
+    for (int i = paddingLengthRequired; i < returnLength; i++) {
+      bytes[i] = originalValue.byteAt(i - paddingLengthRequired);
+    }
+
+    return new ByteString(bytes);
+  }
+
+  /** SQL {@code LPAD(binary, integer, binary)} function. */
+  public static ByteString lpad(ByteString originalValue, int returnLength) {
+    // 0x20 is the hexadecimal character for space ' '
+    return lpad(originalValue, returnLength, SINGLE_SPACE_BYTE_STRING);
+  }
+
+  /** SQL {@code RPAD(string, integer, string)} function. */
+  public static String rpad(String originalValue, int returnLength,
+      String pattern) {
+    if (returnLength < 0) {
+      throw RESOURCE.illegalNegativePadLength().ex();
+    }
+    if (pattern.isEmpty()) {
+      throw RESOURCE.illegalEmptyPadPattern().ex();
+    }
+    if (returnLength <= originalValue.length()) {
+      return originalValue.substring(0, returnLength);
+    }
+    int paddingLengthRequired = returnLength - originalValue.length();
+    int patternLength = pattern.length();
+    final StringBuilder paddedS = new StringBuilder();
+    paddedS.append(originalValue);
+    for (int i = 0; i < paddingLengthRequired; i++) {
+      char curChar = pattern.charAt(i % patternLength);
+      paddedS.append(curChar);
+    }
+    return paddedS.toString();
+  }
+
+  /** SQL {@code RPAD(string, integer)} function. */
+  public static String rpad(String originalValue, int returnLength) {
+    return rpad(originalValue, returnLength, " ");
+  }
+
+  /** SQL {@code RPAD(binary, integer, binary)} function. */
+  public static ByteString rpad(ByteString originalValue, int returnLength,
+      ByteString pattern) {
+    if (returnLength < 0) {
+      throw RESOURCE.illegalNegativePadLength().ex();
+    }
+    if (pattern.length() == 0) {
+      throw RESOURCE.illegalEmptyPadPattern().ex();
+    }
+    int originalLength = originalValue.length();
+    if (returnLength <= originalLength) {
+      return originalValue.substring(0, returnLength);
+    }
+
+    int paddingLengthRequired = returnLength - originalLength;
+    int patternLength = pattern.length();
+    byte[] bytes = new byte[returnLength];
+    for (int i = 0; i < originalLength; i++) {
+      bytes[i] = originalValue.byteAt(i);
+    }
+    for (int i = returnLength - paddingLengthRequired; i < returnLength; i++) {
+      byte curByte = pattern.byteAt(i % patternLength);
+      bytes[i] = curByte;
+    }
+    return new ByteString(bytes);
+  }
+
+  /** SQL {@code RPAD(binary, integer)} function. */
+  public static ByteString rpad(ByteString originalValue, int returnLength) {
+    return rpad(originalValue, returnLength, SINGLE_SPACE_BYTE_STRING);
+  }
+
+  /** SQL {@code ENDS_WITH(string, string)} function. */
+  public static boolean endsWith(String s0, String s1) {
+    return s0.endsWith(s1);
+  }
+
+  /** SQL {@code ENDS_WITH(binary, binary)} function. */
+  public static boolean endsWith(ByteString s0, ByteString s1) {
+    return s0.endsWith(s1);
+  }
+
+  /** SQL {@code STARTS_WITH(string, string)} function. */
+  public static boolean startsWith(String s0, String s1) {
+    return s0.startsWith(s1);
+  }
+
+  /** SQL {@code STARTS_WITH(binary, binary)} function. */
+  public static boolean startsWith(ByteString s0, ByteString s1) {
+    return s0.startsWith(s1);
+  }
+
+  /** SQL {@code SPLIT(string, string)} function. */
+  public static List<String> split(String s, String delimiter) {
+    if (s.isEmpty()) {
+      return ImmutableList.of();
+    }
+    if (delimiter.isEmpty()) {
+      return ImmutableList.of(s); // prevent mischief
+    }
+    final ImmutableList.Builder<String> list = ImmutableList.builder();
+    for (int i = 0;;) {
+      int j = s.indexOf(delimiter, i);
+      if (j < 0) {
+        list.add(s.substring(i));
+        return list.build();
+      }
+      list.add(s.substring(i, j));
+      i = j + delimiter.length();
+    }
+  }
+
+  /** SQL {@code SPLIT(string)} function. */
+  public static List<String> split(String s) {
+    return split(s, ",");
+  }
+
+  /** SQL {@code SPLIT(binary, binary)} function. */
+  public static List<ByteString> split(ByteString s, ByteString delimiter) {
+    if (s.length() == 0) {
+      return ImmutableList.of();
+    }
+    if (delimiter.length() == 0) {
+      return ImmutableList.of(s); // prevent mischief
+    }
+    final ImmutableList.Builder<ByteString> list = ImmutableList.builder();
+    for (int i = 0;;) {
+      int j = s.indexOf(delimiter, i);
+      if (j < 0) {
+        list.add(s.substring(i));
+        return list.build();
+      }
+      list.add(s.substring(i, j));
+      i = j + delimiter.length();
+    }
   }
 
   /** SQL SUBSTRING(string FROM ...) function. */
@@ -462,9 +705,22 @@ public class SqlFunctions {
     return s.substring(len - n);
   }
 
-  /** SQL CHR(long) function. */
-  public static String chr(long n) {
-    return String.valueOf(Character.toChars((int) n));
+  /** SQL CHAR(integer) function, as in MySQL and Spark.
+   *
+   * <p>Returns the ASCII character of {@code n} modulo 256,
+   * or null if {@code n} &lt; 0. */
+  public static @Nullable String charFromAscii(int n) {
+    if (n < 0) {
+      return null;
+    }
+    return String.valueOf(Character.toChars(n % 256));
+  }
+
+  /** SQL CHR(integer) function, as in Oracle and Postgres.
+   *
+   * <p>Returns the UTF-8 character whose code is {@code n}. */
+  public static String charFromUtf8(int n) {
+    return String.valueOf(Character.toChars(n));
   }
 
   /** SQL OCTET_LENGTH(binary) function. */
@@ -733,7 +989,7 @@ public class SqlFunctions {
 
   /** SQL <code>&lt;</code> operator applied to boolean values. */
   public static boolean lt(boolean b0, boolean b1) {
-    return compare(b0, b1) < 0;
+    return Boolean.compare(b0, b1) < 0;
   }
 
   /** SQL <code>&lt;</code> operator applied to String values. */
@@ -756,6 +1012,40 @@ public class SqlFunctions {
     return b0.compareTo(b1) < 0;
   }
 
+  /** Returns whether {@code b0} is less than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MIN}. */
+  public static <T extends Comparable<T>> boolean ltNullable(T b0, T b1) {
+    return b1 == null || b0 != null && b0.compareTo(b1) < 0;
+  }
+
+  public static boolean lt(byte b0, byte b1) {
+    return b0 < b1;
+  }
+
+  public static boolean lt(char b0, char b1) {
+    return b0 < b1;
+  }
+
+  public static boolean lt(short b0, short b1) {
+    return b0 < b1;
+  }
+
+  public static boolean lt(int b0, int b1) {
+    return b0 < b1;
+  }
+
+  public static boolean lt(long b0, long b1) {
+    return b0 < b1;
+  }
+
+  public static boolean lt(float b0, float b1) {
+    return b0 < b1;
+  }
+
+  public static boolean lt(double b0, double b1) {
+    return b0 < b1;
+  }
+
   /** SQL <code>&lt;</code> operator applied to Object values. */
   public static boolean ltAny(Object b0, Object b1) {
     if (b0.getClass().equals(b1.getClass())
@@ -773,7 +1063,7 @@ public class SqlFunctions {
 
   /** SQL <code>&le;</code> operator applied to boolean values. */
   public static boolean le(boolean b0, boolean b1) {
-    return compare(b0, b1) <= 0;
+    return Boolean.compare(b0, b1) <= 0;
   }
 
   /** SQL <code>&le;</code> operator applied to String values. */
@@ -814,7 +1104,7 @@ public class SqlFunctions {
 
   /** SQL <code>&gt;</code> operator applied to boolean values. */
   public static boolean gt(boolean b0, boolean b1) {
-    return compare(b0, b1) > 0;
+    return Boolean.compare(b0, b1) > 0;
   }
 
   /** SQL <code>&gt;</code> operator applied to String values. */
@@ -837,6 +1127,40 @@ public class SqlFunctions {
     return b0.compareTo(b1) > 0;
   }
 
+  /** Returns whether {@code b0} is greater than {@code b1}
+   * (or {@code b1} is null). Helper for {@code ARG_MAX}. */
+  public static <T extends Comparable<T>> boolean gtNullable(T b0, T b1) {
+    return b1 == null || b0 != null && b0.compareTo(b1) > 0;
+  }
+
+  public static boolean gt(byte b0, byte b1) {
+    return b0 > b1;
+  }
+
+  public static boolean gt(char b0, char b1) {
+    return b0 > b1;
+  }
+
+  public static boolean gt(short b0, short b1) {
+    return b0 > b1;
+  }
+
+  public static boolean gt(int b0, int b1) {
+    return b0 > b1;
+  }
+
+  public static boolean gt(long b0, long b1) {
+    return b0 > b1;
+  }
+
+  public static boolean gt(float b0, float b1) {
+    return b0 > b1;
+  }
+
+  public static boolean gt(double b0, double b1) {
+    return b0 > b1;
+  }
+
   /** SQL <code>&gt;</code> operator applied to Object values (at least one
    * operand has ANY type; neither may be null). */
   public static boolean gtAny(Object b0, Object b1) {
@@ -855,7 +1179,7 @@ public class SqlFunctions {
 
   /** SQL <code>&ge;</code> operator applied to boolean values. */
   public static boolean ge(boolean b0, boolean b1) {
-    return compare(b0, b1) >= 0;
+    return Boolean.compare(b0, b1) >= 0;
   }
 
   /** SQL <code>&ge;</code> operator applied to String values. */
@@ -1243,28 +1567,29 @@ public class SqlFunctions {
     return Math.pow(b0.doubleValue(), b1.doubleValue());
   }
 
-  // LN
 
-  /** SQL {@code LN(number)} function applied to double values. */
-  public static double ln(double d) {
-    return Math.log(d);
+  // LN, LOG, LOG10
+
+  /** SQL {@code LOG(number, number2)} function applied to double values. */
+  public static double log(double d0, double d1) {
+    return Math.log(d0) / Math.log(d1);
   }
 
-  /** SQL {@code LN(number)} function applied to BigDecimal values. */
-  public static double ln(BigDecimal d) {
-    return Math.log(d.doubleValue());
+  /** SQL {@code LOG(number, number2)} function applied to
+   * double and BigDecimal values. */
+  public static double log(double d0, BigDecimal d1) {
+    return Math.log(d0) / Math.log(d1.doubleValue());
   }
 
-  // LOG10
-
-  /** SQL <code>LOG10(numeric)</code> operator applied to double values. */
-  public static double log10(double b0) {
-    return Math.log10(b0);
+  /** SQL {@code LOG(number, number2)} function applied to
+   * BigDecimal and double values. */
+  public static double log(BigDecimal d0, double d1) {
+    return Math.log(d0.doubleValue()) / Math.log(d1);
   }
 
-  /** SQL {@code LOG10(number)} function applied to BigDecimal values. */
-  public static double log10(BigDecimal d) {
-    return Math.log10(d.doubleValue());
+  /** SQL {@code LOG(number, number2)} function applied to double values. */
+  public static double log(BigDecimal d0, BigDecimal d1) {
+    return Math.log(d0.doubleValue()) / Math.log(d1.doubleValue());
   }
 
   // MOD
@@ -1810,11 +2135,6 @@ public class SqlFunctions {
     return b0 == null || b1 != null && b0.compareTo(b1) < 0 ? b1 : b0;
   }
 
-  /** Boolean comparison. */
-  public static int compare(boolean x, boolean y) {
-    return x == y ? 0 : x ? 1 : -1;
-  }
-
   /** CAST(FLOAT AS VARCHAR). */
   public static String toString(float x) {
     if (x == 0) {
@@ -1922,41 +2242,96 @@ public class SqlFunctions {
         : (Short) cannotConvert(o, short.class);
   }
 
-  /** Converts the Java type used for UDF parameters of SQL DATE type
-   * ({@link java.sql.Date}) to internal representation (int).
+  /**
+   * Converts a SQL DATE value from the Java type
+   * ({@link java.sql.Date}) to the internal representation type
+   * (number of days since January 1st, 1970 as {@code int})
+   * in the local time zone.
    *
-   * <p>Converse of {@link #internalToDate(int)}. */
-  public static int toInt(java.util.Date v) {
+   * <p>Since a time zone is not available, the date is converted to represent
+   * the same date as a Unix date in UTC as the {@link java.sql.Date} value in
+   * the local time zone.
+   *
+   * @see #toInt(java.sql.Date, TimeZone)
+   * @see #internalToDate(int) converse method
+   */
+  public static int toInt(java.sql.Date v) {
     return toInt(v, LOCAL_TZ);
   }
 
-  public static int toInt(java.util.Date v, TimeZone timeZone) {
-    return (int) (toLong(v, timeZone)  / DateTimeUtils.MILLIS_PER_DAY);
+  /**
+   * Converts a SQL DATE value from the Java type
+   * ({@link java.sql.Date}) to the internal representation type
+   * (number of days since January 1st, 1970 as {@code int}).
+   *
+   * <p>The {@link java.sql.Date} class uses the standard Gregorian calendar
+   * which switches from the Julian calendar to the Gregorian calendar in
+   * October 1582. For compatibility with ISO-8601, the internal representation
+   * is converted to use the proleptic Gregorian calendar.
+   *
+   * <p>If the date contains a partial day, it will be rounded to a full day
+   * depending on the milliseconds value. If the milliseconds value is positive,
+   * it will be rounded down to the closest full day. If the milliseconds value
+   * is negative, it will be rounded up to the closest full day.
+   */
+  public static int toInt(java.sql.Date v, TimeZone timeZone) {
+    return DateTimeUtils.sqlDateToUnixDate(v, timeZone);
   }
 
-  public static @PolyNull Integer toIntOptional(java.util.@PolyNull Date v) {
-    return v == null ? castNonNull(null) : toInt(v);
+  /**
+   * Converts a nullable SQL DATE value from the Java type
+   * ({@link java.sql.Date}) to the internal representation type
+   * (number of days since January 1st, 1970 as {@link Integer})
+   * in the local time zone.
+   *
+   * <p>Since a time zone is not available, the date is converted to represent
+   * the same date as a Unix date in UTC as the {@link java.sql.Date} value in
+   * the local time zone.
+   *
+   * @see #toInt(java.sql.Date, TimeZone)
+   * @see #internalToDate(Integer) converse method
+   */
+  public static @PolyNull Integer toIntOptional(java.sql.@PolyNull Date v) {
+    return v == null
+        ? castNonNull(null)
+        : toInt(v);
   }
 
-  public static @PolyNull Integer toIntOptional(java.util.@PolyNull Date v,
+  /**
+   * Converts a nullable SQL DATE value from the Java type
+   * ({@link java.sql.Date}) to the internal representation type
+   * (number of days since January 1st, 1970 as {@link Integer}).
+   *
+   * @see #toInt(java.sql.Date, TimeZone)
+   */
+  public static @PolyNull Integer toIntOptional(java.sql.@PolyNull Date v,
       TimeZone timeZone) {
     return v == null
         ? castNonNull(null)
         : toInt(v, timeZone);
   }
 
-  public static long toLong(Date v) {
-    return toLong(v, LOCAL_TZ);
-  }
-
-  /** Converts the Java type used for UDF parameters of SQL TIME type
-   * ({@link java.sql.Time}) to internal representation (int).
+  /**
+   * Converts a SQL TIME value from the Java type
+   * ({@link java.sql.Time}) to the internal representation type
+   * (number of milliseconds since January 1st, 1970 as {@code int})
+   * in the local time zone.
    *
-   * <p>Converse of {@link #internalToTime(int)}. */
+   * @see #toIntOptional(java.sql.Time)
+   * @see #internalToTime(int) converse method
+   */
   public static int toInt(java.sql.Time v) {
-    return (int) (toLong(v) % DateTimeUtils.MILLIS_PER_DAY);
+    return DateTimeUtils.sqlTimeToUnixTime(v, LOCAL_TZ);
   }
 
+  /**
+   * Converts a nullable SQL TIME value from the Java type
+   * ({@link java.sql.Time}) to the internal representation type
+   * (number of milliseconds since January 1st, 1970 as {@link Integer}).
+   *
+   * @see #toInt(java.sql.Time)
+   * @see #internalToTime(Integer) converse method
+   */
   public static @PolyNull Integer toIntOptional(java.sql.@PolyNull Time v) {
     return v == null ? castNonNull(null) : toInt(v);
   }
@@ -1973,7 +2348,8 @@ public class SqlFunctions {
     return o instanceof Integer ? (Integer) o
         : o instanceof Number ? toInt((Number) o)
         : o instanceof String ? toInt((String) o)
-        : o instanceof java.util.Date ? toInt((java.util.Date) o)
+        : o instanceof java.sql.Date ? toInt((java.sql.Date) o)
+        : o instanceof java.sql.Time ? toInt((java.sql.Time) o)
         : (Integer) cannotConvert(o, int.class);
   }
 
@@ -1981,27 +2357,80 @@ public class SqlFunctions {
     return o == null ? castNonNull(null) : toInt(o);
   }
 
-  /** Converts the Java type used for UDF parameters of SQL TIMESTAMP type
-   * ({@link java.sql.Timestamp}) to internal representation (long).
+  /**
+   * Converts a SQL TIMESTAMP value from the Java type
+   * ({@link java.util.Date}) to the internal representation type
+   * (number of milliseconds since January 1st, 1970 as {@code long}).
    *
-   * <p>Converse of {@link #internalToTimestamp(long)}. */
+   * <p>Since a time zone is not available, converts the timestamp to represent
+   * the same date and time as a Unix timestamp in UTC as the
+   * {@link java.util.Date} value in the local time zone.
+   *
+   * <p>The {@link java.util.Date} class uses the standard Gregorian calendar
+   * which switches from the Julian calendar to the Gregorian calendar in
+   * October 1582. For compatibility with ISO-8601, converts the internal
+   * representation to use the proleptic Gregorian calendar.
+   */
+  public static long toLong(java.util.Date v) {
+    return DateTimeUtils.utilDateToUnixTimestamp(v, LOCAL_TZ);
+  }
+
+  /**
+   * Converts a SQL TIMESTAMP value from the Java type
+   * ({@link Timestamp}) to the internal representation type
+   * (number of milliseconds since January 1st, 1970 as {@code long}).
+   *
+   * <p>Since a time zone is not available, converts the timestamp to represent
+   * the same date and time as a Unix timestamp in UTC as the
+   * {@link Timestamp} value in the local time zone.
+   *
+   * @see #toLong(Timestamp, TimeZone)
+   * @see #internalToTimestamp(Long) converse method
+   */
   public static long toLong(Timestamp v) {
     return toLong(v, LOCAL_TZ);
   }
 
-  // mainly intended for java.sql.Timestamp but works for other dates also
-  @SuppressWarnings("JavaUtilDate")
-  public static long toLong(java.util.Date v, TimeZone timeZone) {
-    final long time = v.getTime();
-    return time + timeZone.getOffset(time);
+  /**
+   * Converts a SQL TIMESTAMP value from the Java type
+   * ({@link Timestamp}) to the internal representation type
+   * (number of milliseconds since January 1st, 1970 as {@code long}).
+   *
+   * <p>For backwards compatibility, time zone offsets are calculated in
+   * relation to the local time zone instead of UTC. Providing the default time
+   * zone or {@code null} will return the timestamp unmodified.
+   *
+   * <p>The {@link Timestamp} class uses the standard Gregorian calendar which
+   * switches from the Julian calendar to the Gregorian calendar in
+   * October 1582. For compatibility with ISO-8601, the internal representation
+   * is converted to use the proleptic Gregorian calendar.
+   */
+  public static long toLong(Timestamp v, TimeZone timeZone) {
+    return DateTimeUtils.sqlTimestampToUnixTimestamp(v, timeZone);
   }
 
-  // mainly intended for java.sql.Timestamp but works for other dates also
-  public static @PolyNull Long toLongOptional(java.util.@PolyNull Date v) {
+  /**
+   * Converts a nullable SQL TIMESTAMP value from the Java type
+   * ({@link Timestamp}) to the internal representation type
+   * (number of milliseconds since January 1st, 1970 as {@link Long})
+   * in the local time zone.
+   *
+   * @see #toLong(Timestamp, TimeZone)
+   * @see #internalToTimestamp(Long) converse method
+   */
+  public static @PolyNull Long toLongOptional(@PolyNull Timestamp v) {
     return v == null ? castNonNull(null) : toLong(v, LOCAL_TZ);
   }
 
-  public static @PolyNull Long toLongOptional(@PolyNull Timestamp v, TimeZone timeZone) {
+  /**
+   * Converts a nullable SQL TIMESTAMP value from the Java type
+   * ({@link Timestamp}) to the internal representation type
+   * (number of milliseconds since January 1st, 1970 as {@link Long}).
+   *
+   * @see #toLong(Timestamp, TimeZone)
+   */
+  public static @PolyNull Long toLongOptional(@PolyNull Timestamp v,
+      TimeZone timeZone) {
     if (v == null) {
       return castNonNull(null);
     }
@@ -2023,6 +2452,9 @@ public class SqlFunctions {
     return o instanceof Long ? (Long) o
         : o instanceof Number ? toLong((Number) o)
         : o instanceof String ? toLong((String) o)
+        : o instanceof java.sql.Date ? toInt((java.sql.Date) o)
+        : o instanceof java.sql.Time ? toInt((java.sql.Time) o)
+        : o instanceof java.sql.Timestamp ? toLong((java.sql.Timestamp) o)
         : o instanceof java.util.Date ? toLong((java.util.Date) o)
         : (Long) cannotConvert(o, long.class);
   }
@@ -2079,24 +2511,61 @@ public class SqlFunctions {
         : toBigDecimal(o.toString());
   }
 
-  /** Converts the internal representation of a SQL DATE (int) to the Java
-   * type used for UDF parameters ({@link java.sql.Date}). */
+  /**
+   * Converts a SQL DATE value from the internal representation type
+   * (number of days since January 1st, 1970) to the Java type
+   * ({@link java.sql.Date}).
+   *
+   * <p>Since a time zone is not available, converts the date to represent the
+   * same date as a {@link java.sql.Date} in the local time zone as the Unix
+   * date in UTC.
+   *
+   * <p>The Unix date should be the number of days since January 1st, 1970
+   * using the proleptic Gregorian calendar as defined by ISO-8601. The
+   * returned {@link java.sql.Date} object will use the standard Gregorian
+   * calendar which switches from the Julian calendar to the Gregorian calendar
+   * in October 1582.
+   *
+   * @see #internalToDate(Integer)
+   * @see #toInt(java.sql.Date) converse method
+   */
   public static java.sql.Date internalToDate(int v) {
-    final long t = v * DateTimeUtils.MILLIS_PER_DAY;
-    return new java.sql.Date(t - LOCAL_TZ.getOffset(t));
+    final LocalDate date = LocalDate.ofEpochDay(v);
+    return java.sql.Date.valueOf(date);
   }
 
-  /** As {@link #internalToDate(int)} but allows nulls. */
+  /**
+   * Converts a nullable SQL DATE value from the internal representation type
+   * (number of days since January 1st, 1970) to the Java type
+   * ({@link java.sql.Date}).
+   *
+   * @see #internalToDate(int)
+   * @see #toIntOptional(java.sql.Date) converse method
+   */
   public static java.sql.@PolyNull Date internalToDate(@PolyNull Integer v) {
     return v == null ? castNonNull(null) : internalToDate(v.intValue());
   }
 
-  /** Converts the internal representation of a SQL TIME (int) to the Java
-   * type used for UDF parameters ({@link java.sql.Time}). */
+  /**
+   * Converts a SQL TIME value from the internal representation type
+   * (number of milliseconds since January 1st, 1970) to the Java type
+   * ({@link java.sql.Time}).
+   *
+   * @see #internalToTime(Integer)
+   * @see #toInt(java.sql.Time) converse method
+   */
   public static java.sql.Time internalToTime(int v) {
     return new java.sql.Time(v - LOCAL_TZ.getOffset(v));
   }
 
+  /**
+   * Converts a nullable SQL TIME value from the internal representation type
+   * (number of milliseconds since January 1st, 1970) to the Java type
+   * ({@link java.sql.Time}).
+   *
+   * @see #internalToTime(Integer)
+   * @see #toIntOptional(java.sql.Time) converse method
+   */
   public static java.sql.@PolyNull Time internalToTime(@PolyNull Integer v) {
     return v == null ? castNonNull(null) : internalToTime(v.intValue());
   }
@@ -2152,12 +2621,70 @@ public class SqlFunctions {
         .toString();
   }
 
-  /** Converts the internal representation of a SQL TIMESTAMP (long) to the Java
-   * type used for UDF parameters ({@link java.sql.Timestamp}). */
-  public static java.sql.Timestamp internalToTimestamp(long v) {
-    return new java.sql.Timestamp(v - LOCAL_TZ.getOffset(v));
+  private static String internalFormatDatetime(String fmtString, java.util.Date date) {
+    List<FormatElement> elements =
+        FormatModels.BIG_QUERY.parse(fmtString);
+    return elements.stream()
+        .map(ele -> ele.format(date))
+        .collect(Collectors.joining());
   }
 
+  public static String formatTimestamp(DataContext ctx, String fmtString, long timestamp) {
+    return internalFormatDatetime(fmtString, internalToTimestamp(timestamp));
+  }
+
+  public static String formatDate(DataContext ctx, String fmtString, int date) {
+    return internalFormatDatetime(fmtString, internalToDate(date));
+  }
+
+  public static String formatTime(DataContext ctx, String fmtString, int time) {
+    return internalFormatDatetime(fmtString, internalToTime(time));
+  }
+
+  /**
+   * Converts a SQL TIMESTAMP value from the internal representation type
+   * (number of milliseconds since January 1st, 1970) to the Java Type
+   * ({@link Timestamp})
+   * in the local time zone.
+   *
+   * <p>Since a time zone is not available, the timestamp is converted to
+   * represent the same timestamp as a {@link Timestamp} in the local time zone
+   * as the Unix timestamp in UTC.
+   *
+   * <p>The Unix timestamp should be the number of milliseconds since
+   * January 1st, 1970 using the proleptic Gregorian calendar as defined by
+   * ISO-8601. The returned {@link Timestamp} object will use the standard
+   * Gregorian calendar which switches from the Julian calendar to the
+   * Gregorian calendar in October 1582.
+   *
+   * @see #internalToTimestamp(Long)
+   * @see #toLong(Timestamp, TimeZone)
+   * @see #toLongOptional(Timestamp)
+   * @see #toLongOptional(Timestamp, TimeZone)
+   * @see #toLong(Timestamp) converse method
+   */
+  public static java.sql.Timestamp internalToTimestamp(long v) {
+    final LocalDateTime dateTime =
+        LocalDateTime.ofEpochSecond(
+            Math.floorDiv(v, DateTimeUtils.MILLIS_PER_SECOND),
+            (int) (Math.floorMod(v, DateTimeUtils.MILLIS_PER_SECOND)
+                * DateTimeUtils.NANOS_PER_MILLI),
+            ZoneOffset.UTC);
+    return java.sql.Timestamp.valueOf(dateTime);
+  }
+
+  /**
+   * Converts a nullable SQL TIMESTAMP value from the internal representation
+   * type (number of milliseconds since January 1st, 1970) to the Java Type
+   * ({@link Timestamp})
+   * in the local time zone.
+   *
+   * @see #internalToTimestamp(long)
+   * @see #toLong(Timestamp)
+   * @see #toLong(Timestamp, TimeZone)
+   * @see #toLongOptional(Timestamp, TimeZone)
+   * @see #toLongOptional(Timestamp) converse method
+   */
   public static java.sql.@PolyNull Timestamp internalToTimestamp(@PolyNull Long v) {
     return v == null ? castNonNull(null) : internalToTimestamp(v.longValue());
   }
@@ -2239,6 +2766,206 @@ public class SqlFunctions {
   public static int unixDate(int v) {
     // translation is trivial, because Calcite represents dates as Unix integers
     return v;
+  }
+
+  /** SQL {@code DATE(year, month, day)} function. */
+  public static int date(int year, int month, int day) {
+    // Calcite represents dates as Unix integers (days since epoch).
+    return (int) LocalDate.of(year, month, day).toEpochDay();
+  }
+
+  /** SQL {@code DATE(TIMESTAMP)} and
+   * {@code DATE(TIMESTAMP WITH LOCAL TIME ZONE)} functions. */
+  public static int date(long timestampMillis) {
+    // Calcite represents dates as Unix integers (days since epoch).
+    // Unix time ignores leap seconds; every day has the exact same number of
+    // milliseconds. BigQuery TIMESTAMP and DATETIME values (Calcite TIMESTAMP
+    // WITH LOCAL TIME ZONE and TIMESTAMP, respectively) are represented
+    // internally as milliseconds since epoch (or epoch UTC).
+    return (int) (timestampMillis / DateTimeUtils.MILLIS_PER_DAY);
+  }
+
+  /** SQL {@code DATE(TIMESTAMP WITH LOCAL TIME, timeZone)} function. */
+  public static int date(long timestampMillis, String timeZone) {
+    // Calcite represents dates as Unix integers (days since epoch).
+    return (int) OffsetDateTime.ofInstant(Instant.ofEpochMilli(timestampMillis),
+            ZoneId.of(timeZone))
+        .toLocalDate()
+        .toEpochDay();
+  }
+
+  /** SQL {@code DATETIME(<year>, <month>, <day>, <hour>, <minute>, <second>)}
+   * function. */
+  public static long datetime(int year, int month, int day, int hour,
+      int minute, int second) {
+    // BigQuery's DATETIME function returns a Calcite TIMESTAMP,
+    // represented internally as milliseconds since epoch UTC.
+    return LocalDateTime.of(year, month, day, hour, minute, second)
+        .toEpochSecond(ZoneOffset.UTC)
+        * DateTimeUtils.MILLIS_PER_SECOND;
+  }
+
+  /** SQL {@code DATETIME(DATE)} function; returns a Calcite TIMESTAMP. */
+  public static long datetime(int daysSinceEpoch) {
+    // BigQuery's DATETIME function returns a Calcite TIMESTAMP,
+    // represented internally as milliseconds since epoch.
+    return daysSinceEpoch * DateTimeUtils.MILLIS_PER_DAY;
+  }
+
+  /** SQL {@code DATETIME(DATE, TIME)} function; returns a Calcite TIMESTAMP. */
+  public static long datetime(int daysSinceEpoch, int millisSinceMidnight) {
+    // BigQuery's DATETIME function returns a Calcite TIMESTAMP,
+    // represented internally as milliseconds since epoch UTC.
+    return daysSinceEpoch * DateTimeUtils.MILLIS_PER_DAY + millisSinceMidnight;
+  }
+
+  /** SQL {@code DATETIME(TIMESTAMP WITH LOCAL TIME ZONE)} function;
+   * returns a Calcite TIMESTAMP. */
+  public static long datetime(long millisSinceEpoch) {
+    // BigQuery TIMESTAMP and DATETIME values (Calcite TIMESTAMP WITH LOCAL TIME
+    // ZONE and TIMESTAMP, respectively) are represented internally as
+    // milliseconds since epoch (or epoch UTC).
+    return millisSinceEpoch;
+  }
+
+  /** SQL {@code DATETIME(TIMESTAMP, timeZone)} function;
+   * returns a Calcite TIMESTAMP. */
+  public static long datetime(long millisSinceEpoch, String timeZone) {
+    // BigQuery TIMESTAMP and DATETIME values (Calcite TIMESTAMP WITH LOCAL TIME
+    // ZONE and TIMESTAMP, respectively) are represented internally as
+    // milliseconds since epoch (or epoch UTC).
+    return OffsetDateTime.ofInstant(Instant.ofEpochMilli(millisSinceEpoch),
+            ZoneId.of(timeZone))
+        .atZoneSimilarLocal(ZoneId.of("UTC"))
+        .toInstant()
+        .toEpochMilli();
+  }
+
+  /** SQL {@code TIMESTAMP(<string>)} function. */
+  public static long timestamp(String expression) {
+    // Calcite represents TIMESTAMP WITH LOCAL TIME ZONE as Unix integers
+    // (milliseconds since epoch).
+    return parseBigQueryTimestampLiteral(expression).toInstant().toEpochMilli();
+  }
+
+  /** SQL {@code TIMESTAMP(<string>, <timeZone>)} function. */
+  public static long timestamp(String expression, String timeZone) {
+    // Calcite represents TIMESTAMP WITH LOCAL TIME ZONE as Unix integers
+    // (milliseconds since epoch).
+    return parseBigQueryTimestampLiteral(expression)
+        .atZoneSimilarLocal(ZoneId.of(timeZone))
+        .toInstant()
+        .toEpochMilli();
+  }
+
+  private static OffsetDateTime parseBigQueryTimestampLiteral(String expression) {
+    // First try to parse with an offset, otherwise parse as a local and assume
+    // UTC ("no offset").
+    try {
+      return OffsetDateTime.parse(expression,
+          BIG_QUERY_TIMESTAMP_LITERAL_FORMATTER);
+    } catch (DateTimeParseException e) {
+      // ignore
+    }
+    if (IS_JDK_8
+        && expression.matches(".*[+-][0-9][0-9]$")) {
+      // JDK 8 has a bug that prevents matching offsets like "+00" but can
+      // match "+00:00".
+      try {
+        expression += ":00";
+        return OffsetDateTime.parse(expression,
+            BIG_QUERY_TIMESTAMP_LITERAL_FORMATTER);
+      } catch (DateTimeParseException e) {
+        // ignore
+      }
+    }
+    try {
+      return LocalDateTime
+          .parse(expression, BIG_QUERY_TIMESTAMP_LITERAL_FORMATTER)
+          .atOffset(ZoneOffset.UTC);
+    } catch (DateTimeParseException e2) {
+      throw new IllegalArgumentException(
+          String.format(Locale.ROOT,
+              "Could not parse BigQuery timestamp literal: %s", expression),
+          e2);
+    }
+  }
+
+  /** SQL {@code TIMESTAMP(<date>)} function. */
+  public static long timestamp(int days) {
+    // Calcite represents TIMESTAMP WITH LOCAL TIME ZONE as Unix integers
+    // (milliseconds since epoch). Unix time ignores leap seconds; every day
+    // has the same number of milliseconds.
+    return ((long) days) * DateTimeUtils.MILLIS_PER_DAY;
+  }
+
+  /** SQL {@code TIMESTAMP(<date>, <timeZone>)} function. */
+  public static long timestamp(int days, String timeZone) {
+    // Calcite represents TIMESTAMP WITH LOCAL TIME ZONE as Unix integers
+    // (milliseconds since epoch).
+    final LocalDateTime localDateTime =
+        LocalDateTime.of(LocalDate.ofEpochDay(days), LocalTime.MIDNIGHT);
+    final ZoneOffset zoneOffset =
+        ZoneId.of(timeZone).getRules().getOffset(localDateTime);
+    return OffsetDateTime.of(localDateTime, zoneOffset)
+        .toInstant()
+        .toEpochMilli();
+  }
+
+  /** SQL {@code TIMESTAMP(<timestamp>)} function; returns a TIMESTAMP WITH
+   * LOCAL TIME ZONE. */
+  public static long timestamp(long millisSinceEpoch) {
+    // BigQuery TIMESTAMP and DATETIME values (Calcite TIMESTAMP WITH LOCAL
+    // TIME ZONE and TIMESTAMP, respectively) are represented internally as
+    // milliseconds since epoch UTC and epoch.
+    return millisSinceEpoch;
+  }
+
+  /** SQL {@code TIMESTAMP(<timestamp>, <timeZone>)} function; returns a
+   * TIMESTAMP WITH LOCAL TIME ZONE. */
+  public static long timestamp(long millisSinceEpoch, String timeZone) {
+    // BigQuery TIMESTAMP and DATETIME values (Calcite TIMESTAMP WITH LOCAL
+    // TIME ZONE and TIMESTAMP, respectively) are represented internally as
+    // milliseconds since epoch UTC and epoch.
+    final Instant instant = Instant.ofEpochMilli(millisSinceEpoch);
+    final ZoneId utcZone = ZoneId.of("UTC");
+    return OffsetDateTime.ofInstant(instant, utcZone)
+        .atZoneSimilarLocal(ZoneId.of(timeZone))
+        .toInstant()
+        .toEpochMilli();
+  }
+
+  /** SQL {@code TIME(<hour>, <minute>, <second>)} function. */
+  public static int time(int hour, int minute, int second) {
+    // Calcite represents time as Unix integers (milliseconds since midnight).
+    return (int) (LocalTime.of(hour, minute, second).toSecondOfDay()
+        * DateTimeUtils.MILLIS_PER_SECOND);
+  }
+
+  /** SQL {@code TIME(<timestamp>)} and {@code TIME(<timestampLtz>)}
+   * functions. */
+  public static int time(long timestampMillis) {
+    // Calcite represents time as Unix integers (milliseconds since midnight).
+    // Unix time ignores leap seconds; every day has the same number of
+    // milliseconds.
+    //
+    // BigQuery TIMESTAMP and DATETIME values (Calcite TIMESTAMP WITH LOCAL
+    // TIME ZONE and TIMESTAMP, respectively) are represented internally as
+    // milliseconds since epoch UTC and epoch.
+    return (int) (timestampMillis % DateTimeUtils.MILLIS_PER_DAY);
+  }
+
+  /** SQL {@code TIME(<timestampLtz>, <timeZone>)} function. */
+  public static int time(long timestampMillis, String timeZone) {
+    // Calcite represents time as Unix integers (milliseconds since midnight).
+    // Unix time ignores leap seconds; every day has the same number of
+    // milliseconds.
+    final Instant instant = Instant.ofEpochMilli(timestampMillis);
+    final ZoneId zoneId = ZoneId.of(timeZone);
+    return (int) (OffsetDateTime.ofInstant(instant, zoneId)
+        .toLocalTime()
+        .toNanoOfDay()
+        / (1000L * 1000L)); // milli > micro > nano
   }
 
   public static @PolyNull Long toTimestampWithLocalTimeZone(@PolyNull String v) {
@@ -2376,33 +3103,6 @@ public class SqlFunctions {
   }
 
   /**
-   * SQL {@code LAST_DAY} function.
-   *
-   * @param date days since epoch
-   * @return days of the last day of the month since epoch
-   */
-  public static int lastDay(int date) {
-    int y0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.YEAR, date);
-    int m0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.MONTH, date);
-    int last = lastDay(y0, m0);
-    return DateTimeUtils.ymdToUnixDate(y0, m0, last);
-  }
-
-  /**
-   * SQL {@code LAST_DAY} function.
-   *
-   * @param timestamp milliseconds from epoch
-   * @return milliseconds of the last day of the month since epoch
-   */
-  public static int lastDay(long timestamp) {
-    int date = (int) (timestamp / DateTimeUtils.MILLIS_PER_DAY);
-    int y0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.YEAR, date);
-    int m0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.MONTH, date);
-    int last = lastDay(y0, m0);
-    return DateTimeUtils.ymdToUnixDate(y0, m0, last);
-  }
-
-  /**
    * SQL {@code DAYNAME} function, applied to a TIMESTAMP argument.
    *
    * @param timestamp Milliseconds from epoch
@@ -2470,21 +3170,32 @@ public class SqlFunctions {
    * @return localDate
    */
   private static LocalDate timeStampToLocalDate(long timestamp) {
-    int date = (int) (timestamp / DateTimeUtils.MILLIS_PER_DAY);
+    int date = timestampToDate(timestamp);
     return dateToLocalDate(date);
+  }
+
+  /** Converts a timestamp (milliseconds since epoch)
+   * to a date (days since epoch). */
+  public static int timestampToDate(long timestamp) {
+    return (int) (timestamp / DateTimeUtils.MILLIS_PER_DAY);
+  }
+
+  /** Converts a timestamp (milliseconds since epoch)
+   * to a time (milliseconds since midnight). */
+  public static int timestampToTime(long timestamp) {
+    return (int) (timestamp % DateTimeUtils.MILLIS_PER_DAY);
   }
 
   /** SQL {@code CURRENT_TIMESTAMP} function. */
   @NonDeterministic
   public static long currentTimestamp(DataContext root) {
-    // Cast required for JDK 1.6.
-    return (Long) DataContext.Variable.CURRENT_TIMESTAMP.get(root);
+    return DataContext.Variable.CURRENT_TIMESTAMP.get(root);
   }
 
   /** SQL {@code CURRENT_TIME} function. */
   @NonDeterministic
   public static int currentTime(DataContext root) {
-    int time = (int) (currentTimestamp(root) % DateTimeUtils.MILLIS_PER_DAY);
+    int time = timestampToTime(currentTimestamp(root));
     if (time < 0) {
       time = (int) (time + DateTimeUtils.MILLIS_PER_DAY);
     }
@@ -2495,8 +3206,8 @@ public class SqlFunctions {
   @NonDeterministic
   public static int currentDate(DataContext root) {
     final long timestamp = currentTimestamp(root);
-    int date = (int) (timestamp / DateTimeUtils.MILLIS_PER_DAY);
-    final int time = (int) (timestamp % DateTimeUtils.MILLIS_PER_DAY);
+    int date = timestampToDate(timestamp);
+    final int time = timestampToTime(timestamp);
     if (time < 0) {
       --date;
     }
@@ -2506,19 +3217,18 @@ public class SqlFunctions {
   /** SQL {@code LOCAL_TIMESTAMP} function. */
   @NonDeterministic
   public static long localTimestamp(DataContext root) {
-    // Cast required for JDK 1.6.
-    return (Long) DataContext.Variable.LOCAL_TIMESTAMP.get(root);
+    return DataContext.Variable.LOCAL_TIMESTAMP.get(root);
   }
 
   /** SQL {@code LOCAL_TIME} function. */
   @NonDeterministic
   public static int localTime(DataContext root) {
-    return (int) (localTimestamp(root) % DateTimeUtils.MILLIS_PER_DAY);
+    return timestampToTime(localTimestamp(root));
   }
 
   @NonDeterministic
   public static TimeZone timeZone(DataContext root) {
-    return (TimeZone) DataContext.Variable.TIME_ZONE.get(root);
+    return DataContext.Variable.TIME_ZONE.get(root);
   }
 
   /** SQL {@code USER} function. */
@@ -2535,7 +3245,109 @@ public class SqlFunctions {
 
   @NonDeterministic
   public static Locale locale(DataContext root) {
-    return (Locale) DataContext.Variable.LOCALE.get(root);
+    return DataContext.Variable.LOCALE.get(root);
+  }
+
+  /** SQL {@code DATEADD} function applied to a custom time frame.
+   *
+   * <p>Custom time frames are created as part of a {@link TimeFrameSet}.
+   * This method retrieves the session's time frame set from the
+   * {@link DataContext.Variable#TIME_FRAME_SET} variable, then looks up the
+   * time frame by name. */
+  public static int customDateAdd(DataContext root,
+      String timeFrameName, int interval, int date) {
+    final TimeFrameSet timeFrameSet =
+        requireNonNull(DataContext.Variable.TIME_FRAME_SET.get(root));
+    final TimeFrame timeFrame = timeFrameSet.get(timeFrameName);
+    return timeFrameSet.addDate(date, interval, timeFrame);
+  }
+
+  /** SQL {@code TIMESTAMPADD} function applied to a custom time frame.
+   *
+   * <p>Custom time frames are created and accessed as described in
+   * {@link #customDateAdd}. */
+  public static long customTimestampAdd(DataContext root,
+      String timeFrameName, long interval, long timestamp) {
+    final TimeFrameSet timeFrameSet =
+        requireNonNull(DataContext.Variable.TIME_FRAME_SET.get(root));
+    final TimeFrame timeFrame = timeFrameSet.get(timeFrameName);
+    return timeFrameSet.addTimestamp(timestamp, interval, timeFrame);
+  }
+
+  /** SQL {@code DATEDIFF} function applied to a custom time frame.
+   *
+   * <p>Custom time frames are created and accessed as described in
+   * {@link #customDateAdd}. */
+  public static int customDateDiff(DataContext root,
+      String timeFrameName, int date, int date2) {
+    final TimeFrameSet timeFrameSet =
+        requireNonNull(DataContext.Variable.TIME_FRAME_SET.get(root));
+    final TimeFrame timeFrame = timeFrameSet.get(timeFrameName);
+    return timeFrameSet.diffDate(date, date2, timeFrame);
+  }
+
+  /** SQL {@code TIMESTAMPDIFF} function applied to a custom time frame.
+   *
+   * <p>Custom time frames are created and accessed as described in
+   * {@link #customDateAdd}. */
+  public static long customTimestampDiff(DataContext root,
+      String timeFrameName, long timestamp, long timestamp2) {
+    final TimeFrameSet timeFrameSet =
+        requireNonNull(DataContext.Variable.TIME_FRAME_SET.get(root));
+    final TimeFrame timeFrame = timeFrameSet.get(timeFrameName);
+    return timeFrameSet.diffTimestamp(timestamp, timestamp2, timeFrame);
+  }
+
+  /** SQL {@code FLOOR} function applied to a {@code DATE} value
+   * and a custom time frame.
+   *
+   * <p>Custom time frames are created and accessed as described in
+   * {@link #customDateAdd}. */
+  public static int customDateFloor(DataContext root,
+      String timeFrameName, int date) {
+    final TimeFrameSet timeFrameSet =
+        requireNonNull(DataContext.Variable.TIME_FRAME_SET.get(root));
+    final TimeFrame timeFrame = timeFrameSet.get(timeFrameName);
+    return timeFrameSet.floorDate(date, timeFrame);
+  }
+
+  /** SQL {@code CEIL} function applied to a {@code DATE} value
+   * and a custom time frame.
+   *
+   * <p>Custom time frames are created and accessed as described in
+   * {@link #customDateAdd}. */
+  public static int customDateCeil(DataContext root,
+      String timeFrameName, int date) {
+    final TimeFrameSet timeFrameSet =
+        requireNonNull(DataContext.Variable.TIME_FRAME_SET.get(root));
+    final TimeFrame timeFrame = timeFrameSet.get(timeFrameName);
+    return timeFrameSet.ceilDate(date, timeFrame);
+  }
+
+  /** SQL {@code FLOOR} function applied to a {@code TIMESTAMP} value
+   * and a custom time frame.
+   *
+   * <p>Custom time frames are created and accessed as described in
+   * {@link #customDateAdd}. */
+  public static long customTimestampFloor(DataContext root,
+      String timeFrameName, long timestamp) {
+    final TimeFrameSet timeFrameSet =
+        requireNonNull(DataContext.Variable.TIME_FRAME_SET.get(root));
+    final TimeFrame timeFrame = timeFrameSet.get(timeFrameName);
+    return timeFrameSet.floorTimestamp(timestamp, timeFrame);
+  }
+
+  /** SQL {@code CEIL} function applied to a {@code TIMESTAMP} value
+   * and a custom time frame.
+   *
+   * <p>Custom time frames are created and accessed as described in
+   * {@link #customDateAdd}. */
+  public static long customTimestampCeil(DataContext root,
+      String timeFrameName, long timestamp) {
+    final TimeFrameSet timeFrameSet =
+        requireNonNull(DataContext.Variable.TIME_FRAME_SET.get(root));
+    final TimeFrame timeFrame = timeFrameSet.get(timeFrameName);
+    return timeFrameSet.ceilTimestamp(timestamp, timeFrame);
   }
 
   /** SQL {@code TRANSLATE(string, search_chars, replacement_chars)}
@@ -2659,8 +3471,8 @@ public class SqlFunctions {
   }
 
   private static AtomicLong getAtomicLong(String key) {
-    final Map<String, AtomicLong> map = requireNonNull(THREAD_SEQUENCES.get(),
-        "THREAD_SEQUENCES.get()");
+    final Map<String, AtomicLong> map =
+        requireNonNull(THREAD_SEQUENCES.get(), "THREAD_SEQUENCES.get()");
     AtomicLong atomic = map.get(key);
     if (atomic == null) {
       atomic = new AtomicLong();
@@ -2847,8 +3659,9 @@ public class SqlFunctions {
         Enumerator<Map.Entry<Comparable, Comparable>> enumerator =
             Linq4j.enumerator(map.entrySet());
 
-        Enumerator<List<Comparable>> transformed = Linq4j.transform(enumerator,
-            e -> FlatLists.of(e.getKey(), e.getValue()));
+        Enumerator<List<Comparable>> transformed =
+            Linq4j.transform(enumerator,
+                e -> FlatLists.of(e.getKey(), e.getValue()));
         enumerators.add(transformed);
         break;
       default:
@@ -2870,6 +3683,46 @@ public class SqlFunctions {
     return args;
   }
 
+  /**
+   * Returns whether there is an element in {@code list} for which {@code predicate} is true.
+   * Also, if {@code predicate} returns null for any element of {@code list}
+   * and does not return {@code true} for any element of {@code list},
+   * the result will be {@code null}, not {@code false}.
+   */
+  public static @Nullable <E> Boolean nullableExists(List<? extends E> list,
+      Function1<E, Boolean> predicate) {
+    boolean nullExists = false;
+    for (E e : list) {
+      Boolean res = predicate.apply(e);
+      if (res == null) {
+        nullExists = true;
+      } else if (res) {
+        return true;
+      }
+    }
+    return nullExists ? null : false;
+  }
+
+  /**
+   * Returns whether {@code predicate} is true for all elements of {@code list}.
+   * Also, if {@code predicate} returns null for any element of {@code list}
+   * and does not return {@code false} for any element,
+   * the result will be {@code null}, not {@code true}.
+   */
+  public static @Nullable <E> Boolean nullableAll(List<? extends E> list,
+      Function1<E, Boolean> predicate) {
+    boolean nullExists = false;
+    for (E e : list) {
+      Boolean res = predicate.apply(e);
+      if (res == null) {
+        nullExists = true;
+      } else if (!res) {
+        return false;
+      }
+    }
+    return nullExists ? null : true;
+  }
+
   /** Similar to {@link Linq4j#product(Iterable)} but each resulting list
    * implements {@link FlatLists.ComparableList}. */
   public static <E extends Comparable> Enumerable<FlatLists.ComparableList<E>> product(
@@ -2881,95 +3734,6 @@ public class SqlFunctions {
             withOrdinality);
       }
     };
-  }
-
-  /** Adds a given number of months to a timestamp, represented as the number
-   * of milliseconds since the epoch. */
-  public static long addMonths(long timestamp, int m) {
-    final long millis =
-        DateTimeUtils.floorMod(timestamp, DateTimeUtils.MILLIS_PER_DAY);
-    timestamp -= millis;
-    final long x =
-        addMonths((int) (timestamp / DateTimeUtils.MILLIS_PER_DAY), m);
-    return x * DateTimeUtils.MILLIS_PER_DAY + millis;
-  }
-
-  /** Adds a given number of months to a date, represented as the number of
-   * days since the epoch. */
-  public static int addMonths(int date, int m) {
-    int y0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.YEAR, date);
-    int m0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.MONTH, date);
-    int d0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.DAY, date);
-    m0 += m;
-    int deltaYear = (int) DateTimeUtils.floorDiv(m0, 12);
-    y0 += deltaYear;
-    m0 = (int) DateTimeUtils.floorMod(m0, 12);
-    if (m0 == 0) {
-      y0 -= 1;
-      m0 += 12;
-    }
-
-    int last = lastDay(y0, m0);
-    if (d0 > last) {
-      d0 = last;
-    }
-    return DateTimeUtils.ymdToUnixDate(y0, m0, d0);
-  }
-
-  private static int lastDay(int y, int m) {
-    switch (m) {
-    case 2:
-      return y % 4 == 0
-          && (y % 100 != 0
-          || y % 400 == 0)
-          ? 29 : 28;
-    case 4:
-    case 6:
-    case 9:
-    case 11:
-      return 30;
-    default:
-      return 31;
-    }
-  }
-
-  /** Finds the number of months between two dates, each represented as the
-   * number of days since the epoch. */
-  public static int subtractMonths(int date0, int date1) {
-    if (date0 < date1) {
-      return -subtractMonths(date1, date0);
-    }
-    // Start with an estimate.
-    // Since no month has more than 31 days, the estimate is <= the true value.
-    int m = (date0 - date1) / 31;
-    for (;;) {
-      int date2 = addMonths(date1, m);
-      if (date2 >= date0) {
-        return m;
-      }
-      int date3 = addMonths(date1, m + 1);
-      if (date3 > date0) {
-        return m;
-      }
-      ++m;
-    }
-  }
-
-  public static int subtractMonths(long t0, long t1) {
-    final long millis0 =
-        DateTimeUtils.floorMod(t0, DateTimeUtils.MILLIS_PER_DAY);
-    final int d0 = (int) DateTimeUtils.floorDiv(t0 - millis0,
-        DateTimeUtils.MILLIS_PER_DAY);
-    final long millis1 =
-        DateTimeUtils.floorMod(t1, DateTimeUtils.MILLIS_PER_DAY);
-    final int d1 = (int) DateTimeUtils.floorDiv(t1 - millis1,
-        DateTimeUtils.MILLIS_PER_DAY);
-    int x = subtractMonths(d0, d1);
-    final long d2 = addMonths(d1, x);
-    if (d2 == d0 && millis0 < millis1) {
-      --x;
-    }
-    return x;
   }
 
   /**

@@ -46,7 +46,6 @@ Correlate:[[USE_HASH_JOIN inheritPath:[0] options:[ORDERS, PRODUCTS_TEMPORAL]]]
 ]]>
     </Resource>
   </TestCase>
-
   <TestCase name="testCrossCorrelateHints">
     <Resource name="sql">
       <![CDATA[select /*+ use_hash_join (orders, products_temporal) */ stream *
@@ -56,6 +55,20 @@ from orders, products_temporal for system_time as of orders.rowtime]]>
       <![CDATA[
 Project:[[USE_HASH_JOIN inheritPath:[] options:[ORDERS, PRODUCTS_TEMPORAL]]]
 Correlate:[[USE_HASH_JOIN inheritPath:[0] options:[ORDERS, PRODUCTS_TEMPORAL]]]
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testFilterHints">
+    <Resource name="sql">
+      <![CDATA[select /*+ resource(parallelism='3') */ avg(sal) as avg_sal, deptno
+from emp group by deptno having avg(sal) > 5000]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}]]
+Filter:[[RESOURCE inheritPath:[0] options:{PARALLELISM=3}]]
+Aggregate:[[RESOURCE inheritPath:[0, 0] options:{PARALLELISM=3}]]
+Project:[[RESOURCE inheritPath:[0, 0, 0] options:{PARALLELISM=3}]]
 ]]>
     </Resource>
   </TestCase>
@@ -74,6 +87,11 @@ TableScan:[[INDEX inheritPath:[] options:[EMPNO]], [INDEX inheritPath:[0, 0, 0] 
 TableScan:[[INDEX inheritPath:[] options:[DEPTNO]], [INDEX inheritPath:[0, 0, 1] options:[IDX1]]]
 TableScan:[[INDEX inheritPath:[] options:[EMPNO]], [INDEX inheritPath:[0, 1, 0, 0] options:[IDX1]]]
 ]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testHintExcludeRules">
+    <Resource name="sql">
+      <![CDATA[select empno from (select * from (select /*+ preserved_project */ empno, ename, deptno from emp) where deptno = 20)]]>
     </Resource>
   </TestCase>
   <TestCase name="testHintsInSubQueryWithDecorrelation">
@@ -155,8 +173,10 @@ select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.dep
       <![CDATA[
 Aggregate:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}]]
 Project:[[RESOURCE inheritPath:[0] options:{PARALLELISM=3}]]
+Filter:[[RESOURCE inheritPath:[0, 0] options:{PARALLELISM=3}]]
 Aggregate:[[RESOURCE inheritPath:[] options:{CPU=2}], [RESOURCE inheritPath:[0, 0, 0, 1] options:{PARALLELISM=3}]]
 Project:[[RESOURCE inheritPath:[0] options:{CPU=2}], [RESOURCE inheritPath:[0, 0, 0, 1, 0] options:{PARALLELISM=3}]]
+Filter:[[RESOURCE inheritPath:[0, 0] options:{CPU=2}], [RESOURCE inheritPath:[0, 0, 0, 1, 0, 0] options:{PARALLELISM=3}]]
 ]]>
     </Resource>
   </TestCase>
@@ -183,6 +203,84 @@ EnumerableProject(ENAME=[$3], JOB=[$4], SAL=[$7], NAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testHintsPropagationInVolcanoPlannerRules2">
+    <Resource name="sql">
+      <![CDATA[select /*+ no_hash_join */ ename, job
+from emp where not exists (select 1 from dept where emp.deptno = dept.deptno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1])
+  LogicalFilter(condition=[IS NULL($4)])
+    LogicalJoin(condition=[=($2, $3)], joinType=[left])
+      LogicalProject(ENAME=[$1], JOB=[$2], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+        LogicalProject(DEPTNO=[$0], $f0=[true])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(ENAME=[$0], JOB=[$1])
+  EnumerableFilter(condition=[IS NULL($4)])
+    EnumerableMergeJoin(condition=[=($2, $3)], joinType=[left])
+      EnumerableSort(sort0=[$2], dir0=[ASC])
+        EnumerableProject(ENAME=[$1], JOB=[$2], DEPTNO=[$7])
+          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+      EnumerableSort(sort0=[$0], dir0=[ASC])
+        EnumerableProject(DEPTNO=[$0], $f0=[true])
+          EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testHintsPropagationInVolcanoPlannerRules3">
+    <Resource name="sql">
+      <![CDATA[select /*+ no_hash_join */ ename, job
+from emp where not exists (select 1 from dept where emp.deptno = dept.deptno) order by ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(sort0=[$0], dir0=[ASC])
+  LogicalProject(ENAME=[$0], JOB=[$1])
+    LogicalFilter(condition=[IS NULL($4)])
+      LogicalJoin(condition=[=($2, $3)], joinType=[left])
+        LogicalProject(ENAME=[$1], JOB=[$2], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
+          LogicalProject(DEPTNO=[$0], $f0=[true])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableSort(sort0=[$0], dir0=[ASC])
+  EnumerableProject(ENAME=[$0], JOB=[$1])
+    EnumerableFilter(condition=[IS NULL($4)])
+      EnumerableMergeJoin(condition=[=($2, $3)], joinType=[left])
+        EnumerableSort(sort0=[$2], dir0=[ASC])
+          EnumerableProject(ENAME=[$1], JOB=[$2], DEPTNO=[$7])
+            EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+        EnumerableSort(sort0=[$0], dir0=[ASC])
+          EnumerableProject(DEPTNO=[$0], $f0=[true])
+            EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIntersectHints">
+    <Resource name="sql">
+      <![CDATA[select /*+ breakable */ deptno from
+(select ename, deptno from emp
+intersect all
+select name, deptno from dept)]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Project:[[BREAKABLE inheritPath:[]]]
+Intersect:[[BREAKABLE inheritPath:[0]]]
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinHintRequiresSpecificInputs">
     <Resource name="sql">
       <![CDATA[select /*+ use_hash_join(r, s), use_hash_join(emp, dept) */
@@ -193,6 +291,20 @@ from emp join dept on emp.deptno = dept.deptno]]>
       <![CDATA[
 Project:[[USE_HASH_JOIN inheritPath:[] options:[R, S]], [USE_HASH_JOIN inheritPath:[] options:[EMP, DEPT]]]
 LogicalJoin:[[USE_HASH_JOIN inheritPath:[0] options:[EMP, DEPT]]]
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMinusHints">
+    <Resource name="sql">
+      <![CDATA[select /*+ breakable */ deptno from
+(select ename, deptno from emp
+except all
+select name, deptno from dept)]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Project:[[BREAKABLE inheritPath:[]]]
+Minus:[[BREAKABLE inheritPath:[0]]]
 ]]>
     </Resource>
   </TestCase>
@@ -252,6 +364,29 @@ TableScan:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [PROPERTIES inher
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSnapshotHints">
+    <Resource name="sql">
+      <![CDATA[select /*+ fast_snapshot(products_temporal) */ stream * from
+ orders join products_temporal for system_time as of timestamp '2022-08-11 15:00:00'
+ on orders.productid = products_temporal.productid]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Project:[[FAST_SNAPSHOT inheritPath:[] options:[PRODUCTS_TEMPORAL]]]
+Snapshot:[[FAST_SNAPSHOT inheritPath:[0, 1] options:[PRODUCTS_TEMPORAL]]]
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortHints">
+    <Resource name="sql">
+      <![CDATA[select /*+ async_merge */ empno from emp order by empno, empno desc]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Sort:[[ASYNC_MERGE inheritPath:[]]]
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testTableHintsInJoin">
     <Resource name="sql">
       <![CDATA[select
@@ -307,6 +442,20 @@ LogicalJoin:[[NO_HASH_JOIN inheritPath:[0]]]
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testUnionHints">
+    <Resource name="sql">
+      <![CDATA[select /*+ breakable */ deptno from
+(select ename, deptno from emp
+union all
+select name, deptno from dept)]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Project:[[BREAKABLE inheritPath:[]]]
+Union:[[BREAKABLE inheritPath:[0]]]
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testUseMergeJoin">
     <Resource name="sql">
       <![CDATA[select /*+ use_merge_join(emp, dept) */
@@ -329,6 +478,31 @@ LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5], NAME=[$10])
   LogicalJoin(condition=[=($7, $9)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testValuesHints">
+    <Resource name="sql">
+      <![CDATA[select /*+ resource(parallelism='3') */ a, max(b), max(b + 1)
+from (values (1, 2)) as t(a, b)
+group by a]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Aggregate:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}]]
+Project:[[RESOURCE inheritPath:[0] options:{PARALLELISM=3}]]
+Values:[[RESOURCE inheritPath:[0, 0] options:{PARALLELISM=3}]]
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testWindowHints">
+    <Resource name="sql">
+      <![CDATA[select /*+ mini_batch */ last_value(deptno)
+over (order by empno rows 2 following) from emp]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Project:[[MINI_BATCH inheritPath:[]]]
 ]]>
     </Resource>
   </TestCase>

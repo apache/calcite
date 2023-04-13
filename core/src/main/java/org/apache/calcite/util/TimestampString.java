@@ -18,13 +18,18 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Calendar;
 import java.util.regex.Pattern;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static org.apache.calcite.util.DateTimeStringUtils.ymdhms;
+
+import static java.lang.Math.floorMod;
 
 /**
  * Timestamp literal.
@@ -38,18 +43,29 @@ public class TimestampString implements Comparable<TimestampString> {
           + " "
           + "[0-9][0-9]:[0-9][0-9]:[0-9][0-9](\\.[0-9]*[1-9])?");
 
+  /** The allowed format of input strings is slightly more flexible than
+   * normalized strings. Input strings can have trailing zeros in the fractional
+   * seconds. */
+  private static final Pattern INPUT_PATTERN =
+      Pattern.compile("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
+          + " "
+          + "[0-9][0-9]:[0-9][0-9]:[0-9][0-9](\\.[0-9]+)?");
+
+  /** The Unix epoch. */
+  public static final TimestampString EPOCH =
+      new TimestampString(1970, 1, 1, 0, 0, 0);
+
   final String v;
 
   /** Creates a TimeString. */
   public TimestampString(String v) {
-    this.v = v;
-    Preconditions.checkArgument(PATTERN.matcher(v).matches(), v);
+    this.v = normalize(v);
   }
 
   /** Creates a TimestampString for year, month, day, hour, minute, second,
    *  millisecond values. */
   public TimestampString(int year, int month, int day, int h, int m, int s) {
-    this(DateTimeStringUtils.ymdhms(new StringBuilder(), year, month, day, h, m, s).toString());
+    this(ymdhms(new StringBuilder(), year, month, day, h, m, s).toString());
   }
 
   /** Sets the fraction field of a {@code TimestampString} to a given number
@@ -59,7 +75,7 @@ public class TimestampString implements Comparable<TimestampString> {
    * {@code new TimestampString(1970, 1, 1, 2, 3, 4).withMillis(56)}
    * yields {@code TIMESTAMP '1970-01-01 02:03:04.056'}. */
   public TimestampString withMillis(int millis) {
-    Preconditions.checkArgument(millis >= 0 && millis < 1000);
+    checkArgument(millis >= 0 && millis < 1000);
     return withFraction(DateTimeStringUtils.pad(3, millis));
   }
 
@@ -70,7 +86,7 @@ public class TimestampString implements Comparable<TimestampString> {
    * {@code new TimestampString(1970, 1, 1, 2, 3, 4).withNanos(56789)}
    * yields {@code TIMESTAMP '1970-01-01 02:03:04.000056789'}. */
   public TimestampString withNanos(int nanos) {
-    Preconditions.checkArgument(nanos >= 0 && nanos < 1000000000);
+    checkArgument(nanos >= 0 && nanos < 1000000000);
     return withFraction(DateTimeStringUtils.pad(9, nanos));
   }
 
@@ -94,6 +110,19 @@ public class TimestampString implements Comparable<TimestampString> {
       v = v + "." + fraction;
     }
     return new TimestampString(v);
+  }
+
+  private static String normalize(String v) {
+    checkArgument(INPUT_PATTERN.matcher(v).matches(), v);
+
+    // Remove trailing zeros in the fractional seconds
+    if (v.indexOf('.') >= 0) {
+      while (v.endsWith("0")) {
+        v = v.substring(0, v.length() - 1);
+      }
+    }
+    checkArgument(PATTERN.matcher(v).matches(), v);
+    return v;
   }
 
   @Override public String toString() {
@@ -127,8 +156,12 @@ public class TimestampString implements Comparable<TimestampString> {
         .withMillis(calendar.get(Calendar.MILLISECOND));
   }
 
+  /** Returns this value rounded to {@code precision} decimal digits after the
+   * point.
+   *
+   * <p>Uses rounding mode {@link java.math.RoundingMode#DOWN}. */
   public TimestampString round(int precision) {
-    Preconditions.checkArgument(precision >= 0);
+    checkArgument(precision >= 0);
     int targetLength = 20 + precision;
     if (v.length() <= targetLength) {
       return this;
@@ -175,7 +208,7 @@ public class TimestampString implements Comparable<TimestampString> {
    * the epoch. */
   public static TimestampString fromMillisSinceEpoch(long millis) {
     return new TimestampString(DateTimeUtils.unixTimestampToString(millis))
-        .withMillis((int) DateTimeUtils.floorMod(millis, 1000));
+        .withMillis((int) floorMod(millis, 1000L));
   }
 
   public Calendar toCalendar() {
@@ -185,7 +218,7 @@ public class TimestampString implements Comparable<TimestampString> {
   /** Converts this TimestampString to a string, truncated or padded with
    * zeros to a given precision. */
   public String toString(int precision) {
-    Preconditions.checkArgument(precision >= 0);
+    checkArgument(precision >= 0);
     final int p = precision();
     if (precision < p) {
       return round(precision).toString(precision);
