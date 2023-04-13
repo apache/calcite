@@ -26,6 +26,8 @@ package org.apache.calcite.slt.executors;
 
 import org.apache.calcite.slt.*;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
@@ -98,10 +100,6 @@ public class JDBCExecutor extends SqlSLTTestExecutor {
         this.allRows.sort(new RowComparator());
         break;
       }
-    }
-
-    List<Row> getRows() {
-      return this.allRows;
     }
   }
 
@@ -234,7 +232,7 @@ public class JDBCExecutor extends SqlSLTTestExecutor {
       // the algorithm used to compute the checksums by SLT.
       MessageDigest md = MessageDigest.getInstance("MD5");
       String repr = rows + "\n";
-      md.update(repr.getBytes());
+      md.update(repr.getBytes(StandardCharsets.UTF_8));
       byte[] digest = md.digest();
       String hash = Utilities.toHex(digest);
       if (!description.hash.equals(hash)) {
