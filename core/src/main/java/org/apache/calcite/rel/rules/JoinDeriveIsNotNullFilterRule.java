@@ -62,9 +62,9 @@ public class JoinDeriveIsNotNullFilterRule
     final RelMetadataQuery mq = call.getMetadataQuery();
 
     final ImmutableBitSet.Builder notNullableKeys = ImmutableBitSet.builder();
-    RelOptUtil.conjunctions(join.getCondition()).forEach(node -> {
-      if (Strong.isStrong(node)) {
-        notNullableKeys.addAll(RelOptUtil.InputFinder.bits(node));
+    RelOptUtil.InputFinder.bits(join.getCondition()).forEach(bit -> {
+      if (Strong.isNotTrue(join.getCondition(), ImmutableBitSet.of(bit))) {
+        notNullableKeys.set(bit);
       }
     });
     final List<Integer> leftKeys = new ArrayList<>();
