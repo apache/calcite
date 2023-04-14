@@ -156,6 +156,9 @@ public enum SqlKind {
   /** DELETE statement. */
   DELETE,
 
+  /** TRUNCATE statement. */
+  TRUNCATE,
+
   /** UPDATE statement. */
   UPDATE,
 
@@ -1131,7 +1134,7 @@ public enum SqlKind {
    * we'll need to refine this.
    */
   public static final EnumSet<SqlKind> DML =
-      EnumSet.of(INSERT, DELETE, UPDATE, MERGE, PROCEDURE_CALL);
+      EnumSet.of(INSERT, DELETE, TRUNCATE, UPDATE, MERGE, PROCEDURE_CALL);
 
   /**
    * Category consisting of all DDL operators.

@@ -1096,6 +1096,8 @@ SqlNode SqlStmt() :
     |
         stmt = SqlDelete()
     |
+        stmt = SqlTruncate()
+    |
         stmt = SqlUpdate()
     |
         stmt = SqlMerge()
@@ -1476,6 +1478,8 @@ SqlNode SqlQueryOrDml() :
     |
         stmt = SqlDelete()
     |
+        stmt = SqlTruncate()
+    |
         stmt = SqlUpdate()
     |
         stmt = SqlMerge()
@@ -1732,6 +1736,31 @@ SqlNode SqlDelete() :
     {
         return new SqlDelete(s.add(table).addIf(extendList).addIf(alias)
             .addIf(condition).pos(), table, condition, null, alias);
+    }
+}
+
+/**
+ * Parses a TRUNCATE statement.
+ */
+SqlNode SqlTruncate() :
+{
+    SqlNode table;
+    boolean ifExists = false;
+    final Span s;
+}
+{
+    <TRUNCATE> {
+        s = span();
+        [
+            [<TABLE>]
+
+            <IF> <EXISTS> {
+                ifExists = true;
+            }
+        ]
+//        return new SqlTruncate();
+        return new SqlDelete(s.add(table).addIf(extendList).addIf(alias)
+                    .addIf(condition).pos(), table, condition, null, alias);
     }
 }
 
@@ -8418,6 +8447,7 @@ String NonReservedKeyWord() :
     |   <CONTAINS>
     |   <INSERT>
     |   <DAY>
+    |   <VALUE>
     )
     {
         return unquotedIdentifier();
