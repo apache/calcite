@@ -284,10 +284,6 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference TIMESTAMP =
           explicit(SqlTypeName.TIMESTAMP);
 
-  public static final SqlReturnTypeInference DATETIME =
-          explicit(SqlTypeName.DATETIME);
-
-
   public static final SqlReturnTypeInference BINARY =
       explicit(SqlTypeName.BINARY);
 

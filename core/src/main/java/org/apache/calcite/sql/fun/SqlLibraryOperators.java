@@ -971,7 +971,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction PARSE_DATETIME =
       new SqlFunction("PARSE_DATETIME",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATETIME,
+          ReturnTypes.TIMESTAMP,
           null,
           OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
           SqlFunctionCategory.TIMEDATE);
