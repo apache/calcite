@@ -530,6 +530,33 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
   }
 
+  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
+   *  should not create IS NOT NULL filter if join condition is not strong wrt each key. */
+  @Test void testJoinDeriveIsNotNullFilterRule13() {
+    final String sql = "select t1.deptno from empnullables t1 inner join\n"
+        + "empnullables t2 on coalesce(t1.ename, t2.ename) = 'abc'";
+    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
+  }
+
+  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
+   *  should not create IS NOT NULL filter if join condition is not strong wrt each key. */
+  @Test void testJoinDeriveIsNotNullFilterRule14() {
+    final String sql = "select t1.deptno from empnullables t1 inner join\n"
+        + "empnullables t2 on nvl(t1.ename, t2.ename) = 'abc'";
+    sql(sql)
+        .withFactory(t ->
+            t.withOperatorTable(opTab -> SqlValidatorTest.operatorTableFor(SqlLibrary.ORACLE)))
+        .withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).checkUnchanged();
+  }
+
+  /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
+   *  should create IS NOT NULL filter only for the first operand of NULLIF. */
+  @Test void testJoinDeriveIsNotNullFilterRule15() {
+    final String sql = "select t1.deptno from empnullables t1 inner join\n"
+        + "empnullables t2 on nullif(t1.ename, t2.ename) = 'abc'";
+    sql(sql).withRule(CoreRules.JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE).check();
+  }
+
   @Test void testStrengthenJoinType() {
     // The "Filter(... , right.c IS NOT NULL)" above a left join is pushed into
     // the join, makes it an inner join, and then disappears because c is NOT

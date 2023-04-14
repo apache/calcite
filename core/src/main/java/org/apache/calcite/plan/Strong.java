@@ -36,8 +36,8 @@ import java.util.Map;
 
 /** Utilities for strong predicates.
  *
- * <p>A predicate is strong (or null-rejecting) if it is UNKNOWN if any of its
- * inputs is UNKNOWN.</p>
+ * <p>A predicate is strong (or null-rejecting) with regards to selected subset of inputs
+ * if it is UNKNOWN if all inputs in selected subset are UNKNOWN.</p>
  *
  * <p>By the way, UNKNOWN is just the boolean form of NULL.</p>
  *
@@ -79,7 +79,7 @@ public class Strong {
   }
 
   /** Returns whether the analyzed expression will definitely not return true
-   * (equivalently, will definitely not return null or false) if
+   * (equivalently, will definitely return null or false) if
    * all of a given set of input columns are null. */
   public static boolean isNotTrue(RexNode node, ImmutableBitSet nullColumns) {
     return of(nullColumns).isNotTrue(node);
@@ -149,7 +149,8 @@ public class Strong {
     return operands.stream().allMatch(Strong::isStrong);
   }
 
-  /** Returns whether an expression is definitely not true. */
+  /** Returns whether the analyzed expression will definitely not return true
+   * (equivalently, will definitely return null or false). */
   public boolean isNotTrue(RexNode node) {
     switch (node.getKind()) {
     //TODO Enrich with more possible cases?
