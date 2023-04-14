@@ -3719,6 +3719,13 @@ class RelToSqlConverterTest {
     checkLiteral("123");
     checkLiteral("123.45");
     checkLiteral("-123.45");
+    checkLiteral2("INTERVAL '1 day'", "INTERVAL '1 00:00:00' DAY TO SECOND");
+    checkLiteral2("INTERVAL '-30 day'", "INTERVAL -'30 00:00:00' DAY TO SECOND");
+    checkLiteral2("INTERVAL '2 weeks 3 days 4 hours 5 minutes 6 seconds 7 milliseconds'",
+        "INTERVAL '17 04:05:06.007' DAY TO SECOND");
+    checkLiteral2("INTERVAL '13 hours 30 minutes 20 seconds 123 milliseconds'",
+        "INTERVAL '0 13:30:20.123' DAY TO SECOND");
+    checkLiteral2("INTERVAL '1 day ago'", "INTERVAL -'1 00:00:00' DAY TO SECOND");
     checkLiteral("INTERVAL '1-2' YEAR TO MONTH");
     checkLiteral("INTERVAL -'1-2' YEAR TO MONTH");
     checkLiteral("INTERVAL '12-11' YEAR TO MONTH");

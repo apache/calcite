@@ -18,7 +18,9 @@ package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlBinaryOperator;
@@ -47,6 +49,8 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -377,9 +381,39 @@ public final class SqlParserUtil {
     if (s.equals("")) {
       throw SqlUtil.newContextException(pos,
           RESOURCE.illegalIntervalLiteral(s + " "
-              + intervalQualifier.toString(), pos.toString()));
+              + intervalQualifier, pos.toString()));
     }
     return SqlLiteral.createInterval(sign, s, intervalQualifier, pos);
+  }
+
+  public static SqlIntervalLiteral parseIntervalLiteralWithComponents(SqlParserPos pos, String s) {
+    if (s.equals("")) {
+      throw SqlUtil.newContextException(pos,
+          RESOURCE.illegalIntervalLiteral(s, pos.toString()));
+    }
+
+    SqlIntervalQualifier intervalQualifier =
+        new SqlIntervalQualifier(TimeUnit.DAY,
+        RelDataType.PRECISION_NOT_SPECIFIED,
+        TimeUnit.SECOND,
+        RelDataType.PRECISION_NOT_SPECIFIED,
+        pos);
+
+    PgInterval interval = PgIntervalParser.parse(s);
+
+    if (interval.years > 0 || interval.months > 0) {
+      throw SqlUtil.newContextException(pos, RESOURCE.illegalIntervalRange());
+    }
+
+    int sign = interval.present ? 1 : -1;
+    String intervalString =
+        interval.days + " "
+            + interval.hours + ":"
+            + interval.minutes + ":"
+            + interval.seconds + "."
+            + StringUtils.leftPad(String.valueOf(interval.milliseconds), 3, '0');
+
+    return SqlLiteral.createInterval(sign, intervalString, intervalQualifier, pos);
   }
 
   /**

@@ -4848,7 +4848,7 @@ SqlLiteral IntervalLiteral() :
 SqlNode IntervalLiteralOrExpression() :
 {
     final String p;
-    final SqlIntervalQualifier intervalQualifier;
+    SqlIntervalQualifier intervalQualifier = null;
     int sign = 1;
     final Span s;
     SqlNode e;
@@ -4863,9 +4863,17 @@ SqlNode IntervalLiteralOrExpression() :
     (
         // literal (with quoted string)
         p = SimpleStringLiteral()
-        intervalQualifier = IntervalQualifier() {
-            return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
-                sign, p, intervalQualifier);
+        [intervalQualifier = IntervalQualifier()] {
+            if (intervalQualifier == null) {
+                /* PostgreSQL interval literal without interval qualifier.
+                 * The quoted string contains components such as '3 days'.
+                 * Example: {@code INTERVAL '2 weeks 3 days 4 hours 5 minutes 6 seconds 7 milliseconds'}
+                 */
+                return SqlParserUtil.parseIntervalLiteralWithComponents(s.pos(), p);
+            } else {
+                return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
+                    sign, p, intervalQualifier);
+            }
         }
     |
         // To keep parsing simple, any expressions besides numeric literal and
