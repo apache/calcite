@@ -5358,7 +5358,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testUserDefinedConformance() {
-    final SqlAbstractConformance custom =
+    final SqlConformance custom =
         new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
           public boolean isBangEqualAllowed() {
             return true;
