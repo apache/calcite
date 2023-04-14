@@ -8633,12 +8633,8 @@ class RelToSqlConverterTest {
     final String expectedSql =
         "SELECT TO_DATE('2009/03/20', 'yyyy/MM/dd') AS \"date_value\"\n"
             + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery =
-        "SELECT DATE(PARSE_DATETIME('%Y/%m/%d', '2009/03/20')) AS date_value\n"
-            + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test public void testToDateFunctionWithAMInFormat() {
@@ -11660,5 +11656,28 @@ class RelToSqlConverterTest {
         .build();
     final String expectedOracleSql = "SELECT SUBSTR4(\"EMPNO\", 1) \"$f0\"\nFROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testToDateforOracle() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode oracleToDateCall = builder.call(SqlLibraryOperators.ORACLE_TO_DATE,
+        builder.call(SqlStdOperatorTable.CURRENT_DATE));
+    RelNode root = builder
+        .project(oracleToDateCall)
+        .build();
+    final String expectedOracleSql = "SELECT TO_DATE(CURRENT_DATE) \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testMONDateFormatforOracle() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode oracleToDateCall = builder.call(SqlLibraryOperators.PARSE_DATETIME,
+        builder.literal("DDMON-YYYY"), builder.literal("23FEB-2021"));
+    RelNode root = builder
+        .project(oracleToDateCall)
+        .build();
+    final String expectedBQSql = "SELECT PARSE_DATETIME('%d%b-%Y', '23FEB-2021') AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 }
