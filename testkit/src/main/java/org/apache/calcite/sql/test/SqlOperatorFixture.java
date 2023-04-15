@@ -597,6 +597,9 @@ public interface SqlOperatorFixture extends AutoCloseable {
                 .with("fun", "oracle"));
   }
 
+  /**
+   * Types for cast.
+   */
   enum CastType {
     CAST("cast"),
     SAFE_CAST("safe_cast"),

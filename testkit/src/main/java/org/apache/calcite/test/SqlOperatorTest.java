@@ -52,6 +52,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.AbstractSqlTester;
 import org.apache.calcite.sql.test.SqlOperatorFixture;
+import org.apache.calcite.sql.test.SqlOperatorFixture.CastType;
 import org.apache.calcite.sql.test.SqlOperatorFixture.VmName;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
@@ -431,29 +432,6 @@ public class SqlOperatorTest {
         true);
   }
 
-  /** Tests that CAST, SAFE_CAST and TRY_CAST are basically equivalent but SAFE_CAST is
-   * only available in BigQuery library and TRY_CAST is only available in MSSQL library. */
-  @Test void testCastVsSafeCastVsTryCast() {
-    // SAFE_CAST is available in BigQuery library but not by default.
-    // TRY_CAST is available in MSSQL library but not by default.
-    final SqlOperatorFixture f0 = fixture();
-    f0.checkScalar("cast(12 + 3 as varchar(10))", "15", "VARCHAR(10) NOT NULL");
-    f0.checkFails("^safe_cast(12 + 3 as varchar(10))^",
-        "No match found for function signature SAFE_CAST\\(<NUMERIC>, <CHARACTER>\\)",
-        false);
-    f0.checkFails("^try_cast(12 + 3 as varchar(10))^",
-        "No match found for function signature TRY_CAST\\(<NUMERIC>, <CHARACTER>\\)",
-        false);
-
-    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.BIG_QUERY);
-    f1.checkScalar("cast(12 + 3 as varchar(10))", "15", "VARCHAR(10) NOT NULL");
-    f1.checkScalar("safe_cast(12 + 3 as varchar(10))", "15", "VARCHAR(10)");
-
-    final SqlOperatorFixture f2 = f0.withLibrary(SqlLibrary.MSSQL);
-    f2.checkScalar("cast(12 + 3 as varchar(10))", "15", "VARCHAR(10) NOT NULL");
-    f2.checkScalar("try_cast(12 + 3 as varchar(10))", "15", "VARCHAR(10)");
-  }
-
   /** Generates parameters to test both regular and safe cast. */
   static Stream<Arguments> safeParameters() {
     SqlOperatorFixture f = SqlOperatorFixtureImpl.DEFAULT;
@@ -462,14 +440,31 @@ public class SqlOperatorTest {
     SqlOperatorFixture f3 =
         SqlOperatorFixtures.safeCastWrapper(f.withLibrary(SqlLibrary.MSSQL), "TRY_CAST");
     return Stream.of(
-        () -> new Object[] {SqlOperatorFixture.CastType.CAST, f},
-        () -> new Object[] {SqlOperatorFixture.CastType.SAFE_CAST, f2},
-        () -> new Object[] {SqlOperatorFixture.CastType.TRY_CAST, f3});
+        () -> new Object[] {CastType.CAST, f},
+        () -> new Object[] {CastType.SAFE_CAST, f2},
+        () -> new Object[] {CastType.TRY_CAST, f3});
+  }
+
+  /** Tests that CAST, SAFE_CAST and TRY_CAST are basically equivalent but SAFE_CAST is
+   * only available in BigQuery library and TRY_CAST is only available in MSSQL library. */
+  @ParameterizedTest
+  @MethodSource("safeParameters")
+  void testCast(CastType castType, SqlOperatorFixture f) {
+    // SAFE_CAST is available in BigQuery library but not by default.
+    // TRY_CAST is available in MSSQL library but not by default.
+    final SqlOperatorFixture f0 = fixture();
+    if (castType != CastType.CAST) {
+      f0.checkFails("^" + castType.name() + "(12 + 3 as varchar(10))^",
+          "No match found for function signature " + castType.name().toUpperCase(Locale.ROOT)
+              + "\\(<NUMERIC>, <CHARACTER>\\)", false);
+    }
+
+    f.checkScalar(castType.name() + "(12 + 3 as varchar(10))", "15", "VARCHAR(10) NOT NULL");
   }
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastToString(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastToString(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
     f.checkCastToString("cast(cast('abc' as char(4)) as varchar(6))", null,
         "abc ", castType);
@@ -570,7 +565,7 @@ public class SqlOperatorTest {
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastExactNumericLimits(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastExactNumericLimits(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
     // Test casting for min,max, out of range for exact numeric types
@@ -635,7 +630,7 @@ public class SqlOperatorTest {
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastToExactNumeric(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastToExactNumeric(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
     f.checkCastToScalarOkay("1", "BIGINT", castType);
@@ -666,7 +661,7 @@ public class SqlOperatorTest {
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastStringToDecimal(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastStringToDecimal(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
     if (!DECIMAL) {
       return;
@@ -696,7 +691,7 @@ public class SqlOperatorTest {
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastIntervalToNumeric(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastIntervalToNumeric(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
     // interval to decimal
@@ -804,7 +799,7 @@ public class SqlOperatorTest {
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastToInterval(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastToInterval(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
     f.checkScalar(
         "cast(5 as interval second)",
@@ -859,7 +854,7 @@ public class SqlOperatorTest {
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastIntervalToInterval(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastIntervalToInterval(CastType castType, SqlOperatorFixture f) {
     f.checkScalar("cast(interval '2 5' day to hour as interval hour to minute)",
         "+53:00",
         "INTERVAL HOUR TO MINUTE NOT NULL");
@@ -879,7 +874,7 @@ public class SqlOperatorTest {
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastWithRoundingToScalar(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastWithRoundingToScalar(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
     f.checkFails("cast(1.25 as int)", "INTEGER", true);
@@ -920,7 +915,7 @@ public class SqlOperatorTest {
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastDecimalToDoubleToInteger(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastDecimalToDoubleToInteger(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
     f.checkFails("cast( cast(1.25 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
@@ -936,7 +931,7 @@ public class SqlOperatorTest {
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastApproxNumericLimits(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastApproxNumericLimits(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
     // Test casting for min, max, out of range for approx numeric types
@@ -1032,7 +1027,7 @@ public class SqlOperatorTest {
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastToApproxNumeric(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastToApproxNumeric(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
     f.checkCastToApproxOkay("1", "DOUBLE", isExactly(1), castType);
@@ -1047,7 +1042,7 @@ public class SqlOperatorTest {
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastNull(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastNull(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
     // null
@@ -1065,7 +1060,7 @@ public class SqlOperatorTest {
     f.checkNull("cast(null as interval day to second(3))");
     f.checkNull("cast(null as boolean)");
 
-    if (castType != SqlOperatorFixture.CastType.CAST) {
+    if (castType != CastType.CAST) {
       // In the following, 'cast' becomes 'safe_cast' or 'try_cast'
       f.checkNull("cast('a' as time)");
       f.checkNull("cast('a' as int)");
@@ -1082,7 +1077,7 @@ public class SqlOperatorTest {
    * Handling errors during constant reduction</a>. */
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastInvalid(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastInvalid(CastType castType, SqlOperatorFixture f) {
     // Before CALCITE-1439 was fixed, constant reduction would kick in and
     // generate Java constants that throw when the class is loaded, thus
     // ExceptionInInitializerError.
@@ -1102,7 +1097,7 @@ public class SqlOperatorTest {
   /** Test cast for DATE, TIME, TIMESTAMP types. */
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastDateTime(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastDateTime(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
     f.checkScalar("cast(TIMESTAMP '1945-02-24 12:42:25.34' as TIMESTAMP)",
@@ -1168,7 +1163,7 @@ public class SqlOperatorTest {
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastStringToDateTime(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastStringToDateTime(CastType castType, SqlOperatorFixture f) {
     f.checkScalar("cast('12:42:25' as TIME)",
         "12:42:25", "TIME(0) NOT NULL");
     f.checkScalar("cast('1:42:25' as TIME)",
@@ -1338,7 +1333,7 @@ public class SqlOperatorTest {
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastToBoolean(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastToBoolean(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
     // string to boolean
@@ -10100,7 +10095,7 @@ public class SqlOperatorTest {
 
   @ParameterizedTest
   @MethodSource("safeParameters")
-  void testCastTruncates(SqlOperatorFixture.CastType castType, SqlOperatorFixture f) {
+  void testCastTruncates(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
     f.checkScalar("CAST('ABCD' AS CHAR(2))", "AB", "CHAR(2) NOT NULL");
     f.checkScalar("CAST('ABCD' AS VARCHAR(2))", "AB",
