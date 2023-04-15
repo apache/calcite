@@ -5223,6 +5223,8 @@ public class SqlParserTest {
         .ok("INTERVAL '1:2:3' HOUR TO SECOND");
     f.sql("interval \"1:2:3\" hour to second")
         .ok("INTERVAL '1:2:3' HOUR TO SECOND");
+    f.sql("interval cast(1 as INT64) year")
+        .ok("INTERVAL CAST(1 AS `INT64`) YEAR");
   }
 
   // check date/time functions.

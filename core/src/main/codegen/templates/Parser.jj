@@ -4871,6 +4871,8 @@ SqlNode IntervalLiteralOrExpression() :
         // To keep parsing simple, any expressions besides numeric literal and
         // identifiers must be enclosed in parentheses.
         (
+            e = CastFns()
+        |
             <LPAREN>
             e = Expression(ExprContext.ACCEPT_SUB_QUERY)
             <RPAREN>
@@ -6002,21 +6004,7 @@ SqlNode BuiltinFunctionCall() :
 {
     //~ FUNCTIONS WITH SPECIAL SYNTAX ---------------------------------------
     (
-        (  <CAST> { f = SqlStdOperatorTable.CAST; }
-        | <SAFE_CAST> { f = SqlLibraryOperators.SAFE_CAST; }
-        | <TRY_CAST> { f = SqlLibraryOperators.TRY_CAST; }
-        )
-        { s = span(); }
-        <LPAREN> AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
-        <AS>
-        (
-            dt = DataType() { args.add(dt); }
-        |
-            <INTERVAL> e = IntervalQualifier() { args.add(e); }
-        )
-        <RPAREN> {
-            return f.createCall(s.end(this), args);
-        }
+        node = CastFns() { return node; }
     |
         <EXTRACT> { s = span(); }
         <LPAREN> unit = TimeUnitOrName() {
@@ -6702,6 +6690,31 @@ SqlCall JsonArrayAggFunctionCall() :
         }
         return SqlStdOperatorTable.JSON_ARRAYAGG.with(nullClause)
             .createCall(span.end(this), valueExpr, orderList);
+    }
+}
+
+SqlNode CastFns() :
+{
+    final SqlFunction f;
+    final List<SqlNode> args = new ArrayList<SqlNode>();
+    final Span s;
+    SqlDataTypeSpec dt;
+    SqlNode e;
+}
+{
+    (  <CAST> { f = SqlStdOperatorTable.CAST; }
+      | <SAFE_CAST> { f = SqlLibraryOperators.SAFE_CAST; }
+      | <TRY_CAST> { f = SqlLibraryOperators.TRY_CAST; })
+        { s = span(); }
+    <LPAREN> AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
+    <AS>
+    (
+        dt = DataType() { args.add(dt); }
+    |
+        <INTERVAL> e = IntervalQualifier() { args.add(e); }
+    )
+    <RPAREN> {
+        return f.createCall(s.end(this), args);
     }
 }
 
