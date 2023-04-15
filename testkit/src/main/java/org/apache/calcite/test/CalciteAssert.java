@@ -899,7 +899,7 @@ public class CalciteAssert {
       return s;
     case HR:
       return rootSchema.add(schema.schemaName,
-          new ReflectiveSchema(new HrSchema()));
+          new ReflectiveSchemaWithoutRowCount(new HrSchema()));
     case LINGUAL:
       return rootSchema.add(schema.schemaName,
           new ReflectiveSchema(new LingualSchema()));
