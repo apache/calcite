@@ -6736,7 +6736,7 @@ class RelToSqlConverterTest {
 
     Sql dialect(SqlDialect dialect) {
       return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms, typeSystem);
+          relFn, transforms, dialect.getTypeSystem());
     }
 
     Sql relFn(Function<RelBuilder, RelNode> relFn) {
