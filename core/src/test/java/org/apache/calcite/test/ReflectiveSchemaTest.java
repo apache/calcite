@@ -29,6 +29,8 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
@@ -63,9 +65,7 @@ import java.util.Properties;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for {@link ReflectiveSchema}.
@@ -915,5 +915,14 @@ public class ReflectiveSchemaTest {
         .returnsUnordered(
             "EXPR$0=0",
             "EXPR$0=null");
+  }
+
+  @Test void testFieldTableHasRowCount() {
+    ReflectiveSchema schema = new ReflectiveSchema(new HrSchema());
+    Table table = schema.getTable("emps");
+    assertNotNull(table);
+    Statistic statistic = table.getStatistic();
+    assertNotNull(statistic);
+    assertEquals(4, statistic.getRowCount());
   }
 }

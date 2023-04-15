@@ -56,6 +56,7 @@ import com.google.common.collect.Multimap;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -205,7 +206,11 @@ public class ReflectiveSchema
     requireNonNull(o, () -> "field " + field + " is null for " + target);
     @SuppressWarnings("unchecked")
     final Enumerable<T> enumerable = toEnumerable(o);
-    return new FieldTable<>(field, elementType, enumerable);
+    final Double rows = toRowCount(o);
+    final Statistic statistic = rows == null
+        ? Statistics.UNKNOWN
+        : Statistics.of(rows, null);
+    return new FieldTable<>(field, elementType, enumerable, statistic);
   }
 
   /** Deduces the element type of a collection;
@@ -233,6 +238,13 @@ public class ReflectiveSchema
     }
     throw new RuntimeException(
         "Cannot convert " + o.getClass() + " into a Enumerable");
+  }
+
+  private static @Nullable Double toRowCount(final Object o) {
+    if (o.getClass().isArray()) {
+      return (double) Array.getLength(o);
+    }
+    return null;
   }
 
   /** Table that is implemented by reading from a Java object. */
