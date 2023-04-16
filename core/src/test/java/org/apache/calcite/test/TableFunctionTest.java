@@ -316,8 +316,6 @@ class TableFunctionTest {
   /**
    * Tests a table function that takes cursor input.
    */
-  @Disabled("CannotPlanException: Node [rel#18:Subset#4.ENUMERABLE.[]] "
-      + "could not be implemented")
   @Test void testTableFunctionCursorInputs() throws SQLException {
     try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:")) {

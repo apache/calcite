@@ -193,6 +193,9 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     // MAP is assignable from ...
     rules.add(SqlTypeName.MAP, EnumSet.of(SqlTypeName.MAP));
 
+    // CURSOR is assignable from ...
+    rules.add(SqlTypeName.CURSOR, EnumSet.of(SqlTypeName.CURSOR));
+
     // SYMBOL is assignable from ...
     rules.add(SqlTypeName.SYMBOL, EnumSet.of(SqlTypeName.SYMBOL));
 
