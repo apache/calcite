@@ -6219,6 +6219,32 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
+  @Test public void testSomeWithTwoCorrelatedSubQueries() {
+    final String sql = "select empno from sales.empnullables as e\n" +
+        "where deptno > some(\n" +
+        "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n" +
+        "or deptno < some(\n" +
+        "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)";
+    sql(sql)
+        .withSubQueryRules()
+        .withRelBuilderSimplify(false)
+        .withTrim(true)
+        .check();
+  }
+
+  @Test public void testSomeWithTwoSubQueries() {
+    final String sql = "select empno from sales.empnullables\n" +
+        "where deptno > some(\n" +
+        "  select deptno from sales.deptnullables where name = 'dept1')\n" +
+        "or deptno < some(\n" +
+        "  select deptno from sales.deptnullables where name = 'dept2')";
+    sql(sql)
+        .withSubQueryRules()
+        .withRelBuilderSimplify(false)
+        .withTrim(true)
+        .check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1546">[CALCITE-1546]
    * Sub-queries connected by OR</a>. */
@@ -6249,6 +6275,32 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withSubQueryRules()
         .withRelBuilderSimplify(false)
+        .check();
+  }
+
+  @Test void testExpandProjectInWithTwoCorrelatedSubQueries() {
+    final String sql = "select empno, deptno in (\n" +
+        "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n" +
+        "or deptno in (\n" +
+        "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)\n" +
+        "from sales.empnullables as e";
+    sql(sql)
+        .withSubQueryRules()
+        .withRelBuilderSimplify(false)
+        .withTrim(true)
+        .check();
+  }
+
+  @Test void testExpandProjectInWithTwoSubQueries() {
+    final String sql = "select empno, deptno in (\n" +
+        "  select deptno from sales.deptnullables where name = 'dept1')\n" +
+        "or deptno in (\n" +
+        "  select deptno from sales.deptnullables where name = 'dept2')\n" +
+        "from sales.empnullables";
+    sql(sql)
+        .withSubQueryRules()
+        .withRelBuilderSimplify(false)
+        .withTrim(true)
         .check();
   }
 
@@ -6296,6 +6348,32 @@ class RelOptRulesTest extends RelOptTestBase {
         + "  select empno, deptno from sales.emp where empno < 20)\n"
         + "or emp.sal < 100";
     sql(sql).withSubQueryRules().check();
+  }
+
+  @Test void testExpandFilterInCorrelatedWithTwoSubQueries() {
+    final String sql = "select empno from sales.empnullables as e\n" +
+        "where deptno in (\n" +
+        "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n" +
+        "or deptno in (\n" +
+        "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)";
+    sql(sql)
+        .withSubQueryRules()
+        .withRelBuilderSimplify(false)
+        .withTrim(true)
+        .check();
+  }
+
+  @Test void testExpandFilterInWithTwoSubQueries() {
+    final String sql = "select empno from sales.empnullables\n" +
+        "where deptno in (\n" +
+        "  select deptno from sales.deptnullables where name = 'dept1')\n" +
+        "or deptno in (\n" +
+        "  select deptno from sales.deptnullables where name = 'dept2')";
+    sql(sql)
+        .withSubQueryRules()
+        .withRelBuilderSimplify(false)
+        .withTrim(true)
+        .check();
   }
 
   /** An IN filter that requires full 3-value logic (true, false, unknown). */
