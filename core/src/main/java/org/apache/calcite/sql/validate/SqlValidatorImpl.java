@@ -8183,7 +8183,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
             // SQL ordinals are 1-based, but Sort's are 0-based
             int ordinal = intValue - 1;
-            return SqlUtil.stripAs(SqlNonNullableAccessors.getSelectList(select).get(ordinal));
+            SqlNode expr = SqlUtil.stripAs(
+                SqlNonNullableAccessors.getSelectList(select).get(ordinal));
+            if (!(expr instanceof SqlLiteral)) {
+              expr = expr.accept(this);
+            }
+            return expr;
           }
           break;
         default:

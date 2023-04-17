@@ -7112,6 +7112,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select deptno from emp group by ^100^, deptno")
         .withConformance(lenient).fails("Ordinal out of range")
         .withConformance(strict).ok();
+    // Recursive expansion of group by ordinals.
+    // Function here doesn't matter just needs to be a function.
+    sql("select deptno as x, sqrt(x) as y, count(*) from emp group by 1, 2")
+        // The identifier lookups for other elements in the select list are
+        // presently bugged and don't work properly when identifier expansion is off.
+        .withValidatorIdentifierExpansion(true)
+        .withConformance(lenient).ok();
   }
 
   /**
