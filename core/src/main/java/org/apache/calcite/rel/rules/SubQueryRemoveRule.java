@@ -88,7 +88,7 @@ public class SubQueryRemoveRule
 
   protected RexNode apply(RexSubQuery e, Set<CorrelationId> variablesSet,
       RelOptUtil.Logic logic,
-      RelBuilder builder, int inputCount, int offset) {
+      RelBuilder builder, int inputCount, int offset, int subQueryIndex) {
     switch (e.getKind()) {
     case SCALAR_QUERY:
       return rewriteScalarQuery(e, variablesSet, builder, inputCount, offset);
@@ -98,9 +98,9 @@ public class SubQueryRemoveRule
       return rewriteCollection(e, variablesSet, builder,
           inputCount, offset);
     case SOME:
-      return rewriteSome(e, variablesSet, builder);
+      return rewriteSome(e, variablesSet, builder, subQueryIndex);
     case IN:
-      return rewriteIn(e, variablesSet, logic, builder, offset);
+      return rewriteIn(e, variablesSet, logic, builder, offset, subQueryIndex);
     case EXISTS:
       return rewriteExists(e, variablesSet, logic, builder);
     case UNIQUE:
@@ -161,13 +161,14 @@ public class SubQueryRemoveRule
   /**
    * Rewrites a SOME sub-query into a {@link Join}.
    *
-   * @param e            SOME sub-query to rewrite
-   * @param builder      Builder
+   * @param e               SOME sub-query to rewrite
+   * @param builder         Builder
+   * @param subQueryIndex   sub-query index in multiple sub-queries
    *
    * @return Expression that may be used to replace the RexSubQuery
    */
   private static RexNode rewriteSome(RexSubQuery e, Set<CorrelationId> variablesSet,
-      RelBuilder builder) {
+      RelBuilder builder, int subQueryIndex) {
     // Most general case, where the left and right keys might have nulls, and
     // caller requires 3-valued logic return.
     //
@@ -213,6 +214,11 @@ public class SubQueryRemoveRule
         ? SqlStdOperatorTable.MIN
         : SqlStdOperatorTable.MAX;
 
+    String qAlias = "q";
+    if (subQueryIndex != 0) {
+      qAlias = "q" + subQueryIndex;
+    }
+
     if (variablesSet.isEmpty()) {
       switch (op.comparisonKind) {
       case GREATER_THAN_OR_EQUAL:
@@ -241,21 +247,21 @@ public class SubQueryRemoveRule
                 builder.aggregateCall(minMax, builder.field(0)).as("m"),
                 builder.count(false, "c"),
                 builder.count(false, "d", builder.field(0)))
-            .as("q")
+            .as(qAlias)
             .join(JoinRelType.INNER);
         caseRexNode =
             builder.call(SqlStdOperatorTable.CASE,
-                builder.equals(builder.field("q", "c"), builder.literal(0)),
+                builder.equals(builder.field(qAlias, "c"), builder.literal(0)),
                 literalFalse,
                 builder.call(SqlStdOperatorTable.IS_TRUE,
                     builder.call(RexUtil.op(op.comparisonKind),
-                        e.operands.get(0), builder.field("q", "m"))),
+                        e.operands.get(0), builder.field(qAlias, "m"))),
                 literalTrue,
-                builder.greaterThan(builder.field("q", "c"),
-                    builder.field("q", "d")),
+                builder.greaterThan(builder.field(qAlias, "c"),
+                    builder.field(qAlias, "d")),
                 literalUnknown,
                 builder.call(RexUtil.op(op.comparisonKind),
-                    e.operands.get(0), builder.field("q", "m")));
+                    e.operands.get(0), builder.field(qAlias, "m")));
         break;
 
       case NOT_EQUALS:
@@ -284,7 +290,7 @@ public class SubQueryRemoveRule
                 builder.count(false, "c"),
                 builder.count(false, "d", builder.field(0)),
                 builder.max(builder.field(0)).as("m"))
-            .as("q")
+            .as(qAlias)
             .join(JoinRelType.INNER);
         caseRexNode =
             builder.call(SqlStdOperatorTable.CASE,
@@ -297,10 +303,10 @@ public class SubQueryRemoveRule
                     builder.lessThanOrEqual(builder.field("d"),
                         builder.literal(1))),
                 builder.or(
-                    builder.notEquals(e.operands.get(0), builder.field("q", "m")),
+                    builder.notEquals(e.operands.get(0), builder.field(qAlias, "m")),
                     literalUnknown),
                 builder.equals(builder.field("d"), builder.literal(1)),
-                builder.notEquals(e.operands.get(0), builder.field("q", "m")),
+                builder.notEquals(e.operands.get(0), builder.field(qAlias, "m")),
                 literalTrue);
         break;
 
@@ -344,23 +350,23 @@ public class SubQueryRemoveRule
 
         parentQueryFields.addAll(builder.fields());
         parentQueryFields.add(builder.alias(literalTrue, indicator));
-        builder.project(parentQueryFields).as("q");
+        builder.project(parentQueryFields).as(qAlias);
         builder.join(JoinRelType.LEFT, literalTrue, variablesSet);
         caseRexNode =
             builder.call(SqlStdOperatorTable.CASE,
-                builder.isNull(builder.field("q", indicator)),
+                builder.isNull(builder.field(qAlias, indicator)),
                 literalFalse,
-                builder.equals(builder.field("q", "c"), builder.literal(0)),
+                builder.equals(builder.field(qAlias, "c"), builder.literal(0)),
                 literalFalse,
                 builder.call(SqlStdOperatorTable.IS_TRUE,
                     builder.call(RexUtil.op(op.comparisonKind),
-                        e.operands.get(0), builder.field("q", "m"))),
+                        e.operands.get(0), builder.field(qAlias, "m"))),
                 literalTrue,
-                builder.greaterThan(builder.field("q", "c"),
-                    builder.field("q", "d")),
+                builder.greaterThan(builder.field(qAlias, "c"),
+                    builder.field(qAlias, "d")),
                 literalUnknown,
                 builder.call(RexUtil.op(op.comparisonKind),
-                    e.operands.get(0), builder.field("q", "m")));
+                    e.operands.get(0), builder.field(qAlias, "m")));
         break;
 
       case NOT_EQUALS:
@@ -397,11 +403,11 @@ public class SubQueryRemoveRule
 
         parentQueryFields.addAll(builder.fields());
         parentQueryFields.add(builder.alias(literalTrue, indicator));
-        builder.project(parentQueryFields).as("q"); // TODO use projectPlus
+        builder.project(parentQueryFields).as(qAlias); // TODO use projectPlus
         builder.join(JoinRelType.LEFT, literalTrue, variablesSet);
         caseRexNode =
             builder.call(SqlStdOperatorTable.CASE,
-                builder.isNull(builder.field("q", indicator)),
+                builder.isNull(builder.field(qAlias, indicator)),
                 literalFalse,
                 builder.equals(builder.field("c"), builder.literal(0)),
                 literalFalse,
@@ -412,10 +418,10 @@ public class SubQueryRemoveRule
                     builder.lessThanOrEqual(builder.field("d"),
                         builder.literal(1))),
                 builder.or(
-                    builder.notEquals(e.operands.get(0), builder.field("q", "m")),
+                    builder.notEquals(e.operands.get(0), builder.field(qAlias, "m")),
                     literalUnknown),
                 builder.equals(builder.field("d"), builder.literal(1)),
-                builder.notEquals(e.operands.get(0), builder.field("q", "m")),
+                builder.notEquals(e.operands.get(0), builder.field(qAlias, "m")),
                 literalTrue);
         break;
 
@@ -536,17 +542,18 @@ public class SubQueryRemoveRule
   /**
    * Rewrites an IN RexSubQuery into a {@link Join}.
    *
-   * @param e            IN sub-query to rewrite
-   * @param variablesSet A set of variables used by a relational
-   *                     expression of the specified RexSubQuery
-   * @param logic        Logic for evaluating
-   * @param builder      Builder
-   * @param offset       Offset to shift {@link RexInputRef}
+   * @param e               IN sub-query to rewrite
+   * @param variablesSet    A set of variables used by a relational
+   *                        expression of the specified RexSubQuery
+   * @param logic           Logic for evaluating
+   * @param builder         Builder
+   * @param offset          Offset to shift {@link RexInputRef}
+   * @param subQueryIndex   sub-query index in multiple sub-queries
    *
    * @return Expression that may be used to replace the RexSubQuery
    */
   private static RexNode rewriteIn(RexSubQuery e, Set<CorrelationId> variablesSet,
-      RelOptUtil.Logic logic, RelBuilder builder, int offset) {
+      RelOptUtil.Logic logic, RelBuilder builder, int offset, int subQueryIndex) {
     // Most general case, where the left and right keys might have nulls, and
     // caller requires 3-valued logic return.
     //
@@ -628,6 +635,11 @@ public class SubQueryRemoveRule
     //   order by cs desc limit 1) as dt
     //
 
+    String ctAlias = "ct";
+    if (subQueryIndex != 0) {
+      ctAlias = "ct" + subQueryIndex;
+    }
+
     boolean allLiterals = RexUtil.allLiterals(e.getOperands());
     final List<RexNode> expressionOperands = new ArrayList<>(e.getOperands());
 
@@ -698,7 +710,7 @@ public class SubQueryRemoveRule
         builder.aggregate(builder.groupKey(),
             builder.count(false, "c"),
             builder.count(builder.fields()).as("ck"));
-        builder.as("ct");
+        builder.as(ctAlias);
         if (!variablesSet.isEmpty()) {
           builder.join(JoinRelType.LEFT, trueLiteral, variablesSet);
         } else {
@@ -714,7 +726,11 @@ public class SubQueryRemoveRule
       }
     }
 
-    builder.as("dt");
+    String dtAlias = "dt";
+    if (subQueryIndex != 0) {
+      dtAlias = "dt" + subQueryIndex;
+    }
+    builder.as(dtAlias);
     int refOffset = offset;
     final List<RexNode> conditions =
         Pair.zip(expressionOperands, builder.fields()).stream()
@@ -750,7 +766,7 @@ public class SubQueryRemoveRule
             b);
       } else {
         operands.add(
-            builder.equals(builder.field("ct", "c"), builder.literal(0)),
+            builder.equals(builder.field(ctAlias, "c"), builder.literal(0)),
             falseLiteral);
       }
       break;
@@ -775,8 +791,8 @@ public class SubQueryRemoveRule
       case TRUE_FALSE_UNKNOWN:
       case UNKNOWN_AS_TRUE:
         operands.add(
-            builder.lessThan(builder.field("ct", "ck"),
-                builder.field("ct", "c")),
+            builder.lessThan(builder.field(ctAlias, "ck"),
+                builder.field(ctAlias, "c")),
             b);
         break;
       default:
@@ -825,7 +841,7 @@ public class SubQueryRemoveRule
     final Set<CorrelationId>  variablesSet =
         RelOptUtil.getVariablesUsed(e.rel);
     final RexNode target =
-        rule.apply(e, variablesSet, logic, builder, 1, fieldCount);
+        rule.apply(e, variablesSet, logic, builder, 1, fieldCount, 0);
     final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
     builder.project(shuttle.apply(project.getProjects()),
         project.getRowType().getFieldNames());
@@ -852,7 +868,7 @@ public class SubQueryRemoveRule
           RelOptUtil.getVariablesUsed(e.rel);
       final RexNode target =
           rule.apply(e, variablesSet, logic,
-              builder, 1, builder.peek().getRowType().getFieldCount());
+              builder, 1, builder.peek().getRowType().getFieldCount(), count);
       final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
       c = c.accept(shuttle);
     }
@@ -876,7 +892,7 @@ public class SubQueryRemoveRule
     final Set<CorrelationId>  variablesSet =
         RelOptUtil.getVariablesUsed(e.rel);
     final RexNode target =
-        rule.apply(e, variablesSet, logic, builder, 2, fieldCount);
+        rule.apply(e, variablesSet, logic, builder, 2, fieldCount, 0);
     final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
     builder.join(join.getJoinType(), shuttle.apply(join.getCondition()));
     builder.project(fields(builder, join.getRowType().getFieldCount()));

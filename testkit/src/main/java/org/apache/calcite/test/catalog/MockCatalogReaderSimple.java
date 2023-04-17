@@ -141,6 +141,13 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     registerTable(deptTable);
   }
 
+  private void registerTableDeptNullables(MockSchema salesSchema, Fixture fixture) {
+    MockTable deptNullablesTable = MockTable.create(this, salesSchema, "DEPTNULLABLES", false, 4);
+    deptNullablesTable.addColumn("DEPTNO", fixture.intTypeNull, true);
+    deptNullablesTable.addColumn("NAME", fixture.varchar10TypeNull);
+    registerTable(deptNullablesTable);
+  }
+
   private void registerTableDeptSingle(MockSchema salesSchema, Fixture fixture) {
     MockTable deptSingleTable =
         MockTable.create(this, salesSchema, "DEPT_SINGLE", false, 4);
@@ -476,6 +483,9 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
 
     // Register "DEPT" table.
     registerTableDept(salesSchema, fixture);
+
+    // Register "DEPTNULLABLES" table.
+    registerTableDeptNullables(salesSchema, fixture);
 
     // Register "DEPT_SINGLE" table.
     registerTableDeptSingle(salesSchema, fixture);
