@@ -6219,6 +6219,10 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withSubQueryRules().withLateDecorrelate(true).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5655">[CALCITE-5655]
+   * Wrong field reference lookup due to same intermediate table alias
+   * of multiple sub-queries in subquery remove phase</a>. */
   @Test public void testSomeWithTwoCorrelatedSubQueries() {
     final String sql = "select empno from sales.empnullables as e\n" +
         "where deptno > some(\n" +
@@ -6232,6 +6236,10 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5655">[CALCITE-5655]
+   * Wrong field reference lookup due to same intermediate table alias
+   * of multiple sub-queries in subquery remove phase</a>. */
   @Test public void testSomeWithTwoSubQueries() {
     final String sql = "select empno from sales.empnullables\n" +
         "where deptno > some(\n" +
@@ -6350,6 +6358,10 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withSubQueryRules().check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5655">[CALCITE-5655]
+   * Wrong field reference lookup due to same intermediate table alias
+   * of multiple sub-queries in subquery remove phase</a>. */
   @Test void testExpandFilterInCorrelatedWithTwoSubQueries() {
     final String sql = "select empno from sales.empnullables as e\n" +
         "where deptno in (\n" +
@@ -6363,6 +6375,10 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5655">[CALCITE-5655]
+   * Wrong field reference lookup due to same intermediate table alias
+   * of multiple sub-queries in subquery remove phase</a>. */
   @Test void testExpandFilterInWithTwoSubQueries() {
     final String sql = "select empno from sales.empnullables\n" +
         "where deptno in (\n" +
