@@ -84,7 +84,6 @@ import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -181,41 +180,6 @@ public class RelToSqlConverter extends SqlImplementor
     throw new AssertionError("Need to implement " + e.getClass().getName());
   }
 
-  /**
-   * A SqlShuttle to replace references to a column of a table alias with the expression
-   * from the select item that is the source of that column.
-   * ANTI- and SEMI-joins generate an alias for right hand side relation which
-   * is used in the ON condition. But that alias is never created, so we have to inline references.
-   */
-  private static class AliasReplacementShuttle extends SqlShuttle {
-    private final String tableAlias;
-    private final RelDataType tableType;
-    private final @Nullable SqlNodeList replaceSource;
-
-    AliasReplacementShuttle(String tableAlias, RelDataType tableType,
-        @Nullable SqlNodeList replaceSource) {
-      // TODO: should replaceSource be non-nullable?
-      this.tableAlias = tableAlias;
-      this.tableType = tableType;
-      this.replaceSource = replaceSource;
-    }
-
-    @Override public SqlNode visit(SqlIdentifier id) {
-      if (tableAlias.equals(id.names.get(0))) {
-        int index = requireNonNull(
-            tableType.getField(id.names.get(1), false, false),
-            () -> "field " + id.names.get(1) + " is not found in " + tableType)
-            .getIndex();
-        SqlNode selectItem = requireNonNull(replaceSource, "replaceSource").get(index);
-        if (selectItem.getKind() == SqlKind.AS) {
-          selectItem = ((SqlCall) selectItem).operand(0);
-        }
-        return selectItem.clone(id.getParserPosition());
-      }
-      return id;
-    }
-  }
-
   /** Visits a Join; called by {@link #dispatch} via reflection. */
   public Result visit(Join e) {
     switch (e.getJoinType()) {
@@ -260,16 +224,16 @@ public class RelToSqlConverter extends SqlImplementor
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
 
-    final SqlSelect sqlSelect = leftResult.asSelect();
+    SqlSelect sqlSelect;
     SqlNode sqlCondition = convertConditionToSqlNode(e.getCondition(),
         leftContext,
         rightContext,
         e.getLeft().getRowType().getFieldCount(),
         dialect);
     if (leftResult.neededAlias != null) {
-      SqlShuttle visitor = new AliasReplacementShuttle(leftResult.neededAlias,
-          e.getLeft().getRowType(), sqlSelect.getSelectList());
-      sqlCondition = sqlCondition.accept(visitor);
+      sqlSelect = leftResult.subSelect();
+    } else {
+      sqlSelect = leftResult.asSelect();
     }
     SqlNode fromPart = rightResult.asFrom();
     SqlSelect existsSqlSelect;
@@ -301,10 +265,7 @@ public class RelToSqlConverter extends SqlImplementor
           sqlCondition);
     }
     sqlSelect.setWhere(sqlCondition);
-    final SqlNode resultNode =
-        leftResult.neededAlias == null ? sqlSelect
-            : as(sqlSelect, leftResult.neededAlias);
-    return result(resultNode, leftResult, rightResult);
+    return result(sqlSelect, leftResult, rightResult);
   }
 
   private static boolean isCrossJoin(final Join e) {
