@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.Litmus;
 
@@ -32,8 +33,8 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getSelectList;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -146,8 +147,15 @@ class AggChecker extends SqlBasicVisitor<Void> {
     if (call.getOperator().isAggregator()) {
       if (distinct) {
         if (scope instanceof AggregatingSelectScope) {
+          SqlValidatorScope scopeNonNull = requireNonNull(scope, () -> "scope of" + call);
+          SelectScope selectScope =
+              requireNonNull(validator.getRawSelectScope((SqlSelect) scopeNonNull.getNode()),
+                  () -> "rawSelectScope for " + scopeNonNull.getNode());
           SqlNodeList selectList =
-              getSelectList((SqlSelect) scope.getNode());
+              SqlNodeList.of(SqlParserPos.ZERO,
+                  requireNonNull(selectScope.getExpandedSelectList(),
+                      () -> "expandedSelectList of" + selectScope)
+                      .stream().map(x -> x).collect(Collectors.toList()));
 
           // Check if this aggregation function is just an element in the select
           for (SqlNode sqlNode : selectList) {

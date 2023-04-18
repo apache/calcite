@@ -5891,6 +5891,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " order by upper(^eno^)")
         .failsIf(!conformance.isSortByAlias(),
             "Column 'ENO' not found in any table");
+
+    // Test case for [CALCITE-5653], order by on aggregate will fail when there is an implicit cast
+    // and IdentifierExpansion is off
+    sql("select distinct sum(deptno + '1') from dept order by 1")
+        .withValidatorIdentifierExpansion(false)
+        .ok();
   }
 
   /**
