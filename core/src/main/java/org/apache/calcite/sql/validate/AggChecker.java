@@ -20,7 +20,6 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -33,7 +32,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 
-import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getSelectList;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -142,12 +140,18 @@ class AggChecker extends SqlBasicVisitor<Void> {
   }
 
   @Override public Void visit(SqlCall call) {
-    final SqlValidatorScope scope = scopes.peek();
+    final SqlValidatorScope scope =
+        requireNonNull(scopes.peek(), () -> "scope for " + call);
     if (call.getOperator().isAggregator()) {
       if (distinct) {
         if (scope instanceof AggregatingSelectScope) {
-          SqlNodeList selectList =
-              getSelectList((SqlSelect) scope.getNode());
+          final SqlSelect select = (SqlSelect) scope.getNode();
+          SelectScope selectScope =
+              requireNonNull(validator.getRawSelectScope(select),
+                  () -> "rawSelectScope for " + scope.getNode());
+          List<SqlNode> selectList =
+              requireNonNull(selectScope.getExpandedSelectList(),
+                  () -> "expandedSelectList for " + selectScope);
 
           // Check if this aggregation function is just an element in the select
           for (SqlNode sqlNode : selectList) {
@@ -196,8 +200,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
       } else if (over instanceof SqlIdentifier) {
         // Check the corresponding SqlWindow in WINDOW clause
         final SqlWindow window =
-            requireNonNull(scope, () -> "scope for " + call)
-                .lookupWindow(((SqlIdentifier) over).getSimple());
+            scope.lookupWindow(((SqlIdentifier) over).getSimple());
         requireNonNull(window, () -> "window for " + call);
         window.getPartitionList().accept(this);
         window.getOrderList().accept(this);
@@ -234,8 +237,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     }
 
     // Switch to new scope.
-    SqlValidatorScope newScope = requireNonNull(scope, () -> "scope for " + call)
-        .getOperandScope(call);
+    SqlValidatorScope newScope = scope.getOperandScope(call);
     scopes.push(newScope);
 
     // Visit the operands (only expressions).

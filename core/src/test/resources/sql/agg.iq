@@ -3586,4 +3586,15 @@ from emp;
 (1 row)
 
 !ok
+
+# DISTINCT query with ORDER BY on aggregate when there is an implicit cast
+select distinct sum(deptno + '1') as deptsum from dept order by 1;
++---------+
+| DEPTSUM |
++---------+
+|     104 |
++---------+
+(1 row)
+
+!ok
 # End agg.iq
