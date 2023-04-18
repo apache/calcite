@@ -153,7 +153,7 @@ public abstract class SqlLibraryOperators {
         null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
 
   /** The "IFNULL(value, value)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, SPARK, SNOWFLAKE})
   public static final SqlFunction IFNULL =
       new SqlFunction("IFNULL", SqlKind.OTHER_FUNCTION,
           ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
@@ -754,11 +754,20 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_DATE(string1, string2)" function; casts string1
    * to a DATE using the format specified in string2. */
-  @LibraryOperator(libraries = {POSTGRESQL, ORACLE, SPARK})
+  @LibraryOperator(libraries = {POSTGRESQL, SPARK})
   public static final SqlFunction TO_DATE =
       new SqlFunction("TO_DATE",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction ORACLE_TO_DATE =
+      new SqlFunction("TO_DATE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_NULLABLE,
           null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
@@ -972,7 +981,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction PARSE_DATETIME =
       new SqlFunction("PARSE_DATETIME",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG1_NULLABLE,
+          ReturnTypes.TIMESTAMP,
           null,
           OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
           SqlFunctionCategory.TIMEDATE);
