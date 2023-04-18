@@ -1377,11 +1377,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATETIME,
               SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
 
-  /** The function "DATE_TRUNC(STRING, DATETIME)" function;
-   * returns timestamp, if second operand is a date also
-   * For example select DATE_TRUNC('MM', DATE '2009-08-25') returns 2009-08-01 00:00:00.000.
-   * And also it accepts DATE,TIMESTAMP as a second operand */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, BIG_QUERY})
   public static final SqlFunction DATE_TRUNC =
       new SqlFunction(
           "DATE_TRUNC",
@@ -1390,20 +1386,6 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.family(SqlTypeFamily.STRING,
               SqlTypeFamily.DATETIME), SqlFunctionCategory.SYSTEM);
-
-  /** The function "DATE_TRUNC(DATETIME, STRING)" function;
-   * returntype of this BQ function is based on Operand 0.
-   * For example DATE_TRUNC(DATE '2022-07-03', MONTH) returns 2022-07-01".
-   * DATE_TRUNC(TIMESTAMP'2009-08-25 12:01:59', MINUTE) returns 2009-08-25 12:01:00.000000 UTC */
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction DATE_TRUNC_BIGQUERY =
-      new SqlFunction(
-          "DATE_TRUNC",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0,
-          null,
-          OperandTypes.family(SqlTypeFamily.DATETIME,
-              SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction RAISE_ERROR =
