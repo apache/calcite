@@ -6224,11 +6224,11 @@ class RelOptRulesTest extends RelOptTestBase {
    * Wrong field reference lookup due to same intermediate table alias
    * of multiple sub-queries in subquery remove phase</a>. */
   @Test public void testSomeWithTwoCorrelatedSubQueries() {
-    final String sql = "select empno from sales.empnullables as e\n" +
-        "where deptno > some(\n" +
-        "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n" +
-        "or deptno < some(\n" +
-        "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)";
+    final String sql = "select empno from sales.empnullables as e\n"
+        + "where deptno > some(\n"
+        + "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n"
+        + "or deptno < some(\n"
+        + "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)";
     sql(sql)
         .withSubQueryRules()
         .withRelBuilderSimplify(false)
@@ -6241,11 +6241,11 @@ class RelOptRulesTest extends RelOptTestBase {
    * Wrong field reference lookup due to same intermediate table alias
    * of multiple sub-queries in subquery remove phase</a>. */
   @Test public void testSomeWithTwoSubQueries() {
-    final String sql = "select empno from sales.empnullables\n" +
-        "where deptno > some(\n" +
-        "  select deptno from sales.deptnullables where name = 'dept1')\n" +
-        "or deptno < some(\n" +
-        "  select deptno from sales.deptnullables where name = 'dept2')";
+    final String sql = "select empno from sales.empnullables\n"
+        + "where deptno > some(\n"
+        + "  select deptno from sales.deptnullables where name = 'dept1')\n"
+        + "or deptno < some(\n"
+        + "  select deptno from sales.deptnullables where name = 'dept2')";
     sql(sql)
         .withSubQueryRules()
         .withRelBuilderSimplify(false)
@@ -6287,11 +6287,11 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test void testExpandProjectInWithTwoCorrelatedSubQueries() {
-    final String sql = "select empno, deptno in (\n" +
-        "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n" +
-        "or deptno in (\n" +
-        "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)\n" +
-        "from sales.empnullables as e";
+    final String sql = "select empno, deptno in (\n"
+        + "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n"
+        + "or deptno in (\n"
+        + "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)\n"
+        + "from sales.empnullables as e";
     sql(sql)
         .withSubQueryRules()
         .withRelBuilderSimplify(false)
@@ -6300,11 +6300,11 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test void testExpandProjectInWithTwoSubQueries() {
-    final String sql = "select empno, deptno in (\n" +
-        "  select deptno from sales.deptnullables where name = 'dept1')\n" +
-        "or deptno in (\n" +
-        "  select deptno from sales.deptnullables where name = 'dept2')\n" +
-        "from sales.empnullables";
+    final String sql = "select empno, deptno in (\n"
+        + "  select deptno from sales.deptnullables where name = 'dept1')\n"
+        + "or deptno in (\n"
+        + "  select deptno from sales.deptnullables where name = 'dept2')\n"
+        + "from sales.empnullables";
     sql(sql)
         .withSubQueryRules()
         .withRelBuilderSimplify(false)
@@ -6363,11 +6363,11 @@ class RelOptRulesTest extends RelOptTestBase {
    * Wrong field reference lookup due to same intermediate table alias
    * of multiple sub-queries in subquery remove phase</a>. */
   @Test void testExpandFilterInCorrelatedWithTwoSubQueries() {
-    final String sql = "select empno from sales.empnullables as e\n" +
-        "where deptno in (\n" +
-        "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n" +
-        "or deptno in (\n" +
-        "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)";
+    final String sql = "select empno from sales.empnullables as e\n"
+        + "where deptno in (\n"
+        + "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n"
+        + "or deptno in (\n"
+        + "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)";
     sql(sql)
         .withSubQueryRules()
         .withRelBuilderSimplify(false)
@@ -6380,11 +6380,11 @@ class RelOptRulesTest extends RelOptTestBase {
    * Wrong field reference lookup due to same intermediate table alias
    * of multiple sub-queries in subquery remove phase</a>. */
   @Test void testExpandFilterInWithTwoSubQueries() {
-    final String sql = "select empno from sales.empnullables\n" +
-        "where deptno in (\n" +
-        "  select deptno from sales.deptnullables where name = 'dept1')\n" +
-        "or deptno in (\n" +
-        "  select deptno from sales.deptnullables where name = 'dept2')";
+    final String sql = "select empno from sales.empnullables\n"
+        + "where deptno in (\n"
+        + "  select deptno from sales.deptnullables where name = 'dept1')\n"
+        + "or deptno in (\n"
+        + "  select deptno from sales.deptnullables where name = 'dept2')";
     sql(sql)
         .withSubQueryRules()
         .withRelBuilderSimplify(false)
