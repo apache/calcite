@@ -925,7 +925,7 @@ class RelToSqlConverterTest {
     final String expectedRedshift = "SELECT CAST(\"product_id\" AS DECIMAL(38, 2))\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query)
-        .withRedshiftHighPrecision()
+        .withRedshift()
         .ok(expectedRedshift);
   }
 
@@ -6826,20 +6826,6 @@ class RelToSqlConverterTest {
 
     Sql withSpark() {
       return dialect(DatabaseProduct.SPARK.getDialect());
-    }
-
-    Sql withRedshiftHighPrecision() {
-      SqlDialect.Context context =
-          RedshiftSqlDialect.DEFAULT_CONTEXT.withDataTypeSystem(new RelDataTypeSystemImpl() {
-            @Override
-            public int getMaxNumericPrecision() {
-              // Ensures that parsed decimal will not be truncated during SQL to Rel transformation
-              // The default type system sets precision to 19 so it is not sufficient to test
-              // this change.
-              return 100;
-            }
-          });
-      return dialect(new RedshiftSqlDialect(context));
     }
 
     Sql withPostgresqlModifiedTypeSystem() {
