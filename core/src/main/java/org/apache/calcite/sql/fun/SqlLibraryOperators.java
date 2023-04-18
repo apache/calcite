@@ -825,6 +825,13 @@ public abstract class SqlLibraryOperators {
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT2);
 
+  /** The "ARRAY_DISTINCT(array)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction ARRAY_DISTINCT =
+      SqlBasicFunction.create(SqlKind.ARRAY_DISTINCT,
+          ReturnTypes.ARG0_NULLABLE,
+          OperandTypes.ARRAY);
+
   /** The "ARRAY_LENGTH(array)" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction ARRAY_LENGTH =
