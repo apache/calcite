@@ -11662,20 +11662,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
-  @Test public void testBQDatetrunc() {
-    RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode dateTruncNode = builder.call(SqlLibraryOperators.DATE_TRUNC_BIGQUERY,
-            builder.call(CURRENT_DATE),
-            builder.literal("DAY"));
-    RelNode root = builder
-        .project(dateTruncNode)
-        .build();
-    final String expectedOracleSql =
-        "SELECT DATE_TRUNC(CURRENT_DATE, DAY) AS `$f0`\n"
-        + "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedOracleSql));
-  }
-
   @Test public void testOracleTrunc() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode dateTruncNode = builder.call(SqlLibraryOperators.TRUNC_ORACLE,

@@ -1171,6 +1171,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.print(",");
       writer.sep(removeSingleQuotes(call.operand(1)));
       writer.endFunCall(trunc);
+      break;
     case "DATETIME_TRUNC":
       final SqlWriter.Frame dateTimeTrunc = writer.startFunCall("DATETIME_TRUNC");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
