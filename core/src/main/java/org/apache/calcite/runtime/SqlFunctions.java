@@ -92,6 +92,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -3788,6 +3789,12 @@ public class SqlFunctions {
       map.put(key, atomic);
     }
     return atomic;
+  }
+
+  /** Support the ARRAY_DISTINCT function. */
+  public static List distinct(List list) {
+    Set result = new LinkedHashSet<>(list);
+    return new ArrayList<>(result);
   }
 
   /** Support the SLICE function. */

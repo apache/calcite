@@ -5324,6 +5324,18 @@ public class SqlOperatorTest {
     f.checkNull("array_concat(cast(null as integer array), array[1])");
   }
 
+  /** Tests {@code ARRAY_DISTINCT} function from Spark. */
+  @Test void testArrayDistinctFunc() {
+    SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.ARRAY_DISTINCT)
+        .withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_distinct(array[1, 2, 2, 1])", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_distinct(array[null, 1, null])", "[null, 1]",
+        "INTEGER ARRAY NOT NULL");
+    f.checkNull("array_distinct(null)");
+  }
+
   /** Tests {@code ARRAY_REVERSE} function from BigQuery. */
   @Test void testArrayReverseFunc() {
     SqlOperatorFixture f = fixture()
