@@ -59,6 +59,7 @@ import org.apache.calcite.sql.SqlMatchFunction;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlTypeConstructorFunction;
 import org.apache.calcite.sql.SqlWindowTableFunction;
+import org.apache.calcite.sql.fun.SqlItemOperator;
 import org.apache.calcite.sql.fun.SqlJsonArrayAggAggFunction;
 import org.apache.calcite.sql.fun.SqlJsonObjectAggAggFunction;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
@@ -163,6 +164,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAX_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MIN_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.OFFSET;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ORDINAL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIME;
@@ -175,6 +178,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_CAST;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_ORDINAL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SECH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA256;
@@ -702,7 +707,15 @@ public class RexImpTable {
       final RexCallImplementor value = new ValueConstructorImplementor();
       map.put(MAP_VALUE_CONSTRUCTOR, value);
       map.put(ARRAY_VALUE_CONSTRUCTOR, value);
+
+      // ITEM operator
       map.put(ITEM, new ItemImplementor());
+      // BigQuery array subscript operators
+      final ArrayItemImplementor arrayItemImplementor = new ArrayItemImplementor();
+      map.put(OFFSET, arrayItemImplementor);
+      map.put(ORDINAL, arrayItemImplementor);
+      map.put(SAFE_OFFSET, arrayItemImplementor);
+      map.put(SAFE_ORDINAL, arrayItemImplementor);
 
       map.put(DEFAULT, new DefaultImplementor());
 
@@ -3082,27 +3095,46 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for the {@code ITEM} SQL operator. */
+  /** Implementor for indexing an array using the {@code ITEM} SQL operator
+   * and the {@code OFFSET}, {@code ORDINAL}, {@code SAFE_OFFSET}, and
+   * {@code SAFE_ORDINAL} BigQuery operators. */
+  private static class ArrayItemImplementor extends AbstractRexCallImplementor {
+    ArrayItemImplementor() {
+      super("array_item", NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      final SqlItemOperator itemOperator = (SqlItemOperator) call.getOperator();
+      return Expressions.call(BuiltInMethod.ARRAY_ITEM.method,
+          Expressions.list(argValueList)
+              .append(Expressions.constant(itemOperator.offset))
+              .append(Expressions.constant(itemOperator.safe)));
+    }
+  }
+
+  /** General implementor for indexing a collection using the {@code ITEM} SQL operator. If the
+   * collection is an array, an instance of the ArrayItemImplementor is used to handle
+   * additional offset and out-of-bounds behavior that is only applicable for arrays. */
   private static class ItemImplementor extends AbstractRexCallImplementor {
     ItemImplementor() {
       super("item", NullPolicy.STRICT, false);
     }
 
-    // Since we follow PostgreSQL's semantics that an out-of-bound reference
-    // returns NULL, x[y] can return null even if x and y are both NOT NULL.
-    // (In SQL standard semantics, an out-of-bound reference to an array
-    // throws an exception.)
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
-      final MethodImplementor implementor =
+      final AbstractRexCallImplementor implementor =
           getImplementor(call.getOperands().get(0).getType().getSqlTypeName());
       return implementor.implementSafe(translator, call, argValueList);
     }
 
-    private MethodImplementor getImplementor(SqlTypeName sqlTypeName) {
+    // This helper returns the appropriate implementor based on the collection type.
+    // Arrays use the specific ArrayItemImplementor while maps and other collection types
+    // use the general MethodImplementor.
+    private AbstractRexCallImplementor getImplementor(SqlTypeName sqlTypeName) {
       switch (sqlTypeName) {
       case ARRAY:
-        return new MethodImplementor(BuiltInMethod.ARRAY_ITEM.method, nullPolicy, false);
+        return new ArrayItemImplementor();
       case MAP:
         return new MethodImplementor(BuiltInMethod.MAP_ITEM.method, nullPolicy, false);
       default:

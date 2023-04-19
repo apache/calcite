@@ -731,6 +731,63 @@ Call to function 'SPLIT' with argument of type 'BINARY(2)' requires extra delimi
 !error
 
 #####################################################################
+# ARRAY SUBSCRIPT OPERATORS
+#
+# OFFSET, ORDINAL, SAFE_OFFSET, SAFE_ORDINAL
+#
+# Gets a value from an array at a specific position.
+#
+# OFFSET(index): The index starts at zero. Produces an error if the index is out of range.
+# SAFE_OFFSET(index): The index starts at zero. Returns NULL if the index is out of range.
+# ORDINAL(index): The index starts at one. Produces an error if the index is out of range.
+# SAFE_ORDINAL(index): The index starts at one. Returns NULL if the index is out of range.
+
+SELECT
+    SPLIT('h,e,l,l,o')[OFFSET(2)] as offset_idx,
+    SPLIT('h,e,l,l,o')[ORDINAL(2)] as ordinal_idx,
+    SPLIT('h,e,l,l,o')[SAFE_OFFSET(2)] as safe_offset_idx,
+    SPLIT('h,e,l,l,o')[SAFE_ORDINAL(2)] as safe_ordinal_idx;
++------------+-------------+-----------------+------------------+
+| offset_idx | ordinal_idx | safe_offset_idx | safe_ordinal_idx |
++------------+-------------+-----------------+------------------+
+| l          | e           | l               | e                |
++------------+-------------+-----------------+------------------+
+(1 row)
+
+!ok
+
+SELECT SPLIT('h,e,l,l,o')[OFFSET(-1)] as offset_idx;
+Array index -1 is out of bounds
+!error
+
+SELECT SPLIT('h,e,l,l,o')[ORDINAL(7)] as ordinal_idx;
+Array index 7 is out of bounds
+!error
+
+SELECT SPLIT('h,e,l,l,o')[SAFE_OFFSET(-1)] as safe_offset_idx;
++-----------------+
+| safe_offset_idx |
++-----------------+
+|                 |
++-----------------+
+(1 row)
+
+!ok
+
+SELECT SPLIT('h,e,l,l,o')[SAFE_ORDINAL(7)] as safe_ordinal_idx;
++------------------+
+| safe_ordinal_idx |
++------------------+
+|                  |
++------------------+
+(1 row)
+
+!ok
+
+SELECT OFFSET(1);
+java.sql.SQLException: Error while executing SQL "SELECT OFFSET(1)": parse failed: Incorrect syntax near the keyword 'OFFSET' at line 1, column 8.
+!error
+#####################################################################
 # LN
 #
 # LN(x)

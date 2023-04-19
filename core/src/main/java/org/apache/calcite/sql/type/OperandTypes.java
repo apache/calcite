@@ -465,6 +465,12 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker ARRAY =
       family(SqlTypeFamily.ARRAY);
+
+  public static final SqlSingleOperandTypeChecker ARRAY_OR_MAP =
+      OperandTypes.family(SqlTypeFamily.ARRAY)
+          .or(OperandTypes.family(SqlTypeFamily.MAP))
+          .or(OperandTypes.family(SqlTypeFamily.ANY));
+
   /** Checks that returns whether a value is a multiset or an array.
    * Cf Java, where list and set are collections but a map is not. */
   public static final SqlSingleOperandTypeChecker COLLECTION =

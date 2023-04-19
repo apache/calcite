@@ -7950,6 +7950,82 @@ public class SqlOperatorTest {
             + "RecordType\\(INTEGER EXPR\\$0, INTEGER EXPR\\$1\\)", false);
   }
 
+  @Test void testOffsetOperator() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.OFFSET);
+    f0.checkFails("^ARRAY[2,4,6][OFFSET(2)]^",
+        "No match found for function signature OFFSET", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("ARRAY[2,4,6][OFFSET(2)]", "6", "INTEGER");
+    f.checkScalar("ARRAY[2,4,6][OFFSET(0)]", "2", "INTEGER");
+    f.checkScalar("ARRAY[2,4,6,8,10][OFFSET(1+2)]", "8", "INTEGER");
+    f.checkNull("ARRAY[2,4,6][OFFSET(null)]");
+    f.checkFails("ARRAY[2,4,6][OFFSET(-1)]",
+        "Array index -1 is out of bounds", true);
+    f.checkFails("ARRAY[2,4,6][OFFSET(5)]",
+        "Array index 5 is out of bounds", true);
+    f.checkFails("^map['foo', 3, 'bar', 7][offset('bar')]^",
+        "Cannot apply 'OFFSET' to arguments of type 'OFFSET\\(<\\(CHAR\\(3\\)"
+            + ", INTEGER\\) MAP>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
+            + "<ARRAY>\\[OFFSET\\(<INTEGER>\\)\\]", false);
+  }
+
+  @Test void testOrdinalOperator() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ORDINAL);
+    f0.checkFails("^ARRAY[2,4,6][ORDINAL(2)]^",
+        "No match found for function signature ORDINAL", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("ARRAY[2,4,6][ORDINAL(3)]", "6", "INTEGER");
+    f.checkScalar("ARRAY[2,4,6][ORDINAL(1)]", "2", "INTEGER");
+    f.checkScalar("ARRAY[2,4,6,8,10][ORDINAL(1+2)]", "6", "INTEGER");
+    f.checkNull("ARRAY[2,4,6][ORDINAL(null)]");
+    f.checkFails("ARRAY[2,4,6][ORDINAL(-1)]",
+        "Array index -1 is out of bounds", true);
+    f.checkFails("ARRAY[2,4,6][ORDINAL(5)]",
+        "Array index 5 is out of bounds", true);
+    f.checkFails("^map['foo', 3, 'bar', 7][ordinal('bar')]^",
+        "Cannot apply 'ORDINAL' to arguments of type 'ORDINAL\\(<\\(CHAR\\(3\\)"
+            + ", INTEGER\\) MAP>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
+            + "<ARRAY>\\[ORDINAL\\(<INTEGER>\\)\\]", false);
+  }
+
+  @Test void testSafeOffsetOperator() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.SAFE_OFFSET);
+    f0.checkFails("^ARRAY[2,4,6][SAFE_OFFSET(2)]^",
+        "No match found for function signature SAFE_OFFSET", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("ARRAY[2,4,6][SAFE_OFFSET(2)]", "6", "INTEGER");
+    f.checkScalar("ARRAY[2,4,6][SAFE_OFFSET(0)]", "2", "INTEGER");
+    f.checkScalar("ARRAY[2,4,6,8,10][SAFE_OFFSET(1+2)]", "8", "INTEGER");
+    f.checkScalar("ARRAY[2,4,6][SAFE_OFFSET(-1)]", isNullValue(), "INTEGER");
+    f.checkScalar("ARRAY[2,4,6][SAFE_OFFSET(5)]", isNullValue(), "INTEGER");
+    f.checkNull("ARRAY[2,4,6][SAFE_OFFSET(null)]");
+    f.checkFails("^map['foo', 3, 'bar', 7][safe_offset('bar')]^",
+        "Cannot apply 'SAFE_OFFSET' to arguments of type 'SAFE_OFFSET\\(<\\(CHAR\\(3\\)"
+            + ", INTEGER\\) MAP>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
+            + "<ARRAY>\\[SAFE_OFFSET\\(<INTEGER>\\)\\]", false);
+  }
+
+  @Test void testSafeOrdinalOperator() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.SAFE_ORDINAL);
+    f0.checkFails("^ARRAY[2,4,6][SAFE_ORDINAL(2)]^",
+        "No match found for function signature SAFE_ORDINAL", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("ARRAY[2,4,6][SAFE_ORDINAL(3)]", "6", "INTEGER");
+    f.checkScalar("ARRAY[2,4,6][SAFE_ORDINAL(1)]", "2", "INTEGER");
+    f.checkScalar("ARRAY[2,4,6,8,10][SAFE_ORDINAL(1+2)]", "6", "INTEGER");
+    f.checkScalar("ARRAY[2,4,6][SAFE_ORDINAL(-1)]", isNullValue(), "INTEGER");
+    f.checkScalar("ARRAY[2,4,6][SAFE_ORDINAL(5)]", isNullValue(), "INTEGER");
+    f.checkNull("ARRAY[2,4,6][SAFE_ORDINAL(null)]");
+    f.checkFails("^map['foo', 3, 'bar', 7][safe_ordinal('bar')]^",
+        "Cannot apply 'SAFE_ORDINAL' to arguments of type 'SAFE_ORDINAL\\(<\\(CHAR\\(3\\)"
+            + ", INTEGER\\) MAP>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
+            + "<ARRAY>\\[SAFE_ORDINAL\\(<INTEGER>\\)\\]", false);
+  }
+
   @Test void testMapValueConstructor() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR, VM_JAVA);

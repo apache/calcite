@@ -1316,6 +1316,30 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TRY_CAST =
       new SqlCastFunction("TRY_CAST", SqlKind.SAFE_CAST);
 
+  /** The "OFFSET(index)" array subscript operator used by BigQuery. The index
+   * starts at 0 and produces an error if the index is out of range. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlOperator OFFSET =
+      new SqlItemOperator("OFFSET", OperandTypes.ARRAY, 0, false);
+
+  /** The "ORDINAL(index)" array subscript operator used by BigQuery. The index
+   * starts at 1 and produces an error if the index is out of range. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlOperator ORDINAL =
+      new SqlItemOperator("ORDINAL", OperandTypes.ARRAY, 1, false);
+
+  /** The "SAFE_OFFSET(index)" array subscript operator used by BigQuery. The index
+   * starts at 0 and returns null if the index is out of range. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlOperator SAFE_OFFSET =
+      new SqlItemOperator("SAFE_OFFSET", OperandTypes.ARRAY, 0, true);
+
+  /** The "SAFE_ORDINAL(index)" array subscript operator used by BigQuery. The index
+   * starts at 1 and returns null if the index is out of range. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlOperator SAFE_ORDINAL =
+      new SqlItemOperator("SAFE_ORDINAL", OperandTypes.ARRAY, 1, true);
+
   /** NULL-safe "&lt;=&gt;" equal operator used by MySQL, for example
    * {@code 1<=>NULL}. */
   @LibraryOperator(libraries = { MYSQL })

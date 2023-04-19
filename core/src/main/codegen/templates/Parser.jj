@@ -3589,6 +3589,7 @@ List<Object> Expression2(ExprContext exprContext) :
     final List<Object> list3 = new ArrayList();
     SqlNodeList nodeList;
     SqlNode e;
+    SqlOperator itemOp;
     SqlOperator op;
     SqlIdentifier p;
     final Span s = span();
@@ -3729,11 +3730,12 @@ List<Object> Expression2(ExprContext exprContext) :
                 AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
             |
                 <LBRACKET>
+                itemOp = getItemOp()
                 e = Expression(ExprContext.ACCEPT_SUB_QUERY)
                 <RBRACKET> {
                     list.add(
                         new SqlParserUtil.ToTreeListItem(
-                            SqlStdOperatorTable.ITEM, getPos()));
+                            itemOp, getPos()));
                     list.add(e);
                 }
                 (
@@ -3762,6 +3764,22 @@ List<Object> Expression2(ExprContext exprContext) :
             return list;
         }
     )
+}
+
+/** Returns the appropriate ITEM operator for indexing arrays. */
+SqlOperator getItemOp() :
+{
+}
+{
+    <OFFSET> { return SqlLibraryOperators.OFFSET; }
+|
+    <ORDINAL> { return SqlLibraryOperators.ORDINAL; }
+|
+    <SAFE_OFFSET> { return SqlLibraryOperators.SAFE_OFFSET; }
+|
+    <SAFE_ORDINAL> { return SqlLibraryOperators.SAFE_ORDINAL; }
+|
+    { return SqlStdOperatorTable.ITEM; }
 }
 
 /** Parses a comparison operator inside a SOME / ALL predicate. */
@@ -8101,6 +8119,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < OR: "OR" >
 |   < ORDER: "ORDER" >
 |   < ORDERING: "ORDERING" >
+|   < ORDINAL: "ORDINAL" >
 |   < ORDINALITY: "ORDINALITY" >
 |   < OTHERS: "OTHERS" >
 |   < OUT: "OUT" >
@@ -8205,6 +8224,8 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < ROWS: "ROWS" >
 |   < RUNNING: "RUNNING" >
 |   < SAFE_CAST: "SAFE_CAST" >
+|   < SAFE_OFFSET: "SAFE_OFFSET" >
+|   < SAFE_ORDINAL: "SAFE_ORDINAL" >
 |   < SATURDAY: "SATURDAY" >
 |   < SAVEPOINT: "SAVEPOINT" >
 |   < SCALAR: "SCALAR" >

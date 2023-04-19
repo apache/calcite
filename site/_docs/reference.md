@@ -799,6 +799,7 @@ OPTIONS,
 **OR**,
 **ORDER**,
 ORDERING,
+**ORDINAL**,
 ORDINALITY,
 OTHERS,
 **OUT**,
@@ -903,6 +904,8 @@ ROW_COUNT,
 **ROW_NUMBER**,
 **RUNNING**,
 **SAFE_CAST**,
+**SAFE_OFFSET**,
+**SAFE_ORDINAL**,
 **SATURDAY**,
 **SAVEPOINT**,
 SCALAR,
@@ -2722,6 +2725,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b m p | MD5(string)                                | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
+| b | OFFSET(index)                                  | When indexing an array, wrapping *index* in `OFFSET` returns the value at the 0-based *index*; throws error if *index* is out of bounds
+| b | ORDINAL(index)                                 | Similar to `OFFSET` except *index* begins at 1
 | b | PARSE_DATE(format, string)                     | Uses format specified by *format* to convert *string* representation of date to a DATE value
 | b | PARSE_DATETIME(format, string)                 | Uses format specified by *format* to convert *string* representation of datetime to a TIMESTAMP value
 | b | PARSE_TIME(format, string)                     | Uses format specified by *format* to convert *string* representation of time to a TIME value
@@ -2736,6 +2741,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b o | RPAD(string, length[, pattern ])             | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
 | b o | RTRIM(string)                                | Returns *string* with all blanks removed from the end
 | b | SAFE_CAST(value AS type)                       | Converts *value* to *type*, returning NULL if conversion fails
+| b | SAFE_OFFSET(index)                             | Similar to `OFFSET` except null is returned if *index* is out of bounds
+| b | SAFE_ORDINAL(index)                            | Similar to `OFFSET` except *index* begins at 1 and null is returned if *index* is out of bounds
 | * | SECH(numeric)                                  | Returns the hyperbolic secant of *numeric*
 | b m p | SHA1(string)                               | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | b p | SHA256(string)                               | Calculates a SHA-256 hash value of *string* and returns it as a hex string

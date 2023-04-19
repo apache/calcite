@@ -6503,6 +6503,24 @@ class RelToSqlConverterTest {
         .withRedshift().ok(expected);
   }
 
+  @Test void testIndexOperatorsBigQuery() {
+    Consumer<String> consumer = operator -> {
+      String query = "SELECT SPLIT('h,e,l,l,o')[" + operator + "(1)] FROM \"employee\"";
+      String expected = "SELECT SPLIT('h,e,l,l,o')[" + operator + "(1)]\nFROM foodmart.employee";
+      sql(query).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expected);
+    };
+    consumer.accept("OFFSET");
+    consumer.accept("ORDINAL");
+    consumer.accept("SAFE_OFFSET");
+    consumer.accept("SAFE_ORDINAL");
+  }
+
+  @Test void testIndexWithoutOperatorBigQuery() {
+    String query = "SELECT SPLIT('h,e,l,l,o')[1] FROM \"employee\"";
+    String error = "BigQuery requires an array subscript operator to index an array";
+    sql(query).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).throws_(error);
+  }
+
   @Test void testDateLiteralOracle() {
     String query = "SELECT DATE '1978-05-02' FROM \"employee\"";
     String expected = "SELECT TO_DATE('1978-05-02', 'YYYY-MM-DD')\n"

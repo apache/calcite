@@ -153,7 +153,7 @@ public class SplitOperation {
     return factory.buildGeometry(polygons);
   }
 
-  private Geometry split(MultiPolygon geometry, LineString blade) {
+  private static Geometry split(MultiPolygon geometry, LineString blade) {
     GeometryFactory factory = geometry.getFactory();
     List<Geometry> geometries = new ArrayList<>();
     for (int i = 0; i < geometry.getNumGeometries(); i++) {

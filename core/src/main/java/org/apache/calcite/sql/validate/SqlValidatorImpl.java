@@ -747,7 +747,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  private int calculatePermuteOffset(List<SqlNode> selectItems) {
+  private static int calculatePermuteOffset(List<SqlNode> selectItems) {
     for (int i = 0; i < selectItems.size(); i++) {
       SqlNode selectItem = selectItems.get(i);
       SqlNode col = SqlUtil.stripAs(selectItem);
