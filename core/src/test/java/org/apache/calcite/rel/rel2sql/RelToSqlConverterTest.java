@@ -6928,8 +6928,9 @@ class RelToSqlConverterTest {
         } else {
           final SqlToRelConverter.Config config = this.config.apply(SqlToRelConverter.config()
               .withTrimUnusedFields(false));
+          RelDataTypeSystem typeSystem = dialect.getTypeSystem();
           final Planner planner =
-              getPlanner(null, parserConfig, defaultSchema, config, librarySet, dialect.getTypeSystem());
+              getPlanner(null, parserConfig, defaultSchema, config, librarySet, typeSystem);
           SqlNode parse = planner.parse(sql);
           SqlNode validate = planner.validate(parse);
           rel = planner.rel(validate).project();
