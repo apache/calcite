@@ -885,6 +885,9 @@ public interface CalciteResource {
   @BaseMessage("Third argument (pad pattern) for LPAD/RPAD must not be empty")
   ExInst<CalciteException> illegalEmptyPadPattern();
 
+  @BaseMessage("Array index {0,number,#} is out of bounds.")
+  ExInst<CalciteException> arrayIndexOutOfBounds(int idx);
+
   @BaseMessage("Substring error: negative substring length not allowed")
   ExInst<CalciteException> illegalNegativeSubstringLength();
 

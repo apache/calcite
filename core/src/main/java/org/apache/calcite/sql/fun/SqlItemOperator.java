@@ -47,15 +47,18 @@ import static java.util.Objects.requireNonNull;
  * array, map or struct. For example, {@code myArray[3]}, {@code "myMap['foo']"},
  * {@code myStruct[2]} or {@code myStruct['fieldName']}.
  */
-class SqlItemOperator extends SqlSpecialOperator {
+public class SqlItemOperator extends SqlSpecialOperator {
 
-  private static final SqlSingleOperandTypeChecker ARRAY_OR_MAP =
-      OperandTypes.family(SqlTypeFamily.ARRAY)
-          .or(OperandTypes.family(SqlTypeFamily.MAP))
-          .or(OperandTypes.family(SqlTypeFamily.ANY));
+  private SqlSingleOperandTypeChecker operandTypeChecker;
+  public final int offset;
+  public final boolean safe;
 
-  SqlItemOperator() {
-    super("ITEM", SqlKind.ITEM, 100, true, null, null, null);
+  public SqlItemOperator(String name, SqlSingleOperandTypeChecker operandTypeChecker,
+      int offset, boolean safe) {
+    super(name, SqlKind.ITEM, 100, true, null, null, null);
+    this.operandTypeChecker = operandTypeChecker;
+    this.offset = offset;
+    this.safe = safe;
   }
 
   @Override public ReduceResult reduceExpr(int ordinal,
@@ -90,7 +93,7 @@ class SqlItemOperator extends SqlSpecialOperator {
       boolean throwOnFailure) {
     final SqlNode left = callBinding.operand(0);
     final SqlNode right = callBinding.operand(1);
-    if (!ARRAY_OR_MAP.checkSingleOperandType(callBinding, left, 0,
+    if (!operandTypeChecker.checkSingleOperandType(callBinding, left, 0,
         throwOnFailure)) {
       return false;
     }
@@ -122,9 +125,13 @@ class SqlItemOperator extends SqlSpecialOperator {
   }
 
   @Override public String getAllowedSignatures(String name) {
-    return "<ARRAY>[<INTEGER>]\n"
-        + "<MAP>[<ANY>]\n"
-        + "<ROW>[<CHARACTER>|<INTEGER>]";
+    if (name.equals("ITEM")) {
+      return "<ARRAY>[<INTEGER>]\n"
+          + "<MAP>[<ANY>]\n"
+          + "<ROW>[<CHARACTER>|<INTEGER>]";
+    } else {
+      return "<ARRAY>[" + name + "(<INTEGER>)]";
+    }
   }
 
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {

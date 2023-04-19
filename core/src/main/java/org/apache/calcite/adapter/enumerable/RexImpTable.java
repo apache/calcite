@@ -59,6 +59,7 @@ import org.apache.calcite.sql.SqlMatchFunction;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlTypeConstructorFunction;
 import org.apache.calcite.sql.SqlWindowTableFunction;
+import org.apache.calcite.sql.fun.SqlItemOperator;
 import org.apache.calcite.sql.fun.SqlJsonArrayAggAggFunction;
 import org.apache.calcite.sql.fun.SqlJsonObjectAggAggFunction;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
@@ -161,6 +162,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAX_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MIN_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.OFFSET;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ORDINAL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIME;
@@ -173,6 +176,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_CAST;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_ORDINAL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA256;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA512;
@@ -696,7 +701,13 @@ public class RexImpTable {
       final RexCallImplementor value = new ValueConstructorImplementor();
       map.put(MAP_VALUE_CONSTRUCTOR, value);
       map.put(ARRAY_VALUE_CONSTRUCTOR, value);
+
+      // Each subscript operator has a corresponding offset and 'safe' value.
       map.put(ITEM, new ItemImplementor());
+      map.put(OFFSET, new ItemImplementor());
+      map.put(ORDINAL, new ItemImplementor());
+      map.put(SAFE_OFFSET, new ItemImplementor());
+      map.put(SAFE_ORDINAL, new ItemImplementor());
 
       map.put(DEFAULT, new DefaultImplementor());
 
@@ -3076,7 +3087,8 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for the {@code ITEM} SQL operator. */
+  /** Implementor for the {@code ITEM} SQL operator and the {@code OFFSET},
+   * {@code ORDINAL}, {@code SAFE_OFFSET}, and {@code SAFE_ORDINAL} BigQuery operators. */
   private static class ItemImplementor extends AbstractRexCallImplementor {
     ItemImplementor() {
       super("item", NullPolicy.STRICT, false);
@@ -3090,6 +3102,13 @@ public class RexImpTable {
         final RexCall call, final List<Expression> argValueList) {
       final MethodImplementor implementor =
           getImplementor(call.getOperands().get(0).getType().getSqlTypeName());
+      // If the structure is an array, two additional arguments are added to the argValueList
+      // to denote what the offset is and what the behavior should be if the index is out of boudns.
+      if (implementor.method.getName().equals("arrayItemOptional")) {
+        final SqlItemOperator itemOperator = (SqlItemOperator) call.getOperator();
+        argValueList.add(Expressions.constant(itemOperator.offset));
+        argValueList.add(Expressions.constant(itemOperator.safe));
+      }
       return implementor.implementSafe(translator, call, argValueList);
     }
 

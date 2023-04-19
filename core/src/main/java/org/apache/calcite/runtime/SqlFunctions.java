@@ -3626,11 +3626,15 @@ public class SqlFunctions {
 
   /** Helper for "array element reference". Caller has already ensured that
    * array and index are not null. Index is 1-based, per SQL. */
-  public static @Nullable Object arrayItem(List list, int item) {
-    if (item < 1 || item > list.size()) {
-      return null;
+  public static @Nullable Object arrayItem(List list, int item, int offset, boolean safe) {
+    if (item < offset || item > list.size() + 1 - offset) {
+      if (safe) {
+        return null;
+      } else {
+        throw RESOURCE.arrayIndexOutOfBounds(item).ex();
+      }
     }
-    return list.get(item - 1);
+    return list.get(item - offset);
   }
 
   /** Helper for "map element reference". Caller has already ensured that
@@ -3647,7 +3651,7 @@ public class SqlFunctions {
       return mapItem((Map) object, index);
     }
     if (object instanceof List && index instanceof Number) {
-      return arrayItem((List) object, ((Number) index).intValue());
+      return arrayItem((List) object, ((Number) index).intValue(), 1, true);
     }
     if (index instanceof Number) {
       return structAccess(object, ((Number) index).intValue() - 1, null); // 1 indexed
@@ -3660,11 +3664,12 @@ public class SqlFunctions {
   }
 
   /** As {@link #arrayItem} method, but allows array to be nullable. */
-  public static @Nullable Object arrayItemOptional(@Nullable List list, int item) {
+  public static @Nullable Object arrayItemOptional(@Nullable List list, int item, int offset,
+      boolean safe) {
     if (list == null) {
       return null;
     }
-    return arrayItem(list, item);
+    return arrayItem(list, item, offset, safe);
   }
 
   /** As {@link #mapItem} method, but allows map to be nullable. */
