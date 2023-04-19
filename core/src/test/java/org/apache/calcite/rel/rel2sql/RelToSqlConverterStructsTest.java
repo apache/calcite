@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
-import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
