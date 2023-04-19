@@ -2957,29 +2957,37 @@ SELECT FORMAT_TIMESTAMP("%b %Y", TIMESTAMP "2008-12-25 15:30:00" /* TODO should 
 # in format_string must match the location of each element in
 # date_string.
 
-!if (false) {
 # This works because elements on both sides match.
 SELECT PARSE_DATE("%A %b %e %Y", "Thursday Dec 25 2008");
-!ok
-!}
++------------+
+| EXPR$0     |
++------------+
+| 2008-12-25 |
++------------+
+(1 row)
 
-!if (false) {
+!ok
+
 # This doesn't work because the year element is in different locations.
 SELECT PARSE_DATE("%Y %A %b %e", "Thursday Dec 25 2008");
+Invalid format: '%Y %A %b %e' for datetime string: 'Thursday Dec 25 2008'
 !error
-!}
 
-!if (false) {
 # This doesn't work because one of the year elements is missing.
 SELECT PARSE_DATE("%A %b %e", "Thursday Dec 25 2008");
+Invalid format: '%A %b %e' for datetime string: 'Thursday Dec 25 2008'
 !error
-!}
 
-!if (false) {
 # This works because %F can find all matching elements in date_string.
 SELECT PARSE_DATE("%F", "2000-12-30");
++------------+
+| EXPR$0     |
++------------+
+| 2000-12-30 |
++------------+
+(1 row)
+
 !ok
-!}
 
 # When using PARSE_DATE, keep the following in mind:
 #
@@ -3000,27 +3008,27 @@ SELECT PARSE_DATE("%F", "2000-12-30");
 
 # This example converts a MM/DD/YY formatted string to a DATE object:
 
-!if (false) {
 SELECT PARSE_DATE("%x", "12/25/08") AS parsed;
 +------------+
 | parsed     |
 +------------+
 | 2008-12-25 |
 +------------+
+(1 row)
+
 !ok
-!}
 
 # This example converts a YYYYMMDD formatted string to a DATE object:
 
-!if (false) {
 SELECT PARSE_DATE("%Y%m%d", "20081225") AS parsed;
 +------------+
 | parsed     |
 +------------+
 | 2008-12-25 |
 +------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # PARSE_DATETIME
@@ -3036,28 +3044,38 @@ SELECT PARSE_DATE("%Y%m%d", "20081225") AS parsed;
 # datetime_string.
 
 # This works because elements on both sides match.
-!if (false) {
 SELECT PARSE_DATETIME("%a %b %e %I:%M:%S %Y", "Thu Dec 25 07:30:00 2008");
++---------------------+
+| EXPR$0              |
++---------------------+
+| 2008-12-25 07:30:00 |
++---------------------+
+(1 row)
+
 !ok
-!}
+
 
 # This doesn't work because the year element is in different locations.
-!if (false) {
 SELECT PARSE_DATETIME("%a %b %e %Y %I:%M:%S", "Thu Dec 25 07:30:00 2008");
+Invalid format: '%a %b %e %Y %I:%M:%S' for datetime string: 'Thu Dec 25 07:30:00 2008'
 !error
-!}
 
 # This doesn't work because one of the year elements is missing.
-!if (false) {
 SELECT PARSE_DATETIME("%a %b %e %I:%M:%S", "Thu Dec 25 07:30:00 2008");
+Invalid format: '%a %b %e %I:%M:%S' for datetime string: 'Thu Dec 25 07:30:00 2008'
 !error
-!}
+
 
 # This works because %c can find all matching elements in datetime_string.
-!if (false) {
 SELECT PARSE_DATETIME("%c", "Thu Dec 25 07:30:00 2008");
++---------------------+
+| EXPR$0              |
++---------------------+
+| 2008-12-25 07:30:00 |
++---------------------+
+(1 row)
+
 !ok
-!}
 
 # The format string fully supports most format elements, except for %P.
 #
@@ -3084,39 +3102,39 @@ SELECT PARSE_DATETIME("%c", "Thu Dec 25 07:30:00 2008");
 
 # The following examples parse a STRING literal as a DATETIME.
 
-!if (false) {
-SELECT PARSE_DATETIME('%Y-%m-%d %H:%M:%S', '1998-10-18 13:45:55') AS datetime;
+SELECT PARSE_DATETIME('%Y-%m-%d %H:%M:%S', '1998-10-18 13:45:55') AS dt;
 +---------------------+
-| datetime            |
+| dt                  |
 +---------------------+
-| 1998-10-18T13:45:55 |
+| 1998-10-18 13:45:55 |
 +---------------------+
-!ok
-!}
+(1 row)
 
-!if (false) {
-SELECT PARSE_DATETIME('%m/%d/%Y %I:%M:%S %p', '8/30/2018 2:23:38 pm') AS datetime
-+---------------------+
-| datetime            |
-+---------------------+
-| 2018-08-30T14:23:38 |
-+---------------------+
 !ok
-!}
+
+SELECT PARSE_DATETIME('%m/%d/%Y %I:%M:%S %p', '8/30/2018 2:23:38 pm') AS dt;
++---------------------+
+| dt                  |
++---------------------+
+| 2018-08-30 14:23:38 |
++---------------------+
+(1 row)
+
+!ok
 
 # The following example parses a STRING literal containing a date in a
 # natural language format as a DATETIME.
 
-!if (false) {
 SELECT PARSE_DATETIME('%A, %B %e, %Y','Wednesday, December 19, 2018')
-  AS datetime;
+  AS dt;
 +---------------------+
-| datetime            |
+| dt                  |
 +---------------------+
-| 2018-12-19T00:00:00 |
+| 2018-12-19 00:00:00 |
 +---------------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # PARSE_TIME
@@ -3132,29 +3150,41 @@ SELECT PARSE_DATETIME('%A, %B %e, %Y','Wednesday, December 19, 2018')
 # time_string.
 #
 
-!if (false) {
 # This works because elements on both sides match.
 SELECT PARSE_TIME("%I:%M:%S", "07:30:00");
-!ok
-!}
++----------+
+| EXPR$0   |
++----------+
+| 07:30:00 |
++----------+
+(1 row)
 
+!ok
+
+# TODO: validate for format element ordering
 !if (false) {
 # This doesn't work because the seconds element is in different locations.
 SELECT PARSE_TIME("%S:%I:%M", "07:30:00");
 !error
 !}
 
-!if (false) {
 # This doesn't work because one of the seconds elements is missing.
 SELECT PARSE_TIME("%I:%M", "07:30:00");
+Invalid format: '%I:%M' for datetime string: '07:30:00'
 !error
-!}
 
-!if (false) {
+
 # This works because %T can find all matching elements in time_string.
 SELECT PARSE_TIME("%T", "07:30:00");
++----------+
+| EXPR$0   |
++----------+
+| 07:30:00 |
++----------+
+(1 row)
+
 !ok
-!}
+
 
 # The format string fully supports most format elements except for %P.
 #
@@ -3174,25 +3204,26 @@ SELECT PARSE_TIME("%T", "07:30:00");
 #
 # Returns TIME
 
-!if (false) {
 SELECT PARSE_TIME("%H", "15") as parsed_time;
 +-------------+
 | parsed_time |
 +-------------+
 | 15:00:00    |
 +-------------+
-!ok
-!}
+(1 row)
 
-!if (false) {
+!ok
+
 SELECT PARSE_TIME('%I:%M:%S %p', '2:23:38 pm') AS parsed_time;
 +-------------+
 | parsed_time |
 +-------------+
 | 14:23:38    |
 +-------------+
+(1 row)
+
 !ok
-!}
+
 
 #####################################################################
 # PARSE_TIMESTAMP
@@ -3209,28 +3240,36 @@ SELECT PARSE_TIME('%I:%M:%S %p', '2:23:38 pm') AS parsed_time;
 # timestamp_string.
 
 # This works because elements on both sides match.
-!if (false) {
 SELECT PARSE_TIMESTAMP("%a %b %e %I:%M:%S %Y", "Thu Dec 25 07:30:00 2008");
++---------------------+
+| EXPR$0              |
++---------------------+
+| 2008-12-25 07:30:00 |
++---------------------+
+(1 row)
+
 !ok
-!}
 
 # This doesn't work because the year element is in different locations.
-!if (false) {
 SELECT PARSE_TIMESTAMP("%a %b %e %Y %I:%M:%S", "Thu Dec 25 07:30:00 2008");
+Invalid format: '%a %b %e %Y %I:%M:%S' for datetime string: 'Thu Dec 25 07:30:00 2008'
 !error
-!}
 
 # This doesn't work because one of the year elements is missing.
-!if (false) {
 SELECT PARSE_TIMESTAMP("%a %b %e %I:%M:%S", "Thu Dec 25 07:30:00 2008");
+Invalid format: '%a %b %e %I:%M:%S' for datetime string: 'Thu Dec 25 07:30:00 2008'
 !error
-!}
 
 # This works because %c can find all matching elements in timestamp_string.
-!if (false) {
 SELECT PARSE_TIMESTAMP("%c", "Thu Dec 25 07:30:00 2008");
++---------------------+
+| EXPR$0              |
++---------------------+
+| 2008-12-25 07:30:00 |
++---------------------+
+(1 row)
+
 !ok
-!}
 
 # The format string fully supports most format elements, except for %P.
 #
@@ -3256,15 +3295,19 @@ SELECT PARSE_TIMESTAMP("%c", "Thu Dec 25 07:30:00 2008");
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.
-!if (false) {
+#
+# After [CALCITE-5446] is fixed, this and other TIMESTAMP WITH LOCAL TIME
+# values will end in UTC, like this: 2008-12-25 15:30:00 UTC.
+#
 SELECT PARSE_TIMESTAMP("%c", "Thu Dec 25 07:30:00 2008") AS parsed;
-+-------------------------+
-| parsed                  |
-+-------------------------+
-| 2008-12-25 07:30:00 UTC |
-+-------------------------+
++---------------------+
+| parsed              |
++---------------------+
+| 2008-12-25 07:30:00 |
++---------------------+
+(1 row)
+
 !ok
-!}
 
 #####################################################################
 # STRING and BYTES functions ########################################

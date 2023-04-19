@@ -47,6 +47,7 @@ import static org.apache.calcite.util.format.FormatElementEnum.MM;
 import static org.apache.calcite.util.format.FormatElementEnum.MON;
 import static org.apache.calcite.util.format.FormatElementEnum.MONTH;
 import static org.apache.calcite.util.format.FormatElementEnum.MS;
+import static org.apache.calcite.util.format.FormatElementEnum.PM;
 import static org.apache.calcite.util.format.FormatElementEnum.Q;
 import static org.apache.calcite.util.format.FormatElementEnum.SS;
 import static org.apache.calcite.util.format.FormatElementEnum.TZR;
@@ -111,15 +112,24 @@ public class FormatModels {
     map.put("%E4S", FF4);
     map.put("%E5S", FF5);
     map.put("%E*S", FF6);
+    map.put("%e", DD);
+    map.put("%F",
+        compositeElement("The date in the format %Y-%m-%d.", YYYY, literalElement("-"), MM,
+            literalElement("-"), DD));
     map.put("%H", HH24);
+    map.put("%I", HH12);
     map.put("%j", DDD);
     map.put("%M", MI);
     map.put("%m", MM);
+    map.put("%p", PM);
     map.put("%Q", Q);
     map.put("%R",
         compositeElement("The time in the format %H:%M",
             HH24, literalElement(":"), MI));
     map.put("%S", SS);
+    map.put("%T",
+        compositeElement("The time in the format %H:%M:%S.",
+            HH24, literalElement(":"), MI, literalElement(":"), SS));
     map.put("%u", D);
     map.put("%V", IW);
     map.put("%W", WW);
@@ -267,8 +277,12 @@ public class FormatModels {
       this.literal = requireNonNull(literal, "literal");
     }
 
-    @Override public String format(Date date) {
-      return literal;
+    @Override public void format(StringBuilder sb, Date date) {
+      sb.append(literal);
+    }
+
+    @Override public void toPattern(StringBuilder sb) {
+      sb.append(literal);
     }
 
     @Override public String getDescription() {
@@ -293,10 +307,12 @@ public class FormatModels {
       this.description = requireNonNull(description, "description");
     }
 
-    @Override public String format(Date date) {
-      StringBuilder buf = new StringBuilder();
-      flatten(ele -> buf.append(ele.format(date)));
-      return buf.toString();
+    @Override public void format(StringBuilder sb, Date date) {
+      flatten(ele -> ele.format(sb, date));
+    }
+
+    @Override public void toPattern(StringBuilder sb) {
+      flatten(ele -> ele.toPattern(sb));
     }
 
     /**

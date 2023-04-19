@@ -39,186 +39,205 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  * @see FormatModels#DEFAULT
  */
 public enum FormatElementEnum implements FormatElement {
-  D("The weekday (Monday as the first day of the week) as a decimal number (1-7)") {
-    @Override public String format(Date date) {
+  D("F", "The weekday (Monday as the first day of the week) as a decimal number (1-7)") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
-      return String.format(Locale.ROOT, "%d", calendar.get(Calendar.DAY_OF_WEEK));
+      sb.append(String.format(Locale.ROOT, "%d", calendar.get(Calendar.DAY_OF_WEEK)));
     }
   },
-  DAY("The full weekday name") {
-    @Override public String format(Date date) {
+  DAY("EEEE", "The full weekday name") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
-      return work.eeeeFormat.format(date);
+      sb.append(work.eeeeFormat.format(date));
     }
   },
-  DD("The day of the month as a decimal number (01-31)") {
-    @Override public String format(Date date) {
+  DD("dd", "The day of the month as a decimal number (01-31)") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
-      return String.format(Locale.ROOT, "%02d", calendar.get(Calendar.DAY_OF_MONTH));
+      sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.DAY_OF_MONTH)));
     }
   },
-  DDD("The day of the year as a decimal number (001-366)") {
-    @Override public String format(Date date) {
+  DDD("D", "The day of the year as a decimal number (001-366)") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
-      return String.format(Locale.ROOT, "%03d", calendar.get(Calendar.DAY_OF_YEAR));
+      sb.append(String.format(Locale.ROOT, "%03d", calendar.get(Calendar.DAY_OF_YEAR)));
     }
   },
-  DY("The abbreviated weekday name") {
-    @Override public String format(Date date) {
+  DY("EEE", "The abbreviated weekday name") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
-      return work.eeeFormat.format(date);
+      sb.append(work.eeeFormat.format(date));
     }
   },
-  FF1("Fractional seconds to 1 digit") {
-    @Override public String format(Date date) {
+  FF1("S", "Fractional seconds to 1 digit") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
-      return work.sFormat.format(date);
+      sb.append(work.sFormat.format(date));
     }
   },
-  FF2("Fractional seconds to 2 digits") {
-    @Override public String format(Date date) {
+  FF2("SS", "Fractional seconds to 2 digits") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
-      return work.ssFormat.format(date);
+      sb.append(work.ssFormat.format(date));
     }
   },
-  FF3("Fractional seconds to 3 digits") {
-    @Override public String format(Date date) {
+  FF3("SSS", "Fractional seconds to 3 digits") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
-      return work.sssFormat.format(date);
+      sb.append(work.sssFormat.format(date));
     }
   },
-  FF4("Fractional seconds to 4 digits") {
-    @Override public String format(Date date) {
+  FF4("SSSS", "Fractional seconds to 4 digits") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
-      return work.ssssFormat.format(date);
+      sb.append(work.ssssFormat.format(date));
     }
   },
-  FF5("Fractional seconds to 5 digits") {
-    @Override public String format(Date date) {
+  FF5("SSSSS", "Fractional seconds to 5 digits") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
-      return work.sssssFormat.format(date);
+      sb.append(work.sssssFormat.format(date));
     }
   },
-  FF6("Fractional seconds to 6 digits") {
-    @Override public String format(Date date) {
+  FF6("SSSSSS", "Fractional seconds to 6 digits") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
-      return work.ssssssFormat.format(date);
+      sb.append(work.ssssssFormat.format(date));
     }
   },
-  HH12("The hour (12-hour clock) as a decimal number (01-12)") {
-    @Override public String format(Date date) {
+  HH12("h", "The hour (12-hour clock) as a decimal number (01-12)") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
       int hour = calendar.get(Calendar.HOUR);
-      return String.format(Locale.ROOT, "%02d", hour == 0 ? 12 : hour);
+      sb.append(String.format(Locale.ROOT, "%02d", hour == 0 ? 12 : hour));
     }
   },
-  HH24("The hour (24-hour clock) as a decimal number (00-23)") {
-    @Override public String format(Date date) {
+  HH24("H", "The hour (24-hour clock) as a decimal number (00-23)") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
-      return String.format(Locale.ROOT, "%02d", calendar.get(Calendar.HOUR_OF_DAY));
+      sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.HOUR_OF_DAY)));
     }
   },
-  IW("The ISO 8601 week number of the year (Monday as the first day of the week) "
+  // TODO: Ensure ISO 8601 for parsing
+  IW("w", "The ISO 8601 week number of the year (Monday as the first day of the week) "
       + "as a decimal number (01-53)") {
-    @Override public String format(Date date) {
+    @Override public void format(StringBuilder sb, Date date) {
       // TODO: ensure this is isoweek
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
       calendar.setFirstDayOfWeek(Calendar.MONDAY);
-      return String.format(Locale.ROOT, "%02d", calendar.get(Calendar.WEEK_OF_YEAR));
+      sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.WEEK_OF_YEAR)));
     }
   },
-  MI("The minute as a decimal number (00-59)") {
-    @Override public String format(Date date) {
+  MI("m", "The minute as a decimal number (00-59)") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
-      return String.format(Locale.ROOT, "%02d", calendar.get(Calendar.MINUTE));
+      sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.MINUTE)));
     }
   },
-  MM("The month as a decimal number (01-12)") {
-    @Override public String format(Date date) {
+  MM("MM", "The month as a decimal number (01-12)") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
-      return String.format(Locale.ROOT, "%02d", calendar.get(Calendar.MONTH) + 1);
+      sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.MONTH) + 1));
     }
   },
-  MON("The abbreviated month name") {
-    @Override public String format(Date date) {
+  MON("MMM", "The abbreviated month name") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
-      return work.mmmFormat.format(date);
+      sb.append(work.mmmFormat.format(date));
     }
   },
-  MONTH("The full month name (English)") {
-    @Override public String format(Date date) {
+  MONTH("MMMM", "The full month name (English)") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
-      return work.mmmmFormat.format(date);
+      sb.append(work.mmmmFormat.format(date));
     }
   },
-  Q("The quarter as a decimal number (1-4)") {
-    @Override public String format(Date date) {
+  // PM can represent both AM and PM
+  PM("a", "Meridian indicator without periods") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
-      return String.format(Locale.ROOT, "%d", (calendar.get(Calendar.MONTH) / 3) + 1);
+      String meridian = calendar.get(Calendar.HOUR_OF_DAY) < 12 ? "AM" : "PM";
+      sb.append(meridian);
     }
   },
-  SS("The second as a decimal number (00-60)") {
-    @Override public String format(Date date) {
+  Q("", "The quarter as a decimal number (1-4)") {
+    // TODO: Allow parsing of quarters.
+    @Override public void toPattern(StringBuilder sb) {
+      throw new UnsupportedOperationException("Cannot convert 'Q' FormatElement to Java pattern");
+    }
+    @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
-      return String.format(Locale.ROOT, "%02d", calendar.get(Calendar.SECOND));
+      sb.append(String.format(Locale.ROOT, "%d", (calendar.get(Calendar.MONTH) / 3) + 1));
     }
   },
-  MS("The millisecond as a decimal number (000-999)") {
-    @Override public String format(Date date) {
+  MS("SSS", "The millisecond as a decimal number (000-999)") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
-      return String.format(Locale.ROOT, "%03d", calendar.get(Calendar.MILLISECOND));
+      sb.append(String.format(Locale.ROOT, "%03d", calendar.get(Calendar.MILLISECOND)));
     }
   },
-  TZR("The time zone name") {
-    @Override public String format(Date date) {
+  SS("s", "The second as a decimal number (00-60)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.SECOND)));
+    }
+  },
+  TZR("z", "The time zone name") {
+    @Override public void format(StringBuilder sb, Date date) {
       // TODO: how to support timezones?
-      return "";
     }
   },
-  WW("The week number of the year (Sunday as the first day of the week) as a decimal "
+  WW("w", "The week number of the year (Sunday as the first day of the week) as a decimal "
       + "number (00-53)") {
-    @Override public String format(Date date) {
+    @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
       calendar.setFirstDayOfWeek(Calendar.SUNDAY);
-      return String.format(Locale.ROOT, "%02d", calendar.get(Calendar.WEEK_OF_YEAR));
+      sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.WEEK_OF_YEAR)));
     }
   },
-  YY("Last 2 digits of year") {
-    @Override public String format(Date date) {
+  YY("yy", "Last 2 digits of year") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
-      return work.yyFormat.format(date);
+      sb.append(work.yyFormat.format(date));
     }
   },
-  YYYY("The year with century as a decimal number") {
-    @Override public String format(Date date) {
+  YYYY("yyyy", "The year with century as a decimal number") {
+    @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
-      return String.format(Locale.ROOT, "%d", calendar.get(Calendar.YEAR));
+      sb.append(String.format(Locale.ROOT, "%d", calendar.get(Calendar.YEAR)));
     }
   };
 
   private final String description;
+  final String javaFmt;
 
   // TODO: be sure to deal with TZ
 
-  FormatElementEnum(String description) {
+  FormatElementEnum(String javaFmt, String description) {
+    this.javaFmt = javaFmt;
     this.description = description;
   }
 
   @Override public String getDescription() {
     return description;
+  }
+
+  @Override public void toPattern(StringBuilder sb) {
+    sb.append(this.javaFmt);
   }
 
   /** Work space. Provides a value for each mutable data structure that might
@@ -236,16 +255,16 @@ public enum FormatElementEnum implements FormatElement {
         Calendar.getInstance(DateTimeUtils.DEFAULT_ZONE, Locale.ROOT);
 
     /** Uses Locale.US instead of Locale.ROOT to fix formatting in Java 11 */
-    final DateFormat eeeeFormat = new SimpleDateFormat("EEEE", Locale.US);
-    final DateFormat eeeFormat = new SimpleDateFormat("EEE", Locale.ROOT);
-    final DateFormat mmmFormat = new SimpleDateFormat("MMM", Locale.ROOT);
-    final DateFormat mmmmFormat = new SimpleDateFormat("MMMM", Locale.ROOT);
-    final DateFormat sFormat = new SimpleDateFormat("S", Locale.ROOT);
-    final DateFormat ssFormat = new SimpleDateFormat("SS", Locale.ROOT);
-    final DateFormat sssFormat = new SimpleDateFormat("SSS", Locale.ROOT);
-    final DateFormat ssssFormat = new SimpleDateFormat("SSSS", Locale.ROOT);
-    final DateFormat sssssFormat = new SimpleDateFormat("SSSSS", Locale.ROOT);
-    final DateFormat ssssssFormat = new SimpleDateFormat("SSSSSS", Locale.ROOT);
-    final DateFormat yyFormat = new SimpleDateFormat("yy", Locale.ROOT);
+    final DateFormat eeeeFormat = new SimpleDateFormat(DAY.javaFmt, Locale.US);
+    final DateFormat eeeFormat = new SimpleDateFormat(DY.javaFmt, Locale.ROOT);
+    final DateFormat mmmFormat = new SimpleDateFormat(MON.javaFmt, Locale.ROOT);
+    final DateFormat mmmmFormat = new SimpleDateFormat(MONTH.javaFmt, Locale.ROOT);
+    final DateFormat sFormat = new SimpleDateFormat(FF1.javaFmt, Locale.ROOT);
+    final DateFormat ssFormat = new SimpleDateFormat(FF2.javaFmt, Locale.ROOT);
+    final DateFormat sssFormat = new SimpleDateFormat(FF3.javaFmt, Locale.ROOT);
+    final DateFormat ssssFormat = new SimpleDateFormat(FF4.javaFmt, Locale.ROOT);
+    final DateFormat sssssFormat = new SimpleDateFormat(FF5.javaFmt, Locale.ROOT);
+    final DateFormat ssssssFormat = new SimpleDateFormat(FF6.javaFmt, Locale.ROOT);
+    final DateFormat yyFormat = new SimpleDateFormat(YY.javaFmt, Locale.ROOT);
   }
 }

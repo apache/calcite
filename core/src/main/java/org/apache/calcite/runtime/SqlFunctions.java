@@ -61,7 +61,10 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -77,9 +80,11 @@ import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -91,7 +96,6 @@ import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -2622,11 +2626,10 @@ public class SqlFunctions {
   }
 
   private static String internalFormatDatetime(String fmtString, java.util.Date date) {
-    List<FormatElement> elements =
-        FormatModels.BIG_QUERY.parse(fmtString);
-    return elements.stream()
-        .map(ele -> ele.format(date))
-        .collect(Collectors.joining());
+    StringBuilder sb = new StringBuilder();
+    List<FormatElement> elements = FormatModels.BIG_QUERY.parse(fmtString);
+    elements.forEach(ele -> ele.format(sb, date));
+    return sb.toString();
   }
 
   public static String formatTimestamp(DataContext ctx, String fmtString, long timestamp) {
@@ -2635,11 +2638,9 @@ public class SqlFunctions {
 
   public static String toChar(long timestamp, String pattern) {
     List<FormatElement> elements = FormatModels.POSTGRESQL.parse(pattern);
-
-    return elements.stream()
-        .map(ele -> ele.format(internalToTimestamp(timestamp)))
-        .collect(Collectors.joining())
-        .trim();
+    StringBuilder sb = new StringBuilder();
+    elements.forEach(ele ->  ele.format(sb, internalToTimestamp(timestamp)));
+    return sb.toString().trim();
   }
 
   public static String formatDate(DataContext ctx, String fmtString, int date) {
@@ -2649,6 +2650,63 @@ public class SqlFunctions {
   public static String formatTime(DataContext ctx, String fmtString, int time) {
     return internalFormatDatetime(fmtString, internalToTime(time));
   }
+
+  private static String parseDatetimePattern(String fmtString) {
+    StringBuilder sb = new StringBuilder();
+    List<FormatElement> elements = FormatModels.BIG_QUERY.parse(fmtString);
+    elements.forEach(ele -> ele.toPattern(sb));
+    return sb.toString();
+  }
+
+  private static Date interalParseDatetime(String fmtString, String datetime) {
+    return interalParseDatetime(fmtString, datetime, DateTimeUtils.DEFAULT_ZONE);
+  }
+
+  private static Date interalParseDatetime(String fmt, String datetime, TimeZone tz) {
+    final String javaFmt = parseDatetimePattern(fmt);
+    // TODO: make Locale configurable. ENGLISH set for weekday parsing (e.g. Thursday, Friday).
+    final DateFormat parser = new SimpleDateFormat(javaFmt, Locale.ENGLISH);
+    final ParsePosition pos = new ParsePosition(0);
+    parser.setLenient(false);
+    parser.setCalendar(Calendar.getInstance(tz, Locale.ROOT));
+    Date parsed = parser.parse(datetime, pos);
+    // Throw if either the parse was unsuccessful, or the format string did not contain enough
+    // elements to parse the datetime string completely.
+    if (pos.getErrorIndex() >= 0 || pos.getIndex() != datetime.length()) {
+      SQLException e =
+          new SQLException(
+              String.format(Locale.ROOT,
+                  "Invalid format: '%s' for datetime string: '%s'.", fmt, datetime));
+      throw Util.toUnchecked(e);
+    }
+    return parsed;
+  }
+
+  public static int parseDate(String fmtString, String date) {
+    Date parsedDate = interalParseDatetime(fmtString, date);
+    return toInt(new java.sql.Date(parsedDate.getTime()));
+  }
+
+  public static long parseDatetime(String fmtString, String datetime) {
+    Date parsedDate = interalParseDatetime(fmtString, datetime);
+    return toLong(new java.sql.Timestamp(parsedDate.getTime()));
+  }
+
+  public static int parseTime(String fmtString, String time) {
+    Date parsedDate = interalParseDatetime(fmtString, time);
+    return toInt(new java.sql.Time(parsedDate.getTime()));
+  }
+
+  public static long parseTimestamp(String fmtString, String timestamp) {
+    return parseTimestamp(fmtString, timestamp, "UTC");
+  }
+
+  public static long parseTimestamp(String fmtString, String timestamp, String timeZone) {
+    TimeZone tz = TimeZone.getTimeZone(timeZone);
+    Date parsedDate = interalParseDatetime(fmtString, timestamp, tz);
+    return toLong(new java.sql.Timestamp(parsedDate.getTime()), tz);
+  }
+
 
   /**
    * Converts a SQL TIMESTAMP value from the internal representation type
