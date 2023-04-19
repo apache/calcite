@@ -1596,6 +1596,22 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5656">[CALCITE-5656]
+   * If the ordinal is not in the query column, subqueries should be nested </a>. */
+  @Test void testOrderByOrdinalWithExpr() {
+    final String query = "select \"product_id\" \n"
+        + "from \"product\"\n"
+        + "group by \"product_id\"\n"
+        + "order by COUNT(*)";
+    final String expected = "SELECT \"product_id\"\n"
+        + "FROM (SELECT \"product_id\", COUNT(*) AS \"EXPR$1\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_id\"\n"
+        + "ORDER BY 2) AS \"t6\"";
+    sql(query).ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3440">[CALCITE-3440]
    * RelToSqlConverter does not properly alias ambiguous ORDER BY</a>. */
   @Test void testOrderByColumnWithSameNameAsAlias() {

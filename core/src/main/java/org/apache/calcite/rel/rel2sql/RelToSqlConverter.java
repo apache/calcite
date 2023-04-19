@@ -72,6 +72,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUpdate;
@@ -432,11 +433,24 @@ public class RelToSqlConverter extends SqlImplementor
   /** Visits a Project; called by {@link #dispatch} via reflection. */
   public Result visit(Project e) {
     // If the input is a Sort, wrap SELECT is not required.
-    final Result x;
+    Result x;
     if (e.getInput() instanceof Sort) {
       x = visitInput(e, 0);
     } else {
       x = visitInput(e, 0, Clause.SELECT);
+    }
+    if (e.getInput() instanceof Sort && dialect.getConformance().isSortByOrdinal()) {
+      int size = e.getProjects().size();
+      SqlNodeList orders = ((SqlSelect) x.node).getOrderList();
+      if (orders != null) {
+        for (SqlNode order : orders) {
+          if (order instanceof SqlNumericLiteral
+              && ((SqlNumericLiteral) order).getValueAs(Integer.class) > size) {
+            x = visitInput(e, 0, Clause.SELECT);
+            break;
+          }
+        }
+      }
     }
     parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
