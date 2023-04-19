@@ -72,6 +72,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUpdate;
@@ -440,9 +441,12 @@ public class RelToSqlConverter extends SqlImplementor
   /** Visits a Project; called by {@link #dispatch} via reflection. */
   public Result visit(Project e) {
     // If the input is a Sort, wrap SELECT is not required.
-    final Result x;
+    Result x;
     if (e.getInput() instanceof Sort) {
       x = visitInput(e, 0);
+      if (!ordinalInQuery(x, e.getProjects().size())) {
+        x = visitInput(e, 0, Clause.SELECT);
+      }
     } else {
       x = visitInput(e, 0, Clause.SELECT);
     }
@@ -463,6 +467,21 @@ public class RelToSqlConverter extends SqlImplementor
       builder.setSelect(new SqlNodeList(selectList, POS));
     }
     return builder.result();
+  }
+
+  private boolean ordinalInQuery(Result x, int projectSize) {
+    if (dialect.getConformance().isSortByOrdinal() && x.node instanceof SqlSelect) {
+      SqlNodeList orders = ((SqlSelect) x.node).getOrderList();
+      if (orders != null) {
+        for (SqlNode order : orders) {
+          if (order instanceof SqlNumericLiteral
+              && ((SqlNumericLiteral) order).getValueAs(Integer.class) > projectSize) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
   }
 
   /** Wraps a NULL literal in a CAST operator to a target type.
