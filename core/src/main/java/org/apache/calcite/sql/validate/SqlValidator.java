@@ -46,6 +46,7 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.type.SqlTypeCoercionRule;
+import org.apache.calcite.sql.type.SqlTypeMappingRule;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.sql.validate.implicit.TypeCoercionFactory;
 import org.apache.calcite.sql.validate.implicit.TypeCoercions;
@@ -777,6 +778,13 @@ public interface SqlValidator {
 
   /** Get the type coercion instance. */
   TypeCoercion getTypeCoercion();
+
+  /** Returns the type mapping rule. */
+  default SqlTypeMappingRule getTypeMappingRule() {
+    return config().conformance().allowLenientCoercion()
+        ? SqlTypeCoercionRule.lenientInstance()
+        : SqlTypeCoercionRule.instance();
+  }
 
   /** Returns the config of the validator. */
   Config config();

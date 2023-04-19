@@ -846,7 +846,8 @@ public abstract class SqlTypeUtil {
   }
 
   /**
-   * Compares two types and returns true if fromType can be cast to toType.
+   * Compares two types and returns whether {@code fromType} can be cast to
+   * {@code toType}, using either coercion or assignment.
    *
    * <p>REVIEW jvs 17-Dec-2004: the coerce param below shouldn't really be
    * necessary. We're using it as a hack because
@@ -859,12 +860,35 @@ public abstract class SqlTypeUtil {
    * @param coerce   if true, the SQL rules for CAST are used; if false, the
    *                 rules are similar to Java; e.g. you can't assign short x =
    *                 (int) y, and you can't assign int x = (String) z.
-   * @return true iff cast is legal
+   * @return whether cast is legal
    */
   public static boolean canCastFrom(
       RelDataType toType,
       RelDataType fromType,
       boolean coerce) {
+    return canCastFrom(toType, fromType,
+        coerce ? SqlTypeCoercionRule.instance()
+            : SqlTypeAssignmentRule.instance());
+  }
+
+  /**
+   * Compares two types and returns whether {@code fromType} can be cast to
+   * {@code toType}.
+   *
+   * <p>A type mapping rule (i.e. {@link SqlTypeCoercionRule}
+   * or {@link SqlTypeAssignmentRule}) controls what types are allowed to be
+   * cast from/to.
+   *
+   * @param toType   target of assignment
+   * @param fromType source of assignment
+   * @param typeMappingRule  SqlTypeMappingRule
+   *
+   * @return whether cast is legal
+   */
+  public static boolean canCastFrom(
+      RelDataType toType,
+      RelDataType fromType,
+      SqlTypeMappingRule typeMappingRule) {
     if (toType.equals(fromType)) {
       return true;
     }
@@ -884,10 +908,10 @@ public abstract class SqlTypeUtil {
           return false;
         }
         return canCastFrom(
-            toType.getFieldList().get(0).getType(), fromType, coerce);
+            toType.getFieldList().get(0).getType(), fromType, typeMappingRule);
       } else if (fromTypeName == SqlTypeName.DISTINCT) {
         return canCastFrom(
-            toType, fromType.getFieldList().get(0).getType(), coerce);
+            toType, fromType.getFieldList().get(0).getType(), typeMappingRule);
       } else if (toTypeName == SqlTypeName.ROW) {
         if (fromTypeName != SqlTypeName.ROW) {
           return fromTypeName == SqlTypeName.NULL;
@@ -902,7 +926,7 @@ public abstract class SqlTypeUtil {
           if (!canCastFrom(
               toField.getType(),
               fromField.getType(),
-              coerce)) {
+              typeMappingRule)) {
             return false;
           }
         }
@@ -917,7 +941,7 @@ public abstract class SqlTypeUtil {
         return canCastFrom(
             getComponentTypeOrThrow(toType),
             getComponentTypeOrThrow(fromType),
-            coerce);
+            typeMappingRule);
       } else if (fromTypeName == SqlTypeName.MULTISET) {
         return false;
       } else {
@@ -928,7 +952,7 @@ public abstract class SqlTypeUtil {
     if (c1 != null) {
       RelDataType c2 = fromType.getComponentType();
       if (c2 != null) {
-        return canCastFrom(c1, c2, coerce);
+        return canCastFrom(c1, c2, typeMappingRule);
       }
     }
     if ((isInterval(fromType) && isExactNumeric(toType))
@@ -944,15 +968,7 @@ public abstract class SqlTypeUtil {
     if (toTypeName == null || fromTypeName == null) {
       return false;
     }
-
-    // REVIEW jvs 9-Feb-2009: we don't impose SQL rules for character sets
-    // here; instead, we do that in SqlCastFunction.  The reason is that
-    // this method is called from at least one place (MedJdbcNameDirectory)
-    // where internally a cast across character repertoires is OK.  Should
-    // probably clean that up.
-
-    SqlTypeMappingRule rules = SqlTypeMappingRules.instance(coerce);
-    return rules.canApplyFrom(toTypeName, fromTypeName);
+    return typeMappingRule.canApplyFrom(toTypeName, fromTypeName);
   }
 
   /**

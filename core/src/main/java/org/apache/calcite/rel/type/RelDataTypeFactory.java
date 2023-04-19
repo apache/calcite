@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeMappingRule;
+import org.apache.calcite.sql.type.SqlTypeMappingRules;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
@@ -197,16 +199,34 @@ public interface RelDataTypeFactory {
   Charset getDefaultCharset();
 
   /**
+   * Returns the most general of a set of types
+   * using the default type mapping rule.
+   *
+   * @see #leastRestrictive(List, SqlTypeMappingRule)
+   *
+   * @param types input types to be combined using union (not null, not empty)
+   * @return canonical union type descriptor
+   */
+  default @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
+    return leastRestrictive(types, SqlTypeMappingRules.instance(false));
+  }
+
+  /**
    * Returns the most general of a set of types (that is, one type to which
    * they can all be cast), or null if conversion is not possible. The result
    * may be a new type that is less restrictive than any of the input types,
    * e.g. <code>leastRestrictive(INT, NUMERIC(3, 2))</code> could be
    * {@code NUMERIC(12, 2)}.
    *
+   * <p>Accepts a {@link SqlTypeMappingRule} that can be used to change casting
+   * behavior.
+   *
    * @param types input types to be combined using union (not null, not empty)
+   * @param mappingRule rule that determines whether types are convertible
    * @return canonical union type descriptor
    */
-  @Nullable RelDataType leastRestrictive(List<RelDataType> types);
+  @Nullable RelDataType leastRestrictive(List<RelDataType> types,
+      SqlTypeMappingRule mappingRule);
 
   /**
    * Creates a SQL type with no precision or scale.

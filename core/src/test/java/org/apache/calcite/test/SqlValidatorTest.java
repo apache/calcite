@@ -1270,8 +1270,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("BOOLEAN NOT NULL");
     expr("cast(1.0e1 as boolean)")
         .columnType("BOOLEAN NOT NULL");
-    expr("cast(true as numeric)")
-        .columnType("DECIMAL(19, 0) NOT NULL");
+    expr("^cast(true as numeric)^")
+        .fails("Cast function cannot convert value of type BOOLEAN "
+        + "to type DECIMAL\\(19, 0\\)");
     // It's a runtime error that 'TRUE' cannot fit into CHAR(3), but at
     // validate time this expression is OK.
     expr("cast(true as char(3))")
@@ -10535,8 +10536,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Cannot assign to target field 'COMM' of type INTEGER"
             + " from source field 'EXPR\\$3' of type BOOLEAN");
     sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
+        + " (empno, ename, job, ^comm^)\n"
+        + "values (1, 'Arthur', 'clown', true)")
+        .fails("Cannot assign to target field 'COMM' of type INTEGER"
+            + " from source field 'EXPR\\$3' of type BOOLEAN");
+    sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
         + " (empno, ename, job, comm)\n"
         + "values (1, 'Arthur', 'clown', true)")
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
         .ok();
     sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
         + " (empno, ename, job, ^\"comm\"^)\n"
@@ -10571,7 +10578,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String error2 = "Cannot assign to target field 'slacker' of type"
         + " INTEGER from source field 'EXPR\\$3' of type BOOLEAN";
     s.withSql(sql2).withTypeCoercion(false).fails(error2);
-    s.withSql(sql2).ok();
+    s.withConformance(SqlConformanceEnum.BIG_QUERY).withSql(sql2).ok();
   }
 
   @Test void testInsertExtendedColumnModifiableViewFailExtendedCollision() {
@@ -10602,7 +10609,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String sql4 = "insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
         + " (empno, ename, job, \"extra\")\n"
         + "values (1, 'Arthur', 'clown', true)";
-    s.withSql(sql4).ok();
+    s.withConformance(SqlConformanceEnum.BIG_QUERY).withTypeCoercion(true)
+        .withSql(sql4).ok();
   }
 
   @Test void testInsertExtendedColumnModifiableViewFailUnderlyingCollision() {

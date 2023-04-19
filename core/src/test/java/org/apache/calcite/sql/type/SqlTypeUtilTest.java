@@ -122,8 +122,12 @@ class SqlTypeUtilTest {
     SqlTypeCoercionRule typeCoercionRules = SqlTypeCoercionRule.instance(builder.map);
     assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, true),
         is(false));
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, defaultRules),
+        is(false));
     SqlTypeCoercionRule.THREAD_PROVIDERS.set(typeCoercionRules);
     assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, true),
+        is(true));
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, typeCoercionRules),
         is(true));
     // Recover the mappings to default.
     SqlTypeCoercionRule.THREAD_PROVIDERS.set(defaultRules);
@@ -253,7 +257,22 @@ class SqlTypeUtilTest {
     }
   }
 
+  /** Tests that casting BOOLEAN to INTEGER is not allowed for the default
+   * {@link SqlTypeCoercionRule}, but is allowed in lenient mode. */
+  @Test void testCastBooleanToInteger() {
+    RelDataType booleanType = f.sqlBoolean;
+    RelDataType intType = f.sqlInt;
+    final SqlTypeCoercionRule rule = SqlTypeCoercionRule.instance();
+    final SqlTypeCoercionRule lenientRule =
+        SqlTypeCoercionRule.lenientInstance();
+    assertThat(SqlTypeUtil.canCastFrom(intType, booleanType, rule),
+        is(false));
+    assertThat(SqlTypeUtil.canCastFrom(intType, booleanType, lenientRule),
+        is(true));
+  }
+
   private static void assertCanCast(RelDataType toType, RelDataType fromType) {
+    final SqlTypeCoercionRule defaultRules = SqlTypeCoercionRule.instance();
     assertThat(
         String.format(Locale.ROOT,
             "Expected to be able to cast from %s to %s without coercion.", fromType, toType),
@@ -262,5 +281,9 @@ class SqlTypeUtilTest {
         String.format(Locale.ROOT,
             "Expected to be able to cast from %s to %s with coercion.", fromType, toType),
         SqlTypeUtil.canCastFrom(toType, fromType, /* coerce= */ true), is(true));
+    assertThat(
+        String.format(Locale.ROOT,
+            "Expected to be able to cast from %s to %s without coercion.", fromType, toType),
+        SqlTypeUtil.canCastFrom(toType, fromType, /* coerce= */ defaultRules), is(true));
   }
 }
