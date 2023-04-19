@@ -748,6 +748,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case OVER:
       unparseOver(writer, call, leftPrec, rightPrec);
       break;
+    case ITEM:
+      unparseItem(writer, call, leftPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -759,6 +762,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     } else {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseItem(SqlWriter writer, SqlCall call, final int leftPrec) {
+    call.operand(0).unparse(writer, leftPrec, 0);
+    final SqlWriter.Frame frame = writer.startList("[", "]");
+    final SqlWriter.Frame funcFrame = writer.startFunCall(call.getOperator().getName());
+    call.operand(1).unparse(writer, 0, 0);
+    writer.endFunCall(funcFrame);
+    writer.endList(frame);
   }
 
   private boolean isFirstOperandPercentileCont(SqlCall call) {
@@ -1268,9 +1280,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "SHIFTRIGHT":
       unparseShiftLeftAndShiftRight(writer, call, false);
       break;
-    case "SPLIT_PART":
-      unparseSplitPartFunction(writer, call, leftPrec, rightPrec);
-      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -1411,31 +1420,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     } else {
       function.unparse(writer, call, leftPrec, rightPrec);
     }
-  }
-
-  private void unparseSplitPartFunction(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec) {
-    SqlWriter.Frame splitFrame = writer.startFunCall("SPLIT");
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.print(",");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
-    writer.endFunCall(splitFrame);
-    writer.print("[SAFE_OFFSET (");
-    SqlNode thirdOperandValue = call.operand(2);
-    if (thirdOperandValue instanceof SqlLiteral) {
-      SqlLiteral thirdOperandLiteral = (SqlLiteral) thirdOperandValue;
-      if (thirdOperandLiteral.getValue() == null) {
-        writer.print(null);
-      } else {
-        int thirdOperand = Integer.valueOf(call.operand(2).toString());
-        if (thirdOperand == 0) {
-          writer.print(thirdOperand);
-        } else {
-          writer.print(thirdOperand - 1);
-        }
-      }
-    }
-    writer.print(")]");
   }
 
   private void unparseIntervalSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

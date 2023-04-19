@@ -38,9 +38,12 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
+
+import org.apache.calcite.util.Static;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -362,6 +365,30 @@ public abstract class SqlLibraryOperators {
       SqlBasicAggFunction
           .create(SqlKind.COUNTIF, ReturnTypes.BIGINT, OperandTypes.BOOLEAN)
           .withDistinct(Optionality.FORBIDDEN);
+
+  /** The "OFFSET(index)" array subscript operator used by BigQuery. The index
+   * starts at 0 and produces an error if the index is out of range. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlOperator OFFSET =
+      new SqlItemOperator("OFFSET", OperandTypes.ARRAY, 0, false);
+
+  /** The "ORDINAL(index)" array subscript operator used by BigQuery. The index
+   * starts at 1 and produces an error if the index is out of range. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlOperator ORDINAL =
+      new SqlItemOperator("ORDINAL", OperandTypes.ARRAY, 1, false);
+
+  /** The "SAFE_OFFSET(index)" array subscript operator used by BigQuery. The index
+   * starts at 0 and returns null if the index is out of range. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlOperator SAFE_OFFSET =
+      new SqlItemOperator("SAFE_OFFSET", OperandTypes.ARRAY, 0, true);
+
+  /** The "SAFE_ORDINAL(index)" array subscript operator used by BigQuery. The index
+   * starts at 1 and returns null if the index is out of range. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlOperator SAFE_ORDINAL =
+      new SqlItemOperator("SAFE_ORDINAL", OperandTypes.ARRAY, 1, true);
 
   /** The "ARRAY_AGG(value [ ORDER BY ...])" aggregate function,
    * in BIG_QUERY and PostgreSQL, gathers values into arrays. */
@@ -1115,11 +1142,12 @@ public abstract class SqlLibraryOperators {
       OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {HIVE, SPARK})
+  @LibraryOperator(libraries = {HIVE, SPARK, BIG_QUERY})
   public static final SqlFunction SPLIT = new SqlFunction(
       "SPLIT",
       SqlKind.OTHER_FUNCTION,
-      ReturnTypes.MULTISET_NULLABLE,
+      ReturnTypes.ARG0
+          .andThen(SqlTypeTransforms.TO_ARRAY),
       null,
       OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);

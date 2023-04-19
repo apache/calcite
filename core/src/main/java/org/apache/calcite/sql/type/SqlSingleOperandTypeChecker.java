@@ -68,4 +68,16 @@ public interface SqlSingleOperandTypeChecker extends SqlOperandTypeChecker {
       SqlNode operand,
       int iFormalOperand,
       boolean throwOnFailure);
+
+  /** Composes this with another single-operand checker using AND. */
+  default SqlSingleOperandTypeChecker and(
+      SqlSingleOperandTypeChecker checker) {
+    return OperandTypes.and(this, checker);
+  }
+
+  /** Composes this with another single-operand checker using OR. */
+  default SqlSingleOperandTypeChecker or(
+      SqlSingleOperandTypeChecker checker) {
+    return OperandTypes.or(this, checker);
+  }
 }
