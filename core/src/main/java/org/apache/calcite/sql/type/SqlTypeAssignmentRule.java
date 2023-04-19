@@ -68,12 +68,16 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rules.add(SqlTypeName.MULTISET, EnumSet.of(SqlTypeName.MULTISET));
 
     // TINYINT is assignable from...
-    rules.add(SqlTypeName.TINYINT, EnumSet.of(SqlTypeName.TINYINT));
+    rule.clear();
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.BOOLEAN);
+    rules.add(SqlTypeName.TINYINT, rule);
 
     // SMALLINT is assignable from...
     rule.clear();
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.BOOLEAN);
     rules.add(SqlTypeName.SMALLINT, rule);
 
     // INTEGER is assignable from...
@@ -81,6 +85,7 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
+    rule.add(SqlTypeName.BOOLEAN);
     rules.add(SqlTypeName.INTEGER, rule);
 
     // BIGINT is assignable from...
@@ -89,6 +94,7 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
     rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.BOOLEAN);
     rules.add(SqlTypeName.BIGINT, rule);
 
     // FLOAT (up to 64 bit floating point) is assignable from...
