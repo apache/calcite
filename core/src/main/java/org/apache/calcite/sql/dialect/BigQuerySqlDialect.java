@@ -150,6 +150,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       final int rightPrec) {
     switch (call.getKind()) {
     case POSITION:
+      //TODO: add case on number of operands to unparse 3,4 to INSTR instead of STRPOS
       final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
       writer.sep(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);

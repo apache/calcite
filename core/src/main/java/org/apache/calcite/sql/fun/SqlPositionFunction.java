@@ -25,6 +25,8 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+
 
 /**
  * The <code>POSITION</code> function.
@@ -37,8 +39,10 @@ public class SqlPositionFunction extends SqlFunction {
   // as part of rtiDyadicStringSumPrecision
 
   private static final SqlOperandTypeChecker OTC_CUSTOM =
-      OperandTypes.STRING_SAME_SAME
-          .or(OperandTypes.STRING_SAME_SAME_INTEGER);
+//      OperandTypes.STRING_SAME_SAME
+//          .or(OperandTypes.STRING_SAME_SAME_INTEGER)
+          (OperandTypes.STRING_SAME_SAME_INTEGER_INTEGER);
+//          .or(OperandTypes.STRING_SAME_SAME_INTEGER_INTEGER);
 
   public SqlPositionFunction(String name) {
     super(name, SqlKind.POSITION, ReturnTypes.INTEGER_NULLABLE, null,
@@ -60,6 +64,10 @@ public class SqlPositionFunction extends SqlFunction {
       writer.sep("FROM");
       call.operand(2).unparse(writer, leftPrec, rightPrec);
     }
+    if (4 == call.operandCount()) {
+      writer.sep(", ");
+      call.operand(3).unparse(writer, leftPrec, rightPrec);
+    }
     writer.endFunCall(frame);
   }
 
@@ -69,6 +77,8 @@ public class SqlPositionFunction extends SqlFunction {
       return "{0}({1} IN {2})";
     case 3:
       return "{0}({1} IN {2} FROM {3})";
+    case 4:
+      return "{0}({1}, {2}, {3}, {4})";
     default:
       throw new AssertionError();
     }
@@ -88,6 +98,9 @@ public class SqlPositionFunction extends SqlFunction {
       return OperandTypes.SAME_SAME_INTEGER.checkOperandTypes(
           callBinding, throwOnFailure)
           && super.checkOperandTypes(callBinding, throwOnFailure);
+    case 4:
+      return true;
+          //OperandTypes.and(OperandTypes.SAME_SAME_INTEGER, OperandTypes.INTEGER).checkOperandTypes(callBinding, throwOnFailure) && super.checkOperandTypes(callBinding, throwOnFailure);
     default:
       throw new AssertionError();
     }

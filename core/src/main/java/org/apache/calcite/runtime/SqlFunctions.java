@@ -3104,23 +3104,89 @@ public class SqlFunctions {
 
   /** SQL {@code POSITION(seek IN string FROM integer)} function. */
   public static int position(String seek, String s, int from) {
-    final int from0 = from - 1; // 0-based
-    if (from0 > s.length() || from0 < 0) {
+    if (from > 0) {
+      final int from0 = from - 1; // 0-based
+      if (from0 > s.length() || from0 < 0) {
+        return 0;
+      }
+
+      return s.indexOf(seek, from0) + 1;
+    }
+    final int rightIndex = from + s.length(); // negative position to positive index
+    if (rightIndex <= 0) {
       return 0;
     }
-
-    return s.indexOf(seek, from0) + 1;
+    return s.substring(0, rightIndex).lastIndexOf(seek) + 1;
   }
 
   /** SQL {@code POSITION(seek IN string FROM integer)} function for byte
    * strings. */
   public static int position(ByteString seek, ByteString s, int from) {
-    final int from0 = from - 1;
-    if (from0 > s.length() || from0 < 0) {
+    if (from > 0) {
+      final int from0 = from - 1; // 0-based
+      if (from0 > s.length() || from0 < 0) {
+        return 0;
+      }
+
+      return s.indexOf(seek, from0) + 1;
+    }
+    final int rightIndex = from + s.length();
+    if (rightIndex <= 0) {
       return 0;
     }
+    return -1;
+    //s.lastIndexOf(seek, rightIndex) + 1;
+  }
 
-    return s.indexOf(seek, from0) + 1;
+  /** SQL {@code POSITION(seek, string, from, occurrence)} function. */
+  public static int position(String seek, String s, int from, int occurrence) {
+    if (from > 0){
+      int rollingFrom = from;
+      for (int i = 0; i< occurrence; i++) {
+        rollingFrom = position(seek, s, rollingFrom);
+        if (rollingFrom == 0) {
+          return 0;
+        }
+      }
+      return rollingFrom;
+    }
+    int rollingFromNeg = from;
+    int rollingFromPos = 0;
+    for (int i = 0; i< occurrence; i++) {
+      rollingFromPos = position(seek, s, rollingFromNeg);
+      if (rollingFromPos == 0) {
+        return 0;
+      }
+      rollingFromNeg = rollingFromPos - s.length();
+    }
+    return rollingFromPos;
+
+  }
+
+  /** SQL {@code POSITION(seek, string, from, occurrence)} function for byte
+   * strings. */
+  public static int position(ByteString seek, ByteString s, int from, int occurrence) {
+    if (from > 0){
+      int rollingFrom = from;
+      for (int i = 0; i< occurrence; i++) {
+        rollingFrom = position(seek, s, rollingFrom);
+        if (rollingFrom == 0) {
+          return 0;
+        }
+      }
+      return rollingFrom;
+    }
+    int rollingFromNeg = from;
+    int rollingFromPos = 0;
+    for (int i = 0; i< occurrence; i++) {
+      rollingFromPos = position(seek, s, rollingFromNeg);
+      if (rollingFromPos == 0) {
+        return 0;
+      }
+      rollingFromNeg = rollingFromPos - s.length();
+    }
+    return rollingFromPos;
+
   }
 
   /** Helper for rounding. Truncate(12345, 1000) returns 12000. */

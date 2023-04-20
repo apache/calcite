@@ -279,6 +279,13 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             SqlStdOperatorTable.POSITION.createCall(SqlParserPos.ZERO,
                 call.operand(1), call.operand(0))));
 
+    // "INSTR(string, substring, position, occurrence) is equivalent to
+    // "POSITION(substring, string, position, occurrence)"
+    registerOp(SqlLibraryOperators.INSTR,
+        (cx, call) -> cx.convertExpression(
+            SqlStdOperatorTable.POSITION.createCall(SqlParserPos.ZERO,
+                call.operand(1), call.operand(0), call.operand(2), call.operand(3))));
+
     // REVIEW jvs 24-Apr-2006: This only seems to be working from within a
     // windowed agg.  I have added an optimizer rule
     // org.apache.calcite.rel.rules.AggregateReduceFunctionsRule which handles

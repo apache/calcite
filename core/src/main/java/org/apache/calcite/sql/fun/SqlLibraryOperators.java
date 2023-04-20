@@ -332,11 +332,16 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
   public static final SqlFunction STRPOS = new SqlPositionFunction("STRPOS");
 
+  /** The "INSTR(string, substring [, position [, occurrence]])" function. */
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
+  public static final SqlFunction INSTR = new SqlPositionFunction("INSTR");
+
   /** Generic "SUBSTR(string, position [, substringLength ])" function. */
   private static final SqlBasicFunction SUBSTR =
       SqlBasicFunction.create("SUBSTR", ReturnTypes.ARG0_NULLABLE_VARYING,
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
+
 
   /** The "ENDS_WITH(value1, value2)" function (BigQuery). */
   @LibraryOperator(libraries = {BIG_QUERY})

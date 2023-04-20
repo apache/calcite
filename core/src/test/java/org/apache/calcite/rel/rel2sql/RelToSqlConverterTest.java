@@ -2228,6 +2228,15 @@ class RelToSqlConverterTest {
     sql(query).withBigQuery().ok(expected);
   }
 
+  @Test void testBigQueryInstrFunction() {
+    final String query = "SELECT INSTR('A', 'ABC', 1, 1) from \"product\"";
+    final String expected = "SELECT INSTR('A', 'ABC', 1, 1)\n"
+        + "FROM foodmart.product";
+    final Sql sql = fixture().withBigQuery().withLibrary(SqlLibrary.BIG_QUERY);
+    sql.withSql(query).withBigQuery().ok(expected);
+  }
+
+
   /** Tests that we escape single-quotes in character literals using back-slash
    * in BigQuery. The norm is to escape single-quotes with single-quotes. */
   @Test void testCharLiteralForBigQuery() {
