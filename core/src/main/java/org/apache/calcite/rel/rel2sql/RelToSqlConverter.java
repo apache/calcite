@@ -170,46 +170,6 @@ public class RelToSqlConverter extends SqlImplementor
     throw new AssertionError("Need to implement " + e.getClass().getName());
   }
 
-  /**
-   * A SqlShuttle to replace references to a column of a table alias with the expression
-   * from the select item that is the source of that column.
-   * ANTI- and SEMI-joins generate an alias for right hand side relation which
-   * is used in the ON condition. But that alias is never created, so we have to inline references.
-   */
-  private static class AliasReplacementShuttle extends SqlShuttle {
-    private final String tableAlias;
-    private final RelDataType tableType;
-    private final SqlNodeList replaceSource;
-
-    AliasReplacementShuttle(String tableAlias, RelDataType tableType,
-        SqlNodeList replaceSource) {
-      this.tableAlias = tableAlias;
-      this.tableType = tableType;
-      this.replaceSource = replaceSource;
-    }
-
-    @Override public SqlNode visit(SqlIdentifier id) {
-      SqlNodeList source = requireNonNull(replaceSource, "replaceSource");
-      SqlNode firstItem = source.get(0);
-      if (firstItem instanceof SqlIdentifier && ((SqlIdentifier) firstItem).isStar()) {
-        return id;
-      }
-      if (tableAlias.equals(id.names.get(0))) {
-        int index =
-            requireNonNull(tableType.getField(id.names.get(1), false, false),
-                () -> "field " + id.names.get(1) + " is not found in "
-                    + tableType)
-            .getIndex();
-        SqlNode selectItem = source.get(index);
-        if (selectItem.getKind() == SqlKind.AS) {
-          selectItem = ((SqlCall) selectItem).operand(0);
-        }
-        return selectItem.clone(id.getParserPosition());
-      }
-      return id;
-    }
-  }
-
   /** Visits a Join; called by {@link #dispatch} via reflection. */
   public Result visit(Join e) {
     switch (e.getJoinType()) {
@@ -252,22 +212,89 @@ public class RelToSqlConverter extends SqlImplementor
     return result(join, leftResult, rightResult);
   }
 
+  /**
+   * A SqlShuttle to replace references to a column of a table alias with the expression
+   * from the select item that is the source of that column.
+   * For example, if a replacement source is {@code SELECT A * A as B FROM F} and
+   * processed expression is {@code t.B > 1}, resulting expression will be {@code F.A * F.A > 1}.
+   * This is required to transform semi-join condition created in the qualified context
+   * of aliased LHS to the condition that can be used in {@code WHERE} clause of LHS.
+   */
+  private static class AliasReplacementShuttle extends SqlShuttle {
+    private final SqlNodeList fieldReplaceSource;
+    private final RelDataType tableType;
+    private final String replacedTableAlias;
+    private final String newTableAlias;
+
+    AliasReplacementShuttle(SqlSelect replaceSource, RelDataType tableType,
+        String replacedTableAlias) {
+      this.tableType = tableType;
+      this.fieldReplaceSource = replaceSource.getSelectList();
+      this.replacedTableAlias = replacedTableAlias;
+      final SqlNode from =
+          requireNonNull(replaceSource.getFrom(), "from part of semi join LHS is null " + replaceSource);
+      this.newTableAlias =
+          requireNonNull(SqlValidatorUtil.alias(from), "no alias in from part of semi join LHS " + from);
+    }
+
+    private boolean isFieldReplacementNeeded() {
+      final SqlNode firstItem = fieldReplaceSource.get(0);
+      return !(firstItem instanceof SqlIdentifier && ((SqlIdentifier) firstItem).isStar());
+    }
+
+    @Override public SqlNode visit(SqlIdentifier id) {
+      if (!replacedTableAlias.equals(id.names.get(0))) {
+        return id;
+      }
+      if (!isFieldReplacementNeeded()) {
+        return new SqlIdentifier(ImmutableList.of(newTableAlias, id.names.get(1)),
+            id.getParserPosition());
+      }
+      int index =
+          requireNonNull(tableType.getField(id.names.get(1), false, false),
+              () -> "field " + id.names.get(1) + " is not found in "
+                  + tableType)
+              .getIndex();
+      SqlNode selectItem = fieldReplaceSource.get(index);
+      if (selectItem.getKind() == SqlKind.AS) {
+        selectItem = ((SqlCall) selectItem).operand(0);
+      }
+      return requireNonNull(
+          selectItem.accept(new SqlShuttle() {
+        @Override public SqlNode visit(SqlIdentifier id) {
+          if (id.isSimple()) {
+            return new SqlIdentifier(ImmutableList.of(newTableAlias, id.names.get(0)),
+                id.getParserPosition());
+          }
+          return id;
+        }
+      }));
+    }
+  }
+
   protected Result visitAntiOrSemiJoin(Join e) {
     final Result leftResult = visitInput(e, 0).resetAlias();
     final Result rightResult = visitInput(e, 1).resetAlias();
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
 
-    final SqlSelect sqlSelect = leftResult.asSelect();
+    SqlSelect sqlSelect = leftResult.asSelect();
     SqlNode sqlCondition =
         convertConditionToSqlNode(e.getCondition(), leftContext, rightContext);
     if (leftResult.neededAlias != null) {
-      SqlShuttle visitor =
-          new AliasReplacementShuttle(leftResult.neededAlias,
-              e.getLeft().getRowType(), sqlSelect.getSelectList());
-      sqlCondition = sqlCondition.accept(visitor);
+      SqlNode from = sqlSelect.getFrom();
+      if (from != null && from.isA(ImmutableSet.of(SqlKind.IDENTIFIER, SqlKind.AS))) {
+        final SqlShuttle visitor =
+            new AliasReplacementShuttle(sqlSelect, e.getLeft().getRowType(), leftResult.neededAlias);
+        sqlCondition = sqlCondition.accept(visitor);
+      } else {
+        sqlSelect =
+            new SqlSelect(POS, null, SqlNodeList.SINGLETON_STAR, leftResult.asFrom(), null, null,
+            null, null, null, null, null, null, null);
+      }
     }
-    SqlNode fromPart = rightResult.asFrom();
+
+    final SqlNode fromPart = rightResult.asFrom();
     SqlSelect existsSqlSelect;
     if (fromPart.getKind() == SqlKind.SELECT) {
       existsSqlSelect = (SqlSelect) fromPart;
@@ -297,10 +324,7 @@ public class RelToSqlConverter extends SqlImplementor
               sqlCondition);
     }
     sqlSelect.setWhere(sqlCondition);
-    final SqlNode resultNode =
-        leftResult.neededAlias == null ? sqlSelect
-            : as(sqlSelect, leftResult.neededAlias);
-    return result(resultNode,  ImmutableList.of(Clause.FROM), e, null);
+    return result(sqlSelect, ImmutableList.of(Clause.SELECT, Clause.FROM, Clause.WHERE), e, null);
   }
 
   /** Returns whether this join should be unparsed as a {@link JoinType#COMMA}.
