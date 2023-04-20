@@ -45,6 +45,7 @@ public class BodoSqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+
   @Test void testCreateTableSimple() {
     // Simple test to confirm that we can handle create table statements
     final String sql = "CREATE TABLE out_test AS select 1, 2, 3 from emp";

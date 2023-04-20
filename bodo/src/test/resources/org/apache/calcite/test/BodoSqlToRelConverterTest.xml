@@ -19,7 +19,7 @@
   <TestCase name="testCreateIfNotExistsTableLike">
     <Resource name="plan">
       <![CDATA[
-LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[false], CreateTableType=[DEFAULT])
+LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[false])
   LogicalSort(fetch=[0:BIGINT])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -28,7 +28,7 @@ LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[
   <TestCase name="testCreateOrReplaceTable">
     <Resource name="plan">
       <![CDATA[
-LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[true], CreateTableType=[DEFAULT])
+LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[true])
   LogicalProject(DEPTNO=[$9], EMPNO=[$0])
     LogicalJoin(condition=[=($7, $9)], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -44,7 +44,7 @@ select dept.deptno, emp.empno
   <TestCase name="testCreateOrReplaceTableLike">
     <Resource name="plan">
       <![CDATA[
-LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[true], CreateTableType=[DEFAULT])
+LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[true])
   LogicalSort(fetch=[0:BIGINT])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -53,7 +53,7 @@ LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[
   <TestCase name="testCreateTableIfNotExists">
     <Resource name="plan">
       <![CDATA[
-LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[SALES]], IsReplace=[false], CreateTableType=[DEFAULT])
+LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[SALES]], IsReplace=[false])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -65,7 +65,7 @@ LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[SALES]], IsReplace=[fal
   <TestCase name="testCreateTableLike">
     <Resource name="plan">
       <![CDATA[
-LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[false], CreateTableType=[DEFAULT])
+LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[false])
   LogicalSort(fetch=[0:BIGINT])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -74,7 +74,7 @@ LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[
   <TestCase name="testCreateTableOrderBy">
     <Resource name="plan">
       <![CDATA[
-LogicalTableCreate(TableName=[TESTING_OUTPUT], Target Schema=[[SALES]], IsReplace=[false], CreateTableType=[DEFAULT])
+LogicalTableCreate(TableName=[TESTING_OUTPUT], Target Schema=[[SALES]], IsReplace=[false])
   LogicalSort(sort0=[$0], dir0=[ASC])
     LogicalProject(P_PARTKEY=[$0])
       LogicalValues(tuples=[[{ 'foo' }]])
@@ -84,7 +84,7 @@ LogicalTableCreate(TableName=[TESTING_OUTPUT], Target Schema=[[SALES]], IsReplac
   <TestCase name="testCreateTableRewrite">
     <Resource name="plan">
       <![CDATA[
-LogicalTableCreate(TableName=[FOO], Target Schema=[[SALES]], IsReplace=[false], CreateTableType=[DEFAULT])
+LogicalTableCreate(TableName=[FOO], Target Schema=[[SALES]], IsReplace=[false])
   LogicalSort(fetch=[10])
     LogicalProject(DEPTNO=[$0], NAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -97,7 +97,7 @@ LogicalTableCreate(TableName=[FOO], Target Schema=[[SALES]], IsReplace=[false], 
   <TestCase name="testCreateTableSimple">
     <Resource name="plan">
       <![CDATA[
-LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[SALES]], IsReplace=[false], CreateTableType=[DEFAULT])
+LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[SALES]], IsReplace=[false])
   LogicalProject(EXPR$0=[1], EXPR$1=[2], EXPR$2=[3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -106,7 +106,7 @@ LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[SALES]], IsReplace=[fal
   <TestCase name="testCreateTableWith">
     <Resource name="plan">
       <![CDATA[
-LogicalTableCreate(TableName=[FOO], Target Schema=[[SALES]], IsReplace=[false], CreateTableType=[DEFAULT])
+LogicalTableCreate(TableName=[FOO], Target Schema=[[SALES]], IsReplace=[false])
   LogicalProject(DEPTNO=[$0], NAME=[$1], DEPTNO0=[$2], NAME0=[$3])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
       LogicalSort(fetch=[10])
