@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.type;
 
+import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
@@ -34,6 +35,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlRowTypeNameSpec;
 import org.apache.calcite.sql.SqlTypeNameSpec;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
@@ -60,6 +62,10 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.avatica.SqlType.BIGINT;
+import static org.apache.calcite.avatica.SqlType.INTEGER;
+import static org.apache.calcite.avatica.SqlType.SMALLINT;
+import static org.apache.calcite.avatica.SqlType.TINYINT;
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
@@ -953,6 +959,52 @@ public abstract class SqlTypeUtil {
 
     SqlTypeMappingRule rules = SqlTypeMappingRules.instance(coerce);
     return rules.canApplyFrom(toTypeName, fromTypeName);
+  }
+
+  /**
+   * Compares two types and returns true if fromType can be cast to toType or if the connection
+   * conformance allows exceptions.
+   *
+   * @param toType   target of assignment
+   * @param fromType source of assignment
+   * @param coerce   if true, the SQL rules for CAST are used; if false, the
+   *                 rules are similar to Java; e.g. you can't assign short x =
+   *                 (int) y, and you can't assign int x = (String) z.
+   * @param conformance value for connection conformance
+   * @return true if cast is legal or connection conformance allows exceptions
+   */
+  public static boolean canCastFrom(
+      RelDataType toType,
+      RelDataType fromType,
+      boolean coerce,
+      SqlConformance conformance) {
+    if (castingBooleanToNumber(toType, fromType)) {
+      return conformance.allowLenientBooleanCastTypes();
+    } else {
+      return canCastFrom(toType, fromType, coerce);
+    }
+  }
+
+  /**
+   * Returns whether the attempted cast is from a BOOLEAN to a NUMERIC where
+   * NUMERIC is one of [TINYINT, SMALLINT, INTEGER, BIGINT].
+   * @param toType Target of assignment
+   * @param fromType Source of assignment
+   * @return true iff fromType is boolean and toType is one of [TINYINT, SMALLINT, INTEGER, BIGINT]
+   */
+  public static boolean castingBooleanToNumber(
+      RelDataType toType,
+      RelDataType fromType) {
+    // These following types support casting from booleans in some dialects such as BigQuery.
+    List<String> numericTypes =
+            ImmutableList.of(TINYINT,
+            SMALLINT,
+            INTEGER,
+            BIGINT)
+        .stream().map(type -> type.toString()).collect(Collectors.toList());
+
+    return numericTypes.contains(toType.getSqlTypeName().getName()) && fromType.getSqlTypeName().getName()
+        .equals(SqlType.BOOLEAN.name());
   }
 
   /**

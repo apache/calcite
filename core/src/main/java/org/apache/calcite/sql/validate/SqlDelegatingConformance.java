@@ -151,4 +151,8 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.allowCoercionStringToArray();
   }
 
+  @Override public boolean allowLenientBooleanCastTypes() {
+    return delegate.allowLenientBooleanCastTypes();
+  }
+
 }

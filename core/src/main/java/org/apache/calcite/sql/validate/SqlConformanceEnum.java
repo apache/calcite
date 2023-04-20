@@ -439,4 +439,13 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+
+  @Override public boolean allowLenientBooleanCastTypes() {
+    switch(this) {
+    case BIG_QUERY:
+      return true;
+    default:
+      return false;
+    }
+  }
 }

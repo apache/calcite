@@ -537,6 +537,21 @@ public interface SqlConformance {
   boolean isValueAllowed();
 
   /**
+   * Whether {@link org.apache.calcite.sql.fun.SqlCastFunction} allows casting
+   *  {@link org.apache.calcite.sql.type.SqlTypeName#BOOLEAN}
+   *  to NUMERIC_TYPE, where NUMERIC_TYPE is one of
+   *  {@link org.apache.calcite.sql.type.SqlTypeName#TINYINT}
+   *  {@link org.apache.calcite.sql.type.SqlTypeName#SMALLINT}
+   *  {@link org.apache.calcite.sql.type.SqlTypeName#INTEGER}
+   *  {@link org.apache.calcite.sql.type.SqlTypeName#BIGINT}
+   *
+   *  <p> Among the built-in conformance levels, true in
+   *  {@link SqlConformanceEnum#BIG_QUERY};
+   *  false otherwise.
+   */
+  boolean allowLenientBooleanCastTypes();
+
+  /**
    * Controls the behavior of operators that are part of Standard SQL but
    * nevertheless have different behavior in different databases.
    *

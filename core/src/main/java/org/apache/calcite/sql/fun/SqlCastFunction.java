@@ -37,6 +37,7 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 import com.google.common.collect.ImmutableSetMultimap;
@@ -152,7 +153,9 @@ public class SqlCastFunction extends SqlFunction {
     RelDataType validatedNodeType =
         callBinding.getValidator().getValidatedNodeType(left);
     RelDataType returnType = SqlTypeUtil.deriveType(callBinding, right);
-    if (!SqlTypeUtil.canCastFrom(returnType, validatedNodeType, true)) {
+    SqlConformance conformance =  callBinding.getValidator().config().conformance();
+
+    if (!SqlTypeUtil.canCastFrom(returnType, validatedNodeType, true, conformance)) {
       if (throwOnFailure) {
         throw callBinding.newError(
             RESOURCE.cannotCastValue(validatedNodeType.toString(),

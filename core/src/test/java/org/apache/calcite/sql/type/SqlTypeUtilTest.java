@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlRowTypeNameSpec;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import com.google.common.collect.ImmutableList;
 
@@ -251,6 +252,25 @@ class SqlTypeUtilTest {
       assertCanCast(nullableUnknownType, fromType);
       assertCanCast(nullableUnknownType, nullableFromType);
     }
+  }
+
+  @Test void testCastingBooleanToNumber() {
+    RelDataType boolType = f.sqlBoolean;
+    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlInt, boolType), is(true));
+    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlBigInt, boolType), is(true));
+    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlBigIntNullable, boolType), is(true));
+    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlFloat, boolType), is(false));
+    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlVarchar, boolType), is(false));
+    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlAny, boolType), is(false));
+  }
+
+  @Test void testCanCastDifferentConformance() {
+    RelDataType boolType = f.sqlBoolean;
+    RelDataType intType = f.sqlInt;
+    assertThat(SqlTypeUtil.canCastFrom(intType, boolType, true, SqlConformanceEnum.DEFAULT),
+        is(false));
+    assertThat(SqlTypeUtil.canCastFrom(intType, boolType, true, SqlConformanceEnum.BIG_QUERY),
+        is(true));
   }
 
   private static void assertCanCast(RelDataType toType, RelDataType fromType) {
