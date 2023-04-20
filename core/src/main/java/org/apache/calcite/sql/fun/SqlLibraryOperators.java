@@ -1457,4 +1457,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.ANY,
               SqlTypeFamily.STRING),
           SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK, SNOWFLAKE})
+  public static final SqlFunction TRANSLATE =
+      new SqlFunction(
+          "TRANSLATE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING_STRING,
+          SqlFunctionCategory.STRING);
 }
