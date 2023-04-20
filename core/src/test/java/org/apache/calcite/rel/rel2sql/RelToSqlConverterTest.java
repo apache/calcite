@@ -1172,7 +1172,32 @@ class RelToSqlConverterTest {
     assertThat(toSql(root), isLinux(expectedSql));
   }
 
-  @Test void testSemiJoinFilter() {
+  @Test void testSemiJoinLhsFilter() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("DEPT")
+        .filter(
+            builder.call(SqlStdOperatorTable.GREATER_THAN,
+                builder.field("DEPTNO"),
+                builder.literal((short) 10)))
+        .scan("EMP")
+        .join(
+            JoinRelType.SEMI, builder.equals(
+                builder.field(2, 1, "DEPTNO"),
+                builder.field(2, 0, "DEPTNO")))
+        .project(builder.field("DEPTNO"))
+        .build();
+    final String expectedSql = "SELECT \"DEPTNO\"\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"scott\".\"DEPT\"\n"
+        + "WHERE \"DEPTNO\" > 10) AS \"t\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"t\".\"DEPTNO\" = \"EMP\".\"DEPTNO\")";
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  @Test void testSemiJoinRhsFilter() {
     final RelBuilder builder = relBuilder();
     final RelNode root = builder
         .scan("DEPT")
@@ -1241,14 +1266,13 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSql = "SELECT \"DEPTNO\"\n"
         + "FROM (SELECT *\n"
-        + "FROM (SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "UNION ALL\n"
         + "SELECT *\n"
-        + "FROM \"scott\".\"EMP\")\n"
+        + "FROM \"scott\".\"EMP\") AS \"t\"\n"
         + "WHERE EXISTS (SELECT 1\n"
         + "FROM \"scott\".\"DEPT\"\n"
-        + "WHERE \"t\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\")) AS \"t\"";
+        + "WHERE \"t\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\")";
     assertThat(toSql(root), isLinux(expectedSql));
   }
 
@@ -1310,6 +1334,157 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\" AS \"EMP0\"\n"
         + "WHERE \"EMP\".\"EMPNO\" = \"EMP0\".\"EMPNO\")) AS \"t\" ON \"DEPT\".\"DEPTNO\" = \"t\""
         + ".\"DEPTNO\"";
+
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  @Test void testSemiJoinUnderSemiJoin() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("DEPT")
+        .scan("EMP")
+        .join(
+            JoinRelType.SEMI, builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")))
+        .scan("EMP")
+        .join(
+            JoinRelType.SEMI, builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")))
+        .build();
+    final String expectedSql = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"scott\".\"DEPT\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\")) AS \"t\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM \"scott\".\"EMP\" AS \"EMP0\"\n"
+        + "WHERE \"t\".\"DEPTNO\" = \"EMP0\".\"DEPTNO\")";
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+
+  @Test void testSemiJoinUnderFilter() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("DEPT")
+        .project(builder.field("DEPTNO"), builder.field("DNAME"))
+        .scan("EMP")
+        .project(builder.field("DEPTNO"))
+        .join(
+            JoinRelType.SEMI, builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")))
+        .filter(
+            builder.call(SqlStdOperatorTable.GREATER_THAN,
+            builder.field("DEPTNO"),
+            builder.literal((short) 10)))
+        .build();
+    final String expectedSql = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM (SELECT \"DEPTNO\", \"DNAME\"\n"
+        + "FROM \"scott\".\"DEPT\") AS \"t\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM (SELECT \"DEPTNO\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"t0\"\n"
+        + "WHERE \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\")) AS \"t1\"\n"
+        + "WHERE \"DEPTNO\" > 10";
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  @Test void testSemiJoinFieldNameClash() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("DEPT")
+        .scan("EMP")
+        .join(
+            JoinRelType.SEMI, builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")))
+        .project(builder.field("DEPTNO"))
+        .build();
+    final String expectedSql = "SELECT \"DEPTNO\"\n"
+        + "FROM \"scott\".\"DEPT\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\")";
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  @Test void testSemiJoinProjectFieldNameClash() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("DEPT")
+        .project(builder.field("DEPTNO"), builder.field("DNAME"))
+        .scan("EMP")
+        .project(builder.field("DEPTNO"))
+        .join(
+            JoinRelType.SEMI, builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")))
+        .build();
+    final String expectedSql = "SELECT *\n"
+        + "FROM (SELECT \"DEPTNO\", \"DNAME\"\n"
+        + "FROM \"scott\".\"DEPT\") AS \"t\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM (SELECT \"DEPTNO\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"t0\"\n"
+        + "WHERE \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\")";
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  @Test void testSemiJoinWithSameTable() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .scan("EMP")
+        .join(
+            JoinRelType.SEMI, builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")))
+        .project(builder.field("DEPTNO"))
+        .build();
+    final String expectedSql = "SELECT \"DEPTNO\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM \"scott\".\"EMP\" AS \"EMP0\"\n"
+        + "WHERE \"EMP\".\"DEPTNO\" = \"EMP0\".\"DEPTNO\")";
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  @Test void testSemiJoinWithSameTableSource() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.field("DEPTNO"), builder.field("EMPNO"))
+        .scan("EMP")
+        .filter(
+            builder.call(SqlStdOperatorTable.GREATER_THAN,
+                builder.field("JOB"),
+                builder.literal((short) 10)))
+        .project(builder.field("EMPNO"))
+        .join(
+            JoinRelType.SEMI, builder.equals(
+                builder.field(2, 0, "EMPNO"),
+                builder.field(2, 1, "EMPNO")))
+        .filter(
+            builder.call(SqlStdOperatorTable.GREATER_THAN,
+            builder.field("EMPNO"),
+            builder.literal((short) 10)))
+        .project(builder.field("DEPTNO"))
+        .build();
+    final String expectedSql = "SELECT \"DEPTNO\"\n"
+        + "FROM (SELECT *\n"
+        + "FROM (SELECT \"DEPTNO\", \"EMPNO\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"t\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM (SELECT \"EMPNO\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"JOB\" > 10) AS \"t1\"\n"
+        + "WHERE \"t\".\"EMPNO\" = \"t1\".\"EMPNO\")) AS \"t2\"\n"
+        + "WHERE \"EMPNO\" > 10";
     assertThat(toSql(root), isLinux(expectedSql));
   }
 

@@ -80,7 +80,6 @@ import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -170,46 +169,6 @@ public class RelToSqlConverter extends SqlImplementor
     throw new AssertionError("Need to implement " + e.getClass().getName());
   }
 
-  /**
-   * A SqlShuttle to replace references to a column of a table alias with the expression
-   * from the select item that is the source of that column.
-   * ANTI- and SEMI-joins generate an alias for right hand side relation which
-   * is used in the ON condition. But that alias is never created, so we have to inline references.
-   */
-  private static class AliasReplacementShuttle extends SqlShuttle {
-    private final String tableAlias;
-    private final RelDataType tableType;
-    private final SqlNodeList replaceSource;
-
-    AliasReplacementShuttle(String tableAlias, RelDataType tableType,
-        SqlNodeList replaceSource) {
-      this.tableAlias = tableAlias;
-      this.tableType = tableType;
-      this.replaceSource = replaceSource;
-    }
-
-    @Override public SqlNode visit(SqlIdentifier id) {
-      SqlNodeList source = requireNonNull(replaceSource, "replaceSource");
-      SqlNode firstItem = source.get(0);
-      if (firstItem instanceof SqlIdentifier && ((SqlIdentifier) firstItem).isStar()) {
-        return id;
-      }
-      if (tableAlias.equals(id.names.get(0))) {
-        int index =
-            requireNonNull(tableType.getField(id.names.get(1), false, false),
-                () -> "field " + id.names.get(1) + " is not found in "
-                    + tableType)
-            .getIndex();
-        SqlNode selectItem = source.get(index);
-        if (selectItem.getKind() == SqlKind.AS) {
-          selectItem = ((SqlCall) selectItem).operand(0);
-        }
-        return selectItem.clone(id.getParserPosition());
-      }
-      return id;
-    }
-  }
-
   /** Visits a Join; called by {@link #dispatch} via reflection. */
   public Result visit(Join e) {
     switch (e.getJoinType()) {
@@ -253,20 +212,13 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   protected Result visitAntiOrSemiJoin(Join e) {
-    final Result leftResult = visitInput(e, 0).resetAlias();
+    final Result leftResult = visitInput(e, 0, Clause.WHERE).resetAlias();
     final Result rightResult = visitInput(e, 1).resetAlias();
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
 
-    final SqlSelect sqlSelect = leftResult.asSelect();
     SqlNode sqlCondition =
         convertConditionToSqlNode(e.getCondition(), leftContext, rightContext);
-    if (leftResult.neededAlias != null) {
-      SqlShuttle visitor =
-          new AliasReplacementShuttle(leftResult.neededAlias,
-              e.getLeft().getRowType(), sqlSelect.getSelectList());
-      sqlCondition = sqlCondition.accept(visitor);
-    }
     SqlNode fromPart = rightResult.asFrom();
     SqlSelect existsSqlSelect;
     if (fromPart.getKind() == SqlKind.SELECT) {
@@ -291,16 +243,10 @@ public class RelToSqlConverter extends SqlImplementor
     if (e.getJoinType() == JoinRelType.ANTI) {
       sqlCondition = SqlStdOperatorTable.NOT.createCall(POS, sqlCondition);
     }
-    if (sqlSelect.getWhere() != null) {
-      sqlCondition =
-          SqlStdOperatorTable.AND.createCall(POS, sqlSelect.getWhere(),
-              sqlCondition);
-    }
-    sqlSelect.setWhere(sqlCondition);
-    final SqlNode resultNode =
-        leftResult.neededAlias == null ? sqlSelect
-            : as(sqlSelect, leftResult.neededAlias);
-    return result(resultNode,  ImmutableList.of(Clause.FROM), e, null);
+
+    final Builder builder = leftResult.builder(e);
+    builder.setWhere(sqlCondition);
+    return builder.result();
   }
 
   /** Returns whether this join should be unparsed as a {@link JoinType#COMMA}.
