@@ -60,6 +60,8 @@ public class SqlBodoCreateTable extends SqlCreateTable {
     super.validate(validator, scope);
   }
 
+  //This is a completely arbitrary change to a file/directory that is no longer used to trigger a
+  //rebuild of the package on jitpack.
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     writer.keyword("CREATE");
     if (_volatile) {
