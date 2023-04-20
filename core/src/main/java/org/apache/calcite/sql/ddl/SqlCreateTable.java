@@ -52,6 +52,35 @@ public class SqlCreateTable extends SqlCreate {
   private @Nullable Schema outputTableSchema;
   private @Nullable List<String> outputTableSchemaPath;
 
+  protected CreateTableType createType;
+
+  /** Enum describing the possible types of output table.
+   * This should be reverted/moved to the bodo create table SqlNode
+   * when we rewrite createRelationalAlgebraHandler to handle
+   * DDL statements prior to SqlToRel conversion.
+   */
+  public enum CreateTableType {
+    DEFAULT,
+    TEMPORARY,
+    TRANSIENT;
+
+    //Helper function to convert the enum to string. Used in the BodoSQL repo when generating
+    //text
+    public String asStringKeyword() {
+      switch (this) {
+      case TEMPORARY:
+        return "TEMPORARY";
+      case TRANSIENT:
+        return "TRANSIENT";
+      case DEFAULT:
+        return "";
+      default:
+        throw new RuntimeException("Reached unreachable code in CreateTableType.asStringKeyword");
+      }
+    }
+
+  }
+
   private static final SqlOperator OPERATOR =
       new SqlSpecialOperator("CREATE TABLE", SqlKind.CREATE_TABLE);
 
@@ -62,6 +91,7 @@ public class SqlCreateTable extends SqlCreate {
     this.name = Objects.requireNonNull(name, "name");
     this.columnList = columnList; // may be null
     this.query = query; // for "CREATE TABLE ... AS query"; may be null
+    this.createType = CreateTableType.DEFAULT; // To handle CREATE [TEMPORARY/TRANSIENT/..] TABLE
   }
 
   @SuppressWarnings("nullness")
@@ -149,4 +179,7 @@ public class SqlCreateTable extends SqlCreate {
     return outputTableName;
   }
 
+  public CreateTableType getCreateTableType() {
+    return this.createType;
+  }
 }
