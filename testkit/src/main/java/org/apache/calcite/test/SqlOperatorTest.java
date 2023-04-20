@@ -3761,7 +3761,7 @@ public class SqlOperatorTest {
     f.checkScalarExact("position('b' in 'abcabc' FROM 3)", 5);
     f.checkScalarExact("position('b' in 'abcabc' FROM 5)", 5);
     f.checkScalarExact("position('b' in 'abcabc' FROM 6)", 0);
-    f.checkScalarExact("position('b' in 'abcabc' FROM -5)", 0);
+    f.checkScalarExact("position('b' in 'abcabc' FROM -5)", 2);
     f.checkScalarExact("position('' in 'abc' FROM 3)", 3);
     f.checkScalarExact("position('' in 'abc' FROM 10)", 0);
 
@@ -3770,7 +3770,7 @@ public class SqlOperatorTest {
     f.checkScalarExact("position(x'bb' in x'aabbccaabbcc' FROM 3)", 5);
     f.checkScalarExact("position(x'bb' in x'aabbccaabbcc' FROM 5)", 5);
     f.checkScalarExact("position(x'bb' in x'aabbccaabbcc' FROM 6)", 0);
-    f.checkScalarExact("position(x'bb' in x'aabbccaabbcc' FROM -5)", 0);
+    f.checkScalarExact("position(x'bb' in x'aabbccaabbcc' FROM -5)", 2);
     f.checkScalarExact("position(x'cc' in x'aabbccdd' FROM 2)", 3);
     f.checkScalarExact("position(x'' in x'aabbcc' FROM 3)", 3);
     f.checkScalarExact("position(x'' in x'aabbcc' FROM 10)", 0);
@@ -6306,6 +6306,37 @@ public class SqlOperatorTest {
     f.checkScalar("STRPOS(x'', x'12')", "0", "INTEGER NOT NULL");
     f.checkNull("STRPOS(null, x'')");
     f.checkNull("STRPOS(x'', null)");
+  }
+
+  @Test void testInstrFunction() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.CHR, VM_FENNEL, VM_JAVA);
+    f0.checkFails("^INSTR('abc', 'a', 1, 1)^",
+        "No match found for function signature INSTR\\(<CHARACTER>, <CHARACTER>,"
+            + " <NUMERIC>, <NUMERIC>\\)", false);
+
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      // test for CHAR
+      f.checkScalar("INSTR('abc', 'a', 1, 1)", "1", "INTEGER NOT NULL");
+      f.checkScalar("INSTR('abcabc', 'bc', 1, 2)", "5", "INTEGER NOT NULL");
+      f.checkScalar("INSTR('abcabc', 'd', 1, 1)", "0", "INTEGER NOT NULL");
+      f.checkScalar("INSTR('dabcabcd', 'd', 4, 1)", "8", "INTEGER NOT NULL");
+      f.checkScalar("INSTR('abc', '', 1, 1)", "1", "INTEGER NOT NULL");
+      f.checkScalar("INSTR('', 'a', 1, 1)", "0", "INTEGER NOT NULL");
+      f.checkNull("INSTR(null, 'a', 1, 1)");
+      f.checkNull("INSTR('a', null, 1, 1)");
+
+      // test for BINARY
+      f.checkScalar("INSTR(x'2212', x'12', -1, 1)", "2", "INTEGER NOT NULL");
+      f.checkScalar("INSTR(x'2122', x'12', 1, 1)", "0", "INTEGER NOT NULL");
+      f.checkScalar("INSTR(x'122212', x'12', -1, 2)", "1", "INTEGER NOT NULL");
+      f.checkScalar("INSTR(x'1111', x'22', 1, 1)", "0", "INTEGER NOT NULL");
+      f.checkScalar("INSTR(x'2122', x'', 1, 1)", "1", "INTEGER NOT NULL");
+      f.checkScalar("INSTR(x'', x'12', 1, 1)", "0", "INTEGER NOT NULL");
+      f.checkNull("INSTR(null, x'', 1, 1)");
+      f.checkNull("INSTR(x'', null, 1, 1)");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
   @Test void testStartsWithFunction() {

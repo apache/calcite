@@ -2325,11 +2325,42 @@ class RelToSqlConverterTest {
     sql(query).withHive().ok(expected);
   }
 
+  @Test void testPositionFunctionForMySql() {
+    final String query = "select position('A' IN 'ABC') from \"product\"";
+    final String expected = "SELECT INSTR('ABC', 'A')\n"
+        + "FROM `foodmart`.`product`";
+    sql(query).withMysql().ok(expected);
+  }
+
   @Test void testPositionFunctionForBigQuery() {
     final String query = "select position('A' IN 'ABC') from \"product\"";
-    final String expected = "SELECT STRPOS('ABC', 'A')\n"
+    final String expected = "SELECT INSTR('ABC', 'A')\n"
         + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
+  }
+
+  @Test void testInstrFunction4Operands() {
+    final String query = "SELECT INSTR('ABC', 'A', 1, 1) from \"product\"";
+    final String expectedBQ = "SELECT INSTR('ABC', 'A', 1, 1)\n"
+        + "FROM foodmart.product";
+    final String expected_oracle = "SELECT INSTR('ABC', 'A', 1, 1)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final Sql sqlOracle = fixture().withOracle().withLibrary(SqlLibrary.ORACLE);
+    sqlOracle.withSql(query).withOracle().ok(expected_oracle);
+    final Sql sqlBQ = fixture().withBigQuery().withLibrary(SqlLibrary.BIG_QUERY);
+    sqlBQ.withSql(query).withBigQuery().ok(expectedBQ);
+  }
+
+  @Test void testInstrFunction3Operands() {
+    final String query = "SELECT INSTR('ABC', 'A', 1) from \"product\"";
+    final String expectedBQ = "SELECT INSTR('ABC', 'A', 1)\n"
+        + "FROM foodmart.product";
+    final String expectedOracle = "SELECT INSTR('ABC', 'A', 1)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final Sql sqlOracle = fixture().withOracle().withLibrary(SqlLibrary.ORACLE);
+    sqlOracle.withSql(query).withOracle().ok(expectedOracle);
+    final Sql sqlBQ = fixture().withBigQuery().withLibrary(SqlLibrary.BIG_QUERY);
+    sqlBQ.withSql(query).withBigQuery().ok(expectedBQ);
   }
 
   /** Tests that we escape single-quotes in character literals using back-slash
