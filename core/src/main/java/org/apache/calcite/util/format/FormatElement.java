@@ -34,8 +34,12 @@ public interface FormatElement {
   /**
    * Adds the appropriate {@link java.text.SimpleDateFormat} pattern for the element to
    * provided StringBuilder.
+   *
+   * <p>Note that certain FormatElements may not have a Java equivalent.
+   * In such cases, calling this method will throw an {@link UnsupportedOperationException}.
+   * See {@link FormatElementEnum#Q} as an example.</p>
    */
-  void toPattern(StringBuilder sb);
+  void toPattern(StringBuilder sb) throws UnsupportedOperationException;
 
   /**
    * Returns the description of an element.

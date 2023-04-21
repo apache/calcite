@@ -2658,11 +2658,11 @@ public class SqlFunctions {
     return sb.toString();
   }
 
-  private static Date interalParseDatetime(String fmtString, String datetime) {
-    return interalParseDatetime(fmtString, datetime, DateTimeUtils.DEFAULT_ZONE);
+  private static Date internalParseDatetime(String fmtString, String datetime) {
+    return internalParseDatetime(fmtString, datetime, DateTimeUtils.DEFAULT_ZONE);
   }
 
-  private static Date interalParseDatetime(String fmt, String datetime, TimeZone tz) {
+  private static Date internalParseDatetime(String fmt, String datetime, TimeZone tz) {
     final String javaFmt = parseDatetimePattern(fmt);
     // TODO: make Locale configurable. ENGLISH set for weekday parsing (e.g. Thursday, Friday).
     final DateFormat parser = new SimpleDateFormat(javaFmt, Locale.ENGLISH);
@@ -2683,17 +2683,17 @@ public class SqlFunctions {
   }
 
   public static int parseDate(String fmtString, String date) {
-    Date parsedDate = interalParseDatetime(fmtString, date);
+    Date parsedDate = internalParseDatetime(fmtString, date);
     return toInt(new java.sql.Date(parsedDate.getTime()));
   }
 
   public static long parseDatetime(String fmtString, String datetime) {
-    Date parsedDate = interalParseDatetime(fmtString, datetime);
+    Date parsedDate = internalParseDatetime(fmtString, datetime);
     return toLong(new java.sql.Timestamp(parsedDate.getTime()));
   }
 
   public static int parseTime(String fmtString, String time) {
-    Date parsedDate = interalParseDatetime(fmtString, time);
+    Date parsedDate = internalParseDatetime(fmtString, time);
     return toInt(new java.sql.Time(parsedDate.getTime()));
   }
 
@@ -2703,7 +2703,7 @@ public class SqlFunctions {
 
   public static long parseTimestamp(String fmtString, String timestamp, String timeZone) {
     TimeZone tz = TimeZone.getTimeZone(timeZone);
-    Date parsedDate = interalParseDatetime(fmtString, timestamp, tz);
+    Date parsedDate = internalParseDatetime(fmtString, timestamp, tz);
     return toLong(new java.sql.Timestamp(parsedDate.getTime()), tz);
   }
 

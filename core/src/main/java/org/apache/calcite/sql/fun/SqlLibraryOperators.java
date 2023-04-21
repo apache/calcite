@@ -893,8 +893,8 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.TIMEDATE);
 
   /**
-   * The "PARSE_TIME(string, string)" function (BigQuery); Converts a string representation of time
-   * to a TIME object.
+   * The "PARSE_TIME(string, string)" function (BigQuery);
+   * converts a string representation of time to a TIME value.
    */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction PARSE_TIME =

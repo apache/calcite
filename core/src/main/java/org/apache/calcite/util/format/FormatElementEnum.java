@@ -28,6 +28,8 @@ import java.util.Locale;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link FormatElement} containing the standard format
  * elements. These are based on Oracle's format model documentation.
@@ -171,7 +173,7 @@ public enum FormatElementEnum implements FormatElement {
   },
   Q("", "The quarter as a decimal number (1-4)") {
     // TODO: Allow parsing of quarters.
-    @Override public void toPattern(StringBuilder sb) {
+    @Override public void toPattern(StringBuilder sb) throws UnsupportedOperationException {
       throw new UnsupportedOperationException("Cannot convert 'Q' FormatElement to Java pattern");
     }
     @Override public void format(StringBuilder sb, Date date) {
@@ -228,8 +230,8 @@ public enum FormatElementEnum implements FormatElement {
   // TODO: be sure to deal with TZ
 
   FormatElementEnum(String javaFmt, String description) {
-    this.javaFmt = javaFmt;
-    this.description = description;
+    this.javaFmt = requireNonNull(javaFmt, "javaFmt");
+    this.description = requireNonNull(description, "description");
   }
 
   @Override public String getDescription() {
