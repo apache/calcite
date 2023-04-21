@@ -36,8 +36,10 @@ public class SqlQuantifyOperator extends SqlInOperator {
   //~ Instance fields --------------------------------------------------------
 
   public final SqlKind comparisonKind;
-  //Only used for "LIKE"
+  // Only used for "LIKE"
   public final boolean isNegated;
+  // Only used for "LIKE"
+  public final boolean caseSensitive;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -49,9 +51,15 @@ public class SqlQuantifyOperator extends SqlInOperator {
    *   <code>&gt;</code>, <code>&ge;</code>,
    *   <code>=</code> or <code>&lt;&gt;</code>.
    */
-  SqlQuantifyOperator(String name, SqlKind kind, SqlKind comparisonKind, boolean isNegated) {
+  SqlQuantifyOperator(String name, SqlKind kind, SqlKind comparisonKind) {
+    this(name, kind, comparisonKind, false, false);
+  }
+
+  SqlQuantifyOperator(String name, SqlKind kind, SqlKind comparisonKind,
+      boolean isNegated, boolean caseSensitive) {
     super(name, kind);
     this.isNegated = isNegated;
+    this.caseSensitive = caseSensitive;
     this.comparisonKind = Objects.requireNonNull(comparisonKind, "comparisonKind");
     Preconditions.checkArgument(comparisonKind == SqlKind.EQUALS
         || comparisonKind == SqlKind.NOT_EQUALS

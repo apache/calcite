@@ -427,61 +427,73 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>&lt; ANY</code>).
    */
   public static final SqlQuantifyOperator SOME_LT =
-      new SqlQuantifyOperator("< SOME", SqlKind.SOME, SqlKind.LESS_THAN, false);
+      new SqlQuantifyOperator("< SOME", SqlKind.SOME, SqlKind.LESS_THAN);
 
   public static final SqlQuantifyOperator SOME_LE =
-      new SqlQuantifyOperator("<= SOME", SqlKind.SOME, SqlKind.LESS_THAN_OR_EQUAL, false);
+      new SqlQuantifyOperator("<= SOME", SqlKind.SOME, SqlKind.LESS_THAN_OR_EQUAL);
 
   public static final SqlQuantifyOperator SOME_GT =
-      new SqlQuantifyOperator("> SOME", SqlKind.SOME, SqlKind.GREATER_THAN, false);
+      new SqlQuantifyOperator("> SOME", SqlKind.SOME, SqlKind.GREATER_THAN);
 
   public static final SqlQuantifyOperator SOME_GE =
-      new SqlQuantifyOperator(">= SOME", SqlKind.SOME, SqlKind.GREATER_THAN_OR_EQUAL, false);
+      new SqlQuantifyOperator(">= SOME", SqlKind.SOME, SqlKind.GREATER_THAN_OR_EQUAL);
 
   public static final SqlQuantifyOperator SOME_EQ =
-      new SqlQuantifyOperator("= SOME", SqlKind.SOME, SqlKind.EQUALS, false);
+      new SqlQuantifyOperator("= SOME", SqlKind.SOME, SqlKind.EQUALS);
 
   public static final SqlQuantifyOperator SOME_NE =
-      new SqlQuantifyOperator("<> SOME", SqlKind.SOME, SqlKind.NOT_EQUALS, false);
+      new SqlQuantifyOperator("<> SOME", SqlKind.SOME, SqlKind.NOT_EQUALS);
 
   public static final SqlQuantifyOperator SOME_NULLEQ =
-      new SqlQuantifyOperator("<=> SOME", SqlKind.SOME, SqlKind.NULL_EQUALS, false);
+      new SqlQuantifyOperator("<=> SOME", SqlKind.SOME, SqlKind.NULL_EQUALS);
 
   public static final SqlQuantifyOperator SOME_LIKE =
-      new SqlQuantifyOperator("LIKE SOME", SqlKind.SOME, SqlKind.LIKE, false);
+      new SqlQuantifyOperator("LIKE SOME", SqlKind.SOME, SqlKind.LIKE, false, true);
 
   public static final SqlQuantifyOperator SOME_NOT_LIKE =
-      new SqlQuantifyOperator("NOT LIKE SOME", SqlKind.SOME, SqlKind.LIKE, true);
+      new SqlQuantifyOperator("NOT LIKE SOME", SqlKind.SOME, SqlKind.LIKE, true, true);
+
+  public static final SqlQuantifyOperator SOME_ILIKE =
+      new SqlQuantifyOperator("ILIKE SOME", SqlKind.SOME, SqlKind.LIKE, false, false);
+
+  public static final SqlQuantifyOperator SOME_NOT_ILIKE =
+      new SqlQuantifyOperator("NOT ILIKE SOME", SqlKind.SOME, SqlKind.LIKE, true, false);
 
   /**
    * The <code>&lt; ALL</code> operator.
    */
   public static final SqlQuantifyOperator ALL_LT =
-      new SqlQuantifyOperator("< ALL", SqlKind.ALL, SqlKind.LESS_THAN, false);
+      new SqlQuantifyOperator("< ALL", SqlKind.ALL, SqlKind.LESS_THAN);
 
   public static final SqlQuantifyOperator ALL_LE =
-      new SqlQuantifyOperator("<= ALL", SqlKind.ALL, SqlKind.LESS_THAN_OR_EQUAL, false);
+      new SqlQuantifyOperator("<= ALL", SqlKind.ALL, SqlKind.LESS_THAN_OR_EQUAL);
 
   public static final SqlQuantifyOperator ALL_GT =
-      new SqlQuantifyOperator("> ALL", SqlKind.ALL, SqlKind.GREATER_THAN, false);
+      new SqlQuantifyOperator("> ALL", SqlKind.ALL, SqlKind.GREATER_THAN);
 
   public static final SqlQuantifyOperator ALL_GE =
-      new SqlQuantifyOperator(">= ALL", SqlKind.ALL, SqlKind.GREATER_THAN_OR_EQUAL, false);
+      new SqlQuantifyOperator(">= ALL", SqlKind.ALL, SqlKind.GREATER_THAN_OR_EQUAL);
 
   public static final SqlQuantifyOperator ALL_EQ =
-      new SqlQuantifyOperator("= ALL", SqlKind.ALL, SqlKind.EQUALS, false);
+      new SqlQuantifyOperator("= ALL", SqlKind.ALL, SqlKind.EQUALS);
 
   public static final SqlQuantifyOperator ALL_NE =
-      new SqlQuantifyOperator("<> ALL", SqlKind.ALL, SqlKind.NOT_EQUALS, false);
+      new SqlQuantifyOperator("<> ALL", SqlKind.ALL, SqlKind.NOT_EQUALS);
 
   public static final SqlQuantifyOperator ALL_NULLEQ =
-      new SqlQuantifyOperator("<=> ALL", SqlKind.ALL, SqlKind.NULL_EQUALS, false);
+      new SqlQuantifyOperator("<=> ALL", SqlKind.ALL, SqlKind.NULL_EQUALS);
 
   public static final SqlQuantifyOperator ALL_LIKE =
-      new SqlQuantifyOperator("LIKE ALL", SqlKind.ALL, SqlKind.LIKE, false);
+      new SqlQuantifyOperator("LIKE ALL", SqlKind.ALL, SqlKind.LIKE, false, true);
 
   public static final SqlQuantifyOperator ALL_NOT_LIKE =
-      new SqlQuantifyOperator("NOT LIKE ALL", SqlKind.ALL, SqlKind.LIKE, true);
+      new SqlQuantifyOperator("NOT LIKE ALL", SqlKind.ALL, SqlKind.LIKE, true, true);
+
+  public static final SqlQuantifyOperator ALL_ILIKE =
+      new SqlQuantifyOperator("ILIKE ALL", SqlKind.ALL, SqlKind.LIKE, false, false);
+
+  public static final SqlQuantifyOperator ALL_NOT_ILIKE =
+      new SqlQuantifyOperator("NOT ILIKE ALL", SqlKind.ALL, SqlKind.LIKE, true, false);
 
   /**
    * Logical less-than operator, '<code>&lt;</code>'.
