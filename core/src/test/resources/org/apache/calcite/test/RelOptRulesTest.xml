@@ -1206,6 +1206,35 @@ LogicalProject(EXPR$0=[$0], EXPR$1=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAntiCorrelateWithLeftEmpty">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[anti], requiredColumns=[{7}])
+  LogicalValues(tuples=[[]])
+  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAntiCorrelateWithRightEmpty">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[anti], requiredColumns=[{7}])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAntiJoinProjectTranspose">
     <Resource name="sql">
       <![CDATA[select a.name from dept a
@@ -1653,6 +1682,50 @@ MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[RIGHT, INNER]]
     LogicalTableScan(table=[[CATALOG, SALES, A]])
     LogicalTableScan(table=[[CATALOG, SALES, B]])
   LogicalTableScan(table=[[CATALOG, SALES, C]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelateWithoutCorrelationToEmpty">
+    <Resource name="sql">
+      <![CDATA[select * from emp e where exists (select 1 from dept where empno=null)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(i=[true])
+          LogicalFilter(condition=[=($cor0.EMPNO, null)])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelateWithoutCorrelationToEmptyInVolcano">
+    <Resource name="sql">
+      <![CDATA[select * from emp e where exists (select 1 from dept where empno=null)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(i=[true])
+          LogicalFilter(condition=[=($cor0.EMPNO, null)])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>
@@ -4658,6 +4731,45 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInnerCorrelateWithLeftEmpty">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])
+  LogicalValues(tuples=[[]])
+  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInnerCorrelateWithNoneEmpty">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInnerCorrelateWithRightEmpty">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testIntersectToDistinct">
     <Resource name="sql">
       <![CDATA[select * from emp where deptno = 10
@@ -5700,6 +5812,80 @@ LogicalProject(DNAME=[$1])
     LogicalAggregate(group=[{0}])
       LogicalProject(DEPTNO=[$7])
         LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLeftCorrelateWithBothEmpty1">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+  LogicalValues(tuples=[[]])
+  LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPTNO0=[null:TINYINT], DNAME=[null:VARCHAR(14)], LOC=[null:VARCHAR(13)])
+  LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLeftCorrelateWithBothEmpty2">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+  LogicalValues(tuples=[[]])
+  LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLeftCorrelateWithBothEmpty3">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+  LogicalValues(tuples=[[]])
+  LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPTNO0=[null:TINYINT], DNAME=[null:VARCHAR(14)], LOC=[null:VARCHAR(13)])
+  LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLeftCorrelateWithLeftEmpty">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+  LogicalValues(tuples=[[]])
+  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLeftCorrelateWithRightEmpty">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{7}])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPTNO0=[null:TINYINT], DNAME=[null:VARCHAR(14)], LOC=[null:VARCHAR(13)])
+  LogicalTableScan(table=[[scott, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -12397,6 +12583,29 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testRightEmptyInnerCorrelate">
+    <Resource name="sql">
+      <![CDATA[select * from emp e where exists (select 1 from dept where empno=null)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testRightEmptyInnerJoin">
     <Resource name="sql">
       <![CDATA[select * from emp e
@@ -12586,6 +12795,35 @@ LogicalProject(SAL=[$5], EXPR$1=[IS NULL($10)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], i=[true], NAME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSemiCorrelateWithLeftEmpty">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[semi], requiredColumns=[{7}])
+  LogicalValues(tuples=[[]])
+  LogicalFilter(condition=[=($cor0.DEPTNO, $0)])
+    LogicalTableScan(table=[[scott, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSemiCorrelateWithRightEmpty">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalCorrelate(correlation=[$cor0], joinType=[semi], requiredColumns=[{7}])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>

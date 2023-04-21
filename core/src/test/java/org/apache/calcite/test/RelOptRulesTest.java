@@ -94,6 +94,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -122,6 +123,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -133,6 +135,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -3683,6 +3686,133 @@ class RelOptRulesTest extends RelOptTestBase {
         .project(b.field("EMPNO"))
         .build();
     checkEmptyJoin(relFn(relFn));
+  }
+
+  @Test void testCorrelateWithoutCorrelationToEmpty() {
+    String sql = "select * from emp e where exists (select 1 from dept where empno=null)";
+    List<RelOptRule> rules =
+        Arrays.asList(CoreRules.FILTER_REDUCE_EXPRESSIONS,
+        PruneEmptyRules.PROJECT_INSTANCE,
+        PruneEmptyRules.AGGREGATE_INSTANCE,
+        PruneEmptyRules.JOIN_RIGHT_INSTANCE,
+        PruneEmptyRules.CORRELATE_RIGHT_INSTANCE);
+    sql(sql)
+        .withExpand(false)
+        .withPreRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .withProgram(HepProgram.builder().addRuleCollection(rules).build())
+        .check();
+  }
+
+  @Test void testCorrelateWithoutCorrelationToEmptyInVolcano() {
+    String sql = "select * from emp e where exists (select 1 from dept where empno=null)";
+    List<RelOptRule> rules =
+        Arrays.asList(CoreRules.FILTER_REDUCE_EXPRESSIONS,
+            PruneEmptyRules.PROJECT_INSTANCE,
+            PruneEmptyRules.AGGREGATE_INSTANCE,
+            PruneEmptyRules.JOIN_RIGHT_INSTANCE,
+            PruneEmptyRules.CORRELATE_RIGHT_INSTANCE);
+    sql(sql)
+        .withPreRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .withVolcanoPlanner(false, p -> {
+          rules.forEach(p::addRule);
+          p.addRule(EnumerableRules.ENUMERABLE_VALUES_RULE);
+        })
+        .withExpand(false)
+        .check();
+  }
+
+  @Test void testInnerCorrelateWithLeftEmpty() {
+    relFn(correlationWithEmpty(JoinRelType.INNER, true, false))
+        .withRule(PruneEmptyRules.CORRELATE_LEFT_INSTANCE)
+        .check();
+  }
+
+  @Test void testLeftCorrelateWithLeftEmpty() {
+    relFn(correlationWithEmpty(JoinRelType.LEFT, true, false))
+        .withRule(PruneEmptyRules.CORRELATE_LEFT_INSTANCE)
+        .check();
+  }
+
+  @Test void testSemiCorrelateWithLeftEmpty() {
+    relFn(correlationWithEmpty(JoinRelType.SEMI, true, false))
+        .withRule(PruneEmptyRules.CORRELATE_LEFT_INSTANCE)
+        .check();
+  }
+
+  @Test void testAntiCorrelateWithLeftEmpty() {
+    relFn(correlationWithEmpty(JoinRelType.ANTI, true, false))
+        .withRule(PruneEmptyRules.CORRELATE_LEFT_INSTANCE)
+        .check();
+  }
+
+  @Test void testInnerCorrelateWithRightEmpty() {
+    relFn(correlationWithEmpty(JoinRelType.INNER, false, true))
+        .withRule(PruneEmptyRules.CORRELATE_RIGHT_INSTANCE)
+        .check();
+  }
+
+  @Test void testLeftCorrelateWithRightEmpty() {
+    relFn(correlationWithEmpty(JoinRelType.LEFT, false, true))
+        .withRule(PruneEmptyRules.CORRELATE_RIGHT_INSTANCE)
+        .check();
+  }
+
+  @Test void testSemiCorrelateWithRightEmpty() {
+    relFn(correlationWithEmpty(JoinRelType.SEMI, false, true))
+        .withRule(PruneEmptyRules.CORRELATE_RIGHT_INSTANCE)
+        .check();
+  }
+
+  @Test void testAntiCorrelateWithRightEmpty() {
+    relFn(correlationWithEmpty(JoinRelType.ANTI, false, true))
+        .withRule(PruneEmptyRules.CORRELATE_RIGHT_INSTANCE)
+        .check();
+  }
+
+  @Test void testInnerCorrelateWithNoneEmpty() {
+    relFn(correlationWithEmpty(JoinRelType.INNER, false, false))
+        .withRule(PruneEmptyRules.CORRELATE_RIGHT_INSTANCE)
+        .withRule(PruneEmptyRules.CORRELATE_LEFT_INSTANCE)
+        .checkUnchanged();
+  }
+
+  @Test void testLeftCorrelateWithBothEmpty1() {
+    relFn(correlationWithEmpty(JoinRelType.LEFT, true, true))
+        .withRule(PruneEmptyRules.CORRELATE_RIGHT_INSTANCE)
+        .check();
+  }
+
+  @Test void testLeftCorrelateWithBothEmpty2() {
+    relFn(correlationWithEmpty(JoinRelType.LEFT, true, true))
+        .withRule(PruneEmptyRules.CORRELATE_LEFT_INSTANCE)
+        .check();
+  }
+
+  @Test void testLeftCorrelateWithBothEmpty3() {
+    List<RelOptRule> rules =
+        Arrays.asList(PruneEmptyRules.CORRELATE_RIGHT_INSTANCE,
+        PruneEmptyRules.CORRELATE_LEFT_INSTANCE);
+    relFn(correlationWithEmpty(JoinRelType.LEFT, true, true))
+        .withProgram(HepProgram.builder().addRuleCollection(rules).build())
+        .check();
+  }
+
+  private static Function<RelBuilder, RelNode> correlationWithEmpty(JoinRelType joinType,
+      boolean emptyLeft, boolean emptyRight) {
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    return b -> {
+      List<RexNode> requiredFields = new ArrayList<>();
+      b.scan("EMP").variable(v);
+      if (emptyLeft) {
+        b.empty();
+      }
+      requiredFields.add(b.field("EMP", "DEPTNO"));
+      b.scan("DEPT").filter(b.equals(b.field(v.get(), "DEPTNO"), b.field("DEPTNO")));
+      if (emptyRight) {
+        b.empty();
+      }
+      return b.correlate(joinType, v.get().id, requiredFields).build();
+    };
   }
 
   private void checkEmptyJoin(RelOptFixture f) {
