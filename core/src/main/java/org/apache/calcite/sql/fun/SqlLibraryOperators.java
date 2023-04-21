@@ -62,6 +62,8 @@ import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Defines functions and operators that are not part of standard SQL but
  * belong to one or more other dialects of SQL.
@@ -827,13 +829,15 @@ public abstract class SqlLibraryOperators {
 
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
     RelDataType type =
-      opBinding.getOperandCount() > 0 ?
-        ReturnTypes.LEAST_RESTRICTIVE.inferReturnType(opBinding) :
-        opBinding.getTypeFactory().createUnknownType();
-
+        opBinding.getOperandCount() > 0
+            ? ReturnTypes.LEAST_RESTRICTIVE.inferReturnType(opBinding)
+            : opBinding.getTypeFactory().createUnknownType();
+    requireNonNull(type, "inferred array element type");
     return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, false);
   }
 
+  /** The "ARRAY(exp, ...)" function (Spark);
+   * compare with the standard array value constructor, "ARRAY [exp, ...]". */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY =
       SqlBasicFunction.create("ARRAY",
