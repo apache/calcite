@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.schema.Schema;
+import org.apache.calcite.sql.ddl.SqlCreateTable;
 
 import java.util.List;
 
@@ -36,6 +37,8 @@ public class LogicalTableCreate extends TableCreate {
   private final String tableName;
   private final boolean isReplace;
 
+  private final SqlCreateTable.CreateTableType createTableType;
+
   /**
    * Creates a LogicaltableCreate Node.
    *
@@ -45,31 +48,46 @@ public class LogicalTableCreate extends TableCreate {
    */
   protected LogicalTableCreate(final RelOptCluster cluster, final RelTraitSet traits,
       final RelNode input, final Schema schema, final String tableName,
-      final boolean isReplace, final List<String> path) {
+      final boolean isReplace, final SqlCreateTable.CreateTableType createTableType,
+      final List<String> path) {
     super(cluster, traits, input);
     this.schema = schema;
     this.tableName = tableName;
     this.isReplace = isReplace;
     this.schemaPath = path;
+    this.createTableType = createTableType;
+  }
+
+  protected LogicalTableCreate(final RelOptCluster cluster, final RelTraitSet traits,
+      final RelNode input, final Schema schema, final String tableName,
+      final boolean isReplace,
+      final List<String> path) {
+    super(cluster, traits, input);
+    this.schema = schema;
+    this.tableName = tableName;
+    this.isReplace = isReplace;
+    this.schemaPath = path;
+    this.createTableType = SqlCreateTable.CreateTableType.DEFAULT;
   }
 
   /** Creates a LogicalTableModify. */
   public static LogicalTableCreate create(final RelNode input,
       final Schema schema, final String tableName,
-      final boolean isReplace, final List<String> path) {
-
+      final boolean isReplace, final SqlCreateTable.CreateTableType createTableType,
+      final List<String> path) {
 
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalTableCreate(cluster, traitSet, input, schema, tableName,
-        isReplace, path);
+        isReplace, createTableType, path);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("TableName", this.tableName)
         .item("Target Schema", this.schemaPath)
-        .item("IsReplace", this.isReplace);
+        .item("IsReplace", this.isReplace)
+        .item("CreateTableType", this.createTableType);
   }
 
   public Schema getSchema() {
@@ -78,6 +96,10 @@ public class LogicalTableCreate extends TableCreate {
 
   public String getTableName() {
     return tableName;
+  }
+
+  public SqlCreateTable.CreateTableType getCreateTableType() {
+    return createTableType;
   }
 
   public boolean isReplace() {
@@ -90,7 +112,7 @@ public class LogicalTableCreate extends TableCreate {
     assert inputs.size() == 1;
     return new LogicalTableCreate(
         getCluster(), traitSet, inputs.get(0), this.schema, this.tableName,
-        this.isReplace, this.schemaPath);
+        this.isReplace, this.createTableType, this.schemaPath);
   }
 
   public List<String> getSchemaPath() {

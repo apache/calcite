@@ -4578,6 +4578,7 @@ public class SqlToRelConverter {
         // Failing if already exists is the default in SF
         // TODO: support a dialect dependent default if/when merging to upstream Calcite
         call.getReplace(),
+        call.getCreateTableType(),
         requireNonNull(call.getOutputTableSchemaPath()));
   }
 

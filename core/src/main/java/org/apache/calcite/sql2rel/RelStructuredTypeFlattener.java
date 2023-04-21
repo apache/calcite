@@ -411,6 +411,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             rel.getSchema(),
             rel.getTableName(),
             rel.isReplace(),
+            rel.getCreateTableType(),
             rel.getSchemaPath()
         );
     setNewForOldRel(rel, newRel);
