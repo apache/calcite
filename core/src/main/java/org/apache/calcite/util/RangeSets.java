@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 package org.apache.calcite.util;
-
 import org.apache.calcite.avatica.util.ByteString;
+
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.BoundType;
@@ -292,45 +292,46 @@ public class RangeSets {
     return builder.addAll(rangeList).build();
   }
   /** Creates a {@link Range} from the string representation of a {@link Range}
-   * serialized using {@link org.apache.calcite.rel.externalize.RelJson#toJson(Range)} */
+   * serialized using {@link org.apache.calcite.rel.externalize.RelJson#toJson(Range)}. */
   public static <C extends Comparable<C>> Range<C> rangeFromJson(Object rangeJson) {
     List list = (List) rangeJson;
     if (list.size() != 4) {
-      throw new IllegalArgumentException("Serialized Range object should be a list with 4 entries.");
+      throw new
+          IllegalArgumentException("Serialized Range object should be a list with 4 entries.");
     }
     BoundType lowerType = list.get(0).equals("(") ? BoundType.OPEN : BoundType.CLOSED;
     Object lower = deserializeRangeEndpoint(list.get(1));
     Object upper = deserializeRangeEndpoint(list.get(2));
     BoundType upperType = list.get(3).equals(")") ? BoundType.OPEN : BoundType.CLOSED;
 
-    if (lower.equals(RANGE_UNBOUNDED) && upper.equals(RANGE_UNBOUNDED)) { return Range.all(); }
-    else if (lower.equals(RANGE_UNBOUNDED)) {
+    if (lower.equals(RANGE_UNBOUNDED) && upper.equals(RANGE_UNBOUNDED)) {
+      return Range.all();
+    } else if (lower.equals(RANGE_UNBOUNDED)) {
       if (upperType == BoundType.OPEN) {
-        return Range.lessThan((C)upper);
+        return Range.lessThan((C) upper);
       } else {
-        return Range.atMost((C)upper);
+        return Range.atMost((C) upper);
       }
     } else if (upper.equals(RANGE_UNBOUNDED)) {
       if (lowerType == BoundType.OPEN) {
-        return Range.greaterThan((C)lower);
+        return Range.greaterThan((C) lower);
       } else {
-        return Range.atLeast((C)lower);
+        return Range.atLeast((C) lower);
       }
-    }
-    else {
-      return Range.range((C) lower, lowerType, (C)upper, upperType);
+    } else {
+      return Range.range((C) lower, lowerType, (C) upper, upperType);
     }
   }
 
-  private static Comparable deserializeRangeEndpoint(Object endpoint){
+  private static Comparable deserializeRangeEndpoint(Object endpoint) {
     if (endpoint.equals(RANGE_UNBOUNDED)) {
       return (Comparable) endpoint;
     }
     ObjectMapper mapper = new ObjectMapper()
         .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);
     Exception e = null;
-    List<Class> clsTypes = ImmutableList.of(
-        NlsString.class,
+    List<Class> clsTypes =
+        ImmutableList.of(NlsString.class,
         BigDecimal.class,
         ByteString.class,
         Boolean.class,
@@ -343,7 +344,8 @@ public class RangeSets {
         e = ex;
       }
     }
-    throw new RuntimeException("Error deserializing range endpoint (did not find compatible type): ", e);
+    throw new
+        RuntimeException("Error deserializing range endpoint (did not find compatible type): ", e);
   }
 
   /** Used when serializing {@link Range} if it does not contain a lower or upper endpoint.*/

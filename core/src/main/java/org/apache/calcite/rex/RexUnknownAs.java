@@ -121,8 +121,8 @@ public enum RexUnknownAs {
     }
   }
 
-  public static RexUnknownAs toEnum(String name){
-    switch(name) {
+  public static RexUnknownAs toEnum(String name) {
+    switch (name) {
     case "TRUE":
       return RexUnknownAs.TRUE;
     case "FALSE":

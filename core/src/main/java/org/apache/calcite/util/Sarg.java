@@ -155,8 +155,8 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
     return new Sarg<>(ImmutableRangeSet.copyOf(rangeSet), nullAs);
   }
 
-  public static <C extends Comparable<C>> Sarg<C> fromJson(Map o){
-    if (Map.class.isAssignableFrom(o.getClass())){
+  public static <C extends Comparable<C>> Sarg<C> fromJson(Map o) {
+    if (Map.class.isAssignableFrom(o.getClass())) {
       RexUnknownAs unknownAs = RexUnknownAs.toEnum(o.get("nullAs").toString());
       // o.get("rangeSet") is stored an ArrayList of ranges
       RangeSet rangeSet = RangeSets.fromJson((ArrayList) o.get("rangeSet"));

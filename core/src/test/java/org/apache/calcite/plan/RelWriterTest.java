@@ -866,8 +866,9 @@ class RelWriterTest {
 
 
     // Test Calcite DateString class works in a Range
-    final DateString d1 = DateString.fromCalendarFields(
-        new TimestampString(1970, 2, 1, 1, 1, 0).toCalendar());
+    final DateString d1 =
+        DateString.fromCalendarFields(new TimestampString(1970, 2, 1, 1, 1, 0)
+            .toCalendar());
     final DateString d2 = DateString.fromDaysSinceEpoch(100);
     final DateString d3 = DateString.fromDaysSinceEpoch(1000);
     RexNode dateNode =
@@ -891,8 +892,7 @@ class RelWriterTest {
         rexBuilder.makeIn(
             rexBuilder.makeCharLiteral(nls2), ImmutableList.of(
             rexBuilder.makeCharLiteral(nls1),
-            rexBuilder.makeCharLiteral(nls3)
-        ));
+            rexBuilder.makeCharLiteral(nls3)));
 
     List<RexNode> testNodes = ImmutableList.of(between, inNode, dateNode, timeNode, nlsNode);
     RelJson relJson = RelJson.create().withJsonBuilder(new JsonBuilder());

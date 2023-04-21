@@ -1638,7 +1638,7 @@ public class RexBuilder {
     case INTEGER:
     case BIGINT:
     case DECIMAL:
-      if (value instanceof RexLiteral && ((RexLiteral) value).getTypeName() == (SqlTypeName.SARG) ){
+      if (value instanceof RexLiteral && ((RexLiteral) value).getTypeName() == (SqlTypeName.SARG)) {
         return (RexNode) value;
       }
       return makeExactLiteral((BigDecimal) value, type);

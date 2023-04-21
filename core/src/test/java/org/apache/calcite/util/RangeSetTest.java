@@ -53,10 +53,10 @@ class RangeSetTest {
   @Test void testRangeSetSerializeDeserialize() {
     RelJson relJson = RelJson.create();
     final Range<BigDecimal> point = Range.singleton(BigDecimal.valueOf(0));
-    final Range<BigDecimal> closedRange1 = Range.closed(
-        BigDecimal.valueOf(0), BigDecimal.valueOf(5));
-    final Range<BigDecimal> closedRange2 = Range.closed(
-        BigDecimal.valueOf(6), BigDecimal.valueOf(10));
+    final Range<BigDecimal> closedRange1 =
+        Range.closed(BigDecimal.valueOf(0), BigDecimal.valueOf(5));
+    final Range<BigDecimal> closedRange2 =
+        Range.closed(BigDecimal.valueOf(6), BigDecimal.valueOf(10));
 
     final Range<BigDecimal> gt1 = Range.greaterThan(BigDecimal.valueOf(7));
     final Range<BigDecimal> al1 = Range.atLeast(BigDecimal.valueOf(8));
