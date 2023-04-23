@@ -10536,6 +10536,37 @@ LogicalProject(ENAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPushSemiJoinPastJoinRuleNotHappensJoinKeysDifferentOrigin">
+    <Resource name="sql">
+      <![CDATA[select e.ename from emp e, dept d, bonus b
+where e.deptno = d.deptno and e.ename = b.ename and d.name = b.job]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$1])
+  LogicalFilter(condition=[AND(=($7, $9), =($1, $11), =($10, $12))])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(ENAME=[$1])
+  LogicalJoin(condition=[AND(=($1, $11), =($10, $12))], joinType=[inner], semiJoinDone=[true])
+    LogicalJoin(condition=[AND(=($1, $11), =($10, $12))], joinType=[semi])
+      LogicalJoin(condition=[=($7, $9)], joinType=[inner], semiJoinDone=[true])
+        LogicalJoin(condition=[=($7, $9)], joinType=[semi])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testPushSemiJoinPastJoinRuleRight">
     <Resource name="sql">
       <![CDATA[select e1.ename from emp e1, dept d, emp e2
