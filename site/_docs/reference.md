@@ -1835,6 +1835,7 @@ period:
 | Operator syntax | Description
 |:--------------- |:-----------
 | {fn CONVERT(value, type)} | Cast *value* into *type*
+| {fn CONVERT/TRANSLATE(value using transcodingName)} | Alter *value* from one base character set to *transcodingName*
 
 ### Aggregate functions
 

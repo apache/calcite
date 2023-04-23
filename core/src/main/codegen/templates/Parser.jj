@@ -6053,13 +6053,16 @@ SqlNode BuiltinFunctionCall() :
             AddExpression(args, ExprContext.ACCEPT_SUB_QUERY)
             (
                 <USING> name = SimpleIdentifier() { args.add(name); }
+                <RPAREN> {
+                    return SqlStdOperatorTable.TRANSLATE.createCall(s.end(this), args);
+                }
             |
                 <COMMA> e = SimpleIdentifier() { args.add(e); }
                 <COMMA> e = SimpleIdentifier() { args.add(e); }
+                <RPAREN> {
+                    return SqlStdOperatorTable.CONVERT.createCall(s.end(this), args);
+                }
             )
-            <RPAREN> {
-                return SqlStdOperatorTable.CONVERT.createCall(s.end(this), args);
-            }
         |
             // MSSql CONVERT(type, val [,style])
             (

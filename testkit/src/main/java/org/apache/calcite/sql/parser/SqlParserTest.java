@@ -5351,18 +5351,20 @@ public class SqlParserTest {
     expr("convert('abc', utf8, utf16)")
         .ok("CONVERT('abc', `UTF8`, `UTF16`)");
     sql("select convert(name, latin1, gbk) as newName from t")
-            .ok("SELECT CONVERT(`NAME`, `LATIN1`, `GBK`) AS `NEWNAME`\n"
-              + "FROM `T`");
+        .ok("SELECT CONVERT(`NAME`, `LATIN1`, `GBK`) AS `NEWNAME`\n"
+            + "FROM `T`");
 
-    // CONVERT function in Mysql
-    if (false) {
-      expr("convert('abc' using conversion)")
-          .ok("CONVERT('abc' USING `CONVERSION`)");
-    }
+    expr("convert('abc' using utf8)")
+        .ok("TRANSLATE('abc', `UTF8`)");
+    sql("select convert(name using gbk) as newName from t")
+        .ok("SELECT TRANSLATE(`NAME`, `GBK`) AS `NEWNAME`\n"
+            + "FROM `T`");
 
-    // TRANSLATE need to be implemented (syntax may be different)
     expr("translate('abc' using lazy_translation)")
         .ok("TRANSLATE('abc', `LAZY_TRANSLATION`)");
+    sql("select translate(name using utf8) as newName from t")
+        .ok("SELECT TRANSLATE(`NAME`, `UTF8`) AS `NEWNAME`\n"
+            + "FROM `T`");
   }
 
   @Test void testTranslate3() {

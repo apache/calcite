@@ -265,6 +265,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     registerOp(SqlStdOperatorTable.AS,
         (cx, call) -> cx.convertExpression(call.operand(0)));
     registerOp(SqlStdOperatorTable.CONVERT, this::convertCharset);
+    registerOp(SqlStdOperatorTable.TRANSLATE, this::translateCharset);
     // "SQRT(x)" is equivalent to "POWER(x, .5)"
     registerOp(SqlStdOperatorTable.SQRT,
         (cx, call) -> cx.convertExpression(
@@ -753,6 +754,17 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         cx.convertExpression(expr),
         rexBuilder.makeLiteral(srcCharset),
         rexBuilder.makeLiteral(destCharset));
+  }
+
+  protected RexNode translateCharset(
+      @UnknownInitialization StandardConvertletTable this,
+      SqlRexContext cx, SqlCall call) {
+    final SqlNode expr = call.operand(0);
+    final String transcodingName = call.operand(1).toString();
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    return rexBuilder.makeCall(SqlStdOperatorTable.TRANSLATE,
+        cx.convertExpression(expr),
+        rexBuilder.makeLiteral(transcodingName));
   }
 
   /**
