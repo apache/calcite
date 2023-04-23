@@ -3868,8 +3868,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // we stripped the field access. Recurse to this method, the DOT's operand
         // can be another SqlCall, or an SqlIdentifier.
         checkRollUp(grandParent, parent, stripDot, scope, contextClause);
-      } else if (stripDot.getKind() == SqlKind.CONVERT) {
-        // operand[1] doesn't need to be checked for CONVERT
+      } else if (stripDot.getKind() == SqlKind.CONVERT
+          || stripDot.getKind() == SqlKind.TRANSLATE) {
+        // only need to check operand[0] for CONVERT or TRANSLATE
         SqlNode child = ((SqlCall) stripDot).getOperandList().get(0);
         checkRollUp(parent, current, child, scope, contextClause);
       } else {

@@ -366,6 +366,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SYSTEM_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TIMESTAMP_ADD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TIMESTAMP_DIFF;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRANSLATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRIM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRUNCATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TUMBLE;
@@ -690,6 +691,7 @@ public class RexImpTable {
 
       map.put(REINTERPRET, new ReinterpretImplementor());
       map.put(CONVERT, new ConvertImplementor());
+      map.put(TRANSLATE, new TranslateImplementor());
 
       final RexCallImplementor value = new ValueConstructorImplementor();
       map.put(MAP_VALUE_CONSTRUCTOR, value);
@@ -3759,6 +3761,26 @@ public class RexImpTable {
         return argValueList.get(0);
       }
       return Expressions.call(BuiltInMethod.CONVERT.method, argValueList);
+    }
+  }
+
+  /**
+   * Implementor for the {@code TRANSLATE} function.
+   *
+   * <p>If argument[0] is null, result is null.
+   */
+  private static class TranslateImplementor extends AbstractRexCallImplementor {
+    TranslateImplementor() {
+      super("translate", NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator,
+        RexCall call, List<Expression> argValueList) {
+      final RexNode arg0 = call.getOperands().get(0);
+      if (SqlTypeUtil.isNull(arg0.getType())) {
+        return argValueList.get(0);
+      }
+      return Expressions.call(BuiltInMethod.TRANSLATE_WITH_CHARSET.method, argValueList);
     }
   }
 

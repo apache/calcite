@@ -445,6 +445,7 @@ public enum BuiltInMethod {
       String.class, boolean.class),
   REPLACE(SqlFunctions.class, "replace", String.class, String.class,
       String.class),
+  TRANSLATE_WITH_CHARSET(SqlFunctions.class, "translateWithCharset", String.class, String.class),
   TRANSLATE3(SqlFunctions.class, "translate3", String.class, String.class, String.class),
   LTRIM(SqlFunctions.class, "ltrim", String.class),
   RTRIM(SqlFunctions.class, "rtrim", String.class),

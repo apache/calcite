@@ -792,6 +792,20 @@ public class SqlFunctions {
     }
   }
 
+  /** SQL {@code TRANSLATE(s USING transcodingName)} function,
+   * also known as {@code CONVERT(s USING transcodingName)}. */
+  public static String translateWithCharset(String s, String transcodingName) {
+    final Charset charset = SqlUtil.getCharset(transcodingName);
+    byte[] bytes = s.getBytes(Charset.defaultCharset());
+    final CharsetDecoder decoder = charset.newDecoder();
+    final ByteBuffer buffer = ByteBuffer.wrap(bytes);
+    try {
+      return decoder.decode(buffer).toString();
+    } catch (CharacterCodingException ex) {
+      throw RESOURCE.charsetEncoding(s, charset.name()).ex();
+    }
+  }
+
   /** SQL {@code RTRIM} function applied to string. */
   public static String rtrim(String s) {
     return trim(false, true, " ", s);

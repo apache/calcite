@@ -7590,6 +7590,30 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testTranslateFunc1">
+    <Resource name="sql">
+      <![CDATA[select translate(ename using utf8) as new_ename
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(NEW_ENAME=[TRANSLATE($1, 'UTF8')])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTranslateFunc2">
+    <Resource name="sql">
+      <![CDATA[select convert(ename using utf8) as new_ename
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(NEW_ENAME=[TRANSLATE($1, 'UTF8')])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testTrimExceptAll">
     <Resource name="sql">
       <![CDATA[select deptno from

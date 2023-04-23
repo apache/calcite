@@ -361,4 +361,107 @@ select CONVERT(DATE, '05/01/2000', 103);
 !ok
 !}
 
+# -----------------------------------------------------------------------------
+# The standard TRANSLATE function, for changing character sets.
+
+select translate('abcd' using utf8);
++--------+
+| EXPR$0 |
++--------+
+| abcd   |
++--------+
+(1 row)
+
+!ok
+
+select translate(null using utf8);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+!use foodmart
+select translate(cast("employee_id" as varchar) using latin1) as alia
+from "employee"
+limit 3;
++------+
+| ALIA |
++------+
+| 1    |
+| 2    |
+| 4    |
++------+
+(3 rows)
+
+!ok
+
+select "employee_id"
+from "employee"
+where translate(cast("employee_id" as varchar) using latin1) <> 1
+limit 3;
++-------------+
+| employee_id |
++-------------+
+|           2 |
+|           4 |
+|           5 |
++-------------+
+(3 rows)
+
+!ok
+
+select convert('abcd' using utf8);
++--------+
+| EXPR$0 |
++--------+
+| abcd   |
++--------+
+(1 row)
+
+!ok
+
+select convert(null using utf8);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+!use foodmart
+select convert(cast("employee_id" as varchar) using latin1) as alia
+from "employee"
+limit 3;
++------+
+| ALIA |
++------+
+| 1    |
+| 2    |
+| 4    |
++------+
+(3 rows)
+
+!ok
+
+select "employee_id"
+from "employee"
+where convert(cast("employee_id" as varchar) using latin1) <> 1
+limit 3;
++-------------+
+| employee_id |
++-------------+
+|           2 |
+|           4 |
+|           5 |
++-------------+
+(3 rows)
+
+!ok
+
 # End functions.iq

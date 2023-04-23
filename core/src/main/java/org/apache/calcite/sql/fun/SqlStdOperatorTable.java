@@ -1581,7 +1581,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    *
    * <p>The SQL standard defines
    * {@code CONVERT(charValue USING transcodingName)}, and MySQL implements it;
-   * Calcite does not currently support this.
+   * Calcite supports this in the following TRANSLATE function.
    *
    * <p>MySQL and Microsoft SQL Server have a {@code CONVERT(type, value)}
    * function; Calcite does not currently support this, either. */
@@ -1589,14 +1589,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlConvertFunction("CONVERT");
 
   /**
-   * The <code>TRANSLATE(<i>char_value</i> USING <i>translation_name</i>)</code> function
-   * alters the character set of a string value from one base character set to another.
+   * The <code>TRANSLATE/CONVERT(<i>char_value</i> USING <i>transcodingName</i>)</code> function
+   * alters the character set of a string value from one base character set to transcodingName.
    *
    * <p>It is defined in the SQL standard. See also the non-standard
    * {@link SqlLibraryOperators#TRANSLATE3}, which has a different purpose.
    */
   public static final SqlFunction TRANSLATE =
-      new SqlConvertFunction("TRANSLATE");
+      new SqlTranslateFunction("TRANSLATE");
 
   public static final SqlFunction OVERLAY = new SqlOverlayFunction();
 

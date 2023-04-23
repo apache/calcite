@@ -942,10 +942,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*not comparable to each other.*");
   }
 
-  @Disabled
-  void testConvertAndTranslate() {
-    expr("convert('abc' using conversion)").ok();
-    expr("translate('abc' using translation)").ok();
+  @Test void testConvertAndTranslate() {
+    sql("select convert('abc' using utf16) from emp").ok();
+    sql("select convert(cast(deptno as varchar) using utf8) from emp");
+    sql("select convert(null using utf16) from emp").ok();
+    sql("select ^convert(deptno using latin1)^ from emp")
+        .fails("Invalid type 'INTEGER NOT NULL' in 'TRANSLATE' function\\. "
+            + "Only 'CHARACTER' type is supported");
+    sql("select convert(ename using utf9) from emp").fails("UTF9");
+
+    sql("select translate('abc' using utf8) from emp").ok();
+    sql("select translate(cast(deptno as varchar) using utf8) from emp");
+    sql("select translate(null using utf16) from emp").ok();
+    sql("select ^translate(deptno using latin1)^ from emp")
+        .fails("Invalid type 'INTEGER NOT NULL' in 'TRANSLATE' function\\. "
+            + "Only 'CHARACTER' type is supported");
+    sql("select translate(ename using utf9) from emp").fails("UTF9");
   }
 
   @Test void testTranslate3() {
