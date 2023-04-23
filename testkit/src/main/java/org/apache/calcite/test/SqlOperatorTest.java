@@ -3594,6 +3594,37 @@ public class SqlOperatorTest {
   @Test void testTranslateFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.TRANSLATE, VM_FENNEL, VM_JAVA);
+    f.checkFails("translate('a' using utf10)", "UTF10", false);
+    f.checkFails("convert('a' using utf10)", "UTF10", false);
+
+    f.checkFails("select ^translate(col using utf8)^\n"
+            + "from (select 1 as col\n"
+            + " from (values(true)))",
+            "Invalid type 'INTEGER NOT NULL' in 'TRANSLATE' function\\. "
+            + "Only 'CHARACTER' type is supported",
+            false);
+    f.checkFails("select ^convert(col using utf8)^\n"
+            + "from (select 1 as col\n"
+            + " from (values(true)))",
+            "Invalid type 'INTEGER NOT NULL' in 'TRANSLATE' function\\. "
+            + "Only 'CHARACTER' type is supported",
+            false);
+
+    f.check("select translate(col using utf8)\n"
+            + "from (select 'a' as col\n"
+            + " from (values(true)))",
+        SqlTests.ANY_TYPE_CHECKER, 'a');
+    f.check("select convert(col using utf8)\n"
+            + "from (select 'a' as col\n"
+            + " from (values(true)))",
+        SqlTests.ANY_TYPE_CHECKER, 'a');
+
+    f.checkType("translate('a' using gbk)", "CHAR(1) NOT NULL");
+    f.checkType("convert('a' using gbk)", "CHAR(1) NOT NULL");
+    f.checkType("translate(null using utf16)", "NULL");
+    f.checkType("convert(null using utf16)", "NULL");
+    f.checkType("translate(cast(1 as varchar(2)) using latin1)", "VARCHAR(2) NOT NULL");
+    f.checkType("convert(cast(1 as varchar(2)) using latin1)", "VARCHAR(2) NOT NULL");
   }
 
   @Test void testTranslate3Func() {

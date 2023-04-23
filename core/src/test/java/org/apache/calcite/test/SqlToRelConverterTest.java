@@ -3162,6 +3162,17 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withTrim(true).ok();
   }
 
+  @Test void testTranslateFunc1() {
+    final String sql = "select translate(ename using utf8) as new_ename\n"
+        + "from emp";
+    sql(sql).withTrim(true).ok();
+  }
+
+  @Test void testTranslateFunc2() {
+    final String sql = "select convert(ename using utf8) as new_ename\n"
+        + "from emp";
+    sql(sql).withTrim(true).ok();
+  }
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-695">[CALCITE-695]

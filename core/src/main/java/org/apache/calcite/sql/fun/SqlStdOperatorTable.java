@@ -1596,7 +1596,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * {@link SqlLibraryOperators#TRANSLATE3}, which has a different purpose.
    */
   public static final SqlFunction TRANSLATE =
-      new SqlConvertFunction("TRANSLATE");
+      new SqlTranslateFunction("TRANSLATE");
 
   public static final SqlFunction OVERLAY = new SqlOverlayFunction();
 
