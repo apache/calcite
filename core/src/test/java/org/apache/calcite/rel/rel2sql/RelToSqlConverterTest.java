@@ -4487,6 +4487,19 @@ class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  // Test for [CALCITE-5651] Inferred scale for decimal should
+  // not exceed maximum allowed scale
+  @Test void testNumericScale() {
+    final String sql = "WITH v(x) AS (VALUES('4.2')) "
+        + " SELECT x1 + x2 FROM v AS v1(x1), v AS V2(x2)";
+    final String expected = "SELECT CAST(\"t\".\"EXPR$0\" AS "
+        + "DECIMAL(39, 10)) + CAST(\"t0\".\"EXPR$0\" AS "
+        + "DECIMAL(39, 10))\nFROM (VALUES ('4.2')) AS "
+        +  "\"t\" (\"EXPR$0\"),\n(VALUES ('4.2')) AS \"t0\" (\"EXPR$0\")";
+    sql(sql).withPostgresqlModifiedDecimalTypeSystem()
+        .ok(expected);
+  }
+
   @Test void testMatchRecognizePatternExpression2() {
     final String sql = "select *\n"
         + "  from \"product\" match_recognize\n"
@@ -6939,6 +6952,20 @@ class RelToSqlConverterTest {
                   default:
                     return super.getMaxPrecision(typeName);
                   }
+                }
+              }));
+      return dialect(postgresqlSqlDialect);
+    }
+
+    Sql withPostgresqlModifiedDecimalTypeSystem() {
+      final PostgresqlSqlDialect postgresqlSqlDialect =
+          new PostgresqlSqlDialect(PostgresqlSqlDialect.DEFAULT_CONTEXT
+              .withDataTypeSystem(new RelDataTypeSystemImpl() {
+                @Override public int getMaxNumericScale() {
+                  return 10;
+                }
+                @Override public int getMaxNumericPrecision() {
+                  return 39;
                 }
               }));
       return dialect(postgresqlSqlDialect);

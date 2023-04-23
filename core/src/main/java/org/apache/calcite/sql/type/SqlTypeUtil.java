@@ -1773,8 +1773,9 @@ public abstract class SqlTypeUtil {
    * type system. */
   public static RelDataType getMaxPrecisionScaleDecimal(RelDataTypeFactory factory) {
     int maxPrecision = factory.getTypeSystem().getMaxNumericPrecision();
+    int maxScale = factory.getTypeSystem().getMaxNumericScale();
     // scale should not greater than precision.
-    int scale = maxPrecision / 2;
+    int scale = Math.min(maxPrecision / 2, maxScale);
     return factory.createSqlType(SqlTypeName.DECIMAL, maxPrecision, scale);
   }
 
