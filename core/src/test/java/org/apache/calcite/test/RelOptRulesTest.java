@@ -2666,6 +2666,18 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testPushSemiJoinPastJoinRuleNotHappensJoinKeysDifferentOrigin() {
+    // tests the case where the semijoin is not pushed because it uses join keys from both tables
+    // of the bottom join.
+    final String sql = "select e.ename from emp e, dept d, bonus b\n"
+        + "where e.deptno = d.deptno and e.ename = b.ename and d.name = b.job";
+    sql(sql)
+        .withRule(CoreRules.FILTER_INTO_JOIN,
+            CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN,
+            CoreRules.SEMI_JOIN_JOIN_TRANSPOSE)
+        .check();
+  }
+
   @Test void testPushSemiJoinPastFilter() {
     final String sql = "select e.ename from emp e, dept d\n"
         + "where e.deptno = d.deptno and e.ename = 'foo'";

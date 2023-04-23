@@ -76,7 +76,6 @@ public class SemiJoinJoinTransposeRule
     if (join.isSemiJoin()) {
       return;
     }
-    final ImmutableIntList leftKeys = semiJoin.analyzeCondition().leftKeys;
 
     // X is the left child of the join below the semi-join
     // Y is the right child of the join below the semi-join
@@ -102,6 +101,7 @@ public class SemiJoinJoinTransposeRule
 
     // determine which operands below the semi-join are the actual
     // Rels that participate in the semi-join
+    final ImmutableIntList leftKeys = semiJoin.analyzeCondition().leftKeys;
     int nKeysFromX = 0;
     for (int leftKey : leftKeys) {
       if (leftKey < nFieldsX) {
@@ -109,9 +109,10 @@ public class SemiJoinJoinTransposeRule
       }
     }
 
-    // the keys must all originate from either the left or right;
-    // otherwise, a semi-join wouldn't have been created
-    assert (nKeysFromX == 0) || (nKeysFromX == leftKeys.size());
+    if (nKeysFromX != 0 && nKeysFromX != leftKeys.size()) {
+      // We can not push semi-join down if it has keys from both tables of the bottom join
+      return;
+    }
 
     // need to convert the semi-join condition and possibly the keys
     final RexNode newSemiJoinFilter;
