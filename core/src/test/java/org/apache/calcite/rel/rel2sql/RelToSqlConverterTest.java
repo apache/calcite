@@ -11722,9 +11722,9 @@ class RelToSqlConverterTest {
         .project(builder.field(1))
         .build();
 
-    final String expectedSql = "SELECT \"ENAME\"n"
-        + "FROM \"scott\".\"EMP\"n"
-        + "WHERE (1, 2) = SOME (SELECT \"EMPNO\", \"JOB\"n"
+    final String expectedSql = "SELECT \"ENAME\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE (1, 2) = SOME (SELECT \"EMPNO\", \"JOB\"\n"
         + "FROM \"scott\".\"EMP\")";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }
