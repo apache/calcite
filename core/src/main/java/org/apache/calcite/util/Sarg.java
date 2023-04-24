@@ -157,9 +157,14 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
 
   public static <C extends Comparable<C>> Sarg<C> fromJson(Map o) {
     if (Map.class.isAssignableFrom(o.getClass())) {
-      RexUnknownAs unknownAs = RexUnknownAs.toEnum(o.get("nullAs").toString());
+      Object nullAsObject = o.get("nullAs");
+      Object rangeSetObject = o.get("rangeSet");
+      if (nullAsObject == null || rangeSetObject == null) {
+        throw new RuntimeException("Failed to create Sarg from JSON.");
+      }
+      RexUnknownAs unknownAs = RexUnknownAs.toEnum(nullAsObject.toString());
       // o.get("rangeSet") is stored an ArrayList of ranges
-      RangeSet rangeSet = RangeSets.fromJson((ArrayList) o.get("rangeSet"));
+      RangeSet rangeSet = RangeSets.fromJson(rangeSetObject);
       return new Sarg<>(ImmutableRangeSet.copyOf(rangeSet), unknownAs);
     }
     throw new RuntimeException("Failed to create Sarg from JSON");

@@ -280,16 +280,15 @@ public class RangeSets {
 
   public static <C extends Comparable<C>> RangeSet<C> fromJson(Object rangeSetsJson) {
     final ImmutableRangeSet.Builder<C> builder = ImmutableRangeSet.builder();
-    List<Range<C>> rangeList = new ArrayList<>();
     try {
       for (Object o : (ArrayList) rangeSetsJson) {
         Range range = rangeFromJson(o);
-        rangeList.add(range);
+        builder.add(range);
       }
     } catch (Exception e) {
       throw new RuntimeException("Error creating RangeSet from JSON: ", e);
     }
-    return builder.addAll(rangeList).build();
+    return builder.build();
   }
   /** Creates a {@link Range} from the string representation of a {@link Range}
    * serialized using {@link org.apache.calcite.rel.externalize.RelJson#toJson(Range)}. */
