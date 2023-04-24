@@ -702,12 +702,14 @@ public class RexImpTable {
       map.put(MAP_VALUE_CONSTRUCTOR, value);
       map.put(ARRAY_VALUE_CONSTRUCTOR, value);
 
-      // Each subscript operator has a corresponding offset and 'safe' value.
-      map.put(ITEM, new ItemImplementor());
-      map.put(OFFSET, new ItemImplementor());
-      map.put(ORDINAL, new ItemImplementor());
-      map.put(SAFE_OFFSET, new ItemImplementor());
-      map.put(SAFE_ORDINAL, new ItemImplementor());
+      // ITEM and BigQuery array subscript operators
+      final ItemImplementor itemImplementor =
+          new ItemImplementor();
+      map.put(ITEM, itemImplementor);
+      map.put(OFFSET, itemImplementor);
+      map.put(ORDINAL, itemImplementor);
+      map.put(SAFE_OFFSET, itemImplementor);
+      map.put(SAFE_ORDINAL, itemImplementor);
 
       map.put(DEFAULT, new DefaultImplementor());
 
