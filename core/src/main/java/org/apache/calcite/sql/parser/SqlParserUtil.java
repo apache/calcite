@@ -37,14 +37,18 @@ import org.apache.calcite.sql.SqlPrefixOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
+import org.apache.calcite.sql.SqlTimestampWithTimezoneLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.PrecedenceClimbingParser;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -192,6 +196,36 @@ public final class SqlParserUtil {
         TimestampString.fromCalendarFields(pt.getCalendar())
             .withFraction(pt.getFraction());
     return SqlLiteral.createTimestamp(ts, pt.getPrecision(), pos);
+  }
+
+  /**
+   * Added support to create SqlNode for TIMESTAMP WITH TIME ZONE literal.
+   * <p>
+   * Current Behaviour: Hardcoded precision value.
+   * To-Do:
+   * Need to add support to calculate precision from input and get expected count of precision.
+   */
+  public static SqlTimestampWithTimezoneLiteral parseTimestampWithTimeZoneLiteral(String s,
+      SqlParserPos pos) {
+    String modifiedValue = getModifiedValueForTimestampWithTimeZone(s);
+    TimestampWithTimeZoneString timestampWithTimeZoneString =
+        new TimestampWithTimeZoneString(modifiedValue);
+    return SqlLiteral.createTimestampWithTimeZone(timestampWithTimeZoneString, 6, pos);
+  }
+
+  private static String getModifiedValueForTimestampWithTimeZone(
+      String timestampWithTimeZoneLiteral) {
+    if (StringUtils.isNumeric(timestampWithTimeZoneLiteral.replaceAll("-|:|\\.| ", ""))) {
+      String timestampString = timestampWithTimeZoneLiteral.substring(0,
+          timestampWithTimeZoneLiteral.length() - 6);
+      String timezoneString =
+          timestampWithTimeZoneLiteral.substring(timestampWithTimeZoneLiteral.length() - 6,
+              timestampWithTimeZoneLiteral.length());
+      String defaultTimeZoneString = " GMT";
+      String finalTimezoneString = defaultTimeZoneString.concat(timezoneString);
+      timestampWithTimeZoneLiteral = timestampString.concat(finalTimezoneString);
+    }
+    return timestampWithTimeZoneLiteral;
   }
 
   public static SqlIntervalLiteral parseIntervalLiteral(SqlParserPos pos,

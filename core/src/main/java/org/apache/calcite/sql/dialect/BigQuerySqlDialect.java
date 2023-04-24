@@ -94,6 +94,9 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMON;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMONYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMONYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.E3;
 import static org.apache.calcite.sql.SqlDateTimeFormat.E4;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITYEAR;
@@ -114,6 +117,8 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MONTHNAME;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MONTH_NAME;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MONYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MONYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.NAME_OF_DAY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
 import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERIC_TIME_ZONE;
@@ -241,6 +246,11 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(MMDDYY, "%m%d%y");
         put(YYYYMMDD, "%Y%m%d");
         put(YYMMDD, "%y%m%d");
+        put(DDMON, "%d%b");
+        put(MONYY, "%b%y");
+        put(MONYYYY, "%b%Y");
+        put(DDMONYYYY, "%d%b%Y");
+        put(DDMONYY, "%d%b%y");
         put(DAYOFWEEK, "%A");
         put(ABBREVIATEDDAYOFWEEK, "%a");
         put(TWENTYFOURHOUR, "%H");
@@ -436,13 +446,21 @@ public class BigQuerySqlDialect extends SqlDialect {
         case INTERVAL_DAY:
         case INTERVAL_HOUR_SECOND:
         case INTERVAL_DAY_HOUR:
-        case INTERVAL_DAY_MINUTE:
         case INTERVAL_MINUTE_SECOND:
         case INTERVAL_HOUR_MINUTE:
-        case INTERVAL_DAY_SECOND:
         case INTERVAL_MINUTE:
         case INTERVAL_SECOND:
         case INTERVAL_HOUR:
+          if (call.op.kind == SqlKind.MINUS) {
+            return SqlLibraryOperators.TIMESTAMP_SUB;
+          }
+          return PLUS;
+        case INTERVAL_DAY_MINUTE:
+          if (call.op.kind == SqlKind.MINUS) {
+            return MINUS;
+          }
+          return PLUS;
+        case INTERVAL_DAY_SECOND:
           if (call.op.kind == SqlKind.MINUS) {
             return SqlLibraryOperators.TIMESTAMP_SUB;
           }
@@ -705,6 +723,14 @@ public class BigQuerySqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
         break;
       }
+    case COLUMN_LIST:
+      final SqlWriter.Frame columnListFrame = getColumnListFrame(writer, call);
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endList(columnListFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -1008,6 +1034,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "FORMAT_DATETIME":
       unparseFormatDatetime(writer, call, leftPrec, rightPrec);
       break;
+    case "PARSE_DATETIME":
     case "PARSE_TIMESTAMP":
       String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
           ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
@@ -1032,13 +1059,6 @@ public class BigQuerySqlDialect extends SqlDialect {
         operand.unparse(writer, leftPrec, rightPrec);
       }
       writer.endFunCall(substringFrame);
-      break;
-    case "TO_DATE":
-      SqlCall parseToDateCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
-          call.operand(1), call.operand(0));
-      final SqlWriter.Frame timestampSecond = writer.startFunCall("DATE");
-      unparseCall(writer, parseToDateCall, leftPrec, rightPrec);
-      writer.endFunCall(timestampSecond);
       break;
     case "TO_TIMESTAMP":
       if (call.getOperandList().size() == 1) {
@@ -1805,6 +1825,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         return createSqlDataTypeSpecByName("DATETIME", typeName);
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         return createSqlDataTypeSpecByName("TIMESTAMP_WITH_LOCAL_TIME_ZONE", typeName);
+      case JSON:
+        return createSqlDataTypeSpecByName("JSON", typeName);
       default:
         break;
       }
@@ -1954,6 +1976,16 @@ public class BigQuerySqlDialect extends SqlDialect {
         frame = writer.startFunCall("DATE_TRUNC");
 
       }
+    }
+    return frame;
+  }
+
+  private SqlWriter.Frame getColumnListFrame(SqlWriter writer, SqlCall call) {
+    SqlWriter.Frame frame = null;
+    if (call.getOperandList().size() == 1) {
+      frame = writer.startList("", "");
+    } else {
+      frame = writer.startList("(", ")");
     }
     return frame;
   }

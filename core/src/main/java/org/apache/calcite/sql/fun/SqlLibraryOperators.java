@@ -153,7 +153,7 @@ public abstract class SqlLibraryOperators {
         null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
 
   /** The "IFNULL(value, value)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, SPARK, SNOWFLAKE})
   public static final SqlFunction IFNULL =
       new SqlFunction("IFNULL", SqlKind.OTHER_FUNCTION,
           ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
@@ -221,6 +221,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction SUBSTR4 =
+      new SqlFunction("SUBSTR4", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000, null,
+          OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
+          SqlFunctionCategory.STRING);
+
   /** PostgreSQL's "SUBSTR(string, position [, substringLength ])" function. */
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction SUBSTR_POSTGRESQL =
@@ -256,6 +263,12 @@ public abstract class SqlLibraryOperators {
    */
   @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
   public static final SqlFunction TRANSLATE3 = new SqlTranslate3Function();
+
+  @LibraryOperator(libraries = {ORACLE, POSTGRESQL, MYSQL, NETEZZA, TERADATA})
+  public static final SqlFunction BETWEEN = new SqlBetweenAsymmetricOperator(false);
+
+  @LibraryOperator(libraries = {ORACLE, POSTGRESQL, MYSQL, NETEZZA, TERADATA})
+  public static final SqlFunction NOT_BETWEEN = new SqlBetweenAsymmetricOperator(true);
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction JSON_TYPE = new SqlJsonTypeFunction();
@@ -480,7 +493,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("TIME_ADD",
           SqlKind.PLUS,
           ReturnTypes.TIME, null,
-          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.TIME),
+          OperandTypes.DATETIME_INTERVAL,
           SqlFunctionCategory.TIMEDATE) {
 
     @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -731,11 +744,20 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_DATE(string1, string2)" function; casts string1
    * to a DATE using the format specified in string2. */
-  @LibraryOperator(libraries = {POSTGRESQL, ORACLE, SPARK})
+  @LibraryOperator(libraries = {POSTGRESQL, SPARK})
   public static final SqlFunction TO_DATE =
       new SqlFunction("TO_DATE",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction ORACLE_TO_DATE =
+      new SqlFunction("TO_DATE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_NULLABLE,
           null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
@@ -949,7 +971,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction PARSE_DATETIME =
       new SqlFunction("PARSE_DATETIME",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG1_NULLABLE,
+          ReturnTypes.TIMESTAMP,
           null,
           OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
           SqlFunctionCategory.TIMEDATE);
@@ -1057,6 +1079,13 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
           SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_DIFF = new SqlFunction("DATETIME_DIFF",
+      SqlKind.TIMESTAMP_DIFF,
+      ReturnTypes.INTEGER, null,
+      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+      SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMPINTADD = new SqlFunction("TIMESTAMPINTADD",
@@ -1417,4 +1446,15 @@ public abstract class SqlLibraryOperators {
               // Third operand optional (operand index 0, 1, 2)
               number -> number == 2),
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE, HIVE, SPARK})
+  public static final SqlFunction NEXT_DAY =
+      new SqlFunction(
+          "NEXT_DAY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE,
+          null,
+          OperandTypes.family(SqlTypeFamily.ANY,
+              SqlTypeFamily.STRING),
+          SqlFunctionCategory.TIMEDATE);
 }

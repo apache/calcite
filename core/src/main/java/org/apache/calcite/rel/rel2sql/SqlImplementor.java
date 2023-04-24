@@ -76,6 +76,7 @@ import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlCase;
@@ -110,6 +111,7 @@ import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -325,7 +327,6 @@ public abstract class SqlImplementor {
       return SqlUtil.createCall(op, POS, sqlOperands);
 
     case EQUALS:
-    case IN:
     case NOT:
     case IS_DISTINCT_FROM:
     case IS_NOT_DISTINCT_FROM:
@@ -622,6 +623,36 @@ public abstract class SqlImplementor {
         SqlNodeList.EMPTY, null, null, null, null);
   }
 
+  boolean isCorrelated(LogicalFilter rel) {
+    if (!rel.getVariablesSet().isEmpty()) {
+      List<SqlOperator> correlOperators =
+          Arrays.asList(SqlStdOperatorTable.EXISTS, SqlStdOperatorTable.IN,
+              SqlStdOperatorTable.SCALAR_QUERY);
+
+      List<SqlKind> comparisonOperators =
+          Arrays.asList(SqlKind.NOT, SqlKind.OR,
+              SqlKind.LESS_THAN, SqlKind.GREATER_THAN);
+
+      SqlOperator op = null;
+      RexNode condition = rel.getCondition();
+      if (condition instanceof RexSubQuery) {
+        op = ((RexSubQuery) condition).op;
+      } else if (condition instanceof RexCall) {
+        SqlOperator operator = ((RexCall) condition).op;
+        if (comparisonOperators.contains(operator.getKind())) {
+          List<RexNode> operands = ((RexCall) condition).operands;
+          int index = operands.get(0) instanceof RexSubQuery ? 0
+              : (operands.size() == 2 ? (operands.get(1) instanceof RexSubQuery ? 1 : -1) : -1);
+          op = index >= 0
+              ? ((RexSubQuery) (((RexCall) condition).operands.get(index))).op : null;
+        }
+      }
+      return correlOperators.contains(op);
+    } else {
+      return false;
+    }
+  }
+
   /** Returns whether we need to add an alias if this node is to be the FROM
    * clause of a SELECT. */
   private boolean requiresAlias(SqlNode node) {
@@ -673,6 +704,14 @@ public abstract class SqlImplementor {
      */
     public SqlNode orderField(int ordinal) {
       return field(ordinal);
+    }
+
+    public SqlNode orderField(RelFieldCollation collation) {
+      if (collation.isOrdinal) {
+        return SqlLiteral.createExactNumeric(
+            Integer.toString(collation.getFieldIndex() + 1), SqlParserPos.ZERO);
+      }
+      return orderField(collation.getFieldIndex());
     }
 
     /** Converts an expression from {@link RexNode} to {@link SqlNode}
@@ -1154,13 +1193,13 @@ public abstract class SqlImplementor {
         final boolean first =
             field.nullDirection == RelFieldCollation.NullDirection.FIRST;
         SqlNode nullDirectionNode =
-            dialect.emulateNullDirection(field(field.getFieldIndex()),
+            dialect.emulateNullDirection(orderField(field),
                 first, field.direction.isDescending());
         if (nullDirectionNode != null) {
           orderByList.add(nullDirectionNode);
           field = new RelFieldCollation(field.getFieldIndex(),
               field.getDirection(),
-              RelFieldCollation.NullDirection.UNSPECIFIED);
+              RelFieldCollation.NullDirection.UNSPECIFIED, field.isOrdinal);
         }
       }
       orderByList.add(toSql(field));
@@ -1261,6 +1300,7 @@ public abstract class SqlImplementor {
     /** Wraps a call in a {@link SqlKind#WITHIN_GROUP} call, if
      * {@code collation} is non-empty. */
     private SqlCall withOrder(SqlCall call, RelCollation collation) {
+      SqlOperator sqlOperator = call.getOperator();
       if (collation.getFieldCollations().isEmpty()) {
         return call;
       }
@@ -1268,13 +1308,19 @@ public abstract class SqlImplementor {
       for (RelFieldCollation field : collation.getFieldCollations()) {
         addOrderItem(orderByList, field);
       }
-      return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, call,
-          new SqlNodeList(orderByList, POS));
+      SqlNodeList orderNodeList = new SqlNodeList(orderByList, POS);
+      List<SqlNode> operandList = new ArrayList<>();
+      operandList.addAll(call.getOperandList());
+      operandList.add(orderNodeList);
+      if (sqlOperator.getSyntax() == SqlSyntax.ORDERED_FUNCTION) {
+        return sqlOperator.createCall(POS, operandList);
+      }
+      return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, call, orderNodeList);
     }
 
     /** Converts a collation to an ORDER BY item. */
     public SqlNode toSql(RelFieldCollation collation) {
-      SqlNode node = orderField(collation.getFieldIndex());
+      SqlNode node = orderField(collation);
       switch (collation.getDirection()) {
       case DESCENDING:
       case STRICTLY_DESCENDING:
@@ -1736,7 +1782,7 @@ public abstract class SqlImplementor {
 
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
-      if (needNew) {
+      if (needNew || (rel instanceof LogicalFilter && isCorrelated((LogicalFilter) rel))) {
         select = subSelect();
       } else {
         select = asSelect();
