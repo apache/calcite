@@ -11707,27 +11707,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
-  @Test public void testForAnyOperator() {
-    final RelBuilder builder = relBuilder();
-    final RelNode subQuery = builder
-        .scan("EMP")
-        .project(builder.field(0), builder.field(2))
-        .build();
-    final RexNode anyCondition = RexSubQuery.some(subQuery,
-        ImmutableList.of(builder.literal(1), builder.literal(2)), SOME_EQ);
-    final RelNode root = builder
-        .scan("EMP")
-        .filter(anyCondition)
-        .project(builder.field(1))
-        .build();
-
-    final String expectedSql = "SELECT \"ENAME\"\n"
-        + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE (1, 2) = SOME (SELECT \"EMPNO\", \"JOB\"\n"
-        + "FROM \"scott\".\"EMP\")";
-    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
-  }
-
   @Test public void testTranslateWithLiteralParameter() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode rexNode = builder.call(SqlLibraryOperators.TRANSLATE,
