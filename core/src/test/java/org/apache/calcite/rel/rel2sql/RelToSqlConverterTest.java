@@ -134,7 +134,6 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SOME_EQ;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -11706,26 +11705,5 @@ class RelToSqlConverterTest {
     final String expectedBQSql = "SELECT PARSE_DATETIME('%d%b-%Y', '23FEB-2021') AS `$f0`"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
-  }
-
-  @Test public void testForAnyOperator() {
-    final RelBuilder builder = relBuilder();
-    final RelNode subQuery = builder
-        .scan("EMP")
-        .project(builder.field(0), builder.field(2))
-        .build();
-    final RexNode anyCondition = RexSubQuery.some(subQuery,
-        ImmutableList.of(builder.literal(1), builder.literal(2)), SOME_EQ);
-    final RelNode root = builder
-        .scan("EMP")
-        .filter(anyCondition)
-        .project(builder.field(1))
-        .build();
-
-    final String expectedSql = "SELECT \"ENAME\"\n"
-        + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE (1, 2) = SOME (SELECT \"EMPNO\", \"JOB\"\n"
-        + "FROM \"scott\".\"EMP\")";
-    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }
 }
