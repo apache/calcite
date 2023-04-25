@@ -870,8 +870,17 @@ public class BigQuerySqlDialect extends SqlDialect {
       SqlWriter writer,
       SqlCall call, int leftPrec, int rightPrec) {
     SqlWriter.Frame castTimeStampFrame = null;
+
     final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().toString());
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    if (isDateTimeCall(call)) {
+      SqlWriter.Frame castDateTimeFrame = writer.startFunCall("CAST");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep("AS", true);
+      writer.literal("DATETIME");
+      writer.endFunCall(castDateTimeFrame);
+    } else {
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+    }
     writer.print(",");
     switch (call.operand(1).getKind()) {
     case LITERAL:
@@ -886,7 +895,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       throw new AssertionError(call.operand(1).getKind() + " is not valid");
     }
+
     writer.endFunCall(frame);
+
   }
 
   private boolean isDateTimeCall(SqlCall call) {

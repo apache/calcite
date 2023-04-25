@@ -11687,15 +11687,19 @@ class RelToSqlConverterTest {
     final RexLiteral intervalLiteral = rexBuilder.makeIntervalLiteral(BigDecimal.valueOf(-2),
         new SqlIntervalQualifier(MONTH, null, SqlParserPos.ZERO));
     final RexNode oracleAddMonthsCall = relBuilder.call(SqlLibraryOperators.ORACLE_ADD_MONTHS,
-        relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),intervalLiteral);
+        relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), intervalLiteral);
     RelNode root = relBuilder
         .project(oracleAddMonthsCall)
         .build();
-   final String expectedBQSql = "SELECT DATETIME_ADD(CURRENT_DATETIME(), INTERVAL -2 MONTH) AS `$f0`"
-        + "\nFROM scott.EMP";
-   assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
-    final String expectedOracleSql = "SELECT ADD_MONTHS(CURRENT_TIMESTAMP, INTERVAL -'2' MONTH) \"$f0\""
+    final String expectedOracleSql = "SELECT "
+        + "ADD_MONTHS(CURRENT_TIMESTAMP, INTERVAL -'2' MONTH) \"$f0\""
         + "\nFROM \"scott\".\"EMP\"";
+
+    final String expectedBQSql = "SELECT "
+        + "DATETIME_ADD(CAST(CURRENT_DATETIME() AS DATETIME), INTERVAL -2 MONTH) AS `$f0`"
+        + "\nFROM scott.EMP";
+
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 }
