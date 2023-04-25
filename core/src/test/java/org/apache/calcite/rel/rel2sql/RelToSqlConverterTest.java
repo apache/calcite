@@ -11738,9 +11738,12 @@ class RelToSqlConverterTest {
     RelBuilder builder = relBuilder().scan("EMP");
     RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.MAX, builder.field(0));
     RelDataType type = aggregateFunRexNode.getType();
-    RexFieldCollation orderKeys = new RexFieldCollation(builder.getRexBuilder().makeInputRef(type, 0), ImmutableSet.of());
-    final RexNode analyticalFunCall = builder.getRexBuilder().makeOver(type, SqlStdOperatorTable.MAX,
-        ImmutableList.of(), ImmutableList.of(), ImmutableList.of(orderKeys), RexWindowBounds.UNBOUNDED_PRECEDING,
+    RexFieldCollation orderKeys = new RexFieldCollation(builder.getRexBuilder()
+        .makeInputRef(type, 0), ImmutableSet.of());
+    final RexNode analyticalFunCall = builder.getRexBuilder().makeOver(type,
+        SqlStdOperatorTable.MAX,
+        ImmutableList.of(), ImmutableList.of(), ImmutableList.of(orderKeys),
+        RexWindowBounds.UNBOUNDED_PRECEDING,
         RexWindowBounds.UNBOUNDED_FOLLOWING,
         true, true, false, false, false);
     RelNode root = builder
