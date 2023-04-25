@@ -1,0 +1,6 @@
+INNER;[=($1, 'Victor'), =($7, $8), =($9, 'CSD')]
+LEFT;[=($1, 'Victor')]
+RIGHT;[=($9, 'CSD')]
+FULL;[]
+SEMI;[=($1, 'Victor')]
+ANTI;[=($1, 'Victor')]
