@@ -657,6 +657,7 @@ public class RelMdPredicates
       case SEMI:
       case INNER:
       case LEFT:
+      case ANTI:
         infer(leftChildPredicates, allExprs, inferredPredicates,
             includeEqualityInference,
             joinType == JoinRelType.LEFT ? rightFieldsBitSet
@@ -719,6 +720,7 @@ public class RelMdPredicates
         return RelOptPredicateList.of(rexBuilder, pulledUpPredicates,
           leftInferredPredicates, rightInferredPredicates);
       case LEFT:
+      case ANTI:
         return RelOptPredicateList.of(rexBuilder,
             RelOptUtil.conjunctions(leftChildPredicates),
             leftInferredPredicates, rightInferredPredicates);
