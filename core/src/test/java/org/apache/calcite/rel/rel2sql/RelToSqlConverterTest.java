@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
@@ -43,9 +45,11 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
@@ -11727,5 +11731,24 @@ class RelToSqlConverterTest {
         + "WHERE (1, 2) = SOME (SELECT \"EMPNO\", \"JOB\"\n"
         + "FROM \"scott\".\"EMP\")";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
+
+  @Test public void testRowsInOverClauseWhenUnboudedPrecedingAndFollowing() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.MAX, builder.field(0));
+    RelDataType type = aggregateFunRexNode.getType();
+    RexFieldCollation orderKeys = new RexFieldCollation(builder.getRexBuilder().makeInputRef(type, 0), ImmutableSet.of());
+    final RexNode analyticalFunCall = builder.getRexBuilder().makeOver(type, SqlStdOperatorTable.MAX,
+        ImmutableList.of(), ImmutableList.of(), ImmutableList.of(orderKeys), RexWindowBounds.UNBOUNDED_PRECEDING,
+        RexWindowBounds.UNBOUNDED_FOLLOWING,
+        true, true, false, false, false);
+    RelNode root = builder
+        .project(analyticalFunCall)
+        .build();
+    final String expectedOracleSql = "SELECT MAX() OVER (ORDER BY \"EMPNO\" ROWS BETWEEN "
+        + "UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 }
