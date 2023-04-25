@@ -123,7 +123,8 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     MaterializationMetadata materializationMetadata =
         materializationMetadataCache.getUnchecked(mq);
     for (RelOptMaterialization materialization : materializations) {
-      if (materializationMetadata.isValidMaterialization(mq, materialization)) {
+      if (materializationMetadata.isValidMaterialization(
+          mq, materialization, this)) {
         return true;
       }
     }
@@ -228,7 +229,8 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
           materializationMetadataCache.getUnchecked(mq);
       for (RelOptMaterialization materialization : materializations) {
         // 3.1. View checks before proceeding
-        if (!materializationMetadata.isValidMaterialization(mq, materialization)) {
+        if (!materializationMetadata.isValidMaterialization(
+            mq, materialization, this)) {
           // Skip it
           continue;
         }
@@ -247,6 +249,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
         // Extract view table references
         final Set<RelTableRef> viewTableRefs =
             materializationMetadata.viewTableRefsMap.get(materialization);
+        assert viewTableRefs != null;
 
         // Filter relevant materializations. Currently, we only check whether
         // the materialization contains any table that is used by the query
@@ -268,6 +271,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
         // Extract view predicates
         final RelOptPredicateList viewPredicateList =
             materializationMetadata.viewPredicateListMap.get(materialization);
+        assert viewPredicateList != null;
         final RexNode viewPred =
             simplify.simplifyUnknownAsFalse(
                 RexUtil.composeConjunction(rexBuilder,
@@ -1452,17 +1456,20 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * Check if the materialization is valid for this rule.
    * If it does, cache the materialization's RelTableRef and RelOptPredicateList.
    */
-  protected class MaterializationMetadata {
+  protected static class MaterializationMetadata {
     private final Set<RelOptMaterialization> notValidMaterializations = new HashSet<>();
     private final Map<RelOptMaterialization, Set<RelTableRef>> viewTableRefsMap = new HashMap<>();
     private final Map<RelOptMaterialization, RelOptPredicateList>
         viewPredicateListMap = new HashMap<>();
 
-    protected boolean isValidMaterialization(
-        RelMetadataQuery mq, RelOptMaterialization materialization) {
+    protected <C extends MaterializedViewRule.Config> boolean isValidMaterialization(
+        RelMetadataQuery mq,
+        RelOptMaterialization materialization,
+        MaterializedViewRule<C> materializedViewRule) {
       if (notValidMaterializations.contains(materialization)) {
         return false;
-      } else if (viewTableRefsMap.containsKey(materialization)) {
+      } else if (viewTableRefsMap.containsKey(materialization)
+          && viewPredicateListMap.containsKey(materialization)) {
         return true;
       } else {
         Project topViewProject;
@@ -1482,7 +1489,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
           return false;
         }
 
-        if (!isValidPlan(topViewProject, viewNode, mq)) {
+        if (!materializedViewRule.isValidPlan(topViewProject, viewNode, mq)) {
           // Skip it
           notValidMaterializations.add(materialization);
           return false;
