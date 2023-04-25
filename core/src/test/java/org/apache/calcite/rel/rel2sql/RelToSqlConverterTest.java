@@ -137,7 +137,6 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SOME_EQ;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -6139,7 +6138,7 @@ class RelToSqlConverterTest {
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
         + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = CAST"
-        + "(CONCAT('1996-01-01 ', '00:00:00') AS DATETIME)";
+        + "('1996-01-01 ' || '00:00:00' AS DATETIME)";
     final String mssql = "SELECT [employee_id]\n"
         + "FROM [foodmart].[employee]\n"
         + "WHERE 10 = '10' AND [birth_date] = '1914-02-02' OR [hire_date] = CONCAT('1996-01-01 ', '00:00:00')";
@@ -6881,17 +6880,17 @@ class RelToSqlConverterTest {
 
   @Test public void concatFunctionEmulationForHiveAndSparkAndBigQuery() {
     String query = "select 'foo' || 'bar' from \"employee\"";
-    final String expected = "SELECT CONCAT('foo', 'bar')\n"
+    final String expectedHive = "SELECT CONCAT('foo', 'bar')\n"
         + "FROM foodmart.employee";
     final String mssql = "SELECT CONCAT('foo', 'bar')\n"
             + "FROM [foodmart].[employee]";
-    final String expectedSpark = "SELECT 'foo' || 'bar'\n"
+    final String expected = "SELECT 'foo' || 'bar'\n"
         + "FROM foodmart.employee";
     sql(query)
         .withHive()
-        .ok(expected)
+        .ok(expectedHive)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
         .withBigQuery()
         .ok(expected)
         .withMssql()
@@ -7165,7 +7164,7 @@ class RelToSqlConverterTest {
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
         + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = "
-        + "CAST(CONCAT('1996-01-01 ', '00:00:00') AS DATETIME)";
+        + "CAST('1996-01-01 ' || '00:00:00' AS DATETIME)";
     sql(query)
         .ok(expected)
         .withBigQuery()
@@ -7194,7 +7193,7 @@ class RelToSqlConverterTest {
   @Test public void testToNumberFunctionHandlingHexaToInt() {
     String query = "select TO_NUMBER('03ea02653f6938ba','XXXXXXXXXXXXXXXX')";
     final String expected = "SELECT CAST(CONV('03ea02653f6938ba', 16, 10) AS BIGINT)";
-    final String expectedBigQuery = "SELECT CAST(CONCAT('0x', '03ea02653f6938ba') AS INT64)";
+    final String expectedBigQuery = "SELECT CAST('0x' || '03ea02653f6938ba' AS INT64)";
     final String expectedSnowFlake = "SELECT TO_NUMBER('03ea02653f6938ba', 'XXXXXXXXXXXXXXXX')";
     sql(query)
         .withHive()
@@ -8214,8 +8213,8 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT CAST('1970-01-01 ' || "
         + "DATE_FORMAT('12:00' || ':05', 'HH:mm:ss.SSS') AS TIMESTAMP)\nFROM foodmart.employee";
-    final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(CONCAT('12:00', "
-        + "':05') AS TIME)) AS TIME)\n"
+    final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST('12:00' || ':05' "
+        + "AS TIME)) AS TIME)\n"
         + "FROM foodmart.employee";
     final String mssql = "SELECT CAST(CONCAT('12:00', ':05') AS TIME(3))\n"
             + "FROM [foodmart].[employee]";
@@ -11711,25 +11710,29 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
-  @Test public void testForAnyOperator() {
-    final RelBuilder builder = relBuilder();
-    final RelNode subQuery = builder
-        .scan("EMP")
-        .project(builder.field(0), builder.field(2))
+  @Test public void testTranslateWithLiteralParameter() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode rexNode = builder.call(SqlLibraryOperators.TRANSLATE,
+        builder.literal("scott"), builder.literal("t"), builder.literal("a"));
+    RelNode root = builder
+        .project(rexNode)
         .build();
-    final RexNode anyCondition = RexSubQuery.some(subQuery,
-        ImmutableList.of(builder.literal(1), builder.literal(2)), SOME_EQ);
-    final RelNode root = builder
-        .scan("EMP")
-        .filter(anyCondition)
-        .project(builder.field(1))
-        .build();
+    final String expectedBQSql = "SELECT TRANSLATE('scott', 't', 'a') AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
 
-    final String expectedSql = "SELECT \"ENAME\"\n"
-        + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE (1, 2) = SOME (SELECT \"EMPNO\", \"JOB\"\n"
-        + "FROM \"scott\".\"EMP\")";
-    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  @Test public void testTranslateWithNumberParameter() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode rexNode = builder.call(SqlLibraryOperators.TRANSLATE,
+        builder.literal("12.345.6789~10~"), builder.literal("~."),
+        builder.literal(""));
+    RelNode root = builder
+        .project(rexNode)
+        .build();
+    final String expectedBQSql = "SELECT TRANSLATE('12.345.6789~10~', '~.', '') AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
 
