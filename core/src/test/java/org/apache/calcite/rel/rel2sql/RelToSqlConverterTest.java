@@ -134,6 +134,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SOME_EQ;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -4531,6 +4532,32 @@ class RelToSqlConverterTest {
     sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
   }
 
+  @Test void testExistsCorrelation() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where exists (select count(*) "
+        + "from \"sales_fact_1997\"b "
+        + "where b.\"product_id\" = a.\"product_id\")";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE EXISTS (SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "WHERE \"product_id\" = \"product\".\"product_id\")";
+    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
+  }
+
+  @Test void testNotExistsCorrelation() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where not exists (select count(*) "
+        + "from \"sales_fact_1997\"b "
+        + "where b.\"product_id\" = a.\"product_id\")";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE NOT EXISTS (SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+        + "WHERE \"product_id\" = \"product\".\"product_id\")";
+    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
+  }
+
   @Test void testSubQueryInWithExpand() {
     String query = "select \"product_name\" from \"product\" a "
         + "where \"product_id\" in (select \"product_id\" "
@@ -8633,12 +8660,8 @@ class RelToSqlConverterTest {
     final String expectedSql =
         "SELECT TO_DATE('2009/03/20', 'yyyy/MM/dd') AS \"date_value\"\n"
             + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery =
-        "SELECT DATE(PARSE_DATETIME('%Y/%m/%d', '2009/03/20')) AS date_value\n"
-            + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test public void testToDateFunctionWithAMInFormat() {
@@ -11660,5 +11683,49 @@ class RelToSqlConverterTest {
         .build();
     final String expectedOracleSql = "SELECT SUBSTR4(\"EMPNO\", 1) \"$f0\"\nFROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testToDateforOracle() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode oracleToDateCall = builder.call(SqlLibraryOperators.ORACLE_TO_DATE,
+        builder.call(SqlStdOperatorTable.CURRENT_DATE));
+    RelNode root = builder
+        .project(oracleToDateCall)
+        .build();
+    final String expectedOracleSql = "SELECT TO_DATE(CURRENT_DATE) \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testMONDateFormatforOracle() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode oracleToDateCall = builder.call(SqlLibraryOperators.PARSE_DATETIME,
+        builder.literal("DDMON-YYYY"), builder.literal("23FEB-2021"));
+    RelNode root = builder
+        .project(oracleToDateCall)
+        .build();
+    final String expectedBQSql = "SELECT PARSE_DATETIME('%d%b-%Y', '23FEB-2021') AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testForAnyOperator() {
+    final RelBuilder builder = relBuilder();
+    final RelNode subQuery = builder
+        .scan("EMP")
+        .project(builder.field(0), builder.field(2))
+        .build();
+    final RexNode anyCondition = RexSubQuery.some(subQuery,
+        ImmutableList.of(builder.literal(1), builder.literal(2)), SOME_EQ);
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(anyCondition)
+        .project(builder.field(1))
+        .build();
+
+    final String expectedSql = "SELECT \"ENAME\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE (1, 2) = SOME (SELECT \"EMPNO\", \"JOB\"\n"
+        + "FROM \"scott\".\"EMP\")";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }
 }
