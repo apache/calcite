@@ -11706,4 +11706,29 @@ class RelToSqlConverterTest {
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
+
+  @Test public void testTranslateWithLiteralParameter() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode rexNode = builder.call(SqlLibraryOperators.TRANSLATE,
+        builder.literal("scott"), builder.literal("t"), builder.literal("a"));
+    RelNode root = builder
+        .project(rexNode)
+        .build();
+    final String expectedBQSql = "SELECT TRANSLATE('scott', 't', 'a') AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testTranslateWithNumberParameter() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode rexNode = builder.call(SqlLibraryOperators.TRANSLATE,
+        builder.literal("12.345.6789~10~"), builder.literal("~."),
+        builder.literal(""));
+    RelNode root = builder
+        .project(rexNode)
+        .build();
+    final String expectedBQSql = "SELECT TRANSLATE('12.345.6789~10~', '~.', '') AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
 }
