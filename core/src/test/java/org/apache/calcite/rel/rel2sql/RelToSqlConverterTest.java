@@ -11739,18 +11739,20 @@ class RelToSqlConverterTest {
     RelBuilder builder = relBuilder().scan("EMP");
     RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.MAX, builder.field(0));
     RelDataType type = aggregateFunRexNode.getType();
-    RexFieldCollation orderKeys = new RexFieldCollation(builder.getRexBuilder()
-        .makeInputRef(type, 0), ImmutableSet.of());
+    RexFieldCollation orderKeys = new RexFieldCollation(
+        builder.field("HIREDATE"),
+        ImmutableSet.of());
     final RexNode analyticalFunCall = builder.getRexBuilder().makeOver(type,
         SqlStdOperatorTable.MAX,
-        ImmutableList.of(), ImmutableList.of(), ImmutableList.of(orderKeys),
+        ImmutableList.of(builder.field(0)), ImmutableList.of(), ImmutableList.of(orderKeys),
         RexWindowBounds.UNBOUNDED_PRECEDING,
         RexWindowBounds.UNBOUNDED_FOLLOWING,
         true, true, false, false, false);
     RelNode root = builder
         .project(analyticalFunCall)
         .build();
-    final String expectedOracleSql = "SELECT MAX() OVER (ORDER BY \"EMPNO\" ROWS BETWEEN "
+    final String expectedOracleSql = "SELECT MAX(\"EMPNO\") OVER (ORDER BY \"HIREDATE\" "
+        + "ROWS BETWEEN "
         + "UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) \"$f0\"\n"
         + "FROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
