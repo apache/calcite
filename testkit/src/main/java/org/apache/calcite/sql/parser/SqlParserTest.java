@@ -2001,23 +2001,23 @@ public class SqlParserTest {
 
   @Test void testSubstring() {
     expr("substring('a'\nFROM \t  1)")
-        .ok("SUBSTRING('a' FROM 1)");
+        .ok("SUBSTRING('a', 1)");
     expr("substring('a' FROM 1 FOR 3)")
-        .ok("SUBSTRING('a' FROM 1 FOR 3)");
+        .ok("SUBSTRING('a', 1, 3)");
     expr("substring('a' FROM 'reg' FOR '\\')")
-        .ok("SUBSTRING('a' FROM 'reg' FOR '\\')");
+        .ok("SUBSTRING('a', 'reg', '\\')");
 
     expr("substring('a', 'reg', '\\')")
-        .ok("SUBSTRING('a' FROM 'reg' FOR '\\')");
+        .ok("SUBSTRING('a', 'reg', '\\')");
     expr("substring('a', 1, 2)")
-        .ok("SUBSTRING('a' FROM 1 FOR 2)");
+        .ok("SUBSTRING('a', 1, 2)");
     expr("substring('a' , 1)")
-        .ok("SUBSTRING('a' FROM 1)");
+        .ok("SUBSTRING('a', 1)");
   }
 
   @Test void testFunction() {
     sql("select substring('Eggs and ham', 1, 3 + 2) || ' benedict' from emp")
-        .ok("SELECT (SUBSTRING('Eggs and ham' FROM 1 FOR (3 + 2)) || ' benedict')\n"
+        .ok("SELECT (SUBSTRING('Eggs and ham', 1, (3 + 2)) || ' benedict')\n"
             + "FROM `EMP`");
     expr("log10(1)\r\n"
         + "+power(2, mod(\r\n"

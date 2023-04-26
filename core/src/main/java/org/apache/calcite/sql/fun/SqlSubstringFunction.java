@@ -18,7 +18,6 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -27,7 +26,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
@@ -135,24 +133,6 @@ public class SqlSubstringFunction extends SqlFunction {
 
   @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.between(2, 3);
-  }
-
-  @Override public void unparse(
-      SqlWriter writer,
-      SqlCall call,
-      int leftPrec,
-      int rightPrec) {
-    final SqlWriter.Frame frame = writer.startFunCall(getName());
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.sep("FROM");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
-
-    if (3 == call.operandCount()) {
-      writer.sep("FOR");
-      call.operand(2).unparse(writer, leftPrec, rightPrec);
-    }
-
-    writer.endFunCall(frame);
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
