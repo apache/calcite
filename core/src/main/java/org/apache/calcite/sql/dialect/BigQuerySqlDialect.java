@@ -593,14 +593,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.endFunCall(truncateFrame);
       break;
-    case CONCAT:
-      final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(concatFrame);
-      break;
     case DIVIDE_INTEGER:
       final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
       unparseDivideInteger(writer, call, leftPrec, rightPrec);
