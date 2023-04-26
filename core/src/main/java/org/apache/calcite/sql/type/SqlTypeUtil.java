@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.type;
 
-import org.apache.calcite.avatica.SqlType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
@@ -62,10 +61,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.apache.calcite.avatica.SqlType.BIGINT;
-import static org.apache.calcite.avatica.SqlType.INTEGER;
-import static org.apache.calcite.avatica.SqlType.SMALLINT;
-import static org.apache.calcite.avatica.SqlType.TINYINT;
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
@@ -978,7 +973,7 @@ public abstract class SqlTypeUtil {
       RelDataType fromType,
       boolean coerce,
       SqlConformance conformance) {
-    if (castingBooleanToNumber(toType, fromType)) {
+    if (isCastBooleanToInt(toType, fromType)) {
       return conformance.allowLenientBooleanCastTypes();
     } else {
       return canCastFrom(toType, fromType, coerce);
@@ -992,19 +987,11 @@ public abstract class SqlTypeUtil {
    * @param fromType Source of assignment
    * @return true iff fromType is boolean and toType is one of [TINYINT, SMALLINT, INTEGER, BIGINT]
    */
-  public static boolean castingBooleanToNumber(
+  public static boolean isCastBooleanToInt(
       RelDataType toType,
       RelDataType fromType) {
-    // These following types support casting from booleans in some dialects such as BigQuery.
-    List<String> numericTypes =
-            ImmutableList.of(TINYINT,
-            SMALLINT,
-            INTEGER,
-            BIGINT)
-        .stream().map(type -> type.toString()).collect(Collectors.toList());
-
-    return numericTypes.contains(toType.getSqlTypeName().getName()) && fromType.getSqlTypeName().getName()
-        .equals(SqlType.BOOLEAN.name());
+    return SqlTypeName.INT_TYPES.contains(toType.getSqlTypeName()) && fromType.getSqlTypeName()
+        .equals(SqlTypeName.BOOLEAN);
   }
 
   /**
