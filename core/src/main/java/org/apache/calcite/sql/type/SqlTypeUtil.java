@@ -53,11 +53,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
-import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -823,6 +819,14 @@ public abstract class SqlTypeUtil {
       return true;
     }
 
+    if (toType.getFamily() == SqlTypeFamily.DATE && fromType.getFamily() == SqlTypeFamily.TIMESTAMP) {
+      return true;
+    }
+    if (toType.getFamily() == SqlTypeFamily.TIMESTAMP && fromType.getFamily() == SqlTypeFamily.DATE) {
+      return true;
+    }
+
+
     final SqlTypeName fromTypeName = fromType.getSqlTypeName();
     final SqlTypeName toTypeName = toType.getSqlTypeName();
     if (toTypeName == SqlTypeName.UNKNOWN) {
@@ -1444,6 +1448,10 @@ public abstract class SqlTypeUtil {
       return true;
     }
 
+    if ((family1 == SqlTypeFamily.DATE && family2 == SqlTypeFamily.TIMESTAMP) ||
+        (family2 == SqlTypeFamily.DATE && family1 == SqlTypeFamily.TIMESTAMP)) {
+      return true;
+    }
     return false;
   }
 
