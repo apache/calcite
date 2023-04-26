@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.elasticsearch;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.util.UnsafeX509ExtendedTrustManager;
 
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -43,12 +44,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
 
 /**
  * Factory that creates an {@link ElasticsearchSchema}.
@@ -93,6 +99,27 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
   public ElasticsearchSchemaFactory() {
   }
 
+  /**
+   * Create an ElasticSearch {@link Schema}.
+   * The operand property accepts the following key/value pairs:
+   *
+   * <ul>
+   *   <li><b>username</b>: The username for the ES cluster</li>
+   *   <li><b>password</b>: The password for the ES cluster</li>
+   *   <li><b>hosts</b>: A {@link List} of hosts for the ES cluster. Either the hosts or
+   *   coordinates must be populated.</li>
+   *   <li><b>coordinates</b>: A {@link List} of coordinates for the ES cluster. Either the hosts
+   *   list or
+   *   the coordinates list must be populated.</li>
+   *   <li><b>disableSSLVerification</b>: A boolean parameter to disable SSL verification. Defaults
+   *   to false. This should always be set to false for production systems.</li>
+   * </ul>
+   *
+   * @param parentSchema Parent schema
+   * @param name Name of this schema
+   * @param operand The "operand" JSON property
+   * @return Returns a {@link Schema} for the ES cluster.
+   */
   @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
 
@@ -131,10 +158,21 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
         ("Both 'coordinates' and 'hosts' is missing in configuration. Provide one of them.");
       }
       final String pathPrefix = (String) map.get("pathPrefix");
+
+      // Enable or Disable SSL Verification
+      boolean disableSSLVerification;
+      if (map.containsKey("disableSSLVerification")) {
+        String temp = (String) map.get("disableSSLVerification");
+        disableSSLVerification = Boolean.getBoolean(temp.toLowerCase(Locale.ROOT));
+      } else {
+        disableSSLVerification = false;
+      }
+
       // create client
       String username = (String) map.get("username");
       String password = (String) map.get("password");
-      final RestClient client = connect(hosts, pathPrefix, username, password);
+      final RestClient client =
+          connect(hosts, pathPrefix, username, password, disableSSLVerification);
       final String index = (String) map.get("index");
 
       return new ElasticsearchSchema(client, new ObjectMapper(), index);
@@ -151,18 +189,20 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
    * @param password the password of ES
    * @return new or cached low-level rest http client for ES
    */
+  @SuppressWarnings({"java:S4830", "java:S5527"})
   private static RestClient connect(List<HttpHost> hosts, String pathPrefix,
-                                    String username, String password) {
+                                    String username, String password,
+                                    boolean disableSSLVerification) {
 
     Objects.requireNonNull(hosts, "hosts or coordinates");
     Preconditions.checkArgument(!hosts.isEmpty(), "no ES hosts specified");
     // Two lists are considered equal when all of their corresponding elements are equal
-    // making a list of RestClient parms a suitable cache key.
+    // making a list of RestClient params a suitable cache key.
     List cacheKey = ImmutableList.of(hosts, pathPrefix, username, password);
 
     try {
       return REST_CLIENTS.get(cacheKey, new Callable<RestClient>() {
-        @Override public RestClient call() {
+        @Override public RestClient call() throws NoSuchAlgorithmException, KeyManagementException {
           RestClientBuilder builder = RestClient.builder(hosts.toArray(new HttpHost[hosts.size()]));
 
           if (!Strings.isNullOrEmpty(username) && !Strings.isNullOrEmpty(password)) {
@@ -171,6 +211,16 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
                 new UsernamePasswordCredentials(username, password));
             builder.setHttpClientConfigCallback(httpClientBuilder ->
                 httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
+          }
+
+          if (disableSSLVerification) {
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, new TrustManager[] {UnsafeX509ExtendedTrustManager.getInstance()},
+                null);
+
+            builder.setHttpClientConfigCallback(httpClientBuilder ->
+                httpClientBuilder.setSSLContext(sslContext)
+                    .setSSLHostnameVerifier((host, session) -> true));
           }
 
           if (pathPrefix != null && !pathPrefix.isEmpty()) {

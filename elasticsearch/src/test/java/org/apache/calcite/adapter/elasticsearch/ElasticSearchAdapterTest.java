@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.elasticsearch;
 
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.test.CalciteAssert;
@@ -45,10 +46,13 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -150,6 +154,31 @@ class ElasticSearchAdapterTest {
         .with(ElasticSearchAdapterTest::createConnection)
         .query("select * from elastic.zips where _MAP['Foo'] = '_MISSING_'")
         .returnsCount(0);
+  }
+
+  @Test void testDisableSSL() throws SQLException {
+    Connection connection =
+        DriverManager.getConnection("jdbc:calcite:lex=JAVA");
+    final SchemaPlus root =
+        connection.unwrap(CalciteConnection.class).getRootSchema();
+
+    final CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+
+    final ElasticsearchSchemaFactory esSchemaFactory = new ElasticsearchSchemaFactory();
+    Map<String, Object> options = new HashMap<>();
+    String hosts = "[\"" + NODE.restClient().getNodes()
+        .get(0).getHost().toString() + "\"]";
+    options.put("username", "user1");
+    options.put("password", "password");
+    options.put("pathPrefix", "");
+    options.put("disableSSLVerification", "true");
+    options.put("hosts", hosts);
+
+    final Schema esSchmea =
+        esSchemaFactory.create(calciteConnection.getRootSchema(), "es_no_ssl", options);
+
+    assertNotNull(esSchmea);
   }
 
   @Test void basic() {
