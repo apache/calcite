@@ -79,7 +79,7 @@ public class RexExecutorImpl implements RexExecutor {
     final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
     final JavaTypeFactory javaTypeFactory = typeFactory instanceof JavaTypeFactory
         ? (JavaTypeFactory) typeFactory
-        : new JavaTypeFactoryImpl(typeFactory.getTypeSystem());
+        : new JavaTypeFactoryImpl(typeFactory.getTypeSystem(), typeFactory.getConformance());
     final BlockBuilder blockBuilder = new BlockBuilder();
     final ParameterExpression root0_ =
         Expressions.parameter(Object.class, "root0");
@@ -118,7 +118,8 @@ public class RexExecutorImpl implements RexExecutor {
   public static RexExecutable getExecutable(RexBuilder rexBuilder, List<RexNode> exps,
       RelDataType rowType) {
     final JavaTypeFactoryImpl typeFactory =
-        new JavaTypeFactoryImpl(rexBuilder.getTypeFactory().getTypeSystem());
+        new JavaTypeFactoryImpl(rexBuilder.getTypeFactory().getTypeSystem(),
+            rexBuilder.getTypeFactory().getConformance());
     final InputGetter getter = new DataContextInputGetter(rowType, typeFactory);
     final String code = compile(rexBuilder, exps, getter, rowType);
     return new RexExecutable(code, "generated Rex code");

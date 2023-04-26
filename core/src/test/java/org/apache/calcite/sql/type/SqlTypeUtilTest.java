@@ -256,12 +256,12 @@ class SqlTypeUtilTest {
 
   @Test void testCastingBooleanToNumber() {
     RelDataType boolType = f.sqlBoolean;
-    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlInt, boolType), is(true));
-    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlBigInt, boolType), is(true));
-    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlBigIntNullable, boolType), is(true));
-    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlFloat, boolType), is(false));
-    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlVarchar, boolType), is(false));
-    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlAny, boolType), is(false));
+    assertThat(SqlTypeUtil.isCastBooleanToInt(f.sqlInt, boolType), is(true));
+    assertThat(SqlTypeUtil.isCastBooleanToInt(f.sqlBigInt, boolType), is(true));
+    assertThat(SqlTypeUtil.isCastBooleanToInt(f.sqlBigIntNullable, boolType), is(true));
+    assertThat(SqlTypeUtil.isCastBooleanToInt(f.sqlFloat, boolType), is(false));
+    assertThat(SqlTypeUtil.isCastBooleanToInt(f.sqlVarchar, boolType), is(false));
+    assertThat(SqlTypeUtil.isCastBooleanToInt(f.sqlAny, boolType), is(false));
   }
 
   @Test void testCanCastDifferentConformance() {

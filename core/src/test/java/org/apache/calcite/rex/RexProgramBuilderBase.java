@@ -26,6 +26,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -86,7 +87,7 @@ public abstract class RexProgramBuilderBase {
   private Map<RelDataType, RexDynamicParam> dynamicParams;
 
   @BeforeEach public void setUp() {
-    typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
     rexBuilder = new RexBuilder(typeFactory);
     final DataContext dataContext =
         DataContexts.of(

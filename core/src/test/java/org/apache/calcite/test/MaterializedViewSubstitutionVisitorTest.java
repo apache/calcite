@@ -34,6 +34,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -1853,7 +1854,7 @@ public class MaterializedViewSubstitutionVisitorTest {
    * specifically {@link SubstitutionVisitor#mayBeSatisfiable(RexNode)}. */
   private static class SatisfiabilityFixture {
     final JavaTypeFactoryImpl typeFactory =
-        new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+        new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
     final RexSimplify simplify =
         new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR)

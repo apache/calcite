@@ -142,7 +142,7 @@ abstract class CalciteConnectionImpl
               }
             };
       }
-      this.typeFactory = new JavaTypeFactoryImpl(typeSystem);
+      this.typeFactory = new JavaTypeFactoryImpl(typeSystem, cfg.conformance());
     }
     this.rootSchema =
         requireNonNull(rootSchema != null

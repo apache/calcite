@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -53,6 +54,13 @@ public interface RelDataTypeFactory {
    * @return Type system
    */
   RelDataTypeSystem getTypeSystem();
+
+  /**
+   *  Returns the conformance.
+   *
+   * @return Conformance
+   */
+  SqlConformance getConformance();
 
   /**
    * Creates a type that corresponds to a Java class.

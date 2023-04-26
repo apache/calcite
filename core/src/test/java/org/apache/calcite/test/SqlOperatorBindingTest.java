@@ -35,6 +35,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import com.google.common.collect.Lists;
 
@@ -55,7 +56,8 @@ class SqlOperatorBindingTest {
 
   @BeforeEach
   void setUp() {
-    JavaTypeFactory typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    JavaTypeFactory typeFactory =
+        new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
     integerDataType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     integerType = SqlTypeUtil.convertTypeToSpec(integerDataType);
     rexBuilder = new RexBuilder(typeFactory);

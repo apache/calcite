@@ -34,6 +34,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
@@ -83,7 +84,8 @@ class PlannerTests {
 
   static RelOptCluster newCluster(VolcanoPlanner planner) {
     final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(org.apache.calcite.rel.type.RelDataTypeSystem.DEFAULT);
+        new SqlTypeFactoryImpl(org.apache.calcite.rel.type.RelDataTypeSystem.DEFAULT,
+            SqlConformanceEnum.DEFAULT);
     return RelOptCluster.create(planner, new RexBuilder(typeFactory));
   }
 

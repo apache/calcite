@@ -179,7 +179,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     }
     ensure(State.STATE_1_RESET);
 
-    typeFactory = new JavaTypeFactoryImpl(typeSystem);
+    typeFactory = new JavaTypeFactoryImpl(typeSystem, connectionConfig.conformance());
     RelOptPlanner planner = this.planner = new VolcanoPlanner(costFactory, context);
     RelOptUtil.registerDefaultRules(planner,
         connectionConfig.materializationsEnabled(),

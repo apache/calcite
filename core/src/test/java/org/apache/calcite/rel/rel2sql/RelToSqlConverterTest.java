@@ -6464,7 +6464,7 @@ class RelToSqlConverterTest {
 
   @Test void testSupportsDataType() {
     final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
     final RelDataType booleanDataType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType integerDataType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final SqlDialect oracleDialect = DatabaseProduct.ORACLE.getDialect();

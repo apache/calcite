@@ -23,6 +23,7 @@ import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -39,8 +40,8 @@ import static java.util.Objects.requireNonNull;
 public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   //~ Constructors -----------------------------------------------------------
 
-  public SqlTypeFactoryImpl(RelDataTypeSystem typeSystem) {
-    super(typeSystem);
+  public SqlTypeFactoryImpl(RelDataTypeSystem typeSystem, SqlConformance conformance) {
+    super(typeSystem, conformance);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -189,7 +190,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       if (SqlTypeUtil.canCastFrom(type, resultType, false)) {
         resultType = type;
       } else {
-        if (!SqlTypeUtil.canCastFrom(resultType, type, false)) {
+        if (!SqlTypeUtil.canCastFrom(resultType, type, false, conformance)) {
           return null;
         }
       }
