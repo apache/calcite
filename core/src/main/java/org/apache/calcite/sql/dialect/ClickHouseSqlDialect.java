@@ -30,11 +30,9 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -155,38 +153,30 @@ public class ClickHouseSqlDialect extends SqlDialect {
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
-    if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
-      RelToSqlConverterUtil.specialOperatorByName("substring")
-          .unparse(writer, call, 0, 0);
-    } else {
-      switch (call.getKind()) {
-      case FLOOR:
-        if (call.operandCount() != 2) {
-          super.unparseCall(writer, call, leftPrec, rightPrec);
-          return;
-        }
-
-        unparseFloor(writer, call);
-        break;
-
-      case COUNT:
-        // CH returns NULL rather than 0 for COUNT(DISTINCT) of NULL values.
-        // https://github.com/yandex/ClickHouse/issues/2494
-        // Wrap the call in a CH specific coalesce (assumeNotNull).
-        if (call.getFunctionQuantifier() != null
-            && call.getFunctionQuantifier().toString().equals("DISTINCT")) {
-          writer.print("assumeNotNull");
-          SqlWriter.Frame frame = writer.startList("(", ")");
-          super.unparseCall(writer, call, leftPrec, rightPrec);
-          writer.endList(frame);
-        } else {
-          super.unparseCall(writer, call, leftPrec, rightPrec);
-        }
-        break;
-
-      default:
+    switch (call.getKind()) {
+    case FLOOR:
+      if (call.operandCount() != 2) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+        return;
+      }
+      unparseFloor(writer, call);
+      break;
+    case COUNT:
+      // CH returns NULL rather than 0 for COUNT(DISTINCT) of NULL values.
+      // https://github.com/yandex/ClickHouse/issues/2494
+      // Wrap the call in a CH specific coalesce (assumeNotNull).
+      if (call.getFunctionQuantifier() != null
+          && call.getFunctionQuantifier().toString().equals("DISTINCT")) {
+        writer.print("assumeNotNull");
+        SqlWriter.Frame frame = writer.startList("(", ")");
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+        writer.endList(frame);
+      } else {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 

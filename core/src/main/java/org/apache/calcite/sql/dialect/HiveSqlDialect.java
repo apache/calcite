@@ -27,7 +27,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.fun.SqlSubstringFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.util.RelToSqlConverterUtil;
@@ -98,21 +97,6 @@ public class HiveSqlDialect extends SqlDialect {
       break;
     case TRIM:
       RelToSqlConverterUtil.unparseHiveTrim(writer, call, leftPrec, rightPrec);
-      break;
-    case OTHER_FUNCTION:
-      if (call.getOperator() instanceof SqlSubstringFunction) {
-        final SqlWriter.Frame funCallFrame = writer.startFunCall(call.getOperator().getName());
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.sep(",", true);
-        call.operand(1).unparse(writer, leftPrec, rightPrec);
-        if (3 == call.operandCount()) {
-          writer.sep(",", true);
-          call.operand(2).unparse(writer, leftPrec, rightPrec);
-        }
-        writer.endFunCall(funCallFrame);
-      } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
