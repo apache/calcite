@@ -72,7 +72,7 @@ public class SqlTypeExplicitPrecedenceList
           .put(SqlTypeName.BINARY,
               list(SqlTypeName.BINARY, SqlTypeName.VARBINARY))
           .put(SqlTypeName.VARBINARY, list(SqlTypeName.VARBINARY))
-          .put(SqlTypeName.DATE, list(SqlTypeName.DATE))
+          .put(SqlTypeName.DATE, list(SqlTypeName.DATE, SqlTypeName.TIMESTAMP))
           .put(SqlTypeName.TIME, list(SqlTypeName.TIME))
           .put(SqlTypeName.TIMESTAMP,
               list(SqlTypeName.TIMESTAMP, SqlTypeName.DATE, SqlTypeName.TIME))
