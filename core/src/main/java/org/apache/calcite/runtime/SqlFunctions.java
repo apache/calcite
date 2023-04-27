@@ -3104,45 +3104,57 @@ public class SqlFunctions {
 
   /** SQL {@code POSITION(seek IN string FROM integer)} function. */
   public static int position(String seek, String s, int from) {
-    if (from == 0) throw RESOURCE.fromNotZero().ex();
+    if (from == 0) {
+      throw RESOURCE.fromNotZero().ex();
+    }
     // Case when from is positive
     if (from > 0) {
       final int from0 = from - 1; // 0-based
       if (from0 >= s.length() || from0 < 0) {
         return 0;
+      } else {
+        return s.indexOf(seek, from0) + 1;
       }
-
-      return s.indexOf(seek, from0) + 1;
     }
     // Case when from is negative
     final int rightIndex = from + s.length(); // negative position to positive index
     if (rightIndex <= 0) {
       return 0;
     }
-    return s.substring(0, rightIndex+1).lastIndexOf(seek) + 1;
+    int lastIndex = s.lastIndexOf(seek) + 1;
+    while (lastIndex > rightIndex + 1) {
+      lastIndex = s.substring(0, lastIndex - 1).lastIndexOf(seek) + 1;
+      if (lastIndex == 0) {
+        return 0;
+      }
+    }
+    return lastIndex;
   }
 
   /** SQL {@code POSITION(seek IN string FROM integer)} function for byte
    * strings. */
   public static int position(ByteString seek, ByteString s, int from) {
-    if (from == 0) throw RESOURCE.fromNotZero().ex();
+    if (from == 0) {
+      throw RESOURCE.fromNotZero().ex();
+    }
     // Case when from is positive
     if (from > 0) {
       final int from0 = from - 1; // 0-based
       if (from0 >= s.length() || from0 < 0) {
         return 0;
+      } else {
+        return s.indexOf(seek, from0) + 1;
       }
-      return s.indexOf(seek, from0) + 1;
     }
     // Case when from is negative
-    final int rightIndex = from + s.length();
+    final int rightIndex = from + s.length(); // negative position to positive index
     if (rightIndex <= 0) {
       return 0;
     }
     int lastIndex = 0;
     while (lastIndex < rightIndex) {
-      int indexOf = s.substring(lastIndex, rightIndex + 1).indexOf(seek) + 1;
-      if (indexOf == 0) {
+      int indexOf = s.substring(lastIndex).indexOf(seek) + 1;
+      if (indexOf == 0 || lastIndex + indexOf > rightIndex + 1) {
         break;
       }
       lastIndex += indexOf;
@@ -3152,47 +3164,57 @@ public class SqlFunctions {
 
   /** SQL {@code POSITION(seek, string, from, occurrence)} function. */
   public static int position(String seek, String s, int from, int occurrence) {
-    if (occurrence == 0) throw RESOURCE.occurrenceNotZero().ex();
-    for (int i = 0; i < occurrence; i++){
-      if (from > 0){
+    if (occurrence == 0) {
+      throw RESOURCE.occurrenceNotZero().ex();
+    }
+    if (from > 0) {
+      for (int i = 0; i < occurrence; i++) {
         from = position(seek, s, from + (i == 0 ? 0 : 1));
         if (from == 0) {
           return 0;
         }
-      } else {
+      }
+    } else {
+      for (int i = 0; i < occurrence; i++) {
         from = position(seek, s, from);
         if (from == 0) {
           return 0;
         }
-        from -= (s.length() + 2);
+        from -= s.length() + 2;
       }
     }
-    if (from < 0) from += s.length() + 2;
+    if (from < 0) {
+      from += s.length() + 2;
+    }
     return from;
   }
 
   /** SQL {@code POSITION(seek, string, from, occurrence)} function for byte
    * strings. */
   public static int position(ByteString seek, ByteString s, int from, int occurrence) {
-    if (occurrence == 0) throw RESOURCE.occurrenceNotZero().ex();
-    for (int i = 0; i < occurrence; i++){
-      if (from > 0){
+    if (occurrence == 0) {
+      throw RESOURCE.occurrenceNotZero().ex();
+    }
+    if (from > 0) {
+      for (int i = 0; i < occurrence; i++) {
         from = position(seek, s, from + (i == 0 ? 0 : 1));
         if (from == 0) {
           return 0;
         }
       }
-      else {
+    } else {
+      for (int i = 0; i < occurrence; i++) {
         from = position(seek, s, from);
         if (from == 0) {
           return 0;
         }
-        from -= (s.length() + 2);
+        from -= s.length() + 2;
       }
     }
-    if (from < 0) from += s.length() + 2;
+    if (from < 0) {
+      from += s.length() + 2;
+    }
     return from;
-
   }
 
   /** Helper for rounding. Truncate(12345, 1000) returns 12000. */

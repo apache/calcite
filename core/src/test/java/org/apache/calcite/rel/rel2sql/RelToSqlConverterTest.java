@@ -2230,14 +2230,14 @@ class RelToSqlConverterTest {
 
   @Test void testPositionFunctionForBigQuery() {
     final String query = "select position('A' IN 'ABC') from \"product\"";
-    final String expected = "SELECT STRPOS('ABC', 'A')\n"
+    final String expected = "SELECT INSTR('ABC', 'A')\n"
         + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
   }
 
   @Test void testInstrFunction4Operands() {
     final String query = "SELECT INSTR('ABC', 'A', 1, 1) from \"product\"";
-    final String expectedBQ= "SELECT INSTR('ABC', 'A', 1, 1)\n"
+    final String expectedBQ = "SELECT INSTR('ABC', 'A', 1, 1)\n"
         + "FROM foodmart.product";
     final String expected_oracle = "SELECT INSTR('ABC', 'A', 1, 1)\n"
         + "FROM \"foodmart\".\"product\"";

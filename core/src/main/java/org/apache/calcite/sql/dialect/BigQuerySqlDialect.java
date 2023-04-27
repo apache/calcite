@@ -150,26 +150,23 @@ public class BigQuerySqlDialect extends SqlDialect {
       final int rightPrec) {
     switch (call.getKind()) {
     case POSITION:
-      if (2 == call.operandCount()) {
-        final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
+      final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+      switch (call.operandCount()) {
+      case 2:
         writer.sep(",");
         call.operand(1).unparse(writer, leftPrec, rightPrec);
         writer.sep(",");
         call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.endFunCall(frame);
-      }
-      if (3 == call.operandCount()) {
-        final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+        break;
+      case 3:
         writer.sep(",");
         call.operand(1).unparse(writer, leftPrec, rightPrec);
         writer.sep(",");
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         writer.sep(",");
         call.operand(2).unparse(writer, leftPrec, rightPrec);
-        writer.endFunCall(frame);
-      }
-      if (4 == call.operandCount()) {
-        final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+        break;
+      case 4:
         writer.sep(",");
         call.operand(1).unparse(writer, leftPrec, rightPrec);
         writer.sep(",");
@@ -178,8 +175,12 @@ public class BigQuerySqlDialect extends SqlDialect {
         call.operand(2).unparse(writer, leftPrec, rightPrec);
         writer.sep(",");
         call.operand(3).unparse(writer, leftPrec, rightPrec);
-        writer.endFunCall(frame);
+        break;
+      default:
+        throw new RuntimeException("BigQuery does not support " + call.operandCount()
+            + " operands in the position function");
       }
+      writer.endFunCall(frame);
       break;
     case UNION:
       if (((SqlSetOperator) call.getOperator()).isAll()) {

@@ -407,22 +407,38 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
                 operand1)));
   }
 
-  /** Converts a call to the INSTR function. */
+  /** Converts a call to the INSTR function.
+   * INSTR(string, substring, position, occurrence) is equivalent to
+   * POSITION(substring, string, position, occurrence) */
   private static RexNode convertInstr(SqlRexContext cx, SqlCall call) {
-    SqlNode callToConvert = null;
-    if (call.operandCount() == 2) {
-      callToConvert =
-          SqlStdOperatorTable.POSITION.createCall(SqlParserPos.ZERO, call.operand(1), call.operand(0));
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    final List<RexNode> operands =
+        convertOperands(cx, call, SqlOperandTypeChecker.Consistency.NONE);
+    final RelDataType type =
+        cx.getValidator().getValidatedNodeType(call);
+    final List<RexNode> exprs = new ArrayList<>();
+    switch (call.operandCount()) {
+    // Must reverse order of first 2 operands.
+    case 2:
+      exprs.add(operands.get(1)); // Substring
+      exprs.add(operands.get(0)); // String
+      break;
+    case 3:
+      exprs.add(operands.get(1)); // Substring
+      exprs.add(operands.get(0)); // String
+      exprs.add(operands.get(2)); // Position
+      break;
+    case 4:
+      exprs.add(operands.get(1)); // Substring
+      exprs.add(operands.get(0)); // String
+      exprs.add(operands.get(2)); // Position
+      exprs.add(operands.get(3)); // Occurrence
+      break;
+    default:
+      throw new UnsupportedOperationException("Position does not accept " + call.operandCount()
+          + " operands");
     }
-    if (call.operandCount() == 3) {
-      callToConvert =
-          SqlStdOperatorTable.POSITION.createCall(SqlParserPos.ZERO, call.operand(1), call.operand(0), call.operand(2));
-    }
-    if (call.operandCount() == 4) {
-      callToConvert =
-          SqlStdOperatorTable.POSITION.createCall(SqlParserPos.ZERO, call.operand(1), call.operand(0), call.operand(2), call.operand(3));
-    }
-    return cx.convertExpression(callToConvert);
+    return rexBuilder.makeCall(type, SqlStdOperatorTable.POSITION, exprs);
   }
 
   /** Converts a call to the DECODE function. */

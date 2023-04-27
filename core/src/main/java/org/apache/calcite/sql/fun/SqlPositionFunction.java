@@ -39,7 +39,10 @@ public class SqlPositionFunction extends SqlFunction {
   private static final SqlOperandTypeChecker OTC_CUSTOM =
       OperandTypes.STRING_SAME_SAME
           .or(OperandTypes.STRING_SAME_SAME_INTEGER)
-          .or(OperandTypes.sequence("INSTR(<STRING>, <STRING>, <INTEGER>, <INTEGER>)", OperandTypes.STRING, OperandTypes.STRING, OperandTypes.INTEGER, OperandTypes.INTEGER));
+          .or(
+              OperandTypes.sequence("INSTR(<STRING>, <STRING>, <INTEGER>, <INTEGER>)",
+              OperandTypes.STRING, OperandTypes.STRING, OperandTypes.INTEGER,
+              OperandTypes.INTEGER));
 
   public SqlPositionFunction(String name) {
     super(name, SqlKind.POSITION, ReturnTypes.INTEGER_NULLABLE, null,
@@ -54,16 +57,16 @@ public class SqlPositionFunction extends SqlFunction {
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(getName());
-    if (2 == call.operandCount() || 3 == call.operandCount()) {
+    if (call.operandCount() == 2 || call.operandCount() == 3) {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.sep("IN");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
-      if (3 == call.operandCount()) {
+      if (call.operandCount() == 3) {
         writer.sep("FROM");
         call.operand(2).unparse(writer, leftPrec, rightPrec);
       }
     }
-    if (4 == call.operandCount()) {
+    if (call.operandCount() == 4) {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.sep(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
@@ -103,9 +106,11 @@ public class SqlPositionFunction extends SqlFunction {
           callBinding, throwOnFailure)
           && super.checkOperandTypes(callBinding, throwOnFailure);
     case 4:
-          return OperandTypes.sequence("INSTR(<STRING>, <STRING>, <INTEGER>, <INTEGER>)", OperandTypes.STRING, OperandTypes.STRING, OperandTypes.INTEGER, OperandTypes.INTEGER).checkOperandTypes(
-              callBinding, throwOnFailure)
-              && super.checkOperandTypes(callBinding, throwOnFailure);
+      return OperandTypes.sequence("INSTR(<STRING>, <STRING>, <INTEGER>, <INTEGER>)",
+          OperandTypes.STRING, OperandTypes.STRING, OperandTypes.INTEGER,
+          OperandTypes.INTEGER).checkOperandTypes(
+          callBinding, throwOnFailure)
+          && super.checkOperandTypes(callBinding, throwOnFailure);
     default:
       throw new AssertionError();
     }

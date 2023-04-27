@@ -6225,7 +6225,11 @@ public class SqlOperatorTest {
   }
 
   @Test void testInstrFunction() {
-    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.INSTR);
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.CHR, VM_FENNEL, VM_JAVA);
+    f0.checkFails("^INSTR('abc', 'a', 1, 1)^",
+        "No match found for function signature INSTR\\(<CHARACTER>, <CHARACTER>,"
+            + " <NUMERIC>, <NUMERIC>\\)", false);
 
     final Consumer<SqlOperatorFixture> consumer = f -> {
 
