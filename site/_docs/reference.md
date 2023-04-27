@@ -2693,6 +2693,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b o | GREATEST(expr [, expr ]*)                    | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
 | b | IFNULL(value1, value2)                         | Equivalent to `NVL(value1, value2)`
+| b o | INSTR(string, substring[, from, occurrence]) | Returns the position of substring in string, searching starting at from, and until locating the nth occurrence of substring.
+| m | INSTR(string, substring)                       | Equivalent to `POSITION(substring IN string)`
 | p | string1 ILIKE string2 [ ESCAPE string3 ]       | Whether *string1* matches pattern *string2*, ignoring case (similar to `LIKE`)
 | p | string1 NOT ILIKE string2 [ ESCAPE string3 ]   | Whether *string1* does not match pattern *string2*, ignoring case (similar to `NOT LIKE`)
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of *jsonValue*

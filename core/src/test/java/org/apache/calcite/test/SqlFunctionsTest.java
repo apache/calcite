@@ -53,6 +53,7 @@ import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.md5;
+import static org.apache.calcite.runtime.SqlFunctions.position;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
@@ -1054,6 +1055,54 @@ class SqlFunctionsTest {
       // ok
     }
   }
+  @Test void testPosition() {
+    assertThat(3, is(position("c", "abcdec")));
+    assertThat(3, is(position("c", "abcdec", 2)));
+    assertThat(3, is(position("c", "abcdec", -2)));
+    assertThat(6, is(position("c", "abcdec", 4)));
+    assertThat(6, is(position("c", "abcdec",1 , 2)));
+    assertThat(3, is(position("c", "abcdec", -1, 2)));
+    assertThat(0, is(position("f", "abcdec", 1, 1)));
+    assertThat(0, is(position("c", "abcdec", 1, 3)));
+    try {
+      int i = position("c", "abcdec", 0, 1);
+      fail("expected error, got: " + i);
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(),
+          is("Invalid input for position function: from operand value must not be zero"));
+    }
+    try {
+      int i = position("c", "abcdec", 1, 0);
+      fail("expected error, got: " + i);
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(),
+          is("Invalid input for position function: occurrence operand value must not be zero"));
+    }
+    final ByteString abc = ByteString.of("aabbccddeecc", 16);
+    assertThat(3, is(position(ByteString.of("cc", 16), abc)));
+    assertThat(3, is(position(ByteString.of("cc", 16), abc, 2)));
+    assertThat(3, is(position(ByteString.of("cc", 16), abc, -2)));
+    assertThat(6, is(position(ByteString.of("cc", 16), abc, 4)));
+    assertThat(6, is(position(ByteString.of("cc", 16), abc,1 , 2)));
+    assertThat(3, is(position(ByteString.of("cc", 16), abc, -1, 2)));
+    assertThat(0, is(position(ByteString.of("ff", 16), abc, 1, 1)));
+    assertThat(0, is(position(ByteString.of("cc", 16), abc, 1, 3)));
+    try {
+      int i = position(ByteString.of("cc", 16), abc, 0, 1);
+      fail("expected error, got: " + i);
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(),
+          is("Invalid input for position function: from operand value must not be zero"));
+    }
+    try {
+      int i = position(ByteString.of("cc", 16), abc, 1, 0);
+      fail("expected error, got: " + i);
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(),
+          is("Invalid input for position function: occurrence operand value must not be zero"));
+    }
+  }
+
 
   /**
    * Tests that a date in the local time zone converts to a Unix timestamp in

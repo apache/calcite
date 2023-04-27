@@ -150,16 +150,36 @@ public class BigQuerySqlDialect extends SqlDialect {
       final int rightPrec) {
     switch (call.getKind()) {
     case POSITION:
-      //TODO: add case on number of operands to unparse 3,4 to INSTR instead of STRPOS
-      final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      if (3 == call.operandCount()) {
-        throw new RuntimeException("3rd operand Not Supported for Function STRPOS in Big Query");
+      if (2 == call.operandCount()) {
+        final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
+        writer.sep(",");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.endFunCall(frame);
       }
-      writer.endFunCall(frame);
+      if (3 == call.operandCount()) {
+        final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+        writer.sep(",");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+        writer.endFunCall(frame);
+      }
+      if (4 == call.operandCount()) {
+        final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+        writer.sep(",");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(3).unparse(writer, leftPrec, rightPrec);
+        writer.endFunCall(frame);
+      }
       break;
     case UNION:
       if (((SqlSetOperator) call.getOperator()).isAll()) {

@@ -281,10 +281,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     // "INSTR(string, substring, position, occurrence) is equivalent to
     // "POSITION(substring, string, position, occurrence)"
-    registerOp(SqlLibraryOperators.INSTR,
-        (cx, call) -> cx.convertExpression(
-            SqlStdOperatorTable.POSITION.createCall(SqlParserPos.ZERO,
-                call.operand(1), call.operand(0), call.operand(2), call.operand(3))));
+    registerOp(SqlLibraryOperators.INSTR, StandardConvertletTable::convertInstr);
+
 
     // REVIEW jvs 24-Apr-2006: This only seems to be working from within a
     // windowed agg.  I have added an optimizer rule
@@ -407,6 +405,24 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
                 cx.getTypeFactory()
                     .createTypeWithNullability(type, operand1.getType().isNullable()),
                 operand1)));
+  }
+
+  /** Converts a call to the INSTR function. */
+  private static RexNode convertInstr(SqlRexContext cx, SqlCall call) {
+    SqlNode callToConvert = null;
+    if (call.operandCount() == 2) {
+      callToConvert =
+          SqlStdOperatorTable.POSITION.createCall(SqlParserPos.ZERO, call.operand(1), call.operand(0));
+    }
+    if (call.operandCount() == 3) {
+      callToConvert =
+          SqlStdOperatorTable.POSITION.createCall(SqlParserPos.ZERO, call.operand(1), call.operand(0), call.operand(2));
+    }
+    if (call.operandCount() == 4) {
+      callToConvert =
+          SqlStdOperatorTable.POSITION.createCall(SqlParserPos.ZERO, call.operand(1), call.operand(0), call.operand(2), call.operand(3));
+    }
+    return cx.convertExpression(callToConvert);
   }
 
   /** Converts a call to the DECODE function. */

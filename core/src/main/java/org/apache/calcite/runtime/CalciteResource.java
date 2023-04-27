@@ -1020,6 +1020,12 @@ public interface CalciteResource {
   @BaseMessage("No operator for ''{0}'' with kind: ''{1}'', syntax: ''{2}'' during JSON deserialization")
   ExInst<CalciteException> noOperator(String name, String kind, String syntax);
 
+  @BaseMessage("Invalid input for position function from operand value must not be zero")
+  ExInst<CalciteException> fromNotZero();
+
+  @BaseMessage("Invalid input for position function occurrence operand value must not be zero")
+  ExInst<CalciteException> occurrenceNotZero();
+
   @BaseMessage("Only tables with set semantics may be partitioned. Invalid PARTITION BY clause in the {0,number,#}-th operand of table function ''{1}''")
   ExInst<SqlValidatorException> invalidPartitionKeys(int idx, String funcName);
 
@@ -1028,4 +1034,6 @@ public interface CalciteResource {
 
   @BaseMessage("A table function at most has one input table with row semantics. Table function ''{0}'' has multiple input tables with row semantics")
   ExInst<SqlValidatorException> multipleRowSemanticsTables(String funcName);
+
+
 }

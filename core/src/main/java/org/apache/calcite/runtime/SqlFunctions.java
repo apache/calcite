@@ -3104,88 +3104,94 @@ public class SqlFunctions {
 
   /** SQL {@code POSITION(seek IN string FROM integer)} function. */
   public static int position(String seek, String s, int from) {
+    if (from == 0) throw RESOURCE.fromNotZero().ex();
+    // Case when from is positive
     if (from > 0) {
       final int from0 = from - 1; // 0-based
-      if (from0 > s.length() || from0 < 0) {
+      if (from0 >= s.length() || from0 < 0) {
         return 0;
       }
 
       return s.indexOf(seek, from0) + 1;
     }
+    // Case when from is negative
     final int rightIndex = from + s.length(); // negative position to positive index
     if (rightIndex <= 0) {
       return 0;
     }
-    return s.substring(0, rightIndex).lastIndexOf(seek) + 1;
+    return s.substring(0, rightIndex+1).lastIndexOf(seek) + 1;
   }
 
   /** SQL {@code POSITION(seek IN string FROM integer)} function for byte
    * strings. */
   public static int position(ByteString seek, ByteString s, int from) {
+    if (from == 0) throw RESOURCE.fromNotZero().ex();
+    // Case when from is positive
     if (from > 0) {
       final int from0 = from - 1; // 0-based
-      if (from0 > s.length() || from0 < 0) {
+      if (from0 >= s.length() || from0 < 0) {
         return 0;
       }
-
       return s.indexOf(seek, from0) + 1;
     }
+    // Case when from is negative
     final int rightIndex = from + s.length();
     if (rightIndex <= 0) {
       return 0;
     }
-    return -1;
-    //s.lastIndexOf(seek, rightIndex) + 1;
+    int lastIndex = 0;
+    while (lastIndex < rightIndex) {
+      int indexOf = s.substring(lastIndex, rightIndex + 1).indexOf(seek) + 1;
+      if (indexOf == 0) {
+        break;
+      }
+      lastIndex += indexOf;
+    }
+    return lastIndex;
   }
 
   /** SQL {@code POSITION(seek, string, from, occurrence)} function. */
   public static int position(String seek, String s, int from, int occurrence) {
-    if (from > 0){
-      int rollingFrom = from;
-      for (int i = 0; i< occurrence; i++) {
-        rollingFrom = position(seek, s, rollingFrom);
-        if (rollingFrom == 0) {
+    if (occurrence == 0) throw RESOURCE.occurrenceNotZero().ex();
+    for (int i = 0; i < occurrence; i++){
+      if (from > 0){
+        from = position(seek, s, from + (i == 0 ? 0 : 1));
+        if (from == 0) {
           return 0;
         }
+      } else {
+        from = position(seek, s, from);
+        if (from == 0) {
+          return 0;
+        }
+        from -= (s.length() + 2);
       }
-      return rollingFrom;
     }
-    int rollingFromNeg = from;
-    int rollingFromPos = 0;
-    for (int i = 0; i< occurrence; i++) {
-      rollingFromPos = position(seek, s, rollingFromNeg);
-      if (rollingFromPos == 0) {
-        return 0;
-      }
-      rollingFromNeg = rollingFromPos - s.length();
-    }
-    return rollingFromPos;
-
+    if (from < 0) from += s.length() + 2;
+    return from;
   }
 
   /** SQL {@code POSITION(seek, string, from, occurrence)} function for byte
    * strings. */
   public static int position(ByteString seek, ByteString s, int from, int occurrence) {
-    if (from > 0){
-      int rollingFrom = from;
-      for (int i = 0; i< occurrence; i++) {
-        rollingFrom = position(seek, s, rollingFrom);
-        if (rollingFrom == 0) {
+    if (occurrence == 0) throw RESOURCE.occurrenceNotZero().ex();
+    for (int i = 0; i < occurrence; i++){
+      if (from > 0){
+        from = position(seek, s, from + (i == 0 ? 0 : 1));
+        if (from == 0) {
           return 0;
         }
       }
-      return rollingFrom;
-    }
-    int rollingFromNeg = from;
-    int rollingFromPos = 0;
-    for (int i = 0; i< occurrence; i++) {
-      rollingFromPos = position(seek, s, rollingFromNeg);
-      if (rollingFromPos == 0) {
-        return 0;
+      else {
+        from = position(seek, s, from);
+        if (from == 0) {
+          return 0;
+        }
+        from -= (s.length() + 2);
       }
-      rollingFromNeg = rollingFromPos - s.length();
     }
-    return rollingFromPos;
+    if (from < 0) from += s.length() + 2;
+    return from;
 
   }
 

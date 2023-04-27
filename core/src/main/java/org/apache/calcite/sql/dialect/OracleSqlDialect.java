@@ -150,6 +150,24 @@ public class OracleSqlDialect extends SqlDialect {
           call, false);
     } else {
       switch (call.getKind()) {
+      case POSITION:
+        final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+        writer.sep(",");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        if (3 == call.operandCount()) {
+          writer.sep(",");
+          call.operand(2).unparse(writer, leftPrec, rightPrec);
+        }
+        if (4 == call.operandCount()) {
+          writer.sep(",");
+          call.operand(2).unparse(writer, leftPrec, rightPrec);
+          writer.sep(",");
+          call.operand(3).unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endFunCall(frame);
+        break;
       case FLOOR:
         if (call.operandCount() != 2) {
           super.unparseCall(writer, call, leftPrec, rightPrec);
