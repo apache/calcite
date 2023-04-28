@@ -944,6 +944,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // Recursively process children, replacing this rel's inputs
     // with corresponding child rels.
     List<RelNode> inputs = rel.getInputs();
+    boolean changed = false;
     for (int i = 0; i < inputs.size(); ++i) {
       RelNode child = inputs.get(i);
       if (!(child instanceof HepRelVertex)) {
@@ -952,9 +953,12 @@ public class HepPlanner extends AbstractRelOptPlanner {
       }
       child = buildFinalPlan((HepRelVertex) child);
       rel.replaceInput(i, child);
+      changed = true;
     }
-    RelMdUtil.clearCache(rel);
-    rel.recomputeDigest();
+    if (changed) {
+      RelMdUtil.clearCache(rel);
+      rel.recomputeDigest();
+    }
 
     return rel;
   }
