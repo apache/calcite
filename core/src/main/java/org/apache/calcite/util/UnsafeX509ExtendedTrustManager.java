@@ -22,9 +22,9 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509ExtendedTrustManager;
 
 /**
- * This class is used to disable SSL Certificate Verification in ElasticSearch.  This trust
- * manager will validate any SSL certificate, whether valid or not. This should <b>not</b> be
- * used in production environments.
+ * This class is used to disable SSL Certificate Verification in Calcite adapters that make http
+ * calls. This trust manager will validate any SSL certificate, whether valid or not. This should
+ * <b>not</b> be used in production environments.
  */
 @SuppressWarnings("java:S4830")
 public final class UnsafeX509ExtendedTrustManager extends X509ExtendedTrustManager {
