@@ -883,20 +883,6 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   }
 
-  private boolean isDateTimeCall(SqlCall call) {
-    return (call.getOperator().getName().equals("DATETIME_ADD"))
-        || (call.getOperator().getName().equals("DATETIME_SUB"));
-  }
-
-  private boolean isIntervalYearAndMonth(SqlCall call) {
-    if (call.operand(1) instanceof SqlIntervalLiteral) {
-      return ((SqlIntervalLiteral) call.operand(1)).getTypeName().getFamily()
-             == SqlTypeFamily.INTERVAL_YEAR_MONTH;
-    }
-    SqlLiteral literal = getIntervalLiteral(call.operand(1));
-    return literal.getTypeName().getFamily() == SqlTypeFamily.INTERVAL_YEAR_MONTH;
-  }
-
   /**
    * Unparse the SqlBasic call and write INTERVAL with expression. Below are the examples:
    * Example 1:
