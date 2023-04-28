@@ -6318,7 +6318,7 @@ class RelToSqlConverterTest {
 
   @Test public void testTimestampPlusIntervalMonthFunctionWithArthOps() {
     String query = "select \"hire_date\" + -10 * INTERVAL '1' MONTH from \"employee\"";
-    final String expectedBigQuery = "SELECT DATETIME_ADD(CAST(hire_date AS DATETIME), "
+    final String expectedBigQuery = "SELECT DATETIME_ADD(hire_date, "
         + "INTERVAL "
         + "-10 MONTH)\n"
         + "FROM foodmart.employee";
@@ -11747,7 +11747,7 @@ class RelToSqlConverterTest {
         + "\nFROM \"scott\".\"EMP\"";
 
     final String expectedBQSql = "SELECT "
-        + "DATETIME_ADD(CAST(CURRENT_DATETIME() AS DATETIME), INTERVAL -2 MONTH) AS `$f0`"
+        + "DATETIME_ADD(CURRENT_DATETIME(), INTERVAL -2 MONTH) AS `$f0`"
         + "\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
