@@ -861,18 +861,9 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public void unparseIntervalOperandsBasedFunctions(
       SqlWriter writer,
       SqlCall call, int leftPrec, int rightPrec) {
-    SqlWriter.Frame castTimeStampFrame = null;
 
     final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().toString());
-    if (isDateTimeCall(call)) {
-      SqlWriter.Frame castDateTimeFrame = writer.startFunCall("CAST");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep("AS", true);
-      writer.literal("DATETIME");
-      writer.endFunCall(castDateTimeFrame);
-    } else {
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-    }
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(",");
     switch (call.operand(1).getKind()) {
     case LITERAL:
