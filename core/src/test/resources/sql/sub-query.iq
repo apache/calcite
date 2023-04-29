@@ -3544,4 +3544,33 @@ FROM UNNEST(ARRAY['a', 'b']) AS a(attidentity);
 
 !ok
 
+# Test case for [CALCITE-5680] Wrong plan for multiple IN sub-queries with only literal operands
+# Note that the first sub-query produces empty result using a fake dept name
+select empno from "scott".emp as e
+where 10 in (
+  select deptno from "scott".dept where dname = 'FAKE-DEPT')
+or 20 in (
+  select deptno from "scott".dept where dname = 'RESEARCH');
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7499 |
+|  7521 |
+|  7566 |
+|  7654 |
+|  7698 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7844 |
+|  7876 |
+|  7900 |
+|  7902 |
+|  7934 |
++-------+
+(14 rows)
+
+!ok
+
 # End sub-query.iq
