@@ -758,11 +758,11 @@ public class SubQueryRemoveRule
         // for the case of non-correlated sub-queries
         if (variablesSet.isEmpty()) {
           operands.add(
-              builder.isNull(builder.field("c")),
+              builder.isNull(builder.field(dtAlias, "c")),
               falseLiteral);
         }
         operands.add(
-            builder.equals(builder.field("cs"), falseLiteral),
+            builder.equals(builder.field(dtAlias, "cs"), falseLiteral),
             b);
       } else {
         operands.add(
@@ -779,7 +779,7 @@ public class SubQueryRemoveRule
     }
 
     if (allLiterals) {
-      operands.add(builder.isNotNull(builder.field("cs")),
+      operands.add(builder.isNotNull(builder.field(dtAlias, "cs")),
           trueLiteral);
     } else {
       operands.add(builder.isNotNull(last(builder.fields())),

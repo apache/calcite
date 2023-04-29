@@ -6448,6 +6448,42 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5680">[CALCITE-5680]
+   * Wrong field reference lookup due to same intermediate table alias
+   * of multiple sub-queries with only literal operands in subquery remove phase</a>. */
+  @Test void testExpandFilterConstantInCorrelatedWithTwoSubQueries() {
+    final String sql = "select empno from sales.empnullables as e\n"
+        + "where 1 in (\n"
+        + "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n"
+        + "or 2 in (\n"
+        + "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)";
+    System.out.println(sql);
+    sql(sql)
+        .withSubQueryRules()
+        .withRelBuilderSimplify(false)
+        .withTrim(true)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5680">[CALCITE-5680]
+   * Wrong field reference lookup due to same intermediate table alias
+   * of multiple sub-queries with only literal operands in subquery remove phase</a>. */
+  @Test void testExpandFilterConstantInWithTwoSubQueries() {
+    final String sql = "select empno from sales.empnullables\n"
+        + "where 1 in (\n"
+        + "  select deptno from sales.deptnullables where name = 'dept1')\n"
+        + "or 2 in (\n"
+        + "  select deptno from sales.deptnullables where name = 'dept2')";
+    System.out.println(sql);
+    sql(sql)
+        .withSubQueryRules()
+        .withRelBuilderSimplify(false)
+        .withTrim(true)
+        .check();
+  }
+
   /** An EXISTS filter that can be converted into true/false. */
   @Test void testExpandFilterExists() {
     final String sql = "select empno\n"
