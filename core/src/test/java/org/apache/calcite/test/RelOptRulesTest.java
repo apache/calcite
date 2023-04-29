@@ -6458,7 +6458,6 @@ class RelOptRulesTest extends RelOptTestBase {
         + "  select deptno from sales.deptnullables where e.ename = name and deptno > 10)\n"
         + "or 2 in (\n"
         + "  select deptno from sales.deptnullables where e.ename = name and deptno < 20)";
-    System.out.println(sql);
     sql(sql)
         .withSubQueryRules()
         .withRelBuilderSimplify(false)
@@ -6476,7 +6475,6 @@ class RelOptRulesTest extends RelOptTestBase {
         + "  select deptno from sales.deptnullables where name = 'dept1')\n"
         + "or 2 in (\n"
         + "  select deptno from sales.deptnullables where name = 'dept2')";
-    System.out.println(sql);
     sql(sql)
         .withSubQueryRules()
         .withRelBuilderSimplify(false)
