@@ -473,7 +473,7 @@
     </function>
     <function group='cast' name='DATE' return-type='date'>
       <!-- Semantics inferred from the example dialect. -->
-      <formula>DATE_ADD(DATE(1900, 1, 1), INTERVAL CAST(TRUNC(%1) AS INTEGER) DAY)</formula>
+      <formula>DATE_ADD(DATE(1900, 1, 1), INTERVAL (CAST(TRUNC(%1) AS INTEGER)) DAY)</formula>
       <argument type='real' />
     </function>
     <function group='cast' name='DATE' return-type='date'>
@@ -496,7 +496,7 @@
     <!-- I used TIMESTAMP instead of DATETIME to represent Tableau's datetime. TODO: Revisit this (look into timezone semantics). -->
     <function group='cast' name='DATETIME' return-type='datetime'>
       <!-- Semantics inferred from the example dialect. -->
-      <formula>TIMESTAMP_ADD(TIMESTAMP(DATE(1900, 1, 1)), INTERVAL CAST(TRUNC((%1) * (60.0 * 60.0 * 24.0)) AS INTEGER) SECOND)</formula>
+      <formula>TIMESTAMP_ADD(TIMESTAMP(DATE(1900, 1, 1)), INTERVAL (CAST(TRUNC((%1) * (60.0 * 60.0 * 24.0)) AS INTEGER)) SECOND)</formula>
       <argument type='real' />
     </function>
     <function group='cast' name='DATETIME' return-type='datetime'>
@@ -540,7 +540,7 @@
       <argument type='date' />
     </function>
     <function group='cast' name='INT' return-type='int'>
-      <formula>CAST((%1) AS INTEGER)</formula>
+      <formula>IF((%1), 1, 0)</formula>
       <argument type='bool' />
     </function>
     <function group='cast' name='INT' return-type='int'>
@@ -1082,7 +1082,7 @@
     </function>
     <function group='operator' name='+' return-type='datetime'>
       <!-- TODO: Expected semantics unclear. Currently interpreting the real number as "days". -->
-      <formula>TIMESTAMP_ADD((%1), INTERVAL CAST(TRUNC((%2) * (60.0 * 60.0 * 24.0)) AS INTEGER) SECOND)</formula>
+      <formula>TIMESTAMP_ADD((%1), INTERVAL (CAST(TRUNC((%2) * (60.0 * 60.0 * 24.0)) AS INTEGER)) SECOND)</formula>
       <argument type='datetime' />
       <argument type='real' />
     </function>
@@ -1094,13 +1094,13 @@
     </function>
     <function group='operator' name='+' return-type='datetime'>
       <!-- TODO: Expected semantics unclear. Currently interpreting the real number as "days". -->
-      <formula>TIMESTAMP_ADD(TIMESTAMP(%1), INTERVAL CAST(TRUNC((%2) * (60.0 * 60.0 * 24.0)) AS INTEGER) SECOND)</formula>
+      <formula>TIMESTAMP_ADD(TIMESTAMP(%1), INTERVAL (CAST(TRUNC((%2) * (60.0 * 60.0 * 24.0)) AS INTEGER)) SECOND)</formula>
       <argument type='date' />
       <argument type='real' />
     </function>
     <function group='operator' name='+' return-type='date'>
       <!-- TODO: Expected semantics unclear. Currently interpreting the real number as "days". -->
-      <formula>DATE_ADD((%1), INTERVAL CAST(TRUNC(%2) AS INTEGER) DAY)</formula>
+      <formula>DATE_ADD((%1), INTERVAL (CAST(TRUNC(%2) AS INTEGER)) DAY)</formula>
       <argument type='date' />
       <argument type='real' />
     </function>
@@ -1154,22 +1154,22 @@
       <argument type='date' />
     </function>
     <function group='operator' name='-' return-type='datetime'>
-      <formula>TIMESTAMP_SUB((%1), INTERVAL CAST(TRUNC((%2) * (60.0 * 60.0 * 24.0)) AS INTEGER) SECOND)</formula>
+      <formula>TIMESTAMP_SUB((%1), INTERVAL (CAST(TRUNC((%2) * (60.0 * 60.0 * 24.0)) AS INTEGER)) SECOND)</formula>
       <argument type='datetime' />
       <argument type='real' />
     </function>
     <function group='operator' name='-' return-type='datetime'>
-      <formula>TIMESTAMP_SUB((%1), INTERVAL (%2) * (60 * 60 * 24) SECOND)</formula>
+      <formula>TIMESTAMP_SUB((%1), INTERVAL ((%2) * (60 * 60 * 24)) SECOND)</formula>
       <argument type='datetime' />
       <argument type='int' />
     </function>
     <function group='operator' name='-' return-type='datetime'>
-      <formula>TIMESTAMP_SUB(TIMESTAMP(%1), INTERVAL CAST(TRUNC((%2) * (60.0 * 60.0 * 24.0)) AS INTEGER) SECOND)</formula>
+      <formula>TIMESTAMP_SUB(TIMESTAMP(%1), INTERVAL (CAST(TRUNC((%2) * (60.0 * 60.0 * 24.0)) AS INTEGER)) SECOND)</formula>
       <argument type='date' />
       <argument type='real' />
     </function>
     <function group='operator' name='-' return-type='date'>
-      <formula>DATE(TIMESTAMP_SUB(TIMESTAMP(%1), INTERVAL CAST(TRUNC((%2) * (60.0 * 60.0 * 24.0)) AS INTEGER) SECOND))</formula>
+      <formula>DATE(TIMESTAMP_SUB(TIMESTAMP(%1), INTERVAL (CAST(TRUNC((%2) * (60.0 * 60.0 * 24.0)) AS INTEGER)) SECOND))</formula>
       <argument type='date' />
       <argument type='real' />
     </function>
