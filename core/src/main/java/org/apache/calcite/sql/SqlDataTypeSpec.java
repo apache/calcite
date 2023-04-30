@@ -203,7 +203,7 @@ public class SqlDataTypeSpec extends SqlNode {
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     typeNameSpec.unparse(writer, leftPrec, rightPrec);
-    if( formatLiteral != null) {
+    if (formatLiteral != null) {
       writer.keyword(" FORMAT");
       writer.literal(formatLiteral.toString());
     }

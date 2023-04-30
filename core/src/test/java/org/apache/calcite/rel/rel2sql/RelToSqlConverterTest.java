@@ -75,7 +75,6 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.FormatSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -11763,8 +11762,10 @@ class RelToSqlConverterTest {
   @Test public void testCastWithThreeArgs() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexBuilder rexBuilder = builder.getRexBuilder();
-    final RelDataType type = new FormatSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.FORMAT, "9999.9999");
-    final RexNode castCall = rexBuilder.makeCast(type , builder.literal(1234) , false);
+    final RelDataType type = new FormatSqlType(
+        RelDataTypeSystem.DEFAULT,
+        SqlTypeName.FORMAT, "9999.9999");
+    final RexNode castCall = rexBuilder.makeCast(type, builder.literal(1234), false);
     RelNode root = builder
         .project(castCall)
         .build();

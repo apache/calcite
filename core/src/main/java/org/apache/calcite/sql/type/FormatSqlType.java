@@ -14,11 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 
+/**
+ * FormatSqlType represents a FORMAT literal in RelDataType.
+ */
 public class FormatSqlType extends BasicSqlType {
 
   private String formatValue;

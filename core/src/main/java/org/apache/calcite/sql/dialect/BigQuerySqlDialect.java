@@ -75,7 +75,6 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.text.Format;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -145,7 +144,21 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MI;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MISS;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHHMISS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.*;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ACOS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_DIFF;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FARM_FINGERPRINT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MILLIS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MICROS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MILLIS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_SECONDS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
@@ -1819,7 +1832,8 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static SqlNode createFormatSqlDataTypeSpec(FormatSqlType type) {
     SqlParserPos pos = SqlParserPos.ZERO;
     SqlCharStringLiteral formatLiteral = SqlLiteral.createCharString(type.getFormatValue(), pos);
-    SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec("STRING", type.getSqlTypeName(), pos);
+    SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
+        "STRING", type.getSqlTypeName(), pos);
     return  new SqlDataTypeSpec(typeNameSpec, formatLiteral, pos);
   }
 
