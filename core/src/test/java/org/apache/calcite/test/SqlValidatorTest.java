@@ -4566,6 +4566,42 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "clause\\) following CROSS JOIN");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5547">[CALCITE-5547]
+   * Join using returns incorrect column names</a>. */
+  @Test void testExtraColJoinUsing() {
+    final String expectedType = "RecordType(INTEGER NOT NULL TWO, "
+        + "INTEGER NOT NULL DEPTNO, "
+        + "INTEGER NOT NULL EMPNO, "
+        + "VARCHAR(20) NOT NULL ENAME, "
+        + "VARCHAR(10) NOT NULL JOB, "
+        + "INTEGER MGR, "
+        + "TIMESTAMP(0) NOT NULL HIREDATE, "
+        + "INTEGER NOT NULL SAL, "
+        + "INTEGER NOT NULL COMM, "
+        + "BOOLEAN NOT NULL SLACKER, "
+        + "VARCHAR(10) NOT NULL NAME) NOT NULL";
+
+    sql("select 2 as two, * from emp inner join dept using(deptno)")
+        .type(expectedType);
+
+    sql("select 2 as two, * from emp natural join dept")
+        .type(expectedType);
+
+    sql("select *, 2 as two from emp natural join dept")
+        .type("RecordType(INTEGER NOT NULL DEPTNO, "
+            + "INTEGER NOT NULL EMPNO, "
+            + "VARCHAR(20) NOT NULL ENAME, "
+            + "VARCHAR(10) NOT NULL JOB, "
+            + "INTEGER MGR, "
+            + "TIMESTAMP(0) NOT NULL HIREDATE, "
+            + "INTEGER NOT NULL SAL, "
+            + "INTEGER NOT NULL COMM, "
+            + "BOOLEAN NOT NULL SLACKER, "
+            + "VARCHAR(10) NOT NULL NAME, "
+            + "INTEGER NOT NULL TWO) NOT NULL");
+  }
+
   @Test void testJoinUsing() {
     final String empDeptType = "RecordType(INTEGER NOT NULL DEPTNO,"
         + " INTEGER NOT NULL EMPNO,"

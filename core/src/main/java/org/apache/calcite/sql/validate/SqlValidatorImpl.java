@@ -696,7 +696,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         SqlNode from =
             requireNonNull(scope.getNode().getFrom(),
                 () -> "getFrom for " + scope.getNode());
-        new Permute(from, 0).permute(selectItems, fields);
+        // If some fields before star identifier,
+        // we should move offset.
+        int offset = calculatePermuteOffset(selectItems);
+        new Permute(from, offset).permute(selectItems, fields);
       }
       return true;
 
@@ -742,6 +745,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       return true;
     }
+  }
+
+  private int calculatePermuteOffset(List<SqlNode> selectItems) {
+    for (int i = 0; i < selectItems.size(); i++) {
+      SqlNode selectItem = selectItems.get(i);
+      SqlNode col = SqlUtil.stripAs(selectItem);
+      if (col.getKind() == SqlKind.IDENTIFIER
+          && selectItem.getKind() != SqlKind.AS) {
+        return i;
+      }
+    }
+    return 0;
   }
 
   private SqlNode maybeCast(SqlNode node, RelDataType currentType,
@@ -7307,8 +7322,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final List<ImmutableIntList> sources;
     final RelDataType rowType;
     final boolean trivial;
+    final int offset;
 
     Permute(SqlNode from, int offset) {
+      this.offset = offset;
       switch (from.getKind()) {
       case JOIN:
         final SqlJoin join = (SqlJoin) from;
@@ -7383,9 +7400,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       final List<SqlNode> oldSelectItems = ImmutableList.copyOf(selectItems);
       selectItems.clear();
+      selectItems.addAll(oldSelectItems.subList(0, offset));
       final List<Map.Entry<String, RelDataType>> oldFields =
           ImmutableList.copyOf(fields);
       fields.clear();
+      fields.addAll(oldFields.subList(0, offset));
       for (ImmutableIntList source : sources) {
         final int p0 = source.get(0);
         Map.Entry<String, RelDataType> field = oldFields.get(p0);
