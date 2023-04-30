@@ -73,6 +73,7 @@ import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.FormatSqlType;
@@ -11773,4 +11774,28 @@ class RelToSqlConverterTest {
                                      + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedOracleSql));
   }
+
+  @Test public void testCastWithThreeArgsInDiffFormat() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    String format = "FM999.999";
+    final RelDataType type = new FormatSqlType(
+        RelDataTypeSystem.DEFAULT,
+        SqlTypeName.FORMAT, format);
+    final RexNode castCall = rexBuilder.makeCast(type, builder.literal(1234), false);
+    RexNode outputCall = null;
+    if (format.regionMatches(0,"FM",0,2)) {
+      outputCall = builder.call(SqlStdOperatorTable.TRIM,
+          builder.literal(SqlTrimFunction.Flag.BOTH),
+          builder.literal(""),  castCall );
+    } else outputCall = castCall;
+    RelNode root = builder
+        .project(outputCall)
+        .build();
+    final String expectedOracleSql = "SELECT TRIM(CAST(1234 AS STRING  FORMAT 'FM999.999'), '') "
+        + "AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedOracleSql));
+  }
+
 }
