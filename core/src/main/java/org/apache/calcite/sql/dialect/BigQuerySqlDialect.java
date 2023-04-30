@@ -59,6 +59,7 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.FormatSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -74,6 +75,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.text.Format;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -143,21 +145,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MI;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MISS;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHHMISS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.ACOS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_DIFF;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.FARM_FINGERPRINT;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MILLIS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MICROS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MILLIS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_SECONDS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.*;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
@@ -1815,6 +1803,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         return createSqlDataTypeSpecByName("TIME", typeName);
       case TIMESTAMP:
         return createSqlDataTypeSpecByName("DATETIME", typeName);
+      case FORMAT:
+        return createFormatSqlDataTypeSpec((FormatSqlType) type);
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         return createSqlDataTypeSpecByName("TIMESTAMP_WITH_LOCAL_TIME_ZONE", typeName);
       case JSON:
@@ -1824,6 +1814,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
     }
     return super.getCastSpec(type);
+  }
+
+  private static SqlNode createFormatSqlDataTypeSpec(FormatSqlType type) {
+    SqlParserPos pos = SqlParserPos.ZERO;
+    SqlCharStringLiteral formatLiteral = SqlLiteral.createCharString(type.getFormatValue(), pos);
+    SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec("STRING", type.getSqlTypeName(), pos);
+    return  new SqlDataTypeSpec(typeNameSpec, formatLiteral, pos);
   }
 
   @Override public @Nullable SqlNode getCastSpecWithPrecisionAndScale(final RelDataType type) {

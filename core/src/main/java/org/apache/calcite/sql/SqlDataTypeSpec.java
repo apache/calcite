@@ -66,7 +66,7 @@ public class SqlDataTypeSpec extends SqlNode {
 
   private final SqlTypeNameSpec typeNameSpec;
   private final @Nullable TimeZone timeZone;
-
+  private @Nullable SqlCharStringLiteral formatLiteral;
   /** Whether data type allows nulls.
    *
    * <p>Nullable is nullable! Null means "not specified". E.g.
@@ -86,6 +86,22 @@ public class SqlDataTypeSpec extends SqlNode {
       final SqlTypeNameSpec typeNameSpec,
       SqlParserPos pos) {
     this(typeNameSpec, null, null, pos);
+  }
+
+  /**
+   * Creates a type specification representing a type.
+   *
+   * @param typeNameSpec The type name can be basic sql type, row type,
+   *                     collections type and user defined type
+   *        formatLiteral The literal can be format for cast function
+   */
+
+  public SqlDataTypeSpec(
+      SqlTypeNameSpec typeNameSpec,
+      @Nullable SqlCharStringLiteral formatLiteral,
+      SqlParserPos pos) {
+    this(typeNameSpec, null, null, pos);
+    this.formatLiteral = formatLiteral;
   }
 
   /**
@@ -187,6 +203,10 @@ public class SqlDataTypeSpec extends SqlNode {
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     typeNameSpec.unparse(writer, leftPrec, rightPrec);
+    if( formatLiteral != null) {
+      writer.keyword(" FORMAT");
+      writer.literal(formatLiteral.toString());
+    }
   }
 
   @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {

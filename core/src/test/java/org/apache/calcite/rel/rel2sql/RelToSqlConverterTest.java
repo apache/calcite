@@ -75,6 +75,8 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.FormatSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
@@ -11756,5 +11758,18 @@ class RelToSqlConverterTest {
         + "UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) \"$f0\"\n"
         + "FROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testCastWithThreeArgs() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    final RelDataType type = new FormatSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.FORMAT, "9999.9999");
+    final RexNode castCall = rexBuilder.makeCast(type , builder.literal(1234) , false);
+    RelNode root = builder
+        .project(castCall)
+        .build();
+    final String expectedOracleSql = "SELECT CAST(1234 AS STRING  FORMAT '9999.9999') AS `$f0`\n"
+                                     + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedOracleSql));
   }
 }

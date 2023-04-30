@@ -632,6 +632,9 @@ public class RexBuilder {
   boolean canRemoveCastFromLiteral(RelDataType toType, @Nullable Comparable value,
       SqlTypeName fromTypeName) {
     final SqlTypeName sqlType = toType.getSqlTypeName();
+    if(toType.getSqlTypeName() == SqlTypeName.FORMAT){
+       return false;
+    }
     if (!RexLiteral.valueMatchesType(value, sqlType, false)) {
       return false;
     }
