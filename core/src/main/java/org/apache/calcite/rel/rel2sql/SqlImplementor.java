@@ -1794,9 +1794,10 @@ public abstract class SqlImplementor {
 
       if (rel instanceof Project
           && clauses.contains(Clause.ORDER_BY)
-          && dialect.getConformance().isSortByOrdinal()) {
+          && dialect.getConformance().isSortByOrdinal()
+          && hasSortByOrdinal()) {
         // Cannot merge a Project that contains sort by ordinal under it.
-        return hasSortByOrdinal();
+        return true;
       }
 
       // If old and new clause are equal and belong to below set,
