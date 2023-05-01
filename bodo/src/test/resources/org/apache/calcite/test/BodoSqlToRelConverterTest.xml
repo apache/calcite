@@ -24,6 +24,10 @@ LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
+    <Resource name="sql">
+      <![CDATA[CREATE TABLE IF NOT EXISTS CUSTOMER.out_test LIKE
+emp]]>
+    </Resource>
   </TestCase>
   <TestCase name="testCreateOrReplaceTable">
     <Resource name="plan">
@@ -48,6 +52,10 @@ LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[
   LogicalSort(fetch=[0:BIGINT])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[CREATE OR REPLACE TABLE CUSTOMER.out_test LIKE
+emp]]>
     </Resource>
   </TestCase>
   <TestCase name="testCreateTableIfNotExists">
@@ -80,6 +88,31 @@ LogicalTableCreate(TableName=[TESTING_OUTPUT], Target Schema=[[SALES]], IsReplac
       LogicalValues(tuples=[[{ 'foo' }]])
 ]]>
     </Resource>
+    <Resource name="sql">
+      <![CDATA[CREATE TABLE testing_output AS (with part_two as (
+        select 'foo' as p_partkey from (VALUES (1, 2, 3))
+    )
+    select
+                       p_partkey
+                     from
+                       part_two
+                     order by
+                       p_partkey)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCreateTableOrderByExpr">
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[SALES]], IsReplace=[false], CreateTableType=[DEFAULT])
+  LogicalProject(EMPNO=[$0])
+    LogicalSort(sort0=[$1], dir0=[ASC])
+      LogicalProject(EMPNO=[$0], EXPR$1=[true])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[CREATE TABLE out_test as select emp.empno from emp order by emp.empno is not null]]>
+    </Resource>
   </TestCase>
   <TestCase name="testCreateTableRewrite">
     <Resource name="plan">
@@ -101,6 +134,9 @@ LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[SALES]], IsReplace=[fal
   LogicalProject(EXPR$0=[1], EXPR$1=[2], EXPR$2=[3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[CREATE TABLE out_test AS select 1, 2, 3 from emp]]>
     </Resource>
   </TestCase>
   <TestCase name="testCreateTableWith">
@@ -132,6 +168,17 @@ LogicalSort(sort0=[$0], dir0=[ASC])
   LogicalProject(P_PARTKEY=[$0])
     LogicalValues(tuples=[[{ 'foo' }]])
 ]]>
+    </Resource>
+    <Resource name="sql">
+      <![CDATA[with part_two as (
+        select 'foo' as p_partkey from (VALUES (1, 2, 3))
+    )
+    select
+                       p_partkey
+                     from
+                       part_two
+                     order by
+                       p_partkey]]>
     </Resource>
   </TestCase>
   <TestCase name="testValueUnreserved">

@@ -66,6 +66,13 @@ public class BodoSqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExtendedTester().ok();
   }
 
+  @Test void testCreateTableOrderByExpr() {
+    // Test where create table has an order by operation that generates additional columns
+    final String sql = "CREATE TABLE out_test as select emp.empno from emp "
+        + "order by emp.empno is not null";
+    sql(sql).ok();
+  }
+
 
 
   @Test void testCreateTableRewrite() {
