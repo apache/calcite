@@ -1,0 +1,3 @@
+[submodule "connector/tableau/connector-plugin-sdk"]
+	path = connector/tableau/connector-plugin-sdk
+	url = https://github.com/tableau/connector-plugin-sdk.git
