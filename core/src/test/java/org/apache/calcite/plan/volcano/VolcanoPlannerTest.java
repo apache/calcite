@@ -1012,7 +1012,7 @@ class VolcanoPlannerTest {
       NoneSingleRel singleRel = call.rel(0);
       RelNode childRel = call.rel(1);
       RelNode physInput =
-          convert(
+          call.getPlanner().convert(
               childRel,
               singleRel.getTraitSet().replace(PHYS_CALLING_CONVENTION));
       call.transformTo(

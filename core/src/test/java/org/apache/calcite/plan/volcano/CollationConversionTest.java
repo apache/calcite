@@ -117,7 +117,7 @@ class CollationConversionTest {
       NoneSingleRel single = call.rel(0);
       RelNode input = single.getInput();
       RelNode physInput =
-          convert(input,
+          call.getPlanner().convert(input,
               single.getTraitSet()
                   .replace(PHYS_CALLING_CONVENTION)
                   .plus(ROOT_COLLATION));

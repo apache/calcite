@@ -67,7 +67,7 @@ public class ProjectRemoveRule
               childProject.getInput(), childProject.getProjects(),
               project.getRowType());
     }
-    stripped = convert(stripped, project.getConvention());
+    stripped = call.getPlanner().convert(stripped, project.getConvention());
     call.transformTo(stripped);
   }
 

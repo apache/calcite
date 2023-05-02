@@ -321,7 +321,7 @@ class PlannerTests {
       NoneSingleRel single = call.rel(0);
       RelNode input = single.getInput();
       RelNode physInput =
-          convert(input,
+          call.getPlanner().convert(input,
               single.getTraitSet().replace(PHYS_CALLING_CONVENTION));
       call.transformTo(
           new PhysSingleRel(single.getCluster(), physInput));
