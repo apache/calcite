@@ -339,8 +339,6 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference INTEGER =
       explicit(SqlTypeName.INTEGER);
 
-  public static final SqlReturnTypeInference DECIMAL =
-      explicit(SqlTypeName.DECIMAL);
 
   /**
    * Type-inference strategy whereby the result type of a call is an Integer

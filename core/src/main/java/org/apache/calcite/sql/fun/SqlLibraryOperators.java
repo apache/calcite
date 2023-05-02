@@ -1244,16 +1244,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
 
-  @LibraryOperator(libraries = {ORACLE})
-  public static final SqlBinaryOperator ORACLE_DATE_MINUS =
-      new SqlMonotonicBinaryOperator(
-          "-",
-          SqlKind.MINUS,
-          40,
-          true,
-          ReturnTypes.DECIMAL,
-          InferTypes.FIRST_KNOWN,
-          OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP));
 
   @LibraryOperator(libraries = {NETEZZA})
   public static final SqlFunction BITWISE_OR =

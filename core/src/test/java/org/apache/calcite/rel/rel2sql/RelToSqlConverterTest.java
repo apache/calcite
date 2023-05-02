@@ -11710,19 +11710,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
-  @Test public void testOracleDateMinus() {
-    RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode sourceSql = builder.call(SqlLibraryOperators.ORACLE_DATE_MINUS,
-        builder.literal("2023-04-27 10:00:00.000"),
-        builder.literal("2023-04-26 10:00:00.000"));
-    RelNode root = builder
-        .project(sourceSql)
-        .build();
-    final String expectedCalciteSql = "SELECT '2023-04-27 10:00:00.000' - '2023-04-26 10:00:00" +
-        ".000' AS \"$f0\"\nFROM \"scott\".\"EMP\"";
-    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedCalciteSql));
-  }
-
   @Test public void testTranslateWithLiteralParameter() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode rexNode = builder.call(SqlLibraryOperators.TRANSLATE,
