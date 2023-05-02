@@ -339,7 +339,6 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference INTEGER =
       explicit(SqlTypeName.INTEGER);
 
-
   /**
    * Type-inference strategy whereby the result type of a call is an Integer
    * with nulls allowed if any of the operands allow nulls.
