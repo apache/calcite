@@ -3766,7 +3766,7 @@ public class RexImpTable {
       if (SqlTypeUtil.isNull(arg0.getType())) {
         return argValueList.get(0);
       }
-      return Expressions.call(BuiltInMethod.TRANSLATE.method, argValueList);
+      return Expressions.call(BuiltInMethod.TRANSLATE_WITH_CHARSET.method, argValueList);
     }
   }
 

@@ -1462,10 +1462,12 @@ Algorithms for implicit conversion are subject to change across Calcite releases
 
 #### Explicit Type Conversion
 
-| Operator syntax                     | Description
-|:------------------------------------| :----------
-| CAST(value AS type)                 | Converts a value to a given type
-| CONVERT(string, charSet1, charSet2) | Converts *string* from *charSet1* to *charSet2*
+| Operator syntax                         | Description
+|:----------------------------------------| :----------
+| CAST(value AS type)                     | Converts a value to a given type
+| CONVERT(string, charSet1, charSet2)     | Converts *string* from *charSet1* to *charSet2*
+| CONVERT(value USING transcodingName)    | Alter *value* from one base character set to *transcodingName*
+| TRANSLATE(value USING transcodingName)  | Alter *value* from one base character set to *transcodingName*
 
 Supported data types syntax:
 
@@ -1835,7 +1837,6 @@ period:
 | Operator syntax | Description
 |:--------------- |:-----------
 | {fn CONVERT(value, type)} | Cast *value* into *type*
-| {fn CONVERT/TRANSLATE(value using transcodingName)} | Alter *value* from one base character set to *transcodingName*
 
 ### Aggregate functions
 
