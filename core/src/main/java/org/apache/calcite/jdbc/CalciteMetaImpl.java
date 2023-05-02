@@ -566,7 +566,13 @@ public class CalciteMetaImpl extends MetaImpl {
                   : DatabaseMetaData.columnNoNulls,
               precision,
               field.getIndex() + 1,
-              field.getType().isNullable() ? "YES" : "NO");
+              field.getType().isNullable() ? "YES" : "NO",
+              /*isAutoincrement=*/
+              "NO",
+              /*isGeneratedcolumn=*/
+              field.getType().getSqlTypeName() == SqlTypeName.MEASURE
+                  ? "YES"
+                  : "NO");
         });
   }
 

@@ -41,7 +41,9 @@ class MetaImpl {
       int nullable,
       Integer charOctetLength,
       int ordinalPosition,
-      String isNullable);
+      String isNullable,
+      String isAutoincrement,
+      String isGeneratedcolumn);
   }
 
   class MetaTypeInfo {
