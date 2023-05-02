@@ -83,9 +83,8 @@ LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[CUSTOMER]], IsReplace=[
     <Resource name="plan">
       <![CDATA[
 LogicalTableCreate(TableName=[TESTING_OUTPUT], Target Schema=[[SALES]], IsReplace=[false], CreateTableType=[DEFAULT])
-  LogicalSort(sort0=[$0], dir0=[ASC])
-    LogicalProject(P_PARTKEY=[$0])
-      LogicalValues(tuples=[[{ 'foo' }]])
+  LogicalProject(P_PARTKEY=[$0])
+    LogicalValues(tuples=[[{ 'foo' }]])
 ]]>
     </Resource>
     <Resource name="sql">
@@ -105,9 +104,7 @@ LogicalTableCreate(TableName=[TESTING_OUTPUT], Target Schema=[[SALES]], IsReplac
       <![CDATA[
 LogicalTableCreate(TableName=[OUT_TEST], Target Schema=[[SALES]], IsReplace=[false], CreateTableType=[DEFAULT])
   LogicalProject(EMPNO=[$0])
-    LogicalSort(sort0=[$1], dir0=[ASC])
-      LogicalProject(EMPNO=[$0], EXPR$1=[true])
-        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="sql">

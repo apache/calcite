@@ -4503,58 +4503,8 @@ public class SqlToRelConverter {
 
 
   private RelNode convertCreateTableQuery(SqlNode createTableDef) {
-    // NOTE2: Calcite convertQueryRecursive will omit sorts in the logicalPlan when they
-    // are not needed. Specifically, if we have a select that is not the topmost query, and the
-    // order doesn't impact the select in any way, it will be omitted (see removeSortInSubQuery).
-    //
-    // For example:
-    // SELECT * FROM (SELECT * FROM table ORDER BY column)
-    //
-    // In this case, the order by can be omitted, since it doesn't impact the query in any way.
-    //
-    // Example 2:
-    // SELECT * FROM (SELECT * FROM table) ORDER BY column
-    //
-    // In this case, the order by can't be omitted. The order by is present in the "top level"
-    // node,
-    // IE, the data will be returned to the user, and the user will expect the results of the
-    // query to be ordered.
-    //
-    // Ideally, when converting the sub query of the create table statement,
-    // we would like to set the "top" flag that indicates if the statement is "top level" to be
-    // false.
-    // This will allow Calcite to prune unnecessary sorts from the plan, IE:
-    //
-    // CREATE TABLE output_table AS SELECT * from input_table order by foo
-    // --is transformed to--
-    // CREATE TABLE output_table AS SELECT * from input_table
-    //
-    // This is valid, since we're not going to maintain that sort
-    // when writing it back (note: there may be some specific case
-    // that we want to write as partitioned and keeping the sorting would be ideal,
-    // but that's a followup). There may also be other, similar optimizations that are performed
-    // by
-    // calcite in the case that we indicate the current query isn't the topmost query, which
-    // we would like to take advantage of this.
-    //
-    // HOWEVER, we cannot currently do this due to a bug in Calcite.
-    // Specifically, if we set top=False for a query that contains a WITH clause
-    // and an ORDER BY clause, we'll encounter an issue where convertQueryRecursive will expect to
-    // have an order collation, but it won't be present, as it will be optimized out.
-    // (My guess is that someone made an implicit assumption that WITH would always be the topmost
-    // node, which isn't necessarily true for CREATE TABLE).
-    // There may also be other issues if TOP=False, this requires more investigation. For now,
-    // I'm just going to set TOP=True here. This disables the optimizations,
-    // but will ensure correctness.
-    //
-    // The followup to set top=False to enable performance optimizations is here:
-    // https://bodo.atlassian.net/browse/BE-4483
-    //
-    // TLDR: We'd like to set top=False, to enable some optimizations on the plan,
-    // but we run into a bug with calcite. For right now, we're just setting top=True,
-    // which is always correct, but may result in a less performant plan.
     SqlNode nonNullCreateTableDef = requireNonNull(createTableDef, "createTableDef");
-    RelRoot relRoot = convertQueryRecursive(nonNullCreateTableDef, true, null);
+    RelRoot relRoot = convertQueryRecursive(nonNullCreateTableDef, false, null);
     // Map the root to the final row type. This is needed to prune intermediate columns needed
     // if the inner data requires intermediate columns. See testCreateTableOrderByExpr
     // as an example.
