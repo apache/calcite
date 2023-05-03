@@ -441,10 +441,9 @@ public enum SqlConformanceEnum implements SqlConformance {
   }
 
   @Override public boolean allowLenientBooleanCastTypes() {
-    switch (this) {
+    switch(this) {
     case BABEL:
     case BIG_QUERY:
-    case LENIENT:
       return true;
     default:
       return false;

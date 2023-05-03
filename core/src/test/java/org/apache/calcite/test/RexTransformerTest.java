@@ -34,7 +34,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTransformer;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,7 +72,7 @@ class RexTransformerTest {
   }
 
   @BeforeEach public void setUp() {
-    typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+    typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     rexBuilder = new RexBuilder(typeFactory);
     boolRelDataType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
 

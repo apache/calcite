@@ -31,7 +31,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
@@ -91,7 +90,7 @@ public interface RexImplicationCheckerFixtures {
     public final RexSimplify simplify;
 
     public Fixture() {
-      typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+      typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
       rexBuilder = new RexBuilder(typeFactory);
       boolRelDataType = typeFactory.createJavaType(Boolean.class);
       intRelDataType = typeFactory.createJavaType(Integer.class);

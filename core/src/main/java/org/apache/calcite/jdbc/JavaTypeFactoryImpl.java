@@ -34,8 +34,6 @@ import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.sql.validate.SqlConformance;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -68,11 +66,11 @@ public class JavaTypeFactoryImpl
       syntheticTypes = new HashMap<>();
 
   public JavaTypeFactoryImpl() {
-    this(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+    this(RelDataTypeSystem.DEFAULT);
   }
 
-  public JavaTypeFactoryImpl(RelDataTypeSystem typeSystem, SqlConformance conformance) {
-    super(typeSystem, conformance);
+  public JavaTypeFactoryImpl(RelDataTypeSystem typeSystem) {
+    super(typeSystem);
   }
 
   @Override public RelDataType createStructType(Class type) {

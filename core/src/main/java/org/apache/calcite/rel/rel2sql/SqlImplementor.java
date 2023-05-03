@@ -86,7 +86,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Pair;
@@ -157,8 +156,7 @@ public abstract class SqlImplementor {
   /** Private RexBuilder for short-lived expressions. It has its own
    * dedicated type factory, so don't trust the types to be canonized. */
   final RexBuilder rexBuilder =
-        new RexBuilder(
-            new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT, SqlConformanceEnum.DEFAULT));
+      new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
 
   protected SqlImplementor(SqlDialect dialect) {
     this.dialect = requireNonNull(dialect, "dialect");

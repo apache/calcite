@@ -258,7 +258,7 @@ public class SqlTestFactory {
         }
       };
     }
-    return new JavaTypeFactoryImpl(typeSystem, conformance);
+    return new JavaTypeFactoryImpl(typeSystem);
   }
 
   public SqlTestFactory withParserConfig(

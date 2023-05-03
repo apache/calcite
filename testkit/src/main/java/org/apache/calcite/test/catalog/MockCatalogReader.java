@@ -73,7 +73,6 @@ import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
@@ -988,9 +987,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     MockDynamicTable(String catalogName, String schemaName, String name) {
       super(Object.class);
       this.names = Arrays.asList(catalogName, schemaName, name);
-      this.rowType =
-          new DynamicRecordTypeImpl(
-              new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT));
+      this.rowType = new DynamicRecordTypeImpl(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
     }
 
     @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {

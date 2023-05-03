@@ -33,8 +33,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.validate.SqlConformance;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.RexImplicationCheckerFixtures;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Litmus;
@@ -79,8 +77,8 @@ class RexBuilderTest {
    */
   private static class MySqlTypeFactoryImpl extends SqlTypeFactoryImpl {
 
-    MySqlTypeFactoryImpl(RelDataTypeSystem typeSystem, SqlConformance conformance) {
-      super(typeSystem, conformance);
+    MySqlTypeFactoryImpl(RelDataTypeSystem typeSystem) {
+      super(typeSystem);
     }
 
     @Override public RelDataType createTypeWithNullability(
@@ -99,8 +97,7 @@ class RexBuilderTest {
    * Test RexBuilder.ensureType()
    */
   @Test void testEnsureTypeWithAny() {
-    final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RexBuilder builder = new RexBuilder(typeFactory);
 
     RexNode node =
@@ -117,8 +114,7 @@ class RexBuilderTest {
    * Test RexBuilder.ensureType()
    */
   @Test void testEnsureTypeWithItself() {
-    final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RexBuilder builder = new RexBuilder(typeFactory);
 
     RexNode node =
@@ -135,8 +131,7 @@ class RexBuilderTest {
    * Test RexBuilder.ensureType()
    */
   @Test void testEnsureTypeWithDifference() {
-    final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RexBuilder builder = new RexBuilder(typeFactory);
 
     RexNode node =
@@ -159,7 +154,7 @@ class RexBuilderTest {
   /** Tests {@link RexBuilder#makeTimestampLiteral(TimestampString, int)}. */
   @Test void testTimestampLiteral() {
     final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType timestampType =
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
     final RelDataType timestampType3 =
@@ -308,7 +303,7 @@ class RexBuilderTest {
    * {@link RexBuilder#makeTimestampWithLocalTimeZoneLiteral(TimestampString, int)}. */
   @Test void testTimestampWithLocalTimeZoneLiteral() {
     final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType timestampType =
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
     final RelDataType timestampType3 =
@@ -379,7 +374,7 @@ class RexBuilderTest {
   /** Tests {@link RexBuilder#makeTimeLiteral(TimeString, int)}. */
   @Test void testTimeLiteral() {
     final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RelDataType timeType = typeFactory.createSqlType(SqlTypeName.TIME);
     final RelDataType timeType3 =
         typeFactory.createSqlType(SqlTypeName.TIME, 3);
@@ -457,7 +452,7 @@ class RexBuilderTest {
   /** Tests {@link RexBuilder#makeDateLiteral(DateString)}. */
   @Test void testDateLiteral() {
     final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RelDataType dateType = typeFactory.createSqlType(SqlTypeName.DATE);
     final RexBuilder builder = new RexBuilder(typeFactory);
 
@@ -491,7 +486,7 @@ class RexBuilderTest {
    * DECIMAL</a>. */
   @Test void testDecimalLiteral() {
     final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL);
     final RexBuilder builder = new RexBuilder(typeFactory);
     final RexLiteral literal = builder.makeExactLiteral(null, type);
@@ -504,7 +499,7 @@ class RexBuilderTest {
    */
   @Test void testDecimal() {
     final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 4, 2);
     final RexBuilder builder = new RexBuilder(typeFactory);
     try {
@@ -634,7 +629,7 @@ class RexBuilderTest {
    */
   @Test void testStringLiteral() {
     final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType varchar =
         typeFactory.createSqlType(SqlTypeName.VARCHAR);
     final RexBuilder builder = new RexBuilder(typeFactory);
@@ -683,7 +678,7 @@ class RexBuilderTest {
       @Override public int getMaxPrecision(SqlTypeName typeName) {
         return 38;
       }
-    }, SqlConformanceEnum.DEFAULT);
+    });
     final RexBuilder builder = new RexBuilder(typeFactory);
     checkBigDecimalLiteral(builder, "25");
     checkBigDecimalLiteral(builder, "9.9");
@@ -698,7 +693,7 @@ class RexBuilderTest {
 
   @Test void testMakeIn() {
     final RelDataTypeFactory typeFactory =
-            new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+            new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
     final RelDataType floatType = typeFactory.createSqlType(SqlTypeName.FLOAT);
     RexNode left = rexBuilder.makeInputRef(floatType, 0);
@@ -712,8 +707,7 @@ class RexBuilderTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4632">[CALCITE-4632]
    * Find the least restrictive datatype for SARG</a>. */
   @Test void testLeastRestrictiveTypeForSargMakeIn() {
-    final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
     final RelDataType decimalType = typeFactory.createSqlType(SqlTypeName.DECIMAL);
     RexNode left = rexBuilder.makeInputRef(decimalType, 0);
@@ -732,8 +726,7 @@ class RexBuilderTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4632">[CALCITE-4632]
    * Find the least restrictive datatype for SARG</a>. */
   @Test void testLeastRestrictiveTypeForSargMakeBetween() {
-    final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
     final RelDataType decimalType = typeFactory.createSqlType(SqlTypeName.DECIMAL);
     RexNode left = rexBuilder.makeInputRef(decimalType, 0);
@@ -751,11 +744,11 @@ class RexBuilderTest {
   /** Tests {@link RexCopier#visitOver(RexOver)}. */
   @Test void testCopyOver() {
     final RelDataTypeFactory sourceTypeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RelDataType type = sourceTypeFactory.createSqlType(SqlTypeName.VARCHAR, 65536);
 
     final RelDataTypeFactory targetTypeFactory =
-        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RexBuilder builder = new RexBuilder(targetTypeFactory);
 
     final RexOver node =
@@ -790,11 +783,11 @@ class RexBuilderTest {
   /** Tests {@link RexCopier#visitCorrelVariable(RexCorrelVariable)}. */
   @Test void testCopyCorrelVariable() {
     final RelDataTypeFactory sourceTypeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RelDataType type = sourceTypeFactory.createSqlType(SqlTypeName.VARCHAR, 65536);
 
     final RelDataTypeFactory targetTypeFactory =
-        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RexBuilder builder = new RexBuilder(targetTypeFactory);
 
     final RexCorrelVariable node =
@@ -811,11 +804,11 @@ class RexBuilderTest {
   /** Tests {@link RexCopier#visitLocalRef(RexLocalRef)}. */
   @Test void testCopyLocalRef() {
     final RelDataTypeFactory sourceTypeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RelDataType type = sourceTypeFactory.createSqlType(SqlTypeName.VARCHAR, 65536);
 
     final RelDataTypeFactory targetTypeFactory =
-        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RexBuilder builder = new RexBuilder(targetTypeFactory);
 
     final RexLocalRef node = new RexLocalRef(0, type);
@@ -831,11 +824,11 @@ class RexBuilderTest {
   /** Tests {@link RexCopier#visitDynamicParam(RexDynamicParam)}. */
   @Test void testCopyDynamicParam() {
     final RelDataTypeFactory sourceTypeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RelDataType type = sourceTypeFactory.createSqlType(SqlTypeName.VARCHAR, 65536);
 
     final RelDataTypeFactory targetTypeFactory =
-        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RexBuilder builder = new RexBuilder(targetTypeFactory);
 
     final RexDynamicParam node = builder.makeDynamicParam(type, 0);
@@ -851,11 +844,11 @@ class RexBuilderTest {
   /** Tests {@link RexCopier#visitRangeRef(RexRangeRef)}. */
   @Test void testCopyRangeRef() {
     final RelDataTypeFactory sourceTypeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RelDataType type = sourceTypeFactory.createSqlType(SqlTypeName.VARCHAR, 65536);
 
     final RelDataTypeFactory targetTypeFactory =
-        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new MySqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RexBuilder builder = new RexBuilder(targetTypeFactory);
 
     final RexRangeRef node = builder.makeRangeReference(type, 1, true);
@@ -877,7 +870,7 @@ class RexBuilderTest {
 
   @Test void testValidateRexFieldAccess() {
     final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RexBuilder builder = new RexBuilder(typeFactory);
 
     RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);

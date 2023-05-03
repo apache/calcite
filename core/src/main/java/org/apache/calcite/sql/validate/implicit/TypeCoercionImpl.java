@@ -38,7 +38,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
@@ -630,13 +629,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       RelDataType sourceRowType, RelDataType targetRowType, SqlNode query) {
     final List<RelDataTypeField> sourceFields = sourceRowType.getFieldList();
     final List<RelDataTypeField> targetFields = targetRowType.getFieldList();
-    SqlConformance conformance = scope.getValidator().config().conformance();
     final int sourceCount = sourceFields.size();
     for (int i = 0; i < sourceCount; i++) {
       RelDataType sourceType = sourceFields.get(i).getType();
       RelDataType targetType = targetFields.get(i).getType();
       if (!SqlTypeUtil.equalSansNullability(validator.getTypeFactory(), sourceType, targetType)
-          && !SqlTypeUtil.canCastFrom(targetType, sourceType, true, conformance)) {
+          && !SqlTypeUtil.canCastFrom(targetType, sourceType, true)) {
         // Returns early if types not equals and can not do type coercion.
         return false;
       }

@@ -37,7 +37,6 @@ import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
@@ -280,8 +279,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return false;
     }
     // Should keep sync with rules in SqlTypeCoercionRule.
-    SqlConformance conformance = scope.getValidator().config().conformance();
-    assert SqlTypeUtil.canCastFrom(toType, fromType, true, conformance);
+    assert SqlTypeUtil.canCastFrom(toType, fromType, true);
     return true;
   }
 

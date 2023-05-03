@@ -26,7 +26,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.testlib.annotations.LocaleEnUs;
 
 import org.junit.jupiter.api.Test;
@@ -52,9 +51,7 @@ public class SqlLimitsTest {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
     final List<RelDataType> types =
-        SqlTests.getTypes(
-            new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT,
-            SqlConformanceEnum.DEFAULT));
+        SqlTests.getTypes(new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT));
     for (RelDataType type : types) {
       pw.println(type.toString());
       printLimit(

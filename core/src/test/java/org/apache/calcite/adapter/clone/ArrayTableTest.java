@@ -22,7 +22,6 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import org.junit.jupiter.api.Test;
 
@@ -285,7 +284,7 @@ class ArrayTableTest {
 
   @Test void testLoadSorted() {
     final JavaTypeFactoryImpl typeFactory =
-        new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType rowType =
         typeFactory.builder()
             .add("empid", typeFactory.createType(int.class))
@@ -321,7 +320,7 @@ class ArrayTableTest {
    * column #0 after it discovers that column #1 is unique and sorts by it. */
   @Test void testLoadSorted2() {
     final JavaTypeFactoryImpl typeFactory =
-        new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType rowType =
         typeFactory.builder()
             .add("deptno", typeFactory.createType(int.class))

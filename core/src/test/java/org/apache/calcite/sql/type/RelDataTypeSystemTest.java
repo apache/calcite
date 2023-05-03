@@ -20,7 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import com.google.common.collect.Lists;
 
@@ -122,7 +121,7 @@ class RelDataTypeSystemTest {
   }
 
   private static final SqlTypeFactoryImpl CUSTOM_FACTORY = new SqlTypeFactoryImpl(new
-          CustomTypeSystem(), SqlConformanceEnum.DEFAULT);
+          CustomTypeSystem());
 
   @Test void testDecimalAdditionReturnTypeInference() {
     RelDataType operand1 = TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL, 10, 1);

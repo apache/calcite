@@ -104,7 +104,7 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
     final Set<SqlTypeName> rule = new HashSet<>();
 
     // Make numbers symmetrical,
-    // and make VARCHAR, CHAR, and TIMESTAMP castable to/from numbers
+    // and make VARCHAR, CHAR, BOOLEAN and TIMESTAMP castable to/from numbers
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);

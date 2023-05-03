@@ -84,8 +84,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     final ParameterExpression outputValues_ =
         Expressions.parameter(Object[].class, "outputValues");
     final JavaTypeFactoryImpl javaTypeFactory =
-        new JavaTypeFactoryImpl(rexBuilder.getTypeFactory().getTypeSystem(),
-            rexBuilder.getTypeFactory().getConformance());
+        new JavaTypeFactoryImpl(rexBuilder.getTypeFactory().getTypeSystem());
 
     // public void execute(Context, Object[] outputValues)
     final RexToLixTranslator.InputGetter inputGetter =

@@ -18,7 +18,6 @@ package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import com.google.common.collect.ImmutableList;
 
@@ -27,7 +26,7 @@ import com.google.common.collect.ImmutableList;
  */
 class SqlTypeFixture {
   final SqlTypeFactoryImpl typeFactory =
-      new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+      new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   final RelDataType sqlBoolean = type(SqlTypeName.BOOLEAN, false);
   final RelDataType sqlBigInt = type(SqlTypeName.BIGINT, false);
   final RelDataType sqlBigIntNullable = type(SqlTypeName.BIGINT, true);
