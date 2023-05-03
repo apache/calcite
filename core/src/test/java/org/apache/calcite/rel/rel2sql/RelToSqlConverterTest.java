@@ -885,7 +885,7 @@ class RelToSqlConverterTest {
    * RelToSqlConverter[ORDER BY] generates an incorrect field alias
    * when 2 projection fields have the same name</a>.
    */
-  @Test void testSortWithAnFieldNotInTheProjectionWithASameAliasAsThatInTheProjection() {
+  @Test void testOrderByFieldNotInTheProjectionWithASameAliasAsThatInTheProjection() {
     final RelBuilder builder = relBuilder();
     final RelNode base = builder
         .scan("EMP")
@@ -916,7 +916,7 @@ class RelToSqlConverterTest {
     assertThat(actualSql2, isLinux(expectedSql2));
   }
 
-  @Test void testSortWithAnExpressionNotInTheProjectionThatRefersToUnderlyingFieldWithSameAlias() {
+  @Test void testOrderByExpressionNotInTheProjectionThatRefersToUnderlyingFieldWithSameAlias() {
     final RelBuilder builder = relBuilder();
     final RelNode base = builder
         .scan("EMP")

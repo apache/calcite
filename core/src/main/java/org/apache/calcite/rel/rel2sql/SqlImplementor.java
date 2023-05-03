@@ -1791,15 +1791,6 @@ public abstract class SqlImplementor {
         return false;
       }
       final Clause maxClause = Collections.max(clauses);
-
-      if (rel instanceof Project
-          && clauses.contains(Clause.ORDER_BY)
-          && dialect.getConformance().isSortByOrdinal()
-          && hasSortByOrdinal()) {
-        // Cannot merge a Project that contains sort by ordinal under it.
-        return true;
-      }
-
       // If old and new clause are equal and belong to below set,
       // then new SELECT wrap is not required
       final Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
@@ -1822,6 +1813,14 @@ public abstract class SqlImplementor {
           && maxClause == Clause.SELECT) {
         // Cannot merge a Project that contains windowed functions onto an
         // underlying Project
+        return true;
+      }
+
+      if (rel instanceof Project
+          && clauses.contains(Clause.ORDER_BY)
+          && dialect.getConformance().isSortByOrdinal()
+          && hasSortByOrdinal()) {
+        // Cannot merge a Project that contains sort by ordinal under it.
         return true;
       }
 
