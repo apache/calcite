@@ -1782,7 +1782,10 @@ public class BigQuerySqlDialect extends SqlDialect {
    * BigQuery Standard SQL Data Types</a>.
    */
   @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
-    if (type instanceof BasicSqlType) {
+    if (type instanceof FormatSqlType) {
+      return createFormatSqlDataTypeSpec((FormatSqlType) type);
+    }
+     if (type instanceof BasicSqlType) {
       final SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {
       // BigQuery only supports INT64 for integer types.
@@ -1816,8 +1819,6 @@ public class BigQuerySqlDialect extends SqlDialect {
         return createSqlDataTypeSpecByName("TIME", typeName);
       case TIMESTAMP:
         return createSqlDataTypeSpecByName("DATETIME", typeName);
-      case FORMAT:
-        return createFormatSqlDataTypeSpec((FormatSqlType) type);
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         return createSqlDataTypeSpecByName("TIMESTAMP_WITH_LOCAL_TIME_ZONE", typeName);
       case JSON:

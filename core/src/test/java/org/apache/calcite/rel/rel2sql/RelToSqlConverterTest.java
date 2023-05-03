@@ -7063,6 +7063,16 @@ class RelToSqlConverterTest {
     sql(expected).exec();
   }
 
+
+  @Test void testSelectNullWithCount11() {
+    final String query = "SELECT CAST(123 AS VARCHAR)";
+    final String expected = "SELECT COUNT(\"$f0\")\n"
+        + "FROM (VALUES (NULL)) AS \"t\" (\"$f0\")";
+    sql(query).ok(expected);
+    // validate
+    sql(expected).exec();
+  }
+
   @Test void testSelectNullWithGroupByNull() {
     final String query = "SELECT COUNT(CAST(NULL AS INT))\n"
         + "FROM (VALUES  (0))AS \"t\"\n"
@@ -10267,6 +10277,8 @@ class RelToSqlConverterTest {
   @Test public void testTimeAdd() {
     final RelBuilder builder = relBuilder();
 
+//    final RexNode extractNode =
+
     final RexNode createRexNode = builder.call(SqlLibraryOperators.TIME_ADD,
         builder.literal("00:00:00"),
         builder.call(SqlLibraryOperators.INTERVAL_SECONDS, builder.literal(10000)));
@@ -11765,7 +11777,7 @@ class RelToSqlConverterTest {
     final RexBuilder rexBuilder = builder.getRexBuilder();
     final RelDataType type = new FormatSqlType(
         RelDataTypeSystem.DEFAULT,
-        SqlTypeName.FORMAT, "9999.9999");
+        SqlTypeName.VARCHAR, "9999.9999");
     final RexNode castCall = rexBuilder.makeCast(type, builder.literal(1234), false);
     RelNode root = builder
         .project(castCall)
@@ -11779,20 +11791,27 @@ class RelToSqlConverterTest {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexBuilder rexBuilder = builder.getRexBuilder();
     String format = "FM999.999";
+    boolean isFormatContainsFM = format.toUpperCase().startsWith("FM");
+    if(isFormatContainsFM) {
+      format = format.replace("FM","");
+    }
     final RelDataType type = new FormatSqlType(
         RelDataTypeSystem.DEFAULT,
-        SqlTypeName.FORMAT, format);
-    final RexNode castCall = rexBuilder.makeCast(type, builder.literal(1234), false);
+        SqlTypeName.VARCHAR, format);
+    final RexNode castCall = rexBuilder.makeCast(type,
+        builder.getRexBuilder().makeApproxLiteral(new BigDecimal(12345)), false);
     RexNode outputCall = null;
-    if (format.regionMatches(0,"FM",0,2)) {
+    if (isFormatContainsFM) {
       outputCall = builder.call(SqlStdOperatorTable.TRIM,
           builder.literal(SqlTrimFunction.Flag.BOTH),
-          builder.literal(""),  castCall );
-    } else outputCall = castCall;
+          builder.literal(""), castCall);
+    } else {
+      outputCall = castCall;
+    }
     RelNode root = builder
         .project(outputCall)
         .build();
-    final String expectedOracleSql = "SELECT TRIM(CAST(1234 AS STRING  FORMAT 'FM999.999'), '') "
+    final String expectedOracleSql = "SELECT TRIM(CAST(1234 AS STRING  FORMAT '999.999'), '') "
         + "AS `$f0`\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedOracleSql));
