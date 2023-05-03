@@ -75,6 +75,8 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
 
   private static final SqlTypeCoercionRule INSTANCE;
 
+  private static final SqlTypeCoercionRule LENIENT_INSTANCE;
+
   public static final ThreadLocal<@Nullable SqlTypeCoercionRule> THREAD_PROVIDERS =
       ThreadLocal.withInitial(() -> SqlTypeCoercionRule.INSTANCE);
 
@@ -104,7 +106,7 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
     final Set<SqlTypeName> rule = new HashSet<>();
 
     // Make numbers symmetrical,
-    // and make VARCHAR, CHAR, BOOLEAN and TIMESTAMP castable to/from numbers
+    // and make VARCHAR, CHAR, and TIMESTAMP castable to/from numbers
     rule.add(SqlTypeName.TINYINT);
     rule.add(SqlTypeName.SMALLINT);
     rule.add(SqlTypeName.INTEGER);
@@ -272,6 +274,32 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
             .build());
 
     INSTANCE = new SqlTypeCoercionRule(coerceRules.map);
+
+    // Lenient casting allowing BOOLEAN to be casted to/from numbers.
+    rule.clear();
+
+    rule.add(SqlTypeName.TINYINT);
+    rule.add(SqlTypeName.SMALLINT);
+    rule.add(SqlTypeName.INTEGER);
+    rule.add(SqlTypeName.BIGINT);
+    rule.add(SqlTypeName.DECIMAL);
+    rule.add(SqlTypeName.FLOAT);
+    rule.add(SqlTypeName.REAL);
+    rule.add(SqlTypeName.DOUBLE);
+
+    rule.add(SqlTypeName.CHAR);
+    rule.add(SqlTypeName.VARCHAR);
+    rule.add(SqlTypeName.BOOLEAN);
+    rule.add(SqlTypeName.TIMESTAMP);
+    rule.add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+
+    coerceRules.add(SqlTypeName.TINYINT, rule);
+    coerceRules.add(SqlTypeName.SMALLINT, rule);
+    coerceRules.add(SqlTypeName.INTEGER, rule);
+    coerceRules.add(SqlTypeName.BIGINT, rule);
+
+    LENIENT_INSTANCE = new SqlTypeCoercionRule(coerceRules.map);
+
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -279,6 +307,11 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
   /** Returns an instance. */
   public static SqlTypeCoercionRule instance() {
     return Objects.requireNonNull(THREAD_PROVIDERS.get(), "threadProviders");
+  }
+
+  /** Returns an instance that allows more lenient type coercion. */
+  public static SqlTypeCoercionRule lenientInstance() {
+    return LENIENT_INSTANCE;
   }
 
   /** Returns an instance with specified type mappings. */

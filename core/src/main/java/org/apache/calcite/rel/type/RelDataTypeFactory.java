@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeMappingRule;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
@@ -207,6 +208,8 @@ public interface RelDataTypeFactory {
    * @return canonical union type descriptor
    */
   @Nullable RelDataType leastRestrictive(List<RelDataType> types);
+
+  @Nullable RelDataType leastRestrictive(List<RelDataType> types, SqlTypeMappingRule mappingRule);
 
   /**
    * Creates a SQL type with no precision or scale.

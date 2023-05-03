@@ -22,7 +22,6 @@ import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlRowTypeNameSpec;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import com.google.common.collect.ImmutableList;
 
@@ -123,8 +122,12 @@ class SqlTypeUtilTest {
     SqlTypeCoercionRule typeCoercionRules = SqlTypeCoercionRule.instance(builder.map);
     assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, true),
         is(false));
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, defaultRules),
+        is(false));
     SqlTypeCoercionRule.THREAD_PROVIDERS.set(typeCoercionRules);
     assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, true),
+        is(true));
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, typeCoercionRules),
         is(true));
     // Recover the mappings to default.
     SqlTypeCoercionRule.THREAD_PROVIDERS.set(defaultRules);
@@ -254,26 +257,17 @@ class SqlTypeUtilTest {
     }
   }
 
-  @Test void testCastingBooleanToNumber() {
-    RelDataType boolType = f.sqlBoolean;
-    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlInt, boolType), is(true));
-    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlBigInt, boolType), is(true));
-    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlBigIntNullable, boolType), is(true));
-    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlFloat, boolType), is(false));
-    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlVarchar, boolType), is(false));
-    assertThat(SqlTypeUtil.castingBooleanToNumber(f.sqlAny, boolType), is(false));
-  }
-
   @Test void testCanCastDifferentConformance() {
     RelDataType boolType = f.sqlBoolean;
     RelDataType intType = f.sqlInt;
-    assertThat(SqlTypeUtil.canCastFrom(intType, boolType, true, SqlConformanceEnum.DEFAULT),
+    assertThat(SqlTypeUtil.canCastFrom(intType, boolType, SqlTypeCoercionRule.instance()),
         is(false));
-    assertThat(SqlTypeUtil.canCastFrom(intType, boolType, true, SqlConformanceEnum.BIG_QUERY),
+    assertThat(SqlTypeUtil.canCastFrom(intType, boolType, SqlTypeCoercionRule.lenientInstance()),
         is(true));
   }
 
   private static void assertCanCast(RelDataType toType, RelDataType fromType) {
+    final SqlTypeCoercionRule defaultRules = SqlTypeCoercionRule.instance();
     assertThat(
         String.format(Locale.ROOT,
             "Expected to be able to cast from %s to %s without coercion.", fromType, toType),
@@ -282,5 +276,9 @@ class SqlTypeUtilTest {
         String.format(Locale.ROOT,
             "Expected to be able to cast from %s to %s with coercion.", fromType, toType),
         SqlTypeUtil.canCastFrom(toType, fromType, /* coerce= */ true), is(true));
+    assertThat(
+        String.format(Locale.ROOT,
+            "Expected to be able to cast from %s to %s without coercion.", fromType, toType),
+        SqlTypeUtil.canCastFrom(toType, fromType, /* coerce= */ defaultRules), is(true));
   }
 }

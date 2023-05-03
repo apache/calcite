@@ -24,6 +24,8 @@ import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeMappingRule;
+import org.apache.calcite.sql.type.SqlTypeMappingRules;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Util;
@@ -216,6 +218,11 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   }
 
   @Override public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
+    return leastRestrictive(types, SqlTypeMappingRules.instance(false));
+  }
+
+  @Override public @Nullable RelDataType leastRestrictive(List<RelDataType> types,
+      SqlTypeMappingRule mappingRule) {
     assert types != null;
     assert types.size() >= 1;
     RelDataType type0 = types.get(0);

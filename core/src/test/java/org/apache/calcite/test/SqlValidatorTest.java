@@ -10650,7 +10650,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * Cannot assign NOT NULL array to nullable array</a>. */
   @Test void testArrayAssignment() {
     final SqlTypeFactoryImpl typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT, SqlConformanceEnum.DEFAULT);
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType bigint = typeFactory.createSqlType(SqlTypeName.BIGINT);
     final RelDataType bigintNullable =
         typeFactory.createTypeWithNullability(bigint, true);
