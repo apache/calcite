@@ -298,6 +298,14 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
     coerceRules.add(SqlTypeName.INTEGER, rule);
     coerceRules.add(SqlTypeName.BIGINT, rule);
 
+
+    // Lenient casting allowing ARRAY to be casted from CHAR and VARCHAR.
+    coerceRules.add(SqlTypeName.ARRAY,
+        coerceRules.copyValues(SqlTypeName.ARRAY)
+            .add(SqlTypeName.CHAR)
+            .add(SqlTypeName.VARCHAR)
+            .build());
+
     LENIENT_INSTANCE = new SqlTypeCoercionRule(coerceRules.map);
 
   }

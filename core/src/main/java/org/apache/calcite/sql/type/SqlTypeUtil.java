@@ -973,25 +973,12 @@ public abstract class SqlTypeUtil {
   }
 
   public static SqlTypeMappingRule getSqlTypeCoercionRule(SqlConformance conformance) {
-    if (conformance.allowLenientBooleanCastTypes()) {
+    if (conformance.allowLenientBooleanCastTypes()
+        || conformance.allowCoercionStringToArray()) {
       return SqlTypeCoercionRule.lenientInstance();
     } else {
       return SqlTypeCoercionRule.instance();
     }
-  }
-
-  /**
-   * Returns whether the attempted cast is from a BOOLEAN to a NUMERIC where
-   * NUMERIC is one of [TINYINT, SMALLINT, INTEGER, BIGINT].
-   * @param toType Target of assignment
-   * @param fromType Source of assignment
-   * @return true iff fromType is boolean and toType is one of [TINYINT, SMALLINT, INTEGER, BIGINT]
-   */
-  public static boolean isCastBooleanToInt(
-      RelDataType toType,
-      RelDataType fromType) {
-    return SqlTypeName.INT_TYPES.contains(toType.getSqlTypeName()) && fromType.getSqlTypeName()
-        .equals(SqlTypeName.BOOLEAN);
   }
 
   /**
