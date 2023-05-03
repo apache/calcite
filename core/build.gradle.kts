@@ -52,6 +52,7 @@ dependencies {
     api("com.fasterxml.jackson.core:jackson-annotations")
     api("com.google.errorprone:error_prone_annotations")
     api("com.google.guava:guava")
+    implementation("com.google.code.gson:gson:2.10.1")
     api("org.apache.calcite.avatica:avatica-core")
     api("org.apiguardian:apiguardian-api")
     api("org.checkerframework:checker-qual")

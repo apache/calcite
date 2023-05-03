@@ -82,6 +82,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
@@ -103,6 +105,7 @@ import java.util.stream.Stream;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -829,6 +832,25 @@ class RelWriterTest {
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     relFn(relFn)
         .assertThatPlan(isLinux(expected));
+  }
+
+  @Test void testGsonMapsAreInstanceOfJavaMap() {
+    GsonBuilder builder = new GsonBuilder();
+    Gson gson = builder.create();
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder b = RelBuilder.create(config);
+    final RexBuilder rexBuilder = b.getRexBuilder();
+
+    RexNode between =
+        rexBuilder.makeBetween(b.literal(45),
+            b.literal(20),
+            b.literal(30));
+
+    String gsonRepresentation = gson.toJson(between);
+    Object gsonObject = gson.fromJson(gsonRepresentation, Object.class);
+
+    // gsonObject is a class com.google.gson.internal.LinkedTreeMap
+    assertThat(gsonObject, instanceOf(Map.class));
   }
 
   @Test void testSearchOperator() {

@@ -63,6 +63,7 @@ plugins {
 
 repositories {
     // At least for RAT
+    google()
     mavenCentral()
 }
 
@@ -329,6 +330,7 @@ allprojects {
 
     repositories {
         // RAT and Autostyle dependencies
+        google()
         mavenCentral()
     }
 
@@ -512,6 +514,7 @@ allprojects {
             if (enableMavenLocal) {
                 mavenLocal()
             }
+            google()
             mavenCentral()
         }
         val sourceSets: SourceSetContainer by project
