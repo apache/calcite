@@ -11758,6 +11758,21 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testOracleTrunc() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode dateTruncNode = builder.call(SqlLibraryOperators.TRUNC_ORACLE,
+        builder.call(CURRENT_TIMESTAMP),
+        builder.literal("YYYY"));
+    RelNode root = builder
+        .project(dateTruncNode)
+        .build();
+    final String expectedOracleSql =
+        "SELECT TRUNC(CURRENT_TIMESTAMP, 'YYYY') \"$f0\"\n"
+         + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+
   @Test public void testAddMonths() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     RexBuilder rexBuilder = relBuilder.getRexBuilder();
