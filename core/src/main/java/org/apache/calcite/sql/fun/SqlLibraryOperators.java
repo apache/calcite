@@ -1225,14 +1225,13 @@ public abstract class SqlLibraryOperators {
               OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {NETEZZA})
+  @LibraryOperator(libraries = {NETEZZA, ORACLE})
   public static final SqlFunction MONTHS_BETWEEN =
       new SqlFunction("MONTHS_BETWEEN",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER_NULLABLE, null,
-          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE),
+          ReturnTypes.DECIMAL_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
           SqlFunctionCategory.NUMERIC);
-
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction REGEXP_MATCH_COUNT =

@@ -334,6 +334,20 @@ public abstract class ReturnTypes {
           explicit(SqlTypeName.CHAR);
 
   /**
+   * Type-inference strategy whereby the result type of a call is an Decimal.
+   */
+  public static final SqlReturnTypeInference DECIMAL =
+      explicit(SqlTypeName.DECIMAL);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is an Decimal
+   * with nulls allowed if any of the operands allow nulls.
+   */
+  public static final SqlReturnTypeInference DECIMAL_NULLABLE =
+      DECIMAL.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+
+  /**
    * Type-inference strategy whereby the result type of a call is an Integer.
    */
   public static final SqlReturnTypeInference INTEGER =
