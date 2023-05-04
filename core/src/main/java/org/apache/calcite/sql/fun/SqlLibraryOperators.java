@@ -1225,8 +1225,16 @@ public abstract class SqlLibraryOperators {
               OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {NETEZZA, ORACLE})
+  @LibraryOperator(libraries = {NETEZZA})
   public static final SqlFunction MONTHS_BETWEEN =
+      new SqlFunction("MONTHS_BETWEEN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DECIMAL_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE),
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction ORACLE_MONTHS_BETWEEN =
       new SqlFunction("MONTHS_BETWEEN",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.DECIMAL_NULLABLE, null,
