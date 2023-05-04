@@ -698,7 +698,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                 () -> "getFrom for " + scope.getNode());
         // If some fields before star identifier,
         // we should move offset.
-        int offset = new PermuteOffsetCalculator(selectItems).getOffset();
+        int offset = calculatePermuteOffset(selectItems);
         new Permute(from, offset).permute(selectItems, fields);
       }
       return true;
@@ -745,6 +745,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       return true;
     }
+  }
+
+  private int calculatePermuteOffset(List<SqlNode> selectItems) {
+    for (int i = 0; i < selectItems.size(); i++) {
+      SqlNode selectItem = selectItems.get(i);
+      SqlNode col = SqlUtil.stripAs(selectItem);
+      if (col.getKind() == SqlKind.IDENTIFIER
+          && selectItem.getKind() != SqlKind.AS) {
+        return i;
+      }
+    }
+    return 0;
   }
 
   private SqlNode maybeCast(SqlNode node, RelDataType currentType,
@@ -7422,27 +7434,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         fields.add(Pair.of(name, type));
         selectItems.add(selectItem);
       }
-    }
-  }
-
-  /** Calculate offset for the permutation. */
-  private static class PermuteOffsetCalculator {
-
-    final List<SqlNode> selectItems;
-
-    PermuteOffsetCalculator(List<SqlNode> selectItems) {
-      this.selectItems = selectItems;
-    }
-
-    public int getOffset() {
-      for (int i = 0; i < selectItems.size(); i++) {
-        SqlNode col = SqlUtil.stripAs(selectItems.get(i));
-        if (col.getKind() == SqlKind.IDENTIFIER) {
-          return i;
-        }
-      }
-
-      return 0;
     }
   }
 
