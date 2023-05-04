@@ -492,8 +492,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   @Override public RelNode changeTraits(final RelNode rel, RelTraitSet toTraits) {
-    assert !rel.getTraitSet().equals(toTraits);
     assert toTraits.allSimple();
+
+    if (rel.getTraitSet().equals(toTraits) || rel.getTraitSet().matches(toTraits)) {
+      return rel;
+    }
 
     RelSubset rel2 = ensureRegistered(rel, null);
     if (rel2.getTraitSet().equals(toTraits)) {

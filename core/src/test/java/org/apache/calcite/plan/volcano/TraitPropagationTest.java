@@ -217,7 +217,7 @@ class TraitPropagationTest {
                   RelFieldCollation.Direction.ASCENDING,
                   RelFieldCollation.NullDirection.FIRST));
       RelTraitSet desiredTraits = empty.replace(PHYSICAL).replace(collation);
-      RelNode convertedInput = call.getPlanner().convert(rel.getInput(), desiredTraits);
+      RelNode convertedInput = call.getPlanner().changeTraits(rel.getInput(), desiredTraits);
       call.transformTo(
           new PhysAgg(rel.getCluster(), empty.replace(PHYSICAL),
               convertedInput, rel.getGroupSet(),
@@ -254,7 +254,8 @@ class TraitPropagationTest {
     @Override public void onMatch(RelOptRuleCall call) {
       LogicalProject rel = call.rel(0);
       RelNode rawInput = call.rel(1);
-      RelNode input = call.getPlanner().convert(rawInput, PHYSICAL);
+      RelNode input =
+          call.getPlanner().changeTraits(rawInput, rawInput.getTraitSet().replace(PHYSICAL));
 
       if (config.subsetHack() && input instanceof RelSubset) {
         RelSubset subset = (RelSubset) input;
@@ -266,7 +267,8 @@ class TraitPropagationTest {
           } else {
             RelTraitSet outcome = child.getTraitSet().replace(PHYSICAL);
             call.transformTo(
-                new PhysProj(rel.getCluster(), outcome, call.getPlanner().convert(child, outcome),
+                new PhysProj(rel.getCluster(), outcome,
+                    call.getPlanner().changeTraits(child, outcome),
                     rel.getProjects(), rel.getRowType()));
           }
         }

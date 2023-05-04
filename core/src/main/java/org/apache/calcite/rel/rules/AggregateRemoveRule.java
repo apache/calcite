@@ -118,7 +118,8 @@ public class AggregateRemoveRule
       projects.add(cast);
     }
 
-    final RelNode newInput = call.getPlanner().convert(input, aggregate.getTraitSet().simplify());
+    final RelNode newInput =
+        call.getPlanner().changeTraits(input, aggregate.getTraitSet().simplify());
     relBuilder.push(newInput);
     if (!projects.isEmpty()) {
       projects.addAll(0, relBuilder.fields(aggregate.getGroupSet()));

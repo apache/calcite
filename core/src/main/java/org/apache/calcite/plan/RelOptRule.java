@@ -589,7 +589,20 @@ public abstract class RelOptRule {
    */
   public static RelNode convert(RelNode rel, RelTraitSet toTraits) {
     RelOptPlanner planner = rel.getCluster().getPlanner();
-    return planner.convert(rel, toTraits);
+
+    RelTraitSet outTraits = rel.getTraitSet();
+    for (int i = 0; i < toTraits.size(); i++) {
+      RelTrait toTrait = toTraits.getTrait(i);
+      if (toTrait != null) {
+        outTraits = outTraits.replace(i, toTrait);
+      }
+    }
+
+    if (rel.getTraitSet().matches(outTraits)) {
+      return rel;
+    }
+
+    return planner.changeTraits(rel, outTraits);
   }
 
   /**
@@ -602,7 +615,16 @@ public abstract class RelOptRule {
    */
   public static RelNode convert(RelNode rel, @Nullable RelTrait toTrait) {
     RelOptPlanner planner = rel.getCluster().getPlanner();
-    return planner.convert(rel, toTrait);
+    RelTraitSet outTraits = rel.getTraitSet();
+    if (toTrait != null) {
+      outTraits = outTraits.replace(toTrait);
+    }
+
+    if (rel.getTraitSet().matches(outTraits)) {
+      return rel;
+    }
+
+    return planner.changeTraits(rel, outTraits.simplify());
   }
 
   /**

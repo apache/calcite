@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
@@ -67,7 +68,11 @@ public class ProjectRemoveRule
               childProject.getInput(), childProject.getProjects(),
               project.getRowType());
     }
-    stripped = call.getPlanner().convert(stripped, project.getConvention());
+    Convention convention = project.getConvention();
+    if (convention != null) {
+      stripped =
+          call.getPlanner().changeTraits(stripped, stripped.getTraitSet().replace(convention));
+    }
     call.transformTo(stripped);
   }
 

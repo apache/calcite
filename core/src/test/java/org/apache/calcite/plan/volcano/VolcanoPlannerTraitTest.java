@@ -619,7 +619,7 @@ class VolcanoPlannerTraitTest {
       NoneSingleRel rel = call.rel(0);
 
       RelNode converted =
-          call.getPlanner().convert(
+          call.getPlanner().changeTraits(
               rel.getInput(0),
               rel.getTraitSet().replace(getOutTrait()));
 
@@ -665,7 +665,7 @@ class VolcanoPlannerTraitTest {
       NoneSingleRel rel = call.rel(0);
 
       RelNode converted =
-          call.getPlanner().convert(
+          call.getPlanner().changeTraits(
               rel.getInput(0),
               rel.getTraitSet().replace(getOutTrait()));
 

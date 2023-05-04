@@ -57,7 +57,7 @@ public class EnumerableLimitRule
     }
     call.transformTo(
         EnumerableLimit.create(
-            call.getPlanner().convert(
+            call.getPlanner().changeTraits(
                 input, input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
             sort.offset,
             sort.fetch));
