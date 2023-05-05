@@ -11661,4 +11661,23 @@ class RelToSqlConverterTest {
     final String expectedOracleSql = "SELECT SUBSTR4(\"EMPNO\", 1) \"$f0\"\nFROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
+
+  @Test public void testToChar() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode toCharNode = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+        builder.literal("MM-DD-YYYY HH24:MI:SS"));
+    final RexNode toCharWithNumber = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.literal(1000), builder.literal("9999"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(toCharNode, toCharWithNumber)
+        .build();
+    final String expectedSparkQuery = "SELECT TO_CHAR(CURRENT_TIMESTAMP, 'MM-DD-YYYY HH24:MI:SS')"
+        + " \"$f0\", TO_CHAR(1000, '9999') \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedSparkQuery));
+  }
+
 }
