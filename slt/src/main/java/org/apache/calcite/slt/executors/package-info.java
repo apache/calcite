@@ -24,15 +24,6 @@
  */
 
 /**
- * Package that doesn't allow null values as method parameters.
+ * Test executors for Sql Logic Test based on Calcite.
  */
-
-@ParametersAreNonnullByDefault
-@FieldsAreNonnullByDefault
-@MethodsAreNonnullByDefault
 package org.apache.calcite.slt.executors;
-
-import org.apache.calcite.slt.FieldsAreNonnullByDefault;
-import org.apache.calcite.slt.MethodsAreNonnullByDefault;
-
-import javax.annotation.ParametersAreNonnullByDefault;

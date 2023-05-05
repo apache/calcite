@@ -22,8 +22,6 @@ repositories {
 dependencies {
     implementation(project(":core"))
     implementation("org.hsqldb:hsqldb")
-    compileOnly("com.google.code.findbugs:jsr305:3.0.2")
-    testCompileOnly("com.google.code.findbugs:jsr305:3.0.2")
-    implementation("com.beust:jcommander:1.71")
+    implementation("net.hydromatic:sql-logic-test")
 }
 

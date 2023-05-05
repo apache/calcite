@@ -1,25 +1,18 @@
 /*
- * Copyright 2023 VMware, Inc.
- * SPDX-License-Identifier: MIT
- * SPDX-License-Identifier: Apache-2.0
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.calcite.slt.executors;
@@ -27,21 +20,43 @@ package org.apache.calcite.slt.executors;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.slt.*;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
-import java.util.logging.Logger;
+import java.util.Set;
 import javax.sql.DataSource;
 
-public class CalciteExecutor extends SqlSLTTestExecutor {
-  Logger logger = Logger.getLogger("CalciteExecutor");
-  private final JDBCExecutor statementExecutor;
+import net.hydromatic.sqllogictest.ExecutionOptions;
+import net.hydromatic.sqllogictest.TestStatistics;
+import net.hydromatic.sqllogictest.SltSqlStatement;
+import net.hydromatic.sqllogictest.SqlTestQuery;
+import net.hydromatic.sqllogictest.SltTestFile;
+import net.hydromatic.sqllogictest.ISqlTestOperation;
+import net.hydromatic.sqllogictest.executors.JdbcExecutor;
+import net.hydromatic.sqllogictest.executors.SqlSltTestExecutor;
+import net.hydromatic.sqllogictest.executors.HsqldbExecutor;
+
+public class CalciteExecutor extends SqlSltTestExecutor {
+  private final JdbcExecutor statementExecutor;
   private final Connection connection;
 
-  public CalciteExecutor(JDBCExecutor statementExecutor) throws SQLException {
+  public static void register(ExecutionOptions options) {
+    options.registerExecutor("calcite", () -> {
+      HsqldbExecutor statementExecutor = new HsqldbExecutor(options);
+      try {
+        CalciteExecutor result = new CalciteExecutor(options, statementExecutor);
+        Set<String> bugs = options.readBugsFile();
+        result.avoid(bugs);
+        return result;
+      } catch (IOException | SQLException e) {
+        throw new RuntimeException(e);
+      }
+    });
+  }
+
+  public CalciteExecutor(ExecutionOptions options, JdbcExecutor statementExecutor) throws SQLException {
+    super(options);
     this.statementExecutor = statementExecutor;
     // Build our connection
     this.connection = DriverManager.getConnection(
@@ -49,7 +64,7 @@ public class CalciteExecutor extends SqlSLTTestExecutor {
     CalciteConnection calciteConnection = this.connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     DataSource hsqldb = JdbcSchema.dataSource(
-        "jdbc:hsqldb:mem:db",
+        statementExecutor.dbUrl,
         "org.hsqldb.jdbcDriver",
         "",
         ""
@@ -60,32 +75,48 @@ public class CalciteExecutor extends SqlSLTTestExecutor {
     calciteConnection.setSchema(SCHEMA_NAME);
   }
 
-  boolean statement(SLTSqlStatement statement) throws SQLException {
+  boolean statement(SltSqlStatement statement) throws SQLException {
+    this.options.message(this.statementsExecuted + ": " + statement.statement, 2);
+    assert this.connection != null;
+    if (this.buggyOperations.contains(statement.statement)
+        || this.options.doNotExecute) {
+      options.message("Skipping " + statement.statement, 2);
+      return false;
+    }
     this.statementExecutor.statement(statement);
+    this.statementsExecuted++;
     return true;
   }
 
-  void query(SqlTestQuery query, TestStatistics statistics) throws UnsupportedEncodingException {
+  /**
+   * Run a query.
+   * @param query       Query to execute.
+   * @param statistics  Execution statistics recording the result of
+   *                    the query execution.
+   * @return            True if we need to stop executing.
+   */
+  boolean query(SqlTestQuery query, TestStatistics statistics) throws SQLException {
     String q = query.getQuery();
-    logger.info(() -> "Executing query " + q);
+    this.options.message( "Executing: " + q, 2);
+    if (this.buggyOperations.contains(q) || this.options.doNotExecute) {
+      statistics.incIgnored();
+      options.message("Skipping " + query.getQuery(), 2);
+      return false;
+    }
     try (PreparedStatement ps = this.connection.prepareStatement(q)) {
       ps.execute();
       try (ResultSet resultSet = ps.getResultSet()) {
-        this.statementExecutor.validate(query, resultSet, query.outputDescription, statistics);
+        return this.statementExecutor.validate(query, resultSet, query.outputDescription, statistics);
       } catch (NoSuchAlgorithmException e) {
+        // This should never happen
         throw new RuntimeException(e);
       }
-    } catch (SQLException e) {
-      StringPrintStream str = new StringPrintStream();
-      e.printStackTrace(str.getPrintStream());
-      statistics.addFailure(new TestStatistics.FailedTestDescription(
-          query, str.toString()));
     }
   }
 
   @Override
-  public TestStatistics execute(SLTTestFile file, ExecutionOptions options)
-      throws IOException, SQLException {
+  public TestStatistics execute(SltTestFile file, ExecutionOptions options)
+      throws SQLException {
     this.startTest();
     this.statementExecutor.establishConnection();
     this.statementExecutor.dropAllViews();
@@ -93,37 +124,37 @@ public class CalciteExecutor extends SqlSLTTestExecutor {
 
     TestStatistics result = new TestStatistics(options.stopAtFirstError);
     for (ISqlTestOperation operation : file.fileContents) {
-      SLTSqlStatement stat = operation.as(SLTSqlStatement.class);
+      SltSqlStatement stat = operation.as(SltSqlStatement.class);
       if (stat != null) {
-        boolean status;
         try {
-          if (this.buggyOperations.contains(stat.statement)) {
-            logger.info(() -> "Skipping buggy test " + stat.statement);
-            status = stat.shouldPass;
-          } else {
-            status = this.statement(stat);
-          }
+          this.statement(stat);
         } catch (SQLException ex) {
-          logger.warning("Statement failed " + stat.statement);
-          status = false;
+          options.err.println("Error while processing #"
+              + (result.totalTests() + 1) + " " + operation);
+          throw ex;
         }
         this.statementsExecuted++;
-        if (this.validateStatus &&
-            status != stat.shouldPass)
-          throw new RuntimeException("Statement " + stat.statement + " status " + status + " expected " + stat.shouldPass);
       } else {
-        SqlTestQuery query = operation.to(SqlTestQuery.class);
-        if (this.buggyOperations.contains(query.getQuery())) {
-          logger.info(() -> "Skipping buggy test " + query.getQuery());
-          result.incIgnored();
-          continue;
+        SqlTestQuery query = operation.to(options.err, SqlTestQuery.class);
+        boolean stop;
+        try {
+          stop = this.query(query, result);
+        } catch (SQLException ex) {
+          options.message("Error while processing "
+              + query.getQuery() + " " + ex.getMessage(), 1);
+          stop = result.addFailure(
+              new TestStatistics.FailedTestDescription(query,
+                  ex.getMessage(), ex, options.verbosity > 0));
         }
-        this.query(query, result);
+        if (stop) {
+          break;
+        }
       }
     }
+    this.statementExecutor.dropAllViews();
+    this.statementExecutor.dropAllTables();
     this.statementExecutor.closeConnection();
-    this.reportTime(result.getPassed());
-    logger.info(() -> "Finished executing " + file);
+    options.message(this.elapsedTime(file.getTestCount()), 1);
     return result;
   }
 }
