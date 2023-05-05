@@ -447,6 +447,11 @@ class BabelParserTest extends SqlParserTest {
     assertThat(hoisted.substitute(SqlParserTest::varToStr), is(expected2));
   }
 
+  @Test void testTruncateTable() {
+    sql("truncate table x")
+        .ok("TRUNCATE TABLE `X`");
+  }
+
   /**
    * Babel parser's global {@code LOOKAHEAD} is larger than the core
    * parser's. This causes different parse error message between these two

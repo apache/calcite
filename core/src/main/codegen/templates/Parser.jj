@@ -100,6 +100,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.ddl.SqlTruncateTable;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -1136,6 +1137,8 @@ SqlNode SqlStmt() :
         stmt = SqlDrop()
     |
 </#if>
+        stmt = SqlTruncateTable()
+    |
         stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
     |
         stmt = SqlExplain()
@@ -4281,6 +4284,20 @@ SqlDrop SqlDrop() :
     }
 }
 </#if>
+
+/**
+ * Parses a TRUNCATE TABLE statement.
+ */
+SqlTruncateTable SqlTruncateTable() :
+{
+    final SqlIdentifier id;
+}
+{
+    <TRUNCATE> <TABLE> id = CompoundIdentifier()
+    {
+        return new SqlTruncateTable(getPos(), id);
+    }
+}
 
 /**
  * Parses a literal expression, allowing continued string literals.
