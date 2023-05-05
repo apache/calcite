@@ -6984,9 +6984,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testCastAsCollectionType() {
     sql("select cast(array[1,null,2] as int array) from (values (1))")
-        .columnType("INTEGER NOT NULL ARRAY NOT NULL");
+        .columnType("INTEGER ARRAY NOT NULL");
     sql("select cast(array['1',null,'2'] as varchar(5) array) from (values (1))")
-        .columnType("VARCHAR(5) NOT NULL ARRAY NOT NULL");
+        .columnType("VARCHAR(5) ARRAY NOT NULL");
+    sql("select cast(multiset[1,null,2] as int multiset) from (values (1))")
+        .columnType("INTEGER MULTISET NOT NULL");
+
     // test array type.
     sql("select cast(\"intArrayType\" as int array) from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
@@ -7033,7 +7036,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select cast(a as row(f0 int, f1 varchar)) from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
         .columnType("RecordType(INTEGER NOT NULL F0, VARCHAR NOT NULL F1) NOT NULL");
-    sql("select cast(b as row(f0 int not null, f1 varchar null))\n"
+    sql("select cast(b as row(f0 int, f1 varchar))\n"
         + "from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
         .columnType("RecordType(INTEGER NOT NULL F0, VARCHAR F1) NOT NULL");
@@ -7048,7 +7051,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "RecordType(INTEGER FF0, VARCHAR FF1) F0, "
             + "TIMESTAMP(0) NOT NULL F1) NOT NULL");
     // test row type in collection data types.
-    sql("select cast(d as row(f0 bigint not null, f1 decimal null) array)\n"
+    sql("select cast(d as row(f0 bigint, f1 decimal) array)\n"
         + "from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
         .columnType("RecordType(BIGINT NOT NULL F0, DECIMAL(19, 0) F1) NOT NULL "
@@ -7058,6 +7061,57 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withExtendedCatalog()
         .columnType("RecordType(VARCHAR NOT NULL F0, TIMESTAMP(0) F1) NOT NULL "
             + "MULTISET NOT NULL");
+  }
+
+  @Test void testSafeCastAsCollectionType() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+
+    sql("select safe_cast(array[1,null,2] as int array) from (values (1))")
+        .withOperatorTable(opTable)
+        .columnType("INTEGER ARRAY");
+    sql("select safe_cast(multiset[1,null,2] as int multiset) from (values (1))")
+        .withOperatorTable(opTable)
+        .columnType("INTEGER MULTISET");
+
+    // test array type.
+    sql("select safe_cast(\"varchar5ArrayArrayType\" as varchar(5) array array) "
+        + "from COMPLEXTYPES.CTC_T1")
+        .withOperatorTable(opTable)
+        .withExtendedCatalog()
+        .columnType("VARCHAR(5) ARRAY ARRAY");
+    // test multiset type.
+    sql("select safe_cast(\"varchar5MultisetArrayType\" as varchar(5) multiset array) "
+        + "from COMPLEXTYPES.CTC_T1")
+        .withOperatorTable(opTable)
+        .withExtendedCatalog()
+        .columnType("VARCHAR(5) MULTISET ARRAY");
+  }
+
+  @Test void testTryCastAsRowType() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.MSSQL);
+
+    sql("select try_cast(a as row(f0 int, f1 varchar)) from COMPLEXTYPES.CTC_T1")
+        .withOperatorTable(opTable)
+        .withExtendedCatalog()
+        .columnType("RecordType(INTEGER F0, VARCHAR F1)");
+    // test nested row type.
+    sql("select "
+        + "try_cast(c as row("
+        + "f0 row(ff0 int, ff1 varchar), "
+        + "f1 timestamp))"
+        + " from COMPLEXTYPES.CTC_T1")
+        .withOperatorTable(opTable)
+        .withExtendedCatalog()
+        .columnType("RecordType("
+            + "RecordType(INTEGER FF0, VARCHAR FF1) F0, "
+            + "TIMESTAMP(0) F1)");
+    // test row type in collection data types.
+    sql("select try_cast(d as row(f0 bigint, f1 decimal) array)\n"
+        + "from COMPLEXTYPES.CTC_T1")
+        .withOperatorTable(opTable)
+        .withExtendedCatalog()
+        .columnType("RecordType(BIGINT F0, DECIMAL(19, 0) F1) "
+            + "ARRAY");
   }
 
   @Test void testMultisetConstructor() {

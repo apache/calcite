@@ -43,11 +43,19 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 
 import java.text.Collator;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static org.apache.calcite.sql.type.SqlTypeUtil.isArray;
+import static org.apache.calcite.sql.type.SqlTypeUtil.isCollection;
+import static org.apache.calcite.sql.type.SqlTypeUtil.isMap;
+import static org.apache.calcite.sql.type.SqlTypeUtil.isRow;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * SqlCastFunction. Note that the std functions are really singleton objects,
@@ -122,8 +130,62 @@ public class SqlCastFunction extends SqlFunction {
   /** Derives the type of "CAST(expression AS targetType)". */
   public static RelDataType deriveType(RelDataTypeFactory typeFactory,
       RelDataType expressionType, RelDataType targetType, boolean safe) {
-    return typeFactory.createTypeWithNullability(targetType,
-        expressionType.isNullable() || safe);
+    return createTypeWithNullabilityFromExpr(typeFactory, expressionType, targetType, safe);
+  }
+
+  private static RelDataType createTypeWithNullabilityFromExpr(RelDataTypeFactory typeFactory,
+      RelDataType expressionType, RelDataType targetType, boolean safe) {
+    boolean isNullable = expressionType.isNullable() || safe;
+
+    if (isCollection(expressionType)) {
+      RelDataType expressionElementType = expressionType.getComponentType();
+      RelDataType targetElementType = targetType.getComponentType();
+      requireNonNull(expressionElementType, () -> "componentType of " + expressionType);
+      requireNonNull(targetElementType, () -> "componentType of " + targetType);
+      RelDataType newElementType =
+          createTypeWithNullabilityFromExpr(
+              typeFactory, expressionElementType, targetElementType, safe);
+      return isArray(expressionType)
+          ? SqlTypeUtil.createArrayType(typeFactory, newElementType, isNullable)
+          : SqlTypeUtil.createMultisetType(typeFactory, newElementType, isNullable);
+    }
+
+    if (isRow(expressionType)) {
+      final int fieldCount = expressionType.getFieldCount();
+      List<RelDataType> typeList = new ArrayList<>();
+      for (int i = 0; i < fieldCount; ++i) {
+        RelDataType expressionElementType = expressionType.getFieldList().get(i).getType();
+        RelDataType targetElementType = targetType.getFieldList().get(i).getType();
+        typeList.add(
+            createTypeWithNullabilityFromExpr(typeFactory, expressionElementType,
+            targetElementType, safe));
+      }
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createStructType(
+              typeList,
+              targetType.getFieldNames()), isNullable);
+    }
+
+    if (isMap(expressionType)) {
+      RelDataType expressionKeyType =
+          requireNonNull(expressionType.getKeyType(), () -> "keyType of " + expressionType);
+      RelDataType expressionValueType =
+          requireNonNull(expressionType.getValueType(), () -> "valueType of " + expressionType);
+      RelDataType targetKeyType =
+          requireNonNull(targetType.getKeyType(), () -> "keyType of " + targetType);
+      RelDataType targetValueType =
+          requireNonNull(targetType.getValueType(), () -> "valueType of " + targetType);
+
+      RelDataType keyType =
+          createTypeWithNullabilityFromExpr(
+              typeFactory, expressionKeyType, targetKeyType, safe);
+      RelDataType valueType =
+          createTypeWithNullabilityFromExpr(
+              typeFactory, expressionValueType, targetValueType, safe);
+      SqlTypeUtil.createMapType(typeFactory, keyType, valueType, isNullable);
+    }
+
+    return typeFactory.createTypeWithNullability(targetType, isNullable);
   }
 
   @Override public String getSignatureTemplate(final int operandsCount) {
