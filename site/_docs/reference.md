@@ -180,6 +180,9 @@ delete:
       DELETE FROM tablePrimary [ [ AS ] alias ]
       [ WHERE booleanExpression ]
 
+truncate:
+      TRUNCATE TABLE tablePrimary
+
 query:
       values
   |   WITH withItem [ , withItem ]* query
