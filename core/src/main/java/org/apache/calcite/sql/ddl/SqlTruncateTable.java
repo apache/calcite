@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.sql.ddl;
 
 import org.apache.calcite.sql.SqlDdl;
@@ -30,6 +29,9 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
+/**
+ * Parse tree for {@code TRUNCATE TABLE} statement.
+ */
 public class SqlTruncateTable extends SqlDdl {
 
   private static final SqlOperator OPERATOR =
@@ -44,13 +46,11 @@ public class SqlTruncateTable extends SqlDdl {
     this.name = name;
   }
 
-  @Override
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableList.of(name);
   }
 
-  @Override
-  public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
+  @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     writer.keyword("TRUNCATE");
     writer.keyword("TABLE");
     name.unparse(writer, leftPrec, rightPrec);
