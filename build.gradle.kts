@@ -590,7 +590,8 @@ allprojects {
                     replaceRegex("Remove '// End file.java' trailer", "(?-m)\n// End [^\n]+\\.\\w+\\s*$", "")
                     replaceRegex("<p> should not be placed at the end of the line", "(?-m)\\s*+<p> *+\n \\* ", "\n *\n * <p>")
                     replaceRegex("Method parameter list should not end in whitespace or newline", "(?<!;)\\s+\\) \\{", ") {")
-                    replaceRegex("Method argument list should not end in whitespace or newline", "(?<!;)\\s+(\\)+[;,])", "$1")
+                    replaceRegex("Method argument list should not end in whitespace or newline", "(?<!;)\\s+(\\)[);,])", "$1")
+                    replaceRegex("Method argument list should not end in whitespace or newline", "(?<!;)(\\s+)(\\)+)[.]", "$2$1.")
                     replaceRegex("Long assignment should be broken after '='", "^([^/*\"\\n]*) = ([^@\\n]*)\\(\n( *)", "$1 =\n$3$2(")
                     replaceRegex("Long assignment should be broken after '='", "^([^/*\"\\n]*) = ([^@\\n]*)\\((.*,)\n( *)", "$1 =\n$4$2($3 ")
                     // Assume developer copy-pasted the link, and updated text only, so the url is old, and we replace it with the proper one

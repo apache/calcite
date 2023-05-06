@@ -675,9 +675,8 @@ class RelToSqlConverterTest {
         .join(JoinRelType.INNER,
             b.call(SqlStdOperatorTable.EQUALS,
                 b.field(2, 0, "K"),
-                b.field(2, 1, "K")
-            )
-        ).project(b.alias(b.field(1), "l_v"))
+                b.field(2, 1, "K")))
+        .project(b.alias(b.field(1), "l_v"))
         .build();
     // RelFieldTrimmer maybe build the RelNode.
     relFn(fn).ok("SELECT \"t\".\"V\" AS \"l_v\"\n"
@@ -4218,7 +4217,8 @@ class RelToSqlConverterTest {
     final String expectedClickHouse = "SELECT toMonday(`hire_date`)\n"
         + "FROM `foodmart`.`employee`";
     final String expectedMssql = "SELECT CONVERT(DATETIME, CONVERT(VARCHAR(10), "
-        + "DATEADD(day, - (6 + DATEPART(weekday, [hire_date] )) % 7, [hire_date] "
+        + "DATEADD(day, - (6 + DATEPART(weekday, [hire_date] "
+        + ")) % 7, [hire_date] "
         + "), 126))\n"
         + "FROM [foodmart].[employee]";
     final String expectedMysql = "SELECT STR_TO_DATE(DATE_FORMAT(`hire_date` , '%x%v-1'), "

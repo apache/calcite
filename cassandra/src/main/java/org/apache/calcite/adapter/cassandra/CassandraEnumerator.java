@@ -127,8 +127,8 @@ class CassandraEnumerator implements Enumerator<Object> {
           .mapToObj(i ->
               tupleValue.get(i,
                   CodecRegistry.DEFAULT.codecFor(
-                      tupleValue.getType().getComponentTypes().get(i)))
-          ).map(this::convertToEnumeratorObject)
+                      tupleValue.getType().getComponentTypes().get(i))))
+          .map(this::convertToEnumeratorObject)
           .map(Objects::requireNonNull) // "null" cannot appear inside collections
           .toArray();
     }

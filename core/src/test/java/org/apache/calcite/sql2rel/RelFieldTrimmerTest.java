@@ -285,11 +285,10 @@ class RelFieldTrimmerTest {
         HintStrategyTable.builder().hintStrategy("resource", HintPredicates.PROJECT).build());
     final RelNode original =
         builder.scan("EMP")
-            .project(
-                builder.field("EMPNO"),
+            .project(builder.field("EMPNO"),
                 builder.field("ENAME"),
-                builder.field("DEPTNO")
-            ).hints(projectHint)
+                builder.field("DEPTNO"))
+            .hints(projectHint)
             .sort(builder.field("EMPNO"))
             .project(builder.field("EMPNO"))
             .build();
@@ -412,11 +411,10 @@ class RelFieldTrimmerTest {
         HintStrategyTable.builder().hintStrategy("resource", HintPredicates.CALC).build());
     final RelNode original =
         builder.scan("EMP")
-            .project(
-                builder.field("EMPNO"),
+            .project(builder.field("EMPNO"),
                 builder.field("ENAME"),
-                builder.field("DEPTNO")
-            ).hints(calcHint)
+                builder.field("DEPTNO"))
+            .hints(calcHint)
             .sort(builder.field("EMPNO"))
             .project(builder.field("EMPNO"))
             .build();

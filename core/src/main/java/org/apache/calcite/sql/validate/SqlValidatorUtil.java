@@ -829,9 +829,9 @@ public class SqlValidatorUtil {
       return;
     case ROLLUP:
     case CUBE: {
-      // GROUPING SETS ( (a), ROLLUP(c,b), CUBE(d,e) )
+      // GROUPING SETS ((a), ROLLUP(c,b), CUBE(d,e))
       // is EQUIVALENT to
-      // GROUPING SETS ( (a), (c,b), (b) ,(), (d,e), (d), (e) ).
+      // GROUPING SETS ((a), (c,b), (b) ,(), (d,e), (d), (e)).
       // Expand all ROLLUP/CUBE nodes
       List<ImmutableBitSet> operandBitSet =
           analyzeGroupTuple(scope, groupAnalyzer,

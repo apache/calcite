@@ -156,12 +156,12 @@ class EnumerableJoinTest {
                     builder.equals(builder.field(2, 0, "name"),
                         builder.literal("ddd")))
                 .project(builder.field(0))
-                .build()
-    ).returnsUnordered(
-        "empid=100",
-        "empid=110",
-        "empid=150",
-        "empid=200");
+                .build())
+        .returnsUnordered(
+            "empid=100",
+            "empid=110",
+            "empid=150",
+            "empid=200");
   }
 
   /**
