@@ -406,9 +406,32 @@ public class CalciteAssert {
   /** Checks that the {@link ResultSet} returns the given set of lines,
    * optionally sorting.
    *
+   * <p>The lines must not contain line breaks. If you have written
+   *
+   * <pre>{@code
+   * checkUnordered("line1\n"
+   *     + "line2")
+   * }</pre>
+   *
+   * <p>you should instead write
+   *
+   * <pre>{@code
+   * checkUnordered("line1",
+   *     "line2")
+   * }</pre>
+   *
+   * <p>so that result-checking is order-independent.
+   *
    * @see Matchers#returnsUnordered(String...) */
   static Consumer<ResultSet> checkResult(final boolean sort,
       final boolean head, final String... lines) {
+    // Check that none of the lines contains a line break.
+    for (String line : lines) {
+      if (line.contains("\n")) {
+        throw new AssertionError("expected line has line breaks: " + line);
+      }
+    }
+
     return resultSet -> {
       try {
         final List<String> expectedList = Lists.newArrayList(lines);

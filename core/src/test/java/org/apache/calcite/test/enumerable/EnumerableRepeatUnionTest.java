@@ -313,9 +313,8 @@ class EnumerableRepeatUnionTest {
             + "              BindableTableScan(table=[[#DELTA#]])\n"
             + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[$cor1], expr#6=[$t5.subordinateid], expr#7=[=($t6, $t0)], empid=[$t0], name=[$t2], $condition=[$t7])\n"
             + "          EnumerableTableScan(table=[[s, emps]])\n")
-        .returnsUnordered(""
-            + "empid=2; name=Emp2\n"
-            + "empid=3; name=Emp3\n"
-            + "empid=5; name=Emp5");
+        .returnsUnordered("empid=2; name=Emp2",
+            "empid=3; name=Emp3",
+            "empid=5; name=Emp5");
   }
 }

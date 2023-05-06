@@ -904,7 +904,9 @@ public class ReflectiveSchemaTest {
         .withSchema("s", CATCHALL)
         .query("select (\"value\" = 3 and unknown) or ( \"value\"  = 3 ) "
             + "from \"s\".\"primesCustomBoxed\"")
-        .returnsUnordered("EXPR$0=false\nEXPR$0=false\nEXPR$0=true");
+        .returnsUnordered("EXPR$0=false",
+            "EXPR$0=false",
+            "EXPR$0=true");
   }
 
   @Test void testDecimalNegate() {

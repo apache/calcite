@@ -480,7 +480,9 @@ class TableFunctionTest {
     final String q = "select \"N\" + 1 as c\n"
         + "from table(\"s\".\"fibonacci2\"(3))\n"
         + "group by \"N\"";
-    with().query(q).returnsUnordered("C=2\nC=3\nC=4");
+    with().query(q).returnsUnordered("C=2",
+        "C=3",
+        "C=4");
   }
 
   @Test void testCrossApply() {

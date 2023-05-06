@@ -7772,7 +7772,9 @@ public class JdbcTest {
             + "  EnumerableValues(tuples=[[{ 1, 2 }]])\n"
             + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[-($t0, $t1)], EXPR$0=[$t2], EXPR$1=[$t3])\n"
             + "    EnumerableValues(tuples=[[{ 3, 4 }, { 5, 6 }]])\n")
-        .returnsUnordered("X=11; Y=-1\nX=1; Y=2\nX=7; Y=-1");
+        .returnsUnordered("X=11; Y=-1",
+            "X=1; Y=2",
+            "X=7; Y=-1");
   }
 
   /** Test case for

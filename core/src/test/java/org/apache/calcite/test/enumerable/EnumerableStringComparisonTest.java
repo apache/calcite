@@ -111,11 +111,11 @@ class EnumerableStringComparisonTest {
         .explainHookMatches(""
             + "EnumerableSort(sort0=[$0], dir0=[ASC])\n"
             + "  EnumerableValues(tuples=[[{ 'Legal' }, { 'presales' }, { 'hr' }, { 'Administration' }, { 'MARKETING' }]])\n")
-        .returnsOrdered("name=Administration\n"
-            + "name=Legal\n"
-            + "name=MARKETING\n"
-            + "name=hr\n"
-            + "name=presales");
+        .returnsOrdered("name=Administration",
+            "name=Legal",
+            "name=MARKETING",
+            "name=hr",
+            "name=presales");
   }
 
   @Test void testSortStringSpecialCollation() {
@@ -130,11 +130,11 @@ class EnumerableStringComparisonTest {
         .explainHookMatches(""
             + "EnumerableSort(sort0=[$0], dir0=[ASC])\n"
             + "  EnumerableValues(tuples=[[{ 'Legal' }, { 'presales' }, { 'hr' }, { 'Administration' }, { 'MARKETING' }]])\n")
-        .returnsOrdered("name=Administration\n"
-            + "name=hr\n"
-            + "name=Legal\n"
-            + "name=MARKETING\n"
-            + "name=presales");
+        .returnsOrdered("name=Administration",
+            "name=hr",
+            "name=Legal",
+            "name=MARKETING",
+            "name=presales");
   }
 
   @Test void testMergeJoinOnStringSpecialCollation() {
@@ -162,8 +162,8 @@ class EnumerableStringComparisonTest {
             + "    EnumerableValues(tuples=[[{ 'Legal' }, { 'presales' }, { 'HR' }, { 'Administration' }, { 'Marketing' }]])\n"
             + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
             + "    EnumerableValues(tuples=[[{ 'Marketing' }, { 'bureaucracy' }, { 'Sales' }, { 'HR' }]])\n")
-        .returnsOrdered("name=HR; name0=HR\n"
-            + "name=Marketing; name0=Marketing");
+        .returnsOrdered("name=HR; name0=HR",
+            "name=Marketing; name0=Marketing");
   }
 
   /** Test case for
@@ -193,11 +193,11 @@ class EnumerableStringComparisonTest {
             + "      EnumerableValues(tuples=[[{ 'facilities' }, { 'HR' }, { 'administration' }, { 'Marketing' }]])\n"
             + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
             + "    EnumerableValues(tuples=[[{ 'Marketing' }, { 'administration' }, { 'presales' }, { 'HR' }]])\n")
-        .returnsOrdered("name=administration\n"
-            + "name=facilities\n"
-            + "name=HR\n"
-            + "name=Marketing\n"
-            + "name=presales");
+        .returnsOrdered("name=administration",
+            "name=facilities",
+            "name=HR",
+            "name=Marketing",
+            "name=presales");
   }
 
   /** Test case for

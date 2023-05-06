@@ -211,9 +211,8 @@ class EnumerableJoinTest {
             + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
             + "      EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
             + "        EnumerableTableScan(table=[[s, depts]])\n")
-        .returnsUnordered(""
-            + "empid=110; name=Theodore; dept_name=Sales; e_deptno=10; d_deptno=10\n"
-            + "empid=150; name=Sebastian; dept_name=Sales; e_deptno=10; d_deptno=10");
+        .returnsUnordered("empid=110; name=Theodore; dept_name=Sales; e_deptno=10; d_deptno=10",
+            "empid=150; name=Sebastian; dept_name=Sales; e_deptno=10; d_deptno=10");
   }
 
   /** Test case for
@@ -250,7 +249,10 @@ class EnumerableJoinTest {
             + "    EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
             + "      EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1], commission=[$t4])\n"
             + "        EnumerableTableScan(table=[[s, emps]])\n")
-        .returnsUnordered("empid=100\nempid=110\nempid=150\nempid=200");
+        .returnsUnordered("empid=100",
+            "empid=110",
+            "empid=150",
+            "empid=200");
   }
 
   /** Test case for
@@ -326,10 +328,9 @@ class EnumerableJoinTest {
             + "        EnumerableSort(sort0=[$0], dir0=[ASC])\n"
             + "          EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2])\n"
             + "            EnumerableTableScan(table=[[s, emps]])\n")
-        .returnsUnordered(""
-            + "empid=2; name=Emp2\n"
-            + "empid=3; name=Emp3\n"
-            + "empid=5; name=Emp5");
+        .returnsUnordered("empid=2; name=Emp2",
+            "empid=3; name=Emp3",
+            "empid=5; name=Emp5");
   }
 
   private CalciteAssert.AssertThat tester(boolean forceDecorrelate,
