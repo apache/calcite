@@ -133,6 +133,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -6821,6 +6822,65 @@ class RelOptRulesTest extends RelOptTestBase {
         .withTrim(true)
         .withRule() // empty program
         .checkUnchanged();
+  }
+
+  /** Test case for CALCITE-5683 for two level nested decorrelate with standard program
+   * failing during the decorrelation phase. */
+  @Test void testTwoLevelDecorrelate() {
+    final String sql = "SELECT d1.name, d1.deptno + "
+        + " ( SELECT e1.empno "
+        + " FROM emp e1 "
+        + " WHERE d1.deptno = e1.deptno and "
+        + "       e1.sal = (SELECT max(sal) "
+        + "                 FROM emp e2 "
+        + "                 WHERE   e1.sal = e2.sal and"
+        + "                         e1.deptno = e2.deptno and"
+        + "                         d1.deptno < e2.deptno))"
+        + " FROM dept d1";
+
+    final RelOptFixture fixture = sql(sql).withExpand(false);
+    final RelNode rel = fixture.toRel();
+    final RelOptPlanner planner = rel.getCluster().getPlanner();
+
+    final RelTraitSet desiredTraits = RelTraitSet.createEmpty();
+
+    final Program program = Programs.standard();
+    RelNode relNode =
+        program.run(planner, rel, desiredTraits,
+            new ArrayList<>(),
+            new ArrayList<>());
+
+    diffRepos.assertEquals("planAfter", "${planAfter}",
+        NL + RelOptUtil.toString(relNode));
+  }
+
+  /** Test case for CALCITE-5683 for two level nested decorrelate with standard program
+   * failing during the decorrelation phase. */
+  @Test void testTwoLevelDecorrelateSkipInBetween() {
+    final String sql = "SELECT d1.name, d1.deptno + "
+        + " ( SELECT e1.empno "
+        + " FROM emp e1 "
+        + " WHERE e1.sal = (SELECT max(sal) "
+        + "                 FROM emp e2 "
+        + "                 WHERE   e1.sal = e2.sal and"
+        + "                         e1.deptno = e2.deptno and"
+        + "                         d1.deptno < e2.deptno))"
+        + " FROM dept d1";
+
+    final RelOptFixture fixture = sql(sql).withExpand(false);
+    final RelNode rel = fixture.toRel();
+    final RelOptPlanner planner = rel.getCluster().getPlanner();
+
+    final RelTraitSet desiredTraits = RelTraitSet.createEmpty();
+
+    final Program program = Programs.standard();
+    RelNode relNode =
+        program.run(planner, rel, desiredTraits,
+            new ArrayList<>(),
+            new ArrayList<>());
+
+    diffRepos.assertEquals("planAfter", "${planAfter}",
+        NL + RelOptUtil.toString(relNode));
   }
 
   /** Test case for
