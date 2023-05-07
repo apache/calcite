@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 repositories {
     mavenCentral()
 }
@@ -24,4 +23,3 @@ dependencies {
     implementation("org.hsqldb:hsqldb")
     implementation("net.hydromatic:sql-logic-test")
 }
-

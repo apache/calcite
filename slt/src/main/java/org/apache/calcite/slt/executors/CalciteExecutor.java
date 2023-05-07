@@ -14,12 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.slt.executors;
 
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
+
+import net.hydromatic.sqllogictest.ExecutionOptions;
+import net.hydromatic.sqllogictest.ISqlTestOperation;
+import net.hydromatic.sqllogictest.SltSqlStatement;
+import net.hydromatic.sqllogictest.SltTestFile;
+import net.hydromatic.sqllogictest.SqlTestQuery;
+import net.hydromatic.sqllogictest.TestStatistics;
+import net.hydromatic.sqllogictest.executors.HsqldbExecutor;
+import net.hydromatic.sqllogictest.executors.JdbcExecutor;
+import net.hydromatic.sqllogictest.executors.SqlSltTestExecutor;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
@@ -30,16 +39,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Set;
 import javax.sql.DataSource;
-
-import net.hydromatic.sqllogictest.ExecutionOptions;
-import net.hydromatic.sqllogictest.TestStatistics;
-import net.hydromatic.sqllogictest.SltSqlStatement;
-import net.hydromatic.sqllogictest.SqlTestQuery;
-import net.hydromatic.sqllogictest.SltTestFile;
-import net.hydromatic.sqllogictest.ISqlTestOperation;
-import net.hydromatic.sqllogictest.executors.JdbcExecutor;
-import net.hydromatic.sqllogictest.executors.SqlSltTestExecutor;
-import net.hydromatic.sqllogictest.executors.HsqldbExecutor;
 
 public class CalciteExecutor extends SqlSltTestExecutor {
   private final JdbcExecutor statementExecutor;
@@ -63,16 +62,15 @@ public class CalciteExecutor extends SqlSltTestExecutor {
     super(options);
     this.statementExecutor = statementExecutor;
     // Build our connection
-    this.connection = DriverManager.getConnection(
-        "jdbc:calcite:lex=ORACLE");
+    this.connection =
+        DriverManager.getConnection("jdbc:calcite:lex=ORACLE");
     CalciteConnection calciteConnection = this.connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    DataSource hsqldb = JdbcSchema.dataSource(
-        statementExecutor.dbUrl,
+    DataSource hsqldb =
+        JdbcSchema.dataSource(statementExecutor.dbUrl,
         "org.hsqldb.jdbcDriver",
         "",
-        ""
-    );
+        "");
     final String SCHEMA_NAME = "SLT";
     JdbcSchema jdbcSchema = JdbcSchema.create(rootSchema, SCHEMA_NAME, hsqldb, null, null);
     rootSchema.add(SCHEMA_NAME, jdbcSchema);
@@ -118,8 +116,7 @@ public class CalciteExecutor extends SqlSltTestExecutor {
     }
   }
 
-  @Override
-  public TestStatistics execute(SltTestFile file, ExecutionOptions options)
+  @Override public TestStatistics execute(SltTestFile file, ExecutionOptions options)
       throws SQLException {
     this.startTest();
     this.statementExecutor.establishConnection();
@@ -146,8 +143,9 @@ public class CalciteExecutor extends SqlSltTestExecutor {
         } catch (SQLException ex) {
           options.message("Error while processing "
               + query.getQuery() + " " + ex.getMessage(), 1);
-          stop = result.addFailure(
-              new TestStatistics.FailedTestDescription(query,
+          stop =
+              result.addFailure(
+                  new TestStatistics.FailedTestDescription(query,
                   ex.getMessage(), ex, options.verbosity > 0));
         }
         if (stop) {

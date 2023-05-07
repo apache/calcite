@@ -14,8 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.slt;
+
+import org.apache.calcite.slt.executors.CalciteExecutor;
+
+import net.hydromatic.sqllogictest.ExecutionOptions;
+import net.hydromatic.sqllogictest.TestLoader;
+import net.hydromatic.sqllogictest.executors.HsqldbExecutor;
+import net.hydromatic.sqllogictest.executors.NoExecutor;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -23,13 +29,6 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import net.hydromatic.sqllogictest.ExecutionOptions;
-import net.hydromatic.sqllogictest.executors.HsqldbExecutor;
-import net.hydromatic.sqllogictest.executors.NoExecutor;
-import net.hydromatic.sqllogictest.TestLoader;
-
-import org.apache.calcite.slt.executors.CalciteExecutor;
 
 /**
  * Execute all SqlLogicTest tests.
