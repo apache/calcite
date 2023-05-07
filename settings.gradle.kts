@@ -88,8 +88,7 @@ include(
     "spark",
     "splunk",
     "testkit",
-    "ubenchmark",
-    "slt"
+    "ubenchmark"
 )
 
 // See https://github.com/gradle/gradle/issues/1348#issuecomment-284758705 and
