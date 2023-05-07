@@ -47,7 +47,7 @@ public class SqlDatePartFunction extends SqlFunction {
         SqlKind.OTHER,
         ReturnTypes.BIGINT_NULLABLE,
         InferTypes.FIRST_KNOWN,
-        OperandTypes.DATETIME,
+        OperandTypes.or(OperandTypes.DATETIME, OperandTypes.NILADIC),
         SqlFunctionCategory.TIMEDATE);
     this.timeUnit = timeUnit;
   }
