@@ -51,8 +51,8 @@ public class TestCalcite {
   private static Output launchSqlLogicTest(String... args) throws IOException {
     try (ByteArrayOutputStream bout = new ByteArrayOutputStream();
          ByteArrayOutputStream berr = new ByteArrayOutputStream()) {
-      final PrintStream out = new PrintStream(bout);
-      final PrintStream err = new PrintStream(berr);
+      final PrintStream out = new PrintStream(bout, false, UTF_8);
+      final PrintStream err = new PrintStream(berr, false, UTF_8);
       net.hydromatic.sqllogictest.Main.execute(false, out, err, args);
       out.flush();
       err.flush();
