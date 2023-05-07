@@ -23,6 +23,9 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Tests using sql-logic-test suite.
+ */
 public class TestCalcite {
   private static final String USAGE = ""
       + "slt [options] files_or_directories_with_tests\n"
@@ -60,17 +63,19 @@ public class TestCalcite {
   /** Test that runs one script against HSQLDB. */
   @Test void testRunCalcite() throws IOException {
     Output res = launchSqlLogicTest("-x", "-v", "-v", "-e", "calcite", "select1.test");
-    /*
-    This test in fact fails due to Calcite bugs.
-    String[] outLines = res.out.split("\n");
-    assertThat(res.err, is(""));
-    assertThat(res.out, outLines.length, is(4));
-    assertThat(res.out, outLines[1], is("Passed: 1,000"));
-    assertThat(res.out, outLines[2], is("Failed: 0"));
-    assertThat(res.out, outLines[3], is("Ignored: 0"));
-     */
+
+//    This test in fact fails due to Calcite bugs.
+//    String[] outLines = res.out.split("\n");
+//    assertThat(res.err, is(""));
+//    assertThat(res.out, outLines.length, is(4));
+//    assertThat(res.out, outLines[1], is("Passed: 1,000"));
+//    assertThat(res.out, outLines[2], is("Failed: 0"));
+//    assertThat(res.out, outLines[3], is("Ignored: 0"));
   }
 
+  /**
+   * Wrapper around the output of the sql-logic-test CLI.
+   */
   private static class Output {
     final String out;
     final String err;
