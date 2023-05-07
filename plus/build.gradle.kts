@@ -25,6 +25,7 @@ dependencies {
     implementation("com.teradata.tpcds:tpcds")
     implementation("io.prestosql.tpch:tpch")
     implementation("net.hydromatic:chinook-data-hsqldb")
+    implementation("net.hydromatic:sql-logic-test")
     implementation("net.hydromatic:tpcds")
     implementation("org.apache.calcite.avatica:avatica-server")
     implementation("org.hsqldb:hsqldb")
