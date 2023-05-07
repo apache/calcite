@@ -55,13 +55,12 @@ public class Main1 {
       return parse;
     }
 
-    /*
-    URL r = Thread.currentThread().getContextClassLoader().getResource("test");
-    if (r == null) {
-      out.println("Cannot find resources");
-      return 1;
-    }
-     */
+//    URL r = Thread.currentThread().getContextClassLoader().getResource("test");
+//    if (r == null) {
+//      out.println("Cannot find resources");
+//      return 1;
+//    }
+
     URL r = new URL("/home/mbudiu/git/sqllogictest/test");
 
     TestLoader loader = new TestLoader(options);

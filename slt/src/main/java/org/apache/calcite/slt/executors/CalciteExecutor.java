@@ -40,6 +40,9 @@ import java.sql.SQLException;
 import java.util.Set;
 import javax.sql.DataSource;
 
+/**
+ * Executor for SQL logic tests using Calcite's JDBC adapter.
+ */
 public class CalciteExecutor extends SqlSltTestExecutor {
   private final JdbcExecutor statementExecutor;
   private final Connection connection;
@@ -58,7 +61,8 @@ public class CalciteExecutor extends SqlSltTestExecutor {
     });
   }
 
-  public CalciteExecutor(ExecutionOptions options, JdbcExecutor statementExecutor) throws SQLException {
+  public CalciteExecutor(ExecutionOptions options, JdbcExecutor statementExecutor)
+      throws SQLException {
     super(options);
     this.statementExecutor = statementExecutor;
     // Build our connection
@@ -71,10 +75,10 @@ public class CalciteExecutor extends SqlSltTestExecutor {
         "org.hsqldb.jdbcDriver",
         "",
         "");
-    final String SCHEMA_NAME = "SLT";
-    JdbcSchema jdbcSchema = JdbcSchema.create(rootSchema, SCHEMA_NAME, hsqldb, null, null);
-    rootSchema.add(SCHEMA_NAME, jdbcSchema);
-    calciteConnection.setSchema(SCHEMA_NAME);
+    final String schemaName = "SLT";
+    JdbcSchema jdbcSchema = JdbcSchema.create(rootSchema, schemaName, hsqldb, null, null);
+    rootSchema.add(schemaName, jdbcSchema);
+    calciteConnection.setSchema(schemaName);
   }
 
   boolean statement(SltSqlStatement statement) throws SQLException {
@@ -99,7 +103,7 @@ public class CalciteExecutor extends SqlSltTestExecutor {
    */
   boolean query(SqlTestQuery query, TestStatistics statistics) throws SQLException {
     String q = query.getQuery();
-    this.options.message( "Executing: " + q, 2);
+    this.options.message("Executing: " + q, 2);
     if (this.buggyOperations.contains(q) || this.options.doNotExecute) {
       statistics.incIgnored();
       options.message("Skipping " + query.getQuery(), 2);
@@ -108,7 +112,8 @@ public class CalciteExecutor extends SqlSltTestExecutor {
     try (PreparedStatement ps = this.connection.prepareStatement(q)) {
       ps.execute();
       try (ResultSet resultSet = ps.getResultSet()) {
-        return this.statementExecutor.validate(query, resultSet, query.outputDescription, statistics);
+        return this.statementExecutor.validate(query, resultSet, query.outputDescription,
+            statistics);
       } catch (NoSuchAlgorithmException e) {
         // This should never happen
         throw new RuntimeException(e);
