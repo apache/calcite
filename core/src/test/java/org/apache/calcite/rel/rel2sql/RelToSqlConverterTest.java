@@ -7063,16 +7063,6 @@ class RelToSqlConverterTest {
     sql(expected).exec();
   }
 
-
-  @Test void testSelectNullWithCount11() {
-    final String query = "SELECT CAST(123 AS VARCHAR)";
-    final String expected = "SELECT COUNT(\"$f0\")\n"
-        + "FROM (VALUES (NULL)) AS \"t\" (\"$f0\")";
-    sql(query).ok(expected);
-    // validate
-    sql(expected).exec();
-  }
-
   @Test void testSelectNullWithGroupByNull() {
     final String query = "SELECT COUNT(CAST(NULL AS INT))\n"
         + "FROM (VALUES  (0))AS \"t\"\n"
