@@ -4439,18 +4439,26 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      // SQL: WITH STREAMTABLE AS (SELECT STREAM * FROM KAFKA.MOCKTABLE)
      //      SELECT STREAM * FROM STREAMTABLE
      // The modality should be STREAM.
-      validateModality(((SqlWith) query).body);
+      SqlWith with = (SqlWith) query;
+      for (SqlNode item : with.withList) {
+        validateModality(((SqlWithItem) item).query, modality);
+      }
+      validateModality(with.body);
     } else {
       assert query.isA(SqlKind.SET_QUERY);
       final SqlCall call = (SqlCall) query;
       for (SqlNode operand : call.getOperandList()) {
-        if (deduceModality(operand) != modality) {
-          throw newValidationError(operand,
-              Static.RESOURCE.streamSetOpInconsistentInputs());
-        }
-        validateModality(operand);
+        validateModality(operand, modality);
       }
     }
+  }
+
+  private  void validateModality(SqlNode operand, SqlModality modality) {
+    if (deduceModality(operand) != modality) {
+      throw newValidationError(operand,
+          Static.RESOURCE.streamSetOpInconsistentInputs());
+    }
+    validateModality(operand);
   }
 
   /** Return the intended modality of a SELECT or set-op. */
@@ -4463,7 +4471,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     } else if (query.getKind() == SqlKind.VALUES) {
       return SqlModality.RELATION;
     } else if (query.getKind() == SqlKind.WITH) {
-      return deduceModality(((SqlWith) query).body);
+      final SqlCall call = (SqlCall) query;
+      return deduceModality(call.getOperandList().get(1));
     } else {
       assert query.isA(SqlKind.SET_QUERY);
       final SqlCall call = (SqlCall) query;

@@ -180,6 +180,14 @@ class JdbcAdapterTest {
             + "WHERE \"product_id\" = 1) AS \"t3\"");
   }
 
+  @Test void testFilterUnionIncludingWithPlan() {
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
+        .query("  ( with a as (select * from \"sales_fact_1997\")  select * from a)\n"
+            + "  union all\n"
+            + "  ( with b as (select * from \"sales_fact_1998\") select * from b)\n")
+        .runs();
+  }
+
   @Test void testInPlan() {
     CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select \"store_id\", \"store_name\" from \"store\"\n"
