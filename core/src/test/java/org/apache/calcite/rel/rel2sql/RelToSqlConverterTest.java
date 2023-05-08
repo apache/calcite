@@ -11797,7 +11797,8 @@ class RelToSqlConverterTest {
 
   @Test public void testCurrentTimestampWithTimeZone() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode currentTimestampRexNode = builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE,
+    final RexNode currentTimestampRexNode = builder.call(
+        SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE,
         builder.literal(6));
     RelNode root = builder
         .project(currentTimestampRexNode)

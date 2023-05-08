@@ -435,8 +435,9 @@ public abstract class SqlLibraryOperators {
       "CURRENT_TIMESTAMP", SqlTypeName.TIMESTAMP);
 
   @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK})
-  public static final SqlFunction CURRENT_TIMESTAMP_WITH_TIME_ZONE = new SqlCurrentTimestampFunction(
-      "CURRENT_TIMESTAMP_TZ", SqlTypeName.TIMESTAMP_WITH_TIME_ZONE);
+  public static final SqlFunction CURRENT_TIMESTAMP_WITH_TIME_ZONE =
+      new SqlCurrentTimestampFunction("CURRENT_TIMESTAMP_TZ",
+          SqlTypeName.TIMESTAMP_WITH_TIME_ZONE);
 
   /**
    * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
