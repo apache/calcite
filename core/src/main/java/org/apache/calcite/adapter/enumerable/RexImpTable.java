@@ -3102,11 +3102,11 @@ public class RexImpTable {
     // throws an exception.)
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
-      final MethodImplementor implementor =
-          getImplementor(call.getOperands().get(0).getType().getSqlTypeName());
+      final SqlTypeName collectionType = call.getOperands().get(0).getType().getSqlTypeName();
+      final MethodImplementor implementor = getImplementor(collectionType);
       // If the structure is an array, two additional arguments are added to the argValueList
-      // to denote what the offset is and what the behavior should be if the index is out of boudns.
-      if (implementor.method.getName().equals("arrayItemOptional")) {
+      // to denote what the offset is and what the behavior should be if the index is out of bounds.
+      if (collectionType == SqlTypeName.ARRAY) {
         final SqlItemOperator itemOperator = (SqlItemOperator) call.getOperator();
         argValueList.add(Expressions.constant(itemOperator.offset));
         argValueList.add(Expressions.constant(itemOperator.safe));
