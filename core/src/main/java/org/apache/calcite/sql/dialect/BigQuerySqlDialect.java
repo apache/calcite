@@ -960,6 +960,10 @@ public class BigQuerySqlDialect extends SqlDialect {
         writer.endFunCall(currentDatetimeFunc);
       }
       break;
+    case "CURRENT_TIMESTAMP_TZ":
+        final SqlWriter.Frame currentTimestampFunc = writer.startFunCall("CURRENT_TIMESTAMP");
+        writer.endFunCall(currentTimestampFunc);
+      break;
     case "CURRENT_USER":
     case "SESSION_USER":
       final SqlWriter.Frame sessionUserFunc = writer.startFunCall(SESSION_USER.getName());
