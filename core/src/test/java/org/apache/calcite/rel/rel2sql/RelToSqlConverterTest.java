@@ -11802,7 +11802,6 @@ class RelToSqlConverterTest {
     RelNode root = relBuilder
         .project(lastDayCall)
         .build();
-
     final String expectedBQSql = "SELECT LAST_DAY(CURRENT_TIMESTAMP) \"$f0\"\n"
         + "FROM \"scott\".\"EMP\"";
 
