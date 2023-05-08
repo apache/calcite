@@ -1487,4 +1487,15 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.STRING_STRING_STRING,
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction LAST_DAY =
+      new SqlFunction(
+          "LAST_DAY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_NULLABLE,
+          null,
+          OperandTypes.DATETIME,
+          SqlFunctionCategory.TIMEDATE);
+
 }

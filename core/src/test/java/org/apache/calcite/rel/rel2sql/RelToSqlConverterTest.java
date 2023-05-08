@@ -11794,4 +11794,19 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
+
+  @Test public void testLastDay() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
+    RexNode lastDayCall = relBuilder.call(SqlLibraryOperators.LAST_DAY, literalTimestamp);
+    RelNode root = relBuilder
+        .project(lastDayCall)
+        .build();
+
+    final String expectedBQSql = "SELECT LAST_DAY(CURRENT_TIMESTAMP) \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedBQSql));
+  }
+
 }
