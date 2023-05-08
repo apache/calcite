@@ -1253,6 +1253,20 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {ALL})
+  public static final SqlFunction CSC =
+      SqlBasicFunction.create("CSC",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {ALL})
+  public static final SqlFunction SEC =
+      SqlBasicFunction.create("SEC",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL})
   public static final SqlFunction MD5 =
       SqlBasicFunction.create("MD5",

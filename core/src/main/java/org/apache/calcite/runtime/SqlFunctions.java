@@ -2138,6 +2138,28 @@ public class SqlFunctions {
     return Math.tanh(b);
   }
 
+  // CSC
+  /** SQL <code>CSC</code> operator applied to BigDecimal values. */
+  public static double csc(BigDecimal b0) {
+    return 1.0d / Math.sin(b0.doubleValue());
+  }
+
+  /** SQL <code>CSC</code> operator applied to double values. */
+  public static double csc(double b0) {
+    return 1.0d / Math.sin(b0);
+  }
+
+  // SEC
+  /** SQL <code>SEC</code> operator applied to BigDecimal values. */
+  public static double sec(BigDecimal b0) {
+    return 1.0d / Math.cos(b0.doubleValue());
+  }
+
+  /** SQL <code>SEC</code> operator applied to double values. */
+  public static double sec(double b0) {
+    return 1.0d / Math.cos(b0);
+  }
+
   // Helpers
 
   /** Helper for implementing MIN. Somewhat similar to LEAST operator. */

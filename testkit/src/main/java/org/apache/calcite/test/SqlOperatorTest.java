@@ -5625,6 +5625,50 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
+  @Test void testCscFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.CSC);
+    f0.checkFails("^csc(1)^",
+        "No match found for function signature CSC\\(<NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkType("csc(cast (1 as float))", "DOUBLE NOT NULL");
+      f.checkType("csc('a')", "DOUBLE NOT NULL");
+      f.checkScalarApprox("csc(100)", "DOUBLE NOT NULL",
+          isWithin(-1.9748d, 0.0001d));
+      f.checkScalarApprox("csc(cast(10 as float))", "DOUBLE NOT NULL",
+          isWithin(-1.8381d, 0.0001d));
+      f.checkScalarApprox("csc(cast(10 as decimal))", "DOUBLE NOT NULL",
+          isWithin(-1.8381d, 0.0001d));
+      f.checkScalarApprox("csc(-1)", "DOUBLE NOT NULL",
+          isWithin(-1.1883d, 0.0001d));
+      f.checkNull("csc(cast(null as double))");
+      f.checkNull("csc(cast(null as integer))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.ALL), consumer);
+  }
+
+  @Test void testSecFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SEC);
+    f0.checkFails("^sec(1)^",
+        "No match found for function signature SEC\\(<NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkType("sec(cast (1 as float))", "DOUBLE NOT NULL");
+      f.checkType("sec('a')", "DOUBLE NOT NULL");
+      f.checkScalarApprox("sec(100)", "DOUBLE NOT NULL",
+          isWithin(1.1596d, 0.0001d));
+      f.checkScalarApprox("sec(cast(10 as float))", "DOUBLE NOT NULL",
+          isWithin(-1.1917d, 0.0001d));
+      f.checkScalarApprox("sec(cast(10 as decimal))", "DOUBLE NOT NULL",
+          isWithin(-1.1917d, 0.0001d));
+      f.checkScalarApprox("sec(-1)", "DOUBLE NOT NULL",
+          isWithin(1.8508d, 0.0001d));
+      f.checkNull("sec(cast(null as double))");
+      f.checkNull("sec(cast(null as integer))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.ALL), consumer);
+  }
+
   @Test void testDegreesFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DEGREES, VmName.EXPAND);
