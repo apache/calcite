@@ -145,7 +145,8 @@ public class CalciteExecutor extends SqlSltTestExecutor {
         boolean stop;
         try {
           stop = this.query(query, result);
-        } catch (SQLException ex) {
+        } catch (Throwable ex) {
+          // We catch throwable so we can handle even assertion failures
           options.message("Error while processing "
               + query.getQuery() + " " + ex.getMessage(), 1);
           stop =

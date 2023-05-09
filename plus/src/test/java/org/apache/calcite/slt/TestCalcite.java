@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.slt;
 
+import net.hydromatic.sqllogictest.ExecutionOptions;
+
+import org.apache.calcite.slt.executors.CalciteExecutor;
+
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -23,46 +27,44 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+
 /**
  * Tests using sql-logic-test suite.
  */
 public class TestCalcite {
-  private static final String USAGE = ""
-      + "slt [options] files_or_directories_with_tests\n"
-      + "Executes the SQL Logic Tests using a SQL execution engine\n"
-      + "See https://www.sqlite.org/sqllogictest/doc/trunk/about.wiki\n"
-      + "Options:\n"
-      + "-h            Show this help message and exit\n"
-      + "-x            Stop at the first encountered query error\n"
-      + "-n            Do not execute, just parse the test files\n"
-      + "-e executor   Executor to use\n"
-      + "-b filename   Load a list of buggy commands to skip from this file\n"
-      + "-v            Increase verbosity\n"
-      + "-u username   Postgres user name\n"
-      + "-p password   Postgres password\n"
-      + "Registered executors:\n"
-      + "\thsql\n"
-      + "\tpsql\n"
-      + "\tnone\n";
-
-
   private static final String UTF_8 = StandardCharsets.UTF_8.name();
+
+  /** Test that runs all scripts with no executor. */
+  @Test void testRunNoExecutor() throws IOException {
+    Output res = launchSqlLogicTest("-e", "none", "select1.test");
+    String[] outLines = res.out.split("\n");
+    assertThat(res.err, is(""));
+    assertThat(res.out, outLines.length, is(4));
+    assertThat(res.out, outLines[1], is("Passed: 0"));
+    assertThat(res.out, outLines[2], is("Failed: 0"));
+    assertThat(res.out, outLines[3], is("Ignored: 5,464,410"));
+  }
 
   private static Output launchSqlLogicTest(String... args) throws IOException {
     try (ByteArrayOutputStream bout = new ByteArrayOutputStream();
          ByteArrayOutputStream berr = new ByteArrayOutputStream()) {
       final PrintStream out = new PrintStream(bout, false, UTF_8);
       final PrintStream err = new PrintStream(berr, false, UTF_8);
-      net.hydromatic.sqllogictest.Main.execute(false, out, err, args);
+      ExecutionOptions options = new ExecutionOptions(false, out, err);
+      CalciteExecutor.register(options);
+      net.hydromatic.sqllogictest.Main.execute(options, args);
       out.flush();
       err.flush();
       return new Output(bout.toString(UTF_8), berr.toString(UTF_8));
     }
   }
 
-  /** Test that runs one script against HSQLDB. */
+  /** Test that runs one script against Calcite + HSQLDB. */
   @Test void testRunCalcite() throws IOException {
-    Output res = launchSqlLogicTest("-x", "-v", "-v", "-e", "calcite", "select1.test");
+    Output res = launchSqlLogicTest("-x", "-v", "-e", "calcite", "select1.test");
+    System.out.println(res.out);
 
 //    This test in fact fails due to Calcite bugs.
 //    String[] outLines = res.out.split("\n");
