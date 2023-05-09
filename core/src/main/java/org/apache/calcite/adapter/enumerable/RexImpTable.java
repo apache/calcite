@@ -702,14 +702,14 @@ public class RexImpTable {
       map.put(MAP_VALUE_CONSTRUCTOR, value);
       map.put(ARRAY_VALUE_CONSTRUCTOR, value);
 
-      // ITEM and BigQuery array subscript operators
-      final ItemImplementor itemImplementor =
-          new ItemImplementor();
-      map.put(ITEM, itemImplementor);
-      map.put(OFFSET, itemImplementor);
-      map.put(ORDINAL, itemImplementor);
-      map.put(SAFE_OFFSET, itemImplementor);
-      map.put(SAFE_ORDINAL, itemImplementor);
+      // ITEM operator
+      map.put(ITEM, new ItemImplementor());
+      // BigQuery array subscript operators
+      final ArrayItemImplementor arrayItemImplementor = new ArrayItemImplementor();
+      map.put(OFFSET, arrayItemImplementor);
+      map.put(ORDINAL, arrayItemImplementor);
+      map.put(SAFE_OFFSET, arrayItemImplementor);
+      map.put(SAFE_ORDINAL, arrayItemImplementor);
 
       map.put(DEFAULT, new DefaultImplementor());
 
@@ -3089,35 +3089,42 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for the {@code ITEM} SQL operator and the {@code OFFSET},
+  /** Implementor for indexing an array using the {@code ITEM} SQL operator and the {@code OFFSET},
    * {@code ORDINAL}, {@code SAFE_OFFSET}, and {@code SAFE_ORDINAL} BigQuery operators. */
+  private static class ArrayItemImplementor extends AbstractRexCallImplementor {
+    ArrayItemImplementor() { super("array_item", NullPolicy.STRICT, false); }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      final SqlItemOperator itemOperator = (SqlItemOperator) call.getOperator();
+      argValueList.add(Expressions.constant(itemOperator.offset));
+      argValueList.add(Expressions.constant(itemOperator.safe));
+      return Expressions.call(BuiltInMethod.ARRAY_ITEM.method, argValueList);
+    }
+  }
+
+  /** General implementor for indexing a collection using the {@code ITEM} SQL operator. If the
+   * collection is an array, an instance of the ArrayItemImplementor is used to handle
+   * additional offset and out-of-bounds behavior that is only applicable for arrays. */
   private static class ItemImplementor extends AbstractRexCallImplementor {
     ItemImplementor() {
       super("item", NullPolicy.STRICT, false);
     }
 
-    // Since we follow PostgreSQL's semantics that an out-of-bound reference
-    // returns NULL, x[y] can return null even if x and y are both NOT NULL.
-    // (In SQL standard semantics, an out-of-bound reference to an array
-    // throws an exception.)
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
-      final SqlTypeName collectionType = call.getOperands().get(0).getType().getSqlTypeName();
-      final MethodImplementor implementor = getImplementor(collectionType);
-      // If the structure is an array, two additional arguments are added to the argValueList
-      // to denote what the offset is and what the behavior should be if the index is out of bounds.
-      if (collectionType == SqlTypeName.ARRAY) {
-        final SqlItemOperator itemOperator = (SqlItemOperator) call.getOperator();
-        argValueList.add(Expressions.constant(itemOperator.offset));
-        argValueList.add(Expressions.constant(itemOperator.safe));
-      }
+      final AbstractRexCallImplementor implementor =
+          getImplementor(call.getOperands().get(0).getType().getSqlTypeName());
       return implementor.implementSafe(translator, call, argValueList);
     }
 
-    private MethodImplementor getImplementor(SqlTypeName sqlTypeName) {
+    // This helper returns the appropriate implementor based on the collection type.
+    // Arrays use the specific ArrayItemImplementor while maps and other collection types
+    // use the general MethodImplementor.
+    private AbstractRexCallImplementor getImplementor(SqlTypeName sqlTypeName) {
       switch (sqlTypeName) {
       case ARRAY:
-        return new MethodImplementor(BuiltInMethod.ARRAY_ITEM.method, nullPolicy, false);
+        return new ArrayItemImplementor();
       case MAP:
         return new MethodImplementor(BuiltInMethod.MAP_ITEM.method, nullPolicy, false);
       default:

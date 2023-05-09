@@ -207,6 +207,13 @@ public class BigQuerySqlDialect extends SqlDialect {
     case TRIM:
       unparseTrim(writer, call, leftPrec, rightPrec);
       break;
+    case ITEM:
+      if (call.getOperator().getName().equals("ITEM")) {
+        throw new RuntimeException("BigQuery requires an array subscript operator"
+            + " to index an array");
+      }
+      unparseItem(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -274,6 +281,22 @@ public class BigQuerySqlDialect extends SqlDialect {
       call.operand(1).unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(trimFrame);
+  }
+
+  /**
+   * When indexing an array in BigQuery, an array subscript operator must surround the
+   * desired index. For the standard ITEM operator used by other dialects in Calcite,
+   * ITEM is not included in the unparsing. This helper ensures that the operator is
+   * preserved when being unparsed. */
+  private static void unparseItem(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    String operatorName = call.getOperator().getName();
+    call.operand(0).unparse(writer, leftPrec, 0);
+    final SqlWriter.Frame frame = writer.startList("[", "]");
+    final SqlWriter.Frame subscriptFrame = writer.startFunCall(operatorName);
+    call.operand(1).unparse(writer, 0, 0);
+    writer.endFunCall(subscriptFrame);
+    writer.endList(frame);
   }
 
   private static TimeUnit validate(TimeUnit timeUnit) {
