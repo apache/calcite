@@ -17,7 +17,10 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlBetweenOperator;
 
 /**
  * A <code>SqlDialect</code> implementation for the Snowflake database.
@@ -38,5 +41,17 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   @Override public boolean supportsApproxCountDistinct() {
     return true;
+  }
+
+  @Override public void unparseCall(SqlWriter writer,
+      SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getKind()) {
+    case BETWEEN:
+      SqlBetweenOperator sqlBetweenOperator = (SqlBetweenOperator) call.getOperator();
+      sqlBetweenOperator.unparse(writer, call, leftPrec, rightPrec, false);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
   }
 }

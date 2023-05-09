@@ -164,16 +164,17 @@ public class SqlBetweenOperator extends SqlInfixOperator {
         + flag.name();
   }
 
-  @Override public void unparse(
-      SqlWriter writer,
+  public void unparse(SqlWriter writer,
       SqlCall call,
       int leftPrec,
-      int rightPrec) {
+      int rightPrec, boolean hasFlag) {
     final SqlWriter.Frame frame =
         writer.startList(FRAME_TYPE, "", "");
     call.operand(VALUE_OPERAND).unparse(writer, getLeftPrec(), 0);
     writer.sep(super.getName());
-    writer.sep(flag.name());
+    if (hasFlag) {
+      writer.sep(flag.name());
+    }
 
     // If the expression for the lower bound contains a call to an AND
     // operator, we need to wrap the expression in parentheses to prevent
@@ -194,6 +195,14 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     writer.sep("AND");
     upper.unparse(writer, 0, getRightPrec());
     writer.endList(frame);
+  }
+
+  @Override public void unparse(
+      SqlWriter writer,
+      SqlCall call,
+      int leftPrec,
+      int rightPrec) {
+    unparse(writer, call, leftPrec, rightPrec, true);
   }
 
   @Override public ReduceResult reduceExpr(int opOrdinal, TokenSequence list) {

@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlUnknownLiteral;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
+import org.apache.calcite.sql.dialect.SnowflakeSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser.Config;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -896,6 +897,27 @@ public class SqlParserTest {
         + " AND ((- `EMPNO`) - 3))";
     sql(sql).ok(expected);
   }
+
+  @Test void testBetweenUnparse() {
+    final String sql = "SELECT EMPNO BETWEEN 1 AND 3 FROM EMP";
+    final String bigqueryExpected = "SELECT (EMPNO BETWEEN 1 AND 3)\n"
+        + "FROM EMP";
+    final String snowflakeExpected = "SELECT (\"EMPNO\" BETWEEN 1 AND 3)\n"
+        + "FROM \"EMP\"";
+    final String sparkExpected = "SELECT (EMPNO BETWEEN 1 AND 3)\n"
+        + "FROM EMP";
+    final String defaultExpected = "SELECT (`EMPNO` BETWEEN ASYMMETRIC 1 AND 3)\n"
+        + "FROM `EMP`";
+    sql(sql)
+        .withDialect(BIG_QUERY).ok(bigqueryExpected);
+    sql(sql)
+        .withDialect(SnowflakeSqlDialect.DEFAULT).ok(snowflakeExpected);
+    sql(sql)
+        .withDialect(SparkSqlDialect.DEFAULT).ok(sparkExpected);
+    sql(sql)
+        .ok(defaultExpected);
+  }
+
 
   @Disabled
   @Test void testDerivedColumnListNoAs() {
