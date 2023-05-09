@@ -76,6 +76,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.FormatSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -11765,9 +11766,12 @@ class RelToSqlConverterTest {
   @Test public void testCastWithThreeArgs() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexBuilder rexBuilder = builder.getRexBuilder();
-    final RelDataType type = new FormatSqlType(
+    RexLiteral format = builder.literal("9999.9999");
+    final BasicSqlType relDataType = new BasicSqlType(
         RelDataTypeSystem.DEFAULT,
-        SqlTypeName.VARCHAR, "9999.9999");
+        SqlTypeName.VARCHAR);
+    final RelDataType type = FormatSqlType.from(relDataType,
+        format.toString().replace("\'",""));
     final RexNode castCall = rexBuilder.makeCast(type, builder.literal(1234), false);
     RelNode root = builder
         .project(castCall)
@@ -11780,16 +11784,20 @@ class RelToSqlConverterTest {
   @Test public void testCastWithThreeArgsInDiffFormat() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexBuilder rexBuilder = builder.getRexBuilder();
-    String format = "FM999.999";
-    boolean isFormatContainsFM = format.toUpperCase().startsWith("FM");
+    RexLiteral format = builder.literal("FM999.999");
+    boolean isFormatContainsFM = format.toString()
+        .replace("\'","").toUpperCase().startsWith("FM");
     if(isFormatContainsFM) {
-      format = format.replace("FM","");
+      format = builder.literal(format.toString()
+          .replace("\'","").replace("FM",""));
     }
-    final RelDataType type = new FormatSqlType(
+    final BasicSqlType relDataType = new BasicSqlType(
         RelDataTypeSystem.DEFAULT,
-        SqlTypeName.VARCHAR, format);
+        SqlTypeName.VARCHAR);
+    final RelDataType type = FormatSqlType.from (relDataType,
+        format.toString().replace("\'",""));
     final RexNode castCall = rexBuilder.makeCast(type,
-        builder.getRexBuilder().makeApproxLiteral(new BigDecimal(12345)), false);
+        builder.getRexBuilder().makeApproxLiteral(new BigDecimal(1234)), false);
     RexNode outputCall = null;
     if (isFormatContainsFM) {
       outputCall = builder.call(SqlStdOperatorTable.TRIM,
