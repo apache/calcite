@@ -6973,6 +6973,32 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
+  @Test void testBigQueryArrayElementAccessing() {
+    final String arrayCtorSql = ""
+        + "SELECT ARRAY[1, 2, 3][1]";
+    final String expectedArrayCtorSql = ""
+        + "SELECT ARRAY[1, 2, 3][ORDINAL(1)]";
+    sql(arrayCtorSql)
+        .withBigQuery().ok(expectedArrayCtorSql);
+
+    // TODO: Got error from
+    //  `SqlImplementor`: Need to implement org.apache.calcite.rel.core.Collect
+    // final String arrayQuerySql = ""
+    //     + "SELECT ARRAY(SELECT 1, 2)[1]";
+    // final String expectedArrayQuerySql = ""
+    //     + "SELECT ARRAY(SELECT 1, 2)[ORDINAL(1)]";
+    // sql(arrayQuerySql)
+    //     .withBigQuery().ok(expectedArrayQuerySql);
+
+    // won't be changed
+    final String mapSql = ""
+        + "SELECT map['a', 1, 'b', 2]['a']";
+    final String expectedMapSql = ""
+        + "SELECT MAP['a', 1, 'b', 2]['a']";
+    sql(mapSql)
+        .withBigQuery().ok(expectedMapSql);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
