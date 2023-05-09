@@ -3542,7 +3542,7 @@ LogicalDelta
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testJoinTemporalTableOnSpecificTimeWithLocalTimeZone">
+  <TestCase name="testJoinTemporalTableOnSpecificTimestampWithLocalTimeZone">
     <Resource name="sql">
       <![CDATA[select stream *
 from orders,

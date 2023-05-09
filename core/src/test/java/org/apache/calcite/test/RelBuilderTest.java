@@ -499,7 +499,8 @@ public class RelBuilderTest {
     // Equivalent SQL:
     //   SELECT *
     //   FROM orders
-    //   JOIN products_temporal FOR SYSTEM_TIME AS OF TIMESTAMP '2011-07-20 12:34:56'
+    //   JOIN products_temporal FOR SYSTEM_TIME
+    //   AS OF TIMESTAMP WITH LOCAL TIME ZONE '2011-07-20 12:34:56'
     //   ON orders.product = products_temporal.id
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
