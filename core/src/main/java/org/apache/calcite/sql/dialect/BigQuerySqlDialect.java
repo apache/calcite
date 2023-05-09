@@ -862,20 +862,9 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public void unparseIntervalOperandsBasedFunctions(
       SqlWriter writer,
       SqlCall call, int leftPrec, int rightPrec) {
-    SqlWriter.Frame castTimeStampFrame = null;
-    if (isDateTimeCall(call) && isIntervalYearAndMonth(call)) {
-      castTimeStampFrame = writer.startFunCall("CAST");
-    }
+
     final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().toString());
-    if (isDateTimeCall(call)) {
-      SqlWriter.Frame castDateTimeFrame = writer.startFunCall("CAST");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep("AS", true);
-      writer.literal("DATETIME");
-      writer.endFunCall(castDateTimeFrame);
-    } else {
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-    }
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(",");
     switch (call.operand(1).getKind()) {
     case LITERAL:
@@ -893,25 +882,6 @@ public class BigQuerySqlDialect extends SqlDialect {
 
     writer.endFunCall(frame);
 
-    if (isDateTimeCall(call) && isIntervalYearAndMonth(call)) {
-      writer.sep("AS", true);
-      writer.literal("DATETIME");
-      writer.endFunCall(castTimeStampFrame);
-    }
-  }
-
-  private boolean isDateTimeCall(SqlCall call) {
-    return (call.getOperator().getName().equals("DATETIME_ADD"))
-        || (call.getOperator().getName().equals("DATETIME_SUB"));
-  }
-
-  private boolean isIntervalYearAndMonth(SqlCall call) {
-    if (call.operand(1) instanceof SqlIntervalLiteral) {
-      return ((SqlIntervalLiteral) call.operand(1)).getTypeName().getFamily()
-             == SqlTypeFamily.INTERVAL_YEAR_MONTH;
-    }
-    SqlLiteral literal = getIntervalLiteral(call.operand(1));
-    return literal.getTypeName().getFamily() == SqlTypeFamily.INTERVAL_YEAR_MONTH;
   }
 
   /**
