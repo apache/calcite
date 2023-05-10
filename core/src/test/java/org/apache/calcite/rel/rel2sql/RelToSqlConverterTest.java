@@ -6321,9 +6321,9 @@ class RelToSqlConverterTest {
 
   @Test public void testTimestampPlusIntervalMonthFunctionWithArthOps() {
     String query = "select \"hire_date\" + -10 * INTERVAL '1' MONTH from \"employee\"";
-    final String expectedBigQuery = "SELECT CAST(DATETIME_ADD(CAST(hire_date AS DATETIME), "
+    final String expectedBigQuery = "SELECT DATETIME_ADD(hire_date, "
         + "INTERVAL "
-        + "-10 MONTH) AS DATETIME)\n"
+        + "-10 MONTH)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withBigQuery()
@@ -8279,6 +8279,27 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowFlake));
+  }
+  @Test public void testUnparseOfDateFromUnixDateWithFloorFunctionAsOperand() {
+    final RelBuilder builder = relBuilder();
+    builder.scan("EMP");
+    final RexNode epochSeconds = builder.cast(builder.literal("'20091223'"),
+        SqlTypeName.INTEGER);
+    final RexNode epochDays = builder.call(SqlStdOperatorTable.FLOOR,
+        builder.call(SqlStdOperatorTable.DIVIDE, epochSeconds, builder.literal(86400)));
+    final RexNode dateFromUnixDate = builder.call(
+        SqlLibraryOperators.DATE_FROM_UNIX_DATE, epochDays);
+    final RelNode root = builder
+        .project(builder.alias(dateFromUnixDate, "unix_date"))
+        .build();
+    final String expectedSql = "SELECT DATE_FROM_UNIX_DATE(FLOOR(CAST('''20091223''' AS INTEGER) "
+        + "/ 86400)) AS \"unix_date\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATE_FROM_UNIX_DATE(CAST(FLOOR(CAST"
+        + "('\\'20091223\\'' AS INT64) / 86400) AS INTEGER)) AS unix_date\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test public void testDOMAndDOY() {
@@ -11770,6 +11791,29 @@ class RelToSqlConverterTest {
         "SELECT TRUNC(CURRENT_TIMESTAMP, 'YYYY') \"$f0\"\n"
          + "FROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+
+  @Test public void testAddMonths() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    final RexLiteral intervalLiteral = rexBuilder.makeIntervalLiteral(BigDecimal.valueOf(-2),
+        new SqlIntervalQualifier(MONTH, null, SqlParserPos.ZERO));
+    final RexNode oracleAddMonthsCall = relBuilder.call(SqlLibraryOperators.ORACLE_ADD_MONTHS,
+        relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), intervalLiteral);
+    RelNode root = relBuilder
+        .project(oracleAddMonthsCall)
+        .build();
+    final String expectedOracleSql = "SELECT "
+        + "ADD_MONTHS(CURRENT_TIMESTAMP, INTERVAL -'2' MONTH) \"$f0\""
+        + "\nFROM \"scott\".\"EMP\"";
+
+    final String expectedBQSql = "SELECT "
+        + "DATETIME_ADD(CURRENT_DATETIME(), INTERVAL -2 MONTH) AS `$f0`"
+        + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
   @Test public void testMonthsBetween() {
