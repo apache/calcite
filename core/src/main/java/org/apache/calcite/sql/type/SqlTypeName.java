@@ -191,7 +191,7 @@ public enum SqlTypeName {
 
   public static final List<SqlTypeName> DATETIME_TYPES =
       ImmutableList.of(DATE, TIME, TIME_WITH_LOCAL_TIME_ZONE,
-          TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+          TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE, TIMESTAMP_WITH_TIME_ZONE);
 
   public static final Set<SqlTypeName> YEAR_INTERVAL_TYPES =
       Sets.immutableEnumSet(SqlTypeName.INTERVAL_YEAR,
