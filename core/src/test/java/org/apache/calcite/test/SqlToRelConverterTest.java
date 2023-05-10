@@ -220,6 +220,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testJoinUsing() {
     sql("SELECT * FROM emp JOIN dept USING (deptno)").ok();
+    sql("SELECT * FROM emp JOIN dept USING (emp.deptno)").ok();
   }
 
   /** Test case for

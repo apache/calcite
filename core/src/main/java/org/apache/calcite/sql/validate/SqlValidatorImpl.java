@@ -4033,8 +4033,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private RelDataType validateUsingCol(SqlIdentifier id, SqlNode leftOrRight) {
-    if (id.names.size() == 1) {
-      String name = id.names.get(0);
+      String name = id.names.get(id.names.size() - 1);
       final SqlValidatorNamespace namespace = getNamespaceOrThrow(leftOrRight);
       final RelDataType rowType = namespace.getRowType();
       final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
@@ -4046,7 +4045,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
         return field.getType();
       }
-    }
     throw newValidationError(id, RESOURCE.columnNotFound(id.toString()));
   }
 

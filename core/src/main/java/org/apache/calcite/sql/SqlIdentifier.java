@@ -337,8 +337,8 @@ public class SqlIdentifier extends SqlNode {
   }
 
   public String getSimple() {
-    assert names.size() == 1;
-    return names.get(0);
+    assert names.size() > 0;
+    return names.get(names.size() - 1);
   }
 
   /** Returns the simple names in a list of identifiers.

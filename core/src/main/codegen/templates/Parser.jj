@@ -2274,8 +2274,10 @@ SqlNode FromClause() :
             |
                 <USING> {
                     joinConditionType = JoinConditionType.USING.symbol(getPos());
+                    Pair<SqlNodeList, SqlNodeList> p;
                 }
-                list = ParenthesizedSimpleIdentifierList() {
+                p = ParenthesizedCompoundIdentifierList() {
+                    list = p.left;
                     e = new SqlJoin(joinType.getParserPosition(),
                         e,
                         natural,
