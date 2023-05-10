@@ -759,6 +759,9 @@ public interface CalciteResource {
   @BaseMessage("Set operator cannot combine streaming and non-streaming inputs")
   ExInst<SqlValidatorException> streamSetOpInconsistentInputs();
 
+  @BaseMessage("CTE cannot combine streaming and non-streaming inputs")
+  ExInst<SqlValidatorException> streamCteInconsistentInputs();
+
   @BaseMessage("Cannot stream VALUES")
   ExInst<SqlValidatorException> cannotStreamValues();
 

@@ -180,12 +180,18 @@ class JdbcAdapterTest {
             + "WHERE \"product_id\" = 1) AS \"t3\"");
   }
 
-  @Test void testFilterUnionIncludingWithPlan() {
+  @Test void testUnionIncludingCte() {
     CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
-        .query("  ( with a as (select * from \"sales_fact_1997\")  select * from a)\n"
-            + "  union all\n"
-            + "  ( with b as (select * from \"sales_fact_1998\") select * from b)\n")
-        .runs();
+        .query("(WITH a AS (SELECT * FROM \"sales_fact_1997\") SELECT * FROM a)\n"
+            + "UNION all\n"
+            + "(WITH b AS (SELECT * FROM \"sales_fact_1998\") SELECT * FROM b)")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT *\n"
+            + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+            + "UNION ALL\n"
+            + "SELECT *\n"
+            + "FROM \"foodmart\".\"sales_fact_1998\"");
   }
 
   @Test void testInPlan() {

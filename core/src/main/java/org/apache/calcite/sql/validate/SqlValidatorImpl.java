@@ -4441,22 +4441,23 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
      // The modality should be STREAM.
       SqlWith with = (SqlWith) query;
       for (SqlNode item : with.withList) {
-        validateModality(((SqlWithItem) item).query, modality);
+        validateModality(((SqlWithItem) item).query, modality,
+            Static.RESOURCE.streamCteInconsistentInputs());
       }
       validateModality(with.body);
     } else {
       assert query.isA(SqlKind.SET_QUERY);
       final SqlCall call = (SqlCall) query;
       for (SqlNode operand : call.getOperandList()) {
-        validateModality(operand, modality);
+        validateModality(operand, modality, Static.RESOURCE.streamSetOpInconsistentInputs());
       }
     }
   }
 
-  private  void validateModality(SqlNode operand, SqlModality modality) {
+  private void validateModality(SqlNode operand, SqlModality modality,
+      Resources.ExInst<SqlValidatorException> exInst) {
     if (deduceModality(operand) != modality) {
-      throw newValidationError(operand,
-          Static.RESOURCE.streamSetOpInconsistentInputs());
+      throw newValidationError(operand, exInst);
     }
     validateModality(operand);
   }
@@ -4471,8 +4472,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     } else if (query.getKind() == SqlKind.VALUES) {
       return SqlModality.RELATION;
     } else if (query.getKind() == SqlKind.WITH) {
-      final SqlCall call = (SqlCall) query;
-      return deduceModality(call.getOperandList().get(1));
+      return deduceModality(((SqlWith) query).body);
     } else {
       assert query.isA(SqlKind.SET_QUERY);
       final SqlCall call = (SqlCall) query;
