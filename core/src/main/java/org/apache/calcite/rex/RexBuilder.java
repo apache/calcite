@@ -463,14 +463,6 @@ public class RexBuilder {
       RexWindowBound lowerBound,
       RexWindowBound upperBound,
       boolean rows) {
-    if (lowerBound.isUnbounded() && lowerBound.isPreceding()
-        && upperBound.isUnbounded() && upperBound.isFollowing()) {
-      // RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-      //   is equivalent to
-      // ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-      //   but we prefer "RANGE"
-      rows = false;
-    }
     return new RexWindow(
         partitionKeys,
         orderKeys,

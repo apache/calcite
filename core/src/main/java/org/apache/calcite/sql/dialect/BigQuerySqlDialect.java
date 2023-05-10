@@ -94,6 +94,9 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMON;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMONYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMONYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.E3;
 import static org.apache.calcite.sql.SqlDateTimeFormat.E4;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITYEAR;
@@ -114,6 +117,8 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MONTHNAME;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MONTH_NAME;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MONYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MONYYYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.NAME_OF_DAY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
 import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERIC_TIME_ZONE;
@@ -241,6 +246,11 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(MMDDYY, "%m%d%y");
         put(YYYYMMDD, "%Y%m%d");
         put(YYMMDD, "%y%m%d");
+        put(DDMON, "%d%b");
+        put(MONYY, "%b%y");
+        put(MONYYYY, "%b%Y");
+        put(DDMONYYYY, "%d%b%Y");
+        put(DDMONYY, "%d%b%y");
         put(DAYOFWEEK, "%A");
         put(ABBREVIATEDDAYOFWEEK, "%a");
         put(TWENTYFOURHOUR, "%H");
@@ -583,14 +593,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.endFunCall(truncateFrame);
       break;
-    case CONCAT:
-      final SqlWriter.Frame concatFrame = writer.startFunCall("CONCAT");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(concatFrame);
-      break;
     case DIVIDE_INTEGER:
       final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
       unparseDivideInteger(writer, call, leftPrec, rightPrec);
@@ -859,20 +861,9 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public void unparseIntervalOperandsBasedFunctions(
       SqlWriter writer,
       SqlCall call, int leftPrec, int rightPrec) {
-    SqlWriter.Frame castTimeStampFrame = null;
-    if (isDateTimeCall(call) && isIntervalYearAndMonth(call)) {
-      castTimeStampFrame = writer.startFunCall("CAST");
-    }
+
     final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().toString());
-    if (isDateTimeCall(call)) {
-      SqlWriter.Frame castDateTimeFrame = writer.startFunCall("CAST");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep("AS", true);
-      writer.literal("DATETIME");
-      writer.endFunCall(castDateTimeFrame);
-    } else {
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-    }
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(",");
     switch (call.operand(1).getKind()) {
     case LITERAL:
@@ -890,25 +881,6 @@ public class BigQuerySqlDialect extends SqlDialect {
 
     writer.endFunCall(frame);
 
-    if (isDateTimeCall(call) && isIntervalYearAndMonth(call)) {
-      writer.sep("AS", true);
-      writer.literal("DATETIME");
-      writer.endFunCall(castTimeStampFrame);
-    }
-  }
-
-  private boolean isDateTimeCall(SqlCall call) {
-    return (call.getOperator().getName().equals("DATETIME_ADD"))
-        || (call.getOperator().getName().equals("DATETIME_SUB"));
-  }
-
-  private boolean isIntervalYearAndMonth(SqlCall call) {
-    if (call.operand(1) instanceof SqlIntervalLiteral) {
-      return ((SqlIntervalLiteral) call.operand(1)).getTypeName().getFamily()
-             == SqlTypeFamily.INTERVAL_YEAR_MONTH;
-    }
-    SqlLiteral literal = getIntervalLiteral(call.operand(1));
-    return literal.getTypeName().getFamily() == SqlTypeFamily.INTERVAL_YEAR_MONTH;
   }
 
   /**
@@ -1024,6 +996,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "FORMAT_DATETIME":
       unparseFormatDatetime(writer, call, leftPrec, rightPrec);
       break;
+    case "PARSE_DATETIME":
     case "PARSE_TIMESTAMP":
       String dateFormat = call.operand(0) instanceof SqlCharStringLiteral
           ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
@@ -1048,13 +1021,6 @@ public class BigQuerySqlDialect extends SqlDialect {
         operand.unparse(writer, leftPrec, rightPrec);
       }
       writer.endFunCall(substringFrame);
-      break;
-    case "TO_DATE":
-      SqlCall parseToDateCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
-          call.operand(1), call.operand(0));
-      final SqlWriter.Frame timestampSecond = writer.startFunCall("DATE");
-      unparseCall(writer, parseToDateCall, leftPrec, rightPrec);
-      writer.endFunCall(timestampSecond);
       break;
     case "TO_TIMESTAMP":
       if (call.getOperandList().size() == 1) {
