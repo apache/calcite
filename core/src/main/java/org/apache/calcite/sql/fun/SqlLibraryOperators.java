@@ -1050,7 +1050,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction FORMAT_DATETIME = new SqlFunction(
       "FORMAT_DATETIME",
       SqlKind.OTHER_FUNCTION,
-      ReturnTypes.ARG0,
+      ReturnTypes.VARCHAR_2000_NULLABLE,
       null,
       OperandTypes.ANY_ANY,
       SqlFunctionCategory.TIMEDATE);
@@ -1228,11 +1228,19 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction TO_CHAR =
+  public static final SqlFunction SNOWFLAKE_TO_CHAR =
       new SqlFunction("TO_CHAR",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
               OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE, TERADATA})
+  public static final SqlFunction TO_CHAR =
+      new SqlFunction("TO_CHAR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {NETEZZA})
