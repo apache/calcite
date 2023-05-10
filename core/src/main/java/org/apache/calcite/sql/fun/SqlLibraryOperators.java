@@ -434,7 +434,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction CURRENT_TIMESTAMP = new SqlCurrentTimestampFunction(
       "CURRENT_TIMESTAMP", SqlTypeName.TIMESTAMP);
 
-  @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction CURRENT_TIMESTAMP_WITH_TIME_ZONE =
       new SqlCurrentTimestampFunction("CURRENT_TIMESTAMP_TZ",
           SqlTypeName.TIMESTAMP_WITH_TIME_ZONE);
