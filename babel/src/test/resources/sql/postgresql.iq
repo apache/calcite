@@ -62,3 +62,54 @@ select to_char(timestamp '2022-06-03 12:15:48.678', 'YYYY-MM-DD HH24:MI:SS.MS TZ
 EXPR$0
 2022-06-03 12:15:48.678
 !ok
+
+# -----------------------------------------------------------------------------
+# Posix regex
+
+# [CALCITE-5699] NPE in Posix regex
+SELECT null !~ 'ab[cd]' AS x;
+X
+null
+!ok
+
+SELECT 'abcd' !~ null AS x;
+X
+null
+!ok
+
+SELECT null !~ null AS x;
+X
+null
+!ok
+
+SELECT null !~* 'ab[cd]' AS x;
+X
+null
+!ok
+
+SELECT 'abcd' !~* null AS x;
+X
+null
+!ok
+
+SELECT null !~* null AS x;
+X
+null
+!ok
+
+SELECT 'abe' !~ 'ab[cd]' AS x;
+X
+true
+!ok
+
+SELECT 'abd' !~ 'ab[cd]' AS x;
+X
+false
+!ok
+
+SELECT 'abd' ~ 'ab[cd]' AS x;
+X
+true
+!ok
+
+# End postgresql.iq
