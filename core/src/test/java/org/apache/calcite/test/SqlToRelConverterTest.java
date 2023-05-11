@@ -667,6 +667,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testAggFilterWithInSubQuery() {
+    final String sql = "select\n"
+        + "  count(*) filter (where empno in (select deptno from empnullables))\n"
+        + "from empnullables";
+    sql(sql).withExpand(false).ok();
+  }
+
   @Test void testFakeStar() {
     sql("SELECT * FROM (VALUES (0, 0)) AS T(A, \"*\")").ok();
   }
@@ -4650,6 +4657,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
             + "FROM emp\n"
             + "GROUP BY empno";
     sql(sql).ok();
+  }
+
+  @Test void testProjectInSubQueryWithIsTruePredicate() {
+    final String sql = "select deptno in (select deptno from empnullables) is true\n"
+        + "from empnullables";
+    sql(sql).withExpand(false).ok();
   }
 
   @Test void testProjectAggregatesIgnoreNullsAndNot() {
