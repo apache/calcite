@@ -3192,7 +3192,7 @@ public class RexImpTable {
     private final AbstractRexCallImplementor implementor;
 
     private NotImplementor(AbstractRexCallImplementor implementor) {
-      super("not", null, false);
+      super("not", implementor.getNullPolicy(), false);
       this.implementor = implementor;
     }
 
@@ -3465,9 +3465,13 @@ public class RexImpTable {
       return variableName;
     }
 
+    @Nullable NullPolicy getNullPolicy() {
+      return nullPolicy;
+    }
+
     /** Figures out conditional expression according to NullPolicy. */
     Expression getCondition(final List<Expression> argIsNullList) {
-      if (argIsNullList.size() == 0
+      if (argIsNullList.isEmpty()
           || nullPolicy == null
           || nullPolicy == NullPolicy.NONE) {
         return FALSE_EXPR;
@@ -3594,7 +3598,7 @@ public class RexImpTable {
             .map(AbstractRexCallImplementor::unboxExpression)
             .collect(Collectors.toList());
       }
-      if (nullPolicy == NullPolicy.ARG0 && argValueList.size() > 0) {
+      if (nullPolicy == NullPolicy.ARG0 && !argValueList.isEmpty()) {
         final Expression unboxArg0 = unboxExpression(unboxValueList.get(0));
         unboxValueList.set(0, unboxArg0);
       }
