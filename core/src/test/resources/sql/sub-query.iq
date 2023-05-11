@@ -3573,4 +3573,42 @@ or 20 in (
 
 !ok
 
+# Test case for [CALCITE-5691] IN sub-query inside FILTER clause throws IndexOutOfBoundsException
+select
+  count(*) filter (where empno in (select deptno from emp))
+from emp;
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+# Test case for [CALCITE-5691] IN sub-query inside FILTER clause throws IndexOutOfBoundsException
+select deptno in (select deptno from emp) is true
+from emp;
++--------+
+| EXPR$0 |
++--------+
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
++--------+
+(14 rows)
+
+!ok
+
 # End sub-query.iq

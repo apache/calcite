@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -236,10 +237,11 @@ public class RelOptPredicateList {
     if (SqlKind.COMPARISON.contains(e.getKind())) {
       // A comparison with a (non-null) literal, such as 'ref < 10', is not null if 'ref'
       // is not null.
-      RexCall call = (RexCall) e;
-      if (call.getOperands().get(1) instanceof RexLiteral
-          && !((RexLiteral) call.getOperands().get(1)).isNull()) {
-        return isEffectivelyNotNull(call.getOperands().get(0));
+      List<RexNode> operands = ((RexCall) e).getOperands();
+      // We can have just one operand in case e.g. of a RexSubQuery with IN operator.
+      if (operands.size() > 1 && operands.get(1) instanceof RexLiteral
+          && !((RexLiteral) operands.get(1)).isNull()) {
+        return isEffectivelyNotNull(operands.get(0));
       }
     }
     return false;
