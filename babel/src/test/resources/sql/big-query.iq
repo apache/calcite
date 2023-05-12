@@ -371,6 +371,76 @@ SELECT EXTRACT(DAY FROM DATE '2013-12-25') AS the_day;
 
 !ok
 
+SELECT EXTRACT(MONTH FROM INTERVAL -1 MONTHS) as extr;
++------+
+| extr |
++------+
+|   -1 |
++------+
+(1 row)
+
+!ok
+
+SELECT EXTRACT(YEAR FROM INTERVAL -14 MONTHS) as extr;
++------+
+| extr |
++------+
+|   -1 |
++------+
+(1 row)
+
+!ok
+
+SELECT EXTRACT(decade FROM interval '-140' months(3)) as extr;
++------+
+| extr |
++------+
+|   -1 |
++------+
+(1 row)
+
+!ok
+
+SELECT EXTRACT(MONTH FROM INTERVAL -14 MONTHS) as extr;
++------+
+| extr |
++------+
+|   -2 |
++------+
+(1 row)
+
+!ok
+
+SELECT EXTRACT(MINUTE FROM INTERVAL '-10:20' HOURS TO MINUTES) as extr;
++------+
+| extr |
++------+
+|  -20 |
++------+
+(1 row)
+
+!ok
+
+SELECT EXTRACT(SECOND FROM INTERVAL '-1 2:3:4.567' DAY TO SECOND) as extr;
++------+
+| extr |
++------+
+|   -4 |
++------+
+(1 row)
+
+!ok
+
+SELECT EXTRACT(MILLISECOND FROM INTERVAL '-2' SECONDS) as extr;
++-------+
+| extr  |
++-------+
+| -2000 |
++-------+
+(1 row)
+
+!ok
+
 SELECT
   EXTRACT(DAYOFWEEK FROM DATE '2008-12-25') as day_of_week,
   EXTRACT(DOW FROM DATE '2008-12-25') as dow;

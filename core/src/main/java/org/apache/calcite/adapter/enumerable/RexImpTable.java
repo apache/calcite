@@ -2767,6 +2767,7 @@ public class RexImpTable {
           (TimeUnitRange) translator.getLiteralValue(argValueList.get(0));
       final TimeUnit unit = requireNonNull(timeUnitRange, "timeUnitRange").startUnit;
       Expression operand = argValueList.get(1);
+      boolean isIntervalType = SqlTypeUtil.isInterval(call.operands.get(1).getType());
       final SqlTypeName sqlTypeName =
           call.operands.get(1).getType().getSqlTypeName();
       switch (unit) {
@@ -2822,7 +2823,7 @@ public class RexImpTable {
         if (sqlTypeName == SqlTypeName.DATE) {
           return Expressions.constant(0L);
         }
-        operand = mod(operand, TimeUnit.MINUTE.multiplier.longValue());
+        operand = mod(operand, TimeUnit.MINUTE.multiplier.longValue(), !isIntervalType);
         return Expressions.multiply(
             operand, Expressions.constant((long) (1 / unit.multiplier.doubleValue())));
       case EPOCH:
@@ -2876,7 +2877,7 @@ public class RexImpTable {
         break;
       }
 
-      operand = mod(operand, getFactor(unit));
+      operand = mod(operand, getFactor(unit), unit == TimeUnit.QUARTER || !isIntervalType);
       if (unit == TimeUnit.QUARTER) {
         operand = Expressions.subtract(operand, Expressions.constant(1L));
       }
@@ -2890,12 +2891,23 @@ public class RexImpTable {
     }
   }
 
-  private static Expression mod(Expression operand, long factor) {
+  /**
+   * A remainder operation.
+   *
+   * @param operand Expression representation.
+   * @param factor Remainder divisor.
+   * @param floorMod If {@code true} negative arguments will yield a negative result.
+   */
+  private static Expression mod(Expression operand, long factor, boolean floorMod) {
     if (factor == 1L) {
       return operand;
     } else {
-      return Expressions.call(BuiltInMethod.FLOOR_MOD.method,
-          operand, Expressions.constant(factor));
+      if (floorMod) {
+        return Expressions.call(BuiltInMethod.FLOOR_MOD.method, operand,
+            Expressions.constant(factor));
+      } else {
+        return Expressions.modulo(operand, Expressions.constant(factor));
+      }
     }
   }
 
