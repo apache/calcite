@@ -3797,6 +3797,18 @@ public class SqlFunctions {
     return new ArrayList<>(result);
   }
 
+  /** Support the ARRAY_REPEAT function. */
+  public static @Nullable List<Object> repeat(Object element, Object count) {
+    if (count == null) {
+      return null;
+    }
+    int numberOfElement = (int) count;
+    if (numberOfElement < 0) {
+      numberOfElement = 0;
+    }
+    return Collections.nCopies(numberOfElement, element);
+  }
+
   /** Support the SLICE function. */
   public static List slice(List list) {
     List result = new ArrayList(list.size());

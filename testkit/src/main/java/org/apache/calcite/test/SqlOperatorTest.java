@@ -5336,6 +5336,27 @@ public class SqlOperatorTest {
     f.checkNull("array_distinct(null)");
   }
 
+  /** Tests {@code ARRAY_REPEAT} function from Spark. */
+  @Test void testArrayRepeatFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_REPEAT);
+    f0.checkFails("^array_repeat(1, 2)^",
+        "No match found for function signature ARRAY_REPEAT\\(<NUMERIC>, <NUMERIC>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_repeat(1, 2)", "[1, 1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_repeat(1, -2)", "[]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_repeat(array[1, 2], 2)", "[[1, 2], [1, 2]]",
+        "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_repeat(map[1, 'a', 2, 'b'], 2)", "[{1=a, 2=b}, {1=a, 2=b}]",
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_repeat(cast(null as integer), 2)", "[null, null]",
+        "INTEGER ARRAY NOT NULL");
+    f.checkNull("array_repeat(1, null)");
+  }
+
   /** Tests {@code ARRAY_REVERSE} function from BigQuery. */
   @Test void testArrayReverseFunc() {
     SqlOperatorFixture f = fixture()
@@ -5347,6 +5368,21 @@ public class SqlOperatorTest {
         "INTEGER NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_reverse(array[null, 1])", "[1, null]",
         "INTEGER ARRAY NOT NULL");
+  }
+
+  /** Tests {@code ARRAY_SIZE} function from Spark. */
+  @Test void testArraySizeFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_SIZE);
+    f0.checkFails("^array_size(array[1])^",
+        "No match found for function signature ARRAY_SIZE\\(<INTEGER ARRAY>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_size(array[1])", "1",
+        "INTEGER NOT NULL");
+    f.checkScalar("array_size(array[1, 2, null])", "3",
+        "INTEGER NOT NULL");
+    f.checkNull("array_size(null)");
   }
 
   /** Tests {@code ARRAY_LENGTH} function from BigQuery. */

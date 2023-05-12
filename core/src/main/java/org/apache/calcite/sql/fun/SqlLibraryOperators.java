@@ -839,11 +839,27 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
+  /** The "ARRAY_REPEAT(element, count)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction ARRAY_REPEAT =
+      SqlBasicFunction.create(SqlKind.ARRAY_REPEAT,
+          ReturnTypes.TO_ARRAY,
+          OperandTypes.sequence(
+              "ARRAY_REPEAT(ANY, INTEGER)",
+              OperandTypes.ANY, OperandTypes.typeName(SqlTypeName.INTEGER)));
+
   /** The "ARRAY_REVERSE(array)" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction ARRAY_REVERSE =
       SqlBasicFunction.create(SqlKind.ARRAY_REVERSE,
           ReturnTypes.ARG0_NULLABLE,
+          OperandTypes.ARRAY);
+
+  /** The "ARRAY_SIZE(array)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction ARRAY_SIZE =
+      SqlBasicFunction.create(SqlKind.ARRAY_SIZE,
+          ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
   /** The "ARRAY_CONCAT(array [, array]*)" function. */

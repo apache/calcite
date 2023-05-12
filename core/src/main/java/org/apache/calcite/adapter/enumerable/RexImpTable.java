@@ -117,7 +117,9 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_DISTINCT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_LENGTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REVERSE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_SIZE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHAR;
@@ -670,7 +672,9 @@ public class RexImpTable {
       defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.ANY);
       defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
       defineMethod(ARRAY_DISTINCT, BuiltInMethod.ARRAY_DISTINCT.method, NullPolicy.STRICT);
+      defineMethod(ARRAY_REPEAT, BuiltInMethod.ARRAY_REPEAT.method, NullPolicy.NONE);
       defineMethod(ARRAY_REVERSE, BuiltInMethod.ARRAY_REVERSE.method, NullPolicy.STRICT);
+      defineMethod(ARRAY_SIZE, BuiltInMethod.COLLECTION_SIZE.method, NullPolicy.STRICT);
       map.put(ARRAY_CONCAT, new ArrayConcatImplementor());
       final MethodImplementor isEmptyImplementor =
           new MethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.NONE,
