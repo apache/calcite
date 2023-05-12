@@ -683,8 +683,14 @@ public enum SqlKind {
   /** {@code ARRAY_DISTINCT} function (Spark semantics). */
   ARRAY_DISTINCT,
 
+  /** {@code ARRAY_REPEAT} function (Spark semantics). */
+  ARRAY_REPEAT,
+
   /** {@code ARRAY_REVERSE} function (BigQuery semantics). */
   ARRAY_REVERSE,
+
+  /** {@code ARRAY_SIZE} function (Spark semantics). */
+  ARRAY_SIZE,
 
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
