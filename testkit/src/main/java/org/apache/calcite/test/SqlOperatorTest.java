@@ -7867,6 +7867,8 @@ public class SqlOperatorTest {
         "'A' is not a valid time frame", false);
     f.checkScalar("extract(day from interval '2 3:4:5.678' day to second)",
         "2", "BIGINT NOT NULL");
+    f.checkScalar("extract(day from interval -'2 3:4:5.678' day to second)",
+        "-2", "BIGINT NOT NULL");
     f.checkScalar("extract(day from interval '23456 3:4:5.678' day(5) to second)",
         "23456", "BIGINT NOT NULL");
     f.checkScalar("extract(hour from interval '2 3:4:5.678' day to second)",
@@ -7883,6 +7885,9 @@ public class SqlOperatorTest {
     f.checkScalar("extract(microsecond from"
             + " interval '2 3:4:5.678' day to second)",
         "5678000", "BIGINT NOT NULL");
+    f.checkScalar("extract(microsecond from"
+            + " interval -'2 3:4:5.678' day to second)",
+        "-5678000", "BIGINT NOT NULL");
     f.checkScalar("extract(nanosecond from"
             + " interval '2 3:4:5.678' day to second)",
         "5678000000", "BIGINT NOT NULL");
