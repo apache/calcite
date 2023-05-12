@@ -17,11 +17,6 @@
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.calcite.sql.SqlCollation;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.nio.charset.Charset;
 
 /**
  * FormatSqlType represents a FORMAT literal in RelDataType.
@@ -42,7 +37,7 @@ public class FormatSqlType extends BasicSqlType {
   }
 
   public static FormatSqlType from(BasicSqlType basicSqlType, String format) {
-     return new FormatSqlType(RelDataTypeSystem.DEFAULT,
+    return new FormatSqlType(RelDataTypeSystem.DEFAULT,
          basicSqlType.typeName,
          format);
   }

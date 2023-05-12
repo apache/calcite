@@ -1683,8 +1683,7 @@ public class RexBuilder {
   private static @PolyNull Object clean(@PolyNull Object o, RelDataType type) {
     if (o == null) {
       return o;
-    }
-    else if (type instanceof FormatSqlType){
+    } else if (type instanceof FormatSqlType) {
       return o;
     }
     switch (type.getSqlTypeName()) {
