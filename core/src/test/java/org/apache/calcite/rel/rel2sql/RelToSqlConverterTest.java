@@ -11850,7 +11850,7 @@ class RelToSqlConverterTest {
     RelNode root = builder
         .project(castCall)
         .build();
-    final String expectedOracleSql = "SELECT CAST(1234 AS STRING  FORMAT '9999.9999') AS `$f0`\n"
+    final String expectedOracleSql = "SELECT CAST(1234 AS STRING FORMAT '9999.9999') AS `$f0`\n"
                                      + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedOracleSql));
   }
@@ -11883,7 +11883,7 @@ class RelToSqlConverterTest {
     RelNode root = builder
         .project(outputCall)
         .build();
-    final String expectedOracleSql = "SELECT TRIM(CAST(1234 AS STRING  FORMAT '999.999'), '') "
+    final String expectedOracleSql = "SELECT TRIM(CAST(1234 AS STRING FORMAT '999.999'), '') "
         + "AS `$f0`\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedOracleSql));
