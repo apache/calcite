@@ -447,6 +447,20 @@ public class BigQuerySqlDialect extends SqlDialect {
           return super.getTargetFunc(call);
         }
       case TIMESTAMP:
+        switch (call.getOperands().get(1).getType().getSqlTypeName()) {
+        case INTERVAL_DAY:
+        case INTERVAL_HOUR_SECOND:
+        case INTERVAL_DAY_HOUR:
+        case INTERVAL_MINUTE_SECOND:
+        case INTERVAL_HOUR_MINUTE:
+        case INTERVAL_MINUTE:
+        case INTERVAL_SECOND:
+        case INTERVAL_HOUR:
+          if (call.op.kind == SqlKind.MINUS) {
+            return SqlLibraryOperators.DATETIME_SUB;
+          }
+          return PLUS;
+        }
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         switch (call.getOperands().get(1).getType().getSqlTypeName()) {
         case INTERVAL_DAY:

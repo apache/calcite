@@ -257,6 +257,11 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
         typeFactory.createSqlType(SqlTypeName.DOUBLE), false);
   }
 
+  @Override public RelDataType deriveDecimalDivideType(RelDataTypeFactory typeFactory,
+      RelDataType type1, RelDataType type2){
+    return RelDataTypeSystem.super.deriveDecimalDivideType(typeFactory, type1, type2);
+  }
+
   @Override public RelDataType deriveRankType(RelDataTypeFactory typeFactory) {
     return typeFactory.createTypeWithNullability(
         typeFactory.createSqlType(SqlTypeName.BIGINT), false);
