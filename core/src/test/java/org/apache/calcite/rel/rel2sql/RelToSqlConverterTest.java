@@ -11687,6 +11687,24 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testToChar() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode toCharNode = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+        builder.literal("MM-DD-YYYY HH24:MI:SS"));
+    final RexNode toCharWithNumber = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.literal(1000), builder.literal("9999"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(toCharNode, toCharWithNumber)
+        .build();
+    final String expectedSparkQuery = "SELECT TO_CHAR(CURRENT_TIMESTAMP, 'MM-DD-YYYY HH24:MI:SS')"
+        + " \"$f0\", TO_CHAR(1000, '9999') \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedSparkQuery));
+  }
+
   @Test public void testToDateforOracle() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode oracleToDateCall = builder.call(SqlLibraryOperators.ORACLE_TO_DATE,
@@ -11794,6 +11812,22 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
+
+  @Test public void testCurrentTimestampWithTimeZone() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode currentTimestampRexNode = builder.call(
+        SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE,
+        builder.literal(6));
+    RelNode root = builder
+        .project(currentTimestampRexNode)
+        .build();
+
+    final String expectedBQSql = "SELECT CURRENT_TIMESTAMP() AS `$f0`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
 
   @Test public void testLastDay() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
