@@ -156,7 +156,7 @@ public enum BuiltInMethod {
   INTO(ExtendedEnumerable.class, "into", Collection.class),
   REMOVE_ALL(ExtendedEnumerable.class, "removeAll", Collection.class),
   SCHEMA_GET_SUB_SCHEMA(Schema.class, "getSubSchema", String.class),
-  SCHEMA_GET_TABLE(Schema.class, "getTable", String.class),
+  SCHEMA_GET_TABLE(Schema.class, "getTable", String.class, boolean.class),
   SCHEMA_PLUS_ADD_TABLE(SchemaPlus.class, "add", String.class, Table.class),
   SCHEMA_PLUS_REMOVE_TABLE(SchemaPlus.class, "removeTable", String.class),
   SCHEMA_PLUS_UNWRAP(SchemaPlus.class, "unwrap", Class.class),

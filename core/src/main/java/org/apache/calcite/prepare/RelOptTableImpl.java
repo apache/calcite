@@ -506,6 +506,9 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     }
 
     @Override public @Nullable Table getTable(String name) {
+      return getTable(name, false);
+    }
+    @Override public @Nullable Table getTable(String name, boolean caseSensitive) {
       return schema.getTable(name);
     }
 

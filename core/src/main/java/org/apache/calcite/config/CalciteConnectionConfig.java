@@ -31,6 +31,7 @@ import java.util.Properties;
  * a method for every property. At some point there will be similar config
  * classes for system and statement properties. */
 public interface CalciteConnectionConfig extends ConnectionConfig {
+  ThreadLocal<CalciteConnectionConfig> THREAD_LOCAL = new ThreadLocal<>();
   /** Default configuration. */
   CalciteConnectionConfigImpl DEFAULT =
       new CalciteConnectionConfigImpl(new Properties());

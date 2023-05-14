@@ -106,7 +106,7 @@ public class CalciteMetaImpl extends MetaImpl {
     return v1 -> regex.matcher(v1.getName()).matches();
   }
 
-  static Predicate1<String> matcher(final Pat pattern) {
+  public static Predicate1<String> matcher(final Pat pattern) {
     if (pattern.s == null || pattern.s.equals("%")) {
       return Functions.truePredicate1();
     }
@@ -264,7 +264,7 @@ public class CalciteMetaImpl extends MetaImpl {
     final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
     return createResultSet(schemas(catalog)
             .where(schemaMatcher)
-            .selectMany(schema -> tables(schema, matcher(tableNamePattern)))
+            .selectMany(schema -> tables(schema, tableNamePattern))
             .where(typeFilter),
         MetaTable.class,
         "TABLE_CAT",
@@ -307,13 +307,13 @@ public class CalciteMetaImpl extends MetaImpl {
       Pat schemaPattern,
       Pat tableNamePattern,
       Pat columnNamePattern) {
-    final Predicate1<String> tableNameMatcher = matcher(tableNamePattern);
+//    final Predicate1<String> tableNameMatcher = matcher(tableNamePattern);
     final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
     final Predicate1<MetaColumn> columnMatcher =
         namedMatcher(columnNamePattern);
     return createResultSet(schemas(catalog)
             .where(schemaMatcher)
-            .selectMany(schema -> tables(schema, tableNameMatcher))
+            .selectMany(schema -> tables(schema, tableNamePattern))
             .selectMany(this::columns)
             .where(columnMatcher),
         MetaColumn.class,
@@ -362,7 +362,7 @@ public class CalciteMetaImpl extends MetaImpl {
 
   Enumerable<MetaSchema> schemas(final String catalog) {
     return Linq4j.asEnumerable(
-        getConnection().rootSchema.getSubSchemaMap().values())
+            getConnection().rootSchema.getSubSchemaMap().values())
         .select((Function1<CalciteSchema, MetaSchema>) calciteSchema ->
             new CalciteMetaSchema(calciteSchema, catalog,
                 calciteSchema.getName()))
@@ -374,12 +374,12 @@ public class CalciteMetaImpl extends MetaImpl {
   Enumerable<MetaTable> tables(String catalog) {
     return schemas(catalog)
         .selectMany(schema ->
-            tables(schema, Functions.<String>truePredicate1()));
+            tables(schema, Pat.of("%")));
   }
 
-  Enumerable<MetaTable> tables(final MetaSchema schema_) {
+  Enumerable<MetaTable> tables(final MetaSchema schema_, Pat tableNamePattern) {
     final CalciteMetaSchema schema = (CalciteMetaSchema) schema_;
-    return Linq4j.asEnumerable(schema.calciteSchema.getTableNames())
+    return Linq4j.asEnumerable(schema.calciteSchema.getTableNamesByPattern(tableNamePattern))
         .select((Function1<String, MetaTable>) name -> {
           final Table table =
               requireNonNull(schema.calciteSchema.getTable(name, true),
@@ -403,12 +403,6 @@ public class CalciteMetaImpl extends MetaImpl {
                 }));
   }
 
-  Enumerable<MetaTable> tables(
-      final MetaSchema schema,
-      final Predicate1<String> matcher) {
-    return tables(schema)
-        .where(v1 -> matcher.apply(v1.getName()));
-  }
 
   private ImmutableList<MetaTypeInfo> getAllDefaultType() {
     final ImmutableList.Builder<MetaTypeInfo> allTypeList =

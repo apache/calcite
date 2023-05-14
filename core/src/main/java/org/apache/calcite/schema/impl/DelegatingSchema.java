@@ -62,9 +62,11 @@ public class DelegatingSchema implements Schema {
   }
 
   @Override public @Nullable Table getTable(String name) {
+    return getTable(name, true);
+  }
+  @Override public @Nullable Table getTable(String name, boolean caseSensitive) {
     return schema.getTable(name);
   }
-
   @Override public Set<String> getTableNames() {
     return schema.getTableNames();
   }

@@ -16,12 +16,16 @@
  */
 package org.apache.calcite.schema;
 
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.type.RelProtoDataType;
+
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -70,6 +74,8 @@ public interface Schema {
    * @return Names of the tables in this schema
    */
   Set<String> getTableNames();
+
+  @Nullable Table getTable(String name, boolean caseSensitive);
 
   /**
    * Returns a type with a given name, or null if not found.
@@ -147,6 +153,14 @@ public interface Schema {
    * @return the schema snapshot.
    */
   Schema snapshot(SchemaVersion version);
+
+  default Set<String> getTableNamesByPattern(Meta.Pat p) {
+    Table table = getTable(p.s, true);
+    if (table != null) {
+      return ImmutableSet.of(p.s);
+    }
+    return Collections.emptySet();
+  }
 
   /** Table type. */
   enum TableType {

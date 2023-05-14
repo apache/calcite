@@ -413,6 +413,10 @@ class CsvTest {
     return new Fluent(model, sql, this::output);
   }
 
+  private Fluent sql(String model, String sql, Properties extraProperties) {
+    return new Fluent(model, sql, this::output, extraProperties);
+  }
+
   /** Returns a function that checks the contents of a result set against an
    * expected string. */
   private static Consumer<ResultSet> expect(final String... expected) {
@@ -444,13 +448,17 @@ class CsvTest {
     };
   }
 
-  private void checkSql(String sql, String model, Consumer<ResultSet> fn)
+  private void checkSql(String sql, String model, Consumer<ResultSet> fn,
+      final Properties extraProperties)
       throws SQLException {
     Connection connection = null;
     Statement statement = null;
     try {
       Properties info = new Properties();
       info.put("model", jsonPath(model));
+      if (extraProperties != null) {
+        info.putAll(extraProperties);
+      }
       connection = DriverManager.getConnection("jdbc:calcite:", info);
       statement = connection.createStatement();
       final ResultSet resultSet =
@@ -984,9 +992,9 @@ class CsvTest {
     };
 
     try (Connection connection =
-             DriverManager.getConnection("jdbc:calcite:model=inline:" + model);
-         PrintWriter pw = Util.printWriter(file);
-         Worker<Void> worker = new Worker<>()) {
+        DriverManager.getConnection("jdbc:calcite:model=inline:" + model);
+        PrintWriter pw = Util.printWriter(file);
+        Worker<Void> worker = new Worker<>()) {
       final Thread thread = new Thread(worker);
       thread.start();
 
@@ -1024,6 +1032,72 @@ class CsvTest {
       Util.discard(file.delete());
     }
   }
+
+
+  @Test void testSelectByLazyScheme() throws SQLException {
+    sql("model-lazy-scheme", "select * from EMPS").ok();
+  }
+
+  @Test void testSelectByLazySchemeCaseSensitive() throws SQLException {
+    Properties properties = new Properties();
+    properties.put("caseSensitive", "false");
+    sql("model-lazy-scheme", "select * from DEPTS1", properties).ok();
+  }
+
+
+  @Test void testDateTypeLazySchemeCopy() throws SQLException {
+    Properties info = new Properties();
+    info.put("model", jsonPath("bug-lazy-scheme"));
+
+    try (Connection connection =
+        DriverManager.getConnection("jdbc:calcite:", info)) {
+      ResultSet res =
+          connection.getMetaData().getColumns(null, null,
+              "DATE", "JOINEDAT");
+      res.next();
+      assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.DATE);
+
+      res =
+          connection.getMetaData().getColumns(null, null,
+              "DATE", "JOINTIME");
+      res.next();
+      assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIME);
+
+      res =
+          connection.getMetaData().getColumns(null, null,
+              "DATE", "JOINTIMES");
+      res.next();
+      assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIMESTAMP);
+
+      Statement statement = connection.createStatement();
+      final String sql = "select \"JOINEDAT\", \"JOINTIME\", \"JOINTIMES\" "
+          + "from \"DATE\" where EMPNO = 100";
+      ResultSet resultSet = statement.executeQuery(sql);
+      resultSet.next();
+
+      // date
+      assertEquals(java.sql.Date.class, resultSet.getDate(1).getClass());
+      assertEquals(java.sql.Date.valueOf("1996-08-03"),
+          resultSet.getDate(1));
+
+      // time
+      assertEquals(java.sql.Time.class, resultSet.getTime(2).getClass());
+      assertEquals(java.sql.Time.valueOf("00:01:02"),
+          resultSet.getTime(2));
+
+      // timestamp
+      assertEquals(java.sql.Timestamp.class,
+          resultSet.getTimestamp(3).getClass());
+      assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
+          resultSet.getTimestamp(3));
+
+    }
+  }
+//  @Test void testShowTablesByLazySchemeShowTables() throws SQLException {
+//    Properties properties = new Properties();
+//    properties.put("caseSensitive", "false");
+//    sql("model-lazy-scheme", "DESCRIBE  DePTS ", properties).ok();
+//  }
 
   /** Creates a command that appends a line to the CSV file. */
   private Callable<Void> writeLine(final PrintWriter pw, final String line) {
@@ -1106,17 +1180,26 @@ class CsvTest {
     private final String model;
     private final String sql;
     private final Consumer<ResultSet> expect;
+    private final Properties extraProperties;
 
     Fluent(String model, String sql, Consumer<ResultSet> expect) {
       this.model = model;
       this.sql = sql;
       this.expect = expect;
+      this.extraProperties = null;
+    }
+
+    Fluent(String model, String sql, Consumer<ResultSet> expect, Properties extraProperties) {
+      this.model = model;
+      this.sql = sql;
+      this.expect = expect;
+      this.extraProperties = extraProperties;
     }
 
     /** Runs the test. */
     Fluent ok() {
       try {
-        checkSql(sql, model, expect);
+        checkSql(sql, model, expect, extraProperties);
         return this;
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);

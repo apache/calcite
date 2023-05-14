@@ -2203,11 +2203,15 @@ public class CalciteAssert {
     };
 
     @Override public Table getTable(String name) {
-      return table;
+      return getTable(name, true);
     }
 
     @Override public Set<String> getTableNames() {
       return ImmutableSet.of("myTable");
+    }
+
+    @Override public @Nullable Table getTable(String name, boolean caseSensitive) {
+      return table;
     }
 
     @Override public RelProtoDataType getType(String name) {
