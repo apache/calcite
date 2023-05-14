@@ -258,6 +258,9 @@ public class IdentifierNamespace extends AbstractNamespace {
   }
 
   @Override public @Nullable SqlValidatorTable getTable() {
+    if (resolvedNamespace == null) {
+      validator.validateNamespace(this, validator.unknownType);
+    }
     return resolvedNamespace == null ? null : resolve().getTable();
   }
 
