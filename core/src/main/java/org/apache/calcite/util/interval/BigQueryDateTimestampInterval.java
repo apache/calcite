@@ -78,6 +78,8 @@ public class BigQueryDateTimestampInterval {
   private boolean checkValidOperator(String operator) {
     return SqlLibraryOperators.TIMESTAMP_ADD.getName().equals(operator)
         || SqlLibraryOperators.TIMESTAMP_SUB.getName().equals(operator)
+        || SqlLibraryOperators.DATETIME_ADD.getName().equals(operator)
+        || SqlLibraryOperators.DATETIME_SUB.getName().equals(operator)
         || SqlLibraryOperators.DATE_ADD.getName().equals(operator)
         || SqlLibraryOperators.DATE_SUB.getName().equals(operator)
         || SqlLibraryOperators.TIME_ADD.getName().equals(operator)
