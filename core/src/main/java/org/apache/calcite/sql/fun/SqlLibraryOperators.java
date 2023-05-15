@@ -1277,6 +1277,32 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code ACOSH(numeric)} function; returns the inverse hyperbolic cosine
+   * of {@code value}. */
+  @LibraryOperator(libraries = {ALL})
+  public static final SqlFunction ACOSH =
+      SqlBasicFunction.create("ACOSH",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The {@code ASINH(numeric)} function; returns the inverse hyperbolic sine of {@code value}. */
+  @LibraryOperator(libraries = {ALL})
+  public static final SqlFunction ASINH =
+      SqlBasicFunction.create("ASINH",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The {@code ATANH(numeric)} function; returns the inverse hyperbolic tangent
+   * of {@code value}. */
+  @LibraryOperator(libraries = {ALL})
+  public static final SqlFunction ATANH =
+      SqlBasicFunction.create("ATANH",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   /** The "COTH(value)" function; returns the hyperbolic secant
    * of {@code value}. */
   @LibraryOperator(libraries = {ALL})
