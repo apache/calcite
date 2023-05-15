@@ -5366,9 +5366,11 @@ public class SqlOperatorTest {
 
   /** Tests {@code ARRAY_DISTINCT} function from Spark. */
   @Test void testArrayDistinctFunc() {
-    SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.ARRAY_DISTINCT)
-        .withLibrary(SqlLibrary.SPARK);
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_DISTINCT);
+    f0.checkFails("^array_distinct(array['foo'])^",
+        "No match found for function signature ARRAY_DISTINCT\\(<CHAR\\(3\\) ARRAY>\\)", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_distinct(array[1, 2, 2, 1])", "[1, 2]",
         "INTEGER NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_distinct(array[null, 1, null])", "[null, 1]",
@@ -5430,9 +5432,11 @@ public class SqlOperatorTest {
 
   /** Tests {@code ARRAY_REVERSE} function from BigQuery. */
   @Test void testArrayReverseFunc() {
-    SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.ARRAY_REVERSE)
-        .withLibrary(SqlLibrary.BIG_QUERY);
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_REVERSE);
+    f0.checkFails("^array_reverse(array[1])^",
+        "No match found for function signature ARRAY_REVERSE\\(<INTEGER ARRAY>\\)", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
     f.checkScalar("array_reverse(array[1])", "[1]",
         "INTEGER NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_reverse(array[1, 2])", "[2, 1]",
@@ -5458,14 +5462,74 @@ public class SqlOperatorTest {
 
   /** Tests {@code ARRAY_LENGTH} function from BigQuery. */
   @Test void testArrayLengthFunc() {
-    SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.ARRAY_LENGTH)
-        .withLibrary(SqlLibrary.BIG_QUERY);
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_LENGTH);
+    f0.checkFails("^array_length(array[1])^",
+        "No match found for function signature ARRAY_LENGTH\\(<INTEGER ARRAY>\\)", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
     f.checkScalar("array_length(array[1])", "1",
         "INTEGER NOT NULL");
     f.checkScalar("array_length(array[1, 2, null])", "3",
         "INTEGER NOT NULL");
     f.checkNull("array_length(null)");
+  }
+
+  /** Tests {@code ARRAY_EXCEPT} function from Spark. */
+  @Test void testArrayExceptFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_EXCEPT);
+    f0.checkFails("^array_except(array[2, null, 3, 3], array[1, 2, null])^",
+        "No match found for function signature "
+            + "ARRAY_EXCEPT\\(<INTEGER ARRAY>, <INTEGER ARRAY>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_except(array[2, 3, 3], array[2])",
+        "[3]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_except(array[2], array[2, 3])",
+        "[]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_except(array[2, null, 3, 3], array[1, 2, null])",
+        "[3]", "INTEGER ARRAY NOT NULL");
+    f.checkNull("array_except(cast(null as integer array), array[1])");
+    f.checkNull("array_except(array[1], cast(null as integer array))");
+    f.checkNull("array_except(cast(null as integer array), cast(null as integer array))");
+  }
+
+  /** Tests {@code ARRAY_INTERSECT} function from Spark. */
+  @Test void testArrayIntersectFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_INTERSECT);
+    f0.checkFails("^array_intersect(array[2, null, 2], array[1, 2, null])^",
+        "No match found for function signature "
+            + "ARRAY_INTERSECT\\(<INTEGER ARRAY>, <INTEGER ARRAY>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_intersect(array[2, 3, 3], array[3])",
+        "[3]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_intersect(array[1], array[2, 3])",
+        "[]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_intersect(array[2, null, 2], array[1, 2, null])",
+        "[2, null]", "INTEGER ARRAY NOT NULL");
+    f.checkNull("array_intersect(cast(null as integer array), array[1])");
+    f.checkNull("array_intersect(array[1], cast(null as integer array))");
+    f.checkNull("array_intersect(cast(null as integer array), cast(null as integer array))");
+  }
+
+  /** Tests {@code ARRAY_UNION} function from Spark. */
+  @Test void testArrayUnionFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_UNION);
+    f0.checkFails("^array_union(array[2, null, 2], array[1, 2, null])^",
+        "No match found for function signature "
+            + "ARRAY_UNION\\(<INTEGER ARRAY>, <INTEGER ARRAY>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_intersect(array[2, 3, 3], array[3])",
+        "[3]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_union(array[2, null, 2], array[1, 2, null])",
+        "[2, null, 1]", "INTEGER ARRAY NOT NULL");
+    f.checkNull("array_union(cast(null as integer array), array[1])");
+    f.checkNull("array_union(array[1], cast(null as integer array))");
+    f.checkNull("array_union(cast(null as integer array), cast(null as integer array))");
   }
 
   /** Tests {@code SORT_ARRAY} function from Spark. */

@@ -122,12 +122,15 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_COMPACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_DISTINCT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_EXCEPT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_INTERSECT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_MAX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_MIN;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_SIZE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_UNION;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ASINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ATANH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
@@ -686,19 +689,21 @@ public class RexImpTable {
       // Multisets & arrays
       defineMethod(CARDINALITY, BuiltInMethod.COLLECTION_SIZE.method,
           NullPolicy.STRICT);
-      defineMethod(ARRAY_LENGTH, BuiltInMethod.COLLECTION_SIZE.method,
-          NullPolicy.STRICT);
       defineMethod(SLICE, BuiltInMethod.SLICE.method, NullPolicy.NONE);
       defineMethod(ELEMENT, BuiltInMethod.ELEMENT.method, NullPolicy.STRICT);
       defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.ANY);
       defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
       defineMethod(ARRAY_COMPACT, BuiltInMethod.ARRAY_COMPACT.method, NullPolicy.STRICT);
       defineMethod(ARRAY_DISTINCT, BuiltInMethod.ARRAY_DISTINCT.method, NullPolicy.STRICT);
+      defineMethod(ARRAY_EXCEPT, BuiltInMethod.ARRAY_EXCEPT.method, NullPolicy.ANY);
+      defineMethod(ARRAY_INTERSECT, BuiltInMethod.ARRAY_INTERSECT.method, NullPolicy.ANY);
+      defineMethod(ARRAY_LENGTH, BuiltInMethod.COLLECTION_SIZE.method, NullPolicy.STRICT);
       defineMethod(ARRAY_MAX, BuiltInMethod.ARRAY_MAX.method, NullPolicy.STRICT);
       defineMethod(ARRAY_MIN, BuiltInMethod.ARRAY_MIN.method, NullPolicy.STRICT);
       defineMethod(ARRAY_REPEAT, BuiltInMethod.ARRAY_REPEAT.method, NullPolicy.NONE);
       defineMethod(ARRAY_REVERSE, BuiltInMethod.ARRAY_REVERSE.method, NullPolicy.STRICT);
       defineMethod(ARRAY_SIZE, BuiltInMethod.COLLECTION_SIZE.method, NullPolicy.STRICT);
+      defineMethod(ARRAY_UNION, BuiltInMethod.ARRAY_UNION.method, NullPolicy.ANY);
       defineMethod(MAP_ENTRIES, BuiltInMethod.MAP_ENTRIES.method, NullPolicy.STRICT);
       defineMethod(MAP_KEYS, BuiltInMethod.MAP_KEYS.method, NullPolicy.STRICT);
       defineMethod(MAP_VALUES, BuiltInMethod.MAP_VALUES.method, NullPolicy.STRICT);
