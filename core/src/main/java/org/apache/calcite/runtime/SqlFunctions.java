@@ -3926,6 +3926,28 @@ public class SqlFunctions {
     return Collections.nCopies(numberOfElement, element);
   }
 
+  /** Support the ARRAY_EXCEPT function. */
+  public static List arrayExcept(List list1, List list2) {
+    final Set result = new LinkedHashSet<>(list1);
+    result.removeAll(list2);
+    return new ArrayList<>(result);
+  }
+
+  /** Support the ARRAY_INTERSECT function. */
+  public static List arrayIntersect(List list1, List list2) {
+    final Set result = new LinkedHashSet<>(list1);
+    result.retainAll(list2);
+    return new ArrayList<>(result);
+  }
+
+  /** Support the ARRAY_UNION function. */
+  public static List arrayUnion(List list1, List list2) {
+    final Set result = new LinkedHashSet<>();
+    result.addAll(list1);
+    result.addAll(list2);
+    return new ArrayList<>(result);
+  }
+
   /** Support the SORT_ARRAY function. */
   public static List sortArray(List list, boolean ascending) {
     Comparator comparator = ascending

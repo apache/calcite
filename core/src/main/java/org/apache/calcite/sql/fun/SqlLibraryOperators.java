@@ -872,6 +872,20 @@ public abstract class SqlLibraryOperators {
           SqlLibraryOperators::arrayReturnType,
           OperandTypes.SAME_VARIADIC);
 
+  /** The "ARRAY_COMPACT(array)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction ARRAY_COMPACT =
+      SqlBasicFunction.create(SqlKind.ARRAY_COMPACT,
+          ReturnTypes.ARG0_NULLABLE,
+          OperandTypes.ARRAY);
+
+  /** The "ARRAY_CONCAT(array [, array]*)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ARRAY_CONCAT =
+      SqlBasicFunction.create(SqlKind.ARRAY_CONCAT,
+          ReturnTypes.LEAST_RESTRICTIVE,
+          OperandTypes.AT_LEAST_ONE_SAME_VARIADIC);
+
   /** The "ARRAY_DISTINCT(array)" function (Spark). */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_DISTINCT =
@@ -879,10 +893,28 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.ARG0_NULLABLE,
           OperandTypes.ARRAY);
 
+  /** The "ARRAY_EXCEPT(array1, array2)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction ARRAY_EXCEPT =
+      SqlBasicFunction.create(SqlKind.ARRAY_EXCEPT,
+          ReturnTypes.LEAST_RESTRICTIVE,
+          OperandTypes.and(
+              OperandTypes.SAME_SAME,
+              OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
+
+  /** The "ARRAY_INTERSECT(array1, array2)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction ARRAY_INTERSECT =
+      SqlBasicFunction.create(SqlKind.ARRAY_INTERSECT,
+          ReturnTypes.LEAST_RESTRICTIVE,
+          OperandTypes.and(
+              OperandTypes.SAME_SAME,
+              OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
+
   /** The "ARRAY_LENGTH(array)" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction ARRAY_LENGTH =
-      SqlBasicFunction.create("ARRAY_LENGTH",
+      SqlBasicFunction.create(SqlKind.ARRAY_LENGTH,
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
@@ -923,19 +955,14 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
-  /** The "ARRAY_COMPACT(array)" function. */
+  /** The "ARRAY_UNION(array1, array2)" function. */
   @LibraryOperator(libraries = {SPARK})
-  public static final SqlFunction ARRAY_COMPACT =
-      SqlBasicFunction.create(SqlKind.ARRAY_COMPACT,
-          ReturnTypes.ARG0_NULLABLE,
-          OperandTypes.ARRAY);
-
-  /** The "ARRAY_CONCAT(array [, array]*)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction ARRAY_CONCAT =
-      SqlBasicFunction.create(SqlKind.ARRAY_CONCAT,
+  public static final SqlFunction ARRAY_UNION =
+      SqlBasicFunction.create(SqlKind.ARRAY_UNION,
           ReturnTypes.LEAST_RESTRICTIVE,
-          OperandTypes.AT_LEAST_ONE_SAME_VARIADIC);
+          OperandTypes.and(
+              OperandTypes.SAME_SAME,
+              OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
 
   /** The "SORT_ARRAY(array)" function (Spark). */
   @LibraryOperator(libraries = {SPARK})

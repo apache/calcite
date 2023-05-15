@@ -2654,13 +2654,16 @@ BigQuery's type system uses confusingly different names for types and functions:
 | s | ARRAY(expr [, expr ]*)                         | Construct an array in Apache Spark
 | s | ARRAY_COMPACT(array)                           | Removes null values from the *array*
 | b | ARRAY_CONCAT(array [, array ]*)                | Concatenates one or more arrays. If any input argument is `NULL` the function returns `NULL`
-| s | ARRAY_DISTINCT(array)                          | Returns unique elements of *array*. Keeps ordering of elements.
+| s | ARRAY_DISTINCT(array)                          | Removes duplicate values from the *array* that keeps ordering of elements
+| s | ARRAY_EXCEPT(array1, array2)                   | Returns an array of the elements in *array1* but not in *array2*, without duplicates
+| s | ARRAY_INTERSECT(array1, array2)                | Returns an array of the elements in the intersection of *array1* and *array2*, without duplicates
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
 | s | ARRAY_MAX(array)                               | Returns the maximum value in the *array*
 | s | ARRAY_MIN(array)                               | Returns the minimum value in the *array*
 | s | ARRAY_REPEAT(element, count)                   | Returns the array containing element count times.
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
 | s | ARRAY_SIZE(array)                              | Synonym for `CARDINALITY`
+| s | ARRAY_UNION(array1, array2)                    | Returns an array of the elements in the union of *array1* and *array2*, without duplicates
 | s | SORT_ARRAY(array [, ascendingOrder])           | Sorts the *array* in ascending or descending order according to the natural ordering of the array elements. The default order is ascending if *ascendingOrder* is not specified. Null elements will be placed at the beginning of the returned array in ascending order or at the end of the returned array in descending order
 | * | ASINH(numeric)                                 | Returns the inverse hyperbolic sine of *numeric*
 | * | ATANH(numeric)                                 | Returns the inverse hyperbolic tangent of *numeric*
