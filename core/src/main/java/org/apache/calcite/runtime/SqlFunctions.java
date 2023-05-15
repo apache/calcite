@@ -1854,6 +1854,20 @@ public class SqlFunctions {
     return Math.acos(b0);
   }
 
+  // ACOSH
+  /** SQL <code>ACOSH</code> operator applied to BigDecimal values. */
+  public static double acosh(BigDecimal b0) {
+    return acosh(b0.doubleValue());
+  }
+
+  /** SQL <code>ACOSH</code> operator applied to double values. */
+  public static double acosh(double b0) {
+    if (b0 < 1) {
+      throw new IllegalArgumentException("Input parameter of acosh cannot be less than 1!");
+    }
+    return Math.log(Math.sqrt(b0 * b0 - 1.0d) + b0);
+  }
+
   // ASIN
   /** SQL <code>ASIN</code> operator applied to BigDecimal values. */
   public static double asin(BigDecimal b0) {
@@ -1863,6 +1877,25 @@ public class SqlFunctions {
   /** SQL <code>ASIN</code> operator applied to double values. */
   public static double asin(double b0) {
     return Math.asin(b0);
+  }
+
+  // ASINH
+  /** SQL <code>ASINH</code> operator applied to BigDecimal values. */
+  public static double asinh(BigDecimal b0) {
+    return asinh(b0.doubleValue());
+  }
+
+  /** SQL <code>ASINH</code> operator applied to double values. */
+  public static double asinh(double b0) {
+    final double sign;
+    // check the sign bit of the raw representation to handle -0.
+    if (Double.doubleToRawLongBits(b0) < 0) {
+      b0 = Math.abs(b0);
+      sign = -1.0d;
+    } else {
+      sign = 1.0d;
+    }
+    return sign * Math.log(Math.sqrt(b0 * b0 + 1.0d) + b0);
   }
 
   // ATAN
@@ -1895,6 +1928,29 @@ public class SqlFunctions {
   /** SQL <code>ATAN2</code> operator applied to double values. */
   public static double atan2(double b0, double b1) {
     return Math.atan2(b0, b1);
+  }
+
+  // ATANH
+  /** SQL <code>ATANH</code> operator applied to BigDecimal values. */
+  public static double atanh(BigDecimal b) {
+    return atanh(b.doubleValue());
+  }
+
+  /** SQL <code>ATANH</code> operator applied to double values. */
+  public static double atanh(double b) {
+    if (Math.abs(b) >= 1) {
+      throw new IllegalArgumentException("Input parameter of atanh cannot be out of the "
+          + "range (-1, 1)!");
+    }
+    final double mult;
+    // check the sign bit of the raw representation to handle -0.
+    if (Double.doubleToRawLongBits(b) < 0) {
+      b = Math.abs(b);
+      mult = -0.5d;
+    } else {
+      mult = 0.5d;
+    }
+    return mult * Math.log((1.0d + b) / (1.0d - b));
   }
 
   // CBRT

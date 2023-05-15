@@ -5539,6 +5539,75 @@ public class SqlOperatorTest {
     f.checkNull("atan2(1, cast(null as double))");
   }
 
+  @Test void testAcoshFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.ACOSH);
+    f0.checkFails("^acosh(1)^",
+        "No match found for function signature ACOSH\\(<NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkType("acosh(1)", "DOUBLE NOT NULL");
+      f.checkType("acosh(cast(1 as Decimal))", "DOUBLE NOT NULL");
+      f.checkType("acosh(case when false then 1 else null end)", "DOUBLE");
+      f.checkType("acosh('abc')", "DOUBLE NOT NULL");
+      f.checkScalarApprox("acosh(1)", "DOUBLE NOT NULL",
+          isWithin(0d, 0.0001d));
+      f.checkScalarApprox("acosh(cast(10 as decimal))", "DOUBLE NOT NULL",
+          isWithin(2.9932d, 0.0001d));
+      f.checkNull("acosh(cast(null as integer))");
+      f.checkNull("acosh(cast(null as double))");
+      f.checkFails("acosh(0.1)",
+          "Input parameter of acosh cannot be less than 1!",
+          true);
+    };
+    f0.forEachLibrary(list(SqlLibrary.ALL), consumer);
+  }
+
+  @Test void testAsinhFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.ASINH);
+    f0.checkFails("^asinh(1)^",
+        "No match found for function signature ASINH\\(<NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkType("asinh(1)", "DOUBLE NOT NULL");
+      f.checkType("asinh(cast(1 as Decimal))", "DOUBLE NOT NULL");
+      f.checkType("asinh(case when false then 1 else null end)", "DOUBLE");
+      f.checkType("asinh('abc')", "DOUBLE NOT NULL");
+      f.checkScalarApprox("asinh(-2.5)", "DOUBLE NOT NULL",
+          isWithin(-1.6472d, 0.0001d));
+      f.checkScalarApprox("asinh(cast(10 as decimal))", "DOUBLE NOT NULL",
+          isWithin(2.9982, 0.0001d));
+      f.checkNull("asinh(cast(null as integer))");
+      f.checkNull("asinh(cast(null as double))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.ALL), consumer);
+  }
+
+  @Test void testAtanhFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.ATANH);
+    f0.checkFails("^atanh(1)^",
+        "No match found for function signature ATANH\\(<NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkType("atanh(0.1)", "DOUBLE NOT NULL");
+      f.checkType("atanh(cast(0 as Decimal))", "DOUBLE NOT NULL");
+      f.checkType("atanh(case when false then 0 else null end)", "DOUBLE");
+      f.checkType("atanh('abc')", "DOUBLE NOT NULL");
+      f.checkScalarApprox("atanh(0.76159416)", "DOUBLE NOT NULL",
+          isWithin(1d, 0.0001d));
+      f.checkScalarApprox("atanh(cast(-0.1 as decimal))", "DOUBLE NOT NULL",
+          isWithin(-0.1003d, 0.0001d));
+      f.checkNull("atanh(cast(null as integer))");
+      f.checkNull("atanh(cast(null as double))");
+      f.checkFails("atanh(1)",
+          "Input parameter of atanh cannot be out of the range \\(-1, 1\\)!",
+          true);
+      f.checkFails("atanh(-1)",
+          "Input parameter of atanh cannot be out of the range \\(-1, 1\\)!",
+          true);
+    };
+    f0.forEachLibrary(list(SqlLibrary.ALL), consumer);
+  }
+
   @Test void testCbrtFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CBRT, VmName.EXPAND);
