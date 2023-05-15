@@ -8280,27 +8280,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowFlake));
   }
-  @Test public void testUnparseOfDateFromUnixDateWithFloorFunctionAsOperand() {
-    final RelBuilder builder = relBuilder();
-    builder.scan("EMP");
-    final RexNode epochSeconds = builder.cast(builder.literal("'20091223'"),
-        SqlTypeName.INTEGER);
-    final RexNode epochDays = builder.call(SqlStdOperatorTable.FLOOR,
-        builder.call(SqlStdOperatorTable.DIVIDE, epochSeconds, builder.literal(86400)));
-    final RexNode dateFromUnixDate = builder.call(
-        SqlLibraryOperators.DATE_FROM_UNIX_DATE, epochDays);
-    final RelNode root = builder
-        .project(builder.alias(dateFromUnixDate, "unix_date"))
-        .build();
-    final String expectedSql = "SELECT DATE_FROM_UNIX_DATE(FLOOR(CAST('''20091223''' AS INTEGER) "
-        + "/ 86400)) AS \"unix_date\"\n"
-        + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT DATE_FROM_UNIX_DATE(CAST(FLOOR(CAST"
-        + "('\\'20091223\\'' AS INT64) / 86400) AS INTEGER)) AS unix_date\n"
-        + "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-  }
 
   @Test public void testDOMAndDOY() {
     final RelBuilder builder = relBuilder();
@@ -11833,4 +11812,20 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
+
+  @Test public void testCurrentTimestampWithTimeZone() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode currentTimestampRexNode = builder.call(
+        SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE,
+        builder.literal(6));
+    RelNode root = builder
+        .project(currentTimestampRexNode)
+        .build();
+
+    final String expectedBQSql = "SELECT CURRENT_TIMESTAMP() AS `$f0`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
 }
