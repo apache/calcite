@@ -11828,4 +11828,19 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
+
+  @Test public void testMonthsBetween() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode dateTruncNode = builder.call(SqlLibraryOperators.MONTHS_BETWEEN,
+        builder.call(CURRENT_TIMESTAMP),
+        builder.call(CURRENT_TIMESTAMP));
+    RelNode root = builder
+        .project(dateTruncNode)
+        .build();
+    final String expectedOracleSql =
+        "SELECT MONTHS_BETWEEN(CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) \"$f0\"\n"
+            + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
 }
