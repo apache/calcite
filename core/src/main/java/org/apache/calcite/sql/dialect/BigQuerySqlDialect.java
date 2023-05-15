@@ -169,7 +169,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
 import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
@@ -1101,9 +1100,6 @@ public class BigQuerySqlDialect extends SqlDialect {
           secondSymbolLiteral, call.operand(0));
       unparseExtractFunction(writer, extractSecondCall, leftPrec, rightPrec);
       break;
-    case "MONTHS_BETWEEN":
-      unparseMonthsBetween(writer, call, leftPrec, rightPrec);
-      break;
     case "REGEXP_MATCH_COUNT":
       unparseRegexMatchCount(writer, call, leftPrec, rightPrec);
       break;
@@ -1393,32 +1389,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlNode castCall = CAST.createCall(SqlParserPos.ZERO, ceilNode,
             getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR)));
     castCall.unparse(writer, leftPrec, rightPrec);
-  }
-
-  private void unparseMonthsBetween(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlNode monthSymbol = SqlLiteral.createSymbol(TimeUnit.MONTH, SqlParserPos.ZERO);
-    SqlNode dateDiffNode = DATE_DIFF.createCall(SqlParserPos.ZERO,
-            call.operand(0), call.operand(1), monthSymbol);
-
-    SqlNode daySymbolLiteral = SqlLiteral.createSymbol(TimeUnit.DAY, SqlParserPos.ZERO);
-
-    SqlNode firstExtractedDay = EXTRACT.createCall(SqlParserPos.ZERO,
-            daySymbolLiteral, call.operand(0));
-    SqlNode secondExtractedDay = EXTRACT.createCall(SqlParserPos.ZERO,
-            daySymbolLiteral, call.operand(1));
-
-    SqlNode subtractNode = MINUS.createCall(SqlParserPos.ZERO,
-            firstExtractedDay, secondExtractedDay);
-
-    SqlNode divideNode = DIVIDE.createCall(SqlParserPos.ZERO, subtractNode,
-            SqlLiteral.createExactNumeric("31", SqlParserPos.ZERO));
-
-    SqlNode addNode = PLUS.createCall(SqlParserPos.ZERO, dateDiffNode, divideNode);
-
-    SqlCall roundCall = ROUND.createCall(SqlParserPos.ZERO, addNode,
-            SqlLiteral.createExactNumeric("9", SqlParserPos.ZERO));
-
-    roundCall.unparse(writer, leftPrec, rightPrec);
   }
 
   private void unparseRegexMatchCount(SqlWriter writer, SqlCall call,
