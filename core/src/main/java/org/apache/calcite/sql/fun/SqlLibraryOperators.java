@@ -524,7 +524,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK})
   public static final SqlFunction DATETIME_ADD =
       new SqlFunction("DATETIME_ADD",
-      SqlKind.PLUS,
+      SqlKind.OTHER_FUNCTION,
       ReturnTypes.ARG0_NULLABLE,
       null,
       OperandTypes.DATETIME,
@@ -539,7 +539,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATETIME_SUB =
       new SqlFunction("DATETIME_SUB",
-      SqlKind.MINUS,
+      SqlKind.OTHER_FUNCTION,
       ReturnTypes.ARG0_NULLABLE,
       null,
       OperandTypes.DATETIME,
