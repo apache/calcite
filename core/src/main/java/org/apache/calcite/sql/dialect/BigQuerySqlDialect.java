@@ -911,22 +911,24 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseExpressionIntervalCall(
       SqlBasicCall call, SqlWriter writer, int leftPrec, int rightPrec) {
     SqlLiteral intervalLiteral;
+    SqlNode multiplier;
     if (call.operand(1) instanceof SqlIntervalLiteral) {
       intervalLiteral = modifiedSqlIntervalLiteral(call.operand(1));
+      multiplier = call.operand(0);
     } else {
-      intervalLiteral = getIntervalLiteral(call);
+      intervalLiteral = modifiedSqlIntervalLiteral(call.operand(0));
+      multiplier = call.operand(1);
     }
-    SqlNode identifier = getIdentifier(call);
     SqlIntervalLiteral.IntervalValue literalValue =
         (SqlIntervalLiteral.IntervalValue) intervalLiteral.getValue();
     writer.sep("INTERVAL");
     if (call.getKind() == SqlKind.TIMES) {
       if (!literalValue.getIntervalLiteral().equals("1")) {
-        identifier.unparse(writer, leftPrec, rightPrec);
+        multiplier.unparse(writer, leftPrec, rightPrec);
         writer.sep("*");
         writer.sep(literalValue.toString());
       } else {
-        identifier.unparse(writer, leftPrec, rightPrec);
+        multiplier.unparse(writer, leftPrec, rightPrec);
       }
       writer.print(literalValue.getIntervalQualifier().toString());
     }
@@ -939,7 +941,8 @@ public class BigQuerySqlDialect extends SqlDialect {
    * @return SqlLiteral INTERVAL 1 DAY
    */
   private SqlLiteral getIntervalLiteral(SqlBasicCall intervalOperand) {
-    if (intervalOperand.operand(0) instanceof SqlIntervalLiteral) {
+    if (intervalOperand.operand(1).getKind() == SqlKind.IDENTIFIER
+        || (intervalOperand.operand(1) instanceof SqlNumericLiteral)) {
       return ((SqlBasicCall) intervalOperand).operand(0);
     }
     return ((SqlBasicCall) intervalOperand).operand(1);
@@ -952,7 +955,8 @@ public class BigQuerySqlDialect extends SqlDialect {
    * @return SqlIdentifier Store_id
    */
   private SqlNode getIdentifier(SqlBasicCall intervalOperand) {
-    if (intervalOperand.operand(0) instanceof SqlIntervalLiteral) {
+    if (intervalOperand.operand(1).getKind() == SqlKind.IDENTIFIER
+        || (intervalOperand.operand(1) instanceof SqlNumericLiteral)) {
       return intervalOperand.operand(1);
     }
     return intervalOperand.operand(0);
