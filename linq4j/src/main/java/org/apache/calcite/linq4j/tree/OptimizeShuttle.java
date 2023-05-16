@@ -85,6 +85,11 @@ public class OptimizeShuttle extends Shuttle {
       Expression expression0,
       Expression expression1,
       Expression expression2) {
+    expression1 = skipNullCast(expression1);
+    expression2 = skipNullCast(expression2);
+    ternary =
+        new TernaryExpression(ternary.getNodeType(), ternary.getType(),
+            expression0, expression1, expression2);
     switch (ternary.getNodeType()) {
     case Conditional:
       Boolean always = always(expression0);
@@ -165,6 +170,9 @@ public class OptimizeShuttle extends Shuttle {
     //
     Expression result;
     switch (binary.getNodeType()) {
+    case Assign:
+      expression1 = skipNullCast(expression1);
+      break;
     case AndAlso:
     case OrElse:
       if (eq(expression0, expression1)) {
@@ -393,6 +401,16 @@ public class OptimizeShuttle extends Shuttle {
   private static boolean isConstantNull(Expression expression) {
     return expression instanceof ConstantExpression
         && ((ConstantExpression) expression).value == null;
+  }
+
+  // Remove redundant null casts.
+  private static Expression skipNullCast(Expression expression) {
+    if (expression instanceof ConstantExpression
+        && ((ConstantExpression) expression).value == null) {
+      return ConstantUntypedNull.INSTANCE;
+    } else {
+      return expression;
+    }
   }
 
   /**

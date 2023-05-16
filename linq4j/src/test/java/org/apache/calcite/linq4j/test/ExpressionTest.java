@@ -1463,7 +1463,7 @@ public class ExpressionTest {
     assertEquals(
         "{\n"
             + "  final Short v = (Short) ((Object[]) p)[4];\n"
-            + "  return (Number) v == null ? (Boolean) null : ("
+            + "  return (Number) v == null ? null : ("
             + "(Number) v).intValue() == 1997;\n"
             + "}\n",
         Expressions.toString(builder.toBlock()));

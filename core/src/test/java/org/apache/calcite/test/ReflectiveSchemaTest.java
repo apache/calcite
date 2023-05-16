@@ -600,7 +600,7 @@ public class ReflectiveSchemaTest {
         .planContains(
             "final Long input_value = current.wrapperLong;")
         .planContains(
-            "return input_value == null ? (Long) null : Long.valueOf(input_value.longValue() / current.primitiveLong);")
+            "return input_value == null ? null : Long.valueOf(input_value.longValue() / current.primitiveLong);")
         .returns("C=null\n");
   }
 
@@ -620,7 +620,7 @@ public class ReflectiveSchemaTest {
         .planContains(
             "final Long input_value = ((org.apache.calcite.test.schemata.catchall.CatchallSchema.EveryType) inputEnumerator.current()).wrapperLong;")
         .planContains(
-            "return input_value == null ? (Long) null : Long.valueOf(input_value.longValue() / input_value.longValue());")
+            "return input_value == null ? null : Long.valueOf(input_value.longValue() / input_value.longValue());")
         .returns("C=null\n");
   }
 
@@ -633,9 +633,9 @@ public class ReflectiveSchemaTest {
         .planContains(
             "final Long input_value = ((org.apache.calcite.test.schemata.catchall.CatchallSchema.EveryType) inputEnumerator.current()).wrapperLong;")
         .planContains(
-            "final Long binary_call_value = input_value == null ? (Long) null : Long.valueOf(input_value.longValue() / input_value.longValue());")
+            "final Long binary_call_value = input_value == null ? null : Long.valueOf(input_value.longValue() / input_value.longValue());")
         .planContains(
-            "return binary_call_value == null ? (Long) null : Long.valueOf(binary_call_value.longValue() + binary_call_value.longValue());")
+            "return binary_call_value == null ? null : Long.valueOf(binary_call_value.longValue() + binary_call_value.longValue());")
         .returns("C=null\n");
   }
 
