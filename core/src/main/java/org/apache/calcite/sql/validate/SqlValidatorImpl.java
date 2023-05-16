@@ -322,7 +322,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     TypeCoercion typeCoercion = config.typeCoercionFactory().create(typeFactory, this);
     this.typeCoercion = typeCoercion;
 
-    if (config.conformance().allowCoercionStringToArray()) {
+    if (config.conformance().allowLenientCoercion()) {
       SqlTypeCoercionRule rules = requireNonNull(config.typeCoercionRules() != null
           ? config.typeCoercionRules() : SqlTypeCoercionRule.THREAD_PROVIDERS.get());
 

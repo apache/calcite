@@ -973,8 +973,7 @@ public abstract class SqlTypeUtil {
   }
 
   public static SqlTypeMappingRule getSqlTypeCoercionRule(SqlConformance conformance) {
-    if (conformance.allowLenientBooleanCastTypes()
-        || conformance.allowCoercionStringToArray()) {
+    if (conformance.allowLenientCoercion()) {
       return SqlTypeCoercionRule.lenientInstance();
     } else {
       return SqlTypeCoercionRule.instance();

@@ -431,19 +431,15 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
-  @Override public boolean allowCoercionStringToArray() {
-    switch (this) {
-    case BABEL:
-      return true;
-    default:
-      return false;
-    }
-  }
-
-  @Override public boolean allowLenientBooleanCastTypes() {
+  @Override public boolean allowLenientCoercion() {
+    /* This allows for the following:
+     - coercion from string to array
+     - coercion from boolean to integers
+     */
     switch (this) {
     case BABEL:
     case BIG_QUERY:
+    case MYSQL_5:
       return true;
     default:
       return false;

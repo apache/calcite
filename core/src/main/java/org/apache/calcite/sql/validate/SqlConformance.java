@@ -537,21 +537,6 @@ public interface SqlConformance {
   boolean isValueAllowed();
 
   /**
-   * Whether {@link org.apache.calcite.sql.fun.SqlCastFunction} allows casting
-   *  {@link org.apache.calcite.sql.type.SqlTypeName#BOOLEAN}
-   *  to NUMERIC_TYPE, where NUMERIC_TYPE is one of
-   *  {@link org.apache.calcite.sql.type.SqlTypeName#TINYINT}
-   *  {@link org.apache.calcite.sql.type.SqlTypeName#SMALLINT}
-   *  {@link org.apache.calcite.sql.type.SqlTypeName#INTEGER}
-   *  {@link org.apache.calcite.sql.type.SqlTypeName#BIGINT}
-   *
-   *  <p> Among the built-in conformance levels, true in
-   *  {@link SqlConformanceEnum#BIG_QUERY};
-   *  false otherwise.
-   */
-  boolean allowLenientBooleanCastTypes();
-
-  /**
    * Controls the behavior of operators that are part of Standard SQL but
    * nevertheless have different behavior in different databases.
    *
@@ -578,17 +563,24 @@ public interface SqlConformance {
   SqlLibrary semantics();
 
   /**
-   * Whether to allow coercion string literal to array literal
+   * Whether to allow the following coercions:
    *
-   * <p>For example,
-   *
-   * <blockquote><pre>SELECT ARRAY[0,1,2] == '{0,1,2}'
-   * </pre></blockquote>
+   * <p>- Coercion string literal to array literal
+   * <p>For example: <blockquote><pre>SELECT ARRAY[0,1,2] == '{0,1,2}'
+   * </pre></blockquote></p>
+   * <p>- Casting
+   *  {@link org.apache.calcite.sql.type.SqlTypeName#BOOLEAN}
+   *  to NUMERIC_TYPE, where NUMERIC_TYPE is one of
+   *  {@link org.apache.calcite.sql.type.SqlTypeName#TINYINT}
+   *  {@link org.apache.calcite.sql.type.SqlTypeName#SMALLINT}
+   *  {@link org.apache.calcite.sql.type.SqlTypeName#INTEGER}
+   *  {@link org.apache.calcite.sql.type.SqlTypeName#BIGINT}
+   * </p>
    *
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#BABEL},
    * false otherwise.
    */
   @Experimental
-  boolean allowCoercionStringToArray();
+  boolean allowLenientCoercion();
 }

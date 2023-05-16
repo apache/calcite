@@ -141,11 +141,7 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.semantics();
   }
 
-  @Override public boolean allowCoercionStringToArray() {
-    return SqlConformanceEnum.DEFAULT.allowCoercionStringToArray();
-  }
-
-  @Override public boolean allowLenientBooleanCastTypes() {
-    return SqlConformanceEnum.DEFAULT.allowLenientBooleanCastTypes();
+  @Override public boolean allowLenientCoercion() {
+    return SqlConformanceEnum.DEFAULT.allowLenientCoercion();
   }
 }

@@ -209,6 +209,19 @@ public interface RelDataTypeFactory {
    */
   @Nullable RelDataType leastRestrictive(List<RelDataType> types);
 
+  /**
+   * Returns the most general of a set of types (that is, one type to which
+   * they can all be cast), or null if conversion is not possible. The result
+   * may be a new type that is less restrictive than any of the input types,
+   * e.g. <code>leastRestrictive(INT, NUMERIC(3, 2))</code> could be
+   * {@code NUMERIC(12, 2)}.
+   *
+   * <p>Accepts a {@link SqlTypeMappingRule} that can be used to change casting behavior.
+   *
+   * @param types input types to be combined using union (not null, not empty)
+   * @param mappingRule mapping rule that determines whether types are convertable
+   * @return canonical union type descriptor
+   */
   @Nullable RelDataType leastRestrictive(List<RelDataType> types, SqlTypeMappingRule mappingRule);
 
   /**
