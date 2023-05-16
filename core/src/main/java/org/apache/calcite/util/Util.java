@@ -123,7 +123,7 @@ import static java.util.Objects.requireNonNull;
 public class Util {
 
   private static final int QUICK_DISTINCT = 15;
-  private static final Pattern UNDERSCORE = Pattern.compile("_");
+  private static final Pattern UNDERSCORE = Pattern.compile("_+");
 
   private Util() {}
 

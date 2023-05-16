@@ -81,7 +81,7 @@ public final class SqlParserUtil {
 
   static final Logger LOGGER = CalciteTrace.getParserTracer();
 
-  private static final Pattern UNDERSCORE = Pattern.compile("_");
+  private static final Pattern UNDERSCORE = Pattern.compile("_+");
 
   //~ Constructors -----------------------------------------------------------
 
