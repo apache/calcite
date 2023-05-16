@@ -8281,6 +8281,52 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowFlake));
   }
 
+  @Test public void testUnparseOfDateFromUnixDateWithFloorFunctionAsOperand() {
+    final RelBuilder builder = relBuilder();
+    builder.scan("EMP");
+    final RexNode epochSeconds = builder.cast(builder.literal("'20091223'"),
+        SqlTypeName.INTEGER);
+    final RexNode epochDays = builder.call(SqlStdOperatorTable.FLOOR,
+        builder.call(SqlStdOperatorTable.DIVIDE, epochSeconds, builder.literal(86400)));
+    final RexNode dateFromUnixDate = builder.call(
+        SqlLibraryOperators.DATE_FROM_UNIX_DATE, epochDays);
+    final RelNode root = builder
+        .project(builder.alias(dateFromUnixDate, "unix_date"))
+        .build();
+    final String expectedSql = "SELECT DATE_FROM_UNIX_DATE(FLOOR(CAST('''20091223''' AS INTEGER) "
+        + "/ 86400)) AS \"unix_date\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATE_FROM_UNIX_DATE(CAST(FLOOR(CAST"
+        + "('\\'20091223\\'' AS INT64) / 86400) AS INTEGER)) AS unix_date\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testDateFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode dateRex0 = builder.call(SqlLibraryOperators.DATE,
+        builder.literal("1970-02-02 01:02:03"));
+    RexNode dateRex1 = builder.call(SqlLibraryOperators.DATE,
+        builder.literal("1970-02-02"));
+    RexNode dateRex2 = builder.call(SqlLibraryOperators.DATE,
+        builder.literal("DATE '1970-02-02'"));
+    RexNode dateRex3 = builder.call(SqlLibraryOperators.DATE,
+        builder.literal("TIMESTAMP '1970-02-02 01:02:03'"));
+    final String expectedBigQuery = "SELECT DATE('1970-02-02 01:02:03') AS date0, DATE"
+        + "('1970-02-02') AS date1, DATE('DATE \\'1970-02-02\\'') AS date2, DATE('TIMESTAMP "
+        + "\\'1970-02-02 01:02:03\\'') AS date3\n"
+        + "FROM scott.EMP";
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateRex0, "date0"), builder.alias(dateRex1, "date1"),
+            builder.alias(dateRex2, "date2"), builder.alias(dateRex3, "date3"))
+        .build();
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
   @Test public void testDOMAndDOY() {
     final RelBuilder builder = relBuilder();
     final RexNode dayOfMonthRexNode = builder.call(SqlLibraryOperators.FORMAT_DATE,
