@@ -280,11 +280,21 @@ public abstract class PruneEmptyRules {
   public static final RelOptRule CORRELATE_LEFT_INSTANCE =
       CorrelateLeftEmptyRuleConfig.DEFAULT.toRule();
 
-  /** Planner rule that converts a single-rel (e.g. project, sort, aggregate or
-   * filter) on top of the empty relational expression into empty. */
+  /**
+   * Rule that converts a relation into empty.
+   * <p>
+   * The users can control the application of the rule by:</p>
+   * <ul>
+   *   <li>calling the appropriate constructor and passing the necessary configuration;</li>
+   *   <li>extending the class through inheritance and overriding
+   *   {@link RemoveEmptySingleRule#matches(RelOptRuleCall)}).</li>
+   * </ul>
+   *
+   * <p>When using the deprecated constructors it is only possible to convert relations
+   * which strictly have a single input ({@link SingleRel}).</p>*/
   public static class RemoveEmptySingleRule extends PruneEmptyRule {
     /** Creates a RemoveEmptySingleRule. */
-    RemoveEmptySingleRule(RemoveEmptySingleRuleConfig config) {
+    RemoveEmptySingleRule(PruneEmptyRule.Config config) {
       super(config);
     }
 
@@ -318,7 +328,7 @@ public abstract class PruneEmptyRules {
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
-      SingleRel singleRel = call.rel(0);
+      RelNode singleRel = call.rel(0);
       RelNode emptyValues = call.builder().push(singleRel).empty().build();
       RelTraitSet traits = singleRel.getTraitSet();
       // propagate all traits (except convention) from the original singleRel into the empty values
@@ -473,21 +483,12 @@ public abstract class PruneEmptyRules {
         .withDescription("PruneSortLimit0");
 
     @Override default PruneEmptyRule toRule() {
-      return new PruneEmptyRule(this) {
-        @Override public void onMatch(RelOptRuleCall call) {
+      return new RemoveEmptySingleRule(this) {
+        @Override public boolean matches(final RelOptRuleCall call) {
           Sort sort = call.rel(0);
-          if (sort.fetch != null
+          return sort.fetch != null
               && !(sort.fetch instanceof RexDynamicParam)
-              && RexLiteral.intValue(sort.fetch) == 0) {
-            RelNode emptyValues = call.builder().push(sort).empty().build();
-            RelTraitSet traits = sort.getTraitSet();
-            // propagate all traits (except convention) from the original sort into the empty values
-            if (emptyValues.getConvention() != null) {
-              traits = traits.replace(emptyValues.getConvention());
-            }
-            emptyValues = emptyValues.copy(traits, Collections.emptyList());
-            call.transformTo(emptyValues);
-          }
+              && RexLiteral.intValue(sort.fetch) == 0;
         }
 
       };
@@ -582,12 +583,7 @@ public abstract class PruneEmptyRules {
                 b2 -> b2.operand(RelNode.class).anyInputs()))
         .withDescription("PruneEmptyCorrelate(left)");
     @Override default PruneEmptyRule toRule() {
-      return new PruneEmptyRule(this) {
-        @Override public void onMatch(RelOptRuleCall call) {
-          final Correlate corr = call.rel(0);
-          call.transformTo(call.builder().push(corr).empty().build());
-        }
-      };
+      return new RemoveEmptySingleRule(this);
     }
   }
 
@@ -639,24 +635,11 @@ public abstract class PruneEmptyRules {
         .withDescription("PruneZeroRowsTable");
 
     @Override default PruneEmptyRule toRule() {
-      return new PruneEmptyRule(this) {
+      return new RemoveEmptySingleRule(this) {
         @Override public boolean matches(RelOptRuleCall call) {
           RelNode node = call.rel(0);
           Double maxRowCount = call.getMetadataQuery().getMaxRowCount(node);
           return maxRowCount != null && maxRowCount == 0.0;
-        }
-
-        @Override public void onMatch(RelOptRuleCall call) {
-          RelNode node = call.rel(0);
-          RelNode emptyValues = call.builder().push(node).empty().build();
-          RelTraitSet traits = node.getTraitSet();
-          // propagate all traits (except convention) from the original tableScan
-          // into the empty values
-          if (emptyValues.getConvention() != null) {
-            traits = traits.replace(emptyValues.getConvention());
-          }
-          emptyValues = emptyValues.copy(traits, Collections.emptyList());
-          call.transformTo(emptyValues);
         }
       };
     }
