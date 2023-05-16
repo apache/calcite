@@ -11854,7 +11854,7 @@ class RelToSqlConverterTest {
         RelDataTypeSystem.DEFAULT,
         SqlTypeName.VARCHAR);
     final RelDataType type = FormatSqlType.from(relDataType,
-        format.toString().replace("\'", ""));
+        format.getValueAs(String.class));
     final RexNode castCall = rexBuilder.makeCast(type, builder.literal(1234), false);
     RelNode root = builder
         .project(castCall)
@@ -11868,17 +11868,15 @@ class RelToSqlConverterTest {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexBuilder rexBuilder = builder.getRexBuilder();
     RexLiteral format = builder.literal("FM999.999");
-    boolean isFormatContainsFM = format.toString()
-        .replace("\'", "").toUpperCase().startsWith("FM");
+    boolean isFormatContainsFM = format.getValueAs(String.class).startsWith("FM");
     if (isFormatContainsFM) {
-      format = builder.literal(format.toString()
-          .replace("\'", "").replace("FM", ""));
+      format = builder.literal(format.getValueAs(String.class).replace("FM", ""));
     }
     final BasicSqlType relDataType = new BasicSqlType(
         RelDataTypeSystem.DEFAULT,
         SqlTypeName.VARCHAR);
     final RelDataType type = FormatSqlType.from(relDataType,
-        format.toString().replace("\'", ""));
+        format.getValueAs(String.class));
     final RexNode castCall = rexBuilder.makeCast(type,
         builder.getRexBuilder().makeApproxLiteral(new BigDecimal(1234)), false);
     RexNode outputCall = null;

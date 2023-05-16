@@ -1726,9 +1726,9 @@ public class BigQuerySqlDialect extends SqlDialect {
    * BigQuery Standard SQL Data Types</a>.
    */
   @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
-    if (type instanceof FormatSqlType) {
-      return createFormatSqlDataTypeSpec((FormatSqlType) type);
-    }
+//    if (type instanceof FormatSqlType) {
+//      return createFormatSqlDataTypeSpec((FormatSqlType) type);
+//    }
     if (type instanceof BasicSqlType) {
       final SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {
@@ -1753,7 +1753,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         return createSqlDataTypeSpecByName("BOOL", typeName);
       case CHAR:
       case VARCHAR:
-        return createSqlDataTypeSpecByName("STRING", typeName);
+        return createFormatSqlDataTypeSpec(type);
       case BINARY:
       case VARBINARY:
         return createSqlDataTypeSpecByName("BYTES", typeName);
@@ -1774,12 +1774,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     return super.getCastSpec(type);
   }
 
-  private static SqlNode createFormatSqlDataTypeSpec(FormatSqlType type) {
-    SqlParserPos pos = SqlParserPos.ZERO;
-    SqlCharStringLiteral formatLiteral = SqlLiteral.createCharString(type.getFormatValue(), pos);
-    SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
-        "STRING", type.getSqlTypeName(), pos);
-    return  new SqlDataTypeSpec(typeNameSpec, formatLiteral, pos);
+  private static SqlNode createFormatSqlDataTypeSpec(RelDataType type) {
+    if (type instanceof FormatSqlType) {
+      SqlParserPos pos = SqlParserPos.ZERO;
+      SqlCharStringLiteral formatLiteral = SqlLiteral.createCharString(((FormatSqlType) type).getFormatValue(), pos);
+      SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
+          "STRING", type.getSqlTypeName(), pos);
+      return  new SqlDataTypeSpec(typeNameSpec, formatLiteral, pos);
+    }
+    return createSqlDataTypeSpecByName("STRING", type.getSqlTypeName());
   }
 
   @Override public @Nullable SqlNode getCastSpecWithPrecisionAndScale(final RelDataType type) {
