@@ -434,6 +434,11 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction CURRENT_TIMESTAMP = new SqlCurrentTimestampFunction(
       "CURRENT_TIMESTAMP", SqlTypeName.TIMESTAMP);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction CURRENT_TIMESTAMP_WITH_TIME_ZONE =
+      new SqlCurrentTimestampFunction("CURRENT_TIMESTAMP_TZ",
+          SqlTypeName.TIMESTAMP_WITH_TIME_ZONE);
+
   /**
    * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
    * that matches the regex_pattern. Returns NULL if there is no match.
@@ -1247,10 +1252,17 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction MONTHS_BETWEEN =
       new SqlFunction("MONTHS_BETWEEN",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER_NULLABLE, null,
+          ReturnTypes.DECIMAL_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE),
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction ORACLE_MONTHS_BETWEEN =
+      new SqlFunction("MONTHS_BETWEEN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DECIMAL_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+          SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction REGEXP_MATCH_COUNT =
