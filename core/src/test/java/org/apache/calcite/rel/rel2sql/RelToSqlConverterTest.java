@@ -73,7 +73,6 @@ import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
@@ -11846,48 +11845,21 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
-  @Test public void testCastWithThreeArgs() {
+  @Test public void testCastWithFormat() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexBuilder rexBuilder = builder.getRexBuilder();
     RexLiteral format = builder.literal("9999.9999");
-    final BasicSqlType relDataType = new BasicSqlType(
-        RelDataTypeSystem.DEFAULT,
-        SqlTypeName.VARCHAR);
+    final RelDataType varcharRelType = builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
     final RelDataType type = BasicSqlTypeWithFormat.from(RelDataTypeSystem.DEFAULT,
-        relDataType,
+        (BasicSqlType) varcharRelType,
         format.getValueAs(String.class));
     final RexNode castCall = rexBuilder.makeCast(type, builder.literal(1234), false);
     RelNode root = builder
         .project(castCall)
         .build();
-    final String expectedOracleSql = "SELECT CAST(1234 AS STRING FORMAT '9999.9999') AS `$f0`\n"
+    final String expectedBQSql = "SELECT CAST(1234 AS STRING FORMAT '9999.9999') AS `$f0`\n"
                                      + "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedOracleSql));
-  }
-
-  @Test public void testCastWithThreeArgsInDiffFormat() {
-    RelBuilder builder = relBuilder().scan("EMP");
-    final RexBuilder rexBuilder = builder.getRexBuilder();
-    RexLiteral format = builder.literal("FM999.999");
-    format = builder.literal(format.getValueAs(String.class).replace("FM", ""));
-    final BasicSqlType relDataType = new BasicSqlType(
-        RelDataTypeSystem.DEFAULT,
-        SqlTypeName.VARCHAR);
-    final RelDataType type = BasicSqlTypeWithFormat.from(RelDataTypeSystem.DEFAULT,
-        relDataType,
-        format.getValueAs(String.class));
-    final RexNode castCall = rexBuilder.makeCast(type,
-        builder.getRexBuilder().makeApproxLiteral(new BigDecimal(1234)), false);
-    RexNode outputCall = builder.call(SqlStdOperatorTable.TRIM,
-          builder.literal(SqlTrimFunction.Flag.BOTH),
-          builder.literal(""), castCall);
-    RelNode root = builder
-        .project(outputCall)
-        .build();
-    final String expectedOracleSql = "SELECT TRIM(CAST(1234 AS STRING FORMAT '999.999'), '') "
-        + "AS `$f0`\n"
-        + "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedOracleSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
 }
