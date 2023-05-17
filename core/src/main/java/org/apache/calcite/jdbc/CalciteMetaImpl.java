@@ -307,7 +307,6 @@ public class CalciteMetaImpl extends MetaImpl {
       Pat schemaPattern,
       Pat tableNamePattern,
       Pat columnNamePattern) {
-//    final Predicate1<String> tableNameMatcher = matcher(tableNamePattern);
     final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
     final Predicate1<MetaColumn> columnMatcher =
         namedMatcher(columnNamePattern);

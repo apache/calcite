@@ -75,6 +75,29 @@ public interface Schema {
    */
   Set<String> getTableNames();
 
+  /**
+   * Returns a table with a given name, or null if not found.
+   *  This method  only be called when your SQL references a certain table.
+   *  Notes:  Actually,
+   *         1、 {@link #getTable(String)} and {@link #getTableNames()} are a pair of methods ,
+   *              if you choose to implement them, You can ignore the configuration of
+   *              the case sentitive attribute in the connection, and you have to load
+   *              all table names in memory by {@link #getTableNames()} ,because
+   *              {@link #getTable(String)} relies on {@link #getTableNames()} to provide
+   *              information.
+   *         2、 {@link #getTable(String, boolean)}
+   *              and {@link #getTableNamesByPattern(Meta.Pat p)} are a pair of methods ,
+   *              if you choose to implement them, You must consider the case sentitive of
+   *              table names and regex matching of table names , but You don't have to add
+   *              all tableinformation into memory, maybe you can put them into the database
+   *              and query them by database, because these methods  only be called when
+   *              your SQL references a certain table.
+   *         you case choose to implement one of these two pairs of methods.
+   * @param name Table name, this name is the name of the table in the SQL statement.
+   * @param caseSensitive whether table need case-sensitive,
+   *                      this is true if set connection conf caseSensitive=true ,else false.
+   * @return
+   */
   @Nullable Table getTable(String name, boolean caseSensitive);
 
   /**

@@ -28,6 +28,8 @@ import org.apache.calcite.util.Sources;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Map;
@@ -38,8 +40,12 @@ import java.util.stream.Collectors;
 /**
  * Schema mapped onto a directory of CSV files. Each table in the schema
  * is a CSV file in that directory.
+ * only implements {@link #getTable(String name, boolean caseSensitive)} and {@link #getTableNamesByPattern(Meta.Pat p)}
+ * and Test them to see whether they have the expected behavior.
  */
 public class CsvLazySchema extends AbstractSchema {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(CsvLazySchema.class);
   private final File directoryFile;
   private final CsvTable.Flavor flavor;
   private Map<String, Table> tableMap;
@@ -75,7 +81,6 @@ public class CsvLazySchema extends AbstractSchema {
         : null;
   }
 
-
   private Map<String, Table> createTableMap() {
     // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
     // ".json.gz".
@@ -86,7 +91,7 @@ public class CsvLazySchema extends AbstractSchema {
           || nameSansGz.endsWith(".json");
     });
     if (files == null) {
-      System.out.println("directory " + directoryFile + " not found");
+      LOGGER.warn("directory " + directoryFile + " not found");
       files = new File[0];
     }
     // Build a map from table name to table; each file becomes a table.
@@ -124,7 +129,6 @@ public class CsvLazySchema extends AbstractSchema {
     }
     return result;
   }
-
 
   @Override public final Set<String> getTableNamesByPattern(Meta.Pat p) {
     //covert sql pattern to java pattern

@@ -1044,7 +1044,6 @@ class CsvTest {
     sql("model-lazy-scheme", "select * from DEPTS1", properties).ok();
   }
 
-
   @Test void testDateTypeLazySchemeCopy() throws SQLException {
     Properties info = new Properties();
     info.put("model", jsonPath("bug-lazy-scheme"));
@@ -1093,11 +1092,6 @@ class CsvTest {
 
     }
   }
-//  @Test void testShowTablesByLazySchemeShowTables() throws SQLException {
-//    Properties properties = new Properties();
-//    properties.put("caseSensitive", "false");
-//    sql("model-lazy-scheme", "DESCRIBE  DePTS ", properties).ok();
-//  }
 
   /** Creates a command that appends a line to the CSV file. */
   private Callable<Void> writeLine(final PrintWriter pw, final String line) {
