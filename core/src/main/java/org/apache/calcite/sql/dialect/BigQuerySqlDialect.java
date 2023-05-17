@@ -1771,7 +1771,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     return super.getCastSpec(type);
   }
 
-  /* It creates SqlDataTypeSpec with Format if RelDataType has instance of BasicSqlTypeWithFormat*/
+  /* It creates SqlDataTypeSpec with Format if RelDataType is instance of BasicSqlTypeWithFormat*/
   private static SqlNode createSqlDataTypeSpecByName(String typeAlias, RelDataType type) {
     if (type instanceof BasicSqlTypeWithFormat) {
       SqlParserPos pos = SqlParserPos.ZERO;

@@ -205,7 +205,7 @@ public class SqlDataTypeSpec extends SqlNode {
     typeNameSpec.unparse(writer, leftPrec, rightPrec);
     if (formatLiteral != null) {
       writer.keyword("FORMAT");
-      writer.literal(formatLiteral.getValue().toString());
+     formatLiteral.unparse(writer, leftPrec, rightPrec);
     }
   }
 
