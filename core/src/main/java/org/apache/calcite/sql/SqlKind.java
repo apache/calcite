@@ -683,6 +683,9 @@ public enum SqlKind {
   /** {@code ARRAY_CONCAT} function (BigQuery semantics). */
   ARRAY_CONCAT,
 
+  /** {@code ARRAY_CONTAINS} function (Spark semantics). */
+  ARRAY_CONTAINS,
+
   /** {@code ARRAY_DISTINCT} function (Spark semantics). */
   ARRAY_DISTINCT,
 

@@ -97,6 +97,21 @@ public abstract class SqlTypeTransforms {
       };
 
   /**
+   * Parameter type-inference transform strategy where a derived type is
+   * transformed into the same type, but nullable if and only if the type
+   * of a call's operand #0 (0-based) is nullable.
+   */
+  public static final SqlTypeTransform ARG0_NULLABLE =
+      (opBinding, typeToTransform) -> {
+        RelDataType arg0 = opBinding.collectOperandTypes().get(0);
+        if (arg0.isNullable()) {
+          return opBinding.getTypeFactory()
+              .createTypeWithNullability(typeToTransform, true);
+        }
+        return typeToTransform;
+      };
+
+  /**
    * Type-inference strategy whereby the result type of a call is VARYING the
    * type given. The length returned is the same as length of the first
    * argument. Return type will have same nullability as input type

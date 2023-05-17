@@ -484,6 +484,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker MAP =
       family(SqlTypeFamily.MAP);
 
+  public static final SqlOperandTypeChecker ARRAY_ELEMENT =
+      new ArrayElementOperandTypeChecker();
+
   /**
    * Operand type-checking strategy where type must be a literal or NULL.
    */

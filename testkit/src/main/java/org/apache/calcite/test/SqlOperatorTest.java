@@ -5364,6 +5364,27 @@ public class SqlOperatorTest {
     f.checkNull("array_concat(cast(null as integer array), array[1])");
   }
 
+  /** Tests {@code ARRAY_CONTAINS} function from Spark. */
+  @Test void testArrayContainsFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_CONTAINS);
+    f0.checkFails("^array_contains(array[1, 2], 1)^",
+        "No match found for function signature "
+            + "ARRAY_CONTAINS\\(<INTEGER ARRAY>, <NUMERIC>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_contains(array[1, 2], 1)", true,
+        "BOOLEAN NOT NULL");
+    f.checkScalar("array_contains(array[1, null], cast(null as integer))", true,
+        "BOOLEAN NOT NULL");
+    f.checkScalar("array_contains(array[map[1, 'a'], map[2, 'b']], map[1, 'a'])", true,
+        "BOOLEAN NOT NULL");
+    f.checkFails("^array_contains(array[1, 2], true)^",
+        "INTEGER is not comparable to BOOLEAN", false);
+    f.checkNull("array_contains(cast(null as integer array), 1)");
+    f.checkType("array_contains(cast(null as integer array), 1)", "BOOLEAN");
+  }
+
   /** Tests {@code ARRAY_DISTINCT} function from Spark. */
   @Test void testArrayDistinctFunc() {
     final SqlOperatorFixture f0 = fixture();

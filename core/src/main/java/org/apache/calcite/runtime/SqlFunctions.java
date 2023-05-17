@@ -3880,6 +3880,12 @@ public class SqlFunctions {
     return result;
   }
 
+  /** Support the ARRAY_CONTAINS function. */
+  public static boolean contains(List list, Object element) {
+    final Set set = new HashSet(list);
+    return set.contains(element);
+  }
+
   /** Support the ARRAY_DISTINCT function. */
   public static List distinct(List list) {
     Set result = new LinkedHashSet<>(list);
