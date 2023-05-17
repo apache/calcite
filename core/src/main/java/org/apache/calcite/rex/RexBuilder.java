@@ -1536,7 +1536,7 @@ public class RexBuilder {
     case TIME_WITH_LOCAL_TIME_ZONE:
       return new TimeString(0, 0, 0);
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      return new TimestampString(0, 0, 0, 0, 0, 0);
+      return new TimestampString(0, 1, 1, 0, 0, 0);
     default:
       throw Util.unexpected(type.getSqlTypeName());
     }
