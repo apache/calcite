@@ -481,6 +481,9 @@ public abstract class OperandTypes {
           .or(family(SqlTypeFamily.ARRAY))
           .or(family(SqlTypeFamily.MAP));
 
+  public static final SqlSingleOperandTypeChecker MAP =
+      family(SqlTypeFamily.MAP);
+
   /**
    * Operand type-checking strategy where type must be a literal or NULL.
    */

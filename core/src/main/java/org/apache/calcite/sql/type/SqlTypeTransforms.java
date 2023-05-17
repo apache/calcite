@@ -229,6 +229,34 @@ public abstract class SqlTypeTransforms {
               typeToTransform);
 
   /**
+   * Parameter type-inference transform strategy that converts a MAP type
+   * to a ARRAY type.
+   *
+   * @see org.apache.calcite.rel.type.RelDataTypeFactory#createArrayType
+   */
+  public static final SqlTypeTransform TO_MAP_KEYS =
+      (opBinding, typeToTransform) -> {
+        RelDataType keyType =
+            requireNonNull(typeToTransform.getKeyType(),
+                () -> "keyType for " + typeToTransform + " in opBinding " + opBinding);
+        return opBinding.getTypeFactory().createArrayType(keyType, -1);
+      };
+
+  /**
+   * Parameter type-inference transform strategy that converts a MAP type
+   * to a ARRAY type.
+   *
+   * @see org.apache.calcite.rel.type.RelDataTypeFactory#createArrayType
+   */
+  public static final SqlTypeTransform TO_MAP_VALUES =
+      (opBinding, typeToTransform) -> {
+        RelDataType keyType =
+            requireNonNull(typeToTransform.getValueType(),
+                () -> "valueType for " + typeToTransform + " in opBinding " + opBinding);
+        return opBinding.getTypeFactory().createArrayType(keyType, -1);
+      };
+
+  /**
    * Parameter type-inference transform strategy where a derived type must be
    * a struct type with precisely one field and the returned type is the type
    * of that field.
