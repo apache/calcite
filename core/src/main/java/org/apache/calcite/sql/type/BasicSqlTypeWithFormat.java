@@ -19,13 +19,13 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 
 /**
- * FormatSqlType represents a FORMAT literal in RelDataType.
+ * BasicSqlTypeWithFormat represents a FORMAT literal in RelDataType.
  */
-public class FormatSqlType extends BasicSqlType {
+public class BasicSqlTypeWithFormat extends BasicSqlType {
 
   private final String formatValue;
 
-  private FormatSqlType(RelDataTypeSystem typeSystem,
+  private BasicSqlTypeWithFormat(RelDataTypeSystem typeSystem,
       SqlTypeName typeName,
       String formatValue) {
     super(typeSystem, typeName);
@@ -36,8 +36,10 @@ public class FormatSqlType extends BasicSqlType {
     return formatValue;
   }
 
-  public static FormatSqlType from(BasicSqlType basicSqlType, String format) {
-    return new FormatSqlType(RelDataTypeSystem.DEFAULT,
+  public static BasicSqlTypeWithFormat from(RelDataTypeSystem relDataTypeSystem,
+      BasicSqlType basicSqlType,
+      String format) {
+    return new BasicSqlTypeWithFormat(relDataTypeSystem,
          basicSqlType.typeName,
          format);
   }

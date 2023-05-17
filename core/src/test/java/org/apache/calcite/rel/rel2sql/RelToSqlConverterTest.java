@@ -77,7 +77,7 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
-import org.apache.calcite.sql.type.FormatSqlType;
+import org.apache.calcite.sql.type.BasicSqlTypeWithFormat;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
@@ -11853,7 +11853,8 @@ class RelToSqlConverterTest {
     final BasicSqlType relDataType = new BasicSqlType(
         RelDataTypeSystem.DEFAULT,
         SqlTypeName.VARCHAR);
-    final RelDataType type = FormatSqlType.from(relDataType,
+    final RelDataType type = BasicSqlTypeWithFormat.from(RelDataTypeSystem.DEFAULT,
+        relDataType,
         format.getValueAs(String.class));
     final RexNode castCall = rexBuilder.makeCast(type, builder.literal(1234), false);
     RelNode root = builder
@@ -11868,25 +11869,18 @@ class RelToSqlConverterTest {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexBuilder rexBuilder = builder.getRexBuilder();
     RexLiteral format = builder.literal("FM999.999");
-    boolean isFormatContainsFM = format.getValueAs(String.class).startsWith("FM");
-    if (isFormatContainsFM) {
-      format = builder.literal(format.getValueAs(String.class).replace("FM", ""));
-    }
+    format = builder.literal(format.getValueAs(String.class).replace("FM", ""));
     final BasicSqlType relDataType = new BasicSqlType(
         RelDataTypeSystem.DEFAULT,
         SqlTypeName.VARCHAR);
-    final RelDataType type = FormatSqlType.from(relDataType,
+    final RelDataType type = BasicSqlTypeWithFormat.from(RelDataTypeSystem.DEFAULT,
+        relDataType,
         format.getValueAs(String.class));
     final RexNode castCall = rexBuilder.makeCast(type,
         builder.getRexBuilder().makeApproxLiteral(new BigDecimal(1234)), false);
-    RexNode outputCall = null;
-    if (isFormatContainsFM) {
-      outputCall = builder.call(SqlStdOperatorTable.TRIM,
+    RexNode outputCall = builder.call(SqlStdOperatorTable.TRIM,
           builder.literal(SqlTrimFunction.Flag.BOTH),
           builder.literal(""), castCall);
-    } else {
-      outputCall = castCall;
-    }
     RelNode root = builder
         .project(outputCall)
         .build();

@@ -38,7 +38,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
-import org.apache.calcite.sql.type.FormatSqlType;
+import org.apache.calcite.sql.type.BasicSqlTypeWithFormat;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -633,7 +633,7 @@ public class RexBuilder {
   boolean canRemoveCastFromLiteral(RelDataType toType, @Nullable Comparable value,
       SqlTypeName fromTypeName) {
     final SqlTypeName sqlType = toType.getSqlTypeName();
-    if (toType instanceof FormatSqlType) {
+    if (toType instanceof BasicSqlTypeWithFormat) {
       return false;
     }
     if (!RexLiteral.valueMatchesType(value, sqlType, false)) {
@@ -1683,7 +1683,7 @@ public class RexBuilder {
   private static @PolyNull Object clean(@PolyNull Object o, RelDataType type) {
     if (o == null) {
       return o;
-    } else if (type instanceof FormatSqlType) {
+    } else if (type instanceof BasicSqlTypeWithFormat) {
       return o;
     }
     switch (type.getSqlTypeName()) {
