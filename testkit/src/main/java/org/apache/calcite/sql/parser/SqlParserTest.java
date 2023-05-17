@@ -749,6 +749,48 @@ public class SqlParserTest {
         .fails("(?s)Encountered \"\\*\" at .*");
   }
 
+  @Test void testPercentileCont() {
+    sql("select percentile_cont(.5) within group (order by 3) from t")
+        .ok("SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY 3)\n"
+            + "FROM `T`");
+  }
+
+  @Test void testPercentileDisc() {
+    sql("select percentile_disc(.5) within group (order by 3) from t")
+        .ok("SELECT PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY 3)\n"
+            + "FROM `T`");
+  }
+
+  @Test void testPercentileContBigQuery() {
+    sql("select percentile_cont(x, .5) over() from unnest(array[1,2,3,4]) as x")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT (PERCENTILE_CONT(x, 0.5) OVER ())\n"
+            + "FROM UNNEST((ARRAY[1, 2, 3, 4])) AS x");
+    sql("select percentile_cont(x, .5 RESPECT NULLS) over() from unnest(array[1,2,3,4]) as x")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT (PERCENTILE_CONT(x, 0.5) RESPECT NULLS OVER ())\n"
+            + "FROM UNNEST((ARRAY[1, 2, 3, 4])) AS x");
+    sql("select percentile_cont(x, .5 IGNORE NULLS) over() from unnest(array[1,null,3,4]) as x")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT (PERCENTILE_CONT(x, 0.5) IGNORE NULLS OVER ())\n"
+            + "FROM UNNEST((ARRAY[1, NULL, 3, 4])) AS x");
+  }
+
+  @Test void testPercentileDiscBigQuery() {
+    sql("select percentile_disc(x, .5) over() from unnest(array[1,2,3,4]) as x")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT (PERCENTILE_DISC(x, 0.5) OVER ())\n"
+            + "FROM UNNEST((ARRAY[1, 2, 3, 4])) AS x");
+    sql("select percentile_disc(x, .5 RESPECT NULLS) over() from unnest(array[1,2,3,4]) as x")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT (PERCENTILE_DISC(x, 0.5) RESPECT NULLS OVER ())\n"
+            + "FROM UNNEST((ARRAY[1, 2, 3, 4])) AS x");
+    sql("select percentile_disc(x, .5 IGNORE NULLS) over() from unnest(array[1,null,3,4]) as x")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT (PERCENTILE_DISC(x, 0.5) IGNORE NULLS OVER ())\n"
+            + "FROM UNNEST((ARRAY[1, NULL, 3, 4])) AS x");
+  }
+
   @Test void testHyphenatedTableName() {
     sql("select * from bigquery^-^foo-bar.baz")
         .fails("(?s)Encountered \"-\" at .*")

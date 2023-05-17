@@ -581,6 +581,32 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction MIN_BY =
       SqlStdOperatorTable.ARG_MIN.withName("MIN_BY");
 
+  /** The {@code PERCENTILE_CONT} function, BigQuery's
+   * equivalent to {@link SqlStdOperatorTable#PERCENTILE_CONT}. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlAggFunction PERCENTILE_CONT2 =
+      SqlBasicAggFunction
+          .create("PERCENTILE_CONT", SqlKind.PERCENTILE_CONT,
+              ReturnTypes.DOUBLE,
+              OperandTypes.NUMERIC_UNIT_INTERVAL_NUMERIC_LITERAL)
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withOver(true)
+          .withPercentile(true)
+          .withAllowsNullTreatment(true);
+
+  /** The {@code PERCENTILE_DISC} function, BigQuery's
+   * equivalent to {@link SqlStdOperatorTable#PERCENTILE_DISC}. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlAggFunction PERCENTILE_DISC2 =
+      SqlBasicAggFunction
+          .create("PERCENTILE_DISC", SqlKind.PERCENTILE_DISC,
+              ReturnTypes.ARG0,
+              OperandTypes.NUMERIC_UNIT_INTERVAL_NUMERIC_LITERAL)
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withOver(true)
+          .withPercentile(true)
+          .withAllowsNullTreatment(true);
+
   /** The "DATE" function. It has the following overloads:
    *
    * <ul>

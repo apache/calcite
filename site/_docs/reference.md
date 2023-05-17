@@ -827,8 +827,8 @@ PATH,
 **PATTERN**,
 **PER**,
 **PERCENT**,
-**PERCENTILE_CONT**,
-**PERCENTILE_DISC**,
+PERCENTILE_CONT,
+PERCENTILE_DISC,
 **PERCENT_RANK**,
 **PERIOD**,
 **PERMUTE**,
@@ -2844,6 +2844,8 @@ Dialect-specific aggregate functions.
 | s | MAX_BY(value, comp)                            | Synonym for `ARG_MAX`
 | s | MIN_BY(value, comp)                            | Synonym for `ARG_MIN`
 | b p | STRING_AGG( [ ALL &#124; DISTINCT ] value [, separator] [ ORDER BY orderItem [, orderItem ]* ] ) | Synonym for `LISTAGG`
+| b | PERCENTILE_CONT(value, fraction [ RESPECT NULLS &#124; IGNORE NULLS ] ) OVER([ over_clause ] ) | Synonym for standard `PERCENTILE_CONT` where `PERCENTILE_CONT(value, fraction)` is equivalent to `PERCENTILE_CONT(fraction) WITHIN GROUP (ORDER BY value)`
+| b | PERCENTILE_DISC(value, fraction [ RESPECT NULLS &#124; IGNORE NULLS ] ) OVER([ over_clause ] ) | Synonym for standard `PERCENTILE_DISC` where `PERCENTILE_DISC(value, fraction)` is equivalent to `PERCENTILE_DISC(fraction) WITHIN GROUP (ORDER BY value)` | b p | STRING_AGG( [ ALL &#124; DISTINCT ] value [, separator] [ ORDER BY orderItem [, orderItem ]* ] ) | Synonym for `LISTAGG`
 
 Usage Examples:
 

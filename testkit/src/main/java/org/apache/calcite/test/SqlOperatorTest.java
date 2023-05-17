@@ -9771,6 +9771,34 @@ public class SqlOperatorTest {
             + "between 0 and 1", false);
   }
 
+  @Test void testPercentileContBigQueryFunc() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.PERCENTILE_CONT2, SqlOperatorFixture.VmName.EXPAND)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkType("percentile_cont(1, .5)",
+        "DOUBLE NOT NULL");
+    f.checkType("percentile_cont(.5, .5 RESPECT NULLS)", "DOUBLE NOT NULL");
+    f.checkType("percentile_cont(1, .5 IGNORE NULLS)", "DOUBLE NOT NULL");
+    f.checkType("percentile_cont(2+3, .5 IGNORE NULLS)", "DOUBLE NOT NULL");
+    f.checkFails("^percentile_cont(1, 1.5)^",
+        "Argument to function 'PERCENTILE_CONT' must be a numeric literal "
+            + "between 0 and 1", false);
+  }
+
+  @Test void testPercentileDiscBigQueryFunc() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.PERCENTILE_DISC2, SqlOperatorFixture.VmName.EXPAND)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkType("percentile_disc(1, .5)",
+        "INTEGER NOT NULL");
+    f.checkType("percentile_disc(1, .5 RESPECT NULLS)", "INTEGER NOT NULL");
+    f.checkType("percentile_disc(0.75, .5 IGNORE NULLS)", "DECIMAL(3, 2) NOT NULL");
+    f.checkType("percentile_disc(2+3, .5 IGNORE NULLS)", "INTEGER NOT NULL");
+    f.checkFails("^percentile_disc(1, 1.5)^",
+        "Argument to function 'PERCENTILE_DISC' must be a numeric literal "
+            + "between 0 and 1", false);
+  }
+
   @Test void testCountFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.COUNT, VM_EXPAND);

@@ -6148,28 +6148,40 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throw new AssertionError(op);
     }
 
+    // Because there are two forms of the PERCENTILE_CONT/PERCENTILE_DISC functions,
+    // they are distinguished by their operand count and then validated accordingly.
+    // For example, the standard single operand form requires group order while the
+    // 2-operand form allows for null treatment and requires an OVER() clause.
     if (op.isPercentile()) {
-      assert op.requiresGroupOrder() == Optionality.MANDATORY;
-      assert orderList != null;
-
-      // Validate that percentile function have a single ORDER BY expression
-      if (orderList.size() != 1) {
-        throw newValidationError(orderList,
-            RESOURCE.orderByRequiresOneKey(op.getName()));
-      }
-
-      // Validate that the ORDER BY field is of NUMERIC type
-      SqlNode node = orderList.get(0);
-      assert node != null;
-
-      final RelDataType type = deriveType(scope, node);
-      final @Nullable SqlTypeFamily family = type.getSqlTypeName().getFamily();
-      if (family == null
-          || family.allowableDifferenceTypes().isEmpty()) {
-        throw newValidationError(orderList,
-            RESOURCE.unsupportedTypeInOrderBy(
-                type.getSqlTypeName().getName(),
-                op.getName()));
+      switch (aggCall.operandCount()) {
+      case 1:
+        assert op.requiresGroupOrder() == Optionality.MANDATORY;
+        assert orderList != null;
+        // Validate that percentile function have a single ORDER BY expression
+        if (orderList.size() != 1) {
+          throw newValidationError(orderList,
+              RESOURCE.orderByRequiresOneKey(op.getName()));
+        }
+        // Validate that the ORDER BY field is of NUMERIC type
+        SqlNode node = orderList.get(0);
+        assert node != null;
+        final RelDataType type = deriveType(scope, node);
+        final @Nullable SqlTypeFamily family = type.getSqlTypeName().getFamily();
+        if (family == null
+            || family.allowableDifferenceTypes().isEmpty()) {
+          throw newValidationError(orderList,
+              RESOURCE.unsupportedTypeInOrderBy(
+                  type.getSqlTypeName().getName(),
+                  op.getName()));
+        }
+        break;
+      case 2:
+        assert op.allowsNullTreatment();
+        assert op.requiresOver();
+        assert op.requiresGroupOrder() == Optionality.FORBIDDEN;
+        break;
+      default:
+        throw newValidationError(aggCall, RESOURCE.percentileFunctionsArgumentLimit());
       }
     }
   }
