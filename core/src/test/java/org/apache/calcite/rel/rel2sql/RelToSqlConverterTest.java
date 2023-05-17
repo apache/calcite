@@ -11857,11 +11857,9 @@ class RelToSqlConverterTest {
         .project(oracleMinusTimestampCall)
         .build();
 
-    final String expectedBQSql = "SELECT DATETIME_SUB(CURRENT_DATETIME(), INTERVAL 2 MONTH) AS " +
-        "`$f0`\nFROM scott.EMP";
+    final String expectedBQSql = "SELECT DATETIME_SUB(CURRENT_DATETIME(), INTERVAL 2 MONTH) AS "
+        + "`$f0`\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
-
-
 }
