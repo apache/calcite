@@ -1864,6 +1864,13 @@ class UtilTest {
     assertThat(Util.distinctList(cbcaC), is(Arrays.asList("c", "b", "a")));
     final List<String> a2 = ImmutableList.of("a", "a");
     assertThat(Util.distinctList(a2), is(a));
+    // Short list that is not distinct
+    final List<String> aab = ImmutableList.of("a", "a", "b");
+    final List<String> ab = Arrays.asList("a", "b");
+    assertThat(Util.distinctList(aab), is(ab));
+    // Short list that is not distinct and has later duplicate element
+    final List<String> aaba = ImmutableList.of("a", "a", "b", "a");
+    assertThat(Util.distinctList(aaba), is(ab));
     final List<String> a1m = Collections.nCopies(1_000_000, "a");
     assertThat(Util.distinctList(a1m), is(a));
   }

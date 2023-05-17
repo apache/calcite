@@ -2229,12 +2229,16 @@ public class Util {
    * <p>If the list is already unique it is returned unchanged. */
   public static <E> List<E> distinctList(List<E> list) {
     // If the list is small, check for duplicates using pairwise comparison.
-    if (list.size() < QUICK_DISTINCT && isDistinct(list)) {
-      return list;
-    }
-    // Lists that have all the same element are common. Avoiding creating a set.
-    if (allSameElement(list)) {
-      return ImmutableList.of(list.get(0));
+    if (list.size() < QUICK_DISTINCT) {
+      if (isDistinct(list)) {
+        return list;
+      }
+    } else {
+      // Lists that have all the same element are common. Avoiding creating a
+      // set.
+      if (allSameElement(list)) {
+        return ImmutableList.of(list.get(0));
+      }
     }
     return ImmutableList.copyOf(new LinkedHashSet<>(list));
   }

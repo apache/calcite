@@ -886,7 +886,14 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.LEAST_RESTRICTIVE,
           OperandTypes.AT_LEAST_ONE_SAME_VARIADIC);
 
-  /** The "ARRAY_DISTINCT(array)" function (Spark). */
+  /** The "ARRAY_CONTAINS(array, element)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction ARRAY_CONTAINS =
+      SqlBasicFunction.create(SqlKind.ARRAY_CONTAINS,
+          ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.ARRAY_ELEMENT);
+
+  /** The "ARRAY_DISTINCT(array)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_DISTINCT =
       SqlBasicFunction.create(SqlKind.ARRAY_DISTINCT,

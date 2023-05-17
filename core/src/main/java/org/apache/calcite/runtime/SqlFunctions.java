@@ -3880,7 +3880,10 @@ public class SqlFunctions {
     return result;
   }
 
-  /** Support the ARRAY_DISTINCT function. */
+  /** Support the ARRAY_DISTINCT function.
+   *
+   * <p>Note: If the list does not contain null,
+   * {@link Util#distinctList(List)} is probably faster. */
   public static List distinct(List list) {
     Set result = new LinkedHashSet<>(list);
     return new ArrayList<>(result);

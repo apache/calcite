@@ -246,12 +246,20 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference BOOLEAN =
       explicit(SqlTypeName.BOOLEAN);
+
   /**
    * Type-inference strategy whereby the result type of a call is Boolean,
    * with nulls allowed if any of the operands allow nulls.
    */
   public static final SqlReturnTypeInference BOOLEAN_NULLABLE =
       BOOLEAN.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is Boolean,
+   * with nulls allowed if the type of the operand #0 (0-based) is nullable.
+   */
+  public static final SqlReturnTypeInference BOOLEAN_NULLABLE_IF_ARG0_NULLABLE =
+      BOOLEAN.andThen(SqlTypeTransforms.ARG0_NULLABLE);
 
   /**
    * Type-inference strategy with similar effect to {@link #BOOLEAN_NULLABLE},
