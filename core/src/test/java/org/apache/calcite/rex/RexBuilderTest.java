@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rex;
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
@@ -45,14 +47,21 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.TimeZone;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -63,6 +72,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.params.provider.Arguments.of;
 
 /**
  * Test for {@link RexBuilder}.
@@ -701,6 +711,66 @@ class RexBuilderTest {
     final RexNode literal2 = rexBuilder.makeLiteral(2.0f, floatType);
     RexNode inCall = rexBuilder.makeIn(left, ImmutableList.of(literal1, literal2));
     assertThat(inCall.getKind(), is(SqlKind.SEARCH));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4555">[CALCITE-4555]
+   * Invalid zero literal value is used for
+   * TIMESTAMP WITH LOCAL TIME ZONE type in RexBuilder</a>. */
+  @ParameterizedTest
+  @MethodSource("testData4testMakeZeroLiteral")
+  void testMakeZeroLiteral(RelDataType type, RexLiteral expected) {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    assertThat(rexBuilder.makeZeroLiteral(type), is(equalTo(expected)));
+  }
+
+  private static Stream<Arguments> testData4testMakeZeroLiteral() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    BiFunction<RelDataType, Function<RelDataType, Comparable>, Arguments> type2rexLiteral =
+        (relDataType, relDataTypeComparableFunction) ->
+            of(relDataType,
+                rexBuilder.makeLiteral(
+                    relDataTypeComparableFunction.apply(relDataType), relDataType));
+    return Stream.of(
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.CHAR),
+            relDataType -> new NlsString(Spaces.of(relDataType.getPrecision()), null, null)),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.VARCHAR),
+            relDataType -> new NlsString("", null, null)),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.BINARY),
+            relDataType -> new ByteString(new byte[relDataType.getPrecision()])),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.VARBINARY),
+            relDataType -> ByteString.EMPTY),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.TINYINT),
+            relDataType -> BigDecimal.ZERO),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.SMALLINT),
+            relDataType -> BigDecimal.ZERO),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.INTEGER),
+            relDataType -> BigDecimal.ZERO),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.BIGINT),
+            relDataType -> BigDecimal.ZERO),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.DECIMAL),
+            relDataType -> BigDecimal.ZERO),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.FLOAT),
+            relDataType -> BigDecimal.ZERO),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.REAL),
+            relDataType -> BigDecimal.ZERO),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.DOUBLE),
+            relDataType -> BigDecimal.ZERO),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.BOOLEAN),
+            relDataType -> false),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.TIME),
+            relDataType -> DateTimeUtils.ZERO_CALENDAR),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.DATE),
+            relDataType -> DateTimeUtils.ZERO_CALENDAR),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.TIMESTAMP),
+            relDataType -> DateTimeUtils.ZERO_CALENDAR),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE),
+            relDataType -> new TimeString(0, 0, 0)),
+        type2rexLiteral.apply(typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE),
+            relDataType -> new TimestampString(0, 1, 1, 0, 0, 0)));
   }
 
   /** Test case for
