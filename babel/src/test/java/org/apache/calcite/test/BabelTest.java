@@ -109,6 +109,24 @@ class BabelTest {
     }
   }
 
+  @Test void testPosixRegex() {
+    final SqlValidatorFixture f = Fixtures.forValidator()
+        .withParserConfig(p -> p.withParserFactory(SqlBabelParserImpl.FACTORY));
+    f.withSql("select null !~ 'ab[cd]'").ok();
+    f.withSql("select 'abcd' !~ null").ok();
+    f.withSql("select null !~ null").ok();
+    f.withSql("select null !~* 'ab[cd]'").ok();
+    f.withSql("select 'abcd' !~* null").ok();
+    f.withSql("select null !~* null").ok();
+    f.withSql("select null ~* null").ok();
+    f.withSql("select 'abcd' ~* null").ok();
+    f.withSql("select null ~* 'ab[cd]'").ok();
+    f.withSql("select null ~ null").ok();
+    f.withSql("select 'abcd' ~ null").ok();
+    f.withSql("select null ~ 'ab[cd]'").ok();
+    f.withSql("select 'abcd' !~* 'ab[CD]'").ok();
+  }
+
   /** Tests that you can run tests via {@link Fixtures}. */
   @Test void testFixtures() {
     final SqlValidatorFixture v = Fixtures.forValidator();
