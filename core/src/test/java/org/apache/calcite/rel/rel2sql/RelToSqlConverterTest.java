@@ -6469,7 +6469,8 @@ class RelToSqlConverterTest {
   @Test public void testIntervalMinute() {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL\n"
             + "'2' minute from \"employee\"";
-    final String expectedBigQuery = "SELECT DATETIME_ADD(CAST(birth_date AS DATETIME), INTERVAL 2 MINUTE)\n"
+    final String expectedBigQuery = "SELECT "
+        + "DATETIME_ADD(CAST(birth_date AS DATETIME), INTERVAL 2 MINUTE)\n"
             + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
@@ -6479,7 +6480,8 @@ class RelToSqlConverterTest {
   @Test public void testIntervalHour() {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL\n"
             + "'2' hour from \"employee\"";
-    final String expectedBigQuery = "SELECT DATETIME_ADD(CAST(birth_date AS DATETIME), INTERVAL 2 HOUR)\n"
+    final String expectedBigQuery = "SELECT "
+        + "DATETIME_ADD(CAST(birth_date AS DATETIME), INTERVAL 2 HOUR)\n"
             + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
@@ -6488,7 +6490,8 @@ class RelToSqlConverterTest {
   @Test public void testIntervalSecond() {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL '2'\n"
             + "second from \"employee\"";
-    final String expectedBigQuery = "SELECT DATETIME_ADD(CAST(birth_date AS DATETIME), INTERVAL 2 SECOND)\n"
+    final String expectedBigQuery = "SELECT "
+        + "DATETIME_ADD(CAST(birth_date AS DATETIME), INTERVAL 2 SECOND)\n"
         + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
