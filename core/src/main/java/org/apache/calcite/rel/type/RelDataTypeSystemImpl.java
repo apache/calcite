@@ -258,7 +258,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
   }
 
   @Override public RelDataType deriveDecimalDivideType(RelDataTypeFactory typeFactory,
-      RelDataType type1, RelDataType type2){
+      RelDataType type1, RelDataType type2) {
     return RelDataTypeSystem.super.deriveDecimalDivideType(typeFactory, type1, type2);
   }
 
