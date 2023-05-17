@@ -888,6 +888,20 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.LEAST_RESTRICTIVE,
           OperandTypes.AT_LEAST_ONE_SAME_VARIADIC);
 
+  /** The "MAP_KEYS(map)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction MAP_KEYS =
+      SqlBasicFunction.create(SqlKind.MAP_KEYS,
+          ReturnTypes.TO_MAP_KEYS_NULLABLE,
+          OperandTypes.MAP);
+
+  /** The "MAP_VALUES(map)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction MAP_VALUES =
+      SqlBasicFunction.create(SqlKind.MAP_VALUES,
+          ReturnTypes.TO_MAP_VALUES_NULLABLE,
+          OperandTypes.MAP);
+
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL})
   public static final SqlFunction REVERSE =
       SqlBasicFunction.create(SqlKind.REVERSE,

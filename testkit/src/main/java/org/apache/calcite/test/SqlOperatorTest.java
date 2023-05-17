@@ -5397,6 +5397,34 @@ public class SqlOperatorTest {
     f.checkNull("array_length(null)");
   }
 
+  /** Tests {@code MAP_KEYS} function from Spark. */
+  @Test void testMapKeysFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.MAP_KEYS);
+    f0.checkFails("^map_keys(map['foo', 1, 'bar', 2])^",
+        "No match found for function signature MAP_KEYS\\(<\\(CHAR\\(3\\), INTEGER\\) "
+            + "MAP>\\)", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("map_keys(map['foo', 1, 'bar', 2])", "[foo, bar]",
+        "CHAR(3) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("map_keys(map['foo', 1, null, 2])", "[foo, null]",
+        "CHAR(3) ARRAY NOT NULL");
+  }
+
+  /** Tests {@code MAP_VALUES} function from Spark. */
+  @Test void testMapValuesFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.MAP_VALUES);
+    f0.checkFails("^map_values(map['foo', 1, 'bar', 2])^",
+        "No match found for function signature MAP_VALUES\\(<\\(CHAR\\(3\\), INTEGER\\) "
+            + "MAP>\\)", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("map_values(map['foo', 1, 'bar', 2])", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("map_values(map['foo', 1, 'bar', cast(null as integer)])", "[1, null]",
+        "INTEGER ARRAY NOT NULL");
+  }
+
   /** Tests {@code UNIX_SECONDS} and other datetime functions from BigQuery. */
   @Test void testUnixSecondsFunc() {
     SqlOperatorFixture f = fixture()

@@ -3831,6 +3831,16 @@ public class SqlFunctions {
     return Collections.nCopies(numberOfElement, element);
   }
 
+  /** Support the MAP_KEYS function. */
+  public static List mapKeys(Map map) {
+    return new ArrayList<>(map.keySet());
+  }
+
+  /** Support the MAP_VALUES function. */
+  public static List mapValues(Map map) {
+    return new ArrayList<>(map.values());
+  }
+
   /** Support the SLICE function. */
   public static List slice(List list) {
     List result = new ArrayList(list.size());

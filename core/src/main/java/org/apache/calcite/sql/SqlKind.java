@@ -692,6 +692,12 @@ public enum SqlKind {
   /** {@code ARRAY_SIZE} function (Spark semantics). */
   ARRAY_SIZE,
 
+  /** {@code MAP_KEYS} function (Spark semantics). */
+  MAP_KEYS,
+
+  /** {@code MAP_VALUES} function (Spark semantics). */
+  MAP_VALUES,
+
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
 
