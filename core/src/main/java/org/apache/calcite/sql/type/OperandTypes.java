@@ -505,12 +505,12 @@ public abstract class OperandTypes {
           i -> false) {
         @Override public boolean checkSingleOperandType(
             SqlCallBinding callBinding,
-            SqlNode node,
+            SqlNode operand,
             int iFormalOperand,
             boolean throwOnFailure) {
           if (!LITERAL.checkSingleOperandType(
               callBinding,
-              node,
+              operand,
               iFormalOperand,
               throwOnFailure)) {
             return false;
@@ -518,13 +518,13 @@ public abstract class OperandTypes {
 
           if (!super.checkSingleOperandType(
               callBinding,
-              node,
+              operand,
               iFormalOperand,
               throwOnFailure)) {
             return false;
           }
 
-          final SqlLiteral arg = (SqlLiteral) node;
+          final SqlLiteral arg = (SqlLiteral) operand;
           final BigDecimal value = arg.getValueAs(BigDecimal.class);
           if (value.compareTo(BigDecimal.ZERO) < 0
               || hasFractionalPart(value)) {
@@ -554,34 +554,26 @@ public abstract class OperandTypes {
       };
 
   /**
-   * Operand type-checking strategy type must be a numeric non-NULL
-   * literal in the range 0 and 1 inclusive.
+   * Operand type-checking strategy where type must be a numeric non-NULL
+   * literal in the range 0 to 1 inclusive.
    */
   public static final SqlSingleOperandTypeChecker UNIT_INTERVAL_NUMERIC_LITERAL =
       new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.NUMERIC),
           i -> false) {
         @Override public boolean checkSingleOperandType(
-            SqlCallBinding callBinding,
-            SqlNode node,
-            int iFormalOperand,
-            boolean throwOnFailure) {
-          if (!LITERAL.checkSingleOperandType(
-              callBinding,
-              node,
-              iFormalOperand,
-              throwOnFailure)) {
+            SqlCallBinding callBinding, SqlNode operand,
+            int iFormalOperand, boolean throwOnFailure) {
+          if (!LITERAL.checkSingleOperandType(callBinding, operand,
+              iFormalOperand, throwOnFailure)) {
             return false;
           }
 
-          if (!super.checkSingleOperandType(
-              callBinding,
-              node,
-              iFormalOperand,
-              throwOnFailure)) {
+          if (!super.checkSingleOperandType(callBinding, operand,
+              iFormalOperand, throwOnFailure)) {
             return false;
           }
 
-          final SqlLiteral arg = (SqlLiteral) node;
+          final SqlLiteral arg = (SqlLiteral) operand;
           final BigDecimal value = arg.getValueAs(BigDecimal.class);
           if (value.compareTo(BigDecimal.ZERO) < 0
               || value.compareTo(BigDecimal.ONE) > 0) {
@@ -593,6 +585,29 @@ public abstract class OperandTypes {
             return false;
           }
           return true;
+        }
+      };
+
+  /**
+   * Operand type-checking strategy where the first operand must be numeric and
+   * the second operand must be a numeric non-NULL literal in the range 0 to 1
+   * inclusive.
+   */
+  public static final SqlSingleOperandTypeChecker
+      NUMERIC_UNIT_INTERVAL_NUMERIC_LITERAL =
+      new FamilyOperandTypeChecker(
+          ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          i -> false) {
+        @Override public boolean checkSingleOperandType(
+            SqlCallBinding callBinding, SqlNode operand,
+            int iFormalOperand, boolean throwOnFailure) {
+          if (iFormalOperand == 0) {
+            return super.checkSingleOperandType(callBinding, operand,
+                iFormalOperand, throwOnFailure);
+          }
+
+          return UNIT_INTERVAL_NUMERIC_LITERAL.checkSingleOperandType(
+              callBinding, operand, 0, throwOnFailure);
         }
       };
 

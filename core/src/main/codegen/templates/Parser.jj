@@ -4057,6 +4057,59 @@ SqlCall StringAggFunctionCall() :
 }
 
 /**
+ * Parses both the standard and the BigQuery PERCENTILE_CONT/PERCENTILE_DISC
+ * functions.
+ *
+ * <p>The standard is of the form "PERCENTILE_CONT(fraction)" while BigQuery is
+ * of the form "PERCENTILE_CONT(value, fraction [ {RESPECT | IGNORE} NULLS ] )".
+ * Handles the parsing of the operator and its operands but not the WITHIN GROUP
+ * (for the standard) or OVER (for BigQuery) clauses.
+ */
+SqlCall PercentileFunctionCall() :
+{
+   final Span s;
+   SqlOperator op;
+   final SqlNode e;
+   final List<SqlNode> args = new ArrayList<SqlNode>();
+   final Pair<SqlParserPos, SqlOperator> nullTreatment;
+}
+{
+   (
+       <PERCENTILE_CONT> { op = SqlStdOperatorTable.PERCENTILE_CONT; }
+   |   <PERCENTILE_DISC> { op = SqlStdOperatorTable.PERCENTILE_DISC; }
+   )
+   { s = span(); }
+   <LPAREN>
+   AddArg(args, ExprContext.ACCEPT_SUB_QUERY)
+   (
+       <RPAREN> {
+           return op.createCall(s.end(this), args);
+       }
+   |
+       <COMMA>
+       e = NumericLiteral() { args.add(e); }
+       (
+           nullTreatment = NullTreatment()
+       |   { nullTreatment = null; }
+       )
+       <RPAREN>
+       {
+           op =
+               op == SqlStdOperatorTable.PERCENTILE_CONT
+                   ? SqlLibraryOperators.PERCENTILE_CONT2
+                   : SqlLibraryOperators.PERCENTILE_DISC2;
+           SqlCall call = op.createCall(s.end(this), args);
+           if (nullTreatment != null) {
+               // Wrap in RESPECT_NULLS or IGNORE_NULLS.
+               call = nullTreatment.right.createCall(nullTreatment.left, call);
+           }
+           return call;
+       }
+   )
+}
+
+
+/**
  * Parses an atomic row expression.
  */
 SqlNode AtomicRowExpression() :
@@ -7183,6 +7236,9 @@ SqlNode NamedFunctionCall() :
         LOOKAHEAD(2)
         call = StringAggFunctionCall()
     |
+        LOOKAHEAD(1)
+        call = PercentileFunctionCall()
+    |
         call = NamedCall()
     )
     [
@@ -7385,8 +7441,6 @@ SqlIdentifier ReservedFunctionName() :
     |   <NULLIF>
     |   <OCTET_LENGTH>
     |   <PERCENT_RANK>
-    |   <PERCENTILE_CONT>
-    |   <PERCENTILE_DISC>
     |   <POWER>
     |   <RANK>
     |   <REGR_COUNT>

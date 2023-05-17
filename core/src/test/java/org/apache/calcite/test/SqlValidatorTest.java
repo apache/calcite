@@ -6536,6 +6536,64 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("'PERCENTILE_DISC' requires precisely one ORDER BY key");
   }
 
+  @Test void testPercentileFunctionsBigQuery() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+    final String sql = "select\n"
+        + " percentile_cont(sal, 0.25) over() as c,\n"
+        + " percentile_disc(sal, 0.5) over() as d\n"
+        + "from emp";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(opTable)
+        .type("RecordType(DOUBLE NOT NULL C, INTEGER NOT NULL D) NOT NULL");
+  }
+
+  @Test void testPercentileContBigQueryFraction() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+    final String sql = "select\n"
+        + "^percentile_cont(sal, 1.5)^ over() as c\n"
+        + "from emp as x";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(opTable)
+        .fails("Argument to function 'PERCENTILE_CONT' must be a numeric "
+            + "literal between 0 and 1");
+  }
+
+  @Test void testPercentileContBigQueryAllowsNullTreatment() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+    final String sql = "select\n"
+        + "percentile_cont(sal, 1 RESPECT NULLS) over() as c\n"
+        + "from emp";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(opTable)
+        .type("RecordType(DOUBLE NOT NULL C) NOT NULL");
+  }
+
+  @Test void testPercentileDiscBigQueryFraction() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+    final String sql = "select\n"
+        + "^percentile_disc(sal, 1.5)^ over() as c\n"
+        + "from emp";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(opTable)
+        .fails("Argument to function 'PERCENTILE_DISC' must be a numeric "
+            + "literal between 0 and 1");
+  }
+
+  @Test void testPercentileDiscBigQueryAllowsNullTreatment() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+    final String sql = "select\n"
+        + "percentile_disc(sal, 1 RESPECT NULLS) over() as c\n"
+        + "from emp";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(opTable)
+        .type("RecordType(INTEGER NOT NULL C) NOT NULL");
+  }
+
   @Test void testCorrelatingVariables() {
     // reference to unqualified correlating column
     sql("select * from emp where exists (\n"

@@ -222,6 +222,15 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         allowsNullTreatment, allowsSeparator, percentile);
   }
 
+  /** Sets {@link #requiresOver()}. */
+  public SqlBasicAggFunction withOver(boolean over) {
+    return new SqlBasicAggFunction(getName(), getSqlIdentifier(), kind,
+        getReturnTypeInference(), getOperandTypeInference(),
+        getOperandTypeChecker(), staticFun, getFunctionType(), requiresOrder(),
+        over, requiresGroupOrder(), distinctOptionality, syntax,
+        allowsNullTreatment, allowsSeparator, percentile);
+  }
+
   /** Sets {@link #requiresGroupOrder()}. */
   public SqlBasicAggFunction withGroupOrder(Optionality groupOrder) {
     return new SqlBasicAggFunction(getName(), getSqlIdentifier(), kind,

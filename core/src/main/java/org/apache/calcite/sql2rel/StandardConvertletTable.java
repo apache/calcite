@@ -284,7 +284,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     // "POSITION(substring, string, position, occurrence)"
     registerOp(SqlLibraryOperators.INSTR, StandardConvertletTable::convertInstr);
 
-
     // REVIEW jvs 24-Apr-2006: This only seems to be working from within a
     // windowed agg.  I have added an optimizer rule
     // org.apache.calcite.rel.rules.AggregateReduceFunctionsRule which handles
