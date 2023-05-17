@@ -11846,4 +11846,22 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testArithmeticOnTimestamp() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    final RexLiteral intervalLiteral = rexBuilder.makeIntervalLiteral(BigDecimal.valueOf(2),
+        new SqlIntervalQualifier(MONTH, null, SqlParserPos.ZERO));
+    final RexNode oracleMinusTimestampCall = relBuilder.call(SqlStdOperatorTable.MINUS,
+        relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), intervalLiteral);
+    RelNode root = relBuilder
+        .project(oracleMinusTimestampCall)
+        .build();
+
+    final String expectedBQSql = "SELECT DATETIME_SUB(CURRENT_DATETIME(), INTERVAL 2 MONTH) AS " +
+        "`$f0`\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+
 }
