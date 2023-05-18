@@ -696,6 +696,18 @@ public interface CalciteResource {
   @BaseMessage("Map requires an even number of arguments")
   ExInst<SqlValidatorException> mapRequiresEvenArgCount();
 
+  @BaseMessage("named_struct requires at least 2 arguments")
+  ExInst<SqlValidatorException> namedStructRequiresTwoOrMoreArgs();
+
+  @BaseMessage("named_struct requires an even number for arguments")
+  ExInst<SqlValidatorException> namedStructRequiresEvenNumberOfArgs();
+
+  @BaseMessage("named_struct key is not a string literal, found type ''{0}''")
+  ExInst<SqlValidatorException> namedStructRequiresLiteralStringKeysGotOtherType(String tpe);
+
+  @BaseMessage("named_struct key is not a string literal, got an expression")
+  ExInst<SqlValidatorException> namedStructRequiresLiteralStringKeysGotExpression();
+
   @BaseMessage("Incompatible types")
   ExInst<SqlValidatorException> incompatibleTypes();
 

@@ -2728,6 +2728,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b o | LTRIM(string)                                | Returns *string* with all blanks removed from the start
 | b m p | MD5(string)                                | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
+| s | NAMED_STRUCT(k_1, v_1, [, k_i, v_i]*)          | Creates a struct with the given field names and values.
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
 | b | OFFSET(index)                                  | When indexing an array, wrapping *index* in `OFFSET` returns the value at the 0-based *index*; throws error if *index* is out of bounds
 | b | ORDINAL(index)                                 | Similar to `OFFSET` except *index* begins at 1

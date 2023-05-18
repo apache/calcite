@@ -43,6 +43,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Static;
@@ -826,6 +827,49 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT2);
+
+  private static RelDataType namedStructReturnType(SqlOperatorBinding operatorBinding) {
+    if (operatorBinding.getOperandCount() < 2) {
+      throw operatorBinding.newError(Static.RESOURCE.namedStructRequiresTwoOrMoreArgs());
+    }
+    if (operatorBinding.getOperandCount() % 2 != 0) {
+      throw operatorBinding.newError(Static.RESOURCE.namedStructRequiresEvenNumberOfArgs()); 
+    }
+    List<String> keys = new ArrayList<String>();
+    List<RelDataType> values = new ArrayList<RelDataType>();
+    int i = 0;
+    for (RelDataType type : operatorBinding.collectOperandTypes()) {
+      if (i % 2 == 0) {
+        Object key = operatorBinding.getOperandLiteralValue(i, Object.class);
+        if (key == null) {
+          throw operatorBinding.newError(
+            Static.RESOURCE.namedStructRequiresLiteralStringKeysGotExpression()
+          );
+        }
+        if (key instanceof NlsString) {
+          keys.add(((NlsString) key).getValue());
+        } else {
+          String tpe = key.getClass().getSimpleName();
+          throw operatorBinding.newError(
+            Static.RESOURCE.namedStructRequiresLiteralStringKeysGotOtherType(tpe)
+          );
+        }
+
+      } else {
+        values.add(type);
+      }
+      i++;
+    }
+    final RelDataTypeFactory typeFactory = operatorBinding.getTypeFactory();
+    return typeFactory.createStructType(values, keys);
+  }
+
+  /** */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction NAMED_STRUCT =
+      SqlBasicFunction.create("NAMED_STRUCT",
+          SqlLibraryOperators::namedStructReturnType,
+          OperandTypes.SAME_VARIADIC);
 
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
     RelDataType type =
