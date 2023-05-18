@@ -779,7 +779,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_TIMESTAMP(string1, string2)" function; casts string1
    * to a TIMESTAMP using the format specified in string2. */
-  @LibraryOperator(libraries = {POSTGRESQL, ORACLE, SNOWFLAKE})
+  @LibraryOperator(libraries = {POSTGRESQL, SNOWFLAKE})
   public static final SqlFunction TO_TIMESTAMP =
       new SqlFunction("TO_TIMESTAMP",
           SqlKind.OTHER_FUNCTION,
