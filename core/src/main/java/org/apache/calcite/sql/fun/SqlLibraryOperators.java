@@ -794,7 +794,8 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP_NULLABLE,
           null,
-          OperandTypes.STRING_STRING,
+          OperandTypes.or(OperandTypes.STRING_OPTIONAL_STRING,
+              OperandTypes.TIMESTAMP),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_SECONDS(bigint)" function; returns a TIMESTAMP value
