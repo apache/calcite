@@ -626,6 +626,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlParserPos startPosition = identifier.getParserPosition();
     switch (identifier.names.size()) {
     case 1:
+      SqlNode from = scope.getNode().getFrom();
+      if (from == null) {
+        throw newValidationError(identifier, RESOURCE.selectStarRequiresFrom());
+      }
+
       boolean hasDynamicStruct = false;
       for (ScopeChild child : scope.children) {
         final int before = fields.size();
@@ -647,8 +652,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                scope,
                includeSystemVars);
         } else {
-          final SqlNode from = SqlNonNullableAccessors.getNode(child);
-          final SqlValidatorNamespace fromNs = getNamespaceOrThrow(from, scope);
+          final SqlNode from2 = SqlNonNullableAccessors.getNode(child);
+          final SqlValidatorNamespace fromNs = getNamespaceOrThrow(from2, scope);
           final RelDataType rowType = fromNs.getRowType();
           for (RelDataTypeField field : rowType.getFieldList()) {
             String columnName = field.getName();
@@ -686,9 +691,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // If NATURAL JOIN or USING is present, move key fields to the front of
       // the list, per standard SQL. Disabled if there are dynamic fields.
       if (!hasDynamicStruct || Bug.CALCITE_2400_FIXED) {
-        SqlNode from =
-            requireNonNull(scope.getNode().getFrom(),
-                () -> "getFrom for " + scope.getNode());
         // If some fields before star identifier,
         // we should move offset.
         int offset = calculatePermuteOffset(selectItems);

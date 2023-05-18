@@ -3744,6 +3744,31 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Encountered \".\" at .*");
   }
 
+  @Test void testStarWithoutFromFails() {
+    final String selectStarRequiresAFromClause =
+        "SELECT \\* requires a FROM clause";
+    sql("select ^*^")
+        .fails(selectStarRequiresAFromClause);
+    sql("select * from (select 2 as two)")
+        .type("RecordType(INTEGER NOT NULL TWO) NOT NULL");
+    sql("select ^e^.*")
+        .fails("Unknown identifier 'E'");
+    sql("select ^*^, 2 as two")
+        .fails(selectStarRequiresAFromClause);
+    sql("select 2 as two, ^*^")
+        .fails(selectStarRequiresAFromClause);
+    sql("select 3 as three union select ^*^ union select 4 as four")
+        .fails(selectStarRequiresAFromClause);
+    sql("select sum(1) as someone, ^*^")
+        .fails(selectStarRequiresAFromClause);
+    sql("select c from (select ^*^) as t(c)")
+        .fails(selectStarRequiresAFromClause);
+    sql("select 2 as two\n"
+        + "from emp as e\n"
+        + "where exists (select e.*)")
+        .type("RecordType(INTEGER NOT NULL TWO) NOT NULL");
+  }
+
   @Test void testAsColumnList() {
     sql("select d.a, b from dept as d(a, b)").ok();
     sql("select d.^deptno^ from dept as d(a, b)")
