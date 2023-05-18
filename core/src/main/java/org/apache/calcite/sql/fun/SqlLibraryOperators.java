@@ -404,8 +404,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DATE =
       new SqlFunction("DATE", SqlKind.OTHER_FUNCTION,
           ReturnTypes.DATE_NULLABLE, null,
-          OperandTypes.or(OperandTypes.DATE, OperandTypes.TIMESTAMP,
-              OperandTypes.DATETIME, OperandTypes.STRING),
+          OperandTypes.or(OperandTypes.DATETIME, OperandTypes.STRING),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "CURRENT_DATETIME([timezone])" function. */
