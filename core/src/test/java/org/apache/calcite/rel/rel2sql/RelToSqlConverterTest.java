@@ -11663,7 +11663,7 @@ class RelToSqlConverterTest {
   @Test public void testSortByOrdinalWithExprForBigQuery() {
     RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.call(CURRENT_DATE), builder.literal(null));
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.SATURDAY.name()));
     RelNode root = builder
         .scan("EMP")
         .project(nextDayRexNode)
