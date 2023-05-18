@@ -11828,7 +11828,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
-
   @Test public void testMonthsBetween() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode dateTruncNode = builder.call(SqlLibraryOperators.MONTHS_BETWEEN,
@@ -11840,6 +11839,20 @@ class RelToSqlConverterTest {
     final String expectedOracleSql =
         "SELECT MONTHS_BETWEEN(CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) \"$f0\"\n"
             + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testOracleToTimestamp() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode toTimestampNode = builder.call(SqlLibraryOperators.ORACLE_TO_TIMESTAMP,
+        builder.literal("January 15, 1989, 11:00:06 AM"),
+        builder.literal("MONTH DD, YYYY, hh:mi:ss AM"));
+    RelNode root = builder
+        .project(toTimestampNode)
+        .build();
+    final String expectedOracleSql = "SELECT TO_TIMESTAMP('January 15, 1989, 11:00:06 AM', 'MONTH"
+        + " DD, YYYY, hh:mi:ss AM') \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
