@@ -11029,7 +11029,7 @@ class RelToSqlConverterTest {
         + " 'US\\' AS \"AB\", 'Y' AS \"IBL_FG\", 'IBL' AS "
         + "\"PRSN_ORG_ROLE_CD\"";
     final String expectedBQSql = "SELECT 'No IBL' AS FIRST_NM,"
-        + " 'US\\\\' AS AB, 'Y' AS IBL_FG,"
+        + " 'US\\' AS AB, 'Y' AS IBL_FG,"
         + " 'IBL' AS PRSN_ORG_ROLE_CD";
     sql(query)
         .withBigQuery()
@@ -11039,7 +11039,7 @@ class RelToSqlConverterTest {
   @Test public void literalWithBackslashesInSelectList() {
     final String query = "SELECT \"first_name\", '', '', '', '', '', '\\'\n"
         + "  FROM \"foodmart\".\"employee\"";
-    final String expectedBQSql = "SELECT first_name, '', '', '', '', '', '\\\\'\n"
+    final String expectedBQSql = "SELECT first_name, '', '', '', '', '', '\\'\n"
         + "FROM foodmart.employee";
     sql(query)
         .withBigQuery()
