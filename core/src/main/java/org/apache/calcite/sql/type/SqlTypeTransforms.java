@@ -155,11 +155,12 @@ public abstract class SqlTypeTransforms {
 
   /**
    * Parameter type-inference transform strategy where a derived type must be
-   * a multiset type and the returned type is the multiset's element type.
+   * a multiset or array type and the returned type is element type.
    *
    * @see MultisetSqlType#getComponentType
+   * @see ArraySqlType#getComponentType
    */
-  public static final SqlTypeTransform TO_MULTISET_ELEMENT_TYPE =
+  public static final SqlTypeTransform TO_COLLECTION_ELEMENT_TYPE =
       (opBinding, typeToTransform) -> requireNonNull(
           typeToTransform.getComponentType(),
           () -> "componentType for " + typeToTransform + " in opBinding " + opBinding);

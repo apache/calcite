@@ -488,6 +488,21 @@ public abstract class ReturnTypes {
   };
 
   /**
+   * Returns the element type of a ARRAY or MULTISET.
+   *
+   * <p>For example, given <code>INTEGER ARRAY or MULTISET ARRAY</code>, returns
+   * <code>INTEGER</code>.
+   */
+  public static final SqlReturnTypeInference TO_COLLECTION_ELEMENT =
+      ARG0.andThen(SqlTypeTransforms.TO_COLLECTION_ELEMENT_TYPE);
+
+  public static final SqlReturnTypeInference TO_COLLECTION_ELEMENT_NULLABLE =
+      TO_COLLECTION_ELEMENT.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  public static final SqlReturnTypeInference TO_COLLECTION_ELEMENT_FORCE_NULLABLE =
+      TO_COLLECTION_ELEMENT.andThen(SqlTypeTransforms.FORCE_NULLABLE);
+
+  /**
    * Returns a MULTISET type.
    *
    * <p>For example, given <code>INTEGER</code>, returns
@@ -500,7 +515,7 @@ public abstract class ReturnTypes {
    * Returns the element type of a MULTISET.
    */
   public static final SqlReturnTypeInference MULTISET_ELEMENT_NULLABLE =
-      MULTISET.andThen(SqlTypeTransforms.TO_MULTISET_ELEMENT_TYPE);
+      MULTISET.andThen(SqlTypeTransforms.TO_COLLECTION_ELEMENT_TYPE);
 
   /**
    * Same as {@link #MULTISET} but returns with nullability if any of the

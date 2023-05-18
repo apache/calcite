@@ -3886,6 +3886,34 @@ public class SqlFunctions {
     return new ArrayList<>(result);
   }
 
+  /** Support the ARRAY_MAX function. */
+  public static @Nullable <T extends Object & Comparable<? super T>> T arrayMax(
+      List<? extends T> list) {
+
+    T max = null;
+    for (int i = 0; i < list.size(); i++) {
+      T item = list.get(i);
+      if (item != null && (max == null || item.compareTo(max) > 0)) {
+        max = item;
+      }
+    }
+    return max;
+  }
+
+  /** Support the ARRAY_MIN function. */
+  public static @Nullable <T extends Object & Comparable<? super T>> T arrayMin(
+      List<? extends T> list) {
+
+    T min = null;
+    for (int i = 0; i < list.size(); i++) {
+      T item = list.get(i);
+      if (item != null && (min == null || item.compareTo(min) < 0)) {
+        min = item;
+      }
+    }
+    return min;
+  }
+
   /** Support the ARRAY_REPEAT function. */
   public static @Nullable List<Object> repeat(Object element, Object count) {
     if (count == null) {

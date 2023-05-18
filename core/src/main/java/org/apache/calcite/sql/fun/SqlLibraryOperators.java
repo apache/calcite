@@ -886,6 +886,20 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
+  /** The "ARRAY_MAX(array)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction ARRAY_MAX =
+      SqlBasicFunction.create(SqlKind.ARRAY_MAX,
+          ReturnTypes.TO_COLLECTION_ELEMENT_FORCE_NULLABLE,
+          OperandTypes.ARRAY);
+
+  /** The "ARRAY_MAX(array)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction ARRAY_MIN =
+      SqlBasicFunction.create(SqlKind.ARRAY_MIN,
+          ReturnTypes.TO_COLLECTION_ELEMENT_FORCE_NULLABLE,
+          OperandTypes.ARRAY);
+
   /** The "ARRAY_REPEAT(element, count)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_REPEAT =
