@@ -566,8 +566,9 @@ public interface SqlConformance {
    * Whether to allow the following coercions:
    *
    * <p>- Coercion string literal to array literal
-   * <p>For example: <blockquote><pre>SELECT ARRAY[0,1,2] == '{0,1,2}'
-   * </pre></blockquote></p>
+   * <p>For example:
+   * <blockquote><pre>SELECT ARRAY[0,1,2] == '{0,1,2}'
+   * </pre></blockquote>
    * <p>- Casting
    *  {@link org.apache.calcite.sql.type.SqlTypeName#BOOLEAN}
    *  to NUMERIC_TYPE, where NUMERIC_TYPE is one of
