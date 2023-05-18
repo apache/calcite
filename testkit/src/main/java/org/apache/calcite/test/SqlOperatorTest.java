@@ -5376,6 +5376,37 @@ public class SqlOperatorTest {
     f.checkNull("array_distinct(null)");
   }
 
+  /** Tests {@code ARRAY_MAX} function from Spark. */
+  @Test void testArrayMaxFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_MAX);
+    f0.checkFails("^array_max(array[1, 2])^",
+        "No match found for function signature ARRAY_MAX\\(<INTEGER ARRAY>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_max(array[1, 2])", "2", "INTEGER");
+    f.checkScalar("array_max(array[1, 2, null])", "2", "INTEGER");
+    f.checkScalar("array_max(array[1])", "1", "INTEGER");
+    f.checkType("array_max(array())", "UNKNOWN");
+    f.checkNull("array_max(array())");
+    f.checkNull("array_max(cast(null as integer array))");
+  }
+
+  /** Tests {@code ARRAY_MIN} function from Spark. */
+  @Test void testArrayMinFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_MIN);
+    f0.checkFails("^array_min(array[1, 2])^",
+        "No match found for function signature ARRAY_MIN\\(<INTEGER ARRAY>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_min(array[1, 2])", "1", "INTEGER");
+    f.checkScalar("array_min(array[1, 2, null])", "1", "INTEGER");
+    f.checkType("array_min(array())", "UNKNOWN");
+    f.checkNull("array_min(array())");
+    f.checkNull("array_min(cast(null as integer array))");
+  }
+
   /** Tests {@code ARRAY_REPEAT} function from Spark. */
   @Test void testArrayRepeatFunc() {
     final SqlOperatorFixture f0 = fixture();

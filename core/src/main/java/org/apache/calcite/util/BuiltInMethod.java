@@ -630,6 +630,8 @@ public enum BuiltInMethod {
       Collection.class),
   ARRAY_COMPACT(SqlFunctions.class, "compact", List.class),
   ARRAY_DISTINCT(SqlFunctions.class, "distinct", List.class),
+  ARRAY_MAX(SqlFunctions.class, "arrayMax", List.class),
+  ARRAY_MIN(SqlFunctions.class, "arrayMin", List.class),
   ARRAY_REPEAT(SqlFunctions.class, "repeat", Object.class, Integer.class),
   ARRAY_REVERSE(SqlFunctions.class, "reverse", List.class),
   MAP_ENTRIES(SqlFunctions.class, "mapEntries", Map.class),

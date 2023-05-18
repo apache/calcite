@@ -2656,6 +2656,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | ARRAY_CONCAT(array [, array ]*)                | Concatenates one or more arrays. If any input argument is `NULL` the function returns `NULL`
 | s | ARRAY_DISTINCT(array)                          | Returns unique elements of *array*. Keeps ordering of elements.
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
+| s | ARRAY_MAX(array)                               | Returns the maximum value in the *array*
+| s | ARRAY_MIN(array)                               | Returns the minimum value in the *array*
 | s | ARRAY_REPEAT(element, count)                   | Returns the array containing element count times.
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
 | s | ARRAY_SIZE(array)                              | Synonym for `CARDINALITY`

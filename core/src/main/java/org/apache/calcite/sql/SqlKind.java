@@ -686,6 +686,12 @@ public enum SqlKind {
   /** {@code ARRAY_DISTINCT} function (Spark semantics). */
   ARRAY_DISTINCT,
 
+  /** {@code ARRAY_MAX} function (Spark semantics). */
+  ARRAY_MAX,
+
+  /** {@code ARRAY_MIN} function (Spark semantics). */
+  ARRAY_MIN,
+
   /** {@code ARRAY_REPEAT} function (Spark semantics). */
   ARRAY_REPEAT,
 

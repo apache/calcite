@@ -123,6 +123,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_DISTINCT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_LENGTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_MAX;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_MIN;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_SIZE;
@@ -691,6 +693,8 @@ public class RexImpTable {
       defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
       defineMethod(ARRAY_COMPACT, BuiltInMethod.ARRAY_COMPACT.method, NullPolicy.STRICT);
       defineMethod(ARRAY_DISTINCT, BuiltInMethod.ARRAY_DISTINCT.method, NullPolicy.STRICT);
+      defineMethod(ARRAY_MAX, BuiltInMethod.ARRAY_MAX.method, NullPolicy.STRICT);
+      defineMethod(ARRAY_MIN, BuiltInMethod.ARRAY_MIN.method, NullPolicy.STRICT);
       defineMethod(ARRAY_REPEAT, BuiltInMethod.ARRAY_REPEAT.method, NullPolicy.NONE);
       defineMethod(ARRAY_REVERSE, BuiltInMethod.ARRAY_REVERSE.method, NullPolicy.STRICT);
       defineMethod(ARRAY_SIZE, BuiltInMethod.COLLECTION_SIZE.method, NullPolicy.STRICT);
