@@ -110,11 +110,21 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testIdentifierStartWithNumber() {
-    final String sql = "select 1 as 1_c1 from t";
-    final String expected = "SELECT 1 AS `1_C1`\n"
-        + "FROM `T`";
-    sql(sql).ok(expected);
+  @Test void testIdentifier() {
+    // MySQL supports identifiers started with numbers
+    SqlParserFixture mysqlF = fixture().withDialect(MysqlSqlDialect.DEFAULT);
+    mysqlF.sql("select 1 as 1_c1 from t")
+        .ok("SELECT 1 AS `1_c1`\n"
+            + "FROM `t`");
+
+    // PostgreSQL allows identifier
+    // to begin with a letter (a-z, but also letters with diacritical marks and non-Latin letters)
+    // or an underscore (_). Subsequent characters in an identifier
+    // can be letters, underscores, digits (0-9), or dollar signs ($)
+    SqlParserFixture postgreF = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+    postgreF.sql("select 1 as \200_$\251\377 from t")
+        .ok("SELECT 1 AS \"\200_$\251\377\"\n"
+            + "FROM \"t\"");
   }
 
   /** Tests that there are no reserved keywords. */

@@ -578,9 +578,14 @@ data: {
     ]
 
     # Custom identifier token.
-    # Example: "< IDENTIFIER: (<LETTER>|<DIGIT>)+ >".
-    customIdentifierToken: "< IDENTIFIER: (<LETTER>|<DIGIT>)+ >"
-
+    # 
+    # PostgreSQL allows letters with diacritical marks and non-Latin letters 
+    # in the beginning of identifier and additionally dollar sign in the rest of identifier. 
+    # See https://github.com/postgres/postgres/blob/master/src/backend/parser/scan.l
+    #
+    # MySQL allows digit in the beginning of identifier
+    customIdentifierToken: "< IDENTIFIER: (<LETTER>|<DIGIT>|[\"\\200\"-\"\\377\"]) (<LETTER>|<DIGIT>|<DOLLAR>|[\"\\200\"-\"\\377\"])* >"
+    
     # Binary operators initialization.
     # Example: "InfixCast".
     extraBinaryExpressions: [

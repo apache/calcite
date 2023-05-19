@@ -8803,7 +8803,7 @@ MORE :
 
 <DEFAULT, DQID, BTID, BQID> TOKEN :
 {
-    <#if parser.customIdentifierToken??>
+    <#if parser.customIdentifierToken?has_content>
         ${parser.customIdentifierToken}
     <#else>
         < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
