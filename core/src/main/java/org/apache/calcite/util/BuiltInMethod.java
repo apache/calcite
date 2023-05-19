@@ -632,6 +632,7 @@ public enum BuiltInMethod {
   ARRAY_DISTINCT(SqlFunctions.class, "distinct", List.class),
   ARRAY_REPEAT(SqlFunctions.class, "repeat", Object.class, Integer.class),
   ARRAY_REVERSE(SqlFunctions.class, "reverse", List.class),
+  MAP_ENTRIES(SqlFunctions.class, "mapEntries", Map.class),
   MAP_KEYS(SqlFunctions.class, "mapKeys", Map.class),
   MAP_VALUES(SqlFunctions.class, "mapValues", Map.class),
   SELECTIVITY(Selectivity.class, "getSelectivity", RexNode.class),

@@ -5437,6 +5437,20 @@ public class SqlOperatorTest {
     f.checkNull("array_length(null)");
   }
 
+  /** Tests {@code MAP_ENTRIES} function from Spark. */
+  @Test void testMapEntriesFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.MAP_ENTRIES);
+    f0.checkFails("^map_entries(map['foo', 1, 'bar', 2])^",
+        "No match found for function signature MAP_ENTRIES\\(<\\(CHAR\\(3\\), INTEGER\\) "
+            + "MAP>\\)", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("map_entries(map['foo', 1, 'bar', 2])", "[{foo, 1}, {bar, 2}]",
+        "RecordType(CHAR(3) NOT NULL f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("map_entries(map['foo', 1, null, 2])", "[{foo, 1}, {null, 2}]",
+        "RecordType(CHAR(3) f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
+  }
+
   /** Tests {@code MAP_KEYS} function from Spark. */
   @Test void testMapKeysFunc() {
     final SqlOperatorFixture f0 = fixture();
