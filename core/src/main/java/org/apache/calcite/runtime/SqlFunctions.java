@@ -3898,6 +3898,15 @@ public class SqlFunctions {
     return Collections.nCopies(numberOfElement, element);
   }
 
+  /** Support the MAP_ENTRIES function. */
+  public static List mapEntries(Map<Object, Object> map) {
+    final List result = new ArrayList(map.size());
+    for (Map.Entry<Object, Object> entry : map.entrySet()) {
+      result.add(Arrays.asList(entry.getKey(), entry.getValue()));
+    }
+    return result;
+  }
+
   /** Support the MAP_KEYS function. */
   public static List mapKeys(Map map) {
     return new ArrayList<>(map.keySet());

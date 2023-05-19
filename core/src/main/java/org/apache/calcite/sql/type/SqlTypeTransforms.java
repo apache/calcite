@@ -230,6 +230,17 @@ public abstract class SqlTypeTransforms {
 
   /**
    * Parameter type-inference transform strategy that converts a MAP type
+   * to a two-field record type.
+   *
+   * @see org.apache.calcite.rel.type.RelDataTypeFactory#createStructType
+   */
+  public static final SqlTypeTransform TO_ROW =
+      (opBinding, typeToTransform) ->
+          SqlTypeUtil.createRecordTypeFromMap(opBinding.getTypeFactory(),
+              typeToTransform);
+
+  /**
+   * Parameter type-inference transform strategy that converts a MAP type
    * to a ARRAY type.
    *
    * @see org.apache.calcite.rel.type.RelDataTypeFactory#createArrayType

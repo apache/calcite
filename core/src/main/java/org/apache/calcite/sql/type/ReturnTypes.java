@@ -537,6 +537,27 @@ public abstract class ReturnTypes {
       ARG0.andThen(SqlTypeTransforms.TO_MAP);
 
   /**
+   * Returns a ROW type.
+   *
+   * <p>For example, given {@code (INTEGER, DATE) MAP}, returns
+   * {@code Record(f0: INTEGER, f1: DATE)}.
+   */
+  public static final SqlReturnTypeInference TO_ROW =
+      ARG0.andThen(SqlTypeTransforms.TO_ROW);
+
+  /**
+   * Returns a ARRAY type.
+   *
+   * <p>For example, given {@code (INTEGER, DATE) MAP}, returns
+   * {@code Record(f0: INTEGER, f1: DATE) ARRAY}.
+   */
+  public static final SqlReturnTypeInference TO_MAP_ENTRIES =
+      TO_ROW.andThen(SqlTypeTransforms.TO_ARRAY);
+
+  public static final SqlReturnTypeInference TO_MAP_ENTRIES_NULLABLE =
+      TO_MAP_ENTRIES.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
    * Returns a ARRAY type.
    *
    * <p>For example, given {@code (INTEGER, DATE) MAP}, returns
