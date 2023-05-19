@@ -2727,6 +2727,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
 | b m | FROM_BASE64(string)                          | Returns the decoded result of a base-64 *string* as a string
 | b o | LTRIM(string)                                | Returns *string* with all blanks removed from the start
+| s | MAP_ENTRIES(map)                               | Returns the entries of the *map* as an array, the order of the entries is not defined
 | s | MAP_KEYS(map)                                  | Returns the keys of the *map* as an array, the order of the entries is not defined
 | s | MAP_VALUES(map)                                | Returns the values of the *map* as an array, the order of the entries is not defined
 | b m p | MD5(string)                                | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string

@@ -888,6 +888,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.LEAST_RESTRICTIVE,
           OperandTypes.AT_LEAST_ONE_SAME_VARIADIC);
 
+  /** The "MAP_ENTRIES(map)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction MAP_ENTRIES =
+      SqlBasicFunction.create(SqlKind.MAP_ENTRIES,
+          ReturnTypes.TO_MAP_ENTRIES_NULLABLE,
+          OperandTypes.MAP);
+
   /** The "MAP_KEYS(map)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction MAP_KEYS =
