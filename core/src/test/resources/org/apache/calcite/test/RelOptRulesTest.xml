@@ -6914,6 +6914,26 @@ LogicalProject(HIREDATE=[$0], C1=[CASE(IS NOT NULL($0), CAST($0):TIMESTAMP(0) NO
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testProjectAggregateMergePruneAggregate">
+    <Resource name="sql">
+      <![CDATA[select 1
+from sales.emp
+group by ()]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[1])
+  LogicalAggregate(group=[{}])
+    LogicalProject($f0=[0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalValues(tuples=[[{ 1 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testProjectAggregateMergeSum0">
     <Resource name="sql">
       <![CDATA[select coalesce(sum_sal, 0) as ss0

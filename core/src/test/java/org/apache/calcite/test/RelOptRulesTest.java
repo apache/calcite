@@ -5480,6 +5480,15 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  @Test void testProjectAggregateMergePruneAggregate() {
+    final String sql = "select 1\n"
+        + "from sales.emp\n"
+        + "group by ()";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_AGGREGATE_MERGE)
+        .check();
+  }
+
   /**
    * Test case for AggregateMergeRule, should merge 2 aggregates
    * into a single aggregate.

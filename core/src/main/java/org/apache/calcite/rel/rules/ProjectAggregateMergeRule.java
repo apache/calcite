@@ -71,10 +71,22 @@ public class ProjectAggregateMergeRule
     final Aggregate aggregate = call.rel(1);
     final RelOptCluster cluster = aggregate.getCluster();
 
-    // Do a quick check. If all aggregate calls are used, and there are no CASE
-    // expressions, there is nothing to do.
     final ImmutableBitSet bits =
         RelOptUtil.InputFinder.bits(project.getProjects(), null);
+
+    // Prune the Aggregate for cases:
+    // SELECT 1 FROM EMPS GROUP BY ()
+    if (bits.isEmpty() && aggregate.getGroupCount() == 0) {
+      call.transformTo(
+          call.builder()
+              .values(new String[]{"DUMMY"}, 0)
+              .project(project.getProjects())
+              .build());
+       return;
+    }
+
+    // Do a quick check. If all aggregate calls are used, and there are no CASE
+    // expressions, there is nothing to do.
     if (bits.contains(
         ImmutableBitSet.range(aggregate.getGroupCount(),
             aggregate.getRowType().getFieldCount()))
