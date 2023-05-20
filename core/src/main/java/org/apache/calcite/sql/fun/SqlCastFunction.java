@@ -152,13 +152,13 @@ public class SqlCastFunction extends SqlFunction {
 
     if (isRow(expressionType)) {
       final int fieldCount = expressionType.getFieldCount();
-      List<RelDataType> typeList = new ArrayList<>();
+      final List<RelDataType> typeList = new ArrayList<>(fieldCount);
       for (int i = 0; i < fieldCount; ++i) {
         RelDataType expressionElementType = expressionType.getFieldList().get(i).getType();
         RelDataType targetElementType = targetType.getFieldList().get(i).getType();
         typeList.add(
             createTypeWithNullabilityFromExpr(typeFactory, expressionElementType,
-            targetElementType, safe));
+                targetElementType, safe));
       }
       return typeFactory.createTypeWithNullability(
           typeFactory.createStructType(
