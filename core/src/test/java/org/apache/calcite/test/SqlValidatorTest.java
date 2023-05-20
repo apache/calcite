@@ -7036,7 +7036,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select cast(a as row(f0 int, f1 varchar)) from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
         .columnType("RecordType(INTEGER NOT NULL F0, VARCHAR NOT NULL F1) NOT NULL");
-    sql("select cast(b as row(f0 int, f1 varchar))\n"
+    sql("select cast(b as row(f0 int not null, f1 varchar null))\n"
         + "from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
         .columnType("RecordType(INTEGER NOT NULL F0, VARCHAR F1) NOT NULL");
@@ -7051,7 +7051,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "RecordType(INTEGER FF0, VARCHAR FF1) F0, "
             + "TIMESTAMP(0) NOT NULL F1) NOT NULL");
     // test row type in collection data types.
-    sql("select cast(d as row(f0 bigint, f1 decimal) array)\n"
+    sql("select cast(d as row(f0 bigint not null, f1 decimal null) array)\n"
         + "from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
         .columnType("RecordType(BIGINT NOT NULL F0, DECIMAL(19, 0) F1) NOT NULL "
