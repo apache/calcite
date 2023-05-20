@@ -82,7 +82,7 @@ public class ProjectAggregateMergeRule
               .values(new String[]{"DUMMY"}, 0)
               .project(project.getProjects())
               .build());
-       return;
+      return;
     }
 
     // Do a quick check. If all aggregate calls are used, and there are no CASE
