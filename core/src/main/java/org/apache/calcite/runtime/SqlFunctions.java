@@ -3882,8 +3882,7 @@ public class SqlFunctions {
 
   /** Support the ARRAY_CONTAINS function. */
   public static boolean contains(List list, Object element) {
-    final Set set = new HashSet(list);
-    return set.contains(element);
+    return list.contains(element);
   }
 
   /** Support the ARRAY_DISTINCT function. */
