@@ -20,8 +20,8 @@ import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
-import net.hydromatic.sqllogictest.ExecutionOptions;
 import net.hydromatic.sqllogictest.ISqlTestOperation;
+import net.hydromatic.sqllogictest.OptionsParser;
 import net.hydromatic.sqllogictest.SltSqlStatement;
 import net.hydromatic.sqllogictest.SltTestFile;
 import net.hydromatic.sqllogictest.SqlTestQuery;
@@ -47,8 +47,9 @@ public class CalciteExecutor extends SqlSltTestExecutor {
   private final JdbcExecutor statementExecutor;
   private final Connection connection;
 
-  public static void register(ExecutionOptions options) {
-    options.registerExecutor("calcite", () -> {
+  public static void register(OptionsParser parser) {
+    parser.registerExecutor("calcite", () -> {
+      OptionsParser.SuppliedOptions options = parser.getOptions();
       HsqldbExecutor statementExecutor = new HsqldbExecutor(options);
       try {
         CalciteExecutor result = new CalciteExecutor(options, statementExecutor);
@@ -61,7 +62,7 @@ public class CalciteExecutor extends SqlSltTestExecutor {
     });
   }
 
-  public CalciteExecutor(ExecutionOptions options, JdbcExecutor statementExecutor)
+  public CalciteExecutor(OptionsParser.SuppliedOptions options, JdbcExecutor statementExecutor)
       throws SQLException {
     super(options);
     this.statementExecutor = statementExecutor;
@@ -121,7 +122,8 @@ public class CalciteExecutor extends SqlSltTestExecutor {
     }
   }
 
-  @Override public TestStatistics execute(SltTestFile file, ExecutionOptions options)
+  @Override public TestStatistics execute(SltTestFile file,
+      OptionsParser.SuppliedOptions options)
       throws SQLException {
     this.startTest();
     this.statementExecutor.establishConnection();

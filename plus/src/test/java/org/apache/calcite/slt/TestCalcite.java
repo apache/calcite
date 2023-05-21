@@ -16,9 +16,9 @@
  */
 package org.apache.calcite.slt;
 
-import net.hydromatic.sqllogictest.ExecutionOptions;
-
 import org.apache.calcite.slt.executors.CalciteExecutor;
+
+import net.hydromatic.sqllogictest.OptionsParser;
 
 import org.junit.jupiter.api.Test;
 
@@ -44,7 +44,7 @@ public class TestCalcite {
     assertThat(res.out, outLines.length, is(4));
     assertThat(res.out, outLines[1], is("Passed: 0"));
     assertThat(res.out, outLines[2], is("Failed: 0"));
-    assertThat(res.out, outLines[3], is("Ignored: 5,464,410"));
+    assertThat(res.out, outLines[3], is("Ignored: 1,000"));
   }
 
   private static Output launchSqlLogicTest(String... args) throws IOException {
@@ -52,7 +52,7 @@ public class TestCalcite {
          ByteArrayOutputStream berr = new ByteArrayOutputStream()) {
       final PrintStream out = new PrintStream(bout, false, UTF_8);
       final PrintStream err = new PrintStream(berr, false, UTF_8);
-      ExecutionOptions options = new ExecutionOptions(false, out, err);
+      OptionsParser options = new OptionsParser(false, out, err);
       CalciteExecutor.register(options);
       net.hydromatic.sqllogictest.Main.execute(options, args);
       out.flush();
@@ -64,15 +64,11 @@ public class TestCalcite {
   /** Test that runs one script against Calcite + HSQLDB. */
   @Test void testRunCalcite() throws IOException {
     Output res = launchSqlLogicTest("-x", "-v", "-e", "calcite", "select1.test");
-    System.out.println(res.out);
-
-//    This test in fact fails due to Calcite bugs.
-//    String[] outLines = res.out.split("\n");
-//    assertThat(res.err, is(""));
-//    assertThat(res.out, outLines.length, is(4));
-//    assertThat(res.out, outLines[1], is("Passed: 1,000"));
-//    assertThat(res.out, outLines[2], is("Failed: 0"));
-//    assertThat(res.out, outLines[3], is("Ignored: 0"));
+    // This test uncovers Calcite bugs.
+    String[] outLines = res.out.split("\n");
+    assertThat("Bugs exist", outLines.length > 6);
+    // Always 1 failure, since this test stops at the first failure
+    assertThat(res.out, outLines[6], is("Failed: 1"));
   }
 
   /**
