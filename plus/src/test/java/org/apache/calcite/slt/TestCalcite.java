@@ -39,7 +39,7 @@ public class TestCalcite {
   /** Test that runs all scripts with no executor. */
   @Test void testRunNoExecutor() throws IOException {
     Output res = launchSqlLogicTest("-e", "none", "select1.test");
-    String[] outLines = res.out.split("\n");
+    String[] outLines = res.out.split(System.lineSeparator());
     assertThat(res.err, is(""));
     assertThat(res.out, outLines.length, is(4));
     assertThat(res.out, outLines[1], is("Passed: 0"));
@@ -65,7 +65,7 @@ public class TestCalcite {
   @Test void testRunCalcite() throws IOException {
     Output res = launchSqlLogicTest("-x", "-v", "-e", "calcite", "select1.test");
     // This test uncovers Calcite bugs.
-    String[] outLines = res.out.split("\n");
+    String[] outLines = res.out.split(System.lineSeparator());
     assertThat("Bugs exist", outLines.length > 6);
     // Always 1 failure, since this test stops at the first failure
     assertThat(res.out, outLines[6], is("Failed: 1"));
