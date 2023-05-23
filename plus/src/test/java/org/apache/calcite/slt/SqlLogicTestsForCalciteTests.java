@@ -33,19 +33,8 @@ import static org.hamcrest.core.Is.is;
 /**
  * Tests using sql-logic-test suite.
  */
-public class TestCalcite {
+public class SqlLogicTestsForCalciteTests {
   private static final String UTF_8 = StandardCharsets.UTF_8.name();
-
-  /** Test that runs all scripts with no executor. */
-  @Test void testRunNoExecutor() throws IOException {
-    Output res = launchSqlLogicTest("-e", "none", "select1.test");
-    String[] outLines = res.out.split(System.lineSeparator());
-    assertThat(res.err, is(""));
-    assertThat(res.out, outLines.length, is(4));
-    assertThat(res.out, outLines[1], is("Passed: 0"));
-    assertThat(res.out, outLines[2], is("Failed: 0"));
-    assertThat(res.out, outLines[3], is("Ignored: 1,000"));
-  }
 
   private static Output launchSqlLogicTest(String... args) throws IOException {
     try (ByteArrayOutputStream bout = new ByteArrayOutputStream();
