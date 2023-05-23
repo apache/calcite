@@ -25,9 +25,11 @@ import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -36,6 +38,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A <code>SqlDialect</code> implementation for the PostgreSQL database.
@@ -141,5 +144,41 @@ public class PostgresqlSqlDialect extends SqlDialect {
 
   @Override public boolean supportsGroupByLiteral() {
     return false;
+  }
+
+  @Override public void unparseSqlSetOption(SqlWriter writer,
+      int leftPrec, int rightPrec, SqlSetOption option) {
+    String scope = option.getScope();
+    SqlNode value = option.getValue();
+    SqlNode name = option.name();
+
+    if (Objects.equals(scope, "SYSTEM")) {
+      writer.keyword("ALTER SYSTEM");
+    }
+    if (value != null) {
+      writer.keyword("SET");
+    } else {
+      writer.keyword("RESET");
+    }
+
+    if (Objects.equals(scope, "LOCAL")) {
+      writer.keyword("LOCAL");
+    }
+
+    if (name.getKind() == SqlKind.IDENTIFIER) {
+      name.unparse(writer, leftPrec, rightPrec);
+      final SqlWriter.Frame frame =
+          writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
+      if (value != null) {
+        writer.sep("=");
+        value.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endList(frame);
+    } else {
+      name.unparse(writer, leftPrec, rightPrec);
+      if (value != null) {
+        value.unparse(writer, leftPrec, rightPrec);
+      }
+    }
   }
 }

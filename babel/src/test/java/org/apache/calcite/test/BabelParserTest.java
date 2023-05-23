@@ -334,31 +334,44 @@ class BabelParserTest extends SqlParserTest {
         .ok("SELECT (ARRAY['a', 'b'])");
   }
 
-  @Test void testPostgresqlShow() {
+  @Test void testPostgresSqlShow() {
     SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
     f.sql("SHOW autovacuum")
         .ok("SHOW \"autovacuum\"");
+    f.sql("SHOW \"autovacuum\"")
+        .same();
+    f.sql("SHOW ALL")
+        .ok("SHOW \"all\"");
+    f.sql("SHOW TIME ZONE")
+        .ok("SHOW \"timezone\"");
+    f.sql("SHOW SESSION AUTHORIZATION")
+        .ok("SHOW \"session_authorization\"");
     f.sql("SHOW TRANSACTION ISOLATION LEVEL")
         .ok("SHOW \"transaction_isolation\"");
   }
 
-  @Test void testPostgresqlSetOption() {
+  @Test void testPostgresSqlSetOption() {
     SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
     f.sql("SET SESSION autovacuum = true")
-        .ok("ALTER SESSION SET \"autovacuum\" = TRUE");
+        .ok("SET \"autovacuum\" = TRUE");
     f.sql("SET SESSION autovacuum = DEFAULT")
-        .ok("ALTER SESSION SET \"autovacuum\" = DEFAULT");
+        .ok("SET \"autovacuum\" = DEFAULT");
     f.sql("SET LOCAL autovacuum TO 'DEFAULT'")
-        .ok("ALTER LOCAL SET \"autovacuum\" = 'DEFAULT'");
+        .ok("SET LOCAL \"autovacuum\" = 'DEFAULT'");
 
     f.sql("SET SESSION TIME ZONE DEFAULT")
-        .ok("ALTER SESSION SET \"timezone\" = DEFAULT");
+        .ok("SET TIME ZONE DEFAULT");
     f.sql("SET SESSION TIME ZONE LOCAL")
-        .ok("ALTER SESSION SET \"timezone\" = 'LOCAL'");
-    f.sql("SET TIME ZONE 'PST8PDT'")
-        .ok("SET \"timezone\" = 'PST8PDT'");
-    f.sql("SET TIME ZONE INTERVAL '-08:00' HOUR TO MINUTE")
-        .ok("SET \"timezone\" = INTERVAL '-08:00' HOUR TO MINUTE");
+        .ok("SET TIME ZONE LOCAL");
+    f.sql("SET TIME ZONE 'PST8PDT'").same();
+    f.sql("SET TIME ZONE INTERVAL '-08:00' HOUR TO MINUTE").same();
+    f.sql("SET timezone = 'PST8PDT'")
+            .ok("SET \"timezone\" = 'PST8PDT'");
+
+    f.sql("SET SESSION AUTHORIZATION DEFAULT")
+        .ok("SET \"session_authorization\" = DEFAULT");
+    f.sql("SET SESSION AUTHORIZATION DEFAULT")
+        .ok("SET \"session_authorization\" = DEFAULT");
 
     f.sql("SET search_path = public,public,\"$user\"")
         .ok("SET \"search_path\" = \"public\", \"public\", \"$user\"");
@@ -366,9 +379,37 @@ class BabelParserTest extends SqlParserTest {
         .ok("SET \"search_path\" = \"public\", \"public\", \"$user\"");
     f.sql("SET NAMES iso_8859_15_to_utf8")
         .ok("SET \"client_encoding\" = \"iso_8859_15_to_utf8\"");
+
+
+    f.sql("SET TRANSACTION READ ONLY").same();
+    f.sql("SET TRANSACTION READ WRITE").same();
+    f.sql("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE").same();
+    f.sql("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE, READ ONLY, DEFERRABLE").same();
+    f.sql("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE, READ WRITE, NOT DEFERRABLE").same();
+
+    f.sql("SET TRANSACTION SNAPSHOT '000003A1-1'").same();
+
+    f.sql("SET ROLE NONE").same();
+    f.sql("SET ROLE 'paul'").same();
   }
 
-  @Test void testPostgresqlBegin() {
+  @Test void testPostgresSqlReset() {
+    SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
+
+    f.sql("RESET ALL").same();
+    f.sql("RESET ROLE")
+        .ok("RESET \"role\"");
+    f.sql("RESET SESSION AUTHORIZATION")
+        .ok("RESET \"session_authorization\"");
+    f.sql("RESET SESSION AUTHORIZATION")
+        .ok("RESET \"session_authorization\"");
+    f.sql("RESET TIME ZONE")
+        .ok("RESET \"timezone\"");
+    f.sql("RESET autovacuum")
+        .ok("RESET \"autovacuum\"");
+  }
+
+  @Test void testPostgresSqlBegin() {
     SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
     f.sql("BEGIN").same();
     f.sql("BEGIN READ ONLY").same();
@@ -380,7 +421,7 @@ class BabelParserTest extends SqlParserTest {
     f.sql("BEGIN ISOLATION LEVEL SERIALIZABLE, READ WRITE, NOT DEFERRABLE").same();
   }
 
-  @Test void testPostgresqlCommit() {
+  @Test void testPostgresSqlCommit() {
     SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
     f.sql("COMMIT").same();
     f.sql("COMMIT WORK")
@@ -392,7 +433,7 @@ class BabelParserTest extends SqlParserTest {
     f.sql("COMMIT AND CHAIN").same();
   }
 
-  @Test void testPostgresqlRollback() {
+  @Test void testPostgresSqlRollback() {
     SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
     f.sql("ROLLBACK").same();
     f.sql("ROLLBACK WORK")
@@ -404,7 +445,7 @@ class BabelParserTest extends SqlParserTest {
     f.sql("ROLLBACK AND CHAIN").same();
   }
 
-  @Test void testPostgresqlDiscard() {
+  @Test void testPostgresSqlDiscard() {
     SqlParserFixture f = fixture().withDialect(PostgresqlSqlDialect.DEFAULT);
     f.sql("DISCARD ALL").same();
     f.sql("DISCARD PLANS").same();

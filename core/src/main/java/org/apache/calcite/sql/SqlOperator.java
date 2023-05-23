@@ -20,6 +20,8 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.fun.SqlCallFactories;
+import org.apache.calcite.sql.fun.SqlCallFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
@@ -33,7 +35,6 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
@@ -121,6 +122,9 @@ public abstract class SqlOperator {
   /** Used to validate operand types. */
   private final @Nullable SqlOperandTypeChecker operandTypeChecker;
 
+  /** Used to create {@link org.apache.calcite.sql.SqlCall}. */
+  private final SqlCallFactory callFactory;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -133,7 +137,8 @@ public abstract class SqlOperator {
       int rightPrecedence,
       @Nullable SqlReturnTypeInference returnTypeInference,
       @Nullable SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandTypeChecker operandTypeChecker) {
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      SqlCallFactory callFactory) {
     assert kind != null;
     this.name = name;
     this.kind = kind;
@@ -146,6 +151,29 @@ public abstract class SqlOperator {
     }
     this.operandTypeInference = operandTypeInference;
     this.operandTypeChecker = operandTypeChecker;
+    this.callFactory = callFactory;
+  }
+
+  /**
+   * Creates an operator.
+   */
+  protected SqlOperator(
+      String name,
+      SqlKind kind,
+      int leftPrecedence,
+      int rightPrecedence,
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker) {
+    this(
+        name,
+        kind,
+        leftPrecedence,
+        rightPrecedence,
+        returnTypeInference,
+        operandTypeInference,
+        operandTypeChecker,
+        SqlCallFactories.SQL_BASIC_CALL_FACTORY);
   }
 
   /**
@@ -242,6 +270,10 @@ public abstract class SqlOperator {
    */
   public abstract SqlSyntax getSyntax();
 
+  public final SqlCallFactory getSqlCallFactory() {
+    return callFactory;
+  }
+
   /**
    * Creates a call to this operator with a list of operands.
    *
@@ -274,9 +306,7 @@ public abstract class SqlOperator {
       @Nullable SqlLiteral functionQualifier,
       SqlParserPos pos,
       @Nullable SqlNode... operands) {
-    pos = pos.plusAll(operands);
-    return new SqlBasicCall(this, ImmutableNullableList.copyOf(operands), pos,
-        functionQualifier);
+    return callFactory.create(this, functionQualifier, pos, operands);
   }
 
   /** Not supported. Choose between

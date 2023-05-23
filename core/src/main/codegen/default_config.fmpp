@@ -440,6 +440,9 @@ parser: {
   implementationFiles: [
   ]
 
+  # Method for parsing "SET [OR RESET]" calls.
+  setOptionParserMethod: "SqlSetOption"
+   
   includePosixOperators: false
   includeCompoundIdentifier: true
   includeBraces: true

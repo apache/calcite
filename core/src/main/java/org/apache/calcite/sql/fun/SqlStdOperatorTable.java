@@ -192,7 +192,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /**
    * <code>DEFAULT</code> operator indicates that an argument to a function call
-   * is to take its default value..
+   * is to take its default value.
    */
   public static final SqlSpecialOperator DEFAULT = new SqlDefaultOperator();
 

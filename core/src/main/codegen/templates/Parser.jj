@@ -1124,7 +1124,7 @@ SqlNode SqlStmt() :
         LOOKAHEAD(2) stmt = ${method}
     |
 </#list>
-        stmt = SqlSetOption(Span.of(), null)
+        stmt = ${parser.setOptionParserMethod!default.parser.setOptionParserMethod}(Span.of(), null)
     |
         stmt = SqlAlter()
     |
@@ -4191,7 +4191,7 @@ SqlSetOption SqlSetOption(Span s, String scope) :
             }
         )
         {
-            return new SqlSetOption(s.end(val), scope, name, val);
+            return new SqlSetOption(s.end(val), scope, (SqlNode) name, val);
         }
     |
         <RESET> {
@@ -4206,7 +4206,7 @@ SqlSetOption SqlSetOption(Span s, String scope) :
             }
         )
         {
-            return new SqlSetOption(s.end(name), scope, name, null);
+            return new SqlSetOption(s.end(name), scope, (SqlNode) name, null);
         }
     )
 }
@@ -4230,8 +4230,7 @@ SqlAlter SqlAlter() :
         alterNode = ${method}(s, scope)
     |
 </#list>
-
-        alterNode = SqlSetOption(s, scope)
+        alterNode = ${parser.setOptionParserMethod!default.parser.setOptionParserMethod}(s, scope)
     )
     {
         return alterNode;

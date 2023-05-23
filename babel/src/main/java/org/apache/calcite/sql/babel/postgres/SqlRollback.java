@@ -14,21 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql.babel.postgresql;
+package org.apache.calcite.sql.babel.postgres;
 
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlBasicOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.ReturnTypes;
 
 import com.google.common.collect.ImmutableList;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -38,15 +34,10 @@ import java.util.List;
  */
 public class SqlRollback extends SqlCall {
 
-  public static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("ROLLBACK", SqlKind.OTHER_FUNCTION, 32, false, ReturnTypes.BOOLEAN,
-          null, null) {
-        @Override public SqlCall createCall(@Nullable final SqlLiteral functionQualifier,
-            final SqlParserPos pos,
-            final @Nullable SqlNode... operands) {
-          return new SqlRollback(pos, (SqlLiteral) operands[0]);
-        }
-      };
+  public static final SqlBasicOperator OPERATOR =
+      SqlBasicOperator.create("ROLLBACK").withCallFactory(
+          (operator, functionQualifier, pos, operands) ->
+              new SqlRollback(pos, (SqlLiteral) operands[0]));
   private final SqlLiteral chain;
 
   protected SqlRollback(final SqlParserPos pos, final SqlLiteral chain) {
@@ -64,7 +55,7 @@ public class SqlRollback extends SqlCall {
 
   @Override public void unparse(final SqlWriter writer, final int leftPrec, final int rightPrec) {
     writer.keyword("ROLLBACK");
-    if (this.chain.symbolValue(AndChain.class) == AndChain.AND_CHAIN) {
+    if (chain.symbolValue(TransactionChainingMode.class) == TransactionChainingMode.AND_CHAIN) {
       writer.literal("AND CHAIN");
     }
   }

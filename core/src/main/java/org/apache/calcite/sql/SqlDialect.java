@@ -947,6 +947,38 @@ public class SqlDialect {
   public void unparseTopN(SqlWriter writer, @Nullable SqlNode offset, @Nullable SqlNode fetch) {
   }
 
+  public void unparseSqlSetOption(SqlWriter writer,
+      int leftPrec, int rightPrec, SqlSetOption option) {
+    String scope = option.getScope();
+    if (scope != null) {
+      writer.keyword("ALTER");
+      writer.keyword(scope);
+    }
+
+    SqlNode value = option.getValue();
+    if (value != null) {
+      writer.keyword("SET");
+    } else {
+      writer.keyword("RESET");
+    }
+
+    final SqlWriter.Frame frame =
+        writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
+    SqlNode name = option.name();
+    if (name.getKind() == SqlKind.IDENTIFIER) {
+      name.unparse(writer, leftPrec, rightPrec);
+    } else {
+      new SqlIdentifier(name.toSqlString(this).getSql(), name.getParserPosition())
+          .unparse(writer, leftPrec, rightPrec);
+    }
+
+    if (value != null) {
+      writer.sep("=");
+      value.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endList(frame);
+  }
+
   /** Unparses offset/fetch using ANSI standard "OFFSET offset ROWS FETCH NEXT
    * fetch ROWS ONLY" syntax. */
   protected static void unparseFetchUsingAnsi(SqlWriter writer, @Nullable SqlNode offset,
