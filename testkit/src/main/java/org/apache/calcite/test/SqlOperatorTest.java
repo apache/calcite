@@ -4033,6 +4033,42 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL), consumer);
   }
 
+  @Test void testToBase32() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.TO_BASE32);
+    f0.checkFails("^to_base32('')^",
+        "No match found for function signature TO_BASE32\\(<CHARACTER>\\)",
+        false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkString("to_base32(x'436f6e766572747320612073657175656e6365206f6620425954"
+            + "455320696e746f2061206261736533322d656e636f64656420535452494e472e')",
+        "INXW45TFOJ2HGIDBEBZWK4LVMVXGGZJAN5TCAQSZKRCVGIDJNZ2G6IDBEBRGC43FGMZC2ZLOMNXWIZ"
+            + "LEEBJVIUSJJZDS4===",
+        "VARCHAR NOT NULL");
+    f.checkString("to_base32('Converts a sequence of BYTES into a base32-encoded STRING.')",
+        "INXW45TFOJ2HGIDBEBZWK4LVMVXGGZJAN5TCAQSZKRCVGIDJNZ2G6IDBEBRGC43FGMZC2ZLOMNXWIZ"
+            + "LEEBJVIUSJJZDS4===",
+        "VARCHAR NOT NULL");
+    f.checkNull("to_base32(cast (null as varchar))");
+    f.checkString("to_base32(x'')", "", "VARCHAR NOT NULL");
+    f.checkString("to_base32('')", "", "VARCHAR NOT NULL");
+  }
+
+  @Test void testFromBase32() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.FROM_BASE32);
+    f0.checkFails("^from_base32('')^",
+        "No match found for function signature FROM_BASE32\\(<CHARACTER>\\)",
+        false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkString("from_base32('INXW45TFOJ2HGIDBEBZWK4LVMVXGGZJAN5TCAQSZKRCVGIDJNZ2"
+            + "G6IDBEBRGC43FGMZC2ZLOMNXWIZLEEBJVIUSJJZDS4===')",
+        "436f6e766572747320612073657175656e6365206f6620425954455320696e746f206120626173"
+            + "6533322d656e636f64656420535452494e472e",
+        "VARBINARY NOT NULL");
+
+    f.checkString("from_base32('')", "", "VARBINARY NOT NULL");
+    f.checkNull("from_base32(cast (null as varchar))");
+  }
+
   @Test void testMd5() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.MD5);
     f0.checkFails("^md5(x'')^",

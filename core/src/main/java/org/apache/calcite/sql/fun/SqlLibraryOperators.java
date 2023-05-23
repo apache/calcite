@@ -469,8 +469,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction COMPRESS =
       SqlBasicFunction.create("COMPRESS",
-          ReturnTypes.explicit(SqlTypeName.VARBINARY)
-              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          ReturnTypes.VARBINARY_NULLABLE,
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})
@@ -1225,8 +1224,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL})
   public static final SqlFunction FROM_BASE64 =
       SqlBasicFunction.create("FROM_BASE64",
-          ReturnTypes.explicit(SqlTypeName.VARBINARY)
-              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          ReturnTypes.VARBINARY_NULLABLE,
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})
@@ -1234,6 +1232,19 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("TO_BASE64",
           ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.STRING.or(OperandTypes.BINARY),
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FROM_BASE32 =
+      SqlBasicFunction.create("FROM_BASE32",
+          ReturnTypes.VARBINARY_NULLABLE,
+          OperandTypes.CHARACTER, SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TO_BASE32 =
+      SqlBasicFunction.create("TO_BASE32",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
   /** The "TO_CHAR(timestamp, format)" function;
