@@ -774,6 +774,15 @@ public abstract class ReturnTypes {
       DECIMAL_PRODUCT.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Same as {@link #DECIMAL_PRODUCT_NULLABLE} but returns with nullability if any of
+   * the operands is nullable or the operation results in overflow by using
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#FORCE_NULLABLE}. Also handles
+   * multiplication for integers, not just decimals.
+   */
+  public static final SqlReturnTypeInference PRODUCT_FORCE_NULLABLE =
+      DECIMAL_PRODUCT_NULLABLE.orElse(LEAST_RESTRICTIVE).andThen(SqlTypeTransforms.FORCE_NULLABLE);
+
+  /**
    * Type-inference strategy whereby the result type of a call is
    * {@link #DECIMAL_PRODUCT_NULLABLE} with a fallback to
    * {@link #ARG0_INTERVAL_NULLABLE}

@@ -1592,6 +1592,85 @@ public class SqlFunctions {
     throw notArithmetic("*", b0, b1);
   }
 
+  /** SQL <code>SAFE_MULTIPLY</code> function applied to long values. */
+  public static @Nullable Long safeMultiply(long b0, long b1) {
+    try {
+      return Math.multiplyExact(b0, b1);
+    } catch (ArithmeticException e) {
+      return null;
+    }
+  }
+
+  /** SQL <code>SAFE_MULTIPLY</code> function applied to long and BigDecimal values. */
+  public static @Nullable BigDecimal safeMultiply(long b0, BigDecimal b1) {
+    BigDecimal ans = BigDecimal.valueOf(b0).multiply(b1);
+    return safeDecimal(ans) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_MULTIPLY</code> function applied to BigDecimal and long values. */
+  public static @Nullable BigDecimal safeMultiply(BigDecimal b0, long b1) {
+    BigDecimal ans = b0.multiply(BigDecimal.valueOf(b1));
+    return safeDecimal(ans) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_MULTIPLY</code> function applied to BigDecimal values. */
+  public static @Nullable BigDecimal safeMultiply(BigDecimal b0, BigDecimal b1) {
+    BigDecimal ans = b0.multiply(b1);
+    return safeDecimal(ans) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_MULTIPLY</code> function applied to double and long values. */
+  public static @Nullable Double safeMultiply(double b0, long b1) {
+    double ans = b0 * b1;
+    return safeDouble(ans) || !Double.isFinite(b0) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_MULTIPLY</code> function applied to long and double values. */
+  public static @Nullable Double safeMultiply(long b0, double b1) {
+    double ans = b0 * b1;
+    return safeDouble(ans) || !Double.isFinite(b1) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_MULTIPLY</code> function applied to double and BigDecimal values. */
+  public static @Nullable Double safeMultiply(double b0, BigDecimal b1) {
+    double ans = b0 * b1.doubleValue();
+    return safeDouble(ans) || !Double.isFinite(b0) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_MULTIPLY</code> function applied to BigDecimal and double values. */
+  public static @Nullable Double safeMultiply(BigDecimal b0, double b1) {
+    double ans = b0.doubleValue() * b1;
+    return safeDouble(ans) || !Double.isFinite(b1) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_MULTIPLY</code> function applied to double values. */
+  public static @Nullable Double safeMultiply(double b0, double b1) {
+    double ans = b0 * b1;
+    boolean isFinite = Double.isFinite(b0) && Double.isFinite(b1);
+    return safeDouble(ans) || !isFinite ? ans : null;
+  }
+
+  /** Returns whether a BigDecimal value is safe (that is, has not overflowed).
+   * According to BigQuery, BigDecimal overflow occurs if the precision is greater
+   * than 76 or the scale is greater than 38. */
+  private static boolean safeDecimal(BigDecimal b) {
+    return b.scale() <= 38 && b.precision() <= 76;
+  }
+
+  /** Returns whether a double value is safe (that is, has not overflowed). */
+  private static boolean safeDouble(double d) {
+    // If the double is positive and falls between the MIN and MAX double values,
+    // overflow has not occurred. If the double is negative and falls between the
+    // negated MIN and MAX double values, overflow has not occurred. Otherwise,
+    // overflow has occurred. Important to note that 'Double.MIN_VALUE' refers to
+    // minimum positive value.
+    if (d < Double.MAX_VALUE && d > Double.MIN_VALUE) {
+      return true;
+    } else {
+      return d > -Double.MAX_VALUE && d < -Double.MIN_VALUE;
+    }
+  }
+
   private static RuntimeException notArithmetic(String op, Object b0,
       Object b1) {
     return RESOURCE.invalidTypesForArithmetic(b0.getClass().toString(),

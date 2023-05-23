@@ -216,6 +216,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_CAST;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_ORDINAL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SEC;
@@ -602,6 +603,8 @@ public class RexImpTable {
       defineMethod(TANH, "tanh", NullPolicy.STRICT);
       defineMethod(TRUNC, "struncate", NullPolicy.STRICT);
       defineMethod(TRUNCATE, "struncate", NullPolicy.STRICT);
+
+      map.put(SAFE_MULTIPLY, new SafeArithmeticImplementor());
 
       map.put(PI, new PiImplementor());
       return populate2();
@@ -2365,6 +2368,30 @@ public class RexImpTable {
             dateMethod.method.getName(), operand);
       default:
         throw new AssertionError("unknown type " + type);
+      }
+    }
+  }
+
+  /** Implementor for the {@code SAFE_MULTIPLY} function. */
+  private static class SafeArithmeticImplementor extends MethodNameImplementor {
+    SafeArithmeticImplementor() {
+      super("safeMultiply", NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      Expression arg0 = convertType(argValueList.get(0), call.operands.get(0));
+      Expression arg1 = convertType(argValueList.get(1), call.operands.get(1));
+      return Expressions.call(SqlFunctions.class, "safeMultiply", arg0, arg1);
+    }
+
+    // Because BigQuery treats all int types as aliases for BIGINT (Java's long)
+    // they can all be converted to LONG to minimize entries in the SqlFunctions class.
+    private Expression convertType(Expression arg, RexNode node) {
+      if (SqlTypeName.INT_TYPES.contains(node.getType().getSqlTypeName())) {
+        return Expressions.convert_(arg, long.class);
+      } else {
+        return arg;
       }
     }
   }
