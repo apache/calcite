@@ -1285,6 +1285,16 @@ public class SqlOperatorTest {
 
   }
 
+  @Test void testMySQLConvert() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.MYSQL_CONVERT, VmName.EXPAND);
+    f.checkScalar("convert(45.4, CHAR(4))", "45.4", "CHAR(4) NOT NULL");
+    f.checkScalar("convert(45.4, DECIMAL(10, 1))", "45.4", "DECIMAL(10, 1) NOT NULL");
+    f.checkScalar("convert('1970-01-01', DATE)", "1970-01-01", "DATE NOT NULL");
+    f.checkScalar("convert(2, SIGNED)", 2, "BIGINT NOT NULL");
+    f.checkScalar("convert(2, UNSIGNED)", 2, "ObjectSqlType(UNSIGNED) NOT NULL");
+  }
+
   private static Calendar getFixedCalendar() {
     Calendar calendar = Util.calendar();
     calendar.set(Calendar.YEAR, 2014);

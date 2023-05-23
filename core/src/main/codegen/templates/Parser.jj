@@ -39,6 +39,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlAlter;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlBinaryOperator;
@@ -6083,10 +6084,30 @@ SqlNode BuiltinFunctionCall() :
                     return SqlStdOperatorTable.TRANSLATE.createCall(s.end(this), args);
                 }
             |
-                <COMMA> e = SimpleIdentifier() { args.add(e); }
-                <COMMA> e = SimpleIdentifier() { args.add(e); }
+                <COMMA>
+                (
+                    // In MySQL CONVERT(expr, type), type can be UNSIGNED or UNSIGNED
+                    // We treat UNSIGNED as SqlAlienSystemTypeNameSpec
+                    <SIGNED> {
+                    SqlTypeNameSpec signed = new SqlBasicTypeNameSpec(SqlTypeName.BIGINT, getPos());
+                    args.add(new SqlDataTypeSpec(signed, signed.getParserPos()));
+                    }
+                |
+                    <UNSIGNED> {
+                    SqlTypeNameSpec unsigned = new SqlAlienSystemTypeNameSpec("UNSIGNED", SqlTypeName.BIGINT, getPos());
+                    args.add(new SqlDataTypeSpec(unsigned, unsigned.getParserPos()));
+                    }
+                |
+                    e = SimpleIdentifier() { args.add(e); }
+                    <COMMA> e = SimpleIdentifier() { args.add(e); }
+                    <RPAREN> {
+                        return SqlStdOperatorTable.CONVERT.createCall(s.end(this), args);
+                    }
+                |
+                    dt = DataType() { args.add(dt); }
+                )
                 <RPAREN> {
-                    return SqlStdOperatorTable.CONVERT.createCall(s.end(this), args);
+                    return SqlLibraryOperators.MYSQL_CONVERT.createCall(s.end(this), args);
                 }
             )
         |
@@ -8265,6 +8286,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SETS: "SETS" >
 |   < SET_MINUS: "MINUS">
 |   < SHOW: "SHOW" >
+|   < SIGNED: "SIGNED" >
 |   < SIMILAR: "SIMILAR" >
 |   < SIMPLE: "SIMPLE" >
 |   < SIZE: "SIZE" >
@@ -8404,9 +8426,10 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < UNION: "UNION" >
 |   < UNIQUE: "UNIQUE" >
 |   < UNKNOWN: "UNKNOWN" >
-|   < UNPIVOT: "UNPIVOT" >
 |   < UNNAMED: "UNNAMED" >
 |   < UNNEST: "UNNEST" >
+|   < UNPIVOT: "UNPIVOT" >
+|   < UNSIGNED: "UNSIGNED" >
 |   < UPDATE: "UPDATE" > { beforeTableName(); }
 |   < UPPER: "UPPER" >
 |   < UPSERT: "UPSERT" >

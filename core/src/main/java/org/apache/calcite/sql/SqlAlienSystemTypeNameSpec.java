@@ -16,10 +16,16 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.ObjectSqlType;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 
+import java.util.Collections;
 import java.util.Objects;
 
 /**
@@ -76,6 +82,21 @@ public class SqlAlienSystemTypeNameSpec extends SqlBasicTypeNameSpec {
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     writer.keyword(typeAlias);
+  }
+
+  @Override public RelDataType deriveType(SqlValidator validator) {
+    if ("UNSIGNED".equals(this.typeAlias)) {
+      // Use ObjectSqlType to represent UNSIGNED in MySQL by changing SqlIdentifier
+      ObjectSqlType type =
+          new ObjectSqlType(SqlTypeName.BIGINT,
+          new SqlIdentifier("UNSIGNED", SqlParserPos.ZERO),
+          false,
+          Collections.emptyList(),
+          RelDataTypeComparability.ALL);
+      type.setFamily(SqlTypeFamily.NUMERIC);
+      return type;
+    }
+    return super.deriveType(validator);
   }
 
   @Override public boolean equalsDeep(SqlTypeNameSpec node, Litmus litmus) {

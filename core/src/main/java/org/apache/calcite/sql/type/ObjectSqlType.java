@@ -89,4 +89,9 @@ public class ObjectSqlType extends AbstractSqlType {
     sb.append(sqlIdentifier);
     sb.append(")");
   }
+
+  @Override public boolean isStruct() {
+    // UNSIGNED is not struct type
+    return this.sqlIdentifier == null || !"UNSIGNED".equals(this.sqlIdentifier.toString());
+  }
 }

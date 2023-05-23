@@ -936,6 +936,7 @@ SESSION,
 **SET**,
 SETS,
 **SHOW**,
+SIGNED,
 **SIMILAR**,
 SIMPLE,
 SIZE,
@@ -1078,6 +1079,7 @@ UNDER,
 UNNAMED,
 **UNNEST**,
 UNPIVOT,
+UNSIGNED,
 **UPDATE**,
 **UPPER**,
 **UPSERT**,
@@ -2663,6 +2665,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b m p | CONCAT(string [, string ]*)                | Concatenates two or more strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string
 | q | CONVERT(type, expression [ , style ])          | Equivalent to `CAST(expression AS type)`; ignores the *style* operand
+| m | CONVERT(expression, type)                      | Equivalent to `CAST(expression AS type)`; the type could be *SIGNED* or *UNSIGNED*
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
 | * | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | * | COTH(numeric)                                  | Returns the hyperbolic cotangent of *numeric*

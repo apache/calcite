@@ -174,6 +174,49 @@ public abstract class SqlLibraryOperators {
         call.operand(1), call.operand(0));
   }
 
+  /** The "CONVERT(expr, type)" function (MySQL).
+   *
+   * <p>Syntax:
+   * <blockquote>{@code
+   * CONVERT( expression, data_type )
+   * }</blockquote>
+   *
+   * <p>{@code CONVERT(expr, type)} is equivalent to CAST(expr AS type),
+   * and the implementation delegates most of its logic to actual CAST operator.
+   * The type arg could be SIGNED or UNSIGNED(MySQL specific).
+   *
+   * <p>It is different from {@link #MSSQL_CONVERT} on syntax and argument's order.
+   *
+   * <p>Not to be confused with standard {@link SqlStdOperatorTable#CONVERT},
+   * which converts a string from one character set to another. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction MYSQL_CONVERT =
+      SqlBasicFunction.create(SqlKind.CAST,
+              ReturnTypes.andThen(SqlLibraryOperators::transformMySqlConvert,
+                  SqlCastFunction.returnTypeInference(false)),
+              OperandTypes.repeat(SqlOperandCountRanges.of(2),
+                  OperandTypes.ANY))
+          .withName("CONVERT")
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withOperandTypeInference(InferTypes.FIRST_KNOWN)
+          .withOperandHandler(
+              OperandHandlers.of(SqlLibraryOperators::transformMySqlConvert));
+
+  /** Transforms a call binding of {@code MySQL CONVERT} to an equivalent binding for
+   *  {@code CAST}. */
+  private static SqlCallBinding transformMySqlConvert(SqlOperatorBinding opBinding) {
+    final SqlCallBinding binding = (SqlCallBinding) opBinding;
+    return new SqlCallBinding(binding.getValidator(), binding.getScope(),
+        transformMySqlConvert(binding.getValidator(), binding.getCall()));
+  }
+
+  /** The syntax of MySQL CONVERT function is convert(expr, type),
+   * so the order of args should be consistent with CAST. */
+  private static SqlCall transformMySqlConvert(SqlValidator validator, SqlCall call) {
+    return SqlStdOperatorTable.CAST.createCall(call.getParserPosition(),
+        call.operand(0), call.operand(1));
+  }
+
   /** The "DATE_PART(timeUnit, datetime)" function
    * (Databricks, Postgres, Redshift, Snowflake). */
   @LibraryOperator(libraries = {POSTGRESQL})
