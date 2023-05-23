@@ -853,7 +853,7 @@ public class SqlDialect {
   /** Rewrite SINGLE_VALUE into expression based on database variants
    *  E.g. HSQLDB, MYSQL, ORACLE, etc
    */
-  public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
+  public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
     LOGGER.debug("SINGLE_VALUE rewrite not supported for {}", databaseProduct);
     return aggCall;
   }
