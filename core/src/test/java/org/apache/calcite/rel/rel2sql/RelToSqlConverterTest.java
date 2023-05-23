@@ -75,6 +75,8 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.BasicSqlTypeWithFormat;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
@@ -11862,17 +11864,37 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
-  @Test public void testLastDay() {
-    RelBuilder relBuilder = relBuilder().scan("EMP");
-    final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
-    RexNode lastDayCall = relBuilder.call(SqlLibraryOperators.LAST_DAY, literalTimestamp);
-    RelNode root = relBuilder
-        .project(lastDayCall)
+  @Test public void testCastWithFormat() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    RexLiteral format = builder.literal("9999.9999");
+    final RelDataType varcharRelType = builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    final RelDataType type = BasicSqlTypeWithFormat.from(RelDataTypeSystem.DEFAULT,
+        (BasicSqlType) varcharRelType,
+        format.getValueAs(String.class));
+    final RexNode castCall = rexBuilder.makeCast(type, builder.literal(1234), false);
+    RelNode root = builder
+        .project(castCall)
         .build();
-    final String expectedBQSql = "SELECT LAST_DAY(CURRENT_TIMESTAMP) \"$f0\"\n"
-        + "FROM \"scott\".\"EMP\"";
-
-    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedBQSql));
+    final String expectedBQSql = "SELECT CAST(1234 AS STRING FORMAT '9999.9999') AS `$f0`\n"
+                                     + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
+  @Test public void testOracleToTimestamp() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode toTimestampNode = builder.call(SqlLibraryOperators.ORACLE_TO_TIMESTAMP,
+        builder.literal("January 15, 1989, 11:00:06 AM"),
+        builder.literal("MONTH DD, YYYY, hh:mi:ss AM"));
+    final RexNode toTimestampNodeWithOnlyLiteral = builder.call(
+        SqlLibraryOperators.ORACLE_TO_TIMESTAMP,
+        builder.literal("04-JAN-2001"));
+    RelNode root = builder
+        .project(toTimestampNode, toTimestampNodeWithOnlyLiteral)
+        .build();
+    final String expectedOracleSql = "SELECT TO_TIMESTAMP('January 15, 1989, 11:00:06 AM', 'MONTH"
+        + " DD, YYYY, hh:mi:ss AM') \"$f0\", TO_TIMESTAMP('04-JAN-2001') \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
 }

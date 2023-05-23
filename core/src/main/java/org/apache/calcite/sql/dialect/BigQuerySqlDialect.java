@@ -59,6 +59,7 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.BasicSqlTypeWithFormat;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -1764,7 +1765,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         return createSqlDataTypeSpecByName("BOOL", typeName);
       case CHAR:
       case VARCHAR:
-        return createSqlDataTypeSpecByName("STRING", typeName);
+        return createSqlDataTypeSpecByName("STRING", type);
       case BINARY:
       case VARBINARY:
         return createSqlDataTypeSpecByName("BYTES", typeName);
@@ -1783,6 +1784,19 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
     }
     return super.getCastSpec(type);
+  }
+
+  /* It creates SqlDataTypeSpec with Format if RelDataType is instance of BasicSqlTypeWithFormat*/
+  private static SqlNode createSqlDataTypeSpecByName(String typeAlias, RelDataType type) {
+    if (type instanceof BasicSqlTypeWithFormat) {
+      SqlParserPos pos = SqlParserPos.ZERO;
+      SqlCharStringLiteral formatLiteral = SqlLiteral.createCharString(
+          ((BasicSqlTypeWithFormat) type).getFormatValue(), pos);
+      SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
+          typeAlias, type.getSqlTypeName(), pos);
+      return  new SqlDataTypeSpec(typeNameSpec, formatLiteral, pos);
+    }
+    return createSqlDataTypeSpecByName(typeAlias, type.getSqlTypeName());
   }
 
   @Override public @Nullable SqlNode getCastSpecWithPrecisionAndScale(final RelDataType type) {
