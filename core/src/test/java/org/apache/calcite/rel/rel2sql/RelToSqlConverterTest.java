@@ -10259,7 +10259,7 @@ class RelToSqlConverterTest {
     String query =
         "SELECT '\\\\PWFSNFS01EFS\\imagenowcifs\\debitmemo' AS DM_SENDFILE_PATH1";
     final String expectedBQSql =
-        "SELECT '\\\\\\\\PWFSNFS01EFS\\\\imagenowcifs\\\\debitmemo' AS "
+        "SELECT '\\\\PWFSNFS01EFS\\imagenowcifs\\debitmemo' AS "
             + "DM_SENDFILE_PATH1";
 
     sql(query)
