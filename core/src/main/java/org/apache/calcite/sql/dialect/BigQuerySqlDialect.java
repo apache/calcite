@@ -1404,8 +1404,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseOctetLength(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlNode operandCall = call.operand(0);
     if (call.operand(0) instanceof SqlLiteral) {
-      String newOperand = call.operand(0).toString().replace("\\",
-              "\\\\");
+      String newOperand = call.operand(0).toString();
 
       operandCall = SqlLiteral.createCharString(
               unquoteStringLiteral(newOperand), SqlParserPos.ZERO);
