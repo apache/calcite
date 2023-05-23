@@ -601,6 +601,75 @@ FROM t;
 !}
 
 #####################################################################
+# SAFE_MULTIPLY
+#
+# SAFE_MULTIPLY(value1, value2)
+#
+# Equivalent to the mulitply operator (*), but returns NULL if overflow/underflow occurs.
+SELECT SAFE_MULTIPLY(5, 4) as result;
++--------+
+| result |
++--------+
+|     20 |
++--------+
+(1 row)
+
+!ok
+
+# Overflow occurs if result is greater than 2^63 - 1
+SELECT SAFE_MULTIPLY(9223372036854775807, 2) as overflow_result;
++-----------------+
+| overflow_result |
++-----------------+
+|                 |
++-----------------+
+(1 row)
+
+!ok
+
+# Underflow occurs if result is less than -2^63
+SELECT SAFE_MULTIPLY(-9223372036854775806, 3) as underflow_result;
++------------------+
+| underflow_result |
++------------------+
+|                  |
++------------------+
+(1 row)
+
+!ok
+
+SELECT SAFE_MULTIPLY(CAST(1.7e308 as DOUBLE), CAST(3 as BIGINT)) as double_overflow;
++-----------------+
+| double_overflow |
++-----------------+
+|                 |
++-----------------+
+(1 row)
+
+!ok
+
+SELECT SAFE_MULTIPLY(CAST(-3.5e75 AS DECIMAL(76, 0)), CAST(10 AS BIGINT)) as decimal_overflow;
++------------------+
+| decimal_overflow |
++------------------+
+|                  |
++------------------+
+(1 row)
+
+!ok
+
+# NaN arguments should return NaN
+SELECT SAFE_MULTIPLY(CAST('NaN' AS DOUBLE), CAST(3 as BIGINT)) as NaN_result;
++------------+
+| NaN_result |
++------------+
+|        NaN |
++------------+
+(1 row)
+
+!ok
+
+#####################################################################
 # NOT EQUAL Operator (value1 != value2)
 #
 # Compares value1 and value2 and returns TRUE if not equal.
