@@ -2736,6 +2736,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | LENGTH(string)                                 | Equivalent to `CHAR_LENGTH(string)`
 | b | LOG(numeric1 [, numeric2 ])                    | Returns the logarithm of *numeric1* to base *numeric2*, or base e if *numeric2* is not present
 | b o | LPAD(string, length [, pattern ])            | Returns a string or bytes value that consists of *string* prepended to *length* with *pattern*
+| b | TO_BASE32(string)                              | Converts the *string* to base-32 encoded form and returns a encoded string
+| b | FROM_BASE32(string)                            | Returns the decoded result of a base-32 *string* as a string
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
 | b m | FROM_BASE64(string)                          | Returns the decoded result of a base-64 *string* as a string
 | b o | LTRIM(string)                                | Returns *string* with all blanks removed from the start

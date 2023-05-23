@@ -45,6 +45,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.format.FormatElement;
 import org.apache.calcite.util.format.FormatModels;
 
+import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
 
@@ -140,6 +141,8 @@ public class SqlFunctions {
   private static final int SOUNDEX_LENGTH = 4;
 
   private static final Pattern FROM_BASE64_REGEXP = Pattern.compile("[\\t\\n\\r\\s]");
+
+  private static final Base32 BASE_32 = new Base32();
 
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
       a0 -> a0 == null ? Linq4j.emptyEnumerable() : Linq4j.asEnumerable(a0);
@@ -256,6 +259,25 @@ public class SqlFunctions {
     } catch (IllegalArgumentException e) {
       return null;
     }
+  }
+
+  /** SQL TO_BASE32(string) function. */
+  public static String toBase32(String string) {
+    return toBase32_(string.getBytes(UTF_8));
+  }
+
+  /** SQL TO_BASE32(string) function for binary string. */
+  public static String toBase32(ByteString string) {
+    return toBase32_(string.getBytes());
+  }
+
+  private static String toBase32_(byte[] bytes) {
+    return BASE_32.encodeToString(bytes);
+  }
+
+  /** SQL FROM_BASE32(string) function. */
+  public static ByteString fromBase32(String base32) {
+    return new ByteString(BASE_32.decode(base32));
   }
 
   /** SQL MD5(string) function. */

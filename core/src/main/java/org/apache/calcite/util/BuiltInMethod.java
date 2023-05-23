@@ -361,6 +361,8 @@ public enum BuiltInMethod {
   RIGHT(SqlFunctions.class, "right", String.class, int.class),
   TO_BASE64(SqlFunctions.class, "toBase64", String.class),
   FROM_BASE64(SqlFunctions.class, "fromBase64", String.class),
+  TO_BASE32(SqlFunctions.class, "toBase32", String.class),
+  FROM_BASE32(SqlFunctions.class, "fromBase32", String.class),
   MD5(SqlFunctions.class, "md5", String.class),
   SHA1(SqlFunctions.class, "sha1", String.class),
   SHA256(SqlFunctions.class, "sha256", String.class),
