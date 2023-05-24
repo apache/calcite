@@ -8232,7 +8232,7 @@ public class JdbcTest {
         if (employees == null) {
           employees = Collections.emptyList();
         }
-        return JdbcFrontLinqBackTest.mutable(name, employees);
+        return JdbcFrontLinqBackTest.mutable(name, employees, false);
       case "DEPARTMENTS":
         clazz = Department.class;
         array = new HrSchema().depts;

@@ -246,6 +246,20 @@ class CalciteRemoteDriverTest {
     assertThat(connection.isClosed(), is(true));
   }
 
+  @Test void testMeasureColumnsLocal() throws Exception {
+    final Connection connection = makeConnectionWithMeasures();
+    assertThat(connection.isClosed(), is(false));
+    final ResultSet resultSet =
+        connection.getMetaData().getColumns(null, "foo", null, "salary");
+    assertThat(resultSet.getMetaData().getColumnCount(), is(24));
+    final int typeNameIdx = resultSet.findColumn("TYPE_NAME");
+    final int dataTypeIdx = resultSet.findColumn("DATA_TYPE");
+    assertThat(resultSet.next(), is(true));
+    assertThat(resultSet.getString(typeNameIdx),
+        is("MEASURE<FLOAT NOT NULL> NOT NULL"));
+    assertThat(resultSet.getInt(dataTypeIdx), is(6));
+  }
+
   @Test void testRemoteCatalogs() {
     CalciteAssert.hr()
         .with(CalciteRemoteDriverTest::getRemoteConnection)
@@ -537,13 +551,23 @@ class CalciteRemoteDriverTest {
     }
   }
 
-  public static Connection makeConnection() throws Exception {
+  public static Connection makeConnection(boolean withMeasures)
+      throws Exception {
     List<Employee> employees = new ArrayList<Employee>();
     for (int i = 1; i <= 101; i++) {
       employees.add(new Employee(i, 0, "first", 0f, null));
     }
-    Connection conn = JdbcFrontLinqBackTest.makeConnection(employees);
-    return conn;
+    return JdbcFrontLinqBackTest.makeConnection(employees, withMeasures);
+  }
+
+  /** Creates a connection without measures. */
+  public static Connection makeConnection() throws Exception {
+    return makeConnection(false);
+  }
+
+  /** Creates a connection with measures. */
+  public static Connection makeConnectionWithMeasures() throws Exception {
+    return makeConnection(true);
   }
 
   @Test void testLocalStatementFetch() throws Exception {
@@ -558,6 +582,19 @@ class CalciteRemoteDriverTest {
       count += 1;
     }
     assertThat(count, is(101));
+  }
+
+  @Test void testLocalStatementResultSetMeasureMetadata() throws Exception {
+    Connection conn = makeConnectionWithMeasures();
+    String sql = "select * from \"foo\".\"bar\"";
+    Statement statement = conn.createStatement();
+    boolean status = statement.execute(sql);
+    assertThat(status, is(true));
+    ResultSet resultSet = statement.getResultSet();
+    String typeName = resultSet.getMetaData().getColumnTypeName(4);
+    Integer ordinal = resultSet.getMetaData().getColumnType(4);
+    assertThat(typeName, is("MEASURE<FLOAT>"));
+    assertThat(ordinal, is(6));
   }
 
   /** Test that returns all result sets in one go. */

@@ -78,6 +78,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import static java.util.Objects.requireNonNull;
@@ -458,12 +459,20 @@ public class CalciteMetaImpl extends MetaImpl {
                   instanceof RelDataTypeFactoryImpl.JavaType)
                   ? field.getType().getPrecision()
                   : -1;
+          // MEASURE is a special case. We want to surface the type returned
+          // after aggregation rather than its default java.sql.Type,
+          // OTHER(1111).
+          final int jdbcOrdinal =
+              Optional.ofNullable(field.getType().getMeasureElementType())
+                  .map(RelDataType::getSqlTypeName)
+                  .map(SqlTypeName::getJdbcOrdinal)
+                  .orElse(field.getType().getSqlTypeName().getJdbcOrdinal());
           return new MetaColumn(
               table.tableCat,
               table.tableSchem,
               table.tableName,
               field.getName(),
-              field.getType().getSqlTypeName().getJdbcOrdinal(),
+              jdbcOrdinal,
               field.getType().getFullTypeString(),
               precision,
               field.getType().getSqlTypeName().allowsScale()

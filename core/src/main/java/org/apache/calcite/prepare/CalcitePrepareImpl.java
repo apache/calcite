@@ -831,14 +831,23 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
   }
 
-  private static @Nullable String origin(@Nullable List<String> origins, int offsetFromEnd) {
+  private static @Nullable String origin(@Nullable List<String> origins,
+      int offsetFromEnd) {
     return origins == null || offsetFromEnd >= origins.size()
         ? null
         : origins.get(origins.size() - 1 - offsetFromEnd);
   }
 
   private static int getTypeOrdinal(RelDataType type) {
-    return type.getSqlTypeName().getJdbcOrdinal();
+    switch (type.getSqlTypeName()) {
+    case MEASURE:
+      // getMeasureElementType() for MEASURE types will never be null
+      final RelDataType measureElementType =
+          requireNonNull(type.getMeasureElementType(), "measureElementType");
+      return measureElementType.getSqlTypeName().getJdbcOrdinal();
+    default:
+      return type.getSqlTypeName().getJdbcOrdinal();
+    }
   }
 
   private static String getClassName(@SuppressWarnings("unused") RelDataType type) {
@@ -867,6 +876,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     case MULTISET:
     case MAP:
     case ROW:
+    case MEASURE:
       return type.toString(); // e.g. "INTEGER ARRAY"
     case INTERVAL_YEAR_MONTH:
       return "INTERVAL_YEAR_TO_MONTH";
