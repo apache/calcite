@@ -129,7 +129,7 @@ public class RangeSets {
   public static <C extends Comparable<C>> boolean isPoint(Range<C> range) {
     return range.hasLowerBound()
         && range.hasUpperBound()
-        && range.lowerEndpoint().equals(range.upperEndpoint())
+        && range.lowerEndpoint().compareTo(range.upperEndpoint()) == 0
         && !range.isEmpty();
   }
 

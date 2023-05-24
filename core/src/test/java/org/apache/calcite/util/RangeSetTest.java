@@ -155,6 +155,9 @@ class RangeSetTest {
     assertThat(RangeSets.isPoint(Range.atMost(0)), is(false));
     assertThat(RangeSets.isPoint(Range.greaterThan(0)), is(false));
     assertThat(RangeSets.isPoint(Range.atLeast(0)), is(false));
+
+    // Test situation where endpoints of closed range are equal under `Comparable.compareTo` but not `T.equals`
+    assertThat(RangeSets.isPoint(Range.closed(new BigDecimal("1"), new BigDecimal("1.0"))), is(true));
   }
 
   /** Tests {@link RangeSets#isOpenInterval(RangeSet)}. */
