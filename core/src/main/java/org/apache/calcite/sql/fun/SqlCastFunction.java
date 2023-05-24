@@ -147,7 +147,7 @@ public class SqlCastFunction extends SqlFunction {
       RelDataType newElementType =
           createTypeWithNullabilityFromExpr(
               typeFactory, expressionElementType, targetElementType, safe);
-      return isArray(expressionType)
+      return isArray(targetType)
           ? SqlTypeUtil.createArrayType(typeFactory, newElementType, isNullable)
           : SqlTypeUtil.createMultisetType(typeFactory, newElementType, isNullable);
     }
