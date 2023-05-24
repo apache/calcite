@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.calcite.rex;
+
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
@@ -1713,6 +1714,60 @@ class RexProgramTest extends RexProgramTestBase {
         .expandedSearch(expanded);
   }
 
+  @Test void testSimplifyRange8() {
+    final RexNode aRef = input(tInt(true), 0);
+    // a not in (1.0, 2.0)
+    RexNode expr =
+        not(
+            in(aRef,
+                literal(new BigDecimal("1.0")),
+                literal(new BigDecimal("2.0"))));
+    final String simplified = "SEARCH($0, "
+        + "Sarg[(-\u221e..1.0:DECIMAL(2, 1)),"
+        + " (1.0:DECIMAL(2, 1)..2.0:DECIMAL(2, 1)),"
+        + " (2.0:DECIMAL(2, 1)..+\u221e)]:DECIMAL(2, 1))";
+    checkSimplify(expr, simplified);
+
+    // The following identical to previous, and simplifies to the same:
+    //   a < 1.0 or (1.0 < a and a < 2.0) or 2.0 < a
+    RexNode expr2 =
+        or(lt(aRef, literal(new BigDecimal("1.0"))),
+            and(lt(literal(new BigDecimal("1.0")), aRef),
+                lt(aRef, literal(new BigDecimal("2.0")))),
+            lt(literal(new BigDecimal("2.0")), aRef));
+    checkSimplify(expr2, simplified);
+
+    // Identical to previous, except one "2.0" is "2":
+    //   a < 1.0 or (1.0 < a and a < 2.0) or 2.00 < a
+    RexNode expr3 =
+        or(lt(aRef, literal(new BigDecimal("1.0"))),
+            and(lt(literal(new BigDecimal("1.0")), aRef),
+                lt(aRef, literal(new BigDecimal("2.0")))),
+            lt(literal(new BigDecimal("2")), aRef));
+    final String simplified3 = "SEARCH($0, "
+        + "Sarg[(-\u221e..1.0:DECIMAL(11, 1)),"
+        + " (1.0:DECIMAL(11, 1)..2.0:DECIMAL(11, 1)),"
+        + " (2:DECIMAL(11, 1)..+\u221e)]:DECIMAL(11, 1))";
+    checkSimplify(expr3, simplified3);
+  }
+
+  @Test void testSimplifyRange9() {
+    // Contiguous ranges can be merged:
+    //   a > 1 and <= 2 or a > 2.0 and a < 3
+    // becomes
+    //   a > 1 and a < 3
+    final RexNode aRef = input(tInt(true), 0);
+    RexNode expr =
+        or(
+            and(gt(aRef, literal(1)),
+                le(aRef, literal(2))),
+            and(gt(aRef, literal(new BigDecimal("2.0"))),
+                lt(aRef, literal(3))));
+    final String simplified = "SEARCH($0, "
+        + "Sarg[(1:DECIMAL(11, 1)..3:DECIMAL(11, 1))]:DECIMAL(11, 1))";
+    checkSimplify(expr, simplified);
+  }
+
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4352">[CALCITE-4352]
    * OR simplification incorrectly loses term</a>. */
@@ -3022,6 +3077,22 @@ class RexProgramTest extends RexProgramTestBase {
                 .add(Range.closed(10, 20))
                 .build()),
         is(2), is("Sarg[[3..8], [10..20]]"));
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5722">[CALCITE-5722]
+   * {@code Sarg.isComplementedPoints} fails with anti-points which are equal
+   * under {@code compareTo} but not {@code equals}</a>. */
+  @SuppressWarnings("UnstableApiUsage")
+  @Test void testSargAntiPoint() {
+    final Sarg<BigDecimal> sarg =
+        Sarg.of(RexUnknownAs.UNKNOWN,
+            // Create anti-point around 1, with different scales
+            ImmutableRangeSet.<BigDecimal>builder()
+                .add(Range.lessThan(new BigDecimal("1")))
+                .add(Range.greaterThan(new BigDecimal("1.00000000000")))
+                .build());
+    assertThat(sarg.isComplementedPoints(), is(true));
   }
 
   @Test void testInterpreter() {
