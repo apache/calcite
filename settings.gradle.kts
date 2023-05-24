@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import com.gradle.enterprise.gradleplugin.internal.extension.BuildScanExtensionWithHiddenFeatures
+
 pluginManagement {
     plugins {
         fun String.v() = extra["$this.version"].toString()
@@ -51,7 +53,8 @@ pluginManagement {
 }
 
 plugins {
-    `gradle-enterprise`
+    id("com.gradle.enterprise") version "3.13.2"
+    id("com.gradle.common-custom-user-data-gradle-plugin") version "1.10"
     id("com.github.burrunan.s3-build-cache")
 }
 
@@ -100,12 +103,18 @@ fun property(name: String) =
 
 val isCiServer = System.getenv().containsKey("CI")
 
-if (isCiServer) {
-    gradleEnterprise {
-        buildScan {
-            termsOfServiceUrl = "https://gradle.com/terms-of-service"
-            termsOfServiceAgree = "yes"
-            tag("CI")
+gradleEnterprise {
+    server = "https://ge.apache.org"
+    allowUntrustedServer = false
+
+    buildScan {
+        capture { isTaskInputFiles = true }
+        isUploadInBackground = !isCiServer
+        publishAlways()
+        this as BuildScanExtensionWithHiddenFeatures
+        publishIfAuthenticated()
+        obfuscation {
+            ipAddresses { addresses -> addresses.map { "0.0.0.0" } }
         }
     }
 }
