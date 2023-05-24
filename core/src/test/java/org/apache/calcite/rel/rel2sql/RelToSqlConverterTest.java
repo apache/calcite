@@ -11901,7 +11901,7 @@ class RelToSqlConverterTest {
   @Test public void testOracleLastDay() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
-    RexNode lastDayNode = relBuilder.call(SqlLibraryOperators.LAST_DAY, literalTimestamp);
+    RexNode lastDayNode = relBuilder.call(SqlLibraryOperators.ORACLE_LAST_DAY, literalTimestamp);
     RelNode root = relBuilder
         .project(lastDayNode)
         .build();
