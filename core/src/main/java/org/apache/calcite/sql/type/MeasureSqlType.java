@@ -33,6 +33,10 @@ public class MeasureSqlType extends ApplySqlType {
     computeDigest();
   }
 
+  @Override public RelDataType getMeasureElementType() {
+    return types.get(0);
+  }
+
   /** Creates a MeasureSqlType. */
   static MeasureSqlType create(RelDataType elementType) {
     return new MeasureSqlType(elementType, elementType.isNullable());

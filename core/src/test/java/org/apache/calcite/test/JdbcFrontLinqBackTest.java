@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.JavaRecordType;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -25,16 +26,22 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.sql.type.MeasureSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.util.TestUtil;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -300,7 +307,7 @@ public class JdbcFrontLinqBackTest {
    * @return a connection post-processor
    */
   private static CalciteAssert.ConnectionPostProcessor makePostProcessor(
-      final List<Employee> initialData) {
+      final List<Employee> initialData, boolean withMeasures) {
     return connection -> {
       CalciteConnection calciteConnection =
           connection.unwrap(CalciteConnection.class);
@@ -308,10 +315,15 @@ public class JdbcFrontLinqBackTest {
       SchemaPlus mapSchema = rootSchema.add("foo", new AbstractSchema());
       final String tableName = "bar";
       final AbstractModifiableTable table =
-          mutable(tableName, initialData);
+          mutable(tableName, initialData, withMeasures);
       mapSchema.add(tableName, table);
       return calciteConnection;
     };
+  }
+
+  private static CalciteAssert.ConnectionPostProcessor makePostProcessor(
+      final List<Employee> initialData) {
+    return makePostProcessor(initialData, false);
   }
 
   /**
@@ -319,11 +331,11 @@ public class JdbcFrontLinqBackTest {
    *
    * @param initialData record to be presented in table
    */
-  public static Connection makeConnection(
-        final List<Employee> initialData) throws Exception {
+  public static Connection makeConnection(final List<Employee> initialData,
+      final boolean withMeasures) throws Exception {
     Properties info = new Properties();
     Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
-    connection = makePostProcessor(initialData).apply(connection);
+    connection = makePostProcessor(initialData, withMeasures).apply(connection);
     return connection;
   }
 
@@ -332,7 +344,7 @@ public class JdbcFrontLinqBackTest {
    * {@link Employee} schema.
    */
   public static Connection makeConnection() throws Exception {
-    return makeConnection(new ArrayList<Employee>());
+    return makeConnection(new ArrayList<Employee>(), /* withMeasures = */ false);
   }
 
   private CalciteAssert.AssertThat mutable(
@@ -343,13 +355,34 @@ public class JdbcFrontLinqBackTest {
         .with(makePostProcessor(employees));
   }
 
-  static AbstractModifiableTable mutable(String tableName,
-                                         final List<Employee> employees) {
+  static AbstractModifiableTable mutable(String tableName, final List<Employee> employees) {
+    return mutable(tableName, employees, /* withMeasures = */ false);
+  }
+
+  /** Creates an AbstractModifiableTable based on {@link Employee} class.
+   *
+   * If {@code withMeasures} is true, then {@link Employee#salary} field is treated
+   * as a {@link MeasureSqlType} of type {@link SqlTypeName#FLOAT}.
+   */
+  static AbstractModifiableTable mutable(String tableName, final List<Employee> employees,
+      final boolean withMeasures) {
     return new AbstractModifiableTable(tableName) {
-      public RelDataType getRowType(
-          RelDataTypeFactory typeFactory) {
-        return ((JavaTypeFactory) typeFactory)
-            .createType(Employee.class);
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        final JavaTypeFactory javaTypeFactory = (JavaTypeFactory) typeFactory;
+        final List<RelDataTypeField> list = new ArrayList<>();
+        for (Field field : Employee.class.getFields()) {
+          if (!Modifier.isStatic(field.getModifiers())) {
+            // FIXME: watch out for recursion
+            final Type fieldType = field.getType();
+            final RelDataType relType =
+                withMeasures && field.getName().equals("salary")
+                    ? javaTypeFactory.createMeasureType(
+                        javaTypeFactory.createSqlType(SqlTypeName.FLOAT))
+                    : javaTypeFactory.createType(fieldType);
+            list.add(new RelDataTypeFieldImpl(field.getName(), list.size(), relType));
+          }
+        }
+        return new JavaRecordType(list, Employee.class);
       }
 
       public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
@@ -397,7 +430,7 @@ public class JdbcFrontLinqBackTest {
 
   /** Local Statement insert. */
   @Test void testInsert3() throws Exception {
-    Connection connection = makeConnection(new ArrayList<Employee>());
+    Connection connection = makeConnection();
     String sql = "insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)";
 
     Statement statement = connection.createStatement();
@@ -411,7 +444,7 @@ public class JdbcFrontLinqBackTest {
 
   /** Local PreparedStatement insert WITHOUT bind variables. */
   @Test void testPreparedStatementInsert() throws Exception {
-    Connection connection = makeConnection(new ArrayList<Employee>());
+    Connection connection = makeConnection();
     assertFalse(connection.isClosed());
 
     String sql = "insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)";
