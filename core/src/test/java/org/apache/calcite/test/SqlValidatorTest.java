@@ -6990,6 +6990,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("VARCHAR(5) ARRAY NOT NULL");
     sql("select cast(multiset[1,null,2] as int multiset) from (values (1))")
         .columnType("INTEGER MULTISET NOT NULL");
+    sql("select cast(array[1,null,2] as int multiset) from (values (1))")
+        .columnType("INTEGER MULTISET NOT NULL");
 
     // test array type.
     sql("select cast(\"intArrayType\" as int array) from COMPLEXTYPES.CTC_T1")
