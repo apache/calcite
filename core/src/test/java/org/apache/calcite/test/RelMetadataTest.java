@@ -3287,6 +3287,19 @@ public class RelMetadataTest {
         is("=($0, $1)"));
   }
 
+  @Test void testGetPredicatesForLiteralAgg() {
+    final RelBuilder b = RelBuilderTest.createBuilder();
+    RelNode r = b
+        .scan("EMP")
+        .aggregate(b.groupKey("DEPTNO"),
+            b.literalAgg(42),
+            b.literalAgg(null))
+        .build();
+    RelMetadataQuery mq = r.getCluster().getMetadataQuery();
+    assertThat(mq.getPulledUpPredicates(r).pulledUpPredicates.toString(),
+        is("[=($1, 42), IS NULL($2)]"));
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4315">[CALCITE-4315]
    * NPE in RelMdUtil#checkInputForCollationAndLimit</a>. */

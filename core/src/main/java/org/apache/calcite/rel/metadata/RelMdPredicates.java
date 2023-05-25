@@ -25,6 +25,7 @@ import org.apache.calcite.plan.Strong;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
@@ -49,7 +50,7 @@ import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.Bug;
@@ -197,19 +198,11 @@ public class RelMdPredicates
         int sIdx = ((RexInputRef) expr.e).getIndex();
         m.set(sIdx, expr.i);
         columnsMappedBuilder.set(sIdx);
-      // Project can also generate constants. We need to include them.
-      } else if (RexLiteral.isNullLiteral(expr.e)) {
-        projectPullUpPredicates.add(
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL,
-                rexBuilder.makeInputRef(project, expr.i)));
       } else if (RexUtil.isConstant(expr.e)) {
-        final List<RexNode> args =
-            ImmutableList.of(rexBuilder.makeInputRef(project, expr.i), expr.e);
-        final SqlOperator op = args.get(0).getType().isNullable()
-            || args.get(1).getType().isNullable()
-            ? SqlStdOperatorTable.IS_NOT_DISTINCT_FROM
-            : SqlStdOperatorTable.EQUALS;
-        projectPullUpPredicates.add(rexBuilder.makeCall(op, args));
+        // Project can also generate constants (including NULL). We need to
+        // include them.
+        projectPullUpPredicates.add(
+            eqConstant(project, rexBuilder, expr.i, expr.e));
       }
     }
 
@@ -224,6 +217,23 @@ public class RelMdPredicates
       }
     }
     return RelOptPredicateList.of(rexBuilder, projectPullUpPredicates);
+  }
+
+  /** Returns a predicate that field {@code i} of relational expression
+   * {@code r} is equal to a constant expression (using
+   * {@code IS NOT DISTINCT FROM} if the expression is nullable, or
+   * {@code IS NULL} if it is literal null. */
+  private static RexNode eqConstant(RelNode r, RexBuilder rexBuilder, int i,
+      RexNode e) {
+    final RexInputRef ref = rexBuilder.makeInputRef(r, i);
+    if (RexLiteral.isNullLiteral(e)) {
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, ref);
+    } else if (ref.getType().isNullable() || e.getType().isNullable()) {
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM, ref,
+          e);
+    } else {
+      return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, ref, e);
+    }
   }
 
   /** Converts a predicate on a particular set of columns into a predicate on
@@ -372,6 +382,18 @@ public class RelMdPredicates
         r = r.accept(new RexPermuteInputsShuttle(m, input));
         aggPullUpPredicates.add(r);
       }
+    }
+
+    i = agg.getGroupCount();
+    for (AggregateCall aggregateCall : agg.getAggCallList()) {
+      if (aggregateCall.getAggregation() == SqlInternalOperators.LITERAL_AGG) {
+        // The query
+        //   SELECT x, LITERAL_AGG[42]() AS y FROM t GROUP BY x
+        // has predicate "y = 42"
+        aggPullUpPredicates.add(
+            eqConstant(agg, rexBuilder, i, aggregateCall.rexList.get(0)));
+      }
+      ++i;
     }
     return RelOptPredicateList.of(rexBuilder, aggPullUpPredicates);
   }
