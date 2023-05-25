@@ -69,9 +69,12 @@ public class OracleSqlDialect extends SqlDialect {
 
   public static final SqlDialect DEFAULT = new OracleSqlDialect(DEFAULT_CONTEXT);
 
+  private final int majorVersion;
+
   /** Creates an OracleSqlDialect. */
   public OracleSqlDialect(Context context) {
     super(context);
+    this.majorVersion = context.databaseMajorVersion();
   }
 
   @Override public boolean supportsApproxCountDistinct() {
@@ -187,5 +190,14 @@ public class OracleSqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
     }
+  }
+
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+       @Nullable SqlNode fetch) {
+    // majorVersion in SqlDialect.EMPTY_CONTEXT is -1 by default
+    if (this.majorVersion != -1 && this.majorVersion < 12) {
+      throw new RuntimeException("Lower Oracle version(<12) doesn't support offset/fetch syntax!");
+    }
+    super.unparseOffsetFetch(writer, offset, fetch);
   }
 }
