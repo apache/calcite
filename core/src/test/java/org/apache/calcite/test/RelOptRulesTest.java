@@ -133,7 +133,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -6838,20 +6837,12 @@ class RelOptRulesTest extends RelOptTestBase {
         + "                         d1.deptno < e2.deptno))"
         + " FROM dept d1";
 
-    final RelOptFixture fixture = sql(sql).withExpand(false);
-    final RelNode rel = fixture.toRel();
-    final RelOptPlanner planner = rel.getCluster().getPlanner();
-
-    final RelTraitSet desiredTraits = RelTraitSet.createEmpty();
-
-    final Program program = Programs.standard();
-    RelNode relNode =
-        program.run(planner, rel, desiredTraits,
-            new ArrayList<>(),
-            new ArrayList<>());
-
-    diffRepos.assertEquals("planAfter", "${planAfter}",
-        NL + RelOptUtil.toString(relNode));
+    sql(sql)
+        .withExpand(false)
+        .withLateDecorrelate(true)
+        .withTrim(true)
+        .withRule()
+        .checkUnchanged();
   }
 
   /** Test case for CALCITE-5683 for two level nested decorrelate with standard program
@@ -6866,21 +6857,12 @@ class RelOptRulesTest extends RelOptTestBase {
         + "                         e1.deptno = e2.deptno and"
         + "                         d1.deptno < e2.deptno))"
         + " FROM dept d1";
-
-    final RelOptFixture fixture = sql(sql).withExpand(false);
-    final RelNode rel = fixture.toRel();
-    final RelOptPlanner planner = rel.getCluster().getPlanner();
-
-    final RelTraitSet desiredTraits = RelTraitSet.createEmpty();
-
-    final Program program = Programs.standard();
-    RelNode relNode =
-        program.run(planner, rel, desiredTraits,
-            new ArrayList<>(),
-            new ArrayList<>());
-
-    diffRepos.assertEquals("planAfter", "${planAfter}",
-        NL + RelOptUtil.toString(relNode));
+    sql(sql)
+        .withExpand(false)
+        .withLateDecorrelate(true)
+        .withTrim(true)
+        .withRule()
+        .checkUnchanged();
   }
 
   /** Test case for
