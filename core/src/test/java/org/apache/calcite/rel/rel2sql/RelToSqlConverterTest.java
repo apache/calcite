@@ -6867,6 +6867,22 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5723">[CALCITE-5723]
+   * Oracle dialect generates SQL that cannot be recognized by lower version
+   * Oracle Server(<12) when unparsing OffsetFetch</a>. */
+  @Test void testFetchOffsetOracle() {
+    String query = "SELECT \"department_id\" FROM \"employee\" LIMIT 2 OFFSET 1";
+    String expected = "SELECT \"department_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "OFFSET 1 ROWS\n"
+        + "FETCH NEXT 2 ROWS ONLY";
+    sql(query)
+        .withOracle().ok(expected)
+        .withOracle(19).ok(expected)
+        .withOracle(11).throws_("Lower Oracle version(<12) doesn't support offset/fetch syntax!");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5265">[CALCITE-5265]
    * JDBC adapter sometimes adds unnecessary parentheses around SELECT in INSERT</a>. */
   @Test void testInsertSelect() {
@@ -7122,7 +7138,18 @@ class RelToSqlConverterTest {
     }
 
     Sql withOracle() {
-      return dialect(DatabaseProduct.ORACLE.getDialect());
+      return withOracle(12);
+    }
+
+    Sql withOracle(int majorVersion) {
+      final SqlDialect oracleDialect = DatabaseProduct.ORACLE.getDialect();
+      return dialect(
+          new OracleSqlDialect(OracleSqlDialect.DEFAULT_CONTEXT
+              .withDatabaseProduct(DatabaseProduct.ORACLE)
+              .withDatabaseMajorVersion(majorVersion)
+              .withIdentifierQuoteString(oracleDialect.quoteIdentifier("")
+                  .substring(0, 1))
+              .withNullCollation(oracleDialect.getNullCollation())));
     }
 
     Sql withPostgresql() {
