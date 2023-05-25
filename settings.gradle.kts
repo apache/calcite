@@ -21,6 +21,8 @@ pluginManagement {
         fun String.v() = extra["$this.version"].toString()
         fun PluginDependenciesSpec.idv(id: String, key: String = id) = id(id) version key.v()
 
+        idv("com.gradle.enterprise")
+        idv("com.gradle.common-custom-user-data-gradle-plugin")
         idv("com.autonomousapps.dependency-analysis")
         idv("org.checkerframework")
         idv("com.github.autostyle")
@@ -53,8 +55,8 @@ pluginManagement {
 }
 
 plugins {
-    id("com.gradle.enterprise") version "3.13.2"
-    id("com.gradle.common-custom-user-data-gradle-plugin") version "1.10"
+    id("com.gradle.enterprise")
+    id("com.gradle.common-custom-user-data-gradle-plugin")
     id("com.github.burrunan.s3-build-cache")
 }
 
