@@ -217,6 +217,10 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     }
     return 0;
   }
+  @Override public RelDataType deriveDecimalPlusType(RelDataTypeFactory typeFactory,
+      RelDataType type1, RelDataType type2) {
+    return RelDataTypeSystem.super.deriveDecimalPlusType(typeFactory, type1, type2);
+  }
 
   @Override public RelDataType deriveSumType(RelDataTypeFactory typeFactory,
       RelDataType argumentType) {
@@ -251,6 +255,11 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
   @Override public RelDataType deriveFractionalRankType(RelDataTypeFactory typeFactory) {
     return typeFactory.createTypeWithNullability(
         typeFactory.createSqlType(SqlTypeName.DOUBLE), false);
+  }
+
+  @Override public RelDataType deriveDecimalDivideType(RelDataTypeFactory typeFactory,
+      RelDataType type1, RelDataType type2) {
+    return RelDataTypeSystem.super.deriveDecimalDivideType(typeFactory, type1, type2);
   }
 
   @Override public RelDataType deriveRankType(RelDataTypeFactory typeFactory) {

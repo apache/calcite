@@ -187,7 +187,6 @@ public class SqlUpdate extends SqlCall {
     if (sourceSelect != null && sourceSelect.from != null) {
       Optional<SqlJoin> join = getJoinFromSourceSelect();
       if (join.isPresent()) {
-        updateTargetTableFromJoin(join.get());
         sources = sqlKindSourceCollectorMap.get(join.get().getKind()).collectSources(join.get());
       }
     }
@@ -201,15 +200,6 @@ public class SqlUpdate extends SqlCall {
     }
     return sourceSelect.from instanceof SqlJoin
         ? Optional.of((SqlJoin) sourceSelect.from) : Optional.empty();
-  }
-
-  private void updateTargetTableFromJoin(SqlJoin join) {
-    if (join.right.getKind() == SqlKind.AS && isTargetTable(join.right)) {
-      updateTargetTable(join.right);
-    }
-    if (join.left.getKind() == SqlKind.AS && isTargetTable(join.left)) {
-      updateTargetTable(join.left);
-    }
   }
 
   /**
@@ -226,15 +216,6 @@ public class SqlUpdate extends SqlCall {
     }
     return targetTable instanceof SqlBasicCall && targetTable.getKind() == SqlKind.AS
         && ((SqlBasicCall) targetTable).operands[0].equalsDeep(node, Litmus.IGNORE);
-  }
-
-  /**
-   *  Updates the targetTable if @param targetTable is aliased.
-   */
-  private void updateTargetTable(SqlNode targetTable) {
-    if (!targetTable.equalsDeep(this.targetTable, Litmus.IGNORE)) {
-      this.targetTable = targetTable;
-    }
   }
 
   private void unparseTargetAlias(SqlWriter writer, int operatorLeftPrec, int operatorRightPrec) {

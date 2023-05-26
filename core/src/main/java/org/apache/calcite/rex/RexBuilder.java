@@ -38,6 +38,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.BasicSqlTypeWithFormat;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -463,14 +464,6 @@ public class RexBuilder {
       RexWindowBound lowerBound,
       RexWindowBound upperBound,
       boolean rows) {
-    if (lowerBound.isUnbounded() && lowerBound.isPreceding()
-        && upperBound.isUnbounded() && upperBound.isFollowing()) {
-      // RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-      //   is equivalent to
-      // ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-      //   but we prefer "RANGE"
-      rows = false;
-    }
     return new RexWindow(
         partitionKeys,
         orderKeys,
@@ -640,6 +633,9 @@ public class RexBuilder {
   boolean canRemoveCastFromLiteral(RelDataType toType, @Nullable Comparable value,
       SqlTypeName fromTypeName) {
     final SqlTypeName sqlType = toType.getSqlTypeName();
+    if (toType instanceof BasicSqlTypeWithFormat) {
+      return false;
+    }
     if (!RexLiteral.valueMatchesType(value, sqlType, false)) {
       return false;
     }
@@ -1686,6 +1682,8 @@ public class RexBuilder {
    * <p>Returns null if and only if {@code o} is null. */
   private static @PolyNull Object clean(@PolyNull Object o, RelDataType type) {
     if (o == null) {
+      return o;
+    } else if (type instanceof BasicSqlTypeWithFormat) {
       return o;
     }
     switch (type.getSqlTypeName()) {

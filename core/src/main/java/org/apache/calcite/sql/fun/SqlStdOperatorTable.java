@@ -2179,7 +2179,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlInternalOperator(
           "$SCALAR_QUERY",
           SqlKind.SCALAR_QUERY,
-          0,
+          SqlOperator.MDX_PRECEDENCE,
           false,
           ReturnTypes.RECORD_TO_SCALAR,
           null,
@@ -2189,9 +2189,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
             SqlCall call,
             int leftPrec,
             int rightPrec) {
-          final SqlWriter.Frame frame = writer.startList("(", ")");
           call.operand(0).unparse(writer, 0, 0);
-          writer.endList(frame);
         }
 
         @Override public boolean argumentMustBeScalar(int ordinal) {
