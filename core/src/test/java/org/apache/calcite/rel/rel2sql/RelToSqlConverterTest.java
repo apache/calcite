@@ -477,9 +477,12 @@ class RelToSqlConverterTest {
         .aggregate(b.groupKey("DEPTNO"),
             b.literalAgg(2).as("two"))
         .build();
-    final String expected = "SELECT *\n"
-        + "FROM (VALUES (42)) AS \"t\" (\"C\")";
-    final String expectedMysql = "SELECT 42 AS `C`";
+    final String expected = "SELECT \"DEPTNO\", 2 AS \"two\"\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "GROUP BY \"DEPTNO\"";
+    final String expectedMysql = "SELECT `DEPTNO`, 2 AS `two`\n"
+        + "FROM `scott`.`EMP`\n"
+        + "GROUP BY `DEPTNO`";
     relFn(relFn)
         .ok(expected)
         .withMysql().ok(expectedMysql)
