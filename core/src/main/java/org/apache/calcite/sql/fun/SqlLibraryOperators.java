@@ -1498,12 +1498,23 @@ public abstract class SqlLibraryOperators {
               number -> number == 2),
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {ORACLE, HIVE, SPARK})
+  @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction NEXT_DAY =
       new SqlFunction(
           "NEXT_DAY",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.DATE,
+          null,
+          OperandTypes.family(SqlTypeFamily.ANY,
+              SqlTypeFamily.STRING),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction ORACLE_NEXT_DAY =
+      new SqlFunction(
+          "NEXT_DAY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_NULLABLE,
           null,
           OperandTypes.family(SqlTypeFamily.ANY,
               SqlTypeFamily.STRING),
