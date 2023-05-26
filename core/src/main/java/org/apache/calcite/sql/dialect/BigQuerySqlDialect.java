@@ -1218,6 +1218,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "TRUE":
       unparseBoolean(writer, call);
       break;
+    case "SHIFTLEFT":
+      unparseShiftLeft(writer,call,leftPrec,rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -1231,6 +1234,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.sep(",");
     writer.literal("0");
     writer.endFunCall(ifFrame);
+  }
+
+  private void unparseShiftLeft(SqlWriter writer, SqlCall operands,
+      int leftPrec, int rightPrec){
   }
 
   private void unParseRegexpContains(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

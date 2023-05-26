@@ -1441,4 +1441,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.ANY,
               SqlTypeFamily.STRING),
           SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {HIVE, SPARK, TERADATA})
+  public static final SqlFunction SHIFTLEFT =
+      new SqlFunction(
+          "SHIFTLEFT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.family(SqlTypeFamily.INTEGER,
+              SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.SYSTEM);
 }
