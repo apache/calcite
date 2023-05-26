@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.sql.test;
-
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -60,8 +59,9 @@ import java.util.function.Consumer;
 
 import static org.apache.calcite.test.Matchers.relIsValid;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -136,7 +136,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
           final RelDataType rowType =
               validator.getValidatedNodeType(n);
           final List<RelDataTypeField> fields = rowType.getFieldList();
-          assertThat("expected query to return 1 field", fields.size(), is(1));
+          assertThat("expected query to return 1 field", fields, hasSize(1));
           return fields.get(0).getType();
         });
   }

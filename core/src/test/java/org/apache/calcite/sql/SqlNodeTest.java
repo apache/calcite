@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.sql;
-
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Util;
 
@@ -28,6 +27,7 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 
 /**
  * Test of {@link SqlNode} and other SQL AST classes.
@@ -53,7 +53,7 @@ class SqlNodeTest {
   private <E> void checkLists(List<E> list0, List<E> list1, int depth) {
     assertThat(list0.hashCode(), is(list1.hashCode()));
     assertThat(list0.equals(list1), is(true));
-    assertThat(list0.size(), is(list1.size()));
+    assertThat(list0, hasSize(list1.size()));
     assertThat(list0.isEmpty(), is(list1.isEmpty()));
     if (!list0.isEmpty()) {
       assertThat(list0.get(0), sameInstance(list1.get(0)));

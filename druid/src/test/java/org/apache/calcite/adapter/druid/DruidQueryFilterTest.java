@@ -41,7 +41,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Tests generating Druid filters.
@@ -82,8 +82,8 @@ class DruidQueryFilterTest {
     returnValue.write(jsonGenerator);
     jsonGenerator.close();
 
-    assertThat(sw.toString(),
-        is("{\"type\":\"in\",\"dimension\":\"dimensionName\","
+    assertThat(sw,
+        hasToString("{\"type\":\"in\",\"dimension\":\"dimensionName\","
             + "\"values\":[\"1\",\"5\",\"value1\"]}"));
   }
 
@@ -107,9 +107,10 @@ class DruidQueryFilterTest {
     JsonGenerator jsonGenerator = jsonFactory.createGenerator(sw);
     returnValue.write(jsonGenerator);
     jsonGenerator.close();
-    assertThat(sw.toString(),
-        is("{\"type\":\"bound\",\"dimension\":\"dimensionName\",\"lower\":\"lower-bound\","
-            + "\"lowerStrict\":false,\"upper\":\"upper-bound\",\"upperStrict\":false,"
+    assertThat(sw,
+        hasToString("{\"type\":\"bound\",\"dimension\":\"dimensionName\","
+            + "\"lower\":\"lower-bound\",\"lowerStrict\":false,"
+            + "\"upper\":\"upper-bound\",\"upperStrict\":false,"
             + "\"ordering\":\"lexicographic\"}"));
   }
 

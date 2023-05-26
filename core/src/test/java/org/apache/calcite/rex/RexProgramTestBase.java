@@ -28,9 +28,9 @@ import org.hamcrest.Matcher;
 
 import java.util.Objects;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /** Base class for tests of {@link RexProgram}. */
@@ -46,13 +46,13 @@ class RexProgramTestBase extends RexProgramBuilderBase {
 
   protected void checkCnf(RexNode node, String expected) {
     assertThat("RexUtil.toCnf(rexBuilder, " + node + ")",
-        RexUtil.toCnf(rexBuilder, node).toString(), equalTo(expected));
+        RexUtil.toCnf(rexBuilder, node), hasToString(expected));
   }
 
   protected void checkThresholdCnf(RexNode node, int threshold, String expected) {
     assertThat("RexUtil.toCnf(rexBuilder, threshold=" + threshold + " , " + node + ")",
-        RexUtil.toCnf(rexBuilder, threshold, node).toString(),
-        equalTo(expected));
+        RexUtil.toCnf(rexBuilder, threshold, node),
+        hasToString(expected));
   }
 
   protected void checkPullFactorsUnchanged(RexNode node) {
@@ -61,8 +61,8 @@ class RexProgramTestBase extends RexProgramBuilderBase {
 
   protected void checkPullFactors(RexNode node, String expected) {
     assertThat("RexUtil.pullFactors(rexBuilder, " + node + ")",
-        RexUtil.pullFactors(rexBuilder, node).toString(),
-        equalTo(expected));
+        RexUtil.pullFactors(rexBuilder, node),
+        hasToString(expected));
   }
 
   /**
@@ -151,7 +151,7 @@ class RexProgramTestBase extends RexProgramBuilderBase {
     final RexNode simplified =
         simplify.simplifyUnknownAs(node, unknownAs);
     assertThat(("simplify(unknown as " + unknownAs + "): ") + node,
-        simplified.toString(), matcher);
+        simplified, hasToString(matcher));
     return simplified;
   }
 
@@ -164,20 +164,19 @@ class RexProgramTestBase extends RexProgramBuilderBase {
     final RexNode simplified =
         simplify.withPredicates(predicates)
             .simplifyUnknownAs(node, RexUnknownAs.FALSE);
-    assertThat(simplified.toString(), equalTo(expected));
+    assertThat(simplified, hasToString(expected));
   }
 
   /** Checks that {@link RexNode#isAlwaysTrue()},
    * {@link RexNode#isAlwaysTrue()} and {@link RexSimplify} agree that
    * an expression reduces to true or false. */
   protected void checkIs(RexNode e, boolean expected) {
-    assertThat(
-        "isAlwaysTrue() of expression: " + e.toString(), e.isAlwaysTrue(), is(expected));
-    assertThat(
-        "isAlwaysFalse() of expression: " + e.toString(), e.isAlwaysFalse(), is(!expected));
-    assertThat(
-        "Simplification is not using isAlwaysX information", simplify(e).toString(),
-        is(expected ? "true" : "false"));
+    assertThat("isAlwaysTrue() of expression: " + e,
+        e.isAlwaysTrue(), is(expected));
+    assertThat("isAlwaysFalse() of expression: " + e,
+        e.isAlwaysFalse(), is(!expected));
+    assertThat("Simplification is not using isAlwaysX information",
+        simplify(e), hasToString(expected ? "true" : "false"));
   }
 
   protected Comparable eval(RexNode e) {

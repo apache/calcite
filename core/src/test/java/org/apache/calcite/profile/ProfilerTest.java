@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.profile;
-
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -53,8 +52,9 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Unit tests for {@link Profiler}.
@@ -325,47 +325,47 @@ class ProfilerTest {
   @Test void testSurpriseQueue() {
     ProfilerImpl.SurpriseQueue q = new ProfilerImpl.SurpriseQueue(4, 3);
     assertThat(q.offer(2), is(true));
-    assertThat(q.toString(), is("min: 2.0, contents: [2.0]"));
+    assertThat(q, hasToString("min: 2.0, contents: [2.0]"));
     assertThat(q.isValid(), is(true));
 
     assertThat(q.offer(4), is(true));
-    assertThat(q.toString(), is("min: 2.0, contents: [2.0, 4.0]"));
+    assertThat(q, hasToString("min: 2.0, contents: [2.0, 4.0]"));
     assertThat(q.isValid(), is(true));
 
     // Since we're in the warm-up period, a value lower than the minimum is
     // accepted.
     assertThat(q.offer(1), is(true));
-    assertThat(q.toString(), is("min: 1.0, contents: [2.0, 4.0, 1.0]"));
+    assertThat(q, hasToString("min: 1.0, contents: [2.0, 4.0, 1.0]"));
     assertThat(q.isValid(), is(true));
 
     assertThat(q.offer(5), is(true));
-    assertThat(q.toString(), is("min: 1.0, contents: [4.0, 1.0, 5.0]"));
+    assertThat(q, hasToString("min: 1.0, contents: [4.0, 1.0, 5.0]"));
     assertThat(q.isValid(), is(true));
 
     assertThat(q.offer(3), is(true));
-    assertThat(q.toString(), is("min: 1.0, contents: [1.0, 5.0, 3.0]"));
+    assertThat(q, hasToString("min: 1.0, contents: [1.0, 5.0, 3.0]"));
     assertThat(q.isValid(), is(true));
 
     // Duplicate entry
     assertThat(q.offer(5), is(true));
-    assertThat(q.toString(), is("min: 3.0, contents: [5.0, 3.0, 5.0]"));
+    assertThat(q, hasToString("min: 3.0, contents: [5.0, 3.0, 5.0]"));
     assertThat(q.isValid(), is(true));
 
     // Now that the list is full, a value below the minimum is refused.
     // "offer" returns false, and the value is not added to the queue.
     // Thus the median never decreases.
     assertThat(q.offer(2), is(false));
-    assertThat(q.toString(), is("min: 3.0, contents: [5.0, 3.0, 5.0]"));
+    assertThat(q, hasToString("min: 3.0, contents: [5.0, 3.0, 5.0]"));
     assertThat(q.isValid(), is(true));
 
     // Same applies for a value equal to the minimum.
     assertThat(q.offer(3), is(false));
-    assertThat(q.toString(), is("min: 3.0, contents: [5.0, 3.0, 5.0]"));
+    assertThat(q, hasToString("min: 3.0, contents: [5.0, 3.0, 5.0]"));
     assertThat(q.isValid(), is(true));
 
     // Add a value that is above the minimum.
     assertThat(q.offer(4.5), is(true));
-    assertThat(q.toString(), is("min: 3.0, contents: [3.0, 5.0, 4.5]"));
+    assertThat(q, hasToString("min: 3.0, contents: [3.0, 5.0, 4.5]"));
     assertThat(q.isValid(), is(true));
   }
 

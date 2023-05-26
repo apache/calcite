@@ -30,7 +30,6 @@ import com.google.common.collect.RangeSet;
 
 import org.apiguardian.api.API;
 import org.hamcrest.BaseMatcher;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -305,7 +304,7 @@ public class Matchers {
    */
   @API(since = "1.22", status = API.Status.EXPERIMENTAL)
   public static Matcher<String> containsWithoutNodeIds(String value) {
-    return compose(CoreMatchers.containsString(value), Matchers::trimNodeIds);
+    return compose(StringContains.containsString(value), Matchers::trimNodeIds);
   }
 
   /**
@@ -325,7 +324,7 @@ public class Matchers {
    * @see Util#toLinux(String)
    */
   public static Matcher<String> containsStringLinux(String value) {
-    return compose(CoreMatchers.containsString(value), Util::toLinux);
+    return compose(StringContains.containsString(value), Util::toLinux);
   }
 
   public static String trimNodeIds(String s) {
@@ -378,7 +377,7 @@ public class Matchers {
    * Matcher that succeeds for any collection that, when converted to strings
    * and sorted on those strings, matches the given reference string.
    *
-   * <p>Use it as an alternative to {@link CoreMatchers#is} if items in your
+   * <p>Use it as an alternative to {@link Is#is} if items in your
    * list might occur in any order.
    *
    * <p>For example:

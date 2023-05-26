@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.sql.validate;
-
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableProject;
 import org.apache.calcite.config.Lex;
@@ -40,8 +39,9 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
@@ -73,7 +73,7 @@ class LexCaseSensitiveTest {
     RelNode transform = planner.transform(0, traitSet, convert);
     assertThat(transform, instanceOf(EnumerableProject.class));
     List<String> fieldNames = transform.getRowType().getFieldNames();
-    assertThat(fieldNames.size(), is(2));
+    assertThat(fieldNames, hasSize(2));
     if (lex.caseSensitive) {
       assertThat(fieldNames.get(0), is("EMPID"));
       assertThat(fieldNames.get(1), is("empid"));

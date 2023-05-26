@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
@@ -93,6 +92,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -127,6 +127,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -1154,7 +1155,7 @@ public class RelBuilderTest {
             .rename(ImmutableList.of("x", "y z"))
             .build();
     assertThat(root, hasTree(expected));
-    assertThat(root.getRowType().getFieldNames().toString(), is("[x, y z]"));
+    assertThat(root.getRowType().getFieldNames(), hasToString("[x, y z]"));
   }
 
   /** Tests conditional rename using {@link RelBuilder#let}. */
@@ -2289,7 +2290,7 @@ public class RelBuilderTest {
                     builder.field(2, 1, "DEPTNO")))
             .let(b -> assertSize(b, is(1)))
             .build();
-    assertThat(builder.size(), is(0));
+    assertThat(builder, isRelBuilderWithSize(is(0)));
     final String expected = ""
         + "LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
         + "  LogicalFilter(condition=[IS NULL($6)])\n"
@@ -2298,9 +2299,20 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Returns a Matcher that checks {@link RelBuilder#size()}. */
+  private static Matcher<RelBuilder> isRelBuilderWithSize(
+      final Matcher<Integer> matcher) {
+    return new FeatureMatcher<RelBuilder, Integer>(matcher,
+        "RelBuilder", "size") {
+      @Override protected Integer featureValueOf(RelBuilder actual) {
+        return actual.size();
+      }
+    };
+  }
+
   private static RelBuilder assertSize(RelBuilder b,
       Matcher<Integer> sizeMatcher) {
-    assertThat(b.size(), sizeMatcher);
+    assertThat(b, isRelBuilderWithSize(is(sizeMatcher)));
     return b;
   }
 
@@ -2913,24 +2925,24 @@ public class RelBuilderTest {
     // Simplify "emp.deptno as d as d" to "emp.deptno as d".
     final RexNode e0 =
         builder.alias(builder.alias(builder.field("DEPTNO"), "D"), "D");
-    assertThat(e0.toString(), is("AS($7, 'D')"));
+    assertThat(e0, hasToString("AS($7, 'D')"));
 
     // It would be nice if RelBuilder could simplify
     // "emp.deptno as deptno" to "emp.deptno", but there is not
     // enough information in RexInputRef.
     final RexNode e1 = builder.alias(builder.field("DEPTNO"), "DEPTNO");
-    assertThat(e1.toString(), is("AS($7, 'DEPTNO')"));
+    assertThat(e1, hasToString("AS($7, 'DEPTNO')"));
 
     // The intervening alias 'DEPTNO' is removed
     final RexNode e2 =
         builder.alias(builder.alias(builder.field("DEPTNO"), "DEPTNO"), "D1");
-    assertThat(e2.toString(), is("AS($7, 'D1')"));
+    assertThat(e2, hasToString("AS($7, 'D1')"));
 
     // Simplify "emp.deptno as d2 as d3" to "emp.deptno as d3"
     // because "d3" alias overrides "d2".
     final RexNode e3 =
         builder.alias(builder.alias(builder.field("DEPTNO"), "D2"), "D3");
-    assertThat(e3.toString(), is("AS($7, 'D3')"));
+    assertThat(e3, hasToString("AS($7, 'D3')"));
 
     final RelNode root = builder.project(e0, e1, e2, e3).build();
     final String expected = ""
@@ -3474,8 +3486,8 @@ public class RelBuilderTest {
         "LogicalValues(tuples=[[{ 1, true }, { 2, false }]])\n";
     final String expectedRowType = "RecordType(INTEGER x, BOOLEAN y)";
     assertThat(f.apply(createBuilder()), hasTree(expected));
-    assertThat(f.apply(createBuilder()).getRowType().toString(),
-        is(expectedRowType));
+    assertThat(f.apply(createBuilder()).getRowType(),
+        hasToString(expectedRowType));
   }
 
   /** Tests that {@code Union(Project(Values), ... Project(Values))} is
@@ -3537,7 +3549,7 @@ public class RelBuilderTest {
         "LogicalSort(sort0=[$2], sort1=[$0], dir0=[ASC], dir1=[DESC])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
-    assertThat(((Sort) root).getSortExps().toString(), is("[$2, $0]"));
+    assertThat(((Sort) root).getSortExps(), hasToString("[$2, $0]"));
 
     // same result using ordinals
     final RelNode root2 =
@@ -4793,13 +4805,13 @@ public class RelBuilderTest {
             builder.field("EMPNO"),
             builder.literal(1),
             builder.literal(5));
-    assertThat(call.toString(), is(expected));
+    assertThat(call, hasToString(expected));
 
     final RexNode call2 =
         builder.between(builder.field("EMPNO"),
             builder.literal(1),
             builder.literal(5));
-    assertThat(call2.toString(), is(expected));
+    assertThat(call2, hasToString(expected));
 
     final RelNode root = builder.filter(call2).build();
     final String expectedRel = ""

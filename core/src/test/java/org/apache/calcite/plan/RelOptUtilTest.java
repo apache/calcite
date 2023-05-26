@@ -65,6 +65,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -246,14 +247,14 @@ class RelOptUtilTest {
                 ImmutableList.of(distribution1, distribution2)),
             RelCompositeTrait.of(RelDistributionTraitDef.INSTANCE,
                 ImmutableList.of(distribution1)));
-    assertThat(collationConvertRule.toString(),
-        is("ConverterRule(in:[4 DESC],out:[0 DESC])"));
-    assertThat(distributionConvertRule.toString(),
-        is("ConverterRule(in:hash[0, 1],out:range)"));
-    assertThat(compositeConvertRule.toString(),
-        is("ConverterRule(in:[[0 DESC], [4 DESC]],out:[4 DESC])"));
-    assertThat(compositeConvertRule0.toString(),
-        is("ConverterRule(in:[hash[0, 1], range],out:hash[0, 1])"));
+    assertThat(collationConvertRule,
+        hasToString("ConverterRule(in:[4 DESC],out:[0 DESC])"));
+    assertThat(distributionConvertRule,
+        hasToString("ConverterRule(in:hash[0, 1],out:range)"));
+    assertThat(compositeConvertRule,
+        hasToString("ConverterRule(in:[[0 DESC], [4 DESC]],out:[4 DESC])"));
+    assertThat(compositeConvertRule0,
+        hasToString("ConverterRule(in:[hash[0, 1], range],out:hash[0, 1])"));
     try {
       Util.discard(
           MyConverterRule.create(
@@ -449,8 +450,8 @@ class RelOptUtilTest {
     RelNode transformedInput = transformed.getInput(0);
     assertThat(transformedInput, is(instanceOf(Join.class)));
     Join newJoin = (Join) transformedInput;
-    assertThat(newJoin.getCondition().toString(),
-        is(
+    assertThat(newJoin.getCondition(),
+        hasToString(
             relBuilder.call(
                 SqlStdOperatorTable.EQUALS,
                 // Computed field is added at the end (and index start at 0)
@@ -460,9 +461,10 @@ class RelOptUtilTest {
             .toString()));
     assertThat(newJoin.getLeft(), is(instanceOf(Project.class)));
     Project leftInput = (Project) newJoin.getLeft();
-    assertThat(leftInput.getProjects().get(empRow.getFieldCount()).toString(),
-        is(relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1))
-            .toString()));
+    assertThat(leftInput.getProjects().get(empRow.getFieldCount()),
+        hasToString(
+            relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef,
+                    relBuilder.literal(1)).toString()));
   }
 
   /**
@@ -495,8 +497,8 @@ class RelOptUtilTest {
     RelNode transformedInput = transformed.getInput(0);
     assertThat(transformedInput, is(instanceOf(Join.class)));
     Join newJoin = (Join) transformedInput;
-    assertThat(newJoin.getCondition().toString(),
-        is(
+    assertThat(newJoin.getCondition(),
+        hasToString(
             relBuilder.call(
                 SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
                 // Computed field is added at the end (and index start at 0)
@@ -506,9 +508,10 @@ class RelOptUtilTest {
             .toString()));
     assertThat(newJoin.getLeft(), is(instanceOf(Project.class)));
     Project leftInput = (Project) newJoin.getLeft();
-    assertThat(leftInput.getProjects().get(empRow.getFieldCount()).toString(),
-        is(relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1))
-            .toString()));
+    assertThat(leftInput.getProjects().get(empRow.getFieldCount()),
+        hasToString(
+            relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef,
+                    relBuilder.literal(1)).toString()));
   }
 
   /**
@@ -548,8 +551,8 @@ class RelOptUtilTest {
     RelNode transformedInput = transformed.getInput(0);
     assertThat(transformedInput, is(instanceOf(Join.class)));
     Join newJoin = (Join) transformedInput;
-    assertThat(newJoin.getCondition().toString(),
-        is(
+    assertThat(newJoin.getCondition(),
+        hasToString(
             relBuilder.call(
                 SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
                 // Computed field is added at the end (and index start at 0)

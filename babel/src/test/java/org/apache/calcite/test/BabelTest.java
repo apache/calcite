@@ -37,8 +37,8 @@ import java.sql.Types;
 import java.util.Properties;
 import java.util.function.UnaryOperator;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
 
 /**
  * Unit tests for Babel framework.

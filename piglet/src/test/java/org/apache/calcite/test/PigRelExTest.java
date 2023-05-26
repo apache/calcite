@@ -29,6 +29,7 @@ import static org.apache.calcite.test.Matchers.inTree;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Tests for {@code PigRelExVisitor}.
@@ -59,7 +60,7 @@ class PigRelExTest extends PigRelTestBase {
     try {
       final RelNode rel =
           converter.pigQuery2Rel(pigScript, false, false, false).get(0);
-      assertThat(rel.getRowType().toString(), rowTypeMatcher);
+      assertThat(rel.getRowType(), hasToString(rowTypeMatcher));
     } catch (IOException e) {
       throw TestUtil.rethrow(e);
     }

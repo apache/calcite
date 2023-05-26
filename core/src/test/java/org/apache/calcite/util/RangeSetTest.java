@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.util;
-
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.externalize.RelJson;
 
@@ -39,6 +38,7 @@ import static org.apache.calcite.test.Matchers.isRangeSet;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Unit test for {@link RangeSets} and other utilities relating to Guava
@@ -308,26 +308,26 @@ class RangeSetTest {
     for (Range<Integer> range : f.ranges) {
       RangeSets.map(range, h);
     }
-    assertThat(sb.toString(), is(f.rangesString));
+    assertThat(sb, hasToString(f.rangesString));
 
     sb.setLength(0);
     for (Range<Integer> range : f.ranges) {
       RangeSets.forEach(range, c);
     }
-    assertThat(sb.toString(), is(f.rangesString));
+    assertThat(sb, hasToString(f.rangesString));
 
     // Use a smaller set of ranges that does not overlap
     sb.setLength(0);
     for (Range<Integer> range : f.disjointRanges) {
       RangeSets.forEach(range, c);
     }
-    assertThat(sb.toString(), is(f.disjointRangesString));
+    assertThat(sb, hasToString(f.disjointRangesString));
 
     // For a RangeSet consisting of disjointRanges the effect is the same,
     // but the ranges are sorted.
     sb.setLength(0);
     RangeSets.forEach(f.rangeSet, c);
-    assertThat(sb.toString(), is(f.disjointRangesSortedString));
+    assertThat(sb, hasToString(f.disjointRangesSortedString));
   }
 
   /** Tests that {@link RangeSets#hashCode(RangeSet)} returns the same result
@@ -397,8 +397,8 @@ class RangeSetTest {
     final String expectedGuava29 = "[(-\u221e..+\u221e), (-\u221e..3], "
         + "[4..+\u221e), (-\u221e..5), (6..+\u221e), [7..7], "
         + "(8..9), (10..11], [12..13], [14..15)]";
-    assertThat(list.toString(),
-        anyOf(is(expectedGuava28), is(expectedGuava29)));
+    assertThat(list,
+        hasToString(anyOf(is(expectedGuava28), is(expectedGuava29))));
     list.clear();
 
     final StringBuilder sb = new StringBuilder();
@@ -411,7 +411,7 @@ class RangeSetTest {
     final String expected2 = "[(-\u221e..+\u221e), (-\u221e..3], "
         + "[4..+\u221e), (-\u221e..5), (6..+\u221e), 7, "
         + "(8..9), (10..11], [12..13], [14..15)]";
-    assertThat(list.toString(), is(expected2));
+    assertThat(list, hasToString(expected2));
     list.clear();
   }
 

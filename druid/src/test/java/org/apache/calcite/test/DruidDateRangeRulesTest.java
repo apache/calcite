@@ -34,9 +34,10 @@ import org.junit.jupiter.api.Test;
 import java.util.Calendar;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNull.notNullValue;
+import static org.hamcrest.Matchers.hasToString;
 
 /** Unit tests for {@link DateRangeRules} algorithms. */
 class DruidDateRangeRulesTest {
@@ -154,7 +155,7 @@ class DruidDateRangeRulesTest {
     final List<Interval> intervals =
         DruidDateTimeUtils.createInterval(e);
     assertThat(intervals, notNullValue());
-    assertThat(intervals.toString(), intervalMatcher);
+    assertThat(intervals, hasToString(intervalMatcher));
   }
 
   private void checkDateRange(Fixture f, RexNode e, Matcher<String> intervalMatcher) {
@@ -165,7 +166,7 @@ class DruidDateRangeRulesTest {
     if (intervals == null) {
       throw new AssertionError("null interval");
     }
-    assertThat(intervals.toString(), intervalMatcher);
+    assertThat(intervals, hasToString(intervalMatcher));
   }
 
   /** Common expressions across tests. */

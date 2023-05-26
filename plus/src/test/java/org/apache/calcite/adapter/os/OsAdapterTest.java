@@ -46,6 +46,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -162,7 +163,7 @@ class OsAdapterTest {
               b.append(r.getString(i + 1)).append(';');
               assertThat(r.wasNull(), is(false));
             }
-            assertThat(b.toString(), notNullValue());
+            assertThat(b, hasToString(notNullValue()));
           } catch (SQLException e) {
             throw rethrow(e);
           }

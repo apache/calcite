@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelOptUtil.Logic;
@@ -45,6 +44,8 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -326,25 +327,25 @@ class RexTransformerTest {
         rexBuilder.makeExactLiteral(new BigDecimal("-1234.56"));
     assertThat(literal.getType().getFullTypeString(),
         is("DECIMAL(6, 2) NOT NULL"));
-    assertThat(literal.getValue().toString(), is("-1234.56"));
+    assertThat(literal.getValue(), hasToString("-1234.56"));
 
     final RexLiteral literal2 =
         rexBuilder.makeExactLiteral(new BigDecimal("1234.56"));
     assertThat(literal2.getType().getFullTypeString(),
         is("DECIMAL(6, 2) NOT NULL"));
-    assertThat(literal2.getValue().toString(), is("1234.56"));
+    assertThat(literal2.getValue(), hasToString("1234.56"));
 
     final RexLiteral literal3 =
         rexBuilder.makeExactLiteral(new BigDecimal("0.0123456"));
     assertThat(literal3.getType().getFullTypeString(),
         is("DECIMAL(8, 7) NOT NULL"));
-    assertThat(literal3.getValue().toString(), is("0.0123456"));
+    assertThat(literal3.getValue(), hasToString("0.0123456"));
 
     final RexLiteral literal4 =
         rexBuilder.makeExactLiteral(new BigDecimal("0.01234560"));
     assertThat(literal4.getType().getFullTypeString(),
         is("DECIMAL(9, 8) NOT NULL"));
-    assertThat(literal4.getValue().toString(), is("0.01234560"));
+    assertThat(literal4.getValue(), hasToString("0.01234560"));
   }
 
   /** Test case for
@@ -368,7 +369,7 @@ class RexTransformerTest {
             join.getInputs().get(1), join.getCondition(),
             leftJoinKeys, rightJoinKeys, null, null);
 
-    assertThat(remaining.toString(), is("<>($0, $9)"));
+    assertThat(remaining, hasToString("<>($0, $9)"));
     assertThat(leftJoinKeys.isEmpty(), is(true));
     assertThat(rightJoinKeys.isEmpty(), is(true));
   }
@@ -403,7 +404,7 @@ class RexTransformerTest {
   private Logic deduceLogic(RexNode root, RexNode seek, Logic logic) {
     final List<Logic> list = new ArrayList<>();
     LogicVisitor.collect(root, seek, logic, list);
-    assertThat(list.size(), is(1));
+    assertThat(list, hasSize(1));
     return list.get(0);
   }
 }

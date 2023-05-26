@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
@@ -91,9 +90,10 @@ import java.util.stream.Stream;
 import static org.apache.calcite.test.Matchers.relIsValid;
 import static org.apache.calcite.test.SqlToRelTestBase.NL;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.collection.IsIn.in;
-import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -651,7 +651,7 @@ class SqlHintsConverterTest {
 
     @Override public void onMatch(RelOptRuleCall call) {
       LogicalJoin join = call.rel(0);
-      assertThat(join.getHints().size(), is(1));
+      assertThat(join.getHints(), hasSize(1));
       call.transformTo(
           LogicalJoin.create(join.getLeft(),
               join.getRight(),
@@ -691,7 +691,7 @@ class SqlHintsConverterTest {
 
     @Override public RelNode convert(RelNode rel) {
       LogicalJoin join = (LogicalJoin) rel;
-      assertThat(join.getHints().size(), is(1));
+      assertThat(join.getHints(), hasSize(1));
       assertThat(join.getHints().get(0), is(expectedHint));
       List<RelNode> newInputs = new ArrayList<>();
       for (RelNode input : join.getInputs()) {
@@ -739,7 +739,7 @@ class SqlHintsConverterTest {
         @Nullable RelNode parent) {
       if (clazz.isInstance(node)) {
         Hintable rel = (Hintable) node;
-        assertThat(rel.getHints().size(), is(1));
+        assertThat(rel.getHints(), hasSize(1));
         assertThat(rel.getHints().get(0), is(expectedHint));
       }
       super.visit(node, ordinal, parent);

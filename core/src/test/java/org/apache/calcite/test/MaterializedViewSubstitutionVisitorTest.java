@@ -47,6 +47,7 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -1493,7 +1494,7 @@ public class MaterializedViewSubstitutionVisitorTest {
         SubstitutionVisitor.splitFilter(simplify, x_eq_1,
             rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, z_eq_3));
     assertThat(newFilter, notNullValue());
-    assertThat(newFilter.toString(), equalTo("=($0, 1)"));
+    assertThat(newFilter, hasToString("=($0, 1)"));
 
     // 2b.
     //   condition: x = 1 or y = 2
@@ -1505,7 +1506,7 @@ public class MaterializedViewSubstitutionVisitorTest {
             rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
             rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2, z_eq_3));
     assertThat(newFilter, notNullValue());
-    assertThat(newFilter.toString(), equalTo("OR(=($0, 1), =($1, 2))"));
+    assertThat(newFilter, hasToString("OR(=($0, 1), =($1, 2))"));
 
     // 2c.
     //   condition: x = 1
@@ -1516,8 +1517,7 @@ public class MaterializedViewSubstitutionVisitorTest {
         SubstitutionVisitor.splitFilter(simplify, x_eq_1,
             rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2, z_eq_3));
     assertThat(newFilter, notNullValue());
-    assertThat(newFilter.toString(),
-        equalTo("=($0, 1)"));
+    assertThat(newFilter, hasToString("=($0, 1)"));
 
     // 2d.
     //   condition: x = 1 or y = 2
@@ -1572,7 +1572,7 @@ public class MaterializedViewSubstitutionVisitorTest {
             rexBuilder.makeCall(SqlStdOperatorTable.AND, x_eq_1, y_eq_2),
             y_eq_2);
     assertThat(newFilter, notNullValue());
-    assertThat(newFilter.toString(), equalTo("=($0, 1)"));
+    assertThat(newFilter, hasToString("=($0, 1)"));
 
     // Example 5.
     //   condition: x = 1

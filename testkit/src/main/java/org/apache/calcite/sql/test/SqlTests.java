@@ -42,6 +42,7 @@ import static org.apache.calcite.sql.test.SqlTester.TypeChecker;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -426,7 +427,7 @@ public abstract class SqlTests {
     }
 
     @Override public void checkType(Supplier<String> sql, RelDataType type) {
-      assertThat(sql.get(), type.toString(), is(typeName.toString()));
+      assertThat(sql.get(), type, hasToString(typeName.toString()));
     }
   }
 

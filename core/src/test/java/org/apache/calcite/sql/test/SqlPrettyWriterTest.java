@@ -32,9 +32,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Unit test for {@link SqlPrettyWriter}.
@@ -411,7 +412,7 @@ class SqlPrettyWriterTest {
           assertThat(root, instanceOf(SqlSelect.class));
           SqlNode from = ((SqlSelect) root).getFrom();
           assertThat(from, notNullValue());
-          assertThat(from.toString(), isLinux(expectedJoinString));
+          assertThat(from, hasToString(isLinux(expectedJoinString)));
           return from;
         });
   }

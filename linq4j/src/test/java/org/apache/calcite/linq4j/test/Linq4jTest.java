@@ -60,10 +60,11 @@ import java.util.TreeSet;
 import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsNot.not;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -1105,21 +1106,18 @@ public class Linq4jTest {
                 Linq4j.enumerator(Arrays.asList(1, 2)),
                 Linq4j.enumerator(Arrays.asList(3, 4))));
 
-    assertEquals(
-        "[[1, 3], [1, 4], [2, 3], [2, 4]]",
-        contentsOf(product).toString(),
-        "cartesian product");
+    assertThat("cartesian product",
+        contentsOf(product),
+        hasToString("[[1, 3], [1, 4], [2, 3], [2, 4]]"));
     product.reset();
-    assertEquals(
-        "[[1, 3], [1, 4], [2, 3], [2, 4]]",
-        contentsOf(product).toString(),
-        "cartesian product after .reset()");
+    assertThat("cartesian product after .reset()",
+        contentsOf(product),
+        hasToString("[[1, 3], [1, 4], [2, 3], [2, 4]]"));
     product.moveNext();
     product.reset();
-    assertEquals(
-        "[[1, 3], [1, 4], [2, 3], [2, 4]]",
-        contentsOf(product).toString(),
-        "cartesian product after .moveNext(); .reset()");
+    assertThat("cartesian product after .moveNext(); .reset()",
+        contentsOf(product),
+        hasToString("[[1, 3], [1, 4], [2, 3], [2, 4]]"));
   }
 
   private <T> List<T> contentsOf(Enumerator<T> enumerator) {

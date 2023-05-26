@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.rel.rules;
-
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.plan.ConventionTraitDef;
@@ -44,6 +43,7 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 
 /**
  * Tests the application of the {@code EnumerableLimitRule}.
@@ -95,7 +95,7 @@ class EnumerableLimitRuleTest {
     final List<RelFieldCollation> fieldCollationList =
         collation.getFieldCollations();
     assertThat(fieldCollationList, notNullValue());
-    assertThat(fieldCollationList.size(), is(1));
+    assertThat(fieldCollationList, hasSize(1));
     assertThat(fieldCollationList.get(0).getFieldIndex(), is(0));
   }
 }

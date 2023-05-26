@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-
 import org.apache.calcite.DataContext;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -64,6 +63,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -119,7 +119,7 @@ public class ScannableTableTest {
             "i=4; j=Paul; k=1942");
     // Only 2 rows came out of the table. If the value is 4, it means that the
     // planner did not pass the filter down.
-    assertThat(buf.toString(), is("returnCount=2, filter=<0, 4>"));
+    assertThat(buf, hasToString("returnCount=2, filter=<0, 4>"));
   }
 
   /** A filter on a {@link FilterableTable} with two columns (noncooperative). */
@@ -135,7 +135,7 @@ public class ScannableTableTest {
         .explainContains(explain)
         .returnsUnordered("i=4; j=John; k=1940",
             "i=4; j=Paul; k=1942");
-    assertThat(buf.toString(), is("returnCount=4"));
+    assertThat(buf, hasToString("returnCount=4"));
   }
 
   /** A filter on a {@link org.apache.calcite.schema.ProjectableFilterableTable}
@@ -154,7 +154,8 @@ public class ScannableTableTest {
             "j=Paul");
     // Only 2 rows came out of the table. If the value is 4, it means that the
     // planner did not pass the filter down.
-    assertThat(buf.toString(), is("returnCount=2, filter=<0, 4>, projects=[1, 0]"));
+    assertThat(buf,
+        hasToString("returnCount=2, filter=<0, 4>, projects=[1, 0]"));
   }
 
   @Test void testProjectableFilterableNonCooperative() throws Exception {
@@ -169,7 +170,7 @@ public class ScannableTableTest {
         .explainContains(explain)
         .returnsUnordered("j=John",
             "j=Paul");
-    assertThat(buf.toString(), is("returnCount=4, projects=[1, 0]"));
+    assertThat(buf, hasToString("returnCount=4, projects=[1, 0]"));
   }
 
   /** A filter on a {@link org.apache.calcite.schema.ProjectableFilterableTable}
@@ -186,8 +187,8 @@ public class ScannableTableTest {
         .explainContains(explain)
         .returnsUnordered("k=1940; j=John",
             "k=1942; j=Paul");
-    assertThat(buf.toString(),
-        is("returnCount=2, filter=<0, 4>, projects=[2, 1, 0]"));
+    assertThat(buf,
+        hasToString("returnCount=2, filter=<0, 4>, projects=[2, 1, 0]"));
   }
 
   /** A filter on a {@link org.apache.calcite.schema.ProjectableFilterableTable}
@@ -206,8 +207,8 @@ public class ScannableTableTest {
         .explainContains(explain)
         .returnsUnordered("i=4; k=1942",
             "i=6; k=1943");
-    assertThat(buf.toString(),
-        is("returnCount=4, projects=[0, 2]"));
+    assertThat(buf,
+        hasToString("returnCount=4, projects=[0, 2]"));
   }
 
   /** A filter and project on a
@@ -225,8 +226,8 @@ public class ScannableTableTest {
         .explainContains(explain)
         .returnsUnordered("k=1940",
             "k=1942");
-    assertThat(buf.toString(),
-        is("returnCount=4, projects=[2, 0]"));
+    assertThat(buf,
+        hasToString("returnCount=4, projects=[2, 0]"));
   }
 
   @Test void testPFPushDownProjectFilterInAggregateNoGroup() {
@@ -323,7 +324,7 @@ public class ScannableTableTest {
         .explainContains(explain)
         .returnsUnordered("k=1942",
             "k=1943");
-    assertThat(buf.toString(), is("returnCount=4, projects=[2]"));
+    assertThat(buf, hasToString("returnCount=4, projects=[2]"));
   }
 
   /** Test case for
@@ -346,7 +347,7 @@ public class ScannableTableTest {
             "k=1940; i=5; k=1940; ii=10; EXPR$3=3",
             "k=1942; i=4; k=1942; ii=8; EXPR$3=3",
             "k=1943; i=6; k=1943; ii=12; EXPR$3=3");
-    assertThat(buf.toString(), is("returnCount=4, projects=[2, 0]"));
+    assertThat(buf, hasToString("returnCount=4, projects=[2, 0]"));
   }
 
   /** Test case for
@@ -368,7 +369,7 @@ public class ScannableTableTest {
             "k=1940; i=5",
             "k=1942; i=4",
             "k=1943; i=6");
-    assertThat(buf.toString(), is("returnCount=4, projects=[2, 0]"));
+    assertThat(buf, hasToString("returnCount=4, projects=[2, 0]"));
   }
 
   /** Test case for
@@ -411,7 +412,7 @@ public class ScannableTableTest {
         .explainContains(explain)
         .returnsUnordered("j=John", "j=Paul");
     assertThat(table.getScanCount(), is(1));
-    assertThat(buf.toString(), is("returnCount=4, projects=[1, 0]"));
+    assertThat(buf, hasToString("returnCount=4, projects=[1, 0]"));
   }
 
   /** Test case for
@@ -485,8 +486,8 @@ public class ScannableTableTest {
           .query("select \"j\" from \"s\".\"beatles\" where \"j\" = 'John'")
           .explainContains(explain)
           .returnsUnordered("j=John");
-      assertThat(buf.toString(),
-          is("returnCount=1, filter=<1, John>, projects=[1]"));
+      assertThat(buf,
+          hasToString("returnCount=1, filter=<1, John>, projects=[1]"));
     }
   }
 

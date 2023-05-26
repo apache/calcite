@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.runtime.CalciteException;
@@ -74,6 +73,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -583,26 +583,26 @@ class SqlFunctionsTest {
     final byte[] bytes = {(byte) 0xAB, (byte) 0xFF};
     final ByteString byteString = new ByteString(bytes);
     assertThat(byteString.length(), is(2));
-    assertThat(byteString.toString(), is("abff"));
+    assertThat(byteString, hasToString("abff"));
     assertThat(byteString.toString(16), is("abff"));
     assertThat(byteString.toString(2), is("1010101111111111"));
 
     final ByteString emptyByteString = new ByteString(new byte[0]);
     assertThat(emptyByteString.length(), is(0));
-    assertThat(emptyByteString.toString(), is(""));
+    assertThat(emptyByteString, hasToString(""));
     assertThat(emptyByteString.toString(16), is(""));
     assertThat(emptyByteString.toString(2), is(""));
 
     assertThat(ByteString.EMPTY, is(emptyByteString));
 
-    assertThat(byteString.substring(1, 2).toString(), is("ff"));
-    assertThat(byteString.substring(0, 2).toString(), is("abff"));
-    assertThat(byteString.substring(2, 2).toString(), is(""));
+    assertThat(byteString.substring(1, 2), hasToString("ff"));
+    assertThat(byteString.substring(0, 2), hasToString("abff"));
+    assertThat(byteString.substring(2, 2), hasToString(""));
 
     // Add empty string, get original string back
     assertSame(byteString.concat(emptyByteString), byteString);
     final ByteString byteString1 = new ByteString(new byte[]{(byte) 12});
-    assertThat(byteString.concat(byteString1).toString(), is("abff0c"));
+    assertThat(byteString.concat(byteString1), hasToString("abff0c"));
 
     final byte[] bytes3 = {(byte) 0xFF};
     final ByteString byteString3 = new ByteString(bytes3);

@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.tools;
-
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
@@ -89,6 +88,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -153,7 +153,7 @@ public class FrameworksTest {
   /** Unit test to test create root schema which has no "metadata" schema. */
   @Test void testCreateRootSchemaWithNoMetadataSchema() {
     SchemaPlus rootSchema = Frameworks.createRootSchema(false);
-    assertThat(rootSchema.getSubSchemaNames().size(), equalTo(0));
+    assertThat(rootSchema.getSubSchemaNames(), hasSize(0));
   }
 
   /** Tests that validation (specifically, inferring the result of adding
@@ -226,19 +226,19 @@ public class FrameworksTest {
             CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))
         .build();
     final Path path = Schemas.path(config.getDefaultSchema());
-    assertThat(path.size(), is(2));
+    assertThat(path, hasSize(2));
     assertThat(path.get(0).left, is(""));
     assertThat(path.get(1).left, is("hr"));
-    assertThat(path.names().size(), is(1));
+    assertThat(path.names(), hasSize(1));
     assertThat(path.names().get(0), is("hr"));
-    assertThat(path.schemas().size(), is(2));
+    assertThat(path.schemas(), hasSize(2));
 
     final Path parent = path.parent();
-    assertThat(parent.size(), is(1));
-    assertThat(parent.names().size(), is(0));
+    assertThat(parent, hasSize(1));
+    assertThat(parent.names(), hasSize(0));
 
     final Path grandparent = parent.parent();
-    assertThat(grandparent.size(), is(0));
+    assertThat(grandparent, hasSize(0));
 
     try {
       Object o = grandparent.parent();

@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
@@ -451,8 +452,9 @@ class TableFunctionTest {
             while (r.next() && numbers.size() < 13) {
               numbers.add(r.getLong(1));
             }
-            assertThat(numbers.toString(),
-                is("[1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233]"));
+            final long[] expectedNumbers = {1, 1, 2, 3, 5, 8, 13, 21, 34, 55,
+                89, 144, 233};
+            assertThat(numbers, is(Primitive.asList(expectedNumbers)));
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }

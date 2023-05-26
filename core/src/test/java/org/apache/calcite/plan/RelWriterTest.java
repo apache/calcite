@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.plan;
-
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
@@ -106,6 +105,7 @@ import static org.apache.calcite.test.Matchers.isLinux;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import static java.util.Objects.requireNonNull;
@@ -788,7 +788,7 @@ class RelWriterTest {
     final RelJson relJson = RelJson.create()
         .withInputTranslator(RelWriterTest::translateInput);
     final RexNode e = relJson.toRex(cluster, o);
-    assertThat(e.toString(), is(matcher));
+    assertThat(e, hasToString(matcher));
   }
 
   /** Intended as an instance of {@link RelJson.InputTranslator},

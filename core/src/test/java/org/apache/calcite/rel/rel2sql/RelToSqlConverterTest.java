@@ -109,6 +109,7 @@ import static org.apache.calcite.test.Matchers.isLinux;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -1703,8 +1704,8 @@ class RelToSqlConverterTest {
             builder.lessThan(builder.field("emps.count"), builder.literal(2)));
 
     final LogicalFilter filter = (LogicalFilter) builder.build();
-    assertThat(filter.getRowType().getFieldNames().toString(),
-        is("[D, emps.count]"));
+    assertThat(filter.getRowType().getFieldNames(),
+        hasToString("[D, emps.count]"));
 
     // Create a LogicalAggregate similar to the input of filter, but with different
     // field names.
@@ -1714,13 +1715,13 @@ class RelToSqlConverterTest {
             .aggregate(builder.groupKey(builder.field("D2")),
                 builder.countStar("emps.count"))
             .build();
-    assertThat(newAggregate.getRowType().getFieldNames().toString(),
-        is("[D2, emps.count]"));
+    assertThat(newAggregate.getRowType().getFieldNames(),
+        hasToString("[D2, emps.count]"));
 
     // Change filter's input. Its row type does not change.
     filter.replaceInput(0, newAggregate);
-    assertThat(filter.getRowType().getFieldNames().toString(),
-        is("[D, emps.count]"));
+    assertThat(filter.getRowType().getFieldNames(),
+        hasToString("[D, emps.count]"));
 
     final RelNode root =
         builder.push(filter)

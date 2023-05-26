@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.sql.validate;
-
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
@@ -46,8 +45,9 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasSize;
 
 /**
  * Testing {@link SqlValidator} and {@link Lex} quoting.
@@ -85,7 +85,7 @@ class LexEscapeTest {
     assertThat(convert, instanceOf(LogicalProject.class));
     List<RelDataTypeField> fields = convert.getRowType().getFieldList();
     // Get field type from sql text and validate we parsed it after validation.
-    assertThat(fields.size(), is(4));
+    assertThat(fields, hasSize(4));
     assertThat(fields.get(0).getType().getSqlTypeName(), is(SqlTypeName.VARCHAR));
     assertThat(fields.get(1).getType().getSqlTypeName(), is(SqlTypeName.TIME));
     assertThat(fields.get(2).getType().getSqlTypeName(), is(SqlTypeName.INTEGER));

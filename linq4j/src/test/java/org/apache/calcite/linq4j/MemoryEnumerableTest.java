@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.linq4j;
-
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -26,6 +25,8 @@ import java.util.stream.IntStream;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
 
 /** Tests for {@link org.apache.calcite.linq4j.MemoryEnumerable}. */
 class MemoryEnumerableTest {
@@ -44,7 +45,7 @@ class MemoryEnumerableTest {
       results.add(current);
     }
 
-    assertThat(results.size(), is(100));
+    assertThat(results, hasSize(100));
     // First entry
     assertThat((int) results.get(0).get(), is(0));
     assertThat((int) results.get(0).get(1), is(1));
@@ -57,12 +58,12 @@ class MemoryEnumerableTest {
 
   @Test void testModularInteger() {
     final ModularInteger modularInteger = new ModularInteger(4, 5);
-    assertThat(modularInteger.toString(), is("4 mod 5"));
+    assertThat(modularInteger, hasToString("4 mod 5"));
 
     final ModularInteger plus = modularInteger.plus(1);
-    assertThat(plus.toString(), is("0 mod 5"));
+    assertThat(plus, hasToString("0 mod 5"));
 
     final ModularInteger minus = modularInteger.plus(-6);
-    assertThat(minus.toString(), is("3 mod 5"));
+    assertThat(minus, hasToString("3 mod 5"));
   }
 }

@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.util;
-
 import org.apache.calcite.runtime.Utilities;
 
 import com.google.common.collect.ImmutableList;
@@ -44,8 +43,12 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -118,7 +121,7 @@ class ImmutableBitSetTest {
       if (buf.length() > 0) {
         buf.append(", ");
       }
-      buf.append(Integer.toString(i));
+      buf.append(i);
     }
     assertEquals(expected, buf.toString());
   }
@@ -181,21 +184,21 @@ class ImmutableBitSetTest {
     assertEquals(ImmutableBitSet.range(2, 2).toList(),
         Collections.<Integer>emptyList());
 
-    assertThat(ImmutableBitSet.range(63, 66).toString(),
-        equalTo("{63, 64, 65}"));
-    assertThat(ImmutableBitSet.range(65, 68).toString(),
-        equalTo("{65, 66, 67}"));
-    assertThat(ImmutableBitSet.range(65, 65).toString(), equalTo("{}"));
+    assertThat(ImmutableBitSet.range(63, 66),
+        hasToString("{63, 64, 65}"));
+    assertThat(ImmutableBitSet.range(65, 68),
+        hasToString("{65, 66, 67}"));
+    assertThat(ImmutableBitSet.range(65, 65), hasToString("{}"));
     assertThat(ImmutableBitSet.range(65, 65).length(), equalTo(0));
     assertThat(ImmutableBitSet.range(65, 165).cardinality(), equalTo(100));
 
     // Same tests as above, using a builder.
-    assertThat(ImmutableBitSet.builder().set(63, 66).build().toString(),
-        equalTo("{63, 64, 65}"));
-    assertThat(ImmutableBitSet.builder().set(65, 68).build().toString(),
-        equalTo("{65, 66, 67}"));
-    assertThat(ImmutableBitSet.builder().set(65, 65).build().toString(),
-        equalTo("{}"));
+    assertThat(ImmutableBitSet.builder().set(63, 66).build(),
+        hasToString("{63, 64, 65}"));
+    assertThat(ImmutableBitSet.builder().set(65, 68).build(),
+        hasToString("{65, 66, 67}"));
+    assertThat(ImmutableBitSet.builder().set(65, 65).build(),
+        hasToString("{}"));
     assertThat(ImmutableBitSet.builder().set(65, 65).build().length(),
         equalTo(0));
     assertThat(ImmutableBitSet.builder().set(65, 165).build().cardinality(),
@@ -203,11 +206,12 @@ class ImmutableBitSetTest {
 
     final ImmutableBitSet e0 = ImmutableBitSet.range(0, 0);
     final ImmutableBitSet e1 = ImmutableBitSet.of();
-    assertTrue(e0.equals(e1));
+    assertThat(e0, is(e1));
     assertThat(e0.hashCode(), equalTo(e1.hashCode()));
 
     // Empty builder returns the singleton empty set.
-    assertTrue(ImmutableBitSet.builder().build() == ImmutableBitSet.of());
+    assertThat(ImmutableBitSet.builder().build(),
+        sameInstance(ImmutableBitSet.of()));
   }
 
   @Test void testCompare() {
@@ -231,8 +235,8 @@ class ImmutableBitSetTest {
   @Test void testCompare2() {
     final List<ImmutableBitSet> sorted = getSortedList();
     sorted.sort(ImmutableBitSet.COMPARATOR);
-    assertThat(sorted.toString(),
-        equalTo("[{0, 1, 3}, {0, 1}, {1, 1000}, {1}, {1}, {2, 3}, {}]"));
+    assertThat(sorted,
+        hasToString("[{0, 1, 3}, {0, 1}, {1, 1000}, {1}, {1}, {2, 3}, {}]"));
   }
 
   private List<ImmutableBitSet> getSortedList() {
@@ -280,12 +284,12 @@ class ImmutableBitSetTest {
       final List<Integer> list1 = bitSet.toList();
       final List<Integer> listView = bitSet.asList();
       final Set<Integer> setView = bitSet.asSet();
-      assertThat(list1.size(), equalTo(bitSet.cardinality()));
-      assertThat(listView.size(), equalTo(bitSet.cardinality()));
-      assertThat(setView.size(), equalTo(bitSet.cardinality()));
-      assertThat(list1.toString(), equalTo(listView.toString()));
-      assertThat(list1.toString(), equalTo(setView.toString()));
-      assertTrue(list1.equals(listView));
+      assertThat(list1, hasSize(bitSet.cardinality()));
+      assertThat(listView, hasSize(bitSet.cardinality()));
+      assertThat(setView, hasSize(bitSet.cardinality()));
+      assertThat(list1, hasToString(listView.toString()));
+      assertThat(list1, hasToString(setView.toString()));
+      assertThat(list1.equals(listView), is(true));
       assertThat(list1.hashCode(), equalTo(listView.hashCode()));
 
       final Set<Integer> set = new HashSet<>(list1);
@@ -305,11 +309,10 @@ class ImmutableBitSetTest {
    * {@link org.apache.calcite.util.ImmutableBitSet#union(ImmutableBitSet)}.
    */
   @Test void testUnion() {
-    assertThat(ImmutableBitSet.of(1).union(ImmutableBitSet.of(3)).toString(),
-        equalTo("{1, 3}"));
-    assertThat(ImmutableBitSet.of(1).union(ImmutableBitSet.of(3, 100))
-            .toString(),
-        equalTo("{1, 3, 100}"));
+    assertThat(ImmutableBitSet.of(1).union(ImmutableBitSet.of(3)),
+        hasToString("{1, 3}"));
+    assertThat(ImmutableBitSet.of(1).union(ImmutableBitSet.of(3, 100)),
+        hasToString("{1, 3, 100}"));
     ImmutableBitSet x =
         ImmutableBitSet.of(1)
             .rebuild()
@@ -317,14 +320,16 @@ class ImmutableBitSetTest {
             .addAll(ImmutableBitSet.of())
             .addAll(ImmutableBitSet.of(3))
             .build();
-    assertThat(x.toString(), equalTo("{1, 2, 3}"));
+    assertThat(x, hasToString("{1, 2, 3}"));
   }
 
   @Test void testIntersect() {
     assertThat(ImmutableBitSet.of(1, 2, 3, 100, 200)
-        .intersect(ImmutableBitSet.of(2, 100)).toString(), equalTo("{2, 100}"));
-    assertTrue(ImmutableBitSet.of(1, 3, 5, 101, 20001)
-        .intersect(ImmutableBitSet.of(2, 100)) == ImmutableBitSet.of());
+        .intersect(ImmutableBitSet.of(2, 100)),
+        hasToString("{2, 100}"));
+    assertThat(ImmutableBitSet.of(1, 3, 5, 101, 20001)
+        .intersect(ImmutableBitSet.of(2, 100)),
+        sameInstance(ImmutableBitSet.of()));
   }
 
   /**
@@ -392,8 +397,8 @@ class ImmutableBitSetTest {
             .set(88)
             .clear(100)
             .clear(1000)
-            .build().toString(),
-        equalTo("{9, 88}"));
+            .build(),
+        hasToString("{9, 88}"));
   }
 
   /** Unit test for
@@ -402,15 +407,15 @@ class ImmutableBitSetTest {
     final ImmutableBitSet fives = ImmutableBitSet.of(5, 10, 15);
     final ImmutableBitSet fives1 =
         fives.rebuild().clear(2).set(10).build();
-    assertTrue(fives1 == fives);
+    assertSame(fives1, fives);
     final ImmutableBitSet fives2 =
         ImmutableBitSet.builder().addAll(fives).clear(2).set(10).build(fives);
-    assertTrue(fives2 == fives);
+    assertSame(fives2, fives);
     final ImmutableBitSet fives3 =
         ImmutableBitSet.builder().addAll(fives).clear(2).set(10).build();
-    assertTrue(fives3 != fives);
-    assertTrue(fives3.equals(fives));
-    assertTrue(fives3.equals(fives2));
+    assertNotSame(fives3, fives);
+    assertEquals(fives3, fives);
+    assertEquals(fives3, fives2);
   }
 
   @Test void testIndexOf() {
@@ -431,7 +436,7 @@ class ImmutableBitSetTest {
   @Test void testReset() {
     final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
     builder.set(2);
-    assertThat(builder.build().toString(), is("{2}"));
+    assertThat(builder.build(), hasToString("{2}"));
     try {
       builder.set(4);
       fail("expected exception");
@@ -453,11 +458,11 @@ class ImmutableBitSetTest {
 
     final ImmutableBitSet.Builder builder2 = ImmutableBitSet.builder();
     builder2.set(2);
-    assertThat(builder2.buildAndReset().toString(), is("{2}"));
-    assertThat(builder2.buildAndReset().toString(), is("{}"));
+    assertThat(builder2.buildAndReset(), hasToString("{2}"));
+    assertThat(builder2.buildAndReset(), hasToString("{}"));
     builder2.set(151);
     builder2.set(3);
-    assertThat(builder2.buildAndReset().toString(), is("{3, 151}"));
+    assertThat(builder2.buildAndReset(), hasToString("{3, 151}"));
   }
 
   @Test void testNth() {
@@ -521,8 +526,8 @@ class ImmutableBitSetTest {
     final String original = map.toString();
     final String expected =
         "{0={3, 4, 12}, 1={}, 2={7}, 3={3, 4, 12}, 4={4, 12}, 5={}, 6={}, 7={7}, 8={}, 9={}, 10={}, 11={}, 12={4, 12}}";
-    assertThat(ImmutableBitSet.closure(map).toString(), equalTo(expected));
-    assertThat("argument modified", map.toString(), equalTo(original));
+    assertThat(ImmutableBitSet.closure(map), hasToString(expected));
+    assertThat("argument modified", map, hasToString(original));
 
     // Now a similar map with missing entries. Same result.
     final SortedMap<Integer, ImmutableBitSet> map2 = new TreeMap<>();
@@ -531,22 +536,22 @@ class ImmutableBitSetTest {
     map2.put(3, ImmutableBitSet.of(4, 12));
     map2.put(9, ImmutableBitSet.of());
     final String original2 = map2.toString();
-    assertThat(ImmutableBitSet.closure(map2).toString(), equalTo(expected));
-    assertThat("argument modified", map2.toString(), equalTo(original2));
+    assertThat(ImmutableBitSet.closure(map2), hasToString(expected));
+    assertThat("argument modified", map2, hasToString(original2));
   }
 
   @Test void testPowerSet() {
     final ImmutableBitSet empty = ImmutableBitSet.of();
     assertThat(Iterables.size(empty.powerSet()), equalTo(1));
-    assertThat(empty.powerSet().toString(), equalTo("[{}]"));
+    assertThat(empty.powerSet(), hasToString("[{}]"));
 
     final ImmutableBitSet single = ImmutableBitSet.of(2);
     assertThat(Iterables.size(single.powerSet()), equalTo(2));
-    assertThat(single.powerSet().toString(), equalTo("[{}, {2}]"));
+    assertThat(single.powerSet(), hasToString("[{}, {2}]"));
 
     final ImmutableBitSet two = ImmutableBitSet.of(2, 10);
     assertThat(Iterables.size(two.powerSet()), equalTo(4));
-    assertThat(two.powerSet().toString(), equalTo("[{}, {10}, {2}, {2, 10}]"));
+    assertThat(two.powerSet(), hasToString("[{}, {10}, {2}, {2, 10}]"));
 
     final ImmutableBitSet seventeen = ImmutableBitSet.range(3, 20);
     assertThat(Iterables.size(seventeen.powerSet()), equalTo(131072));

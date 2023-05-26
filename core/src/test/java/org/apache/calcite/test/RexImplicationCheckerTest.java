@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RexImplicationChecker;
 import org.apache.calcite.rel.type.RelDataType;
@@ -37,8 +36,9 @@ import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.test.RexImplicationCheckerFixtures.Fixture;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Unit tests for {@link RexImplicationChecker}.
@@ -336,13 +336,11 @@ public class RexImplicationCheckerTest {
     // simplified expression only consists of the literal.
     final RexNode e = f.cast(f.intRelDataType, f.literal(2014));
     assertThat(
-        f.simplify.simplifyPreservingType(e, RexUnknownAs.UNKNOWN, true)
-            .toString(),
-        is("CAST(2014):JavaType(class java.lang.Integer)"));
+        f.simplify.simplifyPreservingType(e, RexUnknownAs.UNKNOWN, true),
+        hasToString("CAST(2014):JavaType(class java.lang.Integer)"));
     assertThat(
-        f.simplify.simplifyPreservingType(e, RexUnknownAs.UNKNOWN, false)
-            .toString(),
-        is("2014"));
+        f.simplify.simplifyPreservingType(e, RexUnknownAs.UNKNOWN, false),
+        hasToString("2014"));
 
     // In this case, the cast is not nullable. Thus, in both cases, the
     // simplified expression only consists of the literal.
@@ -351,13 +349,11 @@ public class RexImplicationCheckerTest {
         f.cast(notNullIntRelDataType,
             f.cast(notNullIntRelDataType, f.literal(2014)));
     assertThat(
-        f.simplify.simplifyPreservingType(e2, RexUnknownAs.UNKNOWN, true)
-            .toString(),
-        is("2014"));
+        f.simplify.simplifyPreservingType(e2, RexUnknownAs.UNKNOWN, true),
+        hasToString("2014"));
     assertThat(
-        f.simplify.simplifyPreservingType(e2, RexUnknownAs.UNKNOWN, false)
-            .toString(),
-        is("2014"));
+        f.simplify.simplifyPreservingType(e2, RexUnknownAs.UNKNOWN, false),
+        hasToString("2014"));
   }
 
   /** Test case for simplifier of ceil/floor. */
@@ -390,17 +386,19 @@ public class RexImplicationCheckerTest {
                 RexUnknownAs.UNKNOWN, true);
         assertThat(floorSimplifiedExpr.getKind(), is(SqlKind.FLOOR));
         assertThat(((RexLiteral) floorSimplifiedExpr.getOperands().get(1))
-                .getValue().toString(),
-            is(timeUnitRanges.get(j).toString()));
-        assertThat(floorSimplifiedExpr.getOperands().get(0).toString(),
-            is(literalTs.toString()));
+                .getValue(),
+            hasToString(timeUnitRanges.get(j).toString()));
+        assertThat(floorSimplifiedExpr.getOperands().get(0),
+            hasToString(literalTs.toString()));
         final RexCall ceilSimplifiedExpr =
             (RexCall) f.simplify.simplifyPreservingType(outerCeilCall,
                 RexUnknownAs.UNKNOWN, true);
         assertThat(ceilSimplifiedExpr.getKind(), is(SqlKind.CEIL));
-        assertThat(((RexLiteral) ceilSimplifiedExpr.getOperands().get(1)).getValue().toString(),
-            is(timeUnitRanges.get(j).toString()));
-        assertThat(ceilSimplifiedExpr.getOperands().get(0).toString(), is(literalTs.toString()));
+        assertThat(((RexLiteral) ceilSimplifiedExpr.getOperands().get(1))
+                .getValue(),
+            hasToString(timeUnitRanges.get(j).toString()));
+        assertThat(ceilSimplifiedExpr.getOperands().get(0),
+            hasToString(literalTs.toString()));
       }
     }
 
@@ -422,11 +420,11 @@ public class RexImplicationCheckerTest {
         final RexCall floorSimplifiedExpr =
             (RexCall) f.simplify.simplifyPreservingType(outerFloorCall,
                 RexUnknownAs.UNKNOWN, true);
-        assertThat(floorSimplifiedExpr.toString(), is(outerFloorCall.toString()));
+        assertThat(floorSimplifiedExpr, hasToString(outerFloorCall.toString()));
         final RexCall ceilSimplifiedExpr =
             (RexCall) f.simplify.simplifyPreservingType(outerCeilCall,
                 RexUnknownAs.UNKNOWN, true);
-        assertThat(ceilSimplifiedExpr.toString(), is(outerCeilCall.toString()));
+        assertThat(ceilSimplifiedExpr, hasToString(outerCeilCall.toString()));
       }
     }
   }

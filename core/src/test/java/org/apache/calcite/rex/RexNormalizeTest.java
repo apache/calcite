@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rex;
 
-import org.hamcrest.CoreMatchers;
+import org.hamcrest.core.IsNot;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -121,8 +121,8 @@ class RexNormalizeTest extends RexProgramTestBase {
   /** Asserts two rex nodes are not equal. */
   private static void assertNodeNotEqual(RexNode node1, RexNode node2) {
     final String reason = getReason(node1, node2, false);
-    assertThat(reason, node1, CoreMatchers.not(equalTo(node2)));
-    assertThat(reason, node1.hashCode(), CoreMatchers.not(equalTo(node2.hashCode())));
+    assertThat(reason, node1, IsNot.not(equalTo(node2)));
+    assertThat(reason, node1.hashCode(), IsNot.not(equalTo(node2.hashCode())));
   }
 
   /** Returns the assertion reason. */

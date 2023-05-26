@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
@@ -39,6 +38,7 @@ import java.util.Objects;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Tests the "Babel" SQL parser, that understands all dialects of SQL.
@@ -453,7 +453,7 @@ class BabelParserTest extends SqlParserTest {
         + "from `my emp` /* comment with 'quoted string'? */ as e\n"
         + "where deptno < ?3\n"
         + "and DATEADD(day, ?4, hiredate) > ?5";
-    assertThat(hoisted.toString(), is(expected));
+    assertThat(hoisted, hasToString(expected));
 
     // Custom string converts variables to '[N:TYPE:VALUE]'
     final String expected2 = "select [0:DECIMAL:1] as x,\n"

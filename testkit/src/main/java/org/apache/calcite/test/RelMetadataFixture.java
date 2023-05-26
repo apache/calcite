@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -64,6 +63,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -309,7 +309,7 @@ public class RelMetadataFixture {
       String expectedColumnName, boolean expectedDerived) {
     return checkColumnOrigin(result -> {
       assertNotNull(result);
-      assertThat(result.size(), is(1));
+      assertThat(result, hasSize(1));
       RelColumnOrigin rco = result.iterator().next();
       checkColumnOrigin(rco, expectedTableName, expectedColumnName,
           expectedDerived);
@@ -327,7 +327,7 @@ public class RelMetadataFixture {
         not(is(expectedTableName2)));
     return checkColumnOrigin(result -> {
       assertNotNull(result);
-      assertThat(result.size(), is(2));
+      assertThat(result, hasSize(2));
       for (RelColumnOrigin rco : result) {
         RelOptTable actualTable = rco.getOriginTable();
         List<String> actualTableName = actualTable.getQualifiedName();

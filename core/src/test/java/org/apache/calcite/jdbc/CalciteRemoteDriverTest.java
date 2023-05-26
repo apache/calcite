@@ -35,7 +35,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -202,10 +201,10 @@ class CalciteRemoteDriverTest {
     assertThat(metaData.getColumnName(2), is("TABLE_CATALOG"));
     assertThat(resultSet.next(), is(true));
     assertThat(resultSet.getString(1), equalTo("POST"));
-    assertThat(resultSet.getString(2), CoreMatchers.nullValue());
+    assertThat(resultSet.getString(2), nullValue());
     assertThat(resultSet.next(), is(true));
     assertThat(resultSet.getString(1), equalTo("foodmart"));
-    assertThat(resultSet.getString(2), CoreMatchers.nullValue());
+    assertThat(resultSet.getString(2), nullValue());
     assertThat(resultSet.next(), is(true));
     assertThat(resultSet.next(), is(true));
     assertThat(resultSet.next(), is(false));
@@ -226,7 +225,7 @@ class CalciteRemoteDriverTest {
         break;
       case GET_SYSTEM_FUNCTIONS:
         assertThat(connection.getMetaData().getSystemFunctions(),
-            CoreMatchers.notNullValue());
+            notNullValue());
         break;
       case GET_TIME_DATE_FUNCTIONS:
         assertThat(connection.getMetaData().getTimeDateFunctions(),

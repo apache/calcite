@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.util;
-
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -30,9 +29,10 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -260,8 +260,8 @@ class PartiallyOrderedSetTest {
           poset.getParents(random.nextInt(n * 2), true);
       parentCount += parents.size();
     }
-    assertThat(poset.size(), is(count));
-    assertThat(poset.size(), is(expectedSize));
+    assertThat(poset, hasSize(count));
+    assertThat(poset, hasSize(expectedSize));
     assertThat(parentCount, is(expectedParentCount));
   }
 

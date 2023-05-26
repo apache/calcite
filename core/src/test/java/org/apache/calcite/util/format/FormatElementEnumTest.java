@@ -21,7 +21,8 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.Date;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Unit test for {@link FormatElementEnum}.
@@ -30,7 +31,6 @@ class FormatElementEnumTest {
   @Test void testDay() {
     StringBuilder ts = new StringBuilder();
     FormatElementEnum.DAY.format(ts, Date.from(Instant.parse("2014-09-30T10:00:00Z")));
-    assertEquals(ts.toString(),
-        "Tuesday");
+    assertThat(ts, hasToString("Tuesday"));
   }
 }

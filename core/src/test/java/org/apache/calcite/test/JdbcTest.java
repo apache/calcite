@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-
 import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.clone.CloneSchema;
 import org.apache.calcite.adapter.generate.RangeTable;
@@ -160,6 +159,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -3365,7 +3365,7 @@ public class JdbcTest {
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
-      assertThat(msg, numbers.size(), is(3));
+      assertThat(msg, numbers, hasSize(3));
       assertThat(msg, numbers.get(nullCollation.last(desc) ? 2 : 0),
           nullValue());
     };
@@ -6246,7 +6246,7 @@ public class JdbcTest {
                 + "where \"deptno\" = 10";
             connection.createStatement()
                 .executeQuery(sql);
-            assertThat(objects.size(), is(1));
+            assertThat(objects, hasSize(1));
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }
@@ -7138,7 +7138,7 @@ public class JdbcTest {
     aSchema.setCacheEnabled(true);
 
     // explicit should win implicit.
-    assertThat(aSchema.getSubSchemaNames().size(), is(1));
+    assertThat(aSchema.getSubSchemaNames(), hasSize(1));
   }
 
   @Test void testSimpleCalciteSchema() throws Exception {
@@ -7165,7 +7165,7 @@ public class JdbcTest {
     // add implicit schema "/a/b"
     aSubSchemaMap.put("b", new AbstractSchema());
     // explicit should win implicit.
-    assertThat(aSchema.getSubSchemaNames().size(), is(2));
+    assertThat(aSchema.getSubSchemaNames(), hasSize(2));
   }
 
   @Test void testCaseSensitiveConfigurableSimpleCalciteSchema() throws Exception {
@@ -7262,31 +7262,31 @@ public class JdbcTest {
       }
     });
     aSchema.setCacheEnabled(true);
-    assertThat(aSchema.getSubSchemaNames().size(), is(0));
+    assertThat(aSchema.getSubSchemaNames(), hasSize(0));
 
     // first call, to populate the cache
-    assertThat(aSchema.getSubSchemaNames().size(), is(0));
+    assertThat(aSchema.getSubSchemaNames(), hasSize(0));
 
     // create schema "/a/b1". Appears only when we disable caching.
     aSubSchemaMap.put("b1", new AbstractSchema());
-    assertThat(aSchema.getSubSchemaNames().size(), is(0));
+    assertThat(aSchema.getSubSchemaNames(), hasSize(0));
     assertThat(aSchema.getSubSchema("b1"), nullValue());
     aSchema.setCacheEnabled(false);
-    assertThat(aSchema.getSubSchemaNames().size(), is(1));
+    assertThat(aSchema.getSubSchemaNames(), hasSize(1));
     assertThat(aSchema.getSubSchema("b1"), notNullValue());
 
     // create schema "/a/b2". Appears immediately, because caching is disabled.
     aSubSchemaMap.put("b2", new AbstractSchema());
-    assertThat(aSchema.getSubSchemaNames().size(), is(2));
+    assertThat(aSchema.getSubSchemaNames(), hasSize(2));
 
     // an explicit sub-schema appears immediately, even if caching is enabled
     aSchema.setCacheEnabled(true);
-    assertThat(aSchema.getSubSchemaNames().size(), is(2));
+    assertThat(aSchema.getSubSchemaNames(), hasSize(2));
     aSchema.add("b3", new AbstractSchema()); // explicit
     aSubSchemaMap.put("b4", new AbstractSchema()); // implicit
-    assertThat(aSchema.getSubSchemaNames().size(), is(3));
+    assertThat(aSchema.getSubSchemaNames(), hasSize(3));
     aSchema.setCacheEnabled(false);
-    assertThat(aSchema.getSubSchemaNames().size(), is(4));
+    assertThat(aSchema.getSubSchemaNames(), hasSize(4));
     for (String name : aSchema.getSubSchemaNames()) {
       assertThat(aSchema.getSubSchema(name), notNullValue());
     }
@@ -7299,19 +7299,19 @@ public class JdbcTest {
       }
     });
     a2Schema.setCacheEnabled(true);
-    assertThat(a2Schema.getSubSchemaNames().size(), is(0));
+    assertThat(a2Schema.getSubSchemaNames(), hasSize(0));
 
     // create schema "/a2/b3". Change not visible since caching is enabled.
     a2SubSchemaMap.put("b3", new AbstractSchema());
-    assertThat(a2Schema.getSubSchemaNames().size(), is(0));
+    assertThat(a2Schema.getSubSchemaNames(), hasSize(0));
     Thread.sleep(1);
-    assertThat(a2Schema.getSubSchemaNames().size(), is(0));
+    assertThat(a2Schema.getSubSchemaNames(), hasSize(0));
 
     // Change visible after we turn off caching.
     a2Schema.setCacheEnabled(false);
-    assertThat(a2Schema.getSubSchemaNames().size(), is(1));
+    assertThat(a2Schema.getSubSchemaNames(), hasSize(1));
     a2SubSchemaMap.put("b4", new AbstractSchema());
-    assertThat(a2Schema.getSubSchemaNames().size(), is(2));
+    assertThat(a2Schema.getSubSchemaNames(), hasSize(2));
     for (String name : aSchema.getSubSchemaNames()) {
       assertThat(aSchema.getSubSchema(name), notNullValue());
     }
@@ -7323,7 +7323,7 @@ public class JdbcTest {
     a2Schema.add("TABLE1", table);
     a2Schema.add("tabLe1", table);
     a2Schema.add("tabLe2", table);
-    assertThat(a2Schema.getTableNames().size(), is(4));
+    assertThat(a2Schema.getTableNames(), hasSize(4));
     final CalciteSchema a2CalciteSchema = CalciteSchema.from(a2Schema);
     assertThat(a2CalciteSchema.getTable("table1", true), notNullValue());
     assertThat(a2CalciteSchema.getTable("table1", false), notNullValue());
