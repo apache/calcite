@@ -127,6 +127,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -145,6 +146,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.object.HasToString.hasToString;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -1461,7 +1463,7 @@ public class RelMetadataTest {
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
 
     // There is no caching. Another request causes another call to the provider.
-    assertThat(buf.toString(), equalTo("[DEPTNO-rel, EXPR$1-rel, DEPTNO-agg]"));
+    assertThat(buf, hasToString("[DEPTNO-rel, EXPR$1-rel, DEPTNO-agg]"));
     assertThat(buf.size(), equalTo(3));
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
     assertThat(buf.size(), equalTo(4));
@@ -3296,8 +3298,17 @@ public class RelMetadataTest {
             b.literalAgg(null))
         .build();
     RelMetadataQuery mq = r.getCluster().getMetadataQuery();
-    assertThat(mq.getPulledUpPredicates(r).pulledUpPredicates.toString(),
-        is("[=($1, 42), IS NULL($2)]"));
+    final RelOptPredicateList predicateList = mq.getPulledUpPredicates(r);
+    assertThat(predicateList.pulledUpPredicates,
+        hasToString("[=($1, 42), IS NULL($2)]"));
+    assertThat(toSortedStringList(predicateList.constantMap),
+        hasToString("[$1=42, $2=null:NULL]"));
+  }
+
+  /** Converts a Map to a sorted list of its entries. */
+  static <K, V> List<String> toSortedStringList(Map<K, V> map) {
+    return map.entrySet().stream().map(Object::toString)
+        .sorted().collect(Util.toImmutableList());
   }
 
   /** Test case for
