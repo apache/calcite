@@ -280,6 +280,12 @@
   githubId: stevenn
   org: NGData
   role: PMC
+- name: Tanner Clary
+  apacheId: tanner
+  githubId: tanclary
+  pronouns: he/him
+  org: Google
+  role: Committer
 - name: Ted Dunning
   apacheId: tdunning
   githubId: tdunning
