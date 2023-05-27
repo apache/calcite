@@ -2099,7 +2099,8 @@ public class RelBuilder {
     }
 
     // If the expressions are all literals, and the input is a Values with N
-    // rows, replace with a Values with same tuple N times.
+    // rows (or an Aggregate with 1 row), replace with a Values with same tuple
+    // N times.
     final int rowCount;
     if (config.simplifyValues()
         && nodeList.stream().allMatch(e -> e instanceof RexLiteral)
