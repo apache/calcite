@@ -2100,16 +2100,17 @@ public class RelBuilder {
 
     // If the expressions are all literals, and the input is a Values with N
     // rows, replace with a Values with same tuple N times.
+    final int rowCount;
     if (config.simplifyValues()
-        && frame.rel instanceof Values
-        && nodeList.stream().allMatch(e -> e instanceof RexLiteral)) {
-      final Values values = (Values) build();
+        && nodeList.stream().allMatch(e -> e instanceof RexLiteral)
+        && (rowCount = fixedRowCount(frame)) >= 0) {
+      RelNode unused = build();
       final RelDataTypeFactory.Builder typeBuilder = getTypeFactory().builder();
       Pair.forEach(fieldNameList, nodeList, (name, expr) ->
           typeBuilder.add(requireNonNull(name, "name"), expr.getType()));
       @SuppressWarnings({"unchecked", "rawtypes"})
       final List<RexLiteral> tuple = (List<RexLiteral>) (List) nodeList;
-      return values(Collections.nCopies(values.tuples.size(), tuple),
+      return values(Collections.nCopies(rowCount, tuple),
           typeBuilder.build());
     }
 
@@ -2122,6 +2123,22 @@ public class RelBuilder {
     stack.pop();
     stack.push(new Frame(project, fields.build()));
     return this;
+  }
+
+  /** If current frame will return a known, constant number of
+   * rows, returns that number; otherwise returns -1. */
+  private static int fixedRowCount(Frame frame) {
+    if (frame.rel instanceof Values) {
+      return ((Values) frame.rel).tuples.size();
+    }
+    if (frame.rel instanceof Aggregate) {
+      final Aggregate aggregate = (Aggregate) frame.rel;
+      if (aggregate.getGroupSet().isEmpty()
+          && aggregate.getGroupType() == Aggregate.Group.SIMPLE) {
+        return 1;
+      }
+    }
+    return -1;
   }
 
   /** Creates a {@link Project} of the given

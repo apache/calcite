@@ -426,6 +426,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select sum(deptno) from emp group by ()").ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5717">[CALCITE-5717]
+   * RelBuilder.project should generate a Values if all expressions are literals
+   * and the input is an Aggregate that returns exactly one row</a>. */
   @Test void testGroupEmptyYieldLiteral() {
     // Expected plan is "VALUES 42". The result is one row even if EMP is empty.
     sql("select 42 from emp group by ()").ok();
