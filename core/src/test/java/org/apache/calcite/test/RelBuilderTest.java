@@ -1356,13 +1356,31 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("EMP")
             .aggregate(builder.groupKey(), builder.count().as("C"))
+            .filter(
+                builder.greaterThan(builder.field("C"), builder.literal(5)))
             .project(builder.literal(4), builder.literal(2), builder.field(0))
             .aggregate(builder.groupKey(builder.field(0), builder.field(1)))
             .build();
     final String expected = ""
         + "LogicalProject($f0=[4], $f1=[2])\n"
-        + "  LogicalAggregate(group=[{}], C=[COUNT()])\n"
-        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+        + "  LogicalFilter(condition=[>($0, 5)])\n"
+        + "    LogicalAggregate(group=[{}], C=[COUNT()])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Unlike {@link #testAggregate5()}, where the input to the Aggregate has at
+   * most one row (zero or one rows), the input is known to be exactly one row,
+   * and therefore can be converted to {@code Values}. */
+  @Test void testAggregate5b() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .aggregate(builder.groupKey(), builder.count().as("C"))
+            .project(builder.literal(4), builder.literal(2), builder.field(0))
+            .aggregate(builder.groupKey(builder.field(0), builder.field(1)))
+            .build();
+    final String expected = "LogicalValues(tuples=[[{ 4, 2 }]])\n";
     assertThat(root, hasTree(expected));
   }
 

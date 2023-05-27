@@ -694,9 +694,30 @@ class RelToSqlConverterTest {
     relFn(fn).ok("SELECT \"t\".\"V\" AS \"l_v\"\n"
         + "FROM (VALUES (1, 2)) AS \"t\" (\"K\", \"V\")\n"
         + "INNER JOIN "
-        + "(SELECT 1 AS \"K\"\n"
-        + "FROM (SELECT COUNT(\"ENAME\") AS \"DUMMY\"\n"
-        + "FROM \"scott\".\"EMP\") AS \"t0\") AS \"t1\" ON \"t\".\"K\" = \"t1\".\"K\"");
+        + "(VALUES (1)) AS \"t0\" (\"K\") ON \"t\".\"K\" = \"t0\".\"K\"");
+  }
+
+  /** As {@link #testTrimmedAggregateUnderProject()}
+   * but the "COUNT(*) AS DUMMY" field is used. */
+  @Test public void testTrimmedAggregateUnderProject2() {
+    final Function<RelBuilder, RelNode> fn = b -> b
+        .values(new String[]{"K", "V"}, 1, 2)
+        .scan("EMP")
+        .aggregate(b.groupKey(),
+            b.aggregateCall(SqlStdOperatorTable.COUNT, b.field(1))
+                .as("DUMMY"))
+        .project(b.alias(b.field("DUMMY"), "K"))
+        .join(JoinRelType.INNER,
+            b.call(SqlStdOperatorTable.EQUALS,
+                b.field(2, 0, "K"),
+                b.field(2, 1, "K")))
+        .project(b.alias(b.field(1), "l_v"))
+        .build();
+    // RelFieldTrimmer maybe build the RelNode.
+    relFn(fn).ok("SELECT \"t\".\"V\" AS \"l_v\"\n"
+        + "FROM (VALUES (1, 2)) AS \"t\" (\"K\", \"V\")\n"
+        + "INNER JOIN (SELECT COUNT(\"ENAME\") AS \"DUMMY\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"t0\" ON \"t\".\"K\" = \"t0\".\"DUMMY\"");
   }
 
   /** Tests GROUP BY ROLLUP of two columns. The SQL for MySQL has
