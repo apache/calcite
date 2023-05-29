@@ -70,6 +70,7 @@ import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.DateRangeRules;
+import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterFlattenCorrelatedConditionRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMultiJoinMergeRule;
@@ -840,6 +841,25 @@ class RelOptRulesTest extends RelOptTestBase {
             CoreRules.AGGREGATE_FILTER_TRANSPOSE)
         .withRule(CoreRules.FILTER_AGGREGATE_TRANSPOSE)
         .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5425">[CALCITE-5425]
+   * Should not pushdown Filter through Aggregate without group keys</a>. */
+  @Test void testDoNotPushFilterThroughAggregateWithoutGroupKeys() {
+    final Function<RelBuilder, RelNode> relFn = b -> {
+      RelNode aggregate = b
+          .scan("EMP")
+          .aggregate(b.groupKey(), b.countStar(null))
+          .build();
+
+      // The reason why we use 'create' instead of 'RelBuilder#filter' is to prevent RelBuilder
+      // optimizing in 'filter', which would transform the RelBuilder to 'empty()' when the
+      // Filter is always false, this way, we won't be able to reproduce the problem
+      // described in CALCITE-5425.
+      return LogicalFilter.create(aggregate, b.getRexBuilder().makeLiteral(false));
+    };
+    relFn(relFn).withRule(FilterAggregateTransposeRule.Config.DEFAULT.toRule()).checkUnchanged();
   }
 
   /** Test case for

@@ -2394,6 +2394,17 @@ select count('1') from "scott".emp join "scott".dept using (deptno) where false;
 
 !ok
 
+# [CALCITE-5425] Should not pushdown Filter through Aggregate without group keys
+# Should return 0 rows
+select count(*) from "scott".emp having false;
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
+
 # [CALCITE-1023] Planner rule that removes Aggregate keys that are constant
 select job, sum(sal) as sum_sal, deptno
 from "scott".emp
