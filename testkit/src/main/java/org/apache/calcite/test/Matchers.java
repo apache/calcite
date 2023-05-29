@@ -299,6 +299,7 @@ public class Matchers {
   /**
    * Creates a {@link Matcher} that matches execution plan and trims {@code , id=123} node ids.
    * {@link RelNode#getId()} is not stable across runs, so this matcher enables to trim those.
+   *
    * @param value execpted execution plan
    * @return matcher
    */

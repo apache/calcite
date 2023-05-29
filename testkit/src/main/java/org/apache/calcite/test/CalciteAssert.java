@@ -157,7 +157,7 @@ public class CalciteAssert {
    * Which database to use for tests that require a JDBC data source.
    *
    * @see CalciteSystemProperty#TEST_DB
-   **/
+   */
   public static final DatabaseInstance DB =
       DatabaseInstance.valueOf(CalciteSystemProperty.TEST_DB.value());
 
@@ -233,7 +233,7 @@ public class CalciteAssert {
   }
 
   /** Short-hand for
-   *  {@code CalciteAssert.that().with(Config.EMPTY).withModel(model)}. */
+   * {@code CalciteAssert.that().with(Config.EMPTY).withModel(model)}. */
   public static AssertThat model(String model) {
     return that().withModel(model);
   }
@@ -1172,7 +1172,7 @@ public class CalciteAssert {
       return with(connectionFactory.with(property, value));
     }
 
-    /** Sets the Lex property. **/
+    /** Sets the Lex property. */
     public AssertThat with(Lex lex) {
       return with(CalciteConnectionProperty.LEX, lex);
     }
@@ -1577,10 +1577,10 @@ public class CalciteAssert {
      *
      * <p>Note: this API does NOT trigger the query, so you need to use something like
      * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
-     * execution</p>
+     * execution
      *
      * <p>Note: prefer using {@link #explainHookMatches(String)} if you assert
-     * the full plan tree as it produces slightly cleaner messages</p>
+     * the full plan tree as it produces slightly cleaner messages
      *
      * @param expectedPlan expected execution plan. The plan is normalized to LF line endings
      * @return updated assert query
@@ -1597,10 +1597,10 @@ public class CalciteAssert {
      *
      * <p>Note: this API does NOT trigger the query, so you need to use something like
      * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
-     * execution</p>
+     * execution
      *
      * <p>Note: prefer using {@link #explainHookMatches(SqlExplainLevel, Matcher)} if you assert
-     * the full plan tree as it produces slightly cleaner messages</p>
+     * the full plan tree as it produces slightly cleaner messages
      *
      * @param sqlExplainLevel the level of explain plan
      * @param expectedPlan expected execution plan. The plan is normalized to LF line endings
@@ -1618,7 +1618,7 @@ public class CalciteAssert {
      *
      * <p>Note: this API does NOT trigger the query, so you need to use something like
      * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
-     * execution</p>
+     * execution.
      *
      * @param expectedPlan expected execution plan. The plan is normalized to LF line endings
      * @return updated assert query
@@ -1635,7 +1635,7 @@ public class CalciteAssert {
      *
      * <p>Note: this API does NOT trigger the query, so you need to use something like
      * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
-     * execution</p>
+     * execution.
      *
      * @param planMatcher execution plan matcher. The plan is normalized to LF line endings
      * @return updated assert query
@@ -1652,7 +1652,7 @@ public class CalciteAssert {
      *
      * <p>Note: this API does NOT trigger the query, so you need to use something like
      * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
-     * execution</p>
+     * execution.
      *
      * @param sqlExplainLevel the level of explain plan
      * @param planMatcher execution plan matcher. The plan is normalized to LF line endings

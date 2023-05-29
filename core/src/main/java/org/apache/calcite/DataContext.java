@@ -63,7 +63,7 @@ public interface DataContext {
    * Returns a context variable.
    *
    * <p>Supported variables include: "sparkContext", "currentTimestamp",
-   * "localTimestamp".</p>
+   * "localTimestamp".
    *
    * @param name Name of variable
    */

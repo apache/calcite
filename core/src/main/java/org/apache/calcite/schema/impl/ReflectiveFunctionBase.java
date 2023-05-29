@@ -100,6 +100,7 @@ public abstract class ReflectiveFunctionBase implements Function {
 
   /**
    * Finds a method in a given class by name.
+   *
    * @param clazz class to search method in
    * @param name name of the method to find
    * @return the first method with matching name or null when no method found

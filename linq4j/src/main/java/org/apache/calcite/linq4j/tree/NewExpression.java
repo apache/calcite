@@ -26,7 +26,7 @@ import java.util.Objects;
  * Represents a constructor call.
  *
  * <p>If {@link #memberDeclarations} is not null (even if empty) represents
- * an anonymous class.</p>
+ * an anonymous class.
  */
 public class NewExpression extends Expression {
   @SuppressWarnings("HidingField")

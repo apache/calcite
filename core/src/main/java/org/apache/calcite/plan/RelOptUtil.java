@@ -1461,6 +1461,7 @@ public abstract class RelOptUtil {
   /**
    * Returns {@link SqlOperator} for given {@link SqlKind} or returns {@code operator}
    * when {@link SqlKind} is not known.
+   *
    * @param kind input kind
    * @param operator default operator value
    * @return SqlOperator for the given kind
@@ -2461,14 +2462,14 @@ public abstract class RelOptUtil {
    * together, and a list of expressions that are preceded by NOT.
    *
    * <p>For example, {@code a AND NOT b AND NOT (c and d) AND TRUE AND NOT
-   * FALSE} returns {@code rexList = [a], notList = [b, c AND d]}.</p>
+   * FALSE} returns {@code rexList = [a], notList = [b, c AND d]}.
    *
    * <p>TRUE and NOT FALSE expressions are ignored. FALSE and NOT TRUE
    * expressions are placed on {@code rexList} and {@code notList} as other
-   * expressions.</p>
+   * expressions.
    *
    * <p>For example, {@code a AND TRUE AND NOT TRUE} returns
-   * {@code rexList = [a], notList = [TRUE]}.</p>
+   * {@code rexList = [a], notList = [TRUE]}.
    *
    * @param rexPredicate predicate to be analyzed
    * @param rexList      list of decomposed RexNodes (except those with NOT)
@@ -2548,7 +2549,7 @@ public abstract class RelOptUtil {
    * Returns a condition decomposed by AND.
    *
    * <p>For example, {@code conjunctions(TRUE)} returns the empty list;
-   * {@code conjunctions(FALSE)} returns list {@code {FALSE}}.</p>
+   * {@code conjunctions(FALSE)} returns list {@code {FALSE}}.
    */
   public static List<RexNode> conjunctions(@Nullable RexNode rexPredicate) {
     final List<RexNode> list = new ArrayList<>();
@@ -2559,7 +2560,7 @@ public abstract class RelOptUtil {
   /**
    * Returns a condition decomposed by OR.
    *
-   * <p>For example, {@code disjunctions(FALSE)} returns the empty list.</p>
+   * <p>For example, {@code disjunctions(FALSE)} returns the empty list.
    */
   public static List<RexNode> disjunctions(RexNode rexPredicate) {
     final List<RexNode> list = new ArrayList<>();
@@ -3424,7 +3425,7 @@ public abstract class RelOptUtil {
    * Creates a relational expression that projects the given fields of the
    * input.
    *
-   * <p>Optimizes if the fields are the identity projection.</p>
+   * <p>Optimizes if the fields are the identity projection.
    *
    * @param child   Input relational expression
    * @param posList Source of each projected field
@@ -3491,7 +3492,7 @@ public abstract class RelOptUtil {
    * Creates a relational expression which permutes the output fields of a
    * relational expression according to a permutation.
    *
-   * <p>Optimizations:</p>
+   * <p>Optimizations:
    *
    * <ul>
    * <li>If the relational expression is a

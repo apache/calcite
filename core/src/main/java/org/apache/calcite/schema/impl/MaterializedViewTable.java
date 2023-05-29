@@ -45,7 +45,7 @@ import static java.util.Objects.requireNonNull;
  * <p>It can exist in two states: materialized and not materialized. Over time,
  * a given materialized view may switch states. How it is expanded depends upon
  * its current state. State is managed by
- * {@link org.apache.calcite.materialize.MaterializationService}.</p>
+ * {@link org.apache.calcite.materialize.MaterializationService}.
  */
 public class MaterializedViewTable extends ViewTable {
 

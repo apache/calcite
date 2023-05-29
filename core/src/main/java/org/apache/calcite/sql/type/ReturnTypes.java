@@ -832,13 +832,13 @@ public abstract class ReturnTypes {
    * For example,
    *
    * <p>concat(cast('a' as varchar(2)), cast('b' as varchar(3)),cast('c' as varchar(2)))
-   * returns varchar(7).</p>
+   * returns varchar(7).
    *
    * <p>concat(cast('a' as varchar), cast('b' as varchar(2), cast('c' as varchar(2))))
-   * returns varchar.</p>
+   * returns varchar.
    *
    * <p>concat(cast('a' as varchar(65535)), cast('b' as varchar(2)), cast('c' as varchar(2)))
-   * returns varchar.</p>
+   * returns varchar.
    */
   public static final SqlReturnTypeInference MULTIVALENT_STRING_SUM_PRECISION =
       opBinding -> {

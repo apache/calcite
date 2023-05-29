@@ -66,9 +66,9 @@ public abstract class SqlOperatorBinding {
    * GROUP BY deptno, gender", returns 2.
    *
    * <p>Returns 0 if the query is implicitly "GROUP BY ()" because of an
-   * aggregate expression. For example, "SELECT sum(sal) FROM emp".</p>
+   * aggregate expression. For example, "SELECT sum(sal) FROM emp".
    *
-   * <p>Returns -1 if the query is not an aggregate query.</p>
+   * <p>Returns -1 if the query is not an aggregate query.
    */
   public int getGroupCount() {
     return -1;

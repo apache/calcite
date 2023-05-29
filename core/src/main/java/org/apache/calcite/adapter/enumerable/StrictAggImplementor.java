@@ -32,6 +32,7 @@ import java.util.List;
 
 /**
  * The base implementation of strict aggregate function.
+ *
  * @see org.apache.calcite.adapter.enumerable.RexImpTable.CountImplementor
  * @see org.apache.calcite.adapter.enumerable.RexImpTable.SumImplementor
  */

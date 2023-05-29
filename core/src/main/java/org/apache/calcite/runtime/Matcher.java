@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 
 /**
  * Workspace that partialMatches patterns against an automaton.
+ *
  * @param <E> Type of rows matched by this automaton
  */
 public class Matcher<E> {

@@ -47,7 +47,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
 /**
  * SQL window specification.
  *
- * <p>For example, the query</p>
+ * <p>For example, the query
  *
  * <blockquote>
  * <pre>SELECT sum(a) OVER (w ROWS 3 PRECEDING)
@@ -57,7 +57,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * </blockquote>
  *
  * <p>declares windows w and w1, and uses a window in an OVER clause. It thus
- * contains 3 {@link SqlWindow} objects.</p>
+ * contains 3 {@link SqlWindow} objects.
  */
 public class SqlWindow extends SqlCall {
   /**

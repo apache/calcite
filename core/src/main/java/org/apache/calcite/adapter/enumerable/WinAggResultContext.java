@@ -35,6 +35,7 @@ public interface WinAggResultContext extends AggResultContext,
    * Returns {@link org.apache.calcite.rex.RexNode} representation of arguments.
    * This can be useful for manual translation of required arguments with
    * different {@link NullPolicy}.
+   *
    * @return {@link org.apache.calcite.rex.RexNode} representation of arguments
    */
   List<RexNode> rexArguments();
@@ -44,6 +45,7 @@ public interface WinAggResultContext extends AggResultContext,
    * The resulting value is equivalent to
    * {@code rowTranslator().translateList(rexArguments())}.
    * This is handy if you need just operate on argument.
+   *
    * @param rowIndex index of the requested row. The index must be in range
    *                 of partition's startIndex and endIndex.
    * @return Linq4j form of arguments of the particular row

@@ -157,7 +157,7 @@ public abstract class ConverterRule
    * of the input convention.
    *
    * <p>The union-to-java converter, for example, is not guaranteed, because
-   * it only works on unions.</p>
+   * it only works on unions.
    *
    * @return {@code true} if this rule can convert <em>any</em> relational
    *   expression

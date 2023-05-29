@@ -30,7 +30,7 @@ import java.util.Set;
  *
  * <p>The values are immutable, canonical constants, so you can use Kinds to
  * find particular types of expressions quickly. To identity a call to a common
- * operator such as '=', use {@link org.apache.calcite.sql.SqlNode#isA}:</p>
+ * operator such as '=', use {@link org.apache.calcite.sql.SqlNode#isA}:
  *
  * <blockquote>
  * exp.{@link org.apache.calcite.sql.SqlNode#isA isA}({@link #EQUALS})
@@ -38,9 +38,9 @@ import java.util.Set;
  *
  * <p>Only commonly-used nodes have their own type; other nodes are of type
  * {@link #OTHER}. Some of the values, such as {@link #SET_QUERY}, represent
- * aggregates.</p>
+ * aggregates.
  *
- * <p>To quickly choose between a number of options, use a switch statement:</p>
+ * <p>To quickly choose between a number of options, use a switch statement:
  *
  * <blockquote>
  * <pre>switch (exp.getKind()) {
@@ -54,12 +54,12 @@ import java.util.Set;
  * </blockquote>
  *
  * <p>Note that we do not even have to check that a {@code SqlNode} is a
- * {@link SqlCall}.</p>
+ * {@link SqlCall}.
  *
  * <p>To identify a category of expressions, use {@code SqlNode.isA} with
  * an aggregate SqlKind. The following expression will return <code>true</code>
  * for calls to '=' and '&gt;=', but <code>false</code> for the constant '5', or
- * a call to '+':</p>
+ * a call to '+':
  *
  * <blockquote>
  * <pre>exp.isA({@link #COMPARISON SqlKind.COMPARISON})</pre>
@@ -67,16 +67,16 @@ import java.util.Set;
  *
  * <p>RexNode also has a {@code getKind} method; {@code SqlKind} values are
  * preserved during translation from {@code SqlNode} to {@code RexNode}, where
- * applicable.</p>
+ * applicable.
  *
  * <p>There is no water-tight definition of "common", but that's OK. There will
  * always be operators that don't have their own kind, and for these we use the
  * {@code SqlOperator}. But for really the common ones, e.g. the many places
  * where we are looking for {@code AND}, {@code OR} and {@code EQUALS}, the enum
- * helps.</p>
+ * helps.
  *
  * <p>(If we were using Scala, {@link SqlOperator} would be a case
- * class, and we wouldn't need {@code SqlKind}. But we're not.)</p>
+ * class, and we wouldn't need {@code SqlKind}. But we're not.)
  */
 public enum SqlKind {
   //~ Static fields/initializers ---------------------------------------------
@@ -110,7 +110,7 @@ public enum SqlKind {
    *
    * <p>A FROM clause with more than one table is represented as if it were a
    * join. For example, "FROM x, y, z" is represented as
-   * "JOIN(x, JOIN(x, y))".</p>
+   * "JOIN(x, JOIN(x, y))".
    */
   JOIN,
 
@@ -581,42 +581,42 @@ public enum SqlKind {
    * The field access operator, ".".
    *
    * <p>(Only used at the RexNode level; at
-   * SqlNode level, a field-access is part of an identifier.)</p>
+   * SqlNode level, a field-access is part of an identifier.)
    */
   FIELD_ACCESS,
 
   /**
    * Reference to an input field.
    *
-   * <p>(Only used at the RexNode level.)</p>
+   * <p>(Only used at the RexNode level.)
    */
   INPUT_REF,
 
   /**
    * Reference to an input field, with a qualified name and an identifier.
    *
-   * <p>(Only used at the RexNode level.)</p>
+   * <p>(Only used at the RexNode level.)
    */
   TABLE_INPUT_REF,
 
   /**
    * Reference to an input field, with pattern var as modifier.
    *
-   * <p>(Only used at the RexNode level.)</p>
+   * <p>(Only used at the RexNode level.)
    */
   PATTERN_INPUT_REF,
   /**
    * Reference to a sub-expression computed within the current relational
    * operator.
    *
-   * <p>(Only used at the RexNode level.)</p>
+   * <p>(Only used at the RexNode level.)
    */
   LOCAL_REF,
 
   /**
    * Reference to correlation variable.
    *
-   * <p>(Only used at the RexNode level.)</p>
+   * <p>(Only used at the RexNode level.)
    */
   CORREL_VARIABLE,
 
@@ -1361,25 +1361,27 @@ public enum SqlKind {
   /**
    * Category of operators that do not depend on the argument order.
    *
-   * <p>For instance: {@link #AND}, {@link #OR}, {@link #EQUALS}, {@link #LEAST}</p>
-   * <p>Note: {@link #PLUS} does depend on the argument oder if argument types are different</p>
+   * <p>For instance: {@link #AND}, {@link #OR}, {@link #EQUALS},
+   * {@link #LEAST}.
+   *
+   * <p>Note: {@link #PLUS} does depend on the argument oder if argument types
+   * are different.
    */
   @API(since = "1.22", status = API.Status.EXPERIMENTAL)
   public static final Set<SqlKind> SYMMETRICAL =
-      EnumSet.of(
-          AND, OR, EQUALS, NOT_EQUALS,
+      EnumSet.of(AND, OR, EQUALS, NOT_EQUALS,
           IS_DISTINCT_FROM, IS_NOT_DISTINCT_FROM,
           GREATEST, LEAST);
 
   /**
-   * Category of operators that do not depend on the argument order if argument types are equal.
+   * Category of operators that do not depend on the argument order if argument
+   * types are equal.
    *
-   * <p>For instance: {@link #PLUS}, {@link #TIMES}</p>
+   * <p>For instance: {@link #PLUS}, {@link #TIMES}.
    */
   @API(since = "1.22", status = API.Status.EXPERIMENTAL)
   public static final Set<SqlKind> SYMMETRICAL_SAME_ARG_TYPE =
-      EnumSet.of(
-          PLUS, TIMES);
+      EnumSet.of(PLUS, TIMES);
 
   /**
    * Simple binary operators are those operators which expects operands from the same Domain.

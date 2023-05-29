@@ -80,7 +80,7 @@ public interface ReflectiveVisitDispatcher<R extends ReflectiveVisitor,
    * <p>Visit method lookup follows the same rules as if compile-time resolution
    * for VisitorClass.visit(VisiteeClass) were performed. An ambiguous match due
    * to multiple interface inheritance results in an IllegalArgumentException. A
-   * non-match is indicated by returning false.</p>
+   * non-match is indicated by returning false.
    *
    * @param visitor         object whose visit method is to be invoked
    * @param visitee         object to be passed as a parameter to the visit

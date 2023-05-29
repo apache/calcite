@@ -604,7 +604,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     }
   }
 
-  /** "COMPOSITE" user-defined scalar function. **/
+  /** "COMPOSITE" user-defined scalar function. */
   public static class CompositeFunction extends SqlFunction {
     public CompositeFunction() {
       super("COMPOSITE",

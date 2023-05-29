@@ -25,12 +25,12 @@
  * <h2>Parser</h2>
  *
  * <p>{@link org.apache.calcite.sql.parser.SqlParser} parses a SQL string to a
- *     parse tree. It only performs the most basic syntactic validation.</p>
+ *     parse tree. It only performs the most basic syntactic validation.
  *
  * <h2>Object model</h2>
  *
  * <p>Every node in the parse tree is a {@link org.apache.calcite.sql.SqlNode}.
- *     Sub-types are:</p>
+ *     Sub-types are:
  * <ul>
  *
  *     <li>{@link org.apache.calcite.sql.SqlLiteral} represents a boolean,
@@ -56,7 +56,7 @@
  *     {@link org.apache.calcite.sql.SqlCall} into a SQL string.  It is
  *     important to note that operators are metadata, not data: there is only
  *     one <code>SqlOperator</code> instance representing the '=' operator, even
- *     though there may be many calls to it.</p>
+ *     though there may be many calls to it.
  *
  * <p><code>SqlOperator</code> has several derived classes which make it easy to
  *     define new operators: {@link org.apache.calcite.sql.SqlFunction},
@@ -69,11 +69,11 @@
  *     special operators even have their own sub-types of
  *     {@link org.apache.calcite.sql.SqlCall}:
  *     {@link org.apache.calcite.sql.SqlSelect} and
- *     {@link org.apache.calcite.sql.SqlJoin}.)</p>
+ *     {@link org.apache.calcite.sql.SqlJoin}.)
  *
  * <p>A {@link org.apache.calcite.sql.SqlOperatorTable} is a collection of
  *     operators. By supplying your own operator table, you can customize the
- *     dialect of SQL without modifying the parser.</p>
+ *     dialect of SQL without modifying the parser.
  *
  * <h2>Validation</h2>
  *
@@ -83,13 +83,13 @@
  *     {@link org.apache.calcite.sql.SqlOperatorTable} to describe the available
  *     functions and operators, and a
  *     {@link org.apache.calcite.sql.validate.SqlValidatorCatalogReader} for
- *     access to the database's catalog.</p>
+ *     access to the database's catalog.
  *
  * <h2>Generating SQL</h2>
  *
  * <p>A {@link org.apache.calcite.sql.SqlWriter} converts a tree of
  * {@link org.apache.calcite.sql.SqlNode}s into a SQL string. A
- * {@link org.apache.calcite.sql.SqlDialect} defines how this happens.</p>
+ * {@link org.apache.calcite.sql.SqlDialect} defines how this happens.
  */
 @DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.FIELD)
 @DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.PARAMETER)

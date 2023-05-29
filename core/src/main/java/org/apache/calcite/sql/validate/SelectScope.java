@@ -41,7 +41,7 @@ import static java.util.Objects.requireNonNull;
  *
  *
  * <p>This object is both a {@link SqlValidatorScope} and a
- * {@link SqlValidatorNamespace}. In the query</p>
+ * {@link SqlValidatorNamespace}. In the query
  *
  * <blockquote>
  * <pre>SELECT name FROM (
@@ -51,11 +51,11 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>we need to use the {@link SelectScope} as a
  * {@link SqlValidatorNamespace} when resolving 'name', and
- * as a {@link SqlValidatorScope} when resolving 'gender'.</p>
+ * as a {@link SqlValidatorScope} when resolving 'gender'.
  *
  * <h2>Scopes</h2>
  *
- * <p>In the query</p>
+ * <p>In the query
  *
  * <blockquote>
  * <pre>
@@ -67,7 +67,7 @@ import static java.util.Objects.requireNonNull;
  * ORDER BY expr4</pre>
  * </blockquote>
  *
- * <p>The scopes available at various points of the query are as follows:</p>
+ * <p>The scopes available at various points of the query are as follows:
  *
  * <ul>
  * <li>expr1 can see t1, t2, q3</li>
@@ -79,7 +79,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <h2>Namespaces</h2>
  *
- * <p>In the above query, there are 4 namespaces:</p>
+ * <p>In the above query, there are 4 namespaces:
  *
  * <ul>
  * <li>t1</li>

@@ -197,7 +197,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlSpecialOperator DEFAULT = new SqlDefaultOperator();
 
   /** <code>FILTER</code> operator filters which rows are included in an
-   *  aggregate function. */
+   * aggregate function. */
   public static final SqlFilterOperator FILTER = new SqlFilterOperator();
 
   /** <code>WITHIN_GROUP</code> operator performs aggregations on ordered data input. */
@@ -1307,7 +1307,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * &lt;interval qualifier&gt;</code></blockquote>
    *
    * <p>This operator is special since it needs to hold the
-   * additional interval qualifier specification.</p>
+   * additional interval qualifier specification.
    */
   public static final SqlDatetimeSubtractionOperator MINUS_DATE =
       new SqlDatetimeSubtractionOperator("-", ReturnTypes.ARG2_NULLABLE);
@@ -1972,17 +1972,17 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>When the CAST operator is applies as a {@link SqlCall}, it has two
    * arguments: the expression and the type. The type must not include a
    * constraint, so <code>CAST(x AS INTEGER NOT NULL)</code>, for instance, is
-   * invalid.</p>
+   * invalid.
    *
    * <p>When the CAST operator is applied as a <code>RexCall</code>, the
    * target type is simply stored as the return type, not an explicit operand.
    * For example, the expression <code>CAST(1 + 2 AS DOUBLE)</code> will
    * become a call to <code>CAST</code> with the expression <code>1 + 2</code>
-   * as its only operand.</p>
+   * as its only operand.
    *
    * <p>The <code>RexCall</code> form can also have a type which contains a
    * <code>NOT NULL</code> constraint. When this expression is implemented, if
-   * the value is NULL, an exception will be thrown.</p>
+   * the value is NULL, an exception will be thrown.
    */
   public static final SqlFunction CAST = new SqlCastFunction();
 
@@ -2108,9 +2108,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>The SQL standard calls the ARRAY variant a
    * &lt;array element reference&gt;. Index is 1-based. The standard says
    * to raise "data exception - array element error" but we currently return
-   * null.</p>
+   * null.
    *
-   * <p>MAP is not standard SQL.</p>
+   * <p>MAP is not standard SQL.
    */
   public static final SqlOperator ITEM =
       new SqlItemOperator("ITEM", OperandTypes.ARRAY_OR_MAP, 1, true);
@@ -2162,11 +2162,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * to keep types consistent. For example, <code>ELEMENT(MULTISET [5])</code>
    * is translated to <code>$ELEMENT_SLICE(MULTISET (VALUES ROW (5
    * EXPR$0))</code> It is translated away when the multiset type is converted
-   * back to scalar values.</p>
+   * back to scalar values.
    *
    * <p>NOTE: jhyde, 2006/1/9: Usages of this operator are commented out, but
    * I'm not deleting the operator, because some multiset tests are disabled,
-   * and we may need this operator to get them working!</p>
+   * and we may need this operator to get them working!
    */
   public static final SqlInternalOperator ELEMENT_SLICE =
       new SqlInternalOperator(

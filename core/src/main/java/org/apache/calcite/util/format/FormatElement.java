@@ -37,7 +37,7 @@ public interface FormatElement {
    *
    * <p>Note that certain FormatElements may not have a Java equivalent.
    * In such cases, calling this method will throw an {@link UnsupportedOperationException}.
-   * See {@link FormatElementEnum#Q} as an example.</p>
+   * See {@link FormatElementEnum#Q} as an example.
    */
   void toPattern(StringBuilder sb) throws UnsupportedOperationException;
 

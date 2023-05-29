@@ -114,6 +114,7 @@ public class PigAggregate extends Aggregate implements PigRel {
    * Generates a FOREACH statement containing invocation of aggregate functions
    * and projection of grouped fields. e.g.
    * <code>A = FOREACH A GENERATE group, SUM(A.pet_num);</code>
+   *
    * @see Pig documentation for special meaning of the "group" field after GROUP
    *      BY.
    */

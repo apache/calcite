@@ -512,7 +512,7 @@ public class Smalls {
   }
 
   /** As {@link MyPlusFunction} but constructor has a
-   *  {@link org.apache.calcite.schema.FunctionContext} parameter. */
+   * {@link org.apache.calcite.schema.FunctionContext} parameter. */
   public static class MyPlusInitFunction {
     public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT =
         new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));

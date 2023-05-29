@@ -113,6 +113,7 @@ public class ElasticsearchToEnumerableConverter extends ConverterImpl implements
 
   /** E.g. {@code constantArrayList("x", "y")} returns
    * "Arrays.asList('x', 'y')".
+   *
    * @param values list of values
    * @param clazz runtime class representing each element in the list
    * @param <T> type of elements in the list
@@ -125,6 +126,7 @@ public class ElasticsearchToEnumerableConverter extends ConverterImpl implements
 
   /** E.g. {@code constantList("x", "y")} returns
    * {@code {ConstantExpression("x"), ConstantExpression("y")}}.
+   *
    * @param values list of elements
    * @param <T> type of elements inside this list
    * @return list of constant expressions

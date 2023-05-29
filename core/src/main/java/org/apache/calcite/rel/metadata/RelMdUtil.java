@@ -638,7 +638,7 @@ public class RelMdUtil {
     return numDistinctVals(population, mq.getRowCount(join));
   }
 
-  /** Add an epsilon to the value passed in. **/
+  /** Add an epsilon to the value passed in. */
   public static double addEpsilon(double d) {
     assert d >= 0d;
     final double d0 = d;

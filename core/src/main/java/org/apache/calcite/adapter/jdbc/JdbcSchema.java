@@ -73,7 +73,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>The tables in the JDBC data source appear to be tables in this schema;
  * queries against this schema are executed against those tables, pushing down
- * as much as possible of the query logic to SQL.</p>
+ * as much as possible of the query logic to SQL.
  */
 public class JdbcSchema implements Schema {
   private static final Logger LOGGER = LoggerFactory.getLogger(JdbcSchema.class);

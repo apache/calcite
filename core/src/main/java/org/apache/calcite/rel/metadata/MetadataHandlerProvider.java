@@ -28,6 +28,7 @@ public interface MetadataHandlerProvider {
 
   /**
    * Provide a handler for the requested metadata class.
+   *
    * @param handlerClass The handler interface expected
    * @param <MH> The metadata type the handler relates to.
    * @return The handler implementation.

@@ -39,6 +39,7 @@ public class ElasticsearchSearchResult {
 
   /**
    * Constructor for this instance.
+   *
    * @param hits list of matched documents
    * @param took time taken (in took) for this query to execute
    */

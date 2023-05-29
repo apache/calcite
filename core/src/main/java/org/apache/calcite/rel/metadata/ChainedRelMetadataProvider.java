@@ -39,7 +39,7 @@ import java.util.List;
  *
  * <p>When a consumer calls the {@link #apply} method to ask for a provider
  * for a particular type of {@link RelNode} and {@link Metadata}, scans the list
- * of underlying providers.</p>
+ * of underlying providers.
  */
 public class ChainedRelMetadataProvider implements RelMetadataProvider {
   //~ Instance fields --------------------------------------------------------

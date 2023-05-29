@@ -225,6 +225,7 @@ public class SqlAdvisor {
    * Returns casing which is preferred for replacement.
    * For instance, {@code en => ename, EN => ENAME}.
    * When input has mixed case, {@code Casing.UNCHANGED} is returned.
+   *
    * @param word input word
    * @return preferred casing when replacing input word
    */

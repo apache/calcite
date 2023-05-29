@@ -53,7 +53,7 @@ import static java.util.Objects.requireNonNull;
  * <code>true</code>.
  *
  * <p>If the condition allows nulls, then a null value is treated the same as
- * false.</p>
+ * false.
  *
  * @see org.apache.calcite.rel.logical.LogicalFilter
  */

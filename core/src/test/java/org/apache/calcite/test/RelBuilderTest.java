@@ -136,7 +136,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for {@link RelBuilder}.
  *
- * <p>Tasks:</p>
+ * <p>Tasks:
  * <ol>
  *   <li>Add RelBuilder.scan(List&lt;String&gt;)</li>
  *   <li>Add RelBuilder.scan(Table)</li>

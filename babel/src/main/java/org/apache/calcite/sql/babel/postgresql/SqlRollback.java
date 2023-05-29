@@ -34,6 +34,7 @@ import java.util.List;
 
 /**
  * Parse tree node representing a {@code ROLLBACK} clause.
+ *
  * @see <a href="https://www.postgresql.org/docs/current/sql-rollback.html">ROLLBACK specification</a>
  */
 public class SqlRollback extends SqlCall {

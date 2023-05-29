@@ -141,7 +141,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>This class is public so that projects that create their own JDBC driver
  * and server can fine-tune preferences. However, this class and its methods are
- * subject to change without notice.</p>
+ * subject to change without notice.
  */
 public class CalcitePrepareImpl implements CalcitePrepare {
 
@@ -413,14 +413,14 @@ public class CalcitePrepareImpl implements CalcitePrepare {
    *
    * <p>The collection must have at least one factory, and each factory must
    * create a planner. If the collection has more than one planner, Calcite will
-   * try each planner in turn.</p>
+   * try each planner in turn.
    *
    * <p>One of the things you can do with this mechanism is to try a simpler,
    * faster, planner with a smaller rule set first, then fall back to a more
-   * complex planner for complex and costly queries.</p>
+   * complex planner for complex and costly queries.
    *
    * <p>The default implementation returns a factory that calls
-   * {@link #createPlanner(org.apache.calcite.jdbc.CalcitePrepare.Context)}.</p>
+   * {@link #createPlanner(org.apache.calcite.jdbc.CalcitePrepare.Context)}.
    */
   protected List<Function1<Context, RelOptPlanner>> createPlannerFactories() {
     return Collections.singletonList(
@@ -952,8 +952,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
   /** Holds state for the process of preparing a SQL statement.
    *
-   * <p>Overload this class and {@link #createSqlValidator} to provide desired SqlValidator
-   * and custom validation logic.</p>
+   * <p>Overload this class and {@link #createSqlValidator} to provide desired
+   * SqlValidator and custom validation logic.
    */
   public static class CalcitePreparingStmt extends Prepare
       implements RelOptTable.ViewExpander {
@@ -973,8 +973,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
     /** Constructor.
      *
-     * <p>Overload this constructor and {@link #createSqlValidator} to provide desired
-     *  SqlValidaor and custom validation logic.</p>
+     * <p>Overload this constructor and {@link #createSqlValidator} to provide
+     * desired SqlValidator and custom validation logic.
      */
     public CalcitePreparingStmt(CalcitePrepareImpl prepare,
         Context context,

@@ -34,7 +34,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * An operator describing a query. (Not a query itself.)
  *
- * <p>Operands are:</p>
+ * <p>Operands are:
  *
  * <ul>
  * <li>0: distinct ({@link SqlLiteral})</li>

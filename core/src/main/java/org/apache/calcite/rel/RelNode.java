@@ -47,11 +47,11 @@ import java.util.Set;
  * Sort, Join, Project, Filter, Scan, Sample.
  *
  * <p>A relational expression is not a scalar expression; see
- * {@link org.apache.calcite.sql.SqlNode} and {@link RexNode}.</p>
+ * {@link org.apache.calcite.sql.SqlNode} and {@link RexNode}.
  *
  * <p>If this type of relational expression has some particular planner rules,
  * it should implement the <em>public static</em> method
- * {@link AbstractRelNode#register}.</p>
+ * {@link AbstractRelNode#register}.
  *
  * <p>When a relational expression comes to be implemented, the system allocates
  * a {@link org.apache.calcite.plan.RelImplementor} to manage the process. Every
@@ -61,7 +61,7 @@ import java.util.Set;
  * relational expression, but may contain other traits, including some applied
  * externally. Because traits can be applied externally, implementations of
  * RelNode should never assume the size or contents of their trait set (beyond
- * those traits configured by the RelNode itself).</p>
+ * those traits configured by the RelNode itself).
  *
  * <p>For each calling-convention, there is a corresponding sub-interface of
  * RelNode. For example,
@@ -69,17 +69,17 @@ import java.util.Set;
  * has operations to manage the conversion to a graph of
  * {@code org.apache.calcite.adapter.enumerable.EnumerableConvention}
  * calling-convention, and it interacts with a
- * {@code EnumerableRelImplementor}.</p>
+ * {@code EnumerableRelImplementor}.
  *
  * <p>A relational expression is only required to implement its
  * calling-convention's interface when it is actually implemented, that is,
  * converted into a plan/program. This means that relational expressions which
  * cannot be implemented, such as converters, are not required to implement
- * their convention's interface.</p>
+ * their convention's interface.
  *
  * <p>Every relational expression must derive from {@link AbstractRelNode}. (Why
  * have the <code>RelNode</code> interface, then? We need a root interface,
- * because an interface can only derive from an interface.)</p>
+ * because an interface can only derive from an interface.)
  */
 public interface RelNode extends RelOptNode, Cloneable {
   //~ Methods ----------------------------------------------------------------
@@ -292,7 +292,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * Deep equality check for RelNode digest.
    *
    * <p>By default this method collects digest attributes from
-   * explain terms, then compares each attribute pair.</p>
+   * explain terms, then compares each attribute pair.
    *
    * @return Whether the 2 RelNodes are equivalent or have the same digest.
    * @see #deepHashCode()
@@ -382,7 +382,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * <p>The planner calls this method this first time that it sees a
    * relational expression of this class. The derived class should call
    * {@link org.apache.calcite.plan.RelOptPlanner#addRule} for each rule, and
-   * then call {@code super.register}.</p>
+   * then call {@code super.register}.
    *
    * @param planner Planner to be used to register additional relational
    *                expressions

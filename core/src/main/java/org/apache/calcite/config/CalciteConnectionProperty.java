@@ -85,19 +85,19 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   FUN("fun", Type.STRING, "standard", true),
 
   /** How identifiers are quoted.
-   *  If not specified, value from {@link #LEX} is used. */
+   * If not specified, value from {@link #LEX} is used. */
   QUOTING("quoting", Type.ENUM, null, false, Quoting.class),
 
   /** How identifiers are stored if they are quoted.
-   *  If not specified, value from {@link #LEX} is used. */
+   * If not specified, value from {@link #LEX} is used. */
   QUOTED_CASING("quotedCasing", Type.ENUM, null, false, Casing.class),
 
   /** How identifiers are stored if they are not quoted.
-   *  If not specified, value from {@link #LEX} is used. */
+   * If not specified, value from {@link #LEX} is used. */
   UNQUOTED_CASING("unquotedCasing", Type.ENUM, null, false, Casing.class),
 
   /** Whether identifiers are matched case-sensitively.
-   *  If not specified, value from {@link #LEX} is used. */
+   * If not specified, value from {@link #LEX} is used. */
   CASE_SENSITIVE("caseSensitive", Type.BOOLEAN, null, false),
 
   /** Parser factory.

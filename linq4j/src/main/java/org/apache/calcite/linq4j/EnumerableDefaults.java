@@ -208,7 +208,7 @@ public abstract class EnumerableDefaults {
   /**
    * Converts an Enumerable to an IQueryable.
    *
-   * <p>Analogous to the LINQ's Enumerable.AsQueryable extension method.</p>
+   * <p>Analogous to the LINQ's Enumerable.AsQueryable extension method.
    *
    * @param enumerable Enumerable
    * @param <TSource> Element type
@@ -321,7 +321,7 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * <p>Analogous to LINQ's Enumerable.Cast extension method.</p>
+   * <p>Analogous to LINQ's Enumerable.Cast extension method.
    *
    * @param clazz Target type
    * @param <T2> Target type
@@ -1647,12 +1647,12 @@ public abstract class EnumerableDefaults {
    * <p>Fetches blocks of size {@code batchSize} from {@code outer},
    * storing each block into a list ({@code outerValues}).
    * For each block, it uses the {@code inner} function to
-   * obtain an enumerable with the correlated rows from the right (inner) input.</p>
+   * obtain an enumerable with the correlated rows from the right (inner) input.
    *
    * <p>Each result present in the {@code innerEnumerator} has matched at least one
    * value from the block {@code outerValues}.
    * At this point a mini nested loop is performed between the outer values
-   * and inner values using the {@code predicate} to find out the actual matching join results.</p>
+   * and inner values using the {@code predicate} to find out the actual matching join results.
    *
    * <p>In order to optimize this mini nested loop, during the first iteration
    * (the first value from {@code outerValues}) we use the {@code innerEnumerator}
@@ -1660,7 +1660,7 @@ public abstract class EnumerableDefaults {
    * with said {@code innerEnumerator} rows. In the subsequent iterations
    * (2nd, 3rd, etc. value from {@code outerValues}) the list {@code innerValues} is used,
    * since it contains all the {@code innerEnumerator} values,
-   * which were stored in the first iteration.</p>
+   * which were stored in the first iteration.
    */
   public static <TSource, TInner, TResult> Enumerable<TResult> correlateBatchJoin(
       final JoinType joinType,
@@ -2147,6 +2147,7 @@ public abstract class EnumerableDefaults {
   /**
    * Joins two inputs that are sorted on the key.
    * Inputs must sorted in ascending order, nulls last.
+   *
    * @deprecated Use {@link #mergeJoin(Enumerable, Enumerable, Function1, Function1, Function2, JoinType, Comparator)}
    */
   @Deprecated // to be removed before 2.0
@@ -2171,7 +2172,9 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * Returns if certain join type is supported by Enumerable Merge Join implementation.
+   * Returns if certain join type is supported by Enumerable Merge
+   * Join implementation.
+   *
    * <p>NOTE: This method is subject to change or be removed without notice.
    */
   public static boolean isMergeJoinSupported(JoinType joinType) {
@@ -2620,7 +2623,7 @@ public abstract class EnumerableDefaults {
    * Filters the elements of an Enumerable based on a
    * specified type.
    *
-   * <p>Analogous to LINQ's Enumerable.OfType extension method.</p>
+   * <p>Analogous to LINQ's Enumerable.OfType extension method.
    *
    * @param clazz Target type
    * @param <TResult> Target type
@@ -2666,6 +2669,7 @@ public abstract class EnumerableDefaults {
 
   /**
    * A sort implementation optimized for a sort with a fetch size (LIMIT).
+   *
    * @param offset how many rows are skipped from the sorted output.
    *               Must be greater than or equal to 0.
    * @param fetch how many rows are retrieved. Must be greater than or equal to 0.
@@ -3484,7 +3488,7 @@ public abstract class EnumerableDefaults {
    * Enumerable&lt;TSource&gt; according to a specified key selector
    * function.
    *
-   * <p>NOTE: Called {@code toDictionary} in LINQ.NET.</p>
+   * <p>NOTE: Called {@code toDictionary} in LINQ.NET.
    */
   public static <TSource, TKey> Map<TKey, TSource> toMap(
       Enumerable<TSource> source, Function1<TSource, TKey> keySelector) {
@@ -4369,6 +4373,7 @@ public abstract class EnumerableDefaults {
      * Clears {@code left} list, adds {@code left} into it, and advance left enumerator,
      * adding all items with the same key to {@code left} list too, until left enumerator
      * is over or a different key is found.
+     *
      * @return {@code true} if there are still elements to be processed on the left enumerator,
      * {@code false} otherwise (left enumerator is over or null key is found).
      */
@@ -4401,6 +4406,7 @@ public abstract class EnumerableDefaults {
      * Clears {@code right} list, adds {@code right} into it, and advance right enumerator,
      * adding all items with the same key to {@code right} list too, until right enumerator
      * is over or a different key is found.
+     *
      * @return {@code true} if there are still elements to be processed on the right enumerator,
      * {@code false} otherwise (right enumerator is over or null key is found).
      */

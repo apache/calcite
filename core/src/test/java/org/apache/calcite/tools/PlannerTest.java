@@ -1546,10 +1546,8 @@ class PlannerTest {
     assertValidPlan(sql, DelegatingTypeSystem.DEFAULT, is(expectedDefault));
   }
 
-  /**
-   *  Asserts a Planner generates the correct plan using the provided
-   *  type system.
-   */
+  /** Asserts that a Planner generates the correct plan using the
+   * provided type system. */
   private void assertValidPlan(String sql, RelDataTypeSystem typeSystem,
       Matcher<String> planMatcher)  throws SqlParseException,
       ValidationException, RelConversionException {

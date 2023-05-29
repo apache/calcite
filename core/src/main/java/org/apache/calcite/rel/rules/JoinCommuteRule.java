@@ -189,7 +189,7 @@ public class JoinCommuteRule
    * <p>If the field index is less than leftFieldCount, it must be from the
    * left, and so has rightFieldCount added to it; if the field index is
    * greater than leftFieldCount, it must be from the right, so we subtract
-   * leftFieldCount from it.</p>
+   * leftFieldCount from it.
    */
   private static class VariableReplacer extends RexShuttle {
     private final RexBuilder rexBuilder;

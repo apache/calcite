@@ -119,7 +119,7 @@ public class JdbcFrontLinqBackTest {
    * Simple UNION, plus ORDER BY.
    *
    * <p>Also tests a query that returns a single column. We optimize this case
-   * internally, using non-array representations for rows.</p>
+   * internally, using non-array representations for rows.
    */
   @Test void testUnionAllOrderBy() {
     hr()

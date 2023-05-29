@@ -23,7 +23,7 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
  * Definition of the MAP query constructor, <code>
  * MAP (&lt;query&gt;)</code>.
  *
- * <p>Like the MAP type, not standard SQL.</p>
+ * <p>Like the MAP type, not standard SQL.
  */
 public class SqlMapQueryConstructor extends SqlMultisetQueryConstructor {
   //~ Constructors -----------------------------------------------------------

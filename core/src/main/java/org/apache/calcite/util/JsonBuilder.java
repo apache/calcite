@@ -108,7 +108,7 @@ public class JsonBuilder {
    * string.
    *
    * <p>We should use a JSON library such as Jackson when Mondrian needs
-   * one elsewhere.</p>
+   * one elsewhere.
    */
   public String toJsonString(Object o) {
     StringBuilder buf = new StringBuilder();

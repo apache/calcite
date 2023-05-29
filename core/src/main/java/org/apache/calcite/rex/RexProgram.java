@@ -109,7 +109,7 @@ public class RexProgram {
    * Creates a program.
    *
    * <p>The expressions must be valid: they must not contain common expressions,
-   * forward references, or non-trivial aggregates.</p>
+   * forward references, or non-trivial aggregates.
    *
    * @param inputRowType  Input row type
    * @param exprs         Common expressions
@@ -517,7 +517,7 @@ public class RexProgram {
    *
    * <p>Like {@link RexUtil#isNull(RexNode)}, null literals are null, and
    * casts of null literals are null. But this method also regards references
-   * to null expressions as null.</p>
+   * to null expressions as null.
    *
    * @param expr Expression
    * @return Whether expression always evaluates to null

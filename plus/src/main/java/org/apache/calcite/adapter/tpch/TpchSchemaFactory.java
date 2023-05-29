@@ -26,7 +26,7 @@ import java.util.Map;
 /**
  * Factory that creates a {@link TpchSchema}.
  *
- * <p>Allows a custom schema to be included in a model.json file.</p>
+ * <p>Allows a custom schema to be included in a model.json file.
  */
 @SuppressWarnings("UnusedDeclaration")
 public class TpchSchemaFactory implements SchemaFactory {

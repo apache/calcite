@@ -23,9 +23,9 @@ import java.util.function.UnaryOperator;
 /**
  * A mutable slot that can contain one object.
  *
- * <p>A holder is useful for implementing OUT or IN-OUT parameters.</p>
+ * <p>A holder is useful for implementing OUT or IN-OUT parameters.
  *
- * <p>It is possible to sub-class to receive events on get or set.</p>
+ * <p>It is possible to sub-class to receive events on get or set.
  *
  * @param <E> Element type
  */

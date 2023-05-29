@@ -70,8 +70,8 @@ public class SqlWindowTableFunction extends SqlFunction
    * and two additional fields. The fields are as follows:
    *
    * <ol>
-   *  <li>{@code window_start}: TIMESTAMP type to indicate a window's start
-   *  <li>{@code window_end}: TIMESTAMP type to indicate a window's end
+   * <li>{@code window_start}: TIMESTAMP type to indicate a window's start
+   * <li>{@code window_end}: TIMESTAMP type to indicate a window's end
    * </ol>
    */
   public static final SqlReturnTypeInference ARG0_TABLE_FUNCTION_WINDOWING =

@@ -181,6 +181,7 @@ public abstract class SqlTypeUtil {
 
   /**
    * Derives type of the call via its binding.
+   *
    * @param binding binding to derive the type from
    * @return datatype of the call
    */
@@ -191,6 +192,7 @@ public abstract class SqlTypeUtil {
 
   /**
    * Derives type of the given call under given binding.
+   *
    * @param binding binding to derive the type from
    * @param node node type to derive
    * @return datatype of the given node
@@ -203,6 +205,7 @@ public abstract class SqlTypeUtil {
 
   /**
    * Derives types for the list of nodes.
+   *
    * @param binding binding to derive the type from
    * @param nodes the list of nodes to derive types from
    * @return the list of types of the given nodes

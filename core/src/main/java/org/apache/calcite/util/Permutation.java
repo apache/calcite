@@ -269,7 +269,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
   /**
    * Inserts into the targets.
    *
-   * <p>For example, consider the permutation</p>
+   * <p>For example, consider the permutation
    *
    * <table border="1">
    * <caption>Example permutation</caption>
@@ -292,7 +292,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    * </table>
    *
    * <p>After applying <code>insertTarget(2)</code> every target 2 or higher is
-   * shifted up one.</p>
+   * shifted up one.
    *
    * <table border="1">
    * <caption>Mapping after applying insertTarget(2)</caption>
@@ -317,7 +317,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    * </table>
    *
    * <p>Note that the array has been extended to accommodate the new target, and
-   * the previously unmapped source 5 is mapped to the unused target slot 2.</p>
+   * the previously unmapped source 5 is mapped to the unused target slot 2.
    *
    * @param x Ordinal of position to add to target
    */
@@ -337,7 +337,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
   /**
    * Inserts into the sources.
    *
-   * <p>Behavior is analogous to {@link #insertTarget(int)}.</p>
+   * <p>Behavior is analogous to {@link #insertTarget(int)}.
    *
    * @param x Ordinal of position to add to source
    */

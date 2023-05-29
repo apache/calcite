@@ -33,7 +33,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * An operator that applies a filter before rows are included in an aggregate
  * function.
  *
- * <p>Operands are as follows:</p>
+ * <p>Operands are as follows:
  *
  * <ul>
  * <li>0: a call to an aggregate function ({@link SqlCall})

@@ -137,7 +137,7 @@ public abstract class TableScan
    * {@link RelBuilder#project(Iterable)} method.
    *
    * <p>Sub-classes, representing table types that have these capabilities,
-   * should override.</p>
+   * should override.
    *
    * @param fieldsUsed  Bitmap of the fields desired by the consumer
    * @param extraFields Extra fields, not advertised in the table's row-type,

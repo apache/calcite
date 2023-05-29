@@ -42,7 +42,7 @@ import static java.util.Objects.requireNonNull;
  * Definition of the SQL:2003 standard MULTISET constructor, <code>MULTISET
  * [&lt;expr&gt;, ...]</code>.
  *
- * <p>Derived classes construct other kinds of collections.</p>
+ * <p>Derived classes construct other kinds of collections.
  *
  * @see SqlMultisetQueryConstructor
  */

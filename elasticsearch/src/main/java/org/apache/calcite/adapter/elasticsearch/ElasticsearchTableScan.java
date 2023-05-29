@@ -39,7 +39,7 @@ import java.util.Objects;
  * Relational expression representing a scan of an Elasticsearch type.
  *
  * <p> Additional operations might be applied,
- * using the "find" method.</p>
+ * using the "find" method.
  */
 public class ElasticsearchTableScan extends TableScan implements ElasticsearchRel {
   private final ElasticsearchTable elasticsearchTable;

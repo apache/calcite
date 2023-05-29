@@ -499,7 +499,7 @@ public class ImmutableBitSet
    * ordering.
    *
    * <p>Bit sets {@code (), (0), (0, 1), (0, 1, 3), (1), (2, 3)} are in sorted
-   * order.</p>
+   * order.
    */
   @Override public int compareTo(ImmutableBitSet o) {
     int i = 0;

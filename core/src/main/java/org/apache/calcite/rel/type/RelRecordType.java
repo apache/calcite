@@ -48,6 +48,7 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
   /**
    * Creates a <code>RecordType</code>. This should only be called from a
    * factory method.
+   *
    * @param kind Name resolution policy
    * @param fields List of fields
    * @param nullable Whether this record type allows null values

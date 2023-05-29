@@ -38,7 +38,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * A relational expression that collapses multiple rows into one.
  *
- * <p>Rules:</p>
+ * <p>Rules:
  *
  * <ul>
  * <li>{@link org.apache.calcite.rel.rules.SubQueryRemoveRule}

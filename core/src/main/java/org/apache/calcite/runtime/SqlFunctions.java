@@ -1039,7 +1039,7 @@ public class SqlFunctions {
   }
 
   /** SQL <code>&lt;gt;</code> operator applied to Object values (at least one
-   *  operand has ANY type, including String; neither may be null). */
+   * operand has ANY type, including String; neither may be null). */
   public static boolean neAny(Object b0, Object b1) {
     return !eqAny(b0, b1);
   }

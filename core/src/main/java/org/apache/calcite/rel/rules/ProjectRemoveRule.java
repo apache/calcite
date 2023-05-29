@@ -31,7 +31,7 @@ import org.immutables.value.Value;
  * merely returns its input, converts the node into its child.
  *
  * <p>For example, <code>Project(ArrayReader(a), {$input0})</code> becomes
- * <code>ArrayReader(a)</code>.</p>
+ * <code>ArrayReader(a)</code>.
  *
  * @see CalcRemoveRule
  * @see ProjectMergeRule

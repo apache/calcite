@@ -35,6 +35,7 @@ import java.util.List;
 
 /**
  * Parse tree node representing a {@code SHOW} clause.
+ *
  * @see <a href="https://www.postgresql.org/docs/current/sql-show.html">SHOW specification</a>
  */
 public class SqlShow extends SqlCall {

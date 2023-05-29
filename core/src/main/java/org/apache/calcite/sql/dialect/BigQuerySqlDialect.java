@@ -251,7 +251,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   /**
    * For usage of TRIM, LTRIM and RTRIM in BQ see
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#trim">
-   *  BQ Trim Function</a>.
+   * BQ Trim Function</a>.
    */
   private static void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {

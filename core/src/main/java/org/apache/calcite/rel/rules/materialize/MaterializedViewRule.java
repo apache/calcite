@@ -506,6 +506,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    *
    * <p>Rules implementing the method should follow different approaches depending on the
    * operators they rewrite.
+   *
    * @return ViewPartialRewriting, or null if the rewrite can't be done
    */
   protected abstract @Nullable ViewPartialRewriting compensateViewPartial(

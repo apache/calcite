@@ -86,7 +86,7 @@ public abstract class Linq4j {
    *
    * <p><b>WARNING</b>: The iterator returned by this method does not call
    * {@link org.apache.calcite.linq4j.Enumerator#close()}, so it is not safe to
-   * use with an enumerator that allocates resources.</p>
+   * use with an enumerator that allocates resources.
    *
    * @param enumerator Enumerator
    * @param <T> Element type
@@ -131,7 +131,7 @@ public abstract class Linq4j {
    * Adapter that converts an {@link Collection} into an {@link Enumerable}.
    *
    * <p>It uses more efficient implementations if the iterable happens to
-   * be a {@link List}.</p>
+   * be a {@link List}.
    *
    * @param collection Collection
    * @param <T> Element type
@@ -150,7 +150,7 @@ public abstract class Linq4j {
    * Adapter that converts an {@link Iterable} into an {@link Enumerable}.
    *
    * <p>It uses more efficient implementations if the iterable happens to
-   * be a {@link Collection} or a {@link List}.</p>
+   * be a {@link Collection} or a {@link List}.
    *
    * @param iterable Iterable
    * @param <T> Element type
@@ -263,7 +263,7 @@ public abstract class Linq4j {
    * <p>The {@code ofType} method returns only those elements in source that
    * can be cast to type TResult. To instead receive an exception if an
    * element cannot be cast to type TResult, use
-   * {@link #cast(Iterable, Class)}.</p>
+   * {@link #cast(Iterable, Class)}.
    *
    * <p>Since standard Java {@link Collection} objects implement the
    * {@link Iterable} interface, the {@code cast} method enables the standard
@@ -368,13 +368,13 @@ public abstract class Linq4j {
    * enumerator B that returns {"x", "y"}, product(List(A, B)) will return
    * {List("a", "x"), List("a", "y"),
    * List("b", "x"), List("b", "y"),
-   * List("c", "x"), List("c", "y")}.</p>
+   * List("c", "x"), List("c", "y")}.
    *
    * <p>Notice that the cardinality of the result is the product of the
    * cardinality of the inputs. The enumerators A and B have 3 and 2
    * elements respectively, and the result has 3 * 2 = 6 elements.
    * This is always the case. In
-   * particular, if any of the enumerators is empty, the result is empty.</p>
+   * particular, if any of the enumerators is empty, the result is empty.
    *
    * @param enumerators List of enumerators
    * @param <T> Element type

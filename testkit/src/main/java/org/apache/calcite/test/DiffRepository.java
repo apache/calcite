@@ -87,7 +87,7 @@ import static java.util.Objects.requireNonNull;
  * </code></pre></blockquote>
  *
  * <p>There is an accompanying reference file named after the class,
- * <code>src/test/resources/com/acme/test/MyTest.xml</code>:</p>
+ * <code>src/test/resources/com/acme/test/MyTest.xml</code>:
  *
  * <blockquote><pre><code>
  * &lt;Root&gt;
@@ -111,19 +111,19 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>If any of the test cases fails, a log file is generated, called
  * <code>build/resources/test/com/acme/test/MyTest_actual.xml</code>, containing the actual
- * output.</p>
+ * output.
  *
  * <p>The log
  * file is otherwise identical to the reference log, so once the log file has
  * been verified, it can simply be copied over to become the new reference
- * log:</p>
+ * log:
  *
  * <blockquote><code>cp build/resources/test/com/acme/test/MyTest_actual.xml
  * src/test/resources/com/acme/test/MyTest.xml</code></blockquote>
  *
  * <p>If a resource or test case does not exist, <code>DiffRepository</code>
  * creates them in the log file. Because DiffRepository is so forgiving, it is
- * very easy to create new tests and test cases.</p>
+ * very easy to create new tests and test cases.
  *
  * <p>The {@link #lookup} method ensures that all test cases share the same
  * instance of the repository. This is important more than one test case fails.

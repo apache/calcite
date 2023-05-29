@@ -159,7 +159,7 @@ public abstract class SqlLibraryOperators {
               OperandHandlers.of(SqlLibraryOperators::transformConvert));
 
   /** Transforms a call binding of {@code CONVERT} to an equivalent binding for
-   *  {@code CAST}. */
+   * {@code CAST}. */
   private static SqlCallBinding transformConvert(SqlOperatorBinding opBinding) {
     // Guaranteed to be a SqlCallBinding, with 2 or 3 arguments
     final SqlCallBinding binding = (SqlCallBinding) opBinding;
@@ -168,7 +168,7 @@ public abstract class SqlLibraryOperators {
   }
 
   /** Transforms a call to {@code CONVERT} to an equivalent call to
-   *  {@code CAST}. */
+   * {@code CAST}. */
   private static SqlCall transformConvert(SqlValidator validator, SqlCall call) {
     return SqlStdOperatorTable.CAST.createCall(call.getParserPosition(),
         call.operand(1), call.operand(0));

@@ -63,7 +63,7 @@ public class TimestampString implements Comparable<TimestampString> {
   }
 
   /** Creates a TimestampString for year, month, day, hour, minute, second,
-   *  millisecond values. */
+   * millisecond values. */
   public TimestampString(int year, int month, int day, int h, int m, int s) {
     this(ymdhms(new StringBuilder(), year, month, day, h, m, s).toString());
   }

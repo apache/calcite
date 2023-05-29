@@ -561,25 +561,25 @@ public class JdbcTest {
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
-   *  macro. */
+   * macro. */
   @Test void testTableMacroInModel() throws Exception {
     checkTableMacroInModel(Smalls.TableMacroFunction.class);
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
-   *  macro defined as a static method. */
+   * macro defined as a static method. */
   @Test void testStaticTableMacroInModel() throws Exception {
     checkTableMacroInModel(Smalls.StaticTableMacroFunction.class);
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
-   *  function. */
+   * function. */
   @Test void testTableFunctionInModel() throws Exception {
     checkTableFunctionInModel(Smalls.MyTableFunction.class);
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
-   *  function defined as a static method. */
+   * function defined as a static method. */
   @Test void testStaticTableFunctionInModel() throws Exception {
     checkTableFunctionInModel(Smalls.TestStaticTableFunction.class);
   }
@@ -1577,7 +1577,7 @@ public class JdbcTest {
    * <p>With
    * <a href="https://issues.apache.org/jira/browse/CALCITE-127">[CALCITE-127]
    * EnumerableCalcRel can't support 3+ AND conditions</a>, the last condition
-   * is ignored and rows with deptno=10 are wrongly returned.</p>
+   * is ignored and rows with deptno=10 are wrongly returned.
    */
   @Test void testAnd3() {
     CalciteAssert.hr()
@@ -2836,7 +2836,7 @@ public class JdbcTest {
    * into a VARCHAR column the behavior would be different; the literals
    * would be converted into VARCHAR(3) values and the implied cast from
    * CHAR(1) to CHAR(3) that appends trailing spaces does not occur. See
-   * "contextually typed value specification" in the SQL spec.</p>
+   * "contextually typed value specification" in the SQL spec.
    */
   @Test void testValuesComposite() {
     CalciteAssert.that()
@@ -4635,7 +4635,7 @@ public class JdbcTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-285">[CALCITE-285]
    * Window functions throw exception without ORDER BY</a>.
    *
-   * <p>Note:</p>
+   * <p>Note:
    *
    * <ul>
    * <li>With no ORDER BY, the window is over all rows in the partition.

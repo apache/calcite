@@ -43,6 +43,7 @@ class QueryBuildersTest {
 
   /**
    * Test for simple scalar terms (boolean, int etc.)
+   *
    * @throws Exception not expected
    */
   @Test void term() throws Exception {

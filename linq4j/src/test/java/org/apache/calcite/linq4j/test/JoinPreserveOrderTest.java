@@ -61,6 +61,7 @@ public final class JoinPreserveOrderTest {
 
   /**
    * A description holding which column must be sorted and how.
+   *
    * @param <T> the type of the input relation
    */
   private static class Field<T> {

@@ -66,7 +66,7 @@ public class EnumerableRules {
       EnumerableBatchNestedLoopJoinRule.Config.DEFAULT.toRule();
 
   /** Rule that converts a
-   *  {@link org.apache.calcite.rel.logical.LogicalProject} to an
+   * {@link org.apache.calcite.rel.logical.LogicalProject} to an
    * {@link EnumerableProject}. */
   public static final EnumerableProjectRule ENUMERABLE_PROJECT_RULE =
       EnumerableProjectRule.DEFAULT_CONFIG.toRule(EnumerableProjectRule.class);
@@ -166,7 +166,7 @@ public class EnumerableRules {
       EnumerableProjectToCalcRule.Config.DEFAULT.toRule();
 
   /** Rule that converts a
-   *  {@link org.apache.calcite.rel.logical.LogicalTableScan} to
+   * {@link org.apache.calcite.rel.logical.LogicalTableScan} to
    * {@link EnumerableConvention enumerable calling convention}. */
   public static final EnumerableTableScanRule ENUMERABLE_TABLE_SCAN_RULE =
       EnumerableTableScanRule.DEFAULT_CONFIG
@@ -180,7 +180,7 @@ public class EnumerableRules {
           .toRule(EnumerableTableFunctionScanRule.class);
 
   /** Rule that converts a {@link LogicalMatch} to an
-   *  {@link EnumerableMatch}. */
+   * {@link EnumerableMatch}. */
   public static final EnumerableMatchRule ENUMERABLE_MATCH_RULE =
       EnumerableMatchRule.DEFAULT_CONFIG.toRule(EnumerableMatchRule.class);
 

@@ -125,6 +125,7 @@ public class RelOptPredicateList {
 
   /**
    * Returns true if given predicate list is empty.
+   *
    * @param value input predicate list
    * @return true if all the predicates are empty or if the argument is null
    */

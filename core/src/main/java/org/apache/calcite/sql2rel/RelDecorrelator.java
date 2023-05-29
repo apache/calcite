@@ -131,7 +131,7 @@ import static java.util.Objects.requireNonNull;
  * from joining the RelNode that produces the corExp with the RelNode that
  * references it.
  *
- * <p>TODO:</p>
+ * <p>TODO:
  * <ul>
  *   <li>replace {@code CorelMap} constructor parameter with a RelNode
  *   <li>make {@link #currentRel} immutable (would require a fresh

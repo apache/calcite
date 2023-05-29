@@ -31,18 +31,21 @@ public interface WinAggFrameContext {
    * Returns the index of the current row in the partition.
    * In other words, it is close to ~ROWS BETWEEN CURRENT ROW.
    * Note to use {@link #startIndex()} when you need zero-based row position.
+   *
    * @return the index of the very first row in partition
    */
   Expression index();
 
   /**
    * Returns the index of the very first row in partition.
+   *
    * @return index of the very first row in partition
    */
   Expression startIndex();
 
   /**
    * Returns the index of the very last row in partition.
+   *
    * @return index of the very last row in partition
    */
   Expression endIndex();
@@ -51,6 +54,7 @@ public interface WinAggFrameContext {
    * Returns the boolean expression that tells if the partition has rows.
    * The partition might lack rows in cases like ROWS BETWEEN 1000 PRECEDING
    * AND 900 PRECEDING.
+   *
    * @return boolean expression that tells if the partition has rows
    */
   Expression hasRows();
@@ -58,6 +62,7 @@ public interface WinAggFrameContext {
   /**
    * Returns the number of rows in the current frame (subject to framing
    * clause).
+   *
    * @return number of rows in the current partition or 0 if the partition
    *   is empty
    */
@@ -66,6 +71,7 @@ public interface WinAggFrameContext {
   /**
    * Returns the number of rows in the current partition (as determined by
    * PARTITION BY clause).
+   *
    * @return number of rows in the current partition or 0 if the partition
    *   is empty
    */

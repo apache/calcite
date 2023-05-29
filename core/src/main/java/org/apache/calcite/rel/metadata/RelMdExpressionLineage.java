@@ -396,6 +396,7 @@ public class RelMdExpressionLineage
 
   /**
    * Expression lineage from Snapshot.
+   *
    * @param rel Snapshot relational expression
    * @param mq metadata query
    * @param outputExpression expression which needs to be inferred

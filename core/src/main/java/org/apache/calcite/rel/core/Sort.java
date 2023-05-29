@@ -244,7 +244,7 @@ public abstract class Sort extends SingleRel implements Hintable {
    * <code>the_year, the_month</code> because of a known monotonicity
    * constraint among the columns. {@code getCollation} would return
    * <code>[time_id]</code> and {@code collations} would return
-   * <code>[ [time_id], [the_year, the_month] ]</code>.</p>
+   * <code>[ [time_id], [the_year, the_month] ]</code>.
    */
   public RelCollation getCollation() {
     return collation;

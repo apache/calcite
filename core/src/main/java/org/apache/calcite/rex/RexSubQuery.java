@@ -61,7 +61,7 @@ public class RexSubQuery extends RexCall {
    * If {@code comparison} is {@code >}
    * then {@code negated-comparison} is {@code <=}, and so forth.
    *
-   * <p>Also =SOME is rewritten into IN</p> */
+   * <p>Also =SOME is rewritten into IN */
   public static RexSubQuery some(RelNode rel, ImmutableList<RexNode> nodes,
       SqlQuantifyOperator op) {
     assert op.kind == SqlKind.SOME;

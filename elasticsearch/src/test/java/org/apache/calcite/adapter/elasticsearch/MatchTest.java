@@ -79,6 +79,7 @@ class MatchTest {
 
   /**
    * Used to create {@code zips} index and insert zip data in bulk.
+   *
    * @throws Exception when instance setup failed
    */
   @BeforeAll

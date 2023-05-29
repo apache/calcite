@@ -237,7 +237,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
   /**
    * Infers more equal conditions for the join condition.
    *
-   * <p> For example, in {@code SELECT * FROM T1, T2, T3 WHERE T1.id = T3.id AND T2.id = T3.id},
+   * <p>For example, in {@code SELECT * FROM T1, T2, T3 WHERE T1.id = T3.id AND T2.id = T3.id},
    * we can infer {@code T1.id = T2.id} for the first Join node from second Join node's condition:
    * {@code T1.id = T3.id AND T2.id = T3.id}.
    *

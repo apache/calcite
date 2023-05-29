@@ -44,7 +44,7 @@ public class CompositeHintPredicate implements HintPredicate {
    *
    * <p>Make this constructor package-protected intentionally.
    * Use utility methods in {@link HintPredicates}
-   * to create a {@link CompositeHintPredicate}.</p>
+   * to create a {@link CompositeHintPredicate}.
    */
   CompositeHintPredicate(Composition composition, HintPredicate... predicates) {
     assert predicates != null;

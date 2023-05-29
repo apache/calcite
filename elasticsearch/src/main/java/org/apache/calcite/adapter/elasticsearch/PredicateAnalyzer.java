@@ -209,6 +209,7 @@ class PredicateAnalyzer {
      * 3) Sarg is real Range( > 1 and <= 10).
      *    In this case the search call should be translated to rang Query
      * Currently only the 1) and 2) cases are supported.
+     *
      * @param search SEARCH RexCall
      * @return true if it isSearchWithPoints or isSearchWithComplementedPoints, other false
      */
@@ -486,6 +487,7 @@ class PredicateAnalyzer {
      * cause an exception to be thrown. For example, we currently do not support
      * comparing a literal to another literal as convention {@code 5 = 5}. Nor do we support
      * comparing named fields to other named fields as convention {@code $0 = $1}.
+     *
      * @param left left expression
      * @param right right expression
      */
@@ -887,6 +889,7 @@ class PredicateAnalyzer {
   /**
    * By default, range queries on date/time need use the format of the source to parse the literal.
    * So we need to specify that the literal has "date_time" format
+   *
    * @param literal literal value
    * @param rangeQueryBuilder query builder to optionally add {@code format} expression
    * @return existing builder with possible {@code format} attribute

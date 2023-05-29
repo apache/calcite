@@ -350,6 +350,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     }
 
     /** Called via code-generation.
+     *
      * @param ops list of queries (as strings)
      * @param fields projection
      * @see ElasticsearchMethod#ELASTICSEARCH_QUERYABLE_FIND

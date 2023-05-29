@@ -31,9 +31,9 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>A POJO with fields of {@link Boolean}, {@link String}, {@link ArrayList},
  * {@link java.util.LinkedHashMap LinkedHashMap}, per Jackson simple data
- * binding.</p>
+ * binding.
  *
- * <p>Schema structure is as follows:</p>
+ * <p>Schema structure is as follows:
  *
  * <!-- CHECKSTYLE: OFF -->
  * <pre>{@code Root}

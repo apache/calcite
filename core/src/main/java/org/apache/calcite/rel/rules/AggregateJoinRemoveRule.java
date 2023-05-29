@@ -45,7 +45,7 @@ import java.util.Set;
  * provided that the join is a left join or right join and it computes no
  * aggregate functions or all the aggregate calls have distinct.
  *
- * <p>For instance,</p>
+ * <p>For instance,
  *
  * <blockquote>
  * <pre>select distinct s.product_id from

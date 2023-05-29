@@ -96,10 +96,10 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>The call {@code new SubstitutionVisitor(target, query).go(replacement))}
  * will return {@code query} with every occurrence of {@code target} replaced
- * by {@code replacement}.</p>
+ * by {@code replacement}.
  *
  * <p>The following example shows how {@code SubstitutionVisitor} can be used
- * for materialized view recognition.</p>
+ * for materialized view recognition.
  *
  * <ul>
  * <li>query = SELECT a, c FROM t WHERE x = 5 AND b = 4</li>
@@ -109,10 +109,10 @@ import static java.util.Objects.requireNonNull;
  * </ul>
  *
  * <p>Note that {@code result} uses the materialized view table {@code mv} and a
- * simplified condition {@code b = 4}.</p>
+ * simplified condition {@code b = 4}.
  *
  * <p>Uses a bottom-up matching algorithm. Nodes do not need to be identical.
- * At each level, returns the residue.</p>
+ * At each level, returns the residue.
  *
  * <p>The inputs must only include the core relational operators:
  * {@link org.apache.calcite.rel.core.TableScan},
@@ -122,7 +122,7 @@ import static java.util.Objects.requireNonNull;
  * {@link org.apache.calcite.rel.core.Join},
  * {@link org.apache.calcite.rel.core.Union},
  * {@link org.apache.calcite.rel.core.Intersect},
- * {@link org.apache.calcite.rel.core.Aggregate}.</p>
+ * {@link org.apache.calcite.rel.core.Aggregate}.
  */
 public class SubstitutionVisitor {
   private static final boolean DEBUG = CalciteSystemProperty.DEBUG.value();
@@ -233,17 +233,17 @@ public class SubstitutionVisitor {
    * <p>If condition is stronger than target, returns the residue.
    * If it is equal to target, returns the expression that evaluates to
    * the constant {@code true}. If it is weaker than target, returns
-   * {@code null}.</p>
+   * {@code null}.
    *
-   * <p>The terms satisfy the relation</p>
+   * <p>The terms satisfy the relation
    *
    * <blockquote>
    * <pre>{@code condition = target AND residue}</pre>
    * </blockquote>
    *
-   * <p>and {@code residue} must be as weak as possible.</p>
+   * <p>and {@code residue} must be as weak as possible.
    *
-   * <p>Example #1: condition stronger than target</p>
+   * <p>Example #1: condition stronger than target
    * <ul>
    * <li>condition: x = 1 AND y = 2</li>
    * <li>target: x = 1</li>
@@ -252,24 +252,24 @@ public class SubstitutionVisitor {
    *
    * <p>Note that residue {@code x > 0 AND y = 2} would also satisfy the
    * relation {@code condition = target AND residue} but is stronger than
-   * necessary, so we prefer {@code y = 2}.</p>
+   * necessary, so we prefer {@code y = 2}.
    *
    * <p>Example #2: target weaker than condition (valid, but not currently
-   * implemented)</p>
+   * implemented)
    * <ul>
    * <li>condition: x = 1</li>
    * <li>target: x = 1 OR z = 3</li>
    * <li>residue: x = 1</li>
    * </ul>
    *
-   * <p>Example #3: condition and target are equivalent</p>
+   * <p>Example #3: condition and target are equivalent
    * <ul>
    * <li>condition: x = 1 AND y = 2</li>
    * <li>target: y = 2 AND x = 1</li>
    * <li>residue: TRUE</li>
    * </ul>
    *
-   * <p>Example #4: condition weaker than target</p>
+   * <p>Example #4: condition weaker than target
    * <ul>
    * <li>condition: x = 1</li>
    * <li>target: x = 1 AND y = 2</li>
@@ -280,7 +280,7 @@ public class SubstitutionVisitor {
    * whether {@code condition AND NOT target} can ever evaluate to
    * true, and therefore is a form of the NP-complete
    * <a href="http://en.wikipedia.org/wiki/Satisfiability">Satisfiability</a>
-   * problem.</p>
+   * problem.
    */
   @VisibleForTesting
   public static @Nullable RexNode splitFilter(final RexSimplify simplify,
@@ -426,7 +426,7 @@ public class SubstitutionVisitor {
    *
    * <p>This method may give false positives. For instance, it will say
    * that {@code x = 5 AND x > 10} is satisfiable, because at present it
-   * cannot prove that it is not.</p>
+   * cannot prove that it is not.
    */
   public static boolean mayBeSatisfiable(RexNode e) {
     // Example:
@@ -862,7 +862,7 @@ public class SubstitutionVisitor {
    * against a target relational expression.
    *
    * <p>The rule declares the query and target types; this allows the
-   * engine to fire only a few rules in a given context.</p>
+   * engine to fire only a few rules in a given context.
    */
   public abstract static class UnifyRule {
     protected final int slotCount;
@@ -882,7 +882,7 @@ public class SubstitutionVisitor {
      * invoked, Calcite has made sure that query's children are equivalent
      * to target's children.
      *
-     * <p>There are 3 possible outcomes:</p>
+     * <p>There are 3 possible outcomes:
      *
      * <ul>
      *
@@ -898,7 +898,7 @@ public class SubstitutionVisitor {
      * </ul>
      *
      * <p>REVIEW: Is possible that we match query PLUS one or more of its
-     * ancestors?</p>
+     * ancestors?
      *
      * @param call Input parameters
      */
@@ -1050,7 +1050,7 @@ public class SubstitutionVisitor {
    *
    * <p>Matches scans to the same table, because these will be
    * {@link MutableScan}s with the same
-   * {@link org.apache.calcite.rel.core.TableScan} instance.</p>
+   * {@link org.apache.calcite.rel.core.TableScan} instance.
    */
   private static class TrivialRule extends AbstractUnifyRule {
     private static final TrivialRule INSTANCE = new TrivialRule();

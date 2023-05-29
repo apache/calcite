@@ -27,7 +27,7 @@ import java.util.List;
  * Callback for an expression to dump itself to.
  *
  * <p>It is used for generating EXPLAIN PLAN output, and also for serializing
- * a tree of relational expressions to JSON.</p>
+ * a tree of relational expressions to JSON.
  */
 public interface RelWriter {
   /**
@@ -37,7 +37,7 @@ public interface RelWriter {
    * {@link org.apache.calcite.rel.RelNode#explain(RelWriter)}.
    * Each sub-class of {@link org.apache.calcite.rel.RelNode}
    * calls {@link #input(String, org.apache.calcite.rel.RelNode)}
-   * and {@link #item(String, Object)} to declare term-value pairs.</p>
+   * and {@link #item(String, Object)} to declare term-value pairs.
    *
    * @param rel       Relational expression
    * @param valueList List of term-value pairs

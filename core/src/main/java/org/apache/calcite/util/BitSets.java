@@ -307,7 +307,7 @@ public final class BitSets {
   }
 
   /** Populates a {@link BitSet} from an
-   *  {@link ImmutableIntList}. */
+   * {@link ImmutableIntList}. */
   public static void populate(BitSet bitSet, ImmutableIntList list) {
     for (int i = 0; i < list.size(); i++) {
       bitSet.set(list.getInt(i));

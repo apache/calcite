@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
  *
  * <p>The idea is that as much as possible of the query is pushed down
  * to the JDBC data source, in the form of a large (and hopefully efficient)
- * SQL statement.</p>
+ * SQL statement.
  *
  * @see JdbcFrontJdbcBackLinqMiddleTest
  */

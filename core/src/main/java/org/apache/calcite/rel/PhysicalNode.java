@@ -32,7 +32,7 @@ import java.util.List;
  * Physical node in a planner that is capable of doing
  * physical trait propagation and derivation.
  *
- * <p>How to use?</p>
+ * <p>How to use?
  *
  * <ol>
  *   <li>Enable top-down optimization by setting
@@ -94,8 +94,8 @@ public interface PhysicalNode extends RelNode {
    * Pass required traitset from parent node to child nodes,
    * returns a pair of traits after traits is passed down.
    *
-   * <p>Pair.left: the new traitset
-   * <p>Pair.right: the list of required traitsets for child nodes
+   * <p>Pair.left: the new traitset;
+   * Pair.right: the list of required traitsets for child nodes.
    */
   default @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       RelTraitSet required) {
@@ -127,8 +127,8 @@ public interface PhysicalNode extends RelNode {
    * Derive traitset from child node, returns a pair of traits after
    * traits derivation.
    *
-   * <p>Pair.left: the new traitset
-   * <p>Pair.right: the list of required traitsets for child nodes
+   * <p>Pair.left: the new traitset;
+   * Pair.right: the list of required traitsets for child nodes.
    */
   default @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       RelTraitSet childTraits, int childId) {

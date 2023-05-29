@@ -240,7 +240,7 @@ public interface RelDataTypeFactory {
   /**
    * Creates a SQL type that represents the "unknown" type.
    * It is only equal to itself, and is distinct from the NULL type.
-
+   *
    * @return unknown type
    */
   RelDataType createUnknownType();

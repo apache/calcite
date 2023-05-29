@@ -101,7 +101,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>The constructor is parameterized to allow any sub-class of
  * {@link org.apache.calcite.rel.core.Join}, not just
- * {@link org.apache.calcite.rel.logical.LogicalJoin}.</p>
+ * {@link org.apache.calcite.rel.logical.LogicalJoin}.
  *
  * @see org.apache.calcite.rel.rules.FilterMultiJoinMergeRule
  * @see org.apache.calcite.rel.rules.ProjectMultiJoinMergeRule

@@ -534,7 +534,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   *  should not create IS NOT NULL filter if join condition is not strong wrt each key. */
+   * should not create IS NOT NULL filter if join condition is not strong wrt
+   * each key. */
   @Test void testJoinDeriveIsNotNullFilterRule13() {
     final String sql = "select t1.deptno from empnullables t1 inner join\n"
         + "empnullables t2 on coalesce(t1.ename, t2.ename) = 'abc'";
@@ -542,7 +543,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   *  should not create IS NOT NULL filter if join condition is not strong wrt each key. */
+   * should not create IS NOT NULL filter if join condition is not strong wrt
+   * each key. */
   @Test void testJoinDeriveIsNotNullFilterRule14() {
     final String sql = "select t1.deptno from empnullables t1 inner join\n"
         + "empnullables t2 on nvl(t1.ename, t2.ename) = 'abc'";
@@ -553,7 +555,7 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** As {@link #testJoinDeriveIsNotNullFilterRule1()};
-   *  should create IS NOT NULL filter only for the first operand of NULLIF. */
+   * should create IS NOT NULL filter only for the first operand of NULLIF. */
   @Test void testJoinDeriveIsNotNullFilterRule15() {
     final String sql = "select t1.deptno from empnullables t1 inner join\n"
         + "empnullables t2 on nullif(t1.ename, t2.ename) = 'abc'";
@@ -1499,7 +1501,7 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Tests implementing multiple distinct count the new way, using GROUPING
-   *  SETS. */
+   * SETS. */
   @Test void testDistinctCountMultiple() {
     final String sql = "select deptno, count(distinct ename),\n"
         + "  count(distinct job)\n"
@@ -3273,7 +3275,7 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case that reduces a nullable expression to a NOT NULL literal that
-   *  is cast to nullable. */
+   * is cast to nullable. */
   @Test void testReduceNullableToNotNull() {
     checkReduceNullableToNotNull(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
   }
@@ -7822,13 +7824,13 @@ class RelOptRulesTest extends RelOptTestBase {
     }
   }
 
-  /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-4652">[CALCITE-4652]
-   * AggregateExpandDistinctAggregatesRule must cast top aggregates to original type</a>.
-   * <p>
-   * Checks AggregateExpandDistinctAggregatesRule when return type of the SUM aggregate
-   * is changed (expanded) by define custom type factory.
-   */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4652">[CALCITE-4652]
+   * AggregateExpandDistinctAggregatesRule must cast top aggregates to original
+   * type</a>.
+   *
+   * <p>Checks AggregateExpandDistinctAggregatesRule when return type of the SUM
+   * aggregate is changed (expanded) by define custom type factory. */
   @Test void testDistinctCountWithExpandSumType() {
     // Define new type system to expand SUM return type.
     RelDataTypeSystemImpl typeSystem = new RelDataTypeSystemImpl() {
@@ -7861,13 +7863,13 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-4818">[CALCITE-4818]
-   * AggregateExpandDistinctAggregatesRule must infer correct data type for top aggregate calls</a>.
-   * <p>
-   * Checks AggregateExpandDistinctAggregatesRule when return type of the SUM aggregate
-   * is changed (expanded) by define custom type factory.
-   */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4818">[CALCITE-4818]
+   * AggregateExpandDistinctAggregatesRule must infer correct data type for top
+   * aggregate calls</a>.
+   *
+   * <p>Checks AggregateExpandDistinctAggregatesRule when return type of the SUM
+   * aggregate is changed (expanded) by define custom type factory. */
   @Test void testSumAndDistinctSumWithExpandSumType() {
     // Define new type system to expand SUM return type.
     RelDataTypeSystemImpl typeSystem = new RelDataTypeSystemImpl() {

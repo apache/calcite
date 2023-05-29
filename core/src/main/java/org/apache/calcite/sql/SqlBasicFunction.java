@@ -98,8 +98,8 @@ public class SqlBasicFunction extends SqlFunction {
   }
 
   /** Creates a {@code SqlBasicFunction}
-   *  with kind {@link SqlKind#OTHER_FUNCTION}
-   *  and category {@link SqlFunctionCategory#NUMERIC}. */
+   * with kind {@link SqlKind#OTHER_FUNCTION}
+   * and category {@link SqlFunctionCategory#NUMERIC}. */
   public static SqlBasicFunction create(String name,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeChecker operandTypeChecker) {
@@ -110,7 +110,7 @@ public class SqlBasicFunction extends SqlFunction {
   }
 
   /** Creates a {@code SqlBasicFunction}
-   *  with kind {@link SqlKind#OTHER_FUNCTION}. */
+   * with kind {@link SqlKind#OTHER_FUNCTION}. */
   public static SqlBasicFunction create(String name,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeChecker operandTypeChecker, SqlFunctionCategory category) {

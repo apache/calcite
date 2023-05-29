@@ -48,6 +48,7 @@ public class ElasticsearchChecker {
 
   /** Returns a function that checks that a particular Elasticsearch pipeline is
    * generated to implement a query.
+   *
    * @param strings expected expressions
    * @return validation function
    */
@@ -83,6 +84,7 @@ public class ElasticsearchChecker {
    *   expanded to
    *   {a: { b: {c: 1}}}}
    * </pre>
+   *
    * @param parent current node
    * @param <T> type of node (usually JsonNode).
    * @return copy of existing node with field {@code a.b.c} expanded.

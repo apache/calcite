@@ -70,7 +70,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
    * @param line The line number to skip for start reading
    * @param strictQuotes Sets if characters outside the quotes are ignored
    * @param ignoreLeadingWhiteSpace If true, parser should ignore
-   *  white space before a quote in a field
+   *                                white space before a quote in a field
    */
   private CsvStreamReader(Source source, char separator, char quoteChar,
       char escape, int line, boolean strictQuotes,

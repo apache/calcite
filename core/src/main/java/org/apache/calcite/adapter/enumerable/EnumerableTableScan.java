@@ -119,8 +119,9 @@ public class EnumerableTableScan
 
   /** Returns whether EnumerableTableScan can generate code to handle a
    * particular variant of the Table SPI.
+   *
    * @deprecated remove before Calcite 2.0
-   **/
+   */
   @Deprecated
   public static boolean canHandle(Table table) {
     if (table instanceof TransientTable) {
@@ -135,8 +136,7 @@ public class EnumerableTableScan
   }
 
   /** Returns whether EnumerableTableScan can generate code to handle a
-   * particular variant of the Table SPI.
-   **/
+   * particular variant of the Table SPI. */
   public static boolean canHandle(RelOptTable relOptTable) {
     Table table = relOptTable.unwrap(Table.class);
     if (table != null && !canHandle(table)) {

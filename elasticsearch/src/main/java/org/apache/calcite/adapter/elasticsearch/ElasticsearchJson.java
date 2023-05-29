@@ -218,6 +218,7 @@ final class ElasticsearchJson {
 
     /**
      * Constructor for this instance.
+     *
      * @param hits list of matched documents
      * @param took time taken (in took) for this query to execute
      */
@@ -397,6 +398,7 @@ final class ElasticsearchJson {
 
     /**
      * Returns property from nested maps given a path like {@code a.b.c}.
+     *
      * @param map current map
      * @param path field path(s), optionally with dots ({@code a.b.c}).
      * @return value located at path {@code path} or {@code null} if not found.
@@ -622,6 +624,7 @@ final class ElasticsearchJson {
 
     /**
      * For single value. Returns single value represented by this leaf aggregation.
+     *
      * @return value corresponding to {@code value}
      */
     Object value() {

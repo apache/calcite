@@ -33,7 +33,7 @@ import static java.util.Objects.requireNonNull;
  * <p>Like {@link RexVisitor}, this is an instance of the
  * {@link org.apache.calcite.util.Glossary#VISITOR_PATTERN Visitor Pattern}. Use
  * <code> RexShuttle</code> if you would like your methods to return a
- * value.</p>
+ * value.
  */
 public class RexShuttle implements RexVisitor<RexNode> {
   //~ Methods ----------------------------------------------------------------

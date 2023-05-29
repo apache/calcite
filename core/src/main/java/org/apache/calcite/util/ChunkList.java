@@ -34,7 +34,7 @@ import static java.util.Objects.requireNonNull;
  * in chunks of 32 elements.
  *
  * <p>ArrayList has O(n) insertion and deletion into the middle of the list.
- * ChunkList insertion and deletion are O(1).</p>
+ * ChunkList insertion and deletion are O(1).
  *
  * @param <E> element type
  */

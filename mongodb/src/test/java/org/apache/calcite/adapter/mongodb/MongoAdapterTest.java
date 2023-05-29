@@ -136,9 +136,7 @@ public class MongoAdapterTest implements SchemaFactory {
     });
   }
 
-  /**
-   *  Returns always the same schema to avoid initialization costs.
-   */
+  /** Returns always the same schema to avoid initialization costs. */
   @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     return schema;

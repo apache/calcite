@@ -34,6 +34,7 @@ import java.util.List;
 
 /**
  * Parse tree node representing a {@code COMMIT} clause.
+ *
  * @see <a href="https://www.postgresql.org/docs/current/sql-commit.html">COMMIT specification</a>
  */
 public class SqlCommit extends SqlCall {

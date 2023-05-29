@@ -74,7 +74,7 @@ import static java.util.Objects.requireNonNull;
  * such as
  * {@link org.apache.calcite.linq4j.Queryable#where(org.apache.calcite.linq4j.function.Predicate2)}.
  * The resulting queryable can then be converted to a SQL query, which can be
- * executed efficiently on the JDBC server.</p>
+ * executed efficiently on the JDBC server.
  */
 public class JdbcTable extends AbstractQueryableTable
     implements TranslatableTable, ScannableTable, ModifiableTable {

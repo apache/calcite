@@ -57,7 +57,7 @@ class Dumpers {
    *
    * <p>Thus, every relational expression and rule invocation that affected
    * the final outcome is described in the provenance. This can be useful
-   * when finding the root cause of "mistakes" in a query plan.</p>
+   * when finding the root cause of "mistakes" in a query plan.
    *
    * @param provenanceMap The provenance map
    * @param root Root relational expression in a tree

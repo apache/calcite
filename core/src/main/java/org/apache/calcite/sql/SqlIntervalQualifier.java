@@ -266,7 +266,7 @@ public class SqlIntervalQualifier extends SqlNode {
   }
 
   /** Whether this qualifier represents {@code WEEK}, {@code ISOWEEK},
-   *  or {@code WEEK(}<i>weekday</i>{@code )}
+   * or {@code WEEK(}<i>weekday</i>{@code )}
    * (for <i>weekday</i> in {@code SUNDAY} .. {@code SATURDAY}). */
   public boolean isWeek() {
     return timeUnitRange == TimeUnitRange.WEEK

@@ -51,13 +51,13 @@ import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 /**
- * JUnit5 extension to start and stop embedded cassandra server.
+ * JUnit5 extension to start and stop embedded Cassandra server.
  *
  * <p>Note that tests will be skipped if running on JDK11+ or Eclipse OpenJ9 JVM
  * (not supported by cassandra-unit and Cassandra, respectively) see
- *  <a href="https://github.com/jsevellec/cassandra-unit/issues/294">cassandra-unit issue #294</a>
- *  and <a href="https://issues.apache.org/jira/browse/CASSANDRA-14883">CASSANDRA-14883</a>,
- *  respectively.
+ * <a href="https://github.com/jsevellec/cassandra-unit/issues/294">cassandra-unit issue #294</a>
+ * and <a href="https://issues.apache.org/jira/browse/CASSANDRA-14883">CASSANDRA-14883</a>,
+ * respectively.
  */
 class CassandraExtension implements ParameterResolver, ExecutionCondition {
 
@@ -102,6 +102,7 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
 
   /**
    * Whether to run this test.
+   *
    * <p>Enabled by default, unless explicitly disabled
    * from command line ({@code -Dcalcite.test.cassandra=false}) or running on incompatible JDK
    * version or JVM (see below).

@@ -160,15 +160,14 @@ class CacheGeneratorUtil {
    */
   private enum CacheKeyStrategy {
     /**
-     * Generates an immutable method key, then during each call instantiates a new list to all
-     * the arguments.
+     * Generates an immutable method key, then during each call instantiates a
+     * new list to all the arguments.
      *
-     * Example:
-     * <code>
-     *     private final Object method_key_0 =
-     *        new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
+     * <p>Example:
      *
-     *  ...
+     * <blockquote><pre>{@code
+     *   private final Object method_key_0 =
+     *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
      *
      *   public java.lang.Double getDistinctRowCount(
      *       org.apache.calcite.rel.RelNode r,
@@ -176,12 +175,14 @@ class CacheGeneratorUtil {
      *       org.apache.calcite.util.ImmutableBitSet a2,
      *       org.apache.calcite.rex.RexNode a3) {
      *     final Object key;
-     *     key = org.apache.calcite.runtime.FlatLists.of(method_key_0, org.apache.calcite.rel
-     * .metadata.NullSentinel.mask(a2), a3);
+     *     key = org.apache.calcite.runtime.FlatLists.of(method_key_0,
+     *         org.apache.calcite.rel.metadata.NullSentinel.mask(a2), a3);
      *     final Object v = mq.map.get(r, key);
      *     if (v != null) {
-     *      ...
-     * </code>
+     *       ...
+     *     }
+     *   }
+     * }</pre></blockquote>
      */
     DEFAULT {
       @Override void cacheProperties(StringBuilder buff, Method method, int methodIndex) {
@@ -315,16 +316,16 @@ class CacheGeneratorUtil {
       }
     },
     /**
-     * Generates 2 immutable keys for functions that only take a single boolean arg.
+     * Generates 2 immutable keys for functions that only take a single boolean
+     * arg.
      *
-     * Example:
-     * <code>
-     *  private final Object method_key_0True =
+     * <p>Example:
+     *
+     * <blockquote><pre>{@code
+     *   private final Object method_key_0True =
      *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
      *   private final Object method_key_0False =
      *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
-     *
-     *   ...
      *
      *   public java.util.Set getUniqueKeys(
      *       org.apache.calcite.rel.RelNode r,
@@ -334,7 +335,8 @@ class CacheGeneratorUtil {
      *     key = a2 ? method_key_0True : method_key_0False;
      *     final Object v = mq.map.get(r, key);
      *     ...
-     * </code>
+     *   }
+     * }</pre></blockquote>
      */
     BOOLEAN_ARG {
       @Override void cacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {

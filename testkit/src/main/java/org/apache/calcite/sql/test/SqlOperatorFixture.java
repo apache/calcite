@@ -503,6 +503,7 @@ public interface SqlOperatorFixture extends AutoCloseable {
 
   /**
    * Tests that an aggregate expression fails at run time.
+   *
    * @param expr An aggregate expression
    * @param inputValues Array of input values
    * @param expectedError Pattern for expected error

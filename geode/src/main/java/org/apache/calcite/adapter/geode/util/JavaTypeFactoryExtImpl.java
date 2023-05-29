@@ -37,7 +37,7 @@ import java.util.Map;
  * Implementation of {@link JavaTypeFactory}.
  *
  * <p><strong>NOTE: This class is experimental and subject to
- * change/removal without notice</strong>.</p>
+ * change/removal without notice</strong>.
  */
 public class JavaTypeFactoryExtImpl
     extends JavaTypeFactoryImpl {

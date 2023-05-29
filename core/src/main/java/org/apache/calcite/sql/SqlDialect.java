@@ -724,18 +724,18 @@ public class SqlDialect {
   /**
    * Returns whether the dialect supports GROUP BY literals.
    *
-   * <p>For instance, in {@link DatabaseProduct#REDSHIFT}, the following queries are illegal.</p>
-   * <pre>{@code
+   * <p>For instance, in {@link DatabaseProduct#REDSHIFT}, the following queries
+   * are illegal:
+   *
+   * <blockquote><pre>{@code
    * select avg(salary)
    * from emp
    * group by true
-   * }</pre>
    *
-   *  <pre>{@code
    * select avg(salary)
    * from emp
    * group by 'a', DATE '2022-01-01'
-   * }</pre>
+   * }</pre></blockquote>
    */
   public boolean supportsGroupByLiteral() {
     return true;
@@ -851,7 +851,7 @@ public class SqlDialect {
   }
 
   /** Rewrite SINGLE_VALUE into expression based on database variants
-   *  E.g. HSQLDB, MYSQL, ORACLE, etc
+   * E.g. HSQLDB, MYSQL, ORACLE, etc.
    */
   public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     LOGGER.debug("SINGLE_VALUE rewrite not supported for {}", databaseProduct);

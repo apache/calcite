@@ -46,9 +46,9 @@ public interface RelMetadataProvider {
    * of relational expression.
    *
    * <p>The object returned is a function. It can be applied to a relational
-   * expression of the given type to create a metadata object.</p>
+   * expression of the given type to create a metadata object.
    *
-   * <p>For example, you might call</p>
+   * <p>For example, you might call
    *
    * <blockquote><pre>
    * RelMetadataProvider provider;

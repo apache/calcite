@@ -170,7 +170,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * Converts two lists into a list of {@link Pair}s.
    *
    * <p>The length of the combined list is the lesser of the lengths of the
-   * source lists. But typically the source lists will be the same length.</p>
+   * source lists. But typically the source lists will be the same length.
    *
    * @param ks     Left list
    * @param vs     Right list
@@ -198,7 +198,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * Converts two iterables into an iterable of {@link Pair}s.
    *
    * <p>The resulting iterator ends whenever the first of the input iterators
-   * ends. But typically the source iterators will be the same length.</p>
+   * ends. But typically the source iterators will be the same length.
    *
    * @param ks Left iterable
    * @param vs Right iterable
@@ -220,7 +220,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    *
    * <p>The length of the combined list is the lesser of the lengths of the
    * source arrays. But typically the source arrays will be the same
-   * length.</p>
+   * length.
    *
    * @param ks Left array
    * @param vs Right array
@@ -336,7 +336,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
   /**
    * Returns an iterator that iterates over (i, i + 1) pairs in an iterable.
    *
-   * <p>For example, {@code adjacents([3, 5, 7])} returns [(3, 5), (5, 7)].</p>
+   * <p>For example, {@code adjacents([3, 5, 7])} returns [(3, 5), (5, 7)].
    *
    * @param iterable Source collection
    * @param <T> Element type
@@ -356,7 +356,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * Returns an iterator that iterates over (0, i) pairs in an iterable for
    * i &gt; 0.
    *
-   * <p>For example, {@code firstAnd([3, 5, 7])} returns [(3, 5), (3, 7)].</p>
+   * <p>For example, {@code firstAnd([3, 5, 7])} returns [(3, 5), (3, 7)].
    *
    * @param iterable Source collection
    * @param <T> Element type

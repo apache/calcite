@@ -43,7 +43,7 @@ import java.util.List;
 /**
  * Table whose contents are defined using an SQL statement.
  *
- * <p>It is not evaluated; it is expanded during query planning.</p>
+ * <p>It is not evaluated; it is expanded during query planning.
  */
 public class ViewTable
     extends AbstractQueryableTable

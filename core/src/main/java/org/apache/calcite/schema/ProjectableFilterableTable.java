@@ -30,7 +30,7 @@ import java.util.List;
  * without creating an intermediate relational expression.
  *
  * <p>If you wish to write a table that can apply projects but not filters,
- * simply decline all filters.</p>
+ * simply decline all filters.
  *
  * @see ScannableTable
  * @see FilterableTable
@@ -47,7 +47,7 @@ public interface ProjectableFilterableTable extends Table {
    * Any filters remaining will be implemented by the consuming Calcite
    * operator.
    *
-   * <p>The projects are zero-based.</p>
+   * <p>The projects are zero-based.
    *
    * @param root Execution context
    * @param filters Mutable list of filters. The method should keep in the

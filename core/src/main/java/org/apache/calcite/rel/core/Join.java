@@ -259,7 +259,7 @@ public abstract class Join extends BiRel implements Hintable {
    * {@code SemiJoin} via
    * {@link org.apache.calcite.rel.rules.JoinAddRedundantSemiJoinRule}.
    *
-   * <p>The base implementation returns false.</p>
+   * <p>The base implementation returns false.
    *
    * @return whether this join has already spawned a semi join
    */

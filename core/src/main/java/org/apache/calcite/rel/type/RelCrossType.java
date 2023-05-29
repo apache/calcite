@@ -26,7 +26,7 @@ import java.util.List;
  * Type of the cartesian product of two or more sets of records.
  *
  * <p>Its fields are those of its constituent records, but unlike a
- * {@link RelRecordType}, those fields' names are not necessarily distinct.</p>
+ * {@link RelRecordType}, those fields' names are not necessarily distinct.
  */
 public class RelCrossType extends RelDataTypeImpl {
   //~ Instance fields --------------------------------------------------------

@@ -940,6 +940,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   }
 
   /** Returns whether an expression is nullable.
+   *
    * @param e Expression
    * @return Whether expression is nullable
    */

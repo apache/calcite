@@ -204,7 +204,7 @@ public class RexSimplify {
   /**
    * Simplifies a boolean expression.
    *
-   * <p>In particular:</p>
+   * <p>In particular:
    * <ul>
    * <li>{@code simplify(x = 1 OR NOT x = 1 OR x IS NULL)}
    * returns {@code TRUE}</li>

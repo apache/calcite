@@ -382,10 +382,10 @@ public abstract class Expressions {
    * method that takes arguments, with an explicit return type.
    *
    * <p>The return type must be consistent with the return type of the method,
-   * but may contain extra information, such as type parameters.</p>
+   * but may contain extra information, such as type parameters.
    *
    * <p>The {@code expression} argument may be null if and only if the method
-   * is static.</p>
+   * is static.
    */
   public static MethodCallExpression call(Type returnType,
       @Nullable Expression expression, Method method,
@@ -399,10 +399,10 @@ public abstract class Expressions {
    * method that takes arguments, with an explicit return type, with varargs.
    *
    * <p>The return type must be consistent with the return type of the method,
-   * but may contain extra information, such as type parameters.</p>
+   * but may contain extra information, such as type parameters.
    *
    * <p>The {@code expression} argument may be null if and only if the method
-   * is static.</p>
+   * is static.
    */
   public static MethodCallExpression call(Type returnType,
       @Nullable Expression expression, Method method,
@@ -519,7 +519,7 @@ public abstract class Expressions {
    * conditional expression in cases where the types of ifTrue and ifFalse
    * expressions are not equal. Types of both ifTrue and ifFalse must be
    * implicitly reference assignable to the result type. The type is allowed
-   * to be {@link Void#TYPE void}.</p>
+   * to be {@link Void#TYPE void}.
    */
   public static ConditionalExpression condition(Expression test,
       Expression ifTrue, Expression ifFalse, Type type) {
@@ -535,7 +535,7 @@ public abstract class Expressions {
    * short 12, double 3.14 and boolean false), boxed primitives
    * (e.g. Integer.valueOf(12)), enums, classes, BigDecimal, BigInteger,
    * classes that have a constructor with a parameter for each field, and
-   * arrays.</p>
+   * arrays.
    */
   public static ConstantExpression constant(@Nullable Object value) {
     if (value == null) {

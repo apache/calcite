@@ -784,7 +784,7 @@ public abstract class SqlOperator {
    * <p>Similar to {@link #checkOperandCount}, but some operators may have
    * different valid operands in {@link SqlNode} and {@code RexNode} formats
    * (some examples are CAST and AND), and this method throws internal errors,
-   * not user errors.</p>
+   * not user errors.
    */
   public boolean validRexOperands(int count, Litmus litmus) {
     return true;
@@ -838,11 +838,11 @@ public abstract class SqlOperator {
    * <dfn>window functions</dfn>.
    * Every aggregate function (e.g. SUM) is also a window function.
    * There are window functions that are not aggregate functions, e.g. RANK,
-   * NTILE, LEAD, FIRST_VALUE.</p>
+   * NTILE, LEAD, FIRST_VALUE.
    *
    * <p>Collectively, aggregate and window functions are called <dfn>analytic
    * functions</dfn>. Despite its name, this method returns true for every
-   * analytic function.</p>
+   * analytic function.
    *
    * @see #requiresOrder()
    *
@@ -876,7 +876,7 @@ public abstract class SqlOperator {
    *
    * <p>Per SQL:2011, 2, 6.10: "If &lt;ntile function&gt;, &lt;lead or lag
    * function&gt;, RANK or DENSE_RANK is specified, then the window ordering
-   * clause shall be present."</p>
+   * clause shall be present."
    *
    * @see #isAggregator()
    */

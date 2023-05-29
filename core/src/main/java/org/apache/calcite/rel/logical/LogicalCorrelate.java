@@ -53,6 +53,7 @@ public final class LogicalCorrelate extends Correlate {
 
   /**
    * Creates a LogicalCorrelate.
+   *
    * @param cluster      cluster this relational expression belongs to
    * @param left         left input relational expression
    * @param right        right input relational expression

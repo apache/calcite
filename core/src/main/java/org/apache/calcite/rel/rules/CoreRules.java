@@ -417,7 +417,7 @@ public class CoreRules {
       SubQueryRemoveRule.Config.JOIN.toRule();
 
   /** Rule that transforms a {@link Project}
-   *  into a mixture of {@code LogicalProject}
+   * into a mixture of {@code LogicalProject}
    * and {@link LogicalWindow}. */
   public static final ProjectToWindowRule.ProjectToLogicalProjectAndWindowRule
       PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW =
@@ -471,7 +471,7 @@ public class CoreRules {
       ProjectMultiJoinMergeRule.Config.DEFAULT.toRule();
 
   /** Rule that, given a {@link Project} node that merely returns its input,
-   *  converts the node into its input. */
+   * converts the node into its input. */
   public static final ProjectRemoveRule PROJECT_REMOVE =
       ProjectRemoveRule.Config.DEFAULT.toRule();
 

@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
  * on a {@link org.apache.calcite.rel.core.Join} and removes the left input
  * of the join provided that the left input is also a left join if possible.
  *
- * <p>For instance,</p>
+ * <p>For instance,
  *
  * <blockquote>
  * <pre>select s.product_id, pc.product_id

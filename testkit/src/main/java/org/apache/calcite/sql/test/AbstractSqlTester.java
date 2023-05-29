@@ -307,18 +307,18 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
    * Builds a query that extracts all literals as columns in an underlying
    * select.
    *
-   * <p>For example,</p>
+   * <p>For example,
    *
    * <blockquote>{@code 1 < 5}</blockquote>
    *
-   * <p>becomes</p>
+   * <p>becomes
    *
    * <blockquote>{@code SELECT p0 < p1
    * FROM (VALUES (1, 5)) AS t(p0, p1)}</blockquote>
    *
    * <p>Null literals don't have enough type information to be extracted.
    * We push down {@code CAST(NULL AS type)} but raw nulls such as
-   * {@code CASE 1 WHEN 2 THEN 'a' ELSE NULL END} are left as is.</p>
+   * {@code CASE 1 WHEN 2 THEN 'a' ELSE NULL END} are left as is.
    *
    * @param factory Test factory
    * @param expression Scalar expression

@@ -98,6 +98,7 @@ class ScrollingTest {
   /**
    * Ensures there are no pending scroll contexts in elastic search cluster.
    * Queries {@code /_nodes/stats/indices/search} endpoint.
+   *
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-stats.html">Indices Stats</a>
    */
   private void assertNoActiveScrolls() throws IOException  {

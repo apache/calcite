@@ -44,6 +44,7 @@ public class ProxyingMetadataHandlerProvider implements MetadataHandlerProvider 
 
   /**
    * Create a proxying handler provider.
+   *
    * @param provider The provider this will operate against.
    */
   public ProxyingMetadataHandlerProvider(RelMetadataProvider provider) {

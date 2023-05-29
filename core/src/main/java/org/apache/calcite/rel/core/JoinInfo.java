@@ -39,7 +39,7 @@ import java.util.Objects;
  *
  * <p>You can create one using {@link #of}, or call
  * {@link Join#analyzeCondition()}; many kinds of join cache their
- * join info, especially those that are equi-joins.</p>
+ * join info, especially those that are equi-joins.
  *
  * @see Join#analyzeCondition() */
 public class JoinInfo {

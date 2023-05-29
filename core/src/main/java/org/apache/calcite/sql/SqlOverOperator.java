@@ -30,7 +30,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
 /**
  * An operator describing a window function specification.
  *
- * <p>Operands are as follows:</p>
+ * <p>Operands are as follows:
  *
  * <ul>
  * <li>0: name of window function ({@link org.apache.calcite.sql.SqlCall})</li>

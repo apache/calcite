@@ -71,7 +71,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>The switched form of the <code>CASE</code> statement is normalized to the
  * simple form by inserting calls to the <code>=</code> operator. For
- * example,</p>
+ * example,
  *
  * <blockquote><pre><code>CASE x + y
  *   WHEN 1 THEN 'fee'
@@ -79,7 +79,7 @@ import static java.util.Objects.requireNonNull;
  *   ELSE 'foe'
  * END</code></pre></blockquote>
  *
- * <p>becomes</p>
+ * <p>becomes
  *
  * <blockquote><pre><code>CASE
  * WHEN Equals(x + y, 1) THEN 'fee'
@@ -88,9 +88,9 @@ import static java.util.Objects.requireNonNull;
  * END</code></pre></blockquote>
  *
  * <p>REVIEW jhyde 2004/3/19 Does <code>Equals</code> handle NULL semantics
- * correctly?</p>
+ * correctly?
  *
- * <p><code>COALESCE(x, y, z)</code> becomes</p>
+ * <p><code>COALESCE(x, y, z)</code> becomes
  *
  * <blockquote><pre><code>CASE
  * WHEN x IS NOT NULL THEN x
@@ -98,7 +98,7 @@ import static java.util.Objects.requireNonNull;
  * ELSE z
  * END</code></pre></blockquote>
  *
- * <p><code>NULLIF(x, -1)</code> becomes</p>
+ * <p><code>NULLIF(x, -1)</code> becomes
  *
  * <blockquote><pre><code>CASE
  * WHEN x = -1 THEN NULL
@@ -109,7 +109,7 @@ import static java.util.Objects.requireNonNull;
  * This may make it more difficult to write optimizer rules (because the rules
  * will have to deduce that expressions are equivalent). It also requires that
  * some part of the planning process (probably the generator of the calculator
- * program) does common sub-expression elimination.</p>
+ * program) does common sub-expression elimination.
  *
  * <p>REVIEW jhyde 2004/3/19. Expanding expressions at parse time has some other
  * drawbacks. It is more difficult to give meaningful validation errors: given
@@ -119,9 +119,9 @@ import static java.util.Objects.requireNonNull;
  * but there's now no way to represent a call to COALESCE or NULLIF. All in all,
  * it would be better to have operators for COALESCE, NULLIF, and both simple
  * and switched forms of CASE, then translate to simple CASE when building the
- * {@link org.apache.calcite.rex.RexNode} tree.</p>
+ * {@link org.apache.calcite.rex.RexNode} tree.
  *
- * <p>The arguments are physically represented as follows:</p>
+ * <p>The arguments are physically represented as follows:
  *
  * <ul>
  * <li>The <i>when</i> expressions are stored in a {@link SqlNodeList}

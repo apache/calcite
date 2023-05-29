@@ -101,7 +101,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <tr>
  * <td>{@link SqlWriterConfig#alwaysUseParentheses AlwaysUseParentheses}</td>
- * <td><p>Whether to enclose all expressions in parentheses, even if the
+ * <td>Whether to enclose all expressions in parentheses, even if the
  * operator has high enough precedence that the parentheses are not required.
  *
  * <p>For example, the parentheses are required in the expression

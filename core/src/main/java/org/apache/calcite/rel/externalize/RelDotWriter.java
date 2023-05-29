@@ -212,6 +212,7 @@ public class RelDotWriter extends RelWriterImpl {
 
   /**
    * Format the label into multiple lines according to the options.
+   *
    * @param label the original label.
    * @param limit the maximal length of the formatted label.
    *              -1 means no limit.

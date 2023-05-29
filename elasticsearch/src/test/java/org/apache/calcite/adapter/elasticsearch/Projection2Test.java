@@ -125,6 +125,7 @@ class Projection2Test {
 
   /**
    * Test that {@code _id} field is available when queried explicitly.
+   *
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">ID Field</a>
    */
   @Test void projectionWithIdField() {
@@ -233,6 +234,7 @@ class Projection2Test {
    *      key1=foo1; key2=\\w+; key4=\\d{3,4}
    *   }
    * </pre>
+   *
    * @param lines lines with regexp
    * @return consumer to be used in {@link org.apache.calcite.test.CalciteAssert.AssertQuery}
    */

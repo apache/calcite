@@ -29,7 +29,7 @@ import java.util.Map;
 /**
  * Factory that creates a {@link MongoSchema}.
  *
- * <p>Allows a custom schema to be included in a model.json file.</p>
+ * <p>Allows a custom schema to be included in a model.json file.
  */
 public class MongoSchemaFactory implements SchemaFactory {
   // public constructor, per factory contract

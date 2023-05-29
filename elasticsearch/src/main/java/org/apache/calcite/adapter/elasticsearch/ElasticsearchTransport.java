@@ -228,6 +228,7 @@ final class ElasticsearchTransport {
 
   /**
    * Parses HTTP response into some class using jackson API.
+   *
    * @param <T> result type
    */
   private static class JsonParserFn<T> implements Function<Response, T> {

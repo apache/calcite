@@ -452,8 +452,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
    * Incorrect plan in with with ROLLUP inside GROUPING SETS</a>.
    *
    * <p>Equivalence example:
+   *
    * <blockquote>GROUP BY GROUPING SETS (ROLLUP(A, B), CUBE(C,D))</blockquote>
+   *
    * <p>is equal to
+   *
    * <blockquote>GROUP BY GROUPING SETS ((A,B), (A), (),
    * (C,D), (C), (D) )</blockquote>
    */

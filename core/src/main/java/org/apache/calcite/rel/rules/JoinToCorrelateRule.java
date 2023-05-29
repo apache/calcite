@@ -41,16 +41,16 @@ import org.immutables.value.Value;
  * into a {@link org.apache.calcite.rel.logical.LogicalCorrelate}, which can
  * then be implemented using nested loops.
  *
- * <p>For example,</p>
+ * <p>For example,
  *
  * <blockquote><code>select * from emp join dept on emp.deptno =
  * dept.deptno</code></blockquote>
  *
  * <p>becomes a Correlator which restarts LogicalTableScan("DEPT") for each
- * row read from LogicalTableScan("EMP").</p>
+ * row read from LogicalTableScan("EMP").
  *
  * <p>This rule is not applicable if for certain types of outer join. For
- * example,</p>
+ * example,
  *
  * <blockquote><code>select * from emp right join dept on emp.deptno =
  * dept.deptno</code></blockquote>

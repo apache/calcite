@@ -168,7 +168,7 @@ public interface RelOptPlanner {
    * {@code tableRel} is cheaper to evaluate and therefore if the query being
    * optimized uses (or can be rewritten to use) {@code queryRel} as a
    * sub-expression then it can be optimized by using {@code tableRel}
-   * instead.</p>
+   * instead.
    */
   void addMaterialization(RelOptMaterialization materialization);
 
@@ -280,7 +280,7 @@ public interface RelOptPlanner {
    *
    * <p>Planners which use their own relational expressions internally
    * to represent concepts such as equivalence classes will generally need to
-   * supply corresponding metadata providers.</p>
+   * supply corresponding metadata providers.
    *
    * @param list receives planner's custom providers, if any
    */
@@ -303,7 +303,8 @@ public interface RelOptPlanner {
    *
    * <p>When a node is pruned, the related pending rule
    * calls are cancelled, and future rules will not fire.
-   * This can be used to reduce the search space. </p>
+   * This can be used to reduce the search space.
+   *
    * @param rel the node to prune.
    */
   void prune(RelNode rel);
@@ -321,7 +322,7 @@ public interface RelOptPlanner {
    * default values of any traits that have them.
    *
    * <p>The empty trait set acts as the prototype (a kind of factory) for all
-   * subsequently created trait sets.</p>
+   * subsequently created trait sets.
    *
    * @return Empty trait set
    */

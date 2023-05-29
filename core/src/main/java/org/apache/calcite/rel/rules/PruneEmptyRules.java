@@ -262,6 +262,7 @@ public abstract class PruneEmptyRules {
 
   /**
    * Rule that converts a {@link Correlate} to empty if its right child is empty.
+   *
    * <p>Examples:
    * <ul>
    * <li>Correlate(Scan(Emp), Empty, INNER) becomes Empty</li>
@@ -282,16 +283,19 @@ public abstract class PruneEmptyRules {
 
   /**
    * Rule that converts a relation into empty.
-   * <p>
-   * The users can control the application of the rule by:</p>
+   *
+   * <p>The users can control the application of the rule by:
+   *
    * <ul>
-   *   <li>calling the appropriate constructor and passing the necessary configuration;</li>
-   *   <li>extending the class through inheritance and overriding
-   *   {@link RemoveEmptySingleRule#matches(RelOptRuleCall)}).</li>
+   * <li>calling the appropriate constructor and passing the necessary
+   * configuration;
+   *
+   * <li>extending the class through inheritance and overriding
+   * {@link RemoveEmptySingleRule#matches(RelOptRuleCall)}).
    * </ul>
    *
-   * <p>When using the deprecated constructors it is only possible to convert relations
-   * which strictly have a single input ({@link SingleRel}).</p>*/
+   * <p>When using the deprecated constructors it is only possible to convert
+   * relations which strictly have a single input ({@link SingleRel}). */
   public static class RemoveEmptySingleRule extends PruneEmptyRule {
     /** Creates a RemoveEmptySingleRule. */
     RemoveEmptySingleRule(PruneEmptyRule.Config config) {

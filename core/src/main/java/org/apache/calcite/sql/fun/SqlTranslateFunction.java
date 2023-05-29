@@ -36,15 +36,18 @@ import java.util.List;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * Common base for the <code>TRANSLATE(USING) and CONVERT(USING)</code> function,
- * which is different from {@link SqlLibraryOperators#TRANSLATE3} and {@link SqlLibraryOperators#MSSQL_CONVERT}.
+ * Common base for the <code>TRANSLATE(USING)</code> and
+ * <code>CONVERT(USING)</code> function, which is different from
+ * {@link SqlLibraryOperators#TRANSLATE3} and
+ * {@link SqlLibraryOperators#MSSQL_CONVERT}.
+ *
  * <p>The SQL syntax is
  *
  * <blockquote><pre>
  *   {@code TRANSLATE(characterString USING transcodingName)}
  * </pre></blockquote>
  *
- * or
+ * <p>or
  *
  * <blockquote><pre>
  *   {@code CONVERT(characterString USING transcodingName)}

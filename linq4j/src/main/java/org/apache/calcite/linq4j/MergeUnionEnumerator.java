@@ -32,6 +32,7 @@ import java.util.Set;
 /**
  * Performs a union (or union all) of all its inputs (which must be already sorted),
  * respecting the order.
+ *
  * @param <TSource> record type
  * @param <TKey> sort key
  */

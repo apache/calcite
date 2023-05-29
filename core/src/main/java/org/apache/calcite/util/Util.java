@@ -134,7 +134,7 @@ public class Util {
    * <p>In general, you should not use this in expected results of tests.
    * Expected results should be the expected result on Linux (or Mac OS) using
    * '\n'. Apply {@link Util#toLinux(String)} to Windows actual results, if
-   * necessary, to make them look like Linux actual.</p>
+   * necessary, to make them look like Linux actual.
    */
   public static final String LINE_SEPARATOR =
       System.getProperty("line.separator");
@@ -508,7 +508,7 @@ public class Util {
    * prints <code>"x\"y"</code>.
    *
    * <p>The appendable where the value is printed must not incur I/O operations. This method is
-   * not meant to be used for writing the values to permanent storage.</p>
+   * not meant to be used for writing the values to permanent storage.
    *
    * @throws IllegalStateException if the print to the specified appendable fails due to I/O
    */
@@ -689,16 +689,16 @@ public class Util {
    *
    * <p>The mapping is one-to-one (that is, distinct strings will produce
    * distinct java identifiers). The mapping is also reversible, but the
-   * inverse mapping is not implemented.</p>
+   * inverse mapping is not implemented.
    *
    * <p>A valid Java identifier must start with a Unicode letter, underscore,
    * or dollar sign ($). The other characters, if any, can be a Unicode
-   * letter, underscore, dollar sign, or digit.</p>
+   * letter, underscore, dollar sign, or digit.
    *
    * <p>This method uses an algorithm similar to URL encoding. Valid
    * characters are unchanged; invalid characters are converted to an
    * underscore followed by the hex code of the character; and underscores are
-   * doubled.</p>
+   * doubled.
    *
    * <p>Examples:
    *
@@ -747,6 +747,7 @@ public class Util {
 
   /**
    * Returns true when input string is a valid Java identifier.
+   *
    * @param s input string
    * @return true when input string is a valid Java identifier
    */
@@ -946,8 +947,10 @@ public class Util {
   /**
    * This method rethrows input throwable as is (if its unchecked) or
    * wraps it with {@link RuntimeException} and throws.
-   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where {@code throw} statement
-   * is needed so Java compiler knows the execution stops at that line.</p>
+   *
+   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where
+   * {@code throw} statement is needed so Java compiler knows the execution
+   * stops at that line.
    *
    * @param throwable input throwable
    * @return the method never returns, it always throws an unchecked exception
@@ -959,10 +962,12 @@ public class Util {
   }
 
   /**
-   * This method rethrows input throwable as is (if its unchecked) with an extra message or
-   * wraps it with {@link RuntimeException} and throws.
-   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where {@code throw} statement
-   * is needed so Java compiler knows the execution stops at that line.</p>
+   * This method rethrows input throwable as is (if its unchecked) with an extra
+   * message or wraps it with {@link RuntimeException} and throws.
+   *
+   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where
+   * {@code throw} statement is needed so Java compiler knows the execution
+   * stops at that line.
    *
    * @param throwable input throwable
    * @return the method never returns, it always throws an unchecked exception
@@ -1000,6 +1005,7 @@ public class Util {
 
   /**
    * Returns cause of the given throwable if it is non-null or the throwable itself.
+   *
    * @param throwable input throwable
    * @return cause of the given throwable if it is non-null or the throwable itself
    */
@@ -1475,7 +1481,7 @@ public class Util {
    * <li>'time' has the same format as 'offset', and defaults to 02:00:00.</li>
    * </ul>
    *
-   * <p>For example:</p>
+   * <p>For example:
    *
    * <ul>
    * <li>"PST-8PDT01:00:00,M4.1.0/02:00:00,M10.1.0/02:00:00"; or more tersely
@@ -2001,11 +2007,11 @@ public class Util {
    * starting at element {@code k}.
    *
    * <p>It is OK if the list is empty or its size is not a multiple of
-   * {@code n}.</p>
+   * {@code n}.
    *
    * <p>For instance, {@code quotientList(list, 2, 0)} returns the even
    * elements of a list, and {@code quotientList(list, 2, 1)} returns the odd
-   * elements. Those lists are the same length only if list has even size.</p>
+   * elements. Those lists are the same length only if list has even size.
    */
   public static <E> List<E> quotientList(
       final List<E> list, final int n, final int k) {
@@ -2372,7 +2378,7 @@ public class Util {
   /** Converts a number into human-readable form, with 3 digits and a "K", "M"
    * or "G" multiplier for thousands, millions or billions.
    *
-   * <p>Examples: -2, 0, 1, 999, 1.00K, 1.99K, 3.45M, 4.56B.</p>
+   * <p>Examples: -2, 0, 1, 999, 1.00K, 1.99K, 3.45M, 4.56B.
    */
   public static String human(double d) {
     if (d == 0d) {

@@ -84,7 +84,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * Factory for row expressions.
  *
- * <p>Some common literal values (NULL, TRUE, FALSE, 0, 1, '') are cached.</p>
+ * <p>Some common literal values (NULL, TRUE, FALSE, 0, 1, '') are cached.
  */
 public class RexBuilder {
   /**
@@ -180,7 +180,7 @@ public class RexBuilder {
    * SQL), use your session's case-sensitivity setting.
    * Only hard-code {@code true} if you are sure that the field name is
    * internally generated.
-   * Hard-coding {@code false} is almost certainly wrong.</p>
+   * Hard-coding {@code false} is almost certainly wrong.
    *
    * @param expr      Expression yielding a record
    * @param fieldName Name of field in record
@@ -261,7 +261,7 @@ public class RexBuilder {
    *
    * <p>If you already know the return type of the call, then
    * {@link #makeCall(org.apache.calcite.rel.type.RelDataType, org.apache.calcite.sql.SqlOperator, java.util.List)}
-   * is preferred.</p>
+   * is preferred.
    */
   public RexNode makeCall(
       SqlOperator op,
@@ -301,7 +301,7 @@ public class RexBuilder {
    * Creates a reference to an aggregate call, checking for repeated calls.
    *
    * <p>Argument types help to optimize for repeated aggregates.
-   * For instance count(42) is equivalent to count(*).</p>
+   * For instance count(42) is equivalent to count(*).
    *
    * @param aggCall aggregate call to be added
    * @param groupCount number of groups in the aggregate relation
@@ -1497,7 +1497,7 @@ public class RexBuilder {
   /**
    * Creates a literal of the default value for the given type.
    *
-   * <p>This value is:</p>
+   * <p>This value is:
    *
    * <ul>
    * <li>0 for numeric types;

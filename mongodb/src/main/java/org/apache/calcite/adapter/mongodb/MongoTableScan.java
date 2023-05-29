@@ -37,7 +37,7 @@ import java.util.List;
  * Relational expression representing a scan of a MongoDB collection.
  *
  * <p> Additional operations might be applied,
- * using the "find" or "aggregate" methods.</p>
+ * using the "find" or "aggregate" methods.
  */
 public class MongoTableScan extends TableScan implements MongoRel {
   final MongoTable mongoTable;

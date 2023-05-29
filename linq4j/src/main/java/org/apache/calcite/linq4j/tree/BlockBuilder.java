@@ -34,7 +34,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * Builder for {@link BlockStatement}.
  *
- * <p>Has methods that help ensure that variable names are unique.</p>
+ * <p>Has methods that help ensure that variable names are unique.
  */
 public class BlockBuilder {
   final List<Statement> statements = new ArrayList<>();

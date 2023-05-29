@@ -33,6 +33,7 @@ public class Unsafe {
    * {@link Matcher#matches(Object)} is forbidden in regular test code in favour of
    * {@link org.hamcrest.MatcherAssert#assertThat}.
    * Note: {@code Matcher#matches} is still useful when testing matcher implementations.
+   *
    * @param matcher matcher
    * @param actual actual value
    * @return the result of matcher.matches(actual)

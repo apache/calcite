@@ -54,6 +54,7 @@ public abstract class RelOptMaterializations {
    * Returns a list of RelNode transformed from all possible combination of
    * materialized view uses. Big queries will likely have more than one
    * transformed RelNode, e.g., (t1 group by c1) join (t2 group by c2).
+   *
    * @param rel               the original RelNode
    * @param materializations  the materialized view list
    * @return the list of transformed RelNode together with their corresponding
@@ -69,6 +70,7 @@ public abstract class RelOptMaterializations {
    * materialized view uses. Big queries will likely have more than one
    * transformed RelNode, e.g., (t1 group by c1) join (t2 group by c2).
    * In addition, you can add custom materialized view recognition rules.
+   *
    * @param rel               the original RelNode
    * @param materializations  the materialized view list
    * @param materializationRules the materialized view recognition rules
@@ -106,6 +108,7 @@ public abstract class RelOptMaterializations {
 
   /**
    * Returns a list of RelNode transformed from all possible lattice uses.
+   *
    * @param rel       the original RelNode
    * @param lattices  the lattice list
    * @return the list of transformed RelNode together with their corresponding

@@ -22,7 +22,7 @@ package org.apache.calcite.linq4j;
  *
  * <p>It is helpful to derive from this class if you are implementing
  * {@code Enumerable}, because {@code Enumerable} has so many extension methods,
- * but it is not required.</p>
+ * but it is not required.
  *
  * @param <T> Element type
  */

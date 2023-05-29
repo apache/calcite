@@ -51,7 +51,7 @@ import java.util.Set;
  * stages of optimization, by merging consecutive {@link LogicalProject} and
  * {@link LogicalFilter} nodes together.
  *
- * <p>The following rules relate to <code>LogicalCalc</code>:</p>
+ * <p>The following rules relate to <code>LogicalCalc</code>:
  *
  * <ul>
  * <li>{@link FilterToCalcRule} creates this from a {@link LogicalFilter}

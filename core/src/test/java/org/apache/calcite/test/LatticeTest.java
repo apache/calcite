@@ -420,7 +420,7 @@ class LatticeTest {
   }
 
   /** A query that uses a pre-defined aggregate table, at the same
-   *  granularity but fewer calls to aggregate functions. */
+   * granularity but fewer calls to aggregate functions. */
   @Test void testLatticeWithPreDefinedTilesFewerMeasures() {
     foodmartModelWithOneTile()
         .query("select t.\"the_year\", t.\"quarter\", count(*) as c\n"

@@ -73,16 +73,16 @@ import static java.util.Objects.requireNonNull;
  * Constant value in a row-expression.
  *
  * <p>There are several methods for creating literals in {@link RexBuilder}:
- * {@link RexBuilder#makeLiteral(boolean)} and so forth.</p>
+ * {@link RexBuilder#makeLiteral(boolean)} and so forth.
  *
  * <p>How is the value stored? In that respect, the class is somewhat of a black
  * box. There is a {@link #getValue} method which returns the value as an
  * object, but the type of that value is implementation detail, and it is best
  * that your code does not depend upon that knowledge. It is better to use
  * task-oriented methods such as {@link #getValue2} and
- * {@link #toJavaString}.</p>
+ * {@link #toJavaString}.
  *
- * <p>The allowable types and combinations are:</p>
+ * <p>The allowable types and combinations are:
  *
  * <table>
  * <caption>Allowable types for RexLiteral instances</caption>
@@ -446,6 +446,7 @@ public class RexLiteral extends RexNode {
 
   /**
    * Computes if data type can be omitted from the digest.
+   *
    * <p>For instance, {@code 1:BIGINT} has to keep data type while {@code 1:INT}
    * should be represented as just {@code 1}.
    *
@@ -608,7 +609,7 @@ public class RexLiteral extends RexNode {
    * Appends the specified value in the provided destination as a Java string. The value must be
    * consistent with the type, as per {@link #valueMatchesType}.
    *
-   * <p>Typical return values:</p>
+   * <p>Typical return values:
    *
    * <ul>
    * <li>true</li>

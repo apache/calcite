@@ -214,7 +214,9 @@ public class SqlValidatorUtil {
   }
 
   /**
-   * Gets the bit-set to the column ordinals in the source for columns that intersect in the target.
+   * Gets the bit-set to the column ordinals in the source for columns that
+   * intersect in the target.
+   *
    * @param sourceRowType The source upon which to ordinate the bit set.
    * @param targetRowType The target to overlay on the source to create the bit set.
    */

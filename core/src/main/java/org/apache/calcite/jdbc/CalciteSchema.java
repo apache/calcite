@@ -56,7 +56,7 @@ import javax.sql.DataSource;
 /**
  * Schema.
  *
- * <p>Wrapper around user-defined schema used internally.</p>
+ * <p>Wrapper around user-defined schema used internally.
  */
 public abstract class CalciteSchema {
 
@@ -64,7 +64,7 @@ public abstract class CalciteSchema {
   public final Schema schema;
   public final String name;
   /** Tables explicitly defined in this schema. Does not include tables in
-   *  {@link #schema}. */
+   * {@link #schema}. */
   protected final NameMap<TableEntry> tableMap;
   protected final NameMultimap<FunctionEntry> functionMap;
   protected final NameMap<TypeEntry> typeMap;
@@ -447,7 +447,7 @@ public abstract class CalciteSchema {
    *
    * <p>Currently, to accommodate the requirement of creating tables on the fly
    * for materializations, the snapshot will still use the same table map and
-   * lattice map as in the original CalciteSchema instead of making copies.</p>
+   * lattice map as in the original CalciteSchema instead of making copies.
    *
    * @param version The current schema version
    *
@@ -460,6 +460,7 @@ public abstract class CalciteSchema {
 
   /** Returns a subset of a map whose keys match the given string
    * case-insensitively.
+   *
    * @deprecated use NameMap
    */
   @Deprecated // to be removed before 2.0
@@ -470,6 +471,7 @@ public abstract class CalciteSchema {
 
   /** Returns a subset of a set whose values match the given string
    * case-insensitively.
+   *
    * @deprecated use NameSet
    */
   @Deprecated // to be removed before 2.0
@@ -559,7 +561,7 @@ public abstract class CalciteSchema {
    * <p>Each object's name is a property of its membership in a schema;
    * therefore in principle it could belong to several schemas, or
    * even the same schema several times, with different names. In this
-   * respect, it is like an inode in a Unix file system.</p>
+   * respect, it is like an inode in a Unix file system.
    *
    * <p>The members of a schema must have unique names.
    */

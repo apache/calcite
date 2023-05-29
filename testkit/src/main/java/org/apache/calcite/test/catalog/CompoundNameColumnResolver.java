@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 /** ColumnResolver implementation that resolves CompoundNameColumn by simulating
- *  Phoenix behaviors. */
+ * Phoenix behaviors. */
 final class CompoundNameColumnResolver implements MockCatalogReader.ColumnResolver {
   private final Map<String, Integer> nameMap = new HashMap<>();
   private final Map<String, Map<String, Integer>> groupMap = new HashMap<>();

@@ -47,7 +47,7 @@ import java.util.List;
  * {@link SqlValidatorNamespace}. Your SelectNamespace will be there somewhere,
  * but might be one or two levels deep.  Don't try to cast the namespace or use
  * <code>instanceof</code>; use {@link SqlValidatorNamespace#unwrap(Class)} and
- * {@link SqlValidatorNamespace#isWrapperFor(Class)} instead.</p>
+ * {@link SqlValidatorNamespace#isWrapperFor(Class)} instead.
  *
  * @see SqlValidator
  * @see SqlValidatorScope
@@ -87,11 +87,11 @@ public interface SqlValidatorNamespace {
    * Sets the type of this namespace.
    *
    * <p>Allows the type for the namespace to be explicitly set, but usually is
-   * called during {@link #validate(RelDataType)}.</p>
+   * called during {@link #validate(RelDataType)}.
    *
    * <p>Implicitly also sets the row type. If the type is not a struct, then
    * the row type is the type wrapped as a struct with a single column,
-   * otherwise the type and row type are the same.</p>
+   * otherwise the type and row type are the same.
    */
   void setType(RelDataType type);
 
@@ -105,10 +105,10 @@ public interface SqlValidatorNamespace {
   /**
    * Validates this namespace.
    *
-   * <p>If the scope has already been validated, does nothing.</p>
+   * <p>If the scope has already been validated, does nothing.
    *
    * <p>Please call {@link SqlValidatorImpl#validateNamespace} rather than
-   * calling this method directly.</p>
+   * calling this method directly.
    *
    * @param targetRowType Desired row type, must not be null, may be the data
    *                      type 'unknown'.
@@ -200,10 +200,10 @@ public interface SqlValidatorNamespace {
    *
    * <p>A {@code WITH}) clause defines table names that resolve to queries
    * (the body of the with-item). An {@link IdentifierNamespace} typically
-   * resolves to a {@link TableNamespace}.</p>
+   * resolves to a {@link TableNamespace}.
    *
    * <p>You must not call this method before {@link #validate(RelDataType)} has
-   * completed.</p> */
+   * completed. */
   SqlValidatorNamespace resolve();
 
   /** Returns whether this namespace is capable of giving results of the desired

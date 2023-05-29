@@ -2760,10 +2760,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     invalidCodes.forEach(invalidConsumer);
   }
 
-  /** Checks parsing of built-in functions that accept time unit
-   *  Checks WEEK(WEEKDAY)
-   * <p>Override if your parser supports more such functions. */
-  @Test void checkWeekdayCustomTimeFrames() {
+  /** Tests parsing of built-in functions that accept time unit
+   * "WEEK(WEEKDAY)". */
+  @Test void testWeekdayCustomTimeFrames() {
     SqlValidatorFixture f = fixture()
         .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY));
 

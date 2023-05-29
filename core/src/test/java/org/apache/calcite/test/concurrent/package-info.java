@@ -25,11 +25,11 @@
  * own thread as a separate jdbc client (ie a separate
  * <code>java.sql.Connection</code>). There are facilties to synchronize these
  * command threads. Only a simple command sequence is supported: no branching,
- * no looping.</p>
+ * no looping.
  *
  * <p>An alternative is to define a test by writing a test script in
  * <code>mtsql</code> format, as described below. An instance of
- * <code>ConcurrentCommandScript</code> parses and executes a script.</p>
+ * <code>ConcurrentCommandScript</code> parses and executes a script.
  *
  * <h2>Script Format</h2>
  *
@@ -72,20 +72,20 @@
  * <h3>Synchronization:</h3>
  *
  * <p>The threads are synchronized by inserting synchronization points
- * (&#64;sync).</p>
+ * (&#64;sync).
  *
  * <p>When a thread reaches a &#64;sync, it waits until all threads are waiting
  * on the same &#64;sync: then all threads proceed. &#64;sync points have no
  * names. Clearly all thread sections must contain the same number of &#64;sync
- * points.</p>
+ * points.
  *
  * <p>The directive &#64;lockstep has the same effect as adding a &#64;sync
  * after each command in every thread section. Clearly it requires that all
  * thread sections have the same number of commands. The default is the antonym
- * &#64;nolockstep.</p>
+ * &#64;nolockstep.
  *
  * <p>The directive &#64;disable means "skip this script". The deault is the
- * antonym &#64;enable.</p>
+ * antonym &#64;enable.
  *
  *
  * <h3>Error handling:</h3>
@@ -96,12 +96,12 @@
  * section it can be toggled using the sql directive <code>!SET FORCE
  * <i>val</i></code>, where <i>val</i> can be <i>true, false, on, off.</i> (This
  * is modelled after sqlline and sqllineClient. Other sqlline
- * <i>!-</i>directives are ignored.)</p>
+ * <i>!-</i>directives are ignored.)
  *
  * <p>An error in a thread section will stop that thread, but the other threads
  * continue (with one fewer partner to synchronize with), and finally the
  * cleanup section runs. If the setup section quits, then only the cleanup
- * section is run.</p>
+ * section is run.
  *
  * <h3>Basic Commands (allowed in any section):</h3>
  *
@@ -189,13 +189,13 @@
  * <p>The initial value of a script variable VAR is taken from the shell
  *     environment variable of the same name.  The value can be set to a
  *     different value when the script is run, by employing a phrase
- *     VAR=VALUE on the mtsql command line.</p>
+ *     VAR=VALUE on the mtsql command line.
  *
  * <h3>Stand-Alone Tool</h3>
  *
  * <p>A command-line tool that runs an mtsql script against a specified JDBC
  *     connection,a nd prints the query results. (But see &#64;print command to
- *     filter the output.)</p>
+ *     filter the output.)
  *
  * <p> Usage: mtsql [-qvg] -u SERVER -d DRIVER [-n USER] [-p PASSWORD]
  *     [VAR=VALUE]* SCRIPT [SCRIPT]*<br>
@@ -205,7 +205,7 @@
  *     -u SERVER : sets the target; a JDBC URL.<br>
  *     -d DRIVER : sets the jdbc driver; a class on the classpath<br>
  *     VAR=VALUE : binds the script variable VAR to the VALUE; VAR must be
- *     declared at the beginning of the script(s) in a &#64;var command.</p>
+ *     declared at the beginning of the script(s) in a &#64;var command.
  *
  *
  * <h3>Example Script</h3>

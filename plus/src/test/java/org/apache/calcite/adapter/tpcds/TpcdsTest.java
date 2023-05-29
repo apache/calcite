@@ -47,7 +47,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 /** Unit test for {@link org.apache.calcite.adapter.tpcds.TpcdsSchema}.
  *
- * <p>Only runs as part of slow test suite.</p>
+ * <p>Only runs as part of slow test suite.
  */
 @Tag("slow")
 class TpcdsTest {
@@ -319,7 +319,7 @@ class TpcdsTest {
    * Builder query 27 using {@link RelBuilder}.
    *
    * <blockquote><pre>
-   *   select  i_item_id,
+   * select  i_item_id,
    *         s_state, grouping(s_state) g_state,
    *         avg(ss_quantity) agg1,
    *         avg(ss_list_price) agg2,
@@ -340,10 +340,10 @@ class TpcdsTest {
    *              'distmember(fips_county,[STATENUMBER.4], 3)',
    *              'distmember(fips_county,[STATENUMBER.5], 3)',
    *              'distmember(fips_county,[STATENUMBER.6], 3)')
-   *  group by rollup (i_item_id, s_state)
-   *  order by i_item_id
+   * group by rollup (i_item_id, s_state)
+   * order by i_item_id
    *          ,s_state
-   *  LIMIT 100
+   * LIMIT 100
    * </pre></blockquote>
    */
   @Test void testQuery27Builder() throws Exception {

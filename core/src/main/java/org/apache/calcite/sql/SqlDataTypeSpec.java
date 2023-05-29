@@ -34,7 +34,7 @@ import java.util.TimeZone;
  * Represents a SQL data type specification in a parse tree.
  *
  * <p>A <code>SqlDataTypeSpec</code> is immutable; once created, you cannot
- * change any of the fields.</p>
+ * change any of the fields.
  *
  * <p>We support the following data type expressions:
  *

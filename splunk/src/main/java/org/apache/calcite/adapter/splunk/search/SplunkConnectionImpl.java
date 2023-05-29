@@ -329,7 +329,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
    * results from a Splunk REST call.
    *
    * <p>The element type is either {@code String} or {@code String[]}, depending
-   * on the value of {@code source}.</p> */
+   * on the value of {@code source}. */
   public static class SplunkResultEnumerator implements Enumerator<Object> {
     private final CSVReader csvReader;
     private String[] fieldNames;

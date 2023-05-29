@@ -527,6 +527,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
   /** Common implementation of comparison aggregate methods over numeric
    * values as a user-defined aggregate.
+   *
    * @param <T> The numeric type
    */
   public static class NumericComparison<T> {

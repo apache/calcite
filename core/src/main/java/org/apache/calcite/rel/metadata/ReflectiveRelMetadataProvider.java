@@ -56,7 +56,7 @@ import java.util.concurrent.ConcurrentMap;
  * the same signature as the implemented metadata method except for an
  * additional first parameter of type {@link RelNode} or a sub-class. That
  * parameter gives this provider an indication of that relational expressions it
- * can handle.</p>
+ * can handle.
  *
  * <p>For an example, see {@link RelMdColumnOrigins#SOURCE}.
  */
@@ -101,7 +101,7 @@ public class ReflectiveRelMetadataProvider
    *
    * <p>For example, {@link BuiltInMetadata.Selectivity} has a method
    * {@link BuiltInMetadata.Selectivity#getSelectivity(RexNode)}.
-   * A class</p>
+   * A class
    *
    * <blockquote><pre><code>
    * class RelMdSelectivity {
@@ -111,7 +111,7 @@ public class ReflectiveRelMetadataProvider
    *
    * <p>provides implementations of selectivity for relational expressions
    * that extend {@link org.apache.calcite.rel.core.Union}
-   * or {@link org.apache.calcite.rel.core.Filter}.</p>
+   * or {@link org.apache.calcite.rel.core.Filter}.
    */
   @Deprecated // to be removed before 2.0
   public static RelMetadataProvider reflectiveSource(Method method,

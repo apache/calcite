@@ -52,7 +52,7 @@ import static java.util.Objects.requireNonNull;
  * using the expression which has the lowest cost.
  *
  * <p>All of the expressions in an <code>RelSet</code> have the same calling
- * convention.</p>
+ * convention.
  */
 class RelSet {
   //~ Static fields/initializers ---------------------------------------------

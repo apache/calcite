@@ -35,6 +35,7 @@ import java.util.List;
 
 /**
  * Parse tree node representing a {@code DISCARD} clause.
+ *
  * @see <a href="https://www.postgresql.org/docs/current/sql-discard.html">DISCARD specification</a>
  */
 public class SqlDiscard extends SqlCall {

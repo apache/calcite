@@ -44,8 +44,8 @@ class MaterializationActor {
   final Map<TileKey, MaterializationKey> keyByTile = new HashMap<>();
 
   /** Tiles grouped by dimensionality. We use a
-   *  {@link TileKey} with no measures to represent a
-   *  dimensionality. */
+   * {@link TileKey} with no measures to represent a
+   * dimensionality. */
   final Multimap<TileKey, TileKey> tilesByDimensionality =
       HashMultimap.create();
 

@@ -36,6 +36,7 @@ import java.util.List;
 
 /**
  * Parse tree node representing a {@code BEGIN} clause.
+ *
  * @see <a href="https://www.postgresql.org/docs/current/sql-begin.html">BEGIN specification</a>
  */
 public class SqlBegin extends SqlCall {

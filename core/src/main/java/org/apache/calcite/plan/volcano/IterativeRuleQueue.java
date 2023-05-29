@@ -95,7 +95,7 @@ class IterativeRuleQueue extends RuleQueue {
   /**
    * Removes the rule match from the head of match list, and returns it.
    *
-   * <p>Returns {@code null} if there are no more matches.</p>
+   * <p>Returns {@code null} if there are no more matches.
    *
    * <p>Note that the VolcanoPlanner may still decide to reject rule matches
    * which have become invalid, say if one of their operands belongs to an

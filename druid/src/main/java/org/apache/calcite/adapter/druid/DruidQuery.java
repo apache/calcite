@@ -241,7 +241,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         query.druidTable, intervals, query.rels, query.getOperatorConversionMap());
   }
 
-  /** Check if it is needed to use UTC for DATE and TIMESTAMP types. **/
+  /** Check if it is needed to use UTC for DATE and TIMESTAMP types. */
   private static boolean needUtcTimeExtract(RexNode rexNode) {
     return rexNode.getType().getSqlTypeName() == SqlTypeName.DATE
         || rexNode.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP

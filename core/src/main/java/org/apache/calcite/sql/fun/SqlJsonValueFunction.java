@@ -88,7 +88,7 @@ public class SqlJsonValueFunction extends SqlFunction {
     return SqlOperandCountRanges.between(2, 10);
   }
 
-  /** Returns the optional explicit returning type specification. **/
+  /** Returns the optional explicit returning type specification. */
   private static Optional<RelDataType> explicitTypeSpec(SqlOperatorBinding opBinding) {
     if (opBinding.getOperandCount() > 2
         && opBinding.isOperandLiteral(2, false)

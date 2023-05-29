@@ -62,6 +62,7 @@ class ElasticsearchRules {
 
   /**
    * Returns 'string' if it is a call to item['string'], null otherwise.
+   *
    * @param call current relational expression
    * @return literal value
    */

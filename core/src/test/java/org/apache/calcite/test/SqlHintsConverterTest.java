@@ -717,7 +717,7 @@ class SqlHintsConverterTest {
     }
   }
 
-  /** A visitor to validate a hintable node has specific hint. **/
+  /** A visitor to validate a hintable node has specific hint. */
   private static class ValidateHintVisitor extends RelVisitor {
     private final RelHint expectedHint;
     private final Class<?> clazz;

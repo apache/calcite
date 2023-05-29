@@ -23,7 +23,7 @@ import java.util.Objects;
 /**
  * A table-valued input parameter of a table function is classified by three
  * characteristics.
-
+ *
  * <p>The first characteristic is semantics. The table has either
  * row semantics or set semantics.
  *

@@ -313,7 +313,8 @@ public abstract class Mappings {
    * {@code mapping.getTarget(source)} and {@code list.size()} is
    * {@code mapping.getSourceCount()}.
    *
-   * <p>Converse of {@link #target(List, int)}</p>
+   * <p>Converse of {@link #target(List, int)}.
+   *
    * @see #asListNonNull(TargetMapping)
    */
   @CheckReturnValue
@@ -335,9 +336,10 @@ public abstract class Mappings {
    * {@code mapping.getTarget(source)} and {@code list.size()} is
    * {@code mapping.getSourceCount()}.
    *
-   * <p>The resulting list never contains null elements</p>
+   * <p>The resulting list never contains null elements.
    *
-   * <p>Converse of {@link #target(List, int)}</p>
+   * <p>Converse of {@link #target(List, int)}.
+   *
    * @see #asList(TargetMapping)
    */
   @CheckReturnValue
@@ -423,7 +425,7 @@ public abstract class Mappings {
 
   /** Creates a bijection.
    *
-   * <p>Throws if sources and targets are not one to one.</p> */
+   * <p>Throws if sources and targets are not one to one. */
   public static Mapping bijection(List<Integer> targets) {
     return new Permutation(Ints.toArray(targets));
   }
@@ -481,14 +483,14 @@ public abstract class Mappings {
   /**
    * Creates a mapping that consists of a set of contiguous ranges.
    *
-   * <p>For example,</p>
+   * <p>For example,
    *
    * <blockquote><pre>createShiftMapping(60,
    *     100, 0, 3,
    *     200, 50, 5);
    * </pre></blockquote>
    *
-   * <p>creates</p>
+   * <p>creates
    *
    * <table>
    * <caption>Example mapping</caption>
@@ -545,7 +547,7 @@ public abstract class Mappings {
   /**
    * Creates a mapping by appending two mappings.
    *
-   * <p>Sources and targets of the second mapping are shifted to the right.</p>
+   * <p>Sources and targets of the second mapping are shifted to the right.
    *
    * <p>For example, <pre>append({0:0, 1:1}, {0:0, 1:1, 2:2})</pre> yields
    * <pre>{0:0, 1:1, 2:2, 3:3, 4:4}</pre>.

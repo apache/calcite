@@ -21,7 +21,7 @@ package org.apache.calcite.util;
  * use of exceptions which is to signal an error condition.
  *
  * <p>{@code ControlFlowException} does not populate its own stack trace, which
- * makes instantiating one of these (or a sub-class) more efficient.</p>
+ * makes instantiating one of these (or a sub-class) more efficient.
  */
 public class ControlFlowException extends RuntimeException {
   @Override public synchronized Throwable fillInStackTrace() {

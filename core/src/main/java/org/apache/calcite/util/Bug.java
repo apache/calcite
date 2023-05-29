@@ -39,8 +39,7 @@ package org.apache.calcite.util;
  * the bug. When someone fixes the bug, they will remove the constant and all
  * usages of it. Also, the constant helps track the propagation of the fix: as
  * the fix is integrated into other branches, the constant will be removed from
- * those branches.</p>
- *
+ * those branches.
  */
 public abstract class Bug {
   //~ Static fields/initializers ---------------------------------------------

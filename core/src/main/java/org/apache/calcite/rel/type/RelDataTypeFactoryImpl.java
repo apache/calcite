@@ -443,7 +443,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    *
    * <p>This approach allows us to use a cheap temporary key. A permanent
    * key is more expensive, because it must be immutable and not hold
-   * references into other data structures.</p>
+   * references into other data structures.
    */
   protected RelDataType canonize(final StructKind kind,
       final List<String> names,

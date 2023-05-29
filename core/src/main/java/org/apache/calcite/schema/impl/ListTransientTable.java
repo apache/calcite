@@ -53,7 +53,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * {@link TransientTable} backed by a Java list. It will be automatically added to the
  * current schema when {@link #scan(DataContext)} method gets called.
  *
- * <p>NOTE: The current API is experimental and subject to change without notice.</p>
+ * <p>NOTE: The current API is experimental and subject to change without notice.
  */
 @Experimental
 public class ListTransientTable extends AbstractQueryableTable

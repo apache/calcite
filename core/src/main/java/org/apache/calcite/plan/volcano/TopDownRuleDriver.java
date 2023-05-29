@@ -45,7 +45,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>This implementation uses tasks to manage rule matches.
  * A Task is a piece of work to be executed, it may apply some rules
- * or schedule other tasks.</p>
+ * or schedule other tasks.
  */
 @SuppressWarnings("JdkObsolete")
 class TopDownRuleDriver implements RuleDriver {
@@ -541,9 +541,7 @@ class TopDownRuleDriver implements RuleDriver {
     }
   }
 
-  /**
-   *  Decides how to optimize a physical node.
-   */
+  /** Decides how to optimize a physical node. */
   private @Nullable Task getOptimizeInputTask(RelNode rel, RelSubset group) {
     // If the physical does not in current optimizing RelSubset, it firstly tries to
     // convert the physical node either by converter rule or traits pass though.

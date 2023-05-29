@@ -36,7 +36,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /** Unit test for {@link org.apache.calcite.adapter.tpch.TpchSchema}.
  *
  * <p>Because the TPC-H data generator takes time and memory to instantiate,
- * tests only run as part of slow tests.</p>
+ * tests only run as part of slow tests.
  */
 class TpchTest {
   public static final boolean ENABLE = TestUtil.getJavaMajorVersion() >= 7;

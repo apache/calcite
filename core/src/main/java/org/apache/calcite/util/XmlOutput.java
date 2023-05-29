@@ -36,7 +36,7 @@ import static java.util.Objects.requireNonNull;
  * <p>Use this class to write XML to any streaming source.
  * While the class itself is unstructured and doesn't enforce any DTD
  * specification, use of the class
- * does ensure that the output is syntactically valid XML.</p>
+ * does ensure that the output is syntactically valid XML.
  */
 public class XmlOutput {
 
@@ -246,6 +246,7 @@ public class XmlOutput {
    * Completes a tag.  This outputs the end tag corresponding to the
    * last exposed beginTag.  The tag name must match the name of the
    * corresponding beginTag.
+   *
    * @param tagName the name of the end tag to write.
    */
   public void endTag(String tagName) {
@@ -432,7 +433,7 @@ public class XmlOutput {
   }
 
   /**
-   *  Write header. Use default version 1.0.
+   * Write header. Use default version 1.0.
    */
   public void header() {
     out.println("<?xml version=\"1.0\" ?>");
@@ -475,6 +476,7 @@ public class XmlOutput {
    * Encode a String for XML output, displaying it to a PrintWriter.
    * The String to be encoded is displayed, except that
    * special characters are converted into entities.
+   *
    * @param input a String to convert.
    * @param out a PrintWriter to which to write the results.
    */
@@ -510,7 +512,7 @@ public class XmlOutput {
    * CDATA section.  Note that MSXML has a nasty bug whereby whitespace
    * characters outside of a CDATA section are lost when parsing.  To
    * avoid hitting this bug, this method treats many whitespace characters
-   * as "special".</p>
+   * as "special".
    *
    * @param input the String to scan for XML special characters.
    * @return true if the String contains any such characters.
@@ -543,7 +545,7 @@ public class XmlOutput {
    * state.  Call {@link #defineEscape} as many times as necessary to set up
    * mappings, and then call {@link #makeImmutable} before
    * actually applying the defined transform.  Or,
-   * use one of the global mappings pre-defined here.</p>
+   * use one of the global mappings pre-defined here.
    */
   static class StringEscaper implements Cloneable {
     private @Nullable List<@Nullable String> translationVector;

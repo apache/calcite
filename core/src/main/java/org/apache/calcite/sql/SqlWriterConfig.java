@@ -425,6 +425,7 @@ public interface SqlWriterConfig {
 
   /**
    * Create a default SqlWriterConfig object.
+   *
    * @return The config.
    */
   static SqlWriterConfig of() {

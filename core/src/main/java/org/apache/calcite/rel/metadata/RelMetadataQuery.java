@@ -118,6 +118,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
 
   /**
    * Create a RelMetadataQuery with a given {@link MetadataHandlerProvider}.
+   *
    * @param provider The provider to use for construction.
    */
   public RelMetadataQuery(MetadataHandlerProvider provider) {

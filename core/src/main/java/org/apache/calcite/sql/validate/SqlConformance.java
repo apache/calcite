@@ -348,6 +348,7 @@ public interface SqlConformance {
 
   /**
    * Whether to allow SQL syntax "{@code ROW(expr1, expr2, expr3)}".
+   *
    * <p>The equivalent syntax in standard SQL is
    * "{@code (expr1, expr2, expr3)}".
    *

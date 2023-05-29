@@ -39,11 +39,11 @@ import java.util.Map;
 /** Utilities for strong predicates.
  *
  * <p>A predicate is strong (or null-rejecting) with regards to selected subset of inputs
- * if it is UNKNOWN if all inputs in selected subset are UNKNOWN.</p>
+ * if it is UNKNOWN if all inputs in selected subset are UNKNOWN.
  *
- * <p>By the way, UNKNOWN is just the boolean form of NULL.</p>
+ * <p>By the way, UNKNOWN is just the boolean form of NULL.
  *
- * <p>Examples:</p>
+ * <p>Examples:
  * <ul>
  *   <li>{@code UNKNOWN} is strong in [] (definitely null)
  *   <li>{@code c = 1} is strong in [c] (definitely null if and only if c is
@@ -133,7 +133,7 @@ public class Strong {
   /**
    * Returns whether a given expression is strong.
    *
-   * <p>Examples:</p>
+   * <p>Examples:
    * <ul>
    *   <li>Returns true for {@code c = 1} since it returns null if and only if
    *   c is null

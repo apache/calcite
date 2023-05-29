@@ -31,7 +31,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>Consider "SELECT * FROM (A JOIN B ON {exp1}) JOIN C ON {exp2}". {exp1} is
  * resolved in the join scope for "A JOIN B", which contains A and B but not
- * C.</p>
+ * C.
  */
 public class JoinScope extends ListScope {
   //~ Instance fields --------------------------------------------------------

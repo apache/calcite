@@ -349,7 +349,7 @@ public abstract class AbstractRelNode implements RelNode {
    * This should work well for most cases. If this method is a performance
    * bottleneck for your project, or the default behavior can't handle
    * your scenario properly, you can choose to override this method and
-   * {@link #deepHashCode()}. See {@code LogicalJoin} as an example.</p>
+   * {@link #deepHashCode()}. See {@code LogicalJoin} as an example.
    *
    * @return Whether the 2 RelNodes are equivalent or have the same digest.
    * @see #deepHashCode()
@@ -460,10 +460,10 @@ public abstract class AbstractRelNode implements RelNode {
   /**
    * A writer object used exclusively for computing the digest of a RelNode.
    *
-   * <p>The writer is meant to be used only for computing a single digest and then thrown away.
-   * After calling {@link #done(RelNode)} the writer should be used only to obtain the computed
-   * {@link #digest}. Any other action is prohibited.</p>
-   *
+   * <p>The writer is meant to be used only for computing a single digest and
+   * then thrown away.  After calling {@link #done(RelNode)} the writer should
+   * be used only to obtain the computed {@link #digest}. Any other action is
+   * prohibited.
    */
   private static final class RelDigestWriter implements RelWriter {
 
