@@ -5984,11 +5984,14 @@ class RelToSqlConverterTest {
         + "       lateral (select d.\"department_id\" + 1 as d_plusOne"
         + "                from (values(true)))";
 
-    final String expected = "SELECT \"$cor0\".\"department_id\", \"$cor0\".\"D_PLUSONE\"\n"
-        + "FROM (SELECT \"department_id\", \"department_description\", \"department_id\" + 1 AS \"$f2\"\n"
-        + "FROM \"foodmart\".\"department\") AS \"$cor0\",\n"
-        + "LATERAL (SELECT \"$cor0\".\"$f2\" AS \"D_PLUSONE\"\n"
-        + "FROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t1\"";
+    final String expected = "SELECT \"t\".\"department_id\", \"t3\".\"D_PLUSONE\""
+        + "\nFROM (SELECT \"department_id\", \"department_description\", "
+        + "\"department_id\" + 1 AS \"$f2\"\nFROM \"foodmart\".\"department\") AS \"t\"\n"
+        + "INNER JOIN (SELECT \"t2\".\"$f2\" AS \"D_PLUSONE\", \"t2\".\"$f2\"\n"
+        + "FROM (VALUES (TRUE)) AS \"t0\" (\"EXPR$0\"),\n"
+        + "(SELECT \"department_id\" + 1 AS \"$f2\"\nFROM \"foodmart\".\"department\"\n"
+        + "GROUP BY \"department_id\" + 1) AS \"t2\") AS \"t3\" "
+        + "ON \"t\".\"$f2\" = \"t3\".\"$f2\"";
     sql(sql).ok(expected);
   }
 
