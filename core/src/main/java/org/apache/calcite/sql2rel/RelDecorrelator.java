@@ -488,7 +488,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   public @Nullable Frame decorrelateRel(Values rel, boolean isCorVarDefined) {
     // There are no inputs, so rel does not need to be changed.
-    return null;
+    return decorrelateRel((RelNode) rel, isCorVarDefined);
   }
 
   public @Nullable Frame decorrelateRel(LogicalAggregate rel, boolean isCorVarDefined) {
