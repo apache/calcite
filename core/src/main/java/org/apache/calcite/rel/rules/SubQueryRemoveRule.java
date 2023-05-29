@@ -867,7 +867,9 @@ public class SubQueryRemoveRule
       final Set<CorrelationId>  variablesSet =
           RelOptUtil.getVariablesUsed(e.rel);
       // Only consider the correlated variables which originated from this sub-query level
-      variablesSet.retainAll(filter.getVariablesSet());
+      if (!filter.getVariablesSet().isEmpty()) {
+        variablesSet.retainAll(filter.getVariablesSet());
+      }
       final RexNode target =
           rule.apply(e, variablesSet, logic,
               builder, 1, builder.peek().getRowType().getFieldCount(), count);

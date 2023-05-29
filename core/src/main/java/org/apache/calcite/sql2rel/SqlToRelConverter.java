@@ -3552,8 +3552,9 @@ public class SqlToRelConverter {
       // Set the correlation variables used in this sub-query to the filter node,
       // same logic is being used for the filter generated in where clause.
       Set<CorrelationId> variableSet = new HashSet<>();
-      if (havingExpr instanceof RexSubQuery) {
-        CorrelationUse p = getCorrelationUse(bb, ((RexSubQuery) havingExpr).rel);
+      RexSubQuery subQ = RexUtil.SubQueryFinder.find(havingExpr);
+      if (subQ != null) {
+        CorrelationUse p = getCorrelationUse(bb, subQ.rel);
         if (p != null) {
           variableSet.add(p.id);
         }

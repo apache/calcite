@@ -777,6 +777,25 @@ having exists
 
 !ok
 
+# Having with correlation anded with normal condition.
+with src (key, "value")
+  as (select * from (values (1, 'a'), (2, 'z')) as t(key, "value"))
+select b.key, count(*) as c
+from src b
+group by b.key
+having exists
+  (select a.key
+  from src a
+  where a.key = b.key and a."value" > 'val_9') and b.key > 0;
++-----+---+
+| KEY | C |
++-----+---+
+|   2 | 1 |
++-----+---+
+(1 row)
+
+!ok
+
 # [CALCITE-411] Duplicate aliases
 select 1 as a, 2 as a from (values (true));
 +---+---+
