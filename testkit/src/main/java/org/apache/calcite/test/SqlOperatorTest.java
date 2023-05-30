@@ -7933,7 +7933,7 @@ public class SqlOperatorTest {
 
     f.checkFails(
       "^named_struct('k1', 1, 2, 3)^",
-      "named_struct key is not a string literal, found type: 'BigDecimal'",
+      "named_struct key is not a string literal, found type 'BigDecimal'",
       false);
 
     /*
