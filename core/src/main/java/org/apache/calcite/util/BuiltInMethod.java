@@ -628,6 +628,7 @@ public enum BuiltInMethod {
   IS_EMPTY(Collection.class, "isEmpty"),
   SUBMULTISET_OF(SqlFunctions.class, "submultisetOf", Collection.class,
       Collection.class),
+  ARRAY_COMPACT(SqlFunctions.class, "compact", List.class),
   ARRAY_DISTINCT(SqlFunctions.class, "distinct", List.class),
   ARRAY_REPEAT(SqlFunctions.class, "repeat", Object.class, Integer.class),
   ARRAY_REVERSE(SqlFunctions.class, "reverse", List.class),

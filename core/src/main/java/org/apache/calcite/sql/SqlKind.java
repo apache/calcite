@@ -677,6 +677,9 @@ public enum SqlKind {
   /** {@code EXTRACT} function. */
   EXTRACT,
 
+  /** {@code ARRAY_COMPACT} function (Spark semantics). */
+  ARRAY_COMPACT,
+
   /** {@code ARRAY_CONCAT} function (BigQuery semantics). */
   ARRAY_CONCAT,
 

@@ -3869,6 +3869,17 @@ public class SqlFunctions {
     return atomic;
   }
 
+  /** Support the ARRAY_COMPACT function. */
+  public static List compact(List list) {
+    final List result = new ArrayList();
+    for (Object element : list) {
+      if (element != null) {
+        result.add(element);
+      }
+    }
+    return result;
+  }
+
   /** Support the ARRAY_DISTINCT function. */
   public static List distinct(List list) {
     Set result = new LinkedHashSet<>(list);

@@ -2652,6 +2652,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | m | expr1 <=> expr2                                | Whether two values are equal, treating null values as the same, and it's similar to `IS NOT DISTINCT FROM`
 | * | ACOSH(numeric)                                 | Returns the inverse hyperbolic cosine of *numeric*
 | s | ARRAY(expr [, expr ]*)                         | Construct an array in Apache Spark
+| s | ARRAY_COMPACT(array)                           | Removes null values from the *array*
 | b | ARRAY_CONCAT(array [, array ]*)                | Concatenates one or more arrays. If any input argument is `NULL` the function returns `NULL`
 | s | ARRAY_DISTINCT(array)                          | Returns unique elements of *array*. Keeps ordering of elements.
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
