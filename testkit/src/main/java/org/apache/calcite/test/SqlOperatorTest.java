@@ -5328,6 +5328,25 @@ public class SqlOperatorTest {
     f.checkScalar("rand_integer(2, 11)", 1, "INTEGER NOT NULL");
   }
 
+  /** Tests {@code ARRAY_COMPACT} function from Spark. */
+  @Test void testArrayCompactFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_COMPACT);
+    f0.checkFails("^array_compact(array[null, 1, null, 2])^",
+        "No match found for function signature ARRAY_COMPACT\\(<INTEGER ARRAY>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_compact(array[null, 1, null, 2])", "[1, 2]",
+        "INTEGER ARRAY NOT NULL");
+    f.checkScalar("array_compact(array[null])", "[]",
+        "NULL ARRAY NOT NULL");
+    f.checkScalar("array_compact(array(null))", "[]",
+        "NULL ARRAY NOT NULL");
+    f.checkScalar("array_compact(array())", "[]",
+        "UNKNOWN NOT NULL ARRAY NOT NULL");
+    f.checkNull("array_compact(null)");
+  }
+
   /** Tests {@code ARRAY_CONCAT} function from BigQuery. */
   @Test void testArrayConcat() {
     SqlOperatorFixture f = fixture()

@@ -881,6 +881,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
+  /** The "ARRAY_COMPACT(array)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction ARRAY_COMPACT =
+      SqlBasicFunction.create(SqlKind.ARRAY_COMPACT,
+          ReturnTypes.ARG0_NULLABLE,
+          OperandTypes.ARRAY);
+
   /** The "ARRAY_CONCAT(array [, array]*)" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction ARRAY_CONCAT =
