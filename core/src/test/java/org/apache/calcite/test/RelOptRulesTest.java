@@ -6839,7 +6839,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
     sql(sql)
         .withExpand(false)
-        .withLateDecorrelate(true)
+        .withSubQueryRules()
         .withTrim(true)
         .withRule()
         .checkUnchanged();
@@ -6859,7 +6859,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + " FROM dept d1";
     sql(sql)
         .withExpand(false)
-        .withLateDecorrelate(true)
+        .withSubQueryRules()
         .withTrim(true)
         .withRule()
         .checkUnchanged();

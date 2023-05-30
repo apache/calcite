@@ -14720,21 +14720,6 @@ LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalProject(NAME=[$1], EXPR$1=[+($0, $SCALAR_QUERY({
-LogicalProject(EMPNO=[$0])
-  LogicalFilter(condition=[AND(=($cor0.DEPTNO, $7), =($5, $SCALAR_QUERY({
-LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
-  LogicalProject(SAL=[$5])
-    LogicalFilter(condition=[AND(=($cor1.SAL, $5), =($cor1.DEPTNO, $7), <($cor0.DEPTNO, $7))])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-})))], variablesSet=[[$cor1]])
-    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-}))])
-  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-]]>
-    </Resource>
   </TestCase>
   <TestCase name="testTwoLevelDecorrelateSkipInBetween">
     <Resource name="sql">
@@ -14768,30 +14753,6 @@ LogicalAggregate(group=[{}], EXPR$0=[MAX($0)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 }))])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalCalc(expr#0..3=[{inputs}], expr#4=[+($t0, $t3)], NAME=[$t1], EXPR$1=[$t4])
-  LogicalJoin(condition=[=($0, $2)], joinType=[left])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])
-      LogicalCalc(expr#0..6=[{inputs}], expr#7=[CAST($t5):INTEGER], DEPTNO00=[$t7], EMPNO=[$t0])
-        LogicalJoin(condition=[AND(=($1, $3), =($2, $4))], joinType=[inner])
-          LogicalCalc(expr#0..8=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-          LogicalCalc(expr#0..3=[{inputs}], expr#4=[=($t0, $t3)], proj#0..3=[{exprs}], $condition=[$t4])
-            LogicalAggregate(group=[{0, 1, 2}], EXPR$0=[MAX($3)])
-              LogicalCalc(expr#0..4=[{inputs}], SAL0=[$t2], DEPTNO0=[$t3], DEPTNO00=[$t4], SAL=[$t0])
-                LogicalJoin(condition=[AND(=($2, $0), =($3, $1), <($4, $1))], joinType=[inner])
-                  LogicalCalc(expr#0..8=[{inputs}], SAL=[$t5], DEPTNO=[$t7])
-                    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-                  LogicalJoin(condition=[true], joinType=[inner])
-                    LogicalAggregate(group=[{0, 1}])
-                      LogicalCalc(expr#0..8=[{inputs}], SAL=[$t5], DEPTNO=[$t7])
-                        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-                    LogicalCalc(expr#0..1=[{inputs}], DEPTNO=[$t0])
-                      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
