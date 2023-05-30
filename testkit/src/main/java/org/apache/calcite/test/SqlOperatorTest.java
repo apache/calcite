@@ -7914,41 +7914,38 @@ public class SqlOperatorTest {
     f.setFor(SqlLibraryOperators.NAMED_STRUCT, VmName.EXPAND);
 
     f.checkFails(
-      "^named_struct()^",
-      "named_struct requires at least 2 arguments",
-      false);
+        "^named_struct()^",
+        "named_struct requires at least 2 arguments",
+        false);
 
     f.checkFails(
-      "^named_struct('k1', 1, 'k2')^",
-      "named_struct requires an even number for arguments",
-      false);
+        "^named_struct('k1', 1, 'k2')^",
+        "named_struct requires an even number for arguments",
+        false);
 
     f.checkType(
-      "named_struct('k', 1)",
-      "RecordType(INTEGER NOT NULL k) NOT NULL");
+        "named_struct('k', 1)",
+        "RecordType(INTEGER NOT NULL k) NOT NULL");
 
     f.checkType(
-      "named_struct('k1', 1, 'k2', 2)",
-      "RecordType(INTEGER NOT NULL k1, INTEGER NOT NULL k2) NOT NULL");
+        "named_struct('k1', 1, 'k2', 2)",
+        "RecordType(INTEGER NOT NULL k1, INTEGER NOT NULL k2) NOT NULL");
 
     f.checkFails(
-      "^named_struct('k1', 1, 2, 3)^",
-      "named_struct key is not a string literal, found type 'BigDecimal'",
-      false);
+        "^named_struct('k1', 1, 2, 3)^",
+        "named_struct key is not a string literal, found type 'BigDecimal'",
+        false);
 
-    /*
-    named_struct keys can be expression that can constant fold to a string
-    in Apache Spark, we do not support it for simplicity
-
-    scala> spark.sql("select named_struct('k' || '1', 1) as s").printSchema
-    root
-     |-- s: struct (nullable = false)
-     |    |-- k1: integer (nullable = false)
-    */
+    // named_struct keys can be expression that can constant fold to a string
+    // in Apache Spark, we do not support it for simplicity
+    // scala> spark.sql("select named_struct('k' || '1', 1) as s").printSchema
+    // root
+    //  |-- s: struct (nullable = false)
+    //  |    |-- k1: integer (nullable = false)
     f.checkFails(
-      "^named_struct('k1', 1, 'k' || '1', 2)^",
-      "named_struct key is not a string literal, got an expression",
-      false);
+        "^named_struct('k1', 1, 'k' || '1', 2)^",
+        "named_struct key is not a string literal, got an expression",
+        false);
   }
 
   @Test void testArrayValueConstructor() {
