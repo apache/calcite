@@ -758,6 +758,11 @@ public class SqlFunctions {
     return s.length();
   }
 
+  /** SQL OCTET_LENGTH(string) function. */
+  public static int octetLength(String s) {
+    return s.getBytes(UTF_8).length;
+  }
+
   /** SQL CHARACTER_LENGTH(string) function. */
   public static int charLength(String s) {
     return s.length();

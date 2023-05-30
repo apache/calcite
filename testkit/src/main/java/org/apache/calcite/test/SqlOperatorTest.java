@@ -3853,7 +3853,18 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.OCTET_LENGTH, VmName.EXPAND);
     f.checkScalarExact("OCTET_LENGTH(x'aabbcc')", 3);
+    f.checkScalarExact("OCTET_LENGTH('aa')", 2);
     f.checkNull("OCTET_LENGTH(cast(null as varbinary(1)))");
+    f.checkNull("OCTET_LENGTH(cast(null as varchar))");
+  }
+
+  @Test void testByteLengthFunc() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    f.setFor(SqlLibraryOperators.BYTE_LENGTH);
+    f.checkScalarExact("BYTE_LENGTH(x'aabbcc')", 3);
+    f.checkScalarExact("BYTE_LENGTH('aa')", 2);
+    f.checkNull("BYTE_LENGTH(cast(null as varbinary(1)))");
+    f.checkNull("BYTE_LENGTH(cast(null as varchar))");
   }
 
   @Test void testAsciiFunc() {

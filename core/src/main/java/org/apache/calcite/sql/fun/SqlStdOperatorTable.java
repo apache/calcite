@@ -1615,10 +1615,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction CHARACTER_LENGTH =
       CHAR_LENGTH.withName("CHARACTER_LENGTH");
 
-  public static final SqlFunction OCTET_LENGTH =
+  public static final SqlBasicFunction OCTET_LENGTH =
       SqlBasicFunction.create("OCTET_LENGTH",
           ReturnTypes.INTEGER_NULLABLE,
-          OperandTypes.BINARY,
+          OperandTypes.STRING,
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction UPPER =

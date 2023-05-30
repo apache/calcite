@@ -1379,7 +1379,7 @@ Not implemented:
 | Operator syntax | Description
 |:--------------- |:-----------
 | binary &#124;&#124; binary | Concatenates two binary strings
-| OCTET_LENGTH(binary) | Returns the number of bytes in *binary*
+| OCTET_LENGTH(value) | Returns the number of bytes in *value*, *value* could be string or binary
 | POSITION(binary1 IN binary2) | Returns the position of the first occurrence of *binary1* in *binary2*
 | POSITION(binary1 IN binary2 FROM integer) | Returns the position of the first occurrence of *binary1* in *binary2* starting at a given point (not standard SQL)
 | OVERLAY(binary1 PLACING binary2 FROM integer [ FOR integer2 ]) | Replaces a substring of *binary1* with *binary2*
@@ -2660,6 +2660,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | s | ARRAY_SIZE(array)                              | Synonym for `CARDINALITY`
 | * | ASINH(numeric)                                 | Returns the inverse hyperbolic sine of *numeric*
 | * | ATANH(numeric)                                 | Returns the inverse hyperbolic tangent of *numeric*
+| b | BYTE_LENGTH(value)                             | Synonym for `OCTET_LENGTH`
 | m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
 | b o p | CHR(integer)                               | Returns the character whose UTF-8 code is *integer*
 | o | CONCAT(string, string)                         | Concatenates two strings
