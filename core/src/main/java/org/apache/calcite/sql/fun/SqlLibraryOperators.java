@@ -43,8 +43,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Static;
 
@@ -833,7 +833,7 @@ public abstract class SqlLibraryOperators {
       throw operatorBinding.newError(Static.RESOURCE.namedStructRequiresTwoOrMoreArgs());
     }
     if (operatorBinding.getOperandCount() % 2 != 0) {
-      throw operatorBinding.newError(Static.RESOURCE.namedStructRequiresEvenNumberOfArgs()); 
+      throw operatorBinding.newError(Static.RESOURCE.namedStructRequiresEvenNumberOfArgs());
     }
     List<String> keys = new ArrayList<String>();
     List<RelDataType> values = new ArrayList<RelDataType>();
@@ -843,16 +843,14 @@ public abstract class SqlLibraryOperators {
         Object key = operatorBinding.getOperandLiteralValue(i, Object.class);
         if (key == null) {
           throw operatorBinding.newError(
-            Static.RESOURCE.namedStructRequiresLiteralStringKeysGotExpression()
-          );
+            Static.RESOURCE.namedStructRequiresLiteralStringKeysGotExpression());
         }
         if (key instanceof NlsString) {
           keys.add(((NlsString) key).getValue());
         } else {
           String tpe = key.getClass().getSimpleName();
           throw operatorBinding.newError(
-            Static.RESOURCE.namedStructRequiresLiteralStringKeysGotOtherType(tpe)
-          );
+            Static.RESOURCE.namedStructRequiresLiteralStringKeysGotOtherType(tpe));
         }
 
       } else {

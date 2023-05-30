@@ -7916,30 +7916,25 @@ public class SqlOperatorTest {
     f.checkFails(
       "^named_struct()^",
       "named_struct requires at least 2 arguments",
-      false
-    );
+      false);
 
     f.checkFails(
       "^named_struct('k1', 1, 'k2')^",
       "named_struct requires an even number for arguments",
-      false
-    );
+      false);
 
     f.checkType(
       "named_struct('k', 1)",
-      "RecordType(INTEGER NOT NULL k) NOT NULL"
-    );
+      "RecordType(INTEGER NOT NULL k) NOT NULL");
 
     f.checkType(
       "named_struct('k1', 1, 'k2', 2)",
-      "RecordType(INTEGER NOT NULL k1, INTEGER NOT NULL k2) NOT NULL"
-    );
-    
+      "RecordType(INTEGER NOT NULL k1, INTEGER NOT NULL k2) NOT NULL");
+
     f.checkFails(
       "^named_struct('k1', 1, 2, 3)^",
       "named_struct key is not a string literal, found type: 'BigDecimal'",
-      false
-    );
+      false);
 
     /*
     named_struct keys can be expression that can constant fold to a string
@@ -7953,8 +7948,7 @@ public class SqlOperatorTest {
     f.checkFails(
       "^named_struct('k1', 1, 'k' || '1', 2)^",
       "named_struct key is not a string literal, got an expression",
-      false
-    );
+      false);
   }
 
   @Test void testArrayValueConstructor() {
