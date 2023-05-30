@@ -49,6 +49,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.isSortByOrdinal();
   }
 
+  @Override public boolean isSortByLiteralAllowed() {
+    return SqlConformanceEnum.DEFAULT.isSortByLiteralAllowed();
+  }
+
   @Override public boolean isSortByAlias() {
     return SqlConformanceEnum.DEFAULT.isSortByAlias();
   }
