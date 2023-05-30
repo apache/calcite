@@ -862,7 +862,7 @@ public abstract class SqlLibraryOperators {
     return typeFactory.createStructType(values, keys);
   }
 
-  /** */
+  /** Creates a struct with the given field names and values. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction NAMED_STRUCT =
       SqlBasicFunction.create("NAMED_STRUCT",
