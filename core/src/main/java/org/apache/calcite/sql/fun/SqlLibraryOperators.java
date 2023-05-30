@@ -1524,9 +1524,9 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
           "SHIFTLEFT",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER,
+          ReturnTypes.INTEGER_NULLABLE,
           null,
           OperandTypes.family(SqlTypeFamily.INTEGER,
               SqlTypeFamily.INTEGER),
-          SqlFunctionCategory.SYSTEM);
+          SqlFunctionCategory.NUMERIC);
 }

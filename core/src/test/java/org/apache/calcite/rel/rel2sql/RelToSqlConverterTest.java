@@ -11943,4 +11943,16 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
+
+  @Test public void testShiftLeft() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftLeftRexNode = builder.call(SqlLibraryOperators.SHIFTLEFT,
+        builder.literal(3), builder.literal(2));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftLeftRexNode, "FD"))
+        .build();
+    final String expectedBigQuery = "SELECT 3 << 2 AS FD";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
 }
