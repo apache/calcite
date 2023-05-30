@@ -11970,5 +11970,28 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracle));
   }
+  
+  @Test public void testCountSetWithLiteralParameter() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode rexNode = builder.call(SqlLibraryOperators.BIT_COUNT,
+        builder.literal(7));
+    RelNode root = builder
+        .project(rexNode)
+        .build();
+    final String expectedBQSql = "SELECT BIT_COUNT(7) AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
 
+  @Test public void testCountSetWithFieldParameter() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode rexNode = builder.call(SqlLibraryOperators.BIT_COUNT,
+        builder.field(0));
+    RelNode root = builder
+        .project(rexNode)
+        .build();
+    final String expectedBQSql = "SELECT BIT_COUNT(EMPNO) AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
 }
