@@ -116,6 +116,7 @@ public class RelOptRules {
           CoreRules.JOIN_CONDITION_PUSH,
           AbstractConverter.ExpandConversionRule.INSTANCE,
           CoreRules.JOIN_COMMUTE,
+          CoreRules.AGGREGATE_TO_SEMI_JOIN,
           CoreRules.PROJECT_TO_SEMI_JOIN,
           CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN,
           CoreRules.JOIN_TO_SEMI_JOIN,

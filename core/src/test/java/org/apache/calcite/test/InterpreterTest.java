@@ -513,7 +513,7 @@ class InterpreterTest {
         .returnsRows("[1, a]", "[3, c]");
   }
 
-  @Test void testInterpretSemiJoin() {
+  @Test void testInterpretProjectSemiJoin() {
     final String sql = "select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
         + "where x in\n"
         + "(select x from (values (1, 'd'), (3, 'g')) as t2(x, y))";
@@ -530,6 +530,31 @@ class InterpreterTest {
       final MyDataContext dataContext =
           new MyDataContext(rootSchema, relNode);
       assertInterpret(relNode, dataContext, true, "[1, a]", "[3, c]");
+    } catch (ValidationException
+        | SqlParseException
+        | RelConversionException e) {
+      throw Util.throwAsRuntime(e);
+    }
+  }
+
+  @Test void testInterpretAggregateSemiJoin() {
+    final String sql = "select y, sum(x) from (values (1, 'a'), (2, 'a'), (3, 'c')) as t(x, y)\n"
+        + "where x in\n"
+        + "(select x from (values (1, 'd'), (2, 'a'), (3, 'g')) as t2(x, y))\n"
+        + "group by y";
+    try (Planner planner =
+             sql(sql).withSqlToRel(c -> c.withExpand(true)).createPlanner()) {
+      SqlNode validate = planner.validate(planner.parse(sql));
+      RelNode convert = planner.rel(validate).rel;
+      final HepProgram program = new HepProgramBuilder()
+          .addRuleInstance(CoreRules.AGGREGATE_TO_SEMI_JOIN)
+          .build();
+      final HepPlanner hepPlanner = new HepPlanner(program);
+      hepPlanner.setRoot(convert);
+      final RelNode relNode = hepPlanner.findBestExp();
+      final MyDataContext dataContext =
+          new MyDataContext(rootSchema, relNode);
+      assertInterpret(relNode, dataContext, true, "[a, 3]", "[c, 3]");
     } catch (ValidationException
         | SqlParseException
         | RelConversionException e) {

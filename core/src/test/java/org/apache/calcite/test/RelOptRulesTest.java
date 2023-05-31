@@ -1211,7 +1211,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testSemiJoinRule() {
+  @Test void testProjectSemiJoinRule() {
     final String sql = "select dept.* from dept join (\n"
         + "  select distinct deptno from emp\n"
         + "  where sal > 100) using (deptno)";
@@ -1222,6 +1222,23 @@ class RelOptRulesTest extends RelOptTestBase {
             CoreRules.FILTER_INTO_JOIN,
             CoreRules.PROJECT_MERGE)
         .withRule(CoreRules.PROJECT_TO_SEMI_JOIN)
+        .check();
+  }
+
+  @Test void testAggregateSemiJoinRule() {
+    final String sql = "select dept.deptno, count(*)\n"
+        + "from dept join (\n"
+        + "  select distinct deptno from emp\n"
+        + "  where sal > 100) using (deptno)\n"
+        + "group by dept.deptno";
+    sql(sql)
+        .withDecorrelate(true)
+        .withTrim(true)
+        .withPreRule(CoreRules.FILTER_PROJECT_TRANSPOSE,
+            CoreRules.AGGREGATE_PROJECT_MERGE,
+            CoreRules.FILTER_INTO_JOIN,
+            CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.AGGREGATE_TO_SEMI_JOIN)
         .check();
   }
 
@@ -1297,7 +1314,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  /** Similar to {@link #testSemiJoinRule()} but LEFT. */
+  /** Similar to {@link #testProjectSemiJoinRule()} but LEFT. */
   @Test void testSemiJoinRuleLeft() {
     final String sql = "select name from dept left join (\n"
         + "  select distinct deptno from emp\n"
@@ -6072,6 +6089,13 @@ class RelOptRulesTest extends RelOptTestBase {
    * SemiJoinRule throws AssertionError on ANTI join</a>. */
   @Test void testProjectToSemiJoinRuleOnAntiJoin() {
     checkSemiJoinRuleOnAntiJoin(CoreRules.PROJECT_TO_SEMI_JOIN);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4621">[CALCITE-4621]
+   * SemiJoinRule throws AssertionError on ANTI join</a>. */
+  @Test void testAggregateToSemiJoinRuleOnAntiJoin() {
+    checkSemiJoinRuleOnAntiJoin(CoreRules.AGGREGATE_TO_SEMI_JOIN);
   }
 
   private void checkSemiJoinRuleOnAntiJoin(RelOptRule rule) {

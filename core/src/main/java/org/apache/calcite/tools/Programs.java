@@ -89,6 +89,7 @@ public class Programs {
           EnumerableRules.ENUMERABLE_VALUES_RULE,
           EnumerableRules.ENUMERABLE_WINDOW_RULE,
           EnumerableRules.ENUMERABLE_MATCH_RULE,
+          CoreRules.AGGREGATE_TO_SEMI_JOIN,
           CoreRules.PROJECT_TO_SEMI_JOIN,
           CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN,
           CoreRules.JOIN_TO_SEMI_JOIN,

@@ -968,6 +968,48 @@ LogicalProject(MGR=[$0], SUM_SAL=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAggregateSemiJoinRule">
+    <Resource name="sql">
+      <![CDATA[select dept.deptno, count(*)
+from dept join (
+  select distinct deptno from emp
+  where sal > 100) using (deptno)
+group by dept.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{7}])
+      LogicalFilter(condition=[>($5, 100)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
+  LogicalJoin(condition=[=($0, $8)], joinType=[semi])
+    LogicalProject(DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalFilter(condition=[>($5, 100)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testAggregateToSemiJoinRuleOnAntiJoin">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DNAME=[$1])
+  LogicalJoin(condition=[=($0, $3)], joinType=[anti])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAggregateUnionTransposeWithAllInputsUnique">
     <Resource name="sql">
       <![CDATA[select deptno, SUM(t) from (
@@ -7342,6 +7384,33 @@ LogicalProject(EXPR$0=[ROW_NUMBER() OVER (ORDER BY $0)], COL1=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testProjectSemiJoinRule">
+    <Resource name="sql">
+      <![CDATA[select dept.* from dept join (
+  select distinct deptno from emp
+  where sal > 100) using (deptno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$7])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalJoin(condition=[=($0, $2)], joinType=[semi])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+  LogicalProject(DEPTNO=[$7])
+    LogicalFilter(condition=[>($5, 100)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testProjectSetOpTranspose">
     <Resource name="sql">
       <![CDATA[select job, sum(sal + 100) over (partition by deptno) from
@@ -12619,33 +12688,6 @@ LogicalProject(SAL=[$0])
       LogicalFilter(condition=[=($0, 100)])
         LogicalProject(SAL=[$5], DEPTNO=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testSemiJoinRule">
-    <Resource name="sql">
-      <![CDATA[select dept.* from dept join (
-  select distinct deptno from emp
-  where sal > 100) using (deptno)]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalProject(DEPTNO=[$0], NAME=[$1])
-  LogicalJoin(condition=[=($0, $2)], joinType=[inner])
-    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-    LogicalAggregate(group=[{0}])
-      LogicalProject(DEPTNO=[$7])
-        LogicalFilter(condition=[>($5, 100)])
-          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-    </Resource>
-    <Resource name="planAfter">
-      <![CDATA[
-LogicalJoin(condition=[=($0, $2)], joinType=[semi])
-  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-  LogicalProject(DEPTNO=[$7])
-    LogicalFilter(condition=[>($5, 100)])
-      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

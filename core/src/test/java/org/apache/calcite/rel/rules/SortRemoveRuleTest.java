@@ -154,6 +154,7 @@ public final class SortRemoveRuleTest {
   @Test void removeSortOverEnumerableSemiJoin() throws Exception {
     RuleSet prepareRules =
         RuleSets.ofList(CoreRules.SORT_PROJECT_TRANSPOSE,
+            CoreRules.AGGREGATE_TO_SEMI_JOIN,
             CoreRules.PROJECT_TO_SEMI_JOIN,
             CoreRules.JOIN_TO_SEMI_JOIN,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
