@@ -11957,6 +11957,20 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testOracleToNumber() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexNode toNumberNode = relBuilder.call(SqlLibraryOperators.ORACLE_TO_NUMBER,
+        relBuilder.literal("1.789"),
+        relBuilder.literal("9D999"));
+    RelNode root = relBuilder
+        .project(toNumberNode)
+        .build();
+    final String expectedOracleSql = "SELECT TO_NUMBER('1.789', '9D999') \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
   @Test public void testOracleNextDayFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.ORACLE_NEXT_DAY,
