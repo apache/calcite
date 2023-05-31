@@ -920,7 +920,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_NUMBER(string1, string2)" function; casts string1
    * as hexadecimal to a NUMBER using the format specified in string2. */
-  @LibraryOperator(libraries = {TERADATA, POSTGRESQL, ORACLE})
+  @LibraryOperator(libraries = {TERADATA, POSTGRESQL})
   public static final SqlFunction TO_NUMBER =
       new SqlFunction(
         "TO_NUMBER",
