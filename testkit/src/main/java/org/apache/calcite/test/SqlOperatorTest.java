@@ -5377,17 +5377,22 @@ public class SqlOperatorTest {
     f.checkNull("array_repeat(1, null)");
   }
 
-  /** Tests {@code ARRAY_REVERSE} function from BigQuery. */
+  /** Tests {@code ARRAY_REVERSE} function from BigQuery and Spark. */
   @Test void testArrayReverseFunc() {
-    SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.ARRAY_REVERSE)
-        .withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkScalar("array_reverse(array[1])", "[1]",
-        "INTEGER NOT NULL ARRAY NOT NULL");
-    f.checkScalar("array_reverse(array[1, 2])", "[2, 1]",
-        "INTEGER NOT NULL ARRAY NOT NULL");
-    f.checkScalar("array_reverse(array[null, 1])", "[1, null]",
-        "INTEGER ARRAY NOT NULL");
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.ARRAY_REVERSE);
+    f0.checkFails("^array_reverse(array[1])^",
+        "No match found for function signature ARRAY_REVERSE\\(<INTEGER ARRAY>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar("array_reverse(array[1])", "[1]",
+          "INTEGER NOT NULL ARRAY NOT NULL");
+      f.checkScalar("array_reverse(array[1, 2])", "[2, 1]",
+          "INTEGER NOT NULL ARRAY NOT NULL");
+      f.checkScalar("array_reverse(array[null, 1])", "[1, null]",
+          "INTEGER ARRAY NOT NULL");
+      f.checkNull("array_reverse(null)");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.SPARK), consumer);
   }
 
   /** Tests {@code ARRAY_SIZE} function from Spark. */

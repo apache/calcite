@@ -868,7 +868,7 @@ public abstract class SqlLibraryOperators {
               OperandTypes.ANY, OperandTypes.typeName(SqlTypeName.INTEGER)));
 
   /** The "ARRAY_REVERSE(array)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
   public static final SqlFunction ARRAY_REVERSE =
       SqlBasicFunction.create(SqlKind.ARRAY_REVERSE,
           ReturnTypes.ARG0_NULLABLE,
