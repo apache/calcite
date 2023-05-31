@@ -11961,7 +11961,9 @@ class RelToSqlConverterTest {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
     final RexNode formatNode = relBuilder.literal("DAY");
-    RexNode roundNode = relBuilder.call(SqlLibraryOperators.ORACLE_ROUND, literalTimestamp, formatNode);
+    RexNode roundNode = relBuilder.call(SqlLibraryOperators.ORACLE_ROUND,
+        literalTimestamp,
+        formatNode);
     RelNode root = relBuilder
         .project(roundNode)
         .build();
