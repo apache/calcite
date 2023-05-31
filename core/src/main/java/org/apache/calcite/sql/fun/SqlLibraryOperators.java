@@ -867,7 +867,8 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction NAMED_STRUCT =
       SqlBasicFunction.create("NAMED_STRUCT",
           SqlLibraryOperators::namedStructReturnType,
-          OperandTypes.SAME_VARIADIC);
+          OperandTypes.SAME_VARIADIC)
+          .withKind(SqlKind.STRUCT_CONSTRUCTOR);
 
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
     RelDataType type =
