@@ -835,8 +835,8 @@ public abstract class SqlLibraryOperators {
     if (operatorBinding.getOperandCount() % 2 != 0) {
       throw operatorBinding.newError(Static.RESOURCE.namedStructRequiresEvenNumberOfArgs());
     }
-    List<String> keys = new ArrayList<String>();
-    List<RelDataType> values = new ArrayList<RelDataType>();
+    final List<String> keys = new ArrayList<String>();
+    final List<RelDataType> values = new ArrayList<RelDataType>();
     int i = 0;
     for (RelDataType type : operatorBinding.collectOperandTypes()) {
       if (i % 2 == 0) {
