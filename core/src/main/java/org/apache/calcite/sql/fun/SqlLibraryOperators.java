@@ -828,6 +828,7 @@ public abstract class SqlLibraryOperators {
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT2);
 
+  // TODO: check SqlMapValueConstructor.{inferReturnType, checkOperandTypes}
   private static RelDataType namedStructReturnType(SqlOperatorBinding operatorBinding) {
     if (operatorBinding.getOperandCount() < 2) {
       throw operatorBinding.newError(Static.RESOURCE.namedStructRequiresTwoOrMoreArgs());
@@ -867,7 +868,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction NAMED_STRUCT =
       SqlBasicFunction.create("NAMED_STRUCT",
           SqlLibraryOperators::namedStructReturnType,
-          OperandTypes.SAME_VARIADIC)
+          OperandTypes.VARIADIC)
           .withKind(SqlKind.STRUCT_CONSTRUCTOR);
 
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {

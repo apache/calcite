@@ -168,6 +168,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAX_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MIN_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.NAMED_STRUCT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ORDINAL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
@@ -597,6 +598,7 @@ public class RexImpTable {
           new PeriodNameImplementor("monthName",
               BuiltInMethod.MONTHNAME_WITH_TIMESTAMP,
               BuiltInMethod.MONTHNAME_WITH_DATE));
+
       defineMethod(TIMESTAMP_SECONDS, "timestampSeconds", NullPolicy.STRICT);
       defineMethod(TIMESTAMP_MILLIS, "timestampMillis", NullPolicy.STRICT);
       defineMethod(TIMESTAMP_MICROS, "timestampMicros", NullPolicy.STRICT);
@@ -714,6 +716,7 @@ public class RexImpTable {
       final RexCallImplementor value = new ValueConstructorImplementor();
       map.put(MAP_VALUE_CONSTRUCTOR, value);
       map.put(ARRAY_VALUE_CONSTRUCTOR, value);
+      map.put(NAMED_STRUCT, value);
       defineMethod(ARRAY, BuiltInMethod.ARRAYS_AS_LIST.method, NullPolicy.NONE);
 
       // ITEM operator
@@ -3086,6 +3089,28 @@ public class RexImpTable {
                       Expressions.box(key), Expressions.box(value))));
         }
         return map;
+      case STRUCT_CONSTRUCTOR:
+        System.out.println(call);
+        System.out.println(argValueList);
+
+        for (Expression value : argValueList) {
+          System.out.println(value.getClass());
+        }
+
+
+        // Expression struct =
+        //     blockBuilder.append("struct", Expressions.new_(LinkedHashMap.class),
+        //         false);
+        // for (int i = 0; i < argValueList.size(); i++) {
+        //   Expression key = argValueList.get(i++);
+        //   Expression value = argValueList.get(i);
+        //   blockBuilder.add(
+        //       Expressions.statement(
+        //           Expressions.call(struct, BuiltInMethod.MAP_PUT.method,
+        //               Expressions.box(key), Expressions.box(value))));
+        // }
+        return null;
+
       case ARRAY_VALUE_CONSTRUCTOR:
         Expression lyst =
             blockBuilder.append("list", Expressions.new_(ArrayList.class),
