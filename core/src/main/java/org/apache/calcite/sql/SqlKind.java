@@ -704,6 +704,9 @@ public enum SqlKind {
   /** {@code MAP_VALUES} function (Spark semantics). */
   MAP_VALUES,
 
+  /** {@code MAP_FROM_ARRAYS} function (Spark semantics). */
+  MAP_FROM_ARRAYS,
+
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
 

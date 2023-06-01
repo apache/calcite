@@ -466,6 +466,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker ARRAY =
       family(SqlTypeFamily.ARRAY);
 
+  public static final SqlSingleOperandTypeChecker ARRAY_ARRAY =
+      family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY);
+
   public static final SqlSingleOperandTypeChecker ARRAY_OR_MAP =
       OperandTypes.family(SqlTypeFamily.ARRAY)
           .or(OperandTypes.family(SqlTypeFamily.MAP))

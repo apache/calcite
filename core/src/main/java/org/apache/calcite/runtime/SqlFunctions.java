@@ -92,6 +92,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -3915,6 +3916,23 @@ public class SqlFunctions {
   /** Support the MAP_VALUES function. */
   public static List mapValues(Map map) {
     return new ArrayList<>(map.values());
+  }
+
+  /** Support the MAP_FROM_ARRAYS function. */
+  public static Map mapFromArrays(List keysArray, List valuesArray) {
+    if (keysArray.size() != valuesArray.size()) {
+      throw new IllegalArgumentException(
+          "Invalid function MAP_FROM_ARRAYS call:\n"
+              + "The length of the keys array "
+              + keysArray.size()
+              + " is not equal to the length of the values array "
+              + valuesArray.size());
+    }
+    final Map map = new LinkedHashMap<>();
+    for (int i = 0; i < keysArray.size(); i++) {
+      map.put(keysArray.get(i), valuesArray.get(i));
+    }
+    return map;
   }
 
   /** Support the SLICE function. */

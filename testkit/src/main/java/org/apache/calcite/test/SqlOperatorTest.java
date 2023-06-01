@@ -5479,6 +5479,35 @@ public class SqlOperatorTest {
         "INTEGER ARRAY NOT NULL");
   }
 
+  /** Tests {@code MAP_FROM_ARRAYS} function from Spark. */
+  @Test void testMapFromArraysFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.MAP_FROM_ARRAYS);
+    f0.checkFails("^map_from_arrays(array[1, 2], array['foo', 'bar'])^",
+        "No match found for function signature MAP_FROM_ARRAYS\\(<INTEGER ARRAY>, "
+            + "<CHAR\\(3\\) ARRAY>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("map_from_arrays(array[1, 2], array['foo', 'bar'])", "{1=foo, 2=bar}",
+        "(INTEGER NOT NULL, CHAR(3) NOT NULL) MAP NOT NULL");
+    f.checkScalar("map_from_arrays(array[1, 1, null], array['foo', 'bar', 'name'])",
+        "{1=bar, null=name}", "(INTEGER, CHAR(4) NOT NULL) MAP NOT NULL");
+    f.checkScalar("map_from_arrays(array(), array())",
+        "{}", "(UNKNOWN NOT NULL, UNKNOWN NOT NULL) MAP NOT NULL");
+    f.checkType("map_from_arrays(cast(null as integer array), array['foo', 'bar'])",
+        "(INTEGER NOT NULL, CHAR(3) NOT NULL) MAP");
+    f.checkNull("map_from_arrays(cast(null as integer array), array['foo', 'bar'])");
+
+    f.checkFails("^map_from_arrays(array[1, 2], 2)^",
+        "Cannot apply 'MAP_FROM_ARRAYS' to arguments of type 'MAP_FROM_ARRAYS\\(<INTEGER ARRAY>,"
+            + " <INTEGER>\\)'. Supported form\\(s\\): 'MAP_FROM_ARRAYS\\(<ARRAY>, <ARRAY>\\)'",
+        false);
+    f.checkFails("map_from_arrays(array[1, 2], array['foo'])",
+        "Invalid function MAP_FROM_ARRAYS call:\n"
+            + "The length of the keys array 2 is not equal to the length of the values array 1",
+        true);
+  }
+
   /** Tests {@code UNIX_SECONDS} and other datetime functions from BigQuery. */
   @Test void testUnixSecondsFunc() {
     SqlOperatorFixture f = fixture()
