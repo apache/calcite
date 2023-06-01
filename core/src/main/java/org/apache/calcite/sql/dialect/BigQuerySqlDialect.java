@@ -1243,8 +1243,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseShiftLeft(SqlWriter writer, SqlCall call) {
     call.operand(0).unparse(writer, 0, 0);
-    writer.print(SHIFTLEFT);
-    writer.print(" ");
+    writer.print(SHIFTLEFT + " ");
     call.operand(1).unparse(writer, 0, 0);
   }
 
