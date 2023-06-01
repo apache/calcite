@@ -62,6 +62,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.IllformedLocaleException;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
@@ -741,8 +742,14 @@ public final class SqlParserUtil {
     }
 
     Charset charset = SqlUtil.getCharset(charsetStr);
-    Locale locale = Locale.forLanguageTag(UNDERSCORE.matcher(localeStr).replaceAll("-"));
-    return new ParsedCollation(charset, locale, strength);
+    try {
+      Locale locale =
+          new Locale.Builder().setLanguageTag(
+              UNDERSCORE.matcher(localeStr).replaceAll("-")).build();
+      return new ParsedCollation(charset, locale, strength);
+    } catch (IllformedLocaleException e) {
+      throw new AssertionError("bad locale string '" + localeStr + "'", e);
+    }
   }
 
   @Deprecated // to be removed before 2.0

@@ -90,6 +90,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.IllformedLocaleException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -1718,7 +1719,15 @@ public class Util {
    * @return Java locale object
    */
   public static Locale parseLocale(String localeString) {
-    return Locale.forLanguageTag(UNDERSCORE.matcher(localeString).replaceAll("-"));
+    if (localeString.isEmpty()) {
+      return Locale.ROOT;
+    }
+    try {
+      return new Locale.Builder().setLanguageTag(
+          UNDERSCORE.matcher(localeString).replaceAll("-")).build();
+    } catch (IllformedLocaleException e) {
+      throw new AssertionError("bad locale string '" + localeString + "'", e);
+    }
   }
 
   /**
