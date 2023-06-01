@@ -203,6 +203,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA256;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA512;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SINH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SORT_ARRAY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
@@ -702,6 +703,7 @@ public class RexImpTable {
       defineMethod(MAP_KEYS, BuiltInMethod.MAP_KEYS.method, NullPolicy.STRICT);
       defineMethod(MAP_VALUES, BuiltInMethod.MAP_VALUES.method, NullPolicy.STRICT);
       map.put(ARRAY_CONCAT, new ArrayConcatImplementor());
+      map.put(SORT_ARRAY, new SortArrayImplementor());
       final MethodImplementor isEmptyImplementor =
           new MethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.NONE,
               false);
@@ -3066,6 +3068,27 @@ public class RexImpTable {
         final RexCall call, final List<Expression> argValueList) {
       assert call.getOperands().size() == 1;
       return argValueList.get(0);
+    }
+  }
+
+  /** Implementor for sort_array. */
+  private static class SortArrayImplementor extends AbstractRexCallImplementor {
+    SortArrayImplementor() {
+      super("sort_array", NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator,
+        RexCall call, List<Expression> argValueList) {
+      if (argValueList.size() == 2) {
+        return Expressions.call(
+            BuiltInMethod.SORT_ARRAY.method,
+            argValueList);
+      } else {
+        return Expressions.call(
+            BuiltInMethod.SORT_ARRAY.method,
+            argValueList.get(0),
+            Expressions.constant(true));
+      }
     }
   }
 

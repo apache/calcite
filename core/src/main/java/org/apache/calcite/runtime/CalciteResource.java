@@ -576,6 +576,9 @@ public interface CalciteResource {
   @BaseMessage("Argument to function ''{0}'' must be a literal")
   ExInst<SqlValidatorException> argumentMustBeLiteral(String a0);
 
+  @BaseMessage("Argument to function ''{0}'' must be a boolean literal")
+  ExInst<SqlValidatorException> argumentMustBeBooleanLiteral(String a0);
+
   @BaseMessage("Argument to function ''{0}'' must be a positive integer literal")
   ExInst<SqlValidatorException> argumentMustBePositiveInteger(String a0);
 

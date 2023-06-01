@@ -937,6 +937,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.LEAST_RESTRICTIVE,
           OperandTypes.AT_LEAST_ONE_SAME_VARIADIC);
 
+  /** The "SORT_ARRAY(array)" function (Spark). */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction SORT_ARRAY =
+      SqlBasicFunction.create(SqlKind.SORT_ARRAY,
+          ReturnTypes.ARG0_NULLABLE,
+          OperandTypes.ARRAY.or(OperandTypes.ARRAY_BOOLEAN_LITERAL));
+
   /** The "MAP_ENTRIES(map)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction MAP_ENTRIES =

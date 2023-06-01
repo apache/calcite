@@ -634,6 +634,7 @@ public enum BuiltInMethod {
   ARRAY_MIN(SqlFunctions.class, "arrayMin", List.class),
   ARRAY_REPEAT(SqlFunctions.class, "repeat", Object.class, Integer.class),
   ARRAY_REVERSE(SqlFunctions.class, "reverse", List.class),
+  SORT_ARRAY(SqlFunctions.class, "sortArray", List.class, boolean.class),
   MAP_ENTRIES(SqlFunctions.class, "mapEntries", Map.class),
   MAP_KEYS(SqlFunctions.class, "mapKeys", Map.class),
   MAP_VALUES(SqlFunctions.class, "mapValues", Map.class),
