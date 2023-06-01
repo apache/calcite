@@ -76,6 +76,8 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.BasicSqlTypeWithFormat;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
@@ -4306,7 +4308,7 @@ class RelToSqlConverterTest {
         + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
     final String expect0 = "SELECT *\n"
         + "FROM foodmart.employee\n"
-        + "WHERE TIMESTAMP_SUB(hire_date, INTERVAL 19800 SECOND)"
+        + "WHERE DATETIME_SUB(hire_date, INTERVAL 19800 SECOND)"
         + " > CAST('2005-10-17 00:00:00' AS DATETIME)";
     sql(sql0).withBigQuery().ok(expect0);
 
@@ -4315,7 +4317,7 @@ class RelToSqlConverterTest {
         + "where  \"hire_date\" + INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
     final String expect1 = "SELECT *\n"
         + "FROM foodmart.employee\n"
-        + "WHERE hire_date + INTERVAL 10 HOUR > CAST('2005-10-17 00:00:00' AS DATETIME)";
+        + "WHERE DATETIME_ADD(hire_date, INTERVAL 10 HOUR) > CAST('2005-10-17 00:00:00' AS DATETIME)";
     sql(sql1).withBigQuery().ok(expect1);
 
     final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
@@ -6470,7 +6472,8 @@ class RelToSqlConverterTest {
   @Test public void testIntervalMinute() {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL\n"
             + "'2' minute from \"employee\"";
-    final String expectedBigQuery = "SELECT CAST(birth_date AS DATETIME) + INTERVAL 2 MINUTE\n"
+    final String expectedBigQuery = "SELECT "
+        + "DATETIME_ADD(CAST(birth_date AS DATETIME), INTERVAL 2 MINUTE)\n"
             + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
@@ -6480,7 +6483,8 @@ class RelToSqlConverterTest {
   @Test public void testIntervalHour() {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL\n"
             + "'2' hour from \"employee\"";
-    final String expectedBigQuery = "SELECT CAST(birth_date AS DATETIME) + INTERVAL 2 HOUR\n"
+    final String expectedBigQuery = "SELECT "
+        + "DATETIME_ADD(CAST(birth_date AS DATETIME), INTERVAL 2 HOUR)\n"
             + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
@@ -6489,7 +6493,8 @@ class RelToSqlConverterTest {
   @Test public void testIntervalSecond() {
     String query = "select cast(\"birth_date\" as timestamp) + INTERVAL '2'\n"
             + "second from \"employee\"";
-    final String expectedBigQuery = "SELECT CAST(birth_date AS DATETIME) + INTERVAL 2 SECOND\n"
+    final String expectedBigQuery = "SELECT "
+        + "DATETIME_ADD(CAST(birth_date AS DATETIME), INTERVAL 2 SECOND)\n"
         + "FROM foodmart.employee";
     sql(query)
             .withBigQuery()
@@ -8280,6 +8285,52 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowFlake));
+  }
+
+  @Test public void testUnparseOfDateFromUnixDateWithFloorFunctionAsOperand() {
+    final RelBuilder builder = relBuilder();
+    builder.scan("EMP");
+    final RexNode epochSeconds = builder.cast(builder.literal("'20091223'"),
+        SqlTypeName.INTEGER);
+    final RexNode epochDays = builder.call(SqlStdOperatorTable.FLOOR,
+        builder.call(SqlStdOperatorTable.DIVIDE, epochSeconds, builder.literal(86400)));
+    final RexNode dateFromUnixDate = builder.call(
+        SqlLibraryOperators.DATE_FROM_UNIX_DATE, epochDays);
+    final RelNode root = builder
+        .project(builder.alias(dateFromUnixDate, "unix_date"))
+        .build();
+    final String expectedSql = "SELECT DATE_FROM_UNIX_DATE(FLOOR(CAST('''20091223''' AS INTEGER) "
+        + "/ 86400)) AS \"unix_date\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATE_FROM_UNIX_DATE(CAST(FLOOR(CAST"
+        + "('\\'20091223\\'' AS INT64) / 86400) AS INTEGER)) AS unix_date\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testDateFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode dateRex0 = builder.call(SqlLibraryOperators.DATE,
+        builder.literal("1970-02-02 01:02:03"));
+    RexNode dateRex1 = builder.call(SqlLibraryOperators.DATE,
+        builder.literal("1970-02-02"));
+    RexNode dateRex2 = builder.call(SqlLibraryOperators.DATE,
+        builder.literal("DATE '1970-02-02'"));
+    RexNode dateRex3 = builder.call(SqlLibraryOperators.DATE,
+        builder.literal("TIMESTAMP '1970-02-02 01:02:03'"));
+    final String expectedBigQuery = "SELECT DATE('1970-02-02 01:02:03') AS date0, DATE"
+        + "('1970-02-02') AS date1, DATE('DATE \\'1970-02-02\\'') AS date2, DATE('TIMESTAMP "
+        + "\\'1970-02-02 01:02:03\\'') AS date3\n"
+        + "FROM scott.EMP";
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateRex0, "date0"), builder.alias(dateRex1, "date1"),
+            builder.alias(dateRex2, "date2"), builder.alias(dateRex3, "date3"))
+        .build();
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
   }
 
   @Test public void testDOMAndDOY() {
@@ -10344,7 +10395,7 @@ class RelToSqlConverterTest {
         .project(builder.alias(createRexNode, "FD"))
         .build();
     final String expectedBiqQuery =
-        "SELECT CAST('1999-07-01 15:00:00-08:00' AS DATETIME) + INTERVAL 1 MICROSECOND AS FD\n"
+        "SELECT DATETIME_ADD(CAST('1999-07-01 15:00:00-08:00' AS DATETIME), INTERVAL 1 MICROSECOND) AS FD\n"
             + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
@@ -10361,7 +10412,7 @@ class RelToSqlConverterTest {
         .project(builder.alias(createRexNode, "FD"))
         .build();
     final String expectedBiqQuery =
-        "SELECT TIMESTAMP_SUB(CAST('1999-07-01 15:00:00-08:00' AS DATETIME), "
+        "SELECT DATETIME_SUB(CAST('1999-07-01 15:00:00-08:00' AS DATETIME), "
             + "INTERVAL 1 MICROSECOND) AS FD\n"
             + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
@@ -11688,6 +11739,24 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testToChar() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode toCharNode = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+        builder.literal("MM-DD-YYYY HH24:MI:SS"));
+    final RexNode toCharWithNumber = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.literal(1000), builder.literal("9999"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(toCharNode, toCharWithNumber)
+        .build();
+    final String expectedSparkQuery = "SELECT TO_CHAR(CURRENT_TIMESTAMP, 'MM-DD-YYYY HH24:MI:SS')"
+        + " \"$f0\", TO_CHAR(1000, '9999') \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedSparkQuery));
+  }
+
   @Test public void testToDateforOracle() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode oracleToDateCall = builder.call(SqlLibraryOperators.ORACLE_TO_DATE,
@@ -11795,6 +11864,114 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
+
+  @Test public void testCurrentTimestampWithTimeZone() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode currentTimestampRexNode = builder.call(
+        SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE,
+        builder.literal(6));
+    RelNode root = builder
+        .project(currentTimestampRexNode)
+        .build();
+
+    final String expectedBQSql = "SELECT CURRENT_TIMESTAMP() AS `$f0`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testMonthsBetween() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode dateTruncNode = builder.call(SqlLibraryOperators.MONTHS_BETWEEN,
+        builder.call(CURRENT_TIMESTAMP),
+        builder.call(CURRENT_TIMESTAMP));
+    RelNode root = builder
+        .project(dateTruncNode)
+        .build();
+    final String expectedOracleSql =
+        "SELECT MONTHS_BETWEEN(CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) \"$f0\"\n"
+            + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testArithmeticOnTimestamp() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    final RexLiteral intervalLiteral = rexBuilder.makeIntervalLiteral(BigDecimal.valueOf(2),
+        new SqlIntervalQualifier(MONTH, null, SqlParserPos.ZERO));
+    final RexNode oracleMinusTimestampCall = relBuilder.call(SqlStdOperatorTable.MINUS,
+        relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), intervalLiteral);
+    RelNode root = relBuilder
+        .project(oracleMinusTimestampCall)
+        .build();
+
+    final String expectedBQSql = "SELECT DATETIME_SUB(CURRENT_DATETIME(), INTERVAL 2 MONTH) AS "
+        + "`$f0`\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testCastWithFormat() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexBuilder rexBuilder = builder.getRexBuilder();
+    RexLiteral format = builder.literal("9999.9999");
+    final RelDataType varcharRelType = builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    final RelDataType type = BasicSqlTypeWithFormat.from(RelDataTypeSystem.DEFAULT,
+        (BasicSqlType) varcharRelType,
+        format.getValueAs(String.class));
+    final RexNode castCall = rexBuilder.makeCast(type, builder.literal(1234), false);
+    RelNode root = builder
+        .project(castCall)
+        .build();
+    final String expectedBQSql = "SELECT CAST(1234 AS STRING FORMAT '9999.9999') AS `$f0`\n"
+                                     + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testOracleToTimestamp() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode toTimestampNode = builder.call(SqlLibraryOperators.ORACLE_TO_TIMESTAMP,
+        builder.literal("January 15, 1989, 11:00:06 AM"),
+        builder.literal("MONTH DD, YYYY, hh:mi:ss AM"));
+    final RexNode toTimestampNodeWithOnlyLiteral = builder.call(
+        SqlLibraryOperators.ORACLE_TO_TIMESTAMP,
+        builder.literal("04-JAN-2001"));
+    RelNode root = builder
+        .project(toTimestampNode, toTimestampNodeWithOnlyLiteral)
+        .build();
+    final String expectedOracleSql = "SELECT TO_TIMESTAMP('January 15, 1989, 11:00:06 AM', 'MONTH"
+        + " DD, YYYY, hh:mi:ss AM') \"$f0\", TO_TIMESTAMP('04-JAN-2001') \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testOracleLastDay() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
+    RexNode lastDayNode = relBuilder.call(SqlLibraryOperators.ORACLE_LAST_DAY, literalTimestamp);
+    RelNode root = relBuilder
+        .project(lastDayNode)
+        .build();
+    final String expectedOracleSql = "SELECT LAST_DAY(CURRENT_TIMESTAMP) \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testOracleNextDayFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.ORACLE_NEXT_DAY,
+        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.SATURDAY.name()));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nextDayRexNode, "next_day"))
+        .build();
+    final String expectedOracle = "SELECT NEXT_DAY(CURRENT_DATE, 'SATURDAY') \"next_day\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracle));
+  }
+
 
   @Test void testProjectOverProjectRule() {
     final RelBuilder builder = relBuilder();
