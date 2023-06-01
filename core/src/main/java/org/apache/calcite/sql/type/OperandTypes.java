@@ -497,6 +497,71 @@ public abstract class OperandTypes {
       new LiteralOperandTypeChecker(false);
 
   /**
+   * Operand type-checking strategy type must be a boolean non-NULL literal.
+   */
+  public static final SqlSingleOperandTypeChecker BOOLEAN_LITERAL =
+      new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.BOOLEAN),
+          i -> false) {
+        @Override public boolean checkSingleOperandType(
+            SqlCallBinding callBinding,
+            SqlNode operand,
+            int iFormalOperand,
+            boolean throwOnFailure) {
+          if (!LITERAL.checkSingleOperandType(
+              callBinding,
+              operand,
+              iFormalOperand,
+              throwOnFailure)) {
+            return false;
+          }
+
+          if (!super.checkSingleOperandType(
+              callBinding,
+              operand,
+              iFormalOperand,
+              throwOnFailure)) {
+            return false;
+          }
+
+          final SqlLiteral arg = (SqlLiteral) operand;
+          final boolean isBooleanLiteral =
+              SqlLiteral.valueMatchesType(arg.getValue(), SqlTypeName.BOOLEAN);
+
+          if (!isBooleanLiteral) {
+            if (throwOnFailure) {
+              throw callBinding.newError(
+                  RESOURCE.argumentMustBeBooleanLiteral(
+                      callBinding.getOperator().getName()));
+            }
+            return false;
+          }
+          return true;
+        }
+      };
+
+  /**
+   * Operand type-checking strategy where the first operand must be array and
+   * the second operand must be a boolean non-NULL literal.
+   */
+  public static final SqlSingleOperandTypeChecker
+      ARRAY_BOOLEAN_LITERAL =
+      new FamilyOperandTypeChecker(
+          ImmutableList.of(SqlTypeFamily.ARRAY, SqlTypeFamily.BOOLEAN),
+          i -> false) {
+        @Override public boolean checkSingleOperandType(
+            SqlCallBinding callBinding, SqlNode operand,
+            int iFormalOperand, boolean throwOnFailure) {
+          if (iFormalOperand == 0) {
+            return super.checkSingleOperandType(callBinding, operand,
+                iFormalOperand, throwOnFailure);
+          }
+
+          return BOOLEAN_LITERAL.checkSingleOperandType(
+              callBinding, operand, 0, throwOnFailure);
+        }
+      };
+
+  /**
    * Operand type-checking strategy type must be a positive integer non-NULL
    * literal.
    */

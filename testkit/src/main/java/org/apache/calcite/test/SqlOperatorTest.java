@@ -5437,6 +5437,39 @@ public class SqlOperatorTest {
     f.checkNull("array_length(null)");
   }
 
+  /** Tests {@code SORT_ARRAY} function from Spark. */
+  @Test void testSortArrayFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.SORT_ARRAY);
+    f0.checkFails("^sort_array(array[null, 1, null, 2])^",
+        "No match found for function signature SORT_ARRAY\\(<INTEGER ARRAY>\\)", false);
+    f0.checkFails("^sort_array(array[null, 1, null, 2], true)^",
+        "No match found for function signature SORT_ARRAY\\(<INTEGER ARRAY>, <BOOLEAN>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("sort_array(array[2, null, 1])", "[null, 1, 2]",
+        "INTEGER ARRAY NOT NULL");
+    f.checkScalar("sort_array(array(2, null, 1), false)", "[2, 1, null]",
+        "INTEGER ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[true, false, null])", "[null, false, true]",
+        "BOOLEAN ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[true, false, null], false)", "[true, false, null]",
+        "BOOLEAN ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[null])", "[null]",
+        "NULL ARRAY NOT NULL");
+    f.checkScalar("sort_array(array())", "[]",
+        "UNKNOWN NOT NULL ARRAY NOT NULL");
+    f.checkNull("sort_array(null)");
+
+    f.checkFails("^sort_array(array[2, null, 1], cast(1 as boolean))^",
+        "Argument to function 'SORT_ARRAY' must be a literal", false);
+    f.checkFails("^sort_array(array[2, null, 1], 1)^",
+        "Cannot apply 'SORT_ARRAY' to arguments of type "
+            + "'SORT_ARRAY\\(<INTEGER ARRAY>, <INTEGER>\\)'\\."
+            + " Supported form\\(s\\): 'SORT_ARRAY\\(<ARRAY>\\)'\n"
+            + "'SORT_ARRAY\\(<ARRAY>, <BOOLEAN>\\)'", false);
+  }
+
   /** Tests {@code MAP_ENTRIES} function from Spark. */
   @Test void testMapEntriesFunc() {
     final SqlOperatorFixture f0 = fixture();

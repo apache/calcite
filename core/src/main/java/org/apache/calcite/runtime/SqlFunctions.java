@@ -3898,6 +3898,15 @@ public class SqlFunctions {
     return Collections.nCopies(numberOfElement, element);
   }
 
+  /** Support the SORT_ARRAY function. */
+  public static List sortArray(List list, boolean ascending) {
+    Comparator comparator = ascending
+        ? Comparator.nullsFirst(Comparator.naturalOrder())
+        : Comparator.nullsLast(Comparator.reverseOrder());
+    list.sort(comparator);
+    return list;
+  }
+
   /** Support the MAP_ENTRIES function. */
   public static List mapEntries(Map<Object, Object> map) {
     final List result = new ArrayList(map.size());
