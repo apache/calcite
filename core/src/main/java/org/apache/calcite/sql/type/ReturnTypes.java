@@ -629,6 +629,22 @@ public abstract class ReturnTypes {
       ARG0.andThen(SqlTypeTransforms.TO_MAP);
 
   /**
+   * Returns a MAP type.
+   *
+   * <p>For example, given {@code STRING}, returns
+   * {@code (STRING, STRING) MAP}.
+   */
+  public static final SqlReturnTypeInference IDENTITY_TO_MAP =
+      ARG0.andThen(SqlTypeTransforms.IDENTITY_TO_MAP);
+
+  /**
+   * Same as {@link #IDENTITY_TO_MAP} but returns with nullability if any of the
+   * operands is nullable.
+   */
+  public static final SqlReturnTypeInference IDENTITY_TO_MAP_NULLABLE =
+      IDENTITY_TO_MAP.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
    * Returns a ROW type.
    *
    * <p>For example, given {@code (INTEGER, DATE) MAP}, returns

@@ -245,6 +245,17 @@ public abstract class SqlTypeTransforms {
               typeToTransform);
 
   /**
+   * Parameter type-inference transform strategy that converts a type to a MAP type,
+   * which key and value type is same.
+   *
+   * @see org.apache.calcite.rel.type.RelDataTypeFactory#createMapType
+   */
+  public static final SqlTypeTransform IDENTITY_TO_MAP =
+      (opBinding, typeToTransform) ->
+          SqlTypeUtil.createMapType(opBinding.getTypeFactory(),
+              typeToTransform, typeToTransform, false);
+
+  /**
    * Parameter type-inference transform strategy that converts a MAP type
    * to a two-field record type.
    *

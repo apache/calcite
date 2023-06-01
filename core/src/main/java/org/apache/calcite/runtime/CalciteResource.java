@@ -900,6 +900,9 @@ public interface CalciteResource {
   @BaseMessage("Substring error: negative substring length not allowed")
   ExInst<CalciteException> illegalNegativeSubstringLength();
 
+  @BaseMessage("Illegal arguments: The length of the keys array {0,number,#} is not equal to the length of the values array {1,number,#} in MAP_FROM_ARRAYS function")
+  ExInst<CalciteException> illegalArgumentsInMapFromArraysFunc(int arg0, int arg1);
+
   @BaseMessage("Trim error: trim character must be exactly 1 character")
   ExInst<CalciteException> trimError();
 
