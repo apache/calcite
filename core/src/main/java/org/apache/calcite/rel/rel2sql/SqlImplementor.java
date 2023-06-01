@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -1707,16 +1708,24 @@ public abstract class SqlImplementor {
     private final boolean needNew;
     private RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
 
+    private final int bloat;
+
     public Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
         @Nullable RelDataType neededType, Map<String, RelDataType> aliases) {
       this(node, clauses, neededAlias, neededType, aliases, false, false,
-          ImmutableSet.of(), null);
+          ImmutableSet.of(), null, 100);
+    }
+
+    public Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
+        @Nullable RelDataType neededType, Map<String, RelDataType> aliases, int bloat) {
+      this(node, clauses, neededAlias, neededType, aliases, false, false,
+          ImmutableSet.of(), null, bloat);
     }
 
     private Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
         @Nullable RelDataType neededType, Map<String, RelDataType> aliases, boolean anon,
         boolean ignoreClauses, Set<Clause> expectedClauses,
-        @Nullable RelNode expectedRel) {
+        @Nullable RelNode expectedRel, int bloat) {
       this.node = node;
       this.neededAlias = neededAlias;
       this.neededType = neededType;
@@ -1728,6 +1737,7 @@ public abstract class SqlImplementor {
       this.expectedRel = expectedRel;
       final Set<Clause> clauses2 =
           ignoreClauses ? ImmutableSet.of() : expectedClauses;
+      this.bloat = bloat;
       this.needNew = expectedRel != null
           && needNewSubQuery(expectedRel, this.clauses, clauses2);
     }
@@ -2189,6 +2199,18 @@ public abstract class SqlImplementor {
         return true;
       }
 
+      if (rel instanceof Project && rel.getInput(0) instanceof Project) {
+        Project topProject = (Project) rel;
+        Project bottomProject = (Project) rel.getInput(0);
+        List<RexNode> mergedNodes =
+            RelOptUtil.pushPastProjectUnlessBloat(topProject.getProjects(), bottomProject, bloat);
+        if (mergedNodes == null) {
+          // The merged expression is more complex than the input expressions.
+          // Do not merge.
+          return true;
+        }
+      }
+
       return false;
     }
 
@@ -2437,7 +2459,7 @@ public abstract class SqlImplementor {
       } else {
         return new Result(node, clauses, neededAlias, neededType,
             ImmutableMap.of(neededAlias, castNonNull(neededType)), anon, ignoreClauses,
-            expectedClauses, expectedRel);
+            expectedClauses, expectedRel, bloat);
       }
     }
 
@@ -2450,14 +2472,14 @@ public abstract class SqlImplementor {
     public Result resetAlias(String alias, RelDataType type) {
       return new Result(node, clauses, alias, neededType,
           ImmutableMap.of(alias, type), anon, ignoreClauses,
-          expectedClauses, expectedRel);
+          expectedClauses, expectedRel, bloat);
     }
 
     /** Returns a copy of this Result, overriding the value of {@code anon}. */
     Result withAnon(boolean anon) {
       return anon == this.anon ? this
           : new Result(node, clauses, neededAlias, neededType, aliases, anon,
-              ignoreClauses, expectedClauses, expectedRel);
+              ignoreClauses, expectedClauses, expectedRel, bloat);
     }
 
     /** Returns a copy of this Result, overriding the value of
@@ -2469,7 +2491,7 @@ public abstract class SqlImplementor {
           && expectedRel == this.expectedRel
           ? this
           : new Result(node, clauses, neededAlias, neededType, aliases, anon,
-              ignoreClauses, ImmutableSet.copyOf(expectedClauses), expectedRel);
+              ignoreClauses, ImmutableSet.copyOf(expectedClauses), expectedRel, bloat);
     }
   }
 
