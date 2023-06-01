@@ -11970,16 +11970,15 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracle));
   }
-  
+
   @Test public void testCountSetWithLiteralParameter() {
-    RelBuilder builder = relBuilder().scan("EMP");
+    RelBuilder builder = relBuilder();
     final RexNode rexNode = builder.call(SqlLibraryOperators.BIT_COUNT,
         builder.literal(7));
-    RelNode root = builder
-        .project(rexNode)
+    RelNode root = builder.values(new String[]{""}, 1)
+        .project(builder.alias(rexNode, "number"))
         .build();
-    final String expectedBQSql = "SELECT BIT_COUNT(7) AS `$f0`"
-        + "\nFROM scott.EMP";
+    final String expectedBQSql = "SELECT BIT_COUNT(7) AS number";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
@@ -11988,9 +11987,9 @@ class RelToSqlConverterTest {
     final RexNode rexNode = builder.call(SqlLibraryOperators.BIT_COUNT,
         builder.field(0));
     RelNode root = builder
-        .project(rexNode)
+        .project(builder.alias(rexNode, "emp_no"))
         .build();
-    final String expectedBQSql = "SELECT BIT_COUNT(EMPNO) AS `$f0`"
+    final String expectedBQSql = "SELECT BIT_COUNT(EMPNO) AS emp_no"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
