@@ -2731,7 +2731,7 @@ public abstract class EnumerableDefaults {
         if (offset > 0) {
           // search the key up to (but excluding) which we have to remove entries from the map
           int skipped = 0;
-          TKey until = null;
+          TKey until = (TKey) DUMMY;
           for (Map.Entry<TKey, List<TSource>> e : map.entrySet()) {
             skipped += e.getValue().size();
 
@@ -2747,7 +2747,7 @@ public abstract class EnumerableDefaults {
               break;
             }
           }
-          if (until == null) {
+          if (until == DUMMY) {
             // the offset is bigger than the number of rows in the map
             return Linq4j.emptyEnumerator();
           }

@@ -54,7 +54,7 @@ class LimitSortTest {
       int a = n < 2 ? 0 : rnd.nextInt(n / 2);
       String k = Integer.toString(a, Character.MAX_RADIX);
       Row r = new Row();
-      r.key = "" + k;
+      r.key = rnd.nextBoolean() ? null : ("" + k);
       r.index = i;
       return r;
     });
@@ -82,7 +82,10 @@ class LimitSortTest {
     int tmp = rnd.nextInt(10_000);
     int offset = Math.max(0, (int) (tmp - .1 * tmp));
 
-    Comparator<String> cmp = Comparator.<String>naturalOrder()::compare;
+    Comparator<String> natural = Comparator.naturalOrder();
+    Comparator<String> cmp
+        = rnd.nextBoolean() ? Comparator.nullsFirst(natural) : Comparator.nullsLast(natural);
+
     Enumerable<Row> ordered =
         EnumerableDefaults.orderBy(this.enumerable(seed),
             s -> s.key,
@@ -100,7 +103,7 @@ class LimitSortTest {
       Row left = result.get(i - 1);
       Row right = result.get(i);
       // use left < right instead of <=, as rows might not appear twice
-      assertTrue(isSmaller(left, right),
+      assertTrue(isSmaller(left, right, cmp),
           "The following elements have not been ordered correctly: " + left + " " + right);
     }
 
@@ -121,9 +124,9 @@ class LimitSortTest {
     int actFetch = 0;
     for (Row r : (Iterable<Row>) this.rowStream(seed)::iterator) {
       totalItems++;
-      if (isSmaller(r, first)) {
+      if (isSmaller(r, first, cmp)) {
         actOffset++;
-      } else if (isSmallerEq(r, last)) {
+      } else if (isSmallerEq(r, last, cmp)) {
         actFetch++;
       }
     }
@@ -137,25 +140,25 @@ class LimitSortTest {
   }
 
   /** A comparison function that takes the order of creation into account. */
-  private static boolean isSmaller(Row left, Row right) {
+  private static boolean isSmaller(Row left, Row right, Comparator<String> cmp) {
     if (right == null) {
       return true;
     }
 
-    int c = left.key.compareTo(right.key);
+    int c = cmp.compare(left.key, right.key);
     if (c != 0) {
       return c < 0;
     }
     return left.index < right.index;
   }
 
-  /** See {@link #isSmaller(Row, Row)}. */
-  private static boolean isSmallerEq(Row left, Row right) {
+  /** See {@link #isSmaller(Row, Row, Comparator)}. */
+  private static boolean isSmallerEq(Row left, Row right, Comparator<String> cmp) {
     if (right == null) {
       return true;
     }
 
-    int c = left.key.compareTo(right.key);
+    int c = cmp.compare(left.key, right.key);
     if (c != 0) {
       return c < 0;
     }
