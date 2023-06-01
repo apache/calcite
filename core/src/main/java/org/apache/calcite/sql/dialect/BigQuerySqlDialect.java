@@ -306,6 +306,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static final String SHIFTRIGHT = ">>";
   private static final String XOR = "^";
   private static final String SHIFTLEFT = "<<";
+  private static final String BITNOT = "~";
 
   @Override public String quoteIdentifier(String val) {
     return quoteIdentifier(new StringBuilder(), val).toString();
@@ -1138,6 +1139,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "BITWISE_XOR":
       unparseBitwiseFunctions(writer, call, XOR, leftPrec, rightPrec);
       break;
+    case "BITNOT":
+      unparseBitNotFunction(writer, call, leftPrec, rightPrec);
+      break;
     case "INT2SHR":
       unparseInt2shFunctions(writer, call, SHIFTRIGHT, leftPrec, rightPrec);
       break;
@@ -1226,6 +1230,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseBitNotFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    writer.print(BITNOT);
+    writer.print(" ");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
   }
 
   private void unParseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

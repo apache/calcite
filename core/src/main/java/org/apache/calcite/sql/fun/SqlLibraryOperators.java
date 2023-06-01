@@ -1540,4 +1540,11 @@ public abstract class SqlLibraryOperators {
           OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {SNOWFLAKE, ORACLE})
+  public static final SqlFunction BITNOT =
+          new SqlFunction("BITNOT",
+                  SqlKind.OTHER_FUNCTION,
+                  ReturnTypes.INTEGER, null,
+                  OperandTypes.family(SqlTypeFamily.NUMERIC),
+                  SqlFunctionCategory.NUMERIC);
 }
