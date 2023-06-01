@@ -1041,6 +1041,31 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.TO_MAP_VALUES_NULLABLE,
           OperandTypes.MAP);
 
+  private static RelDataType deriveTypeMapFromArrays(SqlOperatorBinding opBinding) {
+    final RelDataType keysArrayType = opBinding.getOperandType(0);
+    final RelDataType valuesArrayType = opBinding.getOperandType(1);
+    final boolean nullable = keysArrayType.isNullable() || valuesArrayType.isNullable();
+    return SqlTypeUtil.createMapType(
+        opBinding.getTypeFactory(),
+        requireNonNull(keysArrayType.getComponentType(), "inferred key type"),
+        requireNonNull(valuesArrayType.getComponentType(), "inferred value type"),
+        nullable);
+  }
+
+  /** The "MAP_FROM_ARRAYS(keysArray, valuesArray)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction MAP_FROM_ARRAYS =
+      SqlBasicFunction.create(SqlKind.MAP_FROM_ARRAYS,
+          SqlLibraryOperators::deriveTypeMapFromArrays,
+          OperandTypes.ARRAY_ARRAY);
+
+  /** The "STR_TO_MAP(string[, stringDelimiter[, keyValueDelimiter]])" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction STR_TO_MAP =
+      SqlBasicFunction.create(SqlKind.STR_TO_MAP,
+          ReturnTypes.IDENTITY_TO_MAP_NULLABLE,
+          OperandTypes.STRING_OPTIONAL_STRING_OPTIONAL_STRING);
+
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL})
   public static final SqlFunction REVERSE =
       SqlBasicFunction.create(SqlKind.REVERSE,

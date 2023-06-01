@@ -5688,6 +5688,82 @@ public class SqlOperatorTest {
         "INTEGER ARRAY NOT NULL");
   }
 
+  /** Tests {@code MAP_FROM_ARRAYS} function from Spark. */
+  @Test void testMapFromArraysFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.MAP_FROM_ARRAYS);
+    f0.checkFails("^map_from_arrays(array[1, 2], array['foo', 'bar'])^",
+        "No match found for function signature MAP_FROM_ARRAYS\\(<INTEGER ARRAY>, "
+            + "<CHAR\\(3\\) ARRAY>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("map_from_arrays(array[1, 2], array['foo', 'bar'])", "{1=foo, 2=bar}",
+        "(INTEGER NOT NULL, CHAR(3) NOT NULL) MAP NOT NULL");
+    f.checkScalar("map_from_arrays(array[1, 1, null], array['foo', 'bar', 'name'])",
+        "{1=bar, null=name}", "(INTEGER, CHAR(4) NOT NULL) MAP NOT NULL");
+    f.checkScalar("map_from_arrays(array(), array())",
+        "{}", "(UNKNOWN NOT NULL, UNKNOWN NOT NULL) MAP NOT NULL");
+    f.checkType("map_from_arrays(cast(null as integer array), array['foo', 'bar'])",
+        "(INTEGER NOT NULL, CHAR(3) NOT NULL) MAP");
+    f.checkNull("map_from_arrays(cast(null as integer array), array['foo', 'bar'])");
+
+    f.checkFails("^map_from_arrays(array[1, 2], 2)^",
+        "Cannot apply 'MAP_FROM_ARRAYS' to arguments of type 'MAP_FROM_ARRAYS\\(<INTEGER ARRAY>,"
+            + " <INTEGER>\\)'. Supported form\\(s\\): 'MAP_FROM_ARRAYS\\(<ARRAY>, <ARRAY>\\)'",
+        false);
+    f.checkFails("^map_from_arrays(2, array[1, 2])^",
+        "Cannot apply 'MAP_FROM_ARRAYS' to arguments of type 'MAP_FROM_ARRAYS\\(<INTEGER>,"
+            + " <INTEGER ARRAY>\\)'. Supported form\\(s\\): 'MAP_FROM_ARRAYS\\(<ARRAY>, <ARRAY>\\)'",
+        false);
+    f.checkFails("map_from_arrays(^array[1, '1', true]^, array['a', 'b', 'c'])",
+        "Parameters must be of the same type",
+        false);
+    f.checkFails("map_from_arrays(array['a', 'b', 'c'], ^array[1, '1', true]^)",
+        "Parameters must be of the same type",
+        false);
+    f.checkFails("map_from_arrays(array[1, 2], array['foo'])",
+        "Illegal arguments: The length of the keys array 2 is not equal to the length "
+            + "of the values array 1 in MAP_FROM_ARRAYS function",
+        true);
+  }
+
+  /** Tests {@code STR_TO_MAP} function from Spark. */
+  @Test void testStrToMapFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.STR_TO_MAP);
+    f0.checkFails("^str_to_map('a=1,b=2', ',', '=')^",
+        "No match found for function signature STR_TO_MAP\\("
+            + "<CHARACTER>, <CHARACTER>, <CHARACTER>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("str_to_map('a=1,b=2', ',', '=')", "{a=1, b=2}",
+        "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
+    f.checkScalar("str_to_map('a:1,b:2')", "{a=1, b=2}",
+        "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
+    f.checkScalar("str_to_map('a:1,b:2', ',')", "{a=1, b=2}",
+        "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
+    f.checkScalar("str_to_map('a=1&b=2', '&', '=')", "{a=1, b=2}",
+        "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
+    f.checkScalar("str_to_map('k#2%v#3', '%', '#')", "{k=2, v=3}",
+        "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
+    f.checkScalar("str_to_map('a:1&b:2', '&')", "{a=1, b=2}",
+        "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
+    f.checkScalar("str_to_map('k:2%v:3', '%')", "{k=2, v=3}",
+        "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
+    f.checkScalar("str_to_map('a')", "{a=null}",
+        "(CHAR(1) NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL");
+    f.checkScalar("str_to_map('a,b,c')", "{a=null, b=null, c=null}",
+        "(CHAR(5) NOT NULL, CHAR(5) NOT NULL) MAP NOT NULL");
+    f.checkScalar("str_to_map('a-b--c', '--')", "{a-b=null, c=null}",
+        "(CHAR(6) NOT NULL, CHAR(6) NOT NULL) MAP NOT NULL");
+    f.checkType("str_to_map(cast(null as varchar))",
+        "(VARCHAR, VARCHAR) MAP");
+    f.checkNull("str_to_map(cast(null as varchar))");
+    f.checkNull("str_to_map(null, ',', ':')");
+    f.checkNull("str_to_map('a:1,b:2,c:3', null, ':')");
+    f.checkNull("str_to_map('a:1,b:2,c:3', ',',null)");
+  }
+
   /** Tests {@code UNIX_SECONDS} and other datetime functions from BigQuery. */
   @Test void testUnixSecondsFunc() {
     SqlOperatorFixture f = fixture()
@@ -8332,6 +8408,7 @@ public class SqlOperatorTest {
     // empty array is illegal per SQL spec. presumably because one can't
     // infer type
     f.checkFails("^Array[]^", "Require at least 1 argument", false);
+    f.checkFails("^array[1, '1', true]^", "Parameters must be of the same type", false);
   }
 
   /** Test case for {@link SqlLibraryOperators#ARRAY} (Spark). */

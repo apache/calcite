@@ -181,6 +181,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_ENTRIES;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_FROM_ARRAYS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_KEYS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_VALUES;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAX_BY;
@@ -215,6 +216,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STARTS_WITH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRCMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.STR_TO_MAP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TANH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP;
@@ -428,6 +430,8 @@ public class RexImpTable {
       Expressions.constant(true);
   public static final ConstantExpression COMMA_EXPR =
       Expressions.constant(",");
+  public static final ConstantExpression COLON_EXPR =
+      Expressions.constant(":");
   public static final MemberExpression BOXED_FALSE_EXPR =
       Expressions.field(null, Boolean.class, "FALSE");
   public static final MemberExpression BOXED_TRUE_EXPR =
@@ -714,6 +718,8 @@ public class RexImpTable {
       defineMethod(MAP_ENTRIES, BuiltInMethod.MAP_ENTRIES.method, NullPolicy.STRICT);
       defineMethod(MAP_KEYS, BuiltInMethod.MAP_KEYS.method, NullPolicy.STRICT);
       defineMethod(MAP_VALUES, BuiltInMethod.MAP_VALUES.method, NullPolicy.STRICT);
+      defineMethod(MAP_FROM_ARRAYS, BuiltInMethod.MAP_FROM_ARRAYS.method, NullPolicy.ANY);
+      map.put(STR_TO_MAP, new StringToMapImplementor());
       map.put(ARRAY_CONCAT, new ArrayConcatImplementor());
       map.put(SORT_ARRAY, new SortArrayImplementor());
       final MethodImplementor isEmptyImplementor =
@@ -3136,6 +3142,37 @@ public class RexImpTable {
                         BuiltInMethod.COLLECTION_ADDALL.method, expression))));
       }
       return list;
+    }
+  }
+
+  /** Implementor for str_to_map. */
+  private static class StringToMapImplementor extends AbstractRexCallImplementor {
+    StringToMapImplementor() {
+      super("str_to_map", NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator,
+        RexCall call, List<Expression> argValueList) {
+      switch (call.getOperands().size()) {
+      case 1:
+        return Expressions.call(
+            BuiltInMethod.STR_TO_MAP.method,
+            argValueList.get(0),
+            COMMA_EXPR,
+            COLON_EXPR);
+      case 2:
+        return Expressions.call(
+            BuiltInMethod.STR_TO_MAP.method,
+            argValueList.get(0),
+            argValueList.get(1),
+            COLON_EXPR);
+      case 3:
+        return Expressions.call(
+            BuiltInMethod.STR_TO_MAP.method,
+            argValueList);
+      default:
+        throw new AssertionError();
+      }
     }
   }
 
