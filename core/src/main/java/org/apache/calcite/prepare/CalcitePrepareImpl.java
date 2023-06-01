@@ -837,9 +837,11 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         : origins.get(origins.size() - 1 - offsetFromEnd);
   }
 
+  @SuppressWarnings("dereference.of.nullable")
   private static int getTypeOrdinal(RelDataType type) {
     switch (type.getSqlTypeName()) {
     case MEASURE:
+      // getMeasureElementType() for MEASURE types will never be null
       return type.getMeasureElementType().getSqlTypeName().getJdbcOrdinal();
     default:
       return type.getSqlTypeName().getJdbcOrdinal();
