@@ -44,8 +44,7 @@ z.
 {: #breaking-1-35-0}
 
 The way of Locale parsing changed within [<a href="https://issues.apache.org/jira/browse/CALCITE-5567">CALCITE-5567</a>]
-Now locales are parsed according to IETF BCP 47 language tag string.
-This leads to the fact that some locales not satisfying IETF BCP 47 language tag string.
+Now locale's language tag should match IETF BCP 47 language tag or be empty.
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 18;
