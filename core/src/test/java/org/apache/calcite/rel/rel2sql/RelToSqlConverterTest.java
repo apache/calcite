@@ -11976,8 +11976,8 @@ class RelToSqlConverterTest {
     final RelBuilder builder = relBuilder();
     final RexNode bitNotRexNode = builder.call(BITNOT, builder.literal(10));
     final RelNode root = builder
-            .values(new String[]{""}, 1).project(builder
-            .alias(bitNotRexNode, "bit_not"))
+            .values(new String[]{""}, 1)
+            .project(builder.alias(bitNotRexNode, "bit_not"))
             .build();
     final String expectedBigQuery = "SELECT ~ 10 AS bit_not";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));

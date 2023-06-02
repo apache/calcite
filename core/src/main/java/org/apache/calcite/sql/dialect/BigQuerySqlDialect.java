@@ -1140,7 +1140,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseBitwiseFunctions(writer, call, XOR, leftPrec, rightPrec);
       break;
     case "BITNOT":
-      unparseBitNotFunction(writer, call, leftPrec, rightPrec);
+      unparseBitNotFunction(writer, call);
       break;
     case "INT2SHR":
       unparseInt2shFunctions(writer, call, SHIFTRIGHT, leftPrec, rightPrec);
@@ -1232,10 +1232,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
-  private void unparseBitNotFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  private void unparseBitNotFunction(SqlWriter writer, SqlCall call) {
     writer.print(BITNOT);
     writer.print(" ");
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    call.operand(0).unparse(writer, 0, 0);
   }
 
   private void unParseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
