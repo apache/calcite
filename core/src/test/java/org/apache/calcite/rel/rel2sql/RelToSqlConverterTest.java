@@ -11979,7 +11979,7 @@ class RelToSqlConverterTest {
             .values(new String[]{""}, 1)
             .project(builder.alias(bitNotRexNode, "bit_not"))
             .build();
-    final String expectedBigQuery = "SELECT ~ 10 AS bit_not";
+    final String expectedBigQuery = "SELECT ~ (10) AS bit_not";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
@@ -11990,7 +11990,7 @@ class RelToSqlConverterTest {
             .scan("EMP")
             .project(builder.alias(bitNotRexNode, "bit_not"))
             .build();
-    final String expectedSparkQuery = "SELECT ~ SAL AS bit_not\nFROM scott.EMP";
+    final String expectedSparkQuery = "SELECT ~ (SAL) AS bit_not\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
   }
 }
