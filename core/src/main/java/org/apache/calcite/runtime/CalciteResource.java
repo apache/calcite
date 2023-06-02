@@ -582,6 +582,9 @@ public interface CalciteResource {
   @BaseMessage("Validation Error: {0}")
   ExInst<CalciteException> validationError(String a0);
 
+  @BaseMessage("Locale ''{0}'' in an illegal format")
+  ExInst<CalciteException> illegalLocaleFormat(String a0);
+
   @BaseMessage("Argument to function ''{0}'' must not be NULL")
   ExInst<SqlValidatorException> argumentMustNotBeNull(String a0);
 

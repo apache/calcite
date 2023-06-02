@@ -748,7 +748,7 @@ public final class SqlParserUtil {
               UNDERSCORE.matcher(localeStr).replaceAll("-")).build();
       return new ParsedCollation(charset, locale, strength);
     } catch (IllformedLocaleException e) {
-      throw new AssertionError("bad locale string '" + localeStr + "'", e);
+      throw RESOURCE.illegalLocaleFormat(localeStr).ex();
     }
   }
 
