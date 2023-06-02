@@ -11971,4 +11971,63 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracle));
   }
 
+  @Test public void testShiftLeft() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftLeftRexNode = builder.call(SqlLibraryOperators.SHIFTLEFT,
+        builder.literal(3), builder.literal(2));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftLeftRexNode, "FD"))
+        .build();
+    final String expectedBigQuery = "SELECT 3 << 2 AS FD";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testShiftLeftWithNullInSecondArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftLeftRexNode = builder.call(SqlLibraryOperators.SHIFTLEFT,
+        builder.literal(3), builder.literal(null));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftLeftRexNode, "FD"))
+        .build();
+    final String expectedBigQuery = "SELECT 3 << NULL AS FD";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testShiftRight() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftRightRexNode = builder.call(SqlLibraryOperators.SHIFTRIGHT,
+        builder.literal(3), builder.literal(2));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftRightRexNode, "FD"))
+        .build();
+    final String expectedBigQuery = "SELECT 3 >> 2 AS FD";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testShiftRightWithNegativeValueInSecondArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftRightRexNode = builder.call(SqlLibraryOperators.SHIFTRIGHT,
+        builder.literal(3), builder.literal(-1));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftRightRexNode, "a"))
+        .build();
+    final String expectedBigQuery = "SELECT 3 << 1 AS a";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testShiftLeftWithNegativeValueInSecondArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftLeftRexNode = builder.call(SqlLibraryOperators.SHIFTLEFT,
+        builder.literal(3), builder.literal(-1));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftLeftRexNode, "a"))
+        .build();
+    final String expectedBigQuery = "SELECT 3 >> 1 AS a";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
 }
