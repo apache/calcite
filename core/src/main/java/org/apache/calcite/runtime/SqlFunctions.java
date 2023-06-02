@@ -4102,6 +4102,42 @@ public class SqlFunctions {
     return list;
   }
 
+  /** SQL {@code ARRAY_TO_STRING(array, delimiter)} function. */
+  public static String arrayToString(List list, String delimiter) {
+    return arrayToString(list, delimiter, null);
+  }
+
+  /** SQL {@code ARRAY_TO_STRING(array, delimiter, nullText)} function. */
+  public static String arrayToString(List list, String delimiter, @Nullable String nullText) {
+    StringBuilder sb = new StringBuilder();
+    boolean isFirst = true;
+    for (Object item : list) {
+      String str;
+      if (item == null) {
+        if (nullText == null) {
+          continue;
+        } else {
+          str = nullText;
+        }
+      } else if (item instanceof String) {
+        str = (String) item;
+      } else if (item instanceof ByteString) {
+        str = item.toString();
+      } else {
+        throw new IllegalStateException(
+            "arrayToString supports only String or ByteString, but got "
+                + item.getClass().getName());
+      }
+
+      if (!isFirst) {
+        sb.append(delimiter);
+      }
+      sb.append(str);
+      isFirst = false;
+    }
+    return sb.toString();
+  }
+
   /**
    * Function that, given a certain List containing single-item structs (i.e. arrays / lists with
    * a single item), builds an Enumerable that returns those single items inside the structs.

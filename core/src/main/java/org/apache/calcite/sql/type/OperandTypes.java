@@ -471,6 +471,33 @@ public abstract class OperandTypes {
           .or(OperandTypes.family(SqlTypeFamily.MAP))
           .or(OperandTypes.family(SqlTypeFamily.ANY));
 
+  public static final SqlOperandTypeChecker STRING_ARRAY_CHARACTER_OPTIONAL_CHARACTER =
+      new FamilyOperandTypeChecker(
+          ImmutableList.of(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER),
+          i -> i == 2) {
+        @SuppressWarnings("argument.type.incompatible")
+        @Override public boolean checkOperandTypes(
+            SqlCallBinding callBinding,
+            boolean throwOnFailure) {
+          if (!super.checkOperandTypes(callBinding, throwOnFailure)) {
+            return false;
+          }
+          RelDataType elementType = callBinding.getOperandType(0).getComponentType();
+          if (elementType == null || !SqlTypeUtil.isString(elementType)) {
+            if (throwOnFailure) {
+              throw callBinding.newValidationSignatureError();
+            }
+            return false;
+          }
+          return true;
+        }
+
+        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+          return opName + "(<STRING ARRAY>, <CHARACTER>[, <CHARACTER>])";
+        }
+      };
+
+
   /** Checks that returns whether a value is a multiset or an array.
    * Cf Java, where list and set are collections but a map is not. */
   public static final SqlSingleOperandTypeChecker COLLECTION =

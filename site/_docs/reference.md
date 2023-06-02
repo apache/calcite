@@ -2663,6 +2663,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | s | ARRAY_REPEAT(element, count)                   | Returns the array containing element count times.
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
 | s | ARRAY_SIZE(array)                              | Synonym for `CARDINALITY`
+| b | ARRAY_TO_STRING(array, delimiter [, nullText ])| Returns a concatenation of the elements in *array* as a STRING and take *delimiter* as the delimiter. If the *nullText* parameter is used, the function replaces any `NULL` values in the array with the value of *nullText*. If the *nullText* parameter is not used, the function omits the `NULL` value and its preceding delimiter
 | s | ARRAY_UNION(array1, array2)                    | Returns an array of the elements in the union of *array1* and *array2*, without duplicates
 | s | SORT_ARRAY(array [, ascendingOrder])           | Sorts the *array* in ascending or descending order according to the natural ordering of the array elements. The default order is ascending if *ascendingOrder* is not specified. Null elements will be placed at the beginning of the returned array in ascending order or at the end of the returned array in descending order
 | * | ASINH(numeric)                                 | Returns the inverse hyperbolic sine of *numeric*

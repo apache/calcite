@@ -964,6 +964,13 @@ public abstract class SqlLibraryOperators {
               OperandTypes.SAME_SAME,
               OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
 
+  /** The "ARRAY_TO_STRING(array, delimiter [, nullText ])" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ARRAY_TO_STRING =
+      SqlBasicFunction.create(SqlKind.ARRAY_TO_STRING,
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_ARRAY_CHARACTER_OPTIONAL_CHARACTER);
+
   /** The "SORT_ARRAY(array)" function (Spark). */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction SORT_ARRAY =
@@ -1009,8 +1016,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction TO_BASE64 =
       SqlBasicFunction.create("TO_BASE64",
-          ReturnTypes.explicit(SqlTypeName.VARCHAR)
-              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
@@ -1435,32 +1441,28 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL})
   public static final SqlFunction MD5 =
       SqlBasicFunction.create("MD5",
-          ReturnTypes.explicit(SqlTypeName.VARCHAR)
-              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL})
   public static final SqlFunction SHA1 =
       SqlBasicFunction.create("SHA1",
-          ReturnTypes.explicit(SqlTypeName.VARCHAR)
-              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
   public static final SqlFunction SHA256 =
       SqlBasicFunction.create("SHA256",
-          ReturnTypes.explicit(SqlTypeName.VARCHAR)
-              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
   public static final SqlFunction SHA512 =
       SqlBasicFunction.create("SHA512",
-          ReturnTypes.explicit(SqlTypeName.VARCHAR)
-              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
