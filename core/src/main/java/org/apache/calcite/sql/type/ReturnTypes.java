@@ -461,6 +461,19 @@ public abstract class ReturnTypes {
       VARCHAR_2000.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy that always returns "VARCHAR".
+   */
+  public static final SqlReturnTypeInference VARCHAR =
+      ReturnTypes.explicit(SqlTypeName.VARCHAR);
+
+  /**
+   * Type-inference strategy that always returns "VARCHAR" with nulls
+   * allowed if any of the operands allow nulls.
+   */
+  public static final SqlReturnTypeInference VARCHAR_NULLABLE =
+      VARCHAR.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
    * Type-inference strategy for Histogram agg support.
    */
   public static final SqlReturnTypeInference HISTOGRAM =

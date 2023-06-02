@@ -25,8 +25,6 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeFamily;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,8 +38,7 @@ public class SqlRegexpReplaceFunction extends SqlFunction {
 
   public SqlRegexpReplaceFunction() {
     super("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-        ReturnTypes.explicit(SqlTypeName.VARCHAR)
-            .andThen(SqlTypeTransforms.TO_NULLABLE),
+        ReturnTypes.VARCHAR_NULLABLE,
         null, null, SqlFunctionCategory.STRING);
   }
 

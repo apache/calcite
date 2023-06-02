@@ -713,6 +713,9 @@ public enum SqlKind {
   /** {@code ARRAY_SIZE} function (Spark semantics). */
   ARRAY_SIZE,
 
+  /** {@code ARRAY_TO_STRING} function (BigQuery semantics). */
+  ARRAY_TO_STRING,
+
   /** {@code ARRAY_UNION} function (Spark semantics). */
   ARRAY_UNION,
 

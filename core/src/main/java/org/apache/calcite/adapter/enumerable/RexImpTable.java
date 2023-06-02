@@ -131,6 +131,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_MIN;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_SIZE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_TO_STRING;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_UNION;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ASINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ATANH;
@@ -705,6 +706,7 @@ public class RexImpTable {
       defineMethod(ARRAY_REPEAT, BuiltInMethod.ARRAY_REPEAT.method, NullPolicy.NONE);
       defineMethod(ARRAY_REVERSE, BuiltInMethod.ARRAY_REVERSE.method, NullPolicy.STRICT);
       defineMethod(ARRAY_SIZE, BuiltInMethod.COLLECTION_SIZE.method, NullPolicy.STRICT);
+      defineMethod(ARRAY_TO_STRING, "arrayToString", NullPolicy.STRICT);
       defineMethod(ARRAY_UNION, BuiltInMethod.ARRAY_UNION.method, NullPolicy.ANY);
       defineMethod(MAP_ENTRIES, BuiltInMethod.MAP_ENTRIES.method, NullPolicy.STRICT);
       defineMethod(MAP_KEYS, BuiltInMethod.MAP_KEYS.method, NullPolicy.STRICT);

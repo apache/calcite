@@ -5511,6 +5511,31 @@ public class SqlOperatorTest {
     f.checkNull("array_length(null)");
   }
 
+  @Test void testArrayToStringFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_TO_STRING);
+    f0.checkFails("^array_to_string(array['aa', 'b', 'c'], '-')^", "No match found for function"
+        + " signature ARRAY_TO_STRING\\(<CHAR\\(2\\) ARRAY>, <CHARACTER>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("array_to_string(array['aa', 'b', 'c'], '-')", "aa-b-c",
+        "VARCHAR NOT NULL");
+    f.checkScalar("array_to_string(array[null, 'aa', null, 'b', null], '-', 'empty')",
+        "empty-aa-empty-b-empty", "VARCHAR NOT NULL");
+    f.checkScalar("array_to_string(array[null, 'aa', null, 'b', null], '-')", "aa-b",
+        "VARCHAR NOT NULL");
+    f.checkScalar("array_to_string(array[null, x'aa', null, x'bb', null], '-')", "aa-bb",
+        "VARCHAR NOT NULL");
+    f.checkScalar("array_to_string(array['', 'b'], '-')", "-b", "VARCHAR NOT NULL");
+    f.checkScalar("array_to_string(array['', ''], '-')", "-", "VARCHAR NOT NULL");
+    f.checkNull("array_to_string(null, '-')");
+    f.checkNull("array_to_string(array['a', 'b', null], null)");
+    f.checkFails("^array_to_string(array[1, 2, 3], '-', ' ')^",
+        "Cannot apply 'ARRAY_TO_STRING' to arguments of type 'ARRAY_TO_STRING"
+            + "\\(<INTEGER ARRAY>, <CHAR\\(1\\)>, <CHAR\\(1\\)>\\)'\\. Supported form\\(s\\):"
+            + " ARRAY_TO_STRING\\(<STRING ARRAY>, <CHARACTER>\\[, <CHARACTER>\\]\\)", false);
+  }
+
   /** Tests {@code ARRAY_EXCEPT} function from Spark. */
   @Test void testArrayExceptFunc() {
     final SqlOperatorFixture f0 = fixture();
