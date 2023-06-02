@@ -115,7 +115,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collector;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
-import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
 
@@ -1727,7 +1726,7 @@ public class Util {
       return new Locale.Builder().setLanguageTag(
           UNDERSCORE.matcher(localeString).replaceAll("-")).build();
     } catch (IllformedLocaleException e) {
-      throw RESOURCE.illegalLocaleFormat(localeString).ex();
+      throw new AssertionError("bad locale string '" + localeString + "'");
     }
   }
 
