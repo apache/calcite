@@ -113,6 +113,7 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -12158,7 +12159,7 @@ class RelToSqlConverterTest {
       fields.add(
           relNode.getCluster().getRexBuilder().makeInputRef(field.getType(), field.getIndex()));
     }
-    fields.addAll(List.of(rexNodes));
+    Collections.addAll(fields, rexNodes);
     return fields;
   }
 }
