@@ -1227,6 +1227,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "TRUE":
       unparseBoolean(writer, call);
       break;
+    case "GETBIT":
+      unparseGetBitFunction(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -1987,5 +1990,16 @@ public class BigQuerySqlDialect extends SqlDialect {
       frame = writer.startList("(", ")");
     }
     return frame;
+  }
+
+  private static void unparseGetBitFunction(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(SHIFTRIGHT);
+    writer.print(" ");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.print("& ");
+    SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+    oneLiteral.unparse(writer, leftPrec, rightPrec);
   }
 }
