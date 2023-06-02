@@ -1541,6 +1541,14 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.TIMEDATE);
 
 
+  @LibraryOperator(libraries = {TERADATA, SNOWFLAKE})
+  public static final SqlFunction GETBIT =
+      new SqlFunction("GETBIT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {HIVE, SPARK, TERADATA})
   public static final SqlFunction SHIFTLEFT =
       new SqlFunction(
