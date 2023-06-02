@@ -11987,4 +11987,47 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracle));
   }
 
+  @Test public void testForGetBitFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode getBitRexNode = builder.call(SqlLibraryOperators.GETBIT,
+        builder.literal(8), builder.literal(3));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(getBitRexNode, "aa"))
+        .build();
+
+    final String expectedBQ = "SELECT 8 >> 3 & 1 AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
+  @Test public void testGetBitFunctionWithNullArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode getBitRexNode = builder.call(SqlLibraryOperators.GETBIT,
+        builder.literal(8), builder.literal(null));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(getBitRexNode, "aa"))
+        .build();
+
+    final String expectedBQ = "SELECT 8 >> NULL & 1 AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
+  @Test public void testGetBitFunctionWithColumnValue() {
+    final RelBuilder builder = relBuilder();
+    final RexNode getBitRexNode = builder.call(SqlLibraryOperators.GETBIT,
+        builder.literal(8),
+        builder.scan("EMP").field(0));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(getBitRexNode, "aa"))
+        .build();
+
+    final String expectedBQ = "SELECT 8 >> EMPNO & 1 AS aa\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
 }
