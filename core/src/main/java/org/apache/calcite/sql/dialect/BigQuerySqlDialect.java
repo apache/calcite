@@ -1139,9 +1139,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "BITWISE_XOR":
       unparseBitwiseFunctions(writer, call, XOR, leftPrec, rightPrec);
       break;
-    case "BITNOT":
-      unparseBitNotFunction(writer, call);
-      break;
     case "INT2SHR":
       unparseInt2shFunctions(writer, call, SHIFTRIGHT, leftPrec, rightPrec);
       break;
@@ -1230,16 +1227,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "GETBIT":
       unparseGetBitFunction(writer, call, leftPrec, rightPrec);
       break;
+    case "BITNOT":
+      unparseBitNotFunction(writer, call);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
-  }
-
-  private void unparseBitNotFunction(SqlWriter writer, SqlCall call) {
-    writer.print(BITNOT);
-    writer.print(" (");
-    call.operand(0).unparse(writer, 0, 0);
-    writer.print(")");
   }
 
   private void unParseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -2001,5 +1994,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print("& ");
     SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
     oneLiteral.unparse(writer, leftPrec, rightPrec);
+  }
+
+  private void unparseBitNotFunction(SqlWriter writer, SqlCall call) {
+    writer.print(BITNOT);
+    writer.print(" (");
+    call.operand(0).unparse(writer, 0, 0);
+    writer.print(")");
   }
 }
