@@ -3881,7 +3881,7 @@ public class SqlFunctions {
   }
 
   /** Support the ARRAY_CONTAINS function. */
-  public static boolean contains(List list, Object element) {
+  public static boolean arrayContains(List list, Object element) {
     return list.contains(element);
   }
 
