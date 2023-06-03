@@ -23,6 +23,7 @@ import java.util.List;
 
 import redis.embedded.RedisExecProvider;
 import redis.embedded.RedisServer;
+import redis.embedded.RedisServerBuilder;
 
 /**
  * This is almost a copy of {@link RedisServer}.
@@ -44,8 +45,16 @@ public class CalciteRedisServer extends RedisServer {
     super(redisExecProvider, port);
   }
 
-  public CalciteRedisServer(List<String> args, File executable, int port) throws IOException {
-    super(executable, port);
+  public CalciteRedisServer(List<String> args, int port) throws IOException {
+    super(port);
     this.args = new ArrayList<String>(args);
+  }
+
+  public static CalciteRedisServerBuilder calciteBuilder() {
+    return new CalciteRedisServerBuilder();
+  }
+
+  public static RedisServerBuilder builder() {
+    throw new RuntimeException("Use org.apache.calcite.adapter.redis.CalciteRedisServer.calciteBuilder");
   }
 }

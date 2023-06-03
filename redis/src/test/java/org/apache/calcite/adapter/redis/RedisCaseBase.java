@@ -29,7 +29,6 @@ import org.testcontainers.containers.GenericContainer;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.Collections;
 import java.util.logging.Logger;
 
 import redis.embedded.RedisServer;
@@ -73,9 +72,7 @@ public abstract class RedisCaseBase {
   public void createRedisServer() throws IOException {
     if (!REDIS_CONTAINER.isRunning()) {
       if (isWindows()) {
-        redisServer =
-            new CalciteRedisServer(Collections.singletonList(MAX_HEAP),
-                RedisExecProvider.defaultProvider().get(), PORT);
+        redisServer = CalciteRedisServer.calciteBuilder().port(PORT).setting(MAX_HEAP).build();
       } else {
         redisServer = new RedisServer(RedisExecProvider.defaultProvider().get(), PORT);
       }
