@@ -1970,7 +1970,12 @@ public class SqlOperatorTest {
     f.checkString("concat('', '')", "", "VARCHAR(0) NOT NULL");
     f.checkString("concat('', 'a')", "a", "VARCHAR(1) NOT NULL");
     f.checkString("concat('a', 'b')", "ab", "VARCHAR(2) NOT NULL");
-    f.checkNull("concat('a', cast(null as varchar))");
+    // treat null value as empty string
+    f.checkString("concat('a', cast(null as varchar))", "a", "VARCHAR NOT NULL");
+    f.checkString("concat(null, 'b')", "b", "VARCHAR NOT NULL");
+    // return null when both arguments are null
+    f.checkNull("concat(null, cast(null as varchar))");
+    f.checkNull("concat(null, null)");
     f.checkFails("^concat('a', 'b', 'c')^", INVALID_ARGUMENTS_NUMBER, false);
     f.checkFails("^concat('a')^", INVALID_ARGUMENTS_NUMBER, false);
   }

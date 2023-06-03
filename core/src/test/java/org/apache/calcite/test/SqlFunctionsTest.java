@@ -42,6 +42,7 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.timeStringToUnixDate
 import static org.apache.calcite.avatica.util.DateTimeUtils.timestampStringToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.concatWithNull;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
@@ -136,6 +137,16 @@ class SqlFunctionsTest {
     assertThat(concat("a", null), is("anull"));
     assertThat(concat((String) null, null), is("nullnull"));
     assertThat(concat(null, "b"), is("nullb"));
+  }
+
+  @Test void testConcatWithNull() {
+    assertThat(concatWithNull("a b", "cd"), is("a bcd"));
+    // Null value could be passed in. If we pass one null value,
+    // it is treated like empty string, if both values are null, returns null.
+    // As the following tests show.
+    assertThat(concatWithNull("a", null), is("a"));
+    assertThat(concatWithNull(null, null), is(nullValue()));
+    assertThat(concatWithNull(null, "b"), is("b"));
   }
 
   @Test void testPosixRegex() {

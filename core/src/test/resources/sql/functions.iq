@@ -78,6 +78,18 @@ SELECT CONCAT('c', 'h', 'a', 'r');
 
 !ok
 
+# CONCAT in MySQL, BigQuery returns NULL if any argument is NULL.
+# (CONCAT in Oracle and Postgres ignores NULL arguments.)
+SELECT CONCAT('c', 'h', 'a', null, 'r');
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
 # Compression Functions
 
 SELECT COMPRESS('sample');
@@ -272,6 +284,47 @@ select concat('a', 'b');
 | EXPR$0 |
 +--------+
 | ab     |
++--------+
+(1 row)
+
+!ok
+
+# [CALCITE-5745] CONCAT function (enabled in Oracle library) should only return NULL when both arguments are NULL
+select concat('a', null);
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
+select concat('a', cast(null as varchar));
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
+select concat(cast(null as varchar), 'a');
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
+select concat(null, null);
++--------+
+| EXPR$0 |
++--------+
+|        |
 +--------+
 (1 row)
 
