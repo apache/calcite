@@ -73,7 +73,9 @@ public abstract class RedisCaseBase {
   public void createRedisServer() throws IOException {
     if (!REDIS_CONTAINER.isRunning()) {
       if (isWindows()) {
-        redisServer = new CalciteRedisServer(Collections.singletonList(MAX_HEAP), PORT);
+        redisServer =
+            new CalciteRedisServer(Collections.singletonList(MAX_HEAP),
+                RedisExecProvider.defaultProvider().get(), PORT);
       } else {
         redisServer = new RedisServer(RedisExecProvider.defaultProvider().get(), PORT);
       }

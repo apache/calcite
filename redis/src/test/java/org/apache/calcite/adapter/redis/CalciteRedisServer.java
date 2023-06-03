@@ -44,8 +44,8 @@ public class CalciteRedisServer extends RedisServer {
     super(redisExecProvider, port);
   }
 
-  public CalciteRedisServer(List<String> args, int port) throws IOException {
-    super(port);
+  public CalciteRedisServer(List<String> args, File executable, int port) throws IOException {
+    super(executable, port);
     this.args = new ArrayList<String>(args);
   }
 }
