@@ -8699,6 +8699,38 @@ public class SqlOperatorTest {
     f.checkNull("floor(cast(null as real))");
   }
 
+  @Test void testBigQueryCeilFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.checkType("ceil(cast(3 as tinyint))", "TINYINT NOT NULL");
+    final SqlOperatorFixture f = f0.setFor(SqlLibraryOperators.FLOOR_BIG_QUERY)
+        .withLibrary(SqlLibrary.BIG_QUERY).withConformance(SqlConformanceEnum.BIG_QUERY);
+    f.checkScalarExact("ceil(cast(3 as tinyint))", "DOUBLE", "3.0");
+    f.checkScalarExact("ceil(cast(3 as smallint))", "DOUBLE", "3.0");
+    f.checkScalarExact("ceil(cast(3 as integer))", "DOUBLE", "3.0");
+    f.checkScalarExact("ceil(cast(3 as bigint))", "DOUBLE", "3.0");
+    f.checkScalarExact("ceil(cast(3.5 as double))", "DOUBLE", "4.0");
+    f.checkScalarExact("ceil(cast(3.45 as decimal))",
+        "DECIMAL(19, 0)", "4");
+    f.checkScalarExact("ceil(cast(3.45 as float))", "FLOAT", "4.0");
+    f.checkNull("ceil(cast(null as tinyint))");
+  }
+
+  @Test void testBigQueryFloorFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.checkType("floor(cast(3 as tinyint))", "TINYINT NOT NULL");
+    final SqlOperatorFixture f = f0.setFor(SqlLibraryOperators.FLOOR_BIG_QUERY)
+        .withLibrary(SqlLibrary.BIG_QUERY).withConformance(SqlConformanceEnum.BIG_QUERY);
+    f.checkScalarExact("floor(cast(3 as tinyint))", "DOUBLE", "3.0");
+    f.checkScalarExact("floor(cast(3 as smallint))", "DOUBLE", "3.0");
+    f.checkScalarExact("floor(cast(3 as integer))", "DOUBLE", "3.0");
+    f.checkScalarExact("floor(cast(3 as bigint))", "DOUBLE", "3.0");
+    f.checkScalarExact("floor(cast(3.5 as double))", "DOUBLE", "3.0");
+    f.checkScalarExact("floor(cast(3.45 as decimal))",
+        "DECIMAL(19, 0)", "3");
+    f.checkScalarExact("floor(cast(3.45 as float))", "FLOAT", "3.0");
+    f.checkNull("floor(cast(null as tinyint))");
+  }
+
   @Test void testFloorFuncDateTime() {
     final SqlOperatorFixture f = fixture();
     f.enableTypeCoercion(false)

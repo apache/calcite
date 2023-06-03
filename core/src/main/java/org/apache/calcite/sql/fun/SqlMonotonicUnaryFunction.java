@@ -37,9 +37,9 @@ public class SqlMonotonicUnaryFunction extends SqlFunction {
   protected SqlMonotonicUnaryFunction(
       String name,
       SqlKind kind,
-      SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlReturnTypeInference returnTypeInference,
       @Nullable SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType) {
     super(
         name,

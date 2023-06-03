@@ -68,6 +68,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql2rel.AuxiliaryConverter;
 import org.apache.calcite.util.Litmus;
@@ -2698,4 +2699,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     }
   }
 
+  /** Returns the operator for {@code FLOOR} and {@code CEIL} with given floor flag
+   * and library. */
+  public static SqlOperator floorCeil(boolean floor, SqlConformanceEnum conformance) {
+    switch (conformance) {
+    case BIG_QUERY:
+      return floor ? SqlLibraryOperators.FLOOR_BIG_QUERY : SqlLibraryOperators.CEIL_BIG_QUERY;
+    default:
+      return floor ? SqlStdOperatorTable.FLOOR : SqlStdOperatorTable.CEIL;
+    }
+  }
 }
