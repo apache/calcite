@@ -31,8 +31,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.logging.Logger;
 
-import redis.embedded.RedisServer;
-
 /**
  * RedisITCaseBase.
  */
@@ -57,7 +55,7 @@ public abstract class RedisCaseBase {
    * With the existing dependencies (com.github.kstyrc:embedded-redis:0.6) it uses by default
    * Redis 2.8.19 version.
    */
-  private static RedisServer redisServer;
+  private static CalciteRedisServer redisServer;
 
   @BeforeAll
   public static void startRedisContainer() {
@@ -74,7 +72,7 @@ public abstract class RedisCaseBase {
       if (isWindows()) {
         redisServer = CalciteRedisServer.calciteBuilder().port(PORT).setting(MAX_HEAP).build();
       } else {
-        redisServer = new RedisServer(RedisExecProvider.defaultProvider().get(), PORT);
+        redisServer = new CalciteRedisServer(RedisExecProvider.defaultProvider().get(), PORT);
       }
       Logger.getAnonymousLogger().info("Not using Docker, starting RedisMiniServer");
       redisServer.start();
