@@ -23,7 +23,6 @@ import com.google.common.io.CharSource;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -33,6 +32,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Objects;
@@ -62,12 +62,18 @@ public abstract class Sources {
     }
   }
 
-  /**
-   * Create {@link Source} from a generic text source such as string, {@link java.nio.CharBuffer}
-   * or text file. Useful when data is already in memory or can't be directly read from
+  /** Creates a {@link Source} from a character sequence such as a
+   * {@link String}. */
+  public static Source of(CharSequence s) {
+    return fromCharSource(CharSource.wrap(s));
+  }
+
+  /** Creates a {@link Source} from a generic text source such as string,
+   * {@link java.nio.CharBuffer} or text file. Useful when data is already
+   * in memory or can't be directly read from
    * a file or url.
    *
-   * @param source generic "re-redable" source of characters
+   * @param source generic "re-readable" source of characters
    * @return {@code Source} delegate for {@code CharSource} (can't be null)
    * @throws NullPointerException when {@code source} is null
    */
@@ -276,7 +282,7 @@ public abstract class Sources {
 
     @Override public InputStream openStream() throws IOException {
       if (file != null) {
-        return new FileInputStream(file);
+        return Files.newInputStream(file.toPath());
       } else {
         return url.openStream();
       }
