@@ -26,7 +26,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import redis.embedded.RedisExecProvider;
 import redis.embedded.RedisServer;
 import redis.embedded.exceptions.RedisBuildingException;
 
