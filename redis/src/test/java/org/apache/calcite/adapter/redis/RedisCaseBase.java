@@ -74,7 +74,7 @@ public abstract class RedisCaseBase {
       if (isWindows()) {
         redisServer = RedisServer.builder().port(PORT).setting(MAX_HEAP).build();
       } else {
-        redisServer = new RedisServer(PORT);
+        redisServer = new RedisServer(RedisExecProvider.defaultProvider().get(), PORT);
       }
       Logger.getAnonymousLogger().info("Not using Docker, starting RedisMiniServer");
       redisServer.start();
