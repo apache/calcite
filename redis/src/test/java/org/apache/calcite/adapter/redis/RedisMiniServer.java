@@ -41,7 +41,7 @@ public class RedisMiniServer {
   @BeforeEach
   public void setUp() {
     try {
-      RedisServer redisServer = new RedisServer(PORT);
+      RedisServer redisServer = new RedisServer(RedisExecProvider.defaultProvider().get(), PORT);
       redisServer.start();
       JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
       jedisPoolConfig.setMaxTotal(10);

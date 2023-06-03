@@ -169,7 +169,7 @@ jobs:
     name: 'Linux (JDK 17)'
     runs-on: ubuntu-latest
     env:
-      GUAVA: '31.1-jre'
+      GUAVA: '32.0.0-jre'
     steps:
       - uses: actions/checkout@v3
         with:
@@ -194,7 +194,7 @@ jobs:
     name: 'Linux (JDK 19)'
     runs-on: ubuntu-latest
     env:
-      GUAVA: '31.1-jre'
+      GUAVA: '32.0.0-jre'
     steps:
       - uses: actions/checkout@v3
         with:
@@ -314,10 +314,10 @@ jobs:
 
   errorprone-guava31:  # LTS JDK version, don't remove until EOL
     if: github.event.action != 'labeled'
-    name: 'Error Prone (JDK 11), Guava 31'
+    name: 'Error Prone (JDK 11), Guava 32'
     runs-on: ubuntu-latest
     env:
-      GUAVA: '31.1-jre' # ErrorProne checks for Beta APIs, so use the newest supported Guava version
+      GUAVA: '32.0.0-jre' # ErrorProne checks for Beta APIs, so use the newest supported Guava version
     steps:
       - uses: actions/checkout@v3
         with:
