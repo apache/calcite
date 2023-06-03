@@ -403,6 +403,20 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
           OperandTypes.SAME_VARIADIC);
 
+  /** The "CEIL(value)" function. Identical to the standard <code>CEIL</code> function
+   * except the return type should be a double if the operand is an integer. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction CEIL_BIG_QUERY = new SqlFloorFunction(SqlKind.CEIL)
+      .withName("CEIL_BIG_QUERY")
+      .withReturnTypeInference(ReturnTypes.ARG0_EXCEPT_INTEGER_NULLABLE);
+
+  /** The "FLOOR(value)" function. Identical to the stadnard <code>FLOOR</code> function
+   * except the return type should be a double if the operand is an integer. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FLOOR_BIG_QUERY = new SqlFloorFunction(SqlKind.FLOOR)
+      .withName("FLOOR_BIG_QUERY")
+      .withReturnTypeInference(ReturnTypes.ARG0_EXCEPT_INTEGER_NULLABLE);
+
   /**
    * The <code>TRANSLATE(<i>string_expr</i>, <i>search_chars</i>,
    * <i>replacement_chars</i>)</code> function returns <i>string_expr</i> with

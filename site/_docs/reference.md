@@ -2661,6 +2661,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | s | ARRAY_SIZE(array)                              | Synonym for `CARDINALITY`
 | * | ASINH(numeric)                                 | Returns the inverse hyperbolic sine of *numeric*
 | * | ATANH(numeric)                                 | Returns the inverse hyperbolic tangent of *numeric*
+| b | CEIL(value)                                    | Similar to standard `CEIL(value)` except if *value* is an integer type, the return type is a double
 | m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
 | b o p | CHR(integer)                               | Returns the character whose UTF-8 code is *integer*
 | o | CONCAT(string, string)                         | Concatenates two strings
@@ -2702,6 +2703,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the XML fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
 | o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
+| b | FLOOR(value)                                   | Similar to standard `FLOOR(value)` except if *value* is an integer type, the return type is a double
 | b | FORMAT_DATE(string, date)                      | Formats *date* according to the specified format *string*
 | b | FORMAT_DATETIME(string, timestamp)             | Formats *timestamp* according to the specified format *string*
 | b | FORMAT_TIME(string, time)                      | Formats *time* according to the specified format *string*

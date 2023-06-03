@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -29,18 +30,29 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Definition of the "FLOOR" and "CEIL" built-in SQL functions.
  */
 public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
   //~ Constructors -----------------------------------------------------------
-
+  private SqlFloorFunction(String name, SqlKind kind,
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      SqlFunctionCategory funcType) {
+    super(name, kind, returnTypeInference, operandTypeInference, operandTypeChecker, funcType);
+  }
   public SqlFloorFunction(SqlKind kind) {
     super(kind.name(), kind, ReturnTypes.ARG0_OR_EXACT_NO_SCALE, null,
         OperandTypes.NUMERIC_OR_INTERVAL.or(
@@ -51,6 +63,16 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
                 OperandTypes.ANY)),
         SqlFunctionCategory.NUMERIC);
     Preconditions.checkArgument(kind == SqlKind.FLOOR || kind == SqlKind.CEIL);
+  }
+
+  public SqlFloorFunction withName(String name) {
+    return new SqlFloorFunction(name, getKind(), getReturnTypeInference(),
+        getOperandTypeInference(), getOperandTypeChecker(), getFunctionType());
+  }
+
+  public SqlFloorFunction withReturnTypeInference(SqlReturnTypeInference returnTypeInference) {
+    return new SqlFloorFunction(getName(), getKind(), returnTypeInference,
+        getOperandTypeInference(), getOperandTypeChecker(), getFunctionType());
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -74,6 +96,16 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
     writer.endFunCall(frame);
   }
 
+  @Override public RelDataType deriveType(SqlValidator validator,
+      SqlValidatorScope scope, SqlCall call) {
+    // To prevent operator rewriting by SqlFunction#deriveType.
+    for (SqlNode operand : call.getOperandList()) {
+      RelDataType nodeType = validator.deriveType(scope, operand);
+      validator.setValidatedNodeType(operand, nodeType);
+    }
+    return validateOperands(validator, scope, call);
+  }
+
   @Override public void validateCall(SqlCall call, SqlValidator validator,
       SqlValidatorScope scope, SqlValidatorScope operandScope) {
     super.validateCall(call, validator, scope, operandScope);
@@ -91,6 +123,10 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
       validator.validateTimeFrame(
           (SqlIntervalQualifier) call.getOperandList().get(1));
     }
+  }
+
+  @Override public String getName() {
+    return kind.name();
   }
 
   /**

@@ -114,6 +114,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.SourceStringReader;
@@ -7335,9 +7336,7 @@ SqlNode StandardFloorCeilOptions(Span s, boolean floorFlag) :
         }
     )?
     <RPAREN> {
-        SqlOperator op = floorFlag
-            ? SqlStdOperatorTable.FLOOR
-            : SqlStdOperatorTable.CEIL;
+        SqlOperator op = SqlStdOperatorTable.floorCeil(floorFlag, (SqlConformanceEnum) this.conformance);
         function =  op.createCall(s.end(this), args);
     }
     (
