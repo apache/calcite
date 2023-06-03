@@ -844,12 +844,18 @@ public abstract class SqlLibraryOperators {
   /** The "CONCAT(arg0, arg1)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc')" returns "abc".
    *
+   * If one of the arguments is null, it will be treated as empty string.
+   * "CONCAT('a', null)" returns "a".
+   *
+   * Returns null only when both arguments are null.
+   * "CONCAT(null, null)" returns null.
+   *
    * <p>It is assigned {@link SqlKind#CONCAT2} to make it not equal to
    * {@link #CONCAT_FUNCTION}. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction CONCAT2 =
       SqlBasicFunction.create("CONCAT",
-          ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
+          ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE_ALL,
           OperandTypes.STRING_SAME_SAME,
           SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE)

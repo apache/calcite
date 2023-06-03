@@ -549,4 +549,57 @@ limit 3;
 
 !ok
 
+# -----------------------------------------------------------------------------
+# [CALCITE-5745] CONCAT2 function(enabled in Oracle library) gets wrong result when one of the argument is NULL
+!use oraclefunc
+select concat('a', 'b');
++--------+
+| EXPR$0 |
++--------+
+| ab     |
++--------+
+(1 row)
+
+!ok
+
+select concat('a', null);
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
+select concat('a', cast(null as varchar));
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
+select concat(cast(null as varchar), 'a');
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
+select concat(null, null);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
 # End functions.iq

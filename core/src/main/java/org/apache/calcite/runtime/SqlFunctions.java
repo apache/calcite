@@ -768,6 +768,19 @@ public class SqlFunctions {
     return s0 + s1;
   }
 
+  /** Returns null only when both s0 and s1 are null,
+   * otherwise null is treated as empty string. */
+  public static @Nullable String concatWithNull(String s0, String s1) {
+    if (s0 == null && s1 == null) {
+      return null;
+    } else if (s0 == null) {
+      return s1;
+    } else if (s1 == null) {
+      return s0;
+    }
+    return s0 + s1;
+  }
+
   /** SQL {@code binary || binary} operator. */
   public static ByteString concat(ByteString s0, ByteString s1) {
     return s0.concat(s1);
