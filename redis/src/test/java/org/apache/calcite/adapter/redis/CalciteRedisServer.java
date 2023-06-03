@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import redis.embedded.RedisExecProvider;
 import redis.embedded.RedisServer;
 import redis.embedded.RedisServerBuilder;
 
@@ -30,6 +29,7 @@ import redis.embedded.RedisServerBuilder;
  * The difference is that it makes {@link CalciteRedisServer#CalciteRedisServer(List, int)} public.
  */
 public class CalciteRedisServer extends RedisServer {
+  private static RedisExecProvider redisExecProvider = RedisExecProvider.defaultProvider();
   public CalciteRedisServer() throws IOException {
   }
 
@@ -41,12 +41,8 @@ public class CalciteRedisServer extends RedisServer {
     super(executable, port);
   }
 
-  public CalciteRedisServer(RedisExecProvider redisExecProvider, Integer port) throws IOException {
-    super(redisExecProvider, port);
-  }
-
   public CalciteRedisServer(List<String> args, int port) throws IOException {
-    super(port);
+    super(redisExecProvider.get(), port);
     this.args = new ArrayList<String>(args);
   }
 
