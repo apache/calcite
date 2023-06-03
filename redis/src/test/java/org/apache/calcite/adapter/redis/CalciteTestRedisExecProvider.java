@@ -38,14 +38,14 @@ import redis.embedded.util.OsArchitecture;
  * The problem is that it calls deprecated guava's {@link com.google.common.io.Files#createTempDir()}
  * resulting in ''posix:permissions' not supported as initial attribute' on Windows.
  */
-public class RedisExecProvider {
+public class CalciteTestRedisExecProvider {
   private final Map<OsArchitecture, String> executables = new HashMap<>();
 
-  public static RedisExecProvider defaultProvider() {
-    return new RedisExecProvider();
+  public static CalciteTestRedisExecProvider defaultProvider() {
+    return new CalciteTestRedisExecProvider();
   }
 
-  private RedisExecProvider() {
+  private CalciteTestRedisExecProvider() {
     initExecutables();
   }
 
@@ -60,7 +60,7 @@ public class RedisExecProvider {
     executables.put(OsArchitecture.MAC_OS_X_x86_64, "redis-server-2.8.19.app");
   }
 
-  public RedisExecProvider override(OS os, String executable) {
+  public CalciteTestRedisExecProvider override(OS os, String executable) {
     Objects.requireNonNull(executable, "executable");
     for (Architecture arch : Architecture.values()) {
       override(os, arch, executable);
@@ -68,7 +68,7 @@ public class RedisExecProvider {
     return this;
   }
 
-  public RedisExecProvider override(OS os, Architecture arch, String executable) {
+  public CalciteTestRedisExecProvider override(OS os, Architecture arch, String executable) {
     Objects.requireNonNull(executable, "executable");
     executables.put(new OsArchitecture(os, arch), executable);
     return this;

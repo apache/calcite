@@ -26,32 +26,27 @@ import redis.embedded.RedisServerBuilder;
 
 /**
  * This is almost a copy of {@link RedisServer}.
- * The difference is that it makes {@link CalciteRedisServer#CalciteRedisServer(List, int)} public.
+ * The difference is that it makes {@link CalciteTestRedisServer#CalciteTestRedisServer(List, int)}
+ * public, adds {@link CalciteTestRedisServer#testBuilder()}.
  */
-public class CalciteRedisServer extends RedisServer {
-  private static RedisExecProvider redisExecProvider = RedisExecProvider.defaultProvider();
-  public CalciteRedisServer() throws IOException {
-  }
+public class CalciteTestRedisServer extends RedisServer {
+  private static CalciteTestRedisExecProvider redisExecProvider =
+      CalciteTestRedisExecProvider.defaultProvider();
 
-  public CalciteRedisServer(Integer port) throws IOException {
-    super(port);
-  }
-
-  public CalciteRedisServer(File executable, Integer port) {
+  public CalciteTestRedisServer(File executable, Integer port) {
     super(executable, port);
   }
 
-  public CalciteRedisServer(List<String> args, int port) throws IOException {
+  public CalciteTestRedisServer(List<String> args, int port) throws IOException {
     super(redisExecProvider.get(), port);
-    this.args = new ArrayList<String>(args);
+    this.args = new ArrayList<>(args);
   }
 
-  public static CalciteRedisServerBuilder calciteBuilder() {
-    return new CalciteRedisServerBuilder();
+  public static CalciteTestRedisServerBuilder testBuilder() {
+    return new CalciteTestRedisServerBuilder();
   }
 
   public static RedisServerBuilder builder() {
-    throw new RuntimeException(
-        "Use org.apache.calcite.adapter.redis.CalciteRedisServer.calciteBuilder");
+    throw new RuntimeException("Use CalciteTestRedisServer#testBuilder");
   }
 }

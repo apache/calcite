@@ -42,7 +42,7 @@ public class RedisMiniServer {
   public void setUp() {
     try {
       RedisServer redisServer =
-          new CalciteRedisServer(RedisExecProvider.defaultProvider().get(), PORT);
+          new CalciteTestRedisServer(CalciteTestRedisExecProvider.defaultProvider().get(), PORT);
       redisServer.start();
       JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
       jedisPoolConfig.setMaxTotal(10);

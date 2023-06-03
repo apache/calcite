@@ -55,7 +55,7 @@ public abstract class RedisCaseBase {
    * With the existing dependencies (com.github.kstyrc:embedded-redis:0.6) it uses by default
    * Redis 2.8.19 version.
    */
-  private static CalciteRedisServer redisServer;
+  private static CalciteTestRedisServer redisServer;
 
   @BeforeAll
   public static void startRedisContainer() {
@@ -70,9 +70,10 @@ public abstract class RedisCaseBase {
   public void createRedisServer() throws IOException {
     if (!REDIS_CONTAINER.isRunning()) {
       if (isWindows()) {
-        redisServer = CalciteRedisServer.calciteBuilder().port(PORT).setting(MAX_HEAP).build();
+        redisServer = CalciteTestRedisServer.testBuilder().port(PORT).setting(MAX_HEAP).build();
       } else {
-        redisServer = new CalciteRedisServer(RedisExecProvider.defaultProvider().get(), PORT);
+        redisServer =
+            new CalciteTestRedisServer(CalciteTestRedisExecProvider.defaultProvider().get(), PORT);
       }
       Logger.getAnonymousLogger().info("Not using Docker, starting RedisMiniServer");
       redisServer.start();

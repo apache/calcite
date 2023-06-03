@@ -26,44 +26,48 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import redis.embedded.RedisServerBuilder;
 import redis.embedded.exceptions.RedisBuildingException;
 
 /**
-CalciteRedisServerBuilder.
+ * This is almost a copy of {@link RedisServerBuilder}.
+ * The difference is that it works with  {@link CalciteTestRedisExecProvider}.
  */
-public class CalciteRedisServerBuilder {
+public class CalciteTestRedisServerBuilder {
   private static final String LINE_SEPARATOR = System.getProperty("line.separator");
   private static final String CONF_FILENAME = "embedded-redis-server";
 
   private File executable;
-  private RedisExecProvider redisExecProvider = RedisExecProvider.defaultProvider();
+  private CalciteTestRedisExecProvider redisExecProvider =
+      CalciteTestRedisExecProvider.defaultProvider();
   private Integer port = 6379;
   private InetSocketAddress slaveOf;
   private String redisConf;
 
   private StringBuilder redisConfigBuilder;
 
-  public CalciteRedisServerBuilder redisExecProvider(RedisExecProvider redisExecProvider) {
+  public CalciteTestRedisServerBuilder redisExecProvider(
+      CalciteTestRedisExecProvider redisExecProvider) {
     this.redisExecProvider = redisExecProvider;
     return this;
   }
 
-  public CalciteRedisServerBuilder port(Integer port) {
+  public CalciteTestRedisServerBuilder port(Integer port) {
     this.port = port;
     return this;
   }
 
-  public CalciteRedisServerBuilder slaveOf(String hostname, Integer port) {
+  public CalciteTestRedisServerBuilder slaveOf(String hostname, Integer port) {
     this.slaveOf = new InetSocketAddress(hostname, port);
     return this;
   }
 
-  public CalciteRedisServerBuilder slaveOf(InetSocketAddress slaveOf) {
+  public CalciteTestRedisServerBuilder slaveOf(InetSocketAddress slaveOf) {
     this.slaveOf = slaveOf;
     return this;
   }
 
-  public CalciteRedisServerBuilder configFile(String redisConf) {
+  public CalciteTestRedisServerBuilder configFile(String redisConf) {
     if (redisConfigBuilder != null) {
       throw new RedisBuildingException(
           "Redis configuration is already partially build using setting(String) method!");
@@ -72,7 +76,7 @@ public class CalciteRedisServerBuilder {
     return this;
   }
 
-  public CalciteRedisServerBuilder setting(String configLine) {
+  public CalciteTestRedisServerBuilder setting(String configLine) {
     if (redisConf != null) {
       throw new RedisBuildingException("Redis configuration is already set using redis conf file!");
     }
@@ -86,11 +90,11 @@ public class CalciteRedisServerBuilder {
     return this;
   }
 
-  public CalciteRedisServer build() {
+  public CalciteTestRedisServer build() {
     tryResolveConfAndExec();
     List<String> args = buildCommandArgs();
     try {
-      return new CalciteRedisServer(args, port);
+      return new CalciteTestRedisServer(args, port);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
