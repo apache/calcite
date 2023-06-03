@@ -22,7 +22,7 @@ import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -67,7 +67,8 @@ public class CalciteRedisServerBuilder {
 
   public CalciteRedisServerBuilder configFile(String redisConf) {
     if (redisConfigBuilder != null) {
-      throw new RedisBuildingException("Redis configuration is already partially build using setting(String) method!");
+      throw new RedisBuildingException(
+          "Redis configuration is already partially build using setting(String) method!");
     }
     this.redisConf = redisConf;
     return this;
@@ -116,7 +117,8 @@ public class CalciteRedisServerBuilder {
     if (redisConf == null && redisConfigBuilder != null) {
       File redisConfigFile = File.createTempFile(resolveConfigName(), ".conf");
       redisConfigFile.deleteOnExit();
-      Files.write(redisConfigBuilder.toString(), redisConfigFile, Charset.forName("UTF-8"));
+      Files.asCharSink(redisConfigFile, StandardCharsets.UTF_8)
+          .write(redisConfigBuilder.toString());
       redisConf = redisConfigFile.getAbsolutePath();
     }
 

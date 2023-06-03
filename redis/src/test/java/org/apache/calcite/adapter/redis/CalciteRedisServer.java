@@ -55,6 +55,7 @@ public class CalciteRedisServer extends RedisServer {
   }
 
   public static RedisServerBuilder builder() {
-    throw new RuntimeException("Use org.apache.calcite.adapter.redis.CalciteRedisServer.calciteBuilder");
+    throw new RuntimeException(
+        "Use org.apache.calcite.adapter.redis.CalciteRedisServer.calciteBuilder");
   }
 }
