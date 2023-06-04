@@ -251,7 +251,7 @@ public abstract class RexProgramBuilderBase {
    * <p>Tries to expand the cast, and therefore the result may be something
    * other than a {@link RexCall} to the CAST operator, such as a
    * {@link RexLiteral}.
-
+   *
    * @param e input node
    * @param type type to cast to
    * @return input node converted to given type

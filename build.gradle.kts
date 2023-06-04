@@ -603,6 +603,7 @@ allprojects {
                     replace("hamcrest: anyOf", "org.hamcrest.core.AnyOf.anyOf", "org.hamcrest.CoreMatchers.anyOf")
                     replace("hamcrest: containsString", "org.hamcrest.core.StringContains.containsString", "org.hamcrest.CoreMatchers.containsString")
                     replace("hamcrest: CoreMatchers", "import org.hamcrest.CoreMatchers;", "import static org.hamcrest.CoreMatchers.anything;")
+                    replace("hamcrest: empty", "org.hamcrest.collection.IsEmptyCollection.empty", "org.hamcrest.Matchers.empty")
                     replace("hamcrest: emptyArray", "org.hamcrest.collection.IsArrayWithSize.emptyArray", "org.hamcrest.Matchers.emptyArray")
                     replace("hamcrest: endsWidth", "org.hamcrest.core.StringEndsWith.endsWith", "org.hamcrest.CoreMatchers.endsWith")
                     replace("hamcrest: equalTo", "org.hamcrest.core.IsEqual.equalTo", "org.hamcrest.CoreMatchers.equalTo")

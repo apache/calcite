@@ -29,7 +29,7 @@ public interface Glossary {
 
   // CHECKSTYLE: OFF
   /**
-   * <p>This table shows how and where the Gang of Four patterns are applied.
+   * This table shows how and where the Gang of Four patterns are applied.
    * The table uses information from the GoF book and from a course on
    * advanced object design taught by Craig Larman.
    *
