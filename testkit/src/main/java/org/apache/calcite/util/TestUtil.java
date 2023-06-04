@@ -22,15 +22,20 @@ import com.google.common.collect.ImmutableSortedSet;
 
 import org.junit.jupiter.api.Assertions;
 
+import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
 import java.util.List;
-import java.util.Objects;
 import java.util.SortedSet;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.junit.jupiter.api.Assertions.fail;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Static utilities for JUnit tests.
@@ -269,7 +274,7 @@ public abstract class TestUtil {
    */
   @VisibleForTesting
   static int majorVersionFromString(String version) {
-    Objects.requireNonNull(version, "version");
+    requireNonNull(version, "version");
 
     if (version.startsWith("1.")) {
       // running on version <= 8 (expecting string of type: x.y.z*)
@@ -308,6 +313,38 @@ public abstract class TestUtil {
   /** Returns the JVM vendor. */
   public static String getJavaVirtualMachineVendor() {
     return System.getProperty("java.vm.vendor");
+  }
+
+  /** Returns the root directory of the source tree. */
+  public static File getBaseDir(Class<?> klass) {
+    // Algorithm:
+    // 1) Find location of TestUtil.class
+    // 2) Climb via getParentFile() until we detect pom.xml
+    // 3) It means we've got BASE/testkit/pom.xml, and we need to get BASE
+    final URL resource = klass.getResource(klass.getSimpleName() + ".class");
+    final File classFile =
+        Sources.of(requireNonNull(resource, "resource")).file();
+
+    File file = classFile.getAbsoluteFile();
+    for (int i = 0; i < 42; i++) {
+      if (isProjectDir(file)) {
+        // Ok, file == BASE/testkit/
+        break;
+      }
+      file = file.getParentFile();
+    }
+    if (!isProjectDir(file)) {
+      fail("Could not find pom.xml, build.gradle.kts or gradle.properties. "
+          + "Started with " + classFile.getAbsolutePath()
+          + ", the current path is " + file.getAbsolutePath());
+    }
+    return file.getParentFile();
+  }
+
+  private static boolean isProjectDir(File dir) {
+    return new File(dir, "pom.xml").isFile()
+        || new File(dir, "build.gradle.kts").isFile()
+        || new File(dir, "gradle.properties").isFile();
   }
 
   /** Given a list, returns the number of elements that are not between an

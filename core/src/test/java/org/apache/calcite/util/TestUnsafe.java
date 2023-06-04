@@ -16,16 +16,21 @@
  */
 package org.apache.calcite.util;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.util.List;
 
@@ -109,5 +114,97 @@ public abstract class TestUnsafe {
       logger.info("exit status=" + status + " from " + pb.command());
     }
     return status;
+  }
+
+  /** Returns whether we seem are in a valid environment. */
+  public static boolean haveGit() {
+    // Is there a '.git' directory? If not, we may be in a source tree
+    // unzipped from a tarball.
+    final File base = TestUtil.getBaseDir(TestUnsafe.class);
+    final File gitDir = new File(base, ".git");
+    if (!gitDir.exists()
+        || !gitDir.isDirectory()
+        || !gitDir.canRead()) {
+      return false;
+    }
+
+    // Execute a simple git command. If it fails, we're probably not in a
+    // valid git environment.
+    final List<String> argumentList =
+        ImmutableList.of("git", "--version");
+    try {
+      final StringWriter sw = new StringWriter();
+      int status =
+          runAppProcess(argumentList, base, null, null, sw);
+      final String s = sw.toString();
+      if (status != 0) {
+        return false;
+      }
+    } catch (Exception e) {
+      return false;
+    }
+    return true;
+  }
+
+  /** Returns a list of Java files in git under a given directory.
+   *
+   * <p>Assumes running Linux or macOS, and that git is available. */
+  public static List<File> getJavaFiles() {
+    String s;
+    try {
+      final List<String> argumentList =
+          ImmutableList.of("git", "ls-files", "*.java");
+      final File base = TestUtil.getBaseDir(TestUnsafe.class);
+      try {
+        final StringWriter sw = new StringWriter();
+        int status =
+            runAppProcess(argumentList, base, null, null, sw);
+        if (status != 0) {
+          throw new RuntimeException("command " + argumentList
+              + ": exited with status " + status);
+        }
+        s = sw.toString();
+      } catch (Exception e) {
+        throw new RuntimeException("command " + argumentList
+            + ": failed with exception", e);
+      }
+
+      final ImmutableList.Builder<File> files = ImmutableList.builder();
+      try (StringReader r = new StringReader(s);
+           BufferedReader br = new BufferedReader(r)) {
+        for (;;) {
+          String line = br.readLine();
+          if (line == null) {
+            break;
+          }
+          files.add(new File(base, line));
+        }
+      }
+      return files.build();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /** Returns the messages of the {@code n} most recent commits. */
+  public static List<String> getCommitMessages(int n) {
+    final File base = TestUtil.getBaseDir(TestUnsafe.class);
+    final List<String> argumentList =
+        ImmutableList.of("git", "log", "-n" + n, "--pretty=format:%s");
+    try {
+      final StringWriter sw = new StringWriter();
+      int status =
+          runAppProcess(argumentList, base, null, null, sw);
+      String s = sw.toString();
+      if (status != 0) {
+        throw new RuntimeException("command " + argumentList
+            + ": exited with status " + status
+            + (s.isEmpty() ? "" : "; output [" + s + "]"));
+      }
+      return ImmutableList.copyOf(s.split("\n"));
+    } catch (Exception e) {
+      throw new RuntimeException("command " + argumentList
+          + ": failed with exception", e);
+    }
   }
 }

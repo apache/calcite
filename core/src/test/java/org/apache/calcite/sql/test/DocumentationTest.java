@@ -27,7 +27,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.test.DiffTestCase;
-import org.apache.calcite.util.Sources;
+import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import org.junit.jupiter.api.Test;
@@ -50,7 +50,6 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
 
 /** Various automated checks on the documentation. */
 class DocumentationTest {
@@ -189,35 +188,8 @@ class DocumentationTest {
     final File inFile;
     final File outFile;
 
-    private boolean isProjectDir(File dir) {
-      return new File(dir, "pom.xml").isFile()
-          || new File(dir, "build.gradle.kts").isFile()
-          || new File(dir, "gradle.properties").isFile();
-    }
-
     FileFixture() {
-      // Algorithm:
-      // 1) Find location of DocumentationTest.class
-      // 2) Climb via getParentFile() until we detect pom.xml
-      // 3) It means we've got core/pom.xml, and we need to get core/../site/
-      Class<DocumentationTest> klass = DocumentationTest.class;
-      File docTestClass =
-          Sources.of(klass.getResource(klass.getSimpleName() + ".class")).file();
-
-      File core = docTestClass.getAbsoluteFile();
-      for (int i = 0; i < 42; i++) {
-        if (isProjectDir(core)) {
-          // Ok, core == core/
-          break;
-        }
-        core = core.getParentFile();
-      }
-      if (!isProjectDir(core)) {
-        fail("Unable to find neither core/pom.xml nor core/build.gradle.kts. Started with "
-            + docTestClass.getAbsolutePath()
-            + ", the current path is " + core.getAbsolutePath());
-      }
-      base = core.getParentFile();
+      base = TestUtil.getBaseDir(DocumentationTest.class);
       inFile = new File(base, "site/_docs/reference.md");
       // TODO: replace with core/build/ when Maven is migrated to Gradle
       // It does work in Gradle, however, we don't want to create "target" folder in Gradle
