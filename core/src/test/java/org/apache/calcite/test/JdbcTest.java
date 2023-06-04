@@ -474,8 +474,7 @@ public class JdbcTest {
     connection.close();
   }
 
-  /**
-   * <p>Test case for
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3423">[CALCITE-3423]
    * Support using CAST operation and BOOLEAN type value in table macro</a>. */
   @Test void testTableMacroWithCastOrBoolean() throws SQLException {

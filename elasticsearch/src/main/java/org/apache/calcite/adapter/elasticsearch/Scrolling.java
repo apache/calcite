@@ -27,7 +27,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
- * <p>"Iterator" which retrieves results lazily and in batches. Uses
+ * "Iterator" which retrieves results lazily and in batches. Uses
  * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html">Elastic Scrolling API</a>
  * to optimally consume large search results.
  *

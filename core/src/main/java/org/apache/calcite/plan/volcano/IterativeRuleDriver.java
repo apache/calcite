@@ -22,7 +22,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import org.slf4j.Logger;
 
 /***
- * <p>The algorithm executes repeatedly. The exact rules
+ * The algorithm executes repeatedly. The exact rules
  * that may be fired varies.
  *
  * <p>The planner iterates over the rule matches presented

@@ -321,7 +321,7 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * <p>Analogous to LINQ's Enumerable.Cast extension method.
+   * Analogous to LINQ's Enumerable.Cast extension method.
    *
    * @param clazz Target type
    * @param <T2> Target type
@@ -1644,7 +1644,7 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * <p>Fetches blocks of size {@code batchSize} from {@code outer},
+   * Fetches blocks of size {@code batchSize} from {@code outer},
    * storing each block into a list ({@code outerValues}).
    * For each block, it uses the {@code inner} function to
    * obtain an enumerable with the correlated rows from the right (inner) input.
