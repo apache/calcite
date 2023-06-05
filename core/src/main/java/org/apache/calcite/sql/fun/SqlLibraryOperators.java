@@ -1548,4 +1548,15 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {HIVE, SPARK, TERADATA})
+  public static final SqlFunction SHIFTLEFT =
+      new SqlFunction(
+          "SHIFTLEFT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.family(SqlTypeFamily.INTEGER,
+              SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.NUMERIC);
 }

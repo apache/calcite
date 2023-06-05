@@ -1226,6 +1226,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "GETBIT":
       unparseGetBitFunction(writer, call, leftPrec, rightPrec);
       break;
+    case "SHIFTLEFT":
+      unparseShiftLeft(writer, call);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -1239,6 +1242,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.sep(",");
     writer.literal("0");
     writer.endFunCall(ifFrame);
+  }
+
+  private void unparseShiftLeft(SqlWriter writer, SqlCall call) {
+    call.operand(0).unparse(writer, 0, 0);
+    writer.print(SHIFTLEFT + " ");
+    call.operand(1).unparse(writer, 0, 0);
   }
 
   private void unParseRegexpContains(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
