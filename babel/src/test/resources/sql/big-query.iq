@@ -2462,6 +2462,14 @@ FROM Dates;
 
 !ok
 
+# Show that the return type matches the operand type
+SELECT
+    DATE_TRUNC(TIMESTAMP "2008-12-25 15:30:00", MONTH) AS timestamp_result,
+    DATE_TRUNC(DATETIME "2008-12-25 15:30:00", MONTH) AS datetime_result;
+timestamp_result TIMESTAMP_WITH_LOCAL_TIME_ZONE NOT NULL
+datetime_result TIMESTAMP NOT NULL
+!type
+
 # In the following example, the original date falls on a
 # Sunday. Because the date_part is WEEK(MONDAY), DATE_TRUNC returns
 # the DATE for the preceding Monday.
@@ -2549,6 +2557,15 @@ SELECT
 (1 row)
 
 !ok
+
+# Show that the return type matches the operand type, unless it is a date
+# in which case a TIMESTAMP is returned.
+SELECT
+    DATETIME_TRUNC(TIMESTAMP "2008-12-25 15:30:00", MONTH) AS timestamp_result,
+    DATETIME_TRUNC(DATETIME "2008-12-25 15:30:00", MONTH) AS datetime_result;
+timestamp_result TIMESTAMP_WITH_LOCAL_TIME_ZONE NOT NULL
+datetime_result TIMESTAMP NOT NULL
+!type
 
 
 # In the following example, the original DATETIME falls on a
@@ -2678,6 +2695,15 @@ SELECT
 # that TIMESTAMP. While this provides intuitive results in most cases,
 # the result is non-intuitive near daylight savings transitions that
 # are not hour aligned.
+
+# Show that the return type matches the operand type, unless it is a date
+# in which case a TIMESTAMP is returned.
+SELECT
+    TIMESTAMP_TRUNC(TIMESTAMP "2008-12-25 15:30:00", MONTH) AS timestamp_result,
+    TIMESTAMP_TRUNC(DATETIME "2008-12-25 15:30:00", MONTH) AS datetime_result;
+timestamp_result TIMESTAMP_WITH_LOCAL_TIME_ZONE NOT NULL
+datetime_result TIMESTAMP NOT NULL
+!type
 
 # Display of results may differ, depending upon the environment and
 # time zone where this query was executed.

@@ -426,6 +426,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker TIMESTAMP =
       family(SqlTypeFamily.TIMESTAMP);
 
+  public static final SqlSingleOperandTypeChecker DATE_OR_TIMESTAMP =
+      DATE.or(TIMESTAMP);
+
   /** Type-checker that matches "TIMESTAMP WITH LOCAL TIME ZONE" but not other
    * members of the "TIMESTAMP" family (e.g. "TIMESTAMP"). */
   public static final SqlSingleOperandTypeChecker TIMESTAMP_LTZ =
