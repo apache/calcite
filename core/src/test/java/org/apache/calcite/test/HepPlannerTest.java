@@ -26,9 +26,11 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.externalize.RelDotWriter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.rules.CoerceInputsRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.tools.RelBuilder;
 
 import com.google.common.collect.ImmutableList;
 
@@ -41,6 +43,7 @@ import java.io.StringWriter;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -420,5 +423,24 @@ class HepPlannerTest {
 
     @Override public void relChosen(RelChosenEvent event) {
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5401">[CALCITE-5401]
+   * Rule fired by HepPlanner can return Volcano's RelSubset</a>. */
+  @Test void testAggregateRemove() {
+    final RelBuilder builder = RelBuilderTest.createBuilder(c -> c.withAggregateUnique(true));
+    final RelNode root =
+        builder
+            .values(new String[]{"i"}, 1, 2, 3)
+            .distinct()
+            .build();
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REMOVE)
+        .build();
+    final HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(root);
+    final RelNode result = planner.findBestExp();
+    assertThat(result, is(instanceOf(LogicalValues.class)));
   }
 }

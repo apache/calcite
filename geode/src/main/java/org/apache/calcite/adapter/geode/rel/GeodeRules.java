@@ -225,7 +225,7 @@ public class GeodeRules {
 
       GeodeSort geodeSort =
           new GeodeSort(sort.getCluster(), traitSet,
-              convert(sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
+              convert(call.getPlanner(), sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
               sort.getCollation(), sort.fetch);
 
       call.transformTo(geodeSort);
