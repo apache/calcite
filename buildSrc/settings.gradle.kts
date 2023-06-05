@@ -31,7 +31,7 @@ include("buildext")
 val upperCaseLetters = "\\p{Upper}".toRegex()
 
 fun String.toKebabCase() =
-    replace(upperCaseLetters) { "-${it.value.toLowerCase()}" }
+    replace(upperCaseLetters) { "-${it.value.lowercase()}" }
 
 fun buildFileNameFor(projectDirName: String) =
     "$projectDirName.gradle.kts"

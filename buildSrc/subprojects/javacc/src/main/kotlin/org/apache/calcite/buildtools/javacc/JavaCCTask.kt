@@ -63,7 +63,7 @@ open class JavaCCTask @Inject constructor(
         project.javaexec {
             classpath = javaCCClasspath.get()
             // The class is in the top-level package
-            main = "javacc"
+            getMainClass().set("javacc")
             args("-STATIC=${static.get()}")
             args("-LOOKAHEAD:${lookAhead.get()}")
             args("-OUTPUT_DIRECTORY:${output.get()}/${packageName.get().replace('.', '/')}")
