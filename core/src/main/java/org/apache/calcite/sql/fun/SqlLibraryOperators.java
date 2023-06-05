@@ -1182,9 +1182,9 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE_TRUNC =
       SqlBasicFunction.create("DATE_TRUNC",
-          ReturnTypes.DATE_NULLABLE,
+          ReturnTypes.ARG0_NULLABLE,
           OperandTypes.sequence("'DATE_TRUNC(<DATE>, <DATETIME_INTERVAL>)'",
-              OperandTypes.DATE, OperandTypes.dateInterval()),
+              OperandTypes.DATE_OR_TIMESTAMP, OperandTypes.dateInterval()),
           SqlFunctionCategory.TIMEDATE)
           .withOperandHandler(OperandHandlers.OPERAND_1_MIGHT_BE_TIME_FRAME);
 
@@ -1242,10 +1242,10 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_TRUNC =
       SqlBasicFunction.create("TIMESTAMP_TRUNC",
-          ReturnTypes.TIMESTAMP_NULLABLE,
+          ReturnTypes.ARG0_EXCEPT_DATE_NULLABLE,
           OperandTypes.sequence(
               "'TIMESTAMP_TRUNC(<TIMESTAMP>, <DATETIME_INTERVAL>)'",
-              OperandTypes.TIMESTAMP, OperandTypes.timestampInterval()),
+              OperandTypes.DATE_OR_TIMESTAMP, OperandTypes.timestampInterval()),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "DATETIME_TRUNC(timestamp, timeUnit)" function (BigQuery);
@@ -1256,10 +1256,10 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATETIME_TRUNC =
       SqlBasicFunction.create("DATETIME_TRUNC",
-          ReturnTypes.TIMESTAMP_NULLABLE,
+          ReturnTypes.ARG0_EXCEPT_DATE_NULLABLE,
           OperandTypes.sequence(
               "'DATETIME_TRUNC(<TIMESTAMP>, <DATETIME_INTERVAL>)'",
-              OperandTypes.TIMESTAMP, OperandTypes.timestampInterval()),
+              OperandTypes.DATE_OR_TIMESTAMP, OperandTypes.timestampInterval()),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_SECONDS(bigint)" function; returns a TIMESTAMP value

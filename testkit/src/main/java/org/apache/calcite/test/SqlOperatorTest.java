@@ -9631,6 +9631,14 @@ public class SqlOperatorTest {
         "2015-02-01 00:00:00", "TIMESTAMP(0) NOT NULL");
     f.checkScalar("timestamp_trunc(timestamp '2015-02-19 12:34:56', year)",
         "2015-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+    // verify return type for dates
+    f.checkScalar("timestamp_trunc(date '2008-12-25', month)",
+        "2008-12-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+    f.checkFails("^timestamp_trunc(time '15:30:00', hour)^",
+        "Cannot apply 'TIMESTAMP_TRUNC' to arguments of type "
+            + "'TIMESTAMP_TRUNC\\(<TIME\\(0\\)>, <INTERVAL HOUR>\\)'\\. "
+            + "Supported form\\(s\\): 'TIMESTAMP_TRUNC\\(<TIMESTAMP>, <DATETIME_INTERVAL>\\)'",
+        false);
   }
 
   @Test void testDatetimeTrunc() {
@@ -9669,6 +9677,14 @@ public class SqlOperatorTest {
         "2015-02-01 00:00:00", "TIMESTAMP(0) NOT NULL");
     f.checkScalar("datetime_trunc(timestamp '2015-02-19 12:34:56', year)",
         "2015-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+    // verify return type for dates
+    f.checkScalar("datetime_trunc(date '2008-12-25', month)",
+        "2008-12-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+    f.checkFails("^datetime_trunc(time '15:30:00', hour)^",
+        "Cannot apply 'DATETIME_TRUNC' to arguments of type "
+            + "'DATETIME_TRUNC\\(<TIME\\(0\\)>, <INTERVAL HOUR>\\)'\\. "
+            + "Supported form\\(s\\): 'DATETIME_TRUNC\\(<TIMESTAMP>, <DATETIME_INTERVAL>\\)'",
+        false);
   }
 
   @Test void testDateTrunc() {
@@ -9705,6 +9721,14 @@ public class SqlOperatorTest {
         "2015-01-01", "DATE NOT NULL");
     f.checkScalar("date_trunc(date '2015-02-19', isoyear)",
         "2014-12-29", "DATE NOT NULL");
+    // verifies return type for TIME & TIMESTAMP
+    f.checkScalar("date_trunc(timestamp '2008-12-25 15:30:00', month)",
+        "2008-12-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+    f.checkFails("^date_trunc(time '15:30:00', hour)^",
+        "Cannot apply 'DATE_TRUNC' to arguments of type "
+            + "'DATE_TRUNC\\(<TIME\\(0\\)>, <INTERVAL HOUR>\\)'\\. "
+            + "Supported form\\(s\\): 'DATE_TRUNC\\(<DATE>, <DATETIME_INTERVAL>\\)'",
+        false);
   }
 
   @Test void testFormatTime() {

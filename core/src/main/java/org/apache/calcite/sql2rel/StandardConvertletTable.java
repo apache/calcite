@@ -173,6 +173,11 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
           return e;
         });
 
+    registerOp(SqlLibraryOperators.DATETIME_TRUNC,
+        new TruncConvertlet());
+    registerOp(SqlLibraryOperators.TIMESTAMP_TRUNC,
+        new TruncConvertlet());
+
     registerOp(SqlLibraryOperators.LTRIM,
         new TrimConvertlet(SqlTrimFunction.Flag.LEADING));
     registerOp(SqlLibraryOperators.RTRIM,
@@ -2046,6 +2051,22 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
       return rexBuilder.makeCall(SqlStdOperatorTable.DATETIME_PLUS,
           op2, interval2Add);
+    }
+  }
+
+  /** Convertlet that handles the BigQuery {@code DATETIME_TRUNC} and
+   * {@code TIMESTAMP_TRUNC} functions. Ensures that DATE operands are
+   * cast to TIMESTAMPs to match the expected return type for BigQuery. */
+  private static class TruncConvertlet implements SqlRexConvertlet {
+    @Override public RexNode convertCall(SqlRexContext cx, SqlCall call) {
+      final RexBuilder rexBuilder = cx.getRexBuilder();
+      RexNode op1 = cx.convertExpression(call.operand(0));
+      RexNode op2 = cx.convertExpression(call.operand(1));
+      if (op1.getType().getSqlTypeName() == SqlTypeName.DATE) {
+        RelDataType type = cx.getValidator().getValidatedNodeType(call);
+        op1 = cx.getRexBuilder().makeCast(type, op1);
+      }
+      return rexBuilder.makeCall(call.getOperator(), op1, op2);
     }
   }
 
