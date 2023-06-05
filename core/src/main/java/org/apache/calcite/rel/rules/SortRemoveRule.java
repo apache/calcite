@@ -70,7 +70,7 @@ public class SortRemoveRule
         .getTrait(RelCollationTraitDef.INSTANCE);
     final RelTraitSet traits = sort.getInput().getTraitSet()
         .replace(collation).replaceIf(ConventionTraitDef.INSTANCE, sort::getConvention);
-    call.transformTo(convert(sort.getInput(), traits));
+    call.transformTo(convert(call.getPlanner(), sort.getInput(), traits));
   }
 
   /** Rule configuration. */

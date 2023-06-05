@@ -588,8 +588,10 @@ public abstract class RelOptRule {
    * @return a relational expression with the desired traits; never null
    */
   public static RelNode convert(RelNode rel, RelTraitSet toTraits) {
-    RelOptPlanner planner = rel.getCluster().getPlanner();
+    return convert(rel.getCluster().getPlanner(), rel, toTraits);
+  }
 
+  public static RelNode convert(RelOptPlanner planner, RelNode rel, RelTraitSet toTraits) {
     RelTraitSet outTraits = rel.getTraitSet();
     for (int i = 0; i < toTraits.size(); i++) {
       RelTrait toTrait = toTraits.getTrait(i);
@@ -614,7 +616,10 @@ public abstract class RelOptRule {
    * @return a relational expression with the desired trait; never null
    */
   public static RelNode convert(RelNode rel, @Nullable RelTrait toTrait) {
-    RelOptPlanner planner = rel.getCluster().getPlanner();
+    return convert(rel.getCluster().getPlanner(), rel, toTrait);
+  }
+
+  public static RelNode convert(RelOptPlanner planner, RelNode rel, @Nullable RelTrait toTrait) {
     RelTraitSet outTraits = rel.getTraitSet();
     if (toTrait != null) {
       outTraits = outTraits.replace(toTrait);

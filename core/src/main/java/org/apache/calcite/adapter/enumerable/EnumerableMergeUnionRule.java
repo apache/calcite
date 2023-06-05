@@ -135,7 +135,8 @@ public class EnumerableMergeUnionRule extends RelRule<EnumerableMergeUnionRule.C
       final RelNode newInput =
           sort.copy(sort.getTraitSet(), unsortedInput, collation, null, inputFetch);
       inputs.add(
-          convert(newInput, newInput.getTraitSet().replace(EnumerableConvention.INSTANCE)));
+          convert(call.getPlanner(), newInput,
+              newInput.getTraitSet().replace(EnumerableConvention.INSTANCE)));
     }
 
     RelNode result = EnumerableMergeUnion.create(sort.getCollation(), inputs, union.all);

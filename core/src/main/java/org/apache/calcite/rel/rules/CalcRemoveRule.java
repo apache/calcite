@@ -59,6 +59,7 @@ public class CalcRemoveRule extends RelRule<CalcRemoveRule.Config>
     input = call.getPlanner().register(input, calc);
     call.transformTo(
         convert(
+            call.getPlanner(),
             input,
             calc.getTraitSet()));
   }
