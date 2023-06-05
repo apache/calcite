@@ -1540,6 +1540,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
+
+  @LibraryOperator(libraries = {TERADATA, SNOWFLAKE})
+  public static final SqlFunction GETBIT =
+      new SqlFunction("GETBIT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.NUMERIC);
   @LibraryOperator(libraries = {BIG_QUERY, SPARK})
   public static final SqlFunction BIT_COUNT =
       new SqlFunction("BIT_COUNT",
