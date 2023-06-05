@@ -1548,6 +1548,17 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {HIVE, SPARK, TERADATA})
+  public static final SqlFunction SHIFTLEFT =
+      new SqlFunction(
+          "SHIFTLEFT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.family(SqlTypeFamily.INTEGER,
+              SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {SNOWFLAKE, ORACLE, TERADATA})
   public static final SqlFunction BITNOT =
           new SqlFunction("BITNOT",

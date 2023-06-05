@@ -12015,6 +12015,29 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
   }
+  @Test public void testShiftLeft() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftLeftRexNode = builder.call(SqlLibraryOperators.SHIFTLEFT,
+        builder.literal(3), builder.literal(2));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftLeftRexNode, "FD"))
+        .build();
+    final String expectedBigQuery = "SELECT 3 << 2 AS FD";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testShiftLeftWithNullInSecondArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftLeftRexNode = builder.call(SqlLibraryOperators.SHIFTLEFT,
+        builder.literal(3), builder.literal(null));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftLeftRexNode, "FD"))
+        .build();
+    final String expectedBigQuery = "SELECT 3 << NULL AS FD";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
   @Test public void testBitNot() {
     final RelBuilder builder = relBuilder();
     final RexNode bitNotRexNode = builder.call(BITNOT, builder.literal(10));
