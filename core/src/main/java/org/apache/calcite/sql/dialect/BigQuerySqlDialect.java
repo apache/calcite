@@ -72,6 +72,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.interval.BigQueryDateTimestampInterval;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -307,6 +308,15 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static final String XOR = "^";
   private static final String SHIFTLEFT = "<<";
   private static final String BITNOT = "~";
+
+  public static final Map<String, String> BQ_VALID_ESCAPE_SEQUENCES =
+      ImmutableMap.of(
+      "\\", "\\\\",
+      "\b", "\\b",
+      "\n", "\\n",
+      "\r", "\\r",
+      "\t", "\\t"
+      );
 
   @Override public String quoteIdentifier(String val) {
     return quoteIdentifier(new StringBuilder(), val).toString();
@@ -765,7 +775,10 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseAsOp(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     assert call.operandCount() >= 2;
     final SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.AS);
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    SqlNode literalValue = SqlLiteral.createCharString(
+        handleEscapeSequences(
+            unquoteStringLiteral(call.operand(0).toString())), SqlParserPos.ZERO);
+    literalValue.unparse(writer, leftPrec, rightPrec);
     final boolean needsSpace = true;
     writer.setNeedWhitespace(needsSpace);
     writer.sep("AS");
@@ -813,7 +826,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private SqlCharStringLiteral makeRegexNodeForPosition(SqlCall call) {
     String regexLiteral = call.operand(0).toString();
-    regexLiteral = regexLiteral.substring(1, regexLiteral.length() - 1);
+    regexLiteral = (regexLiteral.substring(1, regexLiteral.length() - 1)).replace("\\", "\\\\");
     return SqlLiteral.createCharString(regexLiteral,
         call.operand(0).getParserPosition());
   }
@@ -868,7 +881,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private SqlCharStringLiteral makeRegexNode(SqlCall call) {
     String regexLiteral = call.operand(1).toString();
-    regexLiteral = regexLiteral.substring(1, regexLiteral.length() - 1);
+    regexLiteral = (regexLiteral.substring(1, regexLiteral.length() - 1)).replace("\\", "\\\\");
     if (call.operandCount() == 5 && call.operand(4).toString().equals("'i'")) {
       regexLiteral = "(?i)".concat(regexLiteral);
     }
@@ -1287,6 +1300,10 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unParseInStr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame instrFrame = writer.startFunCall("INSTR");
     for (SqlNode operand : call.getOperandList()) {
+      if (operand instanceof SqlCharStringLiteral) {
+        operand = SqlLiteral.createCharString(
+            handleEscapeSequences(unquoteStringLiteral(operand.toString())), SqlParserPos.ZERO);
+      }
       writer.sep(",");
       operand.unparse(writer, leftPrec, rightPrec);
     }
@@ -1297,7 +1314,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     final SqlWriter.Frame translateFuncFrame = writer.startFunCall("TRANSLATE");
     for (SqlNode operand : call.getOperandList()) {
       if (operand instanceof SqlCharStringLiteral) {
-        operand = operand.toString().contains("\n") ? replaceNewLineChar(operand) : operand;
+        operand = SqlLiteral.createCharString(
+            handleEscapeSequences(unquoteStringLiteral(operand.toString())), SqlParserPos.ZERO);
       }
       writer.sep(",");
       operand.unparse(writer, leftPrec, rightPrec);
@@ -1459,7 +1477,8 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseOctetLength(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlNode operandCall = call.operand(0);
     if (call.operand(0) instanceof SqlLiteral) {
-      String newOperand = call.operand(0).toString();
+      String newOperand = call.operand(0).toString().replace("\\",
+              "\\\\");
 
       operandCall = SqlLiteral.createCharString(
               unquoteStringLiteral(newOperand), SqlParserPos.ZERO);
@@ -1898,30 +1917,36 @@ public class BigQuerySqlDialect extends SqlDialect {
         "");
   }
 
-  public static void processNode(SqlNode binaryNode, SqlCall call) {
+  public void processNode(SqlNode binaryNode, SqlCall call) {
     if (binaryNode instanceof SqlNodeList) {
       SqlNodeList operandList = (SqlNodeList) binaryNode;
       processNodeList(operandList);
     }
-    if (binaryNode instanceof SqlCharStringLiteral && binaryNode.toString().contains("\n")) {
-      binaryNode = replaceNewLineChar(binaryNode);
+    if (binaryNode instanceof SqlCharStringLiteral) {
+      binaryNode = SqlLiteral.createCharString(
+          handleEscapeSequences(unquoteStringLiteral(binaryNode.toString())), SqlParserPos.ZERO);
       call.setOperand(1, binaryNode);
     }
   }
 
-  public static void processNodeList(SqlNodeList operandList) {
+  public void processNodeList(SqlNodeList operandList) {
     SqlNode node;
     for (SqlNode operand : operandList) {
       if (operand instanceof SqlCharStringLiteral) {
-        node = operand.toString().contains("\n") ? replaceNewLineChar(operand) : operand;
+        node = SqlLiteral.createCharString(
+            handleEscapeSequences(unquoteStringLiteral(operand.toString())), SqlParserPos.ZERO);
         operandList.set(operandList.indexOf(operand), node);
       }
     }
   }
 
-  public static SqlNode replaceNewLineChar(SqlNode operand) {
-    String replacedOperand = ((SqlCharStringLiteral) operand).toValue().replace("\n", "");
-    return SqlLiteral.createCharString(replacedOperand, SqlParserPos.ZERO);
+  @Override public String handleEscapeSequences(String val) {
+    for (String escapeSequence : BQ_VALID_ESCAPE_SEQUENCES.keySet()) {
+      if (val.contains(escapeSequence)) {
+        val = val.replace(escapeSequence, BQ_VALID_ESCAPE_SEQUENCES.get(escapeSequence));
+      }
+    }
+    return val;
   }
 
   /**
