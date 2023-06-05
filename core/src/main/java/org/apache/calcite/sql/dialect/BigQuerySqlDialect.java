@@ -162,7 +162,19 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MICROS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MILLIS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_SECONDS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.*;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
 import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
 import static org.apache.calcite.util.Util.removeLeadingAndTrailingSingleQuotes;
 
@@ -1232,123 +1244,21 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(ifFrame);
   }
 
- /* private void unparseShiftLeft(SqlWriter writer, SqlCall call) {
-    call.operand(0).unparse(writer, 0, 0);
-    if (call.operand(1).toString().startsWith("-")) {
-      SqlNumericLiteral s = SqlLiteral.createNegative(call.operand(1), SqlParserPos.ZERO);
-      writer.print(SHIFTRIGHT + " ");
-      s.unparse(writer, 0, 0);
-    } else {
-      writer.print(SHIFTLEFT + " ");
-      call.operand(1).unparse(writer, 0, 0);
-    }
-  }
-
-  private void unparseShiftRight(SqlWriter writer, SqlCall call) {
-    call.operand(0).unparse(writer, 0, 0);
-    if (call.operand(1).toString().startsWith("-")) {
-      SqlNumericLiteral s = SqlLiteral.createNegative(call.operand(1), SqlParserPos.ZERO);
-      writer.print(SHIFTLEFT + " ");
-      s.unparse(writer, 0, 0);
-    } else {
-      writer.print(SHIFTRIGHT + " ");
-      call.operand(1).unparse(writer, 0, 0);
-    }
-  }*/
-
-/*  private void unparseShiftLeftAndRight(SqlWriter writer, SqlCall call, boolean isShiftLeft) {
-    call.operand(0).unparse(writer, 0, 0);
-    if (call.operand(1).toString().startsWith("-")) {
-      SqlNumericLiteral firstOperandLiteral = SqlLiteral.createNegative(call.operand(1), SqlParserPos.ZERO);
-      writer.print(isShiftLeft ? SHIFTRIGHT : SHIFTLEFT);
-      writer.print(" ");
-      firstOperandLiteral.unparse(writer, 0, 0);
-    } else {
-      writer.print(isShiftLeft ? SHIFTLEFT : SHIFTRIGHT);
-      writer.print(" ");
-      call.operand(1).unparse(writer, 0, 0);
-    }
-  }
-
-  private void unparseShiftLeft(SqlWriter writer, SqlCall call) {
-    unparseShiftLeftAndRight(writer, call, true);
-  }
-
-  private void unparseShiftRight(SqlWriter writer, SqlCall call) {
-    unparseShiftLeftAndRight(writer, call, false);
-  }*/
-
-  /*private void unparseShiftLeftAndRight(SqlWriter writer, SqlCall call, boolean isShiftLeft) {
-    call.operand(0).unparse(writer, 0, 0);
-
-    SqlNode operand1 = call.operand(1);
-    if (operand1 instanceof SqlNumericLiteral) {
-      // If the second operand is already a SqlNumericLiteral, use it as-is
-      writer.print(isShiftLeft ? SHIFTLEFT : SHIFTRIGHT);
-      writer.print(" ");
-      operand1.unparse(writer, 0, 0);
-    } else {
-      // If the second operand is not a SqlNumericLiteral, create a new one
-      SqlLiteral secondOperandLiteral = SqlLiteral.createExactNumeric(operand1.toString(), SqlParserPos.ZERO);
-      writer.print(isShiftLeft ? SHIFTLEFT : SHIFTRIGHT);
-      writer.print(" ");
-      secondOperandLiteral.unparse(writer, 0, 0);
-    }
-  }
-
-  private void unparseShiftLeft(SqlWriter writer, SqlCall call) {
-    unparseShiftLeftAndRight(writer, call, true);
-  }
-
-  private void unparseShiftRight(SqlWriter writer, SqlCall call) {
-    unparseShiftLeftAndRight(writer, call, false);
-  }*/
-
-/*  private void unparseShiftLeftAndRight(SqlWriter writer, SqlCall call, boolean isShiftLeft) {
-    call.operand(0).unparse(writer, 0, 0);
-
-    SqlNode operand1 = call.operand(1);
-    if (operand1 instanceof SqlNumericLiteral) {
-      // If the second operand is already a SqlNumericLiteral, use it as-is
-      writer.print(isShiftLeft ? SHIFTLEFT : SHIFTRIGHT);
-      writer.print(" ");
-      operand1.unparse(writer, 0, 0);
-    } else {
-      String operand1String = operand1.toString();
-      if (operand1String.startsWith("-")) {
-        // If the second operand is negative, convert it to positive
-        SqlNode positiveOperand1 = SqlLiteral.createExactNumeric(operand1String.substring(1), SqlParserPos.ZERO);
-        writer.print(isShiftLeft ? SHIFTLEFT : SHIFTRIGHT);
-        writer.print(" ");
-        positiveOperand1.unparse(writer, 0, 0);
-      } else {
-        // If the second operand is already positive, use it as-is
-        writer.print(isShiftLeft ? SHIFTLEFT : SHIFTRIGHT);
-        writer.print(" ");
-        operand1.unparse(writer, 0, 0);
-      }
-    }
-  }*/
-
   private void unparseShiftLeftAndRight(SqlWriter writer, SqlCall call, boolean isShiftLeft) {
     call.operand(0).unparse(writer, 0, 0);
-
-    SqlNode operand1 = call.operand(1);
-    if (operand1 instanceof SqlNumericLiteral ) {
-      String operand1String = operand1.toString();
-      if (operand1String.startsWith("-")) {
-        // If the second operand is negative, convert it to positive
-        String positiveOperand1String = operand1String.substring(1);
-        SqlNumericLiteral positiveOperand1 = SqlLiteral.createExactNumeric(positiveOperand1String, SqlParserPos.ZERO);
-        writer.print(isShiftLeft ? SHIFTRIGHT : SHIFTLEFT);
-        writer.print(" ");
-        positiveOperand1.unparse(writer, 0, 0);
-      } else {
-        // If the second operand is already positive, use it as-is
-        writer.print(isShiftLeft ? SHIFTLEFT : SHIFTRIGHT);
-        writer.print(" ");
-        operand1.unparse(writer, 0, 0);
-      }
+    SqlNode firstOperand = call.operand(1);
+    if (firstOperand instanceof SqlNumericLiteral && firstOperand.toString().startsWith("-")) {
+      // If the second operand is negative, convert it to positive and change the operator
+      SqlNumericLiteral positiveOperand1 = SqlLiteral.createNegative((SqlNumericLiteral)
+              firstOperand, SqlParserPos.ZERO);
+      writer.print(isShiftLeft ? SHIFTRIGHT : SHIFTLEFT);
+      writer.print(" ");
+      positiveOperand1.unparse(writer, 0, 0);
+    } else {
+      // If the second operand is positive or null, unparse it as-is
+      writer.print(isShiftLeft ? SHIFTLEFT : SHIFTRIGHT);
+      writer.print(" ");
+      firstOperand.unparse(writer, 0, 0);
     }
   }
 
