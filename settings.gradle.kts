@@ -38,7 +38,7 @@ pluginManagement {
         idv("com.google.protobuf")
         idv("de.thetaphi.forbiddenapis")
         idv("jacoco")
-        idv("me.champeau.gradle.jmh")
+        idv("me.champeau.jmh")
         idv("net.ltgt.errorprone")
         idv("org.jetbrains.gradle.plugin.idea-ext")
         idv("org.nosphere.apache.rat")

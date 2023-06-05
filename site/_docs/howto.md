@@ -32,7 +32,7 @@ adapters.
 ## Building from a source distribution
 
 Prerequisite is Java (JDK 8, 11, 17 or 19)
-and Gradle (version 7.6.1) on your path.
+and Gradle (version 8.7) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
@@ -91,7 +91,7 @@ For more information about Gradle, check the following links:
 
 ## Upgrade Gradle and the Gradle Wrapper
 
-Gradle's [documentation](https://docs.gradle.org/current/userguide/upgrading_version_7.html)
+Gradle's [documentation](https://docs.gradle.org/current/userguide/upgrading_version_8.html)
 provides detailed information about how to upgrade Gradle. Here is a list of steps:
 
 1. Run `./gradlew help --warning-mode=all` to find out whether you are
@@ -99,10 +99,8 @@ provides detailed information about how to upgrade Gradle. Here is a list of ste
 2. Fix the deprecations and repeat the previous step to confirm they are
    fixed. This is a step where Gradle doc could be very helpful since it
    contains info about deprecations and how to cope with them.
-3. Run `./gradlew wrapper --gradle-version <new_gradle_version>` to upgrade
-   Gradle. If necessary it will also upgrade the Gradle Wrapper.
-   This step also updates `gradle/wrapper/gradle-wrapper.properties`,
-   including the checksum.
+3. Run `./gradlew wrapper --gradle-version=<new_gradle_version> --gradle-distribution-sha256-sum=<distribution-sum>`
+   to upgrade Gradle. Checksum should be taken from [Gradle release checksums](https://gradle.org/release-checksums/).
 4. Check and update Kotlin version in `gradle.properties` if required.
    Check should be done against [Kotlin compatibility matrix](https://docs.gradle.org/current/userguide/compatibility.html#kotlin).
 5. Step 3 will have removed the header from
