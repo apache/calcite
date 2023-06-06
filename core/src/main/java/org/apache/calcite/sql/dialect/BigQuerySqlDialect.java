@@ -306,6 +306,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static final String SHIFTRIGHT = ">>";
   private static final String XOR = "^";
   private static final String SHIFTLEFT = "<<";
+  private static final String BITNOT = "~";
 
   @Override public String quoteIdentifier(String val) {
     return quoteIdentifier(new StringBuilder(), val).toString();
@@ -1223,8 +1224,14 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "TRUE":
       unparseBoolean(writer, call);
       break;
+    case "GETBIT":
+      unparseGetBitFunction(writer, call, leftPrec, rightPrec);
+      break;
     case "SHIFTLEFT":
       unparseShiftLeft(writer, call);
+      break;
+    case "BITNOT":
+      unparseBitNotFunction(writer, call);
       break;
     case "SHIFTRIGHT":
       unparseShiftRight(writer, call);
@@ -2008,5 +2015,23 @@ public class BigQuerySqlDialect extends SqlDialect {
       frame = writer.startList("(", ")");
     }
     return frame;
+  }
+
+  private static void unparseGetBitFunction(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(SHIFTRIGHT);
+    writer.print(" ");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.print("& ");
+    SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
+    oneLiteral.unparse(writer, leftPrec, rightPrec);
+  }
+
+  private void unparseBitNotFunction(SqlWriter writer, SqlCall call) {
+    writer.print(BITNOT);
+    writer.print(" (");
+    call.operand(0).unparse(writer, 0, 0);
+    writer.print(")");
   }
 }

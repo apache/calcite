@@ -126,6 +126,7 @@ import static org.apache.calcite.avatica.util.TimeUnit.MINUTE;
 import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
 import static org.apache.calcite.avatica.util.TimeUnit.SECOND;
 import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_MOD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALENDAR;
@@ -11971,6 +11972,49 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracle));
   }
 
+  @Test public void testForGetBitFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode getBitRexNode = builder.call(SqlLibraryOperators.GETBIT,
+        builder.literal(8), builder.literal(3));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(getBitRexNode, "aa"))
+        .build();
+
+    final String expectedBQ = "SELECT 8 >> 3 & 1 AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
+  @Test public void testGetBitFunctionWithNullArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode getBitRexNode = builder.call(SqlLibraryOperators.GETBIT,
+        builder.literal(8), builder.literal(null));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(getBitRexNode, "aa"))
+        .build();
+
+    final String expectedBQ = "SELECT 8 >> NULL & 1 AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
+  @Test public void testGetBitFunctionWithColumnValue() {
+    final RelBuilder builder = relBuilder();
+    final RexNode getBitRexNode = builder.call(SqlLibraryOperators.GETBIT,
+        builder.literal(8),
+        builder.scan("EMP").field(0));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(getBitRexNode, "aa"))
+        .build();
+
+    final String expectedBQ = "SELECT 8 >> EMPNO & 1 AS aa\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
   @Test public void testShiftLeft() {
     final RelBuilder builder = relBuilder();
     final RexNode shiftLeftRexNode = builder.call(SqlLibraryOperators.SHIFTLEFT,
@@ -11993,6 +12037,27 @@ class RelToSqlConverterTest {
         .build();
     final String expectedBigQuery = "SELECT 3 << NULL AS FD";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+  @Test public void testBitNot() {
+    final RelBuilder builder = relBuilder();
+    final RexNode bitNotRexNode = builder.call(BITNOT, builder.literal(10));
+    final RelNode root = builder
+            .values(new String[]{""}, 1)
+            .project(builder.alias(bitNotRexNode, "bit_not"))
+            .build();
+    final String expectedBigQuery = "SELECT ~ (10) AS bit_not";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testBitNotWithTableColumn() {
+    final RelBuilder builder = relBuilder();
+    final RexNode bitNotRexNode = builder.call(BITNOT, builder.scan("EMP").field(5));
+    final RelNode root = builder
+            .scan("EMP")
+            .project(builder.alias(bitNotRexNode, "bit_not"))
+            .build();
+    final String expectedSparkQuery = "SELECT ~ (SAL) AS bit_not\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testShiftRight() {
