@@ -626,15 +626,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     case TO_NUMBER:
       ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec, this);
       break;
-    case ASCII:
-      SqlWriter.Frame toCodePointsFrame = writer.startFunCall("TO_CODE_POINTS");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(toCodePointsFrame);
-      writer.literal("[OFFSET(0)]");
-      break;
     case NVL:
       SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
       SqlCall sqlCall = new SqlBasicCall(IFNULL, extractNodeOperands,
