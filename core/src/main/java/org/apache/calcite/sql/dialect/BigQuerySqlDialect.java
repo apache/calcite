@@ -1130,11 +1130,11 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "REGEXP_LIKE":
       unParseRegexpLike(writer, call, leftPrec, rightPrec);
       break;
+    case "REGEXP_CONTAINS":
+      unparseRegexpContains(writer, call, leftPrec, rightPrec);
+      break;
     case "REGEXP_EXTRACT":
       unparseRegexpExtract(writer, call, leftPrec, rightPrec);
-      break;
-    case "REGEXP_CONTAINS":
-      unParseRegexpContains(writer, call, leftPrec, rightPrec);
       break;
     case "DATE_DIFF":
       final SqlWriter.Frame date_diff = writer.startFunCall("DATE_DIFF");
@@ -1222,7 +1222,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unParseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlWriter.Frame ifFrame = writer.startFunCall("IF");
-    unParseRegexpContains(writer, call, leftPrec, rightPrec);
+    unparseIfRegexpContains(writer, call, leftPrec, rightPrec);
     writer.sep(",");
     writer.literal("1");
     writer.sep(",");
@@ -1236,7 +1236,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     call.operand(1).unparse(writer, 0, 0);
   }
 
-  private void unParseRegexpContains(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  private void unparseIfRegexpContains(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
     SqlWriter.Frame regexContainsFrame = writer.startFunCall("REGEXP_CONTAINS");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(", r");
@@ -1247,6 +1248,15 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseRegexLiteral(writer, call.operand(1));
     }
     writer.endFunCall(regexContainsFrame);
+  }
+
+  private void unparseRegexpContains(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_CONTAINS");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep(",");
+    unparseRegexLiteral(writer, call.operand(1));
+    writer.endFunCall(regexpExtractAllFrame);
   }
 
   private SqlCharStringLiteral handleRegexpReplaceOperands(SqlCall call) {
@@ -1422,6 +1432,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     unparseRegexLiteral(writer, call.operand(1));
     writer.endFunCall(regexpExtractAllFrame);
   }
+
 
   private void unparseRegexpExtractAll(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
