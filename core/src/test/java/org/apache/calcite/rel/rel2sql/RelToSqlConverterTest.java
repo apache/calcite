@@ -11070,7 +11070,7 @@ class RelToSqlConverterTest {
         + "WHERE \"first_name\" ='Maya\n Gutierrez'";
     final String expectedBQSql = "SELECT *\n"
         + "FROM foodmart.employee\n"
-        + "WHERE first_name = 'Maya Gutierrez'";
+        + "WHERE first_name = 'Maya\\n Gutierrez'";
     sql(query)
         .withBigQuery()
         .ok(expectedBQSql);
