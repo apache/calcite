@@ -1258,7 +1258,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       if (operandList.indexOf(operand) == 1) {
         unparseRegexLiteral(writer, call.operand(1));
       } else {
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        operand.unparse(writer, leftPrec, rightPrec);
       }
       writer.sep(",");
     }
@@ -1438,7 +1438,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       if (operandList.indexOf(operand) == 1) {
         unparseRegexLiteral(writer, call.operand(1));
       } else {
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        operand.unparse(writer, leftPrec, rightPrec);
       }
       writer.sep(",");
     }
