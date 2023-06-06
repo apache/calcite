@@ -2664,9 +2664,9 @@ public class RexSimplify {
      * Add for RexCall, such as ARRAY[...,...].
      */
     private Comparison(RexNode ref, SqlKind kind, RexCall arrayCall) {
-      this.ref = Objects.requireNonNull(ref);
-      this.kind = Objects.requireNonNull(kind);
-      this.rexCall = Objects.requireNonNull(arrayCall);
+      this.ref = requireNonNull(ref, "ref");
+      this.kind = requireNonNull(kind, "kind");
+      this.rexCall = requireNonNull(arrayCall, "arrayCall");
       this.literal = null;
     }
 
