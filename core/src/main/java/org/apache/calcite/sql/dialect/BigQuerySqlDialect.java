@@ -1255,12 +1255,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_CONTAINS");
     List<SqlNode> operandList = call.getOperandList();
     for (SqlNode operand : operandList) {
+      writer.sep(",", false);
       if (operandList.indexOf(operand) == 1) {
-        unparseRegexLiteral(writer, call.operand(1));
+        unparseRegexLiteral(writer, operand);
       } else {
         operand.unparse(writer, leftPrec, rightPrec);
       }
-      writer.sep(",");
     }
     writer.endFunCall(regexpExtractAllFrame);
   }
@@ -1435,12 +1435,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_EXTRACT");
     List<SqlNode> operandList = call.getOperandList();
     for (SqlNode operand : operandList) {
+      writer.sep(",", false);
       if (operandList.indexOf(operand) == 1) {
-        unparseRegexLiteral(writer, call.operand(1));
+        unparseRegexLiteral(writer, operand);
       } else {
         operand.unparse(writer, leftPrec, rightPrec);
       }
-      writer.sep(",");
     }
     writer.endFunCall(regexpExtractAllFrame);
   }
