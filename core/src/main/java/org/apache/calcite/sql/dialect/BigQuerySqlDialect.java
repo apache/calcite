@@ -308,7 +308,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static final String SHIFTLEFT = "<<";
   private static final String BITNOT = "~";
 
-  public static final Map<String, String> BQ_VALID_ESCAPE_SEQUENCES =
+  public static final Map<String, String> STRING_LITERAL_ESCAPE_SEQUENCES =
       ImmutableMap.of(
       "\\", "\\\\",
       "\b", "\\b",
@@ -1253,9 +1253,15 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseRegexpContains(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_CONTAINS");
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.sep(",");
-    unparseRegexLiteral(writer, call.operand(1));
+    List<SqlNode> operandList = call.getOperandList();
+    for (SqlNode operand : operandList) {
+      if (operandList.indexOf(operand) == 1) {
+        unparseRegexLiteral(writer, call.operand(1));
+      } else {
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+      }
+      writer.sep(",");
+    }
     writer.endFunCall(regexpExtractAllFrame);
   }
 
@@ -1427,9 +1433,15 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseRegexpExtract(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_EXTRACT");
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.sep(",");
-    unparseRegexLiteral(writer, call.operand(1));
+    List<SqlNode> operandList = call.getOperandList();
+    for (SqlNode operand : operandList) {
+      if (operandList.indexOf(operand) == 1) {
+        unparseRegexLiteral(writer, call.operand(1));
+      } else {
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+      }
+      writer.sep(",");
+    }
     writer.endFunCall(regexpExtractAllFrame);
   }
 
@@ -1897,9 +1909,9 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   @Override public String handleEscapeSequences(String val) {
-    for (String escapeSequence : BQ_VALID_ESCAPE_SEQUENCES.keySet()) {
+    for (String escapeSequence : STRING_LITERAL_ESCAPE_SEQUENCES.keySet()) {
       if (val.contains(escapeSequence)) {
-        val = val.replace(escapeSequence, BQ_VALID_ESCAPE_SEQUENCES.get(escapeSequence));
+        val = val.replace(escapeSequence, STRING_LITERAL_ESCAPE_SEQUENCES.get(escapeSequence));
       }
     }
     return val;
