@@ -761,8 +761,7 @@ allprojects {
                     "**/org/apache/calcite/adapter/os/Processes${'$'}ProcessFactory.class",
                     "**/org/apache/calcite/adapter/os/OsAdapterTest.class",
                     "**/org/apache/calcite/runtime/Resources${'$'}Inst.class",
-                    "**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript.class",
-                    "**/org/apache/calcite/test/concurrent/ConcurrentTestCommandScript${'$'}ShellCommand.class",
+                    "**/org/apache/calcite/util/TestUnsafe.class",
                     "**/org/apache/calcite/util/Unsafe.class",
                     "**/org/apache/calcite/test/Unsafe.class"
                 )
