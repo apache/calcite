@@ -16,60 +16,47 @@
  */
 package org.apache.calcite.slt;
 
+import net.hydromatic.sqllogictest.TestStatistics;
+
 import org.apache.calcite.slt.executors.CalciteExecutor;
 
 import net.hydromatic.sqllogictest.OptionsParser;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.TestFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 
 /**
  * Tests using sql-logic-test suite.
  */
 public class SqlLogicTestsForCalciteTests {
-  private static final String UTF_8 = StandardCharsets.UTF_8.name();
-
-  private static Output launchSqlLogicTest(String... args) throws IOException {
-    try (ByteArrayOutputStream bout = new ByteArrayOutputStream();
-         ByteArrayOutputStream berr = new ByteArrayOutputStream()) {
-      final PrintStream out = new PrintStream(bout, false, UTF_8);
-      final PrintStream err = new PrintStream(berr, false, UTF_8);
-      OptionsParser options = new OptionsParser(false, out, err);
-      CalciteExecutor.register(options);
-      net.hydromatic.sqllogictest.Main.execute(options, args);
-      out.flush();
-      err.flush();
-      return new Output(bout.toString(UTF_8), berr.toString(UTF_8));
-    }
+  private static TestStatistics launchSqlLogicTest(String... args) throws IOException {
+    OptionsParser options = new OptionsParser(false, System.out, System.err);
+    CalciteExecutor.register(options);
+    return net.hydromatic.sqllogictest.Main.execute(options, args);
   }
 
-  /** Test that runs one script against Calcite + HSQLDB. */
-  @Test void testRunCalcite() throws IOException {
-    Output res = launchSqlLogicTest("-x", "-v", "-e", "calcite", "select1.test");
-    // This test uncovers Calcite bugs.
-    String[] outLines = res.out.split(System.lineSeparator());
-    assertThat("Bugs exist", outLines.length > 6);
-    // Always 1 failure, since this test stops at the first failure
-    assertThat(res.out, outLines[6], is("Failed: 1"));
+  void runOneTestFile(String testFile) throws IOException {
+    TestStatistics res = launchSqlLogicTest("-v", "-e", "calcite", testFile);
+    res.printStatistics(System.err);
+    assertThat(res, notNullValue());
+    assertThat(res.getParseFailureCount(), is(0));
+    assertThat(res.getIgnoredTestCount(), is(0));
+    assertThat(res.getTestFileCount(), is(1));
   }
 
-  /**
-   * Wrapper around the output of the sql-logic-test CLI.
-   */
-  private static class Output {
-    final String out;
-    final String err;
-
-    Output(String out, String err) {
-      this.out = out;
-      this.err = err;
-    }
+  @TestFactory
+  List<DynamicTest> runAllTests() {
+    Set<String> tests = net.hydromatic.sqllogictest.Main.getTestList();
+    return tests.stream().map(s -> DynamicTest.dynamicTest(s,
+        () -> runOneTestFile(s))).collect(Collectors.toList());
   }
 }

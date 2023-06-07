@@ -104,7 +104,8 @@ public class CalciteExecutor extends SqlSltTestExecutor {
    */
   boolean query(SqlTestQuery query, TestStatistics statistics) throws SQLException {
     String q = query.getQuery();
-    this.options.message("Executing: " + q, 2);
+    this.options.message(statistics.totalTests()
+        + " executing: " + q, 2);
     if (this.buggyOperations.contains(q) || this.options.doNotExecute) {
       statistics.incIgnored();
       options.message("Skipping " + query.getQuery(), 2);
@@ -131,14 +132,16 @@ public class CalciteExecutor extends SqlSltTestExecutor {
     this.statementExecutor.dropAllTables();
 
     TestStatistics result = new TestStatistics(options.stopAtFirstError);
+    result.incFiles();
     for (ISqlTestOperation operation : file.fileContents) {
       SltSqlStatement stat = operation.as(SltSqlStatement.class);
       if (stat != null) {
         try {
           this.statement(stat);
         } catch (SQLException ex) {
-          options.err.println("Error while processing #"
-              + (result.totalTests() + 1) + " " + operation);
+          // Errors in SQL statements cannot be recovered from.
+          options.err.println("Error '" + ex.getMessage()
+              + "' in SQL statement " + operation);
           throw ex;
         }
         this.statementsExecuted++;
@@ -149,10 +152,9 @@ public class CalciteExecutor extends SqlSltTestExecutor {
           stop = this.query(query, result);
         } catch (Throwable ex) {
           // We catch throwable so we can handle even assertion failures
-          options.message("Error while processing "
-              + query.getQuery() + " " + ex.getMessage(), 1);
-          stop =
-              result.addFailure(
+          options.message("Error '" + ex.getMessage() + "' while processing "
+              + query.getQuery(), 2);
+          stop = result.addFailure(
                   new TestStatistics.FailedTestDescription(query,
                   ex.getMessage(), ex, options.verbosity > 0));
         }
