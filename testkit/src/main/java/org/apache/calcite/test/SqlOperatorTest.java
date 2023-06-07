@@ -5375,16 +5375,18 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_contains(array[1, 2], 1)", true,
         "BOOLEAN NOT NULL");
-    f.checkScalar("array_contains(array[1, null], cast(null as integer))", true,
-        "BOOLEAN NOT NULL");
     f.checkScalar("array_contains(array[1], 1)", true,
         "BOOLEAN NOT NULL");
     f.checkScalar("array_contains(array(), 1)", false,
+        "BOOLEAN NOT NULL");
+    f.checkScalar("array_contains(array[array[1, 2], array[3, 4]], array[1, 2])", true,
         "BOOLEAN NOT NULL");
     f.checkScalar("array_contains(array[map[1, 'a'], map[2, 'b']], map[1, 'a'])", true,
         "BOOLEAN NOT NULL");
     f.checkNull("array_contains(cast(null as integer array), 1)");
     f.checkType("array_contains(cast(null as integer array), 1)", "BOOLEAN");
+    f.checkNull("array_contains(array[1, null], cast(null as integer))");
+    f.checkType("array_contains(array[1, null], cast(null as integer))", "BOOLEAN");
     f.checkFails("^array_contains(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
   }

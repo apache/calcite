@@ -890,9 +890,9 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_CONTAINS =
       SqlBasicFunction.create(SqlKind.ARRAY_CONTAINS,
-          ReturnTypes.BOOLEAN_NULLABLE_IF_ARG0_NULLABLE,
+          ReturnTypes.BOOLEAN_NULLABLE,
           OperandTypes.ARRAY_ELEMENT);
-  
+
   /** The "ARRAY_DISTINCT(array)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_DISTINCT =

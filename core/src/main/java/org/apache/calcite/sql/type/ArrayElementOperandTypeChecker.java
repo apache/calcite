@@ -53,7 +53,7 @@ public class ArrayElementOperandTypeChecker implements SqlOperandTypeChecker {
     RelDataType biggest =
         callBinding.getTypeFactory().leastRestrictive(
             ImmutableList.of(arrayComponentType, aryType1));
-    if (null == biggest) {
+    if (biggest == null) {
       if (throwOnFailure) {
         throw callBinding.newError(
             RESOURCE.typeNotComparable(

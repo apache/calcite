@@ -695,7 +695,7 @@ public class RexImpTable {
       defineMethod(STRUCT_ACCESS, BuiltInMethod.STRUCT_ACCESS.method, NullPolicy.ANY);
       defineMethod(MEMBER_OF, BuiltInMethod.MEMBER_OF.method, NullPolicy.NONE);
       defineMethod(ARRAY_COMPACT, BuiltInMethod.ARRAY_COMPACT.method, NullPolicy.STRICT);
-      defineMethod(ARRAY_CONTAINS, BuiltInMethod.ARRAY_CONTAINS.method, NullPolicy.ARG0);
+      defineMethod(ARRAY_CONTAINS, BuiltInMethod.ARRAY_CONTAINS.method, NullPolicy.ANY);
       defineMethod(ARRAY_DISTINCT, BuiltInMethod.ARRAY_DISTINCT.method, NullPolicy.STRICT);
       defineMethod(ARRAY_EXCEPT, BuiltInMethod.ARRAY_EXCEPT.method, NullPolicy.ANY);
       defineMethod(ARRAY_INTERSECT, BuiltInMethod.ARRAY_INTERSECT.method, NullPolicy.ANY);

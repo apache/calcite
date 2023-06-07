@@ -103,7 +103,7 @@ public abstract class SqlTypeTransforms {
    */
   public static final SqlTypeTransform ARG0_NULLABLE =
       (opBinding, typeToTransform) -> {
-        RelDataType arg0 = opBinding.collectOperandTypes().get(0);
+        RelDataType arg0 = opBinding.getOperandType(0);
         if (arg0.isNullable()) {
           return opBinding.getTypeFactory()
               .createTypeWithNullability(typeToTransform, true);
