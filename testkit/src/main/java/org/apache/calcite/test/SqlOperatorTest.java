@@ -9791,6 +9791,12 @@ public class SqlOperatorTest {
             + "'DATE_TRUNC\\(<TIME\\(0\\)>, <INTERVAL HOUR>\\)'\\. "
             + "Supported form\\(s\\): 'DATE_TRUNC\\(<DATE>, <DATETIME_INTERVAL>\\)'",
         false);
+    f.checkScalar("date_trunc(date '2015-02-19', decade)",
+        "2010-01-01", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', century)",
+        "2001-01-01", "DATE NOT NULL");
+    f.checkScalar("date_trunc(date '2015-02-19', millennium)",
+        "2001-01-01", "DATE NOT NULL");
   }
 
   @Test void testFormatTime() {
