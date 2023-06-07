@@ -91,11 +91,6 @@ public class MssqlSqlDialect extends SqlDialect {
       return null;
     }
 
-    // Grouping node should preserve grouping, no emulation needed
-    if (node.getKind() == SqlKind.GROUPING) {
-      return node;
-    }
-
     // Emulate nulls first/last with case ordering
     final SqlParserPos pos = SqlParserPos.ZERO;
     final SqlNodeList whenList =
