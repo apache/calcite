@@ -2394,16 +2394,24 @@ public class RexImpTable {
         case MONTH:
         case WEEK:
         case DAY:
+        case DECADE:
+        case CENTURY:
+        case MILLENNIUM:
           final Expression dayOperand0 =
               preFloor ? call(operand0, type, TimeUnit.DAY) : operand0;
           return Expressions.call(floorMethod,
               translator.getLiteral(operand1), dayOperand0);
         default:
+          if (call.op.getKind() == SqlKind.DATE_TRUNC) {
+            throw new IllegalArgumentException("Time unit " + timeUnitRange
+                + " not supported for " + call.op.getName());
+          }
           return call(operand0, type, timeUnitRange.startUnit);
         }
 
       default:
-        throw new AssertionError();
+        throw new AssertionError(call.op.getName()
+            + " only supported with 1 or 2 arguments");
       }
     }
 
