@@ -3497,6 +3497,8 @@ public class RelBuilder {
     default:
       final int fieldIndex = extraNodes.size();
       extraNodes.add(node);
+      // direction.defaultNullDirection() is the NULLS-high default,
+      // which may cause unexpected behavior if used for a NULLS-low dialect.
       return new RelFieldCollation(fieldIndex, direction,
           Util.first(nullDirection, direction.defaultNullDirection()));
     }
