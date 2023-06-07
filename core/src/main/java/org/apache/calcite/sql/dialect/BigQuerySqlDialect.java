@@ -306,6 +306,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static final String SHIFTRIGHT = ">>";
   private static final String XOR = "^";
   private static final String SHIFTLEFT = "<<";
+  private static final String BITNOT = "~";
 
   @Override public String quoteIdentifier(String val) {
     return quoteIdentifier(new StringBuilder(), val).toString();
@@ -624,15 +625,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case TO_NUMBER:
       ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec, this);
-      break;
-    case ASCII:
-      SqlWriter.Frame toCodePointsFrame = writer.startFunCall("TO_CODE_POINTS");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(toCodePointsFrame);
-      writer.literal("[OFFSET(0)]");
       break;
     case NVL:
       SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
@@ -1226,6 +1218,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "GETBIT":
       unparseGetBitFunction(writer, call, leftPrec, rightPrec);
       break;
+    case "SHIFTLEFT":
+      unparseShiftLeft(writer, call);
+      break;
+    case "BITNOT":
+      unparseBitNotFunction(writer, call);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -1239,6 +1237,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.sep(",");
     writer.literal("0");
     writer.endFunCall(ifFrame);
+  }
+
+  private void unparseShiftLeft(SqlWriter writer, SqlCall call) {
+    call.operand(0).unparse(writer, 0, 0);
+    writer.print(SHIFTLEFT + " ");
+    call.operand(1).unparse(writer, 0, 0);
   }
 
   private void unParseRegexpContains(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1990,5 +1994,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print("& ");
     SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
     oneLiteral.unparse(writer, leftPrec, rightPrec);
+  }
+
+  private void unparseBitNotFunction(SqlWriter writer, SqlCall call) {
+    writer.print(BITNOT);
+    writer.print(" (");
+    call.operand(0).unparse(writer, 0, 0);
+    writer.print(")");
   }
 }
