@@ -166,7 +166,7 @@ jobs:
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} tasks build
 
   linux-jdk11-tz:
     if: github.event.action != 'labeled'
@@ -244,7 +244,7 @@ jobs:
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} tasks build
 
   linux-avatica:
     if: github.event.action != 'labeled'
