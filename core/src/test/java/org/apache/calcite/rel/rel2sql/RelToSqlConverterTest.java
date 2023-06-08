@@ -7865,7 +7865,7 @@ class RelToSqlConverterTest {
   @Test public void testAscii() {
     String query = "SELECT ASCII ('ABC')";
     final String expected = "SELECT ASCII('ABC')";
-    final String expectedBigQuery = "SELECT TO_CODE_POINTS('ABC') [OFFSET(0)]";
+    final String expectedBigQuery = "SELECT ASCII('ABC')";
     sql(query)
         .withBigQuery()
         .ok(expectedBigQuery)
@@ -7879,7 +7879,7 @@ class RelToSqlConverterTest {
     String query = "SELECT ASCII (SUBSTRING('ABC',1,1))";
     final String expected = "SELECT ASCII(SUBSTRING('ABC', 1, 1))";
     final String expectedSpark = "SELECT ASCII(SUBSTRING('ABC', 1, 1))";
-    final String expectedBigQuery = "SELECT TO_CODE_POINTS(SUBSTR('ABC', 1, 1)) [OFFSET(0)]";
+    final String expectedBigQuery = "SELECT ASCII(SUBSTR('ABC', 1, 1))";
     sql(query)
         .withBigQuery()
         .ok(expectedBigQuery)
@@ -7891,7 +7891,7 @@ class RelToSqlConverterTest {
 
   @Test public void testAsciiColumnArgument() {
     final String query = "select ASCII(\"product_name\") from \"product\" ";
-    final String bigQueryExpected = "SELECT TO_CODE_POINTS(product_name) [OFFSET(0)]\n"
+    final String bigQueryExpected = "SELECT ASCII(product_name)\n"
         + "FROM foodmart.product";
     final String hiveExpected = "SELECT ASCII(product_name)\n"
         + "FROM foodmart.product";
