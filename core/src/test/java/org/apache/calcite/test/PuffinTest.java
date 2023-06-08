@@ -26,14 +26,19 @@ import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
 
 /** Tests {@link Puffin}. */
@@ -42,17 +47,69 @@ public class PuffinTest {
       new Fixture<>(Sources.of(""), Puffin.builder().build());
 
   @Test void testPuffin() {
-    Puffin.Program<Unit> program =
-        Puffin.builder(() -> Unit.INSTANCE, u -> new AtomicInteger())
+    Puffin.Program<AtomicInteger> program =
+        Puffin.builder(AtomicInteger::new, counter -> Unit.INSTANCE)
             .add(line -> !line.startsWith("#")
                     && !line.matches(".*/\\*.*\\*/.*"),
-                line -> line.state().incrementAndGet())
+                line -> line.globalState().incrementAndGet())
             .after(context ->
-                context.println("counter: " + context.state().get()))
+                context.println("counter: " + context.globalState().get()))
             .build();
     fixture().withDefaultInput()
         .withProgram(program)
         .generatesOutput(isLinux("counter: 2\n"));
+  }
+
+  /** Tests Puffin with several sources, registers actions by calling
+   * {@link Puffin.Builder#beforeSource(Consumer)},
+   * {@link Puffin.Builder#afterSource(Consumer)},
+   * {@link Puffin.Builder#before(Consumer)}, and
+   * {@link Puffin.Builder#after(Consumer)}, and counts how many times each is
+   * called. */
+  @Test void testSeveralSources() {
+    Puffin.Program<GlobalState> program =
+        Puffin.builder(GlobalState::new, u -> new AtomicInteger())
+            .add(line -> true,
+                line -> line.state().incrementAndGet())
+            .beforeSource(context -> {
+              final GlobalState g = context.globalState();
+              g.beforeSourceCount.incrementAndGet();
+            })
+            .afterSource(context -> {
+              final GlobalState g = context.globalState();
+              final AtomicInteger f = context.state();
+              g.messages.add(f.intValue() + " lines");
+              g.afterSourceCount.incrementAndGet();
+            })
+            .before(context -> {
+              final GlobalState g = context.globalState();
+              g.beforeCount.incrementAndGet();
+            })
+            .after(context -> {
+              final GlobalState g = context.globalState();
+              g.afterCount.incrementAndGet();
+              g.messages.add(g.afterSourceCount + " after sources");
+              g.messages.add(g.beforeSourceCount + " before sources");
+              g.messages.add(g.beforeCount + " before");
+              g.messages.add(g.afterCount + " after");
+            })
+            .build();
+    final StringWriter sw = new StringWriter();
+    GlobalState g =
+        program.execute(
+            Stream.of(Sources.of("a\nb\n"),
+                Sources.of("a\n"),
+                Sources.of("a\nb\nc\n")),
+            new PrintWriter(sw));
+    assertThat(g.messages, hasSize(7));
+    assertThat(g.messages, hasItem("3 lines"));
+    assertThat(g.messages, hasItem("2 lines"));
+    assertThat(g.messages, hasItem("1 lines"));
+    assertThat(g.messages, hasItem("3 after sources"));
+    assertThat(g.messages, hasItem("3 before sources"));
+    assertThat(g.messages, hasItem("1 before"));
+    assertThat(g.messages, hasItem("1 after"));
+    assertThat(sw, hasToString(""));
   }
 
   @Test void testEmptyProgram() {
@@ -104,5 +161,14 @@ public class PuffinTest {
       assertThat(sw, hasToString(matcher));
       return this;
     }
+  }
+
+  /** Global state. */
+  private static class GlobalState {
+    final List<String> messages = new ArrayList<>();
+    final AtomicInteger beforeSourceCount = new AtomicInteger();
+    final AtomicInteger afterSourceCount = new AtomicInteger();
+    final AtomicInteger beforeCount = new AtomicInteger();
+    final AtomicInteger afterCount = new AtomicInteger();
   }
 }
