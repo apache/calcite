@@ -1251,16 +1251,16 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(ifFrame);
   }
 
-  private void unparseShiftLeftAndRight(SqlWriter writer, SqlCall call, boolean isShiftLeft) {
+  private void unparseShiftLeftAndShiftRight(SqlWriter writer, SqlCall call, boolean isShiftLeft) {
     call.operand(0).unparse(writer, 0, 0);
     SqlNode firstOperand = call.operand(1);
-    if (firstOperand instanceof SqlNumericLiteral && firstOperand.toString().startsWith("-")) {
-      // If the second operand is negative, convert it to positive and change the operator
-      SqlNumericLiteral positiveOperand1 = SqlLiteral.createNegative((SqlNumericLiteral)
-              firstOperand, SqlParserPos.ZERO);
+    if (firstOperand instanceof SqlBasicCall
+        && (((SqlBasicCall) firstOperand).getOperator()).kind == SqlKind.MINUS_PREFIX) {
+      // If the second operand is negative, fetch the postive value and change the operator
+      SqlNode fetchPositiveOperand = ((SqlNode[]) ((SqlBasicCall) firstOperand).operands)[0];
       writer.print(isShiftLeft ? SHIFTRIGHT : SHIFTLEFT);
       writer.print(" ");
-      positiveOperand1.unparse(writer, 0, 0);
+      fetchPositiveOperand.unparse(writer, 0, 0);
     } else {
       // If the second operand is positive or null, unparse it as-is
       writer.print(isShiftLeft ? SHIFTLEFT : SHIFTRIGHT);
@@ -1270,11 +1270,11 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseShiftLeft(SqlWriter writer, SqlCall call) {
-    unparseShiftLeftAndRight(writer, call, true);
+    unparseShiftLeftAndShiftRight(writer, call, true);
   }
 
   private void unparseShiftRight(SqlWriter writer, SqlCall call) {
-    unparseShiftLeftAndRight(writer, call, false);
+    unparseShiftLeftAndShiftRight(writer, call, false);
   }
 
   private void unParseRegexpContains(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
