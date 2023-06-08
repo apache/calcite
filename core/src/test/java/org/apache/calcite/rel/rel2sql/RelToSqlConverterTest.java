@@ -7050,7 +7050,7 @@ class RelToSqlConverterTest {
     final String expectedMssql = "SELECT [product_class_id], [brand_name], GROUPING([brand_name])\n"
         + "FROM [foodmart].[product]\n"
         + "GROUP BY GROUPING SETS(([product_class_id], [brand_name]), [product_class_id])\n"
-        + "ORDER BY CASE WHEN GROUPING([brand_name]) IS NULL THEN 0 ELSE 1 END, 3,"
+        + "ORDER BY CASE WHEN GROUPING([brand_name]) IS NULL THEN 1 ELSE 0 END, 3,"
         + " CASE WHEN [brand_name] IS NULL THEN 1 ELSE 0 END, [brand_name],"
         + " CASE WHEN [product_class_id] IS NULL THEN 1 ELSE 0 END, [product_class_id]";
 

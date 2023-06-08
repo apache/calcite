@@ -91,16 +91,6 @@ public class MssqlSqlDialect extends SqlDialect {
       return null;
     }
 
-    // Null direction is technically irrelevant to GROUPING() since it never returns NULL,
-    // but adding a sort rex node with non-default null direction will later cause
-    // the insertion of a call to NULLS FIRST or NULLS LAST during SQL generation,
-    // which would *not* be expanded into a CASE statement by the logic below,
-    // causing a syntax error. Avoid this by always using the default null direction.
-    if (node.getKind() == SqlKind.GROUPING) {
-      // nullsFirst must be non-default since it failed the check above, so flip it.
-      nullsFirst = !nullsFirst;
-    }
-
     // Emulate nulls first/last with case ordering
     final SqlParserPos pos = SqlParserPos.ZERO;
     final SqlNodeList whenList =
