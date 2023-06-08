@@ -93,7 +93,7 @@ class LintTest {
   }
 
   @Test void testProgramWorks() {
-    final String code = "class {\n"
+    final String code = "class MyClass {\n"
         + "  /** Paragraph.\n"
         + "   *\n"
         + "   * Missing p.\n"

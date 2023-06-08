@@ -322,10 +322,10 @@ public abstract class TestUtil {
     // 2) Climb via getParentFile() until we detect pom.xml
     // 3) It means we've got BASE/testkit/pom.xml, and we need to get BASE
     final URL resource = klass.getResource(klass.getSimpleName() + ".class");
-    final File testUtilClass =
+    final File classFile =
         Sources.of(requireNonNull(resource, "resource")).file();
 
-    File file = testUtilClass.getAbsoluteFile();
+    File file = classFile.getAbsoluteFile();
     for (int i = 0; i < 42; i++) {
       if (isProjectDir(file)) {
         // Ok, file == BASE/testkit/
@@ -334,8 +334,8 @@ public abstract class TestUtil {
       file = file.getParentFile();
     }
     if (!isProjectDir(file)) {
-      fail("Could not find either testkit/pom.xml or testkit/build.gradle.kts. "
-          + "Started with " + testUtilClass.getAbsolutePath()
+      fail("Could not find pom.xml, build.gradle.kts or gradle.properties. "
+          + "Started with " + classFile.getAbsolutePath()
           + ", the current path is " + file.getAbsolutePath());
     }
     return file.getParentFile();
