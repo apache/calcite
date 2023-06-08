@@ -71,6 +71,7 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -112,7 +113,7 @@ public class RelJson {
 
   private static final List<Class> VALUE_CLASSES =
       ImmutableList.of(NlsString.class, BigDecimal.class, ByteString.class,
-      Boolean.class, DateString.class, TimeString.class);
+      Boolean.class, TimestampString.class, DateString.class, TimeString.class);
 
   private final Map<String, Constructor> constructorMap = new HashMap<>();
   private final @Nullable JsonBuilder jsonBuilder;

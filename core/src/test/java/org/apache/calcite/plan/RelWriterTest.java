@@ -909,6 +909,18 @@ class RelWriterTest {
     RexNode timeNode = rexBuilder.makeBetween(t2, t1, t3);
     consumer.accept(timeNode);
 
+    // Test Calcite TimestampString
+    final TimestampString ts1 = TimestampString.fromMillisSinceEpoch(79056000000L);
+    final TimestampString ts2 = TimestampString.fromMillisSinceEpoch(184982400000L);
+    final TimestampString ts3 = TimestampString.fromMillisSinceEpoch(184982400000L);
+
+    final RexLiteral tsr1 = rexBuilder.makeTimestampLiteral(ts1, 0);
+    final RexLiteral tsr2 = rexBuilder.makeTimestampLiteral(ts2, 0);
+    final RexLiteral tsr3 = rexBuilder.makeTimestampLiteral(ts3, 0);
+    RexNode tsNode =
+        rexBuilder.makeIn(tsr1, ImmutableList.of(tsr2, tsr3));
+    consumer.accept(tsNode);
+
     // Test Calcite NlsString
     final NlsString nls1 = new NlsString("one", null, null);
     final NlsString nls2 = new NlsString("ten", null, null);
