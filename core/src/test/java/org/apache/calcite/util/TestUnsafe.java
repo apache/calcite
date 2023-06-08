@@ -116,14 +116,45 @@ public abstract class TestUnsafe {
     return status;
   }
 
+  /** Returns whether we seem are in a valid environment. */
+  public static boolean haveGit() {
+    // Is there a '.git' directory? If not, we may be in a source tree
+    // unzipped from a tarball.
+    final File base = TestUtil.getBaseDir(TestUnsafe.class);
+    final File gitDir = new File(base, ".git");
+    if (!gitDir.exists()
+        || !gitDir.isDirectory()
+        || !gitDir.canRead()) {
+      return false;
+    }
+
+    // Execute a simple git command. If it fails, we're probably not in a
+    // valid git environment.
+    final List<String> argumentList =
+        ImmutableList.of("git", "--version");
+    try {
+      final StringWriter sw = new StringWriter();
+      int status =
+          runAppProcess(argumentList, base, null, null, sw);
+      final String s = sw.toString();
+      if (status != 0) {
+        return false;
+      }
+    } catch (Exception e) {
+      return false;
+    }
+    return true;
+  }
+
   /** Returns a list of Java files in git under a given directory.
    *
    * <p>Assumes running Linux or macOS, and that git is available. */
-  public static List<File> getJavaFiles(File base) {
+  public static List<File> getJavaFiles() {
     String s;
     try {
       final List<String> argumentList =
           ImmutableList.of("git", "ls-files", "*.java");
+      final File base = TestUtil.getBaseDir(TestUnsafe.class);
       try {
         final StringWriter sw = new StringWriter();
         int status =
@@ -152,6 +183,28 @@ public abstract class TestUnsafe {
       return files.build();
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  /** Returns the messages of the {@code n} most recent commits. */
+  public static List<String> getCommitMessages(int n) {
+    final File base = TestUtil.getBaseDir(TestUnsafe.class);
+    final List<String> argumentList =
+        ImmutableList.of("git", "log", "-n" + n, "--pretty=format:%s");
+    try {
+      final StringWriter sw = new StringWriter();
+      int status =
+          runAppProcess(argumentList, base, null, null, sw);
+      String s = sw.toString();
+      if (status != 0) {
+        throw new RuntimeException("command " + argumentList
+            + ": exited with status " + status
+            + (s.isEmpty() ? "" : "; output [" + s + "]"));
+      }
+      return ImmutableList.copyOf(s.split("\n"));
+    } catch (Exception e) {
+      throw new RuntimeException("command " + argumentList
+          + ": failed with exception", e);
     }
   }
 }

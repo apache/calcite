@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql.test;
+package org.apache.calcite.test;
 
 import org.apache.calcite.util.Puffin;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUnsafe;
-import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import org.junit.jupiter.api.Test;
@@ -30,13 +29,18 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-/** Various automated checks on the documentation. */
+/** Various automated checks on the code and git history. */
 class LintTest {
   @SuppressWarnings("Convert2MethodRef") // JDK 8 requires lambdas
   private Puffin.Program<GlobalState> makeProgram() {
@@ -129,28 +133,108 @@ class LintTest {
 
   /** Tests that source code has no flaws. */
   @Test void testLint() {
+    assumeTrue(TestUnsafe.haveGit(), "Invalid git environment");
+
     final Puffin.Program<GlobalState> program = makeProgram();
+    final List<File> javaFiles = TestUnsafe.getJavaFiles();
 
     final GlobalState g;
     try (PrintWriter pw = Util.printWriter(System.out)) {
-      final List<File> javaFiles = getJavaFiles();
       g = program.execute(javaFiles.parallelStream().map(Sources::of), pw);
     }
 
-    System.out.println("Lint: " + g.fileCount + " files,"
-        + g.messages.size() + " warnings");
-    for (Message message : g.messages) {
-      System.out.println(message);
-    }
+    g.messages.forEach(System.out::println);
     assertThat(g.messages, empty());
   }
 
-  /** Returns a list of Java files in git under a given directory.
+  /** Tests that the most recent N commit messages are good.
    *
-   * <p>Assumes running Linux or macOS, and that git is available. */
-  static List<File> getJavaFiles() {
-    File base = TestUtil.getBaseDir(LintTest.class);
-    return TestUnsafe.getJavaFiles(base);
+   * <p>N needs to be large enough to verify multi-commit PRs, but not so large
+   * that it fails because of historical commits. */
+  @Test void testLintLog() {
+    assumeTrue(TestUnsafe.haveGit(), "Invalid git environment");
+
+    int n = 7;
+    final List<String> messages = TestUnsafe.getCommitMessages(n);
+    final List<String> warnings = new ArrayList<>();
+    for (String message : messages) {
+      checkMessage(message, warning ->
+          warnings.add("invalid git log message '" + message + "'; "
+              + warning));
+    }
+    warnings.forEach(System.out::println);
+    assertThat(warnings, empty());
+  }
+
+  @Test void testLogMatcher() {
+    final Function<String, List<String>> f = message -> {
+      final List<String> warnings = new ArrayList<>();
+      checkMessage(message, warnings::add);
+      return warnings;
+    };
+    assertThat(f.apply(" [CALCITE-1234] abc"),
+        hasItem("starts with space"));
+    assertThat(f.apply("[CALCITE-1234]  abc"),
+        hasItem("malformed [CALCITE-nnnn] reference"));
+    assertThat(f.apply("[CALCITE-12b]  abc"),
+        hasItem("malformed [CALCITE-nnnn] reference"));
+    assertThat(f.apply("[CALCITE-12345]  abc"),
+        hasItem("malformed [CALCITE-nnnn] reference"));
+    assertThat(f.apply("[CALCITE-1234]: abc"),
+        hasItem("malformed [CALCITE-nnnn] reference"));
+    assertThat(f.apply("CALCITE-1234: abc"),
+        hasItem("malformed [CALCITE-nnnn] reference"));
+    assertThat(f.apply("[CALCITE-12] abc"),
+        empty());
+    assertThat(f.apply("[CALCITE-123] abc"),
+        empty());
+    assertThat(f.apply("[CALCITE-1234] Fix problem with foo"),
+        hasItem("contains 'fix' or 'fixes'; you should describe the "
+            + "problem, not what you did"));
+    assertThat(f.apply("[CALCITE-1234] Baz doesn't buzz"),
+        empty());
+    assertThat(f.apply("[CALCITE-1234] Baz doesn't buzz."),
+        hasItem("ends with period"));
+    assertThat(f.apply("[CALCITE-1234]  Two problems."),
+        hasSize(2));
+    assertThat(f.apply("[CALCITE-1234]  Two problems."),
+        hasItem("ends with period"));
+    assertThat(f.apply("[CALCITE-1234]  Two problems."),
+        hasItem("malformed [CALCITE-nnnn] reference"));
+    assertThat(f.apply("Cosmetic: Move everything one character to the left"),
+        empty());
+    assertThat(
+        f.apply("Finishing up [CALCITE-4937], remove workarounds for "
+            + "[CALCITE-4877]"),
+        empty());
+    assertThat(f.apply("Fix typo in filterable-model.yaml"),
+        empty());
+    assertThat(f.apply("Fix typo in filterable-model.yaml"),
+        empty());
+    assertThat(f.apply("Revert \"[CALCITE-4817] Expand SubstitutionVisitor\""),
+        empty());
+  }
+
+  private static void checkMessage(String message, Consumer<String> consumer) {
+    if (message.startsWith(" ")) {
+      consumer.accept("starts with space");
+    }
+    if (message.endsWith(".")) {
+      consumer.accept("ends with period");
+    }
+    if (message.endsWith(" ")) {
+      consumer.accept("ends with space");
+    }
+    if (message.startsWith("[CALCITE-")
+        || message.startsWith("CALCITE-")) {
+      if (!message.matches("^\\[CALCITE-[0-9]{1,4}] [^ ].*")) {
+        consumer.accept("malformed [CALCITE-nnnn] reference");
+      }
+      if (message.matches("(?i).*\\b(fix|fixes)\\b.*")) {
+        consumer.accept("contains 'fix' or 'fixes'; you should describe the "
+            + "problem, not what you did");
+      }
+    }
   }
 
   /** Warning that code is not as it should be. */
