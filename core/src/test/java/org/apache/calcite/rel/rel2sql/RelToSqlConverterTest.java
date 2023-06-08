@@ -7040,7 +7040,12 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
-  /** Test case for https://issues.apache.org/jira/browse/CALCITE-5767. */
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5767">[CALCITE-5767]</a>.
+   *
+   * Calcite's MSSQL dialect should not give GROUPING special treatment when emulating NULL
+   * direction.
+   */
   @Test void testSortByGroupingInMssql() {
     final String query = "select \"product_class_id\", \"brand_name\", GROUPING(\"brand_name\")\n"
         + "from \"product\"\n"
