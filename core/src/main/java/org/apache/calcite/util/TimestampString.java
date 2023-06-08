@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Strings;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -206,7 +208,9 @@ public class TimestampString implements Comparable<TimestampString> {
 
   /** Creates a TimestampString that is a given number of milliseconds since
    * the epoch. */
-  public static TimestampString fromMillisSinceEpoch(long millis) {
+  @JsonCreator
+  public static TimestampString fromMillisSinceEpoch(@JsonProperty("millisSinceEpoch")
+      long millis) {
     return new TimestampString(DateTimeUtils.unixTimestampToString(millis))
         .withMillis((int) floorMod(millis, 1000L));
   }
