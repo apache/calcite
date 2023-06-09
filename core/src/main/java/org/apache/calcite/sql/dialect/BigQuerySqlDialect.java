@@ -1219,13 +1219,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseGetBitFunction(writer, call, leftPrec, rightPrec);
       break;
     case "SHIFTLEFT":
-      unparseShiftLeft(writer, call);
+      unparseShiftLeftAndShiftRight(writer, call, true);
       break;
     case "BITNOT":
       unparseBitNotFunction(writer, call);
       break;
     case "SHIFTRIGHT":
-      unparseShiftRight(writer, call);
+      unparseShiftLeftAndShiftRight(writer, call, false);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -1270,14 +1270,6 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private String getShiftOperator(boolean isShiftLeft) {
     return isShiftLeft ? SHIFTLEFT : SHIFTRIGHT;
-  }
-
-  private void unparseShiftLeft(SqlWriter writer, SqlCall call) {
-    unparseShiftLeftAndShiftRight(writer, call, true);
-  }
-
-  private void unparseShiftRight(SqlWriter writer, SqlCall call) {
-    unparseShiftLeftAndShiftRight(writer, call, false);
   }
 
   private void unParseRegexpContains(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
