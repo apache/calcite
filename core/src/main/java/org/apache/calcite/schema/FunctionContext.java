@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.schema;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 
@@ -87,6 +88,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public interface FunctionContext {
   /** Returns the type factory. */
   RelDataTypeFactory getTypeFactory();
+
+  /** Returns the data context of execution. */
+  DataContext getDataContext();
 
   /** Returns the number of parameters. */
   int getParameterCount();
