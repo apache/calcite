@@ -1244,20 +1244,32 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseShiftLeftAndShiftRight(SqlWriter writer, SqlCall call, boolean isShiftLeft) {
     call.operand(0).unparse(writer, 0, 0);
-    SqlNode firstOperand = call.operand(1);
-    if (firstOperand instanceof SqlBasicCall
-        && (((SqlBasicCall) firstOperand).getOperator()).kind == SqlKind.MINUS_PREFIX) {
-      // If the second operand is negative, fetch the postive value and change the operator
-      SqlNode fetchPositiveOperand = ((SqlNode[]) ((SqlBasicCall) firstOperand).operands)[0];
-      writer.print(isShiftLeft ? SHIFTRIGHT : SHIFTLEFT);
+    SqlNode secondOperand = call.operand(1);
+
+    // If the second operand is negative, fetch the positive value and change the operator
+    if (isBasicCallWithNegativePrefix(secondOperand)) {
+      SqlNode positiveOperand = getPositiveOperand(secondOperand);
+      writer.print(getShiftOperator(!isShiftLeft));
       writer.print(" ");
-      fetchPositiveOperand.unparse(writer, 0, 0);
+      positiveOperand.unparse(writer, 0, 0);
     } else {
-      // If the second operand is positive or null, unparse it as-is
-      writer.print(isShiftLeft ? SHIFTLEFT : SHIFTRIGHT);
+      writer.print(getShiftOperator(isShiftLeft));
       writer.print(" ");
-      firstOperand.unparse(writer, 0, 0);
+      secondOperand.unparse(writer, 0, 0);
     }
+  }
+
+  private boolean isBasicCallWithNegativePrefix(SqlNode secondOperand) {
+    return secondOperand instanceof SqlBasicCall
+        && ((SqlBasicCall) secondOperand).getOperator().getKind() == SqlKind.MINUS_PREFIX;
+  }
+
+  private SqlNode getPositiveOperand(SqlNode secondOperand) {
+    return (((SqlBasicCall) secondOperand).operands)[0];
+  }
+
+  private String getShiftOperator(boolean isShiftLeft) {
+    return isShiftLeft ? SHIFTLEFT : SHIFTRIGHT;
   }
 
   private void unparseShiftLeft(SqlWriter writer, SqlCall call) {
