@@ -2125,7 +2125,8 @@ public class RexSimplify {
       RexLiteral literal = (RexLiteral) call.getOperands().get(1);
       final Sarg sarg = castNonNull(literal.getValueAs(Sarg.class));
       if (sarg.isAll() || sarg.isNone()) {
-        return RexUtil.simpleSarg(rexBuilder, a, sarg, unknownAs);
+        RexNode rexNode = RexUtil.simpleSarg(rexBuilder, a, sarg, unknownAs);
+        return simplify(rexNode, unknownAs);
       }
       // Remove null from sarg if the left-hand side is never null
       if (sarg.nullAs != UNKNOWN) {

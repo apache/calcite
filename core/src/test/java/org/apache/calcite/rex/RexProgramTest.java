@@ -1769,6 +1769,72 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
+   * 'SEARCH(1, Sarg[IS NOT NULL])' should be simplified to 'TRUE'</a>. */
+  @Test void testSimplifySearchWithSpecialSargIsNotNull() {
+    // "SEARCH(1, Sarg[IS NOT NULL])" simplifies to "true"
+    RexNode intLiteral =
+        rexBuilder.makeLiteral(1, typeFactory.createSqlType(SqlTypeName.INTEGER));
+    final RangeSet<Integer> setNone = ImmutableRangeSet.of();
+    final RangeSet<Integer> setAll = setNone.complement();
+    final Sarg<Integer> sarg =
+        Sarg.of(RexUnknownAs.FALSE, setAll);
+    RexNode rexNode =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intLiteral,
+            rexBuilder.makeSearchArgumentLiteral(sarg, intLiteral.getType()));
+    checkSimplify(rexNode, "true");
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
+   * 'SEARCH(1, Sarg[IS NOT NULL])' should be simplified to 'TRUE'</a>. */
+  @Test void testSimplifySearchWithSpecialSargIsNull() {
+    // "SEARCH(1, Sarg[IS NULL])" simplifies to "false"
+    RexNode intLiteral =
+        rexBuilder.makeLiteral(1, typeFactory.createSqlType(SqlTypeName.INTEGER));
+    final RangeSet<Integer> setNone = ImmutableRangeSet.of();
+    final Sarg<Integer> sarg =
+        Sarg.of(RexUnknownAs.TRUE, setNone);
+    RexNode rexNode =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intLiteral,
+            rexBuilder.makeSearchArgumentLiteral(sarg, intLiteral.getType()));
+    checkSimplify(rexNode, "false");
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
+   * 'SEARCH(1, Sarg[IS NOT NULL])' should be simplified to 'TRUE'</a>. */
+  @Test void testSimplifySearchWithSpecialSargEqual() {
+    // "SEARCH(1, Sarg[=])" simplifies to "true"
+    RexNode intLiteral =
+        rexBuilder.makeLiteral(1, typeFactory.createSqlType(SqlTypeName.INTEGER));
+    final RangeSet<Integer> setNone = ImmutableRangeSet.of();
+    final RangeSet<Integer> setAll = setNone.complement();
+    final Sarg<Integer> sarg =
+        Sarg.of(RexUnknownAs.UNKNOWN, setAll);
+    RexNode rexNode =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intLiteral,
+            rexBuilder.makeSearchArgumentLiteral(sarg, intLiteral.getType()));
+    checkSimplify(rexNode, "true");
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
+   * 'SEARCH(1, Sarg[IS NOT NULL])' should be simplified to 'TRUE'</a>. */
+  @Test void testSimplifySearchWithSpecialSargNotEqual() {
+    // "SEARCH(1, Sarg[<>])" simplifies to "false"
+    RexNode intLiteral =
+        rexBuilder.makeLiteral(1, typeFactory.createSqlType(SqlTypeName.INTEGER));
+    final RangeSet<Integer> setNone = ImmutableRangeSet.of();
+    final Sarg<Integer> sarg =
+        Sarg.of(RexUnknownAs.UNKNOWN, setNone);
+    RexNode rexNode =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intLiteral,
+            rexBuilder.makeSearchArgumentLiteral(sarg, intLiteral.getType()));
+    checkSimplify(rexNode, "false");
+  }
+
+  /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4352">[CALCITE-4352]
    * OR simplification incorrectly loses term</a>. */
   @Test void testSimplifyAndIsNotNull() {
