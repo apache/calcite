@@ -149,42 +149,66 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
 
   /**
    * Pass collations through can have three cases:
-   * 1. If sort keys are equal to either left join keys, or right join keys,
+   *
+   * <p>1. If sort keys are equal to either left join keys, or right join keys,
    * collations can be pushed to both join sides with correct mappings.
    * For example, for the query
-   *    select * from foo join bar on foo.a=bar.b order by foo.a desc
-   * after traits pass through it will be equivalent to
+   *
+   * <blockquote><pre>{@code
+   *    select * from foo join bar
+   *        on foo.a=bar.b
+   *    order by foo.a desc
+   * }</pre></blockquote>
+   *
+   * <p>after traits pass through it will be equivalent to
+   *
+   * <blockquote><pre>{@code
    *    select * from
    *        (select * from foo order by foo.a desc)
    *        join
    *        (select * from bar order by bar.b desc)
+   * }</pre></blockquote>
    *
-   * 2. If sort keys are sub-set of either left join keys, or right join keys,
-   * collations have to be extended to cover all joins keys before passing through,
-   * because merge join requires all join keys are sorted.
+   * <p>2. If sort keys are sub-set of either left join keys, or right join
+   * keys, collations have to be extended to cover all joins keys before
+   * passing through, because merge join requires all join keys are sorted.
    * For example, for the query
+   *
+   * <blockquote><pre>{@code
    *    select * from foo join bar
    *        on foo.a=bar.b and foo.c=bar.d
-   *        order by foo.a desc
-   * after traits pass through it will be equivalent to
+   *    order by foo.a desc
+   * }</pre></blockquote>
+   *
+   * <p>after traits pass through it will be equivalent to
+   *
+   * <blockquote><pre>{@code
    *    select * from
    *        (select * from foo order by foo.a desc, foo.c)
    *        join
    *        (select * from bar order by bar.b desc, bar.d)
+   * }</pre></blockquote>
    *
-   * 3. If sort keys are super-set of either left join keys, or right join keys,
-   * but not both, collations can be completely passed to the join key whose join
-   * keys match the prefix of collations. Meanwhile, partial mapped collations can
-   * be passed to another join side to make sure join keys are sorted.
-   * For example, for the query
+   * <p>3. If sort keys are super-set of either left join keys, or right join
+   * keys, but not both, collations can be completely passed to the join key
+   * whose join keys match the prefix of collations. Meanwhile, partial mapped
+   * collations can be passed to another join side to make sure join keys are
+   * sorted. For example, for the query
+
+   * <blockquote><pre>{@code
    *    select * from foo join bar
    *        on foo.a=bar.b and foo.c=bar.d
    *        order by foo.a desc, foo.c desc, foo.e
-   * after traits pass through it will be equivalent to
+   * }</pre></blockquote>
+   *
+   * <p>after traits pass through it will be equivalent to
+   *
+   * <blockquote><pre>{@code
    *    select * from
    *        (select * from foo order by foo.a desc, foo.c desc, foo.e)
    *        join
    *        (select * from bar order by bar.b desc, bar.d desc)
+   * }</pre></blockquote>
    */
   @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
@@ -354,9 +378,10 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
    *    on foo.a = bar.a and foo.c=bar.c
    *    order by bar.a, bar.c, bar.b;
    *
-   * The collation [bar.a, bar.c, bar.b] can be pushed down to bar. However, only
-   * [a, c] can be pushed down to foo. This function will help create [a, c] for foo by removing
-   * b from the required collation, because b is not defined on join keys.
+   * <p>The collation [bar.a, bar.c, bar.b] can be pushed down to bar. However,
+   * only [a, c] can be pushed down to foo. This function will help create [a,
+   * c] for foo by removing b from the required collation, because b is not
+   * defined on join keys.
    *
    * @param collation collation defined on the JOIN
    * @param joinKeys  the join keys

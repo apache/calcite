@@ -7660,13 +7660,13 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5247">[CALCITE-5247]
-   *    * FilterJoinRule cannot simplify left join to inner join for `WHERE RHS.C1 IS NOT NULL OR
-   *    RHS.C2 IS NOT NULL`</a>.
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5247">[CALCITE-5247]
+   * FilterJoinRule cannot simplify left join to inner join for `WHERE
+   * RHS.C1 IS NOT NULL OR RHS.C2 IS NOT NULL`</a>.
    *
-   *    This tests the case where the condition contains an OR between the IS NOT NULL filters
-   */
+   * <p>This tests the case where the condition contains an OR between
+   * the IS NOT NULL filters. */
   @Test void testFilterJoinRuleOrIsNotNull() {
     final String sql = "select * from\n"
         + "emp LHS\n"
@@ -7680,13 +7680,13 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5247">[CALCITE-5247]
-   *    * FilterJoinRule cannot simplify left join to inner join for `WHERE RHS.C1 IS NOT NULL OR
-   *    RHS.C2 IS NOT NULL`</a>.
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5247">[CALCITE-5247]
+   * FilterJoinRule cannot simplify left join to inner join for `WHERE
+   * RHS.C1 IS NOT NULL OR RHS.C2 IS NOT NULL`</a>.
    *
-   *    This tests the case where the condition contains an AND between the IS NOT NULL filters
-   */
+   * <p>This tests the case where the condition contains an AND
+   * between the IS NOT NULL filters. */
   @Test void testFilterJoinRuleAndIsNotNull() {
     final String sql = "select * from\n"
         + "emp LHS\n"

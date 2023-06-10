@@ -46,7 +46,7 @@ public abstract class RedisCaseBase {
   /**
    * The Redis Docker container.
    *
-   * Uses the Redis 2.8.19 version to be aligned with the embedded server.
+   * <p>Uses the Redis 2.8.19 version to be aligned with the embedded server.
    */
   private static final GenericContainer<?> REDIS_CONTAINER =
       new GenericContainer<>("redis:2.8.19").withExposedPorts(6379);
@@ -54,8 +54,8 @@ public abstract class RedisCaseBase {
   /**
    * The embedded Redis server.
    *
-   * With the existing dependencies (com.github.kstyrc:embedded-redis:0.6) it uses by default
-   * Redis 2.8.19 version.
+   * <p>With the existing dependencies (com.github.kstyrc:embedded-redis:0.6) it
+   * uses by default Redis 2.8.19 version.
    */
   private static RedisServer redisServer;
 

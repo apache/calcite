@@ -222,13 +222,15 @@ class CacheGeneratorUtil {
         return buff;
       }
     },
+
     /**
      * Generates an immutable key that is reused across all calls.
      *
-     * Example:
-     * <code>
+     * <p>Example:
+     *
+     * <blockquote><pre><code>
      *     private final Object method_key_0 =
-     *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
+     *         new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
      *
      *   ...
      *
@@ -238,7 +240,7 @@ class CacheGeneratorUtil {
      *     final Object key;
      *     key = method_key_0;
      *     final Object v = mq.map.get(r, key);
-     * </code>
+     * </code></pre></blockquote>
      */
     NO_ARG {
       @Override void cacheProperties(StringBuilder buff, Method method, int methodIndex) {
@@ -257,14 +259,16 @@ class CacheGeneratorUtil {
     /**
      * Generates immutable cache keys for metadata calls with single enum argument.
      *
-     * Example:
-     * <code>
+     * <p>Example:
+     *
+     * <blockquote><pre><code>
      *   private final Object method_key_0Null =
      *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey(
-     *         "Boolean isVisibleInExplain(null)");
+     *           "Boolean isVisibleInExplain(null)");
      *   private final Object[] method_key_0 =
      *       org.apache.calcite.rel.metadata.janino.CacheUtil.generateEnum(
-     *         "Boolean isVisibleInExplain", org.apache.calcite.sql.SqlExplainLevel.values());
+     *           "Boolean isVisibleInExplain",
+     *           org.apache.calcite.sql.SqlExplainLevel.values());
      *
      *   ...
      *
@@ -278,7 +282,7 @@ class CacheGeneratorUtil {
      *     } else {
      *       key = method_key_0[a2.ordinal()];
      *     }
-     * </code>
+     * </code></pre></blockquote>
      */
     ENUM_ARG {
       @Override void cacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
@@ -315,13 +319,14 @@ class CacheGeneratorUtil {
             .append(".values());\n");
       }
     },
+
     /**
      * Generates 2 immutable keys for functions that only take a single boolean
      * arg.
      *
      * <p>Example:
      *
-     * <blockquote><pre>{@code
+     * <blockquote><pre><code>
      *   private final Object method_key_0True =
      *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
      *   private final Object method_key_0False =
@@ -336,7 +341,7 @@ class CacheGeneratorUtil {
      *     final Object v = mq.map.get(r, key);
      *     ...
      *   }
-     * }</pre></blockquote>
+     * </code></pre></blockquote>
      */
     BOOLEAN_ARG {
       @Override void cacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
@@ -360,11 +365,14 @@ class CacheGeneratorUtil {
         newDescriptiveCacheKey(buff, method, "false");
       }
     },
+
     /**
-     * Uses a flyweight for fixed range, otherwise instantiates a new list with the arguement in it.
+     * Uses a flyweight for fixed range, otherwise instantiates a new list with
+     * the argument in it.
      *
-     * Example:
-     * <code>
+     * <p>Example:
+     *
+     * <blockquote><pre><code>
      *   private final Object method_key_0 =
      *         new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
      *   private final Object[] method_key_0FlyWeight =
@@ -383,7 +391,7 @@ class CacheGeneratorUtil {
      *     } else {
      *       key = org.apache.calcite.runtime.FlatLists.of(method_key_0, a2);
      *     }
-     * </code>
+     * </code></pre></blockquote>
      */
     INT_ARG {
       private final int min = -256;

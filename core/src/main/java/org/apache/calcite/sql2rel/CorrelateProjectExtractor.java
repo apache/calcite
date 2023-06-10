@@ -204,9 +204,10 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
   /**
    * A collector of simply correlated row expressions.
    *
-   * The shuttle traverses the tree and collects all calls and field accesses that are classified
-   * as simply correlated expressions. Multiple nodes in a call hierarchy may satisfy the criteria
-   * of a simple correlation so we peek the expressions closest to the root.
+   * <p>The shuttle traverses the tree and collects all calls and field accesses
+   * that are classified as simply correlated expressions. Multiple nodes in a
+   * call hierarchy may satisfy the criteria of a simple correlation so we peek
+   * the expressions closest to the root.
    *
    * @see SimpleCorrelationDetector
    */
@@ -248,24 +249,26 @@ public final class CorrelateProjectExtractor extends RelHomogeneousShuttle {
   }
 
   /**
-   * A visitor classifying row expressions as simply correlated if they satisfy the conditions
-   * below.
+   * A visitor classifying row expressions as simply correlated if they satisfy
+   * the conditions below.
+   *
    * <ul>
    * <li>all correlated variables have the specified correlation id</li>
    * <li>all leafs are either correlated variables, dynamic parameters, or literals</li>
    * <li>intermediate nodes are either calls or field access expressions</li>
    * </ul>
    *
-   * Examples:
+   * <p>Examples:
+   *
    * <pre>{@code
    * +(10, $cor0.DEPTNO) -> TRUE
    * /(100,+(10, $cor0.DEPTNO)) -> TRUE
    * CAST(+(10, $cor0.DEPTNO)):INTEGER NOT NULL -> TRUE
    * +($0, $cor0.DEPTNO) -> FALSE
    * }</pre>
-   *
    */
-  private static class SimpleCorrelationDetector extends RexVisitorImpl<@Nullable Boolean> {
+  private static class SimpleCorrelationDetector
+      extends RexVisitorImpl<@Nullable Boolean> {
     private final CorrelationId corrId;
 
     private SimpleCorrelationDetector(CorrelationId corrId) {

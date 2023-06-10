@@ -232,8 +232,8 @@ public interface RelNode extends RelOptNode, Cloneable {
    * The string returned is the same as
    * {@link RelOptUtil#toString(org.apache.calcite.rel.RelNode)}.
    *
-   * This method is intended mainly for use while debugging in an IDE,
-   * as a convenient short-hand for RelOptUtil.toString.
+   * <p>This method is intended mainly for use while debugging in an IDE,
+   * as a convenient shorthand for {@link RelOptUtil#toString}.
    * We recommend that classes implementing this interface
    * do not override this method.
    *

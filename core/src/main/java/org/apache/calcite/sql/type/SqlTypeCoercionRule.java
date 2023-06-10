@@ -50,7 +50,7 @@ import java.util.Set;
  *
  * <p>The code snippet below illustrates how to implement a customized instance.
  *
- * <pre>
+ * <blockquote><pre>{@code
  *     // Initialize a Builder instance with the default mappings.
  *     Builder builder = SqlTypeMappingRules.builder();
  *     builder.addAll(SqlTypeCoercionRules.instance().getTypeMapping());
@@ -68,7 +68,7 @@ import java.util.Set;
  *     SqlValidator.Config validatorConf ...;
  *     validatorConf.withTypeCoercionRules(typeCoercionRules);
  *     // Use this conf to initialize the SqlValidator.
- * </pre>
+ * }</pre></blockquote>
  */
 public class SqlTypeCoercionRule implements SqlTypeMappingRule {
   //~ Static fields/initializers ---------------------------------------------

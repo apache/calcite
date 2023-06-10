@@ -210,29 +210,29 @@
  *
  * <ul>
  *
- *     <li>Registering exp 5 triggers <code>CombineProjectsRule</code>(exp 1,
- *         exp 5), which creates
+ * <li>Registering exp 5 triggers <code>CombineProjectsRule</code>(exp 1,
+ *     exp 5), which creates
  *
- *         <blockquote>
+ * <blockquote>
  *     <pre>Project (deptno)                              [exp 7, subset A]
  *   Filter (gender='F')                         [exp 6, subset E]
  *     Project (deptno, gender, empno, salary)   [exp 4, subset D]
  *       TableScan (emp)                         [exp 0, subset X]</pre>
- *         </blockquote>
- *     </li>
+ * </blockquote>
+ * </li>
  *
- *     <li>Registering exp 6 triggers
- *         <code>PushFilterThroughProjectRule</code>(exp 6, exp 4), which
- *         creates
+ * <li>Registering exp 6 triggers
+ *     <code>PushFilterThroughProjectRule</code>(exp 6, exp 4), which
+ *     creates
  *
- *         <blockquote>
+ * <blockquote>
  *     <pre>Project (deptno)                              [exp 1, subset A]
  *   Project (deptno, gender, empno)             [exp 5, subset B]
  *     Project (deptno, gender, empno, salary)   [exp 8, subset E]
  *       Filter (gender='F')                     [exp 9, subset F]
  *         TableScan (emp)                       [exp 0, subset X]</pre>
- *         </blockquote>
- *     </li>
+ * </blockquote>
+ * </li>
  * </ul>
  *
  * <p>Each rule application adds additional members to existing subsets. The
@@ -250,16 +250,17 @@
  * <p>Todo: show how rules can cause subsets to merge.
  *
  * <p>Conclusion:
+ *
  * <ol>
- *     <li>A rule can be triggered by any of its operands.</li>
- *     <li>If a subset is a child of more than one parent, it can trigger rule
- *         matches for any of its parents.
- *     </li>
+ * <li>A rule can be triggered by any of its operands.</li>
+ * <li>If a subset is a child of more than one parent, it can trigger rule
+ *     matches for any of its parents.
+ * </li>
  *
- *     <li>Registering one relexp can trigger several rules (and even the same
- *         rule several times).</li>
+ * <li>Registering one relexp can trigger several rules (and even the same
+ *     rule several times).</li>
  *
- *     <li>Firing rules can cause subsets to merge.</li>
+ * <li>Firing rules can cause subsets to merge.</li>
  * </ol>
  * <h2>References</h2>
  *

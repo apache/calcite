@@ -794,7 +794,8 @@ public class EnumUtils {
    * Generates a window selector which appends attribute of the window based on
    * the parameters.
    *
-   * Note that it only works for batch scenario. E.g. all data is known and there is no late data.
+   * <p>Note that it only works for batch scenario. E.g. all data is known and
+   * there is no late data.
    */
   static Expression tumblingWindowSelector(
       PhysType inputPhysType,

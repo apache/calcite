@@ -83,13 +83,15 @@ public abstract class ListScope extends DelegatingScope {
   /**
    * Whether the ith child namespace produces nullable result.
    *
-   * For example, in below query,
-   * <pre>
+   * <p>For example, in below query,
+   *
+   * <blockquote><pre>{@code
    *   SELECT *
    *   FROM EMPS
    *   LEFT OUTER JOIN DEPT
-   * </pre>
-   * the namespace which corresponding to 'DEPT' is nullable.
+   * }</pre></blockquote>
+   *
+   * <p>the namespace which corresponding to 'DEPT' is nullable.
    *
    * @param i The child index.
    * @return Whether it's nullable.

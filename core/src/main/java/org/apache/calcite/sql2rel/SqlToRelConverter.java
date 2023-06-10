@@ -2292,16 +2292,16 @@ public class SqlToRelConverter {
    * @param bb   Scope within which to resolve identifiers
    * @param from FROM clause of a query. Examples include:
    *
-   *             <ul>
-   *             <li>a single table ("SALES.EMP"),
-   *             <li>an aliased table ("EMP AS E"),
-   *             <li>a list of tables ("EMP, DEPT"),
-   *             <li>an ANSI Join expression ("EMP JOIN DEPT ON EMP.DEPTNO =
-   *             DEPT.DEPTNO"),
-   *             <li>a VALUES clause ("VALUES ('Fred', 20)"),
-   *             <li>a query ("(SELECT * FROM EMP WHERE GENDER = 'F')"),
-   *             <li>or any combination of the above.
-   *             </ul>
+   * <ul>
+   * <li>a single table ("SALES.EMP"),
+   * <li>an aliased table ("EMP AS E"),
+   * <li>a list of tables ("EMP, DEPT"),
+   * <li>an ANSI Join expression ("EMP JOIN DEPT ON EMP.DEPTNO = DEPT.DEPTNO"),
+   * <li>a VALUES clause ("VALUES ('Fred', 20)"),
+   * <li>a query ("(SELECT * FROM EMP WHERE GENDER = 'F')"),
+   * <li>or any combination of the above.
+   * </ul>
+   *
    * @param fieldNames Field aliases, usually come from AS clause, or null
    */
   protected void convertFrom(

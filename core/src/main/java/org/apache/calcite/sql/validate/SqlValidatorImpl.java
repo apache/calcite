@@ -7068,10 +7068,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * <p>Examples:
    *
    * <ul>
-   *   <li>{@code PREV(A.price + A.amount)} &rarr;
-   *   {@code PREV(A.price) + PREV(A.amount)}
+   * <li>{@code PREV(A.price + A.amount)} &rarr;
+   * {@code PREV(A.price) + PREV(A.amount)}
    *
-   *   <li>{@code FIRST(A.price * 2)} &rarr; {@code FIRST(A.PRICE) * 2}
+   * <li>{@code FIRST(A.price * 2)} &rarr; {@code FIRST(A.PRICE) * 2}
    * </ul>
    */
   private static class NavigationExpander extends NavigationModifier {

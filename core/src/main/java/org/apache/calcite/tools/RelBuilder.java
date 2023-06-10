@@ -4765,7 +4765,7 @@ public class RelBuilder {
      *            (a+b+c)-(d+e+f)-(g+h+i) AS t)        # complexity 34
      * </pre>
      *
-     * The complexity of an expression is the number of nodes (leaves and
+     * <p>The complexity of an expression is the number of nodes (leaves and
      * operators). For example, {@code a+b+c} has complexity 5 (3 field
      * references and 2 calls):
      *

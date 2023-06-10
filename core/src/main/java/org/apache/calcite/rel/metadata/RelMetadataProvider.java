@@ -77,18 +77,21 @@ public interface RelMetadataProvider {
 
   /**
    * Retrieves a list of {@link MetadataHandler} for implements a particular
-   * {@link MetadataHandler}.class.  The resolution order is specificity of the relNode class,
-   * with preference given to handlers that occur earlier in the list.
+   * {@link MetadataHandler}.class.  The resolution order is specificity of the
+   * relNode class, with preference given to handlers that occur earlier in the
+   * list.
    *
-   * For instance, given a return list of {A, B, C} where A implements RelNode and Scan,
-   * B implements Scan, and C implements LogicalScan and Filter.
+   * <p>For instance, given a return list of {A, B, C} where A implements
+   * RelNode and Scan, B implements Scan, and C implements LogicalScan and
+   * Filter.
    *
-   * Scan dispatches to a.method(Scan)
-   * LogicalFilter dispatches to c.method(Filter).
-   * LogicalScan dispatches to c.method(LogicalScan).
+   * <p>Scan dispatches to a.method(Scan);
+   * LogicalFilter dispatches to c.method(Filter);
+   * LogicalScan dispatches to c.method(LogicalScan);
    * Aggregate dispatches to a.method(RelNode).
    *
-   * The behavior is undefined if the class hierarchy for dispatching is not a tree.
+   * <p>The behavior is undefined if the class hierarchy for dispatching is not
+   * a tree.
    */
   List<MetadataHandler<?>> handlers(Class<? extends MetadataHandler<?>> handlerClass);
 }

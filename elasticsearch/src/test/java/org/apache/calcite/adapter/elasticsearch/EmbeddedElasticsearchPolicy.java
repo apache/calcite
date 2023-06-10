@@ -43,7 +43,8 @@ import java.util.Objects;
  * does not allow multiple instances per JVM).
  *
  * <p>This rule should be used as follows:
- * <pre>
+ *
+ * <blockquote><pre><code>
  * public class MyTest {
  *   public static final EmbeddedElasticsearchPolicy RULE =
  *       EmbeddedElasticsearchPolicy.create();
@@ -61,7 +62,7 @@ import java.util.Objects;
  *     // ....
  *   }
  * }
- * </pre>
+ * </code></pre></blockquote>
  */
 class EmbeddedElasticsearchPolicy {
 

@@ -31,23 +31,24 @@
  *
  * <p>Every node in the parse tree is a {@link org.apache.calcite.sql.SqlNode}.
  *     Sub-types are:
+ *
  * <ul>
  *
- *     <li>{@link org.apache.calcite.sql.SqlLiteral} represents a boolean,
- *         numeric, string, or date constant, or the value <code>NULL</code>.
- *         </li>
+ * <li>{@link org.apache.calcite.sql.SqlLiteral} represents a boolean,
+ *     numeric, string, or date constant, or the value <code>NULL</code>.
+ *     </li>
  *
- *     <li>{@link org.apache.calcite.sql.SqlIdentifier} represents an
- *         identifier, such as <code> EMPNO</code> or <code>emp.deptno</code>.
- *         </li>
+ * <li>{@link org.apache.calcite.sql.SqlIdentifier} represents an
+ *     identifier, such as <code> EMPNO</code> or <code>emp.deptno</code>.
+ *     </li>
  *
- *     <li>{@link org.apache.calcite.sql.SqlCall} is a call to an operator or
- *         function.  By means of special operators, we can use this construct
- *         to represent virtually every non-leaf node in the tree. For example,
- *         a <code>select</code> statement is a call to the 'select'
- *         operator.</li>
+ * <li>{@link org.apache.calcite.sql.SqlCall} is a call to an operator or
+ *     function.  By means of special operators, we can use this construct
+ *     to represent virtually every non-leaf node in the tree. For example,
+ *     a <code>select</code> statement is a call to the 'select'
+ *     operator.</li>
  *
- *     <li>{@link org.apache.calcite.sql.SqlNodeList} is a list of nodes.</li>
+ * <li>{@link org.apache.calcite.sql.SqlNodeList} is a list of nodes.</li>
  *
  * </ul>
  *

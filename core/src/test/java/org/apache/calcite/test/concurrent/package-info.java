@@ -306,11 +306,10 @@
  *
  * <p>(Yes the results of the select statements are obviously wrong.)
  *
- *         <h3>Open Issues</h3>
+ * <h3>Open Issues</h3>
  *
- *         <ul>
- *             <li>Repeating tests for a period of time isn't supported.</li>
- *         </ul>
- *
+ * <ul>
+ * <li>Repeating tests for a period of time isn't supported.</li>
+ * </ul>
  */
 package org.apache.calcite.test.concurrent;

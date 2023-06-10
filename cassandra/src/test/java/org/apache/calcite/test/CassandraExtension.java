@@ -146,10 +146,12 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
     }
 
     /**
-     * Best effort to gracefully shutdown <strong>embedded</strong> cassandra cluster.
+     * Best effort to gracefully shutdown <strong>embedded</strong> cassandra
+     * cluster.
      *
-     * Since it uses many static variables as well as {@link System#exit(int)} during close,
-     * clean shutdown (as part of unit test) is not straightforward.
+     * <p>Since it uses many static variables as well as {@link System#exit(int)}
+     * during close, clean shutdown (as part of unit test) is not
+     * straightforward.
      */
     @Override public void close() throws IOException {
       session.close();

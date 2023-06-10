@@ -76,10 +76,24 @@ class LintTest {
                 line.state().message("<p> must be preceded by blank line",
                     line))
 
+        // A non-blank line following a blank line must have a '<p>'
+        .add(line -> line.state().inJavadoc()
+                && line.state().ulCount == 0
+                && line.state().blockquoteCount == 0
+                && line.contains("* ")
+                && line.fnr() - 1 == line.state().starLine
+                && line.matches("^ *\\* [^<@].*"),
+            line -> line.state().message("missing '<p>'", line))
+
         // The first "@param" of a javadoc block must be preceded by a blank
         // line.
         .add(line -> line.matches("^ */\\*\\*.*"),
-            line -> line.state().javadocStartLine = line.fnr())
+            line -> {
+              final FileState f = line.state();
+              f.javadocStartLine = line.fnr();
+              f.blockquoteCount = 0;
+              f.ulCount = 0;
+            })
         .add(line -> line.matches(".*\\*/"),
             line -> line.state().javadocEndLine = line.fnr())
         .add(line -> line.matches("^ *\\* @.*"),
@@ -93,6 +107,14 @@ class LintTest {
               }
               line.state().atLine = line.fnr();
             })
+        .add(line -> line.contains("<blockquote>"),
+            line -> line.state().blockquoteCount++)
+        .add(line -> line.contains("</blockquote>"),
+            line -> line.state().blockquoteCount--)
+        .add(line -> line.contains("<ul>"),
+            line -> line.state().ulCount++)
+        .add(line -> line.contains("</ul>"),
+            line -> line.state().ulCount--)
         .build();
   }
 
@@ -111,6 +133,8 @@ class LintTest {
         + "  String x = \"ok because it's not in javadoc:</p>\";\n"
         + "}\n";
     final String expectedMessages = "["
+        + "GuavaCharSource{memory}:4:"
+        + "missing '<p>'\n"
         + "GuavaCharSource{memory}:6:"
         + "<p> must not be on its own line\n"
         + "GuavaCharSource{memory}:7:"
@@ -267,6 +291,8 @@ class LintTest {
     int atLine;
     int javadocStartLine;
     int javadocEndLine;
+    int blockquoteCount;
+    int ulCount;
 
     FileState(GlobalState global) {
       this.global = global;

@@ -30,8 +30,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 /**
  * Tests for the {@code org.apache.calcite.adapter.cassandra} package.
  *
- *
- * Instantiates a CQL session without keyspace, but passes it to
+ * <p>Instantiates a CQL session without keyspace, but passes it to
  * {@code org.apache.calcite.adapter.cassandra.CassandraTable}.
  * All generated CQL queries should still succeed and explicitly
  * reference the keyspace.

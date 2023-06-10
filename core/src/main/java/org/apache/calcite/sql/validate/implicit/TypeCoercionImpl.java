@@ -72,15 +72,15 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * mainly used for set operations like UNION, INTERSECT and EXCEPT.
    *
    * <p>Rules:
-   * <pre>
-   *
+   * <blockquote><pre>
    *       type1, type2  type3       select a, b, c from t1
    *          \      \      \
    *         type4  type5  type6              UNION
    *          /      /      /
    *       type7  type8  type9       select d, e, f from t2
-   * </pre>
-   * For struct type (type1, type2, type3) union type (type4, type5, type6),
+   * </pre></blockquote>
+   *
+   * <p>For struct type (type1, type2, type3) union type (type4, type5, type6),
    * infer the first result column type type7 as the wider type of type1 and type4,
    * the second column type as the wider type of type2 and type5 and so on.
    *

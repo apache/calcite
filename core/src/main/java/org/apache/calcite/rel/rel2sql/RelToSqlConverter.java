@@ -311,7 +311,7 @@ public class RelToSqlConverter extends SqlImplementor
    *
    * <p>For example, the following queries are equivalent:
    *
-   * <pre>{@code
+   * <blockquote><pre>{@code
    * // Comma join
    * SELECT *
    * FROM Emp, Dept
@@ -323,7 +323,7 @@ public class RelToSqlConverter extends SqlImplementor
    * // Inner join
    * SELECT *
    * FROM Emp INNER JOIN Dept ON TRUE
-   * }</pre>
+   * }</pre></blockquote>
    *
    * <p>Examples:
    * <ul>

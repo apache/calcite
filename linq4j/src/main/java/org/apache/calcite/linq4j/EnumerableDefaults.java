@@ -2206,9 +2206,10 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * Joins two inputs that are sorted on the key, with an extra predicate for non equi-join
-   * conditions.
-   * Inputs must sorted in ascending order, nulls last.
+   * Joins two inputs that are sorted on the key, with an extra predicate for
+   * non equi-join conditions.
+   *
+   * <p>Inputs be must sorted in ascending order, nulls last.
    *
    * @param extraPredicate predicate for non equi-join conditions. In case of equi-join,
    *                       it will be null. In case of non-equi join, the non-equi conditions
@@ -2219,7 +2220,8 @@ public abstract class EnumerableDefaults {
    * @param comparator key comparator, possibly null (in which case {@link Comparable#compareTo}
    *                   will be used).
    *
-   * NOTE: The current API is experimental and subject to change without notice.
+   * <p>NOTE: The current API is experimental and subject to change without
+   * notice.
    */
   @API(since = "1.23", status = API.Status.EXPERIMENTAL)
   public static <TSource, TInner, TKey extends Comparable<TKey>, TResult> Enumerable<TResult>

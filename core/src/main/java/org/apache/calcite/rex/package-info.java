@@ -71,9 +71,9 @@
  *
  * <h2>Related packages</h2>
  * <ul>
- *     <li>{@link org.apache.calcite.sql} SQL object model</li>
+ * <li>{@link org.apache.calcite.sql} SQL object model</li>
  *
- *     <li>{@link org.apache.calcite.plan} Core classes, including
+ * <li>{@link org.apache.calcite.plan} Core classes, including
  * {@link org.apache.calcite.rel.type.RelDataType} and
  * {@link org.apache.calcite.rel.type.RelDataTypeFactory}.</li>
  *

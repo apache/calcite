@@ -46,8 +46,7 @@ import java.util.function.Supplier;
 /**
  * A benchmark to compare metadata retrieval time for a complex query.
  *
- * Compares metadata retrieval performance on a large query
- *
+ * <p>Compares metadata retrieval performance on a large query.
  */
 @Fork(value = 1, jvmArgsPrepend = "-Xmx2048m")
 @State(Scope.Benchmark)

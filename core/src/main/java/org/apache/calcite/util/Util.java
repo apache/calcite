@@ -1469,15 +1469,13 @@ public class Util {
    * time
    * <li>The second offset is how many hours changed during DST. Default=1
    * <li>'start' and 'end' are the dates when DST goes into (and out of)
-   *     effect.<br>
-   *     <br>
-   *     They can each be one of three forms:
+   *     effect. They can each be one of three forms:
    *
-   *     <ol>
-   *     <li>Mm.w.d {month=1-12, week=1-5 (5 is always last), day=0-6}
-   *     <li>Jn {n=1-365 Feb29 is never counted}
-   *     <li>n {n=0-365 Feb29 is counted in leap years}
-   *     </ol>
+   * <ol>
+   * <li>Mm.w.d {month=1-12, week=1-5 (5 is always last), day=0-6}
+   * <li>Jn {n=1-365 Feb29 is never counted}
+   * <li>n {n=0-365 Feb29 is counted in leap years}
+   * </ol>
    * </li>
    *
    * <li>'time' has the same format as 'offset', and defaults to 02:00:00.</li>

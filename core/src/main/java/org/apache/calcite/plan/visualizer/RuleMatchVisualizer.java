@@ -60,9 +60,10 @@ import static org.apache.calcite.util.Util.transform;
 /**
  * This is a tool to visualize the rule match process of a RelOptPlanner.
  *
- * <pre>{@code
+ * <blockquote><pre>{@code
  * // create the visualizer
- * RuleMatchVisualizer viz = new RuleMatchVisualizer("/path/to/output/dir", "file-name-suffix");
+ * RuleMatchVisualizer viz =
+ *     new RuleMatchVisualizer("/path/to/output/dir", "file-name-suffix");
  * viz.attachTo(planner)
  *
  * planner.findBestExpr();
@@ -70,7 +71,7 @@ import static org.apache.calcite.util.Util.transform;
  * // extra step for HepPlanner: write the output to files
  * // a VolcanoPlanner will call it automatically
  * viz.writeToFile();
- * }</pre>
+ * }</pre></blockquote>
  */
 public class RuleMatchVisualizer implements RelOptListener {
 

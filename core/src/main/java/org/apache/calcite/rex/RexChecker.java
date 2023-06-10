@@ -41,7 +41,7 @@ import static java.util.Objects.requireNonNull;
  * RelDataType rowType;<br>
  * assert new RexChecker(rowType, true).isValid(node);</code></blockquote>
  *
- * This mode requires that assertions are enabled.</li>
+ * <p>This mode requires that assertions are enabled.</li>
  *
  * <li>Use <code>fail=false</code> to test for validity without throwing an
  * error.
