@@ -1240,9 +1240,11 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseShiftLeft(SqlWriter writer, SqlCall call) {
+    writer.print("(");
     call.operand(0).unparse(writer, 0, 0);
     writer.print(SHIFTLEFT + " ");
     call.operand(1).unparse(writer, 0, 0);
+    writer.print(")");
   }
 
   private void unParseRegexpContains(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1469,24 +1471,27 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseInt2shFunctions(SqlWriter writer, SqlCall call,
                                       String s, int leftPrec, int rightPrec) {
     SqlNode[] operands = new SqlNode[] {call.operand(0), call.operand(2)};
-    writer.print("(");
     unparseBitwiseAnd(writer, operands, leftPrec, rightPrec);
-    writer.sep(") " + s);
+    writer.sep(s);
     call.operand(1).unparse(writer, leftPrec, rightPrec);
   }
 
   private void unparseBitwiseFunctions(SqlWriter writer, SqlCall call,
                                        String s, int leftPrec, int rightPrec) {
+    writer.print("(");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep(s);
     call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.print(")");
   }
 
   private void unparseBitwiseAnd(SqlWriter writer, SqlNode[] operands,
                                  int leftPrec, int rightPrec) {
+    writer.print("(");
     operands[0].unparse(writer, leftPrec, rightPrec);
     writer.print("& ");
     operands[1].unparse(writer, leftPrec, rightPrec);
+    writer.print(")");
   }
 
   private void unparseStrtok(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1987,6 +1992,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private static void unparseGetBitFunction(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
+    writer.print("(");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(SHIFTRIGHT);
     writer.print(" ");
@@ -1994,11 +2000,11 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print("& ");
     SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
     oneLiteral.unparse(writer, leftPrec, rightPrec);
+    writer.print(")");
   }
 
   private void unparseBitNotFunction(SqlWriter writer, SqlCall call) {
-    writer.print(BITNOT);
-    writer.print(" (");
+    writer.print("(" + BITNOT + " ");
     call.operand(0).unparse(writer, 0, 0);
     writer.print(")");
   }
