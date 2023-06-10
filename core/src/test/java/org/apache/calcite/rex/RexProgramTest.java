@@ -1769,6 +1769,68 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
+   * SEARCH operator with special sarg is not fully simplified</a>. */
+  @Test void testSimplifySearchWithSpecialSargIsNotNull() {
+    RexNode intExpression =
+        rexBuilder.makeLiteral(1, typeFactory.createSqlType(SqlTypeName.INTEGER));
+    final RangeSet<Integer> setNone = ImmutableRangeSet.of();
+    final RangeSet<Integer> setAll = setNone.complement();
+    final Sarg<Integer> sarg =
+        Sarg.of(RexUnknownAs.FALSE, setAll);
+    RexNode last =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intExpression,
+            rexBuilder.makeSearchArgumentLiteral(sarg, intExpression.getType()));
+    checkSimplify(last, "true");
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
+   * SEARCH operator with special sarg is not fully simplified</a>. */
+  @Test void testSimplifySearchWithSpecialSargIsNull() {
+    RexNode intExpression =
+        rexBuilder.makeLiteral(1, typeFactory.createSqlType(SqlTypeName.INTEGER));
+    final RangeSet<Integer> setNone = ImmutableRangeSet.of();
+    final Sarg<Integer> sarg =
+        Sarg.of(RexUnknownAs.TRUE, setNone);
+    RexNode last =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intExpression,
+            rexBuilder.makeSearchArgumentLiteral(sarg, intExpression.getType()));
+    checkSimplify(last, "false");
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
+   * SEARCH operator with special sarg is not fully simplified</a>. */
+  @Test void testSimplifySearchWithSpecialSargEqual() {
+    RexNode intExpression =
+        rexBuilder.makeLiteral(1, typeFactory.createSqlType(SqlTypeName.INTEGER));
+    final RangeSet<Integer> setNone = ImmutableRangeSet.of();
+    final RangeSet<Integer> setAll = setNone.complement();
+    final Sarg<Integer> sarg =
+        Sarg.of(RexUnknownAs.UNKNOWN, setAll);
+    RexNode last =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intExpression,
+            rexBuilder.makeSearchArgumentLiteral(sarg, intExpression.getType()));
+    checkSimplify(last, "true");
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
+   * SEARCH operator with special sarg is not fully simplified</a>. */
+  @Test void testSimplifySearchWithSpecialSargNotEqual() {
+    RexNode intExpression =
+        rexBuilder.makeLiteral(1, typeFactory.createSqlType(SqlTypeName.INTEGER));
+    final RangeSet<Integer> setNone = ImmutableRangeSet.of();
+    final Sarg<Integer> sarg =
+        Sarg.of(RexUnknownAs.UNKNOWN, setNone);
+    RexNode last =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intExpression,
+            rexBuilder.makeSearchArgumentLiteral(sarg, intExpression.getType()));
+    checkSimplify(last, "false");
+  }
+
+  /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4352">[CALCITE-4352]
    * OR simplification incorrectly loses term</a>. */
   @Test void testSimplifyAndIsNotNull() {
