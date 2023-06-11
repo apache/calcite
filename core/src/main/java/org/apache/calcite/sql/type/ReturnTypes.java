@@ -179,6 +179,14 @@ public abstract class ReturnTypes {
 
   /**
    * Type-inference strategy whereby the result type of a call is the type of
+   * the operand #0 (0-based). If the operand #0 (0-based) is nullable, the
+   * returned type will also be nullable.
+   */
+  public static final SqlReturnTypeInference ARG0_NULLABLE_IF_ARG0_NULLABLE =
+      ARG0.andThen(SqlTypeTransforms.ARG0_NULLABLE);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is the type of
    * the operand #0 (0-based), with nulls always allowed.
    */
   public static final SqlReturnTypeInference ARG0_FORCE_NULLABLE =

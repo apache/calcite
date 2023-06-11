@@ -2652,6 +2652,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | m | expr1 <=> expr2                                | Whether two values are equal, treating null values as the same, and it's similar to `IS NOT DISTINCT FROM`
 | * | ACOSH(numeric)                                 | Returns the inverse hyperbolic cosine of *numeric*
 | s | ARRAY(expr [, expr ]*)                         | Construct an array in Apache Spark
+| s | ARRAY_APPEND(array, element)                   | Appends an *element* to the end of the *array* and returns the result. Type of *element* should be similar to type of the elements of the *array*. If the *array* is null, the function will return null. If an *element* that is null, the null *element* will be added to the end of the *array*
 | s | ARRAY_COMPACT(array)                           | Removes null values from the *array*
 | b | ARRAY_CONCAT(array [, array ]*)                | Concatenates one or more arrays. If any input argument is `NULL` the function returns `NULL`
 | s | ARRAY_CONTAINS(array, element)                 | Returns true if the *array* contains the *element*
@@ -2661,6 +2662,9 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
 | s | ARRAY_MAX(array)                               | Returns the maximum value in the *array*
 | s | ARRAY_MIN(array)                               | Returns the minimum value in the *array*
+| s | ARRAY_POSITION(array, element)                 | Returns the (1-based) index of the first *element* of the *array* as long
+| s | ARRAY_REMOVE(array, element)                   | Remove all elements that equal to *element* from the *array*
+| s | ARRAY_PREPEND(array, element)                  | Appends an *element* to the beginning of the *array* and returns the result. Type of *element* should be similar to type of the elements of the *array*. If the *array* is null, the function will return null. If an *element* that is null, the null *element* will be added to the beginning of the *array*
 | s | ARRAY_REPEAT(element, count)                   | Returns the array containing element count times.
 | b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
 | s | ARRAY_SIZE(array)                              | Synonym for `CARDINALITY`
