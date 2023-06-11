@@ -142,6 +142,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COMPRESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION_WITH_NULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CSC;
@@ -492,6 +493,8 @@ public class RexImpTable {
       map.put(CONCAT, new ConcatImplementor());
       defineMethod(CONCAT_FUNCTION, BuiltInMethod.MULTI_STRING_CONCAT.method,
           NullPolicy.STRICT);
+      defineMethod(CONCAT_FUNCTION_WITH_NULL,
+          BuiltInMethod.MULTI_STRING_CONCAT_WITH_NULL.method, NullPolicy.NONE);
       defineMethod(CONCAT2, BuiltInMethod.STRING_CONCAT_WITH_NULL.method, NullPolicy.ALL);
       defineMethod(OVERLAY, BuiltInMethod.OVERLAY.method, NullPolicy.STRICT);
       defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);

@@ -421,6 +421,7 @@ public enum BuiltInMethod {
   STRING_CONCAT(SqlFunctions.class, "concat", String.class, String.class),
   STRING_CONCAT_WITH_NULL(SqlFunctions.class, "concatWithNull", String.class, String.class),
   MULTI_STRING_CONCAT(SqlFunctions.class, "concatMulti", String[].class),
+  MULTI_STRING_CONCAT_WITH_NULL(SqlFunctions.class, "concatMultiWithNull", String[].class),
   FLOOR_DIV(Math.class, "floorDiv", long.class, long.class),
   FLOOR_MOD(Math.class, "floorMod", long.class, long.class),
   ADD_MONTHS(DateTimeUtils.class, "addMonths", long.class, int.class),

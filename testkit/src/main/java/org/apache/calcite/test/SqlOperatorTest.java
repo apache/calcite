@@ -1942,8 +1942,9 @@ public class SqlOperatorTest {
   @Test void testConcatFunc() {
     final SqlOperatorFixture f = fixture();
     checkConcatFunc(f.withLibrary(SqlLibrary.MYSQL));
-    checkConcatFunc(f.withLibrary(SqlLibrary.POSTGRESQL));
     checkConcatFunc(f.withLibrary(SqlLibrary.BIG_QUERY));
+    checkConcatFuncWithNull(f.withLibrary(SqlLibrary.POSTGRESQL));
+    checkConcatFuncWithNull(f.withLibrary(SqlLibrary.MSSQL));
     checkConcat2Func(f.withLibrary(SqlLibrary.ORACLE));
   }
 
@@ -1956,6 +1957,24 @@ public class SqlOperatorTest {
     f.checkNull("concat(cast(null as ANY), 'b', cast(null as char(2)))");
     f.checkString("concat('', '', 'a')", "a", "VARCHAR(1) NOT NULL");
     f.checkString("concat('', '', '')", "", "VARCHAR(0) NOT NULL");
+    f.checkFails("^concat()^", INVALID_ARGUMENTS_NUMBER, false);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5771">[CALCITE-5771]
+   * Apply two different NULL semantics for CONCAT function(enabled in MySQL,
+   * Postgresql, BigQuery and MSSQL)</a>. */
+  private static void checkConcatFuncWithNull(SqlOperatorFixture f) {
+    f.setFor(SqlLibraryOperators.CONCAT_FUNCTION_WITH_NULL);
+    f.checkString("concat('a', 'b', 'c')", "abc", "VARCHAR(3) NOT NULL");
+    f.checkString("concat(cast('a' as varchar), cast('b' as varchar), "
+            + "cast('c' as varchar))", "abc", "VARCHAR NOT NULL");
+    f.checkString("concat('a', 'b', cast(null as char(2)))", "ab", "VARCHAR(4) NOT NULL");
+    f.checkString("concat(cast(null as ANY), 'b', cast(null as char(2)))", "b", "VARCHAR NOT NULL");
+    f.checkString("concat('', '', 'a')", "a", "VARCHAR(1) NOT NULL");
+    f.checkString("concat('', '', '')", "", "VARCHAR(0) NOT NULL");
+    f.checkString("concat(null, null, null)", "", "VARCHAR NOT NULL");
+    f.checkString("concat('', null, '')", "", "VARCHAR NOT NULL");
     f.checkFails("^concat()^", INVALID_ARGUMENTS_NUMBER, false);
   }
 

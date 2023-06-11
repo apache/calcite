@@ -831,15 +831,44 @@ public abstract class SqlLibraryOperators {
       new SqlLikeOperator("NOT RLIKE", SqlKind.RLIKE, true, true);
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
-   * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
-  @LibraryOperator(libraries = {MYSQL, POSTGRESQL, BIG_QUERY})
+   * For example, "CONCAT('a', 'bc', 'd')" returns "abcd".
+   *
+   * <p>It accepts at least 1 argument and returns null if any of
+   * the arguments is null. */
+  @LibraryOperator(libraries = {MYSQL, BIG_QUERY})
   public static final SqlFunction CONCAT_FUNCTION =
       SqlBasicFunction.create("CONCAT",
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
-          OperandTypes.repeat(SqlOperandCountRanges.from(2),
+          OperandTypes.repeat(SqlOperandCountRanges.from(1),
               OperandTypes.STRING),
           SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE);
+
+  /** The "CONCAT(arg, ...)" function that concatenates strings,
+   * which never returns null.
+   * For example, "CONCAT('a', 'bc', 'd')" returns "abcd".
+   *
+   * <p>If one of the arguments is null, it will be treated as empty string.
+   * "CONCAT('a', null)" returns "a".
+   * "CONCAT('a', null, 'b')" returns "ab".
+   *
+   * <p>Returns empty string only when all arguments are null
+   * or the empty string.
+   * "CONCAT(null)" returns "".
+   * "CONCAT(null, '')" returns "".
+   * "CONCAT(null, null, null)" returns "".
+   *
+   * <p>It differs from {@link #CONCAT_FUNCTION} when processing
+   * null values. */
+  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
+  public static final SqlFunction CONCAT_FUNCTION_WITH_NULL =
+      SqlBasicFunction.create("CONCAT",
+          ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NOT_NULLABLE,
+          OperandTypes.repeat(SqlOperandCountRanges.from(1),
+              OperandTypes.STRING),
+          SqlFunctionCategory.STRING)
+          .withOperandTypeInference(InferTypes.RETURN_TYPE)
+          .withKind(SqlKind.CONCAT_WITH_NULL);
 
   /** The "CONCAT(arg0, arg1)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc')" returns "abc".

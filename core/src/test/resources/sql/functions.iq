@@ -68,6 +68,17 @@ SELECT char(null), char(-1), char(65), char(233), char(256+66);
 !ok
 
 # CONCAT
+# CONCAT function accepts at least 1 argument
+SELECT CONCAT('a');
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
 SELECT CONCAT('c', 'h', 'a', 'r');
 +--------+
 | EXPR$0 |
@@ -79,13 +90,15 @@ SELECT CONCAT('c', 'h', 'a', 'r');
 !ok
 
 # CONCAT in MySQL, BigQuery returns NULL if any argument is NULL.
-# (CONCAT in Oracle and Postgres ignores NULL arguments.)
-SELECT CONCAT('c', 'h', 'a', null, 'r');
-+--------+
-| EXPR$0 |
-+--------+
-|        |
-+--------+
+# (CONCAT in Oracle, Postgres and MSSQL ignores NULL arguments.)
+with t as (select concat('c', 'h', 'a', null, 'r') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
 (1 row)
 
 !ok
@@ -320,12 +333,14 @@ select concat(cast(null as varchar), 'a');
 
 !ok
 
-select concat(null, null);
-+--------+
-| EXPR$0 |
-+--------+
-|        |
-+--------+
+with t as (select concat(null, null) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
 (1 row)
 
 !ok
@@ -498,6 +513,144 @@ select CONVERT(INTEGER, NULL, NULL);
 select CONVERT(DATE, '05/01/2000', 103);
 !ok
 !}
+
+# [CALCITE-5771] Apply two different NULL semantics for CONCAT function(enabled in MySQL, Postgresql, BigQuery and MSSQL)
+with t as (select concat(null) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat(null, '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat('', '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+select concat('a', null, 'b');
++--------+
+| EXPR$0 |
++--------+
+| ab     |
++--------+
+(1 row)
+
+!ok
+
+select concat('a', cast(null as varchar), 'b');
++--------+
+| EXPR$0 |
++--------+
+| ab     |
++--------+
+(1 row)
+
+!ok
+
+select concat(cast(null as varchar), 'a', 'b');
++--------+
+| EXPR$0 |
++--------+
+| ab     |
++--------+
+(1 row)
+
+!ok
+
+with t as (select concat(null, null, null) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+# concat in BigQuery
+!use post-big-query
+
+select concat('a');
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
+select concat('a', 'b');
++--------+
+| EXPR$0 |
++--------+
+| ab     |
++--------+
+(1 row)
+
+!ok
+
+with t as (select concat(null, '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat('a', cast(null as varchar), 'b') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat(null, null, null) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
 
 # -----------------------------------------------------------------------------
 # The standard TRANSLATE function, for changing character sets.

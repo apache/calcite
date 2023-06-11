@@ -751,7 +751,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Tests the CONCAT function, which unlike the concat operator ('||') is not
-   * standard but only in the ORACLE and POSTGRESQL libraries. */
+   * standard but enabled in the ORACLE, MySQL, BigQuery, POSTGRESQL and MSSQL libraries. */
   @Test void testConcatFunction() {
     // CONCAT is not in the library operator table
     final SqlValidatorFixture s = fixture()
@@ -762,7 +762,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     s.withExpr("concat('aabbcc', 'ab', '+-')")
         .columnType("VARCHAR(10) NOT NULL");
     s.withExpr("concat('aabbcc', CAST(NULL AS VARCHAR(20)), '+-')")
-        .columnType("VARCHAR(28)");
+        .columnType("VARCHAR(28) NOT NULL");
     s.withExpr("concat('aabbcc', 2)")
         .withWhole(true)
         .withTypeCoercion(false)
