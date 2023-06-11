@@ -42,6 +42,8 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.timeStringToUnixDate
 import static org.apache.calcite.avatica.util.DateTimeUtils.timestampStringToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.concatMulti;
+import static org.apache.calcite.runtime.SqlFunctions.concatMultiWithNull;
 import static org.apache.calcite.runtime.SqlFunctions.concatWithNull;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
@@ -147,6 +149,25 @@ class SqlFunctionsTest {
     assertThat(concatWithNull("a", null), is("a"));
     assertThat(concatWithNull(null, null), is(nullValue()));
     assertThat(concatWithNull(null, "b"), is("b"));
+  }
+
+  @Test void testConcatMulti() {
+    assertThat(concatMulti("a b", "cd", "e"), is("a bcde"));
+    // The code generator will ensure that nulls are never passed in. If we
+    // pass in null, it is treated like the string "null", as the following
+    // tests show. Not the desired behavior for SQL.
+    assertThat(concatMulti((String) null), is("null"));
+    assertThat(concatMulti((String) null, null), is("nullnull"));
+    assertThat(concatMulti("a", null, "b"), is("anullb"));
+  }
+
+  @Test void testConcatMultiWithNull() {
+    assertThat(concatMultiWithNull("a b", "cd", "e"), is("a bcde"));
+    // Null value could be passed in which is treated as empty string
+    assertThat(concatMultiWithNull((String) null), is(""));
+    assertThat(concatMultiWithNull((String) null, ""), is(""));
+    assertThat(concatMultiWithNull((String) null, null, null), is(""));
+    assertThat(concatMultiWithNull("a", null, "b"), is("ab"));
   }
 
   @Test void testPosixRegex() {

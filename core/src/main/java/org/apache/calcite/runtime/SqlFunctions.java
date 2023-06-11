@@ -792,6 +792,16 @@ public class SqlFunctions {
     return String.join("", args);
   }
 
+  /** SQL {@code CONCAT(arg0, ...)} function which can accept null
+   * but never return null. Always treats null as empty string. */
+  public static String concatMultiWithNull(String... args) {
+    StringBuilder sb = new StringBuilder();
+    for (String arg : args) {
+      sb.append(arg == null ? "" : arg);
+    }
+    return sb.toString();
+  }
+
   /** SQL {@code CONVERT(s, src_charset, dest_charset)} function. */
   public static String convertWithCharset(String s, String srcCharset,
       String destCharset) {
