@@ -3904,6 +3904,14 @@ public class SqlFunctions {
     return result;
   }
 
+  /** Support the ARRAY_APPEND function. */
+  public static List arrayAppend(List list, Object element) {
+    final List result = new ArrayList(list.size() + 1);
+    result.addAll(list);
+    result.add(element);
+    return result;
+  }
+
   /** Support the ARRAY_DISTINCT function.
    *
    * <p>Note: If the list does not contain null,
@@ -3939,6 +3947,34 @@ public class SqlFunctions {
       }
     }
     return min;
+  }
+
+  /** Support the ARRAY_PREPEND function. */
+  public static List arrayPrepend(List list, Object element) {
+    final List result = new ArrayList(list.size() + 1);
+    result.add(element);
+    result.addAll(list);
+    return result;
+  }
+
+  /** Support the ARRAY_POSITION function. */
+  public static Long arrayPosition(List list, Object element) {
+    final int index = list.indexOf(element);
+    if (index != -1) {
+      return Long.valueOf(index + 1L);
+    }
+    return 0L;
+  }
+
+  /** Support the ARRAY_REMOVE function. */
+  public static List arrayRemove(List list, Object element) {
+    final List result = new ArrayList();
+    for (Object obj : list) {
+      if (obj == null || !obj.equals(element)) {
+        result.add(obj);
+      }
+    }
+    return result;
   }
 
   /** Support the ARRAY_REPEAT function. */

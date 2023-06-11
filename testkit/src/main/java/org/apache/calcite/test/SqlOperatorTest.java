@@ -5353,6 +5353,35 @@ public class SqlOperatorTest {
     f.checkScalar("rand_integer(2, 11)", 1, "INTEGER NOT NULL");
   }
 
+  /** Tests {@code ARRAY_APPEND} function from Spark. */
+  @Test void testArrayAppendFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_APPEND);
+    f0.checkFails("^array_append(array[1], 2)^",
+        "No match found for function signature ARRAY_APPEND\\("
+            + "<INTEGER ARRAY>, <NUMERIC>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_append(array[1], 2)", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array[1], null)", "[1, null]",
+        "INTEGER ARRAY NOT NULL");
+    f.checkScalar("array_append(array(null), null)", "[null, null]",
+        "NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array(), null)", "[null]",
+        "UNKNOWN ARRAY NOT NULL");
+    f.checkScalar("array_append(array(), 1)", "[1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array[array[1, 2]], array[3, 4])", "[[1, 2], [3, 4]]",
+        "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array[map[1, 'a']], map[2, 'b'])", "[{1=a}, {2=b}]",
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+    f.checkNull("array_append(cast(null as integer array), 1)");
+    f.checkType("array_append(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
+    f.checkFails("^array_append(array[1, 2], true)^",
+        "INTEGER is not comparable to BOOLEAN", false);
+  }
+
   /** Tests {@code ARRAY_COMPACT} function from Spark. */
   @Test void testArrayCompactFunc() {
     final SqlOperatorFixture f0 = fixture();
@@ -5463,6 +5492,103 @@ public class SqlOperatorTest {
     f.checkType("array_min(array())", "UNKNOWN");
     f.checkNull("array_min(array())");
     f.checkNull("array_min(cast(null as integer array))");
+  }
+
+  /** Tests {@code ARRAY_POSITION} function from Spark. */
+  @Test void testArrayPositionFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_POSITION);
+    f0.checkFails("^array_position(array[1], 1)^",
+        "No match found for function signature ARRAY_POSITION\\("
+            + "<INTEGER ARRAY>, <NUMERIC>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_position(array[1], 1)", "1",
+        "BIGINT NOT NULL");
+    f.checkScalar("array_position(array[1, 2, 2], 2)", "2",
+        "BIGINT NOT NULL");
+    f.checkScalar("array_position(array[1], 2)", "0",
+        "BIGINT NOT NULL");
+    f.checkScalar("array_position(array(), 1)", "0",
+        "BIGINT NOT NULL");
+    f.checkScalar("array_position(array[array[1, 2]], array[1, 2])", "1",
+        "BIGINT NOT NULL");
+    f.checkScalar("array_position(array[map[1, 'a']], map[1, 'a'])", "1",
+        "BIGINT NOT NULL");
+    f.checkNull("array_position(cast(null as integer array), 1)");
+    f.checkType("array_position(cast(null as integer array), 1)", "BIGINT");
+    f.checkNull("array_position(array[1], null)");
+    f.checkType("array_position(array[1], null)", "BIGINT");
+    f.checkFails("^array_position(array[1, 2], true)^",
+        "INTEGER is not comparable to BOOLEAN", false);
+  }
+
+  /** Tests {@code ARRAY_PREPEND} function from Spark. */
+  @Test void testArrayPrependFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_PREPEND);
+    f0.checkFails("^array_prepend(array[1], 2)^",
+        "No match found for function signature ARRAY_PREPEND\\("
+            + "<INTEGER ARRAY>, <NUMERIC>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_prepend(array[1], 2)", "[2, 1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array[1], null)", "[null, 1]",
+        "INTEGER ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(null), null)", "[null, null]",
+        "NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(), null)", "[null]",
+        "UNKNOWN ARRAY NOT NULL");
+    f.checkScalar("array_append(array(), 1)", "[1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array[array[1, 2]], array[3, 4])", "[[3, 4], [1, 2]]",
+        "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array[map[1, 'a']], map[2, 'b'])", "[{2=b}, {1=a}]",
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+    f.checkNull("array_prepend(cast(null as integer array), 1)");
+    f.checkType("array_prepend(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
+    f.checkFails("^array_prepend(array[1, 2], true)^",
+        "INTEGER is not comparable to BOOLEAN", false);
+  }
+
+  /** Tests {@code ARRAY_REMOVE} function from Spark. */
+  @Test void testArrayRemoveFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_REMOVE);
+    f0.checkFails("^array_remove(array[1], 1)^",
+        "No match found for function signature ARRAY_REMOVE\\("
+            + "<INTEGER ARRAY>, <NUMERIC>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_remove(array[1], 1)", "[]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_remove(array[1, 2, 1], 1)", "[2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_remove(array[1, 2, null], 1)", "[2, null]",
+        "INTEGER ARRAY NOT NULL");
+    f.checkScalar("array_remove(array[1, 2, null], 3)", "[1, 2, null]",
+        "INTEGER ARRAY NOT NULL");
+    f.checkScalar("array_remove(array(null), 1)", "[null]",
+        "NULL ARRAY NOT NULL");
+    f.checkScalar("array_remove(array(), 1)", "[]",
+        "UNKNOWN NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_remove(array[array[1, 2]], array[1, 2])", "[]",
+        "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_remove(array[map[1, 'a']], map[1, 'a'])", "[]",
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+    f.checkNull("array_remove(cast(null as integer array), 1)");
+    f.checkType("array_remove(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
+
+    // Flink and Spark differ on the following. The expression
+    //   array_remove(array[1, null], cast(null as integer))
+    // returns [1] in Flink, and returns null in Spark. The current
+    // function has Spark behavior, but if we supported a Flink function
+    // library (i.e. "fun=flink") we could add a function with Flink behavior.
+    f.checkNull("array_remove(array[1, null], cast(null as integer))");
+    f.checkType("array_remove(array[1, null], cast(null as integer))", "INTEGER ARRAY");
+    f.checkFails("^array_remove(array[1, 2], true)^",
+        "INTEGER is not comparable to BOOLEAN", false);
   }
 
   /** Tests {@code ARRAY_REPEAT} function from Spark. */

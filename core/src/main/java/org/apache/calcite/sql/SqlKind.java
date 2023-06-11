@@ -683,6 +683,9 @@ public enum SqlKind {
   /** {@code EXTRACT} function. */
   EXTRACT,
 
+  /** {@code ARRAY_APPEND} function (Spark semantics). */
+  ARRAY_APPEND,
+
   /** {@code ARRAY_COMPACT} function (Spark semantics). */
   ARRAY_COMPACT,
 
@@ -709,6 +712,15 @@ public enum SqlKind {
 
   /** {@code ARRAY_MIN} function (Spark semantics). */
   ARRAY_MIN,
+
+  /** {@code ARRAY_POSITION} function (Spark semantics). */
+  ARRAY_POSITION,
+
+  /** {@code ARRAY_PREPEND} function (Spark semantics). */
+  ARRAY_PREPEND,
+
+  /** {@code ARRAY_REMOVE} function (Spark semantics). */
+  ARRAY_REMOVE,
 
   /** {@code ARRAY_REPEAT} function (Spark semantics). */
   ARRAY_REPEAT,
