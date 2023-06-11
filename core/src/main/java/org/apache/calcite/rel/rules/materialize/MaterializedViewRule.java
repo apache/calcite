@@ -365,7 +365,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
                   currQEC, queryPreds, queryBasedVEC, viewPreds,
                   queryToViewTableMapping);
           if (compensationPreds == null && config.generateUnionRewriting()) {
-            // Attempt partial rewriting using union operator. This rewriting
+            // a. Attempt partial rewriting using union operator. This rewriting
             // will read some data from the view and the rest of the data from
             // the query computation. The resulting predicates are expressed
             // using {@link RexTableInputRef} over the view.
@@ -379,8 +379,11 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
             }
             RexNode compensationColumnsEquiPred = compensationPreds.left;
             RexNode otherCompensationPred = compensationPreds.right;
-            assert !compensationColumnsEquiPred.isAlwaysTrue()
-                || !otherCompensationPred.isAlwaysTrue();
+            if (compensationColumnsEquiPred.isAlwaysTrue()
+                && otherCompensationPred.isAlwaysTrue()) {
+              // Skip it
+              continue;
+            }
 
             // b. Generate union branch (query).
             final RelNode unionInputQuery =
@@ -419,7 +422,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
             RexNode compensationColumnsEquiPred = compensationPreds.left;
             RexNode otherCompensationPred = compensationPreds.right;
 
-            // a. Compute final compensation predicate.
+            // A. Compute final compensation predicate.
             if (!compensationColumnsEquiPred.isAlwaysTrue()
                 || !otherCompensationPred.isAlwaysTrue()) {
               // All columns required by compensating predicates must be contained
@@ -456,7 +459,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
                     ImmutableList.of(compensationColumnsEquiPred,
                         otherCompensationPred));
 
-            // b. Generate final rewriting if possible.
+            // B. Generate final rewriting if possible.
             // First, we add the compensation predicate (if any) on top of the view.
             // Then, we trigger the unifying method. This method will either create a
             // Project or an Aggregate operator on top of the view. It will also compute
