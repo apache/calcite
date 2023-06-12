@@ -2031,7 +2031,8 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseBitNotFunction(SqlWriter writer, SqlCall call) {
-    writer.print("(" + BITNOT + " ");
+    writer.print(BITNOT);
+    writer.print(" (");
     call.operand(0).unparse(writer, 0, 0);
     writer.print(")");
   }
