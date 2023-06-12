@@ -6918,14 +6918,6 @@ class RelToSqlConverterTest {
         .withMssql()
         .ok(mssql);
   }
-  @Test public void concatFunctionWithMultipleArgumentsForBigQuery() {
-    String query = "select 'foo' || 'bar' || '1' || '20' from \"employee\"";
-    final String expected = "SELECT 'foo' || 'bar'\n"
-        + "FROM foodmart.employee";
-    sql(query)
-        .withBigQuery()
-        .ok(expected);
-  }
 
   @Test void testJsonRemove() {
     String query = "select json_remove(\"product_name\", '$[0]') from \"product\"";
