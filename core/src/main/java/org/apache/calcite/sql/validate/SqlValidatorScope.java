@@ -38,7 +38,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Name-resolution scope. Represents any position in a parse tree than an
@@ -230,14 +231,14 @@ public interface SqlValidatorScope {
 
   /** Returns whether this scope is enclosed within {@code scope2} in such
    * a way that it can see the contents of {@code scope2}. */
-  default boolean isWithin(@Nullable SqlValidatorScope scope2)  {
+  default boolean isWithin(SqlValidatorScope scope2)  {
     return this == scope2;
   }
 
   /** Callback from {@link SqlValidatorScope#resolve}. */
   interface Resolved {
     void found(SqlValidatorNamespace namespace, boolean nullable,
-        @Nullable SqlValidatorScope scope, Path path, @Nullable List<String> remainingNames);
+        SqlValidatorScope scope, Path path, List<String> remainingNames);
     int count();
   }
 
@@ -291,11 +292,11 @@ public interface SqlValidatorScope {
 
     Step(Path parent, @Nullable RelDataType rowType, int i, String name,
         StructKind kind) {
-      this.parent = Objects.requireNonNull(parent, "parent");
+      this.parent = requireNonNull(parent, "parent");
       this.rowType = rowType; // may be null
       this.i = i;
       this.name = name;
-      this.kind = Objects.requireNonNull(kind, "kind");
+      this.kind = requireNonNull(kind, "kind");
     }
 
     @Override public int stepCount() {
@@ -313,8 +314,9 @@ public interface SqlValidatorScope {
   class ResolvedImpl implements Resolved {
     final List<Resolve> resolves = new ArrayList<>();
 
-    @Override public void found(SqlValidatorNamespace namespace, boolean nullable,
-        @Nullable SqlValidatorScope scope, Path path, @Nullable List<String> remainingNames) {
+    @Override public void found(SqlValidatorNamespace namespace,
+        boolean nullable, SqlValidatorScope scope, Path path,
+        List<String> remainingNames) {
       if (scope instanceof TableScope) {
         scope = scope.getValidator().getSelectScope((SqlSelect) scope.getNode());
       }
@@ -345,20 +347,19 @@ public interface SqlValidatorScope {
   class Resolve {
     public final SqlValidatorNamespace namespace;
     private final boolean nullable;
-    public final @Nullable SqlValidatorScope scope; // may be null
+    public final SqlValidatorScope scope;
     public final Path path;
     /** Names not matched; empty if it was a full match. */
     final List<String> remainingNames;
 
     Resolve(SqlValidatorNamespace namespace, boolean nullable,
-        @Nullable SqlValidatorScope scope, Path path, @Nullable List<String> remainingNames) {
-      this.namespace = Objects.requireNonNull(namespace, "namespace");
+        SqlValidatorScope scope, Path path, List<String> remainingNames) {
+      this.namespace = requireNonNull(namespace, "namespace");
       this.nullable = nullable;
       this.scope = scope;
       assert !(scope instanceof TableScope);
-      this.path = Objects.requireNonNull(path, "path");
-      this.remainingNames = remainingNames == null ? ImmutableList.of()
-          : ImmutableList.copyOf(remainingNames);
+      this.path = requireNonNull(path, "path");
+      this.remainingNames = ImmutableList.copyOf(remainingNames);
     }
 
     /** The row type of the found namespace, nullable if the lookup has

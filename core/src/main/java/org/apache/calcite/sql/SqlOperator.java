@@ -484,10 +484,8 @@ public abstract class SqlOperator {
    * @param call      call to be validated
    * @return inferred type
    */
-  public final RelDataType validateOperands(
-      SqlValidator validator,
-      @Nullable SqlValidatorScope scope,
-      SqlCall call) {
+  public final RelDataType validateOperands(SqlValidator validator,
+      SqlValidatorScope scope, SqlCall call) {
     // Let subclasses know what's up.
     preValidateCall(validator, scope, call);
 
@@ -515,10 +513,8 @@ public abstract class SqlOperator {
    * @param scope     validation scope
    * @param call      the call being validated
    */
-  protected void preValidateCall(
-      SqlValidator validator,
-      @Nullable SqlValidatorScope scope,
-      SqlCall call) {
+  protected void preValidateCall(SqlValidator validator,
+      SqlValidatorScope scope, SqlCall call) {
   }
 
   /**

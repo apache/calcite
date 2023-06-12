@@ -33,7 +33,6 @@ import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * A <code>SqlIdentifier</code> is an identifier, possibly compound.
@@ -373,13 +372,12 @@ public class SqlIdentifier extends SqlNode {
         && componentPositions.get(i).isQuoted();
   }
 
-  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     // for "star" column, whether it's static or dynamic return not_monotonic directly.
     if (Util.last(names).equals("") || DynamicRecordType.isDynamicStarColName(Util.last(names))) {
       return SqlMonotonicity.NOT_MONOTONIC;
     }
 
-    Objects.requireNonNull(scope, "scope");
     // First check for builtin functions which don't have parentheses,
     // like "LOCALTIME".
     final SqlValidator validator = scope.getValidator();

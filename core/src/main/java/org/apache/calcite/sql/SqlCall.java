@@ -207,8 +207,7 @@ public abstract class SqlCall extends SqlNode {
     return SqlUtil.getOperatorSignature(getOperator(), signatureList);
   }
 
-  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
-    Objects.requireNonNull(scope, "scope");
+  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     // Delegate to operator.
     final SqlCallBinding binding =
         new SqlCallBinding(scope.getValidator(), scope, this);

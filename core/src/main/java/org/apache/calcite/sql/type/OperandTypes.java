@@ -894,10 +894,8 @@ public abstract class OperandTypes {
               throwOnFailure)) {
             return false;
           }
-          // Scope is non-null at validate time, which is when we need to make
-          // this check.
-          final @Nullable SqlValidatorScope scope = callBinding.getScope();
-          if (scope != null && !scope.isMeasureRef(node)) {
+          final SqlValidatorScope scope = callBinding.getScope();
+          if (!scope.isMeasureRef(node)) {
             if (throwOnFailure) {
               throw callBinding.newValidationError(
                   RESOURCE.argumentMustBeMeasure(

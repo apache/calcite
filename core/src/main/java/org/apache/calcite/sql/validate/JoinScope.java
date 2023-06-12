@@ -97,7 +97,7 @@ public class JoinScope extends ListScope {
     return usingScope;
   }
 
-  @Override public boolean isWithin(@Nullable SqlValidatorScope scope2) {
+  @Override public boolean isWithin(SqlValidatorScope scope2) {
     if (this == scope2) {
       return true;
     }

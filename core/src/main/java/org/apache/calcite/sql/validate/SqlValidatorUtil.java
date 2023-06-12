@@ -696,7 +696,7 @@ public class SqlValidatorUtil {
     }
   }
 
-  public static @Nullable SelectScope getEnclosingSelectScope(@Nullable SqlValidatorScope scope) {
+  public static @Nullable SelectScope getEnclosingSelectScope(SqlValidatorScope scope) {
     while (scope instanceof DelegatingScope) {
       if (scope instanceof SelectScope) {
         return (SelectScope) scope;

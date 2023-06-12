@@ -39,7 +39,6 @@ import static java.util.Objects.requireNonNull;
  * The name-resolution scope of a SELECT clause. The objects visible are those
  * in the FROM clause, and objects inherited from the parent scope.
  *
- *
  * <p>This object is both a {@link SqlValidatorScope} and a
  * {@link SqlValidatorNamespace}. In the query
  *
@@ -105,24 +104,22 @@ public class SelectScope extends ListScope {
   private @MonotonicNonNull SqlNodeList orderList;
 
   /** Scope to use to resolve windows. */
-  private final @Nullable SqlValidatorScope windowParent;
+  private final SqlValidatorScope windowParent;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a scope corresponding to a SELECT clause.
    *
-   * @param parent    Parent scope, must not be null
-   * @param winParent Scope for window parent, may be null
+   * @param parent    Parent scope
+   * @param windowParent Scope for window parent
    * @param select    Select clause
    */
-  SelectScope(
-      SqlValidatorScope parent,
-      @Nullable SqlValidatorScope winParent,
+  SelectScope(SqlValidatorScope parent, SqlValidatorScope windowParent,
       SqlSelect select) {
     super(parent);
-    this.select = select;
-    this.windowParent = winParent;
+    this.select = requireNonNull(select, "select");
+    this.windowParent = requireNonNull(windowParent, "windowParent");
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -150,11 +147,7 @@ public class SelectScope extends ListScope {
     }
 
     // if not in the select scope, then check window scope
-    if (windowParent != null) {
-      return windowParent.lookupWindow(name);
-    } else {
-      return null;
-    }
+    return windowParent.lookupWindow(name);
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlNode expr) {

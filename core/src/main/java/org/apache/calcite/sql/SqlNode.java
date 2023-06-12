@@ -337,7 +337,7 @@ public abstract class SqlNode implements Cloneable {
    *
    * @param scope Scope
    */
-  public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
+  public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 

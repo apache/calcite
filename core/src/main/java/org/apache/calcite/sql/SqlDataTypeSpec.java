@@ -128,7 +128,7 @@ public class SqlDataTypeSpec extends SqlNode {
     return new SqlDataTypeSpec(typeNameSpec, timeZone, pos);
   }
 
-  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     return SqlMonotonicity.CONSTANT;
   }
 

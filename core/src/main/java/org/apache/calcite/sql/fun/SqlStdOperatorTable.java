@@ -80,6 +80,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.function.BiConsumer;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -2576,33 +2577,37 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     final SqlOperator op = call.getOperator();
     if (op instanceof SqlGroupedWindowFunction
         && op.isGroupAuxiliary()) {
-      SqlGroupedWindowFunction groupFunction = ((SqlGroupedWindowFunction) op).groupFunction;
-      return copy(call, requireNonNull(groupFunction, "groupFunction"));
+      final SqlGroupedWindowFunction fun = (SqlGroupedWindowFunction) op;
+      return copy(call, requireNonNull(fun.groupFunction, "groupFunction"));
     }
     return null;
   }
 
   /** Converts a call to a grouped window function to a call to its auxiliary
-   * window function(s). For other calls returns null.
+   * window function(s). */
+  @Deprecated // to be removed before 2.0
+  public static List<Pair<SqlNode, AuxiliaryConverter>> convertGroupToAuxiliaryCalls(
+      SqlCall call) {
+    ImmutableList.Builder<Pair<SqlNode, AuxiliaryConverter>> builder =
+        ImmutableList.builder();
+    convertGroupToAuxiliaryCalls(call, (k, v) -> builder.add(Pair.of(k, v)));
+    return builder.build();
+  }
+
+  /** Converts a call to a grouped window function to a call to its auxiliary
+   * window function(s).
    *
    * <p>For example, converts {@code TUMBLE_START(rowtime, INTERVAL '1' HOUR))}
    * to {@code TUMBLE(rowtime, INTERVAL '1' HOUR))}. */
-  public static List<Pair<SqlNode, AuxiliaryConverter>> convertGroupToAuxiliaryCalls(
-      SqlCall call) {
+  public static void convertGroupToAuxiliaryCalls(SqlCall call,
+      BiConsumer<SqlNode, AuxiliaryConverter> consumer) {
     final SqlOperator op = call.getOperator();
     if (op instanceof SqlGroupedWindowFunction
         && op.isGroup()) {
-      ImmutableList.Builder<Pair<SqlNode, AuxiliaryConverter>> builder =
-          ImmutableList.builder();
-      for (final SqlGroupedWindowFunction f
-          : ((SqlGroupedWindowFunction) op).getAuxiliaryFunctions()) {
-        builder.add(
-            Pair.of(copy(call, f),
-                new AuxiliaryConverter.Impl(f)));
-      }
-      return builder.build();
+      final SqlGroupedWindowFunction fun = (SqlGroupedWindowFunction) op;
+      fun.getAuxiliaryFunctions().forEach(f ->
+          consumer.accept(copy(call, f), new AuxiliaryConverter.Impl(f)));
     }
-    return ImmutableList.of();
   }
 
   /** Creates a copy of a call with a new operator. */

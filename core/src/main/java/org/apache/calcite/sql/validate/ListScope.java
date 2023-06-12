@@ -202,7 +202,8 @@ public abstract class ListScope extends DelegatingScope {
       final Step path =
           Path.EMPTY.plus(child0.namespace.getRowType(), child0.ordinal,
               child0.name, StructKind.FULLY_QUALIFIED);
-      resolved.found(child0.namespace, child0.nullable, this, path, null);
+      resolved.found(child0.namespace, child0.nullable, this, path,
+          ImmutableList.of());
       return;
     }
 
