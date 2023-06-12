@@ -1219,10 +1219,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseGetBitFunction(writer, call, leftPrec, rightPrec);
       break;
     case "SHIFTLEFT":
-      unparseShiftLeft(writer, call);
+      unparseShiftLeftAndShiftRight(writer, call, true);
       break;
     case "BITNOT":
       unparseBitNotFunction(writer, call);
+      break;
+    case "SHIFTRIGHT":
+      unparseShiftLeftAndShiftRight(writer, call, false);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -1239,12 +1242,36 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(ifFrame);
   }
 
-  private void unparseShiftLeft(SqlWriter writer, SqlCall call) {
+  private void unparseShiftLeftAndShiftRight(SqlWriter writer, SqlCall call, boolean isShiftLeft) {
     writer.print("(");
     call.operand(0).unparse(writer, 0, 0);
-    writer.print(SHIFTLEFT + " ");
-    call.operand(1).unparse(writer, 0, 0);
+    SqlNode secondOperand = call.operand(1);
+
+    // If the second operand is negative, fetch the positive value and change the operator
+    if (isBasicCallWithNegativePrefix(secondOperand)) {
+      SqlNode positiveOperand = getPositiveOperand(secondOperand);
+      writer.print(getShiftOperator(!isShiftLeft));
+      writer.print(" ");
+      positiveOperand.unparse(writer, 0, 0);
+    } else {
+      writer.print(getShiftOperator(isShiftLeft));
+      writer.print(" ");
+      secondOperand.unparse(writer, 0, 0);
+    }
     writer.print(")");
+  }
+
+  private boolean isBasicCallWithNegativePrefix(SqlNode secondOperand) {
+    return secondOperand instanceof SqlBasicCall
+        && ((SqlBasicCall) secondOperand).getOperator().getKind() == SqlKind.MINUS_PREFIX;
+  }
+
+  private SqlNode getPositiveOperand(SqlNode secondOperand) {
+    return (((SqlBasicCall) secondOperand).operands)[0];
+  }
+
+  private String getShiftOperator(boolean isShiftLeft) {
+    return isShiftLeft ? SHIFTLEFT : SHIFTRIGHT;
   }
 
   private void unParseRegexpContains(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
