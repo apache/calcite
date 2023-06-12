@@ -12059,6 +12059,43 @@ class RelToSqlConverterTest {
     final String expectedSparkQuery = "SELECT ~ (SAL) AS bit_not\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
   }
+
+  @Test public void testShiftRight() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftRightRexNode = builder.call(SqlLibraryOperators.SHIFTRIGHT,
+        builder.literal(3), builder.literal(2));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftRightRexNode, "FD"))
+        .build();
+    final String expectedBigQuery = "SELECT 3 >> 2 AS FD";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testShiftRightWithNegativeValueInSecondArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftRightRexNode = builder.call(SqlLibraryOperators.SHIFTRIGHT,
+        builder.literal(3), builder.call(SqlStdOperatorTable.UNARY_MINUS, builder.literal(1)));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftRightRexNode, "a"))
+        .build();
+    final String expectedBigQuery = "SELECT 3 << 1 AS a";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testShiftLeftWithNegativeValueInSecondArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftLeftRexNode = builder.call(SqlLibraryOperators.SHIFTLEFT,
+        builder.literal(3), builder.call(SqlStdOperatorTable.UNARY_MINUS, builder.literal(1)));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftLeftRexNode, "a"))
+        .build();
+    final String expectedBigQuery = "SELECT 3 >> 1 AS a";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
   @Test public void testCountSetWithLiteralParameter() {
     RelBuilder builder = relBuilder();
     final RexNode rexNode = builder.call(SqlLibraryOperators.BIT_COUNT,
