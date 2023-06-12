@@ -6239,6 +6239,22 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
   }
 
+  @Test public void testConcatFunctionWithMultipleArgumentsRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode currentTimestampRexNode = builder.call(SqlLibraryOperators.CONCAT,
+        builder.literal("data"), builder.literal("metica"), builder.literal("\\.com"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(currentTimestampRexNode, "CT"))
+        .build();
+    final String expectedSql = "SELECT CONCAT('data', 'metica', '\\.com') AS \"CT\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT CONCAT('data', 'metica', '\\.com') AS CT\nFROM "
+        + "scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testDateTimeDiffFunctionRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode dateTimeDiffRexNode = builder.call(SqlLibraryOperators.DATETIME_DIFF,
@@ -6901,6 +6917,14 @@ class RelToSqlConverterTest {
         .ok(expected)
         .withMssql()
         .ok(mssql);
+  }
+  @Test public void concatFunctionWithMultipleArgumentsForBigQuery() {
+    String query = "select 'foo' || 'bar' || '1' || '20' from \"employee\"";
+    final String expected = "SELECT 'foo' || 'bar'\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expected);
   }
 
   @Test void testJsonRemove() {
