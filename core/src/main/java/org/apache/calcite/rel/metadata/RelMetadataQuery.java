@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptForeignKey;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
@@ -40,6 +41,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -107,6 +109,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   private BuiltInMetadata.Size.Handler sizeHandler;
   private BuiltInMetadata.UniqueKeys.Handler uniqueKeysHandler;
   private BuiltInMetadata.LowerBoundCost.Handler lowerBoundCostHandler;
+  private BuiltInMetadata.ForeignKeys.Handler foreignKeysHandler;
 
   /**
    * Creates the instance with {@link JaninoRelMetadataProvider} instance
@@ -151,6 +154,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.sizeHandler = provider.handler(BuiltInMetadata.Size.Handler.class);
     this.uniqueKeysHandler = provider.handler(BuiltInMetadata.UniqueKeys.Handler.class);
     this.lowerBoundCostHandler = provider.handler(BuiltInMetadata.LowerBoundCost.Handler.class);
+    this.foreignKeysHandler = provider.handler(BuiltInMetadata.ForeignKeys.Handler.class);
   }
 
   /** Creates and initializes the instance that will serve as a prototype for
@@ -183,6 +187,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.sizeHandler = initialHandler(BuiltInMetadata.Size.Handler.class);
     this.uniqueKeysHandler = initialHandler(BuiltInMetadata.UniqueKeys.Handler.class);
     this.lowerBoundCostHandler = initialHandler(BuiltInMetadata.LowerBoundCost.Handler.class);
+    this.foreignKeysHandler = initialHandler(BuiltInMetadata.ForeignKeys.Handler.class);
   }
 
   private RelMetadataQuery(
@@ -213,6 +218,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.sizeHandler = prototype.sizeHandler;
     this.uniqueKeysHandler = prototype.uniqueKeysHandler;
     this.lowerBoundCostHandler = prototype.lowerBoundCostHandler;
+    this.foreignKeysHandler = prototype.foreignKeysHandler;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -503,6 +509,48 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         uniqueKeysHandler = revise(BuiltInMetadata.UniqueKeys.Handler.class);
       }
     }
+  }
+
+  /**
+   * Extract foreign keys from {@link org.apache.calcite.rel.RelNode}.
+   * Foreign keys are represented as an {@link org.apache.calcite.plan.RelOptForeignKey},
+   * in which each bit position represents a 0-based output column ordinal.
+   *
+   * @param rel         the relational expression
+   * @param ignoreNulls if true, allow containing null values when determining
+   *                     whether the keys are foreign keys
+   *
+   * @return set of foreign keys(contains intermediate inferred foreign keys),
+   * or empty if not enough information is available to make that determination
+   */
+  public Set<RelOptForeignKey> getForeignKeys(RelNode rel, boolean ignoreNulls) {
+    for (;;) {
+      try {
+        return foreignKeysHandler.getForeignKeys(rel, this, ignoreNulls);
+      } catch (MetadataHandlerProvider.NoHandler e) {
+        foreignKeysHandler = revise(BuiltInMetadata.ForeignKeys.Handler.class);
+      }
+    }
+  }
+
+  /**
+   * Extract confirmed foreign keys from {@link org.apache.calcite.rel.RelNode}.
+   * Foreign keys are represented as an {@link org.apache.calcite.plan.RelOptForeignKey},
+   * in which each bit position represents a 0-based output column ordinal.
+   *
+   * @param rel         the relational expression
+   * @param ignoreNulls if true, allow containing null values when determining
+   *                     whether the keys are foreign keys
+   *
+   * @return confirmed set of foreign keys, or empty if not enough information
+   * is available to make that determination
+   *
+   * @see RelMetadataQuery#getForeignKeys(org.apache.calcite.rel.RelNode, boolean)
+   */
+  public Set<RelOptForeignKey> getConfirmedForeignKeys(RelNode rel, boolean ignoreNulls) {
+    return getForeignKeys(rel, ignoreNulls).stream()
+        .filter(RelOptForeignKey::isConfirmed)
+        .collect(Collectors.toSet());
   }
 
   /**

@@ -7235,6 +7235,205 @@ LogicalProject(DEPTNO=[$7], SLACKER=[$8])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testProjectJoinRemove11">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno
+FROM sales.emp e
+INNER JOIN sales.dept d ON e.deptno = d.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinRemove12">
+    <Resource name="sql">
+      <![CDATA[SELECT e1.deptno
+FROM sales.emp e1
+INNER JOIN sales.emp e2 ON e1.deptno = e2.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalJoin(condition=[=($7, $16)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinRemove13">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno, d.name
+FROM sales.emp e
+INNER JOIN sales.dept d ON e.deptno = d.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], NAME=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinRemove14">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno, e.slacker
+FROM sales.emp e
+INNER JOIN sales.dept d ON e.deptno = d.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], SLACKER=[$8])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], SLACKER=[$8])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinRemove15">
+    <Resource name="sql">
+      <![CDATA[SELECT e.slacker
+FROM sales.dept d
+INNER JOIN sales.emp e ON d.deptno = e.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SLACKER=[$10])
+  LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(SLACKER=[$8])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinRemove16">
+    <Resource name="sql">
+      <![CDATA[SELECT e.slacker
+FROM sales.dept d
+INNER JOIN sales.empnullables e ON d.deptno = e.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(SLACKER=[$10])
+  LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinRemove17">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno, e.ename FROM sales.dept d INNER JOIN    (SELECT ename, deptno, count(job)   FROM sales.emp   WHERE ename IN ('lucy', 'lily')   GROUP BY ename, deptno) e ON d.deptno = e.deptno WHERE e.deptno = 'd001']]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$3], ENAME=[$2])
+  LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalFilter(condition=[=($1, CAST('d001'):INTEGER NOT NULL)])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+        LogicalProject(ENAME=[$1], DEPTNO=[$7], JOB=[$2])
+          LogicalFilter(condition=[OR(=($1, 'lucy'), =($1, 'lily'))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$1], ENAME=[$0])
+  LogicalFilter(condition=[=($1, CAST('d001'):INTEGER NOT NULL)])
+    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7], JOB=[$2])
+        LogicalFilter(condition=[OR(=($1, 'lucy'), =($1, 'lily'))])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinRemove18">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno, e.ename FROM    (SELECT ename, deptno, count(job)    FROM sales.emp    WHERE ename IN ('lucy', 'lily')    GROUP BY ename, deptno) e INNER JOIN    (SELECT deptno, name    FROM sales.dept    WHERE deptno NOT IN (10003)) d ON d.deptno = e.deptno WHERE d.deptno IN (10001, 10002) and e.ename IN ('transportation', 'architecture')]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$1], ENAME=[$0])
+  LogicalJoin(condition=[=($3, $1)], joinType=[inner])
+    LogicalFilter(condition=[SEARCH($0, Sarg['architecture':CHAR(14), 'transportation']:CHAR(14))])
+      LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+        LogicalProject(ENAME=[$1], DEPTNO=[$7], JOB=[$2])
+          LogicalFilter(condition=[OR(=($1, 'lucy'), =($1, 'lily'))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalFilter(condition=[SEARCH($0, Sarg[10001, 10002])])
+      LogicalProject(DEPTNO=[$0], NAME=[$1])
+        LogicalFilter(condition=[NOT(=($0, 10003))])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$1], ENAME=[$0])
+  LogicalFilter(condition=[SEARCH($0, Sarg['architecture':CHAR(14), 'transportation']:CHAR(14))])
+    LogicalAggregate(group=[{0, 1}], EXPR$2=[COUNT()])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7], JOB=[$2])
+        LogicalFilter(condition=[OR(=($1, 'lucy'), =($1, 'lily'))])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinRemove19">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno, e.ename FROM    (SELECT ename, deptno    FROM sales.emp    UNION ALL    SELECT ename, deptno FROM sales.emp    UNION    SELECT ename, deptno FROM sales.emp) e INNER JOIN (SELECT deptno, name FROM sales.dept) d ON d.deptno = e.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$1], ENAME=[$0])
+  LogicalJoin(condition=[=($2, $1)], joinType=[inner])
+    LogicalUnion(all=[false])
+      LogicalUnion(all=[true])
+        LogicalProject(ENAME=[$1], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(ENAME=[$1], DEPTNO=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$1], ENAME=[$0])
+  LogicalUnion(all=[false])
+    LogicalUnion(all=[true])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testProjectJoinRemove2">
     <Resource name="sql">
       <![CDATA[SELECT e.deptno, d1.deptno
@@ -7260,6 +7459,134 @@ LogicalProject(DEPTNO=[$7], DEPTNO0=[$9])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinRemove20">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno, e.ename FROM    (SELECT ename, deptno    FROM sales.emp    UNION ALL    SELECT name, deptno    FROM sales.dept) e INNER JOIN    (SELECT deptno, name FROM sales.dept) d ON d.deptno = e.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$1], ENAME=[$0])
+  LogicalJoin(condition=[=($2, $1)], joinType=[inner])
+    LogicalUnion(all=[true])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(NAME=[$1], DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinRemove21">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno, e.ename FROM    (SELECT ename, deptno    FROM sales.emp    UNION    SELECT name, deptno    FROM sales.dept) e INNER JOIN (SELECT deptno, name FROM sales.dept) d ON d.deptno = e.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$1], ENAME=[$0])
+  LogicalJoin(condition=[=($2, $1)], joinType=[inner])
+    LogicalUnion(all=[false])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(NAME=[$1], DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinRemove22">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno, e.ename FROM    (SELECT deptno, name FROM sales.dept) d INNER JOIN    (SELECT ename, deptno    FROM sales.emp    EXCEPT ALL    SELECT ename, deptno    FROM sales.emp) e ON d.deptno = e.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$3], ENAME=[$2])
+  LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalMinus(all=[true])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$1], ENAME=[$0])
+  LogicalMinus(all=[true])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinRemove23">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno, e.ename FROM    (SELECT deptno, name FROM sales.dept) d INNER JOIN    (SELECT ename, deptno    FROM sales.emp    EXCEPT ALL    SELECT name, deptno    FROM sales.dept) e ON d.deptno = e.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$3], ENAME=[$2])
+  LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalMinus(all=[true])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(NAME=[$1], DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinRemove24">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno, e.ename FROM    (SELECT deptno, name FROM sales.dept) d INNER JOIN    (SELECT ename, deptno    FROM sales.emp    INTERSECT ALL    SELECT ename, deptno    FROM sales.emp) e ON d.deptno = e.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$3], ENAME=[$2])
+  LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalIntersect(all=[true])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$1], ENAME=[$0])
+  LogicalIntersect(all=[true])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectJoinRemove25">
+    <Resource name="sql">
+      <![CDATA[SELECT e.deptno, e.ename FROM    (SELECT deptno, name FROM sales.dept) d INNER JOIN    (SELECT ename, deptno    FROM sales.emp    INTERSECT ALL    SELECT name, deptno    FROM sales.dept) e ON d.deptno = e.deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$3], ENAME=[$2])
+  LogicalJoin(condition=[=($0, $3)], joinType=[inner])
+    LogicalProject(DEPTNO=[$0], NAME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalIntersect(all=[true])
+      LogicalProject(ENAME=[$1], DEPTNO=[$7])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(NAME=[$1], DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
