@@ -6859,12 +6859,10 @@ class RelOptRulesTest extends RelOptTestBase {
         + "                         d1.deptno < e2.deptno))"
         + " FROM dept d1";
     sql(sql)
-        .withExpand(false)
-        .withLateDecorrelate(true)
         .withSubQueryRules()
+        .withLateDecorrelate(true)
         .withTrim(true)
-        .withRule()
-        .checkUnchanged();
+        .check();
   }
 
   /** Test case for
