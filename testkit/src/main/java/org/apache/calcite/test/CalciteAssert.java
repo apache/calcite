@@ -1736,15 +1736,6 @@ public class CalciteAssert {
       });
     }
 
-    // CHECKSTYLE: IGNORE 1
-    /** @deprecated Use {@link #queryContains(Consumer)}. */
-    @SuppressWarnings("Guava")
-    @Deprecated // to be removed before 2.0
-    public final AssertQuery queryContains(
-        com.google.common.base.Function<List, Void> predicate1) {
-      return queryContains((Consumer<List>) predicate1::apply);
-    }
-
     /** Sets a limit on the number of rows returned. -1 means no limit. */
     public AssertQuery limit(int limit) {
       if (limit == this.limit) {

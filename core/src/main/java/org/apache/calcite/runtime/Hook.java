@@ -159,15 +159,6 @@ public enum Hook {
     return () -> removeThread(handler);
   }
 
-  // CHECKSTYLE: IGNORE 1
-  /** @deprecated Use {@link #addThread(Consumer)}. */
-  @SuppressWarnings("Guava")
-  @Deprecated // to be removed before 2.0
-  public <T, R> Closeable addThread(
-      final com.google.common.base.Function<T, R> handler) {
-    return addThread((Consumer<T>) handler::apply);
-  }
-
   /** Removes a thread handler from this Hook. */
   private boolean removeThread(Consumer handler) {
     return castNonNull(threadHandlers.get()).remove(handler);
