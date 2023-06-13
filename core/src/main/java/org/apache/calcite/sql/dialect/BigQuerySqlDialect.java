@@ -306,6 +306,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static final String SHIFTRIGHT = ">>";
   private static final String XOR = "^";
   private static final String SHIFTLEFT = "<<";
+  private static final String BITNOT = "~";
 
   @Override public String quoteIdentifier(String val) {
     return quoteIdentifier(new StringBuilder(), val).toString();
@@ -624,15 +625,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case TO_NUMBER:
       ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec, this);
-      break;
-    case ASCII:
-      SqlWriter.Frame toCodePointsFrame = writer.startFunCall("TO_CODE_POINTS");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(toCodePointsFrame);
-      writer.literal("[OFFSET(0)]");
       break;
     case NVL:
       SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
@@ -1226,6 +1218,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "GETBIT":
       unparseGetBitFunction(writer, call, leftPrec, rightPrec);
       break;
+    case "SHIFTLEFT":
+      unparseShiftLeftAndShiftRight(writer, call, true);
+      break;
+    case "BITNOT":
+      unparseBitNotFunction(writer, call);
+      break;
+    case "SHIFTRIGHT":
+      unparseShiftLeftAndShiftRight(writer, call, false);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -1239,6 +1240,38 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.sep(",");
     writer.literal("0");
     writer.endFunCall(ifFrame);
+  }
+
+  private void unparseShiftLeftAndShiftRight(SqlWriter writer, SqlCall call, boolean isShiftLeft) {
+    writer.print("(");
+    call.operand(0).unparse(writer, 0, 0);
+    SqlNode secondOperand = call.operand(1);
+
+    // If the second operand is negative, fetch the positive value and change the operator
+    if (isBasicCallWithNegativePrefix(secondOperand)) {
+      SqlNode positiveOperand = getPositiveOperand(secondOperand);
+      writer.print(getShiftOperator(!isShiftLeft));
+      writer.print(" ");
+      positiveOperand.unparse(writer, 0, 0);
+    } else {
+      writer.print(getShiftOperator(isShiftLeft));
+      writer.print(" ");
+      secondOperand.unparse(writer, 0, 0);
+    }
+    writer.print(")");
+  }
+
+  private boolean isBasicCallWithNegativePrefix(SqlNode secondOperand) {
+    return secondOperand instanceof SqlBasicCall
+        && ((SqlBasicCall) secondOperand).getOperator().getKind() == SqlKind.MINUS_PREFIX;
+  }
+
+  private SqlNode getPositiveOperand(SqlNode secondOperand) {
+    return (((SqlBasicCall) secondOperand).operands)[0];
+  }
+
+  private String getShiftOperator(boolean isShiftLeft) {
+    return isShiftLeft ? SHIFTLEFT : SHIFTRIGHT;
   }
 
   private void unParseRegexpContains(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1465,24 +1498,27 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseInt2shFunctions(SqlWriter writer, SqlCall call,
                                       String s, int leftPrec, int rightPrec) {
     SqlNode[] operands = new SqlNode[] {call.operand(0), call.operand(2)};
-    writer.print("(");
     unparseBitwiseAnd(writer, operands, leftPrec, rightPrec);
-    writer.sep(") " + s);
+    writer.sep(s);
     call.operand(1).unparse(writer, leftPrec, rightPrec);
   }
 
   private void unparseBitwiseFunctions(SqlWriter writer, SqlCall call,
                                        String s, int leftPrec, int rightPrec) {
+    writer.print("(");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep(s);
     call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.print(")");
   }
 
   private void unparseBitwiseAnd(SqlWriter writer, SqlNode[] operands,
                                  int leftPrec, int rightPrec) {
+    writer.print("(");
     operands[0].unparse(writer, leftPrec, rightPrec);
     writer.print("& ");
     operands[1].unparse(writer, leftPrec, rightPrec);
+    writer.print(")");
   }
 
   private void unparseStrtok(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1983,6 +2019,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private static void unparseGetBitFunction(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
+    writer.print("(");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(SHIFTRIGHT);
     writer.print(" ");
@@ -1990,5 +2027,13 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print("& ");
     SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
     oneLiteral.unparse(writer, leftPrec, rightPrec);
+    writer.print(")");
+  }
+
+  private void unparseBitNotFunction(SqlWriter writer, SqlCall call) {
+    writer.print(BITNOT);
+    writer.print(" (");
+    call.operand(0).unparse(writer, 0, 0);
+    writer.print(")");
   }
 }

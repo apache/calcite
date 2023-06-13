@@ -128,6 +128,7 @@ import static org.apache.calcite.avatica.util.TimeUnit.MINUTE;
 import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
 import static org.apache.calcite.avatica.util.TimeUnit.SECOND;
 import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_MOD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALENDAR;
@@ -7866,7 +7867,7 @@ class RelToSqlConverterTest {
   @Test public void testAscii() {
     String query = "SELECT ASCII ('ABC')";
     final String expected = "SELECT ASCII('ABC')";
-    final String expectedBigQuery = "SELECT TO_CODE_POINTS('ABC') [OFFSET(0)]";
+    final String expectedBigQuery = "SELECT ASCII('ABC')";
     sql(query)
         .withBigQuery()
         .ok(expectedBigQuery)
@@ -7880,7 +7881,7 @@ class RelToSqlConverterTest {
     String query = "SELECT ASCII (SUBSTRING('ABC',1,1))";
     final String expected = "SELECT ASCII(SUBSTRING('ABC', 1, 1))";
     final String expectedSpark = "SELECT ASCII(SUBSTRING('ABC', 1, 1))";
-    final String expectedBigQuery = "SELECT TO_CODE_POINTS(SUBSTR('ABC', 1, 1)) [OFFSET(0)]";
+    final String expectedBigQuery = "SELECT ASCII(SUBSTR('ABC', 1, 1))";
     sql(query)
         .withBigQuery()
         .ok(expectedBigQuery)
@@ -7892,7 +7893,7 @@ class RelToSqlConverterTest {
 
   @Test public void testAsciiColumnArgument() {
     final String query = "select ASCII(\"product_name\") from \"product\" ";
-    final String bigQueryExpected = "SELECT TO_CODE_POINTS(product_name) [OFFSET(0)]\n"
+    final String bigQueryExpected = "SELECT ASCII(product_name)\n"
         + "FROM foodmart.product";
     final String hiveExpected = "SELECT ASCII(product_name)\n"
         + "FROM foodmart.product";
@@ -9321,7 +9322,7 @@ class RelToSqlConverterTest {
 
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
-            + "WHERE (3 & 6 ) >> 1";
+            + "WHERE (3 & 6) >> 1";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
   }
 
@@ -9333,7 +9334,7 @@ class RelToSqlConverterTest {
 
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
-            + "WHERE 3 ^ 6";
+            + "WHERE (3 ^ 6)";
     final String expectedSpark = "SELECT *\n"
             + "FROM scott.EMP\n"
             + "WHERE 3 ^ 6";
@@ -9349,7 +9350,7 @@ class RelToSqlConverterTest {
 
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
-            + "WHERE (3 & 6 ) << 1";
+            + "WHERE (3 & 6) << 1";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
   }
 
@@ -9361,7 +9362,7 @@ class RelToSqlConverterTest {
 
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
-            + "WHERE 3 & 6";
+            + "WHERE (3 & 6)";
     final String expectedSpark = "SELECT *\n"
             + "FROM scott.EMP\n"
             + "WHERE 3 & 6";
@@ -9377,7 +9378,7 @@ class RelToSqlConverterTest {
 
     final String expectedBQ = "SELECT *\n"
             + "FROM scott.EMP\n"
-            + "WHERE 3 | 6";
+            + "WHERE (3 | 6)";
     final String expectedSpark = "SELECT *\n"
             + "FROM scott.EMP\n"
             + "WHERE 3 | 6";
@@ -11982,7 +11983,7 @@ class RelToSqlConverterTest {
         .project(builder.alias(getBitRexNode, "aa"))
         .build();
 
-    final String expectedBQ = "SELECT 8 >> 3 & 1 AS aa";
+    final String expectedBQ = "SELECT (8 >> 3 & 1) AS aa";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
   }
@@ -11996,7 +11997,7 @@ class RelToSqlConverterTest {
         .project(builder.alias(getBitRexNode, "aa"))
         .build();
 
-    final String expectedBQ = "SELECT 8 >> NULL & 1 AS aa";
+    final String expectedBQ = "SELECT (8 >> NULL & 1) AS aa";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
   }
@@ -12011,10 +12012,113 @@ class RelToSqlConverterTest {
         .project(builder.alias(getBitRexNode, "aa"))
         .build();
 
-    final String expectedBQ = "SELECT 8 >> EMPNO & 1 AS aa\n"
+    final String expectedBQ = "SELECT (8 >> EMPNO & 1) AS aa\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+  @Test public void testShiftLeft() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftLeftRexNode = builder.call(SqlLibraryOperators.SHIFTLEFT,
+        builder.literal(3), builder.literal(2));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftLeftRexNode, "FD"))
+        .build();
+    final String expectedBigQuery = "SELECT (3 << 2) AS FD";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testShiftLeftWithNullInSecondArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftLeftRexNode = builder.call(SqlLibraryOperators.SHIFTLEFT,
+        builder.literal(3), builder.literal(null));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftLeftRexNode, "FD"))
+        .build();
+    final String expectedBigQuery = "SELECT (3 << NULL) AS FD";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+  @Test public void testBitNot() {
+    final RelBuilder builder = relBuilder();
+    final RexNode bitNotRexNode = builder.call(BITNOT, builder.literal(10));
+    final RelNode root = builder
+            .values(new String[]{""}, 1)
+            .project(builder.alias(bitNotRexNode, "bit_not"))
+            .build();
+    final String expectedBigQuery = "SELECT ~ (10) AS bit_not";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testBitNotWithTableColumn() {
+    final RelBuilder builder = relBuilder();
+    final RexNode bitNotRexNode = builder.call(BITNOT, builder.scan("EMP").field(5));
+    final RelNode root = builder
+            .scan("EMP")
+            .project(builder.alias(bitNotRexNode, "bit_not"))
+            .build();
+    final String expectedSparkQuery = "SELECT ~ (SAL) AS bit_not\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testShiftRight() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftRightRexNode = builder.call(SqlLibraryOperators.SHIFTRIGHT,
+        builder.literal(3), builder.literal(2));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftRightRexNode, "FD"))
+        .build();
+    final String expectedBigQuery = "SELECT (3 >> 2) AS FD";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testShiftRightWithNegativeValueInSecondArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftRightRexNode = builder.call(SqlLibraryOperators.SHIFTRIGHT,
+        builder.literal(3), builder.call(SqlStdOperatorTable.UNARY_MINUS, builder.literal(1)));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftRightRexNode, "a"))
+        .build();
+    final String expectedBigQuery = "SELECT (3 << 1) AS a";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testShiftLeftWithNegativeValueInSecondArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode shiftLeftRexNode = builder.call(SqlLibraryOperators.SHIFTLEFT,
+        builder.literal(3), builder.call(SqlStdOperatorTable.UNARY_MINUS, builder.literal(1)));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(shiftLeftRexNode, "a"))
+        .build();
+    final String expectedBigQuery = "SELECT (3 >> 1) AS a";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testCountSetWithLiteralParameter() {
+    RelBuilder builder = relBuilder();
+    final RexNode bitCountRexNode = builder.call(SqlLibraryOperators.BIT_COUNT,
+        builder.literal(7));
+    RelNode root = builder.values(new String[]{""}, 1)
+        .project(builder.alias(bitCountRexNode, "number"))
+        .build();
+    final String expectedBQSql = "SELECT BIT_COUNT(7) AS number";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testCountSetWithFieldParameter() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode bitCountRexNode = builder.call(SqlLibraryOperators.BIT_COUNT,
+        builder.field(0));
+    RelNode root = builder
+        .project(builder.alias(bitCountRexNode, "emp_no"))
+        .build();
+    final String expectedBQSql = "SELECT BIT_COUNT(EMPNO) AS emp_no"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
   @Test void testProjectOverProjectRule() {
