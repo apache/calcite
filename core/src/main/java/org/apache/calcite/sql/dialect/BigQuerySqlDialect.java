@@ -1476,12 +1476,16 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
 
-  private void unparseRegexpExtractAll(SqlWriter writer, SqlCall call,
+  public void unparseRegexpExtractAll(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_EXTRACT_ALL");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(", r");
-    unparseRegexLiteral(writer, call.operand(1));
+    if (call.operand(1) instanceof SqlCharStringLiteral) {
+      unparseRegexLiteral(writer, call.operand(1));
+    } else {
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+    }
     writer.endFunCall(regexpExtractAllFrame);
   }
 
