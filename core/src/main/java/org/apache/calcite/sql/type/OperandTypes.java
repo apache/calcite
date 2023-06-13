@@ -527,6 +527,9 @@ public abstract class OperandTypes {
   public static final SqlOperandTypeChecker ARRAY_ELEMENT =
       new ArrayElementOperandTypeChecker();
 
+  public static final SqlSingleOperandTypeChecker MAP_FROM_ENTRIES =
+      new MapFromEntriesOperandTypeChecker();
+
   /**
    * Operand type-checking strategy where type must be a literal or NULL.
    */
@@ -1124,6 +1127,32 @@ public abstract class OperandTypes {
               ImmutableList.of("RECORDTYPE(SINGLE FIELD)"));
         }
       };
+
+  /** Checker that returns whether a value is a array of record type with two fields. */
+  private static class MapFromEntriesOperandTypeChecker
+      implements SqlSingleOperandTypeChecker {
+    @Override public boolean checkSingleOperandType(SqlCallBinding callBinding,
+        SqlNode node, int iFormalOperand, boolean throwOnFailure) {
+      assert 0 == iFormalOperand;
+      RelDataType type = SqlTypeUtil.deriveType(callBinding, node);
+      RelDataType componentType = requireNonNull(type.getComponentType(), "componentType");
+      boolean valid = false;
+      if (type.getSqlTypeName() == SqlTypeName.ARRAY
+          && componentType.getSqlTypeName() == SqlTypeName.ROW
+          && componentType.getFieldCount() == 2) {
+        valid = true;
+      }
+      if (!valid && throwOnFailure) {
+        throw callBinding.newValidationSignatureError();
+      }
+      return valid;
+    }
+
+    @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+      return SqlUtil.getAliasedSignature(op, opName,
+          ImmutableList.of("ARRAY<RECORDTYPE(TWO FIELDS)>"));
+    }
+  }
 
   /** Operand type-checker that accepts period types. Examples:
    *

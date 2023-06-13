@@ -752,6 +752,9 @@ public enum SqlKind {
   /** {@code SORT_ARRAY} function (Spark semantics). */
   SORT_ARRAY,
 
+  /** {@code MAP_CONCAT} function (Spark semantics). */
+  MAP_CONCAT,
+
   /** {@code MAP_ENTRIES} function (Spark semantics). */
   MAP_ENTRIES,
 
@@ -763,6 +766,9 @@ public enum SqlKind {
 
   /** {@code MAP_FROM_ARRAYS} function (Spark semantics). */
   MAP_FROM_ARRAYS,
+
+  /** {@code MAP_FROM_ENTRIES} function (Spark semantics). */
+  MAP_FROM_ENTRIES,
 
   /** {@code STR_TO_MAP} function (Spark semantics). */
   STR_TO_MAP,

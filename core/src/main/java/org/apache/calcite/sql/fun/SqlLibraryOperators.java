@@ -65,6 +65,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
 
@@ -1168,6 +1169,33 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.ARG0_NULLABLE,
           OperandTypes.ARRAY.or(OperandTypes.ARRAY_BOOLEAN_LITERAL));
 
+  private static RelDataType deriveTypeMapConcat(SqlOperatorBinding opBinding) {
+    if (opBinding.getOperandCount() == 0) {
+      final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+      final RelDataType type = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+      requireNonNull(type, "type");
+      return SqlTypeUtil.createMapType(typeFactory, type, type, true);
+    } else {
+      final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
+      for (RelDataType operandType: operandTypes) {
+        if (!SqlTypeUtil.isMap(operandType)) {
+          throw opBinding.newError(
+              RESOURCE.typesShouldAllBeMap(
+                  opBinding.getOperator().getName(),
+                  operandType.getFullTypeString()));
+        }
+      }
+      return requireNonNull(opBinding.getTypeFactory().leastRestrictive(operandTypes));
+    }
+  }
+
+  /** The "MAP_CONCAT(map [, map]*)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction MAP_CONCAT =
+      SqlBasicFunction.create(SqlKind.MAP_CONCAT,
+          SqlLibraryOperators::deriveTypeMapConcat,
+          OperandTypes.SAME_VARIADIC);
+
   /** The "MAP_ENTRIES(map)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction MAP_ENTRIES =
@@ -1206,6 +1234,24 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create(SqlKind.MAP_FROM_ARRAYS,
           SqlLibraryOperators::deriveTypeMapFromArrays,
           OperandTypes.ARRAY_ARRAY);
+
+  private static RelDataType deriveTypeMapFromEntries(SqlOperatorBinding opBinding) {
+    final RelDataType entriesType = opBinding.collectOperandTypes().get(0);
+    final RelDataType entryType = entriesType.getComponentType();
+    requireNonNull(entryType, () -> "componentType of " + entriesType);
+    return SqlTypeUtil.createMapType(
+        opBinding.getTypeFactory(),
+        requireNonNull(entryType.getFieldList().get(0).getType(), "inferred key type"),
+        requireNonNull(entryType.getFieldList().get(1).getType(), "inferred value type"),
+        entriesType.isNullable() || entryType.isNullable());
+  }
+
+  /** The "MAP_FROM_ENTRIES(arrayOfEntries)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction MAP_FROM_ENTRIES =
+      SqlBasicFunction.create(SqlKind.MAP_FROM_ENTRIES,
+          SqlLibraryOperators::deriveTypeMapFromEntries,
+          OperandTypes.MAP_FROM_ENTRIES);
 
   /** The "STR_TO_MAP(string[, stringDelimiter[, keyValueDelimiter]])" function. */
   @LibraryOperator(libraries = {SPARK})
