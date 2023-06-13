@@ -3574,15 +3574,12 @@ or 20 in (
 !ok
 
 # Test case for CALCITE-5683 which throws an exception during the de-correlation phase
-SELECT d1.dname, d1.deptno +
-        (   SELECT max(e1.empno) FROM emp e1
-            WHERE   d1.deptno = e1.deptno and
-                    e1.sal = (  SELECT max(sal)
-                                FROM emp e2
-                                WHERE   e1.sal = e2.sal and
-                                        e1.deptno = e2.deptno and
-                                        d1.deptno <= e2.deptno))
-        FROM dept d1;
+SELECT d1.dname, d1.deptno + ( SELECT max(e1.empno)
+    FROM emp e1
+    WHERE   d1.deptno = e1.deptno and e1.sal = (  SELECT max(sal)
+        FROM emp e2
+        WHERE   e1.sal = e2.sal and e1.deptno = e2.deptno and d1.deptno <= e2.deptno))
+FROM dept d1;
 +------------+--------+
 | DNAME      | EXPR$1 |
 +------------+--------+
@@ -3596,15 +3593,12 @@ SELECT d1.dname, d1.deptno +
 !ok
 
 # Test case for CALCITE-5683 which throws an exception during the de-correlation phase
-SELECT d1.dname, d1.deptno +
-        (   SELECT max(e1.empno) FROM emp e1
-            WHERE   d1.deptno = e1.deptno and
-                    e1.sal = (  SELECT max(sal)
-                                FROM emp e2
-                                WHERE   e1.sal = e2.sal and
-                                        e1.deptno = e2.deptno and
-                                        d1.deptno < e2.deptno))
-        FROM dept d1;
+SELECT d1.dname, d1.deptno + (   SELECT max(e1.empno)
+    FROM emp e1
+    WHERE   d1.deptno = e1.deptno and e1.sal = (  SELECT max(sal)
+        FROM emp e2
+        WHERE   e1.sal = e2.sal and e1.deptno = e2.deptno and d1.deptno < e2.deptno))
+FROM dept d1;
 +------------+--------+
 | DNAME      | EXPR$1 |
 +------------+--------+

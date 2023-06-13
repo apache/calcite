@@ -1933,8 +1933,8 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testProjectCorrelateTransposeRuleLeftCorrelate() {
     final String sql = "SELECT e1.empno\n"
-        + "FROM emp e1 "
-        + "where exists (select empno, deptno from dept d2 where e1.deptno = d2.deptno)";
+        + "FROM emp e1 inner join dept d1 on e1.deptno = d1.deptno  "
+        + " and e1.deptno =  (select max(d2.deptno) from dept d2 where e1.deptno = d2.deptno)";
     sql(sql)
         .withDecorrelate(false)
         .withExpand(true)
@@ -6824,7 +6824,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for CALCITE-5683 for two level nested decorrelate with standard program
-   * failing during the decorrelation phase. */
+   * failing during the decorrelation phase. The correlation variable is used at two levels
+   * deep. */
   @Test void testTwoLevelDecorrelate() {
     final String sql = "SELECT d1.name, d1.deptno + "
         + " ( SELECT e1.empno "
@@ -6838,17 +6839,16 @@ class RelOptRulesTest extends RelOptTestBase {
         + " FROM dept d1";
 
     sql(sql)
-        .withExpand(false)
-        .withLateDecorrelate(true)
         .withSubQueryRules()
+        .withLateDecorrelate(true)
         .withTrim(true)
-        .withRule()
-        .checkUnchanged();
+        .check();
   }
 
   /** Test case for CALCITE-5683 for two level nested decorrelate with standard program
-   * failing during the decorrelation phase. */
-  @Test void testTwoLevelDecorrelateSkipInBetween() {
+   * failing during the decorrelation phase. The correlation variable is used at the second
+   * level and is not used in the first level */
+  @Test void testCorrelatedVariableAtSecondLevel() {
     final String sql = "SELECT d1.name, d1.deptno + "
         + " ( SELECT e1.empno "
         + " FROM emp e1 "
