@@ -6241,15 +6241,15 @@ class RelToSqlConverterTest {
 
   @Test public void testConcatFunctionWithMultipleArgumentsRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode currentTimestampRexNode = builder.call(SqlLibraryOperators.CONCAT,
+    final RexNode concatRexNode = builder.call(SqlLibraryOperators.CONCAT,
         builder.literal("data"), builder.literal("metica"), builder.literal("\\.com"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(currentTimestampRexNode, "CT"))
+        .project(builder.alias(concatRexNode, "CR"))
         .build();
-    final String expectedSql = "SELECT CONCAT('data', 'metica', '\\.com') AS \"CT\"\n"
+    final String expectedSql = "SELECT CONCAT('data', 'metica', '\\.com') AS \"CR\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT CONCAT('data', 'metica', '\\.com') AS CT\nFROM "
+    final String expectedBiqQuery = "SELECT CONCAT('data', 'metica', '\\.com') AS CR\nFROM "
         + "scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
