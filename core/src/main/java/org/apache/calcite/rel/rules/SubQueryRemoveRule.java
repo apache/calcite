@@ -866,11 +866,8 @@ public class SubQueryRemoveRule
           LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(c), e);
       final Set<CorrelationId>  variablesSet =
           RelOptUtil.getVariablesUsed(e.rel);
-      // Only retain when filter has non-empty correlated variables set to avoid removing
-      // all the correlated variables from parent scope.
-      if (!filter.getVariablesSet().isEmpty()) {
-        variablesSet.retainAll(filter.getVariablesSet());
-      }
+      // Only consider the correlated variables which originated from this sub-query level.
+      variablesSet.retainAll(filter.getVariablesSet());
       final RexNode target =
           rule.apply(e, variablesSet, logic,
               builder, 1, builder.peek().getRowType().getFieldCount(), count);

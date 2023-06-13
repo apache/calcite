@@ -3611,4 +3611,22 @@ FROM dept d1;
 
 !ok
 
+SELECT dept.deptno, (SELECT Max(emp.empno)
+    FROM   emp
+    WHERE  empno = (SELECT Max(empno) AS maxDept
+        FROM   emp e2
+        WHERE  e2.deptno = dept.deptno) AND emp.deptno = dept.deptno), dept.dname
+FROM   dept;
++--------+--------+------------+
+| DEPTNO | EXPR$1 | DNAME      |
++--------+--------+------------+
+|     10 |   7934 | ACCOUNTING |
+|     20 |   7902 | RESEARCH   |
+|     30 |   7900 | SALES      |
+|     40 |        | OPERATIONS |
++--------+--------+------------+
+(4 rows)
+
+!ok
+
 # End sub-query.iq
