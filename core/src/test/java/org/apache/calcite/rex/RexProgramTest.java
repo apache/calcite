@@ -1772,62 +1772,66 @@ class RexProgramTest extends RexProgramTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
    * SEARCH operator with special sarg is not fully simplified</a>. */
   @Test void testSimplifySearchWithSpecialSargIsNotNull() {
-    RexNode intExpression =
+    // "SEARCH(1, Sarg[IS NOT NULL])" simplifies to "true"
+    RexNode intLiteral =
         rexBuilder.makeLiteral(1, typeFactory.createSqlType(SqlTypeName.INTEGER));
     final RangeSet<Integer> setNone = ImmutableRangeSet.of();
     final RangeSet<Integer> setAll = setNone.complement();
     final Sarg<Integer> sarg =
         Sarg.of(RexUnknownAs.FALSE, setAll);
-    RexNode last =
-        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intExpression,
-            rexBuilder.makeSearchArgumentLiteral(sarg, intExpression.getType()));
-    checkSimplify(last, "true");
+    RexNode rexNode =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intLiteral,
+            rexBuilder.makeSearchArgumentLiteral(sarg, intLiteral.getType()));
+    checkSimplify(rexNode, "true");
   }
 
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
    * SEARCH operator with special sarg is not fully simplified</a>. */
   @Test void testSimplifySearchWithSpecialSargIsNull() {
-    RexNode intExpression =
+    // "SEARCH(1, Sarg[IS NULL])" simplifies to "false"
+    RexNode intLiteral =
         rexBuilder.makeLiteral(1, typeFactory.createSqlType(SqlTypeName.INTEGER));
     final RangeSet<Integer> setNone = ImmutableRangeSet.of();
     final Sarg<Integer> sarg =
         Sarg.of(RexUnknownAs.TRUE, setNone);
-    RexNode last =
-        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intExpression,
-            rexBuilder.makeSearchArgumentLiteral(sarg, intExpression.getType()));
-    checkSimplify(last, "false");
+    RexNode rexNode =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intLiteral,
+            rexBuilder.makeSearchArgumentLiteral(sarg, intLiteral.getType()));
+    checkSimplify(rexNode, "false");
   }
 
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
    * SEARCH operator with special sarg is not fully simplified</a>. */
   @Test void testSimplifySearchWithSpecialSargEqual() {
-    RexNode intExpression =
+    // "SEARCH(1, Sarg[=])" simplifies to "true"
+    RexNode intLiteral =
         rexBuilder.makeLiteral(1, typeFactory.createSqlType(SqlTypeName.INTEGER));
     final RangeSet<Integer> setNone = ImmutableRangeSet.of();
     final RangeSet<Integer> setAll = setNone.complement();
     final Sarg<Integer> sarg =
         Sarg.of(RexUnknownAs.UNKNOWN, setAll);
-    RexNode last =
-        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intExpression,
-            rexBuilder.makeSearchArgumentLiteral(sarg, intExpression.getType()));
-    checkSimplify(last, "true");
+    RexNode rexNode =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intLiteral,
+            rexBuilder.makeSearchArgumentLiteral(sarg, intLiteral.getType()));
+    checkSimplify(rexNode, "true");
   }
 
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
    * SEARCH operator with special sarg is not fully simplified</a>. */
   @Test void testSimplifySearchWithSpecialSargNotEqual() {
-    RexNode intExpression =
+    // "SEARCH(1, Sarg[<>])" simplifies to "false"
+    RexNode intLiteral =
         rexBuilder.makeLiteral(1, typeFactory.createSqlType(SqlTypeName.INTEGER));
     final RangeSet<Integer> setNone = ImmutableRangeSet.of();
     final Sarg<Integer> sarg =
         Sarg.of(RexUnknownAs.UNKNOWN, setNone);
-    RexNode last =
-        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intExpression,
-            rexBuilder.makeSearchArgumentLiteral(sarg, intExpression.getType()));
-    checkSimplify(last, "false");
+    RexNode rexNode =
+        rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intLiteral,
+            rexBuilder.makeSearchArgumentLiteral(sarg, intLiteral.getType()));
+    checkSimplify(rexNode, "false");
   }
 
   /** Unit test for
