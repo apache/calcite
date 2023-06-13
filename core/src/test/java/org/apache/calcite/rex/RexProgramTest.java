@@ -1770,7 +1770,7 @@ class RexProgramTest extends RexProgramTestBase {
 
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
-   * SEARCH operator with special sarg is not fully simplified</a>. */
+   * 'SEARCH(1, Sarg[IS NOT NULL])' should be simplified to 'TRUE'</a>. */
   @Test void testSimplifySearchWithSpecialSargIsNotNull() {
     // "SEARCH(1, Sarg[IS NOT NULL])" simplifies to "true"
     RexNode intLiteral =
@@ -1787,7 +1787,7 @@ class RexProgramTest extends RexProgramTestBase {
 
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
-   * SEARCH operator with special sarg is not fully simplified</a>. */
+   * 'SEARCH(1, Sarg[IS NOT NULL])' should be simplified to 'TRUE'</a>. */
   @Test void testSimplifySearchWithSpecialSargIsNull() {
     // "SEARCH(1, Sarg[IS NULL])" simplifies to "false"
     RexNode intLiteral =
@@ -1803,7 +1803,7 @@ class RexProgramTest extends RexProgramTestBase {
 
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
-   * SEARCH operator with special sarg is not fully simplified</a>. */
+   * 'SEARCH(1, Sarg[IS NOT NULL])' should be simplified to 'TRUE'</a>. */
   @Test void testSimplifySearchWithSpecialSargEqual() {
     // "SEARCH(1, Sarg[=])" simplifies to "true"
     RexNode intLiteral =
@@ -1820,7 +1820,7 @@ class RexProgramTest extends RexProgramTestBase {
 
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
-   * SEARCH operator with special sarg is not fully simplified</a>. */
+   * 'SEARCH(1, Sarg[IS NOT NULL])' should be simplified to 'TRUE'</a>. */
   @Test void testSimplifySearchWithSpecialSargNotEqual() {
     // "SEARCH(1, Sarg[<>])" simplifies to "false"
     RexNode intLiteral =
