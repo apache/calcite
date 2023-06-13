@@ -5969,6 +5969,55 @@ public class SqlOperatorTest {
             + "'SORT_ARRAY\\(<ARRAY>, <BOOLEAN>\\)'", false);
   }
 
+  /** Tests {@code MAP_CONCAT} function from Spark. */
+  @Test void testMapConcatFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.MAP_CONCAT);
+    f0.checkFails("^map_concat(map['foo', 1], map['bar', 2])^",
+        "No match found for function signature MAP_CONCAT\\("
+            + "<\\(CHAR\\(3\\), INTEGER\\) MAP>, <\\(CHAR\\(3\\), INTEGER\\) MAP>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("map_concat(map['foo', 1], map['bar', 2])", "{foo=1, bar=2}",
+        "(CHAR(3) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f.checkScalar("map_concat(map['foo', 1], map['bar', 2], map['foo', 2])", "{foo=2, bar=2}",
+        "(CHAR(3) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f.checkScalar("map_concat(map[null, 1], map[null, 2])", "{null=2}",
+        "(NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f.checkScalar("map_concat(map[1, 2], map[1, null])", "{1=null}",
+        "(INTEGER NOT NULL, INTEGER) MAP NOT NULL");
+    // test zero arg, but it should return empty map.
+    f.checkScalar("map_concat()", "{}",
+        "(VARCHAR NOT NULL, VARCHAR NOT NULL) MAP");
+
+    // after calcite supports cast(null as map<string, int>), it should add these tests.
+    if (TODO) {
+      f.checkNull("map_concat(map['foo', 1], cast(null as map<string, int>))");
+      f.checkType("map_concat(map['foo', 1], cast(null as map<string, int>))",
+          "(VARCHAR NOT NULL, INTEGER NOT NULL) MAP");
+      f.checkNull("map_concat(cast(null as map<string, int>), map['foo', 1])");
+      f.checkType("map_concat(cast(null as map<string, int>), map['foo', 1])",
+          "(VARCHAR NOT NULL, INTEGER NOT NULL) MAP");
+    }
+
+    // test only has one operand, but it is not map type.
+    f.checkFails("^map_concat(1)^",
+        "Function 'MAP_CONCAT' should all be of type map, but it is 'INTEGER NOT NULL'", false);
+    f.checkFails("^map_concat(null)^",
+        "Function 'MAP_CONCAT' should all be of type map, but it is 'NULL'", false);
+    // test operands in same type family, but it is not map type.
+    f.checkFails("^map_concat(array[1], array[1])^",
+        "Function 'MAP_CONCAT' should all be of type map, "
+            + "but it is 'INTEGER NOT NULL ARRAY NOT NULL'", false);
+    f.checkFails("^map_concat(map['foo', 1], null)^",
+        "Function 'MAP_CONCAT' should all be of type map, "
+            + "but it is 'NULL'", false);
+    // test operands not in same type family.
+    f.checkFails("^map_concat(map[1, null], array[1])^",
+        "Parameters must be of the same type", false);
+  }
+
+
   /** Tests {@code MAP_ENTRIES} function from Spark. */
   @Test void testMapEntriesFunc() {
     final SqlOperatorFixture f0 = fixture();
@@ -6048,6 +6097,48 @@ public class SqlOperatorTest {
         "Illegal arguments: The length of the keys array 2 is not equal to the length "
             + "of the values array 1 in MAP_FROM_ARRAYS function",
         true);
+  }
+
+  /** Tests {@code MAP_FROM_ENTRIES} function from Spark. */
+  @Test void testMapFromEntriesFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.MAP_FROM_ENTRIES);
+    f0.checkFails("^map_from_entries(array[row(1, 'a'), row(2, 'b')])^",
+        "No match found for function signature MAP_FROM_ENTRIES\\("
+            + "<RecordType\\(INTEGER EXPR\\$0, CHAR\\(1\\) EXPR\\$1\\) ARRAY>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("map_from_entries(array[row(1, 'a'), row(2, 'b')])", "{1=a, 2=b}",
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL");
+    f.checkScalar("map_from_entries(array[row(1, 'a'), row(1, 'b')])", "{1=b}",
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL");
+    f.checkScalar("map_from_entries(array[row(null, 'a'), row(null, 'b')])", "{null=b}",
+        "(NULL, CHAR(1) NOT NULL) MAP NOT NULL");
+    f.checkScalar("map_from_entries(array[row(1, 'a'), row(1, null)])", "{1=null}",
+        "(INTEGER NOT NULL, CHAR(1)) MAP NOT NULL");
+    f.checkScalar("map_from_entries(array[row(array['a'], 1), row(array['b'], 2)])",
+        "{[a]=1, [b]=2}",
+        "(CHAR(1) NOT NULL ARRAY NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f.checkScalar("map_from_entries(array[row(map['a', 1], 2), row(map['a', 1], 3)])",
+        "{{a=1}=3}",
+        "((CHAR(1) NOT NULL, INTEGER NOT NULL) MAP NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f.checkType("map_from_entries(cast(null as row(f0 int, f1 varchar) array))",
+        "(INTEGER NOT NULL, VARCHAR NOT NULL) MAP");
+    f.checkNull("map_from_entries(cast(null as row(f0 int, f1 varchar) array))");
+    f.checkNull("map_from_entries(array[row(1, 'a'), null])");
+    f.checkType("map_from_entries(array[row(1, 'a'), null])",
+        "(INTEGER, CHAR(1)) MAP");
+
+    f.checkFails("^map_from_entries(array[1])^",
+        "Cannot apply 'MAP_FROM_ENTRIES' to arguments of type 'MAP_FROM_ENTRIES\\("
+            + "<INTEGER ARRAY>\\)'. Supported form\\(s\\): 'MAP_FROM_ENTRIES\\("
+            + "<ARRAY<RECORDTYPE\\(TWO FIELDS\\)>>\\)'",
+        false);
+    f.checkFails("^map_from_entries(array[row(1, 'a', 2)])^",
+        "Cannot apply 'MAP_FROM_ENTRIES' to arguments of type 'MAP_FROM_ENTRIES\\("
+            + "<RECORDTYPE\\(INTEGER EXPR\\$0, CHAR\\(1\\) EXPR\\$1, INTEGER EXPR\\$2\\) ARRAY>\\)'. "
+            + "Supported form\\(s\\): 'MAP_FROM_ENTRIES\\(<ARRAY<RECORDTYPE\\(TWO FIELDS\\)>>\\)'",
+        false);
   }
 
   /** Tests {@code STR_TO_MAP} function from Spark. */

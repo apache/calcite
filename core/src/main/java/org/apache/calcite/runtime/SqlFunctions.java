@@ -4112,6 +4112,13 @@ public class SqlFunctions {
     return list;
   }
 
+  /** Support the MAP_CONCAT function. */
+  public static Map mapConcat(Map... maps) {
+    final Map result = new LinkedHashMap();
+    Arrays.stream(maps).forEach(result::putAll);
+    return result;
+  }
+
   /** Support the MAP_ENTRIES function. */
   public static List mapEntries(Map<Object, Object> map) {
     final List result = new ArrayList(map.size());
@@ -4139,6 +4146,18 @@ public class SqlFunctions {
     final Map map = new LinkedHashMap<>();
     for (int i = 0; i < keysArray.size(); i++) {
       map.put(keysArray.get(i), valuesArray.get(i));
+    }
+    return map;
+  }
+
+  /** Support the MAP_FROM_ENTRIES function. */
+  public static @Nullable Map mapFromEntries(List entries) {
+    final Map map = new LinkedHashMap<>();
+    for (Object entry: entries) {
+      if (entry == null) {
+        return null;
+      }
+      map.put(structAccess(entry, 0, null), structAccess(entry, 1, null));
     }
     return map;
   }
