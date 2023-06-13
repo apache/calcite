@@ -723,7 +723,7 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
           InferTypes.RETURN_TYPE,
-          OperandTypes.VARIADIC,
+          OperandTypes.ONE_OR_MORE,
           SqlFunctionCategory.STRING);
 
   /** The "CONCAT(arg0, arg1)" function that concatenates strings.
