@@ -6943,7 +6943,7 @@ LogicalProject(EMPNO=[$0])
     </Resource>
     <Resource name="sql">
       <![CDATA[SELECT e1.empno
-FROM emp e1 inner join dept d1 on e1.deptno = d1.deptno   and e1.deptno =  (select max(d2.deptno) from dept d2 where e1.deptno = d2.deptno)]]>
+FROM emp e1 where exists (select empno, deptno from dept d2 where e1.deptno = d2.deptno)]]>
     </Resource>
   </TestCase>
   <TestCase name="testProjectCorrelateTransposeRuleSemiCorrelate">

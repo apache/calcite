@@ -1933,8 +1933,8 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testProjectCorrelateTransposeRuleLeftCorrelate() {
     final String sql = "SELECT e1.empno\n"
-        + "FROM emp e1 inner join dept d1 on e1.deptno = d1.deptno  "
-        + " and e1.deptno =  (select max(d2.deptno) from dept d2 where e1.deptno = d2.deptno)";
+        + "FROM emp e1 "
+        + "where exists (select empno, deptno from dept d2 where e1.deptno = d2.deptno)";
     sql(sql)
         .withDecorrelate(false)
         .withExpand(true)
