@@ -143,6 +143,8 @@ public abstract class SqlImplementor {
   // So we just quote it.
   public static final SqlParserPos POS = SqlParserPos.QUOTED_ZERO;
 
+  public static final int DEFAULT_BLOAT = 100;
+
   public final SqlDialect dialect;
   protected final Set<String> aliasSet = new LinkedHashSet<>();
   protected final Map<String, SqlNode> ordinalMap = new HashMap<>();
@@ -154,6 +156,7 @@ public abstract class SqlImplementor {
    * dedicated type factory, so don't trust the types to be canonized. */
   final RexBuilder rexBuilder =
       new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
+  private final int bloat;
 
   /** Maps a {@link SqlKind} to a {@link SqlOperator} that implements NOT
    * applied to that kind. */
@@ -165,8 +168,9 @@ public abstract class SqlImplementor {
           .put(SqlKind.SIMILAR, SqlStdOperatorTable.NOT_SIMILAR_TO)
           .build();
 
-  protected SqlImplementor(SqlDialect dialect) {
+  protected SqlImplementor(SqlDialect dialect, int bloat) {
     this.dialect = requireNonNull(dialect);
+    this.bloat = bloat;
   }
 
   /** Visits a relational expression that has no parent. */
@@ -1708,24 +1712,16 @@ public abstract class SqlImplementor {
     private final boolean needNew;
     private RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
 
-    private final int bloat;
-
     public Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
         @Nullable RelDataType neededType, Map<String, RelDataType> aliases) {
       this(node, clauses, neededAlias, neededType, aliases, false, false,
-          ImmutableSet.of(), null, 100);
-    }
-
-    public Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
-        @Nullable RelDataType neededType, Map<String, RelDataType> aliases, int bloat) {
-      this(node, clauses, neededAlias, neededType, aliases, false, false,
-          ImmutableSet.of(), null, bloat);
+          ImmutableSet.of(), null);
     }
 
     private Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
         @Nullable RelDataType neededType, Map<String, RelDataType> aliases, boolean anon,
         boolean ignoreClauses, Set<Clause> expectedClauses,
-        @Nullable RelNode expectedRel, int bloat) {
+        @Nullable RelNode expectedRel) {
       this.node = node;
       this.neededAlias = neededAlias;
       this.neededType = neededType;
@@ -1737,7 +1733,6 @@ public abstract class SqlImplementor {
       this.expectedRel = expectedRel;
       final Set<Clause> clauses2 =
           ignoreClauses ? ImmutableSet.of() : expectedClauses;
-      this.bloat = bloat;
       this.needNew = expectedRel != null
           && needNewSubQuery(expectedRel, this.clauses, clauses2);
     }
@@ -2459,7 +2454,7 @@ public abstract class SqlImplementor {
       } else {
         return new Result(node, clauses, neededAlias, neededType,
             ImmutableMap.of(neededAlias, castNonNull(neededType)), anon, ignoreClauses,
-            expectedClauses, expectedRel, bloat);
+            expectedClauses, expectedRel);
       }
     }
 
@@ -2472,14 +2467,14 @@ public abstract class SqlImplementor {
     public Result resetAlias(String alias, RelDataType type) {
       return new Result(node, clauses, alias, neededType,
           ImmutableMap.of(alias, type), anon, ignoreClauses,
-          expectedClauses, expectedRel, bloat);
+          expectedClauses, expectedRel);
     }
 
     /** Returns a copy of this Result, overriding the value of {@code anon}. */
     Result withAnon(boolean anon) {
       return anon == this.anon ? this
           : new Result(node, clauses, neededAlias, neededType, aliases, anon,
-              ignoreClauses, expectedClauses, expectedRel, bloat);
+              ignoreClauses, expectedClauses, expectedRel);
     }
 
     /** Returns a copy of this Result, overriding the value of
@@ -2491,7 +2486,7 @@ public abstract class SqlImplementor {
           && expectedRel == this.expectedRel
           ? this
           : new Result(node, clauses, neededAlias, neededType, aliases, anon,
-              ignoreClauses, ImmutableSet.copyOf(expectedClauses), expectedRel, bloat);
+              ignoreClauses, ImmutableSet.copyOf(expectedClauses), expectedRel);
     }
   }
 

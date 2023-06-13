@@ -12247,7 +12247,7 @@ class RelToSqlConverterTest {
         + "CASE WHEN CASE WHEN \"EMPNO\" = 9 THEN 9 ELSE 90 END = 20 "
         + "THEN 20 ELSE 200 END AS \"f121\""
         + "\nFROM \"scott\".\"EMP\") AS \"t\"";
-    assertThat(toSql(root), isLinux(expectedSql));
+    assertThat(toSqlWithBloat(root, 101), isLinux(expectedSql));
   }
 
   private RexNode makeCaseCall(RelBuilder builder, int index, int number) {
@@ -12265,5 +12265,18 @@ class RelToSqlConverterTest {
     }
     Collections.addAll(fields, rexNodes);
     return fields;
+  }
+
+  private String toSqlWithBloat(RelNode root, int bloat) {
+    SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
+    UnaryOperator<SqlWriterConfig> transform = c ->
+        c.withAlwaysUseParentheses(false)
+            .withSelectListItemsOnSeparateLines(false)
+            .withUpdateSetListNewline(false)
+            .withIndentation(0);
+    final RelToSqlConverter converter = new RelToSqlConverter(dialect, bloat);
+    final SqlNode sqlNode = converter.visitRoot(root).asStatement();
+    return sqlNode.toSqlString(c -> transform.apply(c.withDialect(dialect)))
+        .getSql();
   }
 }

@@ -132,17 +132,32 @@ public class RelToSqlConverter extends SqlImplementor
   /** Creates a RelToSqlConverter. */
   @SuppressWarnings("argument.type.incompatible")
   public RelToSqlConverter(SqlDialect dialect) {
-    super(dialect);
+    super(dialect, DEFAULT_BLOAT);
     style = new QueryStyle();
     dispatcher = ReflectUtil.createMethodDispatcher(Result.class, this, "visit",
       RelNode.class);
   }
   public RelToSqlConverter(SqlDialect dialect, QueryStyle style) {
-    super(dialect);
+    super(dialect, DEFAULT_BLOAT);
     this.style = style;
     dispatcher = ReflectUtil.createMethodDispatcher(Result.class, this, "visit",
         RelNode.class);
   }
+
+  public RelToSqlConverter(SqlDialect dialect, int bloat) {
+    super(dialect, bloat);
+    style = new QueryStyle();
+    dispatcher = ReflectUtil.createMethodDispatcher(Result.class, this, "visit",
+      RelNode.class);
+  }
+
+  public RelToSqlConverter(SqlDialect dialect, QueryStyle style, int bloat) {
+    super(dialect, bloat);
+    this.style = style;
+    dispatcher = ReflectUtil.createMethodDispatcher(Result.class, this, "visit",
+        RelNode.class);
+  }
+
   /** Dispatches a call to the {@code visit(Xxx e)} method where {@code Xxx}
    * most closely matches the runtime type of the argument. */
   protected Result dispatch(RelNode e) {
