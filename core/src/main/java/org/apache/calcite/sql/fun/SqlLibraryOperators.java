@@ -1030,7 +1030,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TO_BASE64 =
       SqlBasicFunction.create("TO_BASE64",
           ReturnTypes.VARCHAR_NULLABLE,
-          OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
   /** The "TO_CHAR(timestamp, format)" function;
@@ -1455,28 +1455,28 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction MD5 =
       SqlBasicFunction.create("MD5",
           ReturnTypes.VARCHAR_NULLABLE,
-          OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL})
   public static final SqlFunction SHA1 =
       SqlBasicFunction.create("SHA1",
           ReturnTypes.VARCHAR_NULLABLE,
-          OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
   public static final SqlFunction SHA256 =
       SqlBasicFunction.create("SHA256",
           ReturnTypes.VARCHAR_NULLABLE,
-          OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
   public static final SqlFunction SHA512 =
       SqlBasicFunction.create("SHA512",
           ReturnTypes.VARCHAR_NULLABLE,
-          OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
   /** The "LOG(value [, value2])" function.
