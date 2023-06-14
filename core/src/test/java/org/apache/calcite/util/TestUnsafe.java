@@ -148,14 +148,28 @@ public abstract class TestUnsafe {
     return true;
   }
 
-  /** Returns a list of Java files in git under a given directory.
+  /** Returns a list of Java files in git. */
+  public static List<File> getJavaFiles() {
+    return getGitFiles("*.java");
+  }
+
+  /** Returns a list of text files in git. */
+  public static List<File> getTextFiles() {
+    return getGitFiles("*.bat", "*.cmd", "*.csv", "*.fmpp", "*.ftl",
+        "*.iq", "*.java", "*.json", "*.jj", "*.kt", "*.kts", "*.md",
+        "*.properties", "*.sh", "*.sql", "*.txt", "*.xml", "*.yaml",
+        "*.yml");
+  }
+
+  /** Returns a list of files in git matching a given pattern or patterns.
    *
    * <p>Assumes running Linux or macOS, and that git is available. */
-  public static List<File> getJavaFiles() {
+  public static List<File> getGitFiles(String... patterns) {
     String s;
     try {
       final List<String> argumentList =
-          ImmutableList.of("git", "ls-files", "*.java");
+          ImmutableList.<String>builder().add("git").add("ls-files")
+              .add(patterns).build();
       final File base = TestUtil.getBaseDir(TestUnsafe.class);
       try {
         final StringWriter sw = new StringWriter();

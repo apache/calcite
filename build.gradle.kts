@@ -603,8 +603,9 @@ allprojects {
                     replaceRegex("Method parameter list should not end in whitespace or newline", "(?<!;)\\s+\\) \\{", ") {")
                     replaceRegex("Method argument list should not end in whitespace or newline", "(?<!;)\\s+(\\)[);,])", "$1")
                     replaceRegex("Method argument list should not end in whitespace or newline", "(?<!;)(\\s+)(\\)+)[.]", "$2$1.")
-                    replaceRegex("Long assignment should be broken after '='", "^([^/*\"\\n]*) = ([^@\\n]*)\\(\n( *)", "$1 =\n$3$2(")
-                    replaceRegex("Long assignment should be broken after '='", "^([^/*\"\\n]*) = ([^@\\n]*)\\((.*,)\n( *)", "$1 =\n$4$2($3 ")
+                    replaceRegex("Long assignment should be broken after '=' (#1)", "^([^/*\"\\n]*) = ([^@\\n]*)\\(\n( *)", "$1 =\n$3$2(")
+                    replaceRegex("Long assignment should be broken after '=' (#2)", "^([^/*\"\\n]*) = ([^@\\n]*)\\((.*,)\n( *)", "$1 =\n$4$2($3 ")
+                    replaceRegex("Long assignment should be broken after '=' (#3)", "^([^/*\"\\n]*) = ([^@\\n\"?]*[ ][?][ ][^@\\n:]*)\n( *)", "$1 =\n$3$2\n$3    ")
                     replaceRegex("trailing keyword: implements", "^([^*]*) (implements)\\n( *)", "$1\n$3$2 ")
                     // Assume developer copy-pasted the link, and updated text only, so the url is old, and we replace it with the proper one
                     replaceRegex(">[CALCITE-...] link styles: 1", "<a(?:(?!CALCITE-)[^>])++CALCITE-\\d+[^>]++>\\s*+\\[?(CALCITE-\\d+)\\]?", "<a href=\"https://issues.apache.org/jira/browse/\$1\">[\$1]")
