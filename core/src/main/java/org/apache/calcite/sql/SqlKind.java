@@ -707,6 +707,9 @@ public enum SqlKind {
   /** {@code ARRAY_INTERSECT} function (Spark semantics). */
   ARRAY_INTERSECT,
 
+  /** {@code ARRAY_JOIN} function (Spark semantics). */
+  ARRAY_JOIN,
+
   /** {@code ARRAY_LENGTH} function (Spark semantics). */
   ARRAY_LENGTH,
 
@@ -739,6 +742,12 @@ public enum SqlKind {
 
   /** {@code ARRAY_UNION} function (Spark semantics). */
   ARRAY_UNION,
+
+  /** {@code ARRAYS_OVERLAP} function (Spark semantics). */
+  ARRAYS_OVERLAP,
+
+  /** {@code ARRAYS_ZIP} function (Spark semantics). */
+  ARRAYS_ZIP,
 
   /** {@code SORT_ARRAY} function (Spark semantics). */
   SORT_ARRAY,

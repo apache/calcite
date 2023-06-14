@@ -53,6 +53,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.apache.calcite.sql.fun.SqlLibrary.ALL;
 import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
@@ -1037,6 +1039,13 @@ public abstract class SqlLibraryOperators {
               OperandTypes.SAME_SAME,
               OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
 
+  /** The "ARRAY_JOIN(array, delimiter [, nullText ])" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction ARRAY_JOIN =
+      SqlBasicFunction.create(SqlKind.ARRAY_JOIN,
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_ARRAY_CHARACTER_OPTIONAL_CHARACTER);
+
   /** The "ARRAY_LENGTH(array)" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction ARRAY_LENGTH =
@@ -1117,6 +1126,41 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create(SqlKind.ARRAY_TO_STRING,
           ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.STRING_ARRAY_CHARACTER_OPTIONAL_CHARACTER);
+
+  /** The "ARRAYS_OVERLAP(array1, array2)" function (Spark). */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction ARRAYS_OVERLAP =
+      SqlBasicFunction.create(SqlKind.ARRAYS_OVERLAP,
+          ReturnTypes.BOOLEAN_NULLABLE.andThen(SqlTypeTransforms.COLLECTION_ELEMENT_TYPE_NULLABLE),
+          OperandTypes.and(
+              OperandTypes.SAME_SAME,
+              OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
+
+  private static RelDataType deriveTypeArraysZip(SqlOperatorBinding opBinding) {
+    final List<RelDataType> argComponentTypes = new ArrayList<>();
+    for (RelDataType arrayType : opBinding.collectOperandTypes()) {
+      final RelDataType componentType = requireNonNull(arrayType.getComponentType());
+      argComponentTypes.add(componentType);
+    }
+
+    final List<String> indexes = IntStream.range(0, argComponentTypes.size())
+        .mapToObj(i -> String.valueOf(i))
+        .collect(Collectors.toList());
+    final RelDataType structType =
+        opBinding.getTypeFactory().createStructType(argComponentTypes, indexes);
+    return SqlTypeUtil.createArrayType(
+        opBinding.getTypeFactory(),
+        requireNonNull(structType, "inferred value type"),
+        false);
+  }
+
+  /** The "ARRAYS_ZIP(array, ...)" function (Spark). */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction ARRAYS_ZIP =
+      SqlBasicFunction.create(SqlKind.ARRAYS_ZIP,
+          ((SqlReturnTypeInference) SqlLibraryOperators::deriveTypeArraysZip)
+              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          OperandTypes.SAME_VARIADIC);
 
   /** The "SORT_ARRAY(array)" function (Spark). */
   @LibraryOperator(libraries = {SPARK})

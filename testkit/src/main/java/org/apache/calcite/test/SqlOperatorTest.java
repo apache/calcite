@@ -5515,6 +5515,31 @@ public class SqlOperatorTest {
     f.checkNull("array_distinct(null)");
   }
 
+  @Test void testArrayJoinFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_JOIN);
+    f0.checkFails("^array_join(array['aa', 'b', 'c'], '-')^", "No match found for function"
+        + " signature ARRAY_JOIN\\(<CHAR\\(2\\) ARRAY>, <CHARACTER>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_join(array['aa', 'b', 'c'], '-')", "aa-b-c",
+        "VARCHAR NOT NULL");
+    f.checkScalar("array_join(array[null, 'aa', null, 'b', null], '-', 'empty')",
+        "empty-aa-empty-b-empty", "VARCHAR NOT NULL");
+    f.checkScalar("array_join(array[null, 'aa', null, 'b', null], '-')", "aa-b",
+        "VARCHAR NOT NULL");
+    f.checkScalar("array_join(array[null, x'aa', null, x'bb', null], '-')", "aa-bb",
+        "VARCHAR NOT NULL");
+    f.checkScalar("array_join(array['', 'b'], '-')", "-b", "VARCHAR NOT NULL");
+    f.checkScalar("array_join(array['', ''], '-')", "-", "VARCHAR NOT NULL");
+    f.checkNull("array_join(null, '-')");
+    f.checkNull("array_join(array['a', 'b', null], null)");
+    f.checkFails("^array_join(array[1, 2, 3], '-', ' ')^",
+        "Cannot apply 'ARRAY_JOIN' to arguments of type 'ARRAY_JOIN\\("
+            + "<INTEGER ARRAY>, <CHAR\\(1\\)>, <CHAR\\(1\\)>\\)'\\. Supported form\\(s\\):"
+            + " ARRAY_JOIN\\(<STRING ARRAY>, <CHARACTER>\\[, <CHARACTER>\\]\\)", false);
+  }
+
   /** Tests {@code ARRAY_MAX} function from Spark. */
   @Test void testArrayMaxFunc() {
     final SqlOperatorFixture f0 = fixture();
@@ -5789,6 +5814,90 @@ public class SqlOperatorTest {
     f.checkNull("array_union(cast(null as integer array), array[1])");
     f.checkNull("array_union(array[1], cast(null as integer array))");
     f.checkNull("array_union(cast(null as integer array), cast(null as integer array))");
+  }
+
+  /** Tests {@code ARRAYS_OVERLAP} function from Spark. */
+  @Test void testArraysOverlapFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAYS_OVERLAP);
+    f0.checkFails("^arrays_overlap(array[1, 2], array[2])^",
+        "No match found for function signature ARRAYS_OVERLAP\\("
+            + "<INTEGER ARRAY>, <INTEGER ARRAY>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("arrays_overlap(array[1, 2], array[2])", true,
+        "BOOLEAN NOT NULL");
+    f.checkScalar("arrays_overlap(array[1, 2], array[3])", false,
+        "BOOLEAN NOT NULL");
+    f.checkScalar("arrays_overlap(array[1, null], array[1])", true,
+        "BOOLEAN");
+    f.checkScalar("arrays_overlap(array(), array(2))", false,
+        "BOOLEAN NOT NULL");
+    f.checkScalar("arrays_overlap(array(), array())", false,
+        "BOOLEAN NOT NULL");
+    f.checkScalar("arrays_overlap(array(), array(1, null))", false,
+        "BOOLEAN");
+    f.checkScalar("arrays_overlap(array[array[1, 2], array[3, 4]], array[array[1, 2]])", true,
+        "BOOLEAN NOT NULL");
+    f.checkScalar("arrays_overlap(array[map[1, 'a'], map[2, 'b']], array[map[1, 'a']])", true,
+        "BOOLEAN NOT NULL");
+    f.checkNull("arrays_overlap(cast(null as integer array), array[1, 2])");
+    f.checkType("arrays_overlap(cast(null as integer array), array[1, 2])", "BOOLEAN");
+    f.checkNull("arrays_overlap(array[1, 2], cast(null as integer array))");
+    f.checkType("arrays_overlap(array[1, 2], cast(null as integer array))", "BOOLEAN");
+    f.checkNull("arrays_overlap(array[1], array[2, null])");
+    f.checkType("arrays_overlap(array[2, null], array[1])", "BOOLEAN");
+    f.checkFails("^arrays_overlap(array[1, 2], true)^",
+        "Cannot apply 'ARRAYS_OVERLAP' to arguments of type 'ARRAYS_OVERLAP\\("
+            + "<INTEGER ARRAY>, <BOOLEAN>\\)'. Supported form\\(s\\): 'ARRAYS_OVERLAP\\("
+            + "<EQUIVALENT_TYPE>, <EQUIVALENT_TYPE>\\)'", false);
+  }
+
+  /** Tests {@code ARRAYS_ZIP} function from Spark. */
+  @Test void testArraysZipFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAYS_ZIP);
+    f0.checkFails("^arrays_zip(array[1, 2], array[2])^",
+        "No match found for function signature ARRAYS_ZIP\\("
+            + "<INTEGER ARRAY>, <INTEGER ARRAY>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("arrays_zip(array[1, 2], array[2, 3], array[3, 4])", "[{1, 2, 3}, {2, 3, 4}]",
+        "RecordType(INTEGER NOT NULL 0, INTEGER NOT NULL 1, INTEGER NOT NULL 2) "
+            + "NOT NULL ARRAY NOT NULL");
+    f.checkScalar("arrays_zip(array[1, 2], array[2])", "[{1, 2}, {2, null}]",
+        "RecordType(INTEGER NOT NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("arrays_zip(array[1], array[2, null])", "[{1, 2}, {null, null}]",
+        "RecordType(INTEGER NOT NULL 0, INTEGER 1) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("arrays_zip(array[1, 2])", "[{1}, {2}]",
+        "RecordType(INTEGER NOT NULL 0) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("arrays_zip(array(), array(1, 2))", "[{null, 1}, {null, 2}]",
+        "RecordType(UNKNOWN NOT NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("arrays_zip(array(), array())", "[]",
+        "RecordType(UNKNOWN NOT NULL 0, UNKNOWN NOT NULL 1) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("arrays_zip(array())", "[]",
+        "RecordType(UNKNOWN NOT NULL 0) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("arrays_zip()", "[]",
+        "RecordType() NOT NULL ARRAY NOT NULL");
+    f.checkScalar("arrays_zip(array(null), array(1))", "[{null, 1}]",
+        "RecordType(NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("arrays_zip(array[array[1, 2], array[3, 4]], array[array[1, 2]])",
+        "[{[1, 2], [1, 2]}, {[3, 4], null}]",
+        "RecordType(INTEGER NOT NULL ARRAY NOT NULL 0, INTEGER NOT NULL ARRAY NOT NULL 1) "
+            + "NOT NULL ARRAY NOT NULL");
+    f.checkScalar("arrays_zip(array[map[1, 'a'], map[2, 'b']], array[map[1, 'a']])",
+        "[{{1=a}, {1=a}}, {{2=b}, null}]",
+        "RecordType((INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL 0, "
+            + "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL 1) NOT NULL ARRAY NOT NULL");
+
+    f.checkNull("arrays_zip(cast(null as integer array), array[1, 2])");
+    f.checkType("arrays_zip(cast(null as integer array), array[1, 2])",
+        "RecordType(INTEGER NOT NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY");
+    f.checkNull("arrays_zip(array[1, 2], cast(null as integer array))");
+    f.checkType("arrays_zip(array[1, 2], cast(null as integer array))",
+        "RecordType(INTEGER NOT NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY");
+    f.checkFails("^arrays_zip(array[1, 2], true)^",
+        "Parameters must be of the same type", false);
   }
 
   /** Tests {@code SORT_ARRAY} function from Spark. */

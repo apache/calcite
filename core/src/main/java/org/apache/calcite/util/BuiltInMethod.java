@@ -651,6 +651,8 @@ public enum BuiltInMethod {
   ARRAY_INTERSECT(SqlFunctions.class, "arrayIntersect", List.class, List.class),
   ARRAY_UNION(SqlFunctions.class, "arrayUnion", List.class, List.class),
   ARRAY_REVERSE(SqlFunctions.class, "reverse", List.class),
+  ARRAYS_OVERLAP(SqlFunctions.class, "arraysOverlap", List.class, List.class),
+  ARRAYS_ZIP(SqlFunctions.class, "arraysZip", List.class, List.class),
   SORT_ARRAY(SqlFunctions.class, "sortArray", List.class, boolean.class),
   MAP_ENTRIES(SqlFunctions.class, "mapEntries", Map.class),
   MAP_KEYS(SqlFunctions.class, "mapKeys", Map.class),
