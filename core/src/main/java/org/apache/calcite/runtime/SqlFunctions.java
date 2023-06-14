@@ -3883,6 +3883,56 @@ public class SqlFunctions {
     return atomic;
   }
 
+  /** Support the ARRAYS_OVERLAP function. */
+  public static @Nullable Boolean arraysOverlap(List list1, List list2) {
+    if (list1.size() > list2.size()) {
+      return arraysOverlap(list2, list1);
+    }
+    final List smaller = list1;
+    final List bigger = list2;
+    boolean hasNull = false;
+    if (smaller.size() > 0 && bigger.size() > 0) {
+      final Set smallestSet = new HashSet(smaller);
+      hasNull = smallestSet.remove(null);
+      for (Object element : bigger) {
+        if (element == null) {
+          hasNull = true;
+        } else if (smallestSet.contains(element)) {
+          return true;
+        }
+      }
+    }
+    if (hasNull) {
+      return null;
+    } else {
+      return false;
+    }
+  }
+
+  /** Support the ARRAYS_ZIP function. */
+  @SuppressWarnings("argument.type.incompatible")
+  public static List arraysZip(List... lists) {
+    final int biggestCardinality = lists.length == 0
+        ? 0
+        : Arrays.stream(lists).mapToInt(List::size).max().getAsInt();
+
+    final List result = new ArrayList(biggestCardinality);
+    for (int i = 0; i < biggestCardinality; i++) {
+      List<Object> row = new ArrayList<>();
+      Object value;
+      for (List list : lists) {
+        if (i < list.size() && list.get(i) != null) {
+          value = list.get(i);
+        } else {
+          value = null;
+        }
+        row.add(value);
+      }
+      result.add(row);
+    }
+    return result;
+  }
+
   /** Support the ARRAY_COMPACT function. */
   public static List compact(List list) {
     final List result = new ArrayList();

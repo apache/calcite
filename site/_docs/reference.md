@@ -2658,6 +2658,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | s | ARRAY_DISTINCT(array)                          | Removes duplicate values from the *array* that keeps ordering of elements
 | s | ARRAY_EXCEPT(array1, array2)                   | Returns an array of the elements in *array1* but not in *array2*, without duplicates
 | s | ARRAY_INTERSECT(array1, array2)                | Returns an array of the elements in the intersection of *array1* and *array2*, without duplicates
+| s | ARRAY_JOIN(array, delimiter [, nullText ])     | Synonym for `ARRAY_TO_STRING`
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
 | s | ARRAY_MAX(array)                               | Returns the maximum value in the *array*
 | s | ARRAY_MIN(array)                               | Returns the minimum value in the *array*
@@ -2666,6 +2667,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | s | ARRAY_SIZE(array)                              | Synonym for `CARDINALITY`
 | b | ARRAY_TO_STRING(array, delimiter [, nullText ])| Returns a concatenation of the elements in *array* as a STRING and take *delimiter* as the delimiter. If the *nullText* parameter is used, the function replaces any `NULL` values in the array with the value of *nullText*. If the *nullText* parameter is not used, the function omits the `NULL` value and its preceding delimiter
 | s | ARRAY_UNION(array1, array2)                    | Returns an array of the elements in the union of *array1* and *array2*, without duplicates
+| s | ARRAYS_OVERLAP(array1, array2)                 | Returns true if *array1 contains at least a non-null element present also in *array2*. If the arrays have no common element and they are both non-empty and either of them contains a null element null is returned, false otherwise
+| s | ARRAYS_ZIP(array [, array ]*)                  | Returns a merged *array* of structs in which the N-th struct contains all N-th values of input arrays
 | s | SORT_ARRAY(array [, ascendingOrder])           | Sorts the *array* in ascending or descending order according to the natural ordering of the array elements. The default order is ascending if *ascendingOrder* is not specified. Null elements will be placed at the beginning of the returned array in ascending order or at the end of the returned array in descending order
 | * | ASINH(numeric)                                 | Returns the inverse hyperbolic sine of *numeric*
 | * | ATANH(numeric)                                 | Returns the inverse hyperbolic tangent of *numeric*

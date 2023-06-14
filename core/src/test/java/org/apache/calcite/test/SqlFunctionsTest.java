@@ -40,6 +40,7 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.MILLIS_PER_DAY;
 import static org.apache.calcite.avatica.util.DateTimeUtils.dateStringToUnixDate;
 import static org.apache.calcite.avatica.util.DateTimeUtils.timeStringToUnixDate;
 import static org.apache.calcite.avatica.util.DateTimeUtils.timestampStringToUnixDate;
+import static org.apache.calcite.runtime.SqlFunctions.arraysOverlap;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
 import static org.apache.calcite.runtime.SqlFunctions.concatWithNull;
@@ -94,6 +95,35 @@ class SqlFunctionsTest {
 
   static <E> List<E> list() {
     return ImmutableList.of();
+  }
+
+  @Test void testArraysOverlap() {
+    final List<Object> listWithOnlyNull = new ArrayList<>();
+    listWithOnlyNull.add(null);
+
+    // list2 is empty
+    assertThat(arraysOverlap(list(), list()), is(false));
+    assertThat(arraysOverlap(listWithOnlyNull, list()), is(false));
+    assertThat(arraysOverlap(list(1, null), list()), is(false));
+    assertThat(arraysOverlap(list(1, 2), list()), is(false));
+
+    // list2 contains only nulls
+    assertThat(arraysOverlap(list(), listWithOnlyNull), is(false));
+    assertThat(arraysOverlap(listWithOnlyNull, listWithOnlyNull), is(nullValue()));
+    assertThat(arraysOverlap(list(1, null), listWithOnlyNull), is(nullValue()));
+    assertThat(arraysOverlap(list(1, 2), listWithOnlyNull), is(nullValue()));
+
+    // list2 contains a mixture of nulls and non-nulls
+    assertThat(arraysOverlap(list(), list(1, null)), is(false));
+    assertThat(arraysOverlap(listWithOnlyNull, list(1, null)), is(nullValue()));
+    assertThat(arraysOverlap(list(1, null), list(1, null)), is(true));
+    assertThat(arraysOverlap(list(1, 2), list(1, null)), is(true));
+
+    // list2 contains only non-null
+    assertThat(arraysOverlap(list(), list(1, 2)), is(false));
+    assertThat(arraysOverlap(listWithOnlyNull, list(1, 2)), is(nullValue()));
+    assertThat(arraysOverlap(list(1, null), list(1, 2)), is(true));
+    assertThat(arraysOverlap(list(1, 2), list(1, 2)), is(true));
   }
 
   @Test void testCharLength() {
