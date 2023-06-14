@@ -33,7 +33,6 @@
  *
  * <h2>Expressions</h2>
  *
- *
  * <p>Every row-expression has a type. (Compare with
  * {@link org.apache.calcite.sql.SqlNode}, which is created before validation,
  * and therefore types may not be available.)

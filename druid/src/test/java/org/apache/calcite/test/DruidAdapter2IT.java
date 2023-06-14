@@ -2003,7 +2003,7 @@ public class DruidAdapter2IT {
     sql(sqlQuery)
         .explainContains(plan)
         .throws_("Server returned HTTP response code: 500");
-    //@TODO It seems like calcite is not handling 500 error,
+    // TODO It seems like calcite is not handling 500 error,
     // need to catch it and parse exception message from druid,
     // e.g., throws_("/ by zero");
   }

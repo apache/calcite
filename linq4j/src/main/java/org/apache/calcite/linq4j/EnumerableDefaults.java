@@ -1461,7 +1461,7 @@ public abstract class EnumerableDefaults {
                   innerEnumerable = null;
                 } else {
                   innerEnumerable = innerLookup.get(outerKey);
-                  //apply predicate to filter per-row
+                  // apply predicate to filter per-row
                   if (innerEnumerable != null) {
                     final List<TInner> matchedInners = new ArrayList<>();
                     try (Enumerator<TInner> innerEnumerator =

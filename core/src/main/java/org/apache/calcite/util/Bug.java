@@ -40,6 +40,9 @@ package org.apache.calcite.util;
  * usages of it. Also, the constant helps track the propagation of the fix: as
  * the fix is integrated into other branches, the constant will be removed from
  * those branches.
+ *
+ * <p>This class depends on no other classes.
+ * (In the past, a dependency on {@code Util} caused class-loading cycles.)
  */
 public abstract class Bug {
   //~ Static fields/initializers ---------------------------------------------
@@ -237,9 +240,8 @@ public abstract class Bug {
    * instead using a {@link Deprecated} annotation followed by a comment such as
    * "to be removed before 2.0".
    */
+  @SuppressWarnings("unused")
   public static boolean upgrade(String remark) {
-    Util.discard(remark);
     return false;
   }
-
 }

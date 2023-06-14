@@ -63,7 +63,7 @@ public class SubstringOperatorConversion implements DruidSqlOperatorConverter {
     }
 
     if (call.getOperands().size() > 2) {
-      //case substring from start index with length
+      // case substring from start index with length
       if (!call.getOperands().get(2).isA(SqlKind.LITERAL)) {
         // case it is an expression try to parse it
         length =
@@ -80,7 +80,7 @@ public class SubstringOperatorConversion implements DruidSqlOperatorConverter {
       }
 
     } else {
-      //case substring from index to the end
+      // case substring from index to the end
       length = DruidExpressions.numberLiteral(-1);
     }
     return DruidQuery.format("substring(%s, %s, %s)", arg, startIndex, length);

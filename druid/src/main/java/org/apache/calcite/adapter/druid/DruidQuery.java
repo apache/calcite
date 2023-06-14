@@ -851,7 +851,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       } else if (druidColumn.left != null && druidColumn.right != null) {
        // CASE it is an extraction Dimension
         final String columnPrefix;
-        //@TODO Remove it! if else statement is not really needed it is here to make tests pass.
+        // TODO Remove it! if else statement is not really needed it
+        // is here to make tests pass.
         if (project.getKind() == SqlKind.EXTRACT) {
           columnPrefix =
               EXTRACT_COLUMN_NAME_PREFIX + "_" + requireNonNull(DruidDateTimeUtils

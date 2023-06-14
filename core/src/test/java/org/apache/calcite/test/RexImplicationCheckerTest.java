@@ -122,8 +122,10 @@ public class RexImplicationCheckerTest {
     final RexNode bEqTrue = f.eq(f.bl, f.rexBuilder.makeLiteral(true));
     final RexNode bEqFalse = f.eq(f.bl, f.rexBuilder.makeLiteral(false));
 
-    // TODO: Need to support false => true
-    //f.checkImplies(bEqFalse, bEqTrue);
+    if (false) {
+      // TODO: Need to support false => true
+      f.checkImplies(bEqFalse, bEqTrue);
+    }
     f.checkNotImplies(bEqTrue, bEqFalse);
   }
 
@@ -257,7 +259,9 @@ public class RexImplicationCheckerTest {
     final RexNode yGt2AndZGt4 = f.and(yGt2, zGt4);
     final RexNode yGt3AndZGt5 = f.and(yGt3, zGt5);
     final RexNode or = f.or(xGt1, yGt2AndZGt4);
-    //f.checkNotImplies(or, yGt3AndZGt5);
+    if (false) {
+      f.checkNotImplies(or, yGt3AndZGt5);
+    }
     f.checkImplies(yGt3AndZGt5, or);
   }
 

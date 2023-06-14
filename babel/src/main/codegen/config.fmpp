@@ -560,7 +560,7 @@ data: {
     createStatementParserMethods: [
       "SqlCreateTable"
     ]
-    
+
     statementParserMethods: [
       "PostgresqlSqlShow()",
       "PostgresqlSqlSetOption()",
@@ -578,9 +578,9 @@ data: {
     ]
 
     # Custom identifier token.
-    # 
-    # PostgreSQL allows letters with diacritical marks and non-Latin letters 
-    # in the beginning of identifier and additionally dollar sign in the rest of identifier. 
+    #
+    # PostgreSQL allows letters with diacritical marks and non-Latin letters
+    # in the beginning of identifier and additionally dollar sign in the rest of identifier.
     # Letters with diacritical marks and non-Latin letters
     # are represented by character codes 128 to 255 (or in octal \200 to \377).
     # See https://learn.microsoft.com/en-gb/office/vba/language/reference/user-interface-help/character-set-128255
@@ -588,7 +588,7 @@ data: {
     #
     # MySQL allows digit in the beginning of identifier
     customIdentifierToken: "< IDENTIFIER: (<LETTER>|<DIGIT>|[\"\\200\"-\"\\377\"]) (<LETTER>|<DIGIT>|<DOLLAR>|[\"\\200\"-\"\\377\"])* >"
-    
+
     # Binary operators initialization.
     # Example: "InfixCast".
     extraBinaryExpressions: [

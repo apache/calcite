@@ -479,8 +479,8 @@ public class SqlDialect {
     writer.sep((SqlKind.PLUS == sqlKind) ? "+" : "-");
     call.operand(1).unparse(writer, leftPrec, rightPrec);
     writer.endList(frame);
-    //Only two parameters are present normally
-    //Checking parameter count to prevent errors
+    // Only two parameters are present normally.
+    // Checking parameter count to prevent errors.
     if (call.getOperandList().size() > 2) {
       call.operand(2).unparse(writer, leftPrec, rightPrec);
     }

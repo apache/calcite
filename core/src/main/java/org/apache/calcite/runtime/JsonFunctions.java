@@ -721,10 +721,11 @@ public class JsonFunctions {
     final String parentPath;
     final String key;
 
-    //The following paragraph of logic is mainly used to obtain the parent node path of path and
-    //the key value that should be inserted when the preant Path is map.
-    //eg: path is $.a ,parentPath is $
-    //eg: path is $.a[1] ,parentPath is $.a
+    // The following paragraph of logic is mainly used to obtain the
+    // parent node path of path and the key value that should be
+    // inserted when the preant Path is map.
+    // eg: path is $.a ,parentPath is $
+    // eg: path is $.a[1] ,parentPath is $.a
     Integer dotIndex = path.lastIndexOf(".");
     Integer leftBracketIndex = path.lastIndexOf("[");
     if (dotIndex.equals(-1) && leftBracketIndex.equals(-1)) {

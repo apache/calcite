@@ -165,7 +165,7 @@ public class Strong {
    * (equivalently, will definitely return null or false). */
   public boolean isNotTrue(RexNode node) {
     switch (node.getKind()) {
-    //TODO Enrich with more possible cases?
+    // TODO Enrich with more possible cases?
     case IS_NOT_NULL:
       return isNull(((RexCall) node).getOperands().get(0));
     case OR:

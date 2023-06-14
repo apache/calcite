@@ -64,13 +64,13 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
 
     if (SqlTypeName.CHAR_TYPES.contains(fromType)
         && SqlTypeName.DATETIME_TYPES.contains(toType)) {
-      //case chars to dates
+      // case chars to dates
       return castCharToDateTime(toType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
               ? timeZone : DateTimeUtils.UTC_ZONE,
           operandExpression, toType, fromTypeString);
     } else if (SqlTypeName.DATETIME_TYPES.contains(fromType)
         && SqlTypeName.CHAR_TYPES.contains(toType)) {
-      //case dates to chars
+      // case dates to chars
       return castDateTimeToChar(fromType == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
           ? timeZone : DateTimeUtils.UTC_ZONE, operandExpression, fromType);
     } else if (SqlTypeName.DATETIME_TYPES.contains(fromType)

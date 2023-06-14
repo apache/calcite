@@ -124,13 +124,16 @@ public class ReflectiveRelMetadataProvider
   @Deprecated // to be removed before 2.0
   public static RelMetadataProvider reflectiveSource(MetadataHandler target,
       Method... methods) {
-    return reflectiveSource(target, ImmutableList.copyOf(methods), target.getDef().handlerClass);
+    return reflectiveSource(target, ImmutableList.copyOf(methods),
+        target.getDef().handlerClass);
   }
 
   @SuppressWarnings("deprecation")
   public static <M extends Metadata> RelMetadataProvider reflectiveSource(
-      MetadataHandler<? extends M> handler, Class<? extends MetadataHandler<M>> handlerClass) {
-    //When deprecated code is removed, handler.getDef().methods will no longer be required
+      MetadataHandler<? extends M> handler,
+      Class<? extends MetadataHandler<M>> handlerClass) {
+    // When deprecated code is removed, handler.getDef().methods will
+    // no longer be required
     return reflectiveSource(handler, handler.getDef().methods, handlerClass);
   }
 

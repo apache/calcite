@@ -123,7 +123,7 @@ public class DruidExpressions {
       final DruidSqlOperatorConverter conversion = druidRel.getOperatorConversionMap()
           .get(operator);
       if (conversion == null) {
-        //unknown operator can not translate
+        // unknown operator; can not translate
         return null;
       } else {
         return conversion.toDruidExpression(rexNode, inputRowType, druidRel);
@@ -132,7 +132,8 @@ public class DruidExpressions {
     if (kind == SqlKind.LITERAL) {
       // Translate literal.
       if (RexLiteral.isNullLiteral(rexNode)) {
-        //case the filter/project might yield to unknown let Calcite deal with this for now
+        // case the filter/project might yield to unknown; let Calcite
+        // deal with this for now
         return null;
       } else if (SqlTypeName.NUMERIC_TYPES.contains(sqlTypeName)) {
         return DruidExpressions.numberLiteral((Number) RexLiteral

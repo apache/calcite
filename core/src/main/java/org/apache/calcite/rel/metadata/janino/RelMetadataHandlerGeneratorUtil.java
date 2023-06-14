@@ -81,7 +81,7 @@ public class RelMetadataHandlerGeneratorUtil {
     buff.append("public final class ").append(name).append("\n")
         .append("  implements ").append(handlerClass.getCanonicalName()).append(" {\n");
 
-    // PROPERTIES
+    // Properties
     Ord.forEach(declaredMethods.values(), (declaredMethod, i) ->
         CacheGeneratorUtil.cacheProperties(buff, declaredMethod, i));
     for (Map.Entry<MetadataHandler<?>, String> handlerAndName : handlerToName.entrySet()) {
@@ -89,7 +89,7 @@ public class RelMetadataHandlerGeneratorUtil {
           .append(' ').append(handlerAndName.getValue()).append(";\n");
     }
 
-    // CONSTRUCTOR
+    // Constructor
     buff.append("  public ").append(name).append("(\n");
     for (Map.Entry<MetadataHandler<?>, String> handlerAndName : handlerToName.entrySet()) {
       buff.append("      ")
@@ -108,7 +108,7 @@ public class RelMetadataHandlerGeneratorUtil {
     }
     buff.append("  }\n");
 
-    // METHODS
+    // Methods
     getDefMethod(buff,
         handlerToName.values()
             .stream()
@@ -145,8 +145,8 @@ public class RelMetadataHandlerGeneratorUtil {
 
   private static String simpleNameForHandler(Class<? extends MetadataHandler<?>> clazz) {
     String simpleName = clazz.getSimpleName();
-    // Previously the pattern was to have a nested in class named Handler
-    // So we need to add the parents class to get a unique name
+    // Previously the pattern was to have a nested in class named Handler.
+    // So we need to add the parents class to get a unique name.
     if (simpleName.equals("Handler")) {
       String[] parts = clazz.getName().split("[.$]");
       return parts[parts.length - 2] + parts[parts.length - 1];

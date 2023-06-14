@@ -1410,7 +1410,7 @@ public class RexImpTable {
       final Primitive p = Primitive.of(compType);
       final boolean isMin = info.aggregation().kind == SqlKind.ARG_MIN;
       final Object inf = p == null ? null : (isMin ? p.max : p.min);
-      //acc[1] = isMin ? {max value} : {min value};
+      // acc[1] = isMin ? {max value} : {min value};
       reset.currentBlock().add(
           Expressions.statement(
               Expressions.assign(reset.accumulator().get(1),
@@ -2853,9 +2853,9 @@ public class RexImpTable {
       final Expression argValue = argValueList.get(0);
 
       final Expression e;
-      //Special case for implementing unary minus with BigDecimal type
-      //for other data type(except BigDecimal) '-' operator is OK, but for
-      //BigDecimal, we should call negate method of BigDecimal
+      // Special case for implementing unary minus with BigDecimal type
+      // for other data type(except BigDecimal) '-' operator is OK, but for
+      // BigDecimal, we should call negate method of BigDecimal
       if (expressionType == ExpressionType.Negate && argValue.type == BigDecimal.class
           && null != backupMethodName) {
         e = Expressions.call(argValue, backupMethodName);

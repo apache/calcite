@@ -225,7 +225,7 @@ public class MssqlSqlDialect extends SqlDialect {
     final SqlWriter.Frame frame = writer.startFunCall("DATEADD");
     SqlNode operand = call.operand(1);
     if (operand instanceof SqlIntervalLiteral) {
-      //There is no DATESUB method available, so change the sign.
+      // There is no DATESUB method available, so change the sign.
       unparseSqlIntervalLiteralMssql(
           writer, (SqlIntervalLiteral) operand, sqlKind == SqlKind.MINUS ? -1 : 1);
     } else {

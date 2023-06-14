@@ -549,7 +549,7 @@ public class CalciteMetaImpl extends MetaImpl {
     return Linq4j.asEnumerable(schema.calciteSchema.getFunctionNames())
         .selectMany(name ->
             Linq4j.asEnumerable(schema.calciteSchema.getFunctions(name, true))
-                //exclude materialized views from the result set
+                // exclude materialized views from the result set
                 .where(fn -> !(fn instanceof MaterializedViewTable.MaterializedViewTableMacro))
                 .select(fnx ->
                     new MetaFunction(

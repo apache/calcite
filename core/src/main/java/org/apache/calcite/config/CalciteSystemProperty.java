@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.config;
 
+import org.apache.calcite.util.Bug;
+
 import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -437,7 +439,7 @@ public final class CalciteSystemProperty<T> {
   }
 
   private static <T> T firstNonEmpty(@CheckForNull T t0, T t1) {
-    //Bug.upgrade("remove when 18.0 is the minimum Guava version");
+    Bug.upgrade("remove when 18.0 is the minimum Guava version");
     if (t0 != null) {
       return t0;
     }

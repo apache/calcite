@@ -259,7 +259,7 @@ class FileRowConverter {
             .get(this.selectedElement).ownText());
       } else {
         for (Element child : cell.select(this.selector)) {
-          //String tagName = child.tag().getName();
+          // String tagName = child.tag().getName();
           cellText.add(child.ownText());
         }
       }

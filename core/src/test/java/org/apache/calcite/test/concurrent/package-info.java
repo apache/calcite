@@ -87,7 +87,6 @@
  * <p>The directive &#64;disable means "skip this script". The deault is the
  * antonym &#64;enable.
  *
- *
  * <h3>Error handling:</h3>
  *
  * <p>When a sql command fails, the rest of its section is skipped. However, if
@@ -206,7 +205,6 @@
  *     -d DRIVER : sets the jdbc driver; a class on the classpath<br>
  *     VAR=VALUE : binds the script variable VAR to the VALUE; VAR must be
  *     declared at the beginning of the script(s) in a &#64;var command.
- *
  *
  * <h3>Example Script</h3>
  *

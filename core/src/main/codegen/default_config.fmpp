@@ -441,11 +441,11 @@ parser: {
   # Example: "parserImpls.ftl".
   implementationFiles: [
   ]
-  
+
   # Custom identifier token.
   # Example: "< IDENTIFIER: (<LETTER>|<DIGIT>)+ >".
   customIdentifierToken: ""
-      
+
   includePosixOperators: false
   includeCompoundIdentifier: true
   includeBraces: true

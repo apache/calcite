@@ -433,8 +433,6 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
   /**
    * Checks whether this permutation is valid.
    *
-   *
-   *
    * @param fail Whether to assert if invalid
    * @return Whether valid
    */

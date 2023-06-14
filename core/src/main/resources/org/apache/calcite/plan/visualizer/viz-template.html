@@ -190,14 +190,14 @@ limitations under the License.
      */
 
     var updateLocation = () => {
-        var urlParams = new URLSearchParams(location.search); 
+        var urlParams = new URLSearchParams(location.search);
         urlParams.set("step", currentStepIndex);
         urlParams.set("dir", currentRankDirIdx);
         window.history.pushState({}, "", "?" + urlParams.toString());
     };
 
     var parseLocation = () => {
-        var urlParams = new URLSearchParams(location.search); 
+        var urlParams = new URLSearchParams(location.search);
         if (urlParams.has("step")) {
             var stepIdx = Number(urlParams.get("step"))
             if (Number.isInteger(stepIdx))
@@ -309,7 +309,7 @@ limitations under the License.
                 g.setParent(nodeID, n.set);
 
                 // create links
-                if(n.inputs) 
+                if(n.inputs)
                 for(var inputID of n.inputs) {
                     var input = state.nodes[inputID];
                     var edgeOptions = { arrowheadStyle: "normal" };
@@ -405,14 +405,14 @@ limitations under the License.
 
     document.getElementById("toggle-list-button").addEventListener("click", () => {
         var col1 = document.getElementById("step-list-column");
-        if (col1.style.display === "none") 
+        if (col1.style.display === "none")
             col1.style.display = "";
-        else 
+        else
             col1.style.display = "none";
     });
 
     // render initial state
-    
+
     parseLocation();
     setCurrentStep(currentStepIndex);
     fitContent();

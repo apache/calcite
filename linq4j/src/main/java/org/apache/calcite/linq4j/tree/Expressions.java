@@ -1902,7 +1902,7 @@ public abstract class Expressions {
   public static UnaryExpression negateChecked(Expression expression,
       Method method) {
     throw new UnsupportedOperationException("not implemented");
-    //return makeUnary(ExpressionType.NegateChecked, expression, null, method);
+    // return makeUnary(ExpressionType.NegateChecked, expression, null, method);
   }
 
   /**

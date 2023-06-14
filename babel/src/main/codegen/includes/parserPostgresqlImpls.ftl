@@ -121,8 +121,8 @@ SqlNode PostgresqlSqlOptionValues():
 {
    e = PostgresqlSqlOptionValue() { s = span(); list = startList(e); }
    ( <COMMA> e = PostgresqlSqlOptionValue() { list.add(e); } )*
-   { 
-      return list.size() > 1 ? new SqlNodeList(list, s.end(this)) : e; 
+   {
+      return list.size() > 1 ? new SqlNodeList(list, s.end(this)) : e;
    }
 }
 
@@ -194,12 +194,12 @@ SqlNode PostgresqlSqlBeginTransactionMode():
 }
 {
     { s = span(); }
-(   
+(
     LOOKAHEAD(2)
-    <READ> 
+    <READ>
     (
-      <WRITE> { m = SqlBegin.TransactionMode.READ_WRITE; } 
-    | 
+      <WRITE> { m = SqlBegin.TransactionMode.READ_WRITE; }
+    |
       <ONLY>  { m = SqlBegin.TransactionMode.READ_ONLY; }
     )
 |
@@ -207,18 +207,18 @@ SqlNode PostgresqlSqlBeginTransactionMode():
 |
     <NOT> <DEFERRABLE> { m = SqlBegin.TransactionMode.NOT_DEFERRABLE; }
 |
-    <ISOLATION> <LEVEL> 
+    <ISOLATION> <LEVEL>
     (
         <SERIALIZABLE> { m = SqlBegin.TransactionMode.ISOLATION_LEVEL_SERIALIZABLE; }
-    | 
+    |
         <REPEATABLE> <READ> { m = SqlBegin.TransactionMode.ISOLATION_LEVEL_REPEATABLE_READ; }
-    | 
-        <READ> 
-        ( 
-          <COMMITTED> { m = SqlBegin.TransactionMode.ISOLATION_LEVEL_READ_COMMITTED; } 
-        | 
+    |
+        <READ>
+        (
+          <COMMITTED> { m = SqlBegin.TransactionMode.ISOLATION_LEVEL_READ_COMMITTED; }
+        |
           <UNCOMMITTED>  { m = SqlBegin.TransactionMode.ISOLATION_LEVEL_READ_UNCOMMITTED; }
-        ) 
+        )
     )
 ) {
     return m.symbol(s.end(this));
@@ -233,13 +233,13 @@ SqlNode PostgresqlSqlCommit():
 }
 {
   { s = span(); }
-  <COMMIT> [ <WORK> | <TRANSACTION> ] [ 
+  <COMMIT> [ <WORK> | <TRANSACTION> ] [
   (
     <AND> <CHAIN> { chain = AndChain.AND_CHAIN; }
   |
     <AND> <NO> <CHAIN>
   )] {
-    final SqlParserPos pos = s.end(this); 
+    final SqlParserPos pos = s.end(this);
     return SqlCommit.OPERATOR.createCall(pos, chain.symbol(pos));
   }
 }
@@ -252,13 +252,13 @@ SqlNode PostgresqlSqlRollback():
 }
 {
   { s = span(); }
-  <ROLLBACK> [ <WORK> | <TRANSACTION> ] [ 
+  <ROLLBACK> [ <WORK> | <TRANSACTION> ] [
   (
     <AND> <CHAIN> { chain = AndChain.AND_CHAIN; }
   |
     <AND> <NO> <CHAIN>
   )] {
-    final SqlParserPos pos = s.end(this); 
+    final SqlParserPos pos = s.end(this);
     return SqlRollback.OPERATOR.createCall(pos, chain.symbol(pos));
   }
 }
