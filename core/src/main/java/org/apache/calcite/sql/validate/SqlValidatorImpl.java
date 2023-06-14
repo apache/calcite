@@ -2382,8 +2382,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       expr = call.operand(0);
       final boolean needAliasNamespace = call.operandCount() > 2
-          || expr.getKind() == SqlKind.VALUES
-          || expr.getKind() == SqlKind.UNNEST;
+          || expr.getKind() == SqlKind.VALUES || expr.getKind() == SqlKind.UNNEST
+          || expr.getKind() == SqlKind.COLLECTION_TABLE;
       newExpr =
           registerFrom(
               parentScope,

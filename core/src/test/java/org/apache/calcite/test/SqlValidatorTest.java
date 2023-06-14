@@ -7599,6 +7599,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5779">[CALCITE-5779]
+   * Implicit column alias for single-column table function should work</a>. */
+  @Test void testTableFunctionSingleColumnAlias() {
+    final SqlValidatorFixture s = fixture()
+        .withOperatorTable(MockSqlOperatorTable.standard().extend());
+    s.withSql("select rmp from table(ramp(3)) as rmp").ok();
+    s.withSql("select rmp.i from table(ramp(3)) as rmp").ok();
+    s.withSql("select rmp.i, rmp from table(ramp(3)) as rmp").ok();
+    s.withSql("select l from table(ramp(3)) as rmp(l)").ok();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1309">[CALCITE-1309]
    * Support LATERAL TABLE</a>. */
   @Test void testCollectionTableWithLateral() {
