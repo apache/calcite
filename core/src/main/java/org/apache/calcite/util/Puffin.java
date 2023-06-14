@@ -147,6 +147,7 @@ public class Puffin {
     G globalState();
     F state();
     int fnr();
+    String filename();
     Source source();
     boolean startsWith(String prefix);
     boolean contains(CharSequence s);
@@ -220,6 +221,10 @@ public class Puffin {
 
     @Override public int fnr() {
       return fnr;
+    }
+
+    @Override public String filename() {
+      return source().toString();
     }
 
     @Override public Source source() {

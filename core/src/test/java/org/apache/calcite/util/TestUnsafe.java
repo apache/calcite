@@ -33,6 +33,8 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 
 /**
  * Unsafe methods to be used by tests.
@@ -186,11 +188,24 @@ public abstract class TestUnsafe {
     }
   }
 
-  /** Returns the messages of the {@code n} most recent commits. */
-  public static List<String> getCommitMessages(int n) {
+  /** Returns the subject / body pairs of the {@code n} most recent commits. */
+  public static void getCommitMessages(int n,
+      BiConsumer<String, String> consumer) {
+    // Generate log like this:
+    //
+    //   ===
+    //   subject
+    //
+    //   body
+    //   ===
+    //   subject 2
+    //
+    //   body2
+    //
+    // then split on "===\n"
     final File base = TestUtil.getBaseDir(TestUnsafe.class);
     final List<String> argumentList =
-        ImmutableList.of("git", "log", "-n" + n, "--pretty=format:%s");
+        ImmutableList.of("git", "log", "-n" + n, "--pretty=format:===%n%B");
     try {
       final StringWriter sw = new StringWriter();
       int status =
@@ -201,7 +216,21 @@ public abstract class TestUnsafe {
             + ": exited with status " + status
             + (s.isEmpty() ? "" : "; output [" + s + "]"));
       }
-      return ImmutableList.copyOf(s.split("\n"));
+      Stream.of(s.split("===\n")).forEach(s2 -> {
+        if (s2.isEmpty()) {
+          return; // ignore empty subject & body
+        }
+        int i = s2.indexOf("\n");
+        if (i < 0) {
+          i = s2.length(); // no linefeed; treat entire chunk as subject
+        }
+        String subject = s2.substring(0, i);
+        while (i < s2.length() && s2.charAt(i) == '\n') {
+          ++i; // skip multiple linefeeds between subject and body
+        }
+        String body = s2.substring(i);
+        consumer.accept(subject, body);
+      });
     } catch (Exception e) {
       throw new RuntimeException("command " + argumentList
           + ": failed with exception", e);

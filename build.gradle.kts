@@ -383,11 +383,21 @@ allprojects {
                     include("**/*.sh", "**/*.bsh", "**/*.cmd", "**/*.bat")
                     include("**/*.properties", "**/*.yml")
                     include("**/*.xsd", "**/*.xsl", "**/*.xml")
+                    include("**/*.fmpp", "**/*.ftl", "**/*.jj")
                     // Autostyle does not support gitignore yet https://github.com/autostyle/autostyle/issues/13
                     exclude("bin/**", "out/**", "target/**", "gradlew*")
                     exclude(rootDir.resolve(".ratignore").readLines())
                 }
                 license()
+                endWithNewline()
+            }
+            format("web") {
+                filter {
+                    include("**/*.md", "**/*.html")
+                    exclude("**/test/**/*.html")
+                }
+                trimTrailingWhitespace()
+                endWithNewline()
             }
             if (project == rootProject) {
                 // Spotless does not exclude subprojects when using target(...)

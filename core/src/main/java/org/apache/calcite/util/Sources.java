@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -121,6 +122,10 @@ public abstract class Sources {
 
     @Override public File file() {
       throw unsupported();
+    }
+
+    @Override public Optional<File> fileOpt() {
+      return Optional.empty();
     }
 
     @Override public String path() {
@@ -251,6 +256,10 @@ public abstract class Sources {
         throw new UnsupportedOperationException();
       }
       return file;
+    }
+
+    @Override public Optional<File> fileOpt() {
+      return Optional.ofNullable(file);
     }
 
     @Override public String protocol() {
