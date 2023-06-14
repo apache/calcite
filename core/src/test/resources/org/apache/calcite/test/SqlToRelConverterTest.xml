@@ -7342,6 +7342,27 @@ LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testTableFunctionSingleColumnAlias">
+    <Resource name="sql">
+      <![CDATA[select rmp1.i, rmp1, rmp2, rmp3.i, j
+from table(ramp(1)) as rmp1,
+table(ramp(1)) as rmp2,
+table(ramp(1)) as rmp3,
+table(ramp(1)) as rmp4(j)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(I=[$0], RMP1=[$0], RMP2=[$1], I0=[$2], J=[$3])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalJoin(condition=[true], joinType=[inner])
+        LogicalTableFunctionScan(invocation=[RAMP(1)], rowType=[RecordType(INTEGER I)])
+        LogicalTableFunctionScan(invocation=[RAMP(1)], rowType=[RecordType(INTEGER I)])
+      LogicalTableFunctionScan(invocation=[RAMP(1)], rowType=[RecordType(INTEGER I)])
+    LogicalTableFunctionScan(invocation=[RAMP(1)], rowType=[RecordType(INTEGER I)])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testTableFunctionTumble">
     <Resource name="sql">
       <![CDATA[select *

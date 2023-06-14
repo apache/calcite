@@ -2287,6 +2287,23 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5779">[CALCITE-5779]
+   * Implicit column alias for single-column table function should work</a>. */
+  @Test void testTableFunctionSingleColumnAlias() {
+    String sql = "select rmp1.i, rmp1, rmp2, rmp3.i, j\n"
+        + "from table(ramp(1)) as rmp1,\n"
+        + "table(ramp(1)) as rmp2,\n"
+        + "table(ramp(1)) as rmp3,\n"
+        + "table(ramp(1)) as rmp4(j)";
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t -> MockSqlOperatorTable.standard().extend()))
+        .withCatalogReader(MockCatalogReaderExtended::create)
+        .withSql(sql)
+        .ok();
+  }
+
   @Test void testTableFunctionSessionWithSubQueryParam() {
     final String sql = "select *\n"
         + "from table(session((select * from Shipments), descriptor(rowtime), "

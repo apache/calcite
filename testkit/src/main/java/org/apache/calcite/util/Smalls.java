@@ -140,6 +140,21 @@ public class Smalls {
 
   private Smalls() {}
 
+  private static QueryableTable identity(Integer i) {
+    final Enumerable<Integer> enumerable = Linq4j.asEnumerable(ImmutableList.of(i));
+    return new AbstractQueryableTable(Integer.class) {
+      @Override public <E> Queryable<E> asQueryable(
+          QueryProvider queryProvider, SchemaPlus schema, String tableName) {
+        //noinspection unchecked
+        return (Queryable<E>) enumerable.asQueryable();
+      }
+
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.builder().add("i", SqlTypeName.INTEGER).build();
+      }
+    };
+  }
+
   private static QueryableTable oneThreePlus(String s) {
     List<Integer> items;
     // Argument is null in case SQL contains function call with expression.
@@ -1057,6 +1072,13 @@ public class Smalls {
   public static class TestStaticTableFunction {
     public static QueryableTable eval(String s) {
       return oneThreePlus(s);
+    }
+  }
+
+  /** A table function that returns its input value. */
+  public static class IdentityTableFunction {
+    public static QueryableTable eval(Integer i) {
+      return identity(i);
     }
   }
 

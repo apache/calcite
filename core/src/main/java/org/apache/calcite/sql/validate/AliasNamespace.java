@@ -19,6 +19,7 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.SingleColumnAliasRelDataType;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -90,11 +91,13 @@ public class AliasNamespace extends AbstractNamespace {
       // and the sub-query has one column,
       // then the namespace's sole column is named after the alias.
       if (rowType.getFieldCount() == 1) {
-        aliasedType = validator.getTypeFactory().builder()
+        final RelDataType singleColumnAlias = validator.getTypeFactory().builder()
             .kind(rowType.getStructKind())
             .add(((SqlIdentifier) operands.get(1)).getSimple(),
                 rowType.getFieldList().get(0).getType())
             .build();
+        aliasedType = node.getKind() == SqlKind.COLLECTION_TABLE
+            ? new SingleColumnAliasRelDataType(rowType, singleColumnAlias) : singleColumnAlias;
         // If the sub-query is UNNEST with ordinality
         // and the sub-query has two columns: data column, ordinality column
         // then the namespace's sole column is named after the alias.

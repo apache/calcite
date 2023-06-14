@@ -253,6 +253,10 @@ public abstract class QuidemTest {
       case "hr":
         return CalciteAssert.hr()
             .connect();
+      case "aux":
+        return CalciteAssert.hr()
+            .with(CalciteAssert.Config.AUX)
+            .connect();
       case "foodmart":
         return CalciteAssert.that()
             .with(CalciteAssert.Config.FOODMART_CLONE)
