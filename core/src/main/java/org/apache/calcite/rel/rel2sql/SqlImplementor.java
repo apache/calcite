@@ -156,6 +156,13 @@ public abstract class SqlImplementor {
    * dedicated type factory, so don't trust the types to be canonized. */
   final RexBuilder rexBuilder =
       new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
+
+  /**
+   *  <p>nested projects will only be merged if complexity of the result is
+   *  less than or equal to the sum of the complexity of the originals plus {@code bloat}.
+   *
+   *  <p>refer to {@link org.apache.calcite.tools.RelBuilder.Config#bloat()} for more details.
+   */
   private final int bloat;
 
   /** Maps a {@link SqlKind} to a {@link SqlOperator} that implements NOT

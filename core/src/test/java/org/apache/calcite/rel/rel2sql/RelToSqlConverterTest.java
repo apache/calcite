@@ -12121,7 +12121,7 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
-  @Test void testProjectOverProjectRule() {
+  @Test void testBloatedProjects() {
     final RelBuilder builder = relBuilder();
 
     RexNode rex = builder.literal(2);

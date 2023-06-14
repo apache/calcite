@@ -145,10 +145,7 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   public RelToSqlConverter(SqlDialect dialect, int bloat) {
-    super(dialect, bloat);
-    style = new QueryStyle();
-    dispatcher = ReflectUtil.createMethodDispatcher(Result.class, this, "visit",
-      RelNode.class);
+    this(dialect, new QueryStyle(), bloat);
   }
 
   public RelToSqlConverter(SqlDialect dialect, QueryStyle style, int bloat) {
