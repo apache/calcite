@@ -1035,13 +1035,13 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction FROM_BASE32 =
       SqlBasicFunction.create("FROM_BASE32",
           ReturnTypes.VARBINARY_NULLABLE,
-          OperandTypes.STRING, SqlFunctionCategory.STRING);
+          OperandTypes.CHARACTER, SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TO_BASE32 =
       SqlBasicFunction.create("TO_BASE32",
           ReturnTypes.VARCHAR_NULLABLE,
-          OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
   /** The "TO_CHAR(timestamp, format)" function;
