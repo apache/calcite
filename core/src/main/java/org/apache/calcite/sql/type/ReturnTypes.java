@@ -474,6 +474,19 @@ public abstract class ReturnTypes {
       VARCHAR.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy that always returns "VARBINARY".
+   */
+  public static final SqlReturnTypeInference VARBINARY =
+      ReturnTypes.explicit(SqlTypeName.VARBINARY);
+
+  /**
+   * Type-inference strategy that always returns "VARBINARY" with nulls
+   * allowed if any of the operands allow nulls.
+   */
+  public static final SqlReturnTypeInference VARBINARY_NULLABLE =
+      VARBINARY.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
    * Type-inference strategy for Histogram agg support.
    */
   public static final SqlReturnTypeInference HISTOGRAM =
