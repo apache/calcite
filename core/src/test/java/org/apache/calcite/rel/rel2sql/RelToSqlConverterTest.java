@@ -26,6 +26,7 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
@@ -112,6 +113,7 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -12117,5 +12119,164 @@ class RelToSqlConverterTest {
     final String expectedBQSql = "SELECT BIT_COUNT(EMPNO) AS emp_no"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test void testBloatedProjects() {
+    final RelBuilder builder = relBuilder();
+
+    RexNode rex = builder.literal(2);
+    RexNode rex2 = builder.literal(20);
+    builder.scan("EMP")
+        .project(
+            getExtendedRexList(builder.peek(), builder.alias(rex, "f9"),
+            builder.alias(rex2, "f10"),
+                builder.alias(makeCaseCall(builder, 0, 0), "f11"),
+            builder.alias(makeCaseCall(builder, 0, 1), "f12"),
+            builder.alias(makeCaseCall(builder, 0, 2), "f13"),
+            builder.alias(makeCaseCall(builder, 0, 3), "f14"),
+            builder.alias(makeCaseCall(builder, 0, 4), "f15"),
+            builder.alias(makeCaseCall(builder, 0, 5), "f16"),
+            builder.alias(makeCaseCall(builder, 0, 6), "f17"),
+            builder.alias(makeCaseCall(builder, 0, 7), "f18"),
+            builder.alias(makeCaseCall(builder, 0, 8), "f19"),
+            builder.alias(makeCaseCall(builder, 0, 9), "f20"),
+            builder.alias(makeCaseCall(builder, 0, 10), "f21")));
+
+    builder.project(
+        getExtendedRexList(builder.peek(),
+        builder.alias(
+            builder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE,
+            builder.equals(builder.field(0), builder.literal(0)),
+            builder.field(10), rex2), "f111"),
+            builder.alias(makeCaseCall(builder, 10, 11), "f112"),
+            builder.alias(makeCaseCall(builder, 11, 12), "f113"),
+            builder.alias(makeCaseCall(builder, 12, 13), "f114"),
+            builder.alias(makeCaseCall(builder, 13, 14), "f115"),
+            builder.alias(makeCaseCall(builder, 14, 15), "f116"),
+            builder.alias(makeCaseCall(builder, 15, 16), "f117"),
+            builder.alias(makeCaseCall(builder, 16, 17), "f118"),
+            builder.alias(makeCaseCall(builder, 17, 18), "f119"),
+            builder.alias(makeCaseCall(builder, 18, 19), "f120"),
+            builder.alias(makeCaseCall(builder, 19, 20), "f121")));
+
+    builder.project(
+        getExtendedRexList(builder.peek(),
+        builder.alias(
+            builder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE,
+            builder.equals(builder.field(0), builder.literal(0)),
+            builder.field(10), rex2), "f111"),
+        makeCaseCall(builder, 11, 121),
+        makeCaseCall(builder, 12, 123),
+        makeCaseCall(builder, 13, 113),
+        makeCaseCall(builder, 14, 142),
+        makeCaseCall(builder, 15, 115),
+        makeCaseCall(builder, 16, 126),
+        makeCaseCall(builder, 17, 1237),
+        makeCaseCall(builder, 18, 1228),
+        makeCaseCall(builder, 19, 119),
+        makeCaseCall(builder, 20, 1192),
+        makeCaseCall(builder, 21, 1193),
+        makeCaseCall(builder, 23, 1194),
+        makeCaseCall(builder, 24, 1195),
+        makeCaseCall(builder, 25, 1194),
+        makeCaseCall(builder, 26, 1196),
+        makeCaseCall(builder, 27, 1179),
+        makeCaseCall(builder, 28, 11923),
+        makeCaseCall(builder, 29, 11239),
+        makeCaseCall(builder, 30, 11419),
+        makeCaseCall(builder, 31, 2000)));
+
+    final RelNode root = builder.build();
+
+    assert root instanceof Project && root.getInput(0) instanceof Project;
+
+    final String expectedSql = "SELECT \"EMPNO\", \"ENAME\", \"JOB\", \"MGR\", \"HIREDATE\", "
+        + "\"SAL\", \"COMM\", \"DEPTNO\", \"f9\", \"f10\", \"f11\", \"f12\", \"f13\", \"f14\", "
+        + "\"f15\", \"f16\", \"f17\", \"f18\", \"f19\", \"f20\", \"f21\", \"f111\", \"f112\", "
+        + "\"f113\", \"f114\", \"f115\", \"f116\", \"f117\", \"f118\", \"f119\", \"f120\", "
+        + "\"f121\", CASE WHEN \"EMPNO\" = 0 THEN \"f11\" ELSE 20 END AS \"f1110\", "
+        + "CASE WHEN \"f12\" = 121 THEN 121 ELSE 1210 END AS \"$f33\", "
+        + "CASE WHEN \"f13\" = 123 THEN 123 ELSE 1230 END AS \"$f34\", "
+        + "CASE WHEN \"f14\" = 113 THEN 113 ELSE 1130 END AS \"$f35\", "
+        + "CASE WHEN \"f15\" = 142 THEN 142 ELSE 1420 END AS \"$f36\", "
+        + "CASE WHEN \"f16\" = 115 THEN 115 ELSE 1150 END AS \"$f37\", "
+        + "CASE WHEN \"f17\" = 126 THEN 126 ELSE 1260 END AS \"$f38\", "
+        + "CASE WHEN \"f18\" = 1237 THEN 1237 ELSE 12370 END AS \"$f39\", "
+        + "CASE WHEN \"f19\" = 1228 THEN 1228 ELSE 12280 END AS \"$f40\", "
+        + "CASE WHEN \"f20\" = 119 THEN 119 ELSE 1190 END AS \"$f41\", "
+        + "CASE WHEN \"f21\" = 1192 THEN 1192 ELSE 11920 END AS \"$f42\", "
+        + "CASE WHEN \"f111\" = 1193 THEN 1193 ELSE 11930 END AS \"$f43\", "
+        + "CASE WHEN \"f113\" = 1194 THEN 1194 ELSE 11940 END AS \"$f44\", "
+        + "CASE WHEN \"f114\" = 1195 THEN 1195 ELSE 11950 END AS \"$f45\", "
+        + "CASE WHEN \"f115\" = 1194 THEN 1194 ELSE 11940 END AS \"$f46\", "
+        + "CASE WHEN \"f116\" = 1196 THEN 1196 ELSE 11960 END AS \"$f47\", "
+        + "CASE WHEN \"f117\" = 1179 THEN 1179 ELSE 11790 END AS \"$f48\", "
+        + "CASE WHEN \"f118\" = 11923 THEN 11923 ELSE 119230 END AS \"$f49\", "
+        + "CASE WHEN \"f119\" = 11239 THEN 11239 ELSE 112390 END AS \"$f50\", "
+        + "CASE WHEN \"f120\" = 11419 THEN 11419 ELSE 114190 END AS \"$f51\", "
+        + "CASE WHEN \"f121\" = 2000 THEN 2000 ELSE 20000 END AS \"$f52\""
+        + "\nFROM (SELECT \"EMPNO\", \"ENAME\", \"JOB\", \"MGR\", \"HIREDATE\", \"SAL\", \"COMM\","
+        + " \"DEPTNO\", 2 AS \"f9\", 20 AS \"f10\", 0 AS \"f11\", "
+        + "CASE WHEN \"EMPNO\" = 1 THEN 1 ELSE 10 END AS \"f12\", "
+        + "CASE WHEN \"EMPNO\" = 2 THEN 2 ELSE 20 END AS \"f13\", "
+        + "CASE WHEN \"EMPNO\" = 3 THEN 3 ELSE 30 END AS \"f14\", "
+        + "CASE WHEN \"EMPNO\" = 4 THEN 4 ELSE 40 END AS \"f15\", "
+        + "CASE WHEN \"EMPNO\" = 5 THEN 5 ELSE 50 END AS \"f16\", "
+        + "CASE WHEN \"EMPNO\" = 6 THEN 6 ELSE 60 END AS \"f17\", "
+        + "CASE WHEN \"EMPNO\" = 7 THEN 7 ELSE 70 END AS \"f18\", "
+        + "CASE WHEN \"EMPNO\" = 8 THEN 8 ELSE 80 END AS \"f19\", "
+        + "CASE WHEN \"EMPNO\" = 9 THEN 9 ELSE 90 END AS \"f20\", "
+        + "CASE WHEN \"EMPNO\" = 10 THEN 10 ELSE 100 END AS \"f21\", "
+        + "CASE WHEN \"EMPNO\" = 0 THEN 0 ELSE 20 END AS \"f111\", 110 AS \"f112\", "
+        + "CASE WHEN CASE WHEN \"EMPNO\" = 1 THEN 1 ELSE 10 END = 12 "
+        + "THEN 12 ELSE 120 END AS \"f113\", "
+        + "CASE WHEN CASE WHEN \"EMPNO\" = 2 THEN 2 ELSE 20 END = 13 "
+        + "THEN 13 ELSE 130 END AS \"f114\", "
+        + "CASE WHEN CASE WHEN \"EMPNO\" = 3 THEN 3 ELSE 30 END = 14 "
+        + "THEN 14 ELSE 140 END AS \"f115\", "
+        + "CASE WHEN CASE WHEN \"EMPNO\" = 4 THEN 4 ELSE 40 END = 15 "
+        + "THEN 15 ELSE 150 END AS \"f116\", "
+        + "CASE WHEN CASE WHEN \"EMPNO\" = 5 THEN 5 ELSE 50 END = 16 "
+        + "THEN 16 ELSE 160 END AS \"f117\", "
+        + "CASE WHEN CASE WHEN \"EMPNO\" = 6 THEN 6 ELSE 60 END = 17 "
+        + "THEN 17 ELSE 170 END AS \"f118\", "
+        + "CASE WHEN CASE WHEN \"EMPNO\" = 7 THEN 7 ELSE 70 END = 18 "
+        + "THEN 18 ELSE 180 END AS \"f119\", "
+        + "CASE WHEN CASE WHEN \"EMPNO\" = 8 THEN 8 ELSE 80 END = 19 "
+        + "THEN 19 ELSE 190 END AS \"f120\", "
+        + "CASE WHEN CASE WHEN \"EMPNO\" = 9 THEN 9 ELSE 90 END = 20 "
+        + "THEN 20 ELSE 200 END AS \"f121\""
+        + "\nFROM \"scott\".\"EMP\") AS \"t\"";
+    assertThat(toSqlWithBloat(root, 101), isLinux(expectedSql));
+  }
+
+  private RexNode makeCaseCall(RelBuilder builder, int index, int number) {
+    RexNode rex = builder.literal(number);
+    RexNode rex2 = builder.literal(number * 10);
+    return builder.getRexBuilder().makeCall(SqlStdOperatorTable.CASE,
+        builder.equals(builder.field(index), builder.literal(number)), rex, rex2);
+  }
+
+  private List<RexNode> getExtendedRexList(RelNode relNode, RexNode... rexNodes) {
+    List<RexNode> fields = new ArrayList<>();
+    for (RelDataTypeField field : relNode.getRowType().getFieldList()) {
+      fields.add(
+          relNode.getCluster().getRexBuilder().makeInputRef(field.getType(), field.getIndex()));
+    }
+    Collections.addAll(fields, rexNodes);
+    return fields;
+  }
+
+  private String toSqlWithBloat(RelNode root, int bloat) {
+    SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
+    UnaryOperator<SqlWriterConfig> transform = c ->
+        c.withAlwaysUseParentheses(false)
+            .withSelectListItemsOnSeparateLines(false)
+            .withUpdateSetListNewline(false)
+            .withIndentation(0);
+    final RelToSqlConverter converter = new RelToSqlConverter(dialect, bloat);
+    final SqlNode sqlNode = converter.visitRoot(root).asStatement();
+    return sqlNode.toSqlString(c -> transform.apply(c.withDialect(dialect)))
+        .getSql();
   }
 }

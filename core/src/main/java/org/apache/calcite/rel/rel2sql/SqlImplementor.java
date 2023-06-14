@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -142,6 +143,8 @@ public abstract class SqlImplementor {
   // So we just quote it.
   public static final SqlParserPos POS = SqlParserPos.QUOTED_ZERO;
 
+  public static final int DEFAULT_BLOAT = 100;
+
   public final SqlDialect dialect;
   protected final Set<String> aliasSet = new LinkedHashSet<>();
   protected final Map<String, SqlNode> ordinalMap = new HashMap<>();
@@ -154,6 +157,14 @@ public abstract class SqlImplementor {
   final RexBuilder rexBuilder =
       new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
 
+  /**
+   *  <p>nested projects will only be merged if complexity of the result is
+   *  less than or equal to the sum of the complexity of the originals plus {@code bloat}.
+   *
+   *  <p>refer to {@link org.apache.calcite.tools.RelBuilder.Config#bloat()} for more details.
+   */
+  private final int bloat;
+
   /** Maps a {@link SqlKind} to a {@link SqlOperator} that implements NOT
    * applied to that kind. */
   private static final Map<SqlKind, SqlOperator> NOT_KIND_OPERATORS =
@@ -164,8 +175,9 @@ public abstract class SqlImplementor {
           .put(SqlKind.SIMILAR, SqlStdOperatorTable.NOT_SIMILAR_TO)
           .build();
 
-  protected SqlImplementor(SqlDialect dialect) {
+  protected SqlImplementor(SqlDialect dialect, int bloat) {
     this.dialect = requireNonNull(dialect);
+    this.bloat = bloat;
   }
 
   /** Visits a relational expression that has no parent. */
@@ -2187,6 +2199,18 @@ public abstract class SqlImplementor {
           && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)) {
         stripHavingClauseIfAggregateFromProjection();
         return true;
+      }
+
+      if (rel instanceof Project && rel.getInput(0) instanceof Project) {
+        Project topProject = (Project) rel;
+        Project bottomProject = (Project) rel.getInput(0);
+        List<RexNode> mergedNodes =
+            RelOptUtil.pushPastProjectUnlessBloat(topProject.getProjects(), bottomProject, bloat);
+        if (mergedNodes == null) {
+          // The merged expression is more complex than the input expressions.
+          // Do not merge.
+          return true;
+        }
       }
 
       return false;
