@@ -6259,6 +6259,37 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testRegexpInstr() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpInstr2Args = builder.call(SqlLibraryOperators.REGEXP_INSTR,
+        builder.literal("datametica"), builder.literal("a"));
+    final RexNode regexpInstr3Args = builder.call(SqlLibraryOperators.REGEXP_INSTR,
+        builder.literal("datametica"), builder.literal("a"), builder.literal(2));
+    final RexNode regexpInstr4Args = builder.call(SqlLibraryOperators.REGEXP_INSTR,
+        builder.literal("datametica"), builder.literal("a"), builder.literal(2),
+        builder.literal(1));
+    final RexNode regexpInstr5Args = builder.call(SqlLibraryOperators.REGEXP_INSTR,
+        builder.literal("datametica"), builder.literal("a"), builder.literal(2),
+        builder.literal(1), builder.literal(1));
+    final RelNode root = builder.scan("EMP")
+        .project(builder.alias(regexpInstr2Args, "position1"),
+            builder.alias(regexpInstr3Args, "position2"),
+            builder.alias(regexpInstr4Args, "position3"),
+            builder.alias(regexpInstr5Args, "position4")).build();
+    final String expectedSql = "SELECT REGEXP_INSTR('datametica', 'a') AS \"position1\", "
+        + "REGEXP_INSTR('datametica', 'a', 2) AS \"position2\", "
+        + "REGEXP_INSTR('datametica', 'a', 2, 1) AS \"position3\", "
+        + "REGEXP_INSTR('datametica', 'a', 2, 1, 1) AS \"position4\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT REGEXP_INSTR('datametica', 'a') AS position1, "
+        + "REGEXP_INSTR('datametica', 'a', 2) AS position2, "
+        + "REGEXP_INSTR('datametica', 'a', 2, 1) AS position3, "
+        + "REGEXP_INSTR('datametica', 'a', 2, 1, 1) AS position4\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test void testJsonType() {
     String query = "select json_type(\"product_name\") from \"product\"";
     final String expected = "SELECT "
