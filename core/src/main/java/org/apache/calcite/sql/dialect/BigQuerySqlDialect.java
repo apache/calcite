@@ -1136,6 +1136,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "REGEXP_EXTRACT":
       unparseRegexpExtract(writer, call, leftPrec, rightPrec);
       break;
+    case "REGEXP_REPLACE":
+      unparseRegexpReplace(writer, call, leftPrec, rightPrec);
+      break;
     case "DATE_DIFF":
       final SqlWriter.Frame date_diff = writer.startFunCall("DATE_DIFF");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
@@ -1477,6 +1480,21 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(regexpExtractAllFrame);
   }
 
+  private void unparseRegexpReplace(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    SqlWriter.Frame regexpReplaceFrame = writer.startFunCall("REGEXP_REPLACE");
+    List<SqlNode> operandList = call.getOperandList();
+    for (SqlNode operand : operandList) {
+      writer.sep(",", false);
+      if ((operandList.indexOf(operand) == 1 || operandList.indexOf(operand) == 2)
+          && operand instanceof SqlCharStringLiteral) {
+        unparseRegexLiteral(writer, operand);
+      } else {
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+    }
+    writer.endFunCall(regexpReplaceFrame);
+  }
 
   public void unparseRegexpExtractAll(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
