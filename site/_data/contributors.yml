@@ -243,6 +243,11 @@
   githubId: nishantmonu51
   org: Hortonworks
   role: Committer
+- name: Oliver Lee
+  apacheId: oliver
+  githubId: olivrlee
+  org: Google
+  role: Committer
 - name: Ruben Quesada Lopez
   apacheId: rubenql
   githubId: rubenada
