@@ -1312,7 +1312,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(regexpExtractAllFrame);
   }
 
-  private void unparseRegexLiteral(SqlWriter writer, SqlNode operand) {
+  public void unparseRegexLiteral(SqlWriter writer, SqlNode operand) {
     String val = ((SqlCharStringLiteral) operand).toValue();
     val = val.startsWith("'") ? val : quoteStringLiteral(val);
     writer.literal(val);
