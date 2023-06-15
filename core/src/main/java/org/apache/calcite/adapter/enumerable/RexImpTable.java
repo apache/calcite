@@ -2402,7 +2402,7 @@ public class RexImpTable {
           return Expressions.call(floorMethod,
               translator.getLiteral(operand1), dayOperand0);
         default:
-          if (call.op.getName().equals("DATE_TRUNC")) {
+          if (call.op.getKind() == SqlKind.DATE_TRUNC) {
             throw new IllegalArgumentException("Time unit " + timeUnitRange
                 + " not supported for " + call.op.getName());
           }

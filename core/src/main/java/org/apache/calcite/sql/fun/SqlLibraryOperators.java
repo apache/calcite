@@ -1205,7 +1205,8 @@ public abstract class SqlLibraryOperators {
           OperandTypes.sequence("'DATE_TRUNC(<DATE>, <DATETIME_INTERVAL>)'",
               OperandTypes.DATE_OR_TIMESTAMP, OperandTypes.dateInterval()),
           SqlFunctionCategory.TIMEDATE)
-          .withOperandHandler(OperandHandlers.OPERAND_1_MIGHT_BE_TIME_FRAME);
+          .withOperandHandler(OperandHandlers.OPERAND_1_MIGHT_BE_TIME_FRAME)
+          .withKind(SqlKind.DATE_TRUNC);
 
   /** The "TIME_SUB(time, interval)" function (BigQuery);
    * subtracts an interval from a time, independent of any time zone.
