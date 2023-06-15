@@ -6283,7 +6283,8 @@ class RelToSqlConverterTest {
         + "REGEXP_INSTR('Hello, Hello, World!', 'Hello', 2, 1) AS \"position3\", "
         + "REGEXP_INSTR('Hello, Hello, World!', 'Hello', 2, 1, 1) AS \"position4\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT REGEXP_INSTR('Hello, Hello, World!', 'Hello') AS position1, "
+    final String expectedBiqQuery = "SELECT REGEXP_INSTR('Hello, Hello, World!', 'Hello') "
+        + "AS position1, "
         + "REGEXP_INSTR('Hello, Hello, World!', 'Hello', 2) AS position2, "
         + "REGEXP_INSTR('Hello, Hello, World!', 'Hello', 2, 1) AS position3, "
         + "REGEXP_INSTR('Hello, Hello, World!', 'Hello', 2, 1, 1) AS position4\n"
