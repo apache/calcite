@@ -1145,7 +1145,7 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyFilter(
         and(gt(literal(1), aRef), gt(literal(5), aRef)),
         RelOptPredicateList.EMPTY,
-        "<(?0.a, 1)");
+        ">(1, ?0.a)");
 
     // condition "1 > a && a > 5" yields false
     checkSimplifyFilter(
@@ -1601,6 +1601,68 @@ class RexProgramTest extends RexProgramTestBase {
             ne(literal(0), vInt())),
         "OR(null, <>(0, ?0.int0))",
         "<>(0, ?0.int0)",
+        "true");
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5780">[CALCITE-5780]
+   * Simplify '1 > x OR 1 <= x OR x IS NULL' to TRUE</a>. */
+  @Test void testSimplifyOrTermsWithReverseOrderComparison() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType rowType = typeFactory.builder()
+        .add("a", intType).nullable(true)
+        .build();
+
+    final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
+    final RexNode aRef = rexBuilder.makeFieldAccess(range, 0);
+
+    // "1 > a or 1 <= a or a is null" ==> "true"
+    checkSimplifyFilter(
+        or(gt(literal(1), aRef),
+            le(literal(1), aRef),
+            isNull(aRef)),
+        "true");
+
+    // "1 <= a or 1 > a or a is null" ==> "true"
+    checkSimplifyFilter(
+        or(le(literal(1), aRef),
+            gt(literal(1), aRef),
+            isNull(aRef)),
+        "true");
+
+    // "a is null or 1 > a or 1 <= a" ==> "true"
+    checkSimplifyFilter(
+        or(isNull(aRef),
+            gt(literal(1), aRef),
+            le(literal(1), aRef)),
+        "true");
+
+    // "2 > a or 0 < a or a is null" ==> "true"
+    checkSimplifyFilter(
+        or(gt(literal(2), aRef),
+            lt(literal(0), aRef),
+            isNull(aRef)),
+        "true");
+
+    // "1 > a or a >= 1 or a is null" ==> "true"
+    checkSimplifyFilter(
+        or(gt(literal(1), aRef),
+            ge(aRef, literal(1)),
+            isNull(aRef)),
+        "true");
+
+    // "1 <= a or a < 1 or a is null" ==> "true"
+    checkSimplifyFilter(
+        or(le(literal(1), aRef),
+            lt(aRef, literal(1)),
+            isNull(aRef)),
+        "true");
+
+    // "a >= 1 or 1 > a or a is null" ==> "true"
+    checkSimplifyFilter(
+        or(ge(aRef, literal(1)),
+            gt(literal(1), aRef),
+            isNull(aRef)),
         "true");
   }
 
