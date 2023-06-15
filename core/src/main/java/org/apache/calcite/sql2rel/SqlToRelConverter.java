@@ -278,6 +278,13 @@ public class SqlToRelConverter {
       new HashMap<>();
 
   /**
+   * The scope and identifier to the correlationId to deduplicate the creation of the
+   * correlationId.
+   */
+  private final Map<Pair<SqlValidatorScope, String>, CorrelationId> correlationIdMap =
+      new HashMap<>();
+
+  /**
    * Stack of names of datasets requested by the <code>
    * TABLE(SAMPLE(&lt;datasetName&gt;, &lt;query&gt;))</code> construct.
    */
@@ -4324,7 +4331,7 @@ public class SqlToRelConverter {
       final RexNode prev =
           bb.mapCorrelateToRex.put(((RexCorrelVariable) e0.left).id,
               (RexFieldAccess) e);
-      assert prev == null;
+      assert prev == null || prev.equals(e);
     }
     return e;
   }
@@ -5148,10 +5155,15 @@ public class SqlToRelConverter {
         // converted yet. This occurs when from items are correlated,
         // e.g. "select from emp as emp join emp.getDepts() as dept".
         // Create a temporary expression.
-        DeferredLookup lookup =
-            new DeferredLookup(this, qualified.identifier.names.get(0));
-        final CorrelationId correlId = cluster.createCorrel();
-        mapCorrelToDeferred.put(correlId, lookup);
+        final Pair<SqlValidatorScope, String> deduplicateBy =
+            Pair.of(scope, qualified.identifier.toString());
+        final CorrelationId correlId = correlationIdMap.computeIfAbsent(deduplicateBy, k -> {
+          DeferredLookup lookup = new DeferredLookup(this, qualified.identifier.names.get(0));
+          CorrelationId id = cluster.createCorrel();
+          mapCorrelToDeferred.put(id, lookup);
+          return id;
+        });
+
         if (resolve.path.steps().get(0).i < 0) {
           return Pair.of(rexBuilder.makeCorrel(rowType, correlId), null);
         } else {

@@ -4996,4 +4996,16 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     String sql = "SELECT CAST(CAST(? AS INTEGER) AS CHAR)";
     sql(sql).ok();
   }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5784">[CALCITE-5784]
+   * Generate the same correlationId for the same query</a>.
+   */
+  @Test void testCorrelationId() {
+    String sql = "WITH a AS (SELECT ename, job, empno, r FROM emp, "
+        + "LATERAL TABLE (ramp(empno)) as T(r))"
+        + " SELECT * from a a1, a a2 WHERE a1.r = a2.empno";
+    sql(sql).ok();
+  }
 }
