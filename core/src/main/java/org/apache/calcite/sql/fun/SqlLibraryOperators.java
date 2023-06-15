@@ -1367,7 +1367,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.NUMERIC);
 
-  @LibraryOperator(libraries = {SNOWFLAKE, BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction REGEXP_INSTR =
       new SqlFunction("REGEXP_INSTR",
           SqlKind.OTHER_FUNCTION,
