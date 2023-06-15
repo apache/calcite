@@ -54,6 +54,7 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.rules.CoreRules;
@@ -261,6 +262,11 @@ class SqlHintsConverterTest {
     final String sql = "select /*+ fast_snapshot(products_temporal) */ stream * from\n"
         + " orders join products_temporal for system_time as of timestamp '2022-08-11 15:00:00'\n"
         + " on orders.productid = products_temporal.productid";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionScanHints() {
+    final String sql = "select /*+ resource(parallelism='3') */ * from TABLE(ramp(5))";
     sql(sql).ok();
   }
 
@@ -931,6 +937,12 @@ class SqlHintsConverterTest {
           if (snapshot.getHints().size() > 0) {
             this.hintsCollect.add("Snapshot:" + snapshot.getHints());
           }
+        } else if (other instanceof LogicalTableFunctionScan) {
+          LogicalTableFunctionScan scan =
+              (LogicalTableFunctionScan) other;
+          if (scan.getHints().size() > 0) {
+            this.hintsCollect.add("TableFunctionScan:" + scan.getHints());
+          }
         }
         return super.visit(other);
       }
@@ -1001,7 +1013,8 @@ class SqlHintsConverterTest {
         .hintStrategy(
             "resource", HintPredicates.or(
             HintPredicates.PROJECT, HintPredicates.AGGREGATE,
-                HintPredicates.CALC, HintPredicates.VALUES, HintPredicates.FILTER))
+                HintPredicates.CALC, HintPredicates.VALUES,
+                HintPredicates.FILTER, HintPredicates.TABLE_FUNCTION_SCAN))
         .hintStrategy("AGG_STRATEGY",
             HintStrategy.builder(HintPredicates.AGGREGATE)
                 .optionChecker(

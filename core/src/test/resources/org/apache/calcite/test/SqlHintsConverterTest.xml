@@ -387,6 +387,17 @@ Sort:[[ASYNC_MERGE inheritPath:[]]]
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testTableFunctionScanHints">
+    <Resource name="sql">
+      <![CDATA[select /*+ resource(parallelism='3') */ * from TABLE(ramp(5))]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}]]
+TableFunctionScan:[[RESOURCE inheritPath:[0] options:{PARALLELISM=3}]]
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testTableHintsInJoin">
     <Resource name="sql">
       <![CDATA[select

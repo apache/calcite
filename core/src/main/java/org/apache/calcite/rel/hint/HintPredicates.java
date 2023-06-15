@@ -85,6 +85,11 @@ public abstract class HintPredicates {
   public static final HintPredicate SNAPSHOT =
       new NodeTypeHintPredicate(NodeTypeHintPredicate.NodeType.SNAPSHOT);
 
+  /** A hint predicate that indicates a hint can only be used to
+   * {@link org.apache.calcite.rel.core.TableFunctionScan} nodes. */
+  public static final HintPredicate TABLE_FUNCTION_SCAN =
+      new NodeTypeHintPredicate(NodeTypeHintPredicate.NodeType.TABLE_FUNCTION_SCAN);
+
   /**
    * Returns a composed hint predicate that represents a short-circuiting logical
    * AND of an array of hint predicates {@code hintPredicates}.  When evaluating the composed
