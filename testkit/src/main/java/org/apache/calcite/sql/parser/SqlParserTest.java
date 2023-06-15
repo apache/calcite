@@ -6670,9 +6670,9 @@ public class SqlParserTest {
     expr("extract(microsecond from d)").ok("EXTRACT(MICROSECOND FROM `D`)");
 
     // As for FLOOR, so for DATE_TRUNC.
-    expr("date_trunc(d , year)").ok("DATE_TRUNC(`D`, YEAR)");
-    expr("date_trunc(d , y)").ok("DATE_TRUNC(`D`, `Y`)");
-    expr("date_trunc(d , week(tuesday))").ok("DATE_TRUNC(`D`, `WEEK_TUESDAY`)");
+    expr("date_trunc(d , year)").ok("(DATE_TRUNC(`D`, YEAR))");
+    expr("date_trunc(d , y)").ok("(DATE_TRUNC(`D`, `Y`))");
+    expr("date_trunc(d , week(tuesday))").ok("(DATE_TRUNC(`D`, `WEEK_TUESDAY`))");
   }
 
   @Test void testGeometry() {
