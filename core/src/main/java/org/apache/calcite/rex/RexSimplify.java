@@ -1887,11 +1887,10 @@ public class RexSimplify {
       case GREATER_THAN:
       case GREATER_THAN_OR_EQUAL:
         final RexCall call = (RexCall) predicate;
-        if (call.operands.get(0).equals(ref)
-            && call.operands.get(1) instanceof RexLiteral) {
-          final RexLiteral literal = (RexLiteral) call.operands.get(1);
-          final C c1 = literal.getValueAs(clazz);
-          assert c1 != null : "value must not be null in " + literal;
+        final Comparison comparison = Comparison.of(call);
+        if (comparison != null && comparison.ref.equals(ref)) {
+          final C c1 = comparison.literal.getValueAs(clazz);
+          assert c1 != null : "value must not be null in " + comparison.literal;
           switch (predicate.getKind()) {
           case NOT_EQUALS:
             // We want to intersect result with the range set of everything but
@@ -1906,7 +1905,7 @@ public class RexSimplify {
             result = RangeSets.minus(result, pointRange);
             break;
           default:
-            final Range<C> r1 = range(predicate.getKind(), c1);
+            final Range<C> r1 = range(comparison.kind, c1);
             if (result.encloses(r1)) {
               // Given these predicates, term is always satisfied.
               // e.g. r0 is "$0 < 10", r1 is "$0 < 5"
