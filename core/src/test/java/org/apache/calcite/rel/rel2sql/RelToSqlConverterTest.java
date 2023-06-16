@@ -6969,6 +6969,25 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+
+  @Test void testDecimalInBQ() {
+    String query = "SELECT CAST(\"department_id\" AS DECIMAL(19,0)) FROM \"employee\"";
+    String expected = "SELECT CAST(department_id AS NUMERIC)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expected);
+  }
+
+  @Test void testDecimalWithMaxPrecisionInBQ() {
+    String query = "SELECT CAST(\"department_id\" AS DECIMAL(38,10)) FROM \"employee\"";
+    String expected = "SELECT CAST(department_id AS BIGNUMERIC)\\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expected);
+  }
+
   @Test void testDoubleOracle() {
     String query = "SELECT CAST(\"department_id\" AS DOUBLE) FROM \"employee\"";
     String expected = "SELECT CAST(\"department_id\" AS DOUBLE PRECISION)\n"
