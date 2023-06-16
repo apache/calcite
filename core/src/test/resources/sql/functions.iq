@@ -581,6 +581,18 @@ select concat(null, null, null);
 
 !ok
 
+# test that col1 is empty string rather than NULL
+with v as (select concat(null, '') as col1, 'b' as col2)
+select col2 from v where col1='';
++------+
+| COL2 |
++------+
+| b    |
++------+
+(1 row)
+
+!ok
+
 # concat in BigQuery
 !use post-big-query
 
@@ -620,6 +632,18 @@ select concat(null, null, null);
 +--------+
 |        |
 +--------+
+(1 row)
+
+!ok
+
+# test that col1 is NULL rather than empty string
+with v as (select concat(null, 'a') as col1, 'b' as col2)
+select col2 from v where col1 is null;
++------+
+| COL2 |
++------+
+| b    |
++------+
 (1 row)
 
 !ok
