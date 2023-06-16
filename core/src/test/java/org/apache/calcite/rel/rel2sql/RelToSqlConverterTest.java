@@ -6981,7 +6981,7 @@ class RelToSqlConverterTest {
 
   @Test void testDecimalWithMaxPrecisionInBQ() {
     String query = "SELECT CAST(\"department_id\" AS DECIMAL(38,10)) FROM \"employee\"";
-    String expected = "SELECT CAST(department_id AS BIGNUMERIC)\\n"
+    String expected = "SELECT CAST(department_id AS BIGNUMERIC)\n"
         + "FROM foodmart.employee";
     sql(query)
         .withBigQuery()
