@@ -38,6 +38,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.Snapshot;
+import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.hint.HintPredicate;
@@ -54,7 +55,6 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.rules.CoreRules;
@@ -937,9 +937,8 @@ class SqlHintsConverterTest {
           if (snapshot.getHints().size() > 0) {
             this.hintsCollect.add("Snapshot:" + snapshot.getHints());
           }
-        } else if (other instanceof LogicalTableFunctionScan) {
-          LogicalTableFunctionScan scan =
-              (LogicalTableFunctionScan) other;
+        } else if (other instanceof TableFunctionScan) {
+          TableFunctionScan scan = (TableFunctionScan) other;
           if (scan.getHints().size() > 0) {
             this.hintsCollect.add("TableFunctionScan:" + scan.getHints());
           }
