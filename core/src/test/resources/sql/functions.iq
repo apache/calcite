@@ -91,12 +91,14 @@ SELECT CONCAT('c', 'h', 'a', 'r');
 
 # CONCAT in MySQL, BigQuery returns NULL if any argument is NULL.
 # (CONCAT in Oracle, Postgres and MSSQL ignores NULL arguments.)
-SELECT CONCAT('c', 'h', 'a', null, 'r');
-+--------+
-| EXPR$0 |
-+--------+
-|        |
-+--------+
+with t as (select concat('c', 'h', 'a', null, 'r') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
 (1 row)
 
 !ok
@@ -331,12 +333,14 @@ select concat(cast(null as varchar), 'a');
 
 !ok
 
-select concat(null, null);
-+--------+
-| EXPR$0 |
-+--------+
-|        |
-+--------+
+with t as (select concat(null, null) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
 (1 row)
 
 !ok
@@ -511,32 +515,38 @@ select CONVERT(DATE, '05/01/2000', 103);
 !}
 
 # [CALCITE-5771] Apply two different NULL semantics for CONCAT function(enabled in MySQL, Postgresql, BigQuery and MSSQL)
-select concat(null);
-+--------+
-| EXPR$0 |
-+--------+
-|        |
-+--------+
+with t as (select concat(null) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
 (1 row)
 
 !ok
 
-select concat(null, '');
-+--------+
-| EXPR$0 |
-+--------+
-|        |
-+--------+
+with t as (select concat(null, '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
 (1 row)
 
 !ok
 
-select concat('', '');
-+--------+
-| EXPR$0 |
-+--------+
-|        |
-+--------+
+with t as (select concat('', '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
 (1 row)
 
 !ok
@@ -571,24 +581,14 @@ select concat(cast(null as varchar), 'a', 'b');
 
 !ok
 
-select concat(null, null, null);
-+--------+
-| EXPR$0 |
-+--------+
-|        |
-+--------+
-(1 row)
-
-!ok
-
-# test that col1 is empty string rather than NULL
-with v as (select concat(null, '') as col1, 'b' as col2)
-select col2 from v where col1='';
-+------+
-| COL2 |
-+------+
-| b    |
-+------+
+with t as (select concat(null, null, null) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
 (1 row)
 
 !ok
@@ -616,34 +616,38 @@ select concat('a', 'b');
 
 !ok
 
-select concat('a', cast(null as varchar), 'b');
-+--------+
-| EXPR$0 |
-+--------+
-|        |
-+--------+
+with t as (select concat(null, '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
 (1 row)
 
 !ok
 
-select concat(null, null, null);
-+--------+
-| EXPR$0 |
-+--------+
-|        |
-+--------+
+with t as (select concat('a', cast(null as varchar), 'b') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
 (1 row)
 
 !ok
 
-# test that col1 is NULL rather than empty string
-with v as (select concat(null, 'a') as col1, 'b' as col2)
-select col2 from v where col1 is null;
-+------+
-| COL2 |
-+------+
-| b    |
-+------+
+with t as (select concat(null, null, null) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
 (1 row)
 
 !ok
