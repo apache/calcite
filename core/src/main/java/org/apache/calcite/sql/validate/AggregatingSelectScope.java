@@ -171,7 +171,7 @@ public class AggregatingSelectScope
     }
   }
 
-  @Override public SqlNode getNode() {
+  @Override public SqlSelect getNode() {
     return select;
   }
 
