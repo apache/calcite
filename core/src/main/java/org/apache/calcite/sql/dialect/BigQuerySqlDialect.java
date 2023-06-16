@@ -1486,8 +1486,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     List<SqlNode> operandList = call.getOperandList();
     for (SqlNode operand : operandList) {
       writer.sep(",", false);
-      if ((operandList.indexOf(operand) == 1 || operandList.indexOf(operand) == 2)
-          && operand instanceof SqlCharStringLiteral) {
+      if (operandList.indexOf(operand) == 1 && operand instanceof SqlCharStringLiteral) {
         unparseRegexLiteral(writer, operand);
       } else {
         operand.unparse(writer, leftPrec, rightPrec);
