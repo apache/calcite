@@ -12010,6 +12010,22 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testOracleRoundFunction() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
+    final RexNode formatNode = relBuilder.literal("DAY");
+    RexNode roundNode = relBuilder.call(SqlLibraryOperators.ORACLE_ROUND,
+        literalTimestamp,
+        formatNode);
+    RelNode root = relBuilder
+        .project(roundNode)
+        .build();
+    final String expectedOracleSql = "SELECT ROUND(CURRENT_TIMESTAMP, 'DAY') \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
   @Test public void testOracleNextDayFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.ORACLE_NEXT_DAY,

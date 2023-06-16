@@ -1543,6 +1543,17 @@ public abstract class SqlLibraryOperators {
               SqlTypeFamily.STRING),
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction ORACLE_ROUND =
+      new SqlFunction(
+          "ROUND",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP,
+          null,
+          OperandTypes.family(SqlTypeFamily.DATETIME,
+              SqlTypeFamily.STRING),
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK, SNOWFLAKE})
   public static final SqlFunction TRANSLATE =
       new SqlFunction(
