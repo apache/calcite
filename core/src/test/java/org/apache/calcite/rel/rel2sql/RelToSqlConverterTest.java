@@ -6275,6 +6275,40 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testRegexpInstr() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpInstrWithTwoArgs = builder.call(SqlLibraryOperators.REGEXP_INSTR,
+        builder.literal("Hello, Hello, World!"), builder.literal("Hello"));
+    final RexNode regexpInstrWithThreeArgs = builder.call(SqlLibraryOperators.REGEXP_INSTR,
+        builder.literal("Hello, Hello, World!"), builder.literal("Hello"),
+        builder.literal(2));
+    final RexNode regexpInstrWithFourArgs = builder.call(SqlLibraryOperators.REGEXP_INSTR,
+        builder.literal("Hello, Hello, World!"), builder.literal("Hello"),
+        builder.literal(2), builder.literal(1));
+    final RexNode regexpInstrWithFiveArgs = builder.call(SqlLibraryOperators.REGEXP_INSTR,
+        builder.literal("Hello, Hello, World!"), builder.literal("Hello"),
+        builder.literal(2), builder.literal(1), builder.literal(1));
+    final RelNode root = builder.scan("EMP")
+        .project(builder.alias(regexpInstrWithTwoArgs, "position1"),
+            builder.alias(regexpInstrWithThreeArgs, "position2"),
+            builder.alias(regexpInstrWithFourArgs, "position3"),
+            builder.alias(regexpInstrWithFiveArgs, "position4")).build();
+    final String expectedSql = "SELECT REGEXP_INSTR('Hello, Hello, World!', 'Hello') "
+        + "AS \"position1\", "
+        + "REGEXP_INSTR('Hello, Hello, World!', 'Hello', 2) AS \"position2\", "
+        + "REGEXP_INSTR('Hello, Hello, World!', 'Hello', 2, 1) AS \"position3\", "
+        + "REGEXP_INSTR('Hello, Hello, World!', 'Hello', 2, 1, 1) AS \"position4\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT REGEXP_INSTR('Hello, Hello, World!', 'Hello') "
+        + "AS position1, "
+        + "REGEXP_INSTR('Hello, Hello, World!', 'Hello', 2) AS position2, "
+        + "REGEXP_INSTR('Hello, Hello, World!', 'Hello', 2, 1) AS position3, "
+        + "REGEXP_INSTR('Hello, Hello, World!', 'Hello', 2, 1, 1) AS position4\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test void testJsonType() {
     String query = "select json_type(\"product_name\") from \"product\"";
     final String expected = "SELECT "

@@ -1378,6 +1378,18 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction REGEXP_INSTR =
+      new SqlFunction("REGEXP_INSTR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.ANY,
+                  SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+              number -> number == 2 || number == 3 || number == 4),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction HASHBUCKET =
       new SqlFunction(
