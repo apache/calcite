@@ -1280,8 +1280,8 @@ completeness.
 | string1 NOT LIKE string2 [ ESCAPE string3 ]       | Whether *string1* does not match pattern *string2*
 | string1 SIMILAR TO string2 [ ESCAPE string3 ]     | Whether *string1* matches regular expression *string2*
 | string1 NOT SIMILAR TO string2 [ ESCAPE string3 ] | Whether *string1* does not match regular expression *string2*
-| value IN (value [, value]*)                       | Whether *value* is equal to a value in a list
-| value NOT IN (value [, value]*)                   | Whether *value* is not equal to every value in a list
+| value IN (value [, value ]*)                      | Whether *value* is equal to a value in a list
+| value NOT IN (value [, value ]*)                  | Whether *value* is not equal to every value in a list
 | value IN (sub-query)                              | Whether *value* is equal to a row returned by *sub-query*
 | value NOT IN (sub-query)                          | Whether *value* is not equal to every row returned by *sub-query*
 | value comparison SOME (sub-query or collection)   | Whether *value* *comparison* at least one row returned by *sub-query* or *collection*
@@ -2497,7 +2497,7 @@ Not implemented:
 Not implemented:
 
 * ST_TriangleAspect(geom) Returns the aspect of a triangle
-* ST_TriangleContouring(query \[, z1, z2, z3 ]\[, varArgs]*) Splits triangles into smaller triangles according to classes
+* ST_TriangleContouring(query \[, z1, z2, z3 ]\[, varArgs ]*) Splits triangles into smaller triangles according to classes
 * ST_TriangleDirection(geom) Computes the direction of steepest ascent of a triangle and returns it as a line-string
 * ST_TriangleSlope(geom) Computes the slope of a triangle as a percentage
 * ST_Voronoi(geom [, outDimension [, envelopePolygon ]]) Creates a Voronoi diagram
@@ -2679,6 +2679,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | o | CONCAT(string, string)                         | Concatenates two strings, returns null only when both string arguments are null, otherwise treats null as empty string
 | b m | CONCAT(string [, string ]*)                  | Concatenates one or more strings, returns null if any of the arguments is null
 | p q | CONCAT(string [, string ]*)                  | Concatenates one or more strings, null is treated as empty string
+| m p | CONCAT_WS(separator, str1 [, string ]*)      | Concatenates one or more strings, returns null only when separator is null, otherwise treats null arguments as empty strings
+| q | CONCAT_WS(separator, str1, str2 [, string ]*)  | Concatenates two or more strings, requires at least 3 arguments (up to 254), treats null arguments as empty strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string
 | q | CONVERT(type, expression [ , style ])          | Equivalent to `CAST(expression AS type)`; ignores the *style* operand
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
@@ -2735,8 +2737,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | m | JSON_INSERT(jsonValue, path, val [, path, val ]*) | Returns a JSON document insert a data of *jsonValue*, *path*, *val*
 | m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
 | m | JSON_REMOVE(jsonValue, path [, path ])         | Removes data from *jsonValue* using a series of *path* expressions and returns the result
-| m | JSON_REPLACE(jsonValue, path, val[, path, val]*)  | Returns a JSON document replace a data of *jsonValue*, *path*, *val*
-| m | JSON_SET(jsonValue, path, val[, path, val]*)  | Returns a JSON document set a data of *jsonValue*, *path*, *val*
+| m | JSON_REPLACE(jsonValue, path, val [, path, val ]*)  | Returns a JSON document replace a data of *jsonValue*, *path*, *val*
+| m | JSON_SET(jsonValue, path, val [, path, val ]*) | Returns a JSON document set a data of *jsonValue*, *path*, *val*
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of *jsonValue*
 | b o | LEAST(expr [, expr ]* )                      | Returns the least of the expressions
 | b m p | LEFT(string, length)                       | Returns the leftmost *length* characters from the *string*

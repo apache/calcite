@@ -427,6 +427,9 @@ public enum SqlKind {
   /** The {@code CONCAT} function (Postgresql and MSSQL) that ignores NULL. */
   CONCAT_WITH_NULL,
 
+  /** The {@code CONCAT_WS} function (MSSQL). */
+  CONCAT_WS_MSSQL,
+
   /** The "IF" function (BigQuery, Hive, Spark). */
   IF,
 

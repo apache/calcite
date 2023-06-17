@@ -947,7 +947,7 @@ public abstract class ReturnTypes {
    * <p>concat(cast('a' as varchar(2)), cast('b' as varchar(3)),cast('c' as varchar(2)))
    * returns varchar(7).
    *
-   * <p>concat(cast('a' as varchar), cast('b' as varchar(2), cast('c' as varchar(2))))
+   * <p>concat(cast('a' as varchar), cast('b' as varchar(2)), cast('c' as varchar(2)))
    * returns varchar.
    *
    * <p>concat(cast('a' as varchar(65535)), cast('b' as varchar(2)), cast('c' as varchar(2)))
@@ -985,6 +985,68 @@ public abstract class ReturnTypes {
       };
 
   /**
+   * Type-inference strategy for String concatenation with separator.
+   * The precision of separator should be calculated during combining.
+   * Result is varying if either input is; otherwise fixed.
+   *
+   * <p>For example:
+   *
+   * <ul>
+   * <li>{@code concat_ws(',', cast('a' as varchar(2), cast('b' as
+   * varchar(3)), cast('c' as varchar(2)))}
+   * returns {@code varchar(9)};
+   *
+   * <li>{@code concat_ws(',', cast('a' as varchar), cast('b' as
+   * varchar(2)), cast('c' as varchar(2)))}
+   * returns {@code varchar};
+   *
+   * <li>{@code concat_ws(',', cast('a' as varchar(65535)), cast('b'
+   * as varchar(2)), cast('c' as varchar(2)))}
+   * returns {@code varchar}.
+   * </ul>
+   */
+  public static final SqlReturnTypeInference MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION =
+      ReturnTypes::multivalentStringWithSepSumPrecision;
+
+  private static RelDataType multivalentStringWithSepSumPrecision(
+      SqlOperatorBinding opBinding) {
+    boolean hasPrecisionNotSpecifiedOperand = false;
+    boolean precisionOverflow = false;
+    int typePrecision = RelDataType.PRECISION_NOT_SPECIFIED;
+    long amount = 0;
+    List<RelDataType> operandTypes = opBinding.collectOperandTypes();
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
+    int separatorPrecision = operandTypes.get(0).getPrecision();
+    // when separator's precision is not specified
+    if (separatorPrecision == typePrecision) {
+      return typeFactory.createSqlType(SqlTypeName.VARCHAR, typePrecision);
+    }
+    for (int i = 1; i < operandTypes.size(); i++) {
+      int operandPrecision = operandTypes.get(i).getPrecision();
+      amount = (long) operandPrecision + amount;
+      // separator's Precision shouldn't be added when encountering null value
+      // or the last string arg
+      if (operandPrecision >= 0 && i < operandTypes.size() - 1) {
+        amount = amount + separatorPrecision;
+      }
+      if (operandPrecision == RelDataType.PRECISION_NOT_SPECIFIED) {
+        hasPrecisionNotSpecifiedOperand = true;
+        break;
+      }
+      if (amount > typeSystem.getMaxPrecision(SqlTypeName.VARCHAR)) {
+        precisionOverflow = true;
+        break;
+      }
+    }
+    if (!(hasPrecisionNotSpecifiedOperand || precisionOverflow)) {
+      typePrecision = (int) amount;
+    }
+
+    return typeFactory.createSqlType(SqlTypeName.VARCHAR, typePrecision);
+  }
+
+  /**
    * Same as {@link #MULTIVALENT_STRING_SUM_PRECISION} and using
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
    */
@@ -996,14 +1058,34 @@ public abstract class ReturnTypes {
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NOT_NULLABLE}.
    */
   public static final SqlReturnTypeInference MULTIVALENT_STRING_SUM_PRECISION_NOT_NULLABLE =
-      MULTIVALENT_STRING_SUM_PRECISION.andThen(SqlTypeTransforms.TO_NOT_NULLABLE);
+      MULTIVALENT_STRING_SUM_PRECISION
+          .andThen(SqlTypeTransforms.TO_NOT_NULLABLE);
+
+  /**
+   * Same as {@link #MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION} and using
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NOT_NULLABLE}.
+   */
+  public static final SqlReturnTypeInference
+      MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION_NOT_NULLABLE =
+          MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION
+              .andThen(SqlTypeTransforms.TO_NOT_NULLABLE);
+
+  /**
+   * Same as {@link #MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION} and using
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE_ALL}.
+   */
+  public static final SqlReturnTypeInference
+      MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION_ARG0_NULLABLE =
+          MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION
+              .andThen(SqlTypeTransforms.ARG0_NULLABLE);
 
   /**
    * Same as {@link #MULTIVALENT_STRING_SUM_PRECISION} and using
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE_ALL}.
    */
   public static final SqlReturnTypeInference MULTIVALENT_STRING_SUM_PRECISION_NULLABLE_ALL =
-      MULTIVALENT_STRING_SUM_PRECISION.andThen(SqlTypeTransforms.TO_NULLABLE_ALL);
+      MULTIVALENT_STRING_SUM_PRECISION
+          .andThen(SqlTypeTransforms.TO_NULLABLE_ALL);
 
   /**
    * Same as {@link #DYADIC_STRING_SUM_PRECISION} and using

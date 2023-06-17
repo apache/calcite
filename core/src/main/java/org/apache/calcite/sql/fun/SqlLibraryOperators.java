@@ -906,6 +906,52 @@ public abstract class SqlLibraryOperators {
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT2);
 
+  /** The "CONCAT_WS(separator, arg1, ...)" function (MySQL, Postgres);
+   * concatenates strings with separator, and treats null arguments as empty
+   * strings. For example:
+   *
+   * <ul>
+   * <li>{@code CONCAT_WS(',', 'a')} returns "{@code a}";
+   * <li>{@code CONCAT_WS(',', 'a', 'b')} returns "{@code a,b}".
+   * </ul>
+   *
+   * <p>Returns null if the separator arg is null.
+   * For example, {@code CONCAT_WS(null, 'a', 'b')} returns null.
+   *
+   * <p>If all the arguments except the separator are null,
+   * it also returns the empty string.
+   * For example, {@code CONCAT_WS(',', null, null)} returns "". */
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  public static final SqlFunction CONCAT_WS =
+      SqlBasicFunction.create("CONCAT_WS",
+          ReturnTypes.MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION_ARG0_NULLABLE,
+          OperandTypes.repeat(SqlOperandCountRanges.from(2),
+              OperandTypes.STRING),
+          SqlFunctionCategory.STRING)
+          .withOperandTypeInference(InferTypes.RETURN_TYPE);
+
+  /** The "CONCAT_WS(separator, arg1, arg2, ...)" function in (MSSQL).
+   *
+   * <p>Differs from {@link #CONCAT_WS} (MySQL, Postgres) in that it accepts
+   * between 3 and 254 arguments, and never returns null (even if the separator
+   * is null). For example:
+   *
+   * <ul>
+   * <li>{@code CONCAT_WS(',', 'a', 'b')} returns "{@code a,b}";
+   * <li>{@code CONCAT_WS(null, 'a', 'b')} returns "{@code ab}";
+   * <li>{@code CONCAT_WS(',', null, null)} returns "";
+   * <li>{@code CONCAT_WS(null, null, null)} returns "".
+   * </ul> */
+  @LibraryOperator(libraries = {MSSQL})
+  public static final SqlFunction CONCAT_WS_MSSQL =
+      SqlBasicFunction.create("CONCAT_WS",
+          ReturnTypes.MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION_NOT_NULLABLE,
+          OperandTypes.repeat(SqlOperandCountRanges.between(3, 254),
+              OperandTypes.STRING),
+          SqlFunctionCategory.STRING)
+          .withOperandTypeInference(InferTypes.RETURN_TYPE)
+          .withKind(SqlKind.CONCAT_WS_MSSQL);
+
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
     RelDataType type =
         opBinding.getOperandCount() > 0
