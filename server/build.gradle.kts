@@ -39,7 +39,7 @@ dependencies {
 }
 
 val fmppMain by tasks.registering(org.apache.calcite.buildtools.fmpp.FmppTask::class) {
-    inputs.dir("src/main/codegen")
+    inputs.dir("src/main/codegen").withPathSensitivity(PathSensitivity.RELATIVE)
     config.set(file("src/main/codegen/config.fmpp"))
     templates.set(file("$rootDir/core/src/main/codegen/templates"))
 }
