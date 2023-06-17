@@ -103,6 +103,96 @@ from t;
 
 !ok
 
+# [CALCITE-5741] Add support for CONCAT_WS function(enabled in MSSQL, MySQL and Postgresql)
+# CONCAT_WS in Postgres and MySQL returns null only when the separator arg is null.
+select concat_ws(',', 'a');
++--------+
+| EXPR$0 |
++--------+
+| a      |
++--------+
+(1 row)
+
+!ok
+
+select concat_ws(',', 'a', 'b', 'c');
++--------+
+| EXPR$0 |
++--------+
+| a,b,c  |
++--------+
+(1 row)
+
+!ok
+
+select concat_ws(',', 'a', cast(null as varchar), 'b');
++--------+
+| EXPR$0 |
++--------+
+| a,b    |
++--------+
+(1 row)
+
+!ok
+
+select concat_ws(',', '', '', '');
++--------+
+| EXPR$0 |
++--------+
+| ,,     |
++--------+
+(1 row)
+
+!ok
+
+with t as (select concat_ws(',', '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat_ws('', '', '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat_ws(',', cast(null as varchar), cast(null as varchar)) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat_ws(cast(null as varchar), 'a', 'b') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | true      |
++---+-----------+
+(1 row)
+
+!ok
+
 # Compression Functions
 
 SELECT COMPRESS('sample');
@@ -513,6 +603,83 @@ select CONVERT(INTEGER, NULL, NULL);
 select CONVERT(DATE, '05/01/2000', 103);
 !ok
 !}
+
+# CONCAT_WS in MSSQL
+select concat_ws(',', 'a', 'b');
++--------+
+| EXPR$0 |
++--------+
+| a,b    |
++--------+
+(1 row)
+
+!ok
+
+select concat_ws(',', 'a', cast(null as varchar), 'b');
++--------+
+| EXPR$0 |
++--------+
+| a,b    |
++--------+
+(1 row)
+
+!ok
+
+select concat_ws(',', '', '', '');
++--------+
+| EXPR$0 |
++--------+
+| ,,     |
++--------+
+(1 row)
+
+!ok
+
+with t as (select concat_ws('', '', '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat_ws(',', cast(null as varchar), cast(null as varchar)) as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+with t as (select concat_ws(cast(null as varchar), '', '', '') as c)
+select c, c is null as c_is_null
+from t;
++---+-----------+
+| C | C_IS_NULL |
++---+-----------+
+|   | false     |
++---+-----------+
+(1 row)
+
+!ok
+
+select concat_ws(cast(null as varchar), 'a', cast(null as varchar), 'b');
++--------+
+| EXPR$0 |
++--------+
+| ab     |
++--------+
+(1 row)
+
+!ok
 
 # [CALCITE-5771] Apply two different NULL semantics for CONCAT function(enabled in MySQL, Postgresql, BigQuery and MSSQL)
 with t as (select concat(null) as c)

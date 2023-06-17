@@ -802,6 +802,25 @@ public class SqlFunctions {
     return sb.toString();
   }
 
+  /** SQL {@code CONCAT_WS(sep, arg1, arg2, ...)} function,
+   * and null value will be treated as empty string. */
+  public static String concatMultiWithSeparator(String... args) {
+    // the separator arg could be null
+    final String sep = args[0] == null ? "" : args[0];
+    StringBuilder sb = new StringBuilder();
+    for (int i = 1; i < args.length; i++) {
+      if (args[i] != null) {
+        if (i < args.length - 1) {
+          sb.append(args[i]).append(sep);
+        } else {
+          // no separator after the last arg
+          sb.append(args[i]);
+        }
+      }
+    }
+    return sb.toString();
+  }
+
   /** SQL {@code CONVERT(s, src_charset, dest_charset)} function. */
   public static String convertWithCharset(String s, String srcCharset,
       String destCharset) {
