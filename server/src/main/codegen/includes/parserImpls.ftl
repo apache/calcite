@@ -376,6 +376,25 @@ SqlDrop SqlDropTable(Span s, boolean replace) :
     }
 }
 
+SqlTruncate SqlTruncateTable(Span s) :
+{
+    final SqlIdentifier id;
+    final boolean continueIdentity;
+}
+{
+      <TABLE> id = CompoundIdentifier()
+    (
+      <CONTINUE> <IDENTITY> { continueIdentity = true; }
+      |
+      <RESTART> <IDENTITY> { continueIdentity = false; }
+      |
+      { continueIdentity = true; }
+    )
+    {
+        return SqlDdlNodes.truncateTable(s.end(this), id, continueIdentity);
+    }
+}
+
 SqlDrop SqlDropView(Span s, boolean replace) :
 {
     final boolean ifExists;

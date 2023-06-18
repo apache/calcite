@@ -101,6 +101,12 @@ public class SqlDdlNodes {
     return new SqlDropTable(pos, ifExists, name);
   }
 
+  /** Creates a TRUNCATE TABLE. */
+  public static SqlTruncateTable truncateTable(SqlParserPos pos,
+      SqlIdentifier name, boolean continueIdentity) {
+    return new SqlTruncateTable(pos, name, continueIdentity);
+  }
+
   /** Creates a DROP VIEW. */
   public static SqlDrop dropView(SqlParserPos pos, boolean ifExists,
       SqlIdentifier name) {

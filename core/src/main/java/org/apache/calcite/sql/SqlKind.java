@@ -1158,6 +1158,9 @@ public enum SqlKind {
   /** {@code DROP TABLE} DDL statement. */
   DROP_TABLE,
 
+  /** {@code TRUNCATE TABLE} DDL statement. */
+  TRUNCATE_TABLE,
+
   /** {@code CREATE VIEW} DDL statement. */
   CREATE_VIEW,
 
@@ -1269,7 +1272,7 @@ public enum SqlKind {
   public static final EnumSet<SqlKind> DDL =
       EnumSet.of(COMMIT, ROLLBACK, ALTER_SESSION,
           CREATE_SCHEMA, CREATE_FOREIGN_SCHEMA, DROP_SCHEMA,
-          CREATE_TABLE, ALTER_TABLE, DROP_TABLE,
+          CREATE_TABLE, ALTER_TABLE, DROP_TABLE, TRUNCATE_TABLE,
           CREATE_FUNCTION, DROP_FUNCTION,
           CREATE_VIEW, ALTER_VIEW, DROP_VIEW,
           CREATE_MATERIALIZED_VIEW, ALTER_MATERIALIZED_VIEW,

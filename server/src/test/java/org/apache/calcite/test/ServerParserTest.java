@@ -287,6 +287,17 @@ class ServerParserTest extends SqlParserTest {
         .ok("DROP TABLE IF EXISTS `X`");
   }
 
+  @Test void testTruncateTable() {
+    sql("truncate table x")
+        .ok("TRUNCATE TABLE `X` CONTINUE IDENTITY");
+
+    sql("truncate table x continue identity")
+        .ok("TRUNCATE TABLE `X` CONTINUE IDENTITY");
+
+    sql("truncate table x restart identity")
+        .ok("TRUNCATE TABLE `X` RESTART IDENTITY");
+  }
+
   @Test void testDropView() {
     sql("drop view x")
         .ok("DROP VIEW `X`");

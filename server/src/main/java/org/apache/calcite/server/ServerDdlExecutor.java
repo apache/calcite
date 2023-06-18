@@ -65,6 +65,7 @@ import org.apache.calcite.sql.ddl.SqlCreateType;
 import org.apache.calcite.sql.ddl.SqlCreateView;
 import org.apache.calcite.sql.ddl.SqlDropObject;
 import org.apache.calcite.sql.ddl.SqlDropSchema;
+import org.apache.calcite.sql.ddl.SqlTruncateTable;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
@@ -180,6 +181,24 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
                 .build());
     return new SqlSelect(p, null, selectList, from, null, null, null, null,
         null, null, null, null, null);
+  }
+
+  /** Erase the table date that calcite-sever created. */
+  static void erase(SqlIdentifier name, CalcitePrepare.Context context) {
+    // Directly clearing data is more efficient than executing SQL
+    final Pair<CalciteSchema, String> pair = schema(context, true, name);
+    final CalciteSchema calciteSchema = pair.left;
+    final String tblName = pair.right;
+    final Table table = calciteSchema
+        .getTable(tblName, context.config().caseSensitive())
+        .getTable();
+    if (table instanceof MutableArrayTable) {
+      MutableArrayTable mutableArrayTable = (MutableArrayTable) table;
+      mutableArrayTable.rows.clear();
+    } else {
+      // Not calcite-server created, so not support truncate.
+      throw new UnsupportedOperationException("Only MutableArrayTable support truncate");
+    }
   }
 
   /** Populates the table called {@code name} by executing {@code query}. */
@@ -339,6 +358,25 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     default:
       throw new AssertionError(drop.getKind());
     }
+  }
+
+  /**
+   * Executes a {@code TRUNCATE TABLE} command.
+   */
+  public void execute(SqlTruncateTable truncate,
+      CalcitePrepare.Context context) {
+    final Pair<CalciteSchema, String> pair = schema(context, true, truncate.name);
+    if (pair.left.plus().getTable(pair.right) == null) {
+      throw SqlUtil.newContextException(truncate.name.getParserPosition(),
+          RESOURCE.tableNotFound(pair.right));
+    }
+
+    if (!truncate.continueIdentify) {
+      // Calcite not support RESTART IDENTIFY
+      throw new UnsupportedOperationException("RESTART IDENTIFY is not supported");
+    }
+
+    erase(truncate.name, context);
   }
 
   /** Executes a {@code CREATE MATERIALIZED VIEW} command. */

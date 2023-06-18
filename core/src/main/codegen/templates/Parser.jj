@@ -1137,6 +1137,10 @@ SqlNode SqlStmt() :
         stmt = SqlDrop()
     |
 </#if>
+<#if (parser.truncateStatementParserMethods!default.parser.truncateStatementParserMethods)?size != 0>
+        stmt = SqlTruncate()
+    |
+</#if>
         stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
     |
         stmt = SqlExplain()
@@ -4350,6 +4354,30 @@ SqlDrop SqlDrop() :
     )
     {
         return drop;
+    }
+}
+</#if>
+
+<#if (parser.truncateStatementParserMethods!default.parser.truncateStatementParserMethods)?size != 0>
+/**
+ * Parses a TRUNCATE statement.
+ */
+SqlTruncate SqlTruncate() :
+{
+    final Span s;
+    final SqlTruncate truncate;
+}
+{
+    <TRUNCATE> { s = span(); }
+    (
+<#-- additional literal parser methods are included here -->
+<#list (parser.truncateStatementParserMethods!default.parser.truncateStatementParserMethods) as method>
+        truncate = ${method}(s)
+        <#sep>|</#sep>
+</#list>
+    )
+    {
+        return truncate;
     }
 }
 </#if>
