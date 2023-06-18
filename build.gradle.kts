@@ -812,6 +812,10 @@ allprojects {
                         passProperty(e)
                     }
                 }
+                jvmArgumentProviders.add(
+                    AdditionalTestSystemPropertiesProvider(
+                        layout.buildDirectory.dir("test-surefire").get().asFile.absolutePath,
+                        layout.buildDirectory.dir("test-diffrepo").get().asFile.absolutePath))
             }
             // Cannot be moved above otherwise configure each will override
             // also the specific configurations below.
@@ -822,6 +826,10 @@ allprojects {
                     includeTags("slow")
                 }
                 jvmArgs("-Xmx6g")
+                jvmArgumentProviders.add(
+                    AdditionalTestSystemPropertiesProvider(
+                        layout.buildDirectory.dir("test-surefire").get().asFile.absolutePath,
+                        layout.buildDirectory.dir("test-diffrepo").get().asFile.absolutePath))
             }
             configureEach<SpotBugsTask> {
                 group = LifecycleBasePlugin.VERIFICATION_GROUP
@@ -980,5 +988,18 @@ allprojects {
                 }
             }
         }
+    }
+}
+
+class AdditionalTestSystemPropertiesProvider(
+    @Internal val surefireTestDir: String,
+    @Internal val diffRepoTestDir: String
+) : CommandLineArgumentProvider {
+
+    override fun asArguments(): Iterable<String> {
+        return listOf(
+            "-Dtest.surefire.dir=$surefireTestDir",
+            "-Dtest.diffrepo.dir=$diffRepoTestDir"
+        )
     }
 }

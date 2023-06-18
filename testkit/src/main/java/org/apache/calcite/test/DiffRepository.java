@@ -162,6 +162,7 @@ public class DiffRepository {
   private static final String TEST_CASE_OVERRIDES_ATTR = "overrides";
   private static final String RESOURCE_TAG = "Resource";
   private static final String RESOURCE_NAME_ATTR = "name";
+  private static final String DIFFREPO_TEST_DIR = System.getProperty("test.diffrepo.dir");
 
   /**
    * Holds one diff-repository per class. It is necessary for all test cases in
@@ -927,7 +928,10 @@ public class DiffRepository {
     DiffRepository toRepo() {
       final URL refFile = findFile(clazz, ".xml");
       final String refFilePath = Sources.of(refFile).file().getAbsolutePath();
-      final String logFilePath = refFilePath.replace(".xml", "_actual.xml");
+      final String logFilePath =
+          new File(DIFFREPO_TEST_DIR,
+              Sources.of(refFile).file().getName())
+              .getAbsolutePath().replace(".xml", "_actual.xml");
       final File logFile = new File(logFilePath);
       assert !refFilePath.equals(logFile.getAbsolutePath());
       return new DiffRepository(refFile, logFile, baseRepository, filter,
