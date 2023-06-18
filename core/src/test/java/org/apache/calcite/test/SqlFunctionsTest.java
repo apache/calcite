@@ -177,6 +177,8 @@ class SqlFunctionsTest {
     assertThat(concatMultiWithSeparator(",", "a b", null, "cd", null, "e"), is("a b,cd,e"));
     assertThat(concatMultiWithSeparator(",", null, null), is(""));
     assertThat(concatMultiWithSeparator(",", "", ""), is(","));
+    assertThat(concatMultiWithSeparator("", "a", "b", null, "c"), is("abc"));
+    assertThat(concatMultiWithSeparator("", null, null), is(""));
     // The separator could be null, and it is treated as empty string
     assertThat(concatMultiWithSeparator(null, "a", "b", null, "c"), is("abc"));
     assertThat(concatMultiWithSeparator(null, null, null), is(""));
