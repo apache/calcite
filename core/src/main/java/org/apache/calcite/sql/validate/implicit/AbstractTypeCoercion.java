@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlCollation;
@@ -52,7 +53,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
 
@@ -337,13 +337,13 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     assert rowType.isStruct();
     assert columnIndex < rowType.getFieldList().size();
 
-    final List<Map.Entry<String, RelDataType>> fieldList = new ArrayList<>();
+    final PairList<String, RelDataType> fieldList = PairList.of();
     for (int i = 0; i < rowType.getFieldCount(); i++) {
       final RelDataTypeField field = rowType.getFieldList().get(i);
       final String name = field.getName();
       final RelDataType type = field.getType();
       final RelDataType targetType = i == columnIndex ? desiredType : type;
-      fieldList.add(Pair.of(name, targetType));
+      fieldList.add(name, targetType);
     }
     updateInferredType(query, factory.createStructType(fieldList));
   }

@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.runtime.FlatLists;
@@ -99,6 +100,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.ObjIntConsumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
@@ -1873,6 +1875,38 @@ class UtilTest {
     assertThat(Util.distinctList(aaba), is(ab));
     final List<String> a1m = Collections.nCopies(1_000_000, "a");
     assertThat(Util.distinctList(a1m), is(a));
+  }
+
+  @Test void testIsDefinitelyDistinctAndNonNull() {
+    final BiConsumer<List<String>, Boolean> f = (list, b) -> {
+      assertThat(Util.isDefinitelyDistinctAndNonNull(list), is(b));
+    };
+
+    f.accept(ImmutableList.of(), true);
+    f.accept(Collections.singletonList(null), false);
+    f.accept(list("a", "b", "a"), false);
+    f.accept(list("a", "b", "c"), true);
+    f.accept(list(null, "b", "c"), false);
+    f.accept(list(null, "b", null), false);
+    f.accept(list(null, null), false);
+    final IntFunction<String> stringFn =
+        i -> String.valueOf((char) ('a' + i));
+    // {"a", "b", "c", "d", "e", "f"} is distinct
+    final List<String> alpha6 = Functions.generate(6, stringFn);
+    f.accept(alpha6, true);
+    // {"a", ... "n"} is distinct
+    final List<String> alpha14 =
+        new ArrayList<>(Functions.generate(14, stringFn));
+    f.accept(alpha14, true);
+    alpha14.set(10, "a");
+    f.accept(alpha14, false);
+    alpha14.set(10, null);
+    f.accept(alpha14, false);
+    alpha14.set(10, "z");
+    f.accept(alpha14, true);
+    // {"a", ... "t"} is distinct but has length above the threshold,
+    // so gives a false negative
+    f.accept(Functions.generate(20, stringFn), false);
   }
 
   /** Unit test for {@link Utilities#hashCode(double)}. */

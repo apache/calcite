@@ -2013,20 +2013,7 @@ public class Util {
    */
   public static <E> List<E> quotientList(
       final List<E> list, final int n, final int k) {
-    if (n <= 0 || k < 0 || k >= n) {
-      throw new IllegalArgumentException(
-          "n must be positive; k must be between 0 and n - 1");
-    }
-    final int size = (list.size() + n - k - 1) / n;
-    return new AbstractList<E>() {
-      @Override public E get(int index) {
-        return list.get(index * n + k);
-      }
-
-      @Override public int size() {
-        return size;
-      }
-    };
+    return new QuotientList<>(list, n, k);
   }
 
   /** Given a list with N elements
@@ -2035,7 +2022,6 @@ public class Util {
    * [ (e<sub>0</sub>, e<sub>1</sub>),
    * (e<sub>2</sub>, e<sub>3</sub>), ... ]. */
   public static <E> List<Pair<E, E>> pairs(final List<E> list) {
-    //noinspection unchecked
     return Pair.zip(quotientList(list, 2, 0),
         quotientList(list, 2, 1));
   }
@@ -2219,6 +2205,49 @@ public class Util {
       }
     }
     return -1;
+  }
+
+  /**
+   * Returns whether the elements of {@code list} are definitely distinct
+   * and not null, working quickly and sometimes giving false negatives for
+   * large lists.
+   *
+   * <p>A return of true means that the list is distinct (true positive);
+   * a return of false means either that list is not distinct (true negative)
+   * or that the list is large and distinct (false negative).
+   * (If the list is large, a hash map would be required to do an accurate
+   * job, and this method does its best quickly.)
+   */
+  public static <E> boolean isDefinitelyDistinctAndNonNull(
+      List<? extends @Nullable E> list) {
+    final int size = list.size();
+    // An empty list is distinct.
+    if (size == 0) {
+      return true;
+    }
+    // Make sure that element zero is not null.
+    if (list.get(0) == null) {
+      return false;
+    }
+    if (size < QUICK_DISTINCT) {
+      // For smaller lists, avoid the overhead of creating a set. Threshold
+      // determined empirically using UtilTest.testIsDistinctBenchmark.
+      for (int i = 1; i < size; i++) {
+        final E e = list.get(i);
+        if (e == null) {
+          return false;
+        }
+        for (int j = i - 1; j >= 0; j--) {
+          final E e1 = list.get(j);
+          if (e.equals(e1)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+    // Too expensive to check.
+    return false;
   }
 
   /** Converts a list into a list with unique elements.
@@ -2933,6 +2962,38 @@ public class Util {
 
     @Override public void remove() {
       delegate.remove();
+    }
+  }
+
+  /** Implements {@link Util#quotientList(List, int, int)};
+   * an anonymous inner class would not be able to implement
+   * {@link RandomAccess}, which is essential for how this class is used.
+   *
+   * @param <E> Element type */
+  private static class QuotientList<E>
+      extends AbstractList<E> implements RandomAccess {
+    private final List<E> list;
+    private final int n;
+    private final int k;
+    private final int size;
+
+    QuotientList(List<E> list, int n, int k) {
+      if (k < 0 || n <= 0 || k >= n) {
+        throw new IllegalArgumentException(
+            "n must be positive; k must be between 0 and n - 1");
+      }
+      this.list = list;
+      this.n = n;
+      this.k = k;
+      this.size = (list.size() + n - k - 1) / n;
+    }
+
+    @Override public int size() {
+      return size;
+    }
+
+    @Override public E get(int index) {
+      return list.get(index * n + k);
     }
   }
 }

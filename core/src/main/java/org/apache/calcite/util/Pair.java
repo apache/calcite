@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.runtime.PairList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
@@ -91,9 +93,9 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
 
   @Override public boolean equals(@Nullable Object obj) {
     return this == obj
-        || (obj instanceof Pair)
-        && Objects.equals(this.left, ((Pair) obj).left)
-        && Objects.equals(this.right, ((Pair) obj).right);
+        || (obj instanceof Map.Entry)
+        && Objects.equals(this.left, ((Map.Entry) obj).getKey())
+        && Objects.equals(this.right, ((Map.Entry) obj).getValue());
   }
 
   /** {@inheritDoc}
@@ -323,13 +325,21 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
     return Util.transform(iterable, Map.Entry::getValue);
   }
 
+  @SuppressWarnings("unchecked")
   public static <K, V> List<K> left(
       final List<? extends Map.Entry<? extends K, ? extends V>> pairs) {
+    if (pairs instanceof PairList) {
+      return ((PairList<K, V>) pairs).leftList();
+    }
     return Util.transform(pairs, Map.Entry::getKey);
   }
 
+  @SuppressWarnings("unchecked")
   public static <K, V> List<V> right(
       final List<? extends Map.Entry<? extends K, ? extends V>> pairs) {
+    if (pairs instanceof PairList) {
+      return ((PairList<K, V>) pairs).rightList();
+    }
     return Util.transform(pairs, Map.Entry::getValue);
   }
 

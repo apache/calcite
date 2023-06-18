@@ -18,6 +18,7 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Pair;
 
@@ -102,6 +103,17 @@ public class RexInputRef extends RexSlot {
       List<RelDataTypeField> fields) {
     final RelDataTypeField field = fields.get(index);
     return Pair.of(new RexInputRef(index, field.getType()),
+        field.getName());
+  }
+
+  /**
+   * Adds to a PairList a reference to a given field in a list of fields.
+   */
+  public static void add2(PairList<RexNode, String> list,
+      int index,
+      List<RelDataTypeField> fields) {
+    final RelDataTypeField field = fields.get(index);
+    list.add(new RexInputRef(index, field.getType()),
         field.getName());
   }
 

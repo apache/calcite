@@ -22,6 +22,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlLiteral;
@@ -407,7 +408,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
       return -Utilities.compare(pos0.getColumnNum(), pos1.getColumnNum());
     });
     String sql2 = sql;
-    final List<Pair<String, String>> values = new ArrayList<>();
+    final PairList<String, String> values = PairList.of();
     int p = 0;
     for (SqlNode literal : nodes) {
       final SqlParserPos pos = literal.getParserPosition();
@@ -420,20 +421,20 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
               pos.getEndLineNum(),
               pos.getEndColumnNum()) + 1;
       String param = "p" + p++;
-      values.add(Pair.of(sql2.substring(start, end), param));
+      values.add(sql2.substring(start, end), param);
       sql2 = sql2.substring(0, start)
           + param
           + sql2.substring(end);
     }
     if (values.isEmpty()) {
-      values.add(Pair.of("1", "p0"));
+      values.add("1", "p0");
     }
     return "select "
         + sql2.substring("values (".length(), sql2.length() - 1)
         + " from (values ("
-        + Util.commaList(Pair.left(values))
+        + Util.commaList(values.leftList())
         + ")) as t("
-        + Util.commaList(Pair.right(values))
+        + Util.commaList(values.rightList())
         + ")";
   }
 

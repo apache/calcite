@@ -26,10 +26,6 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.util.Pair;
-
-import java.util.AbstractList;
-import java.util.Map;
 
 /**
  * SqlRowOperator represents the special ROW constructor.
@@ -57,21 +53,15 @@ public class SqlRowOperator extends SqlSpecialOperator {
     // {e1type,e2type}.  According to the standard, field names are
     // implementation-defined.
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    final RelDataType recordType =
-        typeFactory.createStructType(
-            new AbstractList<Map.Entry<String, RelDataType>>() {
-              @Override public Map.Entry<String, RelDataType> get(int index) {
-                return Pair.of(SqlUtil.deriveAliasFromOrdinal(index),
-                    opBinding.getOperandType(index));
-              }
-
-              @Override public int size() {
-                return opBinding.getOperandCount();
-              }
-            });
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
+    for (int index = 0; index < opBinding.getOperandCount(); index++) {
+      builder.add(SqlUtil.deriveAliasFromOrdinal(index),
+          opBinding.getOperandType(index));
+    }
+    final RelDataType recordType = builder.build();
 
     // The value of ROW(e1,e2) is considered null if and only all of its
-    // fields (i.e., e1, e2) are null. Otherwise ROW can not be null.
+    // fields (i.e., e1, e2) are null. Otherwise, ROW can not be null.
     final boolean nullable =
         recordType.getFieldList().stream()
             .allMatch(f -> f.getType().isNullable());

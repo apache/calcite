@@ -189,7 +189,7 @@ public class DiffRepository {
 
   //~ Instance fields --------------------------------------------------------
 
-  private final DiffRepository baseRepository;
+  private final @Nullable DiffRepository baseRepository;
   private final int indent;
   private final ImmutableSortedSet<String> outOfOrderTests;
   private Document doc;
@@ -210,7 +210,7 @@ public class DiffRepository {
    * @param indent    Indentation of XML file
    */
   private DiffRepository(URL refFile, File logFile,
-      DiffRepository baseRepository, Filter filter, int indent) {
+      @Nullable DiffRepository baseRepository, Filter filter, int indent) {
     this.baseRepository = baseRepository;
     this.filter = filter;
     this.indent = indent;
@@ -404,7 +404,7 @@ public class DiffRepository {
    *                      a base repository, it has overrides="true"
    * @return TestCase element, or null if not found
    */
-  private synchronized Element getTestCaseElement(
+  private synchronized @Nullable Element getTestCaseElement(
       final String testCaseName,
       boolean checkOverride,
       List<Pair<String, Element>> elements) {

@@ -33,6 +33,7 @@ import org.apache.calcite.rel.metadata.MetadataFactory;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
@@ -49,6 +50,7 @@ import org.checkerframework.dataflow.qual.Pure;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -368,16 +370,16 @@ public abstract class AbstractRelNode implements RelNode {
     if (!result) {
       return false;
     }
-    List<Pair<String, @Nullable Object>> items1 = this.getDigestItems();
-    List<Pair<String, @Nullable Object>> items2 = that.getDigestItems();
+    PairList<String, @Nullable Object> items1 = this.getDigestItems();
+    PairList<String, @Nullable Object> items2 = that.getDigestItems();
     if (items1.size() != items2.size()) {
       return false;
     }
     for (int i = 0; result && i < items1.size(); i++) {
-      Pair<String, @Nullable Object> attr1 = items1.get(i);
-      Pair<String, @Nullable Object> attr2 = items2.get(i);
-      if (attr1.right instanceof RelNode) {
-        result = ((RelNode) attr1.right).deepEquals(attr2.right);
+      Map.Entry<String, @Nullable Object> attr1 = items1.get(i);
+      Map.Entry<String, @Nullable Object> attr2 = items2.get(i);
+      if (attr1.getValue() instanceof RelNode) {
+        result = ((RelNode) attr1.getValue()).deepEquals(attr2.getValue());
       } else {
         result = attr1.equals(attr2);
       }
@@ -393,9 +395,8 @@ public abstract class AbstractRelNode implements RelNode {
   @API(since = "1.25", status = API.Status.MAINTAINED)
   @Override public int deepHashCode() {
     int result = 31 + getTraitSet().hashCode();
-    List<Pair<String, @Nullable Object>> items = this.getDigestItems();
-    for (Pair<String, @Nullable Object> item : items) {
-      Object value = item.right;
+    PairList<String, @Nullable Object> items = this.getDigestItems();
+    for (@Nullable Object value : items.rightList()) {
       final int h;
       if (value == null) {
         h = 0;
@@ -409,7 +410,7 @@ public abstract class AbstractRelNode implements RelNode {
     return result;
   }
 
-  private List<Pair<String, @Nullable Object>> getDigestItems() {
+  private PairList<String, @Nullable Object> getDigestItems() {
     RelDigestWriter rdw = new RelDigestWriter();
     explainTerms(rdw);
     if (this instanceof Hintable) {
@@ -466,8 +467,7 @@ public abstract class AbstractRelNode implements RelNode {
    * prohibited.
    */
   private static final class RelDigestWriter implements RelWriter {
-
-    private final List<Pair<String, @Nullable Object>> attrs = new ArrayList<>();
+    private final PairList<String, @Nullable Object> attrs = PairList.of();
 
     @Nullable String digest = null;
 
@@ -496,22 +496,21 @@ public abstract class AbstractRelNode implements RelNode {
       sb.append('.');
       sb.append(node.getTraitSet());
       sb.append('(');
-      int j = 0;
-      for (Pair<String, @Nullable Object> attr : attrs) {
-        if (j++ > 0) {
+      attrs.forEachIndexed((j, left, right) -> {
+        if (j > 0) {
           sb.append(',');
         }
-        sb.append(attr.left);
+        sb.append(left);
         sb.append('=');
-        if (attr.right instanceof RelNode) {
-          RelNode input = (RelNode) attr.right;
+        if (right instanceof RelNode) {
+          RelNode input = (RelNode) right;
           sb.append(input.getRelTypeName());
           sb.append('#');
           sb.append(input.getId());
         } else {
-          sb.append(attr.right);
+          sb.append(right);
         }
-      }
+      });
       sb.append(')');
       digest = sb.toString();
       return this;

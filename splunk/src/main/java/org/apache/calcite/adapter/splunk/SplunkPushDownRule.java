@@ -31,6 +31,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSlot;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -38,7 +39,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.NlsString;
-import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -247,7 +247,7 @@ public class SplunkPushDownRule
     }
 
     // field renaming: to -> from
-    List<Pair<String, String>> renames = new ArrayList<>();
+    final PairList<String, String> renames = PairList.of();
 
     // handle top projection (ie reordering and renaming)
     List<RelDataTypeField> newFields = bottomFields;
@@ -260,10 +260,8 @@ public class SplunkPushDownRule
         RelDataTypeField field = bottomFields.get(rif.getIndex());
         if (!bottomFields.get(rif.getIndex()).getName()
             .equals(topFields.get(i).getName())) {
-          renames.add(
-              Pair.of(
-                  bottomFields.get(rif.getIndex()).getName(),
-                  topFields.get(i).getName()));
+          renames.add(bottomFields.get(rif.getIndex()).getName(),
+              topFields.get(i).getName());
           field = topFields.get(i);
         }
         newFields.add(field);
@@ -272,10 +270,9 @@ public class SplunkPushDownRule
 
     if (!renames.isEmpty()) {
       updateSearchStr.append("| rename ");
-      for (Pair<String, String> p : renames) {
-        updateSearchStr.append(p.left).append(" AS ")
-            .append(p.right).append(" ");
-      }
+      renames.forEach((left, right) ->
+          updateSearchStr.append(left).append(" AS ")
+              .append(right).append(" "));
     }
 
     RelDataType resultType =

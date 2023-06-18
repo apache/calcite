@@ -34,6 +34,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
@@ -46,10 +47,11 @@ import com.alibaba.innodb.java.reader.comparator.ComparisonOperator;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractList;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Relational expression representing a scan of a table
@@ -102,12 +104,8 @@ public class InnodbToEnumerableConverter extends ConverterImpl
                       }
                     }),
                 Pair.class));
-    List<Map.Entry<String, String>> selectList = new ArrayList<>();
-    for (Map.Entry<String, String> entry
-        : Pair.zip(innodbImplementor.selectFields.keySet(),
-        innodbImplementor.selectFields.values())) {
-      selectList.add(entry);
-    }
+    PairList<String, String> selectList =
+        PairList.of(innodbImplementor.selectFields);
     final Expression selectFields =
         list.append("selectFields", constantArrayList(selectList, Pair.class));
     final Expression table =
@@ -160,9 +158,23 @@ public class InnodbToEnumerableConverter extends ConverterImpl
    * E.g. {@code constantArrayList("x", "y")} returns
    * "Arrays.asList('x', 'y')".
    */
+  @SuppressWarnings({"rawtypes", "unchecked"})
   private static <T> Expression constantArrayList(List<T> values, Class clazz) {
-    return Expressions.call(
-        BuiltInMethod.ARRAYS_AS_LIST.method,
+    if (values instanceof PairList
+        && !values.isEmpty()
+        && Map.Entry.class.isAssignableFrom(clazz)) {
+      // For PairList, we cannot generate Arrays.asList because Map.Entry does
+      // not an obvious implementation with default constructor. Instead,
+      // generate
+      //   PairList.of("k0", "v0", "k1", "v1");
+      final List<Object> keyValues =
+          ((PairList<Object, Object>) values).stream()
+              .flatMap(p -> Stream.of(p.getKey(), p.getValue()))
+              .collect(Collectors.toList());
+      return Expressions.call(null, BuiltInMethod.PAIR_LIST_COPY_OF.method,
+          constantList(keyValues));
+    }
+    return Expressions.call(BuiltInMethod.ARRAYS_AS_LIST.method,
         Expressions.newArrayInit(clazz, constantList(values)));
   }
 

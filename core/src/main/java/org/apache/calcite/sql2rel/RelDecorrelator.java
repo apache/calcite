@@ -72,6 +72,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlFunction;
@@ -92,7 +93,6 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mappings;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -525,7 +525,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     // Project projects the original expressions,
     // plus any correlated variables the input wants to pass along.
-    final List<Pair<RexNode, String>> projects = new ArrayList<>();
+    final PairList<RexNode, String> projects = PairList.of();
 
     List<RelDataTypeField> newInputOutput =
         newInput.getRowType().getFieldList();
@@ -547,7 +547,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       // add mapping of group keys.
       outputMap.put(idx, newPos);
       int newInputPos = requireNonNull(frame.oldToNewOutputs.get(idx));
-      projects.add(RexInputRef.of2(newInputPos, newInputOutput));
+      RexInputRef.add2(projects, newInputPos, newInputOutput);
       mapNewInputToProjOutputs.put(newInputPos, newPos);
       newPos++;
     }
@@ -560,7 +560,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       // Now add the corVars from the input, starting from
       // position oldGroupKeyCount.
       for (Map.Entry<CorDef, Integer> entry : frame.corDefOutputs.entrySet()) {
-        projects.add(RexInputRef.of2(entry.getValue(), newInputOutput));
+        RexInputRef.add2(projects, entry.getValue(), newInputOutput);
 
         corDefOutputs.put(entry.getKey(), newPos);
         mapNewInputToProjOutputs.put(entry.getValue(), newPos);
@@ -572,7 +572,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final int newGroupKeyCount = newPos;
     for (int i = 0; i < newInputOutput.size(); i++) {
       if (!mapNewInputToProjOutputs.containsKey(i)) {
-        projects.add(RexInputRef.of2(i, newInputOutput));
+        RexInputRef.add2(projects, i, newInputOutput);
         mapNewInputToProjOutputs.put(i, newPos);
         newPos++;
       }
@@ -583,7 +583,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // This Project will be what the old input maps to,
     // replacing any previous mapping from old input).
     RelNode newProject = relBuilder.push(newInput)
-        .projectNamed(Pair.left(projects), Pair.right(projects), true)
+        .projectNamed(projects.leftList(), projects.rightList(), true)
         .build();
 
     // update mappings:
@@ -756,7 +756,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     // Project projects the original expressions,
     // plus any correlated variables the input wants to pass along.
-    final List<Pair<RexNode, String>> projects = new ArrayList<>();
+    final PairList<RexNode, String> projects = PairList.of();
 
     // If this Project has correlated reference, create value generator
     // and produce the correlated variables in the new output.
@@ -768,27 +768,24 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final Map<Integer, Integer> mapOldToNewOutputs = new HashMap<>();
     int newPos;
     for (newPos = 0; newPos < oldProjects.size(); newPos++) {
-      projects.add(
-          newPos,
-          Pair.of(
-              decorrelateExpr(requireNonNull(currentRel, "currentRel"),
-                  map, cm, oldProjects.get(newPos)),
-              relOutput.get(newPos).getName()));
+      projects.add(newPos,
+          decorrelateExpr(requireNonNull(currentRel, "currentRel"),
+              map, cm, oldProjects.get(newPos)),
+          relOutput.get(newPos).getName());
       mapOldToNewOutputs.put(newPos, newPos);
     }
 
     // Project any correlated variables the input wants to pass along.
     final NavigableMap<CorDef, Integer> corDefOutputs = new TreeMap<>();
     for (Map.Entry<CorDef, Integer> entry : frame.corDefOutputs.entrySet()) {
-      projects.add(
-          RexInputRef.of2(entry.getValue(),
-              frame.r.getRowType().getFieldList()));
+      RexInputRef.add2(projects, entry.getValue(),
+          frame.r.getRowType().getFieldList());
       corDefOutputs.put(entry.getKey(), newPos);
       newPos++;
     }
 
     RelNode newProject = relBuilder.push(frame.r)
-        .projectNamed(Pair.left(projects), Pair.right(projects), true)
+        .projectNamed(projects.leftList(), projects.rightList(), true)
         .build();
 
     return register(rel, newProject, mapOldToNewOutputs, corDefOutputs);
@@ -1414,7 +1411,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
                 true));
 
     // now create the new project
-    List<Pair<RexNode, String>> newProjExprs = new ArrayList<>();
+    final PairList<RexNode, String> newProjExprs = PairList.of();
 
     // project everything from the LHS and then those from the original
     // projRel
@@ -1422,7 +1419,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         left.getRowType().getFieldList();
 
     for (int i = 0; i < leftInputFields.size(); i++) {
-      newProjExprs.add(RexInputRef.of2(i, leftInputFields));
+      RexInputRef.add2(newProjExprs, i, leftInputFields);
     }
 
     // Marked where the projected expr is coming from so that the types will
@@ -1438,11 +1435,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
               projectPulledAboveLeftCorrelator,
               nullIndicator);
 
-      newProjExprs.add(Pair.of(newProjExpr, pair.right));
+      newProjExprs.add(newProjExpr, pair.right);
     }
 
     return relBuilder.push(join)
-        .projectNamed(Pair.left(newProjExprs), Pair.right(newProjExprs), true)
+        .projectNamed(newProjExprs.leftList(), newProjExprs.rightList(), true)
         .build();
   }
 
@@ -1464,7 +1461,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final JoinRelType joinType = correlate.getJoinType();
 
     // now create the new project
-    final List<Pair<RexNode, String>> newProjects = new ArrayList<>();
+    final PairList<RexNode, String> newProjects = PairList.of();
 
     // Project everything from the LHS and then those from the original
     // project
@@ -1472,7 +1469,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         left.getRowType().getFieldList();
 
     for (int i = 0; i < leftInputFields.size(); i++) {
-      newProjects.add(RexInputRef.of2(i, leftInputFields));
+      RexInputRef.add2(newProjects, i, leftInputFields);
     }
 
     // Marked where the projected expr is coming from so that the types will
@@ -1487,11 +1484,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
               pair.left,
               projectPulledAboveLeftCorrelator,
               isCount);
-      newProjects.add(Pair.of(newProjExpr, pair.right));
+      newProjects.add(newProjExpr, pair.right);
     }
 
     return relBuilder.push(correlate)
-        .projectNamed(Pair.left(newProjects), Pair.right(newProjects), true)
+        .projectNamed(newProjects.leftList(), newProjects.rightList(), true)
         .build();
   }
 
@@ -1569,17 +1566,17 @@ public class RelDecorrelator implements ReflectiveVisitor {
    */
   private RelNode createProjectWithAdditionalExprs(
       RelNode input,
-      List<Pair<RexNode, String>> additionalExprs) {
+      PairList<RexNode, String> additionalExprs) {
     final List<RelDataTypeField> fieldList =
         input.getRowType().getFieldList();
-    List<Pair<RexNode, String>> projects = new ArrayList<>();
+    PairList<RexNode, String> projects = PairList.of();
     Ord.forEach(fieldList, (field, i) ->
         projects.add(
-            Pair.of(relBuilder.getRexBuilder().makeInputRef(field.getType(), i),
-                field.getName())));
+            relBuilder.getRexBuilder().makeInputRef(field.getType(), i),
+            field.getName()));
     projects.addAll(additionalExprs);
     return relBuilder.push(input)
-        .projectNamed(Pair.left(projects), Pair.right(projects), true)
+        .projectNamed(projects.leftList(), projects.rightList(), true)
         .build();
   }
 
@@ -2124,8 +2121,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         // make the new Project to provide a null indicator
         right =
             d.createProjectWithAdditionalExprs(right,
-                ImmutableList.of(
-                    Pair.of(d.relBuilder.literal(true), "nullIndicator")));
+                PairList.of(d.relBuilder.literal(true), "nullIndicator"));
 
         // make the new aggRel
         right =
@@ -2440,8 +2436,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       right =
           d.createProjectWithAdditionalExprs(right,
-              ImmutableList.of(
-                  Pair.of(rexBuilder.makeLiteral(true), "nullIndicator")));
+              PairList.of(rexBuilder.makeLiteral(true), "nullIndicator"));
 
       Join join =
           (Join) d.relBuilder
@@ -2601,15 +2596,15 @@ public class RelDecorrelator implements ReflectiveVisitor {
         aggregate = call.rel(2);
 
         // Create identity projection
-        final List<Pair<RexNode, String>> projects = new ArrayList<>();
+        final PairList<RexNode, String> projects = PairList.of();
         final List<RelDataTypeField> fields =
             aggregate.getRowType().getFieldList();
         for (int i = 0; i < fields.size(); i++) {
-          projects.add(RexInputRef.of2(projects.size(), fields));
+          RexInputRef.add2(projects, projects.size(), fields);
         }
         final RelBuilder relBuilder = call.builder();
         relBuilder.push(aggregate)
-            .projectNamed(Pair.left(projects), Pair.right(projects), true);
+            .projectNamed(projects.leftList(), projects.rightList(), true);
         aggOutputProject = (Project) relBuilder.build();
       }
       onMatch2(call, correlate, left, aggOutputProject, aggregate);

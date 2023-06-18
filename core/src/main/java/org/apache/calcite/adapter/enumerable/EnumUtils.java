@@ -47,6 +47,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
@@ -1042,16 +1043,16 @@ public class EnumUtils {
         Object watermark =
             requireNonNull(current[indexOfWatermarkedColumn],
                 "element[indexOfWatermarkedColumn]");
-        List<Pair<Long, Long>> windows =
+        PairList<Long, Long> windows =
             hopWindows(SqlFunctions.toLong(watermark), emitFrequency,
                 windowSize, offset);
-        for (Pair<Long, Long> window : windows) {
+        windows.forEach((left, right) -> {
           @Nullable Object[] curWithWindow = new Object[current.length + 2];
           System.arraycopy(current, 0, curWithWindow, 0, current.length);
-          curWithWindow[current.length] = window.left;
-          curWithWindow[current.length + 1] = window.right;
+          curWithWindow[current.length] = left;
+          curWithWindow[current.length + 1] = right;
           list.offer(curWithWindow);
-        }
+        });
         return takeOne();
       }
     }
@@ -1073,14 +1074,16 @@ public class EnumUtils {
     }
   }
 
-  private static List<Pair<Long, Long>> hopWindows(
-      long tsMillis, long periodMillis, long sizeMillis, long offsetMillis) {
-    ArrayList<Pair<Long, Long>> ret = new ArrayList<>(Math.toIntExact(sizeMillis / periodMillis));
-    long lastStart = tsMillis - ((tsMillis + periodMillis - offsetMillis) % periodMillis);
+  private static PairList<Long, Long> hopWindows(long tsMillis,
+      long periodMillis, long sizeMillis, long offsetMillis) {
+    PairList<Long, Long> ret =
+        PairList.withCapacity(Math.toIntExact(sizeMillis / periodMillis));
+    long lastStart =
+        tsMillis - ((tsMillis + periodMillis - offsetMillis) % periodMillis);
     for (long start = lastStart;
          start > tsMillis - sizeMillis;
          start -= periodMillis) {
-      ret.add(new Pair<>(start, start + sizeMillis));
+      ret.add(start, start + sizeMillis);
     }
     return ret;
   }

@@ -80,6 +80,7 @@ import org.apache.calcite.rex.RexToSqlNodeConverterImpl;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.schema.ModifiableView;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -726,23 +727,19 @@ public abstract class RelOptUtil {
         : "rename: field count mismatch: in=" + inputType
         + ", out" + outputType;
 
-    final List<Pair<RexNode, String>> renames = new ArrayList<>();
-    for (Pair<RelDataTypeField, RelDataTypeField> pair
-        : Pair.zip(inputFields, outputFields)) {
-      final RelDataTypeField inputField = pair.left;
-      final RelDataTypeField outputField = pair.right;
+    final PairList<RexNode, String> renames = PairList.of();
+    final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
+    Pair.forEach(inputFields, outputFields, (inputField, outputField) -> {
       assert inputField.getType().equals(outputField.getType());
-      final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
       renames.add(
-          Pair.of(
-              rexBuilder.makeInputRef(inputField.getType(),
-                  inputField.getIndex()),
-              outputField.getName()));
-    }
+          rexBuilder.makeInputRef(inputField.getType(),
+              inputField.getIndex()),
+          outputField.getName());
+    });
     final RelBuilder relBuilder =
         RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
     return relBuilder.push(rel)
-        .project(Pair.left(renames), Pair.right(renames), true)
+        .project(renames.leftList(), renames.rightList(), true)
         .build();
   }
 
@@ -1959,23 +1956,22 @@ public abstract class RelOptUtil {
     // If no projection was passed in, or the number of desired projection
     // columns is the same as the number of columns returned from the
     // join, then no need to create a projection
-    if ((newProjectOutputSize > 0)
-        && (newProjectOutputSize < joinOutputFields.size())) {
-      final List<Pair<RexNode, String>> newProjects = new ArrayList<>();
+    if (newProjectOutputSize > 0
+        && newProjectOutputSize < joinOutputFields.size()) {
+      final PairList<RexNode, String> newProjects = PairList.of();
       final RelBuilder relBuilder =
           RelFactories.LOGICAL_BUILDER.create(joinRel.getCluster(), null);
       final RexBuilder rexBuilder = relBuilder.getRexBuilder();
       for (int fieldIndex : outputProj) {
         final RelDataTypeField field = joinOutputFields.get(fieldIndex);
         newProjects.add(
-            Pair.of(
-                rexBuilder.makeInputRef(field.getType(), fieldIndex),
-                field.getName()));
+            rexBuilder.makeInputRef(field.getType(), fieldIndex),
+            field.getName());
       }
 
       // Create a project rel on the output of the join.
       return relBuilder.push(joinRel)
-          .project(Pair.left(newProjects), Pair.right(newProjects), true)
+          .project(newProjects.leftList(), newProjects.rightList(), true)
           .build();
     }
 
@@ -2143,16 +2139,14 @@ public abstract class RelOptUtil {
     case DELETE:
     case UPDATE:
       return typeFactory.createStructType(
-          ImmutableList.of(
-              Pair.of(AvaticaConnection.ROWCOUNT_COLUMN_NAME,
-                  typeFactory.createSqlType(SqlTypeName.BIGINT))));
+          PairList.of(AvaticaConnection.ROWCOUNT_COLUMN_NAME,
+              typeFactory.createSqlType(SqlTypeName.BIGINT)));
     case EXPLAIN:
       return typeFactory.createStructType(
-          ImmutableList.of(
-              Pair.of(AvaticaConnection.PLAN_COLUMN_NAME,
-                  typeFactory.createSqlType(
-                      SqlTypeName.VARCHAR,
-                      RelDataType.PRECISION_NOT_SPECIFIED))));
+          PairList.of(AvaticaConnection.PLAN_COLUMN_NAME,
+              typeFactory.createSqlType(
+                  SqlTypeName.VARCHAR,
+                  RelDataType.PRECISION_NOT_SPECIFIED)));
     default:
       throw Util.unexpected(kind);
     }
@@ -3746,27 +3740,21 @@ public abstract class RelOptUtil {
               extraLeftExprs, extraRightExprs, relBuilder.getRexBuilder());
     }
 
+    final PairList<RexNode, @Nullable String> pairs = PairList.of();
     relBuilder.push(originalJoin.getLeft());
     if (!extraLeftExprs.isEmpty()) {
       final List<RelDataTypeField> fields =
           relBuilder.peek().getRowType().getFieldList();
-      final List<Pair<RexNode, @Nullable String>> pairs =
-          new AbstractList<Pair<RexNode, @Nullable String>>() {
-            @Override public int size() {
-              return leftCount + extraLeftExprs.size();
-            }
-
-            @Override public Pair<RexNode, @Nullable String> get(int index) {
-              if (index < leftCount) {
-                RelDataTypeField field = fields.get(index);
-                return Pair.of(
-                    new RexInputRef(index, field.getType()), field.getName());
-              } else {
-                return Pair.of(extraLeftExprs.get(index - leftCount), null);
-              }
-            }
-          };
-      relBuilder.project(Pair.left(pairs), Pair.right(pairs));
+      for (int i = 0, n = leftCount + extraLeftExprs.size(); i < n; i++) {
+        if (i < leftCount) {
+          RelDataTypeField field = fields.get(i);
+          pairs.add(new RexInputRef(i, field.getType()), field.getName());
+        } else {
+          pairs.add(extraLeftExprs.get(i - leftCount), null);
+        }
+      }
+      relBuilder.project(pairs.leftList(), pairs.rightList());
+      pairs.clear();
     }
 
     relBuilder.push(originalJoin.getRight());
@@ -3774,28 +3762,18 @@ public abstract class RelOptUtil {
       final List<RelDataTypeField> fields =
           relBuilder.peek().getRowType().getFieldList();
       final int newLeftCount = leftCount + extraLeftExprs.size();
-      final List<Pair<RexNode, @Nullable String>> pairs =
-          new AbstractList<Pair<RexNode, @Nullable String>>() {
-            @Override public int size() {
-              return rightCount + extraRightExprs.size();
-            }
-
-            @Override public Pair<RexNode, @Nullable String> get(int index) {
-              if (index < rightCount) {
-                RelDataTypeField field = fields.get(index);
-                return Pair.of(
-                    new RexInputRef(index, field.getType()),
-                    field.getName());
-              } else {
-                return Pair.of(
-                    RexUtil.shift(
-                        extraRightExprs.get(index - rightCount),
-                        -newLeftCount),
-                    null);
-              }
-            }
-          };
-      relBuilder.project(Pair.left(pairs), Pair.right(pairs));
+      for (int i = 0, n = rightCount + extraRightExprs.size(); i < n; i++) {
+        if (i < rightCount) {
+          RelDataTypeField field = fields.get(i);
+          pairs.add(new RexInputRef(i, field.getType()), field.getName());
+        } else {
+          pairs.add(
+              RexUtil.shift(extraRightExprs.get(i - rightCount), -newLeftCount),
+              null);
+        }
+      }
+      relBuilder.project(pairs.leftList(), pairs.rightList());
+      pairs.clear();
     }
 
     final RelNode right = relBuilder.build();

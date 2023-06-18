@@ -54,6 +54,7 @@ import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.schema.CustomColumnResolvingTable;
 import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.Path;
@@ -948,20 +949,12 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
           LogicalFilter.create(rel, getConstraint(rexBuilder, rel.getRowType()));
       final List<RelDataTypeField> fieldList =
           rel.getRowType().getFieldList();
-      final List<Pair<RexNode, String>> projects =
-          new AbstractList<Pair<RexNode, String>>() {
-            @Override public Pair<RexNode, String> get(int index) {
-              return RexInputRef.of2(mapping.get(index), fieldList);
-            }
-
-            @Override public int size() {
-              return mapping.size();
-            }
-          };
+      final PairList<RexNode, String> projects = PairList.of();
+      mapping.forEachInt(i -> RexInputRef.add2(projects, i, fieldList));
       return LogicalProject.create(rel,
           ImmutableList.of(),
-          Pair.left(projects),
-          Pair.right(projects),
+          projects.leftList(),
+          projects.rightList(),
           ImmutableSet.of());
     }
 

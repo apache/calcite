@@ -94,6 +94,7 @@ import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ModifiableView;
@@ -193,7 +194,6 @@ import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -208,6 +208,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -835,37 +836,37 @@ public class SqlToRelConverter {
 
       final Map<Integer, Integer> squished = new HashMap<>();
       final List<RelDataTypeField> fields = rel.getRowType().getFieldList();
-      final List<Pair<RexNode, String>> newProjects = new ArrayList<>();
+      final PairList<RexNode, String> newProjects = PairList.of();
       for (int i = 0; i < fields.size(); i++) {
         if (origins.get(i) == i) {
           squished.put(i, newProjects.size());
-          newProjects.add(RexInputRef.of2(i, fields));
+          RexInputRef.add2(newProjects, i, fields);
         }
       }
       rel =
           LogicalProject.create(rel, ImmutableList.of(),
-              Pair.left(newProjects), Pair.right(newProjects), project.getVariablesSet());
+              newProjects.leftList(), newProjects.rightList(),
+              project.getVariablesSet());
       bb.root = rel;
       distinctify(bb, false);
       rel = bb.root();
 
       // Create the expressions to reverse the mapping.
       // Project($0, $1, $0, $2).
-      final List<Pair<RexNode, String>> undoProjects = new ArrayList<>();
+      final PairList<RexNode, String> undoProjects = PairList.of();
       for (int i = 0; i < fields.size(); i++) {
         final int origin = origins.get(i);
         RelDataTypeField field = fields.get(i);
         undoProjects.add(
-            Pair.of(
-                new RexInputRef(
-                    castNonNull(squished.get(origin)),
-                    field.getType()),
-                field.getName()));
+            new RexInputRef(castNonNull(squished.get(origin)),
+                field.getType()),
+            field.getName());
       }
 
       rel =
           LogicalProject.create(rel, ImmutableList.of(),
-              Pair.left(undoProjects), Pair.right(undoProjects), ImmutableSet.of());
+              undoProjects.leftList(), undoProjects.rightList(),
+              ImmutableSet.of());
       bb.setRoot(
           rel,
           false);
@@ -2664,9 +2665,10 @@ public class SqlToRelConverter {
     pivotBb.agg = null;
 
     // Project the fields that we will need.
+    final PairList<RexNode, @Nullable String> pairs =
+        aggConverter.getPreExprs();
     relBuilder
-        .project(Pair.left(aggConverter.getPreExprs()),
-            Pair.right(aggConverter.getPreExprs()));
+        .project(pairs.leftList(), pairs.rightList());
 
     // Build expressions.
 
@@ -3398,7 +3400,7 @@ public class SqlToRelConverter {
     }
 
     final RexNode havingExpr;
-    final List<Pair<RexNode, String>> projects = new ArrayList<>();
+    final PairList<RexNode, String> projects = PairList.of();
 
     try {
       checkArgument(bb.agg == null, "already in agg mode");
@@ -3420,14 +3422,14 @@ public class SqlToRelConverter {
       }
 
       // compute inputs to the aggregator
-      List<Pair<RexNode, @Nullable String>> preExprs = aggConverter.getPreExprs();
+      PairList<RexNode, @Nullable String> preExprs = aggConverter.getPreExprs();
 
       if (preExprs.size() == 0) {
         // Special case for COUNT(*), where we can end up with no inputs
         // at all.  The rest of the system doesn't like 0-tuples, so we
         // select a dummy constant here.
         final RexNode zero = rexBuilder.makeExactLiteral(BigDecimal.ZERO);
-        preExprs = ImmutableList.of(Pair.of(zero, null));
+        preExprs = PairList.of(zero, null);
       }
 
       final RelNode inputRel = bb.root();
@@ -3435,7 +3437,7 @@ public class SqlToRelConverter {
       // Project the expressions required by agg and having.
       bb.setRoot(
           relBuilder.push(inputRel)
-              .projectNamed(Pair.left(preExprs), Pair.right(preExprs), false)
+              .projectNamed(preExprs.leftList(), preExprs.rightList(), false)
               .build(),
           false);
       bb.mapRootRelToFieldProjection.put(bb.root(), r.groupExprProjection);
@@ -3494,17 +3496,15 @@ public class SqlToRelConverter {
           selectNamespace.getRowType().getFieldNames();
       int sysFieldCount = selectList.size() - names.size();
       for (SqlNode expr : selectList) {
-        projects.add(
-            Pair.of(bb.convertExpression(expr),
-                k < sysFieldCount
-                    ? SqlValidatorUtil.alias(expr, k++)
-                    : names.get(k++ - sysFieldCount)));
+        projects.add(bb.convertExpression(expr),
+            k < sysFieldCount
+                ? SqlValidatorUtil.alias(expr, k++)
+                : names.get(k++ - sysFieldCount));
       }
 
       for (SqlNode expr : orderExprList) {
-        projects.add(
-            Pair.of(bb.convertExpression(expr),
-                SqlValidatorUtil.alias(expr, k++)));
+        projects.add(bb.convertExpression(expr),
+            SqlValidatorUtil.alias(expr, k++));
       }
     } finally {
       bb.agg = null;
@@ -3515,8 +3515,8 @@ public class SqlToRelConverter {
     relBuilder.filter(havingExpr);
 
     // implement the SELECT list
-    relBuilder.project(Pair.left(projects), Pair.right(projects))
-        .rename(Pair.right(projects));
+    relBuilder.project(projects.leftList(), projects.rightList())
+        .rename(projects.rightList());
     bb.setRoot(relBuilder.build(), false);
 
     // Tell bb which of group columns are sorted.
@@ -3859,19 +3859,18 @@ public class SqlToRelConverter {
     final RexNode constraint =
         modifiableView.getConstraint(rexBuilder, delegateRowType);
     RelOptUtil.inferViewPredicates(projectMap, filters, constraint);
-    final List<Pair<RexNode, String>> projects = new ArrayList<>();
+    final PairList<RexNode, String> projects = PairList.of();
     for (RelDataTypeField field : delegateRowType.getFieldList()) {
       RexNode node = projectMap.get(field.getIndex());
       if (node == null) {
         node = rexBuilder.makeNullLiteral(field.getType());
       }
-      projects.add(
-          Pair.of(rexBuilder.ensureType(field.getType(), node, false),
-              field.getName()));
+      projects.add(rexBuilder.ensureType(field.getType(), node, false),
+          field.getName());
     }
 
     return relBuilder.push(source)
-        .projectNamed(Pair.left(projects), Pair.right(projects), false)
+        .projectNamed(projects.leftList(), projects.rightList(), false)
         .filter(filters)
         .build();
   }
@@ -4764,17 +4763,16 @@ public class SqlToRelConverter {
       Blackboard tmpBb = createBlackboard(bb.scope, null, false);
       replaceSubQueries(tmpBb, rowConstructor,
           RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
-      final List<Pair<RexNode, String>> exps = new ArrayList<>();
+      final PairList<RexNode, String> exps = PairList.of();
       Ord.forEach(rowConstructor.getOperandList(), (operand, i) ->
-          exps.add(
-              Pair.of(tmpBb.convertExpression(operand),
-                  SqlValidatorUtil.alias(operand, i))));
+          exps.add(tmpBb.convertExpression(operand),
+              SqlValidatorUtil.alias(operand, i)));
       RelNode in =
           (null == tmpBb.root)
               ? LogicalValues.createOneRow(cluster)
               : tmpBb.root;
       relBuilder.push(in)
-          .project(Pair.left(exps), Pair.right(exps));
+          .project(exps.leftList(), exps.rightList());
     }
 
     bb.setRoot(
@@ -4995,22 +4993,13 @@ public class SqlToRelConverter {
         assert leftKeyCount == rightFieldLength - 1;
 
         final int rexRangeRefLength = leftKeyCount + rightFieldLength;
-        RelDataType returnType =
-            typeFactory.createStructType(
-                new AbstractList<Map.Entry<String, RelDataType>>() {
-                  @Override public Map.Entry<String, RelDataType> get(
-                      int index) {
-                    return join.getRowType().getFieldList()
-                        .get(origLeftInputCount + index);
-                  }
+        final RelDataTypeFactory.Builder builder = typeFactory.builder();
+        for (int i = 0; i < rexRangeRefLength; i++) {
+          builder.add(join.getRowType().getFieldList()
+              .get(origLeftInputCount + i));
+        }
 
-                  @Override public int size() {
-                    return rexRangeRefLength;
-                  }
-                });
-
-        return rexBuilder.makeRangeReference(
-            returnType,
+        return rexBuilder.makeRangeReference(builder.build(),
             origLeftInputCount,
             false);
       } else {
@@ -5196,10 +5185,10 @@ public class SqlToRelConverter {
     RexNode lookup(
         int offset,
         LookupContext lookupContext) {
-      Pair<RelNode, Integer> pair = lookupContext.findRel(offset);
+      Map.Entry<RelNode, Integer> pair = lookupContext.findRel(offset);
       return rexBuilder.makeRangeReference(
-          pair.left.getRowType(),
-          pair.right,
+          pair.getKey().getRowType(),
+          pair.getValue(),
           false);
     }
 
@@ -5223,26 +5212,20 @@ public class SqlToRelConverter {
         List<RelNode> rels,
         int systemFieldCount,
         int[] start,
-        List<Pair<RelNode, Integer>> relOffsetList) {
+        BiConsumer<RelNode, Integer> relOffsetList) {
       for (RelNode rel : rels) {
         if (leaves.containsKey(rel)) {
-          relOffsetList.add(
-              Pair.of(rel, start[0]));
+          relOffsetList.accept(rel, start[0]);
           start[0] += leaves.get(rel);
         } else if (rel instanceof LogicalMatch) {
-          relOffsetList.add(
-              Pair.of(rel, start[0]));
+          relOffsetList.accept(rel, start[0]);
           start[0] += rel.getRowType().getFieldCount();
         } else {
           if (rel instanceof LogicalJoin
               || rel instanceof LogicalAggregate) {
             start[0] += systemFieldCount;
           }
-          flatten(
-              rel.getInputs(),
-              systemFieldCount,
-              start,
-              relOffsetList);
+          flatten(rel.getInputs(), systemFieldCount, start, relOffsetList);
         }
       }
     }
@@ -5771,8 +5754,8 @@ public class SqlToRelConverter {
      * aggregates. The right field of each pair is the name of the expression,
      * where the expressions are simple mappings to input fields.
      */
-    private final List<Pair<RexNode, @Nullable String>> convertedInputExprs =
-        new ArrayList<>();
+    private final PairList<RexNode, @Nullable String> convertedInputExprs =
+        PairList.of();
 
     /** Expressions to be evaluated as rows are being placed into the
      * aggregate's hash table. This is when group functions such as TUMBLE
@@ -5863,12 +5846,12 @@ public class SqlToRelConverter {
         final int i = ((RexInputRef) expr).getIndex();
         name = bb.root().getRowType().getFieldList().get(i).getName();
       }
-      if (Pair.right(convertedInputExprs).contains(name)) {
+      if (convertedInputExprs.rightList().contains(name)) {
         // In case like 'SELECT ... GROUP BY x, y, x', don't add
         // name 'x' twice.
         name = null;
       }
-      convertedInputExprs.add(Pair.of(expr, name));
+      convertedInputExprs.add(expr, name);
     }
 
     @Override public Void visit(SqlIdentifier id) {
@@ -6175,7 +6158,7 @@ public class SqlToRelConverter {
               groupExprs.size(),
               aggCalls,
               aggCallMapping,
-              i -> convertedInputExprs.get(i).left.getType().isNullable());
+              i -> convertedInputExprs.leftList().get(i).getType().isNullable());
       aggMapping.put(outerCall, rex);
     }
 
@@ -6192,7 +6175,7 @@ public class SqlToRelConverter {
 
     private int lookupOrCreateGroupExpr(RexNode expr) {
       int index = 0;
-      for (RexNode convertedInputExpr : Pair.left(convertedInputExprs)) {
+      for (RexNode convertedInputExpr : convertedInputExprs.leftList()) {
         if (expr.equals(convertedInputExpr)) {
           return index;
         }
@@ -6229,7 +6212,7 @@ public class SqlToRelConverter {
           AuxiliaryConverter converter = e.getValue().e;
           final int groupOrdinal = e.getValue().i;
           return converter.convert(rexBuilder,
-              convertedInputExprs.get(groupOrdinal).left,
+              convertedInputExprs.leftList().get(groupOrdinal),
               rexBuilder.makeInputRef(castNonNull(bb.root), groupOrdinal));
         }
       }
@@ -6237,7 +6220,7 @@ public class SqlToRelConverter {
       return aggMapping.get(call);
     }
 
-    public List<Pair<RexNode, @Nullable String>> getPreExprs() {
+    public PairList<RexNode, @Nullable String> getPreExprs() {
       return convertedInputExprs;
     }
 
@@ -6254,8 +6237,7 @@ public class SqlToRelConverter {
    * Context to find a relational expression to a field offset.
    */
   private static class LookupContext {
-    private final List<Pair<RelNode, Integer>> relOffsetList =
-        new ArrayList<>();
+    private final PairList<RelNode, Integer> relOffsetList = PairList.of();
 
     /**
      * Creates a LookupContext with multiple input relational expressions.
@@ -6265,7 +6247,7 @@ public class SqlToRelConverter {
      * @param systemFieldCount Number of system fields
      */
     LookupContext(Blackboard bb, List<RelNode> rels, int systemFieldCount) {
-      bb.flatten(rels, systemFieldCount, new int[]{0}, relOffsetList);
+      bb.flatten(rels, systemFieldCount, new int[]{0}, relOffsetList::add);
     }
 
     /**
@@ -6280,7 +6262,7 @@ public class SqlToRelConverter {
      * @param offset Offset of relational expression in FROM clause
      * @return Relational expression and the ordinal of its first field
      */
-    Pair<RelNode, Integer> findRel(int offset) {
+    Map.Entry<RelNode, Integer> findRel(int offset) {
       return relOffsetList.get(offset);
     }
   }

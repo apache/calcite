@@ -84,6 +84,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.schema.TransientTable;
 import org.apache.calcite.schema.impl.ListTransientTable;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -152,7 +153,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rel.rules.AggregateRemoveRule.canFlattenStatic;
@@ -2493,9 +2493,9 @@ public class RelBuilder {
     // There are duplicate aggregate calls. Rebuild the list to eliminate
     // duplicates, then add a Project.
     final Set<AggregateCall> callSet = new HashSet<>();
-    final List<Pair<Integer, @Nullable String>> projects = new ArrayList<>();
+    final PairList<Integer, @Nullable String> projects = PairList.of();
     Util.range(groupSet.cardinality())
-        .forEach(i -> projects.add(Pair.of(i, null)));
+        .forEach(i -> projects.add(i, null));
     final List<AggregateCall> distinctAggregateCalls = new ArrayList<>();
     for (AggregateCall aggregateCall : aggregateCalls) {
       final int i;
@@ -2506,14 +2506,11 @@ public class RelBuilder {
         i = distinctAggregateCalls.indexOf(aggregateCall);
         assert i >= 0;
       }
-      projects.add(Pair.of(groupSet.cardinality() + i, aggregateCall.name));
+      projects.add(groupSet.cardinality() + i, aggregateCall.name);
     }
     aggregate_(groupSet, groupSets, r, distinctAggregateCalls,
         registrar.extraNodes, inFields);
-    final List<RexNode> fields = projects.stream()
-        .map(p -> aliasMaybe(field(p.left), p.right))
-        .collect(Collectors.toList());
-    return project(fields);
+    return project(projects.transform((i, name) -> aliasMaybe(field(i), name)));
   }
 
   /** Returns whether an input is already unique, and therefore a Project
@@ -3747,16 +3744,13 @@ public class RelBuilder {
     // Make immutable copies of all arguments.
     final List<String> measureNameList = ImmutableList.copyOf(measureNames);
     final List<String> axisNameList = ImmutableList.copyOf(axisNames);
-    final List<Pair<List<RexLiteral>, List<RexNode>>> map =
-        StreamSupport.stream(axisMap.spliterator(), false)
-            .map(pair ->
-                Pair.<List<RexLiteral>, List<RexNode>>of(
-                    ImmutableList.<RexLiteral>copyOf(pair.getKey()),
-                    ImmutableList.<RexNode>copyOf(pair.getValue())))
-            .collect(Util.toImmutableList());
+    final PairList<List<RexLiteral>, List<RexNode>> map = PairList.of();
+    Pair.forEach(axisMap, (valueList, inputMeasureList) ->
+        map.add(ImmutableList.copyOf(valueList),
+            ImmutableList.copyOf(inputMeasureList)));
 
     // Check that counts match.
-    Pair.forEach(map, (valueList, inputMeasureList) -> {
+    map.forEach((valueList, inputMeasureList) -> {
       if (inputMeasureList.size() != measureNameList.size()) {
         throw new IllegalArgumentException("Number of measures ("
             + inputMeasureList.size() + ") must match number of measure names ("
@@ -3771,7 +3765,7 @@ public class RelBuilder {
 
     final RelDataType leftRowType = peek().getRowType();
     final BitSet usedFields = new BitSet();
-    Pair.forEach(map, (aliases, nodes) ->
+    map.forEach((aliases, nodes) ->
         nodes.forEach(node -> {
           if (node instanceof RexInputRef) {
             usedFields.set(((RexInputRef) node).getIndex());
@@ -3779,7 +3773,7 @@ public class RelBuilder {
         }));
 
     // Create "VALUES (('commission'), ('salary')) AS t (remuneration_type)"
-    values(ImmutableList.copyOf(Pair.left(map)), axisNameList);
+    values(ImmutableList.copyOf(map.leftList()), axisNameList);
 
     join(JoinRelType.INNER);
 
@@ -3795,7 +3789,7 @@ public class RelBuilder {
     final List<RexNode> conditions = new ArrayList<>();
     Ord.forEach(measureNameList, (measureName, m) -> {
       final List<RexNode> caseOperands = new ArrayList<>();
-      Pair.forEach(map, (literals, nodes) -> {
+      map.forEach((literals, nodes) -> {
         Ord.forEach(literals, (literal, d) ->
             conditions.add(
                 equals(field(leftRowType.getFieldCount() + d), literal)));

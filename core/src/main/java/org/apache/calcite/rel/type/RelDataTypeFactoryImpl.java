@@ -27,6 +27,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeMappingRule;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.cache.CacheBuilder;
@@ -196,26 +197,10 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   }
 
   private RelDataType createStructType(
-      final List<? extends Map.Entry<String, RelDataType>> fieldList, boolean nullable) {
-    return canonize(StructKind.FULLY_QUALIFIED,
-        new AbstractList<String>() {
-          @Override public String get(int index) {
-            return fieldList.get(index).getKey();
-          }
-
-          @Override public int size() {
-            return fieldList.size();
-          }
-        },
-        new AbstractList<RelDataType>() {
-          @Override public RelDataType get(int index) {
-            return fieldList.get(index).getValue();
-          }
-
-          @Override public int size() {
-            return fieldList.size();
-          }
-        }, nullable);
+      final List<? extends Map.Entry<String, RelDataType>> fieldList,
+      boolean nullable) {
+    return canonize(StructKind.FULLY_QUALIFIED, Pair.left(fieldList),
+        Pair.right(fieldList), nullable);
   }
 
   @Override public @Nullable RelDataType leastRestrictive(

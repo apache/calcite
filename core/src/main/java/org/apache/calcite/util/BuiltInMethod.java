@@ -89,6 +89,7 @@ import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.FunctionContexts;
 import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.runtime.Matcher;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.runtime.Pattern;
 import org.apache.calcite.runtime.RandomFunction;
 import org.apache.calcite.runtime.ResultSetEnumerable;
@@ -263,6 +264,8 @@ public enum BuiltInMethod {
   FUNCTION1_APPLY(Function1.class, "apply", Object.class),
   ARRAYS_AS_LIST(Arrays.class, "asList", Object[].class),
   ARRAY(SqlFunctions.class, "array", Object[].class),
+  PAIR_LIST_COPY_OF(PairList.class, "copyOf", Object.class, Object.class,
+      Object[].class),
   FLAT_PRODUCT(SqlFunctions.class, "flatProduct", int[].class, boolean.class,
       FlatProductInputType[].class),
   FLAT_LIST(SqlFunctions.class, "flatList"),

@@ -40,6 +40,7 @@ import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.schema.FunctionParameter;
@@ -71,7 +72,6 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.AbstractList;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -1381,12 +1381,12 @@ public class Smalls {
 
     @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       int columnCount = columnNames.length;
-      final List<Pair<String, RelDataType>> columnDesc =
-          new ArrayList<>(columnCount);
+      final PairList<String, RelDataType> columnDesc =
+          PairList.withCapacity(columnCount);
       for (int i = 0; i < columnCount; i++) {
         final RelDataType colType = typeFactory
             .createJavaType(columnTypes[i]);
-        columnDesc.add(Pair.of(columnNames[i], colType));
+        columnDesc.add(columnNames[i], colType);
       }
       return typeFactory.createStructType(columnDesc);
     }
