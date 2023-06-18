@@ -190,14 +190,6 @@ public abstract class QuidemTest {
     return new QuidemConnectionFactory();
   }
 
-  /** Converts a path from Unix to native. On Windows, converts
-   * forward-slashes to back-slashes; on Linux, does nothing. */
-  private static String u2n(String s) {
-    return File.separatorChar == '\\'
-        ? s.replace('/', '\\')
-        : s;
-  }
-
   private static String n2u(String s) {
     return File.separatorChar == '\\'
         ? s.replace('\\', '/')
