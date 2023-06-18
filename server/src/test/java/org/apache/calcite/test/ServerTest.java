@@ -34,6 +34,7 @@ import org.apache.calcite.sql.ddl.SqlCreateView;
 import org.apache.calcite.sql.ddl.SqlDropFunction;
 import org.apache.calcite.sql.ddl.SqlDropMaterializedView;
 import org.apache.calcite.sql.ddl.SqlDropSchema;
+import org.apache.calcite.sql.ddl.SqlTruncateTable;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -102,6 +103,7 @@ class ServerTest {
     executor.execute((SqlDropMaterializedView) o, context);
     executor.execute((SqlDropFunction) o, context);
     executor.execute((SqlDropSchema) o, context);
+    executor.execute((SqlTruncateTable) o, context);
   }
 
   @Test void testStatement() throws Exception {
@@ -220,6 +222,19 @@ class ServerTest {
         s.execute("create or replace table t2 (i int not null)");
         s.executeUpdate("insert into t2 values (1)");
       }, "REPLACE must recreate the table, leaving only one column");
+    }
+  }
+
+  @Test void testTruncateTable() throws Exception {
+    try (Connection c = connect();
+        Statement s = c.createStatement()) {
+      final boolean b = s.execute("create table t (i int not null)");
+      assertThat(b, is(false));
+
+      final String errMsg =
+          assertThrows(SQLException.class,
+              () -> s.execute("truncate table t restart identity")).getMessage();
+      assertThat(errMsg, containsString("RESTART IDENTIFY is not supported"));
     }
   }
 

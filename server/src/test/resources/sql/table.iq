@@ -50,6 +50,21 @@ select * from t;
 
 !ok
 
+
+truncate table t;
+(0 rows modified)
+
+!update
+
+select * from t;
++---+---+
+| I | J |
++---+---+
++---+---+
+(0 rows)
+
+!ok
+
 drop table t;
 (0 rows modified)
 
@@ -214,5 +229,9 @@ drop table if exists t;
 (0 rows modified)
 
 !update
+
+truncate table t;
+Table 'T' not found
+!error
 
 # End table.iq

@@ -29,6 +29,7 @@ data: {
       "org.apache.calcite.schema.ColumnStrategy"
       "org.apache.calcite.sql.SqlCreate"
       "org.apache.calcite.sql.SqlDrop"
+      "org.apache.calcite.sql.SqlTruncate"
       "org.apache.calcite.sql.ddl.SqlDdlNodes"
     ]
 
@@ -81,6 +82,13 @@ data: {
       "SqlDropView"
       "SqlDropFunction"
     ]
+
+  # List of methods for parsing extensions to "TRUNCATE" calls.
+  # Each must accept arguments "(SqlParserPos pos)".
+  # Example: "SqlTruncateTable".
+  truncateStatementParserMethods: [
+    "SqlTruncateTable"
+  ]
 
     # List of files in @includes directory that have parser method
     # implementations for parsing custom SQL statements, literals or types
