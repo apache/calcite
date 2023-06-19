@@ -715,6 +715,17 @@ public abstract class SqlLibraryOperators {
               OperandTypes.STRING),
           SqlFunctionCategory.STRING);
 
+  /** The "CONCAT(arg, ...)" function that concatenates strings.
+   * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction CONCAT =
+      new SqlFunction("CONCAT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
+          InferTypes.RETURN_TYPE,
+          OperandTypes.ONE_OR_MORE,
+          SqlFunctionCategory.STRING);
+
   /** The "CONCAT(arg0, arg1)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc')" returns "abc".
    *
@@ -1402,6 +1413,18 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction REGEXP_INSTR =
+      new SqlFunction("REGEXP_INSTR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.ANY,
+                  SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+              number -> number == 2 || number == 3 || number == 4),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction HASHBUCKET =
       new SqlFunction(
@@ -1555,6 +1578,17 @@ public abstract class SqlLibraryOperators {
               SqlTypeFamily.STRING),
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction ORACLE_ROUND =
+      new SqlFunction(
+          "ROUND",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP,
+          null,
+          OperandTypes.family(SqlTypeFamily.DATETIME,
+              SqlTypeFamily.STRING),
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK, SNOWFLAKE})
   public static final SqlFunction TRANSLATE =
       new SqlFunction(
@@ -1601,4 +1635,23 @@ public abstract class SqlLibraryOperators {
                   ReturnTypes.INTEGER, null,
                   OperandTypes.family(SqlTypeFamily.INTEGER),
                   SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {HIVE, SPARK, TERADATA})
+  public static final SqlFunction SHIFTRIGHT =
+      new SqlFunction(
+          "SHIFTRIGHT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.family(SqlTypeFamily.INTEGER,
+              SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
+  public static final SqlFunction BIT_COUNT =
+      new SqlFunction("BIT_COUNT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.NUMERIC);
 }
