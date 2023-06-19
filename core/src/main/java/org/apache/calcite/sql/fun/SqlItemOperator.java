@@ -48,7 +48,6 @@ import static java.util.Objects.requireNonNull;
  * {@code myStruct[2]} or {@code myStruct['fieldName']}.
  */
 public class SqlItemOperator extends SqlSpecialOperator {
-
   private boolean isSafe;
   private static final SqlSingleOperandTypeChecker ARRAY_OR_MAP =
       OperandTypes.or(
