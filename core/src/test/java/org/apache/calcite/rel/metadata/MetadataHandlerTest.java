@@ -16,46 +16,56 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import com.google.common.collect.ImmutableList;
+
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
+import java.util.List;
+import java.util.SortedMap;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.emptyArray;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
 
 /**
  * Tests for {@link MetadataHandler}.
  */
 class MetadataHandlerTest {
   @Test void findsHandlerMethods() {
-    Method[] methods = MetadataHandler.handlerMethods(TestMetadataHandler.class);
+    final SortedMap<String, Method> map =
+        MetadataHandler.handlerMethods(TestMetadataHandler.class);
+    final List<Method> methods = ImmutableList.copyOf(map.values());
 
-    assertThat(methods.length, is(1));
-    assertThat(methods[0].getName(), is("getTestMetadata"));
+    assertThat(methods, hasSize(1));
+    assertThat(methods.get(0).getName(), is("getTestMetadata"));
   }
 
   @Test void getDefMethodInHandlerIsIgnored() {
-    Method[] methods =
+    final SortedMap<String, Method> map =
         MetadataHandler.handlerMethods(
             MetadataHandlerWithGetDefMethodOnly.class);
+    final List<Method> methods = ImmutableList.copyOf(map.values());
 
-    assertThat(methods, is(emptyArray()));
+    assertThat(methods, empty());
   }
 
   @Test void staticMethodInHandlerIsIgnored() {
-    Method[] methods =
+    final SortedMap<String, Method> map =
         MetadataHandler.handlerMethods(MetadataHandlerWithStaticMethod.class);
+    final List<Method> methods = ImmutableList.copyOf(map.values());
 
-    assertThat(methods, is(emptyArray()));
+    assertThat(methods, empty());
   }
 
-  @Test void synthenticMethodInHandlerIsIgnored() {
-    Method[] methods =
+  @Test void syntheticMethodInHandlerIsIgnored() {
+    final SortedMap<String, Method> map =
         MetadataHandler.handlerMethods(
             TestMetadataHandlers.handlerClassWithSyntheticMethod());
+    final List<Method> methods = ImmutableList.copyOf(map.values());
 
-    assertThat(methods, is(emptyArray()));
+    assertThat(methods, empty());
   }
 
   /**

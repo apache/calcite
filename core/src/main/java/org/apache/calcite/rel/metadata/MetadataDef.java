@@ -18,12 +18,17 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.SortedMap;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Definition of metadata.
@@ -39,22 +44,36 @@ public class MetadataDef<M extends Metadata> {
       Class<? extends MetadataHandler<M>> handlerClass, Method... methods) {
     this.metadataClass = metadataClass;
     this.handlerClass = handlerClass;
-    this.methods = ImmutableList.copyOf(methods);
-    final Method[] handlerMethods = MetadataHandler.handlerMethods(handlerClass);
+    this.methods =
+        Arrays.stream(methods)
+            .sorted(Comparator.comparing(Method::getName))
+            .collect(Util.toImmutableList());
+    final SortedMap<String, Method> handlerMethods =
+        MetadataHandler.handlerMethods(handlerClass);
 
     // Handler must have the same methods as Metadata, each method having
     // additional "subclass-of-RelNode, RelMetadataQuery" parameters.
-    assert handlerMethods.length == methods.length;
-    for (Pair<Method, Method> pair : Pair.zip(methods, handlerMethods)) {
-      final List<Class<?>> leftTypes =
-          Arrays.asList(pair.left.getParameterTypes());
-      final List<Class<?>> rightTypes =
-          Arrays.asList(pair.right.getParameterTypes());
-      assert leftTypes.size() + 2 == rightTypes.size();
-      assert RelNode.class.isAssignableFrom(rightTypes.get(0));
-      assert RelMetadataQuery.class == rightTypes.get(1);
-      assert leftTypes.equals(rightTypes.subList(2, rightTypes.size()));
-    }
+    checkArgument(this.methods.size() == handlerMethods.size(),
+        "handlerMethods.length = methods.length", this.methods, handlerMethods);
+    Pair.forEach(this.methods, handlerMethods.values(),
+        (method, handlerMethod) -> {
+          final List<Class<?>> methodTypes =
+              Arrays.asList(method.getParameterTypes());
+          final List<Class<?>> handlerTypes =
+              Arrays.asList(handlerMethod.getParameterTypes());
+          checkArgument(methodTypes.size() + 2 == handlerTypes.size(),
+              "methodTypes.size + 2 == handlerTypes.size", handlerMethod,
+              methodTypes, handlerTypes);
+          checkArgument(RelNode.class.isAssignableFrom(handlerTypes.get(0)),
+              "RelNode.assignableFrom(handlerType[0])", handlerMethod,
+              handlerTypes);
+          checkArgument(RelMetadataQuery.class == handlerTypes.get(1),
+              "handlerTypes[1] == RelMetadataQuery", handlerMethod,
+              handlerTypes);
+          checkArgument(methodTypes.equals(Util.skip(handlerTypes, 2)),
+              "methodTypes == handlerTypes.skip(2)", handlerMethod, methodTypes,
+              handlerTypes);
+        });
   }
 
   /** Creates a {@link org.apache.calcite.rel.metadata.MetadataDef}. */
