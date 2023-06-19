@@ -6275,6 +6275,25 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testTDateDiffFunctionRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateTimeDiffRexNode = builder.call(SqlLibraryOperators.DATE_DIFF,
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), builder.literal(TimeUnit.HOUR));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateTimeDiffRexNode, "HOURS"))
+        .build();
+    final String expectedSql = "SELECT DATE_DIFF(CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, HOUR) "
+        + "AS \"HOURS\""
+        + "\nFROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT DATE_DIFF(CURRENT_DATETIME(), CURRENT_DATETIME(), HOUR)"
+        + " AS HOURS"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testRegexpInstr() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpInstrWithTwoArgs = builder.call(SqlLibraryOperators.REGEXP_INSTR,
