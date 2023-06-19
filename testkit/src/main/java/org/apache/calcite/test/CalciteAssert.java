@@ -1016,6 +1016,9 @@ public class CalciteAssert {
       TableFunction tableFunction =
           TableFunctionImpl.create(Smalls.SimpleTableFunction.class, "eval");
       aux.add("TBLFUN", tableFunction);
+      TableFunction tableFunctionIdentity =
+          TableFunctionImpl.create(Smalls.IdentityTableFunction.class, "eval");
+      aux.add("TBLFUN_IDENTITY", tableFunctionIdentity);
       final String simpleSql = "select *\n"
           + "from (values\n"
           + "    ('ABC', 1),\n"

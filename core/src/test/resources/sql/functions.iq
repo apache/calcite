@@ -549,4 +549,22 @@ limit 3;
 
 !ok
 
+!use aux
+# Test case for [CALCITE-5779] Implicit column alias for single-column table function should work.
+select t1, t1."i", t2, v 
+from 
+table(AUX.TBLFUN_IDENTITY(1)) as t1,
+table(AUX.TBLFUN_IDENTITY(2)) as t2,
+table(AUX.TBLFUN_IDENTITY(3)) as t3(v);
+
++----+---+----+---+
+| T1 | i | T2 | V |
++----+---+----+---+
+|  1 | 1 |  2 | 3 |
++----+---+----+---+
+(1 row)
+
+!ok
+
+
 # End functions.iq
