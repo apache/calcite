@@ -7365,4 +7365,16 @@ LogicalProject(EXPR$0=[COMPOSITE($0)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testArrayElementAccess">
+        <Resource name="sql">
+            <![CDATA[select array[1,2,3,4][0]
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[ITEM(ARRAY(1, 2, 3, 4), 0)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
