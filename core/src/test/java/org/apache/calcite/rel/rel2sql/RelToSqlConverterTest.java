@@ -6275,14 +6275,14 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testTDateDiffFunctionRelToSql() {
+  @Test public void testDateDiffFunctionRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode dateTimeDiffRexNode = builder.call(SqlLibraryOperators.DATE_DIFF,
+    final RexNode dateDiffRexNode = builder.call(SqlLibraryOperators.DATE_DIFF,
         builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
         builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), builder.literal(TimeUnit.HOUR));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(dateTimeDiffRexNode, "HOURS"))
+        .project(builder.alias(dateDiffRexNode, "HOURS"))
         .build();
     final String expectedSql = "SELECT DATE_DIFF(CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, HOUR) "
         + "AS \"HOURS\""
