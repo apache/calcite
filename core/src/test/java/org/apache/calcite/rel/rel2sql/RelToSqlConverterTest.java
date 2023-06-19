@@ -6251,7 +6251,7 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSql = "SELECT CONCAT('foo', 'bar', '\\.com') AS \"CR\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedBiqQuery = "SELECT CONCAT('foo', 'bar', '\\.com') AS CR"
+    final String expectedBiqQuery = "SELECT CONCAT('foo', 'bar', '\\\\.com') AS CR"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
