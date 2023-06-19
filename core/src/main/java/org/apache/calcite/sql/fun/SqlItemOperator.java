@@ -48,7 +48,8 @@ import static java.util.Objects.requireNonNull;
  * {@code myStruct[2]} or {@code myStruct['fieldName']}.
  */
 public class SqlItemOperator extends SqlSpecialOperator {
-  private boolean isSafe;
+
+  private boolean isInvalidIndexAllowed;
   private static final SqlSingleOperandTypeChecker ARRAY_OR_MAP =
       OperandTypes.or(
           OperandTypes.family(SqlTypeFamily.ARRAY),
@@ -57,12 +58,12 @@ public class SqlItemOperator extends SqlSpecialOperator {
 
   public SqlItemOperator() {
     super("ITEM", SqlKind.ITEM, 100, true, null, null, null);
-    this.isSafe = false;
+    this.isInvalidIndexAllowed = false;
   }
 
-  public SqlItemOperator(boolean isSafe) {
+  public SqlItemOperator(boolean isInvalidIndexAllowed) {
     super("ITEM", SqlKind.ITEM, 100, true, null, null, null);
-    this.isSafe = isSafe;
+    this.isInvalidIndexAllowed = isInvalidIndexAllowed;
   }
 
   @Override public ReduceResult reduceExpr(int ordinal,
@@ -185,7 +186,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
     }
   }
 
-  public boolean isSafe() {
-    return this.isSafe;
+  public boolean isInvalidIndexAllowed() {
+    return this.isInvalidIndexAllowed;
   }
 }
