@@ -8368,18 +8368,49 @@ class RelToSqlConverterTest {
     RexNode dateRex1 = builder.call(SqlLibraryOperators.DATE,
         builder.literal("1970-02-02"));
     RexNode dateRex2 = builder.call(SqlLibraryOperators.DATE,
-        builder.literal("DATE '1970-02-02'"));
+        builder.cast(builder.literal("1970-02-02"), SqlTypeName.DATE));
     RexNode dateRex3 = builder.call(SqlLibraryOperators.DATE,
-        builder.literal("TIMESTAMP '1970-02-02 01:02:03'"));
-    final String expectedBigQuery = "SELECT DATE('1970-02-02 01:02:03') AS date0, DATE"
-        + "('1970-02-02') AS date1, DATE('DATE \\'1970-02-02\\'') AS date2, DATE('TIMESTAMP "
-        + "\\'1970-02-02 01:02:03\\'') AS date3\n"
-        + "FROM scott.EMP";
+        builder.cast(builder.literal("1970-02-02 01:02:03"), SqlTypeName.TIMESTAMP));
+
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(dateRex0, "date0"), builder.alias(dateRex1, "date1"),
             builder.alias(dateRex2, "date2"), builder.alias(dateRex3, "date3"))
         .build();
+
+    final String expectedBigQuery = "SELECT DATE('1970-02-02 01:02:03') AS date0, "
+        + "DATE('1970-02-02') AS date1, DATE(DATE '1970-02-02') AS date2, "
+        + "DATE(CAST('1970-02-02 01:02:03' AS DATETIME)) AS date3\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
+  @Test public void testTimestampFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode timestampRex0 = builder.call(SqlLibraryOperators.TIMESTAMP,
+        builder.literal("1970-02-02"));
+    RexNode timestampRex1 = builder.call(SqlLibraryOperators.TIMESTAMP,
+        builder.literal("1970-02-02 01:02:03"));
+    RexNode timestampRex2 = builder.call(SqlLibraryOperators.TIMESTAMP,
+        builder.cast(builder.literal("1970-02-02"), SqlTypeName.DATE));
+    RexNode timestampRex3 = builder.call(SqlLibraryOperators.TIMESTAMP,
+        builder.cast(builder.literal("1970-02-02 01:02:03"), SqlTypeName.TIMESTAMP));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(timestampRex0, "timestamp0"),
+            builder.alias(timestampRex1, "timestamp1"),
+            builder.alias(timestampRex2, "timestamp2"),
+            builder.alias(timestampRex3, "timestamp3"))
+        .build();
+
+    final String expectedBigQuery = "SELECT TIMESTAMP('1970-02-02') AS timestamp0, "
+        + "TIMESTAMP('1970-02-02 01:02:03') AS timestamp1, "
+        + "TIMESTAMP(DATE '1970-02-02') AS timestamp2, "
+        + "TIMESTAMP(CAST('1970-02-02 01:02:03' AS DATETIME)) AS timestamp3\n"
+        + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedBigQuery));
