@@ -12316,6 +12316,75 @@ class RelToSqlConverterTest {
     assertThat(toSqlWithBloat(root, 101), isLinux(expectedSql));
   }
 
+  @Test public void testFunctionsWithRegexOperands() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpLikeRex = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+        builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
+    final RexNode regexpExtractRex = builder.call(SqlLibraryOperators.REGEXP_EXTRACT,
+        builder.literal("Calcite"), builder.literal("\\."), builder.literal("DM."));
+    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
+        builder.literal("Calcite"), builder.literal("\\."), builder.literal("DM."));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpLikeRex, "regexpLike"),
+            builder.alias(regexpExtractRex, "regexpExtract"),
+            builder.alias(regexpReplaceRex, "regexpReplace"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "IF(REGEXP_CONTAINS('12-12-2000' , r'^\\d\\d-\\w{2}-\\d{4}$'), 1, 0) AS regexpLike, "
+        + "REGEXP_EXTRACT('Calcite', '\\.', 'DM.') AS regexpExtract, "
+        + "REGEXP_REPLACE('Calcite', '\\.', 'DM.') AS regexpReplace\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testStringLiteralsWithInvalidEscapeSequences() {
+    final RelBuilder builder = relBuilder();
+    final RexNode literal1 = builder.literal("Datam\\etica");
+    final RexNode literal2 = builder.literal("Sh\\\\irin");
+    final RexNode literal3 = builder.literal("Peg\\\\\\gy");
+    final RexNode literal4 = builder.literal("Mich\\\\\\\\ael");
+    final RexNode literal5 = builder.literal("Pa\\\\\\\\\\ula");
+    final RelNode root = builder
+        .scan("EMP")
+        .project(literal1, literal2, literal3, literal4, literal5)
+        .build();
+
+    final String expectedBiqQuery = "SELECT 'Datam\\\\etica' AS `$f0`, "
+        + "'Sh\\\\\\\\irin' AS `$f1`, "
+        + "'Peg\\\\\\\\\\\\gy' AS `$f2`, "
+        + "'Mich\\\\\\\\\\\\\\\\ael' AS `$f3`, "
+        + "'Pa\\\\\\\\\\\\\\\\\\\\ula' AS `$f4`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testStringLiteralsWithValidEscapeSequences() {
+    final RelBuilder builder = relBuilder();
+    final RexNode literal1 = builder.literal("Dia\na");
+    final RexNode literal2 = builder.literal("Wal\\ter");
+    final RexNode literal3 = builder.literal("Mo\\\rgan");
+    final RexNode literal4 = builder.literal("Re\\\\\becca");
+    final RexNode literal5 = builder.literal("Shi\\\\\\rin");
+    final RelNode root = builder
+        .scan("EMP")
+        .project(literal1, literal2, literal3, literal4, literal5)
+        .build();
+
+    final String expectedBiqQuery = "SELECT 'Dia\\n"
+        + "a' AS `$f0`, "
+        + "'Wal\\\\ter' AS `$f1`, "
+        + "'Mo\\\\\\rgan' AS `$f2`, "
+        + "'Re\\\\\\\\\\becca' AS `$f3`, "
+        + "'Shi\\\\\\\\\\\\rin' AS `$f4`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   private RexNode makeCaseCall(RelBuilder builder, int index, int number) {
     RexNode rex = builder.literal(number);
     RexNode rex2 = builder.literal(number * 10);
