@@ -800,9 +800,8 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
-  /** The "TRY_TO_TIMESTAMP(string1, string2)" function; casts string1
-   * to a TIMESTAMP using the format specified in string2. If either of them
-   * is not a valid string , it returns null instead of exception */
+  /**Same as {@link #TO_TIMESTAMP}, except ,if the conversion cannot be performed,
+   * it returns a NULL value instead of raising an error.*/
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction TRY_TO_TIMESTAMP =
       new SqlFunction("TRY_TO_TIMESTAMP",

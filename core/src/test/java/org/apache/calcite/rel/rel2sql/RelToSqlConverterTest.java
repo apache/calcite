@@ -12163,6 +12163,7 @@ class RelToSqlConverterTest {
     final String expectedBigQuery = "SELECT (3 >> 1) AS a";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
+
   @Test public void testTryToTimestampFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode tryToTimeStampNode = builder.call(SqlLibraryOperators.TRY_TO_TIMESTAMP,
