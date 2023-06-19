@@ -12163,6 +12163,20 @@ class RelToSqlConverterTest {
     final String expectedBigQuery = "SELECT (3 >> 1) AS a";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
+  @Test public void testTryToTimestampFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode tryToTimeStampNode = builder.call(SqlLibraryOperators.TRY_TO_TIMESTAMP,
+        builder.literal("2013-12-05 01:02:03"), builder.literal("YYYY-MM-DD HH24:MI:SS"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(tryToTimeStampNode, "timestamp_value"))
+        .build();
+    final String expectedSql =
+        "SELECT TRY_TO_TIMESTAMP('2013-12-05 01:02:03', 'YYYY-MM-DD HH24:MI:SS') AS "
+            + "\"timestamp_value\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
 
   @Test public void testCountSetWithLiteralParameter() {
     RelBuilder builder = relBuilder();
