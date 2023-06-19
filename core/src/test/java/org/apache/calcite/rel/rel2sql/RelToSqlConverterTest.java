@@ -12361,4 +12361,20 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test public void testStrToTimeRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strToDateNode = builder.call(SqlLibraryOperators.TO_TIME,
+        builder.literal("11:15:45"), builder.literal("HH24:MI:SS"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(strToDateNode, "date1"))
+        .build();
+    final String expectedSql = "SELECT TO_TIME('11:15:45', 'HH24:MI:SS') AS \"date1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedSnowflake = "SELECT TO_TIME('11:15:45', 'HH24:MI:SS') AS \"date1\"\n"
+            + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflake));
+  }
 }
