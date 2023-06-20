@@ -1302,9 +1302,10 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseRegexpContains(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
+    int indexOfRegexOperand = 1;
     SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_CONTAINS");
     List<SqlNode> operandList = call.getOperandList();
-    unparseRegexFunctionsOperands(writer, leftPrec, rightPrec, 1, operandList);
+    unparseRegexFunctionsOperands(writer, leftPrec, rightPrec, indexOfRegexOperand, operandList);
     writer.endFunCall(regexpExtractAllFrame);
   }
 
