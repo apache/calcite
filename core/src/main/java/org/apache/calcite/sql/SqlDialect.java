@@ -457,6 +457,10 @@ public class SqlDialect {
     }
   }
 
+  public String handleEscapeSequences(String val) {
+    return val;
+  }
+
   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
     SqlOperator operator = call.getOperator();
