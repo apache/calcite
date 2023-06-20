@@ -3180,7 +3180,7 @@ class RelToSqlConverterTest {
     // BigQuery uses LIMIT/OFFSET, and nulls sort low by default
     final String expectedBigQuery = "SELECT product_id\n"
         + "FROM foodmart.product\n"
-        + "ORDER BY net_weight IS NULL, net_weight\n"
+        + "ORDER BY net_weight NULLS LAST\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
     sql(query).ok(expected)
@@ -7074,7 +7074,7 @@ class RelToSqlConverterTest {
         + "FROM SCOTT.EMP\n"
         + "GROUP BY DEPTNO\n"
         + "HAVING COUNT(DISTINCT EMPNO) > 0\n"
-        + "ORDER BY COUNT(DISTINCT EMPNO) IS NULL DESC, 2 DESC";
+        + "ORDER BY 2 DESC NULLS FIRST";
 
     // Convert rel node to SQL with BigQuery dialect,
     // in which "isHavingAlias" is true.
