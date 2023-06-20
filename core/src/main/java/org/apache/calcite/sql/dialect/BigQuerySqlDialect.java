@@ -1853,7 +1853,10 @@ public class BigQuerySqlDialect extends SqlDialect {
   private SqlNode createSqlDataTypeSpecBasedOnPreScale(RelDataType type) {
     final int precision = type.getPrecision();
     final int scale = type.getScale();
-    String typeAlias = getDataTypeBasedOnPrecision(precision, scale);
+    String typeAlias = "BIGNUMERIC";
+    if (scale >= 0 && scale <=9) {
+      typeAlias = precision - scale <= 29 ? "NUMERIC" : typeAlias;
+    }
     return createSqlDataTypeSpecByName(typeAlias, type.getSqlTypeName());
   }
 
@@ -1918,7 +1921,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private String getDataTypeBasedOnPrecision(int precision, int scale)  {
     if (scale > 0) {
-      return scale <= 9 ? precision - scale <= 29 ? "NUMERIC" : "BIGNUMERIC" : "BIGNUMERIC";
+      return scale <= 9 ? scale + precision > 38 ? "BIGNUMERIC" : "NUMERIC" : "BIGNUMERIC";
     } else {
       return precision > 29 ? "BIGNUMERIC" : "NUMERIC";
     }
