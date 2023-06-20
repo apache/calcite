@@ -758,8 +758,7 @@ public abstract class SqlImplementor {
           final Context correlAliasContext = getAliasContext(variable);
           final RexFieldAccess lastAccess = accesses.pollLast();
           assert lastAccess != null;
-          sqlFieldAccess.add((SqlIdentifier) correlAliasContext
-              .field(lastAccess.getField().getIndex()));
+          sqlFieldAccess.add(correlAliasContext.field(lastAccess.getField().getIndex()));
           break;
         case ROW:
           final SqlNode expr = toSql(program, referencedExpr);
@@ -1744,6 +1743,14 @@ public abstract class SqlImplementor {
           && needNewSubQuery(expectedRel, this.clauses, clauses2);
     }
 
+    public SqlNode getNode() {
+      return node;
+    }
+
+    public String getNeededAlias() {
+      return neededAlias;
+    }
+
     /** Creates a builder for the SQL of the given relational expression,
      * using the clauses that you declared when you called
      * {@link #visitInput(RelNode, int, Set)}. */
@@ -1868,6 +1875,12 @@ public abstract class SqlImplementor {
               }
             }
             return node;
+          }
+
+          @Override protected Context getAliasContext(RexCorrelVariable variable) {
+            return requireNonNull(
+                correlTableMap.get(variable.id),
+                () -> "variable " + variable.id + " is not found");
           }
         };
       } else {
