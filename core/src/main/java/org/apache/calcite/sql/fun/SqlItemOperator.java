@@ -47,16 +47,23 @@ import static java.util.Objects.requireNonNull;
  * array, map or struct. For example, {@code myArray[3]}, {@code "myMap['foo']"},
  * {@code myStruct[2]} or {@code myStruct['fieldName']}.
  */
-class SqlItemOperator extends SqlSpecialOperator {
+public class SqlItemOperator extends SqlSpecialOperator {
 
+  private boolean isInvalidIndexAllowed;
   private static final SqlSingleOperandTypeChecker ARRAY_OR_MAP =
       OperandTypes.or(
           OperandTypes.family(SqlTypeFamily.ARRAY),
           OperandTypes.family(SqlTypeFamily.MAP),
           OperandTypes.family(SqlTypeFamily.ANY));
 
-  SqlItemOperator() {
+  public SqlItemOperator() {
     super("ITEM", SqlKind.ITEM, 100, true, null, null, null);
+    this.isInvalidIndexAllowed = false;
+  }
+
+  public SqlItemOperator(boolean isInvalidIndexAllowed) {
+    super("ITEM", SqlKind.ITEM, 100, true, null, null, null);
+    this.isInvalidIndexAllowed = isInvalidIndexAllowed;
   }
 
   @Override public ReduceResult reduceExpr(int ordinal,
@@ -177,5 +184,9 @@ class SqlItemOperator extends SqlSpecialOperator {
     default:
       throw new AssertionError();
     }
+  }
+
+  public boolean isInvalidIndexAllowed() {
+    return this.isInvalidIndexAllowed;
   }
 }
