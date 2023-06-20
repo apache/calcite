@@ -12383,8 +12383,8 @@ class RelToSqlConverterTest {
 
   @Test public void testStringLiteralsWithValidEscapeSequences() {
     final RelBuilder builder = relBuilder();
-    final RexNode literal1 = builder.literal("Dia\na");
-    final RexNode literal2 = builder.literal("Wal\\ter");
+    final RexNode literal1 = builder.literal("Wal\ter");
+    final RexNode literal2 = builder.literal("Dia\na");
     final RexNode literal3 = builder.literal("Mo\\\rgan");
     final RexNode literal4 = builder.literal("Re\\\\\becca");
     final RexNode literal5 = builder.literal("Shi\\\\\\rin");
@@ -12393,12 +12393,25 @@ class RelToSqlConverterTest {
         .project(literal1, literal2, literal3, literal4, literal5)
         .build();
 
-    final String expectedBiqQuery = "SELECT 'Dia\\n"
-        + "a' AS `$f0`, "
-        + "'Wal\\\\ter' AS `$f1`, "
+    final String expectedBiqQuery = "SELECT 'Wal\\ter' AS `$f0`, "
+        + "'Dia\\na' AS `$f1`, "
         + "'Mo\\\\\\rgan' AS `$f2`, "
         + "'Re\\\\\\\\\\becca' AS `$f3`, "
         + "'Shi\\\\\\\\\\\\rin' AS `$f4`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testQuoteInStringLiterals() {
+    final RelBuilder builder = relBuilder();
+    final RexNode literal = builder.literal("Datam\"etica");
+    final RelNode root = builder
+        .scan("EMP")
+        .project(literal)
+        .build();
+
+    final String expectedBiqQuery = "SELECT 'Datam\"etica' AS `$f0`\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
