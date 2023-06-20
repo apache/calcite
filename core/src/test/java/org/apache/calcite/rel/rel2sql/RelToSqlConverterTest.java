@@ -3155,7 +3155,7 @@ class RelToSqlConverterTest {
     // BigQuery uses LIMIT/OFFSET, and nulls sort low by default
     final String expectedBigQuery = "SELECT product_id\n"
         + "FROM foodmart.product\n"
-        + "ORDER BY net_weight IS NULL, net_weight\n"
+        + "ORDER BY net_weight NULLS LAST\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
     sql(query).ok(expected)
@@ -7049,13 +7049,47 @@ class RelToSqlConverterTest {
         + "FROM SCOTT.EMP\n"
         + "GROUP BY DEPTNO\n"
         + "HAVING COUNT(DISTINCT EMPNO) > 0\n"
-        + "ORDER BY COUNT(DISTINCT EMPNO) IS NULL DESC, 2 DESC";
+        + "ORDER BY 2 DESC NULLS FIRST";
 
     // Convert rel node to SQL with BigQuery dialect,
     // in which "isHavingAlias" is true.
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withBigQuery().ok(expected);
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5775">[CALCITE-5775]</a>;
+   * make sure BigQuery uses {@code NULLS LAST} syntax.
+   */
+  @Test void testBigQueryUsesNullsLastInsteadOfEmulation() {
+    final Function<RelBuilder, RelNode> relFn = b ->
+        b.scan("EMP")
+            .project(
+                b.call(SqlStdOperatorTable.CASE,
+                    b.call(SqlStdOperatorTable.IS_NULL,
+                        b.field(4)),
+                    b.literal(0),
+                    b.literal(1)),
+                b.field(3))
+            .aggregate(
+                b.groupKey(
+                    ImmutableBitSet.of(0),
+                    ImmutableList.of(ImmutableBitSet.of(0))),
+                b.count(b.field(1)).as("cent"))
+            .sort(0)
+            .build();
+    final String expected = ""
+        + "SELECT CASE WHEN HIREDATE IS NULL THEN 0 ELSE 1 END AS `$f0`,"
+        + " COUNT(MGR) AS cent\n"
+        + "FROM SCOTT.EMP\n"
+        + "GROUP BY CASE WHEN HIREDATE IS NULL THEN 0 ELSE 1 END\n"
+        + "ORDER BY 1 NULLS LAST";
+
+    relFn(relFn)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withBigQuery()
+        .ok(expected);
   }
 
   /** Fluid interface to run tests. */
