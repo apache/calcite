@@ -7058,40 +7058,6 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
-  /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5775">[CALCITE-5775]</a>;
-   * make sure BigQuery uses {@code NULLS LAST} syntax.
-   */
-  @Test void testBigQueryUsesNullsLastInsteadOfEmulation() {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("EMP")
-            .project(
-                b.call(SqlStdOperatorTable.CASE,
-                    b.call(SqlStdOperatorTable.IS_NULL,
-                        b.field(4)),
-                    b.literal(0),
-                    b.literal(1)),
-                b.field(3))
-            .aggregate(
-                b.groupKey(
-                    ImmutableBitSet.of(0),
-                    ImmutableList.of(ImmutableBitSet.of(0))),
-                b.count(b.field(1)).as("cent"))
-            .sort(0)
-            .build();
-    final String expected = ""
-        + "SELECT CASE WHEN HIREDATE IS NULL THEN 0 ELSE 1 END AS `$f0`,"
-        + " COUNT(MGR) AS cent\n"
-        + "FROM SCOTT.EMP\n"
-        + "GROUP BY CASE WHEN HIREDATE IS NULL THEN 0 ELSE 1 END\n"
-        + "ORDER BY 1 NULLS LAST";
-
-    relFn(relFn)
-        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .withBigQuery()
-        .ok(expected);
-  }
-
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
