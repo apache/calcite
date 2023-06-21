@@ -806,7 +806,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TRY_TO_TIMESTAMP =
       new SqlFunction("TRY_TO_TIMESTAMP",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP,
+          ReturnTypes.TIMESTAMP_NULLABLE,
           null,
           OperandTypes.or(
               OperandTypes.STRING,
