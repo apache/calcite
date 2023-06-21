@@ -470,11 +470,15 @@ class PigRelOpTest extends PigRelTestBase {
         + "        GROUP BY DEPTNO) AS $cor4,\n"
         + "      LATERAL (SELECT COLLECT(ROW(ENAME, JOB, DEPTNO, SAL)) AS X\n"
         + "        FROM (SELECT ENAME, JOB, DEPTNO, SAL\n"
-        + "            FROM UNNEST($cor4.A AS $f0) AS t2 (EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO)\n"
+        + "            FROM UNNEST (SELECT $cor4.A AS $f0\n"
+        + "                FROM (VALUES (0)) AS t (ZERO)) "
+        + "AS t2 (EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO)\n"
         + "            WHERE JOB <> 'CLERK'\n"
         + "            ORDER BY SAL) AS t5\n"
         + "        GROUP BY 'all') AS t8) AS $cor5,\n"
-        + "  LATERAL UNNEST($cor5.X AS $f0) AS t11 (ENAME, JOB, DEPTNO, SAL) AS t110\n"
+        + "  LATERAL UNNEST (SELECT $cor5.X AS $f0\n"
+        + "    FROM (VALUES (0)) AS t (ZERO)) "
+        + "AS t11 (ENAME, JOB, DEPTNO, SAL) AS t110\n"
         + "ORDER BY $cor5.group";
     pig(script).assertRel(hasTree(plan))
         .assertResult(is(result))

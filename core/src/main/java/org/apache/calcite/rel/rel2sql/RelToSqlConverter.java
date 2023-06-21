@@ -202,11 +202,6 @@ public class RelToSqlConverter extends SqlImplementor
       break;
     }
     final Result leftResult = visitInput(e, 0).resetAlias();
-
-    //parseCorrelTable(RelNode, Result) call will save your correlation variable
-    //with your alias in map
-
-    parseCorrelTable(e, leftResult);
     final Result rightResult = visitInput(e, 1).resetAlias();
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
@@ -291,28 +286,18 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** Visits a Correlate; called by {@link #dispatch} via reflection. */
   public Result visit(Correlate e) {
-    Result leftResult = visitInput(e, 0);
+    final Result leftResult =
+        visitInput(e, 0)
+            .resetAlias(e.getCorrelVariable(), e.getRowType());
     parseCorrelTable(e, leftResult);
     final Result rightResult = visitInput(e, 1);
-    SqlNode rightLateralAs = rightResult.asFrom();
-    SqlNode rightNode = rightResult.node;
-    if (rightNode.getKind() == SqlKind.AS) {
-      rightNode = ((SqlBasicCall) rightNode).getOperands()[0];
-    }
-
-    //Following validation checks if the right evaluated node is UNNEST or not, because
-    //as per ANSI standard, we either can use LATERAL with subquery or UNNEST with array/multiset
-    //But both are not allowed at the same time.
-
-    if (!(rightNode.getKind() == SqlKind.UNNEST)) {
-      final SqlNode rightLateral =
-          SqlStdOperatorTable.LATERAL.createCall(POS, rightResult.node);
-      rightLateralAs =
-          SqlStdOperatorTable.AS.createCall(POS, rightLateral,
-              new SqlIdentifier(
-                  requireNonNull(rightResult.neededAlias,
-                      () -> "rightResult.neededAlias is null, node is " + rightResult.node), POS));
-    }
+    final SqlNode rightLateral =
+        SqlStdOperatorTable.LATERAL.createCall(POS, rightResult.node);
+    final SqlNode rightLateralAs =
+        SqlStdOperatorTable.AS.createCall(POS, rightLateral,
+            new SqlIdentifier(
+                requireNonNull(rightResult.neededAlias,
+                    () -> "rightResult.neededAlias is null, node is " + rightResult.node), POS));
 
     final SqlNode join =
         new SqlJoin(POS,
@@ -1110,16 +1095,7 @@ public class RelToSqlConverter extends SqlImplementor
 
   public Result visit(Uncollect e) {
     final Result x = visitInput(e, 0);
-    SqlNode operand =  x.asStatement();
-
-    //As per ANSI standard, Unnest Operator only accepts array or multiset data type,
-    //So in case of select node, need to extract selectList of column name,
-    //Otherwise it consumes select as subquerry.
-
-    if (x.node instanceof SqlSelect) {
-      operand = ((SqlSelect) x.node).getSelectList().get(0);
-    }
-    final SqlNode unnestNode = SqlStdOperatorTable.UNNEST.createCall(POS, operand);
+    final SqlNode unnestNode = SqlStdOperatorTable.UNNEST.createCall(POS, x.asStatement());
     final List<SqlNode> operands = createAsFullOperands(e.getRowType(), unnestNode,
         requireNonNull(x.neededAlias, () -> "x.neededAlias is null, node is " + x.node));
     final SqlNode asNode = SqlStdOperatorTable.AS.createCall(POS, operands);
@@ -1190,7 +1166,7 @@ public class RelToSqlConverter extends SqlImplementor
     selectList.add(node);
   }
 
-  protected void parseCorrelTable(RelNode relNode, Result x) {
+  private void parseCorrelTable(RelNode relNode, Result x) {
     for (CorrelationId id : relNode.getVariablesSet()) {
       correlTableMap.put(id, x.qualifiedContext());
     }
