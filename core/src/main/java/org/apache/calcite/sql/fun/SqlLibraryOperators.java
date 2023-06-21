@@ -806,9 +806,11 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TRY_TO_TIMESTAMP =
       new SqlFunction("TRY_TO_TIMESTAMP",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE,
+          ReturnTypes.TIMESTAMP,
           null,
-          OperandTypes.STRING_STRING,
+          OperandTypes.or(
+              OperandTypes.STRING,
+              OperandTypes.STRING_STRING),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {ORACLE})
