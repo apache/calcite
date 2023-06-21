@@ -3611,4 +3611,78 @@ from emp;
 
 !ok
 
+# Test case for [CALCITE-5789]
+select deptno from dept d1 where exists (
+ select 1 from dept d2 where d2.deptno = d1.deptno and exists (
+  select 1 from dept d3 where d3.deptno = d2.deptno and d3.dname = d1.dname));
++--------+
+| DEPTNO |
++--------+
+|     10 |
+|     20 |
+|     30 |
+|     40 |
++--------+
+(4 rows)
+
+!ok
+EnumerableCalc(expr#0..3=[{inputs}], DEPTNO=[$t2])
+  EnumerableHashJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
+      EnumerableMergeJoin(condition=[=($0, $2)], joinType=[inner])
+        EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+          EnumerableTableScan(table=[[scott, DEPT]])
+        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t1)], DNAME=[$t1], DEPTNO=[$t0], $condition=[$t3])
+          EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
+      EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test case for CALCITE-5683 which throws an exception during the de-correlation phase
+SELECT d1.dname, d1.deptno + (
+  SELECT max(e1.empno)
+  FROM emp e1
+  WHERE d1.deptno = e1.deptno and
+        e1.sal = (
+          SELECT max(sal)
+          FROM emp e2
+          WHERE e1.sal = e2.sal and
+                e1.deptno = e2.deptno and
+                d1.deptno <= e2.deptno))
+FROM dept d1;
++------------+--------+
+| DNAME      | EXPR$1 |
++------------+--------+
+| ACCOUNTING |   7944 |
+| OPERATIONS |        |
+| RESEARCH   |   7922 |
+| SALES      |   7930 |
++------------+--------+
+(4 rows)
+
+!ok
+
+# Test case for CALCITE-5683 which throws an exception during the de-correlation phase
+SELECT d1.dname, d1.deptno + (
+  SELECT max(e1.empno)
+  FROM emp e1
+  WHERE d1.deptno = e1.deptno and
+        e1.sal = (SELECT max(sal)
+                  FROM emp e2
+                  WHERE e1.sal = e2.sal and
+                        e1.deptno = e2.deptno and
+                        d1.deptno < e2.deptno))
+FROM dept d1;
++------------+--------+
+| DNAME      | EXPR$1 |
++------------+--------+
+| ACCOUNTING |        |
+| OPERATIONS |        |
+| RESEARCH   |        |
+| SALES      |        |
++------------+--------+
+(4 rows)
+
+!ok
+
 # End sub-query.iq
