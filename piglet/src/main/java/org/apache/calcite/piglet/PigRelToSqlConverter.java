@@ -148,7 +148,8 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
         SqlStdOperatorTable.AS.createCall(POS, rightLateral,
             new SqlIdentifier(
                 requireNonNull(rightResult.getNeededAlias(),
-                    () -> "rightResult.neededAlias is null, node is " + rightResult.getNode()), POS));
+                    () -> "rightResult.neededAlias is null, node is "
+                        + rightResult.getNode()), POS));
 
     final SqlNode join =
         new SqlJoin(POS,
