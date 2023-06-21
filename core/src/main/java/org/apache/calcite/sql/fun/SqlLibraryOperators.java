@@ -1202,6 +1202,14 @@ public abstract class SqlLibraryOperators {
             number -> number == 2),
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP_DIFF =
+      new SqlFunction("TIMESTAMP_DIFF", SqlKind.TIMESTAMP_DIFF,
+      ReturnTypes.INTEGER, null,
+      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME,
+          SqlTypeFamily.STRING),
+      SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction DATEDIFF =
       new SqlFunction("DATEDIFF", SqlKind.OTHER_FUNCTION,
