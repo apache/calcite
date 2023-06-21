@@ -239,7 +239,8 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
       boolean suffix,
       SqlDialect dialect) {
     StringBuilder ret = new StringBuilder();
-    dialect.quoteStringLiteral(ret, prefix ? charsetName : null, getValue());
+    String val = dialect.handleEscapeSequences(getValue());
+    dialect.quoteStringLiteral(ret, prefix ? charsetName : null, val);
 
     // NOTE jvs 3-Feb-2005:  see FRG-78 for why this should go away
     if (false) {
