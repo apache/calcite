@@ -8824,7 +8824,7 @@ class RelToSqlConverterTest {
     private final SchemaPlus schema;
     private final String sql;
     private final SqlDialect dialect;
-    private final Function<RelBuilder, RelNode> relFn;
+    private Function<RelBuilder, RelNode> relFn;
     private final List<Function<RelNode, RelNode>> transforms;
     private final SqlParser.Config parserConfig;
     private final UnaryOperator<SqlToRelConverter.Config> config;
