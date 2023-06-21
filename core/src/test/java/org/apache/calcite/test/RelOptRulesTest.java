@@ -6977,6 +6977,77 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** Test case for CALCITE-5683 for two level nested decorrelate with standard program
+   * failing during the decorrelation phase. The correlation variable is used at two levels
+   * deep. */
+  @Test void testTwoLevelDecorrelate() {
+    final String sql = "SELECT d1.name, d1.deptno + (\n"
+        + "SELECT e1.empno\n"
+        + "FROM emp e1\n"
+        + "WHERE d1.deptno = e1.deptno and\n"
+        + "    e1.sal = (SELECT max(sal)\n"
+        + "              FROM emp e2\n"
+        + "              WHERE e1.sal = e2.sal and\n"
+        + "                  e1.deptno = e2.deptno and\n"
+        + "                  d1.deptno < e2.deptno))\n"
+        + "FROM dept d1";
+
+    sql(sql)
+        .withSubQueryRules()
+        .withLateDecorrelate(true)
+        .withTrim(true)
+        .check();
+  }
+
+  /**
+   * Test case that SubQueryRemoveRule works with correlated Filter without varibles.
+   */
+  @Test void testCorrelatedFilterWithoutVariable() {
+    // select *
+    // from dept
+    // where exists (select deptno
+    //               from emp
+    //               where dept.deptno = emp.deptno
+    //                 and emp.sal > 100)
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("DEPT")
+        .variable(v::set)
+        .filter(
+            b.exists(b1 -> b1
+            .scan("EMP")
+            .filter(
+                b1.and(
+                b1.equals(b1.field(v.get(), "DEPTNO"), b1.field("DEPTNO")),
+                b1.greaterThan(b1.field("SAL"), b1.literal(100))))
+            .project(b1.field("DEPTNO"))
+            .build()))
+        .build();
+    relFn(relFn)
+        .withSubQueryRules()
+        .check();
+  }
+
+  /** Test case for CALCITE-5683 for two level nested decorrelate with standard program
+   * failing during the decorrelation phase. The correlation variable is used at the second
+   * level and is not used in the first level */
+  @Test void testCorrelatedVariableAtSecondLevel() {
+    final String sql = "SELECT d1.name, d1.deptno +(\n"
+        + "SELECT e1.empno\n"
+        + "FROM emp e1\n"
+        + "WHERE e1.sal = (SELECT max(sal)\n"
+        + "                FROM emp e2\n"
+        + "                WHERE e1.sal = e2.sal and\n"
+        + "                    e1.deptno = e2.deptno and\n"
+        + "                    d1.deptno < e2.deptno))\n"
+        + "FROM dept d1";
+    sql(sql)
+        .withSubQueryRules()
+        .withLateDecorrelate(true)
+        .withTrim(true)
+        .check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-434">[CALCITE-434]
    * Converting predicates on date dimension columns into date ranges</a>,

@@ -3512,7 +3512,17 @@ public class SqlToRelConverter {
 
     // implement HAVING (we have already checked that it is non-trivial)
     relBuilder.push(bb.root());
-    relBuilder.filter(havingExpr);
+    // Set the correlation variables used in this sub-query to the filter node,
+    // same logic is being used for the filter generated in where clause.
+    Set<CorrelationId> variableSet = new HashSet<>();
+    RexSubQuery subQ = RexUtil.SubQueryFinder.find(havingExpr);
+    if (subQ != null) {
+      CorrelationUse p = getCorrelationUse(bb, subQ.rel);
+      if (p != null) {
+        variableSet.add(p.id);
+      }
+    }
+    relBuilder.filter(variableSet, havingExpr);
 
     // implement the SELECT list
     relBuilder.project(projects.leftList(), projects.rightList())
