@@ -905,6 +905,11 @@ public abstract class SqlTypeUtil {
     if (toTypeName == SqlTypeName.UNKNOWN) {
       return true;
     }
+    // defer validation of casting to UNSIGNED in MYSQL_CONVERT to MySQL
+    if (toType instanceof ObjectSqlType
+        && "UNSIGNED".equals(requireNonNull(toType.getSqlIdentifier()).toString())) {
+      return true;
+    }
     if (toType.isStruct() || fromType.isStruct()) {
       if (toTypeName == SqlTypeName.DISTINCT) {
         if (fromTypeName == SqlTypeName.DISTINCT) {

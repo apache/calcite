@@ -165,12 +165,22 @@ public class MysqlSqlDialect extends SqlDialect {
           SqlParserPos.ZERO);
     case INTEGER:
     case BIGINT:
-      return new SqlDataTypeSpec(
-          new SqlAlienSystemTypeNameSpec(
-              "SIGNED",
-              type.getSqlTypeName(),
-              SqlParserPos.ZERO),
-          SqlParserPos.ZERO);
+      if (type.getSqlIdentifier() != null
+          && "UNSIGNED".equals(type.getSqlIdentifier().toString())) {
+        return new SqlDataTypeSpec(
+            new SqlAlienSystemTypeNameSpec(
+                "UNSIGNED",
+                type.getSqlTypeName(),
+                SqlParserPos.ZERO),
+            SqlParserPos.ZERO);
+      } else {
+        return new SqlDataTypeSpec(
+            new SqlAlienSystemTypeNameSpec(
+                "SIGNED",
+                type.getSqlTypeName(),
+                SqlParserPos.ZERO),
+            SqlParserPos.ZERO);
+      }
     case TIMESTAMP:
       return new SqlDataTypeSpec(
           new SqlAlienSystemTypeNameSpec(

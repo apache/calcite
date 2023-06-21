@@ -2678,6 +2678,15 @@ class RelToSqlConverterTest {
     sql(query).withMysql().ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5685">[CALCITE-5685]
+   * Support MySQL CONVERT function that works on data types</a>. */
+  @Test void testMysqlCastToUnsignedBigint() {
+    final String query = "select convert(\"product_id\", unsigned) from \"product\"";
+    final String expected = "SELECT CAST(`product_id` AS UNSIGNED)\n"
+        + "FROM `foodmart`.`product`";
+    sql(query).withMysql().ok(expected);
+  }
 
   @Test void testMysqlCastToInteger() {
     // MySQL does not allow cast to INTEGER; instead cast to SIGNED.
