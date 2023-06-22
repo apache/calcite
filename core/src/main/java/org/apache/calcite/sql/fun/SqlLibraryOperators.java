@@ -835,6 +835,19 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
+  /**Same as {@link #TO_TIMESTAMP}, except ,if the conversion cannot be performed,
+   * it returns a NULL value instead of raising an error.*/
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TRY_TO_TIMESTAMP =
+      new SqlFunction("TRY_TO_TIMESTAMP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_NULLABLE,
+          null,
+          OperandTypes.or(
+              OperandTypes.STRING,
+              OperandTypes.STRING_STRING),
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction ORACLE_TO_TIMESTAMP =
       new SqlFunction("TO_TIMESTAMP",
@@ -1232,7 +1245,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("DATE_DIFF", SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER, null,
           OperandTypes.family(
-              ImmutableList.of(SqlTypeFamily.DATE, SqlTypeFamily.DATE,
+              ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME,
             SqlTypeFamily.STRING),
             number -> number == 2),
           SqlFunctionCategory.TIMEDATE);

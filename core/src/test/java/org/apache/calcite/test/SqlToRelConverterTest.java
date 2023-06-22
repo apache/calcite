@@ -3791,6 +3791,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testArrayElementAccess() {
+    final String sql = "select array[1,2,3,4][0]\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
   @Test void testJsonPredicate() {
     final String sql = "select\n"
         + "ename is json,\n"
