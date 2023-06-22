@@ -20,22 +20,13 @@ import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 
-import net.hydromatic.sqllogictest.ISqlTestOperation;
 import net.hydromatic.sqllogictest.OptionsParser;
 import net.hydromatic.sqllogictest.SltSqlStatement;
-import net.hydromatic.sqllogictest.SltTestFile;
-import net.hydromatic.sqllogictest.SqlTestQuery;
-import net.hydromatic.sqllogictest.TestStatistics;
 import net.hydromatic.sqllogictest.executors.HsqldbExecutor;
 import net.hydromatic.sqllogictest.executors.JdbcExecutor;
-import net.hydromatic.sqllogictest.executors.SqlSltTestExecutor;
 
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Set;
 import javax.sql.DataSource;
@@ -43,9 +34,12 @@ import javax.sql.DataSource;
 /**
  * Executor for SQL logic tests using Calcite's JDBC adapter.
  */
-public class CalciteExecutor extends SqlSltTestExecutor {
+public class CalciteExecutor extends JdbcExecutor {
+  /**
+   * This executor is used for executing the statements (CREATE TABLE,
+   * CREATE VIEW, INSERT).  Queries are executed by Calcite.
+   */
   private final JdbcExecutor statementExecutor;
-  private final Connection connection;
 
   public static void register(OptionsParser parser) {
     parser.registerExecutor("calcite", () -> {
@@ -62,9 +56,25 @@ public class CalciteExecutor extends SqlSltTestExecutor {
     });
   }
 
+  @Override public void establishConnection() throws SQLException {
+    this.statementExecutor.establishConnection();
+  }
+
+  @Override public void dropAllTables() throws SQLException {
+    this.statementExecutor.dropAllTables();
+  }
+
+  @Override public void dropAllViews() throws SQLException {
+    this.statementExecutor.dropAllViews();
+  }
+
+  @Override public void statement(SltSqlStatement statement) throws SQLException {
+    this.statementExecutor.statement(statement);
+  }
+
   public CalciteExecutor(OptionsParser.SuppliedOptions options, JdbcExecutor statementExecutor)
       throws SQLException {
-    super(options);
+    super(options, "jdbc:calcite:lex=ORACLE", "", "");
     this.statementExecutor = statementExecutor;
     // Build our connection
     this.connection =
@@ -80,93 +90,5 @@ public class CalciteExecutor extends SqlSltTestExecutor {
     JdbcSchema jdbcSchema = JdbcSchema.create(rootSchema, schemaName, hsqldb, null, null);
     rootSchema.add(schemaName, jdbcSchema);
     calciteConnection.setSchema(schemaName);
-  }
-
-  boolean statement(SltSqlStatement statement) throws SQLException {
-    this.options.message(this.statementsExecuted + ": " + statement.statement, 2);
-    assert this.connection != null;
-    if (this.buggyOperations.contains(statement.statement)
-        || this.options.doNotExecute) {
-      options.message("Skipping " + statement.statement, 2);
-      return false;
-    }
-    this.statementExecutor.statement(statement);
-    this.statementsExecuted++;
-    return true;
-  }
-
-  /**
-   * Run a query.
-   * @param query       Query to execute.
-   * @param statistics  Execution statistics recording the result of
-   *                    the query execution.
-   * @return            True if we need to stop executing.
-   */
-  boolean query(SqlTestQuery query, TestStatistics statistics) throws SQLException {
-    String q = query.getQuery();
-    this.options.message(statistics.totalTests()
-        + " executing: " + q, 2);
-    if (this.buggyOperations.contains(q) || this.options.doNotExecute) {
-      statistics.incIgnored();
-      options.message("Skipping " + query.getQuery(), 2);
-      return false;
-    }
-    try (PreparedStatement ps = this.connection.prepareStatement(q)) {
-      ps.execute();
-      try (ResultSet resultSet = ps.getResultSet()) {
-        return this.statementExecutor.validate(query, resultSet, query.outputDescription,
-            statistics);
-      } catch (NoSuchAlgorithmException e) {
-        // This should never happen
-        throw new RuntimeException(e);
-      }
-    }
-  }
-
-  @Override public TestStatistics execute(SltTestFile file,
-      OptionsParser.SuppliedOptions options)
-      throws SQLException {
-    this.startTest();
-    this.statementExecutor.establishConnection();
-    this.statementExecutor.dropAllViews();
-    this.statementExecutor.dropAllTables();
-
-    TestStatistics result = new TestStatistics(options.stopAtFirstError);
-    result.incFiles();
-    for (ISqlTestOperation operation : file.fileContents) {
-      SltSqlStatement stat = operation.as(SltSqlStatement.class);
-      if (stat != null) {
-        try {
-          this.statement(stat);
-        } catch (SQLException ex) {
-          // Errors in SQL statements cannot be recovered from.
-          options.err.println("Error '" + ex.getMessage()
-              + "' in SQL statement " + operation);
-          throw ex;
-        }
-        this.statementsExecuted++;
-      } else {
-        SqlTestQuery query = operation.to(options.err, SqlTestQuery.class);
-        boolean stop;
-        try {
-          stop = this.query(query, result);
-        } catch (Throwable ex) {
-          // We catch throwable so we can handle even assertion failures
-          options.message("Error '" + ex.getMessage() + "' while processing "
-              + query.getQuery(), 2);
-          stop = result.addFailure(
-                  new TestStatistics.FailedTestDescription(query,
-                  ex.getMessage(), ex, options.verbosity > 0));
-        }
-        if (stop) {
-          break;
-        }
-      }
-    }
-    this.statementExecutor.dropAllViews();
-    this.statementExecutor.dropAllTables();
-    this.statementExecutor.closeConnection();
-    options.message(this.elapsedTime(file.getTestCount()), 1);
-    return result;
   }
 }
