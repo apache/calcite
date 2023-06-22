@@ -124,6 +124,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         SqlStdOperatorTable.CHAR_LENGTH);
     addAlias(SqlStdOperatorTable.CHARACTER_LENGTH,
         SqlStdOperatorTable.CHAR_LENGTH);
+    addAlias(SqlLibraryOperators.BYTE_LENGTH,
+        SqlStdOperatorTable.OCTET_LENGTH);
     addAlias(SqlStdOperatorTable.IS_UNKNOWN,
         SqlStdOperatorTable.IS_NULL);
     addAlias(SqlStdOperatorTable.IS_NOT_UNKNOWN,

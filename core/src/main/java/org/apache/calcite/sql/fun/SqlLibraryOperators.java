@@ -272,6 +272,11 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction LENGTH =
       SqlStdOperatorTable.CHAR_LENGTH.withName("LENGTH");
 
+  /** The "BYTE_LENGTH(value)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction BYTE_LENGTH =
+      SqlStdOperatorTable.OCTET_LENGTH.withName("BYTE_LENGTH");
+
   /** The "LPAD(original_value, return_length[, pattern])" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction LPAD =
