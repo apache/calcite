@@ -790,7 +790,9 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIME_NULLABLE,
           null,
-          OperandTypes.ANY,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.STRING),
+              number -> number == 1),
           SqlFunctionCategory.TIMEDATE);
 
   /**
