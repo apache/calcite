@@ -788,9 +788,9 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TO_TIME =
       new SqlFunction("TO_TIME",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATE_NULLABLE,
+          ReturnTypes.TIME_NULLABLE,
           null,
-          OperandTypes.STRING_STRING,
+          OperandTypes.ANY,
           SqlFunctionCategory.TIMEDATE);
 
   /**
@@ -801,7 +801,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TIME =
       new SqlFunction("TIME",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATE_NULLABLE,
+          ReturnTypes.TIME_NULLABLE,
           null,
           OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
