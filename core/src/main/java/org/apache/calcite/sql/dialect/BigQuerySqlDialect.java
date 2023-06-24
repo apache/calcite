@@ -44,7 +44,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
@@ -77,6 +76,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -307,6 +307,15 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static final String XOR = "^";
   private static final String SHIFTLEFT = "<<";
   private static final String BITNOT = "~";
+
+  public static final Map<String, String> STRING_LITERAL_ESCAPE_SEQUENCES =
+      new LinkedHashMap<String, String>() {{
+        put("\\\\(?!')", "\\\\\\\\");
+        put("\b", "\\\\b");
+        put("\\n", "\\\\n");
+        put("\\r", "\\\\r");
+        put("\\t", "\\\\t");
+      }};
 
   @Override public String quoteIdentifier(String val) {
     return quoteIdentifier(new StringBuilder(), val).toString();
@@ -564,10 +573,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.sep(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       writer.sep(",");
-      if (call.operand(0).toString().contains("\\")) {
-        SqlCharStringLiteral regexNode = makeRegexNodeForPosition(call);
-        call.setOperand(0, regexNode);
-      }
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       if (3 == call.operandCount()) {
         throw new RuntimeException("3rd operand Not Supported for Function STRPOS in Big Query");
@@ -690,19 +695,6 @@ public class BigQuerySqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
-    case SELECT:
-      SqlSelect select = (SqlSelect) call;
-      SqlNodeList selectClause = select.getSelectList();
-      if (selectClause != null) {
-        processNodeList(selectClause);
-      }
-      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
-      break;
-    case NOT_IN:
-    case EQUALS:
-      processNode(call.operand(1), call);
-      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
-      break;
     case AS:
       SqlNode var = call.operand(0);
       if (call.operand(0) instanceof SqlCharStringLiteral
@@ -756,8 +748,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseAsOp(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     assert call.operandCount() >= 2;
     final SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.AS);
-    SqlNode literalValue = replaceSingleBackslashes(call.operand(0));
-    literalValue.unparse(writer, leftPrec, rightPrec);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
     final boolean needsSpace = true;
     writer.setNeedWhitespace(needsSpace);
     writer.sep("AS");
@@ -803,12 +794,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     return ((SqlBasicCall) aggCall).operand(0);
   }
 
-  private SqlCharStringLiteral makeRegexNodeForPosition(SqlCall call) {
-    String regexLiteral = call.operand(0).toString();
-    regexLiteral = (regexLiteral.substring(1, regexLiteral.length() - 1)).replace("\\", "\\\\");
-    return SqlLiteral.createCharString(regexLiteral,
-        call.operand(0).getParserPosition());
-  }
   /**
    * List of BigQuery Specific Operators needed to form Syntactically Correct SQL.
    */
@@ -860,7 +845,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private SqlCharStringLiteral makeRegexNode(SqlCall call) {
     String regexLiteral = call.operand(1).toString();
-    regexLiteral = (regexLiteral.substring(1, regexLiteral.length() - 1)).replace("\\", "\\\\");
+    regexLiteral = regexLiteral.substring(1, regexLiteral.length() - 1);
     if (call.operandCount() == 5 && call.operand(4).toString().equals("'i'")) {
       regexLiteral = "(?i)".concat(regexLiteral);
     }
@@ -1145,6 +1130,18 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "REGEXP_LIKE":
       unParseRegexpLike(writer, call, leftPrec, rightPrec);
       break;
+    case "REGEXP_CONTAINS":
+      unparseRegexpContains(writer, call, leftPrec, rightPrec);
+      break;
+    case "REGEXP_EXTRACT":
+      unparseRegexpExtract(writer, call, leftPrec, rightPrec);
+      break;
+    case "REGEXP_REPLACE":
+      unparseRegexpReplace(writer, call, leftPrec, rightPrec);
+      break;
+    case "REGEXP_INSTR":
+      unparseRegexpInstr(writer, call, leftPrec, rightPrec);
+      break;
     case "DATE_DIFF":
       final SqlWriter.Frame date_diff = writer.startFunCall("DATE_DIFF");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
@@ -1234,7 +1231,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unParseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlWriter.Frame ifFrame = writer.startFunCall("IF");
-    unParseRegexpContains(writer, call, leftPrec, rightPrec);
+    unparseIfRegexpContains(writer, call, leftPrec, rightPrec);
     writer.sep(",");
     writer.literal("1");
     writer.sep(",");
@@ -1274,24 +1271,22 @@ public class BigQuerySqlDialect extends SqlDialect {
     return isShiftLeft ? SHIFTLEFT : SHIFTRIGHT;
   }
 
-  private void unParseRegexpContains(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  private void unparseIfRegexpContains(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
     SqlWriter.Frame regexContainsFrame = writer.startFunCall("REGEXP_CONTAINS");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(", r");
-    unParseRegexString(writer, call, leftPrec, rightPrec);
+    unparseRegexStringForIfRegexReplace(writer, call);
     writer.endFunCall(regexContainsFrame);
   }
 
-  private void unParseRegexString(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    if (call.getOperandList().size() == 3) {
-      SqlCharStringLiteral modifiedRegexString = getModifiedRegexString(call);
-      modifiedRegexString.unparse(writer, leftPrec, rightPrec);
-    } else {
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-    }
+  private void unparseRegexStringForIfRegexReplace(SqlWriter writer, SqlCall call) {
+    SqlCharStringLiteral secondOperand = call.getOperandList().size() == 3
+        ? modifyIfRegexpContainsSecondOperand(call) : call.operand(1);
+    unparseRegexLiteral(writer, secondOperand);
   }
 
-  private SqlCharStringLiteral getModifiedRegexString(SqlCall call) {
+  private SqlCharStringLiteral modifyIfRegexpContainsSecondOperand(SqlCall call) {
     String matchArgument = call.operand(2).toString().replaceAll("'", "");
     switch (matchArgument) {
     case "i":
@@ -1305,12 +1300,24 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
+  private void unparseRegexpContains(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    int indexOfRegexOperand = 1;
+    SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_CONTAINS");
+    List<SqlNode> operandList = call.getOperandList();
+    unparseRegexFunctionsOperands(writer, leftPrec, rightPrec, indexOfRegexOperand, operandList);
+    writer.endFunCall(regexpExtractAllFrame);
+  }
+
+  public void unparseRegexLiteral(SqlWriter writer, SqlNode operand) {
+    String val = ((SqlCharStringLiteral) operand).toValue();
+    val = val.startsWith("'") ? val : quoteStringLiteral(val);
+    writer.literal(val);
+  }
+
   private void unParseInStr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame instrFrame = writer.startFunCall("INSTR");
     for (SqlNode operand : call.getOperandList()) {
-      if (operand instanceof SqlCharStringLiteral && operand.toString().contains("\\")) {
-        operand = replaceSingleBackslashes(operand);
-      }
       writer.sep(",");
       operand.unparse(writer, leftPrec, rightPrec);
     }
@@ -1320,10 +1327,6 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unParseTranslate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame translateFuncFrame = writer.startFunCall("TRANSLATE");
     for (SqlNode operand : call.getOperandList()) {
-      if (operand instanceof SqlCharStringLiteral) {
-        operand = operand.toString().contains("\\") ? replaceSingleBackslashes(operand) : operand;
-        operand = operand.toString().contains("\n") ? replaceNewLineChar(operand) : operand;
-      }
       writer.sep(",");
       operand.unparse(writer, leftPrec, rightPrec);
     }
@@ -1459,12 +1462,56 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(arrayLengthFrame);
   }
 
-  private void unparseRegexpExtractAll(SqlWriter writer, SqlCall call,
+  private void unparseRegexpExtract(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    int indexOfRegexOperand = 1;
+    SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_EXTRACT");
+    List<SqlNode> operandList = call.getOperandList();
+    unparseRegexFunctionsOperands(writer, leftPrec, rightPrec, indexOfRegexOperand, operandList);
+    writer.endFunCall(regexpExtractAllFrame);
+  }
+
+  private void unparseRegexpReplace(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    int indexOfRegexOperand = 1;
+    SqlWriter.Frame regexpReplaceFrame = writer.startFunCall("REGEXP_REPLACE");
+    List<SqlNode> operandList = call.getOperandList();
+    unparseRegexFunctionsOperands(writer, leftPrec, rightPrec, indexOfRegexOperand, operandList);
+    writer.endFunCall(regexpReplaceFrame);
+  }
+
+  private void unparseRegexpInstr(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    int indexOfRegexOperand = 1;
+    SqlWriter.Frame regexpReplaceFrame = writer.startFunCall("REGEXP_INSTR");
+    List<SqlNode> operandList = call.getOperandList();
+    unparseRegexFunctionsOperands(writer, leftPrec, rightPrec, indexOfRegexOperand, operandList);
+    writer.endFunCall(regexpReplaceFrame);
+  }
+
+  private void unparseRegexFunctionsOperands(SqlWriter writer, int leftPrec, int rightPrec,
+      int indexOfRegexOperand, List<SqlNode> operandList) {
+    for (SqlNode operand : operandList) {
+      writer.sep(",", false);
+      if (operandList.indexOf(operand) == indexOfRegexOperand
+          && operand instanceof SqlCharStringLiteral) {
+        unparseRegexLiteral(writer, operand);
+      } else {
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+    }
+  }
+
+  public void unparseRegexpExtractAll(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_EXTRACT_ALL");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(", r");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    if (call.operand(1) instanceof SqlCharStringLiteral) {
+      unparseRegexLiteral(writer, call.operand(1));
+    } else {
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+    }
     writer.endFunCall(regexpExtractAllFrame);
   }
 
@@ -1484,11 +1531,8 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseOctetLength(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlNode operandCall = call.operand(0);
     if (call.operand(0) instanceof SqlLiteral) {
-      String newOperand = call.operand(0).toString().replace("\\",
-              "\\\\");
-
       operandCall = SqlLiteral.createCharString(
-              unquoteStringLiteral(newOperand), SqlParserPos.ZERO);
+              unquoteStringLiteral(call.operand(0).toString()), SqlParserPos.ZERO);
     }
     final SqlWriter.Frame octetFrame = writer.startFunCall("OCTET_LENGTH");
     operandCall.unparse(writer, leftPrec, rightPrec);
@@ -1936,36 +1980,11 @@ public class BigQuerySqlDialect extends SqlDialect {
         "");
   }
 
-  public static void processNode(SqlNode binaryNode, SqlCall call) {
-    if (binaryNode instanceof SqlNodeList) {
-      SqlNodeList operandList = (SqlNodeList) binaryNode;
-      processNodeList(operandList);
+  @Override public String handleEscapeSequences(String val) {
+    for (String escapeSequence : STRING_LITERAL_ESCAPE_SEQUENCES.keySet()) {
+      val = val.replaceAll(escapeSequence, STRING_LITERAL_ESCAPE_SEQUENCES.get(escapeSequence));
     }
-    if (binaryNode instanceof SqlCharStringLiteral && binaryNode.toString().contains("\n")) {
-      binaryNode = replaceNewLineChar(binaryNode);
-      call.setOperand(1, binaryNode);
-    }
-  }
-
-  public static void processNodeList(SqlNodeList operandList) {
-    SqlNode node;
-    for (SqlNode operand : operandList) {
-      if (operand instanceof SqlCharStringLiteral) {
-        node = operand.toString().contains("\\") ? replaceSingleBackslashes(operand) : operand;
-        node = node.toString().contains("\n") ? replaceNewLineChar(node) : node;
-        operandList.set(operandList.indexOf(operand), node);
-      }
-    }
-  }
-
-  public static SqlNode replaceSingleBackslashes(SqlNode operand) {
-    String replacedOperand = ((SqlCharStringLiteral) operand).toValue().replace("\\", "\\\\");
-    return SqlLiteral.createCharString(replacedOperand, SqlParserPos.ZERO);
-  }
-
-  public static SqlNode replaceNewLineChar(SqlNode operand) {
-    String replacedOperand = ((SqlCharStringLiteral) operand).toValue().replace("\n", "");
-    return SqlLiteral.createCharString(replacedOperand, SqlParserPos.ZERO);
+    return val;
   }
 
   /**
