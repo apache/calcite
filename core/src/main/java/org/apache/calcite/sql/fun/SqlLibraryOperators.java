@@ -781,21 +781,6 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.TIMEDATE);
 
   /**
-   * The "TO_TIME(string1, string2)" function; casts string1
-   * to a TIME using the format specified in string2.
-   */
-  @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction TO_TIME =
-      new SqlFunction("TO_TIME",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIME_NULLABLE,
-          null,
-          OperandTypes.family(
-              ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.STRING),
-              number -> number == 1),
-          SqlFunctionCategory.TIMEDATE);
-
-  /**
    * The "TIME(string1)" function; casts string1
    * to a TIME using the format specified in string2.
    */
@@ -808,13 +793,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
-  @LibraryOperator(libraries = {SNOWFLAKE})
+  /** The "TIMESTAMP(string)" function, equivalent to "CAST(string AS TIMESTAMP). */
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP =
-      new SqlFunction("TIMESTAMP",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATE_NULLABLE,
-          null,
-          OperandTypes.DATETIME,
+      new SqlFunction("TIMESTAMP", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_NULLABLE, null,
+          OperandTypes.or(OperandTypes.DATETIME, OperandTypes.STRING),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {ORACLE})
