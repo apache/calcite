@@ -141,7 +141,8 @@ public abstract class QuidemTest {
       // inUrl = "file:/home/fred/calcite/core/target/test-classes/sql/outer.iq"
       final URL inUrl = QuidemTest.class.getResource("/" + n2u(path));
       inFile = Sources.of(inUrl).file();
-      outFile = new File(inFile.getAbsoluteFile().getParent(), u2n("surefire/") + path);
+      outFile = new File(inFile.getAbsoluteFile().getParent()
+          .replace("resources", "quidem"), u2n("surefire/") + path);
     }
     Util.discard(outFile.getParentFile().mkdirs());
     try (Reader reader = Util.reader(inFile);

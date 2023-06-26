@@ -927,7 +927,9 @@ public class DiffRepository {
     DiffRepository toRepo() {
       final URL refFile = findFile(clazz, ".xml");
       final String refFilePath = Sources.of(refFile).file().getAbsolutePath();
-      final String logFilePath = refFilePath.replace(".xml", "_actual.xml");
+      final String logFilePath = refFilePath
+          .replace("resources", "diffrepo")
+          .replace(".xml", "_actual.xml");
       final File logFile = new File(logFilePath);
       assert !refFilePath.equals(logFile.getAbsolutePath());
       return new DiffRepository(refFile, logFile, baseRepository, filter,
