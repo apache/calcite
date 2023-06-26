@@ -2143,7 +2143,7 @@ select empno from "scott".emp as e
 where e.empno > ANY(
   select 2 from "scott".dept e2 where e2.deptno = e.deptno) ;
 EnumerableCalc(expr#0..1=[{inputs}], EMPNO=[$t0])
-  EnumerableHashJoin(condition=[AND(=($1, $6), OR(AND(>($0, $2), <>($3, 0)), AND(>($0, $2), <>($3, 0), IS NOT TRUE(>($0, $2)), IS NOT TRUE(>($3, $4)))))], joinType=[semi])
+  EnumerableHashJoin(condition=[AND(=($1, $6), >($0, $2))], joinType=[semi])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
       EnumerableTableScan(table=[[scott, EMP]])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2], expr#4=[1:BIGINT], expr#5=[true], m=[$t3], c=[$t4], d=[$t4], trueLiteral=[$t5], DEPTNO=[$t0])

@@ -161,9 +161,14 @@ class RexProgramTestBase extends RexProgramBuilderBase {
 
   protected void checkSimplifyFilter(RexNode node,
       RelOptPredicateList predicates, String expected) {
+    checkSimplifyWithPredicates(node, predicates, RexUnknownAs.FALSE, expected);
+  }
+
+  protected void checkSimplifyWithPredicates(RexNode node,
+      RelOptPredicateList predicates, RexUnknownAs unknownAs, String expected) {
     final RexNode simplified =
         simplify.withPredicates(predicates)
-            .simplifyUnknownAs(node, RexUnknownAs.FALSE);
+            .simplifyUnknownAs(node, unknownAs);
     assertThat(simplified, hasToString(expected));
   }
 
