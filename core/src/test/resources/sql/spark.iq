@@ -22,12 +22,22 @@
 # -----------------------------------------------------------------------------
 # [CALCITE-5701] - Add support for Apache Spark named_struct function
 
-select named_struct('k',v.a) as s from (values (1, ROW(1))) as v(id,a);
-+---+
-| s |
-+---+
-| 1 |
-+---+
+select named_struct('k1', 1, 'k2', 2) as my_struct;
++-----------+
+| MY_STRUCT |
++-----------+
+| {1, 2}    |
++-----------+
+(1 row)
+
+!ok
+
+select named_struct('k1', 1, 'k2', 2)['k1'] as my_value;
++-----------+
+| MY_STRUCT |
++-----------+
+| 1         |
++-----------+
 (1 row)
 
 !ok

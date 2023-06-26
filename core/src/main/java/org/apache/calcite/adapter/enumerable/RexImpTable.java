@@ -716,8 +716,9 @@ public class RexImpTable {
       final RexCallImplementor value = new ValueConstructorImplementor();
       map.put(MAP_VALUE_CONSTRUCTOR, value);
       map.put(ARRAY_VALUE_CONSTRUCTOR, value);
-      map.put(NAMED_STRUCT, value);
       defineMethod(ARRAY, BuiltInMethod.ARRAYS_AS_LIST.method, NullPolicy.NONE);
+
+      map.put(NAMED_STRUCT, new NamedStructImplementor());
 
       // ITEM operator
       map.put(ITEM, new ItemImplementor());
@@ -2510,6 +2511,32 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for {@link org.apache.calcite.sql.fun.SqlLibraryOperators.NAMED_STRUCT} */
+  private static class NamedStructImplementor extends MethodImplementor {
+
+    NamedStructImplementor() {
+      super(BuiltInMethod.ARRAYS_AS_LIST.method, NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator,
+        RexCall call, List<Expression> argValueList) {
+
+      assert argValueList.size() % 2 == 0;
+
+      final List<Expression> newOperands = new ArrayList<>(argValueList.size() / 2);
+
+      int i = 0;
+      for (Expression exp : argValueList) {
+        if (i % 2 == 1) {
+          newOperands.add(exp);
+        }
+        i += 1;
+      }
+
+      return super.implementSafe(translator, call, newOperands);
+    }
+  }
+
   /**
    * Implementor for JSON_VALUE function, convert to solid format
    * "JSON_VALUE(json_doc, path, empty_behavior, empty_default, error_behavior, error default)"
@@ -3089,28 +3116,6 @@ public class RexImpTable {
                       Expressions.box(key), Expressions.box(value))));
         }
         return map;
-      case STRUCT_CONSTRUCTOR:
-        System.out.println(call);
-        System.out.println(argValueList);
-
-        for (Expression value : argValueList) {
-          System.out.println(value.getClass());
-        }
-
-
-        // Expression struct =
-        //     blockBuilder.append("struct", Expressions.new_(LinkedHashMap.class),
-        //         false);
-        // for (int i = 0; i < argValueList.size(); i++) {
-        //   Expression key = argValueList.get(i++);
-        //   Expression value = argValueList.get(i);
-        //   blockBuilder.add(
-        //       Expressions.statement(
-        //           Expressions.call(struct, BuiltInMethod.MAP_PUT.method,
-        //               Expressions.box(key), Expressions.box(value))));
-        // }
-        return null;
-
       case ARRAY_VALUE_CONSTRUCTOR:
         Expression lyst =
             blockBuilder.append("list", Expressions.new_(ArrayList.class),

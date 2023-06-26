@@ -301,6 +301,11 @@ public abstract class QuidemTest {
             .with(CalciteConnectionProperty.FUN, "mssql")
             .with(CalciteAssert.Config.REGULAR)
             .connect();
+      case "sparkfunc":
+        return CalciteAssert.that()
+            .with(CalciteConnectionProperty.FUN, "spark")
+            .with(CalciteAssert.Config.REGULAR)
+            .connect();
       case "catchall":
         return CalciteAssert.that()
             .with(CalciteConnectionProperty.TIME_ZONE, "UTC")
