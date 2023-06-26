@@ -98,10 +98,10 @@ from empnullables]]>
     <Resource name="plan">
       <![CDATA[
 LogicalAggregate(group=[{}], EXPR$0=[COUNT() FILTER $0])
-  LogicalProject($f0=[IS TRUE(IN($0, {
+  LogicalProject($f0=[CAST(IN($0, {
 LogicalProject(DEPTNO=[$7])
   LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
-}))])
+})):BOOLEAN NOT NULL])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
     </Resource>
