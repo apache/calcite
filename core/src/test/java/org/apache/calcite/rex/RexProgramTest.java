@@ -2010,6 +2010,57 @@ class RexProgramTest extends RexProgramTestBase {
         ">(?0.int0, 0)");
   }
 
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5798">[CALCITE-5798]
+   * Improve simplification of '(x < y) IS NOT TRUE' and '(x < y) IS TRUE'
+   * when x and y are not nullable</a>. */
+  @Test void testSimplifyWithIsNotNullPredicate() {
+    final RexNode xRef = input(tInt(true), 0);
+    final RexNode yRef = input(tInt(true), 1);
+    RelOptPredicateList relOptPredicateList =
+        RelOptPredicateList.of(rexBuilder,
+            ImmutableList.of(isNotNull(xRef), isNotNull(yRef)));
+
+    // "(x < y) IS TRUE" (if x and y are both not nullable) => "x < y"
+    checkSimplifyWithPredicates(
+        isTrue(lt(xRef, yRef)),
+        relOptPredicateList,
+        RexUnknownAs.UNKNOWN,
+        "<($0, $1)");
+
+    // "(x < y) IS NOT TRUE" (if x and y are both not nullable) => "x >= y"
+    checkSimplifyFilter(
+        isNotTrue(lt(xRef, yRef)),
+        relOptPredicateList,
+        ">=($0, $1)");
+
+    // "(x < 1) IS TRUE" (if x is not nullable) => "x < 1"
+    checkSimplifyWithPredicates(
+        isTrue(lt(xRef, literal(1))),
+        relOptPredicateList,
+        RexUnknownAs.UNKNOWN,
+        "<($0, 1)");
+
+    // "(x < 1) IS NOT TRUE" (if x is not nullable) => "x >= 1"
+    checkSimplifyFilter(
+        isNotTrue(lt(xRef, literal(1))),
+        relOptPredicateList,
+        ">=($0, 1)");
+
+    // "(1 < x) IS TRUE" (if x is not nullable) => "1 < x"
+    checkSimplifyWithPredicates(
+        isTrue(lt(literal(1), xRef)),
+        relOptPredicateList,
+        RexUnknownAs.UNKNOWN,
+        "<(1, $0)");
+
+    // "(1 >= x) IS NOT TRUE" (if x is not nullable) => "1 >= x"
+    checkSimplifyFilter(
+        isNotTrue(lt(literal(1), xRef)),
+        relOptPredicateList,
+        ">=(1, $0)");
+  }
+
   /** Test strategies for {@code SargCollector.canMerge(Sarg, RexUnknownAs)}. */
   @Test void testSargMerge() {
     checkSimplify3(
