@@ -76,11 +76,11 @@ import static java.util.Objects.requireNonNull;
  *     return DiffRepository.lookup(MyTest.class);
  *   }
  * &nbsp;
- *   &#64;Test public void testToUpper() {
+ *   &#64;Test void testToUpper() {
  *     getDiffRepos().assertEquals("${result}", "${string}");
  *   }
  * &nbsp;
- *   &#64;Test public void testToLower() {
+ *   &#64;Test void testToLower() {
  *     getDiffRepos().assertEquals("Multi-line\nstring", "${string}");
  *   }
  * }
@@ -110,16 +110,18 @@ import static java.util.Objects.requireNonNull;
  * </code></pre></blockquote>
  *
  * <p>If any of the test cases fails, a log file is generated, called
- * <code>build/resources/test/com/acme/test/MyTest_actual.xml</code>, containing the actual
- * output.
+ * {@code build/diffrepo/test/com/acme/test/MyTest_actual.xml},
+ * containing the actual output.
  *
  * <p>The log
  * file is otherwise identical to the reference log, so once the log file has
  * been verified, it can simply be copied over to become the new reference
  * log:
  *
- * <blockquote><code>cp build/resources/test/com/acme/test/MyTest_actual.xml
- * src/test/resources/com/acme/test/MyTest.xml</code></blockquote>
+ * <blockquote>{@code
+ * cp build/diffrepo/test/com/acme/test/MyTest_actual.xml
+ * src/test/resources/com/acme/test/MyTest.xml
+ * }</blockquote>
  *
  * <p>If a resource or test case does not exist, <code>DiffRepository</code>
  * creates them in the log file. Because DiffRepository is so forgiving, it is
@@ -128,7 +130,7 @@ import static java.util.Objects.requireNonNull;
  * <p>The {@link #lookup} method ensures that all test cases share the same
  * instance of the repository. This is important more than one test case fails.
  * The shared instance ensures that the generated
- * <code>build/resources/test/com/acme/test/MyTest_actual.xml</code>
+ * {@code build/diffrepo/test/com/acme/test/MyTest_actual.xml}
  * file contains the actual for <em>both</em> test cases.
  */
 public class DiffRepository {
@@ -927,7 +929,9 @@ public class DiffRepository {
     DiffRepository toRepo() {
       final URL refFile = findFile(clazz, ".xml");
       final String refFilePath = Sources.of(refFile).file().getAbsolutePath();
-      final String logFilePath = refFilePath.replace(".xml", "_actual.xml");
+      final String logFilePath = refFilePath
+          .replace("resources", "diffrepo")
+          .replace(".xml", "_actual.xml");
       final File logFile = new File(logFilePath);
       assert !refFilePath.equals(logFile.getAbsolutePath());
       return new DiffRepository(refFile, logFile, baseRepository, filter,

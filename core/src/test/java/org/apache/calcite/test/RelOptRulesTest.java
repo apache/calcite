@@ -177,9 +177,13 @@ import static org.junit.jupiter.api.Assertions.fail;
  * for details on the schema.
  *
  * <li>Run the test. It should fail. Inspect the output in
- * {@code build/resources/.../RelOptRulesTest_actual.xml}
- * (e.g., {@code diff src/test/resources/.../RelOptRulesTest.xml
- * build/resources/.../RelOptRulesTest_actual.xml}).
+ * {@code build/diffrepo/test/org/apache/calcite/test/RelOptRulesTest_actual.xml},
+ * e.g.
+ *
+ * <blockquote>{@code
+ * diff core/src/test/resources/org/apache/calcite/test/RelOptRulesTest.xml
+ * build/diffrepo/test/org/apache/calcite/test/RelOptRulesTest_actual.xml
+ * }</blockquote>
  *
  * <li>Verify that the "planBefore" is the correct translation of your SQL,
  * and that it contains the pattern on which your rule is supposed to fire.
