@@ -12436,6 +12436,15 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test void testBQCastToDecimal() {
+    final String query = "select \"employee_id\",\n"
+        + "  cast(\"salary_paid\" as DECIMAL)\n"
+        + "from \"salary\"";
+    final String expected = "SELECT employee_id, CAST(salary_paid AS NUMERIC)\n"
+        + "FROM foodmart.salary";
+    sql(query).withBigQuery().ok(expected);
+  }
+
   @Test public void testQuoteInStringLiterals() {
     final RelBuilder builder = relBuilder();
     final RexNode literal = builder.literal("Datam\"etica");

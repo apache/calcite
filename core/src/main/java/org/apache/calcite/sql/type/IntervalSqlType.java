@@ -141,8 +141,7 @@ public class IntervalSqlType extends AbstractSqlType {
     return intervalQualifier.getStartPrecision(typeSystem);
   }
 
-  @Override
-  public int getMaxNumericPrecision() {
+  @Override public int getMaxNumericPrecision() {
     return PRECISION_NOT_SPECIFIED;
   }
 
