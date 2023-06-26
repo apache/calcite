@@ -184,6 +184,8 @@ public interface RelDataType {
    */
   int getPrecision();
 
+  int getMaxNumericPrecision();
+
   /**
    * Gets the scale of this type. Returns {@link #SCALE_NOT_SPECIFIED} (-1) if
    * scale is not valid for this type.

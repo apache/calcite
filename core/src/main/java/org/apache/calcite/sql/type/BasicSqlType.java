@@ -148,6 +148,10 @@ public class BasicSqlType extends AbstractSqlType {
     return precision;
   }
 
+  @Override public int getMaxNumericPrecision() {
+    return typeSystem.getMaxNumericScale();
+  }
+
   @Override public int getScale() {
     if (scale == SCALE_NOT_SPECIFIED) {
       switch (typeName) {
