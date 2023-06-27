@@ -217,9 +217,7 @@ public abstract class OperandTypes {
       family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.BOOLEAN);
 
   public static final SqlSingleOperandTypeChecker NUMERIC_BOOLEAN_BOOLEAN =
-      family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.BOOLEAN, SqlTypeFamily.BOOLEAN),
-          //2nd and 3rd operands are optional
-          i -> i == 1 || i == 2);
+      family(SqlTypeFamily.NUMERIC, SqlTypeFamily.BOOLEAN, SqlTypeFamily.BOOLEAN);
 
   public static final SqlSingleOperandTypeChecker NUMERIC =
       family(SqlTypeFamily.NUMERIC);
