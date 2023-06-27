@@ -5845,9 +5845,9 @@ class RelToSqlConverterTest {
         + "       lateral (select d.\"department_id\" + 1 as d_plusOne"
         + "                from (values(true)))";
 
-    final String expected = "SELECT \"department\".\"department_id\", \"t0\".\"D_PLUSONE\"\n"
-        + "FROM \"foodmart\".\"department\",\n"
-        + "LATERAL (SELECT \"department\".\"department_id\" + 1 AS \"D_PLUSONE\"\n"
+    final String expected = "SELECT \"$cor0\".\"department_id\", \"$cor0\".\"D_PLUSONE\"\n"
+        + "FROM \"foodmart\".\"department\" AS \"$cor0\",\n"
+        + "LATERAL (SELECT \"$cor0\".\"department_id\" + 1 AS \"D_PLUSONE\"\n"
         + "FROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t0\"";
     sql(sql).ok(expected);
   }
@@ -5859,9 +5859,9 @@ class RelToSqlConverterTest {
     final String query = "select * from \"product\",\n"
         + "lateral table(RAMP(\"product\".\"product_id\"))";
     final String expected = "SELECT *\n"
-        + "FROM \"foodmart\".\"product\",\n"
+        + "FROM \"foodmart\".\"product\" AS \"$cor0\",\n"
         + "LATERAL (SELECT *\n"
-        + "FROM TABLE(RAMP(\"product\".\"product_id\"))) AS \"t\"";
+        + "FROM TABLE(RAMP(\"$cor0\".\"product_id\"))) AS \"t\"";
     sql(query).ok(expected);
   }
 
@@ -5871,7 +5871,8 @@ class RelToSqlConverterTest {
         + "            from \"department\") as t(did)";
 
     final String expected = "SELECT \"DEPTID\" + 1\n"
-        + "FROM UNNEST(COLLECT(\"department_id\") AS \"DEPTID\") AS \"t0\" (\"DEPTID\")";
+        + "FROM UNNEST (SELECT COLLECT(\"department_id\") AS \"DEPTID\"\n"
+        + "FROM \"foodmart\".\"department\") AS \"t0\" (\"DEPTID\")";
     sql(sql).ok(expected);
   }
 
@@ -5881,7 +5882,8 @@ class RelToSqlConverterTest {
         + "            from \"department\") as t(did)";
 
     final String expected = "SELECT \"col_0\" + 1\n"
-        + "FROM UNNEST(COLLECT(\"department_id\")) AS \"t0\" (\"col_0\")";
+        + "FROM UNNEST (SELECT COLLECT(\"department_id\")\n"
+        + "FROM \"foodmart\".\"department\") AS \"t0\" (\"col_0\")";
     sql(sql).ok(expected);
   }
 
@@ -12038,6 +12040,20 @@ class RelToSqlConverterTest {
         .project(roundNode)
         .build();
     final String expectedOracleSql = "SELECT ROUND(CURRENT_TIMESTAMP, 'DAY') \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testOracleToNumber() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexNode toNumberNode = relBuilder.call(SqlLibraryOperators.ORACLE_TO_NUMBER,
+        relBuilder.literal("1.789"),
+        relBuilder.literal("9D999"));
+    RelNode root = relBuilder
+        .project(toNumberNode)
+        .build();
+    final String expectedOracleSql = "SELECT TO_NUMBER('1.789', '9D999') \"$f0\"\n"
         + "FROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
