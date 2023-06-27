@@ -1600,7 +1600,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.DOUBLE_NULLABLE,
           null,
-          OperandTypes.NUMERIC,
+          OperandTypes.or(OperandTypes.NUMERIC, OperandTypes.NUMERIC_BOOLEAN_BOOLEAN),
           SqlFunctionCategory.NUMERIC);
 
   /**
@@ -1652,7 +1652,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.DOUBLE_NULLABLE,
           null,
-          OperandTypes.NUMERIC,
+          OperandTypes.or(OperandTypes.NUMERIC, OperandTypes.NUMERIC_BOOLEAN_BOOLEAN),
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction ASIN =
@@ -1661,7 +1661,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.DOUBLE_NULLABLE,
           null,
-          OperandTypes.NUMERIC,
+          OperandTypes.or(OperandTypes.NUMERIC, OperandTypes.NUMERIC_BOOLEAN_BOOLEAN),
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction ATAN =
@@ -1670,7 +1670,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.DOUBLE_NULLABLE,
           null,
-          OperandTypes.NUMERIC,
+          OperandTypes.or(OperandTypes.NUMERIC, OperandTypes.NUMERIC_BOOLEAN_BOOLEAN),
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction ATAN2 =
