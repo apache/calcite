@@ -1086,12 +1086,7 @@ public enum SqlKind {
   /**
    * format standard function.
    */
-  FORMAT,
-
-  /**
-   * TO_TIME function (Snowflake).
-   */
-  TO_TIME;
+  FORMAT;
 
   //~ Static fields/initializers ---------------------------------------------
 
