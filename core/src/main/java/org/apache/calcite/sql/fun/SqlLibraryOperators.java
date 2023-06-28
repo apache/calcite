@@ -407,6 +407,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.or(OperandTypes.DATETIME, OperandTypes.STRING),
           SqlFunctionCategory.TIMEDATE);
 
+  /** The "TIMESTAMP(string)" function, equivalent to "CAST(string AS TIMESTAMP). */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP =
+      new SqlFunction("TIMESTAMP", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_NULLABLE, null,
+          OperandTypes.or(OperandTypes.DATETIME, OperandTypes.STRING),
+          SqlFunctionCategory.TIMEDATE);
+
   /** The "CURRENT_DATETIME([timezone])" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction CURRENT_DATETIME =
