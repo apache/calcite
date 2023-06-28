@@ -2256,11 +2256,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       @Nullable String alias,
       SqlValidatorNamespace ns,
       boolean forceNullable) {
-    namespaces.put(requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns), ns);
+    final SqlNode sqlNode = requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns);
+    SqlValidatorNamespace namespace = namespaces.get(sqlNode);
+    if (namespace == null) {
+      namespaces.put(sqlNode, ns);
+      namespace = ns;
+    }
     if (usingScope != null) {
       assert alias != null : "Registering namespace " + ns + ", into scope " + usingScope
           + ", so alias must not be null";
-      usingScope.addChild(ns, alias, forceNullable);
+      usingScope.addChild(namespace, alias, forceNullable);
     }
   }
 

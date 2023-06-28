@@ -9292,6 +9292,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "number of source items \\(2\\)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5805">[CALCITE-5805]
+   * SqlValidatorImpl throws AssertionError while validating MERGE statement</a>. */
+  @Test void testMergeInto() {
+    final String sql = "merge into empnullables e "
+        + "using (select * from emp where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+        + "when not matched then insert (empno, ename, deptno, sal) "
+        + "values(t.empno, t.ename, 10, t.sal * .15)";
+    sql(sql).ok();
+  }
+
   @Test void testSelectExtendedColumnDuplicate() {
     sql("select deptno, extra from emp (extra int, \"extra\" boolean)").ok();
     sql("select deptno, extra from emp (extra int, \"extra\" int)").ok();
