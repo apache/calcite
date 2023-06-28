@@ -2265,11 +2265,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       @Nullable String alias,
       SqlValidatorNamespace ns,
       boolean forceNullable) {
-    namespaces.put(requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns), ns);
+    SqlValidatorNamespace namespace =
+        namespaces.get(requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns));
+    if (namespace == null) {
+      namespaces.put(requireNonNull(ns.getNode()), ns);
+      namespace = ns;
+    }
     if (usingScope != null) {
       assert alias != null : "Registering namespace " + ns + ", into scope " + usingScope
           + ", so alias must not be null";
-      usingScope.addChild(ns, alias, forceNullable);
+      usingScope.addChild(namespace, alias, forceNullable);
     }
   }
 
@@ -5278,6 +5283,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlInsert insertCallAfterValidate = call.getInsertCall();
     if (insertCallAfterValidate != null) {
       validateInsert(insertCallAfterValidate);
+      // Throw if select list contains NULL literal and target is NOT NULL
+      if (insertCallAfterValidate.getSource() instanceof SqlSelect) {
+        final SqlSelect sourceSelect = (SqlSelect) insertCallAfterValidate.getSource();
+        final SqlNodeList sourceSelectList = sourceSelect.getSelectList();
+        for (int i = 0; i < sourceSelectList.size(); i++) {
+          final RelDataTypeField targetField = targetRowType.getFieldList().get(i);
+          final SqlNode selectItem = sourceSelect.getSelectList().get(i);
+          if (!targetField.getType().isNullable() && SqlUtil.isNullLiteral(selectItem, true)) {
+            throw newValidationError(selectItem,
+                RESOURCE.columnNotNullable(targetField.getName()));
+          }
+        }
+      }
+
     }
   }
 

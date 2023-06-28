@@ -9314,6 +9314,100 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "number of source items \\(2\\)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-985">[CALCITE-985]
+   * Validate MERGE</a>. */
+  @Test void testMergeInto() {
+    sql("merge into empnullables e "
+        + "using (select * from emp where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+        + "when not matched then insert (empno, ename, deptno, sal) "
+        + "values(t.empno, t.ename, 10, t.sal * .15)")
+        .ok();
+
+    sql("merge into ^emp^ e "
+        + "using (select * from empnullables where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+        + "when not matched then insert (empno, ename, deptno, sal) "
+        + "values(t.empno, t.ename, 10, t.sal * .15)")
+        .fails("Column 'JOB' has no default value and does not allow NULLs");
+  }
+
+  @Test void testMergeFailCaseSensitivity() {
+    final SqlValidatorFixture s = fixture()
+        .withExtendedCatalog();
+    final String sql0 = "merge into EMP_MODIFIABLEVIEW e "
+        + "using (select * from emp where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, sal = t.sal * .1 "
+        + "when not matched then insert (^\"empno\"^, ename, sal) "
+        + "values(t.empno, t.ename, t.sal * .15)";
+    s.withSql(sql0).fails("Unknown target column 'empno'");
+  }
+
+  @Test void testMergeFailExcludedColumn() {
+    sql("merge into empnullables e "
+        + "using (select * from emp where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+        + "when not matched then insert (empno, ^name^, deptno, sal) "
+        + "values(t.empno, t.ename, 10, t.sal * .15)")
+        .fails("Unknown target column 'NAME'");
+  }
+
+  @Test void testMergeBindWithCustomInitializerExpressionFactory() {
+    sql("merge into empdefaults e "
+        + "using (select * from emp where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+        + "when not matched then insert (deptno) "
+        + "values(?)").ok()
+        .assertBindType(is("RecordType(INTEGER ?0)"));
+    sql("merge into empdefaults e "
+        + "using (select * from emp where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+        + "when not matched then insert (empno, ename) "
+        + "values(?, ?)").ok()
+        .assertBindType(is("RecordType(INTEGER ?0, VARCHAR(20) ?1)"));
+    sql("merge into empdefaults e "
+        + "using (select * from emp where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+        + "when not matched then insert (empno, ename) "
+        + "values(^null^, ?)")
+        .fails("Column 'EMPNO' has no default value and does not allow NULLs");
+  }
+
+  @Test void testMergeBindSubsetWithCustomInitializerExpressionFactory() {
+    final SqlValidatorFixture s = fixture().withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    s.withSql("merge into empdefaults e "
+            + "using (select * from emp where deptno is null) t "
+            + "on e.empno = t.empno "
+            + "when matched then update "
+            + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+            + "when not matched then insert (empno, ename, deptno, sal) "
+            + "values(t.empno, t.ename, ?, t.sal * .15)")
+        .assertBindType(is("RecordType(INTEGER ?0)"));
+    s.withSql("merge into empdefaults e "
+            + "using (select * from emp where deptno is null) t "
+            + "on e.empno = t.empno "
+            + "when matched then update "
+            + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+            + "when not matched then insert (empno, ename, deptno, sal) "
+            + "values(^null^, t.ename, ?, t.sal * .15)")
+        .fails("Column 'EMPNO' has no default value and does not allow NULLs");
+  }
+
   @Test void testSelectExtendedColumnDuplicate() {
     sql("select deptno, extra from emp (extra int, \"extra\" boolean)").ok();
     sql("select deptno, extra from emp (extra int, \"extra\" int)").ok();
