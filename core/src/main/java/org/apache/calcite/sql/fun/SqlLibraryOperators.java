@@ -801,14 +801,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
-  /** The "TIMESTAMP(string)" function, equivalent to "CAST(string AS TIMESTAMP). */
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TIMESTAMP =
-      new SqlFunction("TIMESTAMP", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE, null,
-          OperandTypes.or(OperandTypes.DATETIME, OperandTypes.STRING),
-          SqlFunctionCategory.TIMEDATE);
-
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction ORACLE_TO_DATE =
       new SqlFunction("TO_DATE",

@@ -12526,33 +12526,4 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
-
-  @Test public void testTimestampFunction() {
-    final RelBuilder builder = relBuilder();
-    RexNode timestampRex0 = builder.call(SqlLibraryOperators.TIMESTAMP,
-        builder.literal("1970-02-02"));
-    RexNode timestampRex1 = builder.call(SqlLibraryOperators.TIMESTAMP,
-        builder.literal("1970-02-02 01:02:03"));
-    RexNode timestampRex2 = builder.call(SqlLibraryOperators.TIMESTAMP,
-        builder.cast(builder.literal("1970-02-02"), SqlTypeName.DATE));
-    RexNode timestampRex3 = builder.call(SqlLibraryOperators.TIMESTAMP,
-        builder.cast(builder.literal("1970-02-02 01:02:03"), SqlTypeName.TIMESTAMP));
-
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(timestampRex0, "timestamp0"),
-            builder.alias(timestampRex1, "timestamp1"),
-            builder.alias(timestampRex2, "timestamp2"),
-            builder.alias(timestampRex3, "timestamp3"))
-        .build();
-
-    final String expectedBigQuery = "SELECT TIMESTAMP('1970-02-02') AS timestamp0, "
-        + "TIMESTAMP('1970-02-02 01:02:03') AS timestamp1, "
-        + "TIMESTAMP(DATE '1970-02-02') AS timestamp2, "
-        + "TIMESTAMP(CAST('1970-02-02 01:02:03' AS DATETIME)) AS timestamp3\n"
-        + "FROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
-        isLinux(expectedBigQuery));
-  }
 }
