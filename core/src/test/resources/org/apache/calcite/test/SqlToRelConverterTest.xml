@@ -4507,6 +4507,28 @@ LogicalAggregate(group=[{0}], C=[AGGREGATE($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMerge">
+    <Resource name="sql">
+      <![CDATA[merge into empnullables e
+using (select * from emp where deptno is null) t
+on e.empno = t.empno
+when matched then update
+set ename = t.ename, deptno = t.deptno, sal = t.sal * .1
+when not matched then insert (empno, ename, deptno, sal)
+values(t.empno, t.ename, 10, t.sal * .15)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[MERGE], updateColumnList=[[ENAME, DEPTNO, SAL]], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], $f2=[null:VARCHAR(10)], $f3=[null:INTEGER], $f4=[null:TIMESTAMP(0)], $f5=[CAST(*($5, 0.15:DECIMAL(2, 2))):INTEGER NOT NULL], $f6=[null:INTEGER], $f7=[10], $f8=[null:BOOLEAN], EMPNO0=[$9], ENAME0=[$10], JOB0=[$11], MGR0=[$12], HIREDATE0=[$13], SAL0=[$14], COMM0=[$15], DEPTNO0=[$16], SLACKER0=[$17], ENAME1=[$1], DEPTNO=[$7], $f20=[*($5, 0.1:DECIMAL(1, 1))])
+    LogicalJoin(condition=[=($9, $0)], joinType=[left])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalFilter(condition=[IS NULL($7)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testModeFunction">
     <Resource name="sql">
       <![CDATA[select mode(deptno)
