@@ -5845,9 +5845,9 @@ class RelToSqlConverterTest {
         + "       lateral (select d.\"department_id\" + 1 as d_plusOne"
         + "                from (values(true)))";
 
-    final String expected = "SELECT \"department\".\"department_id\", \"t0\".\"D_PLUSONE\"\n"
-        + "FROM \"foodmart\".\"department\",\n"
-        + "LATERAL (SELECT \"department\".\"department_id\" + 1 AS \"D_PLUSONE\"\n"
+    final String expected = "SELECT \"$cor0\".\"department_id\", \"$cor0\".\"D_PLUSONE\"\n"
+        + "FROM \"foodmart\".\"department\" AS \"$cor0\",\n"
+        + "LATERAL (SELECT \"$cor0\".\"department_id\" + 1 AS \"D_PLUSONE\"\n"
         + "FROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t0\"";
     sql(sql).ok(expected);
   }
@@ -5859,9 +5859,9 @@ class RelToSqlConverterTest {
     final String query = "select * from \"product\",\n"
         + "lateral table(RAMP(\"product\".\"product_id\"))";
     final String expected = "SELECT *\n"
-        + "FROM \"foodmart\".\"product\",\n"
+        + "FROM \"foodmart\".\"product\" AS \"$cor0\",\n"
         + "LATERAL (SELECT *\n"
-        + "FROM TABLE(RAMP(\"product\".\"product_id\"))) AS \"t\"";
+        + "FROM TABLE(RAMP(\"$cor0\".\"product_id\"))) AS \"t\"";
     sql(query).ok(expected);
   }
 
@@ -5871,7 +5871,8 @@ class RelToSqlConverterTest {
         + "            from \"department\") as t(did)";
 
     final String expected = "SELECT \"DEPTID\" + 1\n"
-        + "FROM UNNEST(COLLECT(\"department_id\") AS \"DEPTID\") AS \"t0\" (\"DEPTID\")";
+        + "FROM UNNEST (SELECT COLLECT(\"department_id\") AS \"DEPTID\"\n"
+        + "FROM \"foodmart\".\"department\") AS \"t0\" (\"DEPTID\")";
     sql(sql).ok(expected);
   }
 
@@ -5881,7 +5882,8 @@ class RelToSqlConverterTest {
         + "            from \"department\") as t(did)";
 
     final String expected = "SELECT \"col_0\" + 1\n"
-        + "FROM UNNEST(COLLECT(\"department_id\")) AS \"t0\" (\"col_0\")";
+        + "FROM UNNEST (SELECT COLLECT(\"department_id\")\n"
+        + "FROM \"foodmart\".\"department\") AS \"t0\" (\"col_0\")";
     sql(sql).ok(expected);
   }
 
@@ -8402,18 +8404,49 @@ class RelToSqlConverterTest {
     RexNode dateRex1 = builder.call(SqlLibraryOperators.DATE,
         builder.literal("1970-02-02"));
     RexNode dateRex2 = builder.call(SqlLibraryOperators.DATE,
-        builder.literal("DATE '1970-02-02'"));
+        builder.cast(builder.literal("1970-02-02"), SqlTypeName.DATE));
     RexNode dateRex3 = builder.call(SqlLibraryOperators.DATE,
-        builder.literal("TIMESTAMP '1970-02-02 01:02:03'"));
-    final String expectedBigQuery = "SELECT DATE('1970-02-02 01:02:03') AS date0, DATE"
-        + "('1970-02-02') AS date1, DATE('DATE \\'1970-02-02\\'') AS date2, DATE('TIMESTAMP "
-        + "\\'1970-02-02 01:02:03\\'') AS date3\n"
-        + "FROM scott.EMP";
+        builder.cast(builder.literal("1970-02-02 01:02:03"), SqlTypeName.TIMESTAMP));
+
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(dateRex0, "date0"), builder.alias(dateRex1, "date1"),
             builder.alias(dateRex2, "date2"), builder.alias(dateRex3, "date3"))
         .build();
+
+    final String expectedBigQuery = "SELECT DATE('1970-02-02 01:02:03') AS date0, "
+        + "DATE('1970-02-02') AS date1, DATE(DATE '1970-02-02') AS date2, "
+        + "DATE(CAST('1970-02-02 01:02:03' AS DATETIME)) AS date3\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
+  @Test public void testTimestampFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode timestampRex0 = builder.call(SqlLibraryOperators.TIMESTAMP,
+        builder.literal("1970-02-02"));
+    RexNode timestampRex1 = builder.call(SqlLibraryOperators.TIMESTAMP,
+        builder.literal("1970-02-02 01:02:03"));
+    RexNode timestampRex2 = builder.call(SqlLibraryOperators.TIMESTAMP,
+        builder.cast(builder.literal("1970-02-02"), SqlTypeName.DATE));
+    RexNode timestampRex3 = builder.call(SqlLibraryOperators.TIMESTAMP,
+        builder.cast(builder.literal("1970-02-02 01:02:03"), SqlTypeName.TIMESTAMP));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(timestampRex0, "timestamp0"),
+            builder.alias(timestampRex1, "timestamp1"),
+            builder.alias(timestampRex2, "timestamp2"),
+            builder.alias(timestampRex3, "timestamp3"))
+        .build();
+
+    final String expectedBigQuery = "SELECT TIMESTAMP('1970-02-02') AS timestamp0, "
+        + "TIMESTAMP('1970-02-02 01:02:03') AS timestamp1, "
+        + "TIMESTAMP(DATE '1970-02-02') AS timestamp2, "
+        + "TIMESTAMP(CAST('1970-02-02 01:02:03' AS DATETIME)) AS timestamp3\n"
+        + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedBigQuery));
@@ -12055,6 +12088,20 @@ class RelToSqlConverterTest {
         .project(roundNode)
         .build();
     final String expectedOracleSql = "SELECT ROUND(CURRENT_TIMESTAMP, 'DAY') \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testOracleToNumber() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexNode toNumberNode = relBuilder.call(SqlLibraryOperators.ORACLE_TO_NUMBER,
+        relBuilder.literal("1.789"),
+        relBuilder.literal("9D999"));
+    RelNode root = relBuilder
+        .project(toNumberNode)
+        .build();
+    final String expectedOracleSql = "SELECT TO_NUMBER('1.789', '9D999') \"$f0\"\n"
         + "FROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
