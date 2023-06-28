@@ -338,6 +338,12 @@
   githubId: xy2953396112
   org: Ant Financial
   role: Committer
+- name: Zhe Hu
+  apacheId: zhehu
+  githubId: ILuffZhe
+  pronouns: he/him
+  org: Hikvision
+  role: Committer
 - name: Zhen Wang
   apacheId: zhenw
   githubId: zinking
