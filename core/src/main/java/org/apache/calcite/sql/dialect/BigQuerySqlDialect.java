@@ -1146,7 +1146,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseRegexpInstr(writer, call, leftPrec, rightPrec);
       break;
     case "DATE_DIFF":
-    case "TIMESTAMP_DIFF":
       unparseDiffFunction(writer, call, leftPrec, rightPrec, call.getOperator().getName());
       break;
     case "HASHROW":
