@@ -150,6 +150,15 @@ public interface SqlConformance {
   boolean isSortByOrdinal();
 
   /**
+   * MSSQL can sort by ordinal, but it really shouldn't.
+   * Introducing this crutch until we can properly fix Calcite's support for it.
+   * https://issues.apache.org/jira/browse/CALCITE-5866
+   */
+  default boolean shouldSortByOrdinal() {
+    return isSortByOrdinal();
+  }
+
+  /**
    * Whether '{@code ORDER BY x}' is interpreted to mean 'sort by the select
    * list item whose alias is x' even if there is a column called x.
    *

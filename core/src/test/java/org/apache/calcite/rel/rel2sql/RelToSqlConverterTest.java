@@ -2222,8 +2222,9 @@ class RelToSqlConverterTest {
     // case4: wrap collation's info to numeric constant - rewrite it.
     relFn(relFn)
         .ok("SELECT \"JOB\", \"ENAME\"\n"
+            + "FROM (SELECT 1 AS \"$f0\", \"ENAME\", \"JOB\", '23' AS \"$f3\", 12 AS \"col1\", 34 AS \"$f5\"\n"
             + "FROM \"scott\".\"EMP\"\n"
-            + "ORDER BY '1', '23', '12', \"ENAME\", '34' DESC NULLS LAST")
+            + "ORDER BY 1, 4, 5, \"ENAME\", 6 DESC NULLS LAST) AS \"t0\"")
         .dialect(nonOrdinalDialect())
         .ok("SELECT JOB, ENAME\n"
             + "FROM scott.EMP\n"
