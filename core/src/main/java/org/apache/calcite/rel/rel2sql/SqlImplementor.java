@@ -610,17 +610,7 @@ public abstract class SqlImplementor {
      */
     public SqlNode orderField(int ordinal) {
       final SqlNode node = field(ordinal);
-      if (node instanceof SqlNumericLiteral
-          && dialect.getConformance().isSortByOrdinal()) {
-        // An integer literal will be wrongly interpreted as a field ordinal.
-        // Convert it to a character literal, which will have the same effect.
-        final String strValue = ((SqlNumericLiteral) node).toValue();
-        return SqlLiteral.createCharString(strValue, node.getParserPosition());
-      }
-      if (node instanceof SqlCall
-          && dialect.getConformance().isSortByOrdinal()) {
-        // If the field is expression and sort by ordinal is set in dialect,
-        // convert it to ordinal.
+      if (dialect.getConformance().isSortByOrdinal()) {
         return SqlLiteral.createExactNumeric(
             Integer.toString(ordinal + 1), SqlParserPos.ZERO);
       }
@@ -1561,6 +1551,11 @@ public abstract class SqlImplementor {
       }
       throw new AssertionError(
           "field ordinal " + ordinal + " out of range " + aliases);
+    }
+
+    @Override public SqlNode orderField(int ordinal) {
+      final SqlNode node = field(ordinal);
+      return node;
     }
   }
 
