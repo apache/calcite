@@ -185,6 +185,14 @@ public interface RelDataType {
   int getPrecision();
 
   /**
+   * Gets the maximum precision of this type. Returns {@link #PRECISION_NOT_SPECIFIED} (-1) if
+   * precision is not valid for this type.
+   *
+   * @return nax number of digits of precision
+   */
+  int getMaxNumericPrecision();
+
+  /**
    * Gets the scale of this type. Returns {@link #SCALE_NOT_SPECIFIED} (-1) if
    * scale is not valid for this type.
    *

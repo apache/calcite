@@ -1927,7 +1927,8 @@ public class BigQuerySqlDialect extends SqlDialect {
             typeAlias = dataType;
           }
         } else {
-          typeAlias = "NUMERIC";
+          int defaultPrecision = type.getMaxNumericPrecision();
+          typeAlias = defaultPrecision > 29 ? "BIGNUMERIC" : "NUMERIC";
         }
         return createSqlDataTypeSpecByName(typeAlias, typeName);
       case CHAR:
@@ -1955,7 +1956,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private String getDataTypeBasedOnPrecision(int precision, int scale)  {
     if (scale > 0) {
-      return scale <= 9 ? scale + precision > 38 ? "BIGNUMERIC" : "NUMERIC" : "BIGNUMERIC";
+      return scale <= 9 ? precision - scale <= 29 ? "NUMERIC" : "BIGNUMERIC" : "BIGNUMERIC";
     } else {
       return precision > 29 ? "BIGNUMERIC" : "NUMERIC";
     }
