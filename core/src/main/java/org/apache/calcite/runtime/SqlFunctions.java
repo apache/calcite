@@ -577,16 +577,18 @@ public class SqlFunctions {
   /** SQL SUBSTRING(string FROM ... FOR ...) function. */
   public static String substring(String c, int s, int l) {
     int lc = c.length();
-    int e = s + l;
+    long e = (long) s + (long) l;
     if (l < 0) {
       throw RESOURCE.illegalNegativeSubstringLength().ex();
     }
-    if (s > lc || e < 1) {
+    // Prevent overflow in addition
+    if (s > lc || e < 1L) {
       return "";
     }
     final int s0 = Math.max(s - 1, 0);
-    final int e0 = Math.min(e - 1, lc);
-    return c.substring(s0, e0);
+    final long e0 = Math.min(e - 1, (long) lc);
+    // We know that e0 cannot exceed Integer.MAX_VALUE, since it's smaller than lc
+    return c.substring(s0, (int) e0);
   }
 
   /** SQL SUBSTRING(binary FROM ...) function for binary. */

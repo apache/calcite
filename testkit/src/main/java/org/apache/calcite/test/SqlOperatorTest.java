@@ -7347,6 +7347,8 @@ public class SqlOperatorTest {
         "ab", "VARCHAR(3) NOT NULL");
     f.checkString("substring(x'aabbcc' from 1 for 2)",
         "aabb", "VARBINARY(3) NOT NULL");
+    f.checkString("substring('abc' from 2 for 2147483646)",
+        "bc", "VARCHAR(3) NOT NULL");
 
     switch (f.conformance().semantics()) {
     case BIG_QUERY:
