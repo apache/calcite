@@ -1226,7 +1226,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseDiffFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
       String functionName) {
-    final SqlWriter.Frame date_diff = writer.startFunCall(functionName);
+    final SqlWriter.Frame diffFunctionFrame = writer.startFunCall(functionName);
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(",");
     call.operand(1).unparse(writer, leftPrec, rightPrec);
@@ -1234,7 +1234,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.print(",");
       writer.print(unquoteStringLiteral(call.operand(2).toString()));
     }
-    writer.endFunCall(date_diff);
+    writer.endFunCall(diffFunctionFrame);
   }
 
   private void unParseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

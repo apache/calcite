@@ -6298,10 +6298,10 @@ class RelToSqlConverterTest {
     final RelBuilder builder = relBuilder();
     final RexNode timestampDiffRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_DIFF,
         builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
-        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), builder.literal("HOUR"));
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), builder.literal(HOUR));
     final RelNode root = builder.scan("EMP")
         .project(builder.alias(timestampDiffRexNode, "HOURS")).build();
-    final String expectedSql = "SELECT TIMESTAMP_DIFF(CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'HOUR')"
+    final String expectedSql = "SELECT TIMESTAMP_DIFF(CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, HOUR)"
         + " AS \"HOURS\""
         + "\nFROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT TIMESTAMP_DIFF(CURRENT_DATETIME(), CURRENT_DATETIME(), "
