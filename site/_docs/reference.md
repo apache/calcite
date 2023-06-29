@@ -2678,15 +2678,15 @@ BigQuery's type system uses confusingly different names for types and functions:
 | * | ATANH(numeric)                                 | Returns the inverse hyperbolic tangent of *numeric*
 | b | CEIL(value)                                    | Similar to standard `CEIL(value)` except if *value* is an integer type, the return type is a double
 | m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
-| b o p | CHR(integer)                               | Returns the character whose UTF-8 code is *integer*
+| b o p s | CHR(integer)                             | Returns the character whose UTF-8 code is *integer*
 | o | CONCAT(string, string)                         | Concatenates two strings, returns null only when both string arguments are null, otherwise treats null as empty string
 | b m | CONCAT(string [, string ]*)                  | Concatenates one or more strings, returns null if any of the arguments is null
 | p q | CONCAT(string [, string ]*)                  | Concatenates one or more strings, null is treated as empty string
-| m p | CONCAT_WS(separator, str1 [, string ]*)      | Concatenates one or more strings, returns null only when separator is null, otherwise treats null arguments as empty strings
+| m p s | CONCAT_WS(separator, str1 [, string ]*)    | Concatenates one or more strings, returns null only when separator is null, otherwise treats null arguments as empty strings
 | q | CONCAT_WS(separator, str1, str2 [, string ]*)  | Concatenates two or more strings, requires at least 3 arguments (up to 254), treats null arguments as empty strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string
 | q | CONVERT(type, expression [ , style ])          | Equivalent to `CAST(expression AS type)`; ignores the *style* operand
-| p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
+| p s | CONVERT_TIMEZONE(tz1, tz2, datetime)         | Converts the timezone of *datetime* from *tz1* to *tz2*
 | * | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | * | COTH(numeric)                                  | Returns the hyperbolic cotangent of *numeric*
 | * | CSC(numeric)                                   | Returns the cosecant of *numeric* in radians
@@ -2709,7 +2709,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | DATETIME_DIFF(timestamp, timestamp2, timeUnit) | Returns the whole number of *timeUnit* between *timestamp* and *timestamp2*
 | b | DATETIME_SUB(timestamp, interval)              | Returns the TIMESTAMP that occurs *interval* before *timestamp*
 | b | DATETIME_TRUNC(timestamp, timeUnit)            | Truncates *timestamp* to the granularity of *timeUnit*, rounding to the beginning of the unit
-| b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
+| b s | DATE_FROM_UNIX_DATE(integer)                 | Returns the DATE that is *integer* days after 1970-01-01
 | p | DATE_PART(timeUnit, datetime)                  | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | b | DATE_ADD(date, interval)                       | Returns the DATE value that occurs *interval* after *date*
 | b | DATE_DIFF(date, date2, timeUnit)               | Returns the whole number of *timeUnit* between *date* and *date2*
@@ -2726,9 +2726,9 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | FORMAT_DATETIME(string, timestamp)             | Formats *timestamp* according to the specified format *string*
 | b | FORMAT_TIME(string, time)                      | Formats *time* according to the specified format *string*
 | b | FORMAT_TIMESTAMP(string timestamp)             | Formats *timestamp* according to the specified format *string*
-| b o | GREATEST(expr [, expr ]*)                    | Returns the greatest of the expressions
+| b o s | GREATEST(expr [, expr ]*)                  | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
-| b | IFNULL(value1, value2)                         | Equivalent to `NVL(value1, value2)`
+| b s | IFNULL(value1, value2)                       | Equivalent to `NVL(value1, value2)`
 | b o | INSTR(string, substring [, from [, occurrence ] ]) | Returns the position of *substring* in *string*, searching starting at *from* (default 1), and until locating the nth *occurrence* (default 1) of *substring*
 | m | INSTR(string, substring)                       | Equivalent to `POSITION(substring IN string)`
 | p | string1 ILIKE string2 [ ESCAPE string3 ]       | Whether *string1* matches pattern *string2*, ignoring case (similar to `LIKE`)
@@ -2743,22 +2743,22 @@ BigQuery's type system uses confusingly different names for types and functions:
 | m | JSON_REPLACE(jsonValue, path, val [, path, val ]*)  | Returns a JSON document replace a data of *jsonValue*, *path*, *val*
 | m | JSON_SET(jsonValue, path, val [, path, val ]*) | Returns a JSON document set a data of *jsonValue*, *path*, *val*
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of *jsonValue*
-| b o | LEAST(expr [, expr ]* )                      | Returns the least of the expressions
-| b m p | LEFT(string, length)                       | Returns the leftmost *length* characters from the *string*
+| b o s | LEAST(expr [, expr ]* )                    | Returns the least of the expressions
+| b m p s | LEFT(string, length)                     | Returns the leftmost *length* characters from the *string*
 | b | LENGTH(string)                                 | Equivalent to `CHAR_LENGTH(string)`
-| b | LOG(numeric1 [, numeric2 ])                    | Returns the logarithm of *numeric1* to base *numeric2*, or base e if *numeric2* is not present
-| b o | LPAD(string, length [, pattern ])            | Returns a string or bytes value that consists of *string* prepended to *length* with *pattern*
+| b s | LOG(numeric1 [, numeric2 ])                  | Returns the logarithm of *numeric1* to base *numeric2*, or base e if *numeric2* is not present
+| b o s | LPAD(string, length [, pattern ])          | Returns a string or bytes value that consists of *string* prepended to *length* with *pattern*
 | b | TO_BASE32(string)                              | Converts the *string* to base-32 encoded form and returns an encoded string
 | b | FROM_BASE32(string)                            | Returns the decoded result of a base-32 *string* as a string
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
 | b m | FROM_BASE64(string)                          | Returns the decoded result of a base-64 *string* as a string
-| b o | LTRIM(string)                                | Returns *string* with all blanks removed from the start
+| b o s | LTRIM(string)                              | Returns *string* with all blanks removed from the start
 | s | MAP_ENTRIES(map)                               | Returns the entries of the *map* as an array, the order of the entries is not defined
 | s | MAP_KEYS(map)                                  | Returns the keys of the *map* as an array, the order of the entries is not defined
 | s | MAP_VALUES(map)                                | Returns the values of the *map* as an array, the order of the entries is not defined
 | s | MAP_FROM_ARRAYS(array1, array2)                | Returns a map created from an *array1* and *array2*. Note that the lengths of two arrays should be the same
 | s | STR_TO_MAP(string [, stringDelimiter [, keyValueDelimiter]]) | Returns a map after splitting the *string* into key/value pairs using delimiters. Default delimiters are ',' for *stringDelimiter* and ':' for *keyValueDelimiter*
-| b m p | MD5(string)                                | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
+| b m p s | MD5(string)                              | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
 | b | OFFSET(index)                                  | When indexing an array, wrapping *index* in `OFFSET` returns the value at the 0-based *index*; throws error if *index* is out of bounds
@@ -2767,27 +2767,27 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | PARSE_DATETIME(format, string)                 | Uses format specified by *format* to convert *string* representation of datetime to a TIMESTAMP value
 | b | PARSE_TIME(format, string)                     | Uses format specified by *format* to convert *string* representation of time to a TIME value
 | b | PARSE_TIMESTAMP(format, string[, timeZone])    | Uses format specified by *format* to convert *string* representation of timestamp to a TIMESTAMP WITH LOCAL TIME ZONE value in *timeZone*
-| b | POW(numeric1, numeric2)                        | Returns *numeric1* raised to the power *numeric2*
-| m o | REGEXP_REPLACE(string, regexp, rep [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* means which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
-| b m p | REPEAT(string, integer)                    | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
+| b s | POW(numeric1, numeric2)                      | Returns *numeric1* raised to the power *numeric2*
+| m o s | REGEXP_REPLACE(string, regexp, rep [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* means which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
+| b m p s | REPEAT(string, integer)                    | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | b m | REVERSE(string)                              | Returns *string* with the order of the characters reversed
 | b m p | RIGHT(string, length)                      | Returns the rightmost *length* characters from the *string*
 | h s | string1 RLIKE string2                        | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
 | h s | string1 NOT RLIKE string2                    | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
-| b o | RPAD(string, length[, pattern ])             | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
-| b o | RTRIM(string)                                | Returns *string* with all blanks removed from the end
+| b o s | RPAD(string, length[, pattern ])           | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
+| b o s | RTRIM(string)                              | Returns *string* with all blanks removed from the end
 | b | SAFE_CAST(value AS type)                       | Converts *value* to *type*, returning NULL if conversion fails
 | b | SAFE_OFFSET(index)                             | Similar to `OFFSET` except null is returned if *index* is out of bounds
 | b | SAFE_ORDINAL(index)                            | Similar to `OFFSET` except *index* begins at 1 and null is returned if *index* is out of bounds
 | * | SEC(numeric)                                   | Returns the secant of *numeric* in radians
 | * | SECH(numeric)                                  | Returns the hyperbolic secant of *numeric*
-| b m p | SHA1(string)                               | Calculates a SHA-1 hash value of *string* and returns it as a hex string
+| b m p s | SHA1(string)                             | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | b p | SHA256(string)                               | Calculates a SHA-256 hash value of *string* and returns it as a hex string
 | b p | SHA512(string)                               | Calculates a SHA-512 hash value of *string* and returns it as a hex string
 | * | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
-| b m o p | SOUNDEX(string)                          | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
+| b m o p s | SOUNDEX(string)                        | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
-| b | SPLIT(string [, delimiter ])                   | Returns the string array of *string* split at *delimiter* (if omitted, default is comma)
+| b s | SPLIT(string [, delimiter ])                 | Returns the string array of *string* split at *delimiter* (if omitted, default is comma)
 | b | STARTS_WITH(string1, string2)                  | Returns whether *string2* is a prefix of *string1*
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
 | b p | STRPOS(string, substring)                    | Equivalent to `POSITION(substring IN string)`
@@ -2805,9 +2805,9 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | TIMESTAMP(timestamp, timeZone)                 | Converts *timestamp* to a TIMESTAMP WITH LOCAL TIME ZONE, in *timeZone*
 | b | TIMESTAMP_ADD(timestamp, interval)             | Returns the TIMESTAMP value that occurs *interval* after *timestamp*
 | b | TIMESTAMP_DIFF(timestamp, timestamp2, timeUnit) | Returns the whole number of *timeUnit* between *timestamp* and *timestamp2*. Equivalent to `TIMESTAMPDIFF(timeUnit, timestamp2, timestamp)` and `(timestamp - timestamp2) timeUnit`
-| b | TIMESTAMP_MICROS(integer)                      | Returns the TIMESTAMP that is *integer* microseconds after 1970-01-01 00:00:00
-| b | TIMESTAMP_MILLIS(integer)                      | Returns the TIMESTAMP that is *integer* milliseconds after 1970-01-01 00:00:00
-| b | TIMESTAMP_SECONDS(integer)                     | Returns the TIMESTAMP that is *integer* seconds after 1970-01-01 00:00:00
+| b s | TIMESTAMP_MICROS(integer)                    | Returns the TIMESTAMP that is *integer* microseconds after 1970-01-01 00:00:00
+| b s | TIMESTAMP_MILLIS(integer)                    | Returns the TIMESTAMP that is *integer* milliseconds after 1970-01-01 00:00:00
+| b s | TIMESTAMP_SECONDS(integer)                   | Returns the TIMESTAMP that is *integer* seconds after 1970-01-01 00:00:00
 | b | TIMESTAMP_SUB(timestamp, interval)             | Returns the TIMESTAMP value that is *interval* before *timestamp*
 | b | TIMESTAMP_TRUNC(timestamp, timeUnit)           | Truncates *timestamp* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | b | TIME_ADD(time, interval)                       | Adds *interval* to *time*, independent of any time zone
@@ -2815,15 +2815,15 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | TIME_SUB(time, interval)                       | Returns the TIME value that is *interval* before *time*
 | b | TIME_TRUNC(time, timeUnit)                     | Truncates *time* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | m o p | TO_CHAR(timestamp, format)                 | Converts *timestamp* to a string using the format *format*
-| o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
-| o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
+| o p s | TO_DATE(string, format)                    | Converts *string* to a date using the format *format*
+| o p s | TO_TIMESTAMP(string, format)               | Converts *string* to a timestamp using the format *format*
 | b o p | TRANSLATE(expr, fromString, toString)      | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
 | b | TRUNC(numeric1 [, numeric2 ])                  | Truncates *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point
 | q | TRY_CAST(value AS type)                        | Converts *value* to *type*, returning NULL if conversion fails
-| b | UNIX_MICROS(timestamp)                         | Returns the number of microseconds since 1970-01-01 00:00:00
-| b | UNIX_MILLIS(timestamp)                         | Returns the number of milliseconds since 1970-01-01 00:00:00
-| b | UNIX_SECONDS(timestamp)                        | Returns the number of seconds since 1970-01-01 00:00:00
-| b | UNIX_DATE(date)                                | Returns the number of days since 1970-01-01
+| b s | UNIX_MICROS(timestamp)                       | Returns the number of microseconds since 1970-01-01 00:00:00
+| b s | UNIX_MILLIS(timestamp)                       | Returns the number of milliseconds since 1970-01-01 00:00:00
+| b s | UNIX_SECONDS(timestamp)                      | Returns the number of seconds since 1970-01-01 00:00:00
+| b s | UNIX_DATE(date)                              | Returns the number of days since 1970-01-01
 | o | XMLTRANSFORM(xml, xslt)                        | Applies XSLT transform *xslt* to XML string *xml* and returns the result
 
 Note:

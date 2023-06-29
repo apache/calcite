@@ -103,7 +103,7 @@ public abstract class SqlLibraryOperators {
 
   /** THE "DATE_ADD(date, interval)" function
    * (BigQuery) adds the interval to the date. */
-  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE_ADD =
       SqlBasicFunction.create(SqlKind.DATE_ADD, ReturnTypes.ARG0_NULLABLE,
               OperandTypes.DATE_INTERVAL)
@@ -111,7 +111,7 @@ public abstract class SqlLibraryOperators {
 
   /** THE "DATE_DIFF(date, date2, timeUnit)" function
    * (BigQuery) returns the number of timeUnit in (date - date2). */
-  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE_DIFF =
       new SqlTimestampDiffFunction("DATE_DIFF",
           OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE, SqlTypeFamily.ANY));
@@ -180,7 +180,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "DATE_PART(timeUnit, datetime)" function
    * (Databricks, Postgres, Redshift, Snowflake). */
-  @LibraryOperator(libraries = {POSTGRESQL, SPARK})
+  @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction DATE_PART =
       new SqlExtractFunction("DATE_PART") {
         @Override public void unparse(SqlWriter writer, SqlCall call,
@@ -191,7 +191,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "DATE_SUB(date, interval)" function (BigQuery);
    * subtracts interval from the date, independent of any time zone. */
-  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE_SUB =
       SqlBasicFunction.create(SqlKind.DATE_SUB, ReturnTypes.ARG0_NULLABLE,
            OperandTypes.DATE_INTERVAL)
@@ -339,7 +339,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction STRPOS = new SqlPositionFunction("STRPOS");
 
   /** The "INSTR(string, substring [, position [, occurrence]])" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE})
   public static final SqlFunction INSTR = new SqlPositionFunction("INSTR");
 
   /** Generic "SUBSTR(string, position [, substringLength ])" function. */
@@ -636,7 +636,7 @@ public abstract class SqlLibraryOperators {
    *   <li>{@code DATE(timestamp)}
    * </ul>
    */
-  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE =
       SqlBasicFunction.create("DATE", ReturnTypes.DATE_NULLABLE,
           OperandTypes.or(
@@ -721,7 +721,7 @@ public abstract class SqlLibraryOperators {
    *   <li>{@code TIMESTAMP(timestamp[, timeZone])}
    * </ul>
    */
-  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP =
       SqlBasicFunction.create("TIMESTAMP",
           ReturnTypes.TIMESTAMP_LTZ.andThen(SqlTypeTransforms.TO_NULLABLE),
@@ -1412,7 +1412,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "DATE_TRUNC(date, timeUnit)" function (BigQuery);
    * truncates a DATE value to the beginning of a timeUnit. */
-  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATE_TRUNC =
       SqlBasicFunction.create("DATE_TRUNC",
           ReturnTypes.ARG0_NULLABLE,
