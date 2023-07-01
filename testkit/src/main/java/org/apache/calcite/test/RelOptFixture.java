@@ -392,8 +392,11 @@ public class RelOptFixture {
     final RelNode relAfter = after.apply(this, r4);
     final String planAfter = NL + RelOptUtil.toString(relAfter);
     if (unchanged) {
-      final String expandedPLanAfter = diffRepos.expand("planAfter", "${planAfter}");
-      assert "${planAfter}".equals(expandedPLanAfter);
+      final String expandedPlanAfter = diffRepos.expand("planAfter", "${planAfter}");
+      if (!"${planAfter}".equals(expandedPlanAfter)) {
+        throw new AssertionError("Expected planAfter must not be present when using unchanged=true "
+            + "or calling checkUnchanged.");
+      }
       assertThat(planAfter, is(planBefore));
     } else {
       diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
