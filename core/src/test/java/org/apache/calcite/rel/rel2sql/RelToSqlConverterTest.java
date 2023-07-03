@@ -12467,7 +12467,7 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test void testOrderByColumnAndProjectString() {
+  @Test void testLiteralAfterGroupBy() {
     String query = "SELECT D.\"department_id\",MIN(E.\"salary\") MINSAL, COUNT(E.\"salary\") "
         + "SALCOUNT, 'INSIDE CTE1'\n"
         + "FROM \"employee\" E \n"
