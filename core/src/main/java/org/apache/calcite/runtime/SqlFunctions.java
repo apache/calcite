@@ -45,7 +45,9 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.format.FormatElement;
 import org.apache.calcite.util.format.FormatModels;
 
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base32;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
 
@@ -279,6 +281,21 @@ public class SqlFunctions {
   /** SQL FROM_BASE32(string) function. */
   public static ByteString fromBase32(String base32) {
     return new ByteString(BASE_32.decode(base32));
+  }
+
+  /** SQL FROM_HEX(varchar) function. */
+  public static ByteString fromHex(String hex) {
+    try {
+      return new ByteString(Hex.decodeHex(hex));
+    } catch (DecoderException e) {
+      throw new IllegalArgumentException(
+          String.format(Locale.ROOT, "Failed to decode hex string: %s", hex), e);
+    }
+  }
+
+  /** SQL TO_HEX(binary) function. */
+  public static String toHex(ByteString byteString) {
+    return Hex.encodeHexString(byteString.getBytes());
   }
 
   /** SQL MD5(string) function. */

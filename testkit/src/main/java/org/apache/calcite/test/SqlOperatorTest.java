@@ -4174,6 +4174,37 @@ public class SqlOperatorTest {
     f0.forEachLibrary(libraries, consumer);
   }
 
+  @Test void testToHex() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.TO_HEX);
+    f0.checkFails("^to_hex(x'')^",
+        "No match found for function signature TO_HEX\\(<BINARY>\\)",
+        false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkString("to_hex(x'00010203AAEEEFFF')",
+        "00010203aaeeefff",
+        "VARCHAR NOT NULL");
+    f.checkString("to_hex(x'')", "", "VARCHAR NOT NULL");
+    f.checkNull("to_hex(cast(null as varbinary))");
+  }
+
+  @Test void testFromHex() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.FROM_HEX);
+    f0.checkFails("^from_hex('')^",
+        "No match found for function signature FROM_HEX\\(<CHARACTER>\\)",
+        false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkString("from_hex('00010203aaeeefff')",
+        "00010203aaeeefff",
+        "VARBINARY NOT NULL");
+
+    f.checkString("from_hex('666f6f626172')",
+        "666f6f626172",
+        "VARBINARY NOT NULL");
+
+    f.checkString("from_hex('')", "", "VARBINARY NOT NULL");
+    f.checkNull("from_hex(cast(null as varchar))");
+  }
+
   @Test void testRepeatFunc() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.REPEAT);
     f0.checkFails("^repeat('a', -100)^",
