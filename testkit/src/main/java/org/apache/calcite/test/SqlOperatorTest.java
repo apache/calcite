@@ -8725,6 +8725,49 @@ public class SqlOperatorTest {
     f.checkNull("str_to_map('a:1,b:2,c:3', ',',null)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5807">[CALCITE-5807]
+   * Add SUBSTRING_INDEX function (enabled in Spark library).</a>.
+   */
+  @Test void testSubstringIndexFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.SUBSTRING_INDEX);
+    f0.checkFails("^substring_index('a', ',')^",
+        "No match found for function signature SUBSTRING_INDEX\\("
+            + "<CHARACTER>, <CHARACTER>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkString("substring_index('www.apache.org', '.', 2)",
+        "www.apache", "VARCHAR(14) NOT NULL");
+    f.checkString("substring_index('www.apache.org', '.', 1)",
+        "www", "VARCHAR(14) NOT NULL");
+    f.checkString("substring_index('www.apache.org', '.', 3)",
+        "www.apache.org", "VARCHAR(14) NOT NULL");
+    f.checkString("substring_index('www.apache.org', '.', -1)",
+        "org", "VARCHAR(14) NOT NULL");
+
+    f.checkString("substring_index('aBc', 'B', -1)",
+        "c", "VARCHAR(3) NOT NULL");
+    f.checkString("substring_index('aBc', 'b', -1)",
+        "aBc", "VARCHAR(3) NOT NULL");
+
+    f.checkString("substring_index('aBc', 'B', 0)",
+        "", "VARCHAR(3) NOT NULL");
+    f.checkString("substring_index('aBc', 'b', 0)",
+        "", "VARCHAR(3) NOT NULL");
+
+    f.checkNull("substring_index(cast(null as varchar(1)),"
+        + " cast(null as varchar(1)), cast(null as integer))");
+    f.checkNull("substring_index(cast(null as varchar(1)),"
+        + " cast(null as varchar(1)), 2)");
+    f.checkNull("substring_index('abc', cast(null as varchar(1)),"
+        + " cast(null as integer))");
+    f.checkNull("substring_index(cast(null as varchar(1)), '.',"
+        + " cast(null as integer))");
+    f.checkNull("substring_index('abc', '.', cast(null as integer))");
+    f.checkNull("substring_index('abc', cast(null as varchar(1)), 2)");
+  }
+
   /** Tests {@code UNIX_SECONDS} and other datetime functions from BigQuery. */
   @Test void testUnixSecondsFunc() {
     SqlOperatorFixture f = fixture()

@@ -858,6 +858,7 @@ public enum BuiltInMethod {
   MAP_FROM_ARRAYS(SqlFunctions.class, "mapFromArrays", List.class, List.class),
   MAP_FROM_ENTRIES(SqlFunctions.class, "mapFromEntries", List.class),
   STR_TO_MAP(SqlFunctions.class, "strToMap", String.class, String.class, String.class),
+  SUBSTRING_INDEX(SqlFunctions.class, "substringIndex", String.class, String.class, int.class),
   SELECTIVITY(Selectivity.class, "getSelectivity", RexNode.class),
   UNIQUE_KEYS(UniqueKeys.class, "getUniqueKeys", boolean.class),
   AVERAGE_ROW_SIZE(Size.class, "averageRowSize"),

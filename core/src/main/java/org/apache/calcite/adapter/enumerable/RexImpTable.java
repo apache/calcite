@@ -292,6 +292,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STARTS_WITH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STRCMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.STR_TO_MAP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTRING_INDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TAND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TANH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME;
@@ -923,6 +924,7 @@ public class RexImpTable {
       defineMethod(MAP_FROM_ARRAYS, BuiltInMethod.MAP_FROM_ARRAYS.method, NullPolicy.ANY);
       defineMethod(MAP_FROM_ENTRIES, BuiltInMethod.MAP_FROM_ENTRIES.method, NullPolicy.STRICT);
       map.put(STR_TO_MAP, new StringToMapImplementor());
+      defineMethod(SUBSTRING_INDEX, BuiltInMethod.SUBSTRING_INDEX.method, NullPolicy.STRICT);
       map.put(ARRAY_CONCAT, new ArrayConcatImplementor());
       map.put(SORT_ARRAY, new SortArrayImplementor());
       final MethodImplementor isEmptyImplementor =

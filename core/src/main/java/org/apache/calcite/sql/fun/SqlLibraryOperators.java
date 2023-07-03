@@ -1755,6 +1755,14 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.IDENTITY_TO_MAP_NULLABLE,
           OperandTypes.STRING_OPTIONAL_STRING_OPTIONAL_STRING);
 
+  /** The "SUBSTRING_INDEX(string, delimiter, count)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction SUBSTRING_INDEX =
+      SqlBasicFunction.create(SqlKind.SUBSTRING_INDEX,
+          ReturnTypes.ARG0_NULLABLE_VARYING,
+          OperandTypes.STRING_STRING_INTEGER)
+          .withFunctionType(SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL})
   public static final SqlFunction REVERSE =
       SqlBasicFunction.create(SqlKind.REVERSE,
