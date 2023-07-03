@@ -12467,6 +12467,25 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test void testOrderByColumnAndProjectString() {
+    String query = "SELECT D.\"department_id\",MIN(E.\"salary\") MINSAL, COUNT(E.\"salary\") "
+        + "SALCOUNT, 'INSIDE CTE1'\n"
+        + "FROM \"employee\" E \n"
+        + "FULL JOIN \"department\" D ON E.\"department_id\" = D.\"department_id\" \n"
+        + "GROUP BY D.\"department_id\"  \n"
+        + "HAVING MIN(E.\"salary\") < 1000";
+    final String expected = "SELECT department.department_id, MIN(employee.salary) AS MINSAL, "
+        + "COUNT(employee.salary) AS SALCOUNT, 'INSIDE CTE1'\n"
+        + "FROM foodmart.employee\n"
+        + "FULL JOIN foodmart.department ON employee.department_id = department.department_id\n"
+        + "GROUP BY department.department_id\n"
+        + "HAVING MINSAL < 1000";
+
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
+        .withBigQuery().ok(expected);
+  }
+
   @Test void testBQCastToDecimal() {
     final String query = "select \"employee_id\",\n"
         + "  cast(\"salary_paid\" as DECIMAL)\n"
