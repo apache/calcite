@@ -94,7 +94,4 @@ public final class LogicalTableModify extends TableModify {
         getSourceExpressionList(), isFlattened());
   }
 
-  @Override public RelNode accept(RelShuttle shuttle) {
-    return shuttle.visit(this);
-  }
 }
