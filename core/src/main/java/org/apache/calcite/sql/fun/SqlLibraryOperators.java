@@ -788,6 +788,19 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
+  /**
+   * The "TIME(string1)" function; casts string1
+   * to a TIME using the format specified in string2.
+   */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIME =
+      new SqlFunction("TIME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIME_NULLABLE,
+          null,
+          OperandTypes.DATETIME,
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction ORACLE_TO_DATE =
       new SqlFunction("TO_DATE",
