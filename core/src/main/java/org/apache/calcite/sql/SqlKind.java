@@ -836,6 +836,9 @@ public enum SqlKind {
   /** {@code STR_TO_MAP} function (Spark semantics). */
   STR_TO_MAP,
 
+  /** {@code SUBSTRING_INDEX} function (Spark semantics). */
+  SUBSTRING_INDEX,
+
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
 
