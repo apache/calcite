@@ -1022,6 +1022,10 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       return delegate.getPrecision();
     }
 
+    @Override public int getMaxNumericPrecision() {
+      return PRECISION_NOT_SPECIFIED;
+    }
+
     public int getScale() {
       return delegate.getScale();
     }
