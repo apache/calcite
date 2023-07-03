@@ -57,6 +57,9 @@ class JoinNamespace extends AbstractNamespace {
       leftType = typeFactory.createTypeWithNullability(leftType, true);
       rightType = typeFactory.createTypeWithNullability(rightType, true);
       break;
+    // LEFT SEMI JOIN can only come from Babel.
+    case LEFT_SEMI_JOIN:
+      return typeFactory.createJoinType(leftType);
     default:
       break;
     }
