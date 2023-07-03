@@ -2232,9 +2232,10 @@ public abstract class SqlImplementor {
       int i = 0;
       for (RelDataTypeField inputField: inputRelDataType.getFieldList()) {
         if (!inputField.getName().startsWith(SqlUtil.GENERATED_EXPR_ALIAS_PREFIX)
-            && !fieldsProjected.contains(i++)) {
+            && !fieldsProjected.contains(i)) {
           return false;
         }
+        i++;
       }
       return true;
     }
