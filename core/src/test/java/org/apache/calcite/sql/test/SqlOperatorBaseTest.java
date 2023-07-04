@@ -5532,6 +5532,8 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(
         SqlStdOperatorTable.SQRT, SqlTester.VmName.EXPAND);
     tester.checkType("sqrt(2)", "DOUBLE NOT NULL");
+    tester.checkType("sqrt(2, false, true)", "DOUBLE NOT NULL");
+    tester.checkType("sqrt(3, false)", "DOUBLE NOT NULL");
     tester.checkType("sqrt(cast(2 as float))", "DOUBLE NOT NULL");
     tester.checkType(
         "sqrt(case when false then 2 else null end)", "DOUBLE");
@@ -5777,6 +5779,8 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(
         SqlStdOperatorTable.ACOS);
     tester.checkType("acos(0)", "DOUBLE NOT NULL");
+    tester.checkType("acos(1, true, true)", "DOUBLE NOT NULL");
+    tester.checkType("acos(2, false)", "DOUBLE NOT NULL");
     tester.checkType("acos(cast(1 as float))", "DOUBLE NOT NULL");
     tester.checkType(
         "acos(case when false then 0.5 else null end)", "DOUBLE");
@@ -5805,6 +5809,8 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(
         SqlStdOperatorTable.ASIN);
     tester.checkType("asin(0)", "DOUBLE NOT NULL");
+    tester.checkType("asin(3, true, false)", "DOUBLE NOT NULL");
+    tester.checkType("asin(2, true)", "DOUBLE NOT NULL");
     tester.checkType("asin(cast(1 as float))", "DOUBLE NOT NULL");
     tester.checkType(
         "asin(case when false then 0.5 else null end)", "DOUBLE");
@@ -5833,6 +5839,8 @@ public abstract class SqlOperatorBaseTest {
     tester.setFor(
         SqlStdOperatorTable.ATAN);
     tester.checkType("atan(2)", "DOUBLE NOT NULL");
+    tester.checkType("atan(2, false, true)", "DOUBLE NOT NULL");
+    tester.checkType("atan(2, false)", "DOUBLE NOT NULL");
     tester.checkType("atan(cast(2 as float))", "DOUBLE NOT NULL");
     tester.checkType(
         "atan(case when false then 2 else null end)", "DOUBLE");
