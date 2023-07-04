@@ -125,8 +125,8 @@ public class EnumerableInterpretable extends ConverterImpl
         return getBindable(expr, s, rel.getRowType().getFieldCount());
       }
     } catch (Exception e) {
-      throw Helper.INSTANCE.wrap("Error while compiling generated Java code:\n"
-          + s, e);
+      throw Helper.INSTANCE.wrap("Error while compiling generated Java code:\n" 
+        + e.getMessage() + "\n" + s, e);
     }
   }
 
