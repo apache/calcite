@@ -5539,7 +5539,7 @@ public abstract class SqlOperatorBaseTest {
         "^sqrt('abc')^",
         "Cannot apply 'SQRT' to arguments of type 'SQRT\\(<CHAR\\(3\\)>\\)'\\."
             + " Supported form\\(s\\): 'SQRT\\(<NUMERIC>\\)'\n'SQRT\\(<NUMERIC>, <BOOLEAN>\\)'\n"
-            +"'SQRT\\(<NUMERIC>, <BOOLEAN>, <BOOLEAN>\\)'",
+            + "'SQRT\\(<NUMERIC>, <BOOLEAN>, <BOOLEAN>\\)'",
         false);
     tester.checkType("sqrt('abc')", "DOUBLE NOT NULL");
     tester.checkScalarApprox(
