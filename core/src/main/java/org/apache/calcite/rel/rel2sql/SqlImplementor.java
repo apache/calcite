@@ -125,11 +125,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -2114,7 +2114,7 @@ public abstract class SqlImplementor {
       }
 
       if (rel instanceof Project && relInput instanceof Sort) {
-        return !areAllNamedInputFieldsProjected(((Project) rel).getProjects(),
+        return !areAllNamedInputFieldsProjected(((Project) rel).getProjects(), rel.getRowType(),
             relInput.getRowType());
       }
 
@@ -2171,7 +2171,8 @@ public abstract class SqlImplementor {
       if (rel instanceof Project
           && clauses.contains(Clause.HAVING)
           && dialect.getConformance().isHavingAlias()
-          && !areAllNamedInputFieldsProjected(((Project) rel).getProjects(), relInput.getRowType())
+          && !areAllNamedInputFieldsProjected(((Project) rel).getProjects(),
+          rel.getRowType(), relInput.getRowType())
           && hasAliasUsedInHavingClause()) {
         return true;
       }
@@ -2227,24 +2228,30 @@ public abstract class SqlImplementor {
     }
 
     private boolean areAllNamedInputFieldsProjected(List<RexNode> projects,
+        RelDataType projectRelDataType,
         RelDataType inputRelDataType) {
-      Set<Integer> fieldsProjected = inputFieldsProjected(projects);
-      int i = 0;
-      for (RelDataTypeField inputField: inputRelDataType.getFieldList()) {
+      Map<Integer, List<String>> fieldsProjected = fieldsProjected(projects, projectRelDataType);
+      int inputFieldIndex = 0;
+      for (RelDataTypeField inputField : inputRelDataType.getFieldList()) {
         if (!inputField.getName().startsWith(SqlUtil.GENERATED_EXPR_ALIAS_PREFIX)
-            && !fieldsProjected.contains(i)) {
+            && !(fieldsProjected.containsKey(inputFieldIndex)
+            && fieldsProjected.get(inputFieldIndex).contains(inputField.getName()))) {
           return false;
         }
-        i++;
+        inputFieldIndex++;
       }
       return true;
     }
 
-    private Set<Integer> inputFieldsProjected(List<RexNode> nodes) {
-      return nodes.stream()
-          .map(node -> (node instanceof RexInputRef) ? ((RexInputRef) node).getIndex() : null)
-          .filter(Objects::nonNull)
-          .collect(Collectors.toSet());
+    private Map<Integer, List<String>> fieldsProjected(List<RexNode> nodes,
+        RelDataType projectRelDataType) {
+      List<RelDataTypeField> fieldList = projectRelDataType.getFieldList();
+      return IntStream.range(0, nodes.size())
+          .filter(i -> nodes.get(i) instanceof RexInputRef)
+          .boxed()
+          .collect(
+              Collectors.groupingBy(i -> ((RexInputRef) nodes.get(i)).getIndex(),
+              Collectors.mapping(i -> fieldList.get(i).getName(), Collectors.toList())));
     }
 
     private boolean hasNestedAggregations(
