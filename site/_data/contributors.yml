@@ -71,6 +71,12 @@
   githubId: chunweilei
   org: Alibaba
   role: PMC
+- name: Dan Zou
+  apacheId: zoudan
+  githubId: zoudan
+  pronouns: he/him
+  org: ByteDance
+  role: Committer
 - name: Danny Chan
   apacheId: danny0405
   githubId: danny0405
