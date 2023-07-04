@@ -25,6 +25,7 @@ import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
@@ -132,6 +133,16 @@ class RexBuilderTest {
 
     assertNotEquals(node, ensuredNode);
     assertEquals(ensuredNode.getType(), typeFactory.createSqlType(SqlTypeName.INTEGER));
+  }
+
+  @Test public void testToTimestampFunctionReturnType() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder builder = new RexBuilder(typeFactory);
+
+    RexNode toTimestampRex =  builder.makeCall(SqlLibraryOperators.TO_TIMESTAMP,
+        builder.makeLiteral("2009-03-20 12:25:50"),
+        builder.makeLiteral("yyyy-MM-dd HH24:MI:SS"));
+    assertEquals(toTimestampRex.getType().getSqlTypeName(), SqlTypeName.TIMESTAMP);
   }
 
   private static final long MOON = -14159025000L;
