@@ -2400,4 +2400,124 @@ TS
 1969-07-21 00:00:00
 !ok
 
+!use scott
+!set outputformat mysql
+
+# [CALCITE-5769] Optimizing 'CAST(e AS t) IS NOT NULL' to 'e IS NOT NULL'
+
+# Test CAST(e as t) IS NOT NULL when CAST is lossless And e IS NOT NULL
+select cast(deptno as integer) IS NOT NULL from "scott".dept;
++--------+
+| EXPR$0 |
++--------+
+| true   |
+| true   |
+| true   |
+| true   |
++--------+
+(4 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], EXPR$0=[$t3])
+  EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test CAST(e as t) IS NULL when CAST is lossless And e IS NOT NULL
+select cast(deptno as integer) IS NULL from "scott".dept;
++--------+
+| EXPR$0 |
++--------+
+| false  |
+| false  |
+| false  |
+| false  |
++--------+
+(4 rows)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], EXPR$0=[$t3])
+  EnumerableTableScan(table=[[scott, DEPT]])
+!plan
+
+# Test CAST(e as t) IS NOT NULL when CAST is lossless And e is nullable
+select cast(mgr as integer) IS NOT NULL from "scott".emp;
++--------+
+| EXPR$0 |
++--------+
+| false  |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
+| true   |
++--------+
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t3)], EXPR$0=[$t8])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test CAST(e as t) IS NULL when CAST is lossless And e is nullable
+select cast(mgr as integer) IS NULL from "scott".emp;
++--------+
+| EXPR$0 |
++--------+
+| false  |
+| true   |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
++--------+
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t3)], EXPR$0=[$t8])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+# Test CAST(e as t) IS NOT NULL when CAST is not lossless And e is nullable
+select cast(comm as integer) IS NOT NULL from "scott".emp;
++--------+
+| EXPR$0 |
++--------+
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| false  |
+| true   |
+| true   |
+| true   |
+| true   |
++--------+
+(14 rows)
+
+!ok
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):INTEGER], expr#9=[IS NOT NULL($t8)], EXPR$0=[$t9])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End misc.iq
