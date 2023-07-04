@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.interpreter.Struct;
 import org.apache.calcite.linq4j.tree.BinaryExpression;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -716,9 +717,10 @@ public class RexImpTable {
       final RexCallImplementor value = new ValueConstructorImplementor();
       map.put(MAP_VALUE_CONSTRUCTOR, value);
       map.put(ARRAY_VALUE_CONSTRUCTOR, value);
+      map.put(NAMED_STRUCT, value);
+
       defineMethod(ARRAY, BuiltInMethod.ARRAYS_AS_LIST.method, NullPolicy.NONE);
 
-      map.put(NAMED_STRUCT, new NamedStructImplementor());
 
       // ITEM operator
       map.put(ITEM, new ItemImplementor());
@@ -2511,32 +2513,6 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for {@link org.apache.calcite.sql.fun.SqlLibraryOperators.NAMED_STRUCT} */
-  private static class NamedStructImplementor extends MethodImplementor {
-
-    NamedStructImplementor() {
-      super(BuiltInMethod.ARRAYS_AS_LIST.method, NullPolicy.STRICT, false);
-    }
-
-    @Override Expression implementSafe(RexToLixTranslator translator,
-        RexCall call, List<Expression> argValueList) {
-
-      assert argValueList.size() % 2 == 0;
-
-      final List<Expression> newOperands = new ArrayList<>(argValueList.size() / 2);
-
-      int i = 0;
-      for (Expression exp : argValueList) {
-        if (i % 2 == 1) {
-          newOperands.add(exp);
-        }
-        i += 1;
-      }
-
-      return super.implementSafe(translator, call, newOperands);
-    }
-  }
-
   /**
    * Implementor for JSON_VALUE function, convert to solid format
    * "JSON_VALUE(json_doc, path, empty_behavior, empty_default, error_behavior, error default)"
@@ -3127,6 +3103,29 @@ public class RexImpTable {
                       Expressions.box(value))));
         }
         return lyst;
+
+      case STRUCT_CONSTRUCTOR:
+
+        final Expression keys = blockBuilder.append("keys", Expressions.new_(ArrayList.class), false);
+        final Expression values = blockBuilder.append("values", Expressions.new_(ArrayList.class), false);
+        
+        for (int i = 0; i < argValueList.size(); i += 2) {
+          Expression key = argValueList.get(i);
+          Expression value = argValueList.get(i+1);
+
+          blockBuilder.add(
+              Expressions.statement(
+                  Expressions.call(keys, BuiltInMethod.COLLECTION_ADD.method,
+                      Expressions.box(key))));
+
+          blockBuilder.add(
+              Expressions.statement(
+                  Expressions.call(values, BuiltInMethod.COLLECTION_ADD.method,
+                      Expressions.box(value))));
+        }
+
+        return blockBuilder.append("struct", Expressions.new_(Struct.class, keys, values));
+
       default:
         throw new AssertionError("unexpected: " + kind);
       }

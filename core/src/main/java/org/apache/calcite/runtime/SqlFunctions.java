@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.interpreter.Row;
+import org.apache.calcite.interpreter.Struct;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.CartesianProductEnumerator;
 import org.apache.calcite.linq4j.Enumerable;
@@ -4085,6 +4086,8 @@ public class SqlFunctions {
       return ((List) structObject).get(index);
     } else if (structObject instanceof Row) {
       return ((Row) structObject).getObject(index);
+    } else if (structObject instanceof Struct) {
+      return ((Struct) structObject).field(fieldName);
     } else {
       Class<?> beanClass = structObject.getClass();
       try {
