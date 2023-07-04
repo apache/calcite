@@ -2407,6 +2407,63 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplifyUnchanged(isNull(cast(vVarcharNotNull(), tInt(false))));
   }
 
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5769">[CALCITE-5769]
+   * Optimizing 'CAST(e AS t) IS NOT NULL' to 'e IS NOT NULL'</a>. */
+  @Test void testSimplifyCastIsNull3() {
+    // "(cast A as bigint) IS NULL" when A is int and A is not null
+    // ==>
+    // "false"
+    checkSimplify(isNull(cast(vIntNotNull(), tBigInt(false))), "false");
+    // "(cast A as smallint) IS NULL" when A is int and A is not null
+    // ==>
+    // "(cast A as smallint) IS NULL"
+    checkSimplifyUnchanged(isNull(cast(vIntNotNull(), tSmallInt(false))));
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5769">[CALCITE-5769]
+   * Optimizing 'CAST(e AS t) IS NOT NULL' to 'e IS NOT NULL'</a>. */
+  @Test void testSimplifyCastIsNull4() {
+    // "(cast A as bigint) IS NULL" when A is int and A is nullable
+    // ==>
+    // "A IS NULL"
+    checkSimplify(isNull(cast(vInt(), tBigInt(true))), "IS NULL(?0.int0)");
+    // "(cast A as smallint) IS NULL" when A is int and A is nullable
+    // ==>
+    // "(cast A as smallint) IS NULL"
+    checkSimplifyUnchanged(isNull(cast(vInt(), tSmallInt(true))));
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5769">[CALCITE-5769]
+   * Optimizing 'CAST(e AS t) IS NOT NULL' to 'e IS NOT NULL'</a>. */
+  @Test void testSimplifyCastIsNotNull() {
+    // "(cast A as bigint) IS NOT NULL" when A is int and A is not null
+    // ==>
+    // "true"
+    checkSimplify(isNotNull(cast(vIntNotNull(), tBigInt(false))), "true");
+    // "(cast A as smallint) IS NOT NULL" when A is int and A is not null
+    // ==>
+    // "(cast A as smallint) IS NOT NULL"
+    checkSimplifyUnchanged(isNotNull(cast(vIntNotNull(), tSmallInt(false))));
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5769">[CALCITE-5769]
+   * Optimizing 'CAST(e AS t) IS NOT NULL' to 'e IS NOT NULL'</a>. */
+  @Test void testSimplifyCastIsNotNull2() {
+    // "(cast A as bigint) IS NOT NULL" when A is int and A is nullable
+    // ==>
+    // "A IS NOT NULL"
+    checkSimplify(isNotNull(cast(vInt(), tBigInt(true))), "IS NOT NULL(?0.int0)");
+    // "(cast A as smallint) IS NOT NULL" when A is int and A is nullable
+    // ==>
+    // "(cast A as smallint) IS NOT NULL"
+    checkSimplifyUnchanged(isNotNull(cast(vInt(), tSmallInt(true))));
+  }
+
+
   @Test void checkSimplifyDynamicParam() {
     checkSimplify(isNotNull(lt(vInt(0), vInt(1))),
         "AND(IS NOT NULL(?0.int0), IS NOT NULL(?0.int1))");
