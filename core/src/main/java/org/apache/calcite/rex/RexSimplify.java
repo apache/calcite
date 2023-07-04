@@ -973,6 +973,12 @@ public class RexSimplify {
     if (!a.getType().isNullable() && isSafeExpression(a)) {
       return rexBuilder.makeLiteral(true);
     }
+    if (RexUtil.isLosslessCast(a)) {
+      if (!a.getType().isNullable()) {
+        return rexBuilder.makeLiteral(true);
+      }
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, RexUtil.removeCast(a));
+    }
     if (predicates.pulledUpPredicates.contains(a)) {
       return rexBuilder.makeLiteral(true);
     }
@@ -1021,6 +1027,12 @@ public class RexSimplify {
     a = simplify(a, UNKNOWN);
     if (!a.getType().isNullable() && isSafeExpression(a)) {
       return rexBuilder.makeLiteral(false);
+    }
+    if (RexUtil.isLosslessCast(a)) {
+      if (!a.getType().isNullable()) {
+        return rexBuilder.makeLiteral(false);
+      }
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, RexUtil.removeCast(a));
     }
     if (RexUtil.isNull(a)) {
       return rexBuilder.makeLiteral(true);
