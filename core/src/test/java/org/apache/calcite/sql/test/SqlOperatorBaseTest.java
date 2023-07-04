@@ -5538,7 +5538,8 @@ public abstract class SqlOperatorBaseTest {
     strictTester.checkFails(
         "^sqrt('abc')^",
         "Cannot apply 'SQRT' to arguments of type 'SQRT\\(<CHAR\\(3\\)>\\)'\\."
-            + " Supported form\\(s\\): 'SQRT\\(<NUMERIC>\\)'\n'SQRT\\(<NUMERIC>, <BOOLEAN>, <BOOLEAN>\\)'",
+            + " Supported form\\(s\\): 'SQRT\\(<NUMERIC>\\)'\n'SQRT\\(<NUMERIC>, <BOOLEAN>\\)'\n"
+            +"'SQRT\\(<NUMERIC>, <BOOLEAN>, <BOOLEAN>\\)'",
         false);
     tester.checkType("sqrt('abc')", "DOUBLE NOT NULL");
     tester.checkScalarApprox(
@@ -5782,7 +5783,8 @@ public abstract class SqlOperatorBaseTest {
     strictTester.checkFails(
         "^acos('abc')^",
         "Cannot apply 'ACOS' to arguments of type 'ACOS\\(<CHAR\\(3\\)>\\)'\\."
-            + " Supported form\\(s\\): 'ACOS\\(<NUMERIC>\\)'\n'ACOS\\(<NUMERIC>, <BOOLEAN>, <BOOLEAN>\\)'",
+            + " Supported form\\(s\\): 'ACOS\\(<NUMERIC>\\)'\n'ACOS\\(<NUMERIC>, <BOOLEAN>\\)'\n"
+            + "'ACOS\\(<NUMERIC>, <BOOLEAN>, <BOOLEAN>\\)'",
         false);
     tester.checkType("acos('abc')", "DOUBLE NOT NULL");
     tester.checkScalarApprox(
@@ -5809,7 +5811,8 @@ public abstract class SqlOperatorBaseTest {
     strictTester.checkFails(
         "^asin('abc')^",
         "Cannot apply 'ASIN' to arguments of type 'ASIN\\(<CHAR\\(3\\)>\\)'\\."
-            + " Supported form\\(s\\): 'ASIN\\(<NUMERIC>\\)'\n'ASIN\\(<NUMERIC>, <BOOLEAN>, <BOOLEAN>\\)'",
+            + " Supported form\\(s\\): 'ASIN\\(<NUMERIC>\\)'\n'ASIN\\(<NUMERIC>, <BOOLEAN>\\)'\n"
+            + "'ASIN\\(<NUMERIC>, <BOOLEAN>, <BOOLEAN>\\)'",
         false);
     tester.checkType("asin('abc')", "DOUBLE NOT NULL");
     tester.checkScalarApprox(
@@ -5836,7 +5839,8 @@ public abstract class SqlOperatorBaseTest {
     strictTester.checkFails(
         "^atan('abc')^",
         "Cannot apply 'ATAN' to arguments of type 'ATAN\\(<CHAR\\(3\\)>\\)'\\."
-            + " Supported form\\(s\\): 'ATAN\\(<NUMERIC>\\)'\n'ATAN\\(<NUMERIC>, <BOOLEAN>, <BOOLEAN>\\)'",
+            + " Supported form\\(s\\): 'ATAN\\(<NUMERIC>\\)'\n'ATAN\\(<NUMERIC>, <BOOLEAN>\\)'\n"
+            + "'ATAN\\(<NUMERIC>, <BOOLEAN>, <BOOLEAN>\\)'",
         false);
     tester.checkType("atan('abc')", "DOUBLE NOT NULL");
     tester.checkScalarApprox(

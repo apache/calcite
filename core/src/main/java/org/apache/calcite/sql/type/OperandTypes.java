@@ -219,6 +219,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker NUMERIC_BOOLEAN_BOOLEAN =
       family(SqlTypeFamily.NUMERIC, SqlTypeFamily.BOOLEAN, SqlTypeFamily.BOOLEAN);
 
+  public static final SqlSingleOperandTypeChecker NUMERIC_BOOLEAN =
+      family(SqlTypeFamily.NUMERIC, SqlTypeFamily.BOOLEAN);
+
   public static final SqlSingleOperandTypeChecker NUMERIC =
       family(SqlTypeFamily.NUMERIC);
 
