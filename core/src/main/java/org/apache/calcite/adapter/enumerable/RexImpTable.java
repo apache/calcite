@@ -22,7 +22,8 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
-import org.apache.calcite.interpreter.Struct;
+import org.apache.calcite.avatica.util.StructImpl;
+import org.apache.calcite.interpreter.NamedStruct;
 import org.apache.calcite.linq4j.tree.BinaryExpression;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -3124,7 +3125,7 @@ public class RexImpTable {
                       Expressions.box(value))));
         }
 
-        return blockBuilder.append("struct", Expressions.new_(Struct.class, keys, values));
+        return blockBuilder.append("struct", Expressions.new_(NamedStruct.class, keys, values));
 
       default:
         throw new AssertionError("unexpected: " + kind);

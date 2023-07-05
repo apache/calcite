@@ -17,17 +17,25 @@
 package org.apache.calcite.interpreter;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
-public class Struct {
+import org.apache.calcite.avatica.util.StructImpl;
+
+import java.sql.Struct;
+import java.sql.SQLException;
+
+public class NamedStruct extends StructImpl {
   
-  final Map<String, Object> fields;
+  final SortedMap<String, Object> fields;
+  
+  public NamedStruct(ArrayList<String> keys, ArrayList<Object> values) {
+    super(values);
 
-  public Struct(ArrayList<String> keys, ArrayList<Object> values) {
     assert(keys.size() == values.size());
 
-    final Map<String, Object> fields = new LinkedHashMap<>();
+    final SortedMap<String, Object> fields = new TreeMap<>();
 
     int i = 0;
     for (String key : keys) {

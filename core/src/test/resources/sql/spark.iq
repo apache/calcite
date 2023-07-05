@@ -32,12 +32,12 @@ select named_struct('k1', 1, 'k2', 2) as my_struct;
 
 !ok
 
-select named_struct('k1', 1, 'k2', 2)['k1'] as my_value;
-+-----------+
-| MY_STRUCT |
-+-----------+
-| 1         |
-+-----------+
+select named_struct('k1', 'foo', 'k2', 2)['k1'] as my_value;
++----------+
+| MY_VALUE |
++----------+
+| foo      |
++----------+
 (1 row)
 
 !ok
