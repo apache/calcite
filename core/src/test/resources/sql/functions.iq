@@ -938,5 +938,20 @@ table(AUX.TBLFUN_IDENTITY(3)) as t3(v);
 
 !ok
 
+# SUBSTRING
+-- returns 'null'
+select SUBSTRING(NULL FROM 1 FOR 2);
+select SUBSTRING('text' FROM 1 FOR NULL);
+select SUBSTRING('text' FROM NULL FOR 2);
+select SUBSTRING(s FROM i FOR l) FROM (VALUES ('abc', NULL, 2)) AS t (s, i, l);
+select SUBSTRING('text' FROM NULL);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
 
 # End functions.iq

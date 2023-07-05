@@ -1040,6 +1040,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("VARCHAR(1) NOT NULL");
     expr("substring('a', 1, '3')")
         .columnType("VARCHAR(1) NOT NULL");
+
+    // Correctly processed null string and params.
+    expr("SUBSTRING(NULL FROM 1 FOR 2)").ok();
+    expr("SUBSTRING('text' FROM 1 FOR NULL)").ok();
+    expr("SUBSTRING('text' FROM NULL FOR 2)").ok();
+    expr("SUBSTRING('text' FROM NULL)").ok();
   }
 
   @Test void testSubstringFails() {

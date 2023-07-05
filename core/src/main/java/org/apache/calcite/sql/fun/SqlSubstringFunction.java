@@ -44,10 +44,10 @@ import java.util.Objects;
  * Definition of the "SUBSTRING" builtin SQL function.
  */
 public class SqlSubstringFunction extends SqlFunction {
-  /** Type checker for 3 argument calls. Put the STRING_NUMERIC_NUMERIC checker
+  /** Type checker for 3 argument calls. Put the STRING_INTEGER_INTEGER checker
    * first because almost every other type can be coerced to STRING. */
   private static final SqlSingleOperandTypeChecker CHECKER3 =
-      OperandTypes.STRING_NUMERIC_NUMERIC
+      OperandTypes.STRING_INTEGER_INTEGER
           .or(OperandTypes.STRING_STRING_STRING);
 
   //~ Constructors -----------------------------------------------------------
@@ -74,7 +74,8 @@ public class SqlSubstringFunction extends SqlFunction {
     case 3:
       return "{0}({1} FROM {2} FOR {3})";
     default:
-      throw new AssertionError();
+      throw new AssertionError("Incorrect " + getName() + " signature, operands "
+          + "count = " + operandsCount);
     }
   }
 
@@ -121,7 +122,7 @@ public class SqlSubstringFunction extends SqlFunction {
           return false;
         }
       }
-      if (!SqlTypeUtil.inSameFamily(t1, t2)) {
+      if (!SqlTypeUtil.inSameFamilyOrNull(t1, t2)) {
         if (throwOnFailure) {
           throw callBinding.newValidationSignatureError();
         }
