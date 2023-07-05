@@ -12484,6 +12484,15 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test void testBQCastToDecimal() {
+    final String query = "select \"employee_id\",\n"
+        + "  cast(\"salary_paid\" as DECIMAL)\n"
+        + "from \"salary\"";
+    final String expected = "SELECT employee_id, CAST(salary_paid AS NUMERIC)\n"
+        + "FROM foodmart.salary";
+    sql(query).withBigQuery().ok(expected);
+  }
+
   @Test public void testQuoteInStringLiterals() {
     final RelBuilder builder = relBuilder();
     final RexNode literal = builder.literal("Datam\"etica");
@@ -12526,5 +12535,21 @@ class RelToSqlConverterTest {
     final SqlNode sqlNode = converter.visitRoot(root).asStatement();
     return sqlNode.toSqlString(c -> transform.apply(c.withDialect(dialect)))
         .getSql();
+  }
+
+  @Test public void testStrTimeRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strToDateNode = builder.call(SqlLibraryOperators.TIME,
+        builder.cast(builder.literal("11:15:00"), SqlTypeName.TIME));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(strToDateNode, "date1"))
+        .build();
+    final String expectedSql = "SELECT TIME(TIME '11:15:00') AS \"date1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TIME(TIME '11:15:00') AS date1\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 }
