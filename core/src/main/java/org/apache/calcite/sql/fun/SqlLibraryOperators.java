@@ -954,6 +954,10 @@ public abstract class SqlLibraryOperators {
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT_WS_MSSQL);
 
+  /** Creates a struct with the given field names and values. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction NAMED_STRUCT = NamedStructFunction.create();
+
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
     RelDataType type =
         opBinding.getOperandCount() > 0

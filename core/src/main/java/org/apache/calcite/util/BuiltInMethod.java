@@ -347,6 +347,7 @@ public enum BuiltInMethod {
       int.class, boolean.class),
   MAP_ITEM(SqlFunctions.class, "mapItemOptional", Map.class, Object.class),
   ANY_ITEM(SqlFunctions.class, "itemOptional", Object.class, Object.class),
+  STRUCT_ITEM(SqlFunctions.class, "structItemOptional", Object.class, String.class, List.class),
   UPPER(SqlFunctions.class, "upper", String.class),
   LOWER(SqlFunctions.class, "lower", String.class),
   ASCII(SqlFunctions.class, "ascii", String.class),

@@ -285,6 +285,11 @@ public abstract class QuidemTest {
         return CalciteAssert.that()
             .with(CalciteAssert.Config.JDBC_SCOTT)
             .connect();
+      case "spark_scott":
+        return CalciteAssert.that()
+            .with(CalciteConnectionProperty.FUN, "spark")
+            .with(CalciteAssert.Config.SCOTT)
+            .connect();
       case "post":
         return CalciteAssert.that()
             .with(CalciteAssert.Config.REGULAR)

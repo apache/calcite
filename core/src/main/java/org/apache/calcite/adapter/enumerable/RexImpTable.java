@@ -202,6 +202,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAX_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MIN_BY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.NAMED_STRUCT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ORDINAL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
@@ -796,6 +797,8 @@ public class RexImpTable {
       map.put(MAP_VALUE_CONSTRUCTOR, value);
       map.put(ARRAY_VALUE_CONSTRUCTOR, value);
       defineMethod(ARRAY, BuiltInMethod.ARRAYS_AS_LIST.method, NullPolicy.NONE);
+
+      map.put(NAMED_STRUCT, new NamedStructImplementor());
 
       // ITEM operator
       map.put(ITEM, new ItemImplementor());
@@ -2562,6 +2565,32 @@ public class RexImpTable {
     }
   }
 
+  /** Implementor for {@link org.apache.calcite.sql.fun.SqlLibraryOperators.NAMED_STRUCT}. */
+  private static class NamedStructImplementor extends MethodImplementor {
+
+    NamedStructImplementor() {
+      super(BuiltInMethod.ARRAY.method, NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator,
+        RexCall call, List<Expression> argValueList) {
+
+      assert argValueList.size() % 2 == 0;
+
+      final List<Expression> newOperands = new ArrayList<>(argValueList.size() / 2);
+
+      int i = 0;
+      for (Expression exp : argValueList) {
+        if (i % 2 == 1) {
+          newOperands.add(exp);
+        }
+        i += 1;
+      }
+
+      return super.implementSafe(translator, call, newOperands);
+    }
+  }
+
   /** Implementor for a function that generates calls to a given method. */
   private static class MethodImplementor extends AbstractRexCallImplementor {
     protected final Method method;
@@ -3304,22 +3333,66 @@ public class RexImpTable {
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
+
+      assert argValueList.size() == 2;
+      assert call.getOperands().size() == 2;
+
+      final RexNode expression = call.getOperands().get(0);
+      final RexNode field = call.getOperands().get(1);
+
+      final SqlTypeName expressionType = expression.getType().getSqlTypeName();
+      final SqlTypeName fieldType = field.getType().getSqlTypeName();
+
+      final Expression expression0 = argValueList.get(0);
+      final Type expressionPhysicalType = expression0.getType();
+
       final AbstractRexCallImplementor implementor =
-          getImplementor(call.getOperands().get(0).getType().getSqlTypeName());
+          getImplementor(expressionType, expressionPhysicalType, fieldType);
+
+      if (isRowStructFieldAccess(expressionType, expressionPhysicalType, fieldType)) {
+        final BlockBuilder blockBuilder = translator.getBlockBuilder();
+
+        final Expression allFields =
+            blockBuilder.append("allFields", Expressions.new_(ArrayList.class),
+                false);
+
+        for (String fieldName : expression.getType().getFieldNames()) {
+          blockBuilder.add(
+              Expressions.statement(
+                  Expressions.call(allFields, BuiltInMethod.COLLECTION_ADD.method,
+                      Expressions.constant(fieldName))));
+        }
+
+        argValueList.add(allFields);
+      }
+
       return implementor.implementSafe(translator, call, argValueList);
+    }
+
+    // Struct can have a physical type backed by a Java Class or a ROW
+    private boolean isRowStructFieldAccess(SqlTypeName expressionType,
+        Type expressionPhysicalType, SqlTypeName fieldType) {
+      return expressionType == SqlTypeName.ROW
+          && (fieldType == SqlTypeName.CHAR || fieldType == SqlTypeName.VARCHAR)
+          && expressionPhysicalType == Object[].class;
     }
 
     // This helper returns the appropriate implementor based on the collection type.
     // Arrays use the specific ArrayItemImplementor while maps and other collection types
     // use the general MethodImplementor.
-    private AbstractRexCallImplementor getImplementor(SqlTypeName sqlTypeName) {
-      switch (sqlTypeName) {
+    private AbstractRexCallImplementor getImplementor(SqlTypeName expressionType,
+        Type expressionPhysicalType, SqlTypeName fieldType) {
+      switch (expressionType) {
       case ARRAY:
         return new ArrayItemImplementor();
       case MAP:
         return new MethodImplementor(BuiltInMethod.MAP_ITEM.method, nullPolicy, false);
       default:
-        return new MethodImplementor(BuiltInMethod.ANY_ITEM.method, nullPolicy, false);
+        if (isRowStructFieldAccess(expressionType, expressionPhysicalType, fieldType)) {
+          return new MethodImplementor(BuiltInMethod.STRUCT_ITEM.method, nullPolicy, false);
+        } else {
+          return new MethodImplementor(BuiltInMethod.ANY_ITEM.method, nullPolicy, false);
+        }
       }
     }
   }

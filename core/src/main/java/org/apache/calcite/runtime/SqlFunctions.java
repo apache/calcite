@@ -3858,6 +3858,23 @@ public class SqlFunctions {
     return arrayItem(list, item, offset, safe);
   }
 
+  /** As {@link #arrayItem} method, but allows array to be nullable. */
+  public static @Nullable Object structItemOptional(@Nullable Object object,
+      @Nullable String field, @Nullable List allFields) {
+    if (object == null) {
+      return null;
+    }
+    if (field == null) {
+      return null;
+    }
+    if (allFields == null) {
+      return null;
+    }
+    int index = allFields.indexOf(field);
+
+    return structAccess(object, index, field);
+  }
+
   /** As {@link #mapItem} method, but allows map to be nullable. */
   public static @Nullable Object mapItemOptional(@Nullable Map map,
       Object item) {

@@ -841,6 +841,11 @@ public enum SqlKind {
    * e.g. {@code MAP (SELECT empno, deptno FROM emp)}. */
   MAP_QUERY_CONSTRUCTOR,
 
+  /** STRUCT Constructor, eg.
+   * Apache Spark: {@code named_struct('name1', 1, 'name2', 'value2')}
+   * BigQuery: {@code STRUCT<[field_name] field_type, ...>( expr1 [, ... ])} */
+  STRUCT_CONSTRUCTOR,
+
   /** {@code CURSOR} constructor, for example, <code>SELECT * FROM
    * TABLE(udx(CURSOR(SELECT ...), x, y, z))</code>. */
   CURSOR,

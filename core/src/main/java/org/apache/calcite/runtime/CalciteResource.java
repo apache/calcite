@@ -705,6 +705,15 @@ public interface CalciteResource {
   @BaseMessage("Function ''{0}'' should all be of type map, but it is ''{1}''")
   ExInst<SqlValidatorException> typesShouldAllBeMap(String funcName, String type);
 
+  @BaseMessage("named_struct requires an even number for arguments")
+  ExInst<SqlValidatorException> namedStructRequiresEvenNumberOfArgs();
+
+  @BaseMessage("named_struct key is not a string literal, found type ''{0}''")
+  ExInst<SqlValidatorException> namedStructRequiresLiteralStringKeysGotOtherType(String tpe);
+
+  @BaseMessage("named_struct key is not a string literal, got an expression")
+  ExInst<SqlValidatorException> namedStructRequiresLiteralStringKeysGotExpression();
+
   @BaseMessage("Incompatible types")
   ExInst<SqlValidatorException> incompatibleTypes();
 
