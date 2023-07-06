@@ -22,7 +22,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
 
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.CollectionUtils;
 
 import com.alibaba.innodb.java.reader.comparator.ComparisonOperator;
 import com.google.common.collect.ImmutableList;

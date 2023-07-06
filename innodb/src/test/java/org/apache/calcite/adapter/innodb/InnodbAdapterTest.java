@@ -26,7 +26,7 @@ import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Sources;
 
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.CollectionUtils;
 
 import com.alibaba.innodb.java.reader.util.Utils;
 import com.google.common.collect.ImmutableMap;
