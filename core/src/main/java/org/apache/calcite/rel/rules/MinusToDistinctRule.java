@@ -149,8 +149,9 @@ public class MinusToDistinctRule
 
     ImmutableList.Builder<RexNode> filters = ImmutableList.builder();
     for (int i = 0; i < branchCount; i++) {
-      SqlOperator operator = i == 0 ? SqlStdOperatorTable.GREATER_THAN
-          : SqlStdOperatorTable.EQUALS;
+      SqlOperator operator =
+          i == 0 ? SqlStdOperatorTable.GREATER_THAN
+              : SqlStdOperatorTable.EQUALS;
       filters.add(
           rexBuilder.makeCall(operator, relBuilder.field(originalFieldCnt + i),
           relBuilder.literal(new BigDecimal(0))));

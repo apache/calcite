@@ -68,7 +68,7 @@ class SqlNodeTest {
 
   private static <E> List<E> collect(Iterable<E> iterable) {
     final List<E> list = new ArrayList<>();
-    for (E e: iterable) {
+    for (E e : iterable) {
       list.add(e);
     }
     return list;

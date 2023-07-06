@@ -86,7 +86,7 @@ class ScrollingTest {
     final String query = String.format(Locale.ROOT, "select _MAP['value'] as v from "
         + "\"elastic\".\"%s\"", NAME);
 
-    for (int fetchSize: Arrays.asList(1, 2, 3, SIZE / 2, SIZE - 1, SIZE, SIZE + 1, 2 * SIZE)) {
+    for (int fetchSize : Arrays.asList(1, 2, 3, SIZE / 2, SIZE - 1, SIZE, SIZE + 1, 2 * SIZE)) {
       CalciteAssert.that()
           .with(newConnectionFactory(fetchSize))
           .query(query)

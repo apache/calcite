@@ -1044,7 +1044,7 @@ public abstract class ReturnTypes {
         List<RelDataType> operandTypes = opBinding.collectOperandTypes();
         final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
         final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
-        for (RelDataType operandType: operandTypes) {
+        for (RelDataType operandType : operandTypes) {
           int operandPrecision = operandType.getPrecision();
           amount = (long) operandPrecision + amount;
           if (operandPrecision == RelDataType.PRECISION_NOT_SPECIFIED) {

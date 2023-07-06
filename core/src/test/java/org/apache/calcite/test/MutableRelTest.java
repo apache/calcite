@@ -200,7 +200,7 @@ class MutableRelTest {
     MutableRel mutableRel =
         createMutableRel("select sal from emp where deptno = 10"
             + "union select sal from emp where ename like 'John%'");
-    for (MutableRel input: mutableRel.getInputs()) {
+    for (MutableRel input : mutableRel.getInputs()) {
       assertSame(input.getParent(), mutableRel);
     }
   }

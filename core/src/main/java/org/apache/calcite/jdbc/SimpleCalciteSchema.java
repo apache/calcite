@@ -92,7 +92,7 @@ class SimpleCalciteSchema extends CalciteSchema {
       return lowerCaseName;
     }
     // Fall through: Set iteration
-    for (String candidate: candidates) {
+    for (String candidate : candidates) {
       if (candidate.equalsIgnoreCase(name)) {
         return candidate;
       }

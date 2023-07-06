@@ -5118,7 +5118,7 @@ public class SqlToRelConverter {
       setRoot(root, false);
       List<RegisterArgs> registerCopy = registered;
       registered = new ArrayList<>();
-      for (RegisterArgs reg: registerCopy) {
+      for (RegisterArgs reg : registerCopy) {
         RelNode relNode = reg.rel;
         relBuilder.push(relNode);
         final RelMetadataQuery mq = relBuilder.getCluster().getMetadataQuery();

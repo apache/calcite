@@ -77,7 +77,7 @@ class AggregationTest {
         .enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES); // avoid too much quoting
 
     final List<ObjectNode> docs = new ArrayList<>();
-    for (String text: Arrays.asList(doc1, doc2, doc3)) {
+    for (String text : Arrays.asList(doc1, doc2, doc3)) {
       docs.add((ObjectNode) mapper.readTree(text));
     }
 

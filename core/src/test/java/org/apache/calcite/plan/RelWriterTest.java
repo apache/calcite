@@ -1355,11 +1355,11 @@ class RelWriterTest {
     final RelDataType type = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
     List<RexNode> partitionKeys = new ArrayList<>(partitionKeyNames.size());
     builder.scan(table);
-    for (String partitionkeyName: partitionKeyNames) {
+    for (String partitionkeyName : partitionKeyNames) {
       partitionKeys.add(builder.field(partitionkeyName));
     }
     List<RexFieldCollation> orderKeys = new ArrayList<>(orderKeyNames.size());
-    for (String orderKeyName: orderKeyNames) {
+    for (String orderKeyName : orderKeyNames) {
       orderKeys.add(new RexFieldCollation(builder.field(orderKeyName), ImmutableSet.of()));
     }
     final RelNode rel = builder

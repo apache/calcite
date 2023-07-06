@@ -55,8 +55,8 @@ public class ElasticsearchChecker {
   public static Consumer<List> elasticsearchChecker(final String... strings) {
     Objects.requireNonNull(strings, "strings");
     return a -> {
-      ObjectNode actual = a == null || a.isEmpty() ? null
-            : ((ObjectNode) a.get(0));
+      ObjectNode actual =
+          a == null || a.isEmpty() ? null : (ObjectNode) a.get(0);
 
       actual = expandDots(actual);
       try {

@@ -369,7 +369,7 @@ public class RelMdColumnUniqueness
         return false;
       }
       final ImmutableBitSet.Builder targetColumns = ImmutableBitSet.builder();
-      for (int key: commonKeys) {
+      for (int key : commonKeys) {
         targetColumns.set(rel.getGroupSet().nth(key));
       }
 

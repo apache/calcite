@@ -1326,7 +1326,7 @@ public abstract class SqlLibraryOperators {
       return SqlTypeUtil.createMapType(typeFactory, type, type, true);
     } else {
       final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
-      for (RelDataType operandType: operandTypes) {
+      for (RelDataType operandType : operandTypes) {
         if (!SqlTypeUtil.isMap(operandType)) {
           throw opBinding.newError(
               RESOURCE.typesShouldAllBeMap(

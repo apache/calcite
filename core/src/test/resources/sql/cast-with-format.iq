@@ -2008,6 +2008,7 @@ select cast("1985-\b\n\r\t12-09" as
 EXPR$0
 1985-12-09
 !ok
+# lint:skip 25 (tab characters)
 select cast(cast("1985-12-10" as date) as string
     format 'YYYY"\ttext\n"MM-DD');
 EXPR$0

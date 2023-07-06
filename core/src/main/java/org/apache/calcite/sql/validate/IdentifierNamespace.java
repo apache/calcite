@@ -158,8 +158,9 @@ public class IdentifierNamespace extends AbstractNamespace {
           // If previousResolve is null, we matched nothing case-sensitive and
           // everything case-insensitive, so the mismatch must have been at
           // position 0.
-          final int i = previousResolve == null ? 0
-              : previousResolve.path.stepCount();
+          final int i =
+              previousResolve == null ? 0
+                  : previousResolve.path.stepCount();
           final int offset = resolve.path.stepCount()
               + resolve.remainingNames.size() - names.size();
           final List<String> prefix =

@@ -476,7 +476,7 @@ public class RelMdPredicates
         continue;
       }
 
-      for (RexNode pred: info.pulledUpPredicates) {
+      for (RexNode pred : info.pulledUpPredicates) {
         if (finalPredicates.stream().anyMatch(
             finalPred -> rexImplicationChecker.implies(finalPred, pred))) {
           // There's already a stricter predicate in finalPredicates,

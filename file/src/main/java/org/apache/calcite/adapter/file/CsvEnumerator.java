@@ -93,8 +93,9 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       @Nullable String @Nullable [] filterValues, RowConverter<E> rowConverter) {
     this.cancelFlag = cancelFlag;
     this.rowConverter = rowConverter;
-    this.filterValues = filterValues == null ? null
-        : ImmutableNullableList.copyOf(filterValues);
+    this.filterValues =
+        filterValues == null ? null
+            : ImmutableNullableList.copyOf(filterValues);
     try {
       if (stream) {
         this.reader = new CsvStreamReader(source);

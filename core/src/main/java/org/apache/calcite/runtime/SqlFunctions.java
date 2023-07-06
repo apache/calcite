@@ -1221,7 +1221,7 @@ public class SqlFunctions {
    */
   public static @Nullable String codePointsToString(List codePoints) {
     StringBuilder sb = new StringBuilder();
-    for (Object codePoint: codePoints) {
+    for (Object codePoint : codePoints) {
       if (codePoint == null) {
         return null;
       }
@@ -5314,7 +5314,7 @@ public class SqlFunctions {
   /** Support the MAP_FROM_ENTRIES function. */
   public static @Nullable Map mapFromEntries(List entries) {
     final Map map = new LinkedHashMap<>();
-    for (Object entry: entries) {
+    for (Object entry : entries) {
       if (entry == null) {
         return null;
       }

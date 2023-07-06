@@ -121,7 +121,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
 
     final ObjectNode query = mapper.createObjectNode();
     // manually parse from previously concatenated string
-    for (String op: ops) {
+    for (String op : ops) {
       query.setAll((ObjectNode) mapper.readTree(op));
     }
 
@@ -173,7 +173,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
 
     final ObjectNode query = mapper.createObjectNode();
     // manually parse into JSON from previously concatenated strings
-    for (String op: ops) {
+    for (String op : ops) {
       query.setAll((ObjectNode) mapper.readTree(op));
     }
 
@@ -206,7 +206,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
 
     // construct nested aggregations node(s)
     ObjectNode parent = query.withObject("/" + AGGREGATIONS);
-    for (String name: orderedGroupBy) {
+    for (String name : orderedGroupBy) {
       final String aggName = "g_" + name;
       fieldMap.put(aggName, name);
 
@@ -272,7 +272,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       ElasticsearchJson.visitValueNodes(res.aggregations(), m -> {
         // using 'Collectors.toMap' will trigger Java 8 bug here
         Map<String, Object> newMap = new LinkedHashMap<>();
-        for (String key: m.keySet()) {
+        for (String key : m.keySet()) {
           newMap.put(fieldMap.getOrDefault(key, key), m.get(key));
         }
         result.add(newMap);

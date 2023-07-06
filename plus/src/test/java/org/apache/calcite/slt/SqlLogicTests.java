@@ -177,7 +177,7 @@ public class SqlLogicTests {
       List<TestSummary> results = new ArrayList<>(this.testResults.values());
       results.sort(Comparator.comparing(left -> left.file));
       StringBuilder result = new StringBuilder();
-      for (TestSummary summary: results) {
+      for (TestSummary summary : results) {
         result.append(summary.toString());
         result.append(System.lineSeparator());
       }
@@ -291,7 +291,7 @@ public class SqlLogicTests {
    */
   private List<DynamicTest> generateTests(Set<String> testFiles) {
     List<DynamicTest> result = new ArrayList<>();
-    for (String test: testFiles) {
+    for (String test : testFiles) {
       DynamicTest dynamicTest = DynamicTest.dynamicTest(test, () -> runTestFile(test));
       result.add(dynamicTest);
     }

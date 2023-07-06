@@ -3762,7 +3762,7 @@ public class RexImpTable {
         final List<RexToLixTranslator.Result> arguments) {
       final List<Expression> argIsNullList = new ArrayList<>();
       final List<Expression> argValueList = new ArrayList<>();
-      for (RexToLixTranslator.Result result: arguments) {
+      for (RexToLixTranslator.Result result : arguments) {
         argIsNullList.add(result.isNullVariable);
         argValueList.add(result.valueVariable);
       }
@@ -3950,7 +3950,7 @@ public class RexImpTable {
     @Override public RexToLixTranslator.Result implement(final RexToLixTranslator translator,
         final RexCall call, final List<RexToLixTranslator.Result> arguments) {
       final List<Expression> argIsNullList = new ArrayList<>();
-      for (RexToLixTranslator.Result result: arguments) {
+      for (RexToLixTranslator.Result result : arguments) {
         argIsNullList.add(result.isNullVariable);
       }
       final List<Expression> nullAsTrue =
@@ -4004,7 +4004,7 @@ public class RexImpTable {
     @Override public RexToLixTranslator.Result implement(final RexToLixTranslator translator,
         final RexCall call, final List<RexToLixTranslator.Result> arguments) {
       final List<Expression> argIsNullList = new ArrayList<>();
-      for (RexToLixTranslator.Result result: arguments) {
+      for (RexToLixTranslator.Result result : arguments) {
         argIsNullList.add(result.isNullVariable);
       }
       final List<Expression> nullAsFalse =

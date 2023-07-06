@@ -1746,7 +1746,7 @@ public class SubstitutionVisitor {
     if (list0.size() != list1.size()) {
       return false;
     }
-    for (MutableRel rel: list0) {
+    for (MutableRel rel : list0) {
       int index = list1.indexOf(rel);
       if (index == -1) {
         return false;
@@ -1766,7 +1766,7 @@ public class SubstitutionVisitor {
     final RexShuttle shuttle = getExpandShuttle(calc.program);
     final RexNode condition = shuttle.apply(calc.program.getCondition());
     final List<RexNode> projects = new ArrayList<>();
-    for (RexNode rex: shuttle.apply(calc.program.getProjectList())) {
+    for (RexNode rex : shuttle.apply(calc.program.getProjectList())) {
       projects.add(rex);
     }
     if (condition == null) {
@@ -1836,7 +1836,7 @@ public class SubstitutionVisitor {
   private static boolean referenceByMapping(
       RexNode joinCondition, List<RexNode>... projectsOfInputs) {
     List<RexNode> projects = new ArrayList<>();
-    for (List<RexNode> projectsOfInput: projectsOfInputs) {
+    for (List<RexNode> projectsOfInput : projectsOfInputs) {
       projects.addAll(projectsOfInput);
     }
 

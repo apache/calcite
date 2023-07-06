@@ -150,7 +150,7 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
   @Override public void close() throws Exception {
     node.close();
     // cleanup data dirs
-    for (String name: Arrays.asList("path.data", "path.home")) {
+    for (String name : Arrays.asList("path.data", "path.home")) {
       if (node.settings().get(name) != null) {
         File file = new File(node.settings().get(name));
         if (file.exists()) {

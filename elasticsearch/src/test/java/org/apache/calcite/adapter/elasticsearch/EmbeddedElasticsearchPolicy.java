@@ -119,7 +119,7 @@ class EmbeddedElasticsearchPolicy {
 
     ObjectNode properties = mappings.withObject("/mappings")
         .withObject("/properties");
-    for (Map.Entry<String, String> entry: mapping.entrySet()) {
+    for (Map.Entry<String, String> entry : mapping.entrySet()) {
       applyMapping(properties, entry.getKey(), entry.getValue());
     }
 
@@ -206,7 +206,7 @@ class EmbeddedElasticsearchPolicy {
     }
 
     List<String> bulk = new ArrayList<>(documents.size() * 2);
-    for (ObjectNode doc: documents) {
+    for (ObjectNode doc : documents) {
       bulk.add(String.format(Locale.ROOT, "{\"index\": {\"_index\":\"%s\"}}", index));
       bulk.add(mapper().writeValueAsString(doc));
     }

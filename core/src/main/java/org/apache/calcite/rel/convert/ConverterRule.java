@@ -61,8 +61,9 @@ public abstract class ConverterRule
 
     // Most sub-classes are concerned with converting one convention to
     // another, and for them, the "out" field is a convenient short-cut.
-    this.out = outTrait instanceof Convention ? (Convention) outTrait
-        : castNonNull(null);
+    this.out =
+        outTrait instanceof Convention ? (Convention) outTrait
+            : castNonNull(null);
   }
 
   /**

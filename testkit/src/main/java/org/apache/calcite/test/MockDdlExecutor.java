@@ -93,8 +93,9 @@ public class MockDdlExecutor extends DdlExecutorImpl {
       path = Util.skipLast(id.names);
       name = Util.last(id.names);
     }
-    CalciteSchema schema = mutable ? context.getMutableRootSchema()
-        : context.getRootSchema();
+    CalciteSchema schema =
+        mutable ? context.getMutableRootSchema()
+            : context.getRootSchema();
     for (String p : path) {
       schema = requireNonNull(schema.getSubSchema(p, true));
     }

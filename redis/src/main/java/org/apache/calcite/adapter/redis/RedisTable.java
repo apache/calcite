@@ -60,8 +60,9 @@ public class RedisTable extends AbstractTable
     this.schema = schema;
     this.tableName = tableName;
     this.protoRowType = protoRowType;
-    this.allFields = allFields == null ? ImmutableMap.of()
-        : ImmutableMap.copyOf(allFields);
+    this.allFields =
+        allFields == null ? ImmutableMap.of()
+            : ImmutableMap.copyOf(allFields);
     this.dataFormat = dataFormat;
     this.redisConfig = redisConfig;
   }

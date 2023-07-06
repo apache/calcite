@@ -86,8 +86,9 @@ public class AggregateJoinRemoveRule
     boolean isLeftJoin = join.getJoinType() == JoinRelType.LEFT;
     int lower = isLeftJoin
         ? join.getLeft().getRowType().getFieldCount() : 0;
-    int upper = isLeftJoin ? join.getRowType().getFieldCount()
-        : join.getLeft().getRowType().getFieldCount();
+    int upper =
+        isLeftJoin ? join.getRowType().getFieldCount()
+            : join.getLeft().getRowType().getFieldCount();
 
     // Check whether the aggregate uses columns whose index is between
     // lower(included) and upper(excluded).

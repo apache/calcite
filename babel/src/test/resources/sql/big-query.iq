@@ -686,8 +686,8 @@ SELECT SAFE_ADD(CAST('NaN' AS DOUBLE), CAST(3 as BIGINT)) as NaN_result;
 #
 # SAFE_DIVIDE(value1, value2)
 #
-# Equivalent to the divide operator (/), but returns NULL if overflow/underflow occurs 
-# or if value2 is zero.
+# Equivalent to the divide operator (/), but returns NULL if
+# overflow/underflow occurs or if value2 is zero.
 SELECT SAFE_DIVIDE(20, 4) as result;
 +--------+
 | result |
@@ -709,7 +709,8 @@ SELECT SAFE_DIVIDE(-9223372036854775806, 0) as zero_result;
 
 !ok
 
-SELECT SAFE_DIVIDE(CAST(1.7e308 as DOUBLE), CAST(1.7e-308 as DOUBLE)) as double_overflow;
+SELECT SAFE_DIVIDE(CAST(1.7e308 as DOUBLE),
+        CAST(1.7e-308 as DOUBLE)) as double_overflow;
 +-----------------+
 | double_overflow |
 +-----------------+
@@ -719,8 +720,8 @@ SELECT SAFE_DIVIDE(CAST(1.7e308 as DOUBLE), CAST(1.7e-308 as DOUBLE)) as double_
 
 !ok
 
-SELECT SAFE_DIVIDE(CAST(-3.5e75 AS DECIMAL(76, 0)), CAST(3.5e-75 AS DECIMAL(76, 0))) 
-    as decimal_overflow;
+SELECT SAFE_DIVIDE(CAST(-3.5e75 AS DECIMAL(76, 0)),
+        CAST(3.5e-75 AS DECIMAL(76, 0))) as decimal_overflow;
 +------------------+
 | decimal_overflow |
 +------------------+
@@ -751,6 +752,7 @@ SELECT SAFE_DIVIDE(1, CAST(1 AS DOUBLE) / CAST(9223372036854775807 AS DOUBLE)) a
 (1 row)
 
 !ok
+
 #####################################################################
 # SAFE_MULTIPLY
 #

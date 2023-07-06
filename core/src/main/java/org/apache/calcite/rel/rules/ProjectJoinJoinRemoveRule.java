@@ -89,7 +89,7 @@ public class ProjectJoinJoinRemoveRule
     int leftBottomChildSize = bottomJoin.getLeft().getRowType().getFieldCount();
 
     // Check whether the project uses columns in the right input of bottom join.
-    for (RexNode expr: project.getProjects()) {
+    for (RexNode expr : project.getProjects()) {
       if (RelOptUtil.InputFinder.bits(expr).asList().stream().anyMatch(
           i -> i >= leftBottomChildSize
               && i < bottomJoin.getRowType().getFieldCount())) {

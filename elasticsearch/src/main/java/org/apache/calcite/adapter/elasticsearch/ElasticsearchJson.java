@@ -718,7 +718,7 @@ final class ElasticsearchJson {
         throws JsonProcessingException {
 
       List<Bucket> buckets = new ArrayList<>(nodes.size());
-      for (JsonNode b: nodes) {
+      for (JsonNode b : nodes) {
         buckets.add(parseBucket(parser, name, (ObjectNode) b));
       }
 

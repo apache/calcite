@@ -164,8 +164,9 @@ public class SqlDataTypeSpec extends SqlNode {
   /** Returns a copy of this data type specification with a given
    * nullability, extending the parser position. */
   public SqlDataTypeSpec withNullable(Boolean nullable, SqlParserPos pos) {
-    final SqlParserPos newPos = pos == SqlParserPos.ZERO ? this.pos
-        : this.pos.plus(pos);
+    final SqlParserPos newPos =
+        pos == SqlParserPos.ZERO ? this.pos
+            : this.pos.plus(pos);
     if (Objects.equals(nullable, this.nullable)
         && newPos.equals(this.pos)) {
       return this;

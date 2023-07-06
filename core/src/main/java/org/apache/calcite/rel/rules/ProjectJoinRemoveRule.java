@@ -86,7 +86,7 @@ public class ProjectJoinRemoveRule
 
     // Check whether the project uses columns whose index is between
     // lower(included) and upper(excluded).
-    for (RexNode expr: project.getProjects()) {
+    for (RexNode expr : project.getProjects()) {
       if (RelOptUtil.InputFinder.bits(expr).asList().stream().anyMatch(
           i -> i >= lower && i < upper)) {
         return;

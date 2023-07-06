@@ -65,7 +65,7 @@ public final class AggregateProjectConstantToDummyJoinRule
     final Aggregate aggregate = call.rel(0);
     final Project project = call.rel(1);
 
-    for (int groupKey: aggregate.getGroupSet().asList()) {
+    for (int groupKey : aggregate.getGroupSet().asList()) {
       if (groupKey >= aggregate.getRowType().getFieldCount()) {
         continue;
       }

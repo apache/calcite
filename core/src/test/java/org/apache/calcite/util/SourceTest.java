@@ -67,7 +67,7 @@ class SourceTest {
    */
   @Test void charSource() throws IOException {
     Source source = Sources.fromCharSource(CharSource.wrap("a\nb"));
-    for (Reader r: Arrays.asList(source.reader(),
+    for (Reader r : Arrays.asList(source.reader(),
         new InputStreamReader(source.openStream(), StandardCharsets.UTF_8.name()))) {
       try (BufferedReader reader = new BufferedReader(r)) {
         assertEquals("a", reader.readLine());

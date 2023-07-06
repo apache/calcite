@@ -74,8 +74,9 @@ public class MongoTableScan extends TableScan implements MongoRel {
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // scans with a small project list are cheaper
-    final float f = projectRowType == null ? 1f
-        : (float) projectRowType.getFieldCount() / 100f;
+    final float f =
+        projectRowType == null ? 1f
+            : (float) projectRowType.getFieldCount() / 100f;
     return super.computeSelfCost(planner, mq).multiplyBy(.1 * f);
   }
 

@@ -31,6 +31,8 @@ import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Index condition.
  *
@@ -95,10 +97,11 @@ public class IndexCondition {
         remainderConditions == null ? ImmutableList.of()
             : ImmutableList.copyOf(remainderConditions);
     this.queryType = queryType;
-    this.pointQueryKey = pointQueryKey == null ? ImmutableList.of()
+    this.pointQueryKey =
+        pointQueryKey == null ? ImmutableList.of()
             : ImmutableList.copyOf(pointQueryKey);
-    this.rangeQueryLowerOp = Objects.requireNonNull(rangeQueryLowerOp, "rangeQueryLowerOp");
-    this.rangeQueryUpperOp = Objects.requireNonNull(rangeQueryUpperOp, "rangeQueryUpperOp");
+    this.rangeQueryLowerOp = requireNonNull(rangeQueryLowerOp, "rangeQueryLowerOp");
+    this.rangeQueryUpperOp = requireNonNull(rangeQueryUpperOp, "rangeQueryUpperOp");
     this.rangeQueryLowerKey = ImmutableList.copyOf(rangeQueryLowerKey);
     this.rangeQueryUpperKey = ImmutableList.copyOf(rangeQueryUpperKey);
   }

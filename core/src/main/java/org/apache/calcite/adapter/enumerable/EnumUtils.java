@@ -614,7 +614,7 @@ public class EnumUtils {
       }
     } else {
       int j = 0;
-      for (Expression argument: arguments) {
+      for (Expression argument : arguments) {
         Class<?> type;
         if (!targetTypes[j].isArray()) {
           type = targetTypes[j];

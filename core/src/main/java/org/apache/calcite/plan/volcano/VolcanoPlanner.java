@@ -234,8 +234,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.zeroCost = this.costFactory.makeZeroCost();
     this.infCost = this.costFactory.makeInfiniteCost();
     // If LOGGER is debug enabled, enable provenance information to be captured
-    this.provenanceMap = LOGGER.isDebugEnabled() ? new HashMap<>()
-        : Util.blackholeMap();
+    this.provenanceMap =
+        LOGGER.isDebugEnabled() ? new HashMap<>()
+            : Util.blackholeMap();
     initRuleQueue();
   }
 
