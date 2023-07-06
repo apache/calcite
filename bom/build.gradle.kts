@@ -100,6 +100,7 @@ dependencies {
         apiv("org.apache.commons:commons-lang3")
         apiv("org.apache.commons:commons-math3")
         apiv("org.apache.commons:commons-pool2")
+        apiv("org.apache.commons:commons-collections4")
         apiv("org.apache.geode:geode-core")
         apiv("org.apache.hadoop:hadoop-client", "hadoop")
         apiv("org.apache.hadoop:hadoop-common", "hadoop")
