@@ -22,8 +22,12 @@ import net.hydromatic.sqllogictest.OptionsParser;
 import net.hydromatic.sqllogictest.TestStatistics;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.function.Executable;
 
@@ -53,7 +57,6 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 /**
  * Tests using sql-logic-test suite.
  */
-@Tag("slow")
 public class SqlLogicTestsForCalciteTests {
   /**
    * Short summary of the results of a test execution.
@@ -263,12 +266,13 @@ public class SqlLogicTestsForCalciteTests {
     testSummaries.add(summary);
   }
 
-  @TestFactory
-  List<DynamicTest> runAllTests() throws IOException {
-    try (InputStream stream = getClass().getResourceAsStream(GOLDENFILE)) {
-      goldenTestSummaries.read(stream);
-    }
+  @Test @Tag("slow")
+  public void runOneTestFile() throws IOException {
+    runOneTestFile("select1.test");
+  }
 
+  @TestFactory @Disabled("This takes very long, should be run manually")
+  List<DynamicTest> runAllTests() {
     // Run in parallel each test file.
     Set<String> tests = net.hydromatic.sqllogictest.Main.getTestList();
     List<DynamicTest> result = new ArrayList<>();
@@ -284,8 +288,18 @@ public class SqlLogicTestsForCalciteTests {
     return result;
   }
 
+  @BeforeAll
+  public static void readGoldenFile() throws IOException {
+    // Read the statistics of the previously-failing tests
+    try (InputStream stream = SqlLogicTestsForCalciteTests.class.getResourceAsStream(GOLDENFILE)) {
+      goldenTestSummaries.read(stream);
+    }
+  }
+
   @AfterAll
   public static void findRegressions() throws IOException {
+    // Compare with failures produced by a previous execution
+
     // Code used to create the golden file originally
     // File file = new File(goldenFile);
     // if (!file.exists()) {
@@ -293,8 +307,6 @@ public class SqlLogicTestsForCalciteTests {
     //   return;
     // }
     boolean regression = goldenTestSummaries.regression(testSummaries);
-    if (regression) {
-      throw new RuntimeException("Regression discovered");
-    }
+    Assertions.assertFalse(regression, "Regression discovered");
   }
 }
