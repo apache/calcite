@@ -12510,4 +12510,45 @@ class RelToSqlConverterTest {
     return sqlNode.toSqlString(c -> transform.apply(c.withDialect(dialect)))
         .getSql();
   }
+
+  @Test public void testPercentileCont() {
+    final String query = "select\n"
+        + " percentile_cont(0.25) within group (order by \"product_id\")\n"
+        + "from \"product\"";
+    final String expectedSql = "SELECT PERCENTILE_CONT(0.25) WITHIN GROUP "
+        + "(ORDER BY \"product_id\")\n"
+        + "FROM \"foodmart\".\"product\"";
+
+    sql(query)
+        .ok(expectedSql);
+
+  }
+
+  @Test void testPercentileContWithGroupBy() {
+    final String query = "select \"shelf_width\",\n"
+        + " percentile_cont(0.25) within group (order by \"product_id\")\n"
+        + "from \"product\"\n"
+        + "group by \"shelf_width\"";
+    final String expectedSql = "SELECT \"shelf_width\", PERCENTILE_CONT(0.25) WITHIN GROUP "
+        + "(ORDER BY \"product_id\")\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"shelf_width\"";
+    sql(query)
+        .ok(expectedSql);
+  }
+
+  @Test public void trial1() {
+    final RelBuilder builder = relBuilder();
+    final RexNode getBitRexNode = builder.call(SqlLibraryOperators.MEDIAN,
+        builder.scan("EMP").field(0));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(getBitRexNode, "aa"))
+        .build();
+
+    final String expectedBQ = "SELECT PERCENTILE_CONT(EMPNO, 0.5) OVER() AS aa\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
 }
