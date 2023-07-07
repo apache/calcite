@@ -2827,6 +2827,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | UNIX_SECONDS(timestamp)                        | Returns the number of seconds since 1970-01-01 00:00:00
 | b | UNIX_DATE(date)                                | Returns the number of days since 1970-01-01
 | o | XMLTRANSFORM(xml, xslt)                        | Applies XSLT transform *xslt* to XML string *xml* and returns the result
+| s | BIT_LENGTH(string)                             | Returns the bit length of *string*
+| s | BIT_LENGTH(binary)                             | Returns the bit length of *binary*
 
 Note:
 

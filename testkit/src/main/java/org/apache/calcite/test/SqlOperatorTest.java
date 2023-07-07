@@ -3932,6 +3932,21 @@ public class SqlOperatorTest {
     f.checkNull("OCTET_LENGTH(cast(null as varbinary(1)))");
   }
 
+  @Test void testBitLengthFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.BIT_LENGTH, VmName.EXPAND);
+    f0.checkFails("^bit_length('Apache Calcite')^",
+        "No match found for function signature BIT_LENGTH\\(<CHARACTER>\\)", false);
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    // string
+    f1.checkScalarExact("BIT_LENGTH('Apache Calcite')", 112);
+    f1.checkNull("BIT_LENGTH(cast(null as varchar(1)))");
+    // binary string
+    f1.checkScalarExact("BIT_LENGTH(x'4170616368652043616C63697465')", 112);
+    f1.checkNull("BIT_LENGTH(cast(null as binary))");
+  }
+
   @Test void testAsciiFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.ASCII, VmName.EXPAND);
