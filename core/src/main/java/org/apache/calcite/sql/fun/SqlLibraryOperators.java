@@ -1834,4 +1834,12 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BOOLEAN,
           InferTypes.FIRST_KNOWN,
           OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
+
+  /** The "BIT_LENGTH(string or binary)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction BIT_LENGTH =
+      SqlBasicFunction.create("BIT_LENGTH",
+          ReturnTypes.INTEGER_NULLABLE,
+          OperandTypes.or(OperandTypes.CHARACTER, OperandTypes.BINARY),
+          SqlFunctionCategory.NUMERIC);
 }
