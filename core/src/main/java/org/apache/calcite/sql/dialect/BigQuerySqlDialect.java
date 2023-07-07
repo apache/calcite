@@ -628,6 +628,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case REGEXP_SUBSTR:
       unparseRegexSubstr(writer, call, leftPrec, rightPrec);
       break;
+    case TIMESTAMP_DIFF:
+      unparseDiffFunction(writer, call, leftPrec, rightPrec, call.getOperator().getName());
+      break;
     case TO_NUMBER:
       ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec, this);
       break;
@@ -1143,15 +1146,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseRegexpInstr(writer, call, leftPrec, rightPrec);
       break;
     case "DATE_DIFF":
-      final SqlWriter.Frame date_diff = writer.startFunCall("DATE_DIFF");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.print(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      if (call.operandCount() == 3) {
-        writer.print(",");
-        writer.print(unquoteStringLiteral(call.operand(2).toString()));
-      }
-      writer.endFunCall(date_diff);
+      unparseDiffFunction(writer, call, leftPrec, rightPrec, call.getOperator().getName());
       break;
     case "HASHROW":
       unparseHashrowFunction(writer, call, leftPrec, rightPrec);
@@ -1230,6 +1225,19 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseDiffFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
+      String functionName) {
+    final SqlWriter.Frame diffFunctionFrame = writer.startFunCall(functionName);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    if (call.operandCount() == 3) {
+      writer.print(",");
+      writer.print(unquoteStringLiteral(call.operand(2).toString()));
+    }
+    writer.endFunCall(diffFunctionFrame);
   }
 
   private void unParseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1942,7 +1950,8 @@ public class BigQuerySqlDialect extends SqlDialect {
             typeAlias = dataType;
           }
         } else {
-          typeAlias = "NUMERIC";
+          int defaultPrecision = type.getMaxNumericPrecision();
+          typeAlias = defaultPrecision > 29 ? "BIGNUMERIC" : "NUMERIC";
         }
         return createSqlDataTypeSpecByName(typeAlias, typeName);
       case CHAR:
@@ -1970,7 +1979,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private String getDataTypeBasedOnPrecision(int precision, int scale)  {
     if (scale > 0) {
-      return scale <= 9 ? scale + precision > 38 ? "BIGNUMERIC" : "NUMERIC" : "BIGNUMERIC";
+      return scale <= 9 ? precision - scale <= 29 ? "NUMERIC" : "BIGNUMERIC" : "BIGNUMERIC";
     } else {
       return precision > 29 ? "BIGNUMERIC" : "NUMERIC";
     }
