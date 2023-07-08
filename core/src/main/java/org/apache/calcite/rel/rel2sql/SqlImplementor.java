@@ -29,6 +29,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
@@ -127,6 +128,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -2108,6 +2111,7 @@ public abstract class SqlImplementor {
       }
       final Clause maxClause = Collections.max(clauses);
 
+      final RelNode relInput = rel.getInput(0);
       // Previously, below query is getting translated with SubQuery logic (Queries like -
       // Analytical Function with WHERE clause). Now, it will remain as it is after translation.
       // select c1, ROW_NUMBER() OVER (PARTITION by c1 ORDER BY c2) as rnk from t1 where c3 = 'MA'
@@ -2120,6 +2124,11 @@ public abstract class SqlImplementor {
         if (maxClause == Clause.SELECT) {
           return false;
         }
+      }
+
+      if (rel instanceof Project && relInput instanceof Sort) {
+        return !areAllNamedInputFieldsProjected(((Project) rel).getProjects(), rel.getRowType(),
+            relInput.getRowType());
       }
 
       // If old and new clause are equal and belong to below set,
@@ -2175,6 +2184,8 @@ public abstract class SqlImplementor {
       if (rel instanceof Project
           && clauses.contains(Clause.HAVING)
           && dialect.getConformance().isHavingAlias()
+          && !areAllNamedInputFieldsProjected(((Project) rel).getProjects(),
+          rel.getRowType(), relInput.getRowType())
           && hasAliasUsedInHavingClause()) {
         return true;
       }
@@ -2229,6 +2240,32 @@ public abstract class SqlImplementor {
       return false;
     }
 
+    private boolean areAllNamedInputFieldsProjected(List<RexNode> projects,
+        RelDataType projectRelDataType,
+        RelDataType inputRelDataType) {
+      Map<Integer, List<String>> fieldsProjected = fieldsProjected(projects, projectRelDataType);
+      int inputFieldIndex = 0;
+      for (RelDataTypeField inputField : inputRelDataType.getFieldList()) {
+        if (!inputField.getName().startsWith(SqlUtil.GENERATED_EXPR_ALIAS_PREFIX)
+            && !(fieldsProjected.containsKey(inputFieldIndex)
+            && fieldsProjected.get(inputFieldIndex).contains(inputField.getName()))) {
+          return false;
+        }
+        inputFieldIndex++;
+      }
+      return true;
+    }
+
+    private Map<Integer, List<String>> fieldsProjected(List<RexNode> nodes,
+        RelDataType projectRelDataType) {
+      List<RelDataTypeField> fieldList = projectRelDataType.getFieldList();
+      return IntStream.range(0, nodes.size())
+          .filter(i -> nodes.get(i) instanceof RexInputRef)
+          .boxed()
+          .collect(
+              Collectors.groupingBy(i -> ((RexInputRef) nodes.get(i)).getIndex(),
+              Collectors.mapping(i -> fieldList.get(i).getName(), Collectors.toList())));
+    }
 
     private boolean hasNestedAggregations(
         @UnknownInitialization Result this,
