@@ -2676,6 +2676,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | s | SORT_ARRAY(array [, ascendingOrder])           | Sorts the *array* in ascending or descending order according to the natural ordering of the array elements. The default order is ascending if *ascendingOrder* is not specified. Null elements will be placed at the beginning of the returned array in ascending order or at the end of the returned array in descending order
 | * | ASINH(numeric)                                 | Returns the inverse hyperbolic sine of *numeric*
 | * | ATANH(numeric)                                 | Returns the inverse hyperbolic tangent of *numeric*
+| s | BIT_LENGTH(binary)                             | Returns the bit length of *binary*
+| s | BIT_LENGTH(string)                             | Returns the bit length of *string*
 | b | CEIL(value)                                    | Similar to standard `CEIL(value)` except if *value* is an integer type, the return type is a double
 | m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
 | b o p | CHR(integer)                               | Returns the character whose UTF-8 code is *integer*
@@ -2827,8 +2829,6 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | UNIX_SECONDS(timestamp)                        | Returns the number of seconds since 1970-01-01 00:00:00
 | b | UNIX_DATE(date)                                | Returns the number of days since 1970-01-01
 | o | XMLTRANSFORM(xml, xslt)                        | Applies XSLT transform *xslt* to XML string *xml* and returns the result
-| s | BIT_LENGTH(string)                             | Returns the bit length of *string*
-| s | BIT_LENGTH(binary)                             | Returns the bit length of *binary*
 
 Note:
 
