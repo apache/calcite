@@ -886,6 +886,62 @@ public class SqlFunctions {
     return c.substring(s0, e0);
   }
 
+  /** SQL FORMAT_NUMBER(value, decimalOrFormat) function. */
+  public static String formatNumber(long value, int decimalVal) {
+    DecimalFormat numberFormat = getNumberFormat(decimalVal);
+    return numberFormat.format(value);
+  }
+
+  public static String formatNumber(double value, int decimalVal) {
+    DecimalFormat numberFormat = getNumberFormat(decimalVal);
+    return numberFormat.format(value);
+  }
+
+  public static String formatNumber(BigDecimal value, int decimalVal) {
+    DecimalFormat numberFormat = getNumberFormat(decimalVal);
+    return numberFormat.format(value);
+  }
+
+  public static String formatNumber(long value, String format) {
+    DecimalFormat numberFormat = getNumberFormat(format);
+    return numberFormat.format(value);
+  }
+
+  public static String formatNumber(double value, String format) {
+    DecimalFormat numberFormat = getNumberFormat(format);
+    return numberFormat.format(value);
+  }
+
+  public static String formatNumber(BigDecimal value, String format) {
+    DecimalFormat numberFormat = getNumberFormat(format);
+    return numberFormat.format(value);
+  }
+
+  public static String getFormatPattern(int decimalVal) {
+    StringBuilder pattern = new StringBuilder();
+    pattern.append("#,###,###,###,###,###,##0");
+
+    if (decimalVal > 0) {
+      pattern.append(".");
+      for (int i = 0; i < decimalVal; i++) {
+        pattern.append("0");
+      }
+    }
+    return pattern.toString();
+  }
+
+  private static DecimalFormat getNumberFormat(String pattern) {
+    return NumberUtil.decimalFormat(pattern);
+  }
+
+  private static DecimalFormat getNumberFormat(int decimalVal) {
+    if (decimalVal < 0) {
+      throw RESOURCE.illegalNegativeDecimalValue().ex();
+    }
+    String pattern = getFormatPattern(decimalVal);
+    return getNumberFormat(pattern);
+  }
+
   /** SQL UPPER(string) function. */
   public static String upper(String s) {
     return s.toUpperCase(Locale.ROOT);

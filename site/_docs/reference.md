@@ -2731,6 +2731,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | FLOOR(value)                                   | Similar to standard `FLOOR(value)` except if *value* is an integer type, the return type is a double
 | b | FORMAT_DATE(string, date)                      | Formats *date* according to the specified format *string*
 | b | FORMAT_DATETIME(string, timestamp)             | Formats *timestamp* according to the specified format *string*
+| h s | FORMAT_NUMBER(value, decimalVal)             | Formats the number *value* like '#,###,###.##', rounded to decimal places *decimalVal*. If *decimalVal* is 0, the result has no decimal point or fractional part
+| h s | FORMAT_NUMBER(value, format)                 | Formats the number *value* to MySQL's FORMAT *format*, like '#,###,###.##0.00'
 | b | FORMAT_TIME(string, time)                      | Formats *time* according to the specified format *string*
 | b | FORMAT_TIMESTAMP(string timestamp)             | Formats *timestamp* according to the specified format *string*
 | s | GETBIT(value, position)                        | Equivalent to `BIT_GET(value, position)`
