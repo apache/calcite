@@ -144,6 +144,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ASINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ATANH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BYTE_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CEIL_BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
@@ -514,6 +515,8 @@ public class RexImpTable {
       defineMethod(CHAR_LENGTH, BuiltInMethod.CHAR_LENGTH.method,
           NullPolicy.STRICT);
       defineMethod(OCTET_LENGTH, BuiltInMethod.OCTET_LENGTH.method,
+          NullPolicy.STRICT);
+      defineMethod(BYTE_LENGTH, BuiltInMethod.BYTE_LENGTH.method,
           NullPolicy.STRICT);
       map.put(CONCAT, new ConcatImplementor());
       defineMethod(CONCAT_FUNCTION, BuiltInMethod.MULTI_STRING_CONCAT.method,

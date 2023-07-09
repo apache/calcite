@@ -805,6 +805,16 @@ public class SqlFunctions {
     return s.length();
   }
 
+  /** SQL BYTE_LENGTH(string) function. */
+  public static long byteLength(String s) {
+    return s.getBytes(UTF_8).length;
+  }
+
+  /** SQL BYTE_LENGTH(binary) function. */
+  public static long byteLength(ByteString s) {
+    return s.length();
+  }
+
   /** SQL {@code string || string} operator. */
   public static String concat(String s0, String s1) {
     return s0 + s1;

@@ -1834,4 +1834,12 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BOOLEAN,
           InferTypes.FIRST_KNOWN,
           OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
+
+  /** The "BYTE_LENGTH(string or binary)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction BYTE_LENGTH =
+      SqlBasicFunction.create("BYTE_LENGTH",
+          ReturnTypes.INTEGER_NULLABLE,
+          OperandTypes.or(OperandTypes.CHARACTER, OperandTypes.BINARY),
+          SqlFunctionCategory.NUMERIC);
 }
