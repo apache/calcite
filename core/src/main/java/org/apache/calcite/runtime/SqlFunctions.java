@@ -61,6 +61,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
@@ -103,6 +105,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -873,6 +876,80 @@ public class SqlFunctions {
     } catch (CharacterCodingException ex) {
       throw RESOURCE.charsetEncoding(s, charset.name()).ex();
     }
+  }
+
+  /** SQL {@code PARSE_URL(urlStr, partToExtract, keyToExtract)} function. */
+  public static @Nullable String parseUrl(@Nullable String urlStr,
+      @Nullable String partToExtract, @Nullable String keyToExtract) {
+    if (partToExtract == null || !partToExtract.equals("QUERY")) {
+      return null;
+    }
+
+    String query = parseUrl(urlStr, partToExtract);
+    if (query == null) {
+      return null;
+    }
+
+    Pattern p = Pattern.compile("(&|^)" + keyToExtract + "=([^&]*)");
+    Matcher m = p.matcher(query);
+    return m.find() ? m.group(2) : null;
+  }
+
+  /** SQL {@code PARSE_URL(urlStr, partToExtract)} function. */
+  public static @Nullable String parseUrl(@Nullable String urlStr,
+      @Nullable String partToExtract) {
+    if (urlStr == null || partToExtract == null) {
+      return null;
+    }
+
+    URI uri;
+    try {
+      uri = new URI(urlStr);
+    } catch (URISyntaxException e) {
+      return null;
+    }
+
+    String extractValue;
+    PartToExtract part;
+    try {
+      part = PartToExtract.valueOf(partToExtract);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
+
+    switch (part) {
+    case HOST:
+      extractValue = uri.getHost();
+      break;
+    case PATH:
+      extractValue = uri.getRawPath();
+      break;
+    case QUERY:
+      extractValue = uri.getRawQuery();
+      break;
+    case REF:
+      extractValue = uri.getRawFragment();
+      break;
+    case PROTOCOL:
+      extractValue = uri.getScheme();
+      break;
+    case FILE:
+      if (uri.getRawQuery() != null) {
+        extractValue = uri.getRawPath() + "?" + uri.getRawQuery();
+      } else {
+        extractValue = uri.getRawPath();
+      }
+      break;
+    case AUTHORITY:
+      extractValue = uri.getRawAuthority();
+      break;
+    case USERINFO:
+      extractValue = uri.getRawUserInfo();
+      break;
+    default:
+      extractValue = null;
+    }
+    return extractValue;
   }
 
   /** SQL {@code RTRIM} function applied to string. */
@@ -4563,6 +4640,18 @@ public class SqlFunctions {
   /** Type of argument passed into {@link #flatProduct}. */
   public enum FlatProductInputType {
     SCALAR, LIST, MAP
+  }
+
+  /** Type of part to extract passed into {@link #parseUrl}. */
+  public enum PartToExtract {
+    HOST,
+    PATH,
+    QUERY,
+    REF,
+    PROTOCOL,
+    FILE,
+    AUTHORITY,
+    USERINFO;
   }
 
 }

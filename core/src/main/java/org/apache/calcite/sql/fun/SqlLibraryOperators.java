@@ -394,6 +394,14 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction SUBSTR_POSTGRESQL =
       SUBSTR.withKind(SqlKind.SUBSTR_POSTGRESQL);
 
+  /** The "PARSE_URL(urlString, partToExtract [, keyToExtract] )" function. */
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction PARSE_URL =
+      SqlBasicFunction.create("PARSE_URL",
+              ReturnTypes.VARCHAR_NULLABLE,
+              OperandTypes.STRING_STRING_OPTIONAL_STRING,
+              SqlFunctionCategory.STRING);
+
   /** The "GREATEST(value, value)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction GREATEST =
