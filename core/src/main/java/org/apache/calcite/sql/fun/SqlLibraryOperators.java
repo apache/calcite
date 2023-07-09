@@ -1313,6 +1313,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.BINARY,
           SqlFunctionCategory.STRING);
 
+  /** The "FORMAT_NUMBER(value, decimalOrFormat)" function. */
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction FORMAT_NUMBER =
+      SqlBasicFunction.create("FORMAT_NUMBER",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.or(
+              OperandTypes.NUMERIC_NUMERIC,
+              OperandTypes.NUMERIC_CHARACTER),
+          SqlFunctionCategory.STRING);
+
   /** The "TO_CHAR(timestamp, format)" function;
    * converts {@code timestamp} to string according to the given {@code format}.
    */

@@ -364,6 +364,9 @@ public abstract class OperandTypes {
           // Second operand optional (operand index 0, 1)
           number -> number == 1);
 
+  public static final SqlSingleOperandTypeChecker NUMERIC_CHARACTER =
+      family(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER);
+
   public static final SqlSingleOperandTypeChecker NUMERIC_INTEGER =
       family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER);
 

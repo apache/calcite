@@ -419,6 +419,7 @@ public enum BuiltInMethod {
   INITCAP(SqlFunctions.class, "initcap", String.class),
   SUBSTRING(SqlFunctions.class, "substring", String.class, int.class,
       int.class),
+  FORMAT_NUMBER(SqlFunctions.class, "formatNumber", long.class, int.class),
   LPAD(SqlFunctions.class, "lpad", String.class, int.class, String.class),
   RPAD(SqlFunctions.class, "rpad", String.class, int.class, String.class),
   STARTS_WITH(SqlFunctions.class, "startsWith", String.class, String.class),

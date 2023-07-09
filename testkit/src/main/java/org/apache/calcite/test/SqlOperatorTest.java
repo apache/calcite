@@ -7760,6 +7760,105 @@ public class SqlOperatorTest {
     }
   }
 
+  @Test void testFormatNumber() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.FORMAT_NUMBER);
+    f0.checkFails("^format_number(123, 2)^",
+        "No match found for function signature FORMAT_NUMBER\\(<NUMERIC>, <NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      // test with tinyint type
+      f.checkString("format_number(cast(1 as tinyint), 4)", "1.0000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(1 as tinyint), '#,###,###,###,###,###,##0.0000')",
+          "1.0000",
+          "VARCHAR NOT NULL");
+
+      // test with smallint type
+      f.checkString("format_number(cast(1 as smallint), 4)", "1.0000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(1234 as smallint), '#,###,###,###,###,###,##0.0000000')",
+          "1,234.0000000",
+          "VARCHAR NOT NULL");
+
+      // test with integer type
+      f.checkString("format_number(cast(1 as integer), 4)", "1.0000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(1234 as integer), '#,###,###,###,###,###,##0.0000000')",
+          "1,234.0000000",
+          "VARCHAR NOT NULL");
+
+      // test with bigint type
+      f.checkString("format_number(cast(0 as bigint), 0)", "0",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(1 as bigint), 4)", "1.0000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(1234 as bigint), 7)", "1,234.0000000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(1234 as bigint), '#,###,###,###,###,###,##0.0000000')",
+          "1,234.0000000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(-1 as bigint), 4)", "-1.0000",
+          "VARCHAR NOT NULL");
+
+      // test with float type
+      f.checkString("format_number(cast(12332.123456 as float), 4)", "12,332.1235",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(123456.123456789 as float), '########.###')",
+          "123456.123",
+          "VARCHAR NOT NULL");
+
+      // test with double type
+      f.checkString("format_number(cast(1234567.123456789 as double), 7)", "1,234,567.1234568",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(1234567.123456789 as double), '##,###,###.##')",
+          "1,234,567.12",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(-0.123456789 as double), 15)", "-0.123456789000000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(-0.123456789 as double),"
+              + " '#,###,###,###,###,###,##0.000000000000000')",
+          "-0.123456789000000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(0.000000 as double), 1)", "0.0",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(0.000000 as double), '#,###,###,###,###,###,##0.0')",
+          "0.0",
+          "VARCHAR NOT NULL");
+
+      // test with decimal type
+      f.checkString("format_number(1234567.123456789, 7)", "1,234,567.1234568",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(1234567.123456789, '##,###,###.##')",
+          "1,234,567.12",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(-0.123456789, 15)", "-0.123456789000000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(-0.123456789,"
+              + " '#,###,###,###,###,###,##0.000000000000000')",
+          "-0.123456789000000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(0.000000, 1)", "0.0",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(0.0, '#,###,###,###,###,###,##0.0000')",
+          "0.0000",
+          "VARCHAR NOT NULL");
+
+      // test with illegal argument
+      f.checkFails("format_number(12332.123456, -1)",
+          "Illegal arguments for 'FORMAT_NUMBER' function:"
+              + " negative decimal value not allowed",
+          true);
+
+      // test with null values
+      f.checkNull("format_number(cast(null as integer), 1)");
+      f.checkNull("format_number(0, cast(null as integer))");
+      f.checkNull("format_number(0, cast(null as varchar))");
+      f.checkNull("format_number(cast(null as integer), cast(null as integer))");
+      f.checkNull("format_number(cast(null as integer), cast(null as varchar))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.HIVE, SqlLibrary.SPARK), consumer);
+  }
+
   @Test void testTrimFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.TRIM, VmName.EXPAND);
