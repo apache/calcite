@@ -22,8 +22,6 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
 
-import org.apache.commons.collections4.CollectionUtils;
-
 import com.alibaba.innodb.java.reader.comparator.ComparisonOperator;
 import com.google.common.collect.ImmutableList;
 
@@ -332,10 +330,10 @@ public class IndexCondition {
       checkState(pointQueryKey.size() == indexColumnNames.size());
       append(builder, indexColumnNames, pointQueryKey, "=");
     } else {
-      if (CollectionUtils.isNotEmpty(rangeQueryLowerKey)) {
+      if (!rangeQueryLowerKey.isEmpty()) {
         append(builder, indexColumnNames, rangeQueryLowerKey, rangeQueryLowerOp.value());
       }
-      if (CollectionUtils.isNotEmpty(rangeQueryUpperKey)) {
+      if (!rangeQueryUpperKey.isEmpty()) {
         append(builder, indexColumnNames, rangeQueryUpperKey, rangeQueryUpperOp.value());
       }
     }

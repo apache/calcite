@@ -40,8 +40,6 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import org.apache.commons.collections4.CollectionUtils;
-
 import com.alibaba.innodb.java.reader.comparator.ComparisonOperator;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -183,7 +181,7 @@ public class InnodbToEnumerableConverter extends ConverterImpl
    * {@code {ConstantExpression("x"), ConstantExpression("y")}}.
    */
   private static <T> List<Expression> constantList(List<T> values) {
-    if (CollectionUtils.isEmpty(values)) {
+    if (values == null || values.isEmpty()) {
       return Collections.emptyList();
     }
     return Util.transform(values, Expressions::constant);
