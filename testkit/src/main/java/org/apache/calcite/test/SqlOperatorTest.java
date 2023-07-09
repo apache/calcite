@@ -3961,6 +3961,97 @@ public class SqlOperatorTest {
     f.checkNull("ASCII(cast(null as varchar(1)))");
   }
 
+  @Test void testParseUrl() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.PARSE_URL);
+    f0.checkFails("^parse_url('http://calcite.apache.org/path1', 'HOST')^",
+        "No match found for function signature PARSE_URL\\(<CHARACTER>, <CHARACTER>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      // test with each valid partToExtract
+      f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+              + " 'HOST')",
+          "calcite.apache.org",
+          "VARCHAR NOT NULL");
+      f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+              + " 'PATH')",
+          "/path1/p.php",
+          "VARCHAR NOT NULL");
+      f.checkString("parse_url('http://calcite.apache.org/path1/%20p.php?k1=v1&k2=v2#Ref1',"
+              + " 'PATH')",
+          "/path1/%20p.php",
+          "VARCHAR NOT NULL");
+      f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+              + " 'QUERY')",
+          "k1=v1&k2=v2",
+          "VARCHAR NOT NULL");
+      f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+              + " 'REF')",
+          "Ref1",
+          "VARCHAR NOT NULL");
+      f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+              + " 'QUERY', 'k2')",
+          "v2",
+          "VARCHAR NOT NULL");
+      f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+              + " 'QUERY', 'k1')",
+          "v1",
+          "VARCHAR NOT NULL");
+      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " 'QUERY', 'k3')");
+      f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+              + " 'FILE')",
+          "/path1/p.php?k1=v1&k2=v2",
+          "VARCHAR NOT NULL");
+      f.checkString("parse_url('http://calcite.apache.org/path1/p.php',"
+              + " 'FILE')",
+          "/path1/p.php",
+          "VARCHAR NOT NULL");
+      f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+              + " 'PROTOCOL')",
+          "http",
+          "VARCHAR NOT NULL");
+      f.checkString("parse_url('https://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+              + " 'PROTOCOL')",
+          "https",
+          "VARCHAR NOT NULL");
+      f.checkString("parse_url('http://bob@calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+              + " 'USERINFO')",
+          "bob",
+          "VARCHAR NOT NULL");
+      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " 'USERINFO')");
+      f.checkString("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+              + " 'AUTHORITY')",
+          "calcite.apache.org",
+          "VARCHAR NOT NULL");
+
+      // test with invalid partToExtract
+      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " 'INVALID_PART_TO_EXTRACT')");
+      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " 'HOST', 'k1')");
+
+      // test with invalid urlString
+      f.checkNull("parse_url('http:calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " 'HOST')");
+      f.checkNull("parse_url('calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " 'HOST')");
+      f.checkNull("parse_url('/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " 'HOST')");
+
+      // test with operands with null values
+      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " cast(null as varchar))");
+      f.checkNull("parse_url('http://calcite.apache.org/path1/p.php?k1=v1&k2=v2#Ref1',"
+          + " cast(null as varchar), cast(null as varchar))");
+      f.checkNull("parse_url(cast(null as varchar), cast(null as varchar))");
+      f.checkNull("parse_url(cast(null as varchar), cast(null as varchar),"
+          + " cast(null as varchar))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.HIVE, SqlLibrary.SPARK), consumer);
+  }
+
   @Test void testToBase64() {
     final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.MYSQL);
     f.setFor(SqlLibraryOperators.TO_BASE64);
