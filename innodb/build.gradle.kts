@@ -30,7 +30,6 @@ dependencies {
     }
     api("com.google.guava:guava")
 
-    implementation("org.apache.commons:commons-collections4")
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.apache.commons:commons-lang3")
     implementation("org.slf4j:slf4j-api")

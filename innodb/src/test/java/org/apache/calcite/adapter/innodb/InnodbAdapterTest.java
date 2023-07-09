@@ -26,8 +26,6 @@ import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Sources;
 
-import org.apache.commons.collections4.CollectionUtils;
-
 import com.alibaba.innodb.java.reader.util.Utils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -1230,7 +1228,7 @@ public class InnodbAdapterTest {
   }
 
   private static String join(List<String> empList) {
-    if (CollectionUtils.isEmpty(empList)) {
+    if (empList.isEmpty()) {
       return "";
     }
     return String.join("\n", empList) + "\n";
