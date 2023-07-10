@@ -729,6 +729,15 @@ public class SqlFunctions {
     return SOUNDEX.soundex(s);
   }
 
+  /** SQL SOUNDEX(string) function but return original s when not mapped. */
+  public static String soundexSpark(String s) {
+    try {
+      return SOUNDEX.soundex(s);
+    } catch (IllegalArgumentException ignore) {
+      return s;
+    }
+  }
+
   /** SQL DIFFERENCE(string, string) function. */
   public static int difference(String s0, String s1) {
     String result0 = soundex(s0);

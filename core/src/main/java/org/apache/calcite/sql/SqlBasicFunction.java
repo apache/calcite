@@ -183,6 +183,16 @@ public class SqlBasicFunction extends SqlFunction {
   }
 
   /** Returns a copy of this function with a given strategy for inferring
+   * returned type. */
+  public SqlBasicFunction withReturnTypeInference(
+      SqlReturnTypeInference returnTypeInference) {
+    return new SqlBasicFunction(getName(), kind, syntax, deterministic,
+        returnTypeInference, getOperandTypeInference(), operandHandler,
+        getOperandTypeChecker(), callValidator,
+        getFunctionType(), monotonicityInference);
+  }
+
+  /** Returns a copy of this function with a given strategy for inferring
    * the types of its operands. */
   public SqlBasicFunction withOperandTypeInference(
       SqlOperandTypeInference operandTypeInference) {

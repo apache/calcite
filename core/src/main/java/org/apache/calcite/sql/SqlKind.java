@@ -776,6 +776,9 @@ public enum SqlKind {
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
 
+  /** {@code SOUNDEX} function (Spark semantics). */
+  SOUNDEX_SPARK,
+
   /** {@code SUBSTR} function (BigQuery semantics). */
   SUBSTR_BIG_QUERY,
 

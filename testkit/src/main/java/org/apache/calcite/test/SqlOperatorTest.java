@@ -4376,6 +4376,30 @@ public class SqlOperatorTest {
     f0.forEachLibrary(libraries, consumer);
   }
 
+  @Test void testSoundexSparkFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SOUNDEX_SPARK);
+    f0.checkFails("^soundex('tech on the net')^",
+        "No match found for function signature SOUNDEX\\(<CHARACTER>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("SOUNDEX('TECH ON THE NET')", "T253", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX('Miller')", "M460", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX('miler')", "M460", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX('myller')", "M460", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX('muller')", "M460", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX('m')", "M000", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX('mu')", "M000", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX('mile')", "M400", "VARCHAR NOT NULL");
+      // note: it's different with soundex for bigquery/mysql/oracle/pg
+      f.checkString("SOUNDEX(_UTF8'\u5B57\u5B57')",
+          "字字", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX(_UTF8'\u5B57\u5B57\u5B57\u5B57')",
+          "字字字字", "VARCHAR NOT NULL");
+      f.checkNull("SOUNDEX(cast(null as varchar(1)))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.SPARK), consumer);
+  }
+
   @Test void testDifferenceFunc() {
     final SqlOperatorFixture f = fixture()
         .setFor(SqlLibraryOperators.DIFFERENCE)

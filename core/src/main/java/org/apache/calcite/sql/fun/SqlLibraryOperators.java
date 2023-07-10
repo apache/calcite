@@ -830,6 +830,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
 
+  /** The variant of the SOUNDEX operator. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction SOUNDEX_SPARK =
+      ((SqlBasicFunction) SOUNDEX).withKind(SqlKind.SOUNDEX_SPARK)
+          .withReturnTypeInference(ReturnTypes.VARCHAR_NULLABLE);
+
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction DIFFERENCE =
       SqlBasicFunction.create("DIFFERENCE",
