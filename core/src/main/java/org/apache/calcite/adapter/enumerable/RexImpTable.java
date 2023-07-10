@@ -177,6 +177,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE32;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ILIKE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.IS_INF;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.IS_NAN;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_INSERT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_KEYS;
@@ -590,6 +592,8 @@ public class RexImpTable {
       defineMethod(CSC, "csc", NullPolicy.STRICT);
       defineMethod(CSCH, "csch", NullPolicy.STRICT);
       defineMethod(DEGREES, "degrees", NullPolicy.STRICT);
+      defineMethod(IS_INF, "isInf", NullPolicy.STRICT);
+      defineMethod(IS_NAN, "isNaN", NullPolicy.STRICT);
       defineMethod(POW, "power", NullPolicy.STRICT);
       defineMethod(RADIANS, "radians", NullPolicy.STRICT);
       defineMethod(ROUND, "sround", NullPolicy.STRICT);

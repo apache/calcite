@@ -2096,6 +2096,36 @@ public class SqlFunctions {
     return Math.toDegrees(b0);
   }
 
+  /** SQL <code>IS_INF</code> operator applied to BigDecimal values. */
+  public static boolean isInf(BigDecimal b0) {
+    return Double.isInfinite(b0.doubleValue());
+  }
+
+  /** SQL <code>IS_INF</code> operator applied to double values. */
+  public static boolean isInf(double b0) {
+    return Double.isInfinite(b0);
+  }
+
+  /** SQL <code>IS_INF</code> operator applied to float values. */
+  public static boolean isInf(float b0) {
+    return Float.isInfinite(b0);
+  }
+
+  /** SQL <code>IS_NAN</code> operator applied to BigDecimal values. */
+  public static boolean isNaN(BigDecimal b0) {
+    return Double.isNaN(b0.doubleValue());
+  }
+
+  /** SQL <code>IS_NAN</code> operator applied to double values. */
+  public static boolean isNaN(double b0) {
+    return Double.isNaN(b0);
+  }
+
+  /** SQL <code>IS_NAN</code> operator applied to float values. */
+  public static boolean isNaN(float b0) {
+    return Float.isNaN(b0);
+  }
+
   // RADIANS
   /** SQL <code>RADIANS</code> operator applied to BigDecimal values. */
   public static double radians(BigDecimal b0) {

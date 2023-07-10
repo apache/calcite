@@ -6618,6 +6618,64 @@ public class SqlOperatorTest {
     f.checkNull("pow(cast(null as integer), 2)");
   }
 
+  @Test void testInfinity() {
+    final SqlOperatorFixture f = fixture();
+    f.checkScalar("cast('Infinity' as double)", "Infinity",
+        "DOUBLE NOT NULL");
+    f.checkScalar("cast('-Infinity' as double)", "-Infinity",
+        "DOUBLE NOT NULL");
+    f.checkScalar("cast('Infinity' as real)", "Infinity",
+        "REAL NOT NULL");
+    f.checkScalar("cast('-Infinity' as real)", "-Infinity",
+        "REAL NOT NULL");
+  }
+
+  @Test void testNaN() {
+    final SqlOperatorFixture f = fixture();
+    f.checkScalar("cast('NaN' as double)", "NaN",
+        "DOUBLE NOT NULL");
+    f.checkScalar("cast('NaN' as real)", "NaN",
+        "REAL NOT NULL");
+  }
+
+  @Test void testIsInfFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.IS_INF);
+    f0.checkFails("^is_inf(3)^",
+        "No match found for function signature IS_INF\\(<NUMERIC>\\)",
+        false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkBoolean("is_inf(3)", false);
+    f.checkBoolean("is_inf(1.2345)", false);
+    f.checkBoolean("is_inf(cast('NaN' as double))", false);
+    f.checkBoolean("is_inf(cast('NaN' as real))", false);
+    f.checkBoolean("is_inf(cast('Infinity' as double))", true);
+    f.checkBoolean("is_inf(cast('Infinity' as float))", true);
+    f.checkBoolean("is_inf(cast('Infinity' as real))", true);
+    f.checkBoolean("is_inf(cast('-Infinity' as double))", true);
+    f.checkBoolean("is_inf(cast('-Infinity' as float))", true);
+    f.checkBoolean("is_inf(cast('-Infinity' as real))", true);
+    f.checkNull("is_inf(cast(null as double))");
+  }
+
+  @Test void testIsNaNFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.IS_NAN);
+    f0.checkFails("^is_nan(3)^",
+        "No match found for function signature IS_NAN\\(<NUMERIC>\\)",
+        false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkBoolean("is_nan(3)", false);
+    f.checkBoolean("is_nan(1.2345)", false);
+    f.checkBoolean("is_nan(cast('Infinity' as double))", false);
+    f.checkBoolean("is_nan(cast('Infinity' as float))", false);
+    f.checkBoolean("is_nan(cast('Infinity' as real))", false);
+    f.checkBoolean("is_nan(cast('-Infinity' as double))", false);
+    f.checkBoolean("is_nan(cast('-Infinity' as float))", false);
+    f.checkBoolean("is_nan(cast('-Infinity' as real))", false);
+    f.checkBoolean("is_nan(cast('NaN' as double))", true);
+    f.checkBoolean("is_nan(cast('NaN' as real))", true);
+    f.checkNull("is_nan(cast(null as double))");
+  }
+
   @Test void testRoundFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.ROUND, VmName.EXPAND);
