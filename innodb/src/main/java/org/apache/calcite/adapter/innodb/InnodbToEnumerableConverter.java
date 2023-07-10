@@ -181,7 +181,7 @@ public class InnodbToEnumerableConverter extends ConverterImpl
    * {@code {ConstantExpression("x"), ConstantExpression("y")}}.
    */
   private static <T> List<Expression> constantList(List<T> values) {
-    if (values == null || values.isEmpty()) {
+    if (values.isEmpty()) {
       return Collections.emptyList();
     }
     return Util.transform(values, Expressions::constant);
