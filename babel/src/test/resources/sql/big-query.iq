@@ -856,6 +856,79 @@ SELECT SPLIT('h,e,l,l,o')[SAFE_ORDINAL(7)] as safe_ordinal_idx;
 SELECT OFFSET(1);
 java.sql.SQLException: Error while executing SQL "SELECT OFFSET(1)": parse failed: Incorrect syntax near the keyword 'OFFSET' at line 1, column 8.
 !error
+
+#####################################################################
+# IS_INF
+# 
+# IS_INF(x)
+#
+# Returns whether x is infinite.
+SELECT IS_INF(3) AS non_inf_result;
++----------------+
+| non_inf_result |
++----------------+
+| false          |
++----------------+
+(1 row)
+
+!ok
+
+SELECT IS_INF(CAST('Infinity' AS DOUBLE)) AS inf_result;
++------------+
+| inf_result |
++------------+
+| true       |
++------------+
+(1 row)
+
+!ok
+
+SELECT IS_INF(CAST('NaN' AS DOUBLE)) AS nan_result;
++------------+
+| nan_result |
++------------+
+| false      |
++------------+
+(1 row)
+
+!ok
+
+#####################################################################
+# IS_NAN
+# 
+# IS_NAN(x)
+#
+# Returns whether x is NaN.
+SELECT IS_NAN(3) AS non_nan_result;
++----------------+
+| non_nan_result |
++----------------+
+| false          |
++----------------+
+(1 row)
+
+!ok
+
+SELECT IS_NAN(CAST('Infinity' AS DOUBLE)) AS inf_result;
++------------+
+| inf_result |
++------------+
+| false      |
++------------+
+(1 row)
+
+!ok
+
+SELECT IS_NAN(CAST('NaN' AS DOUBLE)) AS nan_result;
++------------+
+| nan_result |
++------------+
+| true       |
++------------+
+(1 row)
+
+!ok
+
 #####################################################################
 # LN
 #

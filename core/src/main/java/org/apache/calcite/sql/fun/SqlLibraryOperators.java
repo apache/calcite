@@ -1794,6 +1794,22 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
+  /** The "IS_INF(value)" function. Returns whether value is infinite. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction IS_INF =
+      SqlBasicFunction.create("IS_INF",
+          ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The "IS_NAN(value)" function. Returns whether value is NaN. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction IS_NAN =
+      SqlBasicFunction.create("IS_NAN",
+          ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   /** The "LOG(value [, value2])" function.
    *
    * @see SqlStdOperatorTable#LN
