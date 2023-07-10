@@ -21,11 +21,16 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.JoinConditionType;
+import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -36,6 +41,8 @@ import com.google.common.collect.ImmutableSet;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * An extension of {@link RelToSqlConverter} to convert a relation algebra tree,
@@ -128,4 +135,31 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
     }
     return builder.result();
   }
+
+  @Override public Result visit(Correlate e) {
+    Result leftResult =
+        visitInput(e, 0)
+            .resetAlias(e.getCorrelVariable(), e.getRowType());
+    parseCorrelTable(e, leftResult);
+    final Result rightResult = visitInput(e, 1);
+    final SqlNode rightLateral =
+        SqlStdOperatorTable.LATERAL.createCall(POS, rightResult.getNode());
+    final SqlNode rightLateralAs =
+        SqlStdOperatorTable.AS.createCall(POS, rightLateral,
+            new SqlIdentifier(
+                requireNonNull(rightResult.getNeededAlias(),
+                    () -> "rightResult.neededAlias is null, node is "
+                        + rightResult.getNode()), POS));
+
+    final SqlNode join =
+        new SqlJoin(POS,
+            leftResult.asFrom(),
+            SqlLiteral.createBoolean(false, POS),
+            JoinType.COMMA.symbol(POS),
+            rightLateralAs,
+            JoinConditionType.NONE.symbol(POS),
+            null);
+    return result(join, leftResult, rightResult);
+  }
+
 }

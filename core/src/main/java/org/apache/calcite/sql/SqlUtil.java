@@ -79,6 +79,8 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public abstract class SqlUtil {
   //~ Methods ----------------------------------------------------------------
 
+  public static final String GENERATED_EXPR_ALIAS_PREFIX = "EXPR$";
+
   /** Returns the AND of two expressions.
    *
    * <p>If {@code node1} is null, returns {@code node2}.
