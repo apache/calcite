@@ -303,6 +303,14 @@ public class SqlIntervalQualifier extends SqlNode {
     }
   }
 
+  public int getStartPrecision(int defaultPrecision) {
+    if (startPrecision == RelDataType.PRECISION_NOT_SPECIFIED) {
+      return defaultPrecision;
+    } else {
+      return startPrecision;
+    }
+  }
+
   public int getStartPrecisionPreservingDefault() {
     return startPrecision;
   }
@@ -463,7 +471,8 @@ public class SqlIntervalQualifier extends SqlNode {
     assert value.compareTo(ZERO) >= 0;
 
     // Leading fields are only restricted by startPrecision.
-    final int startPrecision = getStartPrecision(typeSystem);
+    final int startPrecision =
+        getStartPrecision(typeSystem.getMaxPrecision(typeName()));
     return startPrecision < POWERS10.length
         ? value.compareTo(POWERS10[startPrecision]) < 0
         : value.compareTo(INT_MAX_VALUE_PLUS_ONE) < 0;

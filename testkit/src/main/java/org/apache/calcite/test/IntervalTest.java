@@ -79,6 +79,10 @@ public class IntervalTest {
         .columnType("INTERVAL YEAR NOT NULL");
     f.expr("INTERVAL '99' YEAR")
         .columnType("INTERVAL YEAR NOT NULL");
+    f.expr("INTERVAL '100' YEAR")
+        .columnType("INTERVAL YEAR NOT NULL");
+    f.expr("INTERVAL '2147483647' YEAR")
+        .columnType("INTERVAL YEAR NOT NULL");
 
     // explicit precision equal to default
     f.expr("INTERVAL '1' YEAR(2)")
@@ -134,6 +138,10 @@ public class IntervalTest {
     f.expr("INTERVAL '99-11' YEAR TO MONTH")
         .columnType("INTERVAL YEAR TO MONTH NOT NULL");
     f.expr("INTERVAL '99-0' YEAR TO MONTH")
+        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
+    f.expr("INTERVAL '100-0' YEAR TO MONTH")
+        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
+    f.expr("INTERVAL '2147483647-0' YEAR TO MONTH")
         .columnType("INTERVAL YEAR TO MONTH NOT NULL");
 
     // explicit precision equal to default
@@ -191,6 +199,10 @@ public class IntervalTest {
         .columnType("INTERVAL MONTH NOT NULL");
     f.expr("INTERVAL '99' MONTH")
         .columnType("INTERVAL MONTH NOT NULL");
+    f.expr("INTERVAL '100' MONTH")
+        .columnType("INTERVAL MONTH NOT NULL");
+    f.expr("INTERVAL '2147483647' MONTH")
+        .columnType("INTERVAL MONTH NOT NULL");
 
     // explicit precision equal to default
     f.expr("INTERVAL '1' MONTH(2)")
@@ -245,6 +257,10 @@ public class IntervalTest {
         .columnType("INTERVAL DAY NOT NULL");
     f.expr("INTERVAL '99' DAY")
         .columnType("INTERVAL DAY NOT NULL");
+    f.expr("INTERVAL '100' DAY")
+        .columnType("INTERVAL DAY NOT NULL");
+    f.expr("INTERVAL '2147483647' DAY")
+        .columnType("INTERVAL DAY NOT NULL");
 
     // explicit precision equal to default
     f.expr("INTERVAL '1' DAY(2)")
@@ -293,6 +309,10 @@ public class IntervalTest {
     f.expr("INTERVAL '99 23' DAY TO HOUR")
         .columnType("INTERVAL DAY TO HOUR NOT NULL");
     f.expr("INTERVAL '99 0' DAY TO HOUR")
+        .columnType("INTERVAL DAY TO HOUR NOT NULL");
+    f.expr("INTERVAL '100 23' DAY TO HOUR")
+        .columnType("INTERVAL DAY TO HOUR NOT NULL");
+    f.expr("INTERVAL '2147483647 0' DAY TO HOUR")
         .columnType("INTERVAL DAY TO HOUR NOT NULL");
 
     // explicit precision equal to default
@@ -351,6 +371,10 @@ public class IntervalTest {
     f.expr("INTERVAL '99 23:59' DAY TO MINUTE")
         .columnType("INTERVAL DAY TO MINUTE NOT NULL");
     f.expr("INTERVAL '99 0:0' DAY TO MINUTE")
+        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
+    f.expr("INTERVAL '100 23:59' DAY TO MINUTE")
+        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
+    f.expr("INTERVAL '2147483647 0:0' DAY TO MINUTE")
         .columnType("INTERVAL DAY TO MINUTE NOT NULL");
 
     // explicit precision equal to default
@@ -414,6 +438,14 @@ public class IntervalTest {
     f.expr("INTERVAL '99 23:59:59.999999' DAY TO SECOND")
         .columnType("INTERVAL DAY TO SECOND NOT NULL");
     f.expr("INTERVAL '99 0:0:0.0' DAY TO SECOND")
+        .columnType("INTERVAL DAY TO SECOND NOT NULL");
+    f.expr("INTERVAL '100 23:59:59' DAY TO SECOND")
+        .columnType("INTERVAL DAY TO SECOND NOT NULL");
+    f.expr("INTERVAL '100 0:0:0' DAY TO SECOND")
+        .columnType("INTERVAL DAY TO SECOND NOT NULL");
+    f.expr("INTERVAL '2147483647 23:59:59.999999' DAY TO SECOND")
+        .columnType("INTERVAL DAY TO SECOND NOT NULL");
+    f.expr("INTERVAL '2147483647 0:0:0.0' DAY TO SECOND")
         .columnType("INTERVAL DAY TO SECOND NOT NULL");
 
     // explicit precision equal to default
@@ -481,6 +513,10 @@ public class IntervalTest {
         .columnType("INTERVAL HOUR NOT NULL");
     f.expr("INTERVAL '99' HOUR")
         .columnType("INTERVAL HOUR NOT NULL");
+    f.expr("INTERVAL '100' HOUR")
+        .columnType("INTERVAL HOUR NOT NULL");
+    f.expr("INTERVAL '2147483647' HOUR")
+        .columnType("INTERVAL HOUR NOT NULL");
 
     // explicit precision equal to default
     f.expr("INTERVAL '1' HOUR(2)")
@@ -536,6 +572,10 @@ public class IntervalTest {
     f.expr("INTERVAL '23:59' HOUR TO MINUTE")
         .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
     f.expr("INTERVAL '99:0' HOUR TO MINUTE")
+        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
+    f.expr("INTERVAL '100:0' HOUR TO MINUTE")
+        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
+    f.expr("INTERVAL '2147483647:59' HOUR TO MINUTE")
         .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
 
     // explicit precision equal to default
@@ -598,6 +638,10 @@ public class IntervalTest {
     f.expr("INTERVAL '23:59:59.999999' HOUR TO SECOND")
         .columnType("INTERVAL HOUR TO SECOND NOT NULL");
     f.expr("INTERVAL '99:0:0.0' HOUR TO SECOND")
+        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
+    f.expr("INTERVAL '100:0:0.0' HOUR TO SECOND")
+        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
+    f.expr("INTERVAL '2147483647:59:59.999999' HOUR TO SECOND")
         .columnType("INTERVAL HOUR TO SECOND NOT NULL");
 
     // explicit precision equal to default
@@ -665,6 +709,10 @@ public class IntervalTest {
         .columnType("INTERVAL MINUTE NOT NULL");
     f.expr("INTERVAL '99' MINUTE")
         .columnType("INTERVAL MINUTE NOT NULL");
+    f.expr("INTERVAL '100' MINUTE")
+        .columnType("INTERVAL MINUTE NOT NULL");
+    f.expr("INTERVAL '2147483647' MINUTE")
+        .columnType("INTERVAL MINUTE NOT NULL");
 
     // explicit precision equal to default
     f.expr("INTERVAL '1' MINUTE(2)")
@@ -724,6 +772,10 @@ public class IntervalTest {
     f.expr("INTERVAL '59:59.999999' MINUTE TO SECOND")
         .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
     f.expr("INTERVAL '99:0.0' MINUTE TO SECOND")
+        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
+    f.expr("INTERVAL '100:59.999999' MINUTE TO SECOND")
+        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
+    f.expr("INTERVAL '2147483647:0.0' MINUTE TO SECOND")
         .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
 
     // explicit precision equal to default
@@ -790,6 +842,10 @@ public class IntervalTest {
     f.expr("INTERVAL '1' SECOND")
         .columnType("INTERVAL SECOND NOT NULL");
     f.expr("INTERVAL '99' SECOND")
+        .columnType("INTERVAL SECOND NOT NULL");
+    f.expr("INTERVAL '100' SECOND")
+        .columnType("INTERVAL SECOND NOT NULL");
+    f.expr("INTERVAL '2147483647' SECOND")
         .columnType("INTERVAL SECOND NOT NULL");
 
     // explicit precision equal to default
@@ -869,9 +925,7 @@ public class IntervalTest {
         .fails("Illegal interval literal format '--1' for INTERVAL YEAR.*");
 
     // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    f.wholeExpr("INTERVAL '100' YEAR")
-        .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
+    //  (explicit default, alt, neg alt, max, neg max)
     f.wholeExpr("INTERVAL '100' YEAR(2)")
         .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000' YEAR(3)")
@@ -933,10 +987,8 @@ public class IntervalTest {
             + "INTERVAL YEAR TO MONTH");
 
     // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
+    //  (explicit default, alt, neg alt, max, neg max)
     //  plus >max value for mid/end fields
-    f.wholeExpr("INTERVAL '100-0' YEAR TO MONTH")
-        .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
     f.wholeExpr("INTERVAL '100-0' YEAR(2) TO MONTH")
         .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000-0' YEAR(3) TO MONTH")
@@ -975,6 +1027,10 @@ public class IntervalTest {
     f.expr("INTERVAL '1' WEEK")
         .columnType("INTERVAL WEEK NOT NULL");
     f.expr("INTERVAL '99' WEEK")
+        .columnType("INTERVAL WEEK NOT NULL");
+    f.expr("INTERVAL '100' WEEK")
+        .columnType("INTERVAL WEEK NOT NULL");
+    f.expr("INTERVAL '2147483647' WEEK")
         .columnType("INTERVAL WEEK NOT NULL");
 
     // explicit precision equal to default
@@ -1029,6 +1085,10 @@ public class IntervalTest {
     f.expr("INTERVAL '1' QUARTER")
         .columnType("INTERVAL QUARTER NOT NULL");
     f.expr("INTERVAL '99' QUARTER")
+        .columnType("INTERVAL QUARTER NOT NULL");
+    f.expr("INTERVAL '100' QUARTER")
+        .columnType("INTERVAL QUARTER NOT NULL");
+    f.expr("INTERVAL '2147483647' QUARTER")
         .columnType("INTERVAL QUARTER NOT NULL");
 
     // explicit precision equal to default
@@ -1122,9 +1182,7 @@ public class IntervalTest {
         .fails("Illegal interval literal format '--1' for INTERVAL MONTH.*");
 
     // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    f.wholeExpr("INTERVAL '100' MONTH")
-        .fails("Interval field value 100 exceeds precision of MONTH\\(2\\) field.*");
+    //  (explicit default, alt, neg alt, max, neg max)
     f.wholeExpr("INTERVAL '100' MONTH(2)")
         .fails("Interval field value 100 exceeds precision of MONTH\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000' MONTH(3)")
@@ -1178,9 +1236,7 @@ public class IntervalTest {
         .fails("Illegal interval literal format '--1' for INTERVAL DAY.*");
 
     // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    f.wholeExpr("INTERVAL '100' DAY")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
+    //  (explicit default, alt, neg alt, max, neg max)
     f.wholeExpr("INTERVAL '100' DAY(2)")
         .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000' DAY(3)")
@@ -1242,10 +1298,8 @@ public class IntervalTest {
         .fails("Illegal interval literal format '1 -1' for INTERVAL DAY TO HOUR");
 
     // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
+    //  (explicit default, alt, neg alt, max, neg max)
     //  plus >max value for mid/end fields
-    f.wholeExpr("INTERVAL '100 0' DAY TO HOUR")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
     f.wholeExpr("INTERVAL '100 0' DAY(2) TO HOUR")
         .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000 0' DAY(3) TO HOUR")
@@ -1320,10 +1374,8 @@ public class IntervalTest {
         .fails("Illegal interval literal format '1 1:-1' for INTERVAL DAY TO MINUTE");
 
     // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
+    //  (explicit default, alt, neg alt, max, neg max)
     //  plus >max value for mid/end fields
-    f.wholeExpr("INTERVAL '100 0:0' DAY TO MINUTE")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
     f.wholeExpr("INTERVAL '100 0:0' DAY(2) TO MINUTE")
         .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000 0:0' DAY(3) TO MINUTE")
@@ -1421,11 +1473,8 @@ public class IntervalTest {
             + "INTERVAL DAY TO SECOND");
 
     // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
+    //  (explicit default, alt, neg alt, max, neg max)
     //  plus >max value for mid/end fields
-    f.wholeExpr("INTERVAL '100 0' DAY TO SECOND")
-        .fails("Illegal interval literal format '100 0' for "
-            + "INTERVAL DAY TO SECOND.*");
     f.wholeExpr("INTERVAL '100 0' DAY(2) TO SECOND")
         .fails("Illegal interval literal format '100 0' for "
             + "INTERVAL DAY\\(2\\) TO SECOND.*");
@@ -1512,10 +1561,7 @@ public class IntervalTest {
         .fails("Illegal interval literal format '--1' for INTERVAL HOUR.*");
 
     // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    f.wholeExpr("INTERVAL '100' HOUR")
-        .fails("Interval field value 100 exceeds precision of "
-            + "HOUR\\(2\\) field.*");
+    //  (explicit default, alt, neg alt, max, neg max)
     f.wholeExpr("INTERVAL '100' HOUR(2)")
         .fails("Interval field value 100 exceeds precision of "
             + "HOUR\\(2\\) field.*");
@@ -1580,10 +1626,8 @@ public class IntervalTest {
         .fails("Illegal interval literal format '1:-1' for INTERVAL HOUR TO MINUTE");
 
     // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
+    //  (explicit default, alt, neg alt, max, neg max)
     //  plus >max value for mid/end fields
-    f.wholeExpr("INTERVAL '100:0' HOUR TO MINUTE")
-        .fails("Interval field value 100 exceeds precision of HOUR\\(2\\) field.*");
     f.wholeExpr("INTERVAL '100:0' HOUR(2) TO MINUTE")
         .fails("Interval field value 100 exceeds precision of HOUR\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000:0' HOUR(3) TO MINUTE")
@@ -1659,11 +1703,8 @@ public class IntervalTest {
         .fails("Illegal interval literal format '1:1:1\\.-1' for INTERVAL HOUR TO SECOND");
 
     // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
+    //  (explicit default, alt, neg alt, max, neg max)
     //  plus >max value for mid/end fields
-    f.wholeExpr("INTERVAL '100:0:0' HOUR TO SECOND")
-        .fails("Interval field value 100 exceeds precision of "
-            + "HOUR\\(2\\) field.*");
     f.wholeExpr("INTERVAL '100:0:0' HOUR(2) TO SECOND")
         .fails("Interval field value 100 exceeds precision of "
             + "HOUR\\(2\\) field.*");
@@ -1740,9 +1781,7 @@ public class IntervalTest {
         .fails("Illegal interval literal format '--1' for INTERVAL MINUTE.*");
 
     // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    f.wholeExpr("INTERVAL '100' MINUTE")
-        .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
+    //  (explicit default, alt, neg alt, max, neg max)
     f.wholeExpr("INTERVAL '100' MINUTE(2)")
         .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000' MINUTE(3)")
@@ -1812,10 +1851,8 @@ public class IntervalTest {
         .fails("Illegal interval literal format '1:1.-1' for INTERVAL MINUTE TO SECOND");
 
     // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
+    //  (explicit default, alt, neg alt, max, neg max)
     //  plus >max value for mid/end fields
-    f.wholeExpr("INTERVAL '100:0' MINUTE TO SECOND")
-        .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
     f.wholeExpr("INTERVAL '100:0' MINUTE(2) TO SECOND")
         .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000:0' MINUTE(3) TO SECOND")
@@ -1890,9 +1927,7 @@ public class IntervalTest {
         .fails("Illegal interval literal format '1.-1' for INTERVAL SECOND.*");
 
     // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    f.wholeExpr("INTERVAL '100' SECOND")
-        .fails("Interval field value 100 exceeds precision of SECOND\\(2\\) field.*");
+    //  (explicit default, alt, neg alt, max, neg max)
     f.wholeExpr("INTERVAL '100' SECOND(2)")
         .fails("Interval field value 100 exceeds precision of SECOND\\(2\\) field.*");
     f.wholeExpr("INTERVAL '1000' SECOND(3)")
