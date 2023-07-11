@@ -2658,6 +2658,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | s | ARRAY_CONTAINS(array, element)                 | Returns true if the *array* contains the *element*
 | s | ARRAY_DISTINCT(array)                          | Removes duplicate values from the *array* that keeps ordering of elements
 | s | ARRAY_EXCEPT(array1, array2)                   | Returns an array of the elements in *array1* but not in *array2*, without duplicates
+| s | ARRAY_INSERT(array, pos, element)              | Places *element* into index *pos* of *array*. Array index start at 1, or start from the end if index is negative. Index above array size appends the array, or prepends the array if index is negative, with `NULL` elements.
 | s | ARRAY_INTERSECT(array1, array2)                | Returns an array of the elements in the intersection of *array1* and *array2*, without duplicates
 | s | ARRAY_JOIN(array, delimiter [, nullText ])     | Synonym for `ARRAY_TO_STRING`
 | b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`

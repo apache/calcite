@@ -1030,6 +1030,29 @@ public abstract class SqlLibraryOperators {
               OperandTypes.SAME_SAME,
               OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
 
+  @SuppressWarnings("argument.type.incompatible")
+  private static RelDataType arrayInsertReturnType(SqlOperatorBinding opBinding) {
+    final RelDataType arrayType = opBinding.collectOperandTypes().get(0);
+    final RelDataType componentType = arrayType.getComponentType();
+    final RelDataType elementType = opBinding.collectOperandTypes().get(2);
+    // we don't need to do leastRestrictive on componentType and elementType,
+    // because in operand checker we limit the elementType must equals array component type.
+    // So we use componentType directly.
+    RelDataType type = componentType;
+    if (elementType.isNullable()) {
+      type = opBinding.getTypeFactory().createTypeWithNullability(type, true);
+    }
+    requireNonNull(type, "inferred array element type");
+    return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, arrayType.isNullable());
+  }
+
+  /** The "ARRAY_INSERT(array, pos, val)" function (Spark). */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction ARRAY_INSERT =
+      SqlBasicFunction.create(SqlKind.ARRAY_INSERT,
+          SqlLibraryOperators::arrayInsertReturnType,
+          OperandTypes.ARRAY_INSERT);
+
   /** The "ARRAY_INTERSECT(array1, array2)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_INTERSECT =

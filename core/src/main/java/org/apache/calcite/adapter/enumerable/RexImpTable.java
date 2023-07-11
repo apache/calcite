@@ -127,6 +127,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONCAT_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_CONTAINS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_DISTINCT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_EXCEPT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_INSERT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_INTERSECT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_JOIN;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_LENGTH;
@@ -739,6 +740,7 @@ public class RexImpTable {
       defineMethod(ARRAY_DISTINCT, BuiltInMethod.ARRAY_DISTINCT.method, NullPolicy.STRICT);
       defineMethod(ARRAY_EXCEPT, BuiltInMethod.ARRAY_EXCEPT.method, NullPolicy.ANY);
       defineMethod(ARRAY_JOIN, "arrayToString", NullPolicy.STRICT);
+      defineMethod(ARRAY_INSERT, BuiltInMethod.ARRAY_INSERT.method, NullPolicy.NONE);
       defineMethod(ARRAY_INTERSECT, BuiltInMethod.ARRAY_INTERSECT.method, NullPolicy.ANY);
       defineMethod(ARRAY_LENGTH, BuiltInMethod.COLLECTION_SIZE.method, NullPolicy.STRICT);
       defineMethod(ARRAY_MAX, BuiltInMethod.ARRAY_MAX.method, NullPolicy.STRICT);

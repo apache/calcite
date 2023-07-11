@@ -527,6 +527,9 @@ public abstract class OperandTypes {
   public static final SqlOperandTypeChecker ARRAY_ELEMENT =
       new ArrayElementOperandTypeChecker();
 
+  public static final SqlOperandTypeChecker ARRAY_INSERT =
+      new ArrayInsertOperandTypeChecker();
+
   public static final SqlSingleOperandTypeChecker MAP_FROM_ENTRIES =
       new MapFromEntriesOperandTypeChecker();
 

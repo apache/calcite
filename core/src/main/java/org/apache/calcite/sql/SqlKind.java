@@ -704,6 +704,9 @@ public enum SqlKind {
   /** {@code ARRAY_EXCEPT} function (Spark semantics). */
   ARRAY_EXCEPT,
 
+  /** {@code ARRAY_INSERT} function (Spark semantics). */
+  ARRAY_INSERT,
+
   /** {@code ARRAY_INTERSECT} function (Spark semantics). */
   ARRAY_INTERSECT,
 
