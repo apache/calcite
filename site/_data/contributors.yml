@@ -302,6 +302,12 @@
   githubId: tdunning
   org: MapR
   role: PMC
+- name: TJ Banghart
+  apacheId: tjbanghart
+  githubId: tjbanghart
+  pronouns: he/him
+  org: Google
+  role: Committer
 - name: Vineet Garg
   apacheId: vgarg
   githubId: vineetgarg02
