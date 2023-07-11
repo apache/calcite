@@ -20,7 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCallBinding;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
@@ -34,20 +33,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Utilities to register named_struct function.
+ * Utilities to register NAMED_STRUCT function.
  */
-public class NamedStructFunction {
+public class NamedStructUtils {
 
-  private NamedStructFunction() {
+  private NamedStructUtils() {
     throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
   }
 
   public static SqlBasicFunction create() {
     return SqlBasicFunction.create(
       "NAMED_STRUCT",
-      NamedStructFunction::returnType,
-      OPERAND_TYPE_CHECKER)
-    .withKind(SqlKind.STRUCT_CONSTRUCTOR);
+      NamedStructUtils::returnType,
+      OPERAND_TYPE_CHECKER);
   }
 
   private static RelDataType returnType(SqlOperatorBinding operatorBinding) {

@@ -20,9 +20,11 @@
 !set outputformat mysql
 
 # -----------------------------------------------------------------------------
-# [CALCITE-5701] - Add support for Apache Spark named_struct function
+# [CALCITE-5701] - Add support for Apache Spark NAMED_STRUCT function
 
 select named_struct('k1', 1, 'k2', 2) as my_struct;
+MY_STRUCT STRUCT NOT NULL
+!type
 +-----------+
 | MY_STRUCT |
 +-----------+
@@ -33,6 +35,8 @@ select named_struct('k1', 1, 'k2', 2) as my_struct;
 !ok
 
 select named_struct('k1', 'foo', 'k2', 2)['k1'] as my_value;
+MY_VALUE CHAR(3) NOT NULL
+!type
 +----------+
 | MY_VALUE |
 +----------+
@@ -41,3 +45,5 @@ select named_struct('k1', 'foo', 'k2', 2)['k1'] as my_value;
 (1 row)
 
 !ok
+
+# End spark.iq
