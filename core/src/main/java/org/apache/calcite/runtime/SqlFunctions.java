@@ -155,6 +155,12 @@ public class SqlFunctions {
 
   private static final Base32 BASE_32 = new Base32();
 
+  // Some JVMs can't allocate arrays of length Integer.MAX_VALUE; actual max is somewhat smaller.
+  // Be conservative and lower this value a little.
+  // @see http://hg.openjdk.java.net/jdk8/jdk8/jdk/file/tip/src/share/classes/java/util/ArrayList.java#l229
+  // Note: this variable handling is inspired by Apache Spark
+  private static final int MAX_ARRAY_LENGTH = Integer.MAX_VALUE - 15;
+
   private static final Function1<List<Object>, Enumerable<Object>> LIST_AS_ENUMERABLE =
       a0 -> a0 == null ? Linq4j.emptyEnumerable() : Linq4j.asEnumerable(a0);
 
@@ -4334,6 +4340,94 @@ public class SqlFunctions {
     final Set result = new LinkedHashSet<>(list1);
     result.removeAll(list2);
     return new ArrayList<>(result);
+  }
+
+  /** Support the ARRAY_INSERT function. */
+  public static @Nullable List arrayInsert(List baselist, Object pos, Object val) {
+    if (baselist == null || pos == null) {
+      return null;
+    }
+    int posInt = (int) pos;
+    Object[] baseArray = baselist.toArray();
+    if (posInt == 0 || posInt >= MAX_ARRAY_LENGTH || posInt <= -MAX_ARRAY_LENGTH) {
+      throw new IllegalArgumentException("The index 0 is invalid. "
+          + "An index shall be either < 0 or > 0 (the first element has index 1) "
+          + "and not exceeds the allowed limit.");
+    }
+
+    boolean usePositivePos = posInt > 0;
+
+    if (usePositivePos) {
+      int newArrayLength = Math.max(baseArray.length + 1, posInt);
+
+      if (newArrayLength > MAX_ARRAY_LENGTH) {
+        throw new IndexOutOfBoundsException(
+            String.format(Locale.ROOT, "The new array length %s exceeds the allowed limit.",
+                newArrayLength));
+      }
+
+      Object[] newArray = new Object[newArrayLength];
+
+      int posIndex = posInt - 1;
+      if (posIndex < baseArray.length) {
+        System.arraycopy(baseArray, 0, newArray, 0, posIndex);
+        newArray[posIndex] = val;
+        System.arraycopy(baseArray, posIndex, newArray, posIndex + 1, baseArray.length - posIndex);
+      } else {
+        System.arraycopy(baseArray, 0, newArray, 0, baseArray.length);
+        newArray[posIndex] = val;
+      }
+
+      return Arrays.asList(newArray);
+    } else {
+      int posIndex = posInt;
+
+      boolean newPosExtendsArrayLeft = baseArray.length + posIndex < 0;
+
+      if (newPosExtendsArrayLeft) {
+        // special case, if the new position is negative but larger than the current array size
+        // place the new item at start of array, place the current array contents at the end
+        // and fill the newly created array elements in middle with a null
+        int newArrayLength = -posIndex + 1;
+
+        if (newArrayLength > MAX_ARRAY_LENGTH) {
+          throw new IndexOutOfBoundsException(
+              String.format(Locale.ROOT, "The new array length %s exceeds the allowed limit.",
+                  newArrayLength));
+        }
+
+        Object[] newArray = new Object[newArrayLength];
+        System.arraycopy(baseArray, 0, newArray, Math.abs(posIndex + baseArray.length) + 1,
+            baseArray.length);
+        newArray[0] = val;
+
+        return Arrays.asList(newArray);
+      } else {
+        posIndex = posIndex + baseArray.length;
+
+        int newArrayLength = Math.max(baseArray.length + 1, posIndex + 1);
+
+        if (newArrayLength > MAX_ARRAY_LENGTH) {
+          throw new IndexOutOfBoundsException(
+              String.format(Locale.ROOT, "The new array length %s exceeds the allowed limit.",
+                  newArrayLength));
+        }
+
+        Object[] newArray = new Object[newArrayLength];
+
+        if (posIndex < baseArray.length) {
+          System.arraycopy(baseArray, 0, newArray, 0, posIndex);
+          newArray[posIndex] = val;
+          System.arraycopy(baseArray, posIndex, newArray, posIndex + 1,
+              baseArray.length - posIndex);
+        } else {
+          System.arraycopy(baseArray, 0, newArray, 0, baseArray.length);
+          newArray[posIndex] = val;
+        }
+
+        return Arrays.asList(newArray);
+      }
+    }
   }
 
   /** Support the ARRAY_INTERSECT function. */

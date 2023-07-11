@@ -6090,6 +6090,81 @@ public class SqlOperatorTest {
     f.checkNull("array_except(cast(null as integer array), cast(null as integer array))");
   }
 
+  /** Tests {@code ARRAY_INSERT} function from Spark. */
+  @Test void testArrayInsertFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ARRAY_INSERT);
+    f0.checkFails("^array_insert(null, 3, 4)^",
+        "No match found for function signature "
+            + "ARRAY_INSERT\\(<NULL>, <NUMERIC>, <NUMERIC>\\)", false);
+    f0.checkFails("^array_insert(array[1], null, 4)^",
+        "No match found for function signature "
+            + "ARRAY_INSERT\\(<INTEGER ARRAY>, <NULL>, <NUMERIC>\\)", false);
+    f0.checkFails("^array_insert(array[1], 3, null)^",
+        "No match found for function signature "
+            + "ARRAY_INSERT\\(<INTEGER ARRAY>, <NUMERIC>, <NULL>\\)", false);
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+
+    // can't be NULL
+    f1.checkFails("array_insert(^null^, 3, 4)",
+        "Argument to function 'ARRAY_INSERT' must not be NULL", false);
+    f1.checkFails("array_insert(array[1], ^null^, 4)",
+        "Argument to function 'ARRAY_INSERT' must not be NULL", false);
+    f1.checkFails("array_insert(array[1], 3, ^null^)",
+        "Argument to function 'ARRAY_INSERT' must not be NULL", false);
+
+    // return null
+    f1.checkNull("array_insert(cast(null as integer array), 3, 4)");
+    f1.checkNull("array_insert(array[1], cast(null as integer), 4)");
+
+    // op1 must be Integer type
+    f1.checkFails("^array_insert(array[1, 2, 3], cast(3 as tinyint), 4)^",
+        "TINYINT is not comparable to INTEGER", false);
+    f1.checkFails("^array_insert(array[1, 2, 3], cast(3 as smallint), 4)^",
+        "SMALLINT is not comparable to INTEGER", false);
+    f1.checkFails("^array_insert(array[1, 2, 3], cast(3 as bigint), 4)^",
+        "BIGINT is not comparable to INTEGER", false);
+    f1.checkFails("^array_insert(array[1, 2, 3], 3.0, 4)^",
+        "DECIMAL is not comparable to INTEGER", false);
+    f1.checkFails("^array_insert(array[1, 2, 3], '3', 4)^",
+        "CHAR is not comparable to INTEGER", false);
+    // op1 can't be 0
+    f1.checkFails("array_insert(array[2, 3, 4], 0, 1)",
+        "The index 0 is invalid. "
+            + "An index shall be either < 0 or > 0 \\(the first element has index 1\\) "
+            + "and not exceeds the allowed limit.", true);
+    // op1 overflow
+    f1.checkFails("array_insert(array[2, 3, 4], 2147483647, 1)",
+        "The index 0 is invalid. "
+            + "An index shall be either < 0 or > 0 \\(the first element has index 1\\) "
+            + "and not exceeds the allowed limit.", true);
+    f1.checkFails("array_insert(array[2, 3, 4], -2147483648, 1)",
+        "The index 0 is invalid. "
+            + "An index shall be either < 0 or > 0 \\(the first element has index 1\\) "
+            + "and not exceeds the allowed limit.", true);
+
+    f1.checkScalar("array_insert(array[1, 2, 3], 3, 4)",
+        "[1, 2, 4, 3]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array[1, 2, 3], 3, cast(null as integer))",
+        "[1, 2, null, 3]", "INTEGER ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array[2, 3, 4], 1, 1)",
+        "[1, 2, 3, 4]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array[1, 3, 4], -2, 2)",
+        "[1, 2, 3, 4]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array[2, 3, null, 4], -5, 1)",
+        "[1, null, 2, 3, null, 4]", "INTEGER ARRAY NOT NULL");
+    // check complex type
+    f1.checkScalar("array_insert(array[array[1,2]], 1, array[1])",
+        "[[1], [1, 2]]", "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array[array[1,2]], -1, array[1])",
+        "[[1], [1, 2]]", "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array[map[1, 'a']], 1, map[2, 'b'])", "[{2=b}, {1=a}]",
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array[map[1, 'a']], -1, map[2, 'b'])", "[{2=b}, {1=a}]",
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+  }
+
   /** Tests {@code ARRAY_INTERSECT} function from Spark. */
   @Test void testArrayIntersectFunc() {
     final SqlOperatorFixture f0 = fixture();
