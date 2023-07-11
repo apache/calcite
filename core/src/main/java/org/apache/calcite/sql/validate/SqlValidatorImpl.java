@@ -1611,14 +1611,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Source for the insert call is a select of the source table
     // reference with the select list being the value expressions;
     // note that the values clause has already been converted to a
-    // select on the values row constructor; so we need to extract
-    // that via the from clause on the select
+    // select; so we need to extract that via the from clause on the select
     if (insertCall != null) {
-      SqlCall valuesCall = (SqlCall) insertCall.getSource();
-      SqlCall rowCall = valuesCall.operand(0);
+      SqlCall values = (SqlCall) insertCall.getSource();
       selectList =
           new SqlNodeList(
-              rowCall.getOperandList(),
+              values.getOperandList(),
               SqlParserPos.ZERO);
       final SqlNode insertSource = SqlNode.clone(sourceTableRef);
       select =

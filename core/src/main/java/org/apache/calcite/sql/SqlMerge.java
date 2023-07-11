@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
@@ -211,7 +212,12 @@ public class SqlMerge extends SqlCall {
       if (targetColumnList != null) {
         targetColumnList.unparse(writer, opLeft, opRight);
       }
-      insertCall.getSource().unparse(writer, 0, 0);
+      if (insertCall.getSource().getKind() == SqlKind.VALUES) {
+        SqlUtil.unparseFunctionSyntax(SqlStdOperatorTable.VALUES, writer,
+            (SqlCall) insertCall.getSource(), false);
+      } else {
+        insertCall.getSource().unparse(writer, 0, 0);
+      }
 
       writer.endList(frame);
     }

@@ -7107,6 +7107,65 @@ class RelToSqlConverterTest {
     sql(query).withMssql().ok(expectedMssql);
   }
 
+  @Test void testMerge() {
+    final String sql = "merge into \"account\"\n"
+        + "using \"sales_fact_1997\"\n"
+        + "on \"account\".\"account_id\" = \"sales_fact_1997\".\"product_id\"\n"
+        + "when matched then update\n"
+        + "set \"account_rollup\" = \"account\".\"account_type\"\n"
+        + "when not matched then insert (\"account_id\", \"account_parent\",\n"
+        + "\"account_type\", \"account_rollup\")\n"
+        + "values (\"sales_fact_1997\".\"product_id\", NULL, ?, ?)";
+    final String expected = "MERGE INTO \"foodmart\".\"account\"\n"
+        + "USING \"foodmart\".\"sales_fact_1997\"\n"
+        + "ON \"sales_fact_1997\".\"product_id\" = \"account\".\"account_id\"\n"
+        + "WHEN MATCHED THEN UPDATE "
+        + "SET \"account_rollup\" = \"account\".\"account_type\"\n"
+        + "WHEN NOT MATCHED THEN INSERT (\"account_id\", \"account_parent\", "
+        + "\"account_description\", \"account_type\", \"account_rollup\", "
+        + "\"Custom_Members\") "
+        + "VALUES(\"sales_fact_1997\".\"product_id\", CAST(NULL AS INTEGER), "
+        + "CAST(NULL AS VARCHAR(30) CHARACTER SET \"ISO-8859-1\"), ?, ?, "
+        + "CAST(NULL AS VARCHAR(255) CHARACTER SET \"ISO-8859-1\"))";
+    sql(sql)
+        .ok(expected);
+  }
+
+  @Test void testMergeWhenMatched() {
+    final String sql = "merge into \"account\"\n"
+        + "using \"sales_fact_1997\"\n"
+        + "on \"account\".\"account_id\" = \"sales_fact_1997\".\"product_id\"\n"
+        + "when matched then update\n"
+        + "set \"account_rollup\" = \"account\".\"account_type\"";
+    final String expected = "MERGE INTO \"foodmart\".\"account\"\n"
+        + "USING \"foodmart\".\"sales_fact_1997\"\n"
+        + "ON \"sales_fact_1997\".\"product_id\" = \"account\".\"account_id\"\n"
+        + "WHEN MATCHED THEN UPDATE "
+        + "SET \"account_rollup\" = \"account\".\"account_type\"";
+    sql(sql)
+        .ok(expected);
+  }
+
+  @Test void testMergeWhenNotMatched() {
+    final String sql = "merge into \"account\"\n"
+        + "using \"sales_fact_1997\"\n"
+        + "on \"account\".\"account_id\" = \"sales_fact_1997\".\"product_id\"\n"
+        + "when not matched then insert (\"account_id\", \"account_parent\",\n"
+        + "\"account_type\", \"account_rollup\")\n"
+        + "values (\"sales_fact_1997\".\"product_id\", NULL, ?, ?)";
+    final String expected = "MERGE INTO \"foodmart\".\"account\"\n"
+        + "USING \"foodmart\".\"sales_fact_1997\"\n"
+        + "ON \"sales_fact_1997\".\"product_id\" = \"account\".\"account_id\"\n"
+        + "WHEN NOT MATCHED THEN INSERT (\"account_id\", \"account_parent\", "
+        + "\"account_description\", \"account_type\", \"account_rollup\", "
+        + "\"Custom_Members\") "
+        + "VALUES(\"sales_fact_1997\".\"product_id\", CAST(NULL AS INTEGER), "
+        + "CAST(NULL AS VARCHAR(30) CHARACTER SET \"ISO-8859-1\"), ?, ?, "
+        + "CAST(NULL AS VARCHAR(255) CHARACTER SET \"ISO-8859-1\"))";
+    sql(sql)
+        .ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;

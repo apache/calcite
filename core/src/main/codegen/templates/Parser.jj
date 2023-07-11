@@ -1882,7 +1882,7 @@ SqlInsert WhenNotMatchedClause(SqlNode table) :
     final List<SqlLiteral> keywords = new ArrayList<SqlLiteral>();
     final SqlNodeList keywordList;
     final SqlNodeList insertColumnList;
-    SqlNode rowConstructor;
+    List<SqlNode> valueList;
     SqlNode insertValues;
 }
 {
@@ -1899,17 +1899,19 @@ SqlInsert WhenNotMatchedClause(SqlNode table) :
     )
     (
         <LPAREN>
-        <VALUES> { valuesSpan = span(); } rowConstructor = RowConstructor()
+        <VALUES> { valuesSpan = span(); }
+        valueList = ParenthesizedQueryOrCommaListWithDefault(ExprContext.ACCEPT_NONCURSOR)
         <RPAREN>
     |
-        <VALUES> { valuesSpan = span(); } rowConstructor = RowConstructor()
+        <VALUES> { valuesSpan = span(); }
+        valueList = ParenthesizedQueryOrCommaListWithDefault(ExprContext.ACCEPT_NONCURSOR)
     )
     {
         // TODO zfong 5/26/06: note that extra parentheses are accepted above
         // around the VALUES clause as a hack for unparse, but this is
         // actually invalid SQL; should fix unparse
         insertValues = SqlStdOperatorTable.VALUES.createCall(
-            valuesSpan.end(this), rowConstructor);
+            valuesSpan.end(this), valueList);
         return new SqlInsert(insertSpan.end(this), keywordList,
             table, insertValues, insertColumnList);
     }

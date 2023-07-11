@@ -70,6 +70,7 @@ import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
+import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
@@ -1058,7 +1059,80 @@ public class RelToSqlConverter extends SqlImplementor
 
       return result(sqlDelete, input.clauses, modify, null);
     }
-    case MERGE:
+    case MERGE: {
+      final RelDataType targetRowType = modify.getTable().getRowType();
+      final List<String> updateColumnList = (modify.getUpdateColumnList() != null)
+          ? modify.getUpdateColumnList() : Collections.emptyList();
+
+      // Convert input into a SELECT which contains the join condition
+      final SqlSelect select = visitInput(modify, 0).asSelect();
+      final SqlJoin join =
+          requireNonNull((SqlJoin) select.getFrom(), () -> "input.getFrom() is null for " + modify);
+      final SqlNode condition =
+          requireNonNull(join.getCondition(),
+              () -> "input.getFrom().getCondition() is null for " + modify);
+
+      // Determine number of INSERT and UPDATE columns from input projection.
+      // Projection contains the following (from SqlToRelConverter.convertMerge(SqlMerge)):
+      // 1. Expressions for INSERT (if there is an INSERT)
+      // 2. Columns from the target table (if there is an UPDATE)
+      // 3. Expressions for UPDATE (if there is an UPDATE)
+      final int insertColumnCount = modify.getInput().getRowType().getFieldCount()
+          - (updateColumnList.isEmpty() ? 0 : targetRowType.getFieldCount())
+          - updateColumnList.size();
+      final int updateColumnCount = updateColumnList.size();
+
+      // If there is an update, copy expressions for UPDATE into a SqlUpdate
+      // This will become the WHEN MATCHED clause
+      final SqlUpdate update;
+      if (updateColumnCount > 0) {
+        final SqlNodeList targetColumnList = identifierList(updateColumnList);
+        final List<SqlNode> sourceExpressionList = select.getSelectList().stream()
+            .skip(select.getSelectList().size() - updateColumnCount)
+            .map(expr -> (expr.getKind() == SqlKind.AS)
+                ? ((SqlCall) expr).getOperandList().get(0) : expr)
+            .collect(Collectors.toList());
+        update =
+            new SqlUpdate(POS, sqlTargetTable, targetColumnList,
+                new SqlNodeList(sourceExpressionList, POS), null, select, null);
+      } else {
+        update = null;
+      }
+
+      // If there is an insert, copy expressions for INSERT into a SqlInsert
+      // This will become the WHEN NOT MATCHED clause
+      final SqlInsert insert;
+      if (insertColumnCount > 0) {
+        final List<SqlNode> expressions = select.getSelectList()
+            .subList(0, insertColumnCount).stream()
+            .map(expr -> (expr.getKind() == SqlKind.AS)
+                ? ((SqlCall) expr).getOperandList().get(0) : expr)
+            .collect(SqlNodeList.toList(POS));
+        final SqlNode source = SqlStdOperatorTable.VALUES.createCall(POS, expressions);
+        final SqlNodeList columnList = targetRowType.getFieldNames().stream()
+            .map(name -> new SqlIdentifier(name, POS))
+            .collect(SqlNodeList.toList(POS));
+        insert = new SqlInsert(POS, SqlNodeList.EMPTY, sqlTargetTable, source, columnList);
+      } else {
+        insert = null;
+      }
+
+      // Reconstruct MERGE by parsing properties from the input
+      // Add the target table alias, if any
+      final SqlNode sqlTargetTableWithAlias;
+      if (join.getRight().getKind() == SqlKind.AS) {
+        sqlTargetTableWithAlias =
+            SqlStdOperatorTable.AS.createCall(POS, sqlTargetTable,
+                ((SqlCall) join.getRight()).operand(1));
+      } else {
+        sqlTargetTableWithAlias = sqlTargetTable;
+      }
+
+      final SqlMerge sqlMerge =
+          new SqlMerge(POS, sqlTargetTableWithAlias, condition, join.getLeft(), update, insert,
+              null, null);
+      return result(sqlMerge, ImmutableList.of(), modify, null);
+    }
     default:
       throw new AssertionError("not implemented: " + modify);
     }
