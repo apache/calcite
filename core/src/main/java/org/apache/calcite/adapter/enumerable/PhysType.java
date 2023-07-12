@@ -112,10 +112,27 @@ public interface PhysType {
    *    public Object[] apply(Employee v1) {
    *        return FlatLists.of(v1.&lt;fieldN&gt;, v1.&lt;fieldM&gt;);
    *    }
-   * }
    * }</pre></blockquote>
    */
   Expression generateAccessor(List<Integer> fields);
+
+  /** Similar to {@link #generateAccessor(List)}, but if one of the fields is <code>null</code>,
+   * it will return <code>null</code>.
+   *
+   * <p>For example:
+   *
+   * <blockquote><pre>
+   * new Function1&lt;Employee, Object[]&gt; {
+   *    public Object[] apply(Employee v1) {
+   *        return v1.&lt;fieldN&gt; == null
+   *            ? null
+   *            : v1.&lt;fieldM&gt; == null
+   *                ? null
+   *                : FlatLists.of(v1.&lt;fieldN&gt;, v1.&lt;fieldM&gt;);
+   *    }
+   * }</pre></blockquote>
+   */
+  Expression generateAccessorWithoutNulls(List<Integer> fields);
 
   /** Generates a selector for the given fields from an expression, with the
    * default row format. */
@@ -180,6 +197,13 @@ public interface PhysType {
    * whole element. */
   Expression generateComparator(
       RelCollation collation);
+
+  /** Similar to {@link #generateComparator(RelCollation)}, but with some specificities for
+   * MergeJoin algorithm: it will not consider two <code>null</code> values as equal.
+   *
+   * @see org.apache.calcite.linq4j.EnumerableDefaults#compareNullsLastForMergeJoin
+   */
+  Expression generateMergeJoinComparator(RelCollation collation);
 
   /** Returns a expression that yields a comparer, or null if this type
    * is comparable. */
