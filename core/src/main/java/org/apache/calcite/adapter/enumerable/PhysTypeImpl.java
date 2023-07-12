@@ -407,6 +407,24 @@ public class PhysTypeImpl implements PhysType {
   }
 
   @Override public Expression generateComparator(RelCollation collation) {
+    return this.generateComparator(collation, fieldCollation -> {
+      final int index = fieldCollation.getFieldIndex();
+      final boolean nullsFirst =
+          fieldCollation.nullDirection
+              == RelFieldCollation.NullDirection.FIRST;
+      final boolean descending =
+          fieldCollation.getDirection()
+              == RelFieldCollation.Direction.DESCENDING;
+      return fieldNullable(index)
+          ? (nullsFirst != descending
+          ? "compareNullsFirst"
+          : "compareNullsLast")
+          : "compare";
+    });
+  }
+
+  private Expression generateComparator(RelCollation collation,
+      Function1<RelFieldCollation, String> compareMethodNameFunction) {
     // int c;
     // c = Utilities.compare(v0, v1);
     // if (c != 0) return c; // or -c if descending
@@ -437,9 +455,6 @@ public class PhysTypeImpl implements PhysType {
       default:
         break;
       }
-      final boolean nullsFirst =
-          fieldCollation.nullDirection
-              == RelFieldCollation.NullDirection.FIRST;
       final boolean descending =
           fieldCollation.getDirection()
               == RelFieldCollation.Direction.DESCENDING;
@@ -449,11 +464,7 @@ public class PhysTypeImpl implements PhysType {
                   parameterC,
                   Expressions.call(
                       Utilities.class,
-                      fieldNullable(index)
-                          ? (nullsFirst != descending
-                          ? "compareNullsFirst"
-                          : "compareNullsLast")
-                          : "compare",
+                      compareMethodNameFunction.apply(fieldCollation),
                       Expressions.list(
                           arg0,
                           arg1)
@@ -509,6 +520,17 @@ public class PhysTypeImpl implements PhysType {
         Comparator.class,
         ImmutableList.of(),
         memberDeclarations);
+  }
+
+  @Override public Expression generateMergeJoinComparator(RelCollation collation) {
+    return this.generateComparator(collation, fieldCollation -> {
+      // merge join keys must be sorted in ascending order, nulls last
+      assert fieldCollation.nullDirection == RelFieldCollation.NullDirection.LAST;
+      assert fieldCollation.getDirection() == RelFieldCollation.Direction.ASCENDING;
+      return fieldNullable(fieldCollation.getFieldIndex())
+          ? "compareNullsLastForMergeJoin"
+          : "compare";
+    });
   }
 
   @Override public RelDataType getRowType() {
@@ -616,65 +638,79 @@ public class PhysTypeImpl implements PhysType {
       for (int field : fields) {
         list.add(fieldReference(v1, field));
       }
-      switch (list.size()) {
-      case 2:
-        return Expressions.lambda(
-            Function1.class,
-            Expressions.call(
-                List.class,
-                null,
-                BuiltInMethod.LIST2.method,
-                list),
-            v1);
-      case 3:
-        return Expressions.lambda(
-            Function1.class,
-            Expressions.call(
-                List.class,
-                null,
-                BuiltInMethod.LIST3.method,
-                list),
-            v1);
-      case 4:
-        return Expressions.lambda(
-            Function1.class,
-            Expressions.call(
-                List.class,
-                null,
-                BuiltInMethod.LIST4.method,
-                list),
-            v1);
-      case 5:
-        return Expressions.lambda(
-            Function1.class,
-            Expressions.call(
-                List.class,
-                null,
-                BuiltInMethod.LIST5.method,
-                list),
-            v1);
-      case 6:
-        return Expressions.lambda(
-            Function1.class,
-            Expressions.call(
-                List.class,
-                null,
-                BuiltInMethod.LIST6.method,
-                list),
-            v1);
-      default:
-        return Expressions.lambda(
-            Function1.class,
-            Expressions.call(
-                List.class,
-                null,
-                BuiltInMethod.LIST_N.method,
-                Expressions.newArrayInit(
-                    Comparable.class,
-                    list)),
-            v1);
-      }
+      return Expressions.lambda(Function1.class, getListExpression(list), v1);
     }
+  }
+
+  private static Expression getListExpression(Expressions.FluentList<Expression> list) {
+    assert list.size() >= 2;
+
+    switch (list.size()) {
+    case 2:
+      return Expressions.call(
+              List.class,
+              null,
+              BuiltInMethod.LIST2.method,
+              list);
+    case 3:
+      return Expressions.call(
+              List.class,
+              null,
+              BuiltInMethod.LIST3.method,
+              list);
+    case 4:
+      return Expressions.call(
+              List.class,
+              null,
+              BuiltInMethod.LIST4.method,
+              list);
+    case 5:
+      return Expressions.call(
+              List.class,
+              null,
+              BuiltInMethod.LIST5.method,
+              list);
+    case 6:
+      return Expressions.call(
+              List.class,
+              null,
+              BuiltInMethod.LIST6.method,
+              list);
+    default:
+      return Expressions.call(
+              List.class,
+              null,
+              BuiltInMethod.LIST_N.method,
+              Expressions.newArrayInit(Comparable.class, list));
+    }
+  }
+
+  @Override public Expression generateAccessorWithoutNulls(List<Integer> fields) {
+    if (fields.size() < 2) {
+      return generateAccessor(fields);
+    }
+
+    ParameterExpression v1 = Expressions.parameter(javaRowClass, "v1");
+    Expressions.FluentList<Expression> list = Expressions.list();
+    for (int field : fields) {
+      list.add(fieldReference(v1, field));
+    }
+
+    // (v1.<field0> == null)
+    //   ? null
+    //   : (v1.<field1> == null)
+    //     ? null;
+    //     : ...
+    //         : FlatLists.of(...);
+    Expression exp = getListExpression(list);
+    for (int i = list.size() - 1; i >= 0; i--) {
+      exp =
+          Expressions.condition(
+              Expressions.equal(list.get(i), Expressions.constant(null)),
+              Expressions.constant(null),
+              exp);
+    }
+    return Expressions.lambda(Function1.class, exp, v1);
   }
 
   @Override public Expression fieldReference(

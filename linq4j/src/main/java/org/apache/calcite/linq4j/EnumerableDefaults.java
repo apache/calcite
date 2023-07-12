@@ -1924,7 +1924,7 @@ public abstract class EnumerableDefaults {
         final Predicate1<TSource> predicate = v0 -> {
           TKey key = outerKeySelector.apply(v0);
           @SuppressWarnings("argument.type.incompatible")
-          Enumerable<TInner> innersOfKey = innerLookup.get().get(key);
+          Enumerable<TInner> innersOfKey = key == null ? null : innerLookup.get().get(key);
           if (innersOfKey == null) {
             return anti;
           }
@@ -1963,9 +1963,11 @@ public abstract class EnumerableDefaults {
                 ? inner.select(innerKeySelector).distinct()
                 : inner.select(innerKeySelector).distinct(comparer));
 
-        final Predicate1<TSource> predicate = anti
-            ? v0 -> !innerLookup.get().contains(outerKeySelector.apply(v0))
-            : v0 -> innerLookup.get().contains(outerKeySelector.apply(v0));
+        final Predicate1<TSource> predicate = v0 -> {
+          TKey key = outerKeySelector.apply(v0);
+          boolean found = key != null && innerLookup.get().contains(key);
+          return anti ? !found : found;
+        };
 
         return EnumerableDefaults.where(outer.enumerator(), predicate);
       }
@@ -2146,9 +2148,9 @@ public abstract class EnumerableDefaults {
 
   /**
    * Joins two inputs that are sorted on the key.
-   * Inputs must sorted in ascending order, nulls last.
+   * Inputs must be sorted in ascending order, nulls last.
    *
-   * @deprecated Use {@link #mergeJoin(Enumerable, Enumerable, Function1, Function1, Function2, JoinType, Comparator)}
+   * @deprecated Use {@link #mergeJoin(Enumerable, Enumerable, Function1, Function1, Predicate2, Function2, JoinType, Comparator, EqualityComparer)}
    */
   @Deprecated // to be removed before 2.0
   public static <TSource, TInner, TKey extends Comparable<TKey>, TResult> Enumerable<TResult>
@@ -2168,7 +2170,7 @@ public abstract class EnumerableDefaults {
           "not implemented, mergeJoin with generateNullsOnRight");
     }
     return mergeJoin(outer, inner, outerKeySelector, innerKeySelector, null, resultSelector,
-        JoinType.INNER, null);
+        JoinType.INNER, null, null);
   }
 
   /**
@@ -2191,7 +2193,7 @@ public abstract class EnumerableDefaults {
 
   /**
    * Joins two inputs that are sorted on the key.
-   * Inputs must sorted in ascending order, nulls last.
+   * Inputs must be sorted in ascending order, nulls last.
    */
   public static <TSource, TInner, TKey extends Comparable<TKey>, TResult> Enumerable<TResult>
       mergeJoin(final Enumerable<TSource> outer,
@@ -2202,7 +2204,7 @@ public abstract class EnumerableDefaults {
       final JoinType joinType,
       final Comparator<TKey> comparator) {
     return mergeJoin(outer, inner, outerKeySelector, innerKeySelector, null, resultSelector,
-        joinType, comparator);
+        joinType, comparator, null);
   }
 
   /**
@@ -2219,6 +2221,8 @@ public abstract class EnumerableDefaults {
    *                       types in the future (e.g. semi or anti joins).
    * @param comparator key comparator, possibly null (in which case {@link Comparable#compareTo}
    *                   will be used).
+   * @param equalityComparer key equality comparer, possibly null (in which case equals
+   *                         will be used), required to compare keys from the same input.
    *
    * <p>NOTE: The current API is experimental and subject to change without
    * notice.
@@ -2232,14 +2236,15 @@ public abstract class EnumerableDefaults {
       final @Nullable Predicate2<TSource, TInner> extraPredicate,
       final Function2<TSource, @Nullable TInner, TResult> resultSelector,
       final JoinType joinType,
-      final @Nullable Comparator<TKey> comparator) {
+      final @Nullable Comparator<TKey> comparator,
+      final @Nullable EqualityComparer<TKey> equalityComparer) {
     if (!isMergeJoinSupported(joinType)) {
       throw new UnsupportedOperationException("MergeJoin unsupported for join type " + joinType);
     }
     return new AbstractEnumerable<TResult>() {
       @Override public Enumerator<TResult> enumerator() {
         return new MergeJoinEnumerator<>(outer, inner, outerKeySelector, innerKeySelector,
-            extraPredicate, resultSelector, joinType, comparator);
+            extraPredicate, resultSelector, joinType, comparator, equalityComparer);
       }
     };
   }
@@ -4144,7 +4149,7 @@ public abstract class EnumerableDefaults {
   }
 
   /** Enumerator that performs a merge join on its sorted inputs.
-   * Inputs must sorted in ascending order, nulls last.
+   * Inputs must be sorted in ascending order, nulls last.
    *
    * @param <TResult> result type
    * @param <TSource> left input record type
@@ -4167,6 +4172,8 @@ public abstract class EnumerableDefaults {
     private final JoinType joinType;
     // key comparator, possibly null (Comparable#compareTo to be used in that case)
     private final @Nullable Comparator<TKey> comparator;
+    // key equality comparer, possibly null (equals to be used in that case)
+    private final @Nullable EqualityComparer<TKey> equalityComparer;
     private boolean done;
     private @Nullable Enumerator<TResult> results = null;
     // used for LEFT/ANTI join: if right input is over, all remaining elements from left are results
@@ -4181,7 +4188,8 @@ public abstract class EnumerableDefaults {
         @Nullable Predicate2<TSource, TInner> extraPredicate,
         Function2<TSource, @Nullable TInner, TResult> resultSelector,
         JoinType joinType,
-        @Nullable Comparator<TKey> comparator) {
+        @Nullable Comparator<TKey> comparator,
+        @Nullable EqualityComparer<TKey> equalityComparer) {
       this.leftEnumerable = leftEnumerable;
       this.rightEnumerable = rightEnumerable;
       this.outerKeySelector = outerKeySelector;
@@ -4190,6 +4198,7 @@ public abstract class EnumerableDefaults {
       this.resultSelector = resultSelector;
       this.joinType = joinType;
       this.comparator = comparator;
+      this.equalityComparer = equalityComparer;
       start();
     }
 
@@ -4258,15 +4267,18 @@ public abstract class EnumerableDefaults {
       results = Linq4j.emptyEnumerator();
     }
 
+    /** Method to compare keys from left and right input (nulls must not be considered equal). */
     private int compare(TKey key1, TKey key2) {
-      return comparator != null ? comparator.compare(key1, key2) : compareNullsLast(key1, key2);
+      return comparator != null
+          ? comparator.compare(key1, key2)
+          : compareNullsLastForMergeJoin(key1, key2);
     }
 
-    private int compareNullsLast(TKey v0, TKey v1) {
-      return v0 == v1 ? 0
-          : v0 == null ? 1
-              : v1 == null ? -1
-                  : v0.compareTo(v1);
+    /** Method to compare keys from the same input (nulls must be considered equal). */
+    private boolean compareEquals(TKey key1, TKey key2) {
+      return equalityComparer != null
+          ? equalityComparer.equal(key1, key2)
+          : Objects.equals(key1, key2);
     }
 
     /** Moves to the next key that is present in both sides. Populates
@@ -4291,7 +4303,14 @@ public abstract class EnumerableDefaults {
             done = true;
             return false;
           }
-          int c = compare(leftKey, rightKey);
+          int c;
+          try {
+            c = compare(leftKey, rightKey);
+          } catch (BothValuesAreNullException e) {
+            // consider the first (left) value as "bigger", to advance on the right value
+            // and continue with the algorithm
+            c = 1;
+          }
           if (c == 0) {
             break;
           }
@@ -4390,13 +4409,7 @@ public abstract class EnumerableDefaults {
           // if we reach a null key, we are done (except LEFT join, that needs to process LHS fully)
           break;
         }
-        int c = compare(leftKey, leftKey2);
-        if (c != 0) {
-          if (c > 0) {
-            throw new IllegalStateException(
-                "mergeJoin assumes inputs sorted in ascending order, " + "however '"
-                    + leftKey + "' is greater than '" + leftKey2 + "'");
-          }
+        if (!compareEquals(leftKey, leftKey2)) {
           return true;
         }
         lefts.add(left);
@@ -4423,13 +4436,7 @@ public abstract class EnumerableDefaults {
           // if we reach a null key, we are done
           break;
         }
-        int c = compare(rightKey, rightKey2);
-        if (c != 0) {
-          if (c > 0) {
-            throw new IllegalStateException(
-                "mergeJoin assumes input sorted in ascending order, " + "however '"
-                    + rightKey + "' is greater than '" + rightKey2 + "'");
-          }
+        if (!compareEquals(rightKey, rightKey2)) {
           return true;
         }
         rights.add(right);
@@ -4493,6 +4500,36 @@ public abstract class EnumerableDefaults {
         rightEnumerator.close();
       }
     }
+  }
+
+  /**
+   * Exception used for control flow (it does not populate the stack trace to be more efficient)
+   * to signal that both values are <code>null</code>, so that the caller method (i.e. MergeJoin
+   * algorithm) can act accordingly.
+   */
+  private static class BothValuesAreNullException extends RuntimeException {
+    @Override public synchronized Throwable fillInStackTrace() {
+      return this;
+    }
+  }
+
+  public static int compareNullsLastForMergeJoin(@Nullable Comparable v0, @Nullable Comparable v1) {
+    return compareNullsLastForMergeJoin(v0, v1, null);
+  }
+
+  public static int compareNullsLastForMergeJoin(@Nullable Comparable v0, @Nullable Comparable v1,
+      @Nullable Comparator comparator) {
+    // Special code for mergeJoin algorithm: in case of two null values, they must not be
+    // considered as equal (otherwise the join would return incorrect results)
+    if (v0 == null && v1 == null) {
+      throw new BothValuesAreNullException();
+    }
+
+    //noinspection unchecked
+    return v0 == v1 ? 0
+        : v0 == null ? 1
+            : v1 == null ? -1
+                : comparator == null ? v0.compareTo(v1) : comparator.compare(v0, v1);
   }
 
   /** Enumerates the elements of a cartesian product of two inputs.

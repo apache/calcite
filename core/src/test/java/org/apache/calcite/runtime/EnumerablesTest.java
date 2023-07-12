@@ -414,7 +414,7 @@ class EnumerablesTest {
             e1 -> e1.name,
             e2 -> e2.name,
             (e1, e2) -> e1.deptno < e2.deptno,
-            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null).toList(),
+            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null, null).toList(),
         hasToString("["
             + "Emp(1, Fred)-Emp(2, Fred), "
             + "Emp(1, Fred)-Emp(3, Fred), "
@@ -430,7 +430,7 @@ class EnumerablesTest {
             e2 -> e2.name,
             e1 -> e1.name,
             (e2, e1) -> e2.deptno > e1.deptno,
-            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null).toList(),
+            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null, null).toList(),
         hasToString("["
             + "Emp(2, Fred)-Emp(1, Fred), "
             + "Emp(3, Fred)-Emp(1, Fred), "
@@ -446,7 +446,7 @@ class EnumerablesTest {
             e1 -> e1.name,
             e2 -> e2.name,
             (e1, e2) -> e1.deptno == e2.deptno * 2,
-            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null).toList(),
+            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null, null).toList(),
         hasToString("[]"));
 
     assertThat(
@@ -456,7 +456,7 @@ class EnumerablesTest {
             e2 -> e2.name,
             e1 -> e1.name,
             (e2, e1) -> e2.deptno == e1.deptno * 2,
-            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null).toList(),
+            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null, null).toList(),
         hasToString("[Emp(2, Fred)-Emp(1, Fred)]"));
 
     assertThat(
@@ -466,7 +466,7 @@ class EnumerablesTest {
             e2 -> e2.name,
             e1 -> e1.name,
             (e2, e1) -> e2.deptno == e1.deptno + 2,
-            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null).toList(),
+            (v0, v1) -> v0 + "-" + v1, JoinType.INNER, null, null).toList(),
         hasToString("[Emp(3, Fred)-Emp(1, Fred), Emp(5, Joe)-Emp(3, Joe)]"));
   }
 
@@ -493,7 +493,7 @@ class EnumerablesTest {
             null,
             (v0, v1) -> v0,
             JoinType.SEMI,
-            null).toList(),
+            null, null).toList(),
         hasToString("[Dept(10, Marketing),"
             + " Dept(20, Sales),"
             + " Dept(30, Research)]"));
@@ -522,7 +522,7 @@ class EnumerablesTest {
             (d, e) -> e.name.contains("a"),
             (v0, v1) -> v0,
             JoinType.SEMI,
-            null).toList(),
+            null, null).toList(),
         hasToString("[Dept(20, Sales)]"));
   }
 
@@ -550,7 +550,7 @@ class EnumerablesTest {
             (e, d) -> e.name.startsWith("T"),
             (v0, v1) -> v0,
             JoinType.SEMI,
-            null).toList(),
+            null, null).toList(),
         hasToString("[Emp(30, Theodore)]"));
   }
 
@@ -578,7 +578,7 @@ class EnumerablesTest {
             null,
             (v0, v1) -> v0,
             JoinType.ANTI,
-            null).toList(),
+            null, null).toList(),
         hasToString("[Dept(25, HR), Dept(40, Development)]"));
   }
 
@@ -605,7 +605,7 @@ class EnumerablesTest {
             (d, e) -> e.name.startsWith("F") || e.name.startsWith("S"),
             (v0, v1) -> v0,
             JoinType.ANTI,
-            null).toList(),
+            null, null).toList(),
         hasToString("[Dept(25, HR), Dept(30, Research), "
             + "Dept(40, Development)]"));
   }
@@ -634,7 +634,7 @@ class EnumerablesTest {
             (e, d) -> d.deptno < 30,
             (v0, v1) -> v0,
             JoinType.ANTI,
-            null).toList(),
+            null, null).toList(),
         hasToString("[Emp(30, Fred), Emp(20, Sebastian), Emp(20, Zoey)]"));
   }
 
@@ -661,7 +661,7 @@ class EnumerablesTest {
             null,
             (v0, v1) -> v0 + "-" + v1,
             JoinType.LEFT,
-            null).toList(),
+            null, null).toList(),
         hasToString("[Dept(10, Marketing)-Emp(10, Fred),"
             + " Dept(20, Sales)-Emp(20, Theodore),"
             + " Dept(20, Sales)-Emp(20, Sebastian),"
@@ -694,7 +694,7 @@ class EnumerablesTest {
             (d, e) -> e.name.contains("a"),
             (v0, v1) -> v0 + "-" + v1,
             JoinType.LEFT,
-            null).toList(),
+            null, null).toList(),
         hasToString("[Dept(10, Marketing)-null,"
             + " Dept(20, Sales)-Emp(20, Sebastian),"
             + " Dept(25, HR)-null,"
@@ -726,7 +726,7 @@ class EnumerablesTest {
             (e, d) -> e.name.startsWith("T"),
             (v0, v1) -> v0 + "-" + v1,
             JoinType.LEFT,
-            null).toList(),
+            null, null).toList(),
         hasToString("[Emp(30, Fred)-null,"
             + " Emp(20, Sebastian)-null,"
             + " Emp(30, Theodore)-Dept(30, Theodore),"

@@ -492,7 +492,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
               RelFieldCollation.NullDirection.LAST));
     }
     final RelCollation collation = RelCollations.of(fieldCollations);
-    final Expression comparator = leftKeyPhysType.generateComparator(collation);
+    final Expression comparator = leftKeyPhysType.generateMergeJoinComparator(collation);
 
     return implementor.result(
         physType,
@@ -512,6 +512,9 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
                         ImmutableList.of(
                             leftResult.physType, rightResult.physType)),
                     Expressions.constant(EnumUtils.toLinq4jJoinType(joinType)),
-                    comparator))).toBlock());
+                    comparator,
+                    Util.first(
+                        leftKeyPhysType.comparer(),
+                        Expressions.constant(null))))).toBlock());
   }
 }

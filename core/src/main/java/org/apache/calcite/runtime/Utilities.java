@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.linq4j.EnumerableDefaults;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.text.Collator;
@@ -248,6 +250,15 @@ public class Utilities {
         : v0 == null ? 1
             : v1 == null ? -1
                 : FlatLists.ComparableListImpl.compare(v0, v1);
+  }
+
+  public static int compareNullsLastForMergeJoin(@Nullable Comparable v0, @Nullable Comparable v1) {
+    return EnumerableDefaults.compareNullsLastForMergeJoin(v0, v1);
+  }
+
+  public static int compareNullsLastForMergeJoin(@Nullable Comparable v0, @Nullable Comparable v1,
+      Comparator comparator) {
+    return EnumerableDefaults.compareNullsLastForMergeJoin(v0, v1, comparator);
   }
 
   /** Creates a pattern builder. */
