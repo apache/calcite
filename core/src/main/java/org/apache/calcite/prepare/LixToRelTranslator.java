@@ -39,6 +39,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -108,7 +109,8 @@ class LixToRelTranslator {
         return LogicalProject.create(input,
             ImmutableList.of(),
             toRex(input, (FunctionExpression) call.expressions.get(0)),
-            (List<String>) null);
+            (List<String>) null,
+            ImmutableSet.of());
 
       case WHERE:
         input = translate(getTargetExpression(call));

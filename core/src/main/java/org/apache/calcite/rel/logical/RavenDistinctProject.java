@@ -31,6 +31,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -58,7 +59,7 @@ public class RavenDistinctProject extends Project {
       RelNode input,
       List<? extends RexNode> projects,
       RelDataType rowType) {
-    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
     this.distinct = false;
   }
 
@@ -68,7 +69,7 @@ public class RavenDistinctProject extends Project {
       RelNode input,
       List<? extends RexNode> projects,
       RelDataType rowType, boolean distinct) {
-    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
     this.distinct = distinct;
   }
 
