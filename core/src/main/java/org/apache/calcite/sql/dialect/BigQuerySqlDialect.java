@@ -1874,7 +1874,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       case DOUBLE:
         return createSqlDataTypeSpecByName("FLOAT64", typeName);
       case DECIMAL:
-        return createSqlDataTypeSpecByName("NUMERIC", typeName);
+        return createSqlDataTypeSpecBasedOnPreScale(type);
       case BOOLEAN:
         return createSqlDataTypeSpecByName("BOOL", typeName);
       case CHAR:
@@ -1900,6 +1900,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
     }
     return super.getCastSpec(type);
+  }
+
+  private SqlNode createSqlDataTypeSpecBasedOnPreScale(RelDataType type) {
+    final int precision = type.getPrecision();
+    final int scale = type.getScale();
+    String typeAlias = getDataTypeBasedOnPrecision(precision, scale);
+    return createSqlDataTypeSpecByName(typeAlias, type.getSqlTypeName());
   }
 
   /* It creates SqlDataTypeSpec with Format if RelDataType is instance of BasicSqlTypeWithFormat*/
