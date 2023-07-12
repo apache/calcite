@@ -1063,6 +1063,7 @@ public class RelToSqlConverter extends SqlImplementor
       final RelDataType targetRowType = modify.getTable().getRowType();
       final List<String> updateColumnList = (modify.getUpdateColumnList() != null)
           ? modify.getUpdateColumnList() : Collections.emptyList();
+      assert updateColumnList != null;
 
       // Convert input into a SELECT which contains the join condition
       final SqlSelect select = visitInput(modify, 0).asSelect();
