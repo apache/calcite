@@ -185,7 +185,7 @@ public class EnumerableInterpretable extends ConverterImpl
     boolean containsStaticField = false;
 
     @Override public Void visit(final FieldDeclaration fieldDeclaration) {
-      containsStaticField = (fieldDeclaration.modifier & Modifier.STATIC) != 0;
+      containsStaticField |= (fieldDeclaration.modifier & Modifier.STATIC) != 0;
       return containsStaticField ? null : super.visit(fieldDeclaration);
     }
   }
