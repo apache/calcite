@@ -62,16 +62,18 @@ public class ChinookAvaticaServer {
     private static final CalciteConnectionProvider CONNECTION_PROVIDER =
         new CalciteConnectionProvider();
 
-    private static JdbcMeta instance = null;
+    private static volatile JdbcMeta instance = null;
 
     private static JdbcMeta getInstance() {
       if (instance == null) {
-        try {
-          instance =
-              new JdbcMeta(CalciteConnectionProvider.DRIVER_URL,
-                  CONNECTION_PROVIDER.provideConnectionInfo());
-        } catch (SQLException | IOException e) {
-          throw new RuntimeException(e);
+        synchronized (CalciteChinookMetaFactory.class) {
+          try {
+            instance =
+                new JdbcMeta(CalciteConnectionProvider.DRIVER_URL,
+                    CONNECTION_PROVIDER.provideConnectionInfo());
+          } catch (SQLException | IOException e) {
+            throw new RuntimeException(e);
+          }
         }
       }
       return instance;
@@ -86,16 +88,19 @@ public class ChinookAvaticaServer {
    * Factory for Chinook Calcite database wrapped in meta for Avatica.
    */
   public static class RawChinookMetaFactory implements Meta.Factory {
-    private static JdbcMeta instance = null;
+    private static volatile JdbcMeta instance = null;
 
     private static JdbcMeta getInstance() {
       if (instance == null) {
-        try {
-          instance =
-              new JdbcMeta(ChinookHsqldb.URI,
-                  ChinookHsqldb.USER, ChinookHsqldb.PASSWORD);
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
+        synchronized (RawChinookMetaFactory.class) {
+          if (instance == null) {
+            try {
+              instance =
+                  new JdbcMeta(ChinookHsqldb.URI, ChinookHsqldb.USER, ChinookHsqldb.PASSWORD);
+            } catch (SQLException e) {
+              throw new RuntimeException(e);
+            }
+          }
         }
       }
       return instance;
