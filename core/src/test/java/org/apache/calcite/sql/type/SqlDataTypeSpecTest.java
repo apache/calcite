@@ -78,7 +78,7 @@ class SqlDataTypeSpecTest {
     RelDataType dataType = new BasicSqlType(TYPE_SYSTEM, SqlTypeName.DECIMAL, 30);
     SqlDialect dialect = SqlDialect.DatabaseProduct.BIG_QUERY.getDialect();
 
-    String dataTypeSpec = "NUMERIC";
+    String dataTypeSpec = "BIGNUMERIC";
     String dataTypeSpecPrecScale = "BIGNUMERIC(30)";
 
     assertEquals(dataTypeSpec, getSqlDataTypeSpec(dataType, dialect));
@@ -89,7 +89,7 @@ class SqlDataTypeSpecTest {
     RelDataType dataType = new BasicSqlType(TYPE_SYSTEM, SqlTypeName.DECIMAL, 30, 10);
     SqlDialect dialect = SqlDialect.DatabaseProduct.BIG_QUERY.getDialect();
 
-    String dataTypeSpec = "NUMERIC";
+    String dataTypeSpec = "BIGNUMERIC";
     String dataTypeSpecPrecScale = "BIGNUMERIC(30,10)";
 
     assertEquals(dataTypeSpec, getSqlDataTypeSpec(dataType, dialect));
@@ -100,7 +100,7 @@ class SqlDataTypeSpecTest {
     RelDataType dataType = new BasicSqlType(TYPE_SYSTEM, SqlTypeName.DECIMAL, 39, -2);
     SqlDialect dialect = SqlDialect.DatabaseProduct.BIG_QUERY.getDialect();
 
-    String dataTypeSpec = "NUMERIC";
+    String dataTypeSpec = "BIGNUMERIC";
     String dataTypeSpecPrecScale = "BIGNUMERIC";
 
     assertEquals(dataTypeSpec, getSqlDataTypeSpec(dataType, dialect));

@@ -92,4 +92,5 @@ public final class LogicalTableModify extends TableModify {
         sole(inputs), getOperation(), getUpdateColumnList(),
         getSourceExpressionList(), isFlattened());
   }
+
 }
