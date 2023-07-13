@@ -739,6 +739,7 @@ class RexProgramTest extends RexProgramTestBase {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType varcharType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
     final RelDataType rowType = typeFactory.builder()
         .add("a", booleanType)
         .add("b", booleanType)
@@ -748,6 +749,9 @@ class RexProgramTest extends RexProgramTestBase {
         .add("f", booleanType)
         .add("g", booleanType)
         .add("h", intType)
+        .add("i", varcharType)
+        .add("j", varcharType)
+        .add("k", varcharType)
         .build();
 
     final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
@@ -759,6 +763,9 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode fRef = rexBuilder.makeFieldAccess(range, 5);
     final RexNode gRef = rexBuilder.makeFieldAccess(range, 6);
     final RexNode hRef = rexBuilder.makeFieldAccess(range, 7);
+    final RexNode iRef = rexBuilder.makeFieldAccess(range, 8);
+    final RexNode jRef = rexBuilder.makeFieldAccess(range, 9);
+    final RexNode kRef = rexBuilder.makeFieldAccess(range, 10);
 
     final RexNode hEqSeven = eq(hRef, literal(7));
 
@@ -801,6 +808,40 @@ class RexProgramTest extends RexProgramTestBase {
                         and(eRef,
                             or(fRef,
                                and(gRef, or(trueLiteral, falseLiteral)))))))));
+
+    // In order to test the pullFactors RexNode operands in deterministic order
+    checkPullFactors(
+        or(
+            and(eq(aRef, bRef), eq(jRef, literal("Brand#12")), ge(hRef, literal(1)),
+                le(hRef, literal(11)), cRef, rexBuilder.makeIn(
+                    iRef, ImmutableList.of(literal("AIR"), literal("AIR REG"))),
+                rexBuilder.makeIn(
+                    kRef, ImmutableList.of(literal("SM BOX"),
+                    literal("SM CASE"), literal("SM PACK"), literal("SM PKG")))),
+
+            and(eq(aRef, bRef), eq(jRef, literal("Brand#13")), ge(hRef, literal(10)),
+                le(hRef, literal(20)), cRef, rexBuilder.makeIn(
+                    iRef, ImmutableList.of(literal("AIR"), literal("AIR REG"))),
+                rexBuilder.makeIn(
+                    kRef, ImmutableList.of(literal("MED BOX"),
+                    literal("MED CASE"), literal("MED PACK"), literal("MED PKG")))),
+
+            and(eq(aRef, bRef), eq(jRef, literal("Brand#14")), ge(hRef, literal(20)),
+                le(hRef, literal(30)), cRef, rexBuilder.makeIn(
+                    iRef, ImmutableList.of(literal("AIR"), literal("AIR REG"))),
+                rexBuilder.makeIn(
+                    kRef, ImmutableList.of(literal("LG BOX"),
+                    literal("LG CASE"), literal("LG PACK"), literal("LG PKG"))))),
+
+        "AND(=(?0.a, ?0.b), ?0.c, "
+            + "SEARCH(?0.i, Sarg['AIR':CHAR(7), 'AIR REG']:CHAR(7)), "
+            + "OR(AND(=(?0.j, 'Brand#12'), >=(?0.h, 1), <=(?0.h, 11),"
+            + " SEARCH(?0.k, Sarg['SM BOX':CHAR(7), 'SM CASE', 'SM PACK', "
+            + "'SM PKG':CHAR(7)]:CHAR(7))), AND(=(?0.j, 'Brand#13'), >=(?0.h, 10), "
+            + "<=(?0.h, 20), SEARCH(?0.k, Sarg['MED BOX':CHAR(8), 'MED CASE', 'MED PACK',"
+            + " 'MED PKG':CHAR(8)]:CHAR(8))), AND(=(?0.j, 'Brand#14'), "
+            + ">=(?0.h, 20), <=(?0.h, 30), SEARCH(?0.k, Sarg['LG BOX':CHAR(7),"
+            + " 'LG CASE', 'LG PACK', 'LG PKG':CHAR(7)]:CHAR(7)))))");
   }
 
   @Test void testSimplify() {

@@ -63,6 +63,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -2669,8 +2670,9 @@ public class RexUtil {
       return list;
     }
 
-    private static Map<RexNode, RexNode> commonFactors(List<RexNode> nodes) {
-      final Map<RexNode, RexNode> map = new HashMap<>();
+    private static LinkedHashMap<RexNode, RexNode> commonFactors(List<RexNode> nodes) {
+      // make sure the result is in deterministic order
+      final LinkedHashMap<RexNode, RexNode> map = new LinkedHashMap<>();
       int i = 0;
       for (RexNode node : nodes) {
         if (i++ == 0) {
