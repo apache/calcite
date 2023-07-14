@@ -4708,6 +4708,31 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(SqlLibrary.HIVE, SqlLibrary.SPARK), consumer);
   }
 
+  @Test void testFindInSetFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.FIND_IN_SET);
+    f0.checkFails("^find_in_set('ab', 'abc,b,ab,c,def')^",
+        "No match found for function signature FIND_IN_SET\\(<CHARACTER>, <CHARACTER>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("find_in_set('ab', 'abc,b,ab,c,def')",
+          "3", "INTEGER NOT NULL");
+      f.checkString("find_in_set('ab', ',,,ab,abc,b,ab,c,def')",
+          "4", "INTEGER NOT NULL");
+      f.checkString("find_in_set('def', ',,,ab,abc,c,def')",
+          "7", "INTEGER NOT NULL");
+      f.checkString("find_in_set(_UTF8'\u4F60\u597D', _UTF8'b,ab,c,def,\u4F60\u597D')",
+          "5", "INTEGER NOT NULL");
+      f.checkString("find_in_set('acd', ',,,ab,abc,c,def')",
+          "0", "INTEGER NOT NULL");
+      f.checkString("find_in_set('ab,', 'abc,b,ab,c,def')",
+          "0", "INTEGER NOT NULL");
+      f.checkNull("find_in_set(cast(null as varchar), 'abc,b,ab,c,def')");
+      f.checkNull("find_in_set('ab', cast(null as varchar))");
+      f.checkNull("find_in_set(cast(null as varchar), cast(null as varchar))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.HIVE, SqlLibrary.SPARK), consumer);
+  }
+
   @Test void testIfFunc() {
     final SqlOperatorFixture f = fixture();
     checkIf(f.withLibrary(SqlLibrary.BIG_QUERY));

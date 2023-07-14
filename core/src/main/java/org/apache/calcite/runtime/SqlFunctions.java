@@ -146,6 +146,8 @@ import static java.util.Objects.requireNonNull;
 @SuppressWarnings("UnnecessaryUnboxing")
 @Deterministic
 public class SqlFunctions {
+  private static final String COMMA_DELIMITER = ",";
+
   @SuppressWarnings("unused")
   private static final DecimalFormat DOUBLE_FORMAT =
       NumberUtil.decimalFormat("0.0E0");
@@ -1140,6 +1142,29 @@ public class SqlFunctions {
   /** SQL LEVENSHTEIN(string1, string2) function. */
   public static int levenshtein(String string1, String string2) {
     return LEVENSHTEIN_DISTANCE.apply(string1, string2);
+  }
+
+  /** SQL FIND_IN_SET(matchStr, textStr) function.
+   * Returns the index (1-based) of the given matchStr
+   * in the comma-delimited list textStr. Returns 0,
+   * if the matchStr is not found or if the matchStr
+   * contains a comma. */
+  public static @Nullable Integer findInSet(
+      @Nullable String matchStr,
+      @Nullable String textStr) {
+    if (matchStr == null || textStr == null) {
+      return null;
+    }
+    if (matchStr.contains(COMMA_DELIMITER)) {
+      return 0;
+    }
+    String[] splits = textStr.split(COMMA_DELIMITER);
+    for (int i = 0; i < splits.length; i++) {
+      if (matchStr.equals(splits[i])) {
+        return i + 1;
+      }
+    }
+    return 0;
   }
 
   /** SQL ASCII(string) function. */

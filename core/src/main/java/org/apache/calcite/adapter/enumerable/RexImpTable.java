@@ -178,6 +178,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXISTS_NODE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_VALUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_XML;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FACTORIAL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FIND_IN_SET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FLOOR_BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_DATETIME;
@@ -598,6 +599,7 @@ public class RexImpTable {
       defineReflective(REGEXP_INSTR, BuiltInMethod.REGEXP_INSTR2.method,
           BuiltInMethod.REGEXP_INSTR3.method, BuiltInMethod.REGEXP_INSTR4.method,
           BuiltInMethod.REGEXP_INSTR5.method);
+      defineMethod(FIND_IN_SET, BuiltInMethod.FIND_IN_SET.method, NullPolicy.ANY);
 
       map.put(TRIM, new TrimImplementor());
 

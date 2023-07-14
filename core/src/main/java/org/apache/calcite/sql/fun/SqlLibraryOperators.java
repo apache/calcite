@@ -413,6 +413,14 @@ public abstract class SqlLibraryOperators {
               OperandTypes.STRING_STRING_OPTIONAL_STRING,
               SqlFunctionCategory.STRING);
 
+  /** The "FIND_IN_SET(matchStr, textStr)" function. */
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction FIND_IN_SET =
+      SqlBasicFunction.create("FIND_IN_SET",
+          ReturnTypes.INTEGER_NULLABLE,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
   /** The "GREATEST(value, value)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
   public static final SqlFunction GREATEST =
