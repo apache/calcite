@@ -140,7 +140,9 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALENDAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.USING;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -11809,6 +11811,27 @@ class RelToSqlConverterTest {
     String expectedBigQuery = "SELECT sales_fact_1997.store_id\n"
         + "FROM foodmart.product\n"
         + "INNER JOIN foodmart.sales_fact_1997 ON product.product_id IN (sales_fact_1997.product_id)";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
+  @Test void testJoinWithUsingClause() {
+    RelBuilder builder = foodmartRelBuilder();
+    builder = builder.scan("foodmart", "product");
+    final RelNode root = builder
+        .scan("foodmart", "sales_fact_1997")
+        .join(
+            JoinRelType.INNER, builder.call(
+                USING, builder.call(EQUALS,
+                    builder.field(2, 0, "product_id"),
+                    builder.field(2, 1, "product_id")))
+        )
+        .project(builder.field("store_id"))
+        .build();
+
+    String expectedBigQuery = "SELECT sales_fact_1997.store_id\n"
+        + "FROM foodmart.product\n"
+        + "INNER JOIN foodmart.sales_fact_1997 USING (product_id)";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedBigQuery));
   }
