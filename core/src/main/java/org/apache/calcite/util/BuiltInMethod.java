@@ -97,6 +97,7 @@ import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SpatialTypeFunctions;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.SqlFunctions.FlatProductInputType;
+import org.apache.calcite.runtime.UrlFunctions;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.runtime.XmlFunctions;
 import org.apache.calcite.schema.FilterableTable;
@@ -391,6 +392,8 @@ public enum BuiltInMethod {
   SHA512(SqlFunctions.class, "sha512", String.class),
   THROW_UNLESS(SqlFunctions.class, "throwUnless", boolean.class, String.class),
   COMPRESS(CompressionFunctions.class, "compress", String.class),
+  URL_DECODE(UrlFunctions.class, "urlDecode", String.class),
+  URL_ENCODE(UrlFunctions.class, "urlEncode", String.class),
   EXTRACT_VALUE(XmlFunctions.class, "extractValue", String.class, String.class),
   XML_TRANSFORM(XmlFunctions.class, "xmlTransform", String.class, String.class),
   EXTRACT_XML(XmlFunctions.class, "extractXml", String.class, String.class, String.class),

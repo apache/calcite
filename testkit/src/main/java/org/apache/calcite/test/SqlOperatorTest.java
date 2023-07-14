@@ -5619,6 +5619,60 @@ public class SqlOperatorTest {
         "07000000789c4bad48cc2dc84905000bc002ed", "VARBINARY NOT NULL");
   }
 
+  @Test void testUrlDecode() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.URL_DECODE);
+    f0.checkFails("^URL_DECODE('https://calcite.apache.org')^",
+        "No match found for function signature URL_DECODE\\(<CHARACTER>\\)",
+        false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkString("URL_DECODE('https%3A%2F%2Fcalcite.apache.org')",
+        "https://calcite.apache.org",
+        "VARCHAR NOT NULL");
+    f.checkString("URL_DECODE('http%3A%2F%2Ftest%3Fa%3Db%26c%3Dd')",
+        "http://test?a=b&c=d",
+        "VARCHAR NOT NULL");
+    f.checkString("URL_DECODE('http%3A%2F%2F%E4%BD%A0%E5%A5%BD')",
+        "http://\u4F60\u597D",
+        "VARCHAR NOT NULL");
+    f.checkString("URL_DECODE('test')",
+        "test",
+        "VARCHAR NOT NULL");
+    f.checkString("URL_DECODE('')",
+        "",
+        "VARCHAR NOT NULL");
+    f.checkString("URL_DECODE('https%%3A%2F%2Fcalcite.apache.org')",
+        "https%%3A%2F%2Fcalcite.apache.org",
+        "VARCHAR NOT NULL");
+    f.checkString("URL_DECODE('https%3A%2F%2Fcalcite.apache.org%')",
+        "https%3A%2F%2Fcalcite.apache.org%",
+        "VARCHAR NOT NULL");
+    f.checkNull("URL_DECODE(cast(null as varchar))");
+  }
+
+  @Test void testUrlEncode() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.URL_ENCODE);
+    f0.checkFails("^URL_ENCODE('https://calcite.apache.org')^",
+        "No match found for function signature URL_ENCODE\\(<CHARACTER>\\)",
+        false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkString("URL_ENCODE('https://calcite.apache.org')",
+        "https%3A%2F%2Fcalcite.apache.org",
+        "VARCHAR NOT NULL");
+    f.checkString("URL_ENCODE('http://test?a=b&c=d')",
+        "http%3A%2F%2Ftest%3Fa%3Db%26c%3Dd",
+        "VARCHAR NOT NULL");
+    f.checkString("URL_ENCODE(_UTF8'http://\u4F60\u597D')",
+        "http%3A%2F%2F%E4%BD%A0%E5%A5%BD",
+        "VARCHAR NOT NULL");
+    f.checkString("URL_ENCODE('test')",
+        "test",
+        "VARCHAR NOT NULL");
+    f.checkString("URL_ENCODE('')",
+        "",
+        "VARCHAR NOT NULL");
+    f.checkNull("URL_ENCODE(cast(null as varchar))");
+  }
+
   @Test void testExtractValue() {
     SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.MYSQL);
     f.checkNull("ExtractValue(NULL, '//b')");

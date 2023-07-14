@@ -276,6 +276,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MICROS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MILLIS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_SECONDS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.URL_DECODE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.URL_ENCODE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.XML_TRANSFORM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
@@ -902,6 +904,10 @@ public class RexImpTable {
 
       // Compression Operators
       defineMethod(COMPRESS, BuiltInMethod.COMPRESS.method, NullPolicy.ARG0);
+
+      // Url Operators
+      defineMethod(URL_ENCODE, BuiltInMethod.URL_ENCODE.method, NullPolicy.ARG0);
+      defineMethod(URL_DECODE, BuiltInMethod.URL_DECODE.method, NullPolicy.ARG0);
 
       // Xml Operators
       defineMethod(EXTRACT_VALUE, BuiltInMethod.EXTRACT_VALUE.method, NullPolicy.ARG0);
