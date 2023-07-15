@@ -143,6 +143,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_TO_STRING;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_UNION;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ASINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ATANH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_GET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
@@ -180,6 +181,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE32;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_HEX;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.GETBIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ILIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IS_INF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IS_NAN;
@@ -527,6 +529,10 @@ public class RexImpTable {
       defineMethod(OCTET_LENGTH, BuiltInMethod.OCTET_LENGTH.method,
           NullPolicy.STRICT);
       defineMethod(BIT_LENGTH, BuiltInMethod.BIT_LENGTH.method,
+          NullPolicy.STRICT);
+      defineMethod(BIT_GET, BuiltInMethod.BIT_GET.method,
+          NullPolicy.STRICT);
+      defineMethod(GETBIT, BuiltInMethod.BIT_GET.method,
           NullPolicy.STRICT);
       map.put(CONCAT, new ConcatImplementor());
       defineMethod(CONCAT_FUNCTION, BuiltInMethod.MULTI_STRING_CONCAT.method,
