@@ -1842,4 +1842,17 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.or(OperandTypes.CHARACTER, OperandTypes.BINARY),
           SqlFunctionCategory.NUMERIC);
+
+  /** The "BIT_GET(value, position)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlBasicFunction BIT_GET =
+      SqlBasicFunction.create("BIT_GET",
+          ReturnTypes.TINYINT_NULLABLE,
+          OperandTypes.NUMERIC_INTEGER,
+          SqlFunctionCategory.NUMERIC);
+
+  /** Alias for {@link #BIT_GET}. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction GETBIT =
+      BIT_GET.withName("GETBIT");
 }

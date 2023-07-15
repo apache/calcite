@@ -426,6 +426,7 @@ public enum BuiltInMethod {
   OCTET_LENGTH(SqlFunctions.class, "octetLength", ByteString.class),
   CHAR_LENGTH(SqlFunctions.class, "charLength", String.class),
   BIT_LENGTH(SqlFunctions.class, "bitLength", String.class),
+  BIT_GET(SqlFunctions.class, "bitGet", long.class, int.class),
   STRING_CONCAT(SqlFunctions.class, "concat", String.class, String.class),
   STRING_CONCAT_WITH_NULL(SqlFunctions.class, "concatWithNull", String.class,
       String.class),

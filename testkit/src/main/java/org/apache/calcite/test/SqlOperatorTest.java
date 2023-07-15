@@ -3947,6 +3947,83 @@ public class SqlOperatorTest {
     f1.checkNull("BIT_LENGTH(cast(null as binary))");
   }
 
+  /** Generates parameters to test both BIT_GET and GETBIT functions. */
+  static Stream<Arguments> bitGetParameters() {
+    SqlOperatorFixture f0 = SqlOperatorFixtureImpl.DEFAULT.withTester(t -> TESTER);
+    f0.setFor(SqlLibraryOperators.BIT_GET, VmName.EXPAND);
+    SqlOperatorFixture f1 = SqlOperatorFixtureImpl.DEFAULT.withTester(t -> TESTER);
+    f1.setFor(SqlLibraryOperators.GETBIT, VmName.EXPAND);
+    return Stream.of(
+        () -> new Object[] {f0, "BIT_GET"},
+        () -> new Object[] {f1, "GETBIT"});
+  }
+
+  @ParameterizedTest
+  @MethodSource("bitGetParameters")
+  void testBitGetFunc(SqlOperatorFixture f, String functionName) {
+    f.checkFails("^" + functionName + "(cast(11 as bigint), 1)^",
+        "No match found for function signature " + functionName + "\\(<NUMERIC>, <NUMERIC>\\)",
+        false);
+
+    final SqlOperatorFixture f1 = f.withLibrary(SqlLibrary.SPARK);
+    // test for bigint value
+    f1.checkScalarExact(functionName + "(cast(11 as bigint), 3)",
+        "TINYINT NOT NULL", "1");
+    f1.checkScalarExact(functionName + "(cast(-1 as bigint), 0)",
+        "TINYINT NOT NULL", "1");
+    f1.checkScalarExact(functionName + "(cast(11 as bigint), 63)",
+        "TINYINT NOT NULL", "0");
+    f1.checkScalarExact(functionName + "(cast(-1 as bigint), 63)",
+        "TINYINT NOT NULL", "1");
+    f1.checkFails(functionName + "(cast(11 as bigint), 64)",
+        "BIT_GET/GETBIT error: position 64 exceeds the bit upper limit 63",
+        true);
+    f1.checkFails(functionName + "(cast(11 as bigint), -1)",
+        "BIT_GET/GETBIT error: negative position -1 not allowed",
+        true);
+    f1.checkNull(functionName + "(cast(null as bigint), 1)");
+    f1.checkNull(functionName + "(cast(11 as bigint), cast(null as integer))");
+
+    // test for integer value
+    f1.checkScalarExact(functionName + "(cast(11 as integer), 3)",
+        "TINYINT NOT NULL", "1");
+    f1.checkScalarExact(functionName + "(cast(-1 as integer), 0)",
+        "TINYINT NOT NULL", "1");
+    f1.checkScalarExact(functionName + "(cast(11 as integer), 31)",
+        "TINYINT NOT NULL", "0");
+    f1.checkScalarExact(functionName + "(cast(-1 as integer), 31)",
+        "TINYINT NOT NULL", "1");
+    f1.checkFails(functionName + "(cast(11 as integer), 32)",
+        "BIT_GET/GETBIT error: position 32 exceeds the bit upper limit 31",
+        true);
+
+    // test for smallint value
+    f1.checkScalarExact(functionName + "(cast(11 as smallint), 3)",
+        "TINYINT NOT NULL", "1");
+    f1.checkScalarExact(functionName + "(cast(-1 as smallint), 0)",
+        "TINYINT NOT NULL", "1");
+    f1.checkScalarExact(functionName + "(cast(11 as smallint), 15)",
+        "TINYINT NOT NULL", "0");
+    f1.checkScalarExact(functionName + "(cast(-1 as smallint), 15)",
+        "TINYINT NOT NULL", "1");
+    f1.checkFails(functionName + "(cast(11 as smallint), 16)",
+        "BIT_GET/GETBIT error: position 16 exceeds the bit upper limit 15",
+        true);
+
+    // test for tinyint value
+    f1.checkScalarExact(functionName + "(cast(11 as tinyint), 3)",
+        "TINYINT NOT NULL", "1");
+    f1.checkScalarExact(functionName + "(cast(-1 as tinyint), 0)",
+        "TINYINT NOT NULL", "1");
+    f1.checkScalarExact(functionName + "(cast(11 as tinyint), 7)",
+        "TINYINT NOT NULL", "0");
+    f1.checkScalarExact(functionName + "(cast(-1 as tinyint), 7)",
+        "TINYINT NOT NULL", "1");
+    f1.checkFails(functionName + "(cast(11 as tinyint), 8)",
+        "BIT_GET/GETBIT error: position 8 exceeds the bit upper limit 7",
+        true);
+  }
+
   @Test void testAsciiFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.ASCII, VmName.EXPAND);

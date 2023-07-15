@@ -410,6 +410,19 @@ public abstract class ReturnTypes {
       CHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE);
 
   /**
+   * Type-inference strategy whereby the result type of a call is a TINYINT.
+   */
+  public static final SqlReturnTypeInference TINYINT =
+          explicit(SqlTypeName.TINYINT);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is a TINYINT
+   * with nulls allowed if any of the operands allow nulls.
+   */
+  public static final SqlReturnTypeInference TINYINT_NULLABLE =
+          TINYINT.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
    * Type-inference strategy whereby the result type of a call is an Integer.
    */
   public static final SqlReturnTypeInference INTEGER =

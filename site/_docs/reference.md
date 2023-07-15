@@ -2678,6 +2678,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | * | ATANH(numeric)                                 | Returns the inverse hyperbolic tangent of *numeric*
 | s | BIT_LENGTH(binary)                             | Returns the bit length of *binary*
 | s | BIT_LENGTH(string)                             | Returns the bit length of *string*
+| s | BIT_GET(value, position)                       | Returns the bit (0 or 1) value at the specified *position* of numeric *value*. The positions are numbered from right to left, starting at zero. The *position* argument cannot be negative
 | b | CEIL(value)                                    | Similar to standard `CEIL(value)` except if *value* is an integer type, the return type is a double
 | m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
 | b o p | CHR(integer)                               | Returns the character whose UTF-8 code is *integer*
@@ -2728,6 +2729,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | FORMAT_DATETIME(string, timestamp)             | Formats *timestamp* according to the specified format *string*
 | b | FORMAT_TIME(string, time)                      | Formats *time* according to the specified format *string*
 | b | FORMAT_TIMESTAMP(string timestamp)             | Formats *timestamp* according to the specified format *string*
+| s | GETBIT(value, position)                        | Equivalent to `BIT_GET(value, position)`
 | b o | GREATEST(expr [, expr ]*)                    | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
 | b | IFNULL(value1, value2)                         | Equivalent to `NVL(value1, value2)`

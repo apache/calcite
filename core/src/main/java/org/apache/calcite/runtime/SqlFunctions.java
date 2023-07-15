@@ -815,6 +815,39 @@ public class SqlFunctions {
     return s.length() * 8;
   }
 
+  /** SQL BIT_GET(value, position) function. */
+  public static byte bitGet(long value, int position) {
+    checkPosition(position, java.lang.Long.SIZE - 1);
+    return (byte) ((value >> position) & 1);
+  }
+
+  /** SQL BIT_GET(value, position) function. */
+  public static byte bitGet(int value, int position) {
+    checkPosition(position, java.lang.Integer.SIZE - 1);
+    return (byte) ((value >> position) & 1);
+  }
+
+  /** SQL BIT_GET(value, position) function. */
+  public static byte bitGet(short value, int position) {
+    checkPosition(position, java.lang.Short.SIZE - 1);
+    return (byte) ((value >> position) & 1);
+  }
+
+  /** SQL BIT_GET(value, position) function. */
+  public static byte bitGet(byte value, int position) {
+    checkPosition(position, java.lang.Byte.SIZE - 1);
+    return (byte) ((value >> position) & 1);
+  }
+
+  private static void checkPosition(int position, int limit) {
+    if (position < 0) {
+      throw RESOURCE.illegalNegativeBitGetPosition(position).ex();
+    }
+    if (limit < position) {
+      throw RESOURCE.illegalBitGetPositionExceedsLimit(position, limit).ex();
+    }
+  }
+
   /** SQL {@code string || string} operator. */
   public static String concat(String s0, String s1) {
     return s0 + s1;
