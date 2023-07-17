@@ -141,6 +141,7 @@ Zou Dan.
   Now locale's language tag should match IETF BCP 47 language tag or be empty.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5477">CALCITE-5477</a>]
   Build with Guava 19.0.
+
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 19;
 Guava versions 16.0.1 to 31.1-jre;
@@ -201,7 +202,7 @@ other software versions as specified in gradle.properties.
     Add `MAP_KEYS`, `MAP_VALUES` function (enabled in Spark library)
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-5738">CALCITE-5738</a>]
     Add `SORT_ARRAY` function (enabled in Spark library)
-* Supporting new SQL functions in BigQuery、MSSql、MySQL、Oracle、Postgres:
+* Supporting new SQL functions in BigQuery, MSSql, MySQL, Oracle and Postgres:
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-5548">CALCITE-5548</a>]
     Add MSSQL-style `CONVERT` function (enabled in MSSql library)
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-5741">CALCITE-5741</a>]
