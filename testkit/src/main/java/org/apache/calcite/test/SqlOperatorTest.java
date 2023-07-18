@@ -9941,6 +9941,14 @@ public class SqlOperatorTest {
         "[null, foo]", "CHAR(3) ARRAY NOT NULL");
     f2.checkScalar("array(null)",
         "[null]", "NULL ARRAY NOT NULL");
+    f2.checkScalar("array(1, 2, 'Hi')",
+        "[1, 2, Hi]", "CHAR(2) NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array(1, 2, 'Hi', 'Hello')",
+        "[1, 2, Hi, Hello]", "CHAR(5) NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array(1, 2, 'Hi', null)",
+        "[1, 2, Hi, null]", "CHAR(2) ARRAY NOT NULL");
+    f2.checkScalar("array(1, 2, 'Hi', cast(null as char(10)))",
+        "[1, 2, Hi, null]", "CHAR(10) ARRAY NOT NULL");
   }
 
   /**
