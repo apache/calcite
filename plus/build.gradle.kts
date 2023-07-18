@@ -28,7 +28,6 @@ dependencies {
     implementation("net.hydromatic:tpcds")
     implementation("org.apache.calcite.avatica:avatica-server")
     implementation("org.hsqldb:hsqldb")
-    implementation("org.reflections:reflections:0.10.2")
 
     testImplementation("net.hydromatic:sql-logic-test")
     testImplementation(project(":testkit"))

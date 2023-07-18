@@ -17,19 +17,20 @@
 package org.apache.calcite.slt;
 
 import org.apache.calcite.slt.executors.CalciteExecutor;
+import org.apache.calcite.util.trace.CalciteTrace;
+
+import com.google.common.collect.ImmutableSet;
 
 import net.hydromatic.sqllogictest.OptionsParser;
 import net.hydromatic.sqllogictest.TestStatistics;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.function.Executable;
+import org.slf4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -44,7 +45,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,63 +56,69 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 /**
  * Tests using sql-logic-test suite.
+ *
+ * <p>For each test file the number of failed tests is saved in a "golden" file.
+ * These results are checked in as part of the `sltttestfailures.txt` resource file.
+ * Currently, there are quite a few errors, so this tool does not track of the actual
+ * errors that were encountered; we expect that, as bugs are fixed in Calcite,
+ * the number of errors will shrink, and a more precise accounting method will be used.
+ *
+ * <p>The tests will fail if any test script generates
+ * *more* errors than the number from the golden file.
  */
-public class SqlLogicTestsForCalciteTests {
+public class SqlLogicTests {
+  private static final Logger LOGGER =
+      CalciteTrace.getTestTracer(SqlLogicTests.class);
+
   /**
    * Short summary of the results of a test execution.
    */
-  static class TestSummary {
+  public static class TestSummary {
     /**
      * File containing tests.
      */
     final String file;
     /**
-     * Number of tests that have passed.
-     */
-    final int passed;
-    /**
      * Number of tests that have failed.
      */
     final int failed;
 
-    TestSummary(String file, int passed, int failed) {
+    TestSummary(String file, int failed) {
       this.file = file;
-      this.passed = passed;
       this.failed = failed;
     }
 
     /**
-     * Parse a TestSummary from a string.
+     * Parses a TestSummary from a string.
      * The inverse of 'toString'.
      *
      * @return The parsed TestSummary or null on failure.
      */
-    static TestSummary parse(String line) {
+    public static TestSummary parse(String line) {
       String[] parts = line.split(":");
-      if (parts.length != 3) {
+      if (parts.length != 2) {
         return null;
       }
       try {
-        int passed = Integer.parseInt(parts[1]);
-        int failed = Integer.parseInt(parts[2]);
-        return new TestSummary(parts[0], passed, failed);
+        int failed = Integer.parseInt(parts[1]);
+        return new TestSummary(parts[0], failed);
       } catch (NumberFormatException ex) {
         return null;
       }
     }
 
     @Override public String toString() {
-      return this.file + ":" + this.passed + ":" + this.failed;
+      return this.file + ":" + this.failed;
     }
 
     /**
-     * Check if the 'other' TestSummaries are a regressions
+     * Check if the 'other' TestSummaries indicate a regressions
      * when compared to 'this'.
      *
      * @param other TestSummary to compare against.
      * @return 'true' if 'other' is a regression from 'this'.
      */
-    boolean regression(TestSummary other) {
+    public boolean isRegression(TestSummary other) {
       return other.failed > this.failed;
     }
   }
@@ -120,7 +126,7 @@ public class SqlLogicTestsForCalciteTests {
   /**
    * Summary for all tests executed.
    */
-  static class AllTestSummaries {
+  public static class AllTestSummaries {
     /**
      * Map test summary name to test summary.
      */
@@ -134,7 +140,7 @@ public class SqlLogicTestsForCalciteTests {
       this.testResults.put(summary.file, summary);
     }
 
-    void read(InputStream stream) throws IOException {
+    AllTestSummaries read(InputStream stream) {
       try (BufferedReader reader =
                new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
         reader.lines().forEach(line -> {
@@ -142,10 +148,29 @@ public class SqlLogicTestsForCalciteTests {
           if (summary != null) {
             this.add(summary);
           } else {
-            System.err.println("Could not parse line " + line);
+            LOGGER.warn("Could not parse line " + line);
           }
         });
+        return this;
+      } catch (IOException ex) {
+        // Wrapping the IOException makes it easier to use this method in the
+        // initializer of a static variable.
+        throw new RuntimeException(ex);
       }
+    }
+
+    boolean regression(TestSummary summary) {
+      TestSummary original = this.testResults.get(summary.file);
+      if (original == null) {
+        LOGGER.warn("No historical data for test " + summary.file);
+        return false;
+      }
+      if (original.isRegression(summary)) {
+        LOGGER.error("Regression: " + original.file
+            + " had " + original.failed + " failures, now has " + summary.failed);
+        return true;
+      }
+      return false;
     }
 
     /**
@@ -158,16 +183,7 @@ public class SqlLogicTestsForCalciteTests {
     boolean regression(AllTestSummaries other) {
       boolean regression = false;
       for (TestSummary summary: other.testResults.values()) {
-        TestSummary original = this.testResults.get(summary.file);
-        if (original == null) {
-          System.err.println("No historical data for test " + summary.file);
-          continue;
-        }
-        if (original.regression(summary)) {
-          System.err.println("Regression: " + original.file
-              + " had " + original.failed + " failures, now has " + summary.failed);
-          regression = true;
-        }
+        regression = regression || this.regression(summary);
       }
       return regression;
     }
@@ -211,12 +227,14 @@ public class SqlLogicTestsForCalciteTests {
    * static method.
    */
   static AllTestSummaries testSummaries = new AllTestSummaries();
+
+  static final String GOLDEN_FILE = "/slttestfailures.txt";
   /**
    * Summaries checked-in as resources that we compare against.
    */
-  static AllTestSummaries goldenTestSummaries = new AllTestSummaries();
-
-  static final String GOLDENFILE = "/slttestfailures.txt";
+  static AllTestSummaries goldenTestSummaries =
+      new AllTestSummaries()
+          .read(SqlLogicTests.class.getResourceAsStream(GOLDEN_FILE));
 
   private static TestStatistics launchSqlLogicTest(String... args) throws IOException {
     OptionsParser options = new OptionsParser(false, System.out, System.err);
@@ -225,28 +243,26 @@ public class SqlLogicTestsForCalciteTests {
   }
 
   TestSummary shortSummary(String file, TestStatistics statistics) {
-    return new TestSummary(file, statistics.getPassedTestCount(), statistics.getFailedTestCount());
+    return new TestSummary(file, statistics.getFailedTestCount());
   }
 
-  // The following tests currently timeout during execution.
-  // Technically these are Calcite bugs.
-  Set<String> timeout = new HashSet<String>() {
-    {
-      add("test/select5.test");
-      add("test/random/groupby/slt_good_10.test");
-    }
-  };
+  /**
+   * The following tests currently timeout during execution.
+   * Technically these are Calcite bugs.
+   */
+  Set<String> timeout =
+      ImmutableSet.of("test/select5.test",
+          "test/random/groupby/slt_good_10.test");
 
-  // The following tests contain SQL statements that are not supported by HSQLDB
-  Set<String> unsupported = new HashSet<String>() {
-    {
-      add("test/evidence/slt_lang_replace.test");
-      add("test/evidence/slt_lang_createtrigger.test");
-      add("test/evidence/slt_lang_droptrigger.test");
-      add("test/evidence/slt_lang_update.test");
-      add("test/evidence/slt_lang_reindex.test");
-    }
-  };
+  /**
+   * The following tests contain SQL statements that are not supported by HSQLDB.
+   */
+  Set<String> unsupported =
+      ImmutableSet.of("test/evidence/slt_lang_replace.test",
+          "test/evidence/slt_lang_createtrigger.test",
+          "test/evidence/slt_lang_droptrigger.test",
+          "test/evidence/slt_lang_update.test",
+          "test/evidence/slt_lang_reindex.test");
 
   void runOneTestFile(String testFile) throws IOException {
     if (timeout.contains(testFile)) {
@@ -256,6 +272,11 @@ public class SqlLogicTestsForCalciteTests {
       return;
     }
 
+    // The arguments below are command-line arguments for the sql-logic-test
+    // executable from the hydromatic project.  The verbosity of the
+    // output can be increased by adding more "-v" flags to the command-line.
+    // By increasing verbosity even more you can get in the output a complete stack trace
+    // for each error caused by an exception.
     TestStatistics res = launchSqlLogicTest("-v", "-e", "calcite", testFile);
     assertThat(res, notNullValue());
     assertThat(res.getParseFailureCount(), is(0));
@@ -263,20 +284,32 @@ public class SqlLogicTestsForCalciteTests {
     assertThat(res.getTestFileCount(), is(1));
     res.printStatistics(System.err);  // Print errors found
     TestSummary summary = this.shortSummary(testFile, res);
+    boolean regression = goldenTestSummaries.regression(summary);
+    Assumptions.assumeFalse(regression, "Regression in " + summary.file);
+    // The following is only useful if a new golden file need to be created
     testSummaries.add(summary);
   }
 
-  @Test @Tag("slow")
-  public void runOneTestFile() throws IOException {
-    runOneTestFile("select1.test");
+  @TestFactory @Tag("slow")
+  List<DynamicTest> testSlow() {
+    return generateTests(ImmutableSet.of("select1.test"));
   }
 
   @TestFactory @Disabled("This takes very long, should be run manually")
-  List<DynamicTest> runAllTests() {
-    // Run in parallel each test file.
-    Set<String> tests = net.hydromatic.sqllogictest.Main.getTestList();
+  List<DynamicTest> testAll() {
+    // Run in parallel each test file.  There are 622 of these, each taking
+    // a few minutes.
+    return generateTests(net.hydromatic.sqllogictest.Main.getTestList());
+  }
+
+  /**
+   * Generate a list of all the tests that can be executed.
+   *
+   * @param testFiles Names of files containing tests.
+   */
+  List<DynamicTest> generateTests(Set<String> testFiles) {
     List<DynamicTest> result = new ArrayList<>();
-    for (String test: tests) {
+    for (String test: testFiles) {
       Executable executable = new Executable() {
         @Override public void execute() {
           assertTimeoutPreemptively(Duration.ofMinutes(10), () -> runOneTestFile(test));
@@ -288,25 +321,17 @@ public class SqlLogicTestsForCalciteTests {
     return result;
   }
 
-  @BeforeAll
-  public static void readGoldenFile() throws IOException {
-    // Read the statistics of the previously-failing tests
-    try (InputStream stream = SqlLogicTestsForCalciteTests.class.getResourceAsStream(GOLDENFILE)) {
-      goldenTestSummaries.read(stream);
+  /**
+   * Create the golden reference file with test results.
+   */
+  public static void createGoldenFile() throws IOException {
+    // Currently this method is not invoked.
+    // It can be used to create a new version of the GOLDEN_FILE
+    // when bugs in Calcite are fixed.  It should be called after
+    // all tests have executed and passed.
+    File file = new File(GOLDEN_FILE);
+    if (!file.exists()) {
+      testSummaries.writeToFile(file);
     }
-  }
-
-  @AfterAll
-  public static void findRegressions() throws IOException {
-    // Compare with failures produced by a previous execution
-
-    // Code used to create the golden file originally
-    // File file = new File(goldenFile);
-    // if (!file.exists()) {
-    //   testSummaries.writeToFile(file);
-    //   return;
-    // }
-    boolean regression = goldenTestSummaries.regression(testSummaries);
-    Assertions.assertFalse(regression, "Regression discovered");
   }
 }
