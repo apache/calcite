@@ -1011,10 +1011,46 @@ public abstract class SqlLibraryOperators {
           .withKind(SqlKind.CONCAT_WS_MSSQL);
 
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
-    RelDataType type =
-        opBinding.getOperandCount() > 0
-            ? ReturnTypes.LEAST_RESTRICTIVE.inferReturnType(opBinding)
-            : opBinding.getTypeFactory().createUnknownType();
+    final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
+
+    // only numeric & character types check
+    boolean hasNumeric = false;
+    boolean hasCharacter = false;
+    boolean hasOthers = false;
+    for (RelDataType type : operandTypes) {
+      SqlTypeFamily family = type.getSqlTypeName().getFamily();
+      requireNonNull(family, "array element type family");
+      switch (family) {
+      case NUMERIC:
+        hasNumeric = true;
+        break;
+      case CHARACTER:
+        hasCharacter = true;
+        break;
+      case NULL:
+        // skip it becase we allow null
+        break;
+      default:
+        hasOthers = true;
+        break;
+      }
+    }
+
+    RelDataType type;
+    boolean useCharacterTypes = hasNumeric && hasCharacter && !hasOthers;
+    if (useCharacterTypes) {
+      List<RelDataType> characterTypes =
+          // may include NULL literal
+          operandTypes.stream().filter(
+              t -> t.getSqlTypeName().getFamily() != SqlTypeFamily.NUMERIC)
+              .collect(Collectors.toList());
+      type = opBinding.getTypeFactory().leastRestrictive(characterTypes);
+    } else {
+      type =
+          opBinding.getOperandCount() > 0
+              ? ReturnTypes.LEAST_RESTRICTIVE.inferReturnType(opBinding)
+              : opBinding.getTypeFactory().createUnknownType();
+    }
     requireNonNull(type, "inferred array element type");
     return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, false);
   }
