@@ -7364,7 +7364,7 @@ SqlNode StandardFloorCeilOptions(Span s, boolean floorFlag) :
         }
     )?
     <RPAREN> {
-        SqlOperator op = SqlStdOperatorTable.floorCeil(floorFlag, (SqlConformanceEnum) this.conformance);
+        SqlOperator op = SqlStdOperatorTable.floorCeil(floorFlag, this.conformance);
         function =  op.createCall(s.end(this), args);
     }
     (
