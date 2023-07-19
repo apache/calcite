@@ -1596,7 +1596,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction ORACLE_NEXT_DAY =
       new SqlFunction(
-          "NEXT_DAY",
+          "ORACLE_NEXT_DAY",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP_NULLABLE,
           null,
