@@ -833,6 +833,7 @@ public enum BuiltInMethod {
       long.class),
   BIG_DECIMAL_ADD(BigDecimal.class, "add", BigDecimal.class),
   BIG_DECIMAL_NEGATE(BigDecimal.class, "negate"),
+  BIG_DECIMAL_SET_SCALE(BigDecimal.class, "setScale", int.class, int.class),
   COMPARE_TO(Comparable.class, "compareTo", Object.class);
 
   @SuppressWarnings("ImmutableEnumChecker")

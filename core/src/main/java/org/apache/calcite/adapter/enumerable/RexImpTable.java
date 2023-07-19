@@ -2907,8 +2907,13 @@ public class RexImpTable {
           || type1 == BigDecimal.class
           || COMPARISON_OPERATORS.contains(op)
           && !COMP_OP_TYPES.contains(primitive)) {
-        return Expressions.call(SqlFunctions.class, backupMethodName,
-            argValueList);
+        Expression callExp =
+            Expressions.call(SqlFunctions.class, backupMethodName, argValueList);
+        int targetScale = call.getType().getScale();
+        if (callExp.getType() == BigDecimal.class && targetScale > 0) {
+          callExp = RexToLixTranslator.adjustDecimalScale(targetScale, callExp);
+        }
+        return callExp;
       }
 
       // When checking equals or not equals on two primitive boxing classes

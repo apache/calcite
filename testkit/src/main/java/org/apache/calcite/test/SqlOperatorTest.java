@@ -346,11 +346,6 @@ public class SqlOperatorTest {
       Pattern.compile("(?s).*could not calculate results for the following "
           + "row.*PC=5 Code=2201F.*");
 
-  /**
-   * Whether DECIMAL type is implemented.
-   */
-  public static final boolean DECIMAL = false;
-
   /** Function object that returns a string with 2 copies of each character.
    * For example, {@code DOUBLER.apply("xy")} returns {@code "xxyy"}. */
   private static final UnaryOperator<String> DOUBLER =
@@ -702,9 +697,7 @@ public class SqlOperatorTest {
   @MethodSource("safeParameters")
   void testCastStringToDecimal(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
-    if (!DECIMAL) {
-      return;
-    }
+
     // string to decimal
     f.checkScalarExact("cast('1.29' as decimal(2,1))",
         "DECIMAL(2, 1) NOT NULL",
@@ -734,41 +727,39 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
     // interval to decimal
-    if (DECIMAL) {
-      f.checkScalarExact("cast(INTERVAL '1.29' second(1,2) as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "1.3");
-      f.checkScalarExact("cast(INTERVAL '1.25' second as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "1.3");
-      f.checkScalarExact("cast(INTERVAL '-1.29' second as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "-1.3");
-      f.checkScalarExact("cast(INTERVAL '-1.25' second as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "-1.3");
-      f.checkScalarExact("cast(INTERVAL '-1.21' second as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "-1.2");
-      f.checkScalarExact("cast(INTERVAL '5' minute as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "5.0");
-      f.checkScalarExact("cast(INTERVAL '5' hour as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "5.0");
-      f.checkScalarExact("cast(INTERVAL '5' day as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "5.0");
-      f.checkScalarExact("cast(INTERVAL '5' month as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "5.0");
-      f.checkScalarExact("cast(INTERVAL '5' year as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "5.0");
-      f.checkScalarExact("cast(INTERVAL '-5' day as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "-5.0");
-    }
+    f.checkScalarExact("cast(INTERVAL '1.29' second(1,2) as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "1.3");
+    f.checkScalarExact("cast(INTERVAL '1.25' second as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "1.3");
+    f.checkScalarExact("cast(INTERVAL '-1.29' second as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "-1.3");
+    f.checkScalarExact("cast(INTERVAL '-1.25' second as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "-1.3");
+    f.checkScalarExact("cast(INTERVAL '-1.21' second as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "-1.2");
+    f.checkScalarExact("cast(INTERVAL '5' minute as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "5.0");
+    f.checkScalarExact("cast(INTERVAL '5' hour as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "5.0");
+    f.checkScalarExact("cast(INTERVAL '5' day as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "5.0");
+    f.checkScalarExact("cast(INTERVAL '5' month as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "5.0");
+    f.checkScalarExact("cast(INTERVAL '5' year as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "5.0");
+    f.checkScalarExact("cast(INTERVAL '-5' day as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "-5.0");
 
     // Interval to bigint
     f.checkScalarExact("cast(INTERVAL '1.25' second as bigint)",
@@ -864,23 +855,20 @@ public class SqlOperatorTest {
         "cast(5 as interval year)",
         "+5",
         "INTERVAL YEAR NOT NULL");
-    if (DECIMAL) {
-      // Due to DECIMAL rounding bugs, currently returns "+5"
-      f.checkScalar(
-          "cast(5.7 as interval day)",
-          "+6",
-          "INTERVAL DAY NOT NULL");
-      f.checkScalar(
-          "cast(-5.7 as interval day)",
-          "-6",
-          "INTERVAL DAY NOT NULL");
-    } else {
-      // An easier case
-      f.checkScalar(
-          "cast(6.2 as interval day)",
-          "+6",
-          "INTERVAL DAY NOT NULL");
-    }
+
+    f.checkScalar(
+        "cast(5.7 as interval day)",
+        "+6",
+        "INTERVAL DAY NOT NULL");
+    f.checkScalar(
+        "cast(-5.7 as interval day)",
+        "-6",
+        "INTERVAL DAY NOT NULL");
+    f.checkScalar(
+        "cast(6.2 as interval day)",
+        "+6",
+        "INTERVAL DAY NOT NULL");
+
     f.checkScalar(
         "cast(3456 as interval month(4))",
         "+3456",
@@ -1086,9 +1074,7 @@ public class SqlOperatorTest {
 
     // null
     f.checkNull("cast(null as integer)");
-    if (DECIMAL) {
-      f.checkNull("cast(null as decimal(4,3))");
-    }
+    f.checkNull("cast(null as decimal(4,3))");
     f.checkNull("cast(null as double)");
     f.checkNull("cast(null as varchar(10))");
     f.checkNull("cast(null as char(10))");
@@ -1430,14 +1416,12 @@ public class SqlOperatorTest {
     f.checkString("case 1 when 1 then cast('a' as varchar(1)) "
             + "when 2 then cast('bcd' as varchar(3)) end",
         "a", "VARCHAR(3)");
-    if (DECIMAL) {
-      f.checkScalarExact("case 2 when 1 then 11.2 "
-              + "when 2 then 4.543 else null end",
-          "DECIMAL(5, 3)", "4.543");
-      f.checkScalarExact("case 1 when 1 then 11.2 "
-              + "when 2 then 4.543 else null end",
-          "DECIMAL(5, 3)", "11.200");
-    }
+    f.checkScalarExact("case 2 when 1 then 11.2 "
+            + "when 2 then 4.543 else null end",
+        "DECIMAL(5, 3)", "4.543");
+    f.checkScalarExact("case 1 when 1 then 11.2 "
+            + "when 2 then 4.543 else null end",
+        "DECIMAL(5, 3)", "11.200");
     f.checkScalarExact("case 'a' when 'a' then 1 end", 1);
     f.checkScalarApprox("case 1 when 1 then 11.2e0 "
             + "when 2 then cast(4 as bigint) else 3 end",
@@ -2132,9 +2116,7 @@ public class SqlOperatorTest {
     f.checkScalarExact("12%-7", 5);
     f.checkScalarExact("cast(12 as tinyint) % cast(-7 as tinyint)",
         "TINYINT NOT NULL", "5");
-    if (!DECIMAL) {
-      return;
-    }
+
     f.checkScalarExact("cast(9 as decimal(2, 0)) % 7",
         "INTEGER NOT NULL", "2");
     f.checkScalarExact("7 % cast(9 as decimal(2, 0))",
@@ -2151,9 +2133,6 @@ public class SqlOperatorTest {
   void checkModOperatorNull(SqlOperatorFixture f) {
     f.checkNull("cast(null as integer) % 2");
     f.checkNull("4 % cast(null as tinyint)");
-    if (!DECIMAL) {
-      return;
-    }
     f.checkNull("4 % cast(null as decimal(12,0))");
   }
 
@@ -2173,21 +2152,19 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.DIVIDE, VmName.EXPAND);
     f.checkScalarExact("10 / 5", "INTEGER NOT NULL", "2");
     f.checkScalarExact("-10 / 5", "INTEGER NOT NULL", "-2");
-    f.checkScalarExact("-10 / 5.0", "DECIMAL(17, 6) NOT NULL", "-2");
+    f.checkScalarExact("-10 / 5.0", "DECIMAL(17, 6) NOT NULL", "-2.000000");
     f.checkScalarApprox(" cast(10.0 as double) / 5", "DOUBLE NOT NULL",
         isExactly(2));
     f.checkScalarApprox(" cast(10.0 as real) / 4", "REAL NOT NULL",
         isExactly("2.5"));
     f.checkScalarApprox(" 6.0 / cast(10.0 as real) ", "DOUBLE NOT NULL",
         isExactly("0.6"));
-    f.checkScalarExact("10.0 / 5.0", "DECIMAL(9, 6) NOT NULL", "2");
-    if (DECIMAL) {
-      f.checkScalarExact("1.0 / 3.0", "DECIMAL(8, 6) NOT NULL", "0.333333");
-      f.checkScalarExact("100.1 / 0.0001", "DECIMAL(14, 7) NOT NULL",
-          "1001000.0000000");
-      f.checkScalarExact("100.1 / 0.00000001", "DECIMAL(19, 8) NOT NULL",
-          "10010000000.00000000");
-    }
+    f.checkScalarExact("10.0 / 5.0", "DECIMAL(9, 6) NOT NULL", "2.000000");
+    f.checkScalarExact("1.0 / 3.0", "DECIMAL(8, 6) NOT NULL", "0.333333");
+    f.checkScalarExact("100.1 / 0.0001", "DECIMAL(14, 7) NOT NULL",
+        "1001000.0000000");
+    f.checkScalarExact("100.1 / 0.00000001", "DECIMAL(19, 8) NOT NULL",
+        "10010000000.00000000");
     f.checkNull("1e1 / cast(null as float)");
 
     f.checkScalarExact("100.1 / 0.00000000000000001", "DECIMAL(19, 0) NOT NULL",
@@ -2655,9 +2632,6 @@ public class SqlOperatorTest {
   }
 
   @Test void testLessThanOperatorInterval() {
-    if (!DECIMAL) {
-      return;
-    }
     final SqlOperatorFixture f = fixture();
     f.checkBoolean("interval '2' day < interval '1' day", false);
     f.checkBoolean("interval '2' day < interval '5' day", true);
@@ -5831,9 +5805,6 @@ public class SqlOperatorTest {
     f.checkScalarExact("mod(cast(12 as tinyint), cast(-7 as tinyint))",
         "TINYINT NOT NULL", "5");
 
-    if (!DECIMAL) {
-      return;
-    }
     f.checkScalarExact("mod(cast(9 as decimal(2, 0)), 7)",
         "INTEGER NOT NULL", "2");
     f.checkScalarExact("mod(7, cast(9 as decimal(2, 0)))",
@@ -5847,9 +5818,6 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.checkNull("mod(cast(null as integer),2)");
     f.checkNull("mod(4,cast(null as tinyint))");
-    if (!DECIMAL) {
-      return;
-    }
     f.checkNull("mod(4,cast(null as decimal(12,0)))");
   }
 
@@ -6965,7 +6933,7 @@ public class SqlOperatorTest {
       f.checkScalarApprox("atanh(0.76159416)", "DOUBLE NOT NULL",
           isWithin(1d, 0.0001d));
       f.checkScalarApprox("atanh(cast(-0.1 as decimal))", "DOUBLE NOT NULL",
-          isWithin(-0.1003d, 0.0001d));
+          isWithin(-0.0d, 0.0001d));
       f.checkNull("atanh(cast(null as integer))");
       f.checkNull("atanh(cast(null as double))");
       f.checkFails("atanh(1)",
@@ -10232,6 +10200,8 @@ public class SqlOperatorTest {
     f.checkScalarExact("ceil(cast(3 as bigint))", "DOUBLE", "3.0");
     f.checkScalarExact("ceil(cast(3.5 as double))", "DOUBLE", "4.0");
     f.checkScalarExact("ceil(cast(3.45 as decimal))",
+        "DECIMAL(19, 0)", "3");
+    f.checkScalarExact("ceil(cast(3.45 as decimal(19, 1)))",
         "DECIMAL(19, 0)", "4");
     f.checkScalarExact("ceil(cast(3.45 as float))", "FLOAT", "4.0");
     f.checkNull("ceil(cast(null as tinyint))");
@@ -12812,6 +12782,8 @@ public class SqlOperatorTest {
         "VARBINARY NOT NULL");
     f.checkScalar("CAST(CAST(x'ABCDEF12' AS VARBINARY) AS VARBINARY(3))",
         "abcdef", "VARBINARY(3) NOT NULL");
+    f.checkScalar("CAST(1.732 AS NUMERIC(18, 0))", "1",
+        "DECIMAL(18, 0) NOT NULL");
 
     if (!f.brokenTestsEnabled()) {
       return;
