@@ -838,7 +838,7 @@ public abstract class SqlLibraryOperators {
    * it returns a NULL value instead of raising an error.
    * Here second and third operands are optional
    * Third operand is true if the first operand is Timestamp */
-  @LibraryOperator(libraries = {SNOWFLAKE})
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlFunction TRY_TO_DATE =
       new SqlFunction("TRY_TO_DATE",
           SqlKind.OTHER_FUNCTION,
