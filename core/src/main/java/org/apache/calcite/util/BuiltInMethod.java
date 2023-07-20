@@ -360,6 +360,7 @@ public enum BuiltInMethod {
   STRCMP(SqlFunctions.class, "strcmp", String.class, String.class),
   DIFFERENCE(SqlFunctions.class, "difference", String.class, String.class),
   REVERSE(SqlFunctions.class, "reverse", String.class),
+  LEVENSHTEIN(SqlFunctions.class, "levenshtein", String.class, String.class),
   LEFT(SqlFunctions.class, "left", String.class, int.class),
   RIGHT(SqlFunctions.class, "right", String.class, int.class),
   TO_BASE64(SqlFunctions.class, "toBase64", String.class),

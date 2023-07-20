@@ -1267,6 +1267,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.CHARACTER)
           .withFunctionType(SqlFunctionCategory.STRING);
 
+  /** The "LEVENSHTEIN(string1, string2)" function. */
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction LEVENSHTEIN =
+      SqlBasicFunction.create("LEVENSHTEIN",
+          ReturnTypes.INTEGER_NULLABLE,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL})
   public static final SqlFunction FROM_BASE64 =
       SqlBasicFunction.create("FROM_BASE64",
