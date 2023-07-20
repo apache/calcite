@@ -4320,6 +4320,25 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL), consumer);
   }
 
+  @Test void testLevenshtein() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.LEVENSHTEIN);
+    f0.checkFails("^levenshtein('abc', 'abc')^",
+        "No match found for function signature LEVENSHTEIN\\(<CHARACTER>, <CHARACTER>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar("levenshtein('', '')", 0, "INTEGER NOT NULL");
+      f.checkScalar("levenshtein('abc', 'abc')", 0, "INTEGER NOT NULL");
+      f.checkScalar("levenshtein('kitten', 'sitting')", 3, "INTEGER NOT NULL");
+      f.checkScalar("levenshtein('frog', 'fog')", 1, "INTEGER NOT NULL");
+      f.checkScalar("levenshtein(_UTF8'\u4F60\u597D', _UTF8'\u4F60\u5F88\u597D')",
+          1, "INTEGER NOT NULL");
+      f.checkNull("levenshtein(cast(null as varchar), 'abc')");
+      f.checkNull("levenshtein('abc', cast(null as varchar))");
+      f.checkNull("levenshtein(cast(null as varchar), cast(null as varchar))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.HIVE, SqlLibrary.SPARK), consumer);
+  }
+
   @Test void testIfFunc() {
     final SqlOperatorFixture f = fixture();
     checkIf(f.withLibrary(SqlLibrary.BIG_QUERY));

@@ -50,6 +50,7 @@ import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
+import org.apache.commons.text.similarity.LevenshteinDistance;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
@@ -142,6 +143,9 @@ public class SqlFunctions {
   private static final Soundex SOUNDEX = new Soundex();
 
   private static final int SOUNDEX_LENGTH = 4;
+
+  private static final LevenshteinDistance LEVENSHTEIN_DISTANCE =
+      LevenshteinDistance.getDefaultInstance();
 
   private static final Pattern FROM_BASE64_REGEXP = Pattern.compile("[\\t\\n\\r\\s]");
 
@@ -686,6 +690,11 @@ public class SqlFunctions {
   public static String reverse(String s) {
     final StringBuilder buf = new StringBuilder(s);
     return buf.reverse().toString();
+  }
+
+  /** SQL LEVENSHTEIN(string1, string2) function. */
+  public static int levenshtein(String string1, String string2) {
+    return LEVENSHTEIN_DISTANCE.apply(string1, string2);
   }
 
   /** SQL ASCII(string) function. */
