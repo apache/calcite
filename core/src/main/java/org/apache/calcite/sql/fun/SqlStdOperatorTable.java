@@ -2702,7 +2702,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** Returns the operator for {@code FLOOR} and {@code CEIL} with given floor flag
    * and library. */
   public static SqlOperator floorCeil(boolean floor, SqlConformance conformance) {
-    if (SqlConformanceEnum.BIG_QUERY.equals(conformance)) {
+    if (SqlConformanceEnum.BIG_QUERY == conformance) {
       return floor ? SqlLibraryOperators.FLOOR_BIG_QUERY : SqlLibraryOperators.CEIL_BIG_QUERY;
     } else {
       return floor ? SqlStdOperatorTable.FLOOR : SqlStdOperatorTable.CEIL;
