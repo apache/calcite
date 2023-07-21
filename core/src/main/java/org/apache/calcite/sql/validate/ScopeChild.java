@@ -21,7 +21,7 @@ package org.apache.calcite.sql.validate;
  * <p>Most commonly, it is an item in a FROM clause, and consists of a namespace
  * (the columns it provides), and optional name (table alias), and ordinal
  * within the FROM clause. */
-class ScopeChild {
+public class ScopeChild {
   final int ordinal;
   final String name;
   final SqlValidatorNamespace namespace;
@@ -35,7 +35,7 @@ class ScopeChild {
    * @param nullable Whether fields of the child are nullable when seen from the
    *   parent, due to outer joins
    */
-  ScopeChild(int ordinal, String name, SqlValidatorNamespace namespace,
+  public ScopeChild(int ordinal, String name, SqlValidatorNamespace namespace,
       boolean nullable) {
     this.ordinal = ordinal;
     this.name = name;
