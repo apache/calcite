@@ -12543,6 +12543,60 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testSimpleStrtokFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strtokNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("-"),
+        builder.literal(2));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT SPLIT('TERADATA-BIGQUERY-SPARK-ORACLE', '-') "
+        + "[OFFSET ( 1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testStrtokWithIndexFunctionAsThirdArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode positionRexNode = builder.call(SqlStdOperatorTable.POSITION,
+        builder.literal("B"), builder.literal("ABC"));
+    final RexNode strtokRexNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA BIGQUERY SPARK ORACLE"), builder.literal(" "),
+        positionRexNode);
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokRexNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT SPLIT('TERADATA BIGQUERY SPARK ORACLE', ' ') [OFFSET "
+        + "( STRPOS('ABC', 'B') -1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testStrtokWithCastFunctionAsThirdArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode lengthFunRexNode = builder.call(SqlStdOperatorTable.CHAR_LENGTH,
+        builder.literal("dm-R"));
+    final RexNode formatIntegerCastRexNode = builder.cast(lengthFunRexNode,
+        SqlTypeName.INTEGER);
+    final RexNode strtokRexNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("-"),
+        formatIntegerCastRexNode);
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokRexNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT SPLIT('TERADATA-BIGQUERY-SPARK-ORACLE', '-') [OFFSET "
+        + "( LENGTH('dm-R') -1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   private RexNode makeCaseCall(RelBuilder builder, int index, int number) {
     RexNode rex = builder.literal(number);
     RexNode rex2 = builder.literal(number * 10);

@@ -156,6 +156,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MILLIS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
@@ -1574,15 +1575,31 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseStrtok(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlWriter.Frame splitFrame = writer.startFunCall("SPLIT");
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.print(",");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
-    writer.endFunCall(splitFrame);
-    writer.print("[OFFSET (");
-    int thirdOperandValue = Integer.valueOf(call.operand(2).toString()) - 1;
-    writer.print(thirdOperandValue);
+    SqlCall splitCall = SPLIT.createCall(SqlParserPos.ZERO, new SqlNode[]{call.operand(0),
+        call.operand(1)});
+    unparseCall(writer, splitCall, leftPrec, rightPrec);
+    writer.print("[OFFSET ( ");
+    unparseStrtokOffsetValue(writer, leftPrec, rightPrec, call.operand(2));
     writer.print(") ]");
+  }
+
+  private void unparseStrtokOffsetValue(SqlWriter writer, int leftPrec, int rightPrec,
+      SqlNode offsetNode) {
+    if (isNumericLiteral(offsetNode)) {
+      int offsetValue = Integer.parseInt(offsetNode.toString()) - 1;
+      SqlLiteral offsetValueNode =
+          SqlLiteral.createExactNumeric(String.valueOf(offsetValue), SqlParserPos.ZERO);
+      offsetValueNode.unparse(writer, leftPrec, rightPrec);
+    } else {
+      offsetNode.unparse(writer, leftPrec, rightPrec);
+      SqlLiteral minusOneLiteral = SqlLiteral.createExactNumeric("-1", SqlParserPos.ZERO);
+      minusOneLiteral.unparse(writer, leftPrec, rightPrec);
+    }
+  }
+
+  private boolean isNumericLiteral(SqlNode node) {
+    return node instanceof SqlNumericLiteral
+        && ((SqlNumericLiteral) node).getTypeName().getFamily() == SqlTypeFamily.NUMERIC;
   }
 
   private void unparseTimestampAddSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
