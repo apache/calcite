@@ -7901,4 +7901,22 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5568">[CALCITE-5568]
+   * The effect of the DecorrelateQuery when there is LogicalValues</a>.
+   */
+  @Test void testDecorrelateQueryForLogicalValues() {
+    final String sql = "SELECT *\n"
+        + "FROM emp AS e\n"
+        + "CROSS JOIN (VALUES 1) AS t (x)\n"
+        + "WHERE EXISTS (SELECT * FROM dept WHERE deptno = e.deptno)";
+
+    sql(sql)
+        .withLateDecorrelate(true)
+        .withExpand(true)
+        .withRule()
+        .check();
+  }
+
 }
