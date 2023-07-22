@@ -1455,6 +1455,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTEGER,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction HASH =
+      new SqlFunction(
+          "HASH",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DECIMAL,
+          null,
+          OperandTypes.ONE_OR_MORE,
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction HASHROW =
       new SqlFunction(
