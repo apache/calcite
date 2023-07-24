@@ -3288,6 +3288,32 @@ LogicalProject(EXPR$0=[*($0, 3660000:INTERVAL HOUR TO MINUTE)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testIntervalLiteralQuarter">
+    <Resource name="sql">
+      <![CDATA[select
+ cast(empno as Integer) * (INTERVAL '1' QUARTER)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[*($0, 3:INTERVAL QUARTER)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIntervalLiteralWeek">
+    <Resource name="sql">
+      <![CDATA[select
+ cast(empno as Integer) * (INTERVAL '1' WEEK)
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[*($0, 604800000:INTERVAL WEEK)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testIntervalLiteralYearToMonth">
     <Resource name="sql">
       <![CDATA[select
