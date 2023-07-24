@@ -1682,9 +1682,9 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction PERCENTILE_CONT =
       new SqlFunction("PERCENTILE_CONT",
           SqlKind.PERCENTILE_CONT,
-          ReturnTypes.INTEGER, null,
+          ReturnTypes.DOUBLE_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.NUMERIC),
-          SqlFunctionCategory.NUMERIC);
+          SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {SNOWFLAKE, ORACLE, TERADATA})
   public static final SqlAggFunction MEDIAN =
