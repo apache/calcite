@@ -7435,4 +7435,24 @@ LogicalProject(EXPR$0=[ITEM(ARRAY(1, 2, 3, 4), 0)])
 ]]>
         </Resource>
     </TestCase>
+
+    <TestCase name="testCoalesceOnUnionOfLiteralsAndNull">
+        <Resource name="sql">
+            <![CDATA[SELECT COALESCE (a.ids,0)
+        FROM (
+        SELECT 101 as ids union all
+        SELECT 103 as ids union all
+        SELECT null as ids) as a]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
+  LogicalUnion(all=[true])
+    LogicalUnion(all=[true])
+      LogicalValues(tuples=[[{ 101 }]])
+      LogicalValues(tuples=[[{ 103 }]])
+    LogicalValues(tuples=[[{ null }]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

@@ -4083,6 +4083,15 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testCoalesceOnUnionOfLiteralsAndNull() {
+    final String sql = "SELECT COALESCE (a.ids,0)"
+        + " FROM ("
+        + " SELECT 101 as ids union all"
+        + " SELECT 103 as ids union all"
+        + " SELECT null as ids) as a";
+    sql(sql).ok();
+  }
+
   @Test public void testSortInSubQuery() {
     final String sql = "select * from (select empno from emp order by empno)";
     sql(sql).convertsTo("${planRemoveSort}");
