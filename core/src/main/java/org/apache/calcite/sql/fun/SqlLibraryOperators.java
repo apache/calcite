@@ -1682,23 +1682,12 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction PERCENTILE_CONT =
       new SqlFunction("PERCENTILE_CONT",
           SqlKind.PERCENTILE_CONT,
-          ReturnTypes.DOUBLE, null,
+          ReturnTypes.INTEGER, null,
           OperandTypes.family(SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
 
-  @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction MEDIAN =
-      new SqlFunction("MEDIAN",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DOUBLE_NULLABLE, null,
-          OperandTypes.family(SqlTypeFamily.NUMERIC),
-          SqlFunctionCategory.NUMERIC);
+  @LibraryOperator(libraries = {SNOWFLAKE, ORACLE, TERADATA})
+  public static final SqlAggFunction MEDIAN =
+      new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
 
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction OVER =
-      new SqlFunction("OVER",
-          SqlKind.OVER,
-          ReturnTypes.DOUBLE, null,
-          OperandTypes.family(SqlTypeFamily.NUMERIC),
-          SqlFunctionCategory.NUMERIC);
 }

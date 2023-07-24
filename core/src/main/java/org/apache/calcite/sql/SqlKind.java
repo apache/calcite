@@ -431,6 +431,9 @@ public enum SqlKind {
   /** {@code TIMESTAMP_DIFF} function (ODBC, SQL Server, MySQL). */
   TIMESTAMP_DIFF,
 
+  /** {@code MEDIAN} function. */
+  MEDIAN,
+
   // prefix operators
 
   /** Logical {@code NOT} operator. */

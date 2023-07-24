@@ -46,6 +46,7 @@ import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCastFunction;
@@ -729,9 +730,42 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.endList(columnListFrame);
       break;
+    case OVER:
+      unparseOver(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+  private void unparseOver(SqlWriter writer, SqlCall call, final int leftPrec,
+      final int rightPrec) {
+    if (isFirstOperandPercentileCont(call) && isLowerAndUpperBoundPresentInWindowDef(call)) {
+      createOverCallWithoutBound(writer, call, leftPrec, rightPrec);
+    } else {
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private boolean isFirstOperandPercentileCont(SqlCall call) {
+    return call.operand(0) instanceof SqlBasicCall
+        &&  ((SqlBasicCall) call.operand(0)).getOperator().getKind() == SqlKind.PERCENTILE_CONT;
+  }
+
+  private boolean isLowerAndUpperBoundPresentInWindowDef(SqlCall call) {
+    return call.getOperandList().size() > 1
+        && ((SqlWindow) call.operand(1)).getUpperBound() != null
+        && ((SqlWindow) call.operand(1)).getLowerBound() != null;
+  }
+
+  private void createOverCallWithoutBound(SqlWriter writer, SqlCall call, final int leftPrec,
+      final int rightPrec) {
+    SqlWindow partitionCall = call.operand(1);
+    SqlWindow modifiedPartitionCall = new SqlWindow(SqlParserPos.ZERO, partitionCall.getDeclName(),
+        partitionCall.getRefName(), partitionCall.getPartitionList(), partitionCall.getOrderList(),
+        SqlLiteral.createCharString("FALSE", SqlParserPos.ZERO), null, null, null);
+    SqlCall overCall = SqlStdOperatorTable.OVER.createCall(SqlParserPos.ZERO, call.operand(0),
+        modifiedPartitionCall);
+    unparseCall(writer, overCall, leftPrec, rightPrec);
   }
 
   private void unparseDateFromUnixDateFunction(
@@ -1219,9 +1253,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "SHIFTRIGHT":
       unparseShiftLeftAndShiftRight(writer, call, false);
       break;
-    case "MEDIAN":
-      unparseMedian(writer, call, leftPrec, rightPrec);
-      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -1267,17 +1298,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       secondOperand.unparse(writer, 0, 0);
     }
     writer.print(")");
-  }
-
-
-  private void unparseMedian(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlIdentifier firstOperand = call.operand(0);
-    SqlNumericLiteral oneLiteral = SqlLiteral.createExactNumeric("0.5", SqlParserPos.ZERO);
-    SqlCall percentileCall = SqlLibraryOperators.PERCENTILE_CONT.createCall(SqlParserPos.ZERO,
-           firstOperand, oneLiteral);
-    unparseCall(writer, percentileCall, leftPrec, rightPrec);
-    SqlCall overCall = SqlLibraryOperators.OVER.createCall(SqlParserPos.ZERO);
-    unparseCall(writer, overCall, leftPrec, rightPrec);
   }
 
 

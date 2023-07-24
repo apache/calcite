@@ -12578,19 +12578,4 @@ class RelToSqlConverterTest {
     sql(query)
         .ok(expectedSql);
   }
-
-  @Test public void trial1() {
-    final RelBuilder builder = relBuilder();
-    final RexNode getBitRexNode = builder.call(SqlLibraryOperators.MEDIAN,
-        builder.scan("EMP").field(0));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(getBitRexNode, "aa"))
-        .build();
-
-    final String expectedBQ = "SELECT PERCENTILE_CONT(EMPNO, 0.5) OVER() AS aa\n"
-        + "FROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
-  }
 }
