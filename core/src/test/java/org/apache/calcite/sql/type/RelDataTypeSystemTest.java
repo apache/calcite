@@ -19,12 +19,15 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -151,6 +154,18 @@ class RelDataTypeSystemTest {
     RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(TYPE_FACTORY, Lists
             .newArrayList(operand1, operand2));
     assertEquals(SqlTypeName.DOUBLE, dataType.getSqlTypeName());
+  }
+  
+  /** Tests that LEAST_RESTRICTIVE considers a MEASURE's element type 
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5869">[CALCITE-5869]
+   * LEAST_RESTRICTIVE does not use MEASURE element type</a>. */
+  @Test void testLeastRestrictiveUsesMeasureElementType() {
+    RelDataType innerType = TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE);
+    RelDataType operand1 = TYPE_FACTORY.createMeasureType(innerType);
+    RelDataType operand2 = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
+    RelDataType dataType = SqlLibraryOperators.IFNULL
+        .inferReturnType(TYPE_FACTORY, Lists.newArrayList(operand1, operand2));
+    assertThat(dataType, is(innerType));
   }
 
   @Test void testCustomDecimalPlusReturnTypeInference() {

@@ -139,7 +139,7 @@ public class MockCatalogReaderExtended extends MockCatalogReaderSimple {
     registerTable(mockEmpViewTable3);
 
     // Register "EMPM" table.
-    // Same as "EMP" but with a "COUNT_PLUS_100" measure column.
+    // Same as "EMP" but with "COUNT_PLUS_100" and "COUNT_TIMES_100" measure columns.
     final MockTable empmTable =
         MockTable.create(this, salesSchema, "EMPM", false, 14);
     empmTable.addColumn("EMPNO", f.intType, true);
@@ -153,6 +153,8 @@ public class MockCatalogReaderExtended extends MockCatalogReaderSimple {
     empmTable.addColumn("SLACKER", f.booleanType);
     empmTable.addColumn("COUNT_PLUS_100",
         f.typeFactory.createMeasureType(f.intType));
+    empmTable.addColumn("COUNT_TIMES_100",
+        f.typeFactory.createMeasureType(f.decimalType));
     registerTable(empmTable);
 
     MockSchema structTypeSchema = new MockSchema("STRUCT");
