@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.MeasureSqlType;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -535,6 +536,11 @@ public abstract class SqlOperator {
         throw new IllegalArgumentException("Cannot infer return type for "
             + opBinding.getOperator() + "; operand types: "
             + opBinding.collectOperandTypes());
+      }
+
+      // MEASURE wrapper should be removed, e.g. MEASURE<DOUBLE> should just be DOUBLE
+      if (returnType instanceof MeasureSqlType) {
+        returnType = returnType.getMeasureElementType();
       }
 
       if (operandTypeInference != null

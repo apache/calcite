@@ -3879,6 +3879,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .isAggregate(is(false));
   }
 
+  @Test void testLeastRestrictiveUsesMeasureElement() {
+    SqlValidatorFixture f =
+        fixture().withExtendedCatalog()
+            .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY));
+    f.withSql("select ifnull(count_times_100, 0) from empm")
+        .type("RecordType(MEASURE<DECIMAL(19, 0) NOT NULL> "
+            + "NOT NULL EXPR$0) NOT NULL");
+  }
+
   @Test void testAmbiguousColumnInIn() {
     // ok: cyclic reference
     sql("select * from emp as e\n"

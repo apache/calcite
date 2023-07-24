@@ -783,6 +783,10 @@ public abstract class SqlTypeUtil {
     return t.getFamily() == SqlTypeFamily.ANY;
   }
 
+  private static boolean isMeasure(RelDataType t) {
+    return t instanceof MeasureSqlType;
+  }
+
   /**
    * Tests whether a value can be assigned to a site.
    *
@@ -895,6 +899,12 @@ public abstract class SqlTypeUtil {
       SqlTypeMappingRule typeMappingRule) {
     if (toType.equals(fromType)) {
       return true;
+    }
+    // If fromType is a measure, you should compare the inner type otherwise it will
+    // always return TRUE because the SqlTypeFamily of MEASURE is ANY
+    if (isMeasure(fromType)) {
+      return canCastFrom(toType, requireNonNull(fromType.getMeasureElementType()),
+                         typeMappingRule);
     }
     if (isAny(toType) || isAny(fromType)) {
       return true;
