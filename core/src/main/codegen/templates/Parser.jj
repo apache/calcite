@@ -1138,6 +1138,7 @@ SqlNode SqlStmt() :
     |
 </#if>
 <#if (parser.truncateStatementParserMethods!default.parser.truncateStatementParserMethods)?size != 0>
+        LOOKAHEAD(2)
         stmt = SqlTruncate()
     |
 </#if>
