@@ -783,7 +783,7 @@ public abstract class SqlTypeUtil {
     return t.getFamily() == SqlTypeFamily.ANY;
   }
 
-  private static boolean isMeasure(RelDataType t) {
+  public static boolean isMeasure(RelDataType t) {
     return t instanceof MeasureSqlType;
   }
 
