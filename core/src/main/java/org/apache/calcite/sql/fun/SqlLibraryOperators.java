@@ -491,6 +491,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
+  /** The "REGEXP_EXTRACT_ALL(value, regexp)" function.
+   * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlBasicFunction REGEXP_EXTRACT_ALL =
+      SqlBasicFunction.create("REGEXP_EXTRACT_ALL", ReturnTypes.ARG0_NULLABLE
+              .andThen(SqlTypeTransforms.TO_ARRAY),
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 

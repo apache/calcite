@@ -529,6 +529,8 @@ public enum BuiltInMethod {
       String.class, String.class, int.class),
   REGEXP_EXTRACT4(SqlFunctions.RegexFunction.class, "regexpExtract",
       String.class, String.class, int.class, int.class),
+  REGEXP_EXTRACT_ALL(SqlFunctions.RegexFunction.class, "regexpExtractAll",
+      String.class, String.class),
   REGEXP_REPLACE3(SqlFunctions.RegexFunction.class, "regexpReplace",
       String.class, String.class, String.class),
   REGEXP_REPLACE4(SqlFunctions.RegexFunction.class, "regexpReplace",

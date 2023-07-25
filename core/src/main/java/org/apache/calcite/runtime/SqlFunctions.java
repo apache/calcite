@@ -388,22 +388,34 @@ public class SqlFunctions {
             .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
             .build(CacheLoader.from(Key::toPattern));
 
-    /** SQL {@code REGEXP_CONTAINS(value, regexp)} function.
-     * Throws a runtime exception for invalid regular expressions.*/
-    public boolean regexpContains(String value, String regex) {
-      final Pattern pattern;
+    /** Helper for regex validation in REGEXP_* fns. */
+    private Pattern validateRegexPattern(String regex, String methodName) {
       try {
         // Uses java.util.regex as a standard for regex processing
         // in Calcite instead of RE2 used by BigQuery/GoogleSQL
-        pattern = cache.getUnchecked(new Key(0, regex));
+        return cache.getUnchecked(new Key(0, regex));
       } catch (UncheckedExecutionException e) {
         if (e.getCause() instanceof PatternSyntaxException) {
           throw RESOURCE.invalidRegexInputForRegexpFunctions(
               requireNonNull(e.getCause().getMessage(), "message")
-                  .replace(System.lineSeparator(), " "), "REGEXP_CONTAINS").ex();
+                  .replace(System.lineSeparator(), " "), methodName).ex();
         }
         throw e;
       }
+    }
+
+    /** Helper for multiple capturing group regex check in REGEXP_EXTRACT fns. */
+    private void checkMultipleCapturingGroupsInRegex(Matcher matcher, String methodName) {
+      if (matcher.groupCount() > 1) {
+        throw RESOURCE.multipleCapturingGroupsForRegexpExtract(
+            Integer.toString(matcher.groupCount()), methodName).ex();
+      }
+    }
+
+    /** SQL {@code REGEXP_CONTAINS(value, regexp)} function.
+     * Throws a runtime exception for invalid regular expressions.*/
+    public boolean regexpContains(String value, String regex) {
+      final Pattern pattern = validateRegexPattern(regex, "REGEXP_CONTAINS");
       return pattern.matcher(value).find();
     }
 
@@ -429,18 +441,8 @@ public class SqlFunctions {
         int occurrence) {
       // Uses java.util.regex as a standard for regex processing
       // in Calcite instead of RE2 used by BigQuery/GoogleSQL
-      final Pattern pattern;
-      String methodName = "REGEXP_EXTRACT";
-      try {
-        pattern = cache.getUnchecked(new Key(0, regex));
-      } catch (UncheckedExecutionException e) {
-        if (e.getCause() instanceof PatternSyntaxException) {
-          throw RESOURCE.invalidRegexInputForRegexpFunctions(
-              requireNonNull(e.getCause().getMessage(), "message")
-                  .replace(System.lineSeparator(), " "), methodName).ex();
-        }
-        throw e;
-      }
+      final String methodName = "REGEXP_EXTRACT";
+      final Pattern pattern = validateRegexPattern(regex, methodName);
 
       if (position <= 0) {
         throw RESOURCE.invalidIntegerInputForRegexpFunctions(Integer.toString(position),
@@ -456,12 +458,8 @@ public class SqlFunctions {
       }
 
       Matcher matcher = pattern.matcher(value);
+      checkMultipleCapturingGroupsInRegex(matcher, methodName);
       matcher.region(position - 1, value.length());
-
-      if (matcher.groupCount() > 1) {
-        throw RESOURCE.multipleCapturingGroupsForRegexpExtract(
-            Integer.toString(matcher.groupCount()), methodName).ex();
-      }
 
       String match = null;
       while (occurrence > 0) {
@@ -474,6 +472,27 @@ public class SqlFunctions {
       }
 
       return match;
+    }
+
+    /** SQL {@code REGEXP_EXTRACT_ALL(value, regexp)} function.
+     *  Returns an empty array if there is no match, returns an exception if regex is invalid.*/
+    public List<String> regexpExtractAll(String value, String regex) {
+      // Uses java.util.regex as a standard for regex processing
+      // in Calcite instead of RE2 used by BigQuery/GoogleSQL
+      final String methodName = "REGEXP_EXTRACT_ALL";
+      final Pattern regexp = validateRegexPattern(regex, methodName);
+
+      Matcher matcher = regexp.matcher(value);
+      checkMultipleCapturingGroupsInRegex(matcher, methodName);
+
+      ImmutableList.Builder<String> matches = ImmutableList.builder();
+      while (matcher.find()) {
+        String match = matcher.group(matcher.groupCount());
+        if (match != null && !match.isEmpty()) {
+          matches.add(match);
+        }
+      }
+      return matches.build();
     }
 
     /** SQL {@code REGEXP_REPLACE} function with 3 arguments. */
