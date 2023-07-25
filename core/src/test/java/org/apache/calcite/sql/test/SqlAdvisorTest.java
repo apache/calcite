@@ -165,6 +165,7 @@ class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(CURSOR)",
           "KEYWORD(DATE)",
           "KEYWORD(DATETIME)",
+          "KEYWORD(DECIMAL)",
           "KEYWORD(DENSE_RANK)",
           "KEYWORD(ELEMENT)",
           "KEYWORD(EVERY)",
