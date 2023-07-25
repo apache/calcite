@@ -338,6 +338,35 @@ class SqlFunctionsTest {
     }
   }
 
+  @Test void testRegexpExtractAll() {
+    final SqlFunctions.RegexFunction f = new SqlFunctions.RegexFunction();
+
+    assertThat(f.regexpExtractAll("abcadcabcaecghi", "ac"), is(list()));
+    assertThat(f.regexpExtractAll("abcadcabcaecghi", "abc(a.c)"), is(list("adc", "aec")));
+    assertThat(f.regexpExtractAll("abcadcabcaecghi", "a.c"), is(list("abc", "adc", "abc", "aec")));
+    assertThat(f.regexpExtractAll("banana", "ana"), is(list("ana")));
+    assertThat(f.regexpExtractAll("abacadaeafa", "a.a"), is(list("aba", "ada", "afa")));
+    assertThat(f.regexpExtractAll("abcdefghijklmnop", ".+"), is(list("abcdefghijklmnop")));
+
+    try {
+      final List<String> s = f.regexpExtractAll("abc def ghi", "(abc");
+      fail("expected error, got array: " + s);
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          is("Invalid regular expression for REGEXP_EXTRACT_ALL: 'Unclosed group near index 4 "
+              + "(abc'"));
+    }
+
+    try {
+      final List<String> s = f.regexpExtractAll("abcadcabcaecghi", "(abc).(ax).(a.c)");
+      fail("expected error, got array:" + s);
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          is("Multiple capturing groups (count=3) not allowed in regex input for "
+              + "REGEXP_EXTRACT_ALL"));
+    }
+  }
+
   @Test void testRegexpReplace() {
     final SqlFunctions.RegexFunction f = new SqlFunctions.RegexFunction();
     assertThat(f.regexpReplace("a b c", "b", "X"), is("a X c"));

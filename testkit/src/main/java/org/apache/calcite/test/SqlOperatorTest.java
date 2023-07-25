@@ -4675,6 +4675,29 @@ public class SqlOperatorTest {
     f.checkQuery("select regexp_extract('a9cadca5c4aecghi', 'a[0-9]c', 1, 3)");
   }
 
+  @Test void testRegexpExtractAllFunc() {
+    final SqlOperatorFixture f =
+        fixture().setFor(SqlLibraryOperators.REGEXP_EXTRACT_ALL).withLibrary(SqlLibrary.BIG_QUERY);
+
+    f.checkScalar("regexp_extract_all('a9cadca5c4aecghi', 'a[0-9]c')", "[a9c, a5c]", "CHAR(16) "
+        + "NOT NULL ARRAY NOT NULL");
+    f.checkScalar("regexp_extract_all('abcde', '.')", "[a, b, c, d, e]", "CHAR(5) NOT NULL ARRAY "
+        + "NOT NULL");
+    f.checkScalar("regexp_extract_all('abcadcabcaecghi', 'ac')", "[]", "CHAR(15) NOT NULL ARRAY "
+        + "NOT NULL");
+    f.checkScalar("regexp_extract_all('foo@bar.com, foo@gmail.com, foo@outlook.com', "
+        + "'@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+')", "[@bar.com, @gmail.com, @outlook.com]", "CHAR(43) "
+        + "NOT NULL ARRAY NOT NULL");
+
+    f.checkNull("regexp_extract_all('abc def ghi', cast(null as varchar))");
+    f.checkNull("regexp_extract_all(cast(null as varchar), 'abc')");
+    f.checkNull("regexp_extract_all(cast(null as varchar), cast(null as varchar))");
+
+    f.checkQuery("select regexp_extract_all('abc def ghi', 'abc')");
+    f.checkQuery("select regexp_extract_all('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
+    f.checkQuery("select regexp_extract_all('55as56664as422', '\\d{10}')");
+  }
+
   @Test void testRegexpReplaceFunc() {
     final SqlOperatorFixture f0 = fixture();
     final Consumer<SqlOperatorFixture> consumer = f -> {
