@@ -28,9 +28,11 @@ import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlValuesOperator;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 
 import com.google.common.base.Preconditions;
@@ -2918,5 +2920,10 @@ public class Util {
   public static boolean isFormatSqlBasicCall(SqlNode sqlNode) {
     return sqlNode instanceof SqlBasicCall && ((SqlBasicCall) sqlNode).getOperator()
         .toString().equals(SqlKind.FORMAT.name());
+  }
+
+  public static boolean isNumericLiteral(SqlNode node) {
+    return node instanceof SqlNumericLiteral
+        && ((SqlNumericLiteral) node).getTypeName().getFamily() == SqlTypeFamily.NUMERIC;
   }
 }

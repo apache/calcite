@@ -176,6 +176,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
+import static org.apache.calcite.util.Util.isNumericLiteral;
 import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
 import static org.apache.calcite.util.Util.removeLeadingAndTrailingSingleQuotes;
 
@@ -1585,21 +1586,14 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseStrtokOffsetValue(SqlWriter writer, int leftPrec, int rightPrec,
       SqlNode offsetNode) {
-    if (isNumericLiteral(offsetNode)) {
-      int offsetValue = Integer.parseInt(offsetNode.toString()) - 1;
-      SqlLiteral offsetValueNode =
-          SqlLiteral.createExactNumeric(String.valueOf(offsetValue), SqlParserPos.ZERO);
-      offsetValueNode.unparse(writer, leftPrec, rightPrec);
-    } else {
+    int offsetValue = isNumericLiteral(offsetNode) ? Integer.parseInt(offsetNode.toString()) - 1
+        : -1;
+    if (offsetValue == -1) {
       offsetNode.unparse(writer, leftPrec, rightPrec);
-      SqlLiteral minusOneLiteral = SqlLiteral.createExactNumeric("-1", SqlParserPos.ZERO);
-      minusOneLiteral.unparse(writer, leftPrec, rightPrec);
     }
-  }
-
-  private boolean isNumericLiteral(SqlNode node) {
-    return node instanceof SqlNumericLiteral
-        && ((SqlNumericLiteral) node).getTypeName().getFamily() == SqlTypeFamily.NUMERIC;
+    SqlLiteral offsetValueNode = SqlLiteral.createExactNumeric(String.valueOf(offsetValue),
+        SqlParserPos.ZERO);
+    offsetValueNode.unparse(writer, leftPrec, rightPrec);
   }
 
   private void unparseTimestampAddSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
