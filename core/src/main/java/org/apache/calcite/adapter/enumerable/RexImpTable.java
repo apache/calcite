@@ -219,6 +219,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_URL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.POW;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
@@ -569,6 +570,8 @@ public class RexImpTable {
       defineReflective(PARSE_URL, BuiltInMethod.PARSE_URL2.method,
           BuiltInMethod.PARSE_URL3.method);
       defineReflective(REGEXP_CONTAINS, BuiltInMethod.REGEXP_CONTAINS.method);
+      defineReflective(REGEXP_EXTRACT, BuiltInMethod.REGEXP_EXTRACT2.method,
+          BuiltInMethod.REGEXP_EXTRACT3.method, BuiltInMethod.REGEXP_EXTRACT4.method);
 
       map.put(TRIM, new TrimImplementor());
 

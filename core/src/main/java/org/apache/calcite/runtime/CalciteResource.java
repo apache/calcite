@@ -1005,8 +1005,16 @@ public interface CalciteResource {
   @BaseMessage("Invalid input for JSON_STORAGE_SIZE: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonStorageSize(String value);
 
-  @BaseMessage("Invalid regular expression for REGEXP_CONTAINS: ''{0}''")
-  ExInst<RuntimeException> invalidInputForRegexpContains(String value);
+  @BaseMessage("Invalid integer input ''{0}'' for argument ''{1}'' in {2}")
+  ExInst<RuntimeException> invalidIntegerInputForRegexpFunctions(String value, String argument,
+      String methodName);
+
+  @BaseMessage("Invalid regular expression for {1}: ''{0}''")
+  ExInst<RuntimeException> invalidRegexInputForRegexpFunctions(String value, String methodName);
+
+  @BaseMessage("Multiple capturing groups (count={0}) not allowed in regex input for {1}")
+  ExInst<RuntimeException> multipleCapturingGroupsForRegexpExtract(String value,
+      String methodName);
 
   @BaseMessage("Invalid input for REGEXP_REPLACE: ''{0}''")
   ExInst<CalciteException> invalidInputForRegexpReplace(String value);
