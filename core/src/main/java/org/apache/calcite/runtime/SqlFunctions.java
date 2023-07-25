@@ -398,19 +398,82 @@ public class SqlFunctions {
         pattern = cache.getUnchecked(new Key(0, regex));
       } catch (UncheckedExecutionException e) {
         if (e.getCause() instanceof PatternSyntaxException) {
-          throw RESOURCE.invalidInputForRegexpContains(
-              stripLineEndings(
-                  requireNonNull(e.getCause().getMessage(), "message"))).ex();
+          throw RESOURCE.invalidRegexInputForRegexpFunctions(
+              requireNonNull(e.getCause().getMessage(), "message")
+                  .replace(System.lineSeparator(), " "), "REGEXP_CONTAINS").ex();
         }
         throw e;
       }
       return pattern.matcher(value).find();
     }
 
-    private static String stripLineEndings(String message) {
-      return message.replace("\r\n", " ")
-          .replace("\n", " ")
-          .replace("\r", " ");
+    /** SQL {@code REGEXP_EXTRACT(value, regexp)} function.
+     *  Returns NULL if there is no match. Returns an exception if regex is invalid.
+     *  Uses position=1 and occurrence=1 as default values when not specified. */
+    public @Nullable String regexpExtract(String value, String regex) {
+      return regexpExtract(value, regex, 1, 1);
+    }
+
+    /** SQL {@code REGEXP_EXTRACT(value, regexp, position)} function.
+     *  Returns NULL if there is no match, or if position is beyond range.
+     *  Returns an exception if regex or position is invalid.
+     *  Uses occurrence=1 as default value when not specified. */
+    public @Nullable String regexpExtract(String value, String regex, int position) {
+      return regexpExtract(value, regex, position, 1);
+    }
+
+    /** SQL {@code REGEXP_EXTRACT(value, regexp, position, occurrence)} function.
+     *  Returns NULL if there is no match, or if position or occurrence are beyond range.
+     *  Returns an exception if regex, position or occurrence are invalid. */
+    public @Nullable String regexpExtract(String value, String regex, int position,
+        int occurrence) {
+      // Uses java.util.regex as a standard for regex processing
+      // in Calcite instead of RE2 used by BigQuery/GoogleSQL
+      final Pattern pattern;
+      String methodName = "REGEXP_EXTRACT";
+      try {
+        pattern = cache.getUnchecked(new Key(0, regex));
+      } catch (UncheckedExecutionException e) {
+        if (e.getCause() instanceof PatternSyntaxException) {
+          throw RESOURCE.invalidRegexInputForRegexpFunctions(
+              requireNonNull(e.getCause().getMessage(), "message")
+                  .replace(System.lineSeparator(), " "), methodName).ex();
+        }
+        throw e;
+      }
+
+      if (position <= 0) {
+        throw RESOURCE.invalidIntegerInputForRegexpFunctions(Integer.toString(position),
+            "position", methodName).ex();
+      }
+      if (occurrence <= 0) {
+        throw RESOURCE.invalidIntegerInputForRegexpFunctions(Integer.toString(occurrence),
+            "occurrence", methodName).ex();
+      }
+
+      if (position > value.length()) {
+        return null;
+      }
+
+      Matcher matcher = pattern.matcher(value);
+      matcher.region(position - 1, value.length());
+
+      if (matcher.groupCount() > 1) {
+        throw RESOURCE.multipleCapturingGroupsForRegexpExtract(
+            Integer.toString(matcher.groupCount()), methodName).ex();
+      }
+
+      String match = null;
+      while (occurrence > 0) {
+        if (matcher.find()) {
+          match = matcher.group(matcher.groupCount());
+        } else {
+          return null;
+        }
+        occurrence--;
+      }
+
+      return match;
     }
 
     /** SQL {@code REGEXP_REPLACE} function with 3 arguments. */

@@ -4645,6 +4645,36 @@ public class SqlOperatorTest {
     f.checkNull("regexp_contains(cast(null as varchar), cast(null as varchar))");
   }
 
+  @Test void testRegexpExtractFunc() {
+    final SqlOperatorFixture f =
+        fixture().setFor(SqlLibraryOperators.REGEXP_EXTRACT).withLibrary(SqlLibrary.BIG_QUERY);
+
+    f.checkString("regexp_extract('abc def ghi', 'def')", "def", "VARCHAR NOT NULL");
+    f.checkString("regexp_extract('abcadcaecghi', 'a.c', 1, 3)", "aec", "VARCHAR NOT NULL");
+    f.checkString("regexp_extract('abcadcaecghi', 'abc(a.c)')", "adc", "VARCHAR NOT NULL");
+    f.checkString("regexp_extract('55as56664as422', '\\d{3}')", "566", "VARCHAR NOT NULL");
+    f.checkString("regexp_extract('abcadcabcaecghi', 'c(a.c)', 4)", "abc", "VARCHAR NOT NULL");
+    f.checkString("regexp_extract('abcadcabcaecghi', 'a.c(a.c)', 1, 2)", "aec", "VARCHAR NOT NULL");
+    f.checkString("regexp_extract('a9cadca5c4aecghi', 'a[0-9]c', 6)", "a5c", "VARCHAR NOT NULL");
+    f.checkString("regexp_extract('a9cadca5ca4cecghi', 'a[0-9]c', 1, 3)", "a4c", "VARCHAR NOT "
+        + "NULL");
+
+    f.checkNull("regexp_extract('abc def ghi', 'asd')");
+    f.checkNull("regexp_extract('abc def ghi', 'abc', 25)");
+    f.checkNull("regexp_extract('abc def ghi', 'abc', 1, 4)");
+    f.checkNull("regexp_extract('abc def ghi', cast(null as varchar))");
+    f.checkNull("regexp_extract(cast(null as varchar), 'abc')");
+    f.checkNull("regexp_extract(cast(null as varchar), cast(null as varchar))");
+    f.checkNull("regexp_extract('abc def ghi', 'abc', cast(null as integer))");
+    f.checkNull("regexp_extract('abc def ghi', 'abc', 1, cast(null as integer))");
+
+    f.checkQuery("select regexp_extract('abc def ghi', 'abc')");
+    f.checkQuery("select regexp_extract('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
+    f.checkQuery("select regexp_extract('55as56664as422', '\\d{10}')");
+    f.checkQuery("select regexp_extract('abcadcabcaecghi', 'c(a.c)', 4)");
+    f.checkQuery("select regexp_extract('a9cadca5c4aecghi', 'a[0-9]c', 1, 3)");
+  }
+
   @Test void testRegexpReplaceFunc() {
     final SqlOperatorFixture f0 = fixture();
     final Consumer<SqlOperatorFixture> consumer = f -> {
@@ -4682,6 +4712,29 @@ public class SqlOperatorTest {
       f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3, 'i')");
     };
     f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.ORACLE), consumer);
+  }
+
+  @Test void testRegexpSubstrFunc() {
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.REGEXP_SUBSTR)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+
+    f.checkString("regexp_substr('abc def ghi', 'ghi')", "ghi",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_substr('abcadcaecghi', 'a.c', 1, 2)", "adc",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_substr('abcadcabcaecghi', 'abc(a.c)', 1, 2)", "aec",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_substr('55as56664as422', '\\d{3}')", "566",
+        "VARCHAR NOT NULL");
+
+    f.checkNull("regexp_substr('abc def ghi', 'bqi')");
+    f.checkNull("regexp_substr('abc def ghi', cast(null as varchar))");
+    f.checkNull("regexp_substr(cast(null as varchar), 'bqi')");
+    f.checkNull("regexp_substr(cast(null as varchar), cast(null as varchar))");
+
+    f.checkQuery("select regexp_substr('abcdefghi', 'abc')");
+    f.checkQuery("select regexp_substr('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
+    f.checkQuery("select regexp_substr('55as56664as422', '\\d{10}')");
   }
 
   @Test void testJsonExists() {

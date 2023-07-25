@@ -475,9 +475,6 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction JSON_SET = new SqlJsonModifyFunction("JSON_SET");
 
-  @LibraryOperator(libraries = {MYSQL, ORACLE})
-  public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
-
   /** The "REGEXP_CONTAINS(value, regexp)" function.
    * Returns TRUE if value is a partial match for the regular expression, regexp. */
   @LibraryOperator(libraries = {BIG_QUERY})
@@ -485,6 +482,22 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("REGEXP_CONTAINS", ReturnTypes.BOOLEAN_NULLABLE,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
+
+  /** The "REGEXP_EXTRACT(value, regexp[, position[, occurrence]])" function.
+   * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlBasicFunction REGEXP_EXTRACT =
+      SqlBasicFunction.create("REGEXP_EXTRACT", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL, ORACLE})
+  public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
+
+  /** The "REGEXP_SUBSTR(value, regexp[, position[, occurrence]])" function.
+   * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction REGEXP_SUBSTR = REGEXP_EXTRACT.withName("REGEXP_SUBSTR");
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction COMPRESS =

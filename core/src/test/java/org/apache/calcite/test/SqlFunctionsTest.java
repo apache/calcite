@@ -256,7 +256,7 @@ class SqlFunctionsTest {
     } catch (RuntimeException e) {
       assertThat(e.getMessage(),
           is("Invalid regular expression for REGEXP_CONTAINS: 'Illegal "
-              + "character range near index" + " 3 [z-a]    ^'"));
+              + "character range near index 3 [z-a]    ^'"));
     }
 
     try {
@@ -265,7 +265,76 @@ class SqlFunctionsTest {
     } catch (RuntimeException e) {
       assertThat(e.getMessage(),
           is("Invalid regular expression for REGEXP_CONTAINS: 'Illegal "
-              + "repetition range near " + "index 4 {2,1}     ^'"));
+              + "repetition range near index 4 {2,1}     ^'"));
+    }
+  }
+
+  @Test void testRegexpExtract() {
+    final SqlFunctions.RegexFunction f = new SqlFunctions.RegexFunction();
+
+    // basic extracts
+    assertThat(f.regexpExtract("abcadcabcaecghi", "ac"), nullValue());
+    assertThat(f.regexpExtract("a9cadca5c4aecghi", "a[0-9]c"), is("a9c"));
+    assertThat(f.regexpExtract("abcadcabcaecghi", "a.*c"), is("abcadcabcaec"));
+
+    // capturing group extracts
+    assertThat(f.regexpExtract("abcadcabcaecghi", "abc(a.c)"), is("adc"));
+    assertThat(f.regexpExtract("abcadcabcaecghi", "abc(a.c)", 4), is("aec"));
+    assertThat(f.regexpExtract("abcadcabcaecghi", "abc(a.c)", 1, 2), is("aec"));
+
+    // position-based extracts
+    assertThat(f.regexpExtract("abcadcabcaecghi", "a.c", 25), nullValue());
+    assertThat(f.regexpExtract("a9cadca5c4aecghi", "a[0-9]c", 1), is("a9c"));
+    assertThat(f.regexpExtract("a9cadca5c4aecghi", "a[0-9]c", 6), is("a5c"));
+    assertThat(f.regexpExtract("abcadcabcaecghi", "a.*c", 7), is("abcaec"));
+
+    // occurrence-based extracts
+    assertThat(f.regexpExtract("abcadcabcaecghi", "a.c", 1, 3), is("abc"));
+    assertThat(f.regexpExtract("abcadcabcaecghi", "a.c", 2, 3), is("aec"));
+    assertThat(f.regexpExtract("abcadcabcaecghi", "a.c", 1, 5), nullValue());
+    assertThat(f.regexpExtract("abcadcabcaecghi", "a.+c", 1, 2), nullValue());
+
+    // exceptional scenarios
+    try {
+      final String s = f.regexpExtract("abc def ghi", "(abc");
+      fail("expected error, got " + s);
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          is("Invalid regular expression for REGEXP_EXTRACT: 'Unclosed group near index 4 "
+              + "(abc'"));
+    }
+
+    try {
+      final String s = f.regexpExtract("abcadcabcaecghi", "(abc)ax(a.c)");
+      fail("expected error, got " + s);
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          is("Multiple capturing groups (count=2) not allowed in regex input for "
+              + "REGEXP_EXTRACT"));
+    }
+
+    try {
+      final String s = f.regexpExtract("abcadcabcaecghi", "a.c", 0);
+      fail("expected error, got " + s);
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          is("Invalid integer input '0' for argument 'position' in REGEXP_EXTRACT"));
+    }
+
+    try {
+      final String s = f.regexpExtract("abcadcabcaecghi", "a.c", 3, -1);
+      fail("expected error, got " + s);
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          is("Invalid integer input '-1' for argument 'occurrence' in REGEXP_EXTRACT"));
+    }
+
+    try {
+      final String s = f.regexpExtract("abcadcabcaecghi", "a.c", -4, 4);
+      fail("expected error, got " + s);
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          is("Invalid integer input '-4' for argument 'position' in REGEXP_EXTRACT"));
     }
   }
 
