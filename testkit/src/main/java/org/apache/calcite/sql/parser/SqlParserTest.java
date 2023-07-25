@@ -907,6 +907,49 @@ public class SqlParserTest {
         .ok(expectedBigQuery);
   }
 
+  @Test void testDecimalLiteral() {
+    sql("select DECIMAL '99.999'")
+        .ok("SELECT 99.999");
+    sql("select DECIMAL '   99.999'")
+        .ok("SELECT 99.999");
+    sql("select DECIMAL '   99.999   '")
+        .ok("SELECT 99.999");
+    sql("select DECIMAL '+99.999'")
+        .ok("SELECT 99.999");
+    sql("select DECIMAL '-99.999'")
+        .ok("SELECT -99.999");
+    sql("select DECIMAL'-99.999'")
+        .ok("SELECT -99.999");
+    sql("select DECIMAL'99.999'")
+        .ok("SELECT 99.999");
+    sql("select DECIMAL'.999'")
+        .ok("SELECT 0.999");
+    sql("select DECIMAL'999.'")
+        .ok("SELECT 999");
+    sql("select DECIMAL'999'")
+        .ok("SELECT 999");
+    sql("select DECIMAL '2.11E-2'")
+        .ok("SELECT 0.0211");
+    sql("select DECIMAL '2.11E2'")
+        .ok("SELECT 211");
+    sql("select DECIMAL '.11E-2'")
+        .ok("SELECT 0.0011");
+    sql("select DECIMAL ^''^")
+        .fails("(?s)Literal '' can not be parsed to type 'DECIMAL'.*");
+    sql("select DECIMAL ^'-'^")
+        .fails("(?s)Literal '-' can not be parsed to type 'DECIMAL'.*");
+    sql("select DECIMAL ^'foo'^")
+        .fails("(?s)Literal 'foo' can not be parsed to type 'DECIMAL'.*");
+
+    // Test with bigquery
+    sql("select DECIMAL \"2.11E-2\"")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT 0.0211");
+    sql("select DECIMAL \"999\"")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT 999");
+  }
+
   @Test void testDerivedColumnList() {
     sql("select * from emp as e (empno, gender) where true")
         .ok("SELECT *\n"

@@ -1154,7 +1154,7 @@ name will have been converted to upper case also.
 | SMALLINT    | 2 byte signed integer     | Range is -32768 to 32767
 | INTEGER, INT | 4 byte signed integer    | Range is -2147483648 to 2147483647
 | BIGINT      | 8 byte signed integer     | Range is -9223372036854775808 to 9223372036854775807
-| DECIMAL(p, s) | Fixed point             | Example: 123.45 is a DECIMAL(5, 2) value.
+| DECIMAL(p, s) | Fixed point             | Example: 123.45 or DECIMAL '123.45' is a DECIMAL(5, 2) value.
 | NUMERIC     | Fixed point               |
 | REAL, FLOAT | 4 byte floating point     | 6 decimal digits precision
 | DOUBLE      | 8 byte floating point     | 15 decimal digits precision

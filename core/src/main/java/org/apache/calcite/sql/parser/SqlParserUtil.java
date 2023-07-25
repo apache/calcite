@@ -325,6 +325,18 @@ public final class SqlParserUtil {
     return SqlLiteral.createDate(d, pos);
   }
 
+  public static SqlNumericLiteral parseDecimalLiteral(String s, SqlParserPos pos) {
+    try {
+      // The s maybe scientific notation string,e.g. 1.2E-3,
+      // we need to convert it to 0.0012
+      s = new BigDecimal(s).toPlainString();
+    } catch (NumberFormatException e) {
+      throw SqlUtil.newContextException(pos,
+          RESOURCE.invalidLiteral(s, "DECIMAL"));
+    }
+    return SqlLiteral.createExactNumeric(s, pos);
+  }
+
   public static SqlTimeLiteral parseTimeLiteral(String s, SqlParserPos pos) {
     final DateTimeUtils.PrecisionTime pt =
         DateTimeUtils.parsePrecisionDateTimeLiteral(s,

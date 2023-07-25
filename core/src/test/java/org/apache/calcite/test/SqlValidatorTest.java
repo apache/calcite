@@ -243,6 +243,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("BOOLEAN NOT NULL");
     expr("unknown")
         .columnType("BOOLEAN");
+    expr("DECIMAL '123456.7890'")
+        .columnType("DECIMAL(10, 4) NOT NULL");
   }
 
   /** Tests that date-time literals with invalid strings are considered invalid.
