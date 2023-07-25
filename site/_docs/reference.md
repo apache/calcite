@@ -2778,6 +2778,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | PARSE_TIMESTAMP(format, string[, timeZone])    | Uses format specified by *format* to convert *string* representation of timestamp to a TIMESTAMP WITH LOCAL TIME ZONE value in *timeZone*
 | h s | PARSE_URL(urlString, partToExtract [, keyToExtract] ) | Returns the specified *partToExtract* from the *urlString*. Valid values for *partToExtract* include HOST, PATH, QUERY, REF, PROTOCOL, AUTHORITY, FILE, and USERINFO. *keyToExtract* specifies which query to extract
 | b | POW(numeric1, numeric2)                        | Returns *numeric1* raised to the power *numeric2*
+| b | REGEXP_CONTAINS(string, regexp)                | Returns whether *string* is a partial match for the *regexp*
 | m o | REGEXP_REPLACE(string, regexp, rep [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* means which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
 | b m p | REPEAT(string, integer)                    | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | b m | REVERSE(string)                              | Returns *string* with the order of the characters reversed

@@ -1005,6 +1005,9 @@ public interface CalciteResource {
   @BaseMessage("Invalid input for JSON_STORAGE_SIZE: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonStorageSize(String value);
 
+  @BaseMessage("Invalid regular expression for REGEXP_CONTAINS: ''{0}''")
+  ExInst<RuntimeException> invalidInputForRegexpContains(String value);
+
   @BaseMessage("Invalid input for REGEXP_REPLACE: ''{0}''")
   ExInst<CalciteException> invalidInputForRegexpReplace(String value);
 

@@ -59,6 +59,7 @@ import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.md5;
 import static org.apache.calcite.runtime.SqlFunctions.position;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
+import static org.apache.calcite.runtime.SqlFunctions.regexpContains;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
@@ -232,6 +233,35 @@ class SqlFunctionsTest {
     assertThat(posixRegex("abc", "[[:xdigit:]]", false), is(true));
     assertThat(posixRegex("abc", "[[:xdigit:]]+", false), is(true));
     assertThat(posixRegex("abcq", "[[:xdigit:]]", false), is(true));
+  }
+
+  @Test void testRegexpContains() {
+    try {
+      regexpContains("abc def ghi", "(abc");
+      fail("'regexp_contains' on an invalid regex input '(abc' is not possible");
+    } catch (RuntimeException e) {
+      assertThat(
+          e.getMessage(), is("Invalid regular expression for REGEXP_CONTAINS: 'Unclosed "
+              + "group near index 4 (abc'"));
+    }
+
+    try {
+      regexpContains("abc def ghi", "[z-a]");
+      fail("'regexp_contains' on an invalid regex input '[z-a]' is not possible");
+    } catch (RuntimeException e) {
+      assertThat(
+          e.getMessage(), is("Invalid regular expression for REGEXP_CONTAINS: 'Illegal "
+              + "character range near index" + " 3 [z-a]    ^'"));
+    }
+
+    try {
+      regexpContains("abc def ghi", "{2,1}");
+      fail("'regexp_contains' on an invalid regex input '{2,1}' is not possible");
+    } catch (RuntimeException e) {
+      assertThat(
+          e.getMessage(), is("Invalid regular expression for REGEXP_CONTAINS: 'Illegal "
+              + "repetition range near " + "index 4 {2,1}     ^'"));
+    }
   }
 
   @Test void testRegexpReplace() {

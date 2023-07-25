@@ -4547,6 +4547,27 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL), consumer);
   }
 
+  @Test void testRegexpContainsFunc() {
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.REGEXP_CONTAINS)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkBoolean("regexp_contains('abc def ghi', 'abc')", true);
+    f.checkBoolean("regexp_contains('abc def ghi', '[a-z]+')", true);
+    f.checkBoolean("regexp_contains('foo@bar.com', '@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+')", true);
+    f.checkBoolean("regexp_contains('foo@.com', '@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+')", false);
+    f.checkBoolean("regexp_contains('5556664422', '^\\d{10}$')", true);
+    f.checkBoolean("regexp_contains('11555666442233', '^\\d{10}$')", false);
+    f.checkBoolean("regexp_contains('55566644221133', '\\d{10}')", true);
+    f.checkBoolean("regexp_contains('55as56664as422', '\\d{10}')", false);
+
+    f.checkQuery("select regexp_contains('abc def ghi', 'abc')");
+    f.checkQuery("select regexp_contains('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
+    f.checkQuery("select regexp_contains('55as56664as422', '\\d{10}')");
+
+    f.checkNull("regexp_contains('abc def ghi', cast(null as varchar))");
+    f.checkNull("regexp_contains(cast(null as varchar), 'abc')");
+    f.checkNull("regexp_contains(cast(null as varchar), cast(null as varchar))");
+  }
+
   @Test void testRegexpReplaceFunc() {
     final SqlOperatorFixture f0 = fixture();
     final Consumer<SqlOperatorFixture> consumer = f -> {
