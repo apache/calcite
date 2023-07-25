@@ -475,6 +475,14 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
+  /** The "REGEXP_CONTAINS(value, regexp)" function.
+   * Returns TRUE if value is a partial match for the regular expression, regexp. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction REGEXP_CONTAINS =
+      SqlBasicFunction.create("REGEXP_CONTAINS", ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction COMPRESS =
       SqlBasicFunction.create("COMPRESS",

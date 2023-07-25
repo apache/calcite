@@ -213,6 +213,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_URL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.POW;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
@@ -548,6 +549,7 @@ public class RexImpTable {
       defineMethod(LEVENSHTEIN, BuiltInMethod.LEVENSHTEIN.method, NullPolicy.STRICT);
       defineMethod(SPLIT, "split", NullPolicy.STRICT);
       defineMethod(PARSE_URL, BuiltInMethod.PARSE_URL.method, NullPolicy.STRICT);
+      defineMethod(REGEXP_CONTAINS, "regexpContains", NullPolicy.STRICT);
 
       map.put(TRIM, new TrimImplementor());
 

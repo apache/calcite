@@ -110,6 +110,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -343,6 +344,20 @@ public class SqlFunctions {
   /** SQL SHA512(string) function for binary string. */
   public static String sha512(ByteString string)  {
     return DigestUtils.sha512Hex(string.getBytes());
+  }
+
+  /** SQL {@code REGEXP_CONTAINS(value, regexp)} function.
+   * Throws a runtime exception for invalid regular expressions.*/
+  public static boolean regexpContains(String value, String regex) {
+    try {
+      // Uses java.util.regex as a standard for regex processing
+      // in Calcite instead of RE2 used by BigQuery/GoogleSQL
+      Pattern regexp = Pattern.compile(regex);
+      return regexp.matcher(value).find();
+    } catch (PatternSyntaxException ex) {
+      throw RESOURCE.invalidInputForRegexpContains(ex.getMessage().replace("\r\n", " ")
+          .replace("\n", " ").replace("\r", " ")).ex();
+    }
   }
 
   /** SQL {@code REGEXP_REPLACE} function with 3 arguments. */
