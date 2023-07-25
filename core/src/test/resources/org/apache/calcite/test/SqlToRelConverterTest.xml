@@ -4502,7 +4502,7 @@ group by deptno]]>
     <Resource name="plan">
       <![CDATA[
 LogicalAggregate(group=[{0}], C=[AGGREGATE($1)])
-  LogicalProject(DEPTNO=[$7], COUNT_PLUS_100=[$9])
+  LogicalProject(DEPTNO=[$7], COUNT_PLUS_100=[$9], COUNT_TIMES_100=[$10])
     LogicalTableScan(table=[[CATALOG, SALES, EMPM]])
 ]]>
     </Resource>

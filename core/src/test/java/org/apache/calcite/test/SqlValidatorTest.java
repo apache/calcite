@@ -3853,7 +3853,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "group by deptno, ename";
     f.withSql(sql3)
         .type("RecordType(INTEGER NOT NULL DEPTNO, "
-            + "MEASURE<INTEGER NOT NULL> NOT NULL X, "
+            + "INTEGER NOT NULL X, "
             + "VARCHAR(20) NOT NULL ENAME) NOT NULL");
 
     // you can apply the AGGREGATE function only to measures
@@ -3884,8 +3884,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         fixture().withExtendedCatalog()
             .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY));
     f.withSql("select ifnull(count_times_100, 0) from empm")
-        .type("RecordType(MEASURE<DECIMAL(19, 0) NOT NULL> "
-            + "NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(DECIMAL(19, 0) NOT NULL EXPR$0) NOT NULL");
   }
 
   @Test void testAmbiguousColumnInIn() {

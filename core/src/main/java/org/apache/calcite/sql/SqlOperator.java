@@ -22,7 +22,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.MeasureSqlType;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -49,6 +48,7 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.sql.type.SqlTypeUtil.isMeasure;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -539,8 +539,8 @@ public abstract class SqlOperator {
       }
 
       // MEASURE wrapper should be removed, e.g. MEASURE<DOUBLE> should just be DOUBLE
-      if (returnType instanceof MeasureSqlType) {
-        returnType = returnType.getMeasureElementType();
+      if (isMeasure(returnType) && returnType.getMeasureElementType() != null) {
+        returnType = Objects.requireNonNull(returnType.getMeasureElementType());
       }
 
       if (operandTypeInference != null
