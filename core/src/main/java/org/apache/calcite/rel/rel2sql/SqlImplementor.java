@@ -1986,6 +1986,10 @@ public abstract class SqlImplementor {
         if (((SqlCall) sqlNode).getOperator() instanceof SqlCaseOperator) {
           for (SqlNode whenOperand : ((SqlCase) sqlNode).getWhenOperands()) {
             boolean present;
+            if (whenOperand instanceof SqlIdentifier) {
+              present = false;
+              break;
+            }
             if (whenOperand instanceof SqlCase) {
               present = hasAnalyticalFunctionInWhenClauseOfCase((SqlCall) whenOperand);
             } else {

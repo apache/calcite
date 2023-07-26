@@ -746,7 +746,10 @@ public class RelBuilder {
 
   /** Creates an expression that casts an expression to a given type. */
   public RexNode cast(RexNode expr, SqlTypeName typeName) {
-    final RelDataType type = cluster.getTypeFactory().createSqlType(typeName);
+    RelDataType type = cluster.getTypeFactory().createSqlType(typeName);
+    if (SqlTypeName.NULL == expr.getType().getSqlTypeName()) {
+      type = getTypeFactory().createTypeWithNullability(type, true);
+    }
     return cluster.getRexBuilder().makeCast(type, expr);
   }
 
