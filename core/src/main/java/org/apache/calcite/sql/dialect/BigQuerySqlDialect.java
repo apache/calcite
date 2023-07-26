@@ -156,7 +156,6 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPLIT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MILLIS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
@@ -1576,9 +1575,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseStrtok(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlCall splitCall = SPLIT.createCall(SqlParserPos.ZERO, new SqlNode[]{call.operand(0),
-        call.operand(1)});
-    unparseCall(writer, splitCall, leftPrec, rightPrec);
+    unparseRegexpExtractAllForStrtok(writer, call, leftPrec, rightPrec);
     writer.print("[OFFSET ( ");
     unparseStrtokOffsetValue(writer, leftPrec, rightPrec, call.operand(2));
     writer.print(") ]");
@@ -2083,5 +2080,27 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print(" (");
     call.operand(0).unparse(writer, 0, 0);
     writer.print(")");
+  }
+
+  public void unparseRegexpExtractAllForStrtok(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_EXTRACT_ALL");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(", ");
+    unparseRegexPatternForStrtok(writer, call, leftPrec, rightPrec);
+    writer.endFunCall(regexpExtractAllFrame);
+  }
+
+  private void unparseRegexPatternForStrtok(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    SqlNode secondOperand = call.operand(1);
+    if (secondOperand instanceof SqlCharStringLiteral) {
+      String val = ((SqlCharStringLiteral) secondOperand).toValue();
+      writer.print("r'[^");
+      writer.print(val);
+      writer.print("]+'");
+    } else {
+      secondOperand.unparse(writer, leftPrec, rightPrec);
+    }
   }
 }

@@ -12553,8 +12553,40 @@ class RelToSqlConverterTest {
         .project(builder.alias(strtokNode, "aa"))
         .build();
 
-    final String expectedBiqQuery = "SELECT SPLIT('TERADATA-BIGQUERY-SPARK-ORACLE', '-') "
-        + "[OFFSET ( 1 ) ] AS aa";
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA-BIGQUERY-SPARK-ORACLE' ,"
+        + " r'[^-]+') [OFFSET ( 1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testSimpleStrtokFunctionWithMultipleDelimiters() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strtokNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA BIGQUERY-SPARK/ORACLE"), builder.literal(" -/"),
+        builder.literal(2));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA BIGQUERY-SPARK/ORACLE' ,"
+        + " r'[^ -/]+') [OFFSET ( 1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testSimpleStrtokFunctionWithSecondOpernadAsNull() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strtokNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA BIGQUERY-SPARK/ORACLE"), builder.literal(null),
+        builder.literal(2));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA BIGQUERY-SPARK/ORACLE' , "
+        + "NULL) [OFFSET ( 1 ) ] AS aa";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
@@ -12571,8 +12603,8 @@ class RelToSqlConverterTest {
         .project(builder.alias(strtokRexNode, "aa"))
         .build();
 
-    final String expectedBiqQuery = "SELECT SPLIT('TERADATA BIGQUERY SPARK ORACLE', ' ') [OFFSET "
-        + "( STRPOS('ABC', 'B') -1 ) ] AS aa";
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA BIGQUERY SPARK ORACLE' , "
+        + "r'[^ ]+') [OFFSET ( STRPOS('ABC', 'B') -1 ) ] AS aa";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
@@ -12591,8 +12623,8 @@ class RelToSqlConverterTest {
         .project(builder.alias(strtokRexNode, "aa"))
         .build();
 
-    final String expectedBiqQuery = "SELECT SPLIT('TERADATA-BIGQUERY-SPARK-ORACLE', '-') [OFFSET "
-        + "( LENGTH('dm-R') -1 ) ] AS aa";
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA-BIGQUERY-SPARK-ORACLE' , "
+        + "r'[^-]+') [OFFSET ( LENGTH('dm-R') -1 ) ] AS aa";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
