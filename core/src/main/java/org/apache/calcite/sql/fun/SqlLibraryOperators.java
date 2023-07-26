@@ -1674,4 +1674,14 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.INTEGER),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction LOG =
+      new SqlFunction("LOG",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE, null,
+          OperandTypes.family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+              // Second operand is optional
+              number -> number == 1),
+          SqlFunctionCategory.NUMERIC);
 }

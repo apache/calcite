@@ -12601,4 +12601,16 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
+  @Test public void testLogFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode logRexNode = builder.call(SqlLibraryOperators.LOG,
+        builder.literal(3), builder.literal(2));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(logRexNode, "value"))
+        .build();
+    final String expectedBiqQuery = "SELECT LOG(3, 2) AS value";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
 }
