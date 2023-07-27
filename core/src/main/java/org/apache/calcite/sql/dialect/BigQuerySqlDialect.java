@@ -1583,9 +1583,10 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseStrtokOffsetValue(SqlWriter writer, int leftPrec, int rightPrec,
       SqlNode offsetNode) {
-    int offsetValue = isNumericLiteral(offsetNode) ? Integer.parseInt(offsetNode.toString()) - 1
-        : -1;
-    if (offsetValue == -1) {
+    int offsetValue = -1;
+    if (isNumericLiteral(offsetNode)) {
+      offsetValue = Integer.parseInt(offsetNode.toString()) - 1;
+    } else {
       offsetNode.unparse(writer, leftPrec, rightPrec);
     }
     SqlLiteral offsetValueNode = SqlLiteral.createExactNumeric(String.valueOf(offsetValue),
@@ -2087,20 +2088,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_EXTRACT_ALL");
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.print(", ");
-    unparseRegexPatternForStrtok(writer, call, leftPrec, rightPrec);
+    unparseRegexPatternForStrtok(writer, call);
     writer.endFunCall(regexpExtractAllFrame);
   }
 
-  private void unparseRegexPatternForStrtok(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec) {
+  private void unparseRegexPatternForStrtok(SqlWriter writer, SqlCall call) {
     SqlNode secondOperand = call.operand(1);
-    if (secondOperand instanceof SqlCharStringLiteral) {
-      String val = ((SqlCharStringLiteral) secondOperand).toValue();
-      writer.print("r'[^");
-      writer.print(val);
-      writer.print("]+'");
-    } else {
-      secondOperand.unparse(writer, leftPrec, rightPrec);
-    }
+    String pattern = (secondOperand instanceof SqlCharStringLiteral)
+        ? "r'[^" + ((SqlCharStringLiteral) secondOperand).toValue() + "]+'"
+        : secondOperand.toString();
+    writer.print(pattern);
   }
 }
