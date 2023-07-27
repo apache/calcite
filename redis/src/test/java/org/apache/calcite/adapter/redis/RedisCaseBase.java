@@ -113,7 +113,7 @@ public abstract class RedisCaseBase {
 
   @AfterAll
   public static void stopRedisContainer() {
-    if (REDIS_CONTAINER != null && REDIS_CONTAINER.isRunning()) {
+    if (REDIS_CONTAINER.isRunning()) {
       REDIS_CONTAINER.stop();
     }
   }
