@@ -1982,23 +1982,17 @@ public abstract class SqlImplementor {
 
     private boolean hasAnalyticalFunctionInWhenClauseOfCase(SqlCall call) {
       SqlNode sqlNode = call.operand(0);
-      if (sqlNode instanceof SqlCall) {
-        if (((SqlCall) sqlNode).getOperator() instanceof SqlCaseOperator) {
-          for (SqlNode whenOperand : ((SqlCase) sqlNode).getWhenOperands()) {
-            boolean present;
-            if (whenOperand instanceof SqlIdentifier) {
-              present = false;
-              break;
-            }
-            if (whenOperand instanceof SqlCase) {
-              present = hasAnalyticalFunctionInWhenClauseOfCase((SqlCall) whenOperand);
-            } else {
-              present = hasAnalyticalFunction((SqlBasicCall) whenOperand);
-            }
-            if (present) {
-              return true;
-            }
+      if (sqlNode instanceof SqlCall
+          && ((SqlCall) sqlNode).getOperator() instanceof SqlCaseOperator) {
+        for (SqlNode whenOperand : ((SqlCase) sqlNode).getWhenOperands()) {
+          boolean present;
+          if (whenOperand instanceof SqlCase) {
+            present = hasAnalyticalFunctionInWhenClauseOfCase((SqlCall) whenOperand);
+          } else {
+            present = whenOperand instanceof SqlBasicCall
+                ? hasAnalyticalFunction((SqlBasicCall) whenOperand) : false;
           }
+          return present;
         }
       }
       return false;
