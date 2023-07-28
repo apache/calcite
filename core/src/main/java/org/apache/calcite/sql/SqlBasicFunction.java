@@ -200,6 +200,17 @@ public class SqlBasicFunction extends SqlFunction {
         getOperandTypeChecker(), callValidator,
         getFunctionType(), monotonicityInference);
   }
+
+  /** Returns a copy of this function with a given strategy for inferring
+   * returned type. */
+  public SqlBasicFunction withReturnTypeInference(
+      SqlReturnTypeInference returnTypeInference) {
+    return new SqlBasicFunction(getName(), kind, syntax, deterministic,
+        returnTypeInference, getOperandTypeInference(), operandHandler,
+        getOperandTypeChecker(), callValidator,
+        getFunctionType(), monotonicityInference);
+  }
+
   /** Returns a copy of this function with a given determinism. */
   public SqlBasicFunction withDeterministic(boolean deterministic) {
     return new SqlBasicFunction(getName(), kind, syntax, deterministic,
