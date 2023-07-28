@@ -12603,9 +12603,9 @@ class RelToSqlConverterTest {
 
 
   @Test public void testPercentileCont() {
-    final String query = "select\n"
-        + " percentile_cont(0.25) within group (order by \"product_id\")\n"
-        + "from \"product\"";
+    final String query = "SELECT\n"
+        + " PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY \"product_id\")\n"
+        + "FROM \"product\"";
     final String expectedSql = "SELECT PERCENTILE_CONT(0.25) WITHIN GROUP "
         + "(ORDER BY \"product_id\")\n"
         + "FROM \"foodmart\".\"product\"";
@@ -12616,10 +12616,10 @@ class RelToSqlConverterTest {
   }
 
   @Test void testPercentileContWithGroupBy() {
-    final String query = "select \"shelf_width\",\n"
-        + " percentile_cont(0.25) within group (order by \"product_id\")\n"
-        + "from \"product\"\n"
-        + "group by \"shelf_width\"";
+    final String query = "SELECT \"shelf_width\",\n"
+        + " PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY \"product_id\")\n"
+        + "FROM \"product\"\n"
+        + "GROUP BY \"shelf_width\"";
     final String expectedSql = "SELECT \"shelf_width\", PERCENTILE_CONT(0.25) WITHIN GROUP "
         + "(ORDER BY \"product_id\")\n"
         + "FROM \"foodmart\".\"product\"\n"
@@ -12627,4 +12627,39 @@ class RelToSqlConverterTest {
     sql(query)
         .ok(expectedSql);
   }
+
+  @Test public void testUnparsingOfPercentileCont() {
+    final RelBuilder builder = relBuilder();
+    builder.push(builder.scan("EMP").build());
+
+    final List<RexNode> percentileContRex = ImmutableList.of(builder.field("DEPTNO"),
+        builder.literal("0.5"));
+    final RelDataType decimalType =
+        builder.getTypeFactory().createSqlType(SqlTypeName.DECIMAL);
+    List<RexNode> partitionKeyRexNodes = ImmutableList.of(
+        builder.field("EMPNO"), builder.field(
+        "DEPTNO"));
+    final RexNode overRex = builder.getRexBuilder().makeOver(decimalType,
+        SqlStdOperatorTable.PERCENTILE_CONT,
+        percentileContRex, partitionKeyRexNodes, ImmutableList.of(),
+        RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING,
+        false, true, false, false, false);
+
+    builder.build();
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.field(0), overRex)
+        .aggregate(builder.groupKey(builder.field(0), builder.field(1)))
+        .build();
+    final String expectedSql = "SELECT \"EMPNO\", PERCENTILE_CONT(\"DEPTNO\", '0.5') OVER"
+        + " (PARTITION BY \"EMPNO\", \"DEPTNO\" RANGE BETWEEN UNBOUNDED PRECEDING AND "
+        + "UNBOUNDED FOLLOWING) AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT EMPNO, PERCENTILE_CONT(DEPTNO, '0.5') OVER (PARTITION"
+        + " BY EMPNO, DEPTNO) AS `$f1`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
 }
