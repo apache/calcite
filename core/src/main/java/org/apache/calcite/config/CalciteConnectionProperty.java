@@ -106,6 +106,12 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * {@link org.apache.calcite.sql.parser.SqlParserImplFactory}. */
   PARSER_FACTORY("parserFactory", Type.PLUGIN, null, false),
 
+  /** MetaTableFactory plugin. */
+  META_TABLE_FACTORY("metaTableFactory", Type.PLUGIN, null, false),
+
+  /** MetaColumnFactory plugin. */
+  META_COLUMN_FACTORY("metaColumnFactory", Type.PLUGIN, null, false),
+
   /** Name of initial schema. */
   SCHEMA("schema", Type.STRING, null, false),
 

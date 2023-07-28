@@ -53,8 +53,8 @@ import static java.util.Objects.requireNonNull;
  *
  * @see org.apache.calcite.rel.logical.LogicalTableFunctionScan
  */
-public abstract class TableFunctionScan extends AbstractRelNode implements
-    Hintable {
+public abstract class TableFunctionScan extends AbstractRelNode
+    implements Hintable {
   //~ Instance fields --------------------------------------------------------
 
   private final RexNode rexCall;

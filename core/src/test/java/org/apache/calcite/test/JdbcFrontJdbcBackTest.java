@@ -16,7 +16,15 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.avatica.MetaImpl.MetaTable;
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.jdbc.CalciteMetaImpl;
+import org.apache.calcite.jdbc.CalciteMetaImpl.CalciteMetaTable;
+import org.apache.calcite.jdbc.CalciteMetaTableFactory;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.util.TestUtil;
+
+import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Disabled;
@@ -24,6 +32,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 import static org.apache.calcite.test.CalciteAssert.that;
 
@@ -32,6 +41,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for a JDBC front-end and JDBC back-end.
@@ -67,6 +77,28 @@ class JdbcFrontJdbcBackTest {
             assertEquals(
                 "account;agg_c_10_sales_fact_1997;agg_c_14_sales_fact_1997;agg_c_special_sales_fact_1997;agg_g_ms_pcat_sales_fact_1997;agg_l_03_sales_fact_1997;agg_l_04_sales_fact_1997;agg_l_05_sales_fact_1997;agg_lc_06_sales_fact_1997;agg_lc_100_sales_fact_1997;agg_ll_01_sales_fact_1997;agg_pl_01_sales_fact_1997;category;currency;customer;days;department;employee;employee_closure;expense_fact;inventory_fact_1997;inventory_fact_1998;position;product;product_class;products;promotion;region;reserve_employee;salary;sales_fact_1997;sales_fact_1998;sales_fact_dec_1998;store;store_ragged;time_by_day;warehouse;warehouse_class;COLUMNS;TABLES;",
                 buf.toString());
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+  }
+
+  @Test void testTablesExtraColumn() throws Exception {
+    that()
+        .with(CalciteAssert.Config.JDBC_FOODMART)
+        .with(
+            CalciteConnectionProperty.META_TABLE_FACTORY.camelName(),
+            MetaExtraTableFactoryImpl.class.getName())
+        .doWithConnection(connection -> {
+          try {
+            ResultSet rset =
+                connection.getMetaData().getTables(
+                    null, null, null, null);
+            assertTrue(rset.next());
+            // Asserts that the number of columns in the result set equals
+            // MetaExtraTableFactoryImpl's expected number of columns.
+            assertEquals(rset.getMetaData().getColumnCount(), 11);
+            assertEquals(rset.getMetaData().getColumnName(11), "EXTRA_LABEL");
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }
@@ -149,5 +181,44 @@ class JdbcFrontJdbcBackTest {
             + "and \"time_id\" < 400")
         .returns2("c0=11.4\n"
             + "c0=8.55\n");
+  }
+
+  /** Mock implementation of {@link CalciteMetaTable}. */
+  private static class MetaExtraTable extends CalciteMetaTable {
+    final String extraLabel;
+
+    MetaExtraTable(Table calciteTable, String tableCat,
+        String tableSchem, String tableName) {
+      super(calciteTable, tableCat, tableSchem, tableName);
+      this.extraLabel = "extraLabel1";
+    }
+  }
+
+  /** Mock implementation of {@link CalciteMetaTableFactory} that creates
+   * instances of {@link MetaExtraTable}. Must be public, otherwise it is
+   * inaccessible from {@link org.apache.calcite.jdbc.Driver}. */
+  public static class MetaExtraTableFactoryImpl
+      implements CalciteMetaTableFactory {
+    public static final MetaExtraTableFactoryImpl INSTANCE =
+        new MetaExtraTableFactoryImpl();
+
+    MetaExtraTableFactoryImpl() {}
+
+    @Override public MetaTable createTable(Table table, String tableCat,
+        String tableSchem, String tableName) {
+      return new MetaExtraTable(table, tableCat, tableSchem, tableName);
+    }
+
+    @Override public List<String> getColumnNames() {
+      // 11 columns total.
+      return ImmutableList.<String>builder()
+          .addAll(CalciteMetaImpl.TABLE_COLUMNS)
+          .add("EXTRA_LABEL")
+          .build();
+    }
+
+    @Override public Class<? extends MetaTable> getMetaTableClass() {
+      return MetaExtraTable.class;
+    }
   }
 }
