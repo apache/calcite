@@ -661,7 +661,7 @@ class CalciteRemoteDriverTest {
       try {
         Connection conn = makeConnection();
         final CalciteMetaImpl meta =
-            new CalciteMetaImpl(conn.unwrap(CalciteConnectionImpl.class));
+            new CalciteMetaImpl(conn.unwrap(CalciteConnectionImpl.class), null, null);
         return new LocalService(meta);
       } catch (Exception e) {
         throw TestUtil.rethrow(e);
@@ -818,7 +818,7 @@ class CalciteRemoteDriverTest {
     public Meta create(List<String> args) {
       try {
         final Connection connection = CalciteAssert.hr().connect();
-        return new CalciteMetaImpl((CalciteConnectionImpl) connection);
+        return new CalciteMetaImpl((CalciteConnectionImpl) connection, null, null);
       } catch (Exception e) {
         throw TestUtil.rethrow(e);
       }
@@ -846,7 +846,7 @@ class CalciteRemoteDriverTest {
         Connection conn = JdbcFrontLinqBackTest.makeConnection();
         final CalciteMetaImpl meta =
             new CalciteMetaImpl(
-                conn.unwrap(CalciteConnectionImpl.class));
+                conn.unwrap(CalciteConnectionImpl.class), null, null);
         return new LocalService(meta);
       } catch (Exception e) {
         throw TestUtil.rethrow(e);

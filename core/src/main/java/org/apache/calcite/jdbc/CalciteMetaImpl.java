@@ -39,6 +39,7 @@ import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
@@ -69,7 +70,10 @@ import com.google.common.primitives.Longs;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
@@ -89,14 +93,35 @@ import static java.util.Objects.requireNonNull;
  */
 public class CalciteMetaImpl extends MetaImpl {
   static final Driver DRIVER = new Driver();
+  private final Class metaTableClass;
+  private final Class metaColumnClass;
 
+  @Deprecated // to be removed before 2.0
   public CalciteMetaImpl(CalciteConnectionImpl connection) {
+    this(connection, CalciteMetaTable.class, MetaColumn.class);
+  }
+
+  public CalciteMetaImpl(CalciteConnectionImpl connection, @Nullable Class<?> metaTableClass,
+      @Nullable Class<?> metaColumnClass) {
     super(connection);
     this.connProps
         .setAutoCommit(false)
         .setReadOnly(false)
         .setTransactionIsolation(Connection.TRANSACTION_NONE);
     this.connProps.setDirty(false);
+
+    if (metaTableClass != null) {
+      assert CalciteMetaTable.class.isAssignableFrom(metaTableClass);
+      this.metaTableClass = metaTableClass;
+    } else {
+      this.metaTableClass = CalciteMetaTable.class;
+    }
+    if (metaColumnClass != null) {
+      assert MetaColumn.class.isAssignableFrom(metaColumnClass);
+      this.metaColumnClass = metaColumnClass;
+    } else {
+      this.metaColumnClass = MetaColumn.class;
+    }
   }
 
   static <T extends Named> Predicate1<T> namedMatcher(final Pat pattern) {
@@ -263,22 +288,29 @@ public class CalciteMetaImpl extends MetaImpl {
       typeFilter = v1 -> typeList.contains(v1.tableType);
     }
     final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
-    return createResultSet(schemas(catalog)
-            .where(schemaMatcher)
-            .selectMany(schema -> tables(schema, matcher(tableNamePattern)))
-            .where(typeFilter),
-        MetaTable.class,
-        "TABLE_CAT",
-        "TABLE_SCHEM",
-        "TABLE_NAME",
-        "TABLE_TYPE",
-        "REMARKS",
-        "TYPE_CAT",
-        "TYPE_SCHEM",
-        "TYPE_NAME",
-        "SELF_REFERENCING_COL_NAME",
-        "REF_GENERATION");
+    Enumerable<MetaTable> tables = schemas(catalog)
+        .where(schemaMatcher)
+        .selectMany(schema -> tables(schema, matcher(tableNamePattern)))
+        .where(typeFilter);
+    String[] columnNames = getColumnNames(this.metaTableClass);
+    return createResultSet(tables,
+        this.metaTableClass,
+        columnNames);
   }
+
+  /** The provided subclass needs to overload getColumnNames() with the expected columns in the
+   * enumerable.
+   * */
+  private String[] getColumnNames(Class<?> clazz) {
+    try {
+      Method m = clazz.getMethod("getColumnNames");
+      String[] columnNames = (String[]) m.invoke(null);
+      return columnNames;
+    } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
 
   @Override public MetaResultSet getTypeInfo(ConnectionHandle ch) {
     return createResultSet(allTypeInfo(),
@@ -312,36 +344,14 @@ public class CalciteMetaImpl extends MetaImpl {
     final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
     final Predicate1<MetaColumn> columnMatcher =
         namedMatcher(columnNamePattern);
+    String[] columnNames = getColumnNames(this.metaColumnClass);
     return createResultSet(schemas(catalog)
             .where(schemaMatcher)
             .selectMany(schema -> tables(schema, tableNameMatcher))
             .selectMany(this::columns)
             .where(columnMatcher),
-        MetaColumn.class,
-        "TABLE_CAT",
-        "TABLE_SCHEM",
-        "TABLE_NAME",
-        "COLUMN_NAME",
-        "DATA_TYPE",
-        "TYPE_NAME",
-        "COLUMN_SIZE",
-        "BUFFER_LENGTH",
-        "DECIMAL_DIGITS",
-        "NUM_PREC_RADIX",
-        "NULLABLE",
-        "REMARKS",
-        "COLUMN_DEF",
-        "SQL_DATA_TYPE",
-        "SQL_DATETIME_SUB",
-        "CHAR_OCTET_LENGTH",
-        "ORDINAL_POSITION",
-        "IS_NULLABLE",
-        "SCOPE_CATALOG",
-        "SCOPE_SCHEMA",
-        "SCOPE_TABLE",
-        "SOURCE_DATA_TYPE",
-        "IS_AUTOINCREMENT",
-        "IS_GENERATEDCOLUMN");
+        this.metaColumnClass,
+        columnNames);
   }
 
   Enumerable<MetaCatalog> catalogs() {
@@ -378,6 +388,102 @@ public class CalciteMetaImpl extends MetaImpl {
             tables(schema, Functions.<String>truePredicate1()));
   }
 
+  /** If CalciteMetaImpl was created with a subclass for CalciteMetaTable, tables() will return
+   * instances of the subclass instead of CalciteMetaTable.  */
+  private MetaTable getMetaTables(Table table, String tableCatalog,
+      String tableSchem, String name) {
+    try {
+      Constructor<?> constructor =
+          this.metaTableClass.getDeclaredConstructor(Table.class, String.class,
+              String.class, String.class);
+      return (MetaTable) constructor.newInstance(table, tableCatalog, tableSchem, name);
+    } catch (NoSuchMethodException | InstantiationException | IllegalAccessException
+             | InvocationTargetException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private MetaColumn getMetaColumns(
+      CalciteMetaTable table,
+      RelDataTypeField field,
+      int jdbcOrdinal,
+      int precision) {
+    try {
+      if (this.metaColumnClass == MetaColumn.class) {
+        return new MetaColumn(
+            table.tableCat,
+            table.tableSchem,
+            table.tableName,
+            field.getName(),
+            jdbcOrdinal,
+            field.getType().getFullTypeString(),
+            precision,
+            field.getType().getSqlTypeName().allowsScale()
+                ? field.getType().getScale()
+                : null,
+            10,
+            field.getType().isNullable()
+                ? DatabaseMetaData.columnNullable
+                : DatabaseMetaData.columnNoNulls,
+            precision,
+            field.getIndex() + 1,
+            field.getType().isNullable() ? "YES" : "NO",
+            /*isAutoincrement=*/
+            "NO",
+            /*isGeneratedcolumn=*/
+            field.getType().getSqlTypeName() == SqlTypeName.MEASURE
+                ? "YES"
+                : "NO");
+      }
+      Constructor<?> constructor =
+          this.metaColumnClass.getDeclaredConstructor(
+              Table.class,
+              String.class,
+              String.class,
+              String.class,
+              String.class,
+              int.class,
+              String.class,
+              Integer.class,
+              Integer.class,
+              Integer.class,
+              int.class,
+              Integer.class,
+              int.class,
+              String.class,
+              String.class,
+              String.class);
+      return (MetaColumn) constructor.newInstance(
+          table.calciteTable,
+          table.tableCat,
+          table.tableSchem,
+          table.tableName,
+          field.getName(),
+          jdbcOrdinal,
+          field.getType().getFullTypeString(),
+          precision,
+          field.getType().getSqlTypeName().allowsScale()
+              ? field.getType().getScale()
+              : null,
+          10,
+          field.getType().isNullable()
+              ? DatabaseMetaData.columnNullable
+              : DatabaseMetaData.columnNoNulls,
+          precision,
+          field.getIndex() + 1,
+          field.getType().isNullable() ? "YES" : "NO",
+          /*isAutoincrement=*/
+          "NO",
+          /*isGeneratedcolumn=*/
+          field.getType().getSqlTypeName() == SqlTypeName.MEASURE
+              ? "YES"
+              : "NO");
+    } catch (NoSuchMethodException | InstantiationException | IllegalAccessException
+             | InvocationTargetException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   Enumerable<MetaTable> tables(final MetaSchema schema_) {
     final CalciteMetaSchema schema = (CalciteMetaSchema) schema_;
     return Linq4j.asEnumerable(schema.calciteSchema.getTableNames())
@@ -386,10 +492,7 @@ public class CalciteMetaImpl extends MetaImpl {
               requireNonNull(schema.calciteSchema.getTable(name, true),
                   () -> "table " + name + " is not found (case sensitive)")
                   .getTable();
-          return new CalciteMetaTable(table,
-              schema.tableCatalog,
-              schema.tableSchem,
-              name);
+          return getMetaTables(table, schema.tableCatalog, schema.tableSchem, name);
         })
         .concat(
             Linq4j.asEnumerable(
@@ -397,7 +500,7 @@ public class CalciteMetaImpl extends MetaImpl {
                     .entrySet())
                 .select(pair -> {
                   final Table table = pair.getValue();
-                  return new CalciteMetaTable(table,
+                  return getMetaTables(table,
                       schema.tableCatalog,
                       schema.tableSchem,
                       pair.getKey());
@@ -467,24 +570,11 @@ public class CalciteMetaImpl extends MetaImpl {
                   .map(RelDataType::getSqlTypeName)
                   .map(SqlTypeName::getJdbcOrdinal)
                   .orElse(field.getType().getSqlTypeName().getJdbcOrdinal());
-          return new MetaColumn(
-              table.tableCat,
-              table.tableSchem,
-              table.tableName,
-              field.getName(),
+          return getMetaColumns(
+              table,
+              field,
               jdbcOrdinal,
-              field.getType().getFullTypeString(),
-              precision,
-              field.getType().getSqlTypeName().allowsScale()
-                  ? field.getType().getScale()
-                  : null,
-              10,
-              field.getType().isNullable()
-                  ? DatabaseMetaData.columnNullable
-                  : DatabaseMetaData.columnNoNulls,
-              precision,
-              field.getIndex() + 1,
-              field.getType().isNullable() ? "YES" : "NO");
+              precision);
         });
   }
 
@@ -816,10 +906,10 @@ public class CalciteMetaImpl extends MetaImpl {
   }
 
   /** Metadata describing a Calcite table. */
-  private static class CalciteMetaTable extends MetaTable {
+  public static class CalciteMetaTable extends MetaTable {
     private final Table calciteTable;
 
-    CalciteMetaTable(Table calciteTable, String tableCat,
+    public CalciteMetaTable(Table calciteTable, String tableCat,
         String tableSchem, String tableName) {
       super(tableCat, tableSchem, tableName,
           calciteTable.getJdbcTableType().jdbcName);

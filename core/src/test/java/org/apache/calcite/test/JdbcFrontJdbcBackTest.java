@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.jdbc.CalciteMetaImpl.CalciteMetaTable;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.util.TestUtil;
 
 import org.hamcrest.Matcher;
@@ -24,6 +27,8 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Map;
 
 import static org.apache.calcite.test.CalciteAssert.that;
 
@@ -32,6 +37,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for a JDBC front-end and JDBC back-end.
@@ -71,6 +77,55 @@ class JdbcFrontJdbcBackTest {
             throw TestUtil.rethrow(e);
           }
         });
+  }
+
+
+  /** Sample subclass testing getMetaTables. */
+  public static class MetaExtraTable extends CalciteMetaTable {
+    public final String extraLabel;
+
+    // Got a RedundantModifier alert, however CalciteMetaImpl does need this constructor to be
+    // explicitly public in order to create an instance.
+    // CHECKSTYLE: IGNORE 2
+    public MetaExtraTable(Table calciteTable, String tableCat,
+        String tableSchem, String tableName) {
+      super(calciteTable, tableCat, tableSchem, tableName);
+      Map<String, Object> metadataMap = calciteTable.getTableMetadata();
+      Object extraLabel1 = metadataMap.getOrDefault("extraLabel", null);
+      this.extraLabel = extraLabel1 != null ? (String) extraLabel1 : null;
+    }
+    public static String[] getColumnNames() {
+      return Arrays.asList("TABLE_CAT",
+          "TABLE_SCHEM",
+          "TABLE_NAME",
+          "TABLE_TYPE",
+          "REMARKS",
+          "TYPE_CAT",
+          "TYPE_SCHEM",
+          "TYPE_NAME",
+          "SELF_REFERENCING_COL_NAME",
+          "REF_GENERATION",
+          "EXTRA_LABEL").toArray(new String[0]);
+    }
+  }
+  @Test void testTablesExtraColumn() throws Exception {
+    that()
+        .with(CalciteAssert.Config.JDBC_FOODMART)
+        .with(
+            CalciteConnectionProperty.META_TABLE_CLASS.camelName(), MetaExtraTable.class.getName())
+        .doWithConnection(connection -> {
+          try {
+            ResultSet rset =
+                connection.getMetaData().getTables(
+                    null, null, null, null);
+            assertTrue(rset.next());
+            assertEquals(rset.getMetaData().getColumnCount(), 11);
+            assertEquals(rset.getMetaData().getColumnName(11), "EXTRA_LABEL");
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+
   }
 
   @Test void testTablesByType() throws Exception {

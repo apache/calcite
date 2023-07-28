@@ -110,4 +110,10 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   boolean lenientOperatorLookup();
   /** Returns the value of {@link CalciteConnectionProperty#TOPDOWN_OPT}. */
   boolean topDownOpt();
+
+  /** Returns the value of {@link CalciteConnectionProperty#META_TABLE_CLASS}. */
+  Class<?> metaTableClass();
+
+  /** Returns the value of {@link CalciteConnectionProperty#META_COLUMN_CLASS}. */
+  Class<?> metaColumnClass();
 }

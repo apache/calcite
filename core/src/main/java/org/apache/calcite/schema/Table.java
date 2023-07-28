@@ -24,6 +24,9 @@ import org.apache.calcite.sql.SqlNode;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Table.
  *
@@ -82,4 +85,20 @@ public interface Table {
    */
   boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
       @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config);
+
+  /**
+   * Overload to provide additional table metadata if available.
+   */
+  default Map<String, Object> getTableMetadata() {
+    Map<String, Object> map = new HashMap<>();
+    return map;
+  }
+
+  /**
+   * Overload to provide additional column metadata if available.
+   */
+  default Map<String, Map<String, Object>> getColumnMetadata() {
+    Map<String, Map<String, Object>> map = new HashMap<>();
+    return map;
+  }
 }

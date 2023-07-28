@@ -213,4 +213,12 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   @Override public boolean topDownOpt() {
     return CalciteConnectionProperty.TOPDOWN_OPT.wrap(properties).getBoolean();
   }
+
+  @Override public Class<?> metaTableClass() {
+    return CalciteConnectionProperty.META_TABLE_CLASS.wrap(properties).getClass();
+  }
+
+  @Override public Class<?> metaColumnClass() {
+    return CalciteConnectionProperty.META_COLUMN_CLASS.wrap(properties).getClass();
+  }
 }
