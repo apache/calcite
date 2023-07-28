@@ -12262,6 +12262,36 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
+  @Test public void testTryToDateFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode tryToDateNode0 = builder.call(SqlLibraryOperators.TRY_TO_DATE,
+        builder.literal("2013-12-05 01:02:03"), builder.literal("YYYY-MM-DD HH24:MI:SS"));
+    final RexNode tryToDateNode1 = builder.call(SqlLibraryOperators.TRY_TO_DATE,
+        builder.literal("2013-12-05"), builder.literal("YYYY-MM-DD"));
+    final RexNode tryToDateNode2 = builder.call(SqlLibraryOperators.TRY_TO_DATE,
+        builder.literal("invalid"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(
+            builder.alias(tryToDateNode0, "date_value0"),
+            builder.alias(tryToDateNode1, "date_value1"),
+            builder.alias(tryToDateNode2, "date_value2"))
+        .build();
+    final String expectedSql =
+        "SELECT TRY_TO_DATE('2013-12-05 01:02:03', 'YYYY-MM-DD HH24:MI:SS') AS "
+            + "\"date_value0\", TRY_TO_DATE('2013-12-05', 'YYYY-MM-DD') AS \"date_value1\", "
+            + "TRY_TO_DATE('invalid') AS \"date_value2\"\n"
+            + "FROM \"scott\".\"EMP\"";
+    final String snowflakeSql =
+        "SELECT TRY_TO_DATE('2013-12-05 01:02:03', 'YYYY-MM-DD HH24:MI:SS') AS "
+            + "\"date_value0\", TRY_TO_DATE('2013-12-05', 'YYYY-MM-DD') AS \"date_value1\", "
+            + "TRY_TO_DATE('invalid') AS \"date_value2\"\n"
+            + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(snowflakeSql));
+  }
+
   @Test public void testTryToTimestampFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode tryToTimestampNode = builder.call(SqlLibraryOperators.TRY_TO_TIMESTAMP,
