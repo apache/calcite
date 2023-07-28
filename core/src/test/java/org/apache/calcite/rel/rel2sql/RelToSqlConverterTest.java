@@ -12573,6 +12573,92 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testSimpleStrtokFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strtokNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("-"),
+        builder.literal(2));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA-BIGQUERY-SPARK-ORACLE' ,"
+        + " r'[^-]+') [OFFSET ( 1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testSimpleStrtokFunctionWithMultipleDelimiters() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strtokNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA BIGQUERY-SPARK/ORACLE"), builder.literal(" -/"),
+        builder.literal(2));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA BIGQUERY-SPARK/ORACLE' ,"
+        + " r'[^ -/]+') [OFFSET ( 1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testSimpleStrtokFunctionWithSecondOpernadAsNull() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strtokNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA BIGQUERY-SPARK/ORACLE"), builder.literal(null),
+        builder.literal(2));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA BIGQUERY-SPARK/ORACLE' , "
+        + "NULL) [OFFSET ( 1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testStrtokWithIndexFunctionAsThirdArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode positionRexNode = builder.call(SqlStdOperatorTable.POSITION,
+        builder.literal("B"), builder.literal("ABC"));
+    final RexNode strtokRexNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA BIGQUERY SPARK ORACLE"), builder.literal(" "),
+        positionRexNode);
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokRexNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA BIGQUERY SPARK ORACLE' , "
+        + "r'[^ ]+') [OFFSET ( STRPOS('ABC', 'B') -1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testStrtokWithCastFunctionAsThirdArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode lengthFunRexNode = builder.call(SqlStdOperatorTable.CHAR_LENGTH,
+        builder.literal("dm-R"));
+    final RexNode formatIntegerCastRexNode = builder.cast(lengthFunRexNode,
+        SqlTypeName.INTEGER);
+    final RexNode strtokRexNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("-"),
+        formatIntegerCastRexNode);
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokRexNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA-BIGQUERY-SPARK-ORACLE' , "
+        + "r'[^-]+') [OFFSET ( LENGTH('dm-R') -1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   private RexNode makeCaseCall(RelBuilder builder, int index, int number) {
     RexNode rex = builder.literal(number);
     RexNode rex2 = builder.literal(number * 10);
