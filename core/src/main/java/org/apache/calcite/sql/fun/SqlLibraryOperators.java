@@ -1689,4 +1689,20 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.INTEGER),
           SqlFunctionCategory.NUMERIC);
+
+  /** The {@code PERCENTILE_CONT} function, BigQuery's
+   * equivalent to {@link SqlStdOperatorTable#PERCENTILE_CONT},
+   * but uses an {@code OVER} clause rather than {@code WITHIN GROUP}. */
+  @LibraryOperator(libraries = {BIG_QUERY, TERADATA})
+  public static final SqlFunction PERCENTILE_CONT =
+      new SqlFunction("PERCENTILE_CONT",
+          SqlKind.PERCENTILE_CONT,
+          ReturnTypes.DOUBLE_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SNOWFLAKE, ORACLE, TERADATA})
+  public static final SqlAggFunction MEDIAN =
+      new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
+
 }
