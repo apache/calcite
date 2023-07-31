@@ -317,7 +317,8 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("SPLIT",
           ReturnTypes.ARG0
               .andThen(SqlLibraryOperators::deriveTypeSplit)
-              .andThen(SqlTypeTransforms.TO_ARRAY),
+              .andThen(SqlTypeTransforms.TO_ARRAY)
+              .andThen(SqlTypeTransforms.TO_NULLABLE),
           OperandTypes.or(OperandTypes.CHARACTER_CHARACTER,
               OperandTypes.CHARACTER,
               OperandTypes.BINARY_BINARY,

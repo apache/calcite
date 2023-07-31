@@ -107,6 +107,7 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -5088,6 +5089,45 @@ class RelOptRulesTest extends RelOptTestBase {
         .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE)
         .withRule(CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
         .checkUnchanged();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
+   * AssertionError during constant reduction of SPLIT expression that returns NULL</a>. */
+  @Test public void testSplitNull() {
+    final String query = "select split('1|2|3', NULL)";
+    sql(query)
+        .withFactory(
+            t -> t.withOperatorTable(opTab ->
+                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                    SqlLibrary.BIG_QUERY))) // needed for SPLIT function
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
+   * AssertionError during constant reduction of SPLIT expression that returns NULL</a>. */
+  @Test public void testSplitNull1() {
+    final String query = "select split(NULL, '|')";
+    sql(query)
+        .withFactory(
+            t -> t.withOperatorTable(opTab ->
+                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                    SqlLibrary.BIG_QUERY))) // needed for SPLIT function
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
+   * AssertionError during constant reduction of SPLIT expression that returns NULL</a>. */
+  @Test public void testSplitNull2() {
+    final String query = "select split(NULL, NULL)";
+    sql(query)
+        .withFactory(
+            t -> t.withOperatorTable(opTab ->
+                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                    SqlLibrary.BIG_QUERY))) // needed for SPLIT function
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
   }
 
   /** Test case for right outer join, group by on key same as join
