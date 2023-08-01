@@ -4362,6 +4362,9 @@ public class SqlOperatorTest {
       f.checkString("left('abcd', -2)", "", "VARCHAR(4) NOT NULL");
       f.checkNull("left(cast(null as varchar(1)), -2)");
       f.checkNull("left('abcd', cast(null as Integer))");
+      // Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5859">[CALCITE-5859]
+      // Compile-time evaluation of LEFT(NULL, n) should not throw RuntimeException</a>
+      f.checkNull("left(null, 3)");
 
       // test for ByteString
       f.checkString("left(x'ABCdef', 1)", "ab", "VARBINARY(3) NOT NULL");
