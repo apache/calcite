@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptForeignKey;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -261,6 +262,18 @@ public class RelMetadataFixture {
     Double result = mq.getPercentageOriginalRows(rel);
     assertNotNull(result);
     assertThat(result, matcher);
+    return this;
+  }
+
+  public RelMetadataFixture assertForeignKeys(Matcher<Set<RelOptForeignKey>> matcher,
+      Matcher<Set<RelOptForeignKey>> confirmedMatcher,
+      boolean ignoreNulls) {
+    RelNode rel = toRel();
+    RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    Set<RelOptForeignKey> foreignKeys = mq.getForeignKeys(rel, ignoreNulls);
+    assertThat(foreignKeys, matcher);
+    Set<RelOptForeignKey> confirmedForeignKeys = mq.getConfirmedForeignKeys(rel, ignoreNulls);
+    assertThat(confirmedForeignKeys, confirmedMatcher);
     return this;
   }
 

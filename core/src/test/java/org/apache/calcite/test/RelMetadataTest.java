@@ -22,6 +22,7 @@ import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptForeignKey;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptTable;
@@ -82,6 +83,7 @@ import org.apache.calcite.rel.metadata.UnboundMetadata;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.InferredConstraintKey;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -105,11 +107,13 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -181,6 +185,20 @@ public class RelMetadataTest {
 
   private static final List<String> EMP_QNAME =
       ImmutableList.of("CATALOG", "SALES", "EMP");
+
+  private static final List<String> EMPNULLABLES_QNAME =
+      ImmutableList.of("CATALOG", "SALES", "EMPNULLABLES");
+
+  private static final List<String> DEPT_QNAME =
+      ImmutableList.of("CATALOG", "SALES", "DEPT");
+
+  private static final List<String> EMPDEFAULTS_QNAME =
+      ImmutableList.of("CATALOG", "SALES", "EMPDEFAULTS");
+
+  private static final List<String> BONUS_QNAME =
+      ImmutableList.of("CATALOG", "SALES", "BONUS");
+
+  private static final Set<RelOptForeignKey> EMPTY_FOREIGN_KEY_SET = new HashSet<>();
 
   /** Ensures that tests that use a lot of memory do not run at the same
    * time. */
@@ -969,6 +987,1025 @@ public class RelMetadataTest {
     sql("select * from emp where deptno = 10")
         .assertThatDistinctRowCount(bitSetOf(), // empty key
             is(1D));
+  }
+
+  // ----------------------------------------------------------------------
+  // Tests for getForeignKeys
+  // ----------------------------------------------------------------------
+
+  @Test void testForeignKeysAggregateEmpty() {
+    sql("select hiredate, sum(sal), count(deptno) from emp group by hiredate")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsAggregateEmpty() {
+    sql("select hiredate, sum(sal), count(deptno) from empnullables group by hiredate")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysAggregateKey() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    sql("select count(sal), deptno, count(deptno) from emp group by deptno")
+        .assertForeignKeys(equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsAggregateKey() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    sql("select count(sal), deptno, count(deptno) from empnullables group by deptno")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysTableOnly() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(EMP_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(0)),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(3), ImmutableBitSet.of()));
+    sql("select empno, deptno, ename, deptno from emp")
+        .assertForeignKeys(equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsTableOnly() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(0), ImmutableBitSet.of()));
+    sql("select deptno, ename from empnullables")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysTableOnlyEmpty() {
+    sql("select ename, job from emp")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsTableOnlyEmpty() {
+    sql("select ename, job from empnullables")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysExpressionEmpty() {
+    sql("select deptno + 1, ename from emp")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsExpressionEmpty() {
+    sql("select deptno + 1, ename from empnullables")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysFilter() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(0), ImmutableBitSet.of()));
+    sql("select deptno, ename from emp where ename = 'lucy' and deptno = 1001")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsFilter() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(0), ImmutableBitSet.of()));
+    sql("select deptno, ename from empnullables where ename = 'lucy' and deptno = 1001")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysFilterEmpty() {
+    sql("select ename from emp where deptno = 1001")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsFilterEmpty() {
+    sql("select ename from empnullables where deptno = 1001")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysInnerJoinLeft() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(0), ImmutableBitSet.of()),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(2), ImmutableBitSet.of()),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(3)));
+    Set<RelOptForeignKey> confirmedForeignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(0), bitSetOf(3)),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(2), bitSetOf(3)));
+    foreignKeys.addAll(confirmedForeignKeys);
+    sql("select emp.deptno, dept.name, emp.deptno, dept.deptno from emp, dept")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(confirmedForeignKeys), true)
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(confirmedForeignKeys), false);
+  }
+
+  @Test void testForeignKeysIgnoreNullsInnerJoinLeft() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(3)));
+    Set<RelOptForeignKey> confirmedForeignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(0), bitSetOf(3)),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(2), bitSetOf(3)));
+    Set<RelOptForeignKey> foreignKeysIgnoreNulls =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(0), ImmutableBitSet.of()),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(2), ImmutableBitSet.of()));
+    foreignKeysIgnoreNulls.addAll(confirmedForeignKeys);
+    foreignKeysIgnoreNulls.addAll(foreignKeys);
+    sql("select empnullables.deptno, dept.name, empnullables.deptno, dept.deptno "
+        + "from empnullables, dept")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeysIgnoreNulls), equalTo(confirmedForeignKeys), true);
+  }
+
+  @Test void testForeignKeysInnerJoinRight() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(2), ImmutableBitSet.of()),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(3)));
+    Set<RelOptForeignKey> confirmedForeignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(1), bitSetOf(3)),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(2), bitSetOf(3)));
+    foreignKeys.addAll(confirmedForeignKeys);
+    sql("select dept.name, emp.deptno, emp.deptno, dept.deptno from dept, emp")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(confirmedForeignKeys), false)
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(confirmedForeignKeys), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsInnerJoinRight() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(2)));
+    Set<RelOptForeignKey> confirmedForeignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(1), bitSetOf(2)),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(3), bitSetOf(2)));
+    Set<RelOptForeignKey> foreignKeysIgnoreNull =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(3), ImmutableBitSet.of()));
+    foreignKeysIgnoreNull.addAll(confirmedForeignKeys);
+    foreignKeysIgnoreNull.addAll(foreignKeys);
+    sql("select dept.name, empnullables.deptno, dept.deptno, empnullables.deptno "
+        + "from dept, empnullables")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeysIgnoreNull), equalTo(confirmedForeignKeys), true);
+  }
+
+  @Test void testForeignKeysLeftOuterJoin() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(3)),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    Set<RelOptForeignKey> confirmedForeignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(1), bitSetOf(3)));
+    foreignKeys.addAll(confirmedForeignKeys);
+    sql("select name as dname, emp.deptno, dept.name, dept.deptno "
+        + "from emp left outer join dept "
+        + "on emp.deptno = dept.deptno")
+        .assertForeignKeys(equalTo(foreignKeys), equalTo(confirmedForeignKeys), false)
+        .assertForeignKeys(equalTo(foreignKeys), equalTo(confirmedForeignKeys), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsLeftOuterJoin() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(1)));
+    Set<RelOptForeignKey> foreignKeysIgnoreNull =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(1)),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(2), ImmutableBitSet.of()));
+    Set<RelOptForeignKey> confirmedForeignKeysIgnoreNull =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(2), bitSetOf(1)));
+    foreignKeysIgnoreNull.addAll(confirmedForeignKeysIgnoreNull);
+    foreignKeysIgnoreNull.addAll(foreignKeys);
+    sql("select name as dname, dept.deptno, empnullables.deptno, dept.name "
+        + "from empnullables left outer join dept "
+        + "on empnullables.deptno = dept.deptno")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(equalTo(foreignKeysIgnoreNull),
+            equalTo(confirmedForeignKeysIgnoreNull), true);
+  }
+
+  @Test void testForeignKeysRightOuterJoin() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(0)),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(2), ImmutableBitSet.of()),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(4), ImmutableBitSet.of()));
+    Set<RelOptForeignKey> confirmedForeignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(2), bitSetOf(0)),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(4), bitSetOf(0)));
+    foreignKeys.addAll(confirmedForeignKeys);
+    sql("select dept.deptno, name as dname, emp.deptno, dept.name, emp.deptno "
+        + "from dept right outer join emp "
+        + "on emp.deptno = dept.deptno")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(confirmedForeignKeys), false)
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(confirmedForeignKeys), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsRightOuterJoin() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(4)));
+    Set<RelOptForeignKey> foreignKeysIgnoreNulls =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(3), ImmutableBitSet.of()));
+    Set<RelOptForeignKey> confirmedForeignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(1), bitSetOf(4)),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(3), bitSetOf(4)));
+    foreignKeysIgnoreNulls.addAll(foreignKeys);
+    foreignKeysIgnoreNulls.addAll(confirmedForeignKeys);
+    sql("select name as dname, empnullables.deptno, dept.name, "
+        + "empnullables.deptno, dept.deptno "
+        + "from dept right outer join empnullables "
+        + "on empnullables.deptno = dept.deptno")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeysIgnoreNulls), equalTo(confirmedForeignKeys), true);
+  }
+
+  @Test void testForeignKeysOuterJoinEmpty() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(3)),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    Set<RelOptForeignKey> confirmedForeignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(1), bitSetOf(3)));
+    Set<RelOptForeignKey> foreignKeysIgnoreNull = Sets.newHashSet(foreignKeys);
+    foreignKeysIgnoreNull.addAll(confirmedForeignKeys);
+    sql("select name as dname, emp.deptno, dept.name, dept.deptno "
+        + "from dept left outer join emp "
+        + "on emp.deptno = dept.deptno")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeysIgnoreNull), equalTo(confirmedForeignKeys), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsOuterJoinEmpty() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(3)));
+    Set<RelOptForeignKey> confirmedForeignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(1), bitSetOf(3)));
+    Set<RelOptForeignKey> foreignKeysIgnoreNulls =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    foreignKeysIgnoreNulls.addAll(foreignKeys);
+    foreignKeysIgnoreNulls.addAll(confirmedForeignKeys);
+    sql("select name as dname, empnullables.deptno, dept.name, dept.deptno "
+        + "from dept left outer join empnullables "
+        + "on empnullables.deptno = dept.deptno")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeysIgnoreNulls), equalTo(confirmedForeignKeys), true);
+  }
+
+  @Test void testForeignKeysFullOuterJoinEmpty() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(2)),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    Set<RelOptForeignKey> confirmedForeignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(1), bitSetOf(2)));
+    foreignKeys.addAll(confirmedForeignKeys);
+    sql("select name as dname, emp.deptno, dept.deptno from emp full outer join dept"
+        + " on emp.deptno = dept.deptno")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(confirmedForeignKeys), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsFullOuterJoinEmpty() {
+    Set<RelOptForeignKey> foreignKeysIgnoreNulls =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(2)),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    Set<RelOptForeignKey> confirmedForeignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(1), bitSetOf(2)));
+    foreignKeysIgnoreNulls.addAll(confirmedForeignKeys);
+    sql("select name as dname, empnullables.deptno, dept.deptno "
+        + "from empnullables full outer join dept "
+        + "on empnullables.deptno = dept.deptno")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeysIgnoreNulls), equalTo(confirmedForeignKeys), true);
+  }
+
+  @Test void testForeignKeysJoinAggregateFilter() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(3)),
+        RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    Set<RelOptForeignKey> confirmedForeignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(1), bitSetOf(3)));
+    foreignKeys.addAll(confirmedForeignKeys);
+    sql("select dept.name, emp_agg.deptno, emp_agg.ename, dept.deptno "
+        + "from dept "
+        + "right join "
+        + "(select count(sal), deptno, ename from emp group by deptno, ename) emp_agg "
+        + "on dept.deptno = emp_agg.deptno "
+        + "where emp_agg.ename = 'job'")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(confirmedForeignKeys), false)
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(confirmedForeignKeys), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsJoinAggregateFilter() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(3)));
+    Set<RelOptForeignKey> foreignKeysIgnoreNulls =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    foreignKeysIgnoreNulls.addAll(foreignKeys);
+    Set<RelOptForeignKey> confirmedForeignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, true),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, true))),
+            bitSetOf(1), bitSetOf(3)));
+    foreignKeysIgnoreNulls.addAll(confirmedForeignKeys);
+    sql("select dept.name, emp_agg.deptno, emp_agg.ename, dept.deptno "
+        + "from dept "
+        + "right join "
+        + "(select count(sal), deptno, ename from empnullables group by deptno, ename) emp_agg "
+        + "on dept.deptno = emp_agg.deptno "
+        + "where emp_agg.ename = 'job'")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeysIgnoreNulls), equalTo(confirmedForeignKeys), true);
+  }
+
+  @Test void testForeignKeysValuesEmpty() {
+    sql("values(1,2,3)")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysUnionAllEmpty() {
+    sql("select name, deptno from dept union all select ename, deptno from emp")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsUnionAllEmpty() {
+    sql("select name, deptno from dept union all select ename, deptno from empnullables")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysSelfUnionAll() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    sql("select ename, deptno from emp union all select ename, deptno from emp")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreSelfUnionAll() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    sql("select ename, deptno from empnullables "
+        + "union all select ename, deptno from empnullables")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysUnionEmpty() {
+    sql("select name, deptno from dept union select ename, deptno from emp")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsUnionEmpty() {
+    sql("select name, deptno from dept union select ename, deptno from empnullables")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false);
+  }
+
+  @Test void testForeignKeysSelfUnion() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    sql("select ename, deptno from emp union select ename, deptno from emp")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsSelfUnion() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    sql("select ename, deptno from empnullables union select ename, deptno from empnullables")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysMinus() {
+    sql("select ename, deptno from emp except all select name, deptno from dept")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsMinus() {
+    sql("select ename, deptno from empnullables except all select name, deptno from dept")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysSelfMinus() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    sql("select ename, deptno from emp except all select ename, deptno from emp")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsSelfMinus() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMPNULLABLES_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    sql("select ename, deptno from empnullables "
+        + "except all select ename, deptno from empnullables")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysMinusEmpty() {
+    sql("select name, deptno from dept except all select ename, deptno from emp")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsMinusEmpty() {
+    sql("select name, deptno from dept except all select ename, deptno from empnullables")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIntersect() {
+    sql("select name, deptno from dept intersect all select ename, deptno from emp")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsIntersect() {
+    sql("select name, deptno from dept intersect all select ename, deptno from empnullables")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysSelfIntersect() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(EMP_QNAME, 7, false),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            bitSetOf(1), ImmutableBitSet.of()));
+    sql("select ename, deptno from emp intersect all select ename, deptno from emp")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysIgnoreNullsSelfIntersect() {
+    sql("select ename, deptno from emp intersect all select ename, deptno from empnullables")
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(EMPTY_FOREIGN_KEY_SET), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testForeignKeysSelfIntersectEmpty() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+            Lists.newArrayList(
+                Pair.of(
+                    InferredConstraintKey.of(),
+                    InferredConstraintKey.of(DEPT_QNAME, 0, false))),
+            ImmutableBitSet.of(), bitSetOf(1)));
+    sql("select name, deptno from dept intersect all select name, deptno from dept")
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), true);
+  }
+
+  @Test void testCombinedForeignKeysJoinAggregateFilter() {
+    Set<RelOptForeignKey> foreignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+                Lists.newArrayList(
+                    Pair.of(
+                        InferredConstraintKey.of(),
+                        InferredConstraintKey.of(BONUS_QNAME, 0, false)),
+                    Pair.of(
+                        InferredConstraintKey.of(),
+                        InferredConstraintKey.of(BONUS_QNAME, 1, false))),
+                ImmutableBitSet.of(), bitSetOf(0, 2)),
+            RelOptForeignKey.of(
+                Lists.newArrayList(
+                    Pair.of(
+                        InferredConstraintKey.of(),
+                        InferredConstraintKey.of(BONUS_QNAME, 0, false)),
+                    Pair.of(
+                        InferredConstraintKey.of(),
+                        InferredConstraintKey.of(BONUS_QNAME, 1, false))),
+                ImmutableBitSet.of(), bitSetOf(0, 4)));
+
+    Set<RelOptForeignKey> foreignKeysIgnoreNulls =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+                Lists.newArrayList(
+                    Pair.of(
+                        InferredConstraintKey.of(EMPDEFAULTS_QNAME, 1, false),
+                        InferredConstraintKey.of(BONUS_QNAME, 0, false)),
+                    Pair.of(
+                        InferredConstraintKey.of(EMPDEFAULTS_QNAME, 2, false),
+                        InferredConstraintKey.of(BONUS_QNAME, 1, false))),
+                bitSetOf(1, 3), ImmutableBitSet.of()));
+    foreignKeysIgnoreNulls.addAll(foreignKeys);
+    Set<RelOptForeignKey> confirmedForeignKeys =
+        Sets.newHashSet(
+            RelOptForeignKey.of(
+                Lists.newArrayList(
+                    Pair.of(
+                        InferredConstraintKey.of(EMPDEFAULTS_QNAME, 1, true),
+                        InferredConstraintKey.of(BONUS_QNAME, 0, true)),
+                    Pair.of(
+                        InferredConstraintKey.of(EMPDEFAULTS_QNAME, 2, true),
+                        InferredConstraintKey.of(BONUS_QNAME, 1, true))),
+                bitSetOf(1, 3), bitSetOf(0, 4)),
+            RelOptForeignKey.of(
+                Lists.newArrayList(
+                    Pair.of(
+                        InferredConstraintKey.of(EMPDEFAULTS_QNAME, 1, true),
+                        InferredConstraintKey.of(BONUS_QNAME, 0, true)),
+                    Pair.of(
+                        InferredConstraintKey.of(EMPDEFAULTS_QNAME, 2, true),
+                        InferredConstraintKey.of(BONUS_QNAME, 1, true))),
+                bitSetOf(1, 3), bitSetOf(0, 2)));
+    foreignKeysIgnoreNulls.addAll(confirmedForeignKeys);
+    sql("select bonus.ename, emp_agg.ename, bonus.job ,emp_agg.job, bonus.job "
+        + "from bonus "
+        + "right join "
+        + "(select sum(sal), ename, job, sal from empdefaults group by ename, job, sal) emp_agg "
+        + "on bonus.ename = emp_agg.ename "
+        + "and bonus.job = emp_agg.job "
+        + "where emp_agg.ename = 'job'")
+        .assertForeignKeys(
+            // Can not get foreign keys when ignoreNulls is false,
+            // because the job column in empdefaults is nullable.
+            equalTo(foreignKeys), equalTo(EMPTY_FOREIGN_KEY_SET), false)
+        .assertForeignKeys(
+            equalTo(foreignKeysIgnoreNulls), equalTo(confirmedForeignKeys), true);
   }
 
   // ----------------------------------------------------------------------
