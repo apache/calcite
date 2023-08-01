@@ -103,7 +103,9 @@ public class InferredConstraintKey {
       return false;
     }
     InferredConstraintKey that = (InferredConstraintKey) obj;
-    return Objects.equals(qualifiedName, that.qualifiedName) && Objects.equals(index, that.index);
+    return Objects.equals(qualifiedName, that.qualifiedName)
+        && Objects.equals(index, that.index)
+        && this.confirmed == that.confirmed;
   }
 
   @Override public int hashCode() {
