@@ -4760,8 +4760,18 @@ class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
-  // Test for [CALCITE-5651] Inferred scale for decimal should
-  // not exceed maximum allowed scale
+  /** Test for <a href="https://issues.apache.org/jira/browse/CALCITE-5877">[CALCITE-5877]
+   *  AssertionError during MOD operation if result scale
+   * is greater than maximum numeric scale</a>. */
+  @Test void testNumericScaleMod() {
+    final String sql = "SELECT MOD(CAST(2 AS DECIMAL(39, 20)), 2)";
+    final String expected = "SELECT MOD(2, 2)\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql).withPostgresqlModifiedDecimalTypeSystem()
+        .ok(expected);
+  }
+
+  /** Test for <a href="https://issues.apache.org/jira/browse/CALCITE-5651">[CALCITE-5651]
+   * Inferred scale for decimal should not exceed maximum allowed scale</a>. */
   @Test void testNumericScale() {
     final String sql = "WITH v(x) AS (VALUES('4.2')) "
         + " SELECT x1 + x2 FROM v AS v1(x1), v AS V2(x2)";

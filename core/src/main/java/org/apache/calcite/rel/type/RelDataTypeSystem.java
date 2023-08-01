@@ -379,9 +379,7 @@ public interface RelDataTypeSystem {
           return type2;
         }
 
-        int scale = Math.max(s1, s2);
-        assert scale <= getMaxNumericScale();
-
+        int scale = Math.min(Math.max(s1, s2), getMaxNumericScale());
         int precision = Math.min(p1 - s1, p2 - s2) + Math.max(s1, s2);
         precision = Math.min(precision, getMaxNumericPrecision());
         assert precision > 0;
