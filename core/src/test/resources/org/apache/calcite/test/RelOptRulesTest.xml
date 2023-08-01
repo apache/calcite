@@ -4206,6 +4206,22 @@ LogicalProject(SUM1=[SUM($7) OVER (PARTITION BY $7 ORDER BY $5)], SUM2=[SUM(+($7
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testExpressionPreceding">
+    <Resource name="sql">
+      <![CDATA[select COUNT(*) over (
+ORDER BY empno
+ROWS BETWEEN 5 + 5 PRECEDING AND 1 PRECEDING) AS w_count from emp
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject($0=[$1])
+  LogicalWindow(window#0=[window(order by [0] rows between $1 PRECEDING and $2 PRECEDING aggs [COUNT()])])
+    LogicalProject(EMPNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testExpressionSimplification1">
     <Resource name="sql">
       <![CDATA[select * from emp
