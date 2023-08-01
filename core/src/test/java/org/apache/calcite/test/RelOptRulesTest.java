@@ -4910,6 +4910,26 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5861">
+   * [CALCITE-5861] ReduceExpressionsRule rules should constant-fold
+   * expressions in window bounds</a>.
+   */
+  @Test void testExpressionPreceding() {
+    HepProgramBuilder preBuilder = new HepProgramBuilder();
+    preBuilder.addRuleInstance(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
+    preBuilder.addRuleInstance(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
+
+    final String sql =
+        "select COUNT(*) over (\n"
+            + "ORDER BY empno\n"
+            + "ROWS BETWEEN 5 + 5 PRECEDING AND 1 PRECEDING) AS w_count from emp\n";
+    sql(sql)
+        .withPre(preBuilder.build())
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .checkUnchanged();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-750">[CALCITE-750]
    * Allow windowed aggregate on top of regular aggregate</a>. */

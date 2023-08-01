@@ -283,7 +283,7 @@ public abstract class ProjectToWindowRule
         if (expr instanceof RexOver) {
           final RexOver over = (RexOver) expr;
 
-          // If we can found an existing cohort which satisfies the two conditions,
+          // If we can find an existing cohort which satisfies the two conditions,
           // we will add this RexOver into that cohort
           boolean isFound = false;
           for (Pair<RexWindow, Set<Integer>> pair : windowToIndices) {
