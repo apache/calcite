@@ -5130,6 +5130,19 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5882">
+   * [CALCITE-5882] Compile-time evaluation of SPLIT function returns incorrect result</a>. */
+  @Test public void testSplit() {
+    final String query = "select split('1|2|3', '|')";
+    sql(query)
+        .withFactory(
+            t -> t.withOperatorTable(opTab ->
+                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                    SqlLibrary.BIG_QUERY))) // needed for SPLIT function
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
   /** Test case for right outer join, group by on key same as join
    * key, group by on (left)null generating side. */
   @Test void testPushAggregateThroughOuterJoin12() {
