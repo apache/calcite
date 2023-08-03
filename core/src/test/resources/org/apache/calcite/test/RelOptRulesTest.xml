@@ -13902,6 +13902,23 @@ LogicalProject(B=[CAST(POLYGON ((1 0, 0.9238795325112867 -0.3826834323650898, 0.
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSplit">
+    <Resource name="sql">
+      <![CDATA[select split('1|2|3', '|')]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[SPLIT('1|2|3', '|')])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[ARRAY('1':VARCHAR, '2':VARCHAR, '3':VARCHAR)])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSplitNull">
     <Resource name="sql">
       <![CDATA[select split('1|2|3', NULL)]]>
@@ -13914,7 +13931,7 @@ LogicalProject(EXPR$0=[SPLIT('1|2|3', null:NULL)])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(EXPR$0=[null:CHAR(5) NOT NULL ARRAY])
+LogicalProject(EXPR$0=[null:VARCHAR NOT NULL ARRAY])
   LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
@@ -13931,7 +13948,7 @@ LogicalProject(EXPR$0=[SPLIT(null:NULL, '|')])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(EXPR$0=[null:NULL ARRAY])
+LogicalProject(EXPR$0=[null:VARCHAR NOT NULL ARRAY])
   LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
@@ -13948,7 +13965,7 @@ LogicalProject(EXPR$0=[SPLIT(null:NULL, null:NULL)])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(EXPR$0=[null:NULL ARRAY])
+LogicalProject(EXPR$0=[null:VARCHAR NOT NULL ARRAY])
   LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>

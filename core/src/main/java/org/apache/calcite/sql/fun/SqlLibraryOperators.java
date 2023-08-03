@@ -333,7 +333,9 @@ public abstract class SqlLibraryOperators {
           Static.RESOURCE.delimiterIsRequired(
               operatorBinding.getOperator().getName(), type.toString()));
     }
-    return type;
+
+    SqlTypeName typeName = SqlTypeUtil.isBinary(type) ? SqlTypeName.VARBINARY : SqlTypeName.VARCHAR;
+    return operatorBinding.getTypeFactory().createSqlType(typeName);
   }
 
   /** The "STRPOS(string, substring)" function. */
