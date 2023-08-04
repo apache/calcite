@@ -551,7 +551,7 @@ public class RexLiteral extends RexNode {
     final long millisPerWeek = 604800000;
     BigDecimal[] result;
     for (TimeUnit timeUnit : timeUnits) {
-      if (((IntervalSqlType) type).intervalQualifier.timeUnitRange.name().contains("WEEK")) {
+      if (((IntervalSqlType) type).getIntervalQualifier().timeUnitRange.name().contains("WEEK")) {
         result = v.divideAndRemainder(BigDecimal.valueOf(millisPerWeek));
       } else {
         result = v.divideAndRemainder(timeUnit.multiplier);

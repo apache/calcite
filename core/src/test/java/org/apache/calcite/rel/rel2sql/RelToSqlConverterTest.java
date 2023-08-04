@@ -6453,6 +6453,15 @@ class RelToSqlConverterTest {
         .ok(expectedSpark);
   }
 
+  @Test public void testDatePlusIntervalWeekFunction() {
+    String query = "select \"birth_date\" + INTERVAL '1' WEEK from \"employee\"";
+    final String expectedBigQuery = "SELECT DATE_ADD(birth_date, INTERVAL 1 WEEK)\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
   @Test public void testDatePlusColumnFunction() {
     String query = "select \"birth_date\" + INTERVAL '1' DAY from \"employee\"";
     final String expectedHive = "SELECT CAST(DATE_ADD(birth_date, 1) AS DATE)\n"
