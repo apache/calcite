@@ -37,7 +37,7 @@ public class IntervalSqlType extends AbstractSqlType {
   //~ Instance fields --------------------------------------------------------
 
   private final RelDataTypeSystem typeSystem;
-  private final SqlIntervalQualifier intervalQualifier;
+  public final SqlIntervalQualifier intervalQualifier;
 
   //~ Constructors -----------------------------------------------------------
 
