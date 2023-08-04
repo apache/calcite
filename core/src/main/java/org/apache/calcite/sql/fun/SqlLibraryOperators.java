@@ -825,7 +825,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL, ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL, ORACLE})
   public static final SqlFunction SOUNDEX =
       SqlBasicFunction.create("SOUNDEX",
           ReturnTypes.VARCHAR_4_NULLABLE,
@@ -836,6 +836,12 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction SOUNDEX_SPARK =
       ((SqlBasicFunction) SOUNDEX).withKind(SqlKind.SOUNDEX_SPARK)
+          .withReturnTypeInference(ReturnTypes.VARCHAR_NULLABLE);
+
+  /** The variant of the SOUNDEX operator. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction SOUNDEX_MYSQL =
+      ((SqlBasicFunction) SOUNDEX).withKind(SqlKind.SOUNDEX_MYSQL)
           .withReturnTypeInference(ReturnTypes.VARCHAR_NULLABLE);
 
   @LibraryOperator(libraries = {POSTGRESQL})

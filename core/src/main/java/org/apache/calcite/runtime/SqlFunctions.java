@@ -222,6 +222,38 @@ public class SqlFunctions {
           .appendOffsetId()
           .toFormatter(Locale.ROOT);
 
+  // helper method for implementation non-standard soundex function
+  private static char soundexCode(char c) {
+    switch (Character.toUpperCase(c)) {
+    case 'B':
+    case 'F':
+    case 'P':
+    case 'V':
+      return '1';
+    case 'C':
+    case 'G':
+    case 'J':
+    case 'K':
+    case 'Q':
+    case 'S':
+    case 'X':
+    case 'Z':
+      return '2';
+    case 'D':
+    case 'T':
+      return '3';
+    case 'L':
+      return '4';
+    case 'M':
+    case 'N':
+      return '5';
+    case 'R':
+      return '6';
+    default:
+      return '0';
+    }
+  }
+
   /** Whether the current Java version is 8 (1.8). */
   private static final boolean IS_JDK_8 =
       System.getProperty("java.version").startsWith("1.8");
@@ -736,6 +768,32 @@ public class SqlFunctions {
     } catch (IllegalArgumentException ignore) {
       return s;
     }
+  }
+
+  /** SQL SOUNDEX(string) function.
+   *
+   * <p>If s is multibyte character it will return not reliable result either instead of throwing
+   * exception. And it returns an arbitrarily long string instead of standard 4 chars length.*/
+  public static String soundexMySQL(String s) {
+    if (s.length() == 0) {
+      return "";
+    }
+
+    StringBuilder result = new StringBuilder();
+    result.append(Character.toUpperCase(s.charAt(0)));
+
+    for (int i = 1; i < s.length(); i++) {
+      char code = soundexCode(s.charAt(i));
+      if (code != '0' && code != soundexCode(s.charAt(i - 1))) {
+        result.append(code);
+      }
+    }
+
+    while (result.length() < SOUNDEX_LENGTH) {
+      result.append('0');
+    }
+
+    return result.toString();
   }
 
   /** SQL DIFFERENCE(string, string) function. */

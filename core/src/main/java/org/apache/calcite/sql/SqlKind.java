@@ -779,6 +779,9 @@ public enum SqlKind {
   /** {@code SOUNDEX} function (Spark semantics). */
   SOUNDEX_SPARK,
 
+  /** {@code SOUNDEX} function (MySQL semantics). */
+  SOUNDEX_MYSQL,
+
   /** {@code SUBSTR} function (BigQuery semantics). */
   SUBSTR_BIG_QUERY,
 

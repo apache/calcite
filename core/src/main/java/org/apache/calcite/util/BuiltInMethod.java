@@ -358,6 +358,7 @@ public enum BuiltInMethod {
   SPACE(SqlFunctions.class, "space", int.class),
   SOUNDEX(SqlFunctions.class, "soundex", String.class),
   SOUNDEX_SPARK(SqlFunctions.class, "soundexSpark", String.class),
+  SOUNDEX_MYSQL(SqlFunctions.class, "soundexMySQL", String.class),
   STRCMP(SqlFunctions.class, "strcmp", String.class, String.class),
   DIFFERENCE(SqlFunctions.class, "difference", String.class, String.class),
   REVERSE(SqlFunctions.class, "reverse", String.class),
