@@ -2025,6 +2025,17 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5885">[CALCITE-5885]
+   * SqlNode#toSqlString() does not honor dialect's supportsCharSet() flag on nested types</a>.
+   */
+  @Test void testCastArrayCharset() {
+    final String query = "select cast(array['a', 'b', 'c'] as varchar array)";
+    final String expected = "SELECT CAST(ARRAY['a', 'b', 'c'] AS VARCHAR ARRAY)";
+    sql(query)
+        .withHive().ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3282">[CALCITE-3282]
    * HiveSqlDialect unparse Interger type as Int in order
    * to be compatible with Hive1.x</a>. */
