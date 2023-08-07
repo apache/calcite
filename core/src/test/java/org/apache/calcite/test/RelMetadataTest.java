@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteSystemProperty;
@@ -147,6 +148,7 @@ import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -1564,6 +1566,40 @@ public class RelMetadataTest {
     }
     // Resets the RelMetadataQuery to default.
     metadataConfig.applyMetadata(rel.getCluster());
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5903">[CALCITE-5903]
+   * RelMdCollation does not define collations for EnumerableLimit</a>.
+   */
+  @Test void testCollationEnumerableLimit() {
+    final RelNode result = sql("select * from emp order by empno limit 10")
+        .withCluster(cluster -> {
+          final RelOptPlanner planner = new VolcanoPlanner();
+          planner.addRule(CoreRules.PROJECT_TO_CALC);
+          planner.addRule(EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_CALC_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_SORT_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_LIMIT_RULE);
+          planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+          return RelOptCluster.create(planner, cluster.getRexBuilder());
+        })
+        .withRelTransform(rel -> {
+          final RelOptPlanner planner = rel.getCluster().getPlanner();
+          planner.setRoot(rel);
+          final RelTraitSet requiredOutputTraits =
+              rel.getCluster().traitSet().replace(EnumerableConvention.INSTANCE);
+          final RelNode rootRel = planner.changeTraits(rel, requiredOutputTraits);
+          planner.setRoot(rootRel);
+          return planner.findBestExp();
+        }).toRel();
+
+    assertThat(result, instanceOf(EnumerableLimit.class));
+    final RelMetadataQuery mq = result.getCluster().getMetadataQuery();
+    final ImmutableList<RelCollation> collations = mq.collations(result);
+    assertThat(collations, notNullValue());
+    assertEquals("[[0]]", collations.toString());
   }
 
   /** Unit test for
