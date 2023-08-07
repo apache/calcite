@@ -2361,13 +2361,18 @@ public class SqlToRelConverter {
         SqlSampleSpec.SqlTableSampleSpec tableSampleSpec =
             (SqlSampleSpec.SqlTableSampleSpec) sampleSpec;
         convertFrom(bb, operands.get(0));
-        RelOptSamplingParameters params =
-            new RelOptSamplingParameters(
-                tableSampleSpec.isBernoulli(),
-                tableSampleSpec.getSamplePercentage(),
-                tableSampleSpec.isRepeatable(),
-                tableSampleSpec.getRepeatableSeed());
-        bb.setRoot(new Sample(cluster, bb.root(), params), false);
+        // If the table sample percentage is 0, then the query should return empty.
+        if (tableSampleSpec.getSamplePercentage() == 0f) {
+          bb.setRoot(relBuilder.push(bb.root()).empty().build(), true);
+        } else {
+          RelOptSamplingParameters params =
+              new RelOptSamplingParameters(
+                  tableSampleSpec.isBernoulli(),
+                  tableSampleSpec.getSamplePercentage(),
+                  tableSampleSpec.isRepeatable(),
+                  tableSampleSpec.getRepeatableSeed());
+          bb.setRoot(new Sample(cluster, bb.root(), params), false);
+        }
       } else {
         throw new AssertionError("unknown TABLESAMPLE type: " + sampleSpec);
       }
