@@ -2699,6 +2699,47 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Tests {@link org.apache.calcite.rel.rules.MinusToDistinctRule},
+   * which rewrites an {@link Minus} operator with 3 inputs. */
+  @Test void testMinusToDistinct() {
+    final String sql = "select EMPNO, ENAME, JOB from emp where deptno = 10\n"
+        + "except\n"
+        + "select EMPNO, ENAME, JOB from emp where deptno = 20\n"
+        + "except\n"
+        + "select EMPNO, ENAME, JOB from emp where deptno = 30\n";
+    sql(sql)
+        .withRule(CoreRules.MINUS_MERGE, CoreRules.MINUS_TO_DISTINCT, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Tests {@link org.apache.calcite.rel.rules.MinusToDistinctRule},
+   *  correctly ignores an {@code EXCEPT ALL}. It can only handle
+   *  {@code EXCEPT DISTINCT}. */
+  @Test void testMinusToDistinctAll() {
+    final String sql = "select EMPNO, ENAME, JOB from emp where deptno = 10\n"
+        + "except\n"
+        + "select EMPNO, ENAME, JOB from emp where deptno = 20\n"
+        + "except all\n"
+        + "select EMPNO, ENAME, JOB from emp where deptno = 30\n";
+    sql(sql)
+        .withRule(CoreRules.MINUS_MERGE, CoreRules.MINUS_TO_DISTINCT, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Tests {@link org.apache.calcite.rel.rules.MinusToDistinctRule},
+   *  correctly ignores an {@code EXCEPT ALL}. It can only handle
+   *  {@code EXCEPT DISTINCT}. */
+  @Test void testMinusToDistinctAllAndDistinct() {
+    final String sql = "select EMPNO, ENAME, JOB from emp where deptno = 10\n"
+        + "except all\n"
+        + "select EMPNO, ENAME, JOB from emp where deptno = 20\n"
+        + "except\n"
+        + "select EMPNO, ENAME, JOB from emp where deptno = 30\n";
+    sql(sql)
+        .withRule(CoreRules.MINUS_TO_DISTINCT, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
   /** Tests {@link CoreRules#MINUS_MERGE}
    * does not merge {@code Minus(a, Minus(b, c))}
    * into {@code Minus(a, b, c)}, which would be incorrect. */

@@ -339,6 +339,12 @@ public class CoreRules {
   public static final IntersectToDistinctRule INTERSECT_TO_DISTINCT =
       IntersectToDistinctRule.Config.DEFAULT.toRule();
 
+  /** Rule that translates a distinct
+   * {@link Minus} into a group of operators
+   * composed of {@link Union}, {@link Aggregate}, etc. */
+  public static final MinusToDistinctRule MINUS_TO_DISTINCT =
+      MinusToDistinctRule.Config.DEFAULT.toRule();
+
   /** Rule that converts a {@link LogicalMatch} to the result of calling
    * {@link LogicalMatch#copy}. */
   public static final MatchRule MATCH = MatchRule.Config.DEFAULT.toRule();

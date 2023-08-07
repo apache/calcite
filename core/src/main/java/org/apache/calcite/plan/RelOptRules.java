@@ -109,7 +109,8 @@ public class RelOptRules {
           CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW,
           CoreRules.FILTER_MERGE,
           DateRangeRules.FILTER_INSTANCE,
-          CoreRules.INTERSECT_TO_DISTINCT);
+          CoreRules.INTERSECT_TO_DISTINCT,
+          CoreRules.MINUS_TO_DISTINCT);
 
   static final List<RelOptRule> ABSTRACT_RELATIONAL_RULES =
       ImmutableList.of(CoreRules.FILTER_INTO_JOIN,
