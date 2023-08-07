@@ -64,6 +64,8 @@ public final class GeneratedMetadata_CollationHandler
       return provider0.collations((org.apache.calcite.adapter.enumerable.EnumerableCorrelate) r, mq);
     } else if (r instanceof org.apache.calcite.adapter.enumerable.EnumerableHashJoin) {
       return provider0.collations((org.apache.calcite.adapter.enumerable.EnumerableHashJoin) r, mq);
+    } else if (r instanceof org.apache.calcite.adapter.enumerable.EnumerableLimit) {
+      return provider0.collations((org.apache.calcite.adapter.enumerable.EnumerableLimit) r, mq);
     } else if (r instanceof org.apache.calcite.adapter.enumerable.EnumerableMergeJoin) {
       return provider0.collations((org.apache.calcite.adapter.enumerable.EnumerableMergeJoin) r, mq);
     } else if (r instanceof org.apache.calcite.adapter.enumerable.EnumerableMergeUnion) {
