@@ -614,6 +614,9 @@ public abstract class OperandTypes {
   public static final SqlOperandTypeChecker ARRAY_ELEMENT =
       new ArrayElementOperandTypeChecker();
 
+  public static final SqlOperandTypeChecker ARRAY_ELEMENT_NONNULL =
+      new ArrayElementOperandTypeChecker(true, false);
+
   public static final SqlOperandTypeChecker ARRAY_INSERT =
       new ArrayInsertOperandTypeChecker();
 
@@ -637,6 +640,12 @@ public abstract class OperandTypes {
    */
   public static final SqlSingleOperandTypeChecker LITERAL =
       new LiteralOperandTypeChecker(false);
+
+  /**
+   * Operand type-checking strategy where all types must be non-NULL value.
+   */
+  public static final SqlSingleOperandTypeChecker NONNULL_NONNULL =
+      new NotNullOperandTypeChecker(2, false);
 
   /**
    * Operand type-checking strategy type must be a boolean non-NULL literal.

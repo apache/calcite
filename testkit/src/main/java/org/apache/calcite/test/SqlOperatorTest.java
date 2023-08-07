@@ -6419,6 +6419,11 @@ public class SqlOperatorTest {
     f.checkType("array_contains(array[1, null], cast(null as integer))", "BOOLEAN");
     f.checkFails("^array_contains(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
+
+    // check null without cast
+    f.checkFails("array_contains(array[1, 2], ^null^)", "Illegal use of 'NULL'", false);
+    f.checkFails("array_contains(^null^, array[1, 2])", "Illegal use of 'NULL'", false);
+    f.checkFails("array_contains(^null^, null)", "Illegal use of 'NULL'", false);
   }
 
   /** Tests {@code ARRAY_DISTINCT} function from Spark. */
@@ -6779,6 +6784,20 @@ public class SqlOperatorTest {
     f.checkNull("array_except(cast(null as integer array), array[1])");
     f.checkNull("array_except(array[1], cast(null as integer array))");
     f.checkNull("array_except(cast(null as integer array), cast(null as integer array))");
+
+    // check null without cast
+    f.checkFails("^array_except(array[1, 2], null)^",
+        "Cannot apply 'ARRAY_EXCEPT' to arguments of type 'ARRAY_EXCEPT\\(<INTEGER ARRAY>, "
+            + "<NULL>\\)'\\. Supported form\\(s\\): 'ARRAY_EXCEPT\\(<EQUIVALENT_TYPE>, "
+            + "<EQUIVALENT_TYPE>\\)'", false);
+    f.checkFails("^array_except(null, array[1, 2])^",
+        "Cannot apply 'ARRAY_EXCEPT' to arguments of type 'ARRAY_EXCEPT\\(<NULL>, "
+            + "<INTEGER ARRAY>\\)'\\. Supported form\\(s\\): 'ARRAY_EXCEPT\\(<EQUIVALENT_TYPE>, "
+            + "<EQUIVALENT_TYPE>\\)'", false);
+    f.checkFails("^array_except(null, null)^",
+        "Cannot apply 'ARRAY_EXCEPT' to arguments of type 'ARRAY_EXCEPT\\(<NULL>, "
+            + "<NULL>\\)'\\. Supported form\\(s\\): 'ARRAY_EXCEPT\\(<EQUIVALENT_TYPE>, "
+            + "<EQUIVALENT_TYPE>\\)'", false);
   }
 
   /** Tests {@code ARRAY_INSERT} function from Spark. */
@@ -6874,6 +6893,20 @@ public class SqlOperatorTest {
     f.checkNull("array_intersect(cast(null as integer array), array[1])");
     f.checkNull("array_intersect(array[1], cast(null as integer array))");
     f.checkNull("array_intersect(cast(null as integer array), cast(null as integer array))");
+
+    // check null without cast
+    f.checkFails("^array_intersect(array[1, 2], null)^",
+        "Cannot apply 'ARRAY_INTERSECT' to arguments of type 'ARRAY_INTERSECT\\(<INTEGER ARRAY>, "
+            + "<NULL>\\)'\\. Supported form\\(s\\): 'ARRAY_INTERSECT\\(<EQUIVALENT_TYPE>, "
+            + "<EQUIVALENT_TYPE>\\)'", false);
+    f.checkFails("^array_intersect(null, array[1, 2])^",
+        "Cannot apply 'ARRAY_INTERSECT' to arguments of type 'ARRAY_INTERSECT\\(<NULL>, "
+            + "<INTEGER ARRAY>\\)'\\. Supported form\\(s\\): 'ARRAY_INTERSECT\\(<EQUIVALENT_TYPE>, "
+            + "<EQUIVALENT_TYPE>\\)'", false);
+    f.checkFails("^array_intersect(null, null)^",
+        "Cannot apply 'ARRAY_INTERSECT' to arguments of type 'ARRAY_INTERSECT\\(<NULL>, "
+            + "<NULL>\\)'\\. Supported form\\(s\\): 'ARRAY_INTERSECT\\(<EQUIVALENT_TYPE>, "
+            + "<EQUIVALENT_TYPE>\\)'", false);
   }
 
   /** Tests {@code ARRAY_UNION} function from Spark. */

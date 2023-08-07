@@ -1240,7 +1240,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction ARRAY_CONTAINS =
       SqlBasicFunction.create(SqlKind.ARRAY_CONTAINS,
           ReturnTypes.BOOLEAN_NULLABLE,
-          OperandTypes.ARRAY_ELEMENT);
+          OperandTypes.ARRAY_ELEMENT_NONNULL);
 
   /** The "ARRAY_DISTINCT(array)" function. */
   @LibraryOperator(libraries = {SPARK})
@@ -1255,6 +1255,7 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create(SqlKind.ARRAY_EXCEPT,
           ReturnTypes.LEAST_RESTRICTIVE,
           OperandTypes.and(
+              OperandTypes.NONNULL_NONNULL,
               OperandTypes.SAME_SAME,
               OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
 
@@ -1287,6 +1288,7 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create(SqlKind.ARRAY_INTERSECT,
           ReturnTypes.LEAST_RESTRICTIVE,
           OperandTypes.and(
+              OperandTypes.NONNULL_NONNULL,
               OperandTypes.SAME_SAME,
               OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
 
