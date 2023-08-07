@@ -3337,6 +3337,20 @@ public class SqlParserTest {
         + "tablesample bernoulli(50) REPEATABLE(-^100000000000000000000^) ")
         .fails("Literal '100000000000000000000' "
             + "can not be parsed to type 'java\\.lang\\.Integer'");
+
+    // test bernoulli sample percentage with zero.
+    final String sql4 = "select * "
+        + "from emp as x tablesample bernoulli(0)";
+    final String expected4 = "SELECT *\n"
+        + "FROM `EMP` AS `X` TABLESAMPLE BERNOULLI(0)";
+    sql(sql4).ok(expected4);
+
+    // test system sample percentage with zero.
+    final String sql5 = "select * "
+        + "from emp as x tablesample system(0)";
+    final String expected5 = "SELECT *\n"
+        + "FROM `EMP` AS `X` TABLESAMPLE SYSTEM(0)";
+    sql(sql5).ok(expected5);
   }
 
   @Test void testLiteral() {

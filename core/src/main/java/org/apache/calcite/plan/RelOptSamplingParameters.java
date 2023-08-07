@@ -16,31 +16,42 @@
  */
 package org.apache.calcite.plan;
 
+import java.math.BigDecimal;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * RelOptSamplingParameters represents the parameters necessary to produce a
  * sample of a relation.
  *
- * <p>It's parameters are derived from the SQL 2003 TABLESAMPLE clause.
+ * <p>Its parameters are derived from the SQL 2003 TABLESAMPLE clause.
  */
 public class RelOptSamplingParameters {
   //~ Instance fields --------------------------------------------------------
 
-  private final boolean isBernoulli;
-  private final float samplingPercentage;
-  private final boolean isRepeatable;
+  private final boolean bernoulli;
+  public final BigDecimal sampleRate;
+  private final boolean repeatable;
   private final int repeatableSeed;
 
   //~ Constructors -----------------------------------------------------------
 
+  public RelOptSamplingParameters(boolean bernoulli, BigDecimal sampleRate,
+      boolean repeatable, int repeatableSeed) {
+    this.bernoulli = bernoulli;
+    this.sampleRate = requireNonNull(sampleRate, "sampleRate");
+    this.repeatable = repeatable;
+    this.repeatableSeed = repeatableSeed;
+  }
+
+  @Deprecated // to be removed before 2.0
   public RelOptSamplingParameters(
-      boolean isBernoulli,
-      float samplingPercentage,
+      boolean bernoulli,
+      float sampleRate,
       boolean isRepeatable,
       int repeatableSeed) {
-    this.isBernoulli = isBernoulli;
-    this.samplingPercentage = samplingPercentage;
-    this.isRepeatable = isRepeatable;
-    this.repeatableSeed = repeatableSeed;
+    this(bernoulli, BigDecimal.valueOf(sampleRate), isRepeatable,
+        repeatableSeed);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -55,7 +66,7 @@ public class RelOptSamplingParameters {
    * sampling
    */
   public boolean isBernoulli() {
-    return isBernoulli;
+    return bernoulli;
   }
 
   /**
@@ -66,8 +77,9 @@ public class RelOptSamplingParameters {
    *
    * @return the sampling percentage between 0.0 and 1.0, exclusive
    */
+  @Deprecated // to be removed before 2.0
   public float getSamplingPercentage() {
-    return samplingPercentage;
+    return sampleRate.floatValue();
   }
 
   /**
@@ -80,7 +92,7 @@ public class RelOptSamplingParameters {
    * @return true if the sample results should be repeatable
    */
   public boolean isRepeatable() {
-    return isRepeatable;
+    return repeatable;
   }
 
   /**

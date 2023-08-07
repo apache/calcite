@@ -31,6 +31,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -47,6 +48,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -225,6 +227,10 @@ public class RelJsonReader {
 
       @Override public float getFloat(String tag) {
         return ((Number) getNonNull(tag)).floatValue();
+      }
+
+      @Override public BigDecimal getBigDecimal(String tag) {
+        return SqlFunctions.toBigDecimal(getNonNull(tag));
       }
 
       @Override public boolean getBoolean(String tag, boolean default_) {

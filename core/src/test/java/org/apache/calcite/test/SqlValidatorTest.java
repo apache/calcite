@@ -7973,6 +7973,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "    select * from emp\n"
         + "    join dept on emp.deptno = dept.deptno\n"
         + ") tablesample system(10)").ok();
+
+    sql("select * from ^emp TABLESAMPLE BERNOULLI(1000)^")
+        .fails("TABLESAMPLE percentage must be between 0 and 100, inclusive");
+
+    sql("select * from ^emp TABLESAMPLE SYSTEM(101)^")
+        .fails("TABLESAMPLE percentage must be between 0 and 100, inclusive");
   }
 
   @Test void testRewriteWithoutIdentifierExpansion() {

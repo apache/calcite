@@ -157,6 +157,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
         SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO);
     private static final SqlLiteral LITERAL_MINUS_ONE =
         SqlLiteral.createExactNumeric("-1", SqlParserPos.ZERO);
+    private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100L);
 
     private static Metadata metadata;
 
@@ -2279,7 +2280,7 @@ SqlNode Tablesample(SqlNode tableRef) :
             SqlSampleSpec sampleSpec = SqlSampleSpec.createNamed(sampleName);
             final SqlLiteral sampleLiteral =
                 SqlLiteral.createSample(sampleSpec, s.end(this));
-            tableRef = SqlStdOperatorTable.TABLESAMPLE.createCall(
+            return SqlStdOperatorTable.TABLESAMPLE.createCall(
                 s.add(tableRef).end(this), tableRef, sampleLiteral);
         }
     |
@@ -2296,36 +2297,19 @@ SqlNode Tablesample(SqlNode tableRef) :
             }
         ]
         {
-            final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100L);
-            BigDecimal rate = samplePercentage.bigDecimalValue();
-            if (rate.compareTo(BigDecimal.ZERO) < 0
-                || rate.compareTo(ONE_HUNDRED) > 0)
-            {
-                throw SqlUtil.newContextException(getPos(), RESOURCE.invalidSampleSize());
-            }
-
-            // Treat TABLESAMPLE(0) and TABLESAMPLE(100) as no table
-            // sampling at all.  Not strictly correct: TABLESAMPLE(0)
-            // should produce no output, but it simplifies implementation
-            // to know that some amount of sampling will occur.
-            // In practice values less than ~1E-43% are treated as 0.0 and
-            // values greater than ~99.999997% are treated as 1.0
-            float fRate = rate.divide(ONE_HUNDRED).floatValue();
-            if (fRate > 0.0f && fRate < 1.0f) {
-                SqlSampleSpec tableSampleSpec =
-                    isRepeatable
-                        ? SqlSampleSpec.createTableSample(
-                            isBernoulli, fRate, repeatableSeed)
-                        : SqlSampleSpec.createTableSample(isBernoulli, fRate);
-
-                SqlLiteral tableSampleLiteral =
-                    SqlLiteral.createSample(tableSampleSpec, s.end(this));
-                tableRef = SqlStdOperatorTable.TABLESAMPLE.createCall(
-                    s.end(this), tableRef, tableSampleLiteral);
-            }
+            BigDecimal rate =
+                samplePercentage.bigDecimalValue().divide(ONE_HUNDRED);
+            SqlSampleSpec tableSampleSpec =
+                isRepeatable
+                    ? SqlSampleSpec.createTableSample(isBernoulli, rate,
+                        repeatableSeed)
+                    : SqlSampleSpec.createTableSample(isBernoulli, rate);
+            SqlLiteral tableSampleLiteral =
+                SqlLiteral.createSample(tableSampleSpec, s.end(this));
+            return SqlStdOperatorTable.TABLESAMPLE.createCall(
+                s.end(this), tableRef, tableSampleLiteral);
         }
     )
-    { return tableRef; }
 }
 
 /** Wraps a table reference in a call to EXTEND if an optional "EXTEND" clause

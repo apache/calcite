@@ -1104,6 +1104,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       List<SqlNode> operands = ((SqlCall) node).getOperandList();
       SqlSampleSpec sampleSpec = SqlLiteral.sampleValue(operands.get(1));
       if (sampleSpec instanceof SqlSampleSpec.SqlTableSampleSpec) {
+        // The sampling percentage must be between 0 (0%) and 1 (100%).
+        BigDecimal samplePercentage =
+            ((SqlSampleSpec.SqlTableSampleSpec) sampleSpec).sampleRate;
+        // Check the samplePercentage whether is between 0 and 1
+        if (samplePercentage.compareTo(BigDecimal.ZERO) < 0
+            || samplePercentage.compareTo(BigDecimal.ONE) > 0) {
+          throw SqlUtil.newContextException(node.getParserPosition(),
+              RESOURCE.invalidSampleSize());
+        }
         validateFeature(RESOURCE.sQLFeature_T613(), node.getParserPosition());
       } else if (sampleSpec
           instanceof SqlSampleSpec.SqlSubstitutionSampleSpec) {

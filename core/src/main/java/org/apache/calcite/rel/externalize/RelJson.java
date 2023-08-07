@@ -1103,6 +1103,10 @@ public class RelJson {
       throw new UnsupportedOperationException();
     }
 
+    @Override public BigDecimal getBigDecimal(String tag) {
+      throw new UnsupportedOperationException();
+    }
+
     @Override public <E extends Enum<E>> @Nullable E getEnum(
         String tag, Class<E> enumClass) {
       throw new UnsupportedOperationException();
