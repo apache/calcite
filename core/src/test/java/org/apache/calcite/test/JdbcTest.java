@@ -146,6 +146,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.sql.DataSource;
 
+import static org.apache.calcite.adapter.enumerable.EnumerableRules.ENUMERABLE_MINUS_RULE;
 import static org.apache.calcite.test.CalciteAssert.checkResult;
 import static org.apache.calcite.test.Matchers.isLinux;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -3771,6 +3772,71 @@ public class JdbcTest {
             + "PLAN=EnumerableMinus(all=[false])")
         .returnsUnordered("empid=100; name=Bill",
             "empid=110; name=Theodore");
+  }
+
+  @Test void testMinusToDistinct() {
+    final String sql = ""
+        + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"deptno\"=10\n"
+        + "except\n"
+        + "select \"empid\", \"name\" from \"hr\".\"emps\" where \"empid\">=150";
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
+            planner.removeRule(ENUMERABLE_MINUS_RULE))
+        .explainContains(""
+            + "PLAN=EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[>($t2, $t4)], "
+            + "expr#6=[=($t3, $t4)], expr#7=[AND($t5, $t6)], proj#0..1=[{exprs}], "
+            + "$condition=[$t7])\n"
+            + "  EnumerableAggregate(group=[{0, 1}], agg#0=[COUNT() FILTER $2], agg#1=[COUNT() "
+            + "FILTER $3])\n"
+            + "    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[0], expr#4=[=($t2, $t3)], "
+            + "expr#5=[1], expr#6=[=($t2, $t5)], proj#0..1=[{exprs}], $f2=[$t4], $f3=[$t6])\n"
+            + "      EnumerableUnion(all=[true])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[CAST($t1):INTEGER"
+            + " NOT NULL], expr#7=[10], expr#8=[=($t6, $t7)], empid=[$t0], name=[$t2], $f2=[$t5],"
+            + " $condition=[$t8])\n"
+            + "          EnumerableTableScan(table=[[hr, emps]])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[1], expr#6=[150], expr#7=[>="
+            + "($t0, $t6)], empid=[$t0], name=[$t2], $f2=[$t5], $condition=[$t7])\n"
+            + "          EnumerableTableScan(table=[[hr, emps]])\n")
+        .returnsUnordered("empid=100; name=Bill",
+            "empid=110; name=Theodore");
+  }
+
+  @Test void testMinusToDistinctWithSubquery() {
+    final String sql = "with doubleEmp as (select \"empid\", \"name\"\n"
+        + "                   from \"hr\".\"emps\"\n"
+        + "                   union all\n"
+        + "                   select \"empid\", \"name\"\n"
+        + "                   from \"hr\".\"emps\")\n"
+        + "select \"empid\", \"name\"\n"
+        + "from doubleEmp\n"
+        + "except\n"
+        + "select \"empid\", \"name\"\n"
+        + "from \"hr\".\"emps\"";
+    CalciteAssert.hr()
+        .query(sql)
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
+            planner.removeRule(ENUMERABLE_MINUS_RULE))
+        .explainContains(""
+            + "PLAN=EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[>($t2, $t4)], "
+            + "expr#6=[=($t3, $t4)], expr#7=[AND($t5, $t6)], proj#0..1=[{exprs}], "
+            + "$condition=[$t7])\n"
+            + "  EnumerableAggregate(group=[{0, 1}], agg#0=[COUNT() FILTER $2], agg#1=[COUNT() "
+            + "FILTER $3])\n"
+            + "    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[0], expr#4=[=($t2, $t3)], "
+            + "expr#5=[1], expr#6=[=($t2, $t5)], proj#0..1=[{exprs}], $f2=[$t4], $f3=[$t6])\n"
+            + "      EnumerableUnion(all=[true])\n"
+            + "        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], proj#0..2=[{exprs}])\n"
+            + "          EnumerableUnion(all=[true])\n"
+            + "            EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2])\n"
+            + "              EnumerableTableScan(table=[[hr, emps]])\n"
+            + "            EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2])\n"
+            + "              EnumerableTableScan(table=[[hr, emps]])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[1], empid=[$t0], name=[$t2], "
+            + "$f2=[$t5])\n"
+            + "          EnumerableTableScan(table=[[hr, emps]])")
+        .returnsUnordered("");
   }
 
   /** Tests that SUM and AVG over empty set return null. COUNT returns 0. */

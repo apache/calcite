@@ -6608,6 +6608,138 @@ LogicalProject(NAME=[$0], DEPTNO=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMinusToDistinct">
+    <Resource name="sql">
+      <![CDATA[select EMPNO, ENAME, JOB from emp where deptno = 10
+except
+select EMPNO, ENAME, JOB from emp where deptno = 20
+except
+select EMPNO, ENAME, JOB from emp where deptno = 30
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalMinus(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+  LogicalFilter(condition=[AND(>($3, 0), =($4, 0), =($5, 0))])
+    LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT() FILTER $3], agg#1=[COUNT() FILTER $4], agg#2=[COUNT() FILTER $5])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[=($3, 0)], $f4=[=($3, 1)], $f5=[=($3, 2)])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[0])
+            LogicalFilter(condition=[=($7, 10)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[1])
+            LogicalFilter(condition=[=($7, 20)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[2])
+            LogicalFilter(condition=[=($7, 30)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMinusToDistinctAll">
+    <Resource name="sql">
+      <![CDATA[select EMPNO, ENAME, JOB from emp where deptno = 10
+except
+select EMPNO, ENAME, JOB from emp where deptno = 20
+except all
+select EMPNO, ENAME, JOB from emp where deptno = 30
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[true])
+  LogicalMinus(all=[false])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalMinus(all=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[AND(>($3, 0), =($4, 0))])
+      LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT() FILTER $3], agg#1=[COUNT() FILTER $4])
+        LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[=($3, 0)], $f4=[=($3, 1)])
+          LogicalUnion(all=[true])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[0])
+              LogicalFilter(condition=[=($7, 10)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+            LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[1])
+              LogicalFilter(condition=[=($7, 20)])
+                LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMinusToDistinctAllAndDistinct">
+    <Resource name="sql">
+      <![CDATA[select EMPNO, ENAME, JOB from emp where deptno = 10
+except all
+select EMPNO, ENAME, JOB from emp where deptno = 20
+except
+select EMPNO, ENAME, JOB from emp where deptno = 30
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalMinus(all=[false])
+  LogicalMinus(all=[true])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+      LogicalFilter(condition=[=($7, 20)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+    LogicalFilter(condition=[=($7, 30)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+  LogicalFilter(condition=[AND(>($3, 0), =($4, 0))])
+    LogicalAggregate(group=[{0, 1, 2}], agg#0=[COUNT() FILTER $3], agg#1=[COUNT() FILTER $4])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[=($3, 0)], $f4=[=($3, 1)])
+        LogicalUnion(all=[true])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[0])
+            LogicalMinus(all=[true])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+                LogicalFilter(condition=[=($7, 10)])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+              LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2])
+                LogicalFilter(condition=[=($7, 20)])
+                  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+          LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], $f3=[1])
+            LogicalFilter(condition=[=($7, 30)])
+              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMultipleDistinctWithGrouping">
     <Resource name="sql">
       <![CDATA[SELECT sal, SUM(comm), AVG(DISTINCT comm), SUM(DISTINCT sal)
