@@ -758,6 +758,7 @@ void FetchClause(SqlNode[] offsetFetch) :
  */
 void LimitClause(Span s, SqlNode[] offsetFetch) :
 {
+    String error;
 }
 {
     // Postgres-style syntax. "LIMIT ... OFFSET ..."
@@ -766,10 +767,19 @@ void LimitClause(Span s, SqlNode[] offsetFetch) :
         // MySQL-style syntax. "LIMIT start, count"
         LOOKAHEAD(2)
         offsetFetch[0] = UnsignedNumericLiteralOrParam()
-        <COMMA> offsetFetch[1] = UnsignedNumericLiteralOrParam() {
+        <COMMA>
+        (
+            offsetFetch[1] = UnsignedNumericLiteralOrParam() {
+                error = "count";
+            }
+        |
+            <ALL> {
+                error = "ALL";
+            }
+        ) {
             if (!this.conformance.isLimitStartCountAllowed()) {
                 throw SqlUtil.newContextException(s.end(this),
-                    RESOURCE.limitStartCountNotAllowed());
+                    RESOURCE.limitStartCountOrAllNotAllowed(error));
             }
         }
     |

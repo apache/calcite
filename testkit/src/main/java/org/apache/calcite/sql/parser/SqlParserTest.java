@@ -3730,11 +3730,6 @@ public class SqlParserTest {
     sql("select a from foo limit 2,3 ^fetch^ next 4 rows only")
         .withConformance(SqlConformanceEnum.LENIENT)
         .fails("(?s).*Encountered \"fetch\" at line 1.*");
-
-    // "limit start, all" is not valid
-    sql("select a from foo limit 2, ^all^")
-        .withConformance(SqlConformanceEnum.LENIENT)
-        .fails("(?s).*Encountered \"all\" at line 1.*");
   }
 
   /** Test case for
@@ -3768,11 +3763,42 @@ public class SqlParserTest {
     sql("select a from foo offset 2 limit 3 ^fetch^ next 4 rows only")
         .withConformance(SqlConformanceEnum.LENIENT)
         .fails("(?s).*Encountered \"fetch\" at line 1.*");
+  }
 
-    // "limit start, all" is not valid
-    sql("select a from foo offset 1 limit 2, ^all^")
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5184">[CALCITE-5184]
+   * In parser, allow "LIMIT start, ALL"</a>. */
+  @Test void testLimitStartAll() {
+    sql("select a from foo limit 2, all")
         .withConformance(SqlConformanceEnum.LENIENT)
-        .fails("(?s).*Encountered \"all\" at line 1.*");
+        .ok("SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "OFFSET 2 ROWS");
+
+    // 'limit 2, all' will override 'offset 1'
+    sql("select a from foo offset 1 limit 2, all")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok("SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "OFFSET 2 ROWS");
+
+    // 'offset 1' will override 'limit 2, all'
+    sql("select a from foo limit 2, all offset 1")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok("SELECT `A`\n"
+            + "FROM `FOO`\n"
+            + "OFFSET 1 ROWS");
+
+    sql("select a from foo ^limit 2, all^")
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .fails("'LIMIT start, ALL' is not allowed under the "
+            + "current SQL conformance level");
+
+    sql("select a from foo ^offset 1 limit 2, all^")
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .fails("'LIMIT start, ALL' is not allowed under the "
+            + "current SQL conformance level");
   }
 
   @Test void testSqlInlineComment() {
