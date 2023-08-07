@@ -840,6 +840,21 @@ public abstract class SqlLibraryOperators {
               OperandTypes.STRING_STRING),
           SqlFunctionCategory.TIMEDATE);
 
+  /**Same as {@link #TO_DATE}, except ,if the conversion cannot be performed,
+   * it returns a NULL value instead of raising an error.
+   * Here second and third operands are optional
+   * Third operand is true if the first operand is Timestamp */
+  @LibraryOperator(libraries = {STANDARD})
+  public static final SqlFunction TRY_TO_DATE =
+      new SqlFunction("TRY_TO_DATE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.or(
+              OperandTypes.STRING,
+              OperandTypes.STRING_STRING, OperandTypes.STRING_STRING_BOOLEAN),
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction ORACLE_TO_TIMESTAMP =
       new SqlFunction("TO_TIMESTAMP",
@@ -1680,4 +1695,20 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.INTEGER),
           SqlFunctionCategory.NUMERIC);
+
+  /** The {@code PERCENTILE_CONT} function, BigQuery's
+   * equivalent to {@link SqlStdOperatorTable#PERCENTILE_CONT},
+   * but uses an {@code OVER} clause rather than {@code WITHIN GROUP}. */
+  @LibraryOperator(libraries = {BIG_QUERY, TERADATA})
+  public static final SqlFunction PERCENTILE_CONT =
+      new SqlFunction("PERCENTILE_CONT",
+          SqlKind.PERCENTILE_CONT,
+          ReturnTypes.DOUBLE_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SNOWFLAKE, ORACLE, TERADATA})
+  public static final SqlAggFunction MEDIAN =
+      new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
+
 }

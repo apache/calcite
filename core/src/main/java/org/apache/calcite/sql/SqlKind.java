@@ -434,6 +434,9 @@ public enum SqlKind {
   /** {@code TIMESTAMP_DIFF} function (ODBC, SQL Server, MySQL). */
   TIMESTAMP_DIFF,
 
+  /** {@code MEDIAN} function. */
+  MEDIAN,
+
   // prefix operators
 
   /** Logical {@code NOT} operator. */
@@ -879,6 +882,12 @@ public enum SqlKind {
 
   /** The {@code COLLECT} aggregate function. */
   COLLECT,
+
+  /** The {@code PERCENTILE_CONT} aggregate function. */
+  PERCENTILE_CONT,
+
+  /** The {@code PERCENTILE_DISC} aggregate function. */
+  PERCENTILE_DISC,
 
   /** The {@code FUSION} aggregate function. */
   FUSION,
