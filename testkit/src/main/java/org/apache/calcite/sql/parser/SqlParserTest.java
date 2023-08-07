@@ -36,6 +36,7 @@ import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.DiffTestCase;
 import org.apache.calcite.test.IntervalTest;
@@ -3730,11 +3731,6 @@ public class SqlParserTest {
     sql("select a from foo limit 2,3 ^fetch^ next 4 rows only")
         .withConformance(SqlConformanceEnum.LENIENT)
         .fails("(?s).*Encountered \"fetch\" at line 1.*");
-
-    // "limit start, all" is not valid
-    sql("select a from foo limit 2, ^all^")
-        .withConformance(SqlConformanceEnum.LENIENT)
-        .fails("(?s).*Encountered \"all\" at line 1.*");
   }
 
   /** Test case for
@@ -3768,11 +3764,44 @@ public class SqlParserTest {
     sql("select a from foo offset 2 limit 3 ^fetch^ next 4 rows only")
         .withConformance(SqlConformanceEnum.LENIENT)
         .fails("(?s).*Encountered \"fetch\" at line 1.*");
+  }
 
-    // "limit start, all" is not valid
-    sql("select a from foo offset 1 limit 2, ^all^")
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5184">[CALCITE-5184]
+   * Support "LIMIT start, ALL" (in MySQL conformance)</a>.
+   *
+   * @see SqlConformance#isLimitStartCountAllowed() */
+  @Test void testLimitStartAll() {
+    String expected = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "OFFSET 2 ROWS";
+    sql("select a from foo ^limit 2, all^")
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .fails("'LIMIT start, ALL' is not allowed under the "
+            + "current SQL conformance level")
+        .withConformance(SqlConformanceEnum.MYSQL_5)
+        .ok(expected)
         .withConformance(SqlConformanceEnum.LENIENT)
-        .fails("(?s).*Encountered \"all\" at line 1.*");
+        .ok(expected);
+
+    // 'limit 2, all' will override 'offset 1' (if allowed by conformance)
+    sql("select a from foo ^offset 1 limit 2, all^")
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .fails("'LIMIT start, ALL' is not allowed under the "
+            + "current SQL conformance level")
+        .withConformance(SqlConformanceEnum.MYSQL_5)
+        .fails("'OFFSET start LIMIT count' is not allowed under the "
+            + "current SQL conformance level")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok(expected);
+
+    // 'offset 1' will override 'limit 2, all'
+    String expected2 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "OFFSET 1 ROWS";
+    sql("select a from foo limit 2, all offset 1")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .ok(expected2);
   }
 
   @Test void testSqlInlineComment() {

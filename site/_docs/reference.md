@@ -192,7 +192,7 @@ query:
       |   query INTERSECT [ ALL | DISTINCT ] query
       }
       [ ORDER BY orderItem [, orderItem ]* ]
-      [ LIMIT { [ start, ] count | ALL } ]
+      [ LIMIT [ start, ] { count | ALL } ]
       [ OFFSET start { ROW | ROWS } ]
       [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } ONLY ]
 

@@ -39,8 +39,8 @@ public interface CalciteResource {
   @BaseMessage("Percent remainder ''%'' is not allowed under the current SQL conformance level")
   ExInst<CalciteException> percentRemainderNotAllowed();
 
-  @BaseMessage("''LIMIT start, count'' is not allowed under the current SQL conformance level")
-  ExInst<CalciteException> limitStartCountNotAllowed();
+  @BaseMessage("''LIMIT start, {0}'' is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> limitStartCountOrAllNotAllowed(String a0);
 
   @BaseMessage("''OFFSET start LIMIT count'' is not allowed under the current SQL conformance level")
   ExInst<CalciteException> offsetLimitNotAllowed();
