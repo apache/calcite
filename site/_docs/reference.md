@@ -2729,6 +2729,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | FORMAT_TIME(string, time)                      | Formats *time* according to the specified format *string*
 | b | FORMAT_TIMESTAMP(string timestamp)             | Formats *timestamp* according to the specified format *string*
 | b o | GREATEST(expr [, expr ]*)                    | Returns the greatest of the expressions
+| pr | HAMMING_DISTANCE(string1, string2)            | Returns the Hamming distance between *string1* and *string2*
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
 | b | IFNULL(value1, value2)                         | Equivalent to `NVL(value1, value2)`
 | b o | INSTR(string, substring [, from [, occurrence ] ]) | Returns the position of *substring* in *string*, searching starting at *from* (default 1), and until locating the nth *occurrence* (default 1) of *substring*

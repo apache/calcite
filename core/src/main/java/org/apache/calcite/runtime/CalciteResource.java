@@ -900,6 +900,9 @@ public interface CalciteResource {
   @BaseMessage("Array index {0,number,#} is out of bounds")
   ExInst<CalciteException> arrayIndexOutOfBounds(int idx);
 
+  @BaseMessage("The input strings to hamming_distance function must have the same length")
+  ExInst<CalciteException> illegalArgumentsInHammingDistanceFunc();
+
   @BaseMessage("Substring error: negative substring length not allowed")
   ExInst<CalciteException> illegalNegativeSubstringLength();
 

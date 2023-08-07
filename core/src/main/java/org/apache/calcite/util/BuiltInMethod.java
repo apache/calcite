@@ -432,6 +432,7 @@ public enum BuiltInMethod {
   STRING_CONCAT_WITH_NULL(SqlFunctions.class, "concatWithNull", String.class,
       String.class),
   PARSE_URL(SqlFunctions.class, "parseUrl", String.class, String.class, String.class),
+  HAMMING_DISTANCE(SqlFunctions.class, "hammingDistance", String.class, String.class),
   MULTI_STRING_CONCAT(SqlFunctions.class, "concatMulti", String[].class),
   MULTI_STRING_CONCAT_WITH_NULL(SqlFunctions.class, "concatMultiWithNull",
       String[].class),
