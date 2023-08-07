@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -31,11 +32,41 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * Parameter type-checking strategy where types must be Array and Array element type.
  */
 public class ArrayElementOperandTypeChecker implements SqlOperandTypeChecker {
+  //~ Instance fields --------------------------------------------------------
+
+  private final boolean allowNullCheck;
+  private final boolean allowCast;
+
+  //~ Constructors -----------------------------------------------------------
+
+  public ArrayElementOperandTypeChecker() {
+    this.allowNullCheck = false;
+    this.allowCast = false;
+  }
+
+  public ArrayElementOperandTypeChecker(boolean allowNullCheck, boolean allowCast) {
+    this.allowNullCheck = allowNullCheck;
+    this.allowCast = allowCast;
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
+    if (allowNullCheck) {
+      // no operand can be null for type-checking to succeed
+      for (SqlNode node : callBinding.operands()) {
+        if (SqlUtil.isNullLiteral(node, allowCast)) {
+          if (throwOnFailure) {
+            throw callBinding.getValidator().newValidationError(node, RESOURCE.nullIllegal());
+          } else {
+            return false;
+          }
+        }
+      }
+    }
+
     final SqlNode op0 = callBinding.operand(0);
     if (!OperandTypes.ARRAY.checkSingleOperandType(
         callBinding,
