@@ -1522,6 +1522,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testSampleBernoulliWithRateZero() {
+    final String sql = "select * from emp as e tablesample bernoulli(0)";
+    sql(sql).ok();
+  }
+
   @Test void testSampleSystem() {
     final String sql =
         "select * from emp tablesample system(50) where empno > 5";
@@ -1534,6 +1539,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + " join dept on e.deptno = dept.deptno\n"
         + ") tablesample system(50) repeatable(99)\n"
         + "where empno > 5";
+    sql(sql).ok();
+  }
+
+  @Test void testSampleSystemWithRateZero() {
+    final String sql = "select * from emp as e tablesample system(0)";
     sql(sql).ok();
   }
 

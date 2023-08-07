@@ -2301,7 +2301,7 @@ SqlNode Tablesample(SqlNode tableRef) :
             // In practice values less than ~1E-43% are treated as 0.0 and
             // values greater than ~99.999997% are treated as 1.0
             float fRate = rate.divide(ONE_HUNDRED).floatValue();
-            if (fRate > 0.0f && fRate < 1.0f) {
+            if (fRate >= 0.0f && fRate < 1.0f) {
                 SqlSampleSpec tableSampleSpec =
                     isRepeatable
                         ? SqlSampleSpec.createTableSample(
