@@ -11813,6 +11813,21 @@ class RelToSqlConverterTest {
         isLinux(expectedBigQuery));
   }
 
+  @Test public void testSnowflakeDateTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateTrunc = builder.call(SqlLibraryOperators.SNOWFLAKE_DATE_TRUNC,
+        builder.literal("DAY"),
+        builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(dateTrunc)
+        .build();
+    final String expectedSnowflakeSql = "SELECT DATE_TRUNC('DAY', CURRENT_DATE) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+  }
+
+
   @Test public void testBracesForScalarSubQuery() {
     final RelBuilder builder = relBuilder();
     final RelNode scalarQueryRel = builder.

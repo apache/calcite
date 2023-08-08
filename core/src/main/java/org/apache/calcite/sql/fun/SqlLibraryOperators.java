@@ -1505,6 +1505,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATETIME,
               SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction SNOWFLAKE_DATE_TRUNC =
+      new SqlFunction(
+          "DATE_TRUNC",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG1,
+          null,
+          OperandTypes.family(SqlTypeFamily.STRING,
+              SqlTypeFamily.DATETIME), SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {SPARK, BIG_QUERY})
   public static final SqlFunction DATE_TRUNC =
       new SqlFunction(
