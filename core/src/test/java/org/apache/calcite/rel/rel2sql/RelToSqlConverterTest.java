@@ -361,6 +361,46 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5906">[CALCITE-5906]
+   * JDBC adapter should generate TABLESAMPLE</a>. */
+  @Test void testTableSampleBernoulli() {
+    String query = "select * from \"product\" tablesample bernoulli(11)";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\" TABLESAMPLE BERNOULLI(11.00)";
+    sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5906">[CALCITE-5906]
+   * JDBC adapter should generate TABLESAMPLE</a>. */
+  @Test void testTableSampleBernoulliRepeatable() {
+    String query = "select * from \"product\" tablesample bernoulli(15) repeatable(10)";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\" TABLESAMPLE BERNOULLI(15.00) REPEATABLE(10)";
+    sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5906">[CALCITE-5906]
+   * JDBC adapter should generate TABLESAMPLE</a>. */
+  @Test void testTableSampleSystem() {
+    String query = "select * from \"product\" tablesample system(11)";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\" TABLESAMPLE SYSTEM(11.00)";
+    sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5906">[CALCITE-5906]
+   * JDBC adapter should generate TABLESAMPLE</a>. */
+  @Test void testTableSampleSystemRepeatable() {
+    String query = "select * from \"product\" TABLESAMPLE system(11) repeatable(10)";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\" TABLESAMPLE SYSTEM(11.00) REPEATABLE(10)";
+    sql(query).ok(expected);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4449">[CALCITE-4449]
    * Calcite generates incorrect SQL for Sarg 'x IS NULL OR x NOT IN
    * (1, 2)'</a>. */
