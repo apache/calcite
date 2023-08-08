@@ -12778,4 +12778,20 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testMONU() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dayOfYearWithYYYYRexNode = builder.call(SqlLibraryOperators.FORMAT_DATE,
+        builder.literal("MONU"), builder.scan("EMP").field(4));
+
+    final RelNode doyRoot = builder
+        .scan("EMP")
+        .project(builder.alias(dayOfYearWithYYYYRexNode, "FD"))
+        .build();
+
+    final String expectedDOYBiqQuery = "SELECT FORMAT_DATE('%^b', HIREDATE) AS FD\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(doyRoot, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedDOYBiqQuery));
+  }
 }
