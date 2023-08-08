@@ -90,17 +90,17 @@ public abstract class CalciteSchema {
     if (tableMap == null) {
       this.tableMap = new NameMap<>();
     } else {
-      this.tableMap = Objects.requireNonNull(tableMap, "tableMap");
+      this.tableMap = tableMap;
     }
     if (latticeMap == null) {
       this.latticeMap = new NameMap<>();
     } else {
-      this.latticeMap = Objects.requireNonNull(latticeMap, "latticeMap");
+      this.latticeMap = latticeMap;
     }
     if (subSchemaMap == null) {
       this.subSchemaMap = new NameMap<>();
     } else {
-      this.subSchemaMap = Objects.requireNonNull(subSchemaMap, "subSchemaMap");
+      this.subSchemaMap = subSchemaMap;
     }
     if (functionMap == null) {
       this.functionMap = new NameMultimap<>();
@@ -109,14 +109,14 @@ public abstract class CalciteSchema {
     } else {
       // If you specify functionMap, you must also specify functionNames and
       // nullaryFunctionMap.
-      this.functionMap = Objects.requireNonNull(functionMap, "functionMap");
+      this.functionMap = functionMap;
       this.functionNames = Objects.requireNonNull(functionNames, "functionNames");
       this.nullaryFunctionMap = Objects.requireNonNull(nullaryFunctionMap, "nullaryFunctionMap");
     }
     if (typeMap == null) {
       this.typeMap = new NameMap<>();
     } else {
-      this.typeMap = Objects.requireNonNull(typeMap, "typeMap");
+      this.typeMap = typeMap;
     }
     this.path = path;
   }
