@@ -541,7 +541,8 @@ public abstract class SqlImplementor {
         || node instanceof SqlCall
             && (((SqlCall) node).getOperator() instanceof SqlSetOperator
                 || ((SqlCall) node).getOperator() == SqlStdOperatorTable.AS
-                || ((SqlCall) node).getOperator() == SqlStdOperatorTable.VALUES)
+                || ((SqlCall) node).getOperator() == SqlStdOperatorTable.VALUES
+                || ((SqlCall) node).getOperator() == SqlStdOperatorTable.TABLESAMPLE)
         : node;
     if (requiresAlias(node)) {
       node = as(node, "t");

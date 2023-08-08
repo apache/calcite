@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rel2sql;
 import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
@@ -36,6 +37,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
@@ -72,6 +74,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUpdate;
@@ -873,6 +876,28 @@ public class RelToSqlConverter extends SqlImplementor
       }
     }
     return result(query, clauses, e, null);
+  }
+
+  /** Visits a Sample; called by {@link #dispatch} via reflection. */
+  public Result visit(Sample e) {
+    Result x = visitInput(e, 0);
+    RelOptSamplingParameters parameters = e.getSamplingParameters();
+    boolean isRepeatable = parameters.isRepeatable();
+    boolean isBernoulli = parameters.isBernoulli();
+
+    SqlSampleSpec tableSampleSpec =
+        isRepeatable
+            ? SqlSampleSpec.createTableSample(
+            isBernoulli, parameters.sampleRate, parameters.getRepeatableSeed())
+            : SqlSampleSpec.createTableSample(isBernoulli, parameters.sampleRate);
+
+    SqlLiteral tableSampleLiteral =
+        SqlLiteral.createSample(tableSampleSpec, POS);
+
+    SqlNode tableRef =
+        SqlStdOperatorTable.TABLESAMPLE.createCall(POS, x.node, tableSampleLiteral);
+
+    return result(tableRef, ImmutableList.of(Clause.FROM), e, null);
   }
 
   private @Nullable SqlIdentifier getDual() {
