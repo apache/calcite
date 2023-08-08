@@ -12778,4 +12778,25 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testSplitPartFunctionRelToSql() {
+    final RelBuilder builder = relBuilder();
+    RexNode split = builder.call(SqlLibraryOperators.SPLIT_PART,
+        builder.literal("123@Domain|Example"), builder.literal("@"), builder.literal(2));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(split, "Result"))
+        .build();
+    final String expectedSnowFlakeQuery = "SELECT SPLIT_PART('123@Domain|Example', '@', 2) AS "
+        + "\"Result\"\nFROM \"scott\".\"EMP\"";
+
+    final String expectedBigQuery = "SELECT SPLIT('123@Domain|Example', '@') [SAFE_OFFSET (1)] AS"
+        + " Result\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()),
+        isLinux(expectedSnowFlakeQuery));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
 }

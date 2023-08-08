@@ -1705,4 +1705,14 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction MEDIAN =
       new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
 
+  @LibraryOperator(libraries = {SNOWFLAKE, BIG_QUERY})
+  public static final SqlFunction SPLIT_PART = new SqlFunction(
+      "SPLIT_PART",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.VARCHAR_2000_NULLABLE,
+      null,
+      OperandTypes.or(OperandTypes.STRING_STRING_INTEGER,
+          OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER)),
+      SqlFunctionCategory.STRING);
+
 }

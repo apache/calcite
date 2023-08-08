@@ -1254,6 +1254,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "SHIFTRIGHT":
       unparseShiftLeftAndShiftRight(writer, call, false);
       break;
+    case "SPLIT_PART":
+      unparseSplitPartFunction(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -1394,6 +1397,31 @@ public class BigQuerySqlDialect extends SqlDialect {
     } else {
       function.unparse(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseSplitPartFunction(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    SqlWriter.Frame splitFrame = writer.startFunCall("SPLIT");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(splitFrame);
+    writer.print("[SAFE_OFFSET (");
+    SqlNode thirdOperandValue = call.operand(2);
+    if (thirdOperandValue instanceof SqlLiteral) {
+      SqlLiteral thirdOperandLiteral = (SqlLiteral) thirdOperandValue;
+      if (thirdOperandLiteral.getValue() == null) {
+        writer.print(null);
+      } else {
+        int thirdOperand = Integer.valueOf(call.operand(2).toString());
+        if (thirdOperand == 0) {
+          writer.print(thirdOperand);
+        } else {
+          writer.print(thirdOperand - 1);
+        }
+      }
+    }
+    writer.print(")]");
   }
 
   private void unparseIntervalSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
