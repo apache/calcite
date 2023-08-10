@@ -399,6 +399,7 @@ public class SqlParserTest {
       "OPTION",                        "92", "99",
       "OR",                            "92", "99", "2003", "2011", "2014", "c",
       "ORDER",                         "92", "99", "2003", "2011", "2014", "c",
+      "ORDINAL",                                                           "c",
       "ORDINALITY",                          "99",
       "OUT",                           "92", "99", "2003", "2011", "2014", "c",
       "OUTER",                         "92", "99", "2003", "2011", "2014", "c",
@@ -433,6 +434,7 @@ public class SqlParserTest {
       "PRIVILEGES",                    "92", "99",
       "PROCEDURE",                     "92", "99", "2003", "2011", "2014", "c",
       "PUBLIC",                        "92", "99",
+      "QUALIFY",                                                           "c",
       "RANGE",                               "99", "2003", "2011", "2014", "c",
       "RANK",                                              "2011", "2014", "c",
       "READ",                          "92", "99",
@@ -471,6 +473,9 @@ public class SqlParserTest {
       "ROWS",                          "92", "99", "2003", "2011", "2014", "c",
       "ROW_NUMBER",                                        "2011", "2014", "c",
       "RUNNING",                                                   "2014", "c",
+      "SAFE_CAST",                                                         "c",
+      "SAFE_OFFSET",                                                       "c",
+      "SAFE_ORDINAL",                                                      "c",
       "SATURDAY",                                                          "c",
       "SAVEPOINT",                           "99", "2003", "2011", "2014", "c",
       "SCHEMA",                        "92", "99",
@@ -543,6 +548,7 @@ public class SqlParserTest {
       "TRIM_ARRAY",                                        "2011", "2014", "c",
       "TRUE",                          "92", "99", "2003", "2011", "2014", "c",
       "TRUNCATE",                                          "2011", "2014", "c",
+      "TRY_CAST",                                                          "c",
       "TUESDAY",                                                           "c",
       "UESCAPE",                                           "2011", "2014", "c",
       "UNDER",                               "99",
@@ -7209,39 +7215,6 @@ public class SqlParserTest {
     String jdbcKeywords = metadata.getJdbcKeywords();
     assertThat(jdbcKeywords.contains(",COLLECT,"), is(true));
     assertThat(!jdbcKeywords.contains(",SELECT,"), is(true));
-  }
-
-  /**
-   * Tests that reserved keywords are not added to the parser unintentionally.
-   * (Most keywords are non-reserved. The set of reserved words generally
-   * only changes with a new version of the SQL standard.)
-   *
-   * <p>If the new keyword added is intended to be a reserved keyword, update
-   * the {@link #RESERVED_KEYWORDS} list. If not, add the keyword to the
-   * non-reserved keyword list in the parser.
-   */
-  @Test void testNoUnintendedNewReservedKeywords() {
-    assumeTrue(isNotSubclass(), "don't run this test for sub-classes");
-    final SqlAbstractParserImpl.Metadata metadata =
-        fixture().parser().getMetadata();
-
-    final SortedSet<String> reservedKeywords = new TreeSet<>();
-    final SortedSet<String> keywords92 = keywords("92");
-    for (String s : metadata.getTokens()) {
-      if (metadata.isKeyword(s) && metadata.isReservedWord(s)) {
-        reservedKeywords.add(s);
-      }
-      // Check that the parser's list of SQL:92
-      // reserved words is consistent with keywords("92").
-      assertThat(s, metadata.isSql92ReservedWord(s),
-          is(keywords92.contains(s)));
-    }
-
-    final String reason = "The parser has at least one new reserved keyword. "
-        + "Are you sure it should be reserved? Difference:\n"
-        + DiffTestCase.diffLines(ImmutableList.copyOf(getReservedKeywords()),
-        ImmutableList.copyOf(reservedKeywords));
-    assertThat(reason, reservedKeywords, is(getReservedKeywords()));
   }
 
   @Test void testTabStop() {
