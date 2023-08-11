@@ -367,6 +367,35 @@ public enum Primitive {
   }
 
   /**
+   * Converts a number into a value of the type
+   * specified by this primitive.
+   *
+   * @param value  Value to convert.
+   * @return       The converted value, or null if the
+   *               conversion cannot be performed.
+   */
+  public @Nullable Object numberValue(Number value) {
+    switch (this) {
+    case BYTE:
+      return value.byteValue();
+    case CHAR:
+      return (char) value.intValue();
+    case SHORT:
+      return value.shortValue();
+    case INT:
+      return value.intValue();
+    case LONG:
+      return value.longValue();
+    case FLOAT:
+      return value.floatValue();
+    case DOUBLE:
+      return value.doubleValue();
+    default:
+      return null;
+    }
+  }
+
+  /**
    * Converts a collection of boxed primitives into an array of primitives.
    *
    * @param collection Collection of boxed primitives
