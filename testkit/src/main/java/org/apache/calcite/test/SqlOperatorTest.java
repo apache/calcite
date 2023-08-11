@@ -687,6 +687,17 @@ public class SqlOperatorTest {
         "654342432412312");
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5843">
+   * Constant expression with nested casts causes a compiler crash</a>. */
+  @Test public void testConstantCast() {
+    SqlOperatorFixture f = fixture();
+    f.checkScalarExact("CAST(CAST('32767.4' AS FLOAT) AS SMALLINT)",
+        "SMALLINT NOT NULL", "32767");
+    f.checkScalarExact("CAST(CAST('32767.4' AS FLOAT) AS CHAR)",
+        "CHAR(1) NOT NULL", "3");
+  }
+
   @ParameterizedTest
   @MethodSource("safeParameters")
   void testCastStringToDecimal(CastType castType, SqlOperatorFixture f) {

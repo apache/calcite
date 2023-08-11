@@ -570,7 +570,15 @@ public abstract class Expressions {
           value = new BigInteger(stringValue);
         }
         if (primitive != null) {
-          value = primitive.parse(stringValue);
+          if (value instanceof Number) {
+            Number valueNumber = (Number) value;
+            value = primitive.numberValue(valueNumber);
+            if (value == null) {
+              value = primitive.parse(stringValue);
+            }
+          } else {
+            value = primitive.parse(stringValue);
+          }
         }
       }
     }
