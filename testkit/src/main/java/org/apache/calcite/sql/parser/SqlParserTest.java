@@ -3341,14 +3341,14 @@ public class SqlParserTest {
     final String sql4 = "select * "
         + "from emp as x tablesample bernoulli(0)";
     final String expected4 = "SELECT *\n"
-        + "FROM `EMP` AS `X` TABLESAMPLE BERNOULLI(0.0)";
+        + "FROM `EMP` AS `X` TABLESAMPLE BERNOULLI(0)";
     sql(sql4).ok(expected4);
 
     // test system sample percentage with zero.
     final String sql5 = "select * "
         + "from emp as x tablesample system(0)";
     final String expected5 = "SELECT *\n"
-        + "FROM `EMP` AS `X` TABLESAMPLE SYSTEM(0.0)";
+        + "FROM `EMP` AS `X` TABLESAMPLE SYSTEM(0)";
     sql(sql5).ok(expected5);
   }
 

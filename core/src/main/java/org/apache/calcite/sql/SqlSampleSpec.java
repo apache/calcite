@@ -18,6 +18,8 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 
+import java.math.BigDecimal;
+
 /**
  * Specification of a SQL sample.
  *
@@ -58,7 +60,7 @@ public abstract class SqlSampleSpec {
    */
   public static SqlSampleSpec createTableSample(
       boolean isBernoulli,
-      float samplePercentage) {
+      BigDecimal samplePercentage) {
     return new SqlTableSampleSpec(isBernoulli, samplePercentage);
   }
 
@@ -72,7 +74,7 @@ public abstract class SqlSampleSpec {
    */
   public static SqlSampleSpec createTableSample(
       boolean isBernoulli,
-      float samplePercentage,
+      BigDecimal samplePercentage,
       int repeatableSeed) {
     return new SqlTableSampleSpec(
         isBernoulli,
@@ -104,11 +106,11 @@ public abstract class SqlSampleSpec {
   /** Sample specification. */
   public static class SqlTableSampleSpec extends SqlSampleSpec {
     private final boolean isBernoulli;
-    private final float samplePercentage;
+    public final BigDecimal samplePercentage;
     private final boolean isRepeatable;
     private final int repeatableSeed;
 
-    private SqlTableSampleSpec(boolean isBernoulli, float samplePercentage) {
+    private SqlTableSampleSpec(boolean isBernoulli, BigDecimal samplePercentage) {
       this.isBernoulli = isBernoulli;
       this.samplePercentage = samplePercentage;
       this.isRepeatable = false;
@@ -117,7 +119,7 @@ public abstract class SqlSampleSpec {
 
     private SqlTableSampleSpec(
         boolean isBernoulli,
-        float samplePercentage,
+        BigDecimal samplePercentage,
         int repeatableSeed) {
       this.isBernoulli = isBernoulli;
       this.samplePercentage = samplePercentage;
@@ -136,7 +138,7 @@ public abstract class SqlSampleSpec {
      * Returns sampling percentage. Range is 0.0 to 1.0, exclusive
      */
     public float getSamplePercentage() {
-      return samplePercentage;
+      return samplePercentage.floatValue();
     }
 
     /**
@@ -157,7 +159,7 @@ public abstract class SqlSampleSpec {
       StringBuilder b = new StringBuilder();
       b.append(isBernoulli ? "BERNOULLI" : "SYSTEM");
       b.append('(');
-      b.append(samplePercentage * 100.0);
+      b.append(samplePercentage.multiply(new BigDecimal("100")));
       b.append(')');
 
       if (isRepeatable) {

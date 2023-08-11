@@ -2294,7 +2294,7 @@ SqlNode Tablesample(SqlNode tableRef) :
             // to know that some amount of sampling will occur.
             // In practice values less than ~1E-43% are treated as 0.0 and
             // values greater than ~99.999997% are treated as 1.0
-            float fRate = rate.divide(ONE_HUNDRED).floatValue();
+            BigDecimal fRate = rate.divide(ONE_HUNDRED);
             SqlSampleSpec tableSampleSpec =
                 isRepeatable
                     ? SqlSampleSpec.createTableSample(

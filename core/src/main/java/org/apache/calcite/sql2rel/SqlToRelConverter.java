@@ -2362,7 +2362,7 @@ public class SqlToRelConverter {
             (SqlSampleSpec.SqlTableSampleSpec) sampleSpec;
         convertFrom(bb, operands.get(0));
         // If the table sample percentage is 0, then the query should return empty.
-        if (tableSampleSpec.getSamplePercentage() == 0f) {
+        if (tableSampleSpec.samplePercentage.compareTo(BigDecimal.ZERO) == 0) {
           bb.setRoot(relBuilder.push(bb.root()).empty().build(), true);
         } else {
           RelOptSamplingParameters params =
