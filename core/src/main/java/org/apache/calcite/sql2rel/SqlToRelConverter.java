@@ -2368,7 +2368,7 @@ public class SqlToRelConverter {
           RelOptSamplingParameters params =
               new RelOptSamplingParameters(
                   tableSampleSpec.isBernoulli(),
-                  tableSampleSpec.getSamplePercentage(),
+                  tableSampleSpec.samplePercentage.floatValue(),
                   tableSampleSpec.isRepeatable(),
                   tableSampleSpec.getRepeatableSeed());
           bb.setRoot(new Sample(cluster, bb.root(), params), false);

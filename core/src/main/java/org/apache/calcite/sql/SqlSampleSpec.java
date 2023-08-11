@@ -137,6 +137,7 @@ public abstract class SqlSampleSpec {
     /**
      * Returns sampling percentage. Range is 0.0 to 1.0, exclusive
      */
+    @Deprecated
     public float getSamplePercentage() {
       return samplePercentage.floatValue();
     }
