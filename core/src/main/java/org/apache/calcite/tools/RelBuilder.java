@@ -23,6 +23,7 @@ import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPredicateList;
+import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
@@ -47,6 +48,7 @@ import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.RepeatUnion;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Spool;
@@ -3558,6 +3560,41 @@ public class RelBuilder {
       exprList.add(field(mapping.getSource(i)));
     }
     return project(exprList);
+  }
+
+  /** Creates a {@link Sample}. (Repeatable if seed is not null.) */
+  public RelBuilder sample(boolean bernoulli, BigDecimal sampleRate,
+      @Nullable Integer repeatableSeed) {
+    boolean repeatable;
+    int seed;
+    if (repeatableSeed != null) {
+      repeatable = true;
+      seed = repeatableSeed;
+    } else {
+      repeatable = false;
+      seed = 0;
+    }
+    return sample(bernoulli, sampleRate, repeatable, seed);
+  }
+
+  /** Creates a {@link Sample}. */
+  private RelBuilder sample(boolean bernoulli, BigDecimal sampleRate,
+      boolean repeatable, int repeatableSeed) {
+    if (sampleRate.compareTo(BigDecimal.ZERO) == 0) {
+      // The sample rate is 0%; the query should return empty.
+      return empty();
+    } else if (sampleRate.compareTo(BigDecimal.ONE) == 0) {
+      // The table sample rate is 100%; the query should return the contents
+      // of the underlying table.
+      return this;
+    } else {
+      final Frame frame = stack.pop();
+      final RelNode r = frame.rel;
+      final RelOptSamplingParameters param =
+          new RelOptSamplingParameters(bernoulli, sampleRate, repeatable,
+              repeatableSeed);
+      return push(struct.sampleFactory.createSample(r, param));
+    }
   }
 
   /** Creates a {@link Match}. */

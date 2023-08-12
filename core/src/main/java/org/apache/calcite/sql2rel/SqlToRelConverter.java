@@ -23,7 +23,6 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.TableExpressionFactory;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
@@ -50,7 +49,6 @@ import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.Hintable;
@@ -2362,29 +2360,15 @@ public class SqlToRelConverter {
             (SqlSampleSpec.SqlTableSampleSpec) sampleSpec;
         convertFrom(bb, operands.get(0));
 
-        // Treat TABLESAMPLE(0) and TABLESAMPLE(100) as no table
-        // sampling at all.  Not strictly correct: TABLESAMPLE(0)
-        // should produce no output, but it simplifies implementation
-        // to know that some amount of sampling will occur.
-        // In practice values less than ~1E-43% are treated as 0.0 and
-        // values greater than ~99.999997% are treated as 1.0
-        relBuilder.push(bb.root());
-        if (tableSampleSpec.sampleRate.compareTo(BigDecimal.ZERO) == 0) {
-          // The table sample rate is 0; the query should return empty.
-          relBuilder.empty();
-        } else if (tableSampleSpec.sampleRate.compareTo(BigDecimal.ONE) == 0) {
-          // The table sample rate is 1; the query should return the contents
-          // of the underlying table.
-        } else {
-          RelOptSamplingParameters params =
-              new RelOptSamplingParameters(
-                  tableSampleSpec.isBernoulli(),
-                  tableSampleSpec.sampleRate,
-                  tableSampleSpec.isRepeatable(),
-                  tableSampleSpec.getRepeatableSeed());
-          relBuilder.push(new Sample(cluster, relBuilder.build(), params));
-        }
-        bb.setRoot(relBuilder.build(), true);
+        bb.setRoot(
+            relBuilder.push(bb.root())
+                .sample(tableSampleSpec.isBernoulli(),
+                    tableSampleSpec.sampleRate,
+                    tableSampleSpec.isRepeatable()
+                        ? tableSampleSpec.getRepeatableSeed()
+                        : null)
+                .build(),
+            true);
       } else {
         throw new AssertionError("unknown TABLESAMPLE type: " + sampleSpec);
       }

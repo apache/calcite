@@ -25,13 +25,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Objects;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that returns a sample of the rows from its input.
