@@ -493,13 +493,13 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction XML_TRANSFORM =
       SqlBasicFunction.create("XMLTRANSFORM",
-          ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+          ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE),
           OperandTypes.STRING_STRING);
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction EXTRACT_XML =
       SqlBasicFunction.create("EXTRACT",
-          ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+          ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE),
           OperandTypes.STRING_STRING_OPTIONAL_STRING);
 
   @LibraryOperator(libraries = {ORACLE})
@@ -802,7 +802,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL})
   public static final SqlFunction REPEAT =
       SqlBasicFunction.create("REPEAT",
-          ReturnTypes.ARG0_NULLABLE_VARYING,
+          ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.STRING_INTEGER,
           SqlFunctionCategory.STRING);
 
@@ -814,7 +814,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction SPACE =
       SqlBasicFunction.create("SPACE",
-          ReturnTypes.VARCHAR_2000_NULLABLE,
+          ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
 

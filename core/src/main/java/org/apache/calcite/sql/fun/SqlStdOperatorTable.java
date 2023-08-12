@@ -1574,7 +1574,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** The {@code REPLACE(string, search, replace)} function. Not standard SQL,
    * but in Oracle and Postgres. */
   public static final SqlFunction REPLACE =
-      SqlBasicFunction.create("REPLACE", ReturnTypes.ARG0_NULLABLE_VARYING,
+      SqlBasicFunction.create("REPLACE", ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
 
   /** The {@code CONVERT(charValue, srcCharsetName, destCharsetName)}
