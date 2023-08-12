@@ -1678,21 +1678,21 @@ public class SqlOperatorTest {
 
     f.checkScalar("{fn LTRIM(' xxx  ')}", "xxx  ", "VARCHAR(6) NOT NULL");
 
-    f.checkScalar("{fn REPEAT('a', -100)}", "", "VARCHAR(1) NOT NULL");
+    f.checkScalar("{fn REPEAT('a', -100)}", "", "VARCHAR NOT NULL");
     f.checkNull("{fn REPEAT('abc', cast(null as integer))}");
     f.checkNull("{fn REPEAT(cast(null as varchar(1)), cast(null as integer))}");
 
     f.checkString("{fn REPLACE('JACK and JUE','J','BL')}",
-        "BLACK and BLUE", "VARCHAR(12) NOT NULL");
+        "BLACK and BLUE", "VARCHAR NOT NULL");
 
     // REPLACE returns NULL in Oracle but not in Postgres or in Calcite.
     // When [CALCITE-815] is implemented and SqlConformance#emptyStringIsNull is
     // enabled, it will return empty string as NULL.
     f.checkString("{fn REPLACE('ciao', 'ciao', '')}", "",
-        "VARCHAR(4) NOT NULL");
+        "VARCHAR NOT NULL");
 
     f.checkString("{fn REPLACE('hello world', 'o', '')}", "hell wrld",
-        "VARCHAR(11) NOT NULL");
+        "VARCHAR NOT NULL");
 
     f.checkNull("{fn REPLACE(cast(null as varchar(5)), 'ciao', '')}");
     f.checkNull("{fn REPLACE('ciao', cast(null as varchar(3)), 'zz')}");
@@ -1707,7 +1707,7 @@ public class SqlOperatorTest {
     f.checkScalar("{fn SOUNDEX('Miller')}", "M460", "VARCHAR(4) NOT NULL");
     f.checkNull("{fn SOUNDEX(cast(null as varchar(1)))}");
 
-    f.checkScalar("{fn SPACE(-100)}", "", "VARCHAR(2000) NOT NULL");
+    f.checkScalar("{fn SPACE(-100)}", "", "VARCHAR NOT NULL");
     f.checkNull("{fn SPACE(cast(null as integer))}");
 
     f.checkScalar(
@@ -3897,9 +3897,9 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.REPLACE, VmName.EXPAND);
     f.checkString("REPLACE('ciao', 'ciao', '')", "",
-        "VARCHAR(4) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkString("REPLACE('hello world', 'o', '')", "hell wrld",
-        "VARCHAR(11) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkNull("REPLACE(cast(null as varchar(5)), 'ciao', '')");
     f.checkNull("REPLACE('ciao', cast(null as varchar(3)), 'zz')");
     f.checkNull("REPLACE('ciao', 'bella', cast(null as varchar(3)))");
@@ -4328,11 +4328,11 @@ public class SqlOperatorTest {
         "No match found for function signature REPEAT\\(<CHARACTER>, <NUMERIC>\\)",
         false);
     final Consumer<SqlOperatorFixture> consumer = f -> {
-      f.checkString("REPEAT('a', -100)", "", "VARCHAR(1) NOT NULL");
-      f.checkString("REPEAT('a', -1)", "", "VARCHAR(1) NOT NULL");
-      f.checkString("REPEAT('a', 0)", "", "VARCHAR(1) NOT NULL");
-      f.checkString("REPEAT('a', 2)", "aa", "VARCHAR(1) NOT NULL");
-      f.checkString("REPEAT('abc', 3)", "abcabcabc", "VARCHAR(3) NOT NULL");
+      f.checkString("REPEAT('a', -100)", "", "VARCHAR NOT NULL");
+      f.checkString("REPEAT('a', -1)", "", "VARCHAR NOT NULL");
+      f.checkString("REPEAT('a', 0)", "", "VARCHAR NOT NULL");
+      f.checkString("REPEAT('a', 2)", "aa", "VARCHAR NOT NULL");
+      f.checkString("REPEAT('abc', 3)", "abcabcabc", "VARCHAR NOT NULL");
       f.checkNull("REPEAT(cast(null as varchar(1)), -1)");
       f.checkNull("REPEAT(cast(null as varchar(1)), 2)");
       f.checkNull("REPEAT('abc', cast(null as integer))");
@@ -4345,11 +4345,11 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture()
         .setFor(SqlLibraryOperators.SPACE)
         .withLibrary(SqlLibrary.MYSQL);
-    f.checkString("SPACE(-100)", "", "VARCHAR(2000) NOT NULL");
-    f.checkString("SPACE(-1)", "", "VARCHAR(2000) NOT NULL");
-    f.checkString("SPACE(0)", "", "VARCHAR(2000) NOT NULL");
-    f.checkString("SPACE(2)", "  ", "VARCHAR(2000) NOT NULL");
-    f.checkString("SPACE(5)", "     ", "VARCHAR(2000) NOT NULL");
+    f.checkString("SPACE(-100)", "", "VARCHAR NOT NULL");
+    f.checkString("SPACE(-1)", "", "VARCHAR NOT NULL");
+    f.checkString("SPACE(0)", "", "VARCHAR NOT NULL");
+    f.checkString("SPACE(2)", "  ", "VARCHAR NOT NULL");
+    f.checkString("SPACE(5)", "     ", "VARCHAR NOT NULL");
     f.checkNull("SPACE(cast(null as integer))");
   }
 
@@ -5316,7 +5316,45 @@ public class SqlOperatorTest {
         + "</xsl:stylesheet>')";
     f.checkString(sql2,
         "    Article - My Article    Authors:     - Mr. Foo    - Mr. Bar",
-        "VARCHAR(2000)");
+        "VARCHAR");
+
+    // Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
+    // Type inference for REPEAT sql function is incorrect</a>. This test shows that the
+    // output of the XML_TRANSFORM function can exceed 2000 characters. */
+    StringBuilder sql3 = new StringBuilder();
+    StringBuilder expected = new StringBuilder();
+    sql3.append("XMLTRANSFORM("
+        + "'<?xml version=\"1.0\"?>\n"
+        + "<Article>\n"
+        + "  <Title>My Article</Title>\n"
+        + "  <Authors>\n"
+        + "    <Author>Mr. Foo</Author>\n"
+        + "    <Author>Mr. Bar</Author>\n");
+    expected.append("    Article - My Article    Authors:     - Mr. Foo    - Mr. Bar");
+    for (int i = 0; i < 40; i++) {
+      final String row = "Mr. Bar                                                        " + i;
+      sql3.append("    <Author>")
+          .append(row)
+          .append("</Author>\n");
+      expected.append("    - ").append(row);
+    }
+    sql3.append("  </Authors>\n"
+        + "  <Body>This is my article text.</Body>\n"
+        + "</Article>'"
+        + ","
+        + "'<?xml version=\"1.0\"?>\n"
+        + "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3"
+        + ".org/1999/XSL/Transform\">"
+        + "  <xsl:output method=\"text\"/>"
+        + "  <xsl:template match=\"/\">"
+        + "    Article - <xsl:value-of select=\"/Article/Title\"/>"
+        + "    Authors: <xsl:apply-templates select=\"/Article/Authors/Author\"/>"
+        + "  </xsl:template>"
+        + "  <xsl:template match=\"Author\">"
+        + "    - <xsl:value-of select=\".\" />"
+        + "  </xsl:template>"
+        + "</xsl:stylesheet>')");
+    f.checkString(sql3.toString(), expected.toString(), "VARCHAR");
   }
 
   @Test void testExtractXml() {
@@ -5339,7 +5377,7 @@ public class SqlOperatorTest {
             + "<Body>article text.</Body>"
             + "</Article>', '/Article/Title')",
         "<Title>Article1</Title>",
-        "VARCHAR(2000)");
+        "VARCHAR");
 
     f.checkString("\"EXTRACT\"('"
             + "<Article>"
@@ -5349,7 +5387,30 @@ public class SqlOperatorTest {
             + "<Body>article text.</Body>"
             + "</Article>', '/Article/Title')",
         "<Title>Article1</Title><Title>Article2</Title>",
-        "VARCHAR(2000)");
+        "VARCHAR");
+
+    // Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
+    // Type inference for REPEAT sql function is incorrect</a>. This test shows that
+    // the output of the 'XML_EXTRACT' function can exceed 2000 characters. */
+    StringBuilder sql = new StringBuilder();
+    StringBuilder expected = new StringBuilder();
+    sql.append("\"EXTRACT\"('"
+        + "<Article>"
+        + "<Title>Article1</Title>"
+        + "<Title>Article2");
+    expected.append("<Title>Article1</Title><Title>Article2");
+    final String spaces =
+        "                                                                               ";
+    for (int i = 0; i < 40; i++) {
+      sql.append(spaces);
+      expected.append(spaces);
+    }
+    sql.append("Long</Title>"
+        + "<Authors><Author>Foo</Author><Author>Bar</Author></Authors>"
+        + "<Body>article text.</Body>"
+        + "</Article>', '/Article/Title')");
+    expected.append("Long</Title>");
+    f.checkString(sql.toString(), expected.toString(), "VARCHAR");
 
     f.checkString("\"EXTRACT\"(\n"
             + "'<books xmlns=\"http://www.contoso.com/books\">"
@@ -5362,7 +5423,7 @@ public class SqlOperatorTest {
             + "'books=\"http://www.contoso.com/books\"')",
         "<book xmlns=\"http://www.contoso.com/books\"><title>Title</title><author>Author "
             + "Name</author><price>5.50</price></book>",
-        "VARCHAR(2000)");
+        "VARCHAR");
   }
 
   @Test void testExistsNode() {

@@ -224,6 +224,65 @@ class RelOptRulesTest extends RelOptTestBase {
           && "item".equalsIgnoreCase(((RexCall) expr).getOperator().getName());
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
+   * Type inference for sql functions REPEAT, SPACE, XML_TRANSFORM,
+   * and XML_EXTRACT is incorrect</a>. */
+  @Test void testRepeat() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ReduceExpressionsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
+
+    final String sql = "select REPEAT('abc', 2)";
+    fixture()
+        .withFactory(
+            t -> t.withOperatorTable(opTab ->
+                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                    SqlLibrary.BIG_QUERY))) // needed for REPEAT function
+        .sql(sql)
+        .withPlanner(hepPlanner)
+        .check();
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
+   * Type inference for sql functions REPEAT, SPACE, XML_TRANSFORM,
+   * and XML_EXTRACT is incorrect</a>. */
+  @Test void testReplace() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ReduceExpressionsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
+
+    final String sql = "select REPLACE('abc', 'c', 'cd')";
+    fixture()
+        .sql(sql)
+        .withPlanner(hepPlanner)
+        .check();
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
+   * Type inference for sql functions REPEAT, SPACE, XML_TRANSFORM,
+   * and XML_EXTRACT is incorrect</a>. */
+  @Test void testSpace() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ReduceExpressionsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
+
+    final String sql = "select SPACE(2001)";
+    fixture()
+        .withFactory(
+            t -> t.withOperatorTable(opTab ->
+                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                    SqlLibrary.MYSQL))) // needed for SPACE function
+        .sql(sql)
+        .withPlanner(hepPlanner)
+        .check();
+  }
+
   @Test void testGroupByDateLiteralSimple() {
     final String query = "select avg(sal)\n"
         + "from emp\n"
