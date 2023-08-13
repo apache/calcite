@@ -83,6 +83,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -197,6 +198,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * null arguments or null results.</li>
  * </ul>
  */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SuppressWarnings("MethodCanBeStatic")
 public class SqlOperatorTest {
   //~ Static fields/initializers ---------------------------------------------
@@ -441,8 +443,9 @@ public class SqlOperatorTest {
   }
 
   /** Generates parameters to test both regular and safe cast. */
-  static Stream<Arguments> safeParameters() {
-    SqlOperatorFixture f = SqlOperatorFixtureImpl.DEFAULT;
+  @SuppressWarnings("unused")
+  private Stream<Arguments> safeParameters() {
+    SqlOperatorFixture f = fixture();
     SqlOperatorFixture f2 =
         SqlOperatorFixtures.safeCastWrapper(f.withLibrary(SqlLibrary.BIG_QUERY), "SAFE_CAST");
     SqlOperatorFixture f3 =
@@ -1238,8 +1241,6 @@ public class SqlOperatorTest {
 
     f.checkScalar("cast('1945-02-24 12:42:25' as TIMESTAMP)",
         "1945-02-24 12:42:25", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("cast('1945-2-2 12:2:5' as TIMESTAMP)",
-        "1945-02-02 12:02:05", "TIMESTAMP(0) NOT NULL");
     f.checkScalar("cast('  1945-02-24 12:42:25  ' as TIMESTAMP)",
         "1945-02-24 12:42:25", "TIMESTAMP(0) NOT NULL");
     f.checkScalar("cast('1945-02-24 12:42:25.34' as TIMESTAMP)",
@@ -1253,15 +1254,40 @@ public class SqlOperatorTest {
       f.checkScalar("cast('1945-02-24 12:42:25.34' as TIMESTAMP(2))",
           "1945-02-24 12:42:25.34", "TIMESTAMP(2) NOT NULL");
     }
+    // Remove the if condition and the else block once CALCITE-6053 is fixed
+    if (TestUtil.AVATICA_VERSION.startsWith("1.0.0-dev-main")) {
+      if (castType == CastType.CAST) {
+        f.checkFails("cast('1945-2-2 12:2:5' as TIMESTAMP)",
+            "Invalid DATE value, '1945-2-2 12:2:5'", true);
+        f.checkFails("cast('1241241' as TIMESTAMP)",
+            "Invalid DATE value, '1241241'", true);
+        f.checkFails("cast('1945-20-24 12:42:25.34' as TIMESTAMP)",
+            "Invalid DATE value, '1945-20-24 12:42:25.34'", true);
+        f.checkFails("cast('1945-01-24 25:42:25.34' as TIMESTAMP)",
+            "Value of HOUR field is out of range in '1945-01-24 25:42:25.34'", true);
+        f.checkFails("cast('1945-1-24 12:23:34.454' as TIMESTAMP)",
+            "Invalid DATE value, '1945-1-24 12:23:34.454'", true);
+      } else {
+        // test cases for 'SAFE_CAST' and 'TRY_CAST'
+        f.checkNull("cast('1945-2-2 12:2:5' as TIMESTAMP)");
+        f.checkNull("cast('1241241' as TIMESTAMP)");
+        f.checkNull("cast('1945-20-24 12:42:25.34' as TIMESTAMP)");
+        f.checkNull("cast('1945-01-24 25:42:25.34' as TIMESTAMP)");
+        f.checkNull("cast('1945-1-24 12:23:34.454' as TIMESTAMP)");
+      }
+    } else {
+      f.checkScalar("cast('1945-2-2 12:2:5' as TIMESTAMP)",
+          "1945-02-02 12:02:05", "TIMESTAMP(0) NOT NULL");
+      f.checkScalar("cast('1241241' as TIMESTAMP)",
+          "1241-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+      f.checkScalar("cast('1945-20-24 12:42:25.34' as TIMESTAMP)",
+          "1946-08-26 12:42:25", "TIMESTAMP(0) NOT NULL");
+      f.checkScalar("cast('1945-01-24 25:42:25.34' as TIMESTAMP)",
+          "1945-01-25 01:42:25", "TIMESTAMP(0) NOT NULL");
+      f.checkScalar("cast('1945-1-24 12:23:34.454' as TIMESTAMP)",
+          "1945-01-24 12:23:34", "TIMESTAMP(0) NOT NULL");
+    }
     f.checkFails("cast('nottime' as TIMESTAMP)", BAD_DATETIME_MESSAGE, true);
-    f.checkScalar("cast('1241241' as TIMESTAMP)",
-        "1241-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("cast('1945-20-24 12:42:25.34' as TIMESTAMP)",
-        "1946-08-26 12:42:25", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("cast('1945-01-24 25:42:25.34' as TIMESTAMP)",
-        "1945-01-25 01:42:25", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("cast('1945-1-24 12:23:34.454' as TIMESTAMP)",
-        "1945-01-24 12:23:34", "TIMESTAMP(0) NOT NULL");
 
     // date <-> string
     f.checkCastToString("DATE '1945-02-24'", null, "1945-02-24", castType);
@@ -12947,7 +12973,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testArgMin() {
-    final SqlOperatorFixture f0 = fixture().withTester(t -> TESTER);
+    final SqlOperatorFixture f0 = fixture();
     final String[] xValues = {"2", "3", "4", "4", "5", "7"};
 
     final Consumer<SqlOperatorFixture> consumer = f -> {
