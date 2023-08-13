@@ -83,6 +83,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -197,6 +198,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * null arguments or null results.</li>
  * </ul>
  */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SuppressWarnings("MethodCanBeStatic")
 public class SqlOperatorTest {
   //~ Static fields/initializers ---------------------------------------------
@@ -441,8 +443,8 @@ public class SqlOperatorTest {
   }
 
   /** Generates parameters to test both regular and safe cast. */
-  static Stream<Arguments> safeParameters() {
-    SqlOperatorFixture f = SqlOperatorFixtureImpl.DEFAULT;
+  private Stream<Arguments> safeParameters() {
+    SqlOperatorFixture f = fixture();
     SqlOperatorFixture f2 =
         SqlOperatorFixtures.safeCastWrapper(f.withLibrary(SqlLibrary.BIG_QUERY), "SAFE_CAST");
     SqlOperatorFixture f3 =
@@ -12911,7 +12913,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testArgMin() {
-    final SqlOperatorFixture f0 = fixture().withTester(t -> TESTER);
+    final SqlOperatorFixture f0 = fixture();
     final String[] xValues = {"2", "3", "4", "4", "5", "7"};
 
     final Consumer<SqlOperatorFixture> consumer = f -> {
