@@ -1261,6 +1261,71 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /**
+   * Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5894">[CALCITE-5894]
+   * Add SortRemoveRedundantRule to remove redundant sort fields if they are functionally
+   * dependent by other sort fields</a>.
+   * Since empno is unique, deptno and sal should be removed. */
+  @Test void testSortRemoveRedundantKeysOnAggregate0() {
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp\n"
+        + "group by deptno, empno, sal\n"
+        + "order by empno, empno, deptno, sal desc nulls first";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT_KEYS)
+        .check();
+  }
+
+  /**
+   * Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5894">[CALCITE-5894]
+   * Add SortRemoveRedundantRule to remove redundant sort fields if they are functionally
+   * dependent by other sort fields</a>.
+   * Since deptno and comm combined are unique, sal_sum should be removed. */
+  @Test void testSortRemoveRedundantKeysOnAggregate1() {
+    final String sql = "select emp_agg.comm, emp_agg.sal_sum\n"
+        + "from (select comm, deptno, sum(sal) sal_sum\n"
+        + "        from sales.emp group by comm, deptno) emp_agg\n"
+        + "order by emp_agg.deptno, emp_agg.comm, emp_agg.sal_sum";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT_KEYS)
+        .check();
+  }
+
+  /**
+   * Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5894">[CALCITE-5894]
+   * Add SortRemoveRedundantRule to remove redundant sort fields if they are functionally
+   * dependent by other sort fields</a>.
+   * Since deptno and comm combined are unique, sal_sum should be removed. */
+  @Test void testSortRemoveRedundantKeysOnJoin() {
+    final String sql = "select emp_agg.comm, emp_agg.sal_sum\n"
+        + "from (select comm, deptno, sum(sal) sal_sum\n"
+        + "        from sales.emp group by comm, deptno) emp_agg\n"
+        + "left join sales.dept on dept.deptno = emp_agg.deptno\n"
+        + "order by emp_agg.deptno, emp_agg.comm, emp_agg.sal_sum, dept.name";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT_KEYS)
+        .check();
+  }
+
+  /**
+   * Test case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5894">[CALCITE-5894]
+   * Add SortRemoveRedundantRule to remove redundant sort fields if they are functionally
+   * dependent by other sort fields</a>.
+   * Since empno is unique, deptno and sal should be removed. */
+  @Test void testSortRemoveRedundantKeysForFilter() {
+    final String sql = "select *\n"
+        + "from sales.emp\n"
+        + "where comm = 1\n"
+        + "order by empno, empno, deptno, sal desc nulls first";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT_KEYS)
+        .check();
+  }
+
   /** Tests that an {@link EnumerableLimit} and {@link EnumerableSort} are
    * replaced by an {@link EnumerableLimitSort}, per
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3920">[CALCITE-3920]
