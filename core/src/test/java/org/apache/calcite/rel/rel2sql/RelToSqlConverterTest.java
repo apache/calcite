@@ -2494,6 +2494,22 @@ class RelToSqlConverterTest {
     sql(query).withBigQuery().ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5922">[CALCITE-5922]
+   * The SQL generated for the POSITION function(with 3 input arguments) by the
+   * SparkSqlDialect is not recognized by Spark SQL</a>. */
+  @Test void testPositionForSpark() {
+    final String query = "SELECT POSITION('a' IN 'abc')";
+    final String expected = "SELECT POSITION('a', 'abc')\n"
+        + "FROM (VALUES (0)) t (ZERO)";
+    sql(query).withSpark().ok(expected);
+
+    final String query2 = "SELECT POSITION('a' IN 'abc' FROM 1)";
+    final String expected2 = "SELECT POSITION('a', 'abc', 1)\n"
+        + "FROM (VALUES (0)) t (ZERO)";
+    sql(query2).withSpark().ok(expected2);
+  }
+
   @Test void testInstrFunction4Operands() {
     final String query = "SELECT INSTR('ABC', 'A', 1, 1) from \"product\"";
     final String expectedBQ = "SELECT INSTR('ABC', 'A', 1, 1)\n"

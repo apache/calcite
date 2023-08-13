@@ -147,6 +147,9 @@ public class SparkSqlDialect extends SqlDialect {
       case TRIM:
         unparseHiveTrim(writer, call, leftPrec, rightPrec);
         break;
+      case POSITION:
+        SqlUtil.unparseFunctionSyntax(SqlStdOperatorTable.POSITION, writer, call, false);
+        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
