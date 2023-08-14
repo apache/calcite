@@ -1273,13 +1273,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unParseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlWriter.Frame ifFrame = writer.startFunCall("IF");
     unparseIfRegexpContains(writer, call, leftPrec, rightPrec);
-    writer.sep(",");
-    writer.literal("1");
-    writer.sep(",");
-    writer.literal("0");
-    writer.endFunCall(ifFrame);
   }
 
   private void unparseShiftLeftAndShiftRight(SqlWriter writer, SqlCall call, boolean isShiftLeft) {
