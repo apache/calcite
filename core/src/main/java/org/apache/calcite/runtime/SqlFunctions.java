@@ -997,6 +997,28 @@ public class SqlFunctions {
     return extractValue;
   }
 
+  /**
+   * SQL {@code HAMMING_DISTANCE} function.
+   */
+  public static @Nullable Long hammingDistance(
+      @Nullable String a, @Nullable String b) {
+    if (a == null || b == null) {
+      return null;
+    }
+
+    if (a.length() != b.length()) {
+      throw RESOURCE.illegalArgumentsInHammingDistanceFunc().ex();
+    }
+
+    int distance = 0;
+    for (int i = 0; i < a.length(); i++) {
+      if (a.charAt(i) != b.charAt(i)) {
+        distance++;
+      }
+    }
+    return (long) distance;
+  }
+
   /** SQL {@code RTRIM} function applied to string. */
   public static String rtrim(String s) {
     return trim(false, true, " ", s);

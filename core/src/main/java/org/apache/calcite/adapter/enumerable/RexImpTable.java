@@ -178,6 +178,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE32;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_HEX;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.HAMMING_DISTANCE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ILIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IS_INF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IS_NAN;
@@ -552,6 +553,7 @@ public class RexImpTable {
       defineMethod(LEVENSHTEIN, BuiltInMethod.LEVENSHTEIN.method, NullPolicy.STRICT);
       defineMethod(SPLIT, "split", NullPolicy.STRICT);
       defineMethod(PARSE_URL, BuiltInMethod.PARSE_URL.method, NullPolicy.STRICT);
+      defineMethod(HAMMING_DISTANCE, BuiltInMethod.HAMMING_DISTANCE.method, NullPolicy.STRICT);
 
       map.put(TRIM, new TrimImplementor());
 

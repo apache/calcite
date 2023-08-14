@@ -64,6 +64,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.MSSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.PRESTO;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -1891,5 +1892,15 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("BIT_LENGTH",
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.or(OperandTypes.CHARACTER, OperandTypes.BINARY),
+          SqlFunctionCategory.NUMERIC);
+
+  /**
+   * The "HAMMING_DISTANCE(str1, str2)" function.
+   */
+  @LibraryOperator(libraries = {PRESTO})
+  public static final SqlFunction HAMMING_DISTANCE =
+      SqlBasicFunction.create("HAMMING_DISTANCE",
+          ReturnTypes.BIGINT_NULLABLE,
+          OperandTypes.STRING_STRING,
           SqlFunctionCategory.NUMERIC);
 }

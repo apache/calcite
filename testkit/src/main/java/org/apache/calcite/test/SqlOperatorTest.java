@@ -4063,6 +4063,50 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(SqlLibrary.HIVE, SqlLibrary.SPARK), consumer);
   }
 
+  /**
+   * Tests for {@code HAMMING_DISTANCE} function for Presto.
+   */
+  @Test void testHammingDistance() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.PRESTO);
+    f.setFor(SqlLibraryOperators.HAMMING_DISTANCE);
+    f.checkScalarExact("hamming_distance('', '')", "BIGINT NOT NULL", "0");
+    f.checkScalarExact("hamming_distance('a', 'a')", "BIGINT NOT NULL", "0");
+    f.checkScalarExact("hamming_distance('hello', 'hello')", "BIGINT NOT NULL", "0");
+    f.checkScalarExact("hamming_distance('like', 'hate')", "BIGINT NOT NULL", "3");
+    f.checkScalarExact("hamming_distance('hello', 'world')", "BIGINT NOT NULL", "4");
+
+    // Test for null
+    f.checkNull("hamming_distance(null, null)");
+    f.checkNull("hamming_distance(null, 'hello')");
+    f.checkNull("hamming_distance('hello', null)");
+
+    // Test for unicode
+    f.checkScalarExact("hamming_distance(_UTF8'hello na\u00EFve world', 'hello naive world')",
+        "BIGINT NOT NULL", "1");
+    f.checkScalarExact(
+        "hamming_distance(_UTF8'\u4FE1\u5FF5,\u7231,\u5E0C\u671B', _UTF8'\u4FE1\u4EF0,\u7231,\u5E0C\u671B')",
+        "BIGINT NOT NULL", "1");
+    f.checkScalarExact(
+        "hamming_distance(_UTF8'\u4F11\u5FF5,\u7231,\u5E0C\u671B', _UTF8'\u4FE1\u5FF5,\u7231,\u5E0C\u671B')",
+        "BIGINT NOT NULL", "1");
+
+    // Test for invalid arguments
+    f.checkFails("^hamming_distance('hello', 'world', 'extra')^",
+        "Invalid number of arguments to function "
+            + "'HAMMING_DISTANCE'\\. Was expecting 2 arguments", false);
+    f.checkFails("hamming_distance('hello', '')",
+        "The input strings to hamming_distance function must have the same length", true);
+    f.checkFails("hamming_distance('', 'hello')",
+        "The input strings to hamming_distance function must have the same length", true);
+    f.checkFails("hamming_distance('hello', 'o')",
+        "The input strings to hamming_distance function must have the same length", true);
+    f.checkFails("hamming_distance(_UTF8'hello na\u00EFve world', 'hello na:ive world')",
+        "The input strings to hamming_distance function must have the same length", true);
+    f.checkFails("hamming_distance("
+            + "_UTF8'\u4FE1\u5FF5,\u7231,\u5E0C\u671B', _UTF8'\u4FE1\u5FF5\u5E0C\u671B')",
+        "The input strings to hamming_distance function must have the same length", true);
+  }
+
   @Test void testToBase64() {
     final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.MYSQL);
     f.setFor(SqlLibraryOperators.TO_BASE64);

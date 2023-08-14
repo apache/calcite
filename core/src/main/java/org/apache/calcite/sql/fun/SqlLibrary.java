@@ -73,7 +73,10 @@ public enum SqlLibrary {
   POSTGRESQL("p", "postgresql"),
   /** A collection of operators that are in Apache Spark but not in standard
    * SQL. */
-  SPARK("s", "spark");
+  SPARK("s", "spark"),
+  /** A collection of operators that are in Presto but not in standard
+   * SQL. */
+  PRESTO("pr", "presto");
 
   /** Map from {@link Enum#name() name} and {@link #fun} to library. */
   public static final Map<String, SqlLibrary> MAP;
@@ -97,7 +100,7 @@ public enum SqlLibrary {
     switch (this) {
     case ALL:
       return ImmutableList.of(BIG_QUERY, CALCITE, HIVE, MSSQL, MYSQL, ORACLE,
-          POSTGRESQL, SPARK);
+          POSTGRESQL, SPARK, PRESTO);
     default:
       return ImmutableList.of();
     }
