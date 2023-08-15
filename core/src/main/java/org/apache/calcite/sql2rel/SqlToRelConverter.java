@@ -4980,7 +4980,7 @@ public class SqlToRelConverter {
             Util.range(rightOffset, rightOffset + leftKeys.size());
 
         joinCond =
-            RelOptUtil.createEquiJoinCondition(newLeftInput, leftJoinKeys,
+            RelOptUtil.createConsistentTypeEquiJoinCondition(newLeftInput, leftJoinKeys,
                 rel, rightKeys, rexBuilder);
       } else {
         joinCond = rexBuilder.makeLiteral(true);

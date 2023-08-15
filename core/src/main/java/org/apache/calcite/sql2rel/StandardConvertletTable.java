@@ -1123,7 +1123,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
     if (exprs.size() > 1) {
       final RelDataType type =
-          consistentType(cx, consistency, RexUtil.types(exprs));
+          consistentType(cx.getTypeFactory(), consistency, RexUtil.types(exprs));
       if (type != null) {
         final List<RexNode> oldExprs = new ArrayList<>(exprs);
         exprs.clear();
@@ -1135,7 +1135,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     return exprs;
   }
 
-  private static @Nullable RelDataType consistentType(SqlRexContext cx,
+  public static @Nullable RelDataType consistentType(RelDataTypeFactory relDataTypeFactory,
       SqlOperandTypeChecker.Consistency consistency, List<RelDataType> types) {
     switch (consistency) {
     case COMPARE:
@@ -1162,7 +1162,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             case INTEGER:
             case NUMERIC:
               nonCharacterTypes.add(
-                  cx.getTypeFactory().createSqlType(SqlTypeName.BIGINT));
+                  relDataTypeFactory.createSqlType(SqlTypeName.BIGINT));
               break;
             default:
               break;
@@ -1172,7 +1172,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       }
       // fall through
     case LEAST_RESTRICTIVE:
-      return cx.getTypeFactory().leastRestrictive(types);
+      return relDataTypeFactory.leastRestrictive(types);
     default:
       return null;
     }

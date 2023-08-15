@@ -235,6 +235,21 @@ where (gender, deptno) in (select gender, 10 from emp where gender = 'F');
 
 !use scott
 
+select *
+from dept
+where deptno in (
+  select count(*)
+  from emp
+  where comm is null);
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
++--------+------------+----------+
+(1 row)
+
+!ok
+
 # [CALCITE-1155] Support columns for IN list
 SELECT empno, ename, mgr FROM "scott".emp WHERE 7782 IN (empno, mgr);
 +-------+--------+------+
@@ -494,10 +509,11 @@ EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
 # Uncorrelated
 with t (a, b) as (select * from (values (60, 'b')))
 select * from t where a in (select deptno from "scott".dept);
-EnumerableHashJoin(condition=[=($0, $2)], joinType=[semi])
-  EnumerableValues(tuples=[[{ 60, 'b' }]])
-  EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
-    EnumerableTableScan(table=[[scott, DEPT]])
+EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])
+  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableValues(tuples=[[{ 60, 'b' }]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], DEPTNO=[$t0], DEPTNO0=[$t3])
+      EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 +---+---+
 | A | B |
@@ -674,7 +690,7 @@ where empno IN (
 
 !ok
 EnumerableCalc(expr#0..2=[{inputs}], SAL=[$t1])
-  EnumerableHashJoin(condition=[AND(=($2, $4), =($0, $3))], joinType=[semi])
+  EnumerableHashJoin(condition=[AND(=($2, $4), =($0, CAST($3):SMALLINT NOT NULL))], joinType=[semi])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t2):VARCHAR(14)], EMPNO=[$t0], SAL=[$t5], JOB0=[$t8])
       EnumerableTableScan(table=[[scott, EMP]])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t1)], proj#0..1=[{exprs}], $condition=[$t3])
@@ -2122,8 +2138,8 @@ where sal + 100 not in (
 
 !ok
 EnumerableAggregate(group=[{}], C=[COUNT()])
-  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[=($t1, $t8)], expr#10=[IS NULL($t0)], expr#11=[IS NOT NULL($t6)], expr#12=[<($t2, $t1)], expr#13=[OR($t10, $t11, $t12)], expr#14=[IS NOT TRUE($t13)], expr#15=[OR($t9, $t14)], proj#0..7=[{exprs}], $condition=[$t15])
-    EnumerableMergeJoin(condition=[AND(=($3, $5), =($4, $7))], joinType=[left])
+  EnumerableCalc(expr#0..8=[{inputs}], expr#9=[0], expr#10=[=($t1, $t9)], expr#11=[IS NULL($t0)], expr#12=[IS NOT NULL($t6)], expr#13=[<($t2, $t1)], expr#14=[OR($t11, $t12, $t13)], expr#15=[IS NOT TRUE($t14)], expr#16=[OR($t10, $t15)], proj#0..8=[{exprs}], $condition=[$t16])
+    EnumerableMergeJoin(condition=[AND(=($3, $7), =($4, $8))], joinType=[left])
       EnumerableSort(sort0=[$3], sort1=[$4], dir0=[ASC], dir1=[ASC])
         EnumerableCalc(expr#0..6=[{inputs}], expr#7=[100], expr#8=[+($t2, $t7)], expr#9=[CAST($t1):VARCHAR(14)], SAL=[$t2], c=[$t4], ck=[$t5], $f5=[$t8], ENAME0=[$t9])
           EnumerableMergeJoin(condition=[=($3, $6)], joinType=[left])
@@ -2133,8 +2149,8 @@ EnumerableAggregate(group=[{}], C=[COUNT()])
             EnumerableSort(sort0=[$2], dir0=[ASC])
               EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1:BIGINT], expr#4=[IS NOT NULL($t1)], c=[$t3], ck=[$t3], DNAME=[$t1], $condition=[$t4])
                 EnumerableTableScan(table=[[scott, DEPT]])
-      EnumerableSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
-        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[IS NOT NULL($t1)], DEPTNO=[$t0], i=[$t3], DNAME=[$t1], $condition=[$t4])
+      EnumerableSort(sort0=[$2], sort1=[$3], dir0=[ASC], dir1=[ASC])
+        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[CAST($t0):DECIMAL(13, 2) NOT NULL], expr#5=[IS NOT NULL($t1)], DEPTNO=[$t0], i=[$t3], DEPTNO0=[$t4], DNAME=[$t1], $condition=[$t5])
           EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 

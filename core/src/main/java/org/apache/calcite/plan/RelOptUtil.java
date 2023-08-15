@@ -82,6 +82,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.schema.ModifiableView;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
@@ -90,7 +91,9 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -1434,6 +1437,41 @@ public abstract class RelOptUtil {
       final RelNode left, final List<Integer> leftKeys,
       final RelNode right, final List<Integer> rightKeys,
       final RexBuilder rexBuilder) {
+    return createEquiJoinCondition(left, leftKeys, right, rightKeys, rexBuilder, false);
+  }
+
+  public static RexNode createConsistentTypeEquiJoinCondition(
+      final RelNode left, final List<Integer> leftKeys,
+      final RelNode right, final List<Integer> rightKeys,
+      final RexBuilder rexBuilder) {
+    return createEquiJoinCondition(left, leftKeys, right, rightKeys, rexBuilder, true);
+  }
+
+  public static RexNode createConsistentTypeEquiJoinCondition(
+      RexNode leftRexNode, RexNode rightRexNode,
+      final RexBuilder rexBuilder) {
+    final SqlBinaryOperator equals = SqlStdOperatorTable.EQUALS;
+    final SqlOperandTypeChecker operandTypeChecker = equals.getOperandTypeChecker();
+    final SqlOperandTypeChecker.Consistency consistency =
+        operandTypeChecker == null
+        ? SqlOperandTypeChecker.Consistency.NONE
+        : operandTypeChecker.getConsistency();
+    final RelDataType consistentType =
+        StandardConvertletTable.consistentType(
+            rexBuilder.getTypeFactory(),
+            consistency,
+            RexUtil.types(ImmutableList.of(leftRexNode, rightRexNode)));
+    if (consistentType != null) {
+      leftRexNode = rexBuilder.ensureType(consistentType, leftRexNode, true);
+      rightRexNode = rexBuilder.ensureType(consistentType, rightRexNode, true);
+    }
+    return rexBuilder.makeCall(equals, leftRexNode, rightRexNode);
+  }
+
+  private static RexNode createEquiJoinCondition(
+      final RelNode left, final List<Integer> leftKeys,
+      final RelNode right, final List<Integer> rightKeys,
+      final RexBuilder rexBuilder, final boolean consistentType) {
     final List<RelDataType> leftTypes =
         RelOptUtil.getFieldTypeList(left.getRowType());
     final List<RelDataType> rightTypes =
@@ -1443,10 +1481,14 @@ public abstract class RelOptUtil {
           @Override public RexNode get(int index) {
             final int leftKey = leftKeys.get(index);
             final int rightKey = rightKeys.get(index);
-            return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-                rexBuilder.makeInputRef(leftTypes.get(leftKey), leftKey),
-                rexBuilder.makeInputRef(rightTypes.get(rightKey),
-                    leftTypes.size() + rightKey));
+            RexNode leftRexNode = rexBuilder.makeInputRef(leftTypes.get(leftKey), leftKey);
+            RexNode rightRexNode =
+                rexBuilder.makeInputRef(rightTypes.get(rightKey), leftTypes.size() + rightKey);
+            final SqlBinaryOperator equals = SqlStdOperatorTable.EQUALS;
+            if (!consistentType) {
+              return rexBuilder.makeCall(equals, leftRexNode, rightRexNode);
+            }
+            return createConsistentTypeEquiJoinCondition(leftRexNode, rightRexNode, rexBuilder);
           }
 
           @Override public int size() {

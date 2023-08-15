@@ -29,6 +29,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.LogicVisitor;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -733,8 +734,13 @@ public class SubQueryRemoveRule
     int refOffset = offset;
     final List<RexNode> conditions =
         Pair.zip(expressionOperands, builder.fields()).stream()
-            .map(pair -> builder.equals(pair.left, RexUtil.shift(pair.right, refOffset)))
-            .collect(Collectors.toList());
+            .map(pair -> {
+              RexBuilder rexBuilder = builder.getRexBuilder();
+              RexNode leftKey = pair.left;
+              RexNode rightKey = RexUtil.shift(pair.right, refOffset);
+              return RelOptUtil
+                  .createConsistentTypeEquiJoinCondition(leftKey, rightKey, rexBuilder);
+            }).collect(Collectors.toList());
     switch (logic) {
     case TRUE:
       builder.join(JoinRelType.INNER, builder.and(conditions), variablesSet);
