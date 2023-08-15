@@ -691,7 +691,7 @@ public class SqlWindow extends SqlCall {
           final SqlNumericLiteral boundLiteral =
               (SqlNumericLiteral) boundVal;
           if (!boundLiteral.isExact()
-              || (boundLiteral.getScale() != null && boundLiteral.getScale() != 0)
+              || (boundLiteral.getScale() != null && boundLiteral.stripTrailingZeros().getScale() > 0)
               || (0 > boundLiteral.longValue(true))) {
             // true == throw if not exact (we just tested that - right?)
             throw validator.newValidationError(boundVal,
