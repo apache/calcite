@@ -21,7 +21,6 @@ import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
 import com.mongodb.AuthenticationMechanism;
-import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
 
 import java.util.Map;
@@ -38,20 +37,24 @@ public class MongoSchemaFactory implements SchemaFactory {
 
   @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
-    final String host = (String) operand.get("host");
     final String database = (String) operand.get("database");
-    final String authMechanismName = (String) operand.get("authMechanism");
 
-    final MongoClientOptions.Builder options = MongoClientOptions.builder();
-
-    final MongoCredential credential;
-    if (authMechanismName != null) {
-      credential = createCredential(operand);
+    if (operand.containsKey("uri")) {
+      final String uri = (String) operand.get("uri");
+      return new MongoSchema(uri, database);
     } else {
-      credential = null;
-    }
+      final String host = (String) operand.get("host");
+      final String authMechanismName = (String) operand.get("authMechanism");
 
-    return new MongoSchema(host, database, credential, options.build());
+      final MongoCredential credential;
+      if (authMechanismName != null) {
+        credential = createCredential(operand);
+      } else {
+        credential = null;
+      }
+
+      return new MongoSchema(host, database, credential);
+    }
   }
 
   private static MongoCredential createCredential(Map<String, Object> map) {

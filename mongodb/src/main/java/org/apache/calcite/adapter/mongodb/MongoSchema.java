@@ -21,12 +21,14 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
@@ -42,19 +44,40 @@ public class MongoSchema extends AbstractSchema {
    *
    * @param host Mongo host, e.g. "localhost"
    * @param credential Optional credentials (null for none)
-   * @param options Mongo connection options
    * @param database Mongo database name, e.g. "foodmart"
    */
-  MongoSchema(String host, String database,
-      MongoCredential credential, MongoClientOptions options) {
+  MongoSchema(String host, String database, MongoCredential credential) {
     super();
     try {
-      final MongoClient mongo = credential == null
-          ? new MongoClient(new ServerAddress(host), options)
-          : new MongoClient(new ServerAddress(host), credential, options);
+      MongoClientSettings.Builder mongoSettings = MongoClientSettings.builder()
+          .applyToClusterSettings(clusterSettingsBuilder ->
+              clusterSettingsBuilder.hosts(Collections.singletonList(new ServerAddress(host))));
+
+      if (null != credential) {
+        mongoSettings.credential(credential);
+      }
+      final MongoClient mongo = MongoClients.create(mongoSettings.build());
+
       this.mongoDb = mongo.getDatabase(database);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (Exception exception) {
+      throw new RuntimeException("Failed to created the Mongo client using the host and credential",
+          exception);
+    }
+  }
+
+  /**
+   * Creates a MongoDB schema using the new recommended way using connection string.
+   * @param uri MongoDB connection string
+   * @param database Mongo database name provided in the configuration
+   */
+  MongoSchema(String uri, String database) {
+    super();
+    try {
+      final MongoClient mongo = MongoClients.create(uri);
+      this.mongoDb = mongo.getDatabase(database);
+    } catch (Exception exception) {
+      throw new RuntimeException("Failed to create Mongo client using the connection string",
+          exception);
     }
   }
 
