@@ -487,6 +487,7 @@ public enum BuiltInMethod {
   RAND_INTEGER_SEED(RandomFunction.class, "randIntegerSeed", int.class,
       int.class),
   SAFE_ADD(SqlFunctions.class, "safeAdd", double.class, double.class),
+  SAFE_DIVIDE(SqlFunctions.class, "safeDivide", double.class, double.class),
   SAFE_MULTIPLY(SqlFunctions.class, "safeMultiply", double.class, double.class),
   SAFE_SUBTRACT(SqlFunctions.class, "safeSubtract", double.class, double.class),
   LOG(SqlFunctions.class, "log", long.class, long.class),
