@@ -221,6 +221,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_CAST;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
@@ -621,7 +622,8 @@ public class RexImpTable {
       defineMethod(TRUNC, "struncate", NullPolicy.STRICT);
       defineMethod(TRUNCATE, "struncate", NullPolicy.STRICT);
 
-      map.put(SAFE_MULTIPLY, new SafeArithmeticImplementor());
+      map.put(SAFE_ADD, new SafeArithmeticImplementor("safeAdd"));
+      map.put(SAFE_MULTIPLY, new SafeArithmeticImplementor("safeMultiply"));
 
       map.put(PI, new PiImplementor());
       return populate2();
@@ -2391,15 +2393,15 @@ public class RexImpTable {
 
   /** Implementor for the {@code SAFE_MULTIPLY} function. */
   private static class SafeArithmeticImplementor extends MethodNameImplementor {
-    SafeArithmeticImplementor() {
-      super("safeMultiply", NullPolicy.STRICT, false);
+    SafeArithmeticImplementor(String methodName) {
+      super(methodName, NullPolicy.STRICT, false);
     }
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
       Expression arg0 = convertType(argValueList.get(0), call.operands.get(0));
       Expression arg1 = convertType(argValueList.get(1), call.operands.get(1));
-      return Expressions.call(SqlFunctions.class, "safeMultiply", arg0, arg1);
+      return Expressions.call(SqlFunctions.class, methodName, arg0, arg1);
     }
 
     // Because BigQuery treats all int types as aliases for BIGINT (Java's long)

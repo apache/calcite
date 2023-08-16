@@ -601,6 +601,74 @@ FROM t;
 !}
 
 #####################################################################
+# SAFE_ADD
+#
+# SAFE_ADD(value1, value2)
+#
+# Equivalent to the addition operator (+), but returns NULL if overflow/underflow occurs.
+SELECT SAFE_ADD(5, 4) as result;
++--------+
+| result |
++--------+
+|      9 |
++--------+
+(1 row)
+
+!ok
+
+# Overflow occurs if result is greater than 2^63 - 1
+SELECT SAFE_ADD(9223372036854775807, 2) as overflow_result;
++-----------------+
+| overflow_result |
++-----------------+
+|                 |
++-----------------+
+(1 row)
+
+!ok
+
+# Underflow occurs if result is less than -2^63
+SELECT SAFE_ADD(-9223372036854775806, -3) as underflow_result;
++------------------+
+| underflow_result |
++------------------+
+|                  |
++------------------+
+(1 row)
+
+!ok
+
+SELECT SAFE_ADD(CAST(1.7e308 as DOUBLE), CAST(1.7e308 as DOUBLE)) as double_overflow;
++-----------------+
+| double_overflow |
++-----------------+
+|                 |
++-----------------+
+(1 row)
+
+!ok
+
+SELECT SAFE_ADD(9, cast(9.999999999999999999e75 as DECIMAL(38, 19))) as decimal_overflow;
++------------------+
+| decimal_overflow |
++------------------+
+|                  |
++------------------+
+(1 row)
+
+!ok
+
+# NaN arguments should return NaN
+SELECT SAFE_ADD(CAST('NaN' AS DOUBLE), CAST(3 as BIGINT)) as NaN_result;
++------------+
+| NaN_result |
++------------+
+|        NaN |
++------------+
+(1 row)
+
+!ok
+#####################################################################
 # SAFE_MULTIPLY
 #
 # SAFE_MULTIPLY(value1, value2)

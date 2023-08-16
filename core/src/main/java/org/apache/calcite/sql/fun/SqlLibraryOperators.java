@@ -1651,6 +1651,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP,
               SqlTypeFamily.ANY));
 
+  /** The "SAFE_ADD(numeric1, numeric2)" function; equivalent to the {@code +} operator but
+   * returns null if overflow occurs. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SAFE_ADD =
+      SqlBasicFunction.create("SAFE_ADD",
+          ReturnTypes.SUM_FORCE_NULLABLE,
+          OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   /** The "SAFE_MULTIPLY(numeric1, numeric2)" function; equivalent to the {@code *} operator but
    * returns null if overflow occurs. */
   @LibraryOperator(libraries = {BIG_QUERY})

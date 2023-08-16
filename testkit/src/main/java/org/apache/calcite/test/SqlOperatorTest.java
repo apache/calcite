@@ -7156,6 +7156,84 @@ public class SqlOperatorTest {
     f.checkNull("truncate(cast(null as double))");
   }
 
+  @Test void testSafeAddFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SAFE_ADD);
+    f0.checkFails("^safe_add(2, 3)^",
+        "No match found for function signature "
+        + "SAFE_ADD\\(<NUMERIC>, <NUMERIC>\\)", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    // Basic test for each of the 9 2-permutations of BIGINT, DECIMAL, and FLOAT
+    f.checkScalar("safe_add(cast(20 as bigint), cast(20 as bigint))",
+        "40", "BIGINT");
+    f.checkScalar("safe_add(cast(20 as bigint), cast(1.2345 as decimal(5,4)))",
+        "21.2345", "DECIMAL(19, 4)");
+    f.checkScalar("safe_add(cast(1.2345 as decimal(5,4)), cast(20 as bigint))",
+        "21.2345", "DECIMAL(19, 4)");
+    f.checkScalar("safe_add(cast(1.2345 as decimal(5,4)), "
+        + "cast(2.0 as decimal(2, 1)))", "3.2345", "DECIMAL(6, 4)");
+    f.checkScalar("safe_add(cast(3 as double), cast(3 as bigint))",
+        "6.0", "DOUBLE");
+    f.checkScalar("safe_add(cast(3 as bigint), cast(3 as double))",
+        "6.0", "DOUBLE");
+    f.checkScalar("safe_add(cast(3 as double), cast(1.2345 as decimal(5, 4)))",
+        "4.2345", "DOUBLE");
+    f.checkScalar("safe_add(cast(1.2345 as decimal(5, 4)), cast(3 as double))",
+        "4.2345", "DOUBLE");
+    f.checkScalar("safe_add(cast(3 as double), cast(3 as double))",
+        "6.0", "DOUBLE");
+    // Tests for + and - Infinity
+    f.checkScalar("safe_add(cast('Infinity' as double), cast(3 as double))",
+        "Infinity", "DOUBLE");
+    f.checkScalar("safe_add(cast('-Infinity' as double), cast(3 as double))",
+        "-Infinity", "DOUBLE");
+    f.checkScalar("safe_add(cast('-Infinity' as double), "
+        + "cast('Infinity' as double))", "NaN", "DOUBLE");
+    // Tests for NaN
+    f.checkScalar("safe_add(cast('NaN' as double), cast(3 as bigint))",
+        "NaN", "DOUBLE");
+    f.checkScalar("safe_add(cast('NaN' as double), cast(1.23 as decimal(3, 2)))",
+        "NaN", "DOUBLE");
+    f.checkScalar("safe_add(cast('NaN' as double), cast('Infinity' as double))",
+        "NaN", "DOUBLE");
+    f.checkScalar("safe_add(cast(3 as bigint), cast('NaN' as double))",
+        "NaN", "DOUBLE");
+    f.checkScalar("safe_add(cast(1.23 as decimal(3, 2)), cast('NaN' as double))",
+        "NaN", "DOUBLE");
+    // Overflow test for each pairing
+    f.checkNull("safe_add(cast(20 as bigint), "
+        + "cast(9223372036854775807 as bigint))");
+    f.checkNull("safe_add(cast(-20 as bigint), "
+        + "cast(-9223372036854775807 as bigint))");
+    f.checkNull("safe_add(9, cast(9.999999999999999999e75 as DECIMAL(38, 19)))");
+    f.checkNull("safe_add(-9, cast(-9.999999999999999999e75 as DECIMAL(38, 19)))");
+    f.checkNull("safe_add(cast(9.999999999999999999e75 as DECIMAL(38, 19)), 9)");
+    f.checkNull("safe_add(cast(-9.999999999999999999e75 as DECIMAL(38, 19)), -9)");
+    f.checkNull("safe_add(cast(9.9e75 as DECIMAL(76, 0)), "
+        + "cast(9.9e75 as DECIMAL(76, 0)))");
+    f.checkNull("safe_add(cast(-9.9e75 as DECIMAL(76, 0)), "
+        + "cast(-9.9e75 as DECIMAL(76, 0)))");
+    f.checkNull("safe_add(cast(1.7976931348623157e308 as double), "
+        + "cast(9.9e7 as decimal(76, 0)))");
+    f.checkNull("safe_add(cast(-1.7976931348623157e308 as double), "
+        + "cast(-9.9e7 as decimal(76, 0)))");
+    f.checkNull("safe_add(cast(9.9e7 as decimal(76, 0)), "
+        + "cast(1.7976931348623157e308 as double))");
+    f.checkNull("safe_add(cast(-9.9e7 as decimal(76, 0)), "
+        + "cast(-1.7976931348623157e308 as double))");
+    f.checkNull("safe_add(cast(1.7976931348623157e308 as double), cast(3 as bigint))");
+    f.checkNull("safe_add(cast(-1.7976931348623157e308 as double), "
+        + "cast(-3 as bigint))");
+    f.checkNull("safe_add(cast(3 as bigint), cast(1.7976931348623157e308 as double))");
+    f.checkNull("safe_add(cast(-3 as bigint), "
+        + "cast(-1.7976931348623157e308 as double))");
+    f.checkNull("safe_add(cast(3 as double), cast(1.7976931348623157e308 as double))");
+    f.checkNull("safe_add(cast(-3 as double), "
+        + "cast(-1.7976931348623157e308 as double))");
+    // Check that null argument retuns null
+    f.checkNull("safe_add(cast(null as double), cast(3 as bigint))");
+    f.checkNull("safe_add(cast(3 as double), cast(null as bigint))");
+  }
+
   @Test void testSafeMultiplyFunc() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SAFE_MULTIPLY);
     f0.checkFails("^safe_multiply(2, 3)^",
