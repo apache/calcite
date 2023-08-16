@@ -231,6 +231,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_CAST;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_ORDINAL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_SUBTRACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SEC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SECH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
@@ -636,6 +637,7 @@ public class RexImpTable {
 
       map.put(SAFE_ADD, new SafeArithmeticImplementor("safeAdd"));
       map.put(SAFE_MULTIPLY, new SafeArithmeticImplementor("safeMultiply"));
+      map.put(SAFE_SUBTRACT, new SafeArithmeticImplementor("safeSubtract"));
 
       map.put(PI, new PiImplementor());
       return populate2();

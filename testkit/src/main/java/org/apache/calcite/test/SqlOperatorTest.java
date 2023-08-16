@@ -7478,6 +7478,91 @@ public class SqlOperatorTest {
     f.checkNull("safe_multiply(cast(3 as double), cast(null as bigint))");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5770">[CALCITE-5770]
+   * Add SAFE_SUBTRACT function (enabled in BigQuery library).</a>.
+   */
+  @Test void testSafeSubtractFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SAFE_SUBTRACT);
+    f0.checkFails("^safe_subtract(2, 3)^",
+                  "No match found for function signature "
+                    + "SAFE_SUBTRACT\\(<NUMERIC>, <NUMERIC>\\)", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    // Basic test for each of the 9 2-permutations of BIGINT, DECIMAL, and FLOAT
+    f.checkScalar("safe_subtract(cast(20 as bigint), cast(20 as bigint))",
+                  "0", "BIGINT");
+    f.checkScalar("safe_subtract(cast(20 as bigint), cast(-1.2345 as decimal(5,4)))",
+                  "21.2345", "DECIMAL(19, 4)");
+    f.checkScalar("safe_subtract(cast(1.2345 as decimal(5,4)), cast(-20 as bigint))",
+                  "21.2345", "DECIMAL(19, 4)");
+    f.checkScalar("safe_subtract(cast(1.23 as decimal(3,2)), "
+                    + "cast(-2.0 as decimal(2, 1)))", "3.23", "DECIMAL(4, 2)");
+    f.checkScalar("safe_subtract(cast(3 as double), cast(-3 as bigint))",
+                  "6.0", "DOUBLE");
+    f.checkScalar("safe_subtract(cast(3 as bigint), cast(-3 as double))",
+                  "6.0", "DOUBLE");
+    f.checkScalar("safe_subtract(cast(3 as double), cast(-1.2345 as decimal(5, 4)))",
+                  "4.2345", "DOUBLE");
+    f.checkScalar("safe_subtract(cast(1.2345 as decimal(5, 4)), cast(-3 as double))",
+                  "4.2345", "DOUBLE");
+    f.checkScalar("safe_subtract(cast(3 as double), cast(3 as double))",
+                  "0.0", "DOUBLE");
+    // Tests for + and - Infinity
+    f.checkScalar("safe_subtract(cast('Infinity' as double), cast(3 as double))",
+                  "Infinity", "DOUBLE");
+    f.checkScalar("safe_subtract(cast('-Infinity' as double), cast(3 as double))",
+                  "-Infinity", "DOUBLE");
+    f.checkScalar("safe_subtract(cast('Infinity' as double), "
+                    + "cast('Infinity' as double))", "NaN", "DOUBLE");
+    // Tests for NaN
+    f.checkScalar("safe_subtract(cast('NaN' as double), cast(3 as bigint))",
+                  "NaN", "DOUBLE");
+    f.checkScalar("safe_subtract(cast('NaN' as double), cast(1.23 as decimal(3, 2)))",
+                  "NaN", "DOUBLE");
+    f.checkScalar("safe_subtract(cast('NaN' as double), cast('Infinity' as double))",
+                  "NaN", "DOUBLE");
+    f.checkScalar("safe_subtract(cast(3 as bigint), cast('NaN' as double))",
+                  "NaN", "DOUBLE");
+    f.checkScalar("safe_subtract(cast(1.23 as decimal(3, 2)), cast('NaN' as double))",
+                  "NaN", "DOUBLE");
+    // Overflow test for each pairing
+    f.checkNull("safe_subtract(cast(20 as bigint), "
+                  + "cast(-9223372036854775807 as bigint))");
+    f.checkNull("safe_subtract(cast(-20 as bigint), "
+                  + "cast(9223372036854775807 as bigint))");
+    f.checkNull("safe_subtract(9, cast(-9.999999999999999999e75 as DECIMAL(38, 19)))");
+    f.checkNull("safe_subtract(-9, cast(9.999999999999999999e75 as DECIMAL(38, 19)))");
+    f.checkNull("safe_subtract(cast(-9.999999999999999999e75 as DECIMAL(38, 19)), 9)");
+    f.checkNull("safe_subtract(cast(9.999999999999999999e75 as DECIMAL(38, 19)), -9)");
+    f.checkNull("safe_subtract(cast(-9.9e75 as DECIMAL(76, 0)), "
+                  + "cast(9.9e75 as DECIMAL(76, 0)))");
+    f.checkNull("safe_subtract(cast(9.9e75 as DECIMAL(76, 0)), "
+                  + "cast(-9.9e75 as DECIMAL(76, 0)))");
+    f.checkNull("safe_subtract(cast(1.7976931348623157e308 as double), "
+                  + "cast(-9.9e7 as decimal(76, 0)))");
+    f.checkNull("safe_subtract(cast(-1.7976931348623157e308 as double), "
+                  + "cast(9.9e7 as decimal(76, 0)))");
+    f.checkNull("safe_subtract(cast(9.9e7 as decimal(76, 0)), "
+                  + "cast(-1.7976931348623157e308 as double))");
+    f.checkNull("safe_subtract(cast(-9.9e7 as decimal(76, 0)), "
+                  + "cast(1.7976931348623157e308 as double))");
+    f.checkNull("safe_subtract(cast(1.7976931348623157e308 as double), "
+                  + "cast(-3 as bigint))");
+    f.checkNull("safe_subtract(cast(-1.7976931348623157e308 as double), "
+                  + "cast(3 as bigint))");
+    f.checkNull("safe_subtract(cast(3 as bigint), "
+                  + "cast(-1.7976931348623157e308 as double))");
+    f.checkNull("safe_subtract(cast(-3 as bigint), "
+                  + "cast(1.7976931348623157e308 as double))");
+    f.checkNull("safe_subtract(cast(3 as double), "
+                  + "cast(-1.7976931348623157e308 as double))");
+    f.checkNull("safe_subtract(cast(-3 as double), "
+                  + "cast(1.7976931348623157e308 as double))");
+    // Check that null argument retuns null
+    f.checkNull("safe_subtract(cast(null as double), cast(3 as bigint))");
+    f.checkNull("safe_subtract(cast(3 as double), cast(null as bigint))");
+  }
+
   @Test void testNullifFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.NULLIF, VM_EXPAND);

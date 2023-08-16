@@ -2798,6 +2798,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | SAFE_MULTIPLY(numeric1, numeric2)              | Returns *numeric1* * *numeric2*, or NULL on overflow
 | b | SAFE_OFFSET(index)                             | Similar to `OFFSET` except null is returned if *index* is out of bounds
 | b | SAFE_ORDINAL(index)                            | Similar to `OFFSET` except *index* begins at 1 and null is returned if *index* is out of bounds
+| b | SAFE_SUBTRACT(numeric1, numeric2)              | Returns *numeric1* - *numeric2*, or NULL on overflow
 | * | SEC(numeric)                                   | Returns the secant of *numeric* in radians
 | * | SECH(numeric)                                  | Returns the hyperbolic secant of *numeric*
 | b m p | SHA1(string)                               | Calculates a SHA-1 hash value of *string* and returns it as a hex string

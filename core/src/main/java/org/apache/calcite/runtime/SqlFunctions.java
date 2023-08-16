@@ -1970,6 +1970,64 @@ public class SqlFunctions {
     return safeDouble(ans) || !isFinite ? ans : null;
   }
 
+  /** SQL <code>SAFE_SUBTRACT</code> function applied to long values. */
+  public static @Nullable Long safeSubtract(long b0, long b1) {
+    try {
+      return Math.subtractExact(b0, b1);
+    } catch (ArithmeticException e) {
+      return null;
+    }
+  }
+
+  /** SQL <code>SAFE_SUBTRACT</code> function applied to long and BigDecimal values. */
+  public static @Nullable BigDecimal safeSubtract(long b0, BigDecimal b1) {
+    BigDecimal ans = BigDecimal.valueOf(b0).subtract(b1);
+    return safeDecimal(ans) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_SUBTRACT</code> function applied to BigDecimal and long values. */
+  public static @Nullable BigDecimal safeSubtract(BigDecimal b0, long b1) {
+    BigDecimal ans = b0.subtract(BigDecimal.valueOf(b1));
+    return safeDecimal(ans) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_SUBTRACT</code> function applied to BigDecimal values. */
+  public static @Nullable BigDecimal safeSubtract(BigDecimal b0, BigDecimal b1) {
+    BigDecimal ans = b0.subtract(b1);
+    return safeDecimal(ans) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_SUBTRACT</code> function applied to double and long values. */
+  public static @Nullable Double safeSubtract(double b0, long b1) {
+    double ans = b0 - b1;
+    return safeDouble(ans) || !Double.isFinite(b0) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_SUBTRACT</code> function applied to long and double values. */
+  public static @Nullable Double safeSubtract(long b0, double b1) {
+    double ans = b0 - b1;
+    return safeDouble(ans) || !Double.isFinite(b1) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_SUBTRACT</code> function applied to double and BigDecimal values. */
+  public static @Nullable Double safeSubtract(double b0, BigDecimal b1) {
+    double ans = b0 - b1.doubleValue();
+    return safeDouble(ans) || !Double.isFinite(b0) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_SUBTRACT</code> function applied to BigDecimal and double values. */
+  public static @Nullable Double safeSubtract(BigDecimal b0, double b1) {
+    double ans = b0.doubleValue() - b1;
+    return safeDouble(ans) || !Double.isFinite(b1) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_SUBTRACT</code> function applied to double values. */
+  public static @Nullable Double safeSubtract(double b0, double b1) {
+    double ans = b0 - b1;
+    boolean isFinite = Double.isFinite(b0) && Double.isFinite(b1);
+    return safeDouble(ans) || !isFinite ? ans : null;
+  }
+
   /** Returns whether a BigDecimal value is safe (that is, has not overflowed).
    * According to BigQuery, BigDecimal overflow occurs if the precision is greater
    * than 76 or the scale is greater than 38. */
@@ -1984,11 +2042,7 @@ public class SqlFunctions {
     // negated MIN and MAX double values, overflow has not occurred. Otherwise,
     // overflow has occurred. Important to note that 'Double.MIN_VALUE' refers to
     // minimum positive value.
-    if (d < Double.MAX_VALUE && d > Double.MIN_VALUE) {
-      return true;
-    } else {
-      return d > -Double.MAX_VALUE && d < -Double.MIN_VALUE;
-    }
+    return Math.abs(d) > Double.MIN_VALUE && Math.abs(d) < Double.MAX_VALUE || d == 0;
   }
 
   private static RuntimeException notArithmetic(String op, Object b0,
