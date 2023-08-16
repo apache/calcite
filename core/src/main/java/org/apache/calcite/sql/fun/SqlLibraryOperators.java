@@ -1700,6 +1700,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The "SAFE_SUBTRACT(numeric1, numeric2)" function; equivalent to the {@code -} operator but
+   * returns null if overflow occurs. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SAFE_SUBTRACT =
+      SqlBasicFunction.create("SAFE_SUBTRACT",
+          ReturnTypes.SUM_FORCE_NULLABLE,
+          OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   /** The "CHAR(n)" function; returns the character whose ASCII code is
    * {@code n} % 256, or null if {@code n} &lt; 0. */
   @LibraryOperator(libraries = {MYSQL, SPARK})

@@ -738,6 +738,86 @@ SELECT SAFE_MULTIPLY(CAST('NaN' AS DOUBLE), CAST(3 as BIGINT)) as NaN_result;
 !ok
 
 #####################################################################
+# SAFE_SUBTRACT
+#
+# SAFE_SUBTRACT(value1, value2)
+#
+# Equivalent to the subtraction operator (-), but returns NULL if overflow/underflow occurs.
+SELECT SAFE_SUBTRACT(5, 4) as result;
++--------+
+| result |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+# Overflow occurs if result is greater than 2^63 - 1
+SELECT SAFE_SUBTRACT(9223372036854775807, -2) as overflow_result;
++-----------------+
+| overflow_result |
++-----------------+
+|                 |
++-----------------+
+(1 row)
+
+!ok
+
+# Underflow occurs if result is less than -2^63
+SELECT SAFE_SUBTRACT(-9223372036854775806, 3) as underflow_result;
++------------------+
+| underflow_result |
++------------------+
+|                  |
++------------------+
+(1 row)
+
+!ok
+
+SELECT SAFE_SUBTRACT(CAST(1.7e308 as DOUBLE), CAST(-1.7e308 as DOUBLE)) as double_overflow;
++-----------------+
+| double_overflow |
++-----------------+
+|                 |
++-----------------+
+(1 row)
+
+!ok
+
+SELECT SAFE_SUBTRACT(9, cast(-9.999999999999999999e75 as DECIMAL(38, 19))) as decimal_overflow;
++------------------+
+| decimal_overflow |
++------------------+
+|                  |
++------------------+
+(1 row)
+
+!ok
+
+# NaN arguments should return NaN
+SELECT SAFE_SUBTRACT(CAST('NaN' AS DOUBLE), CAST(3 as BIGINT)) as NaN_result;
++------------+
+| NaN_result |
++------------+
+|        NaN |
++------------+
+(1 row)
+
+!ok
+
+# Expression parameters should be valid
+SELECT SAFE_SUBTRACT(1 + 2 + 3, 5) as expr_result;
++-------------+
+| expr_result |
++-------------+
+|           1 |
++-------------+
+(1 row)
+
+!ok
+
+#####################################################################
 # NOT EQUAL Operator (value1 != value2)
 #
 # Compares value1 and value2 and returns TRUE if not equal.
