@@ -228,6 +228,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_CAST;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_DIVIDE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_NEGATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
@@ -648,7 +649,9 @@ public class RexImpTable {
 
       map.put(SAFE_ADD,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_ADD.method));
-      map.put(SAFE_MULTIPLY,
+			map.put(SAFE_DIVIDE,
+					new SafeArithmeticImplementor(BuiltInMethod.SAFE_DIVIDE.method));
+			map.put(SAFE_MULTIPLY,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_MULTIPLY.method));
       map.put(SAFE_NEGATE,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_MULTIPLY.method));

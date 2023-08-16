@@ -1713,6 +1713,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The "SAFE_DIVIDE(numeric1, numeric2)" function; equivalent to the {@code /} operator but
+   * returns null if an error occurs, such as division by zero. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SAFE_DIVIDE =
+      SqlBasicFunction.create("SAFE_DIVIDE",
+          ReturnTypes.DOUBLE_IF_INTEGER.orElse(ReturnTypes.QUOTIENT_FORCE_NULLABLE),
+          OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   /** The "SAFE_MULTIPLY(numeric1, numeric2)" function; equivalent to the {@code *} operator but
    * returns null if overflow occurs. */
   @LibraryOperator(libraries = {BIG_QUERY})
