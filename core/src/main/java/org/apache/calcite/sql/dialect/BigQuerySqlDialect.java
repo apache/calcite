@@ -1168,6 +1168,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "REGEXP_LIKE":
       unParseRegexpLike(writer, call, leftPrec, rightPrec);
       break;
+    case "REGEXP_SIMILAR":
+      unParseRegexpSimilar(writer, call, leftPrec, rightPrec);
+      break;
     case "REGEXP_CONTAINS":
       unparseRegexpContains(writer, call, leftPrec, rightPrec);
       break;
@@ -1276,6 +1279,16 @@ public class BigQuerySqlDialect extends SqlDialect {
     unparseIfRegexpContains(writer, call, leftPrec, rightPrec);
   }
 
+  private void unParseRegexpSimilar(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame ifFrame = writer.startFunCall("IF");
+    unparseIfRegexpContains(writer, call, leftPrec, rightPrec);
+    writer.sep(",");
+    writer.literal("1");
+    writer.sep(",");
+    writer.literal("0");
+    writer.endFunCall(ifFrame);
+  }
+
   private void unparseShiftLeftAndShiftRight(SqlWriter writer, SqlCall call, boolean isShiftLeft) {
     writer.print("(");
     call.operand(0).unparse(writer, 0, 0);
@@ -1328,7 +1341,14 @@ public class BigQuerySqlDialect extends SqlDialect {
     String matchArgument = call.operand(2).toString().replaceAll("'", "");
     switch (matchArgument) {
     case "i":
-      return modifyRegexStringForMatchArgument(call, "(?i)");
+      String updatedRegexForI = removeLeadingAndTrailingSingleQuotes
+          (call.operand(1).toString());
+      if (updatedRegexForI.startsWith("^") && updatedRegexForI.endsWith("$")) {
+        updatedRegexForI = "(?i)".concat(updatedRegexForI);
+      } else {
+        updatedRegexForI = "^(?i)".concat(updatedRegexForI).concat("$");
+      }
+      return SqlLiteral.createCharString(updatedRegexForI, SqlParserPos.ZERO);
     case "x":
       String updatedRegexForX = removeLeadingAndTrailingSingleQuotes
           (call.operand(1).toString().replaceAll("\\s+", ""));
