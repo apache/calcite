@@ -78,7 +78,6 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.errorprone.annotations.Keep;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
@@ -444,7 +443,7 @@ public class SqlOperatorTest {
   }
 
   /** Generates parameters to test both regular and safe cast. */
-  @Keep
+  @SuppressWarnings("unused")
   private Stream<Arguments> safeParameters() {
     SqlOperatorFixture f = fixture();
     SqlOperatorFixture f2 =
