@@ -844,6 +844,15 @@ public abstract class ReturnTypes {
       DECIMAL_SUM.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Same as {@link #DECIMAL_SUM_NULLABLE} but returns with nullability if any of
+   * the operands is nullable or the operation results in overflow by using
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#FORCE_NULLABLE}. Also handles
+   * addition for integers, not just decimals.
+   */
+  public static final SqlReturnTypeInference SUM_FORCE_NULLABLE =
+      DECIMAL_SUM_NULLABLE.orElse(LEAST_RESTRICTIVE).andThen(SqlTypeTransforms.FORCE_NULLABLE);
+
+  /**
    * Type-inference strategy whereby the result type of a call is
    * {@link #DECIMAL_SUM_NULLABLE} with a fallback to {@link #LEAST_RESTRICTIVE}
    * These rules are used for addition and subtraction.
