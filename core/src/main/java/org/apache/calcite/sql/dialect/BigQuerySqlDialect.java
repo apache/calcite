@@ -1672,7 +1672,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     return dateTimeFormat
         .replace("%Y-%m-%d", "%F")
         .replace("'", "")
-        .replace("%S.", "%E");
+        .replace("%S.", "%E")
+        .replace("%E.*S", "%E*S");
   }
 
   /**
