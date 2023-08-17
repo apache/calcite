@@ -12725,8 +12725,8 @@ class RelToSqlConverterTest {
         .values(new String[] {""}, 1)
         .project(builder.alias(logRexNode, "value"))
         .build();
-    final String expectedBiqQuery = "SELECT LOG(3, 2) AS value";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    final String expectedSnowFlakeQuery = "SELECT LOG(3, 2) AS \"value\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowFlakeQuery));
   }
 
 
