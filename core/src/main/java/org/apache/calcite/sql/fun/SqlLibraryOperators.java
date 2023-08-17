@@ -86,6 +86,17 @@ public abstract class SqlLibraryOperators {
           OperandTypes.CHARACTER_CHARACTER_DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
+  /** The "CONVERT_TIMEZONE(target_timezone, timestamp)" function;
+   * converts the timezone of {@code timestamp} to {@code target_timezone}. */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction CONVERT_TIMEZONE_SF =
+      new SqlFunction("CONVERT_TIMEZONE_SF",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_WITH_TIME_ZONE_NULLABLE,
+          null,
+          OperandTypes.or(OperandTypes.STRING_DATETIME, OperandTypes.STRING_STRING),
+          SqlFunctionCategory.TIMEDATE);
+
   /** Return type inference for {@code DECODE}. */
   private static final SqlReturnTypeInference DECODE_RETURN_TYPE =
       opBinding -> {
