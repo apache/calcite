@@ -1686,6 +1686,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction CODE_POINTS_TO_BYTES =
+      SqlBasicFunction.create("CODE_POINTS_TO_BYTES",
+          ReturnTypes.VARBINARY_NULLABLE,
+          OperandTypes.ARRAY,
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {ALL})
   public static final SqlFunction TANH =
       SqlBasicFunction.create("TANH",

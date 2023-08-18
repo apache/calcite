@@ -831,6 +831,33 @@ public class SqlFunctions {
     return String.valueOf(Character.toChars(n));
   }
 
+  /**
+   * SQL CODE_POINTS_TO_BYTES function.
+   */
+  public static @Nullable ByteString codePointsToBytes(@Nullable List codePoints) {
+    if (codePoints == null) {
+      return null;
+    }
+    int length = codePoints.size();
+    byte[] bytes = new byte[length];
+    for (int i = 0; i < length; i++) {
+      Object codePoint = codePoints.get(i);
+      if (codePoint == null) {
+        return null;
+      }
+      if (codePoint instanceof Number) {
+        long cp = ((Number) codePoint).longValue();
+        if (cp < 0 || cp > 255) {
+          throw new IllegalArgumentException(
+              "Input arguments of CODE_POINTS_TO_BYTES out of range: " + cp);
+        }
+        bytes[i] = (byte) cp;
+      }
+    }
+
+    return new ByteString(bytes);
+  }
+
   /** SQL OCTET_LENGTH(binary) function. */
   public static int octetLength(ByteString s) {
     return s.length();

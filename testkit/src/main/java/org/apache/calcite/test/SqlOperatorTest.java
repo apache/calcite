@@ -1804,6 +1804,28 @@ public class SqlOperatorTest {
         consumer);
   }
 
+  @Test void testCodePointsToBytes() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.CODE_POINTS_TO_BYTES, VM_FENNEL, VM_JAVA)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkFails("^code_points_to_bytes('abc')^",
+        "Cannot apply 'CODE_POINTS_TO_BYTES' to arguments of type "
+            + "'CODE_POINTS_TO_BYTES\\(<CHAR\\(3\\)>\\)'\\. "
+            + "Supported form\\(s\\): 'CODE_POINTS_TO_BYTES\\(<ARRAY>\\)'", false);
+    f.checkFails("code_points_to_bytes(array[-1])",
+        "Input arguments of CODE_POINTS_TO_BYTES out of range: -1", true);
+    f.checkFails("code_points_to_bytes(array[2147483648, 1])",
+        "Input arguments of CODE_POINTS_TO_BYTES out of range: 2147483648", true);
+
+    f.checkString("code_points_to_bytes(array[65,66,67,68])", "41424344", "VARBINARY NOT NULL");
+    f.checkString("code_points_to_bytes(array[255, 254, 65, 64])", "fffe4140",
+        "VARBINARY NOT NULL");
+
+    f.checkNull("code_points_to_bytes(null)");
+    f.checkNull("code_points_to_bytes(array[null])");
+    f.checkNull("code_points_to_bytes(array[65, null])");
+  }
+
   @Test void testSelect() {
     final SqlOperatorFixture f = fixture();
     f.check("select * from (values(1))", SqlTests.INTEGER_TYPE_CHECKER, 1);

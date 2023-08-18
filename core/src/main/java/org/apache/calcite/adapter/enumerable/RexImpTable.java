@@ -148,6 +148,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CEIL_BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CODE_POINTS_TO_BYTES;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COMPRESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION;
@@ -543,6 +544,8 @@ public class RexImpTable {
       defineMethod(ASCII, BuiltInMethod.ASCII.method, NullPolicy.STRICT);
       defineMethod(CHAR, BuiltInMethod.CHAR_FROM_ASCII.method,
           NullPolicy.SEMI_STRICT);
+      defineMethod(CODE_POINTS_TO_BYTES, BuiltInMethod.CODE_POINTS_TO_BYTES.method,
+          NullPolicy.STRICT);
       defineMethod(REPEAT, BuiltInMethod.REPEAT.method, NullPolicy.STRICT);
       defineMethod(SPACE, BuiltInMethod.SPACE.method, NullPolicy.STRICT);
       defineMethod(STRCMP, BuiltInMethod.STRCMP.method, NullPolicy.STRICT);

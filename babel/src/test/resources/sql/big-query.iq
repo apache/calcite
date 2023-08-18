@@ -923,7 +923,7 @@ java.sql.SQLException: Error while executing SQL "SELECT OFFSET(1)": parse faile
 
 #####################################################################
 # IS_INF
-# 
+#
 # IS_INF(x)
 #
 # Returns whether x is infinite.
@@ -959,7 +959,7 @@ SELECT IS_INF(CAST('NaN' AS DOUBLE)) AS nan_result;
 
 #####################################################################
 # IS_NAN
-# 
+#
 # IS_NAN(x)
 #
 # Returns whether x is NaN.
@@ -3657,4 +3657,61 @@ FROM items;
 
 !ok
 
+#####################################################################
+# CODE_POINTS_TO_BYTES(array<integer>)
+#
+# Takes an array of extended ASCII code points as ARRAY<INT64>
+# and returns BYTES.
+#
+SELECT CODE_POINTS_TO_BYTES(array[65, 66, 67, 68]) as result;
++----------+
+| result   |
++----------+
+| 41424344 |
++----------+
+(1 row)
+
+!ok
+
+SELECT CODE_POINTS_TO_BYTES(array[255, 254, 65, 64]) as result;
++----------+
+| result   |
++----------+
+| fffe4140 |
++----------+
+(1 row)
+
+!ok
+
+SELECT CODE_POINTS_TO_BYTES(null) as result;
++--------+
+| result |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+SELECT CODE_POINTS_TO_BYTES(array[65, null]) as result;
++--------+
+| result |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+SELECT CODE_POINTS_TO_BYTES('abc') as result;
+Cannot apply 'CODE_POINTS_TO_BYTES' to arguments of type 'CODE_POINTS_TO_BYTES(<CHAR(3)>)'. Supported form(s): 'CODE_POINTS_TO_BYTES(<ARRAY>)'
+!error
+
+SELECT CODE_POINTS_TO_BYTES(array[-1]) as result;
+Input arguments of CODE_POINTS_TO_BYTES out of range: -1
+!error
+
+SELECT CODE_POINTS_TO_BYTES(array[2147483648, 1]);
+Input arguments of CODE_POINTS_TO_BYTES out of range: 2147483648
+!error
 # End big-query.iq

@@ -2681,6 +2681,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | CEIL(value)                                    | Similar to standard `CEIL(value)` except if *value* is an integer type, the return type is a double
 | m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
 | b o p | CHR(integer)                               | Returns the character whose UTF-8 code is *integer*
+| b | CODE_POINTS_TO_BYTES(array&lt;integer&gt;)     | Converts an *array&lt;integer&gt;* of extended ASCII code points to bytes, return null if array is null or the element of the array is null
 | o | CONCAT(string, string)                         | Concatenates two strings, returns null only when both string arguments are null, otherwise treats null as empty string
 | b m | CONCAT(string [, string ]*)                  | Concatenates one or more strings, returns null if any of the arguments is null
 | p q | CONCAT(string [, string ]*)                  | Concatenates one or more strings, null is treated as empty string
