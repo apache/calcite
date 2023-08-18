@@ -433,4 +433,13 @@ public interface SqlWriterConfig {
     /** Wrap always. Items are on separate lines. */
     TALL
   }
+
+  /** Returns whether to print User Defined Functions in lower-case.
+   * Default is false: UDFs are printed in upper-case. */
+  @ImmutableBeans.Property
+  @ImmutableBeans.BooleanDefault(false)
+  boolean lowerCaseUDF();
+
+  /** Sets {@link #lowerCaseUDF()}. */
+  SqlWriterConfig withLowerCaseUDF(boolean udfLowerCase);
 }

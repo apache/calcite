@@ -32,6 +32,7 @@ public class SqlFormatOptions {
   private boolean windowListItemsOnSeparateLines = true;
   private int indentation = 4;
   private int lineLength = 0;
+  private boolean lowerCaseUDF = true;
 
   /**
    * Constructs a set of default SQL format options.
@@ -171,5 +172,9 @@ public class SqlFormatOptions {
 
   public void setIndentation(int indentation) {
     this.indentation = indentation;
+  }
+
+  public boolean isUDFLowerCase() {
+    return lowerCaseUDF;
   }
 }
