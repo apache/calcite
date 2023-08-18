@@ -834,10 +834,7 @@ public class SqlFunctions {
   /**
    * SQL CODE_POINTS_TO_BYTES function.
    */
-  public static @Nullable ByteString codePointsToBytes(@Nullable List codePoints) {
-    if (codePoints == null) {
-      return null;
-    }
+  public static @Nullable ByteString codePointsToBytes(List codePoints) {
     int length = codePoints.size();
     byte[] bytes = new byte[length];
     for (int i = 0; i < length; i++) {
