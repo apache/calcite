@@ -46,6 +46,7 @@ import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCastFunction;
@@ -175,6 +176,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
+import static org.apache.calcite.util.Util.isNumericLiteral;
 import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
 import static org.apache.calcite.util.Util.removeLeadingAndTrailingSingleQuotes;
 
@@ -729,9 +731,42 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.endList(columnListFrame);
       break;
+    case OVER:
+      unparseOver(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+  private void unparseOver(SqlWriter writer, SqlCall call, final int leftPrec,
+      final int rightPrec) {
+    if (isFirstOperandPercentileCont(call) && isLowerAndUpperBoundPresentInWindowDef(call)) {
+      createOverCallWithoutBound(writer, call, leftPrec, rightPrec);
+    } else {
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private boolean isFirstOperandPercentileCont(SqlCall call) {
+    return call.operand(0) instanceof SqlBasicCall
+        &&  ((SqlBasicCall) call.operand(0)).getOperator().getKind() == SqlKind.PERCENTILE_CONT;
+  }
+
+  private boolean isLowerAndUpperBoundPresentInWindowDef(SqlCall call) {
+    return call.getOperandList().size() > 1
+        && ((SqlWindow) call.operand(1)).getUpperBound() != null
+        && ((SqlWindow) call.operand(1)).getLowerBound() != null;
+  }
+
+  private void createOverCallWithoutBound(SqlWriter writer, SqlCall call, final int leftPrec,
+      final int rightPrec) {
+    SqlWindow partitionCall = call.operand(1);
+    SqlWindow modifiedPartitionCall = new SqlWindow(SqlParserPos.ZERO, partitionCall.getDeclName(),
+        partitionCall.getRefName(), partitionCall.getPartitionList(), partitionCall.getOrderList(),
+        SqlLiteral.createCharString("FALSE", SqlParserPos.ZERO), null, null, null);
+    SqlCall overCall = SqlStdOperatorTable.OVER.createCall(SqlParserPos.ZERO, call.operand(0),
+        modifiedPartitionCall);
+    unparseCall(writer, overCall, leftPrec, rightPrec);
   }
 
   private void unparseDateFromUnixDateFunction(
@@ -1266,6 +1301,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print(")");
   }
 
+
   private boolean isBasicCallWithNegativePrefix(SqlNode secondOperand) {
     return secondOperand instanceof SqlBasicCall
         && ((SqlBasicCall) secondOperand).getOperator().getKind() == SqlKind.MINUS_PREFIX;
@@ -1574,15 +1610,23 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseStrtok(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlWriter.Frame splitFrame = writer.startFunCall("SPLIT");
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.print(",");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
-    writer.endFunCall(splitFrame);
-    writer.print("[OFFSET (");
-    int thirdOperandValue = Integer.valueOf(call.operand(2).toString()) - 1;
-    writer.print(thirdOperandValue);
+    unparseRegexpExtractAllForStrtok(writer, call, leftPrec, rightPrec);
+    writer.print("[OFFSET ( ");
+    unparseStrtokOffsetValue(writer, leftPrec, rightPrec, call.operand(2));
     writer.print(") ]");
+  }
+
+  private void unparseStrtokOffsetValue(SqlWriter writer, int leftPrec, int rightPrec,
+      SqlNode offsetNode) {
+    int offsetValue = -1;
+    if (isNumericLiteral(offsetNode)) {
+      offsetValue = Integer.parseInt(offsetNode.toString()) - 1;
+    } else {
+      offsetNode.unparse(writer, leftPrec, rightPrec);
+    }
+    SqlLiteral offsetValueNode = SqlLiteral.createExactNumeric(String.valueOf(offsetValue),
+        SqlParserPos.ZERO);
+    offsetValueNode.unparse(writer, leftPrec, rightPrec);
   }
 
   private void unparseTimestampAddSub(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -2072,5 +2116,22 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print(" (");
     call.operand(0).unparse(writer, 0, 0);
     writer.print(")");
+  }
+
+  public void unparseRegexpExtractAllForStrtok(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_EXTRACT_ALL");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(", ");
+    unparseRegexPatternForStrtok(writer, call);
+    writer.endFunCall(regexpExtractAllFrame);
+  }
+
+  private void unparseRegexPatternForStrtok(SqlWriter writer, SqlCall call) {
+    SqlNode secondOperand = call.operand(1);
+    String pattern = (secondOperand instanceof SqlCharStringLiteral)
+        ? "r'[^" + ((SqlCharStringLiteral) secondOperand).toValue() + "]+'"
+        : secondOperand.toString();
+    writer.print(pattern);
   }
 }

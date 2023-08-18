@@ -265,6 +265,9 @@ public abstract class OperandTypes {
   public static final FamilyOperandTypeChecker STRING_STRING_STRING =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING);
 
+  public static final FamilyOperandTypeChecker STRING_STRING_BOOLEAN =
+      family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.BOOLEAN);
+
   public static final FamilyOperandTypeChecker STRING_STRING_OPTIONAL_STRING =
       family(ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
           // Third operand optional (operand index 0, 1, 2)
@@ -385,6 +388,49 @@ public abstract class OperandTypes {
          * @see BigDecimal#longValueExact() */
         private boolean hasFractionalPart(BigDecimal bd) {
           return bd.precision() - bd.scale() <= 0;
+        }
+      };
+
+  /**
+   * Operand type-checking strategy type must be a numeric non-NULL
+   * literal in the range 0 and 1 inclusive.
+   */
+  public static final SqlSingleOperandTypeChecker UNIT_INTERVAL_NUMERIC_LITERAL =
+      new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.NUMERIC),
+          i -> false) {
+        @Override public boolean checkSingleOperandType(
+            SqlCallBinding callBinding,
+            SqlNode node,
+            int iFormalOperand,
+            boolean throwOnFailure) {
+          if (!LITERAL.checkSingleOperandType(
+              callBinding,
+              node,
+              iFormalOperand,
+              throwOnFailure)) {
+            return false;
+          }
+
+          if (!super.checkSingleOperandType(
+              callBinding,
+              node,
+              iFormalOperand,
+              throwOnFailure)) {
+            return false;
+          }
+
+          final SqlLiteral arg = (SqlLiteral) node;
+          final BigDecimal value = arg.getValueAs(BigDecimal.class);
+          if (value.compareTo(BigDecimal.ZERO) < 0
+              || value.compareTo(BigDecimal.ONE) > 0) {
+            if (throwOnFailure) {
+              throw callBinding.newError(
+                  RESOURCE.argumentMustBeNumericLiteralInRange(
+                      callBinding.getOperator().getName(), 0, 1));
+            }
+            return false;
+          }
+          return true;
         }
       };
 

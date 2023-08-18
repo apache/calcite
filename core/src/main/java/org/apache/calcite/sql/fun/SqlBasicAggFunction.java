@@ -51,6 +51,8 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
   private final SqlSyntax syntax;
   private final boolean allowsNullTreatment;
 
+  private final boolean percentile;
+
   //~ Constructors -----------------------------------------------------------
 
   private SqlBasicAggFunction(String name, @Nullable SqlIdentifier sqlIdentifier,
@@ -59,7 +61,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
       SqlOperandTypeChecker operandTypeChecker, SqlFunctionCategory funcType,
       boolean requiresOrder, boolean requiresOver,
       Optionality requiresGroupOrder, Optionality distinctOptionality,
-      SqlSyntax syntax, boolean allowsNullTreatment) {
+      SqlSyntax syntax, boolean allowsNullTreatment, boolean percentile) {
     super(name, sqlIdentifier, kind,
         requireNonNull(returnTypeInference), operandTypeInference,
         requireNonNull(operandTypeChecker),
@@ -68,6 +70,8 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
     this.distinctOptionality = requireNonNull(distinctOptionality);
     this.syntax = requireNonNull(syntax);
     this.allowsNullTreatment = allowsNullTreatment;
+    this.percentile = percentile;
+
   }
 
   /** Creates a SqlBasicAggFunction whose name is the same as its kind. */
@@ -83,7 +87,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
       SqlOperandTypeChecker operandTypeChecker) {
     return new SqlBasicAggFunction(name, null, kind, returnTypeInference, null,
         operandTypeChecker, SqlFunctionCategory.NUMERIC, false, false,
-        Optionality.FORBIDDEN, Optionality.OPTIONAL, SqlSyntax.FUNCTION, false);
+        Optionality.FORBIDDEN, Optionality.OPTIONAL, SqlSyntax.FUNCTION, false, false);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -116,7 +120,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
         requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment);
+        allowsNullTreatment, false);
   }
 
   /** Sets {@link #getFunctionType()}. */
@@ -125,7 +129,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), category, requiresOrder(),
         requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment);
+        allowsNullTreatment, false);
   }
 
   @Override public SqlSyntax getSyntax() {
@@ -138,7 +142,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
         requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment);
+        allowsNullTreatment, false);
   }
 
   @Override public boolean allowsNullTreatment() {
@@ -151,7 +155,7 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
         requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
-        allowsNullTreatment);
+        allowsNullTreatment, false);
   }
 
   /** Sets {@link #requiresGroupOrder()}. */
@@ -160,6 +164,19 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),
         requiresOver(), groupOrder, distinctOptionality, syntax,
-        allowsNullTreatment);
+        allowsNullTreatment, false);
+  }
+
+  @Override public boolean isPercentile() {
+    return percentile;
+  }
+
+  /** Sets {@link #isPercentile()}. */
+  public SqlBasicAggFunction withPercentile(boolean percentile) {
+    return new SqlBasicAggFunction(getName(), getSqlIdentifier(), kind,
+        getReturnTypeInference(), getOperandTypeInference(),
+        getOperandTypeChecker(), getFunctionType(), requiresOrder(),
+        requiresOver(), requiresGroupOrder(), distinctOptionality, syntax,
+        allowsNullTreatment, percentile);
   }
 }
