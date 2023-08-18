@@ -77,6 +77,9 @@ public class EnumerableRules {
   public static final EnumerableCalcRule ENUMERABLE_CALC_RULE =
       EnumerableCalcRule.DEFAULT_CONFIG.toRule(EnumerableCalcRule.class);
 
+  public static final EnumerableSampleRule ENUMERABLE_SAMPLE_RULE =
+      EnumerableSampleRule.DEFAULT_CONFIG.toRule(EnumerableSampleRule.class);
+
   public static final EnumerableAggregateRule ENUMERABLE_AGGREGATE_RULE =
       EnumerableAggregateRule.DEFAULT_CONFIG
           .toRule(EnumerableAggregateRule.class);
@@ -226,7 +229,8 @@ public class EnumerableRules {
           EnumerableRules.ENUMERABLE_WINDOW_RULE,
           EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
           EnumerableRules.ENUMERABLE_TABLE_FUNCTION_SCAN_RULE,
-          EnumerableRules.ENUMERABLE_MATCH_RULE);
+          EnumerableRules.ENUMERABLE_MATCH_RULE,
+          EnumerableRules.ENUMERABLE_SAMPLE_RULE);
 
   public static List<RelOptRule> rules() {
     return ENUMERABLE_RULES;
