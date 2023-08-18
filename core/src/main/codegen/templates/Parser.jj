@@ -1335,7 +1335,7 @@ SqlSelect SqlSelect() :
 }
 {
     <SELECT> { s = span(); }
-    [ <HINT_BEG> AddHint(hints) ( <COMMA> AddHint(hints) )* <COMMENT_END> ]
+    [ <HINT_BEG> (AddHint(hints))? ( <COMMA> AddHint(hints) )* <COMMENT_END> ]
     SqlSelectKeywords(keywords)
     (
         <STREAM> {
