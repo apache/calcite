@@ -12791,7 +12791,7 @@ class RelToSqlConverterTest {
         "SELECT TO_TIMESTAMP('2009-03-20 12:25:50.123456', 'yyyy-MM-dd HH24:MI:MS.sssss') AS "
             + "\"timestamp_value\"\nFROM \"scott\".\"EMP\"";
     final String expectedBiqQuery =
-        "SELECT PARSE_DATETIME('%F %H:%M:%S', '2009-03-20 12:25:50') AS timestamp_value\n"
+        "SELECT PARSE_DATETIME('%F %H:%M:%E*S', '2009-03-20 12:25:50.123456') AS timestamp_value\n"
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
