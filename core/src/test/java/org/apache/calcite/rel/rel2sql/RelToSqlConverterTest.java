@@ -6959,7 +6959,7 @@ class RelToSqlConverterTest {
     String query = "select current_timestamp";
     final String expectedHiveQuery = "SELECT CURRENT_TIMESTAMP `CURRENT_TIMESTAMP`";
     final String expectedSparkQuery = "SELECT CURRENT_TIMESTAMP `CURRENT_TIMESTAMP`";
-    final String expectedBigQuery = "SELECT CURRENT_DATETIME() AS CURRENT_TIMESTAMP";
+    final String expectedBigQuery = "SELECT CURRENT_DATETIME() AS `CURRENT_TIMESTAMP`";
 
     sql(query)
         .withHiveIdentifierQuoteString()

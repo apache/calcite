@@ -216,7 +216,7 @@ public class BigQuerySqlDialect extends SqlDialect {
               "RESPECT", "RIGHT", "ROLLUP", "ROWS", "SELECT", "SET", "SOME",
               "STRUCT", "TABLESAMPLE", "THEN", "TO", "TREAT", "TRUE",
               "UNBOUNDED", "UNION", "UNNEST", "USING", "WHEN", "WHERE",
-              "WINDOW", "WITH", "WITHIN"));
+              "WINDOW", "WITH", "WITHIN", "CURRENT_TIMESTAMP"));
 
   /**
    * An unquoted BigQuery identifier must start with a letter and be followed
