@@ -2071,12 +2071,17 @@ public class LoptOptimizeJoinRule
     for (IntPair pair : joinInfo.pairs()) {
       final RelColumnOrigin leftOrigin =
           mq.getColumnOrigin(leftRel, pair.source);
-      if (leftOrigin == null || !leftOrigin.isDerived()) {
+      // If origin is null or is derived, we can't make sure if the join key is a unique key.
+      // For example: 'select sum(a) as b from table', if column 'b' is join key which
+      // origin column is column 'a', even if column 'a' is the unique key of table,
+      // we still don't know if column 'b' is unique
+      // because the value is not taken directly from origin.
+      if (leftOrigin == null || leftOrigin.isDerived()) {
         return false;
       }
       final RelColumnOrigin rightOrigin =
           mq.getColumnOrigin(rightRel, pair.target);
-      if (rightOrigin == null || !rightOrigin.isDerived()) {
+      if (rightOrigin == null || rightOrigin.isDerived()) {
         return false;
       }
       if (leftOrigin.getOriginColumnOrdinal()
