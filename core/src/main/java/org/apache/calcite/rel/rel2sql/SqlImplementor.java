@@ -28,12 +28,10 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
-import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.rules.AggregateProjectConstantToDummyJoinRule;
-import org.apache.calcite.rel.rules.MultiJoin;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -263,24 +261,11 @@ public abstract class SqlImplementor {
 
   /** Returns whether a list of expressions projects all fields, in order,
    * from the input, with the same names. */
-  public static boolean isStar(List<RexNode> exps, RelNode input,
+  /** Returns whether a list of expressions projects all fields, in order,
+   * from the input, with the same names. */
+  public static boolean isStar(List<RexNode> exps, RelDataType inputRowType,
       RelDataType projectRowType) {
     assert exps.size() == projectRowType.getFieldCount();
-    // Duplicate column names
-    // For example, EMP JOIN DEPT, both of which have columns named DEPTNO
-    if (input instanceof Join || input instanceof MultiJoin) {
-      List<RelNode> inputs = input.getInputs();
-      RelNode firstRel = inputs.get(0);
-      List<String> firstRelFiledNames = Lists.newArrayList(firstRel.getRowType().getFieldNames());
-      for (int i = 1; i < inputs.size(); i++) {
-        RelNode relNode = inputs.get(i);
-        firstRelFiledNames.retainAll(relNode.getRowType().getFieldNames());
-      }
-      if (!firstRelFiledNames.isEmpty()) {
-        return false;
-      }
-    }
-    final RelDataType inputRowType = input.getRowType();
     int i = 0;
     for (RexNode ref : exps) {
       if (!(ref instanceof RexInputRef)) {
