@@ -208,6 +208,12 @@ public abstract class Bug {
    * MILLISECOND and MICROSECOND units in INTERVAL literal</a> is fixed. */
   public static final boolean CALCITE_5422_FIXED = false;
 
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5678">[CALCITE-5678]
+   * Calcite should reject date literals not satisfying Gregorian calendar,
+   * per SQL standard</a> is fixed. */
+  public static final boolean CALCITE_5678_FIXED = false;
+
   /**
    * Use this to flag temporary code.
    */

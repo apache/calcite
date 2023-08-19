@@ -1241,8 +1241,6 @@ public class SqlOperatorTest {
 
     f.checkScalar("cast('1945-02-24 12:42:25' as TIMESTAMP)",
         "1945-02-24 12:42:25", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("cast('1945-2-2 12:2:5' as TIMESTAMP)",
-        "1945-02-02 12:02:05", "TIMESTAMP(0) NOT NULL");
     f.checkScalar("cast('  1945-02-24 12:42:25  ' as TIMESTAMP)",
         "1945-02-24 12:42:25", "TIMESTAMP(0) NOT NULL");
     f.checkScalar("cast('1945-02-24 12:42:25.34' as TIMESTAMP)",
@@ -1255,6 +1253,10 @@ public class SqlOperatorTest {
     if (Bug.FRG282_FIXED) {
       f.checkScalar("cast('1945-02-24 12:42:25.34' as TIMESTAMP(2))",
           "1945-02-24 12:42:25.34", "TIMESTAMP(2) NOT NULL");
+    }
+    if (Bug.CALCITE_5678_FIXED) {
+      f.checkFails("cast('1945-2-2 12:2:5' as TIMESTAMP)",
+              "Invalid DATE value, '1945-2-2 12:2:5'", true);
     }
     f.checkFails("cast('nottime' as TIMESTAMP)", BAD_DATETIME_MESSAGE, true);
     f.checkScalar("cast('1241241' as TIMESTAMP)",
