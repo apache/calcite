@@ -357,6 +357,16 @@ public class RelMetadataTest {
         .assertColumnOriginSingle("DEPT", "NAME", true);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5944">[CALCITE-5944]
+   * Add metadata for Sample</a>. */
+  @Test void testColumnOriginsSample() {
+    final String sql = "select productid from products_temporal\n"
+        + "tablesample bernoulli(50) repeatable(1)";
+    sql(sql)
+        .assertColumnOriginSingle("PRODUCTS_TEMPORAL", "PRODUCTID", false);
+  }
+
   @Test void testColumnOriginsSnapshot() {
     final String sql = "select productid from products_temporal\n"
         + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
@@ -698,6 +708,16 @@ public class RelMetadataTest {
     final String sql = "select * from (select * from emp limit 12)\n"
         + "order by ename limit 20 offset 5";
     sql(sql).assertThatRowCount(is(7d), is(0D), is(7d));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5944">[CALCITE-5944]
+   * Add metadata for Sample</a>. */
+  @Test void testRowCountSample() {
+    sql("select * from emp tablesample bernoulli(50) repeatable(1)")
+        .assertThatRowCount(is(EMP_SIZE * 0.5), is(0D), is(Double.POSITIVE_INFINITY));
+    sql("select * from emp tablesample system(20)")
+        .assertThatRowCount(is(EMP_SIZE * 0.2), is(0D), is(Double.POSITIVE_INFINITY));
   }
 
   @Test void testRowCountAggregate() {
@@ -2232,6 +2252,19 @@ public class RelMetadataTest {
         sortsAs("[=($0, 1), =($1, 2)]"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5944">[CALCITE-5944]
+   * Add metadata for Sample</a>. */
+  @Test void testPullUpPredicatesFromSample() {
+    final RelNode rel = sql("select * from("
+        + "select empno, deptno, comm from emp\n"
+        + "where empno=1 and deptno=2)\n"
+        + "tablesample bernoulli(50) repeatable(1)").toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
+        sortsAs("[=($0, 1), =($1, 2)]"));
+  }
+
   @Test void testDistributionSimple() {
     RelNode rel = sql("select * from emp where deptno = 10").toRel();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
@@ -2296,6 +2329,16 @@ public class RelMetadataTest {
         String.valueOf(r), is(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5944">[CALCITE-5944]
+   * Add metadata for Sample</a>. */
+  @Test void testExpressionLineageSample() {
+    final String sql = "select productid from products_temporal\n"
+        + "tablesample bernoulli(50) repeatable(1)";
+    final String expected = "[[CATALOG, SALES, PRODUCTS_TEMPORAL].#0.$0]";
+    final String comment = "'productid' is column 0 in 'catalog.sales.products_temporal'";
+    assertExpressionLineage(sql, 0, expected, comment);
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5392">[CALCITE-5392]
@@ -2861,6 +2904,19 @@ public class RelMetadataTest {
         + "inner join (select * from emp limit 2) as c\n"
         + "on a.deptno = c.deptno";
     checkAllPredicatesAndTableSetOp(sql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5944">[CALCITE-5944]
+   * Add metadata for Sample</a>. */
+  @Test void testAllPredicatesSample() {
+    final RelNode rel = sql("select * from("
+        + "select empno, deptno, comm from emp\n"
+        + "where empno=1 and deptno=2)\n"
+        + "tablesample bernoulli(50) repeatable(1)").toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    assertThat(mq.getAllPredicates(rel).pulledUpPredicates,
+        sortsAs("[AND(=([CATALOG, SALES, EMP].#0.$0, 1), =([CATALOG, SALES, EMP].#0.$7, 2))]"));
   }
 
   public void checkAllPredicatesAndTableSetOp(String sql) {

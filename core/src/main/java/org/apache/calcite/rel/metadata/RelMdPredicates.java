@@ -34,6 +34,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
@@ -500,6 +501,13 @@ public class RelMdPredicates
     return mq.getPulledUpPredicates(minus.getInput(0));
   }
 
+  /**
+   * Infers predicates for a Sample.
+   */
+  public RelOptPredicateList getPredicates(Sample sample, RelMetadataQuery mq) {
+    RelNode input = sample.getInput();
+    return mq.getPulledUpPredicates(input);
+  }
 
   /**
    * Infers predicates for a Sort.
