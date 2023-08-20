@@ -1811,13 +1811,20 @@ public class SqlOperatorTest {
     f.checkFails("^code_points_to_bytes('abc')^",
         "Cannot apply 'CODE_POINTS_TO_BYTES' to arguments of type "
             + "'CODE_POINTS_TO_BYTES\\(<CHAR\\(3\\)>\\)'\\. "
-            + "Supported form\\(s\\): 'CODE_POINTS_TO_BYTES\\(<ARRAY>\\)'", false);
+            + "Supported form\\(s\\): CODE_POINTS_TO_BYTES\\(<INTEGER ARRAY>\\)",
+        false);
+    f.checkFails("^code_points_to_bytes(array['abc'])^",
+        "Cannot apply 'CODE_POINTS_TO_BYTES' to arguments of type "
+            + "'CODE_POINTS_TO_BYTES\\(<CHAR\\(3\\) ARRAY>\\)'\\. "
+            + "Supported form\\(s\\): CODE_POINTS_TO_BYTES\\(<INTEGER ARRAY>\\)",
+        false);
+
     f.checkFails("code_points_to_bytes(array[-1])",
         "Input arguments of CODE_POINTS_TO_BYTES out of range: -1", true);
     f.checkFails("code_points_to_bytes(array[2147483648, 1])",
         "Input arguments of CODE_POINTS_TO_BYTES out of range: 2147483648", true);
 
-    f.checkString("code_points_to_bytes(array[65,66,67,68])", "41424344", "VARBINARY NOT NULL");
+    f.checkString("code_points_to_bytes(array[65, 66, 67, 68])", "41424344", "VARBINARY NOT NULL");
     f.checkString("code_points_to_bytes(array[255, 254, 65, 64])", "fffe4140",
         "VARBINARY NOT NULL");
 

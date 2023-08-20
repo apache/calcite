@@ -845,8 +845,7 @@ public class SqlFunctions {
       if (codePoint instanceof Number) {
         long cp = ((Number) codePoint).longValue();
         if (cp < 0 || cp > 255) {
-          throw new IllegalArgumentException(
-              "Input arguments of CODE_POINTS_TO_BYTES out of range: " + cp);
+          throw RESOURCE.inputArgumentsOfCodePointsToBytesOutOfRange(cp).ex();
         }
         bytes[i] = (byte) cp;
       }

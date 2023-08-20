@@ -511,15 +511,24 @@ public abstract class OperandTypes {
       };
 
   public static final SqlSingleOperandTypeChecker ARRAY_OF_INTEGER =
-      new SqlSingleOperandTypeChecker() {
+      new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.ARRAY), i -> false) {
         @Override public boolean checkSingleOperandType(SqlCallBinding callBinding, SqlNode operand,
-            int iFormalOperand, boolean throwOnFailure) {
-          assert 0 == iFormalOperand;
+            int iFormalOperand, SqlTypeFamily family, boolean throwOnFailure) {
+          if (!super.checkSingleOperandType(
+              callBinding,
+              operand,
+              iFormalOperand,
+              family,
+              throwOnFailure)) {
+            return false;
+          }
           RelDataType type = SqlTypeUtil.deriveType(callBinding, operand);
+          if (SqlTypeUtil.isNull(type)) {
+            return true;
+          }
           RelDataType componentType =
               requireNonNull(type.getComponentType(), "componentType");
-          if (SqlTypeUtil.isArray(type)
-              && SqlTypeUtil.isIntType(componentType)) {
+          if (SqlTypeUtil.isIntType(componentType) || SqlTypeUtil.isNull(componentType)) {
             return true;
           }
 
@@ -533,7 +542,6 @@ public abstract class OperandTypes {
           return opName + "(<INTEGER ARRAY>)";
         }
       };
-
 
   /** Checks that returns whether a value is a multiset or an array.
    * Cf Java, where list and set are collections but a map is not. */

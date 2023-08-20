@@ -1690,7 +1690,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction CODE_POINTS_TO_BYTES =
       SqlBasicFunction.create("CODE_POINTS_TO_BYTES",
           ReturnTypes.VARBINARY_NULLABLE,
-          OperandTypes.ARRAY,
+          OperandTypes.ARRAY_OF_INTEGER,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ALL})

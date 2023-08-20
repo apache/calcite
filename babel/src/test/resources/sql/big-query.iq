@@ -1299,7 +1299,7 @@ SELECT CODE_POINTS_TO_BYTES(array[65, null]) as result;
 !ok
 
 SELECT CODE_POINTS_TO_BYTES('abc') as result;
-Cannot apply 'CODE_POINTS_TO_BYTES' to arguments of type 'CODE_POINTS_TO_BYTES(<CHAR(3)>)'. Supported form(s): 'CODE_POINTS_TO_BYTES(<ARRAY>)'
+Cannot apply 'CODE_POINTS_TO_BYTES' to arguments of type 'CODE_POINTS_TO_BYTES(<CHAR(3)>)'. Supported form(s): CODE_POINTS_TO_BYTES(<INTEGER ARRAY>)
 !error
 
 SELECT CODE_POINTS_TO_BYTES(array[-1]) as result;

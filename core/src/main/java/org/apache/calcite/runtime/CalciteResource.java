@@ -298,6 +298,9 @@ public interface CalciteResource {
   @BaseMessage("Date literal ''{0}'' out of range")
   ExInst<SqlValidatorException> dateLiteralOutOfRange(String a0);
 
+  @BaseMessage("Input arguments of CODE_POINTS_TO_BYTES out of range: {0,number,#}")
+  ExInst<CalciteException> inputArgumentsOfCodePointsToBytesOutOfRange(long a0);
+
   @BaseMessage("String literal continued on same line")
   ExInst<SqlValidatorException> stringFragsOnSameLine();
 
