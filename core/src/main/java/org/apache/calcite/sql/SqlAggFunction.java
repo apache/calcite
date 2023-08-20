@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -206,6 +207,16 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
   /** Returns whether this aggregate function allows specifying null treatment
    * ({@code RESPECT NULLS} or {@code IGNORE NULLS}). */
   public boolean allowsNullTreatment() {
+    return false;
+  }
+
+  /** Returns whether this aggregate function is a PERCENTILE function.
+   * Such functions require a {@code WITHIN GROUP} clause that has precisely
+   * one sort key.
+   *
+   * <p>NOTE: This API is experimental and subject to change without notice. */
+  @Experimental
+  public boolean isPercentile() {
     return false;
   }
 }

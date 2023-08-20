@@ -6959,7 +6959,7 @@ class RelToSqlConverterTest {
     String query = "select current_timestamp";
     final String expectedHiveQuery = "SELECT CURRENT_TIMESTAMP `CURRENT_TIMESTAMP`";
     final String expectedSparkQuery = "SELECT CURRENT_TIMESTAMP `CURRENT_TIMESTAMP`";
-    final String expectedBigQuery = "SELECT CURRENT_DATETIME() AS CURRENT_TIMESTAMP";
+    final String expectedBigQuery = "SELECT CURRENT_DATETIME() AS `CURRENT_TIMESTAMP`";
 
     sql(query)
         .withHiveIdentifierQuoteString()
@@ -12262,6 +12262,36 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
+  @Test public void testTryToDateFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode tryToDateNode0 = builder.call(SqlLibraryOperators.TRY_TO_DATE,
+        builder.literal("2013-12-05 01:02:03"), builder.literal("YYYY-MM-DD HH24:MI:SS"));
+    final RexNode tryToDateNode1 = builder.call(SqlLibraryOperators.TRY_TO_DATE,
+        builder.literal("2013-12-05"), builder.literal("YYYY-MM-DD"));
+    final RexNode tryToDateNode2 = builder.call(SqlLibraryOperators.TRY_TO_DATE,
+        builder.literal("invalid"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(
+            builder.alias(tryToDateNode0, "date_value0"),
+            builder.alias(tryToDateNode1, "date_value1"),
+            builder.alias(tryToDateNode2, "date_value2"))
+        .build();
+    final String expectedSql =
+        "SELECT TRY_TO_DATE('2013-12-05 01:02:03', 'YYYY-MM-DD HH24:MI:SS') AS "
+            + "\"date_value0\", TRY_TO_DATE('2013-12-05', 'YYYY-MM-DD') AS \"date_value1\", "
+            + "TRY_TO_DATE('invalid') AS \"date_value2\"\n"
+            + "FROM \"scott\".\"EMP\"";
+    final String snowflakeSql =
+        "SELECT TRY_TO_DATE('2013-12-05 01:02:03', 'YYYY-MM-DD HH24:MI:SS') AS "
+            + "\"date_value0\", TRY_TO_DATE('2013-12-05', 'YYYY-MM-DD') AS \"date_value1\", "
+            + "TRY_TO_DATE('invalid') AS \"date_value2\"\n"
+            + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(snowflakeSql));
+  }
+
   @Test public void testTryToTimestampFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode tryToTimestampNode = builder.call(SqlLibraryOperators.TRY_TO_TIMESTAMP,
@@ -12543,6 +12573,92 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testSimpleStrtokFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strtokNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("-"),
+        builder.literal(2));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA-BIGQUERY-SPARK-ORACLE' ,"
+        + " r'[^-]+') [OFFSET ( 1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testSimpleStrtokFunctionWithMultipleDelimiters() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strtokNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA BIGQUERY-SPARK/ORACLE"), builder.literal(" -/"),
+        builder.literal(2));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA BIGQUERY-SPARK/ORACLE' ,"
+        + " r'[^ -/]+') [OFFSET ( 1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testSimpleStrtokFunctionWithSecondOpernadAsNull() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strtokNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA BIGQUERY-SPARK/ORACLE"), builder.literal(null),
+        builder.literal(2));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA BIGQUERY-SPARK/ORACLE' , "
+        + "NULL) [OFFSET ( 1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testStrtokWithIndexFunctionAsThirdArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode positionRexNode = builder.call(SqlStdOperatorTable.POSITION,
+        builder.literal("B"), builder.literal("ABC"));
+    final RexNode strtokRexNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA BIGQUERY SPARK ORACLE"), builder.literal(" "),
+        positionRexNode);
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokRexNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA BIGQUERY SPARK ORACLE' , "
+        + "r'[^ ]+') [OFFSET ( STRPOS('ABC', 'B') -1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testStrtokWithCastFunctionAsThirdArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode lengthFunRexNode = builder.call(SqlStdOperatorTable.CHAR_LENGTH,
+        builder.literal("dm-R"));
+    final RexNode formatIntegerCastRexNode = builder.cast(lengthFunRexNode,
+        SqlTypeName.INTEGER);
+    final RexNode strtokRexNode = builder.call(SqlLibraryOperators.STRTOK,
+        builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("-"),
+        formatIntegerCastRexNode);
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(strtokRexNode, "aa"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA-BIGQUERY-SPARK-ORACLE' , "
+        + "r'[^-]+') [OFFSET ( LENGTH('dm-R') -1 ) ] AS aa";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   private RexNode makeCaseCall(RelBuilder builder, int index, int number) {
     RexNode rex = builder.literal(number);
     RexNode rex2 = builder.literal(number * 10);
@@ -12599,6 +12715,87 @@ class RelToSqlConverterTest {
     sql(query)
         .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
         .withBigQuery().ok(expected);
+  }
+
+
+  @Test public void testPercentileCont() {
+    final String query = "SELECT\n"
+        + " PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY \"product_id\")\n"
+        + "FROM \"product\"";
+    final String expectedSql = "SELECT PERCENTILE_CONT(0.25) WITHIN GROUP "
+        + "(ORDER BY \"product_id\")\n"
+        + "FROM \"foodmart\".\"product\"";
+
+    sql(query)
+        .ok(expectedSql);
+
+  }
+
+  @Test void testPercentileContWithGroupBy() {
+    final String query = "SELECT \"shelf_width\",\n"
+        + " PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY \"product_id\")\n"
+        + "FROM \"product\"\n"
+        + "GROUP BY \"shelf_width\"";
+    final String expectedSql = "SELECT \"shelf_width\", PERCENTILE_CONT(0.25) WITHIN GROUP "
+        + "(ORDER BY \"product_id\")\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"shelf_width\"";
+    sql(query)
+        .ok(expectedSql);
+  }
+
+  @Test public void testUnparsingOfPercentileCont() {
+    final RelBuilder builder = relBuilder();
+    builder.push(builder.scan("EMP").build());
+
+    final List<RexNode> percentileContRex = ImmutableList.of(builder.field("DEPTNO"),
+        builder.literal("0.5"));
+    final RelDataType decimalType =
+        builder.getTypeFactory().createSqlType(SqlTypeName.DECIMAL);
+    List<RexNode> partitionKeyRexNodes = ImmutableList.of(
+        builder.field("EMPNO"), builder.field(
+        "DEPTNO"));
+    final RexNode overRex = builder.getRexBuilder().makeOver(decimalType,
+        SqlStdOperatorTable.PERCENTILE_CONT,
+        percentileContRex, partitionKeyRexNodes, ImmutableList.of(),
+        RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING,
+        false, true, false, false, false);
+
+    builder.build();
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.field(0), overRex)
+        .aggregate(builder.groupKey(builder.field(0), builder.field(1)))
+        .build();
+    final String expectedSql = "SELECT \"EMPNO\", PERCENTILE_CONT(\"DEPTNO\", '0.5') OVER"
+        + " (PARTITION BY \"EMPNO\", \"DEPTNO\" RANGE BETWEEN UNBOUNDED PRECEDING AND "
+        + "UNBOUNDED FOLLOWING) AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT EMPNO, PERCENTILE_CONT(DEPTNO, '0.5') OVER (PARTITION"
+        + " BY EMPNO, DEPTNO) AS `$f1`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testToCurrentTimestampFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
+        builder.literal("2009-03-20 12:25:50.123456"),
+        builder.literal("yyyy-MM-dd HH24:MI:MS.sssss"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseTSNode1, "timestamp_value"))
+        .build();
+    final String expectedSql =
+        "SELECT TO_TIMESTAMP('2009-03-20 12:25:50.123456', 'yyyy-MM-dd HH24:MI:MS.sssss') AS "
+            + "\"timestamp_value\"\nFROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery =
+        "SELECT PARSE_DATETIME('%F %H:%M:%E*S', '2009-03-20 12:25:50.123456') AS timestamp_value\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
 }
