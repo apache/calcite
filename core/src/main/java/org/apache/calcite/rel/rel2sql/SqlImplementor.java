@@ -261,8 +261,6 @@ public abstract class SqlImplementor {
 
   /** Returns whether a list of expressions projects all fields, in order,
    * from the input, with the same names. */
-  /** Returns whether a list of expressions projects all fields, in order,
-   * from the input, with the same names. */
   public static boolean isStar(List<RexNode> exps, RelDataType inputRowType,
       RelDataType projectRowType) {
     assert exps.size() == projectRowType.getFieldCount();
