@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
@@ -390,6 +391,14 @@ public class RelMdExpressionLineage
    * Expression lineage from Filter.
    */
   public @Nullable Set<RexNode> getExpressionLineage(Filter rel,
+      RelMetadataQuery mq, RexNode outputExpression) {
+    return mq.getExpressionLineage(rel.getInput(), outputExpression);
+  }
+
+  /**
+   * Expression lineage from Sample.
+   */
+  public @Nullable Set<RexNode> getExpressionLineage(Sample rel,
       RelMetadataQuery mq, RexNode outputExpression) {
     return mq.getExpressionLineage(rel.getInput(), outputExpression);
   }

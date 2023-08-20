@@ -76,6 +76,8 @@ public final class GeneratedMetadata_ExpressionLineageHandler
       return provider0.getExpressionLineage((org.apache.calcite.rel.core.Join) r, mq, a2);
     } else if (r instanceof org.apache.calcite.rel.core.Project) {
       return provider0.getExpressionLineage((org.apache.calcite.rel.core.Project) r, mq, a2);
+    } else if (r instanceof org.apache.calcite.rel.core.Sample) {
+      return provider0.getExpressionLineage((org.apache.calcite.rel.core.Sample) r, mq, a2);
     } else if (r instanceof org.apache.calcite.rel.core.Snapshot) {
       return provider0.getExpressionLineage((org.apache.calcite.rel.core.Snapshot) r, mq, a2);
     } else if (r instanceof org.apache.calcite.rel.core.Sort) {

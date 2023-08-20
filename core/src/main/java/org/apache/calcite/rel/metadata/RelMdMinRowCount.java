@@ -27,6 +27,7 @@ import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
@@ -100,6 +101,10 @@ public class RelMdMinRowCount
   }
 
   public @Nullable Double getMinRowCount(TableModify rel, RelMetadataQuery mq) {
+    return mq.getMinRowCount(rel.getInput());
+  }
+
+  public @Nullable Double getMinRowCount(Sample rel, RelMetadataQuery mq) {
     return mq.getMinRowCount(rel.getInput());
   }
 
