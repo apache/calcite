@@ -71,6 +71,10 @@ public class PuffinTest {
         Puffin.builder(GlobalState::new, u -> new AtomicInteger())
             .add(line -> true,
                 line -> line.state().incrementAndGet())
+            .add(Puffin.Line::isLast,
+                line ->
+                    line.globalState().messages.add("last line of "
+                        + line.filename() + " is [" + line.line() + "]"))
             .beforeSource(context -> {
               final GlobalState g = context.globalState();
               g.beforeSourceCount.incrementAndGet();
@@ -99,16 +103,19 @@ public class PuffinTest {
         program.execute(
             Stream.of(Sources.of("a\nb\n"),
                 Sources.of("a\n"),
-                Sources.of("a\nb\nc\n")),
+                Sources.of("a\nb\nc\n\n")),
             new PrintWriter(sw));
-    assertThat(g.messages, hasSize(7));
-    assertThat(g.messages, hasItem("3 lines"));
+    assertThat(g.messages, hasSize(10));
+    assertThat(g.messages, hasItem("4 lines"));
     assertThat(g.messages, hasItem("2 lines"));
     assertThat(g.messages, hasItem("1 lines"));
     assertThat(g.messages, hasItem("3 after sources"));
     assertThat(g.messages, hasItem("3 before sources"));
     assertThat(g.messages, hasItem("1 before"));
     assertThat(g.messages, hasItem("1 after"));
+    assertThat(g.messages, hasItem("last line of GuavaCharSource{memory} is [b]"));
+    assertThat(g.messages, hasItem("last line of GuavaCharSource{memory} is [a]"));
+    assertThat(g.messages, hasItem("last line of GuavaCharSource{memory} is []"));
     assertThat(sw, hasToString(""));
   }
 

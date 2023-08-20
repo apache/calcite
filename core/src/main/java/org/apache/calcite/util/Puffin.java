@@ -144,16 +144,38 @@ public class Puffin {
    * @param <F> Type of state that is created when we start processing a file
    */
   public interface Line<G, F> {
+    /** Returns the global state. */
     G globalState();
+
+    /** Returns the state of the current file. */
     F state();
+
+    /** Returns the ordinal of the current line in its source. */
     int fnr();
+
+    /** Returns the filename of the current source. */
     String filename();
+
+    /** Returns the current source. */
     Source source();
+
+    /** Returns whether the current line starts with {@code prefix}. */
     boolean startsWith(String prefix);
-    boolean contains(CharSequence s);
+
+    /** Returns whether the current line starts with {@code seek}. */
+    boolean contains(CharSequence seek);
+
+    /** Returns whether the current line ends with {@code suffix}. */
     boolean endsWith(String suffix);
+
+    /** Returns whether the current line matches {@code regex}. */
     boolean matches(String regex);
+
+    /** Returns the text of the current line. */
     String line();
+
+    /** Returns whether the current line is the last line in its source. */
+    boolean isLast();
   }
 
   /** Context for executing a Puffin program within a given file.
@@ -175,6 +197,9 @@ public class Puffin {
      * <p>Corresponds to the Awk variable {@code FNR}, which stands for "file
      * number of records". */
     int fnr = 0;
+
+    /** Holds whether the current line is the last line in its source. */
+    boolean last;
 
     Context(PrintWriter out, Source source,
         Function<String, Pattern> patternCache, G globalState,
@@ -225,6 +250,10 @@ public class Puffin {
 
     @Override public String filename() {
       return source().toString();
+    }
+
+    @Override public boolean isLast() {
+      return last;
     }
 
     @Override public Source source() {
@@ -293,7 +322,7 @@ public class Puffin {
       final Source source0 = Sources.of("");
       final F fileState0 = fileStateFactory.apply(globalState);
       final ContextImpl<G, F> x0 =
-          new ContextImpl<G, F>(out, source0, patternCache, globalState,
+          new ContextImpl<>(out, source0, patternCache, globalState,
               fileState0);
       beforeList.forEach(action -> action.accept(x0));
       sources.forEach(source -> execute(globalState, source, out));
@@ -306,16 +335,15 @@ public class Puffin {
            BufferedReader br = new BufferedReader(r)) {
         final F fileState = fileStateFactory.apply(globalState);
         final ContextImpl<G, F> x =
-            new ContextImpl<G, F>(out, source, patternCache, globalState,
+            new ContextImpl<>(out, source, patternCache, globalState,
                 fileState);
         beforeSourceList.forEach(action -> action.accept(x));
-        for (;;) {
-          String lineText = br.readLine();
-          if (lineText == null) {
-            break;
-          }
+        String nextLine = br.readLine();
+        while (nextLine != null) {
+          x.line = nextLine;
           ++x.fnr;
-          x.line = lineText;
+          nextLine = br.readLine();
+          x.last = nextLine == null;
           onLineList.forEach((predicate, action) -> {
             if (predicate.test(x)) {
               action.accept(x);
