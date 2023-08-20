@@ -292,7 +292,8 @@ class InterpreterTest {
   @Test void testInterpretScannableTable() {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
     sql("select * from \"beatles\" order by \"i\"")
-        .returnsRows("[4, John]", "[4, Paul]", "[5, Ringo]", "[6, George]");
+        .returnsRows("[4, John, 1940]", "[4, Paul, 1942]", "[5, Ringo, 1940]",
+            "[6, George, 1943]");
   }
 
   /** Tests executing a plan on a
@@ -347,6 +348,22 @@ class InterpreterTest {
             "[Paul, 0]",
             "[John, 0]",
             "[Ringo, 1]");
+  }
+
+  /** Tests a GROUP BY query that uses
+   * {@link org.apache.calcite.sql.fun.SqlInternalOperators#LITERAL_AGG}. */
+  @Test void testAggregateLiteralAgg() {
+    rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
+    final Function<RelBuilder, RelNode> relFn =
+        b -> b.scan("beatles")
+            .aggregate(b.groupKey("k"),
+                b.count().as("c"),
+                b.literalAgg(true).as("t"),
+                b.literalAgg(-3).as("minus3"))
+            .build();
+    fixture().withRel(relFn)
+        .returnsRows("[1940, 2, true, -3]", "[1942, 1, true, -3]",
+            "[1943, 1, true, -3]");
   }
 
   /** Tests executing a plan on a single-column
@@ -730,11 +747,11 @@ class InterpreterTest {
   /** Tests projecting zero fields. */
   @Test void testZeroFields() {
     final List<RexLiteral> row = ImmutableList.of();
-    fixture()
-        .withRel(b ->
-            b.values(ImmutableList.of(row, row),
+    final Function<RelBuilder, RelNode> relFn =
+        b -> b.values(ImmutableList.of(row, row),
                 b.getTypeFactory().builder().build())
-                .build())
+            .build();
+    fixture().withRel(relFn)
         .returnsRows("[]", "[]");
   }
 }
