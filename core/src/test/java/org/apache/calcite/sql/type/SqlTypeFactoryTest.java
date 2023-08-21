@@ -212,4 +212,41 @@ class SqlTypeFactoryTest {
     assertThat(tsWithPrecision3 == tsWithPrecision8, is(true));
   }
 
+  /** Test case for
+   * test to handle DECIMAL and DECIMAL with precision correctly</a>.
+   * */
+  @Test void testCreateSqlTypeDecimalWithPrecision() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    checkCreateSqlTypeDecimalWithPrecision(f.typeFactory);
+  }
+
+  private void checkCreateSqlTypeDecimalWithPrecision(
+      RelDataTypeFactory typeFactory) {
+    SqlTypeName decimalSqlType = SqlTypeName.DECIMAL;
+    RelDataType ts = typeFactory.createSqlType(decimalSqlType);
+    RelDataType tsWithoutPrecision = typeFactory.createSqlType(decimalSqlType, -1);
+    RelDataType tsWithPrecision0 = typeFactory.createSqlType(decimalSqlType, 0);
+    RelDataType tsWithPrecision1 = typeFactory.createSqlType(decimalSqlType, 1);
+    RelDataType tsWithPrecision2 = typeFactory.createSqlType(decimalSqlType, 2);
+    RelDataType tsWithPrecision3 = typeFactory.createSqlType(decimalSqlType, 3);
+
+    assertThat(ts.toString(), is(decimalSqlType.getName()
+        + "(" + typeFactory.getTypeSystem().getMaxNumericPrecision() + ", 0)"));
+    assertThat(ts.getFullTypeString(), is(decimalSqlType.getName()
+        + "(" + typeFactory.getTypeSystem().getMaxNumericPrecision()+ ", 0) NOT NULL"));
+    assertThat(tsWithoutPrecision.toString(), is(decimalSqlType.getName()));
+    assertThat(tsWithoutPrecision.getFullTypeString(),
+        is(decimalSqlType.getName()
+            + "(" + typeFactory.getTypeSystem().getMaxNumericPrecision() + ") NOT NULL"));
+    assertThat(tsWithPrecision0.toString(), is(decimalSqlType.getName() + "(0, 0)"));
+    assertThat(tsWithPrecision0.getFullTypeString(), is(decimalSqlType.getName() + "(0, 0) NOT NULL"));
+    assertThat(tsWithPrecision1.toString(), is(decimalSqlType.getName() + "(1, 0)"));
+    assertThat(tsWithPrecision1.getFullTypeString(), is(decimalSqlType.getName() + "(1, 0) NOT NULL"));
+    assertThat(tsWithPrecision2.toString(), is(decimalSqlType.getName() + "(2, 0)"));
+    assertThat(tsWithPrecision2.getFullTypeString(), is(decimalSqlType.getName() + "(2, 0) NOT NULL"));
+    assertThat(tsWithPrecision3.toString(), is(decimalSqlType.getName() + "(3, 0)"));
+    assertThat(tsWithPrecision3.getFullTypeString(), is(decimalSqlType.getName() + "(3, 0) NOT NULL"));
+
+    assertThat(ts != tsWithoutPrecision, is(true));
+  }
 }
