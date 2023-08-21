@@ -299,6 +299,63 @@ class RexBuilderTest {
     assertThat(ts10.getMillisSinceEpoch(), is(c.getTimeInMillis()));
   }
 
+  @Test void testTimeString() {
+    final TimeString t = new TimeString(2, 56, 15);
+    assertThat(t, hasToString("02:56:15"));
+    assertThat(t.round(1), is(t));
+
+    // Now with milliseconds
+    final TimeString t2 = t.withMillis(56);
+    assertThat(t2, hasToString("02:56:15.056"));
+
+    // toString
+    assertThat(t2.round(1), hasToString("02:56:15"));
+    assertThat(t2.round(2), hasToString("02:56:15.05"));
+    assertThat(t2.round(3), hasToString("02:56:15.056"));
+    assertThat(t2.round(4), hasToString("02:56:15.056"));
+
+    assertThat(t2.toString(6), is("02:56:15.056000"));
+    assertThat(t2.toString(1), is("02:56:15.0"));
+    assertThat(t2.toString(0), is("02:56:15"));
+
+    assertThat(t2.round(0), hasToString("02:56:15"));
+    assertThat(t2.round(0).toString(0), is("02:56:15"));
+    assertThat(t2.round(0).toString(1), is("02:56:15.0"));
+    assertThat(t2.round(0).toString(2), is("02:56:15.00"));
+
+    // Now with milliseconds ending in zero (3 equivalent strings).
+    final TimeString t3 = t.withMillis(10);
+    assertThat(t3, hasToString("02:56:15.01"));
+
+    final TimeString t3b = new TimeString("02:56:15.01");
+    assertThat(t3b, hasToString("02:56:15.01"));
+    assertThat(t3b, is(t3));
+
+    final TimeString t3c = new TimeString("02:56:15.010");
+    assertThat(t3c, hasToString("02:56:15.01"));
+    assertThat(t3c, is(t3));
+
+    // Now with nanoseconds
+    final TimeString t4 = t.withNanos(56);
+    assertThat(t4, hasToString("02:56:15.000000056"));
+
+    // Check rounding; uses RoundingMode.DOWN
+    final TimeString t5 = t.withNanos(2345670);
+    assertThat(t5, hasToString("02:56:15.00234567"));
+    assertThat(t5.round(0), hasToString("02:56:15"));
+    assertThat(t5.round(1), hasToString("02:56:15"));
+    assertThat(t5.round(2), hasToString("02:56:15"));
+    assertThat(t5.round(3), hasToString("02:56:15.002"));
+    assertThat(t5.round(4), hasToString("02:56:15.0023"));
+    assertThat(t5.round(5), hasToString("02:56:15.00234"));
+    assertThat(t5.round(6), hasToString("02:56:15.002345"));
+    assertThat(t5.round(600), hasToString("02:56:15.00234567"));
+
+    // Now with a very long fraction
+    final TimeString t6 = t.withFraction("102030405060708090102");
+    assertThat(t6, hasToString("02:56:15.102030405060708090102"));
+  }
+
   private void checkTimestamp(RexLiteral literal) {
     assertThat(literal, hasToString("1969-07-21 02:56:15"));
     assertThat(literal.getValue() instanceof Calendar, is(true));
