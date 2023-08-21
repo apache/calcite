@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -12742,6 +12743,35 @@ class RelToSqlConverterTest {
         + "GROUP BY \"shelf_width\"";
     sql(query)
         .ok(expectedSql);
+  }
+
+  @Test void testCorrelatedScalarQueryInSelectList() {
+    RelBuilder builder = foodmartRelBuilder();
+    builder.scan("employee");
+    CorrelationId correlationId = builder.getCluster().createCorrel();
+    RelDataType relDataType = builder.peek().getRowType();
+    RexNode correlVariable = builder.getRexBuilder().makeCorrel(relDataType, correlationId);
+    int departmentIdIndex = builder.field("department_id").getIndex();
+    RexNode correlatedScalarSubQuery = RexSubQuery.scalar(builder
+        .scan("department")
+        .filter(builder
+            .equals(
+                builder.field("department_id"),
+                builder.getRexBuilder().makeFieldAccess(correlVariable, departmentIdIndex)))
+        .project(builder.field("department_id"))
+        .build());
+    RelNode root = builder
+        .project(
+            ImmutableSet.of(builder.field("employee_id"), correlatedScalarSubQuery),
+            ImmutableSet.of("emp_id", "dept_id"),
+            false,
+            ImmutableSet.of(correlationId))
+        .build();
+    final String expectedSql = "SELECT employee_id AS emp_id, (SELECT department_id\n"
+        + "FROM foodmart.department\n"
+        + "WHERE department_id = employee.department_id) AS dept_id\n"
+        + "FROM foodmart.employee";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
   }
 
   @Test public void testUnparsingOfPercentileCont() {
