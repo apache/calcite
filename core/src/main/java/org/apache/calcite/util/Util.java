@@ -103,6 +103,7 @@ import java.util.RandomAccess;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
+import java.util.TreeSet;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -2164,6 +2165,24 @@ public class Util {
    */
   public static <E> boolean isDistinct(List<E> list) {
     return firstDuplicate(list) < 0;
+  }
+
+
+  /**
+   * Returns whether the elements of {@code list} are distinct according to a given
+   * case-sensitivity policy.
+   */
+  public static boolean isDistinct(List<String> list, boolean caseSensitive) {
+    if (caseSensitive) {
+      return isDistinct(list);
+    }
+    final Set<String> set = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    for (String s : list) {
+      if (!set.add(s)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**

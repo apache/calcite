@@ -3560,8 +3560,8 @@ class RelToSqlConverterTest {
         + "employee.marital_status, employee.gender, employee.management_role, "
         + "department.department_id AS department_id0, department.department_description\n"
         + "FROM foodmart.employee AS employee\n"
-        + "INNER JOIN foodmart.department AS department ON "
-        + "employee.department_id = department.department_id";
+        + "INNER JOIN foodmart.department AS department "
+        + "ON employee.department_id = department.department_id";
     sql(query).withDb2().ok(expected);
   }
 
@@ -3584,8 +3584,8 @@ class RelToSqlConverterTest {
         + "education_level0, employee0.marital_status AS marital_status0, "
         + "employee0.gender AS gender0, employee0.management_role AS management_role0\n"
         + "FROM foodmart.employee AS employee\n"
-        + "INNER JOIN foodmart.employee AS employee0 ON "
-        + "employee.department_id = employee0.department_id";
+        + "INNER JOIN foodmart.employee AS employee0 "
+        + "ON employee.department_id = employee0.department_id";
     sql(query).withDb2().ok(expected);
   }
 
@@ -3815,12 +3815,15 @@ class RelToSqlConverterTest {
         + "\"product\".\"units_per_case\", \"product\".\"cases_per_pallet\", "
         + "\"product\".\"shelf_width\", \"product\".\"shelf_height\", \"product\".\"shelf_depth\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
-        + "INNER JOIN \"foodmart\".\"customer\" ON \"sales_fact_1997\".\"customer_id\" = "
-        + "\"customer\".\"customer_id\" OR \"sales_fact_1997\".\"customer_id\" IS NULL AND "
-        + "\"customer\".\"customer_id\" IS NULL OR \"customer\".\"occupation\" IS NULL\n"
-        + "INNER JOIN \"foodmart\".\"product\" ON \"sales_fact_1997\".\"product_id\" = "
-        + "\"product\".\"product_id\" OR \"sales_fact_1997\".\"product_id\" IS NOT NULL OR "
-        + "\"product\".\"product_id\" IS NOT NULL";
+        + "INNER JOIN \"foodmart\".\"customer\" "
+        + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\""
+        + " OR \"sales_fact_1997\".\"customer_id\" IS NULL"
+        + " AND \"customer\".\"customer_id\" IS NULL"
+        + " OR \"customer\".\"occupation\" IS NULL\n"
+        + "INNER JOIN \"foodmart\".\"product\" "
+        + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\""
+        + " OR \"sales_fact_1997\".\"product_id\" IS NOT NULL"
+        + " OR \"product\".\"product_id\" IS NOT NULL";
     // The hook prevents RelBuilder from removing "FALSE AND FALSE" and such
     try (Hook.Closeable ignore =
              Hook.REL_BUILDER_SIMPLIFY.addThread(Hook.propertyJ(false))) {
@@ -6583,7 +6586,8 @@ class RelToSqlConverterTest {
         + "`employee`.`management_role`, `department`.`department_id` AS `department_id0`, "
         + "`department`.`department_description`\n"
         + "FROM `foodmart`.`store`\n"
-        + "INNER JOIN `foodmart`.`employee` ON `store`.`store_id` = `employee`.`store_id`\n"
+        + "INNER JOIN `foodmart`.`employee`"
+        + " ON `store`.`store_id` = `employee`.`store_id`\n"
         + "CROSS JOIN `foodmart`.`department`";
     sql(sql).withMysql().ok(expectedMysql);
   }
@@ -7161,8 +7165,7 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5583">[CALCITE-5583]
    * Rel2Sql will get an error when select * and join is present</a>. */
   @Test void testSelectStarWithJoin() {
-    final RelBuilder builder = relBuilder();
-    RelNode root = builder
+    Function<RelBuilder, RelNode> relFn = builder -> builder
         .scan("EMP")
         .project(ImmutableList.of(builder.field("EMPNO")), ImmutableList.of("c0"), true)
         .scan("EMP")
@@ -7186,7 +7189,37 @@ class RelToSqlConverterTest {
         + "FROM (SELECT \"EMPNO\" AS \"c0\"\nFROM \"scott\".\"EMP\") AS \"t\"\n"
         + "INNER JOIN (SELECT \"EMPNO\" AS \"c0\"\nFROM \"scott\".\"EMP\") AS \"t0\" "
         + "ON \"t\".\"c0\" = \"t0\".\"c0\"";
-    assertThat(toSql(root), isLinux(expected));
+    relFn(relFn).ok(expected);
+  }
+
+  @Test void testSelectStarWithJoin2() {
+    final String sql = "select * from EMP JOIN DEPT USING (DEPTNO)";
+    final String expected = ""
+        + "SELECT COALESCE(\"EMP\".\"DEPTNO\", \"DEPT\".\"DEPTNO\") AS \"DEPTNO\", "
+        + "\"EMP\".\"EMPNO\", \"EMP\".\"ENAME\", \"EMP\".\"JOB\", \"EMP\".\"MGR\", "
+        + "\"EMP\".\"HIREDATE\", \"EMP\".\"SAL\", \"EMP\".\"COMM\", \"DEPT\".\"DNAME\", "
+        + "\"DEPT\".\"LOC\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "INNER JOIN \"SCOTT\".\"DEPT\" "
+        + "ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected);
+  }
+
+  @Test void testSelectStarWithJoin3() {
+    final String sql = "select * from EMP NATURAL JOIN DEPT";
+    final String expected = ""
+        + "SELECT COALESCE(\"EMP\".\"DEPTNO\", \"DEPT\".\"DEPTNO\") AS \"DEPTNO\", "
+        + "\"EMP\".\"EMPNO\", \"EMP\".\"ENAME\", \"EMP\".\"JOB\", \"EMP\".\"MGR\", "
+        + "\"EMP\".\"HIREDATE\", \"EMP\".\"SAL\", \"EMP\".\"COMM\", \"DEPT\".\"DNAME\", "
+        + "\"DEPT\".\"LOC\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "INNER JOIN \"SCOTT\".\"DEPT\" "
+        + "ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\"";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected);
   }
 
   /** Test case for

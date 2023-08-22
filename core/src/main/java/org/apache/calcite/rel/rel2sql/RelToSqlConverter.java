@@ -97,7 +97,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -453,8 +452,8 @@ public class RelToSqlConverter extends SqlImplementor
     }
     parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
-    if (isJoinDuplicateName(e.getInput()) || !isStar(e.getProjects(), e.getInput().getRowType(),
-        e.getRowType())) {
+    if (isJoinDuplicateName(e.getInput())
+        || !isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())) {
       final List<SqlNode> selectList = new ArrayList<>();
       for (RexNode ref : e.getProjects()) {
         SqlNode sqlExpr = builder.context.toSql(null, ref);
@@ -488,15 +487,12 @@ public class RelToSqlConverter extends SqlImplementor
   private boolean isJoinDuplicateName(RelNode relNode) {
     if (relNode instanceof Join || relNode instanceof MultiJoin) {
       List<RelNode> inputs = relNode.getInputs();
-      RelNode firstRel = inputs.get(0);
-      List<String> firstRelFiledNames = Lists.newArrayList(firstRel.getRowType().getFieldNames());
-      for (int i = 1; i < inputs.size(); i++) {
-        RelNode input = inputs.get(i);
-        firstRelFiledNames.retainAll(input.getRowType().getFieldNames());
+      List<String> fieldNames = new ArrayList<>();
+      for (RelNode input : inputs) {
+        fieldNames.addAll(input.getRowType().getFieldNames());
       }
-      if (!firstRelFiledNames.isEmpty()) {
-        return true;
-      }
+      boolean caseSensitive = super.dialect.isCaseSensitive();
+      return !Util.isDistinct(fieldNames, caseSensitive);
     }
     return false;
   }
