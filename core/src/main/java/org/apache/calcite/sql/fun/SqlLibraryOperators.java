@@ -1705,4 +1705,10 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction MEDIAN =
       new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction REGEXP_COUNT =
+      new SqlFunction("REGEXP_COUNT", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null, OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
+
 }
