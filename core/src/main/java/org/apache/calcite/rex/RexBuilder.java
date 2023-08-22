@@ -526,7 +526,6 @@ public class RexBuilder {
     return makeCast(type, exp, false, false);
   }
 
-  @Deprecated // to be removed before 2.0
   public RexNode makeCast(
       RelDataType type,
       RexNode exp,
@@ -777,7 +776,6 @@ public class RexBuilder {
         matchNullability(bigintType, node), node, makeLiteral(false));
   }
 
-  @Deprecated // to be removed before 2.0
   public RexNode makeAbstractCast(RelDataType type, RexNode exp) {
     return makeAbstractCast(type, exp, false);
   }
