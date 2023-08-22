@@ -56,6 +56,11 @@ class ServerParserTest extends SqlParserTest {
         .ok("CREATE SCHEMA `X`");
   }
 
+  @Test void testProcessCreateTableWithDefault() {
+    String sql = "create table tdef (i int not null, j int default 100)";
+    sql(sql).ok("CREATE TABLE `TDEF` (`I` INTEGER NOT NULL, `J` INTEGER DEFAULT 100)");
+  }
+
   @Test void testCreateOrReplaceSchema() {
     sql("create or replace schema x")
         .ok("CREATE OR REPLACE SCHEMA `X`");
