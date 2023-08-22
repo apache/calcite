@@ -12729,7 +12729,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
   }
 
-
   @Test public void testPercentileCont() {
     final String query = "SELECT\n"
         + " PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY \"product_id\")\n"
