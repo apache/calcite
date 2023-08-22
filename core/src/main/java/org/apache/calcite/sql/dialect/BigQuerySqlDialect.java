@@ -783,6 +783,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
+  private void unparseTryToDoubleFunction(
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame safeCastFrame = writer.startFunCall("SAFE_CAST");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep("AS");
+    writer.literal("FLOAT64");
+    writer.endFunCall(safeCastFrame);
+  }
+
   private void unparseAsOp(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     assert call.operandCount() >= 2;
     final SqlWriter.Frame frame = writer.startList(SqlWriter.FrameTypeEnum.AS);
@@ -1253,6 +1262,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case "SHIFTRIGHT":
       unparseShiftLeftAndShiftRight(writer, call, false);
+      break;
+    case "TRY_TO_DOUBLE":
+      unparseTryToDoubleFunction(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

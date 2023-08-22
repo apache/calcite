@@ -1705,4 +1705,12 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction MEDIAN =
       new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TRY_TO_DOUBLE =
+      new SqlFunction("TRY_TO_DOUBLE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE,
+          null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.NUMERIC);
 }
