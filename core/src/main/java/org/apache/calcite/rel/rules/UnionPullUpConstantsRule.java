@@ -92,11 +92,7 @@ public class UnionPullUpConstantsRule
     for (RelDataTypeField field : fields) {
       final RexNode constant = constants.get(field.getIndex());
       if (constant != null) {
-        if (constant.getType().equals(field.getType())) {
-          topChildExprs.add(constant);
-        } else {
-          topChildExprs.add(rexBuilder.makeCast(field.getType(), constant, true, false));
-        }
+        topChildExprs.add(constant);
         topChildExprsFields.add(field.getName());
       } else {
         final RexNode expr = rexBuilder.makeInputRef(union, field.getIndex());
