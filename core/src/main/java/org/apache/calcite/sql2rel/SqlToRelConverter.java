@@ -194,6 +194,7 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -215,6 +216,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.runtime.FlatLists.append;
+import static org.apache.calcite.sql.SqlUtil.containsDefault;
 import static org.apache.calcite.sql.SqlUtil.containsIn;
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
@@ -280,6 +282,10 @@ public class SqlToRelConverter {
    * TABLE(SAMPLE(&lt;datasetName&gt;, &lt;query&gt;))</code> construct.
    */
   private final Deque<String> datasetStack = new ArrayDeque<>();
+
+  /** Stack that contains the SqlInsert operator that is currently being
+   * processed. It is used used for resolving DEFAULT expressions. */
+  private final Deque<SqlCall> callStack = new ArrayDeque<>();
 
   /**
    * Mapping of non-correlated sub-queries that have been converted to their
@@ -3801,12 +3807,16 @@ public class SqlToRelConverter {
   protected RelNode convertInsert(SqlInsert call) {
     RelOptTable targetTable = getTargetTable(call);
 
+    callStack.push(call);
+
     final RelDataType targetRowType =
         validator().getValidatedNodeType(call);
     assert targetRowType != null;
     RelNode sourceRel =
         convertQueryRecursive(call.getSource(), true, targetRowType).project();
     RelNode massagedRel = convertColumnList(call, sourceRel);
+
+    callStack.pop();
 
     return createModify(targetTable, massagedRel);
   }
@@ -4744,8 +4754,13 @@ public class SqlToRelConverter {
   }
 
   /**
-   * Converts a values clause (as in "INSERT INTO T(x,y) VALUES (1,2)") into a
-   * relational expression.
+   * Converts a VALUES clause into a relational expression.
+   *
+   * <p>Example:
+   * <blockquote><pre>{@code
+   * INSERT INTO T(x, y)
+   * VALUES (1, 2), (2, DEFAULT)
+   * }</pre></blockquote>
    *
    * @param bb            Blackboard
    * @param values        Call to SQL VALUES operator
@@ -4769,15 +4784,57 @@ public class SqlToRelConverter {
       return;
     }
 
-    for (SqlNode rowConstructor1 : values.getOperandList()) {
-      SqlCall rowConstructor = (SqlCall) rowConstructor1;
+    final SqlCall insertOp = callStack.peek();
+    // resolve presence of default params
+    boolean processDefaults = (insertOp != null) && containsDefault(values);
+
+    if (targetRowType == null) {
+      RelDataType listType = validator().getValidatedNodeType(values);
+      targetRowType = SqlTypeUtil.promoteToRowType(typeFactory, listType, null);
+    }
+
+    assert insertOp instanceof SqlInsert || !processDefaults
+        : "operation: " + insertOp;
+
+    final InitializerExpressionFactory initializerFactory;
+    final RelOptTable targetTable;
+    final int[] mapping;
+    if (processDefaults) {
+      requireNonNull(insertOp, "insertOp");
+      requireNonNull(targetRowType, "targetRowType");
+      targetTable = getTargetTable(insertOp);
+      initializerFactory =
+          getInitializerFactory(getNamespace(insertOp).getTable());
+      mapping = processColumnsMapping(targetRowType, targetTable);
+    } else {
+      initializerFactory = null;
+      targetTable = null;
+      mapping = null;
+    }
+
+    for (SqlNode rowConstructor : values.getOperandList()) {
+      SqlCall newRowConst = (SqlCall) rowConstructor;
       Blackboard tmpBb = createBlackboard(bb.scope, null, false);
       replaceSubQueries(tmpBb, rowConstructor,
           RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
       final PairList<RexNode, String> exps = PairList.of();
-      Ord.forEach(rowConstructor.getOperandList(), (operand, i) ->
-          exps.add(tmpBb.convertExpression(operand),
-              SqlValidatorUtil.alias(operand, i)));
+      Ord.forEach(newRowConst.getOperandList(), (operand, i) -> {
+        RexNode def;
+        if (processDefaults
+            && operand.getKind() == SqlKind.DEFAULT
+            && requireNonNull(mapping, "mapping")[i] != -1) {
+          // obtain expression for appropriate default
+          requireNonNull(initializerFactory, "initializerFactory");
+          requireNonNull(targetTable, "targetTable");
+          def =
+              initializerFactory.newColumnDefaultValue(targetTable,
+                  mapping[i], bb);
+        } else {
+          def = tmpBb.convertExpression(operand);
+        }
+        exps.add(def, SqlValidatorUtil.alias(operand, i));
+      });
+
       RelNode in =
           (null == tmpBb.root)
               ? LogicalValues.createOneRow(cluster)
@@ -4790,6 +4847,34 @@ public class SqlToRelConverter {
         relBuilder.union(true, values.getOperandList().size())
             .build(),
         true);
+  }
+
+  /** Processes names matching between incoming row and appropriate dataset
+   * definition. Returns incoming fields positions in relation to dataset
+   * representation. */
+  private static int[] processColumnsMapping(RelDataType targetRowType,
+      RelOptTable targetTable) {
+    List<ColumnStrategy> strategies = targetTable.getColumnStrategies();
+    List<String> targetFields = targetRowType.getFieldNames();
+    List<RelDataTypeField> fields = targetTable.getRowType().getFieldList();
+
+    final int[] mapping = new int[targetFields.size()];
+    Arrays.fill(mapping, -1);
+    Ord.forEach(fields, (field, i) -> {
+      if (strategies.get(i) == ColumnStrategy.DEFAULT) {
+        int pos = targetFields.indexOf(field.getName());
+        if (pos != -1) {
+          mapping[pos] = i;
+        }
+      }
+    });
+
+    if (mapping.length != targetFields.size()) {
+      throw new AssertionError("Columns partially mapped; src=" + targetFields
+          + ", dest=" + Util.transform(fields, RelDataTypeField::getName));
+    }
+
+    return mapping;
   }
 
   //~ Inner Classes ----------------------------------------------------------

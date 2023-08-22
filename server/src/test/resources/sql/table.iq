@@ -234,4 +234,52 @@ truncate table t;
 Table 'T' not found
 !error
 
+# Create a basic table with DEFAULT constraint column
+create table tdef (i int not null, col1 int default 100, col2 int default 200);
+(0 rows modified)
+
+!update
+
+insert into tdef(i, col1) values (1, DEFAULT);
+(1 row modified)
+
+!update
+
+insert into tdef(col1, i) values (DEFAULT, 2);
+(1 row modified)
+
+!update
+
+insert into tdef(i, col2) values (3, DEFAULT);
+(1 row modified)
+
+!update
+
+insert into tdef(col2, i) values (DEFAULT, 4);
+(1 row modified)
+
+!update
+
+
+insert into tdef values (5, DEFAULT, DEFAULT), (6, DEFAULT, 6), (7, 7, DEFAULT);
+(3 rows modified)
+
+!update
+
+select * from tdef order by i;
++---+------+------+
+| I | COL1 | COL2 |
++---+------+------+
+| 1 |  100 |  200 |
+| 2 |  100 |  200 |
+| 3 |  100 |  200 |
+| 4 |  100 |  200 |
+| 5 |  100 |  200 |
+| 6 |  100 |    6 |
+| 7 |    7 |  200 |
++---+------+------+
+(7 rows)
+
+!ok
+
 # End table.iq
