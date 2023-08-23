@@ -555,8 +555,7 @@ public class RexImpTable {
       defineMethod(LEVENSHTEIN, BuiltInMethod.LEVENSHTEIN.method, NullPolicy.STRICT);
       defineMethod(SPLIT, BuiltInMethod.SPLIT.method, NullPolicy.STRICT);
       defineMethod(PARSE_URL, BuiltInMethod.PARSE_URL.method, NullPolicy.STRICT);
-      defineMethod(REGEXP_CONTAINS, BuiltInMethod.REGEXP_CONTAINS.method,
-          NullPolicy.STRICT);
+      defineReflective(REGEXP_CONTAINS, BuiltInMethod.REGEXP_CONTAINS.method);
 
       map.put(TRIM, new TrimImplementor());
 
@@ -593,8 +592,10 @@ public class RexImpTable {
       map.put(LOG, new LogImplementor());
       map.put(LOG10, new LogImplementor());
 
-      map.put(RAND, new RandImplementor());
-      map.put(RAND_INTEGER, new RandIntegerImplementor());
+      defineReflective(RAND, BuiltInMethod.RAND.method,
+          BuiltInMethod.RAND_SEED.method);
+      defineReflective(RAND_INTEGER, BuiltInMethod.RAND_INTEGER.method,
+          BuiltInMethod.RAND_INTEGER_SEED.method);
 
       defineMethod(ACOS, BuiltInMethod.ACOS.method, NullPolicy.STRICT);
       defineMethod(ACOSH, BuiltInMethod.ACOSH.method, NullPolicy.STRICT);
@@ -762,7 +763,11 @@ public class RexImpTable {
           NotImplementor.of(posixRegexImplementorCaseInsensitive));
       map.put(SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE,
           NotImplementor.of(posixRegexImplementorCaseSensitive));
-      map.put(REGEXP_REPLACE, new RegexpReplaceImplementor());
+      defineReflective(REGEXP_REPLACE,
+          BuiltInMethod.REGEXP_REPLACE3.method,
+          BuiltInMethod.REGEXP_REPLACE4.method,
+          BuiltInMethod.REGEXP_REPLACE5.method,
+          BuiltInMethod.REGEXP_REPLACE6.method);
 
       // Multisets & arrays
       defineMethod(CARDINALITY, BuiltInMethod.COLLECTION_SIZE.method,
@@ -1048,6 +1053,33 @@ public class RexImpTable {
     private void defineMethod(SqlOperator operator, Method method,
         NullPolicy nullPolicy) {
       map.put(operator, new MethodImplementor(method, nullPolicy, false));
+    }
+
+    private void defineReflective(SqlOperator operator, Method... methods) {
+      map.put(operator,
+          new AbstractRexCallImplementor(methods[0].getName(),
+              NullPolicy.STRICT, false) {
+            @Override Expression implementSafe(RexToLixTranslator translator,
+                RexCall call, List<Expression> argValueList) {
+              for (Method method : methods) {
+                if (method.getParameterCount() == argValueList.size()) {
+                  List<Expression> argValueList0 =
+                      EnumUtils.fromInternal(method.getParameterTypes(),
+                          argValueList);
+                  if (isStatic(method)) {
+                    return Expressions.call(method, argValueList0);
+                  } else {
+                    // The UDF class must have a public zero-args constructor.
+                    // Assume that the validator checked already.
+                    final Expression target =
+                        Expressions.new_(method.getDeclaringClass());
+                    return Expressions.call(target, method, argValueList0);
+                  }
+                }
+              }
+              throw new IllegalArgumentException("no matching method");
+            }
+          });
     }
 
     private void defineUnary(SqlOperator operator, ExpressionType expressionType,
@@ -4086,42 +4118,6 @@ public class RexImpTable {
         final Expression target = Expressions.new_(method.getDeclaringClass());
         return Expressions.call(target, method, argValueList0);
       }
-    }
-  }
-
-  /** Implementor for the {@code RAND} function. */
-  private static class RandImplementor extends AbstractRexCallImplementor {
-    private final AbstractRexCallImplementor[] implementors = {
-        new ReflectiveImplementor(BuiltInMethod.RAND.method, nullPolicy),
-        new ReflectiveImplementor(BuiltInMethod.RAND_SEED.method, nullPolicy)
-    };
-
-    RandImplementor() {
-      super("rand", NullPolicy.STRICT, false);
-    }
-
-    @Override Expression implementSafe(final RexToLixTranslator translator,
-        final RexCall call, final List<Expression> argValueList) {
-      return implementors[call.getOperands().size()]
-          .implementSafe(translator, call, argValueList);
-    }
-  }
-
-  /** Implementor for the {@code RAND_INTEGER} function. */
-  private static class RandIntegerImplementor extends AbstractRexCallImplementor {
-    private final AbstractRexCallImplementor[] implementors = {
-        new ReflectiveImplementor(BuiltInMethod.RAND_INTEGER.method, nullPolicy),
-        new ReflectiveImplementor(BuiltInMethod.RAND_INTEGER_SEED.method, nullPolicy)
-    };
-
-    RandIntegerImplementor() {
-      super("rand_integer", NullPolicy.STRICT, false);
-    }
-
-    @Override Expression implementSafe(final RexToLixTranslator translator,
-        final RexCall call, final List<Expression> argValueList) {
-      return implementors[call.getOperands().size() - 1]
-          .implementSafe(translator, call, argValueList);
     }
   }
 
