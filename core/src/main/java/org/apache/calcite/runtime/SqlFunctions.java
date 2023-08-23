@@ -978,78 +978,77 @@ public class SqlFunctions {
     }
   }
 
-  /** SQL {@code PARSE_URL(urlStr, partToExtract, keyToExtract)} function. */
-  public static @Nullable String parseUrl(@Nullable String urlStr,
-      @Nullable String partToExtract, @Nullable String keyToExtract) {
-    if (partToExtract == null || !partToExtract.equals("QUERY")) {
-      return null;
+  /** State for {@code PARSE_URL}. */
+  public static class ParseUrlFunction {
+    private final LoadingCache<String, Pattern> cache =
+        CacheBuilder.newBuilder().build(
+            new CacheLoader<String, Pattern>() {
+              @Override public Pattern load(String keyToExtract) {
+                return Pattern.compile("(&|^)" + keyToExtract + "=([^&]*)");
+              }
+            });
+
+    @Deterministic public ParseUrlFunction() {
     }
 
-    String query = parseUrl(urlStr, partToExtract);
-    if (query == null) {
-      return null;
-    }
-
-    Pattern p = Pattern.compile("(&|^)" + keyToExtract + "=([^&]*)");
-    Matcher m = p.matcher(query);
-    return m.find() ? m.group(2) : null;
-  }
-
-  /** SQL {@code PARSE_URL(urlStr, partToExtract)} function. */
-  public static @Nullable String parseUrl(@Nullable String urlStr,
-      @Nullable String partToExtract) {
-    if (urlStr == null || partToExtract == null) {
-      return null;
-    }
-
-    URI uri;
-    try {
-      uri = new URI(urlStr);
-    } catch (URISyntaxException e) {
-      return null;
-    }
-
-    String extractValue;
-    PartToExtract part;
-    try {
-      part = PartToExtract.valueOf(partToExtract);
-    } catch (IllegalArgumentException e) {
-      return null;
-    }
-
-    switch (part) {
-    case HOST:
-      extractValue = uri.getHost();
-      break;
-    case PATH:
-      extractValue = uri.getRawPath();
-      break;
-    case QUERY:
-      extractValue = uri.getRawQuery();
-      break;
-    case REF:
-      extractValue = uri.getRawFragment();
-      break;
-    case PROTOCOL:
-      extractValue = uri.getScheme();
-      break;
-    case FILE:
-      if (uri.getRawQuery() != null) {
-        extractValue = uri.getRawPath() + "?" + uri.getRawQuery();
-      } else {
-        extractValue = uri.getRawPath();
+    /** SQL {@code PARSE_URL(urlStr, partToExtract, keyToExtract)} function. */
+    public @Nullable String parseUrl(String urlStr, String partToExtract,
+        String keyToExtract) {
+      if (!partToExtract.equals("QUERY")) {
+        return null;
       }
-      break;
-    case AUTHORITY:
-      extractValue = uri.getRawAuthority();
-      break;
-    case USERINFO:
-      extractValue = uri.getRawUserInfo();
-      break;
-    default:
-      extractValue = null;
+
+      String query = parseUrl(urlStr, partToExtract);
+      if (query == null) {
+        return null;
+      }
+
+      Pattern p = cache.getUnchecked(keyToExtract);
+      Matcher m = p.matcher(query);
+      return m.find() ? m.group(2) : null;
     }
-    return extractValue;
+
+    /** SQL {@code PARSE_URL(urlStr, partToExtract)} function. */
+    public @Nullable String parseUrl(String urlStr, String partToExtract) {
+      URI uri;
+      try {
+        uri = new URI(urlStr);
+      } catch (URISyntaxException e) {
+        return null;
+      }
+
+      PartToExtract part;
+      try {
+        part = PartToExtract.valueOf(partToExtract);
+      } catch (IllegalArgumentException e) {
+        return null;
+      }
+
+      switch (part) {
+      case HOST:
+        return uri.getHost();
+      case PATH:
+        return uri.getRawPath();
+      case QUERY:
+        return uri.getRawQuery();
+      case REF:
+        return uri.getRawFragment();
+      case PROTOCOL:
+        return uri.getScheme();
+      case FILE:
+        if (uri.getRawQuery() != null) {
+          return uri.getRawPath() + "?" + uri.getRawQuery();
+        } else {
+          return uri.getRawPath();
+        }
+      case AUTHORITY:
+        return uri.getRawAuthority();
+      case USERINFO:
+        return uri.getRawUserInfo();
+      default:
+        return null;
+      }
+    }
   }
 
   /** SQL {@code RTRIM} function applied to string. */
@@ -4992,7 +4991,7 @@ public class SqlFunctions {
   }
 
   /** Type of part to extract passed into {@link #parseUrl}. */
-  public enum PartToExtract {
+  private enum PartToExtract {
     HOST,
     PATH,
     QUERY,
@@ -5002,5 +5001,4 @@ public class SqlFunctions {
     AUTHORITY,
     USERINFO;
   }
-
 }

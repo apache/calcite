@@ -554,7 +554,8 @@ public class RexImpTable {
       defineMethod(REVERSE, BuiltInMethod.REVERSE.method, NullPolicy.STRICT);
       defineMethod(LEVENSHTEIN, BuiltInMethod.LEVENSHTEIN.method, NullPolicy.STRICT);
       defineMethod(SPLIT, BuiltInMethod.SPLIT.method, NullPolicy.STRICT);
-      defineMethod(PARSE_URL, BuiltInMethod.PARSE_URL.method, NullPolicy.STRICT);
+      defineReflective(PARSE_URL, BuiltInMethod.PARSE_URL2.method,
+          BuiltInMethod.PARSE_URL3.method);
       defineReflective(REGEXP_CONTAINS, BuiltInMethod.REGEXP_CONTAINS.method);
 
       map.put(TRIM, new TrimImplementor());
