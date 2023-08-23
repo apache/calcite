@@ -737,19 +737,16 @@ public class RexImpTable {
       map.put(IS_FALSE, new IsFalseImplementor());
       map.put(IS_NOT_FALSE, new IsNotFalseImplementor());
 
-      // LIKE, ILIKE and SIMILAR
+      // LIKE, ILIKE, RLIKE and SIMILAR
       map.put(LIKE,
           new MethodImplementor(BuiltInMethod.LIKE.method, NullPolicy.STRICT,
               false));
       map.put(ILIKE,
           new MethodImplementor(BuiltInMethod.ILIKE.method, NullPolicy.STRICT,
               false));
-      map.put(RLIKE,
-          new MethodImplementor(BuiltInMethod.RLIKE.method, NullPolicy.STRICT,
-              false));
-      map.put(SIMILAR_TO,
-          new MethodImplementor(BuiltInMethod.SIMILAR.method, NullPolicy.STRICT,
-              false));
+      defineReflective(RLIKE, BuiltInMethod.RLIKE.method);
+      defineReflective(SIMILAR_TO, BuiltInMethod.SIMILAR.method,
+          BuiltInMethod.SIMILAR_ESCAPE.method);
 
       // POSIX REGEX
       final MethodImplementor posixRegexImplementorCaseSensitive =

@@ -271,11 +271,12 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     final NlsString pattern = (NlsString) values.get(1);
     switch (values.size()) {
     case 2:
-      return SqlFunctions.similar(value.getValue(), pattern.getValue());
+      return new SqlFunctions.SimilarFunction()
+          .similar(value.getValue(), pattern.getValue());
     case 3:
       final NlsString escape = (NlsString) values.get(2);
-      return SqlFunctions.similar(value.getValue(), pattern.getValue(),
-          escape.getValue());
+      return new SqlFunctions.SimilarEscapeFunction()
+          .similar(value.getValue(), pattern.getValue(), escape.getValue());
     default:
       throw new AssertionError();
     }

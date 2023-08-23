@@ -357,7 +357,11 @@ public class SqlFunctions {
     return DigestUtils.sha512Hex(string.getBytes());
   }
 
-  /** State for {@code REGEXP_REPLACE}. */
+  /** State for {@code REGEXP_REPLACE}.
+   *
+   * <p>Marked deterministic so that the code generator instantiates one once
+   * per query, not once per row. */
+  @Deterministic
   public static class RegexFunction {
     private final LoadingCache<Ord<String>, Pattern> cache =
         CacheBuilder.newBuilder().build(
@@ -369,13 +373,6 @@ public class SqlFunctions {
                 return Pattern.compile(regex, flags);
               }
             });
-
-    /** Creates a RegexFunction.
-     *
-     * <p>Marked deterministic so that the code generator instantiates one once
-     * per query, not once per row. */
-    @Deterministic public RegexFunction() {
-    }
 
     /** SQL {@code REGEXP_CONTAINS(value, regexp)} function.
      * Throws a runtime exception for invalid regular expressions.*/
@@ -979,6 +976,7 @@ public class SqlFunctions {
   }
 
   /** State for {@code PARSE_URL}. */
+  @Deterministic
   public static class ParseUrlFunction {
     private final LoadingCache<String, Pattern> cache =
         CacheBuilder.newBuilder().build(
@@ -987,9 +985,6 @@ public class SqlFunctions {
                 return Pattern.compile("(&|^)" + keyToExtract + "=([^&]*)");
               }
             });
-
-    @Deterministic public ParseUrlFunction() {
-    }
 
     /** SQL {@code PARSE_URL(urlStr, partToExtract, keyToExtract)} function. */
     public @Nullable String parseUrl(String urlStr, String partToExtract,
@@ -1196,16 +1191,38 @@ public class SqlFunctions {
     return Pattern.compile(pattern).matcher(s).find();
   }
 
-  /** SQL {@code SIMILAR} function. */
-  public static boolean similar(String s, String pattern) {
-    final String regex = Like.sqlToRegexSimilar(pattern, null);
-    return Pattern.matches(regex, s);
+  /** State for {@code SIMILAR} function. */
+  @Deterministic
+  public static class SimilarFunction {
+    private final LoadingCache<String, Pattern> cache =
+        CacheBuilder.newBuilder().build(
+            new CacheLoader<String, Pattern>() {
+              @Override public Pattern load(String pattern) {
+                return Pattern.compile(Like.sqlToRegexSimilar(pattern, null));
+              }
+            });
+
+    /** SQL {@code SIMILAR} function. */
+    public boolean similar(String s, String pattern) {
+      return cache.getUnchecked(pattern).matcher(s).matches();
+    }
   }
 
-  /** SQL {@code SIMILAR} function with escape. */
-  public static boolean similar(String s, String pattern, String escape) {
-    final String regex = Like.sqlToRegexSimilar(pattern, escape);
-    return Pattern.matches(regex, s);
+  /** State for {@code SIMILAR} function with escape. */
+  public static class SimilarEscapeFunction {
+    private final LoadingCache<MapEntry<String, String>, Pattern> cache =
+        CacheBuilder.newBuilder().build(
+            new CacheLoader<MapEntry<String, String>, Pattern>() {
+              @Override public Pattern load(MapEntry<String, String> p) {
+                return Pattern.compile(Like.sqlToRegexSimilar(p.t, p.u));
+              }
+            });
+
+    /** SQL {@code SIMILAR} function with escape. */
+    public boolean similar(String s, String pattern, String escape) {
+      return cache.getUnchecked(new MapEntry<>(pattern, escape))
+          .matcher(s).matches();
+    }
   }
 
   public static boolean posixRegex(String s, String regex, boolean caseSensitive) {
