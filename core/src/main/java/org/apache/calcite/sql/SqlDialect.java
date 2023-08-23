@@ -971,8 +971,7 @@ public class SqlDialect {
   }
 
   public SqlNode getCastCall(SqlKind sqlKind, SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
-    SqlFunction sqlCastOperator = sqlKind == SqlKind.SAFE_CAST ? SqlLibraryOperators.SAFE_CAST : CAST;
-    return sqlCastOperator.createCall(SqlParserPos.ZERO,
+    return CAST.createCall(SqlParserPos.ZERO,
       operandToCast, Nullness.castNonNull(this.getCastSpec(castTo)));
   }
 

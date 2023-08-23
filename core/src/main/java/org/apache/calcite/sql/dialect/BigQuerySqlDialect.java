@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.linq4j.Nullness;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
@@ -149,21 +150,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MI;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MISS;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHHMISS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.ACOS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_DIFF;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.FARM_FINGERPRINT;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MILLIS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MICROS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MILLIS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_SECONDS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.*;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
@@ -546,6 +533,9 @@ public class BigQuerySqlDialect extends SqlDialect {
           castTo.getPrecision());
     } else if (castTo.getSqlTypeName() == SqlTypeName.TIME && castTo.getPrecision() > 0) {
       return makCastCallForTimeWithPrecision(operandToCast, castTo.getPrecision());
+    } else if (sqlKind == SqlKind.SAFE_CAST) {
+      return SAFE_CAST.createCall(SqlParserPos.ZERO,
+          operandToCast, Nullness.castNonNull(this.getCastSpec(castTo)));
     }
     return super.getCastCall(sqlKind, operandToCast, castFrom, castTo);
   }
