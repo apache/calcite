@@ -228,9 +228,6 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private static final String TEMP_REGEX = "\\s?°([CcFf])";
 
-  private static final Pattern COMMENT_REGEX =
-      Pattern.compile(".*''.*''.*");
-
   private static final Pattern FLOAT_REGEX =
       Pattern.compile("[\"|'][+\\-]?([0-9]*[.])[0-9]+[\"|']");
   /**
