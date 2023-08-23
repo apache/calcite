@@ -540,14 +540,14 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   @Override public SqlNode getCastCall(
-      SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
+      SqlKind sqlKind, SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
     if (castTo.getSqlTypeName() == SqlTypeName.TIMESTAMP && castTo.getPrecision() > 0) {
       return new CastCallBuilder(this).makCastCallForTimestampWithPrecision(operandToCast,
           castTo.getPrecision());
     } else if (castTo.getSqlTypeName() == SqlTypeName.TIME && castTo.getPrecision() > 0) {
       return makCastCallForTimeWithPrecision(operandToCast, castTo.getPrecision());
     }
-    return super.getCastCall(operandToCast, castFrom, castTo);
+    return super.getCastCall(sqlKind, operandToCast, castFrom, castTo);
   }
 
   private SqlNode makCastCallForTimeWithPrecision(SqlNode operandToCast, int precision) {

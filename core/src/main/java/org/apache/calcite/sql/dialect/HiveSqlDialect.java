@@ -220,7 +220,7 @@ public class HiveSqlDialect extends SqlDialect {
   }
 
   @Override public SqlNode getCastCall(
-      SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
+      SqlKind sqlKind, SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
     if (castTo.getSqlTypeName() == SqlTypeName.TIMESTAMP && castTo.getPrecision() > 0) {
       return new CastCallBuilder(this).makCastCallForTimestampWithPrecision(operandToCast,
           castTo.getPrecision());
@@ -231,7 +231,7 @@ public class HiveSqlDialect extends SqlDialect {
       }
       return operandToCast;
     }
-    return super.getCastCall(operandToCast, castFrom, castTo);
+    return super.getCastCall(sqlKind, operandToCast, castFrom, castTo);
   }
 
   @Override public SqlNode getTimeLiteral(

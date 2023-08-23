@@ -11092,6 +11092,20 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
+  @Test public void testSafeCast() {
+    final RelBuilder builder = relBuilder();
+    RelDataType type = builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    final RexNode safeCastNode = builder.getRexBuilder().makeAbstractCast(type,
+        builder.literal(1234), true);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(safeCastNode)
+        .build();
+    final String expectedBqSql = "SELECT SAFE_CAST(1234 AS STRING) AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
+  }
+
   @Test public void testFormatFunctionCastAsInteger() {
     final RelBuilder builder = relBuilder();
     final RexNode formatIntegerCastRexNode = builder.cast(
