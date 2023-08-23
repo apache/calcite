@@ -251,7 +251,8 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.test.redis", true);
 
   /**
-   * Whether to use Docker containers (https://www.testcontainers.org/) in tests.
+   * Whether to use
+   * <a href="https://www.testcontainers.org/">Docker containers</a> in tests.
    *
    * <p>If the property is set to <code>true</code>, affected tests will attempt
    * to start Docker containers; when Docker is not available tests fallback to
@@ -303,7 +304,7 @@ public final class CalciteSystemProperty<T> {
    * The name of the default national character set.
    *
    * <p>It is used with the N'string' construct in
-   * {@link org.apache.calcite.sql.SqlLiteral#SqlLiteral}
+   * {@link org.apache.calcite.sql.SqlLiteral}
    * and may be different from the {@link #DEFAULT_CHARSET}.
    */
   // TODO review zabetak:
@@ -315,7 +316,7 @@ public final class CalciteSystemProperty<T> {
    * The name of the default collation.
    *
    * <p>It is used in {@link org.apache.calcite.sql.SqlCollation} and
-   * {@link org.apache.calcite.sql.SqlLiteral#SqlLiteral}.
+   * {@link org.apache.calcite.sql.SqlLiteral}.
    */
   // TODO review zabetak:
   // What happens if a wrong value is specified?
@@ -328,7 +329,7 @@ public final class CalciteSystemProperty<T> {
    * tertiary, identical.
    *
    * <p>It is used in {@link org.apache.calcite.sql.SqlCollation} and
-   * {@link org.apache.calcite.sql.SqlLiteral#SqlLiteral}.
+   * {@link org.apache.calcite.sql.SqlLiteral}.
    */
   // TODO review zabetak:
   // What happens if a wrong value is specified?
@@ -364,7 +365,7 @@ public final class CalciteSystemProperty<T> {
    * <p>Setting this property to 0 disables the cache.
    */
   public static final CalciteSystemProperty<Integer> BINDABLE_CACHE_MAX_SIZE =
-      intProperty("calcite.bindable.cache.maxSize", 0, v -> v >= 0 && v <= Integer.MAX_VALUE);
+      intProperty("calcite.bindable.cache.maxSize", 0, v -> v >= 0);
 
   /**
    * The concurrency level of the cache used for storing Bindable objects,
@@ -380,15 +381,44 @@ public final class CalciteSystemProperty<T> {
    * {@link #BINDABLE_CACHE_MAX_SIZE} set to 0.
    */
   public static final CalciteSystemProperty<Integer> BINDABLE_CACHE_CONCURRENCY_LEVEL =
-      intProperty("calcite.bindable.cache.concurrencyLevel", 1,
-          v -> v >= 1 && v <= Integer.MAX_VALUE);
+      intProperty("calcite.bindable.cache.concurrencyLevel", 1, v -> v >= 1);
+
+  /**
+   * The maximum number of items in a function-level cache.
+   *
+   * <p>A few SQL functions have expensive processing that, if its results are
+   * cached, can be reused by future calls to the function. One such function
+   * is {@code RLIKE}, whose arguments are a regular expression and a string.
+   * The regular expression needs to be compiled to a
+   * {@link java.util.regex.Pattern}. Compilation is expensive, and within a
+   * particular query, the arguments are often the same string, or a small
+   * number of distinct strings, so caching makes sense.
+   *
+   * <p>Therefore, functions such as {@code RLIKE}, {@code SIMILAR TO},
+   * {@code PARSE_URL}, {@code PARSE_TIMESTAMP}, {@code FORMAT_DATE} have a
+   * function-level cache. The cache is created in the code generated for the
+   * query, at the call site of the function, and expires when the query has
+   * finished executing. Such caches do not need time-based expiration, but
+   * we need to cap the size of the cache to deal with scenarios such as a
+   * billion-row table where every row has a distinct regular expression.
+   *
+   * <p>Because of how Calcite generates and executes code in Enumerable
+   * convention, each function object is used from a single thread. Therefore,
+   * non thread-safe objects such as {@link java.text.DateFormat} can be safely
+   * cached.
+   *
+   * <p>The value of this parameter limits the size of every function-level
+   * cache in Calcite. The default value is 1,000.
+   */
+  public static final CalciteSystemProperty<Integer> FUNCTION_LEVEL_CACHE_MAX_SIZE =
+      intProperty("calcite.function.cache.maxSize", 0, v -> v >= 0);
 
   private static CalciteSystemProperty<Boolean> booleanProperty(String key,
       boolean defaultValue) {
     // Note that "" -> true (convenient for command-lines flags like '-Dflag')
     return new CalciteSystemProperty<>(key,
         v -> v == null ? defaultValue
-            : "".equals(v) || Boolean.parseBoolean(v));
+            : v.isEmpty() || Boolean.parseBoolean(v));
   }
 
   private static CalciteSystemProperty<Integer> intProperty(String key, int defaultValue) {

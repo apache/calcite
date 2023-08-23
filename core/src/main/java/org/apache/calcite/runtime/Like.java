@@ -310,16 +310,22 @@ public class Like {
     return javaPattern.toString();
   }
 
-  static java.util.regex.Pattern posixRegexToPattern(String regex, boolean caseSensitive) {
+  static java.util.regex.Pattern posixRegexToPattern(String regex,
+      boolean caseSensitive) {
+    int flags = caseSensitive ? 0 : java.util.regex.Pattern.CASE_INSENSITIVE;
+    return posixRegexToPattern(regex, flags);
+  }
+
+  static java.util.regex.Pattern posixRegexToPattern(String regex, int flags) {
     // Replace existing character classes with java equivalent ones
     String originalRegex = regex;
     String[] existingExpressions = Arrays.stream(POSIX_CHARACTER_CLASSES)
-        .filter(v -> originalRegex.contains(v.toLowerCase(Locale.ROOT))).toArray(String[]::new);
+        .filter(v -> originalRegex.contains(v.toLowerCase(Locale.ROOT)))
+        .toArray(String[]::new);
     for (String v : existingExpressions) {
       regex = regex.replace(v.toLowerCase(Locale.ROOT), "\\p{" + v + "}");
     }
 
-    int flags = caseSensitive ? 0 : java.util.regex.Pattern.CASE_INSENSITIVE;
     return java.util.regex.Pattern.compile(regex, flags);
   }
 }

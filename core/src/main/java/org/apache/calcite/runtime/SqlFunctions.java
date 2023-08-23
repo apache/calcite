@@ -27,6 +27,7 @@ import org.apache.calcite.linq4j.CartesianProductEnumerator;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Function1;
@@ -43,6 +44,7 @@ import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.format.FormatElement;
+import org.apache.calcite.util.format.FormatModel;
 import org.apache.calcite.util.format.FormatModels;
 
 import org.apache.commons.codec.DecoderException;
@@ -55,7 +57,11 @@ import org.apache.commons.text.similarity.LevenshteinDistance;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
@@ -72,6 +78,7 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
@@ -106,14 +113,18 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import static org.apache.calcite.config.CalciteSystemProperty.FUNCTION_LEVEL_CACHE_MAX_SIZE;
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -354,54 +365,87 @@ public class SqlFunctions {
     return DigestUtils.sha512Hex(string.getBytes());
   }
 
-  /** SQL {@code REGEXP_CONTAINS(value, regexp)} function.
-   * Throws a runtime exception for invalid regular expressions.*/
-  public static boolean regexpContains(String value, String regex) {
-    try {
-      // Uses java.util.regex as a standard for regex processing
-      // in Calcite instead of RE2 used by BigQuery/GoogleSQL
-      Pattern regexp = Pattern.compile(regex);
-      return regexp.matcher(value).find();
-    } catch (PatternSyntaxException ex) {
-      throw RESOURCE.invalidInputForRegexpContains(ex.getMessage().replace("\r\n", " ")
-          .replace("\n", " ").replace("\r", " ")).ex();
-    }
-  }
+  /** State for {@code REGEXP_CONTAINS}, {@code REGEXP_REPLACE}, {@code RLIKE}.
+   *
+   * <p>Marked deterministic so that the code generator instantiates one once
+   * per query, not once per row. */
+  @Deterministic
+  public static class RegexFunction {
+    /** Cache key. */
+    private static class Key extends Ord<String> {
+      Key(int flags, String regex) {
+        super(flags, regex);
+      }
 
-  /** SQL {@code REGEXP_REPLACE} function with 3 arguments. */
-  public static String regexpReplace(String s, String regex,
-      String replacement) {
-    return regexpReplace(s, regex, replacement, 1, 0, null);
-  }
-
-  /** SQL {@code REGEXP_REPLACE} function with 4 arguments. */
-  public static String regexpReplace(String s, String regex, String replacement,
-      int pos) {
-    return regexpReplace(s, regex, replacement, pos, 0, null);
-  }
-
-  /** SQL {@code REGEXP_REPLACE} function with 5 arguments. */
-  public static String regexpReplace(String s, String regex, String replacement,
-      int pos, int occurrence) {
-    return regexpReplace(s, regex, replacement, pos, occurrence, null);
-  }
-
-  /** SQL {@code REGEXP_REPLACE} function with 6 arguments. */
-  public static String regexpReplace(String s, String regex, String replacement,
-      int pos, int occurrence, @Nullable String matchType) {
-    if (pos < 1 || pos > s.length()) {
-      throw RESOURCE.invalidInputForRegexpReplace(Integer.toString(pos)).ex();
+      @SuppressWarnings("MagicConstant")
+      Pattern toPattern() {
+        return Pattern.compile(e, i);
+      }
     }
 
-    final int flags = makeRegexpFlags(matchType);
-    final Pattern pattern = Pattern.compile(regex, flags);
+    private final LoadingCache<Key, Pattern> cache =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(Key::toPattern));
 
-    return Unsafe.regexpReplace(s, pattern, replacement, pos, occurrence);
-  }
+    /** SQL {@code REGEXP_CONTAINS(value, regexp)} function.
+     * Throws a runtime exception for invalid regular expressions.*/
+    public boolean regexpContains(String value, String regex) {
+      final Pattern pattern;
+      try {
+        // Uses java.util.regex as a standard for regex processing
+        // in Calcite instead of RE2 used by BigQuery/GoogleSQL
+        pattern = cache.getUnchecked(new Key(0, regex));
+      } catch (UncheckedExecutionException e) {
+        if (e.getCause() instanceof PatternSyntaxException) {
+          throw RESOURCE.invalidInputForRegexpContains(
+              stripLineEndings(
+                  requireNonNull(e.getCause().getMessage(), "message"))).ex();
+        }
+        throw e;
+      }
+      return pattern.matcher(value).find();
+    }
 
-  private static int makeRegexpFlags(@Nullable String stringFlags) {
-    int flags = 0;
-    if (stringFlags != null) {
+    private static String stripLineEndings(String message) {
+      return message.replace("\r\n", " ")
+          .replace("\n", " ")
+          .replace("\r", " ");
+    }
+
+    /** SQL {@code REGEXP_REPLACE} function with 3 arguments. */
+    public String regexpReplace(String s, String regex,
+        String replacement) {
+      return regexpReplace(s, regex, replacement, 1, 0, null);
+    }
+
+    /** SQL {@code REGEXP_REPLACE} function with 4 arguments. */
+    public String regexpReplace(String s, String regex, String replacement,
+        int pos) {
+      return regexpReplace(s, regex, replacement, pos, 0, null);
+    }
+
+    /** SQL {@code REGEXP_REPLACE} function with 5 arguments. */
+    public String regexpReplace(String s, String regex, String replacement,
+        int pos, int occurrence) {
+      return regexpReplace(s, regex, replacement, pos, occurrence, null);
+    }
+
+    /** SQL {@code REGEXP_REPLACE} function with 6 arguments. */
+    public String regexpReplace(String s, String regex, String replacement,
+        int pos, int occurrence, @Nullable String matchType) {
+      if (pos < 1 || pos > s.length()) {
+        throw RESOURCE.invalidInputForRegexpReplace(Integer.toString(pos)).ex();
+      }
+
+      final int flags = matchType == null ? 0 : makeRegexpFlags(matchType);
+      final Pattern pattern = cache.getUnchecked(new Key(flags, regex));
+
+      return Unsafe.regexpReplace(s, pattern, replacement, pos, occurrence);
+    }
+
+    private static int makeRegexpFlags(String stringFlags) {
+      int flags = 0;
       for (int i = 0; i < stringFlags.length(); ++i) {
         switch (stringFlags.charAt(i)) {
         case 'i':
@@ -420,8 +464,13 @@ public class SqlFunctions {
           throw RESOURCE.invalidInputForRegexpReplace(stringFlags).ex();
         }
       }
+      return flags;
     }
-    return flags;
+
+    /** SQL {@code RLIKE} function. */
+    public boolean rlike(String s, String pattern) {
+      return cache.getUnchecked(new Key(0, pattern)).matcher(s).find();
+    }
   }
 
   /** SQL {@code LPAD(string, integer, string)} function. */
@@ -1069,78 +1118,76 @@ public class SqlFunctions {
     }
   }
 
-  /** SQL {@code PARSE_URL(urlStr, partToExtract, keyToExtract)} function. */
-  public static @Nullable String parseUrl(@Nullable String urlStr,
-      @Nullable String partToExtract, @Nullable String keyToExtract) {
-    if (partToExtract == null || !partToExtract.equals("QUERY")) {
-      return null;
+  /** State for {@code PARSE_URL}. */
+  @Deterministic
+  public static class ParseUrlFunction {
+    static Pattern keyToPattern(String keyToExtract) {
+      return Pattern.compile("(&|^)" + keyToExtract + "=([^&]*)");
     }
 
-    String query = parseUrl(urlStr, partToExtract);
-    if (query == null) {
-      return null;
-    }
+    private final LoadingCache<String, Pattern> cache =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(ParseUrlFunction::keyToPattern));
 
-    Pattern p = Pattern.compile("(&|^)" + keyToExtract + "=([^&]*)");
-    Matcher m = p.matcher(query);
-    return m.find() ? m.group(2) : null;
-  }
-
-  /** SQL {@code PARSE_URL(urlStr, partToExtract)} function. */
-  public static @Nullable String parseUrl(@Nullable String urlStr,
-      @Nullable String partToExtract) {
-    if (urlStr == null || partToExtract == null) {
-      return null;
-    }
-
-    URI uri;
-    try {
-      uri = new URI(urlStr);
-    } catch (URISyntaxException e) {
-      return null;
-    }
-
-    String extractValue;
-    PartToExtract part;
-    try {
-      part = PartToExtract.valueOf(partToExtract);
-    } catch (IllegalArgumentException e) {
-      return null;
-    }
-
-    switch (part) {
-    case HOST:
-      extractValue = uri.getHost();
-      break;
-    case PATH:
-      extractValue = uri.getRawPath();
-      break;
-    case QUERY:
-      extractValue = uri.getRawQuery();
-      break;
-    case REF:
-      extractValue = uri.getRawFragment();
-      break;
-    case PROTOCOL:
-      extractValue = uri.getScheme();
-      break;
-    case FILE:
-      if (uri.getRawQuery() != null) {
-        extractValue = uri.getRawPath() + "?" + uri.getRawQuery();
-      } else {
-        extractValue = uri.getRawPath();
+    /** SQL {@code PARSE_URL(urlStr, partToExtract, keyToExtract)} function. */
+    public @Nullable String parseUrl(String urlStr, String partToExtract,
+        String keyToExtract) {
+      if (!partToExtract.equals("QUERY")) {
+        return null;
       }
-      break;
-    case AUTHORITY:
-      extractValue = uri.getRawAuthority();
-      break;
-    case USERINFO:
-      extractValue = uri.getRawUserInfo();
-      break;
-    default:
-      extractValue = null;
+
+      String query = parseUrl(urlStr, partToExtract);
+      if (query == null) {
+        return null;
+      }
+
+      Pattern p = cache.getUnchecked(keyToExtract);
+      Matcher m = p.matcher(query);
+      return m.find() ? m.group(2) : null;
     }
-    return extractValue;
+
+    /** SQL {@code PARSE_URL(urlStr, partToExtract)} function. */
+    public @Nullable String parseUrl(String urlStr, String partToExtract) {
+      URI uri;
+      try {
+        uri = new URI(urlStr);
+      } catch (URISyntaxException e) {
+        return null;
+      }
+
+      PartToExtract part;
+      try {
+        part = PartToExtract.valueOf(partToExtract);
+      } catch (IllegalArgumentException e) {
+        return null;
+      }
+
+      switch (part) {
+      case HOST:
+        return uri.getHost();
+      case PATH:
+        return uri.getRawPath();
+      case QUERY:
+        return uri.getRawQuery();
+      case REF:
+        return uri.getRawFragment();
+      case PROTOCOL:
+        return uri.getScheme();
+      case FILE:
+        if (uri.getRawQuery() != null) {
+          return uri.getRawPath() + "?" + uri.getRawQuery();
+        } else {
+          return uri.getRawPath();
+        }
+      case AUTHORITY:
+        return uri.getRawAuthority();
+      case USERINFO:
+        return uri.getRawUserInfo();
+      default:
+        return null;
+      }
+    }
   }
 
   /** SQL {@code RTRIM} function applied to string. */
@@ -1259,50 +1306,136 @@ public class SqlFunctions {
         .concat(s.substring(start - 1 + length));
   }
 
-  /** SQL {@code LIKE} function. */
-  public static boolean like(String s, String pattern) {
-    final String regex = Like.sqlToRegexLike(pattern, null);
-    return Pattern.matches(regex, s);
+  /** State for {@code LIKE}, {@code ILIKE}. */
+  @Deterministic
+  public static class LikeFunction {
+    /** Key for cache of compiled regular expressions. */
+    private static final class Key {
+      final String pattern;
+      final @Nullable String escape;
+      final int flags;
+
+      Key(String pattern, @Nullable String escape, int flags) {
+        this.pattern = pattern;
+        this.escape = escape;
+        this.flags = flags;
+      }
+
+      @Override public int hashCode() {
+        return pattern.hashCode()
+            ^ (escape == null ? 0 : escape.hashCode())
+            ^ flags;
+      }
+
+      @Override public boolean equals(@Nullable Object obj) {
+        return this == obj
+            || obj instanceof Key
+            && pattern.equals(((Key) obj).pattern)
+            && Objects.equals(escape, ((Key) obj).escape)
+            && flags == ((Key) obj).flags;
+      }
+
+      Pattern toPattern() {
+        String regex = Like.sqlToRegexLike(pattern, escape);
+        return Pattern.compile(regex, flags);
+      }
+    }
+
+    private final LoadingCache<Key, Pattern> cache =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(Key::toPattern));
+
+    /** SQL {@code LIKE} function. */
+    public boolean like(String s, String pattern) {
+      final Key key = new Key(pattern, null, 0);
+      return cache.getUnchecked(key).matcher(s).matches();
+    }
+
+    /** SQL {@code LIKE} function with escape. */
+    public boolean like(String s, String pattern, String escape) {
+      final Key key = new Key(pattern, escape, 0);
+      return cache.getUnchecked(key).matcher(s).matches();
+    }
+
+    /** SQL {@code ILIKE} function. */
+    public boolean ilike(String s, String pattern) {
+      final Key key = new Key(pattern, null, Pattern.CASE_INSENSITIVE);
+      return cache.getUnchecked(key).matcher(s).matches();
+    }
+
+    /** SQL {@code ILIKE} function with escape. */
+    public boolean ilike(String s, String pattern, String escape) {
+      final Key key = new Key(pattern, escape, Pattern.CASE_INSENSITIVE);
+      return cache.getUnchecked(key).matcher(s).matches();
+    }
   }
 
-  /** SQL {@code LIKE} function with escape. */
-  public static boolean like(String s, String pattern, String escape) {
-    final String regex = Like.sqlToRegexLike(pattern, escape);
-    return Pattern.matches(regex, s);
+  /** State for {@code SIMILAR} function. */
+  @Deterministic
+  public static class SimilarFunction {
+    private final LoadingCache<String, Pattern> cache =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(
+                CacheLoader.from(pattern ->
+                    Pattern.compile(Like.sqlToRegexSimilar(pattern, null))));
+
+    /** SQL {@code SIMILAR} function. */
+    public boolean similar(String s, String pattern) {
+      return cache.getUnchecked(pattern).matcher(s).matches();
+    }
   }
 
-  /** SQL {@code ILIKE} function. */
-  public static boolean ilike(String s, String pattern) {
-    final String regex = Like.sqlToRegexLike(pattern, null);
-    return Pattern.compile(regex, Pattern.CASE_INSENSITIVE).matcher(s).matches();
+  /** State for {@code SIMILAR} function with escape. */
+  public static class SimilarEscapeFunction {
+    /** Cache key. */
+    private static class Key extends MapEntry<String, String> {
+      Key(String formatModel, String format) {
+        super(formatModel, format);
+      }
+
+      Pattern toPattern() {
+        return Pattern.compile(Like.sqlToRegexSimilar(t, u));
+      }
+    }
+
+    private final LoadingCache<Key, Pattern> cache =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(Key::toPattern));
+
+    /** SQL {@code SIMILAR} function with escape. */
+    public boolean similar(String s, String pattern, String escape) {
+      return cache.getUnchecked(new Key(pattern, escape))
+          .matcher(s).matches();
+    }
   }
 
-  /** SQL {@code ILIKE} function with escape. */
-  public static boolean ilike(String s, String pattern, String escape) {
-    final String regex = Like.sqlToRegexLike(pattern, escape);
-    return Pattern.compile(regex, Pattern.CASE_INSENSITIVE).matcher(s).matches();
-  }
+  /** State for posix regex function. */
+  @Deterministic
+  public static class PosixRegexFunction {
+    private final LoadingCache<Ord<String>, Pattern> cache =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(
+                CacheLoader.from(pattern ->
+                    Like.posixRegexToPattern(pattern.e, pattern.i)));
 
-  /** SQL {@code RLIKE} function. */
-  public static boolean rlike(String s, String pattern) {
-    return Pattern.compile(pattern).matcher(s).find();
-  }
+    boolean posixRegex(String s, String regex, int flags) {
+      final Ord<String> key = Ord.of(flags, regex);
+      return cache.getUnchecked(key).matcher(s).find();
+    }
 
-  /** SQL {@code SIMILAR} function. */
-  public static boolean similar(String s, String pattern) {
-    final String regex = Like.sqlToRegexSimilar(pattern, null);
-    return Pattern.matches(regex, s);
-  }
+    /** Posix regex, case-insensitive. */
+    public boolean posixRegexInsensitive(String s, String regex) {
+      return posixRegex(s, regex, Pattern.CASE_INSENSITIVE);
+    }
 
-  /** SQL {@code SIMILAR} function with escape. */
-  public static boolean similar(String s, String pattern, String escape) {
-    final String regex = Like.sqlToRegexSimilar(pattern, escape);
-    return Pattern.matches(regex, s);
-  }
-
-  public static boolean posixRegex(String s, String regex, boolean caseSensitive) {
-    final Pattern pattern = Like.posixRegexToPattern(regex, caseSensitive);
-    return pattern.matcher(s).find();
+    /** Posix regex, case-sensitive. */
+    public boolean posixRegexSensitive(String s, String regex) {
+      return posixRegex(s, regex, 0);
+    }
   }
 
   // =
@@ -3339,97 +3472,176 @@ public class SqlFunctions {
         .toString();
   }
 
-  private static String internalFormatDatetime(String fmtString, java.util.Date date) {
-    StringBuilder sb = new StringBuilder();
-    List<FormatElement> elements = FormatModels.BIG_QUERY.parse(fmtString);
-    elements.forEach(ele -> ele.format(sb, date));
-    return sb.toString();
-  }
+  /** State for {@code FORMAT_DATE}, {@code FORMAT_TIMESTAMP},
+   * {@code FORMAT_DATETIME}, {@code FORMAT_TIME}, {@code TO_CHAR} functions. */
+  @Deterministic
+  public static class DateFormatFunction {
+    /** Work space for various functions. Clear it before you use it. */
+    final StringBuilder sb = new StringBuilder();
 
-  public static String formatTimestamp(DataContext ctx, String fmtString, long timestamp) {
-    return internalFormatDatetime(fmtString, internalToTimestamp(timestamp));
-  }
-
-  public static String toChar(long timestamp, String pattern) {
-    List<FormatElement> elements = FormatModels.POSTGRESQL.parse(pattern);
-    StringBuilder sb = new StringBuilder();
-    elements.forEach(ele ->  ele.format(sb, internalToTimestamp(timestamp)));
-    return sb.toString().trim();
-  }
-
-  public static String formatDate(DataContext ctx, String fmtString, int date) {
-    return internalFormatDatetime(fmtString, internalToDate(date));
-  }
-
-  public static String formatTime(DataContext ctx, String fmtString, int time) {
-    return internalFormatDatetime(fmtString, internalToTime(time));
-  }
-
-  private static String parseDatetimePattern(String fmtString) {
-    StringBuilder sb = new StringBuilder();
-    List<FormatElement> elements = FormatModels.BIG_QUERY.parse(fmtString);
-    elements.forEach(ele -> ele.toPattern(sb));
-    return sb.toString();
-  }
-
-  private static long internalParseDatetime(String fmtString, String datetime) {
-    return internalParseDatetime(fmtString, datetime,
-        DateTimeUtils.DEFAULT_ZONE);
-  }
-
-  private static long internalParseDatetime(String fmt, String datetime,
-      TimeZone tz) {
-    final String javaFmt = parseDatetimePattern(fmt);
-    // TODO: make Locale configurable. ENGLISH set for weekday parsing (e.g.
-    // Thursday, Friday).
-    final DateFormat parser = new SimpleDateFormat(javaFmt, Locale.ENGLISH);
-    final ParsePosition pos = new ParsePosition(0);
-    parser.setLenient(false);
-    parser.setCalendar(Calendar.getInstance(tz, Locale.ROOT));
-    Date parsed = parser.parse(datetime, pos);
-    // Throw if either the parse was unsuccessful, or the format string did not
-    // contain enough elements to parse the datetime string completely.
-    if (pos.getErrorIndex() >= 0 || pos.getIndex() != datetime.length()) {
-      SQLException e =
-          new SQLException(
-              String.format(Locale.ROOT,
-                  "Invalid format: '%s' for datetime string: '%s'.", fmt,
-                  datetime));
-      throw Util.toUnchecked(e);
+    /** Cache key. */
+    private static class Key extends MapEntry<FormatModel, String> {
+      Key(FormatModel formatModel, String format) {
+        super(formatModel, format);
+      }
     }
-    // Suppress the Errorprone warning "[JavaUtilDate] Date has a bad API that
-    // leads to bugs; prefer java.time.Instant or LocalDate" because we know
-    // what we're doing.
-    @SuppressWarnings("JavaUtilDate")
-    final long millisSinceEpoch = parsed.getTime();
-    return millisSinceEpoch;
+
+    private final LoadingCache<Key, List<FormatElement>> formatCache =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(key -> key.t.parseNoCache(key.u)));
+
+    /** Given a format string and a format model, calls an action with the
+     * list of elements obtained by parsing that format string. */
+    protected final void withElements(FormatModel formatModel, String format,
+        Consumer<List<FormatElement>> consumer) {
+      List<FormatElement> elements =
+          formatCache.getUnchecked(new Key(formatModel, format));
+      consumer.accept(elements);
+    }
+
+    private String internalFormatDatetime(String fmtString,
+        java.util.Date date) {
+      sb.setLength(0);
+      withElements(FormatModels.BIG_QUERY, fmtString, elements ->
+          elements.forEach(element -> element.format(sb, date)));
+      return sb.toString();
+    }
+
+    public String formatTimestamp(DataContext ctx, String fmtString,
+        long timestamp) {
+      return internalFormatDatetime(fmtString, internalToTimestamp(timestamp));
+    }
+
+    public String toChar(long timestamp, String pattern) {
+      final Timestamp sqlTimestamp = internalToTimestamp(timestamp);
+      sb.setLength(0);
+      withElements(FormatModels.POSTGRESQL, pattern, elements ->
+          elements.forEach(element -> element.format(sb, sqlTimestamp)));
+      return sb.toString().trim();
+    }
+
+    public String formatDate(DataContext ctx, String fmtString, int date) {
+      return internalFormatDatetime(fmtString, internalToDate(date));
+    }
+
+    public String formatTime(DataContext ctx, String fmtString, int time) {
+      return internalFormatDatetime(fmtString, internalToTime(time));
+    }
   }
 
-  public static int parseDate(String fmtString, String date) {
-    final long millisSinceEpoch = internalParseDatetime(fmtString, date);
-    return toInt(new java.sql.Date(millisSinceEpoch));
-  }
+  /** State for {@code PARSE_DATE}, {@code PARSE_TIMESTAMP},
+   * {@code PARSE_DATETIME}, {@code PARSE_TIME} functions. */
+  @Deterministic
+  public static class DateParseFunction {
+    /** Use a {@link DateFormatFunction} for its cache of parsed
+     * format strings. */
+    final DateFormatFunction f = new DateFormatFunction();
 
-  public static long parseDatetime(String fmtString, String datetime) {
-    final long millisSinceEpoch = internalParseDatetime(fmtString, datetime);
-    return toLong(new java.sql.Timestamp(millisSinceEpoch));
-  }
+    private final LoadingCache<Key, DateFormat> cache =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(key -> key.toDateFormat(f)));
 
-  public static int parseTime(String fmtString, String time) {
-    final long millisSinceEpoch = internalParseDatetime(fmtString, time);
-    return toInt(new java.sql.Time(millisSinceEpoch));
-  }
+    private <T> T withParser(String fmt, String timeZone,
+        Function<DateFormat, T> action) {
+      final DateFormat dateFormat = cache.getUnchecked(new Key(fmt, timeZone));
+      return action.apply(dateFormat);
+    }
 
-  public static long parseTimestamp(String fmtString, String timestamp) {
-    return parseTimestamp(fmtString, timestamp, "UTC");
-  }
+    private long internalParseDatetime(String fmtString, String datetime) {
+      return internalParseDatetime(fmtString, datetime,
+          DateTimeUtils.DEFAULT_ZONE.getID());
+    }
 
-  public static long parseTimestamp(String fmtString, String timestamp,
-      String timeZone) {
-    TimeZone tz = TimeZone.getTimeZone(timeZone);
-    final long millisSinceEpoch =
-        internalParseDatetime(fmtString, timestamp, tz);
-    return toLong(new java.sql.Timestamp(millisSinceEpoch), tz);
+    private long internalParseDatetime(String fmt, String datetime,
+        String timeZone) {
+      final ParsePosition pos = new ParsePosition(0);
+      Date parsed =
+          withParser(fmt, timeZone, parser -> parser.parse(datetime, pos));
+      // Throw if either the parse was unsuccessful, or the format string did
+      // not contain enough elements to parse the datetime string completely.
+      if (pos.getErrorIndex() >= 0 || pos.getIndex() != datetime.length()) {
+        SQLException e =
+            new SQLException(
+                String.format(Locale.ROOT,
+                    "Invalid format: '%s' for datetime string: '%s'.", fmt,
+                    datetime));
+        throw Util.toUnchecked(e);
+      }
+      // Suppress the Errorprone warning "[JavaUtilDate] Date has a bad API that
+      // leads to bugs; prefer java.time.Instant or LocalDate" because we know
+      // what we're doing.
+      @SuppressWarnings("JavaUtilDate")
+      final long millisSinceEpoch = parsed.getTime();
+      return millisSinceEpoch;
+    }
+
+    public int parseDate(String fmtString, String date) {
+      final long millisSinceEpoch = internalParseDatetime(fmtString, date);
+      return toInt(new java.sql.Date(millisSinceEpoch));
+    }
+
+    public long parseDatetime(String fmtString, String datetime) {
+      final long millisSinceEpoch = internalParseDatetime(fmtString, datetime);
+      return toLong(new Timestamp(millisSinceEpoch));
+    }
+
+    public int parseTime(String fmtString, String time) {
+      final long millisSinceEpoch = internalParseDatetime(fmtString, time);
+      return toInt(new Time(millisSinceEpoch));
+    }
+
+    public long parseTimestamp(String fmtString, String timestamp) {
+      return parseTimestamp(fmtString, timestamp, "UTC");
+    }
+
+    public long parseTimestamp(String fmtString, String timestamp,
+        String timeZone) {
+      TimeZone tz = TimeZone.getTimeZone(timeZone);
+      final long millisSinceEpoch =
+          internalParseDatetime(fmtString, timestamp, timeZone);
+      return toLong(new java.sql.Timestamp(millisSinceEpoch), tz);
+    }
+
+    /** Key for cache of parsed format strings. */
+    private static final class Key {
+      final String fmt;
+      final String timeZone;
+
+      Key(String fmt, String timeZone) {
+        this.fmt = fmt;
+        this.timeZone = timeZone;
+      }
+
+      @Override public int hashCode() {
+        return fmt.hashCode()
+            + timeZone.hashCode() * 37;
+      }
+
+      @Override public boolean equals(@Nullable Object obj) {
+        return this == obj
+            || obj instanceof Key
+            && fmt.equals(((Key) obj).fmt)
+            && timeZone.equals(((Key) obj).timeZone);
+      }
+
+      DateFormat toDateFormat(DateFormatFunction f) {
+        f.sb.setLength(0);
+        f.withElements(FormatModels.BIG_QUERY, fmt, elements ->
+            elements.forEach(ele -> ele.toPattern(f.sb)));
+        final String javaFmt = f.sb.toString();
+
+        // TODO: make Locale configurable. ENGLISH set for weekday
+        // parsing (e.g. Thursday, Friday).
+        final DateFormat parser =
+            new SimpleDateFormat(javaFmt, Locale.ENGLISH);
+        parser.setLenient(false);
+        TimeZone tz = TimeZone.getTimeZone(timeZone);
+        parser.setCalendar(Calendar.getInstance(tz, Locale.ROOT));
+        return parser;
+      }
+    }
   }
 
   /**
@@ -5141,8 +5353,8 @@ public class SqlFunctions {
     SCALAR, LIST, MAP
   }
 
-  /** Type of part to extract passed into {@link #parseUrl}. */
-  public enum PartToExtract {
+  /** Type of part to extract passed into {@link ParseUrlFunction#parseUrl}. */
+  private enum PartToExtract {
     HOST,
     PATH,
     QUERY,
@@ -5152,5 +5364,4 @@ public class SqlFunctions {
     AUTHORITY,
     USERINFO;
   }
-
 }

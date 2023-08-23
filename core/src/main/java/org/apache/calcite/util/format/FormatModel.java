@@ -34,4 +34,7 @@ public interface FormatModel {
   /** Parses a format string using element identifiers supplied by
    * {@code format}. */
   List<FormatElement> parse(String format);
+
+  /** As {@link #parse}, but does not cache. */
+  List<FormatElement> parseNoCache(String format);
 }
