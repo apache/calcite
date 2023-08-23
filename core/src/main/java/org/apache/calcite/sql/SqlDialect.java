@@ -30,7 +30,6 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -970,7 +969,8 @@ public class SqlDialect {
     return this.getCastSpec(type);
   }
 
-  public SqlNode getCastCall(SqlKind sqlKind, SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
+  public SqlNode getCastCall(SqlKind sqlKind, SqlNode operandToCast,
+      RelDataType castFrom, RelDataType castTo) {
     return CAST.createCall(SqlParserPos.ZERO,
       operandToCast, Nullness.castNonNull(this.getCastSpec(castTo)));
   }
