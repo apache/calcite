@@ -109,6 +109,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
@@ -357,7 +358,7 @@ public class SqlFunctions {
     return DigestUtils.sha512Hex(string.getBytes());
   }
 
-  /** State for {@code REGEXP_REPLACE}.
+  /** State for {@code REGEXP_CONTAINS}, {@code REGEXP_REPLACE}, {@code RLIKE}.
    *
    * <p>Marked deterministic so that the code generator instantiates one once
    * per query, not once per row. */
@@ -450,6 +451,11 @@ public class SqlFunctions {
         }
       }
       return flags;
+    }
+
+    /** SQL {@code RLIKE} function. */
+    public boolean rlike(String s, String pattern) {
+      return cache.getUnchecked(Ord.of(0, pattern)).matcher(s).find();
     }
   }
 
@@ -1162,33 +1168,68 @@ public class SqlFunctions {
         .concat(s.substring(start - 1 + length));
   }
 
-  /** SQL {@code LIKE} function. */
-  public static boolean like(String s, String pattern) {
-    final String regex = Like.sqlToRegexLike(pattern, null);
-    return Pattern.matches(regex, s);
-  }
+  /** State for {@code LIKE}, {@code ILIKE}. */
+  @Deterministic
+  public static class LikeFunction {
+    /** Key for cache of compiled regular expressions. */
+    private static final class Key {
+      final String pattern;
+      final @Nullable String escape;
+      final int flags;
 
-  /** SQL {@code LIKE} function with escape. */
-  public static boolean like(String s, String pattern, String escape) {
-    final String regex = Like.sqlToRegexLike(pattern, escape);
-    return Pattern.matches(regex, s);
-  }
+      Key(String pattern, @Nullable String escape, int flags) {
+        this.pattern = pattern;
+        this.escape = escape;
+        this.flags = flags;
+      }
 
-  /** SQL {@code ILIKE} function. */
-  public static boolean ilike(String s, String pattern) {
-    final String regex = Like.sqlToRegexLike(pattern, null);
-    return Pattern.compile(regex, Pattern.CASE_INSENSITIVE).matcher(s).matches();
-  }
+      @Override public int hashCode() {
+        return pattern.hashCode()
+            ^ (escape == null ? 0 : escape.hashCode())
+            ^ flags;
+      }
 
-  /** SQL {@code ILIKE} function with escape. */
-  public static boolean ilike(String s, String pattern, String escape) {
-    final String regex = Like.sqlToRegexLike(pattern, escape);
-    return Pattern.compile(regex, Pattern.CASE_INSENSITIVE).matcher(s).matches();
-  }
+      @Override public boolean equals(Object obj) {
+        return this == obj
+            || obj instanceof Key
+            && pattern.equals(((Key) obj).pattern)
+            && Objects.equals(escape, ((Key) obj).escape)
+            && flags == ((Key) obj).flags;
+      }
+    }
 
-  /** SQL {@code RLIKE} function. */
-  public static boolean rlike(String s, String pattern) {
-    return Pattern.compile(pattern).matcher(s).find();
+    private final LoadingCache<Key, Pattern> cache =
+        CacheBuilder.newBuilder().build(
+            new CacheLoader<Key, Pattern>() {
+              @Override public Pattern load(Key key) {
+                String regex = Like.sqlToRegexLike(key.pattern, key.escape);
+                return Pattern.compile(regex, key.flags);
+              }
+            });
+
+    /** SQL {@code LIKE} function. */
+    public boolean like(String s, String pattern) {
+      final Key key = new Key(pattern, null, 0);
+      return cache.getUnchecked(key).matcher(s).matches();
+    }
+
+    /** SQL {@code LIKE} function with escape. */
+    public boolean like(String s, String pattern, String escape) {
+      final Key key = new Key(pattern, escape, 0);
+      return cache.getUnchecked(key).matcher(s).matches();
+    }
+
+    /** SQL {@code ILIKE} function. */
+    public boolean ilike(String s, String pattern) {
+      final Key key = new Key(pattern, null, Pattern.CASE_INSENSITIVE);
+      return cache.getUnchecked(key).matcher(s).matches();
+    }
+
+    /** SQL {@code ILIKE} function with escape. */
+    public boolean ilike(String s, String pattern, String escape) {
+      final Key key = new Key(pattern, escape, Pattern.CASE_INSENSITIVE);
+      return cache.getUnchecked(key).matcher(s).matches();
+    }
   }
 
   /** State for {@code SIMILAR} function. */

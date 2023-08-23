@@ -738,12 +738,10 @@ public class RexImpTable {
       map.put(IS_NOT_FALSE, new IsNotFalseImplementor());
 
       // LIKE, ILIKE, RLIKE and SIMILAR
-      map.put(LIKE,
-          new MethodImplementor(BuiltInMethod.LIKE.method, NullPolicy.STRICT,
-              false));
-      map.put(ILIKE,
-          new MethodImplementor(BuiltInMethod.ILIKE.method, NullPolicy.STRICT,
-              false));
+      defineReflective(LIKE, BuiltInMethod.LIKE.method,
+          BuiltInMethod.LIKE_ESCAPE.method);
+      defineReflective(ILIKE, BuiltInMethod.ILIKE.method,
+          BuiltInMethod.ILIKE_ESCAPE.method);
       defineReflective(RLIKE, BuiltInMethod.RLIKE.method);
       defineReflective(SIMILAR_TO, BuiltInMethod.SIMILAR.method,
           BuiltInMethod.SIMILAR_ESCAPE.method);
