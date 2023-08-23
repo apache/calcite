@@ -27,6 +27,7 @@ import org.apache.calcite.linq4j.CartesianProductEnumerator;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Function1;
@@ -54,6 +55,9 @@ import org.apache.commons.text.similarity.LevenshteinDistance;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -366,40 +370,59 @@ public class SqlFunctions {
     }
   }
 
-  /** SQL {@code REGEXP_REPLACE} function with 3 arguments. */
-  public static String regexpReplace(String s, String regex,
-      String replacement) {
-    return regexpReplace(s, regex, replacement, 1, 0, null);
-  }
+  /** State for {@code REGEXP_REPLACE}. */
+  public static class RegexFunction {
+    private final LoadingCache<Ord<String>, Pattern> cache =
+        CacheBuilder.newBuilder().build(
+            new CacheLoader<Ord<String>, Pattern>() {
+              @SuppressWarnings("MagicConstant")
+              @Override public Pattern load(Ord<String> key) {
+                final String regex = key.e;
+                final Integer flags = key.i;
+                return Pattern.compile(regex, flags);
+              }
+            });
 
-  /** SQL {@code REGEXP_REPLACE} function with 4 arguments. */
-  public static String regexpReplace(String s, String regex, String replacement,
-      int pos) {
-    return regexpReplace(s, regex, replacement, pos, 0, null);
-  }
-
-  /** SQL {@code REGEXP_REPLACE} function with 5 arguments. */
-  public static String regexpReplace(String s, String regex, String replacement,
-      int pos, int occurrence) {
-    return regexpReplace(s, regex, replacement, pos, occurrence, null);
-  }
-
-  /** SQL {@code REGEXP_REPLACE} function with 6 arguments. */
-  public static String regexpReplace(String s, String regex, String replacement,
-      int pos, int occurrence, @Nullable String matchType) {
-    if (pos < 1 || pos > s.length()) {
-      throw RESOURCE.invalidInputForRegexpReplace(Integer.toString(pos)).ex();
+    /** Creates a RegexFunction.
+     *
+     * <p>Marked deterministic so that the code generator instantiates one once
+     * per query, not once per row. */
+    @Deterministic public RegexFunction() {
     }
 
-    final int flags = makeRegexpFlags(matchType);
-    final Pattern pattern = Pattern.compile(regex, flags);
+    /** SQL {@code REGEXP_REPLACE} function with 3 arguments. */
+    public String regexpReplace(String s, String regex,
+        String replacement) {
+      return regexpReplace(s, regex, replacement, 1, 0, null);
+    }
 
-    return Unsafe.regexpReplace(s, pattern, replacement, pos, occurrence);
-  }
+    /** SQL {@code REGEXP_REPLACE} function with 4 arguments. */
+    public String regexpReplace(String s, String regex, String replacement,
+        int pos) {
+      return regexpReplace(s, regex, replacement, pos, 0, null);
+    }
 
-  private static int makeRegexpFlags(@Nullable String stringFlags) {
-    int flags = 0;
-    if (stringFlags != null) {
+    /** SQL {@code REGEXP_REPLACE} function with 5 arguments. */
+    public String regexpReplace(String s, String regex, String replacement,
+        int pos, int occurrence) {
+      return regexpReplace(s, regex, replacement, pos, occurrence, null);
+    }
+
+    /** SQL {@code REGEXP_REPLACE} function with 6 arguments. */
+    public String regexpReplace(String s, String regex, String replacement,
+        int pos, int occurrence, @Nullable String matchType) {
+      if (pos < 1 || pos > s.length()) {
+        throw RESOURCE.invalidInputForRegexpReplace(Integer.toString(pos)).ex();
+      }
+
+      final int flags = matchType == null ? 0 : makeRegexpFlags(matchType);
+      final Pattern pattern = cache.getUnchecked(Ord.of(flags, regex));
+
+      return Unsafe.regexpReplace(s, pattern, replacement, pos, occurrence);
+    }
+
+    private static int makeRegexpFlags(String stringFlags) {
+      int flags = 0;
       for (int i = 0; i < stringFlags.length(); ++i) {
         switch (stringFlags.charAt(i)) {
         case 'i':
@@ -418,8 +441,8 @@ public class SqlFunctions {
           throw RESOURCE.invalidInputForRegexpReplace(stringFlags).ex();
         }
       }
+      return flags;
     }
-    return flags;
   }
 
   /** SQL {@code LPAD(string, integer, string)} function. */

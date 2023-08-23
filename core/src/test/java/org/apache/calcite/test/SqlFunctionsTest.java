@@ -60,7 +60,6 @@ import static org.apache.calcite.runtime.SqlFunctions.md5;
 import static org.apache.calcite.runtime.SqlFunctions.position;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.regexpContains;
-import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.sha256;
@@ -265,27 +264,28 @@ class SqlFunctionsTest {
   }
 
   @Test void testRegexpReplace() {
-    assertThat(regexpReplace("a b c", "b", "X"), is("a X c"));
-    assertThat(regexpReplace("abc def ghi", "[g-z]+", "X"), is("abc def X"));
-    assertThat(regexpReplace("abc def ghi", "[a-z]+", "X"), is("X X X"));
-    assertThat(regexpReplace("a b c", "a|b", "X"), is("X X c"));
-    assertThat(regexpReplace("a b c", "y", "X"), is("a b c"));
+    final SqlFunctions.RegexFunction f = new SqlFunctions.RegexFunction();
+    assertThat(f.regexpReplace("a b c", "b", "X"), is("a X c"));
+    assertThat(f.regexpReplace("abc def ghi", "[g-z]+", "X"), is("abc def X"));
+    assertThat(f.regexpReplace("abc def ghi", "[a-z]+", "X"), is("X X X"));
+    assertThat(f.regexpReplace("a b c", "a|b", "X"), is("X X c"));
+    assertThat(f.regexpReplace("a b c", "y", "X"), is("a b c"));
 
-    assertThat(regexpReplace("100-200", "(\\d+)", "num"), is("num-num"));
-    assertThat(regexpReplace("100-200", "(\\d+)", "###"), is("###-###"));
-    assertThat(regexpReplace("100-200", "(-)", "###"), is("100###200"));
+    assertThat(f.regexpReplace("100-200", "(\\d+)", "num"), is("num-num"));
+    assertThat(f.regexpReplace("100-200", "(\\d+)", "###"), is("###-###"));
+    assertThat(f.regexpReplace("100-200", "(-)", "###"), is("100###200"));
 
-    assertThat(regexpReplace("abc def ghi", "[a-z]+", "X", 1), is("X X X"));
-    assertThat(regexpReplace("abc def ghi", "[a-z]+", "X", 2), is("aX X X"));
-    assertThat(regexpReplace("abc def ghi", "[a-z]+", "X", 1, 3),
+    assertThat(f.regexpReplace("abc def ghi", "[a-z]+", "X", 1), is("X X X"));
+    assertThat(f.regexpReplace("abc def ghi", "[a-z]+", "X", 2), is("aX X X"));
+    assertThat(f.regexpReplace("abc def ghi", "[a-z]+", "X", 1, 3),
         is("abc def X"));
-    assertThat(regexpReplace("abc def GHI", "[a-z]+", "X", 1, 3, "c"),
+    assertThat(f.regexpReplace("abc def GHI", "[a-z]+", "X", 1, 3, "c"),
         is("abc def GHI"));
-    assertThat(regexpReplace("abc def GHI", "[a-z]+", "X", 1, 3, "i"),
+    assertThat(f.regexpReplace("abc def GHI", "[a-z]+", "X", 1, 3, "i"),
         is("abc def X"));
 
     try {
-      regexpReplace("abc def ghi", "[a-z]+", "X", 0);
+      f.regexpReplace("abc def ghi", "[a-z]+", "X", 0);
       fail("'regexp_replace' on an invalid pos is not possible");
     } catch (CalciteException e) {
       assertThat(e.getMessage(),
@@ -293,7 +293,7 @@ class SqlFunctionsTest {
     }
 
     try {
-      regexpReplace("abc def ghi", "[a-z]+", "X", 1, 3, "WWW");
+      f.regexpReplace("abc def ghi", "[a-z]+", "X", 1, 3, "WWW");
       fail("'regexp_replace' on an invalid matchType is not possible");
     } catch (CalciteException e) {
       assertThat(e.getMessage(),
