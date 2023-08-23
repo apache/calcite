@@ -385,8 +385,9 @@ public class SqlFunctions {
         pattern = cache.getUnchecked(Ord.of(0, regex));
       } catch (UncheckedExecutionException e) {
         if (e.getCause() instanceof PatternSyntaxException) {
-          final String message = stripLineEndings(e.getCause().getMessage());
-          throw RESOURCE.invalidInputForRegexpContains(message).ex();
+          throw RESOURCE.invalidInputForRegexpContains(
+              stripLineEndings(
+                  requireNonNull(e.getCause().getMessage(), "message"))).ex();
         }
         throw e;
       }
@@ -1189,7 +1190,7 @@ public class SqlFunctions {
             ^ flags;
       }
 
-      @Override public boolean equals(Object obj) {
+      @Override public boolean equals(@Nullable Object obj) {
         return this == obj
             || obj instanceof Key
             && pattern.equals(((Key) obj).pattern)
@@ -5070,7 +5071,7 @@ public class SqlFunctions {
     SCALAR, LIST, MAP
   }
 
-  /** Type of part to extract passed into {@link #parseUrl}. */
+  /** Type of part to extract passed into {@link ParseUrlFunction#parseUrl}. */
   private enum PartToExtract {
     HOST,
     PATH,

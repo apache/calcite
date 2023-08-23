@@ -18,6 +18,8 @@ package org.apache.calcite.linq4j;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.Iterator;
 import java.util.List;
@@ -54,7 +56,7 @@ public class Ord<E> implements Map.Entry<Integer, E> {
     return Objects.hash(e, i);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof Ord
         && i == ((Ord<?>) obj).i

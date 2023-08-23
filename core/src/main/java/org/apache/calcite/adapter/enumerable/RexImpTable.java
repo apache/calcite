@@ -751,16 +751,16 @@ public class RexImpTable {
           BuiltInMethod.SIMILAR_ESCAPE.method);
 
       // POSIX REGEX
-      defineReflective(POSIX_REGEX_CASE_INSENSITIVE,
-          BuiltInMethod.POSIX_REGEX_INSENSITIVE.method);
-      defineReflective(POSIX_REGEX_CASE_SENSITIVE,
-          BuiltInMethod.POSIX_REGEX_SENSITIVE.method);
+      ReflectiveImplementor insensitiveImplementor =
+          defineReflective(POSIX_REGEX_CASE_INSENSITIVE,
+              BuiltInMethod.POSIX_REGEX_INSENSITIVE.method);
+      ReflectiveImplementor sensitiveImplementor =
+          defineReflective(POSIX_REGEX_CASE_SENSITIVE,
+              BuiltInMethod.POSIX_REGEX_SENSITIVE.method);
       map.put(NEGATED_POSIX_REGEX_CASE_INSENSITIVE,
-          NotImplementor.of((AbstractRexCallImplementor)
-              map.get(POSIX_REGEX_CASE_INSENSITIVE)));
+          NotImplementor.of(insensitiveImplementor));
       map.put(NEGATED_POSIX_REGEX_CASE_SENSITIVE,
-          NotImplementor.of((AbstractRexCallImplementor)
-              map.get(POSIX_REGEX_CASE_SENSITIVE)));
+          NotImplementor.of(sensitiveImplementor));
       defineReflective(REGEXP_REPLACE,
           BuiltInMethod.REGEXP_REPLACE3.method,
           BuiltInMethod.REGEXP_REPLACE4.method,
@@ -1053,31 +1053,12 @@ public class RexImpTable {
       map.put(operator, new MethodImplementor(method, nullPolicy, false));
     }
 
-    private void defineReflective(SqlOperator operator, Method... methods) {
-      map.put(operator,
-          new AbstractRexCallImplementor(methods[0].getName(),
-              NullPolicy.STRICT, false) {
-            @Override Expression implementSafe(RexToLixTranslator translator,
-                RexCall call, List<Expression> argValueList) {
-              for (Method method : methods) {
-                if (method.getParameterCount() == argValueList.size()) {
-                  List<Expression> argValueList0 =
-                      EnumUtils.fromInternal(method.getParameterTypes(),
-                          argValueList);
-                  if (isStatic(method)) {
-                    return Expressions.call(method, argValueList0);
-                  } else {
-                    // The UDF class must have a public zero-args constructor.
-                    // Assume that the validator checked already.
-                    final Expression target =
-                        Expressions.new_(method.getDeclaringClass());
-                    return Expressions.call(target, method, argValueList0);
-                  }
-                }
-              }
-              throw new IllegalArgumentException("no matching method");
-            }
-          });
+    private ReflectiveImplementor defineReflective(SqlOperator operator,
+        Method... methods) {
+      final ReflectiveImplementor implementor =
+          new ReflectiveImplementor(ImmutableList.copyOf(methods));
+      map.put(operator, implementor);
+      return implementor;
     }
 
     private void defineUnary(SqlOperator operator, ExpressionType expressionType,
@@ -2459,7 +2440,7 @@ public class RexImpTable {
 
     // Because BigQuery treats all int types as aliases for BIGINT (Java's long)
     // they can all be converted to LONG to minimize entries in the SqlFunctions class.
-    private Expression convertType(Expression arg, RexNode node) {
+    static Expression convertType(Expression arg, RexNode node) {
       if (SqlTypeName.INT_TYPES.contains(node.getType().getSqlTypeName())) {
         return Expressions.convert_(arg, long.class);
       } else {
@@ -2668,13 +2649,13 @@ public class RexImpTable {
   private static class MethodImplementor extends AbstractRexCallImplementor {
     protected final Method method;
 
-    MethodImplementor(String variableName, Method method,
-        @Nullable NullPolicy nullPolicy, boolean harmonize) {
+    MethodImplementor(String variableName, Method method, NullPolicy nullPolicy,
+        boolean harmonize) {
       super(variableName, nullPolicy, harmonize);
       this.method = method;
     }
 
-    MethodImplementor(Method method, @Nullable NullPolicy nullPolicy,
+    MethodImplementor(Method method, NullPolicy nullPolicy,
         boolean harmonize) {
       this("method_call", method, nullPolicy, harmonize);
     }
@@ -3675,11 +3656,11 @@ public class RexImpTable {
     /** Variable name should be meaningful. It helps us debug issues. */
     final String variableName;
 
-    final @Nullable NullPolicy nullPolicy;
+    final NullPolicy nullPolicy;
     private final boolean harmonize;
 
     AbstractRexCallImplementor(String variableName,
-        @Nullable NullPolicy nullPolicy, boolean harmonize) {
+        NullPolicy nullPolicy, boolean harmonize) {
       this.variableName = requireNonNull(variableName, "variableName");
       this.nullPolicy = nullPolicy;
       this.harmonize = harmonize;
@@ -3708,14 +3689,13 @@ public class RexImpTable {
       return variableName;
     }
 
-    @Nullable NullPolicy getNullPolicy() {
+    public NullPolicy getNullPolicy() {
       return nullPolicy;
     }
 
     /** Figures out conditional expression according to NullPolicy. */
     Expression getCondition(final List<Expression> argIsNullList) {
       if (argIsNullList.isEmpty()
-          || nullPolicy == null
           || nullPolicy == NullPolicy.NONE) {
         return FALSE_EXPR;
       }
@@ -3834,18 +3814,21 @@ public class RexImpTable {
     /** Under null check, it is safe to unbox the operands before entering the
      * implementor. */
     private List<Expression> unboxIfNecessary(final List<Expression> argValueList) {
-      List<Expression> unboxValueList = argValueList;
-      if (nullPolicy == NullPolicy.STRICT || nullPolicy == NullPolicy.ANY
-          || nullPolicy == NullPolicy.SEMI_STRICT) {
-        unboxValueList = argValueList.stream()
-            .map(AbstractRexCallImplementor::unboxExpression)
-            .collect(Collectors.toList());
+      switch (nullPolicy) {
+      case STRICT:
+      case ANY:
+      case SEMI_STRICT:
+        return Util.transform(argValueList,
+            AbstractRexCallImplementor::unboxExpression);
+      case ARG0:
+        if (!argValueList.isEmpty()) {
+          final Expression unboxArg0 = unboxExpression(argValueList.get(0));
+          argValueList.set(0, unboxArg0);
+        }
+        // fall through
+      default:
+        return argValueList;
       }
-      if (nullPolicy == NullPolicy.ARG0 && !argValueList.isEmpty()) {
-        final Expression unboxArg0 = unboxExpression(unboxValueList.get(0));
-        unboxValueList.set(0, unboxArg0);
-      }
-      return unboxValueList;
     }
 
     private static Expression unboxExpression(final Expression argValue) {
@@ -4072,31 +4055,40 @@ public class RexImpTable {
   }
 
   /**
-   * Implementation that calls a given {@link java.lang.reflect.Method}.
+   * Implementation that a {@link java.lang.reflect.Method}.
+   *
+   * <p>If there are several methods in the list, calls the first that has the
+   * right number of arguments.
    *
    * <p>When method is not static, a new instance of the required class is
    * created.
    */
   private static class ReflectiveImplementor extends AbstractRexCallImplementor {
-    protected final Method method;
+    protected final ImmutableList<? extends Method> methods;
 
-    ReflectiveImplementor(Method method, @Nullable NullPolicy nullPolicy) {
-      super("reflective_" + method.getName(), nullPolicy, false);
-      this.method = requireNonNull(method, "method");
+    ReflectiveImplementor(List<? extends Method> methods) {
+      super("reflective_" + methods.get(0).getName(), NullPolicy.STRICT, false);
+      this.methods = ImmutableList.copyOf(methods);
     }
 
     @Override Expression implementSafe(RexToLixTranslator translator,
         RexCall call, List<Expression> argValueList) {
-      List<Expression> argValueList0 =
-          EnumUtils.fromInternal(method.getParameterTypes(), argValueList);
-      if (isStatic(method)) {
-        return Expressions.call(method, argValueList0);
-      } else {
-        // The UDF class must have a public zero-args constructor.
-        // Assume that the validator checked already.
-        final Expression target = Expressions.new_(method.getDeclaringClass());
-        return Expressions.call(target, method, argValueList0);
+      for (Method method : methods) {
+        if (method.getParameterCount() == argValueList.size()) {
+          List<Expression> argValueList0 =
+              EnumUtils.fromInternal(method.getParameterTypes(),
+                  argValueList);
+          if (isStatic(method)) {
+            return Expressions.call(method, argValueList0);
+          } else {
+            // The class must have a public zero-args constructor.
+            final Expression target =
+                Expressions.new_(method.getDeclaringClass());
+            return Expressions.call(target, method, argValueList0);
+          }
+        }
       }
+      throw new IllegalArgumentException("no matching method");
     }
   }
 
@@ -4205,26 +4197,6 @@ public class RexImpTable {
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
       return Expressions.equal(argValueList.get(0), TRUE_EXPR);
-    }
-  }
-
-  /** Implementor for the {@code REGEXP_REPLACE} function. */
-  private static class RegexpReplaceImplementor extends AbstractRexCallImplementor {
-    private final AbstractRexCallImplementor[] implementors = {
-        new ReflectiveImplementor(BuiltInMethod.REGEXP_REPLACE3.method, nullPolicy),
-        new ReflectiveImplementor(BuiltInMethod.REGEXP_REPLACE4.method, nullPolicy),
-        new ReflectiveImplementor(BuiltInMethod.REGEXP_REPLACE5.method, nullPolicy),
-        new ReflectiveImplementor(BuiltInMethod.REGEXP_REPLACE6.method, nullPolicy),
-    };
-
-    RegexpReplaceImplementor() {
-      super("regexp_replace", NullPolicy.STRICT, false);
-    }
-
-    @Override Expression implementSafe(RexToLixTranslator translator,
-        RexCall call, List<Expression> argValueList) {
-      return implementors[call.getOperands().size() - 3]
-          .implementSafe(translator, call, argValueList);
     }
   }
 
