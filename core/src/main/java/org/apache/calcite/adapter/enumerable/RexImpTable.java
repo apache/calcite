@@ -561,9 +561,10 @@ public class RexImpTable {
       defineMethod(DIFFERENCE, BuiltInMethod.DIFFERENCE.method, NullPolicy.STRICT);
       defineMethod(REVERSE, BuiltInMethod.REVERSE.method, NullPolicy.STRICT);
       defineMethod(LEVENSHTEIN, BuiltInMethod.LEVENSHTEIN.method, NullPolicy.STRICT);
-      defineMethod(SPLIT, "split", NullPolicy.STRICT);
+      defineMethod(SPLIT, BuiltInMethod.SPLIT.method, NullPolicy.STRICT);
       defineMethod(PARSE_URL, BuiltInMethod.PARSE_URL.method, NullPolicy.STRICT);
-      defineMethod(REGEXP_CONTAINS, "regexpContains", NullPolicy.STRICT);
+      defineMethod(REGEXP_CONTAINS, BuiltInMethod.REGEXP_CONTAINS.method,
+          NullPolicy.STRICT);
 
       map.put(TRIM, new TrimImplementor());
 
@@ -593,10 +594,10 @@ public class RexImpTable {
           BuiltInMethod.BIG_DECIMAL_NEGATE.getMethodName());
       defineUnary(UNARY_PLUS, UnaryPlus, NullPolicy.STRICT, null);
 
-      defineMethod(MOD, "mod", NullPolicy.STRICT);
-      defineMethod(EXP, "exp", NullPolicy.STRICT);
-      defineMethod(POWER, "power", NullPolicy.STRICT);
-      defineMethod(ABS, "abs", NullPolicy.STRICT);
+      defineMethod(MOD, BuiltInMethod.MOD.method, NullPolicy.STRICT);
+      defineMethod(EXP, BuiltInMethod.EXP.method, NullPolicy.STRICT);
+      defineMethod(POWER, BuiltInMethod.POWER.method, NullPolicy.STRICT);
+      defineMethod(ABS, BuiltInMethod.ABS.method, NullPolicy.STRICT);
 
       map.put(LN, new LogImplementor());
       map.put(LOG, new LogImplementor());
@@ -605,39 +606,42 @@ public class RexImpTable {
       map.put(RAND, new RandImplementor());
       map.put(RAND_INTEGER, new RandIntegerImplementor());
 
-      defineMethod(ACOS, "acos", NullPolicy.STRICT);
-      defineMethod(ACOSH, "acosh", NullPolicy.STRICT);
-      defineMethod(ASIN, "asin", NullPolicy.STRICT);
-      defineMethod(ASINH, "asinh", NullPolicy.STRICT);
-      defineMethod(ATAN, "atan", NullPolicy.STRICT);
-      defineMethod(ATAN2, "atan2", NullPolicy.STRICT);
-      defineMethod(ATANH, "atanh", NullPolicy.STRICT);
-      defineMethod(CBRT, "cbrt", NullPolicy.STRICT);
-      defineMethod(COS, "cos", NullPolicy.STRICT);
-      defineMethod(COSH, "cosh", NullPolicy.STRICT);
-      defineMethod(COT, "cot", NullPolicy.STRICT);
-      defineMethod(COTH, "coth", NullPolicy.STRICT);
-      defineMethod(CSC, "csc", NullPolicy.STRICT);
-      defineMethod(CSCH, "csch", NullPolicy.STRICT);
-      defineMethod(DEGREES, "degrees", NullPolicy.STRICT);
-      defineMethod(IS_INF, "isInf", NullPolicy.STRICT);
-      defineMethod(IS_NAN, "isNaN", NullPolicy.STRICT);
-      defineMethod(POW, "power", NullPolicy.STRICT);
-      defineMethod(RADIANS, "radians", NullPolicy.STRICT);
-      defineMethod(ROUND, "sround", NullPolicy.STRICT);
-      defineMethod(SEC, "sec", NullPolicy.STRICT);
-      defineMethod(SECH, "sech", NullPolicy.STRICT);
-      defineMethod(SIGN, "sign", NullPolicy.STRICT);
-      defineMethod(SIN, "sin", NullPolicy.STRICT);
-      defineMethod(SINH, "sinh", NullPolicy.STRICT);
-      defineMethod(TAN, "tan", NullPolicy.STRICT);
-      defineMethod(TANH, "tanh", NullPolicy.STRICT);
-      defineMethod(TRUNC, "struncate", NullPolicy.STRICT);
-      defineMethod(TRUNCATE, "struncate", NullPolicy.STRICT);
+      defineMethod(ACOS, BuiltInMethod.ACOS.method, NullPolicy.STRICT);
+      defineMethod(ACOSH, BuiltInMethod.ACOSH.method, NullPolicy.STRICT);
+      defineMethod(ASIN, BuiltInMethod.ASIN.method, NullPolicy.STRICT);
+      defineMethod(ASINH, BuiltInMethod.ASINH.method, NullPolicy.STRICT);
+      defineMethod(ATAN, BuiltInMethod.ATAN.method, NullPolicy.STRICT);
+      defineMethod(ATAN2, BuiltInMethod.ATAN2.method, NullPolicy.STRICT);
+      defineMethod(ATANH, BuiltInMethod.ATANH.method, NullPolicy.STRICT);
+      defineMethod(CBRT, BuiltInMethod.CBRT.method, NullPolicy.STRICT);
+      defineMethod(COS, BuiltInMethod.COS.method, NullPolicy.STRICT);
+      defineMethod(COSH, BuiltInMethod.COSH.method, NullPolicy.STRICT);
+      defineMethod(COT, BuiltInMethod.COT.method, NullPolicy.STRICT);
+      defineMethod(COTH, BuiltInMethod.COTH.method, NullPolicy.STRICT);
+      defineMethod(CSC, BuiltInMethod.CSC.method, NullPolicy.STRICT);
+      defineMethod(CSCH, BuiltInMethod.CSCH.method, NullPolicy.STRICT);
+      defineMethod(DEGREES, BuiltInMethod.DEGREES.method, NullPolicy.STRICT);
+      defineMethod(IS_INF, BuiltInMethod.IS_INF.method, NullPolicy.STRICT);
+      defineMethod(IS_NAN, BuiltInMethod.IS_NAN.method, NullPolicy.STRICT);
+      defineMethod(POW, BuiltInMethod.POWER.method, NullPolicy.STRICT);
+      defineMethod(RADIANS, BuiltInMethod.RADIANS.method, NullPolicy.STRICT);
+      defineMethod(ROUND, BuiltInMethod.SROUND.method, NullPolicy.STRICT);
+      defineMethod(SEC, BuiltInMethod.SEC.method, NullPolicy.STRICT);
+      defineMethod(SECH, BuiltInMethod.SECH.method, NullPolicy.STRICT);
+      defineMethod(SIGN, BuiltInMethod.SIGN.method, NullPolicy.STRICT);
+      defineMethod(SIN, BuiltInMethod.SIN.method, NullPolicy.STRICT);
+      defineMethod(SINH, BuiltInMethod.SINH.method, NullPolicy.STRICT);
+      defineMethod(TAN, BuiltInMethod.TAN.method, NullPolicy.STRICT);
+      defineMethod(TANH, BuiltInMethod.TANH.method, NullPolicy.STRICT);
+      defineMethod(TRUNC, BuiltInMethod.STRUNCATE.method, NullPolicy.STRICT);
+      defineMethod(TRUNCATE, BuiltInMethod.STRUNCATE.method, NullPolicy.STRICT);
 
-      map.put(SAFE_ADD, new SafeArithmeticImplementor("safeAdd"));
-      map.put(SAFE_MULTIPLY, new SafeArithmeticImplementor("safeMultiply"));
-      map.put(SAFE_SUBTRACT, new SafeArithmeticImplementor("safeSubtract"));
+      map.put(SAFE_ADD,
+          new SafeArithmeticImplementor(BuiltInMethod.SAFE_ADD.method));
+      map.put(SAFE_MULTIPLY,
+          new SafeArithmeticImplementor(BuiltInMethod.SAFE_MULTIPLY.method));
+      map.put(SAFE_SUBTRACT,
+          new SafeArithmeticImplementor(BuiltInMethod.SAFE_SUBTRACT.method));
 
       map.put(PI, new PiImplementor());
       return populate2();
@@ -651,24 +655,24 @@ public class RexImpTable {
       map.put(MINUS_DATE, new DatetimeArithmeticImplementor());
       map.put(EXTRACT, new ExtractImplementor());
       map.put(FLOOR,
-          new FloorImplementor(BuiltInMethod.FLOOR.method.getName(),
+          new FloorImplementor(BuiltInMethod.FLOOR.method,
               BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,
             BuiltInMethod.UNIX_DATE_FLOOR.method,
             BuiltInMethod.CUSTOM_TIMESTAMP_FLOOR.method,
             BuiltInMethod.CUSTOM_DATE_FLOOR.method));
       map.put(CEIL,
-          new FloorImplementor(BuiltInMethod.CEIL.method.getName(),
+          new FloorImplementor(BuiltInMethod.CEIL.method,
               BuiltInMethod.UNIX_TIMESTAMP_CEIL.method,
             BuiltInMethod.UNIX_DATE_CEIL.method,
             BuiltInMethod.CUSTOM_TIMESTAMP_CEIL.method,
             BuiltInMethod.CUSTOM_DATE_CEIL.method));
       map.put(TIMESTAMP_ADD,
-          new TimestampAddImplementor("timestampAdd",
+          new TimestampAddImplementor(
               BuiltInMethod.CUSTOM_TIMESTAMP_ADD.method,
               BuiltInMethod.CUSTOM_DATE_ADD.method));
       map.put(DATEADD, map.get(TIMESTAMP_ADD));
       map.put(TIMESTAMP_DIFF,
-          new TimestampDiffImplementor("timestampDiff",
+          new TimestampDiffImplementor(
               BuiltInMethod.CUSTOM_TIMESTAMP_DIFF.method,
               BuiltInMethod.CUSTOM_DATE_DIFF.method));
 
@@ -692,30 +696,44 @@ public class RexImpTable {
           new PeriodNameImplementor("monthName",
               BuiltInMethod.MONTHNAME_WITH_TIMESTAMP,
               BuiltInMethod.MONTHNAME_WITH_DATE));
-      defineMethod(TIMESTAMP_SECONDS, "timestampSeconds", NullPolicy.STRICT);
-      defineMethod(TIMESTAMP_MILLIS, "timestampMillis", NullPolicy.STRICT);
-      defineMethod(TIMESTAMP_MICROS, "timestampMicros", NullPolicy.STRICT);
-      defineMethod(UNIX_SECONDS, "unixSeconds", NullPolicy.STRICT);
-      defineMethod(UNIX_MILLIS, "unixMillis", NullPolicy.STRICT);
-      defineMethod(UNIX_MICROS, "unixMicros", NullPolicy.STRICT);
-      defineMethod(DATE_FROM_UNIX_DATE, "dateFromUnixDate", NullPolicy.STRICT);
-      defineMethod(UNIX_DATE, "unixDate", NullPolicy.STRICT);
+      defineMethod(TIMESTAMP_SECONDS, BuiltInMethod.TIMESTAMP_SECONDS.method,
+          NullPolicy.STRICT);
+      defineMethod(TIMESTAMP_MILLIS, BuiltInMethod.TIMESTAMP_MILLIS.method,
+          NullPolicy.STRICT);
+      defineMethod(TIMESTAMP_MICROS, BuiltInMethod.TIMESTAMP_MICROS.method,
+          NullPolicy.STRICT);
+      defineMethod(UNIX_SECONDS, BuiltInMethod.UNIX_SECONDS.method,
+          NullPolicy.STRICT);
+      defineMethod(UNIX_MILLIS, BuiltInMethod.UNIX_MILLIS.method,
+          NullPolicy.STRICT);
+      defineMethod(UNIX_MICROS, BuiltInMethod.UNIX_MICROS.method,
+          NullPolicy.STRICT);
+      defineMethod(DATE_FROM_UNIX_DATE,
+          BuiltInMethod.DATE_FROM_UNIX_DATE.method, NullPolicy.STRICT);
+      defineMethod(UNIX_DATE, BuiltInMethod.UNIX_DATE.method,
+          NullPolicy.STRICT);
 
       // Datetime constructors
-      defineMethod(DATE, "date", NullPolicy.STRICT);
-      defineMethod(DATETIME, "datetime", NullPolicy.STRICT);
-      defineMethod(TIME, "time", NullPolicy.STRICT);
-      defineMethod(TIMESTAMP, "timestamp", NullPolicy.STRICT);
+      defineMethod(DATE, BuiltInMethod.DATE.method, NullPolicy.STRICT);
+      defineMethod(DATETIME, BuiltInMethod.DATETIME.method, NullPolicy.STRICT);
+      defineMethod(TIME, BuiltInMethod.TIME.method, NullPolicy.STRICT);
+      defineMethod(TIMESTAMP, BuiltInMethod.TIMESTAMP.method,
+          NullPolicy.STRICT);
 
       // Datetime parsing methods
-      defineMethod(PARSE_DATE, "parseDate", NullPolicy.STRICT);
-      defineMethod(PARSE_DATETIME, "parseDatetime", NullPolicy.STRICT);
-      defineMethod(PARSE_TIME, "parseTime", NullPolicy.STRICT);
-      defineMethod(PARSE_TIMESTAMP, "parseTimestamp", NullPolicy.STRICT);
+      defineMethod(PARSE_DATE, BuiltInMethod.PARSE_DATE.method,
+          NullPolicy.STRICT);
+      defineMethod(PARSE_DATETIME, BuiltInMethod.PARSE_DATETIME.method,
+          NullPolicy.STRICT);
+      defineMethod(PARSE_TIME, BuiltInMethod.PARSE_TIME.method,
+          NullPolicy.STRICT);
+      defineMethod(PARSE_TIMESTAMP, BuiltInMethod.PARSE_TIMESTAMP.method,
+          NullPolicy.STRICT);
 
       // Datetime formatting methods
-      defineMethod(TO_CHAR, "toChar", NullPolicy.STRICT);
-      final FormatDatetimeImplementor datetimeFormatImpl = new FormatDatetimeImplementor();
+      defineMethod(TO_CHAR, BuiltInMethod.TO_CHAR.method, NullPolicy.STRICT);
+      final FormatDatetimeImplementor datetimeFormatImpl =
+          new FormatDatetimeImplementor();
       map.put(FORMAT_DATE, datetimeFormatImpl);
       map.put(FORMAT_DATETIME, datetimeFormatImpl);
       map.put(FORMAT_TIME, datetimeFormatImpl);
@@ -770,7 +788,8 @@ public class RexImpTable {
       defineMethod(ARRAY_CONTAINS, BuiltInMethod.LIST_CONTAINS.method, NullPolicy.ANY);
       defineMethod(ARRAY_DISTINCT, BuiltInMethod.ARRAY_DISTINCT.method, NullPolicy.STRICT);
       defineMethod(ARRAY_EXCEPT, BuiltInMethod.ARRAY_EXCEPT.method, NullPolicy.ANY);
-      defineMethod(ARRAY_JOIN, "arrayToString", NullPolicy.STRICT);
+      defineMethod(ARRAY_JOIN, BuiltInMethod.ARRAY_TO_STRING.method,
+          NullPolicy.STRICT);
       defineMethod(ARRAY_INSERT, BuiltInMethod.ARRAY_INSERT.method, NullPolicy.NONE);
       defineMethod(ARRAY_INTERSECT, BuiltInMethod.ARRAY_INTERSECT.method, NullPolicy.ANY);
       defineMethod(ARRAY_LENGTH, BuiltInMethod.COLLECTION_SIZE.method, NullPolicy.STRICT);
@@ -782,7 +801,8 @@ public class RexImpTable {
       defineMethod(ARRAY_REPEAT, BuiltInMethod.ARRAY_REPEAT.method, NullPolicy.NONE);
       defineMethod(ARRAY_REVERSE, BuiltInMethod.ARRAY_REVERSE.method, NullPolicy.STRICT);
       defineMethod(ARRAY_SIZE, BuiltInMethod.COLLECTION_SIZE.method, NullPolicy.STRICT);
-      defineMethod(ARRAY_TO_STRING, "arrayToString", NullPolicy.STRICT);
+      defineMethod(ARRAY_TO_STRING, BuiltInMethod.ARRAY_TO_STRING.method,
+          NullPolicy.STRICT);
       defineMethod(ARRAY_UNION, BuiltInMethod.ARRAY_UNION.method, NullPolicy.ANY);
       defineMethod(ARRAYS_OVERLAP, BuiltInMethod.ARRAYS_OVERLAP.method, NullPolicy.ANY);
       defineMethod(ARRAYS_ZIP, BuiltInMethod.ARRAYS_ZIP.method, NullPolicy.ANY);
@@ -922,6 +942,11 @@ public class RexImpTable {
               new MethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method,
                   NullPolicy.NONE, false)));
 
+      return populate3();
+    }
+
+    /** Third step of population. */
+    Builder populate3() {
       // System functions
       final SystemFunctionImplementor systemFunctionImplementor =
           new SystemFunctionImplementor();
@@ -1030,12 +1055,6 @@ public class RexImpTable {
               "Error while creating aggregate implementor " + constructor, e);
         }
       };
-    }
-
-    private void defineMethod(SqlOperator operator, String functionName,
-        NullPolicy nullPolicy) {
-      map.put(operator,
-          new MethodNameImplementor(functionName, nullPolicy, false));
     }
 
     private void defineMethod(SqlOperator operator, Method method,
@@ -2382,13 +2401,13 @@ public class RexImpTable {
 
   /** Implementor for the {@code MONTHNAME} and {@code DAYNAME} functions.
    * Each takes a {@link java.util.Locale} argument. */
-  private static class PeriodNameImplementor extends MethodNameImplementor {
+  private static class PeriodNameImplementor extends AbstractRexCallImplementor {
     private final BuiltInMethod timestampMethod;
     private final BuiltInMethod dateMethod;
 
-    PeriodNameImplementor(String methodName, BuiltInMethod timestampMethod,
+    PeriodNameImplementor(String variableName, BuiltInMethod timestampMethod,
         BuiltInMethod dateMethod) {
-      super("periodName", methodName, NullPolicy.STRICT, false);
+      super(variableName, NullPolicy.STRICT, false);
       this.timestampMethod = timestampMethod;
       this.dateMethod = dateMethod;
     }
@@ -2417,11 +2436,11 @@ public class RexImpTable {
   }
 
   /** Implementor for the {@code LAST_DAY} function. */
-  private static class LastDayImplementor extends MethodNameImplementor {
+  private static class LastDayImplementor extends AbstractRexCallImplementor {
     private final BuiltInMethod dateMethod;
 
-    LastDayImplementor(String methodName, BuiltInMethod dateMethod) {
-      super(methodName, methodName, NullPolicy.STRICT, false);
+    LastDayImplementor(String variableName, BuiltInMethod dateMethod) {
+      super(variableName, NullPolicy.STRICT, false);
       this.dateMethod = dateMethod;
     }
 
@@ -2444,16 +2463,17 @@ public class RexImpTable {
   }
 
   /** Implementor for the {@code SAFE_MULTIPLY} function. */
-  private static class SafeArithmeticImplementor extends MethodNameImplementor {
-    SafeArithmeticImplementor(String methodName) {
-      super(methodName, NullPolicy.STRICT, false);
+  private static class SafeArithmeticImplementor extends MethodImplementor {
+    SafeArithmeticImplementor(Method method) {
+      super(method, NullPolicy.STRICT, false);
     }
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
       Expression arg0 = convertType(argValueList.get(0), call.operands.get(0));
       Expression arg1 = convertType(argValueList.get(1), call.operands.get(1));
-      return Expressions.call(SqlFunctions.class, methodName, arg0, arg1);
+      return super.implementSafe(translator, call,
+          ImmutableList.of(arg0, arg1));
     }
 
     // Because BigQuery treats all int types as aliases for BIGINT (Java's long)
@@ -2468,16 +2488,16 @@ public class RexImpTable {
   }
 
   /** Implementor for the {@code FLOOR} and {@code CEIL} functions. */
-  private static class FloorImplementor extends MethodNameImplementor {
+  private static class FloorImplementor extends MethodImplementor {
     final Method timestampMethod;
     final Method dateMethod;
     final Method customTimestampMethod;
     final Method customDateMethod;
 
-    FloorImplementor(String methodName, Method timestampMethod,
-        Method dateMethod, Method customTimestampMethod,
-        Method customDateMethod) {
-      super("floor", methodName, NullPolicy.STRICT, false);
+    FloorImplementor(Method method,
+        Method timestampMethod, Method dateMethod,
+        Method customTimestampMethod, Method customDateMethod) {
+      super(method, NullPolicy.STRICT, false);
       this.timestampMethod = timestampMethod;
       this.dateMethod = dateMethod;
       this.customTimestampMethod = customTimestampMethod;
@@ -2567,7 +2587,7 @@ public class RexImpTable {
         // divide-by-zero exception. FLOOR and CEIL on these units should no-op.
         return EnumUtils.convert(operand, type);
       }
-      return Expressions.call(SqlFunctions.class, methodName,
+      return Expressions.call(method.getDeclaringClass(), method.getName(),
           EnumUtils.convert(operand, type),
           EnumUtils.convert(
               Expressions.constant(timeUnit.multiplier), type));
@@ -2575,13 +2595,14 @@ public class RexImpTable {
   }
 
   /** Implementor for the {@code TIMESTAMPADD} function. */
-  private static class TimestampAddImplementor extends MethodNameImplementor {
+  private static class TimestampAddImplementor
+      extends AbstractRexCallImplementor {
     final Method customTimestampMethod;
     final Method customDateMethod;
 
-    TimestampAddImplementor(String methodName, Method customTimestampMethod,
+    TimestampAddImplementor(Method customTimestampMethod,
         Method customDateMethod) {
-      super("timestampAdd", methodName, NullPolicy.STRICT, false);
+      super("timestampAdd", NullPolicy.STRICT, false);
       this.customTimestampMethod = customTimestampMethod;
       this.customDateMethod = customDateMethod;
     }
@@ -2604,13 +2625,14 @@ public class RexImpTable {
   }
 
   /** Implementor for the {@code TIMESTAMPDIFF} function. */
-  private static class TimestampDiffImplementor extends MethodNameImplementor {
+  private static class TimestampDiffImplementor
+      extends AbstractRexCallImplementor {
     final Method customTimestampMethod;
     final Method customDateMethod;
 
-    TimestampDiffImplementor(String methodName, Method customTimestampMethod,
+    TimestampDiffImplementor(Method customTimestampMethod,
         Method customDateMethod) {
-      super("timestampDiff", methodName, NullPolicy.STRICT, false);
+      super("timestampDiff", NullPolicy.STRICT, false);
       this.customTimestampMethod = customTimestampMethod;
       this.customDateMethod = customDateMethod;
     }
@@ -2633,10 +2655,11 @@ public class RexImpTable {
   }
 
   /**
-   * Implementor for the {@code FORMAT_TIMESTAMP, FORMAT_DATE, FORMAT_TIME} and
-   * {@code FORMAT_DATETIME} functions.
+   * Implementor for the {@code FORMAT_TIMESTAMP}, {@code FORMAT_DATE},
+   * {@code FORMAT_TIME} and {@code FORMAT_DATETIME} functions.
    */
-  private static class FormatDatetimeImplementor extends MethodNameImplementor {
+  private static class FormatDatetimeImplementor
+      extends AbstractRexCallImplementor {
     FormatDatetimeImplementor() {
       super("formatDatetime", NullPolicy.STRICT, false);
     }
@@ -2664,10 +2687,15 @@ public class RexImpTable {
   private static class MethodImplementor extends AbstractRexCallImplementor {
     protected final Method method;
 
+    MethodImplementor(String variableName, Method method,
+        @Nullable NullPolicy nullPolicy, boolean harmonize) {
+      super(variableName, nullPolicy, harmonize);
+      this.method = method;
+    }
+
     MethodImplementor(Method method, @Nullable NullPolicy nullPolicy,
         boolean harmonize) {
-      super("method_call", nullPolicy, harmonize);
-      this.method = method;
+      this("method_call", method, nullPolicy, harmonize);
     }
 
     @Override Expression implementSafe(RexToLixTranslator translator,
@@ -2781,30 +2809,6 @@ public class RexImpTable {
       final Type returnType =
           translator.typeFactory.getJavaClass(call.getType());
       return EnumUtils.convert(expression, returnType);
-    }
-  }
-
-  /** Implementor for SQL functions that generates calls to a given method name.
-   *
-   * <p>Use this, as opposed to {@link MethodImplementor}, if the SQL function
-   * is overloaded; then you can use one implementor for several overloads. */
-  private static class MethodNameImplementor extends AbstractRexCallImplementor {
-    protected final String methodName;
-
-    MethodNameImplementor(String methodName, NullPolicy nullPolicy,
-        boolean harmonize) {
-      this("method_name_call", methodName, nullPolicy, harmonize);
-    }
-
-    MethodNameImplementor(String variableName, String methodName,
-        NullPolicy nullPolicy, boolean harmonize) {
-      super(variableName, nullPolicy, harmonize);
-      this.methodName = requireNonNull(methodName, "methodName");
-    }
-
-    @Override Expression implementSafe(RexToLixTranslator translator,
-        RexCall call, List<Expression> argValueList) {
-      return EnumUtils.call(null, SqlFunctions.class, methodName, argValueList);
     }
   }
 
