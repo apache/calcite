@@ -59,6 +59,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
@@ -356,20 +357,6 @@ public class SqlFunctions {
     return DigestUtils.sha512Hex(string.getBytes());
   }
 
-  /** SQL {@code REGEXP_CONTAINS(value, regexp)} function.
-   * Throws a runtime exception for invalid regular expressions.*/
-  public static boolean regexpContains(String value, String regex) {
-    try {
-      // Uses java.util.regex as a standard for regex processing
-      // in Calcite instead of RE2 used by BigQuery/GoogleSQL
-      Pattern regexp = Pattern.compile(regex);
-      return regexp.matcher(value).find();
-    } catch (PatternSyntaxException ex) {
-      throw RESOURCE.invalidInputForRegexpContains(ex.getMessage().replace("\r\n", " ")
-          .replace("\n", " ").replace("\r", " ")).ex();
-    }
-  }
-
   /** State for {@code REGEXP_REPLACE}. */
   public static class RegexFunction {
     private final LoadingCache<Ord<String>, Pattern> cache =
@@ -378,7 +365,7 @@ public class SqlFunctions {
               @SuppressWarnings("MagicConstant")
               @Override public Pattern load(Ord<String> key) {
                 final String regex = key.e;
-                final Integer flags = key.i;
+                final int flags = key.i;
                 return Pattern.compile(regex, flags);
               }
             });
@@ -388,6 +375,30 @@ public class SqlFunctions {
      * <p>Marked deterministic so that the code generator instantiates one once
      * per query, not once per row. */
     @Deterministic public RegexFunction() {
+    }
+
+    /** SQL {@code REGEXP_CONTAINS(value, regexp)} function.
+     * Throws a runtime exception for invalid regular expressions.*/
+    public boolean regexpContains(String value, String regex) {
+      final Pattern pattern;
+      try {
+        // Uses java.util.regex as a standard for regex processing
+        // in Calcite instead of RE2 used by BigQuery/GoogleSQL
+        pattern = cache.getUnchecked(Ord.of(0, regex));
+      } catch (UncheckedExecutionException e) {
+        if (e.getCause() instanceof PatternSyntaxException) {
+          final String message = stripLineEndings(e.getCause().getMessage());
+          throw RESOURCE.invalidInputForRegexpContains(message).ex();
+        }
+        throw e;
+      }
+      return pattern.matcher(value).find();
+    }
+
+    private static String stripLineEndings(String message) {
+      return message.replace("\r\n", " ")
+          .replace("\n", " ")
+          .replace("\r", " ");
     }
 
     /** SQL {@code REGEXP_REPLACE} function with 3 arguments. */

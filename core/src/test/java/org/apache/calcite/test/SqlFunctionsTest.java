@@ -59,7 +59,6 @@ import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.md5;
 import static org.apache.calcite.runtime.SqlFunctions.position;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
-import static org.apache.calcite.runtime.SqlFunctions.regexpContains;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.sha256;
@@ -235,30 +234,37 @@ class SqlFunctionsTest {
   }
 
   @Test void testRegexpContains() {
+    final SqlFunctions.RegexFunction f = new SqlFunctions.RegexFunction();
+
+    // Use same regex; should hit cache
+    assertThat(f.regexpContains("abcdef", "abz*"), is(true));
+    assertThat(f.regexpContains("zabzz", "abz*"), is(true));
+    assertThat(f.regexpContains("zazbbzz", "abz*"), is(false));
+
     try {
-      regexpContains("abc def ghi", "(abc");
-      fail("'regexp_contains' on an invalid regex input '(abc' is not possible");
+      final boolean b = f.regexpContains("abc def ghi", "(abc");
+      fail("expected error, got " + b);
     } catch (RuntimeException e) {
-      assertThat(
-          e.getMessage(), is("Invalid regular expression for REGEXP_CONTAINS: 'Unclosed "
+      assertThat(e.getMessage(),
+          is("Invalid regular expression for REGEXP_CONTAINS: 'Unclosed "
               + "group near index 4 (abc'"));
     }
 
     try {
-      regexpContains("abc def ghi", "[z-a]");
-      fail("'regexp_contains' on an invalid regex input '[z-a]' is not possible");
+      final boolean b = f.regexpContains("abc def ghi", "[z-a]");
+      fail("expected error, got " + b);
     } catch (RuntimeException e) {
-      assertThat(
-          e.getMessage(), is("Invalid regular expression for REGEXP_CONTAINS: 'Illegal "
+      assertThat(e.getMessage(),
+          is("Invalid regular expression for REGEXP_CONTAINS: 'Illegal "
               + "character range near index" + " 3 [z-a]    ^'"));
     }
 
     try {
-      regexpContains("abc def ghi", "{2,1}");
-      fail("'regexp_contains' on an invalid regex input '{2,1}' is not possible");
+      final boolean b = f.regexpContains("abc def ghi", "{2,1}");
+      fail("expected error, got " + b);
     } catch (RuntimeException e) {
-      assertThat(
-          e.getMessage(), is("Invalid regular expression for REGEXP_CONTAINS: 'Illegal "
+      assertThat(e.getMessage(),
+          is("Invalid regular expression for REGEXP_CONTAINS: 'Illegal "
               + "repetition range near " + "index 4 {2,1}     ^'"));
     }
   }
