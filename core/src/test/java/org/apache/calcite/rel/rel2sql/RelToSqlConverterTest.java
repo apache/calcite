@@ -12798,4 +12798,20 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testMONInUppercase() {
+    final RelBuilder builder = relBuilder();
+    final RexNode monthInUppercase = builder.call(SqlLibraryOperators.FORMAT_DATE,
+        builder.literal("MONU"), builder.scan("EMP").field(4));
+
+    final RelNode doyRoot = builder
+        .scan("EMP")
+        .project(builder.alias(monthInUppercase, "month"))
+        .build();
+
+    final String expectedMONBiqQuery = "SELECT FORMAT_DATE('%^b', HIREDATE) AS month\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(doyRoot, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedMONBiqQuery));
+  }
 }
