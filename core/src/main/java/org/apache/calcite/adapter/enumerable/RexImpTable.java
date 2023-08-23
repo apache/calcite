@@ -381,6 +381,8 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_INTERSECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_INTERSECT_DISTINCT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_UNION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTISET_UNION_DISTINCT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_INSENSITIVE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NEXT_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
@@ -393,6 +395,8 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.POSITION;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.POSIX_REGEX_CASE_INSENSITIVE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.POSIX_REGEX_CASE_SENSITIVE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.POWER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RADIANS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
@@ -747,18 +751,16 @@ public class RexImpTable {
           BuiltInMethod.SIMILAR_ESCAPE.method);
 
       // POSIX REGEX
-      final MethodImplementor posixRegexImplementorCaseSensitive =
-          new PosixRegexMethodImplementor(true);
-      final MethodImplementor posixRegexImplementorCaseInsensitive =
-          new PosixRegexMethodImplementor(false);
-      map.put(SqlStdOperatorTable.POSIX_REGEX_CASE_INSENSITIVE,
-          posixRegexImplementorCaseInsensitive);
-      map.put(SqlStdOperatorTable.POSIX_REGEX_CASE_SENSITIVE,
-          posixRegexImplementorCaseSensitive);
-      map.put(SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_INSENSITIVE,
-          NotImplementor.of(posixRegexImplementorCaseInsensitive));
-      map.put(SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE,
-          NotImplementor.of(posixRegexImplementorCaseSensitive));
+      defineReflective(POSIX_REGEX_CASE_INSENSITIVE,
+          BuiltInMethod.POSIX_REGEX_INSENSITIVE.method);
+      defineReflective(POSIX_REGEX_CASE_SENSITIVE,
+          BuiltInMethod.POSIX_REGEX_SENSITIVE.method);
+      map.put(NEGATED_POSIX_REGEX_CASE_INSENSITIVE,
+          NotImplementor.of((AbstractRexCallImplementor)
+              map.get(POSIX_REGEX_CASE_INSENSITIVE)));
+      map.put(NEGATED_POSIX_REGEX_CASE_SENSITIVE,
+          NotImplementor.of((AbstractRexCallImplementor)
+              map.get(POSIX_REGEX_CASE_SENSITIVE)));
       defineReflective(REGEXP_REPLACE,
           BuiltInMethod.REGEXP_REPLACE3.method,
           BuiltInMethod.REGEXP_REPLACE4.method,
@@ -2701,25 +2703,6 @@ public class RexImpTable {
         final Class<?> clazz = method.getDeclaringClass();
         return EnumUtils.call(target, clazz, method.getName(), args);
       }
-    }
-  }
-
-  /** Implementor for {@link org.apache.calcite.sql.fun.SqlPosixRegexOperator}s. */
-  private static class PosixRegexMethodImplementor extends MethodImplementor {
-    protected final boolean caseSensitive;
-
-    PosixRegexMethodImplementor(boolean caseSensitive) {
-      super(BuiltInMethod.POSIX_REGEX.method, NullPolicy.STRICT, false);
-      this.caseSensitive = caseSensitive;
-    }
-
-    @Override Expression implementSafe(RexToLixTranslator translator,
-        RexCall call, List<Expression> argValueList) {
-      assert argValueList.size() == 2;
-      // Add extra parameter (caseSensitive boolean flag), required by SqlFunctions#posixRegex.
-      final List<Expression> newOperands = new ArrayList<>(argValueList);
-      newOperands.add(Expressions.constant(caseSensitive));
-      return super.implementSafe(translator, call, newOperands);
     }
   }
 

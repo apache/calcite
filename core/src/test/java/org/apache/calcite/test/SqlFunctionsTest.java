@@ -58,7 +58,6 @@ import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.md5;
 import static org.apache.calcite.runtime.SqlFunctions.position;
-import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.sha256;
@@ -214,23 +213,25 @@ class SqlFunctionsTest {
   }
 
   @Test void testPosixRegex() {
-    assertThat(posixRegex("abc", "abc", true), is(true));
-    assertThat(posixRegex("abc", "^a", true), is(true));
-    assertThat(posixRegex("abc", "(b|d)", true), is(true));
-    assertThat(posixRegex("abc", "^(b|c)", true), is(false));
+    final SqlFunctions.PosixRegexFunction f =
+        new SqlFunctions.PosixRegexFunction();
+    assertThat(f.posixRegexSensitive("abc", "abc"), is(true));
+    assertThat(f.posixRegexSensitive("abc", "^a"), is(true));
+    assertThat(f.posixRegexSensitive("abc", "(b|d)"), is(true));
+    assertThat(f.posixRegexSensitive("abc", "^(b|c)"), is(false));
 
-    assertThat(posixRegex("abc", "ABC", false), is(true));
-    assertThat(posixRegex("abc", "^A", false), is(true));
-    assertThat(posixRegex("abc", "(B|D)", false), is(true));
-    assertThat(posixRegex("abc", "^(B|C)", false), is(false));
+    assertThat(f.posixRegexInsensitive("abc", "ABC"), is(true));
+    assertThat(f.posixRegexInsensitive("abc", "^A"), is(true));
+    assertThat(f.posixRegexInsensitive("abc", "(B|D)"), is(true));
+    assertThat(f.posixRegexInsensitive("abc", "^(B|C)"), is(false));
 
-    assertThat(posixRegex("abc", "^[[:xdigit:]]$", false), is(false));
-    assertThat(posixRegex("abc", "^[[:xdigit:]]+$", false), is(true));
-    assertThat(posixRegex("abcq", "^[[:xdigit:]]+$", false), is(false));
+    assertThat(f.posixRegexInsensitive("abc", "^[[:xdigit:]]$"), is(false));
+    assertThat(f.posixRegexInsensitive("abc", "^[[:xdigit:]]+$"), is(true));
+    assertThat(f.posixRegexInsensitive("abcq", "^[[:xdigit:]]+$"), is(false));
 
-    assertThat(posixRegex("abc", "[[:xdigit:]]", false), is(true));
-    assertThat(posixRegex("abc", "[[:xdigit:]]+", false), is(true));
-    assertThat(posixRegex("abcq", "[[:xdigit:]]", false), is(true));
+    assertThat(f.posixRegexInsensitive("abc", "[[:xdigit:]]"), is(true));
+    assertThat(f.posixRegexInsensitive("abc", "[[:xdigit:]]+"), is(true));
+    assertThat(f.posixRegexInsensitive("abcq", "[[:xdigit:]]"), is(true));
   }
 
   @Test void testRegexpContains() {

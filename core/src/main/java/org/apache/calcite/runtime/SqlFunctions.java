@@ -1266,9 +1266,31 @@ public class SqlFunctions {
     }
   }
 
-  public static boolean posixRegex(String s, String regex, boolean caseSensitive) {
-    final Pattern pattern = Like.posixRegexToPattern(regex, caseSensitive);
-    return pattern.matcher(s).find();
+  /** State for posix regex function. */
+  @Deterministic
+  public static class PosixRegexFunction {
+    private final LoadingCache<Ord<String>, Pattern> cache =
+        CacheBuilder.newBuilder().build(
+            new CacheLoader<Ord<String>, Pattern>() {
+              @Override public Pattern load(Ord<String> pattern) {
+                return Like.posixRegexToPattern(pattern.e, pattern.i);
+              }
+            });
+
+    boolean posixRegex(String s, String regex, int flags) {
+      final Ord<String> key = Ord.of(flags, regex);
+      return cache.getUnchecked(key).matcher(s).find();
+    }
+
+    /** Posix regex, case-insensitive. */
+    public boolean posixRegexInsensitive(String s, String regex) {
+      return posixRegex(s, regex, Pattern.CASE_INSENSITIVE);
+    }
+
+    /** Posix regex, case-sensitive. */
+    public boolean posixRegexSensitive(String s, String regex) {
+      return posixRegex(s, regex, 0);
+    }
   }
 
   // =
