@@ -12814,4 +12814,21 @@ class RelToSqlConverterTest {
     assertThat(toSql(doyRoot, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedMONBiqQuery));
   }
+
+  @Test public void testToHexFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toHexFunction = builder.call(SqlLibraryOperators.TO_HEX,
+        builder.call(SqlLibraryOperators.MD5, builder.literal("snowflake")));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toHexFunction, "md5_hashed"))
+        .build();
+    final String expectedSql = "SELECT TO_HEX(MD5('snowflake')) AS \"md5_hashed\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TO_HEX(MD5('snowflake')) AS md5_hashed\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }
