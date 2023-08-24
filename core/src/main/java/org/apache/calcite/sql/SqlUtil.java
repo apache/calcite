@@ -303,12 +303,13 @@ public abstract class SqlUtil {
         writer.keyword("SPECIFIC");
       }
       SqlIdentifier id = function.getSqlIdentifier();
-      if (id == null && isUDFLowerCase((SqlFunction) operator, writer)) {
-        writer.print(operator.getName().toLowerCase());
-      } else if (id == null) {
-        writer.keyword(operator.getName());
-      } else if (isUDFLowerCase((SqlFunction) operator, writer)) {
-        writer.print(operator.getName().toLowerCase());
+      if (id == null) {
+        if (((SqlFunction) operator).getFunctionType() == SqlFunctionCategory.USER_DEFINED_FUNCTION
+            && writer.isUDFLowerCase()) {
+          writer.print(operator.getName());
+        } else {
+          writer.keyword(operator.getName());
+        }
       } else {
         unparseSqlIdentifierSyntax(writer, id, true);
       }

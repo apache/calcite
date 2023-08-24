@@ -436,6 +436,10 @@ public class SqlPrettyWriter implements SqlWriter {
     config = config();
   }
 
+  @Override public boolean isUDFLowerCase() {
+    return false;
+  }
+
   @Override public void reset() {
     buf.setLength(0);
     lineStart = 0;
@@ -1117,11 +1121,6 @@ public class SqlPrettyWriter implements SqlWriter {
     setWindowDeclListNewline(options.isWindowListItemsOnSeparateLines());
     setIndentation(options.getIndentation());
     setLineLength(options.getLineLength());
-    setLowerCaseUDF(options.isUDFLowerCase());
-  }
-
-  private void setLowerCaseUDF(boolean udfLowerCase) {
-    this.config = config.withLowerCaseUDF(udfLowerCase);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -1450,9 +1449,5 @@ public class SqlPrettyWriter implements SqlWriter {
       names.addAll(setterMethods.keySet());
       return names.toArray(new String[0]);
     }
-  }
-
-  @Override public boolean isUDFLowerCase() {
-    return config.lowerCaseUDF();
   }
 }

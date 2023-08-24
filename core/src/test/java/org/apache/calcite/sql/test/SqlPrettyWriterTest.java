@@ -548,22 +548,4 @@ class SqlPrettyWriterTest {
         .withClauseEndsLine(true);
     System.out.println(new SqlPrettyWriter(config).format(node));
   }
-
-  @Test void testUDFLowerCase() {
-    final String inputSql = "SELECT XYZ45(1, 2)";
-    final String formatted = "SELECT xyz45(1, 2)";
-    sql(inputSql)
-        .withWriter(w -> w.withLowerCaseUDF(true))
-        .expectingFormatted(formatted)
-        .check();
-  }
-
-  @Test void testUDFUpperCase() {
-    final String inputSql = "SELECT XYZ45(1, 2)";
-    final String formatted = "SELECT `XYZ45`(1, 2)";
-    sql(inputSql)
-        .withWriter(w -> w.withLowerCaseUDF(false))
-        .expectingFormatted(formatted)
-        .check();
-  }
 }
