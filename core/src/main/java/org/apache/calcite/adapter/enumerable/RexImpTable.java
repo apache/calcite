@@ -3416,7 +3416,7 @@ public class RexImpTable {
     private final AbstractRexCallImplementor implementor;
 
     private NotImplementor(AbstractRexCallImplementor implementor) {
-      super("not", implementor.getNullPolicy(), false);
+      super("not", implementor.nullPolicy, false);
       this.implementor = implementor;
     }
 
@@ -3657,12 +3657,12 @@ public class RexImpTable {
     final String variableName;
 
     final NullPolicy nullPolicy;
-    private final boolean harmonize;
+    final boolean harmonize;
 
     AbstractRexCallImplementor(String variableName,
         NullPolicy nullPolicy, boolean harmonize) {
       this.variableName = requireNonNull(variableName, "variableName");
-      this.nullPolicy = nullPolicy;
+      this.nullPolicy = requireNonNull(nullPolicy, "nullPolicy");
       this.harmonize = harmonize;
     }
 
@@ -3682,15 +3682,6 @@ public class RexImpTable {
       final ParameterExpression isNullVariable =
           genIsNullStatement(translator, valueVariable);
       return new RexToLixTranslator.Result(isNullVariable, valueVariable);
-    }
-
-    // Variable name facilitates reasoning about issues when necessary
-    String getVariableName() {
-      return variableName;
-    }
-
-    public NullPolicy getNullPolicy() {
-      return nullPolicy;
     }
 
     /** Figures out conditional expression according to NullPolicy. */
@@ -3749,7 +3740,7 @@ public class RexImpTable {
               convertedCallValue);
       final ParameterExpression value =
           Expressions.parameter(convertedCallValue.getType(),
-              translator.getBlockBuilder().newName(getVariableName() + "_value"));
+              translator.getBlockBuilder().newName(variableName + "_value"));
       translator.getBlockBuilder().add(
           Expressions.declare(Modifier.FINAL, value, valueExpression));
       return value;
@@ -3764,7 +3755,7 @@ public class RexImpTable {
         final RexToLixTranslator translator, final ParameterExpression value) {
       final ParameterExpression isNullVariable =
           Expressions.parameter(Boolean.TYPE,
-              translator.getBlockBuilder().newName(getVariableName() + "_isNull"));
+              translator.getBlockBuilder().newName(variableName + "_isNull"));
       final Expression isNullExpression = translator.checkNull(value);
       translator.getBlockBuilder().add(
           Expressions.declare(Modifier.FINAL, isNullVariable, isNullExpression));
@@ -3889,11 +3880,11 @@ public class RexImpTable {
       final Expression valueExpression = nullAs.handle(callExpression);
       final ParameterExpression valueVariable =
           Expressions.parameter(valueExpression.getType(),
-              translator.getBlockBuilder().newName(getVariableName() + "_value"));
+              translator.getBlockBuilder().newName(variableName + "_value"));
       final Expression isNullExpression = translator.checkNull(valueVariable);
       final ParameterExpression isNullVariable =
           Expressions.parameter(Boolean.TYPE,
-              translator.getBlockBuilder().newName(getVariableName() + "_isNull"));
+              translator.getBlockBuilder().newName(variableName + "_isNull"));
       translator.getBlockBuilder().add(
           Expressions.declare(Modifier.FINAL, valueVariable, valueExpression));
       translator.getBlockBuilder().add(
@@ -3942,11 +3933,11 @@ public class RexImpTable {
       final Expression valueExpression = nullAs.handle(callExpression);
       final ParameterExpression valueVariable =
           Expressions.parameter(valueExpression.getType(),
-              translator.getBlockBuilder().newName(getVariableName() + "_value"));
+              translator.getBlockBuilder().newName(variableName + "_value"));
       final Expression isNullExpression = translator.checkNull(valueExpression);
       final ParameterExpression isNullVariable =
           Expressions.parameter(Boolean.TYPE,
-              translator.getBlockBuilder().newName(getVariableName() + "_isNull"));
+              translator.getBlockBuilder().newName(variableName + "_isNull"));
       translator.getBlockBuilder().add(
           Expressions.declare(Modifier.FINAL, valueVariable, valueExpression));
       translator.getBlockBuilder().add(
@@ -4326,7 +4317,7 @@ public class RexImpTable {
       BlockBuilder lambdaBuilder = new BlockBuilder();
       final ParameterExpression leftExpr =
           Expressions.parameter(left.getType(),
-              translator.getBlockBuilder().newName("_" + getVariableName() + "_left_value"));
+              translator.getBlockBuilder().newName("_" + variableName + "_left_value"));
       // left should have final modifier otherwise it can not be passed to lambda
       translator.getBlockBuilder().add(Expressions.declare(Modifier.FINAL, leftExpr, left));
       RexNode leftRex = call.getOperands().get(0);
