@@ -411,7 +411,15 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public void unparseTitleInColumnDefinition(SqlWriter writer, String title,
       int leftPrec, int rightPrec) {
     title = title.replace("''", "\\'");
+    title = limitTitleLength(title);
     writer.print("OPTIONS(description=" + title + ")");
+  }
+
+  /**
+   * BQ(description char length): The maximum length is 1024 characters.
+   */
+  String limitTitleLength(String title) {
+    return title.length() > 1024 ? title.substring(0, 1024) : title;
   }
 
   @Override public boolean supportsUnpivot() {
