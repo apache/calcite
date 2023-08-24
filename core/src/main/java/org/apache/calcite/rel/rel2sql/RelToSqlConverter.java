@@ -72,6 +72,7 @@ import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
+import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSampleSpec;
@@ -1084,7 +1085,62 @@ public class RelToSqlConverter extends SqlImplementor
 
       return result(sqlDelete, input.clauses, modify, null);
     }
-    case MERGE:
+    case MERGE: {
+      final Result input = visitInput(modify, 0);
+      final SqlSelect select = input.asSelect();
+      // When querying with both the `WHEN MATCHED THEN UPDATE` and
+      // `WHEN NOT MATCHED THEN INSERT` clauses, the selectList consists of three parts:
+      // the insert expression, the target table reference, and the update expression.
+      // When querying with the `WHEN MATCHED THEN UPDATE` clause, the selectList will not
+      // include the update expression.
+      // However, when querying with the `WHEN NOT MATCHED THEN INSERT` clause,
+      // the expression list will only contain the insert expression.
+      final SqlNodeList selectList = SqlUtil.stripListAs(select.getSelectList());
+      final SqlJoin join =  requireNonNull((SqlJoin) select.getFrom());
+      final SqlNode condition = requireNonNull(join.getCondition());
+      final SqlNode source = join.getLeft();
+
+      SqlUpdate update = null;
+      final List<String> updateColumnList =
+          requireNonNull(modify.getUpdateColumnList(),
+              () -> "modify.getUpdateColumnList() is null for " + modify);
+      final int nUpdateFiled = updateColumnList.size();
+      if (nUpdateFiled != 0) {
+        final SqlNodeList expressionList =
+            Util.last(selectList, nUpdateFiled).stream()
+                .collect(SqlNodeList.toList());
+        update =
+            new SqlUpdate(POS, sqlTargetTable,
+                identifierList(updateColumnList),
+                expressionList,
+                condition, null, null);
+      }
+
+      final RelDataType targetRowType = modify.getTable().getRowType();
+      final int nTargetFiled = targetRowType.getFieldCount();
+      final int nInsertFiled = nUpdateFiled == 0
+          ? selectList.size() : selectList.size() - nTargetFiled - nUpdateFiled;
+      SqlInsert insert = null;
+      if (nInsertFiled != 0) {
+        final SqlNodeList expressionList =
+            Util.first(selectList, nInsertFiled).stream()
+                .collect(SqlNodeList.toList());
+        final SqlNode valuesCall =
+            SqlStdOperatorTable.VALUES.createCall(expressionList);
+        final SqlNodeList columnList = targetRowType.getFieldNames().stream()
+            .map(f -> new SqlIdentifier(f, POS))
+            .collect(SqlNodeList.toList());
+        insert = new SqlInsert(POS, SqlNodeList.EMPTY, sqlTargetTable, valuesCall, columnList);
+      }
+
+      final SqlNode target = join.getRight();
+      final SqlNode targetTableAlias = target.getKind() == SqlKind.AS
+          ? ((SqlCall) target).operand(1) : null;
+      final SqlMerge merge =
+          new SqlMerge(POS, sqlTargetTable, condition, source, update, insert, null,
+              (SqlIdentifier) targetTableAlias);
+      return result(merge, input.clauses, modify, null);
+    }
     default:
       throw new AssertionError("not implemented: " + modify);
     }
