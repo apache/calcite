@@ -649,9 +649,9 @@ public class RexImpTable {
 
       map.put(SAFE_ADD,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_ADD.method));
-			map.put(SAFE_DIVIDE,
-					new SafeArithmeticImplementor(BuiltInMethod.SAFE_DIVIDE.method));
-			map.put(SAFE_MULTIPLY,
+      map.put(SAFE_DIVIDE,
+          new SafeArithmeticImplementor(BuiltInMethod.SAFE_DIVIDE.method));
+      map.put(SAFE_MULTIPLY,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_MULTIPLY.method));
       map.put(SAFE_NEGATE,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_MULTIPLY.method));

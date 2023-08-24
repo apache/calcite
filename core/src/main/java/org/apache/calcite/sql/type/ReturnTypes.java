@@ -827,10 +827,10 @@ public abstract class ReturnTypes {
       DECIMAL_QUOTIENT.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
-  * Type-inference stratey whereby the result type of a call is
+  * Type-inference strategy whereby the result type of a call is
   * {@link #DOUBLE} if both operands are integer types.
   */
-  public static final SqlReturnTypeInference DOUBLE_IF_INTEGER = opBinding -> {
+  public static final SqlReturnTypeInference DOUBLE_IF_INTEGERS = opBinding -> {
     RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     SqlTypeName type1 = opBinding.getOperandType(0).getSqlTypeName();
     SqlTypeName type2 = opBinding.getOperandType(1).getSqlTypeName();
