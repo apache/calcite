@@ -7480,7 +7480,42 @@ public class SqlOperatorTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5770">[CALCITE-5770]
-   * Add SAFE_SUBTRACT function (enabled in BigQuery library).</a>.
+   * Add SAFE_NEGATE function (enabled in BigQuery library)</a>.
+   */
+  @Test void testSafeNegateFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SAFE_NEGATE);
+    f0.checkFails("^safe_negate(2)^",
+                  "No match found for function signature "
+                    + "SAFE_NEGATE\\(<NUMERIC>\\)", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("safe_negate(cast(20 as bigint))", "-20",
+        "BIGINT");
+    f.checkScalar("safe_negate(cast(-20 as bigint))", "20",
+        "BIGINT");
+    f.checkScalar("safe_negate(cast(1.5 as decimal(2, 1)))", "-1.5",
+        "DECIMAL(2, 1)");
+    f.checkScalar("safe_negate(cast(-1.5 as decimal(2, 1)))", "1.5",
+        "DECIMAL(2, 1)");
+    f.checkScalar("safe_negate(cast(12.3456 as double))", "-12.3456",
+        "DOUBLE");
+    f.checkScalar("safe_negate(cast(-12.3456 as double))", "12.3456",
+        "DOUBLE");
+    // Infinity and NaN tests
+    f.checkScalar("safe_negate(cast('Infinity' as double))",
+        "-Infinity", "DOUBLE");
+    f.checkScalar("safe_negate(cast('-Infinity' as double))",
+        "Infinity", "DOUBLE");
+    f.checkScalar("safe_negate(cast('NaN' as double))",
+        "NaN", "DOUBLE");
+    // Null cases are rarer for SAFE_NEGATE
+    f.checkNull("safe_negate(-9223372036854775808)");
+    f.checkNull("safe_negate(-1 + -9223372036854775807)");
+    f.checkNull("safe_negate(cast(null as bigint))");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5770">[CALCITE-5770]
+   * Add SAFE_SUBTRACT function (enabled in BigQuery library)</a>.
    */
   @Test void testSafeSubtractFunc() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SAFE_SUBTRACT);

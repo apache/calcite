@@ -1709,6 +1709,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The "SAFE_NEGATE(numeric)" function; negates {@code numeric} and returns null if overflow
+   * occurs. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SAFE_NEGATE =
+      SqlBasicFunction.create("SAFE_NEGATE",
+          ReturnTypes.ARG0_FORCE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   /** The "SAFE_SUBTRACT(numeric1, numeric2)" function; equivalent to the {@code -} operator but
    * returns null if overflow occurs. */
   @LibraryOperator(libraries = {BIG_QUERY})
