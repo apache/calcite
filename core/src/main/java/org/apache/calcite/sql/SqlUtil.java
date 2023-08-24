@@ -356,12 +356,6 @@ public abstract class SqlUtil {
     }
     writer.endList(frame);
   }
-
-  private static boolean isUDFLowerCase(SqlFunction operator, SqlWriter writer) {
-    return operator.getFunctionType() == SqlFunctionCategory.USER_DEFINED_FUNCTION
-        && writer.isUDFLowerCase();
-  }
-
   /**
    * Unparse a SqlIdentifier syntax.
    *
