@@ -3285,13 +3285,14 @@ public class SqlFunctions {
     /** Work space for various functions. Clear it before you use it. */
     final StringBuilder sb = new StringBuilder();
 
-    static class Key extends MapEntry<FormatModel, String> {
+    /** Cache key. */
+    private static class Key extends MapEntry<FormatModel, String> {
       Key(FormatModel formatModel, String format) {
         super(formatModel, format);
       }
     }
 
-    protected final LoadingCache<Key, List<FormatElement>> formatCache =
+    private final LoadingCache<Key, List<FormatElement>> formatCache =
         CacheBuilder.newBuilder().build(
             new CacheLoader<Key, List<FormatElement>>() {
               @Override public List<FormatElement> load(Key key) {
@@ -3303,7 +3304,7 @@ public class SqlFunctions {
 
     /** Given a format string and a format model, calls an action with the
      * list of elements obtained by parsing that format string. */
-    protected void withElements(FormatModel formatModel, String format,
+    protected final void withElements(FormatModel formatModel, String format,
         Consumer<List<FormatElement>> consumer) {
       List<FormatElement> elements =
           formatCache.getUnchecked(new Key(formatModel, format));
@@ -3341,24 +3342,21 @@ public class SqlFunctions {
   }
 
   /** State for {@code PARSE_DATE}, {@code PARSE_TIMESTAMP},
-   * {@code PARSE_DATETIME}, {@code PARSE_TIME} functions.
-   *
-   * <p>Inherits from {@link DateFormatFunction} because, like functions like
-   * {@code FORMAT_TIMESTAMP}, we want to parse format strings using
-   * {@link FormatModel#parseNoCache(String)} and keep our own cache of the
-   * results. */
+   * {@code PARSE_DATETIME}, {@code PARSE_TIME} functions. */
   @Deterministic
-  public static class DateParseFunction extends DateFormatFunction {
+  public static class DateParseFunction {
     private final LoadingCache<Key, DateFormat> cache =
         CacheBuilder.newBuilder().build(
             new CacheLoader<Key, DateFormat>() {
+              /** Use a {@link DateFormatFunction} for its cache of parsed
+               * format strings. */
+              final DateFormatFunction f = new DateFormatFunction();
+
               @SuppressWarnings("MagicConstant")
               @Override public DateFormat load(Key key) {
-                sb.setLength(0);
-                formatCache
-                    .getUnchecked(
-                        new DateFormatFunction.Key(FormatModels.BIG_QUERY, key.fmt))
-                    .forEach(ele -> ele.toPattern(sb));
+                StringBuilder sb = new StringBuilder();
+                f.withElements(FormatModels.BIG_QUERY, key.fmt, elements ->
+                    elements.forEach(ele -> ele.toPattern(sb)));
                 final String javaFmt = sb.toString();
 
                 // TODO: make Locale configurable. ENGLISH set for weekday
