@@ -3285,12 +3285,16 @@ public class SqlFunctions {
     /** Work space for various functions. Clear it before you use it. */
     final StringBuilder sb = new StringBuilder();
 
-    protected final LoadingCache<MapEntry<FormatModel, String>,
-        List<FormatElement>> formatCache =
+    static class Key extends MapEntry<FormatModel, String> {
+      Key(FormatModel formatModel, String format) {
+        super(formatModel, format);
+      }
+    }
+
+    protected final LoadingCache<Key, List<FormatElement>> formatCache =
         CacheBuilder.newBuilder().build(
-            new CacheLoader<MapEntry<FormatModel, String>, List<FormatElement>>() {
-              @Override public List<FormatElement> load(
-                  MapEntry<FormatModel, String> key) {
+            new CacheLoader<Key, List<FormatElement>>() {
+              @Override public List<FormatElement> load(Key key) {
                 final FormatModel formatModel = key.getKey();
                 final String fmt = key.getValue();
                 return formatModel.parseNoCache(fmt);
@@ -3302,7 +3306,7 @@ public class SqlFunctions {
     protected void withElements(FormatModel formatModel, String format,
         Consumer<List<FormatElement>> consumer) {
       List<FormatElement> elements =
-          formatCache.getUnchecked(new MapEntry<>(formatModel, format));
+          formatCache.getUnchecked(new Key(formatModel, format));
       consumer.accept(elements);
     }
 
@@ -3352,7 +3356,8 @@ public class SqlFunctions {
               @Override public DateFormat load(Key key) {
                 sb.setLength(0);
                 formatCache
-                    .getUnchecked(new MapEntry<>(FormatModels.BIG_QUERY, key.fmt))
+                    .getUnchecked(
+                        new DateFormatFunction.Key(FormatModels.BIG_QUERY, key.fmt))
                     .forEach(ele -> ele.toPattern(sb));
                 final String javaFmt = sb.toString();
 
