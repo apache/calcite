@@ -1313,6 +1313,42 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5955">[CALCITE-5955]
+   * BigQuery PERCENTILE functions are unparsed incorrectly</a>. */
+  @Test void testPercentileContWindow() {
+    final String partitionQuery = "select percentile_cont(\"product_id\", 0.5)\n"
+        + "over(partition by \"product_id\")\n"
+        + "from \"foodmart\".\"product\"";
+    final String expectedPartition = "SELECT PERCENTILE_CONT(product_id, 0.5) "
+        + "OVER (PARTITION BY product_id)\n"
+        + "FROM foodmart.product";
+    final String query = "select percentile_cont(\"product_id\", 0.5) over()\n"
+        + "from \"foodmart\".\"product\"";
+    final String expectedQuery = "SELECT PERCENTILE_CONT(product_id, 0.5) OVER ()\n"
+        + "FROM foodmart.product";
+    sql(partitionQuery).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expectedPartition);
+    sql(query).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expectedQuery);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5955">[CALCITE-5955]
+   * BigQuery PERCENTILE functions are unparsed incorrectly</a>. */
+  @Test void testPercentileDiscWindowFrameClause() {
+    final String partitionQuery = "select percentile_disc(\"product_id\", 0.5)\n"
+        + "over(partition by \"product_id\")\n"
+        + "from \"foodmart\".\"product\"";
+    final String expectedPartition = "SELECT PERCENTILE_DISC(product_id, 0.5) "
+        + "OVER (PARTITION BY product_id)\n"
+        + "FROM foodmart.product";
+    final String query = "select percentile_disc(\"product_id\", 0.5) over()\n"
+        + "from \"foodmart\".\"product\"";
+    final String expectedQuery = "SELECT PERCENTILE_DISC(product_id, 0.5) OVER ()\n"
+        + "FROM foodmart.product";
+    sql(partitionQuery).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expectedPartition);
+    sql(query).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expectedQuery);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2722">[CALCITE-2722]
    * SqlImplementor createLeftCall method throws StackOverflowError</a>. */
   @Test void testStack() {
