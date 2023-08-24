@@ -68,6 +68,13 @@ public class RexInterpreter implements RexVisitor<Comparable> {
           SqlKind.DIVIDE, SqlKind.COALESCE, SqlKind.CEIL,
           SqlKind.FLOOR, SqlKind.EXTRACT);
 
+  private final SqlFunctions.LikeFunction likeFunction =
+      new SqlFunctions.LikeFunction();
+  private final SqlFunctions.SimilarFunction similarFunction =
+      new SqlFunctions.SimilarFunction();
+  private final SqlFunctions.SimilarEscapeFunction similarEscapeFunction =
+      new SqlFunctions.SimilarEscapeFunction();
+
   private final Map<RexNode, Comparable> environment;
 
   /** Creates an interpreter.
@@ -245,7 +252,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     return DateTimeUtils.unixDateExtract(timeUnitRange, v2);
   }
 
-  private static Comparable like(List<Comparable> values) {
+  private Comparable like(List<Comparable> values) {
     if (containsNull(values)) {
       return N;
     }
@@ -253,18 +260,17 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     final NlsString pattern = (NlsString) values.get(1);
     switch (values.size()) {
     case 2:
-      return new SqlFunctions.LikeFunction()
-          .like(value.getValue(), pattern.getValue());
+      return likeFunction.like(value.getValue(), pattern.getValue());
     case 3:
       final NlsString escape = (NlsString) values.get(2);
-      return new SqlFunctions.LikeFunction()
-          .like(value.getValue(), pattern.getValue(), escape.getValue());
+      return likeFunction.like(value.getValue(), pattern.getValue(),
+          escape.getValue());
     default:
       throw new AssertionError();
     }
   }
 
-  private static Comparable similar(List<Comparable> values) {
+  private Comparable similar(List<Comparable> values) {
     if (containsNull(values)) {
       return N;
     }
@@ -272,12 +278,11 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     final NlsString pattern = (NlsString) values.get(1);
     switch (values.size()) {
     case 2:
-      return new SqlFunctions.SimilarFunction()
-          .similar(value.getValue(), pattern.getValue());
+      return similarFunction.similar(value.getValue(), pattern.getValue());
     case 3:
       final NlsString escape = (NlsString) values.get(2);
-      return new SqlFunctions.SimilarEscapeFunction()
-          .similar(value.getValue(), pattern.getValue(), escape.getValue());
+      return similarEscapeFunction.similar(value.getValue(), pattern.getValue(),
+          escape.getValue());
     default:
       throw new AssertionError();
     }
