@@ -410,10 +410,9 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override public void unparseTitleInColumnDefinition(SqlWriter writer, String title,
       int leftPrec, int rightPrec) {
-    title = title.replace("''", "\\'");
-    title = limitTitleLength(title);
     title = title.substring(1, title.length() - 1).replace("''", "\\'");
     title = "'" + title + "'";
+    title = limitTitleLength(title);
     writer.print("OPTIONS(description=" + title + ")");
   }
 
