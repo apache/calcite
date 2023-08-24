@@ -209,6 +209,11 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       unparseItem(writer, call, leftPrec);
       break;
+    case OVER:
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.keyword("OVER");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

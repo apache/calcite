@@ -2265,7 +2265,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
               OperandTypes.UNIT_INTERVAL_NUMERIC_LITERAL)
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withGroupOrder(Optionality.MANDATORY)
-          .withPercentile(true);
+          .withPercentile(true)
+          .withAllowsFraming(false);
 
   /**
    * {@code PERCENTILE_DISC} inverse distribution aggregate function.
@@ -2280,7 +2281,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
               OperandTypes.UNIT_INTERVAL_NUMERIC_LITERAL)
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withGroupOrder(Optionality.MANDATORY)
-          .withPercentile(true);
+          .withPercentile(true)
+          .withAllowsFraming(false);
 
   /**
    * The LISTAGG operator. String aggregator function.

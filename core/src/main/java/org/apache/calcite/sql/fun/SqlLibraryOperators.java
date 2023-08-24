@@ -699,7 +699,8 @@ public abstract class SqlLibraryOperators {
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withOver(true)
           .withPercentile(true)
-          .withAllowsNullTreatment(true);
+          .withAllowsNullTreatment(true)
+          .withAllowsFraming(false);
 
   /** The {@code PERCENTILE_DISC} function, BigQuery's
    * equivalent to {@link SqlStdOperatorTable#PERCENTILE_DISC},
@@ -713,7 +714,8 @@ public abstract class SqlLibraryOperators {
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withOver(true)
           .withPercentile(true)
-          .withAllowsNullTreatment(true);
+          .withAllowsNullTreatment(true)
+          .withAllowsFraming(false);
 
   /** The "DATE" function. It has the following overloads:
    *
