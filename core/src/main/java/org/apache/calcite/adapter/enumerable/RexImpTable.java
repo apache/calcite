@@ -228,6 +228,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_CAST;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_MULTIPLY;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_NEGATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_ORDINAL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_SUBTRACT;
@@ -645,6 +646,8 @@ public class RexImpTable {
       map.put(SAFE_ADD,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_ADD.method));
       map.put(SAFE_MULTIPLY,
+          new SafeArithmeticImplementor(BuiltInMethod.SAFE_MULTIPLY.method));
+      map.put(SAFE_NEGATE,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_MULTIPLY.method));
       map.put(SAFE_SUBTRACT,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_SUBTRACT.method));
@@ -2477,10 +2480,16 @@ public class RexImpTable {
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
-      Expression arg0 = convertType(argValueList.get(0), call.operands.get(0));
-      Expression arg1 = convertType(argValueList.get(1), call.operands.get(1));
-      return super.implementSafe(translator, call,
-          ImmutableList.of(arg0, arg1));
+      List<Expression> args = new ArrayList<Expression>();
+      args.add(convertType(argValueList.get(0), call.operands.get(0)));
+      // SAFE_NEGATE only has one argument so create constant -1L to use
+      // SAFE_MULTIPLY implementation.
+      if (argValueList.size() == 1) {
+        args.add(Expressions.constant(-1L));
+      } else {
+        args.add(convertType(argValueList.get(1), call.operands.get(1)));
+      }
+      return super.implementSafe(translator, call, args);
     }
 
     // Because BigQuery treats all int types as aliases for BIGINT (Java's long)

@@ -738,6 +738,52 @@ SELECT SAFE_MULTIPLY(CAST('NaN' AS DOUBLE), CAST(3 as BIGINT)) as NaN_result;
 !ok
 
 #####################################################################
+# SAFE_NEGATE
+#
+# SAFE_NEGATE(value)
+#
+# Returns value * -1, or NULL on overflow.
+SELECT SAFE_NEGATE(5) as result;
++--------+
+| result |
++--------+
+|     -5 |
++--------+
+(1 row)
+
+!ok
+
+SELECT SAFE_NEGATE(-5) as result;
++--------+
+| result |
++--------+
+|      5 |
++--------+
+(1 row)
+
+!ok
+
+SELECT SAFE_NEGATE(-9223372036854775808) as overflow_result;
++-----------------+
+| overflow_result |
++-----------------+
+|                 |
++-----------------+
+(1 row)
+
+!ok
+
+SELECT SAFE_NEGATE(1 + 2 + 3 + 4) as expr_result;
++-------------+
+| expr_result |
++-------------+
+|         -10 |
++-------------+
+(1 row)
+
+!ok
+
+#####################################################################
 # SAFE_SUBTRACT
 #
 # SAFE_SUBTRACT(value1, value2)
