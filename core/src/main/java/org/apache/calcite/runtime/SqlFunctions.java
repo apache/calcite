@@ -122,6 +122,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import static org.apache.calcite.config.CalciteSystemProperty.FUNCTION_LEVEL_CACHE_MAX_SIZE;
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -368,16 +369,22 @@ public class SqlFunctions {
    * per query, not once per row. */
   @Deterministic
   public static class RegexFunction {
-    private final LoadingCache<Ord<String>, Pattern> cache =
-        CacheBuilder.newBuilder().build(
-            new CacheLoader<Ord<String>, Pattern>() {
-              @SuppressWarnings("MagicConstant")
-              @Override public Pattern load(Ord<String> key) {
-                final String regex = key.e;
-                final int flags = key.i;
-                return Pattern.compile(regex, flags);
-              }
-            });
+    /** Cache key. */
+    private static class Key extends Ord<String> {
+      Key(int flags, String regex) {
+        super(flags, regex);
+      }
+
+      @SuppressWarnings("MagicConstant")
+      Pattern toPattern() {
+        return Pattern.compile(e, i);
+      }
+    }
+
+    private final LoadingCache<Key, Pattern> cache =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(Key::toPattern));
 
     /** SQL {@code REGEXP_CONTAINS(value, regexp)} function.
      * Throws a runtime exception for invalid regular expressions.*/
@@ -386,7 +393,7 @@ public class SqlFunctions {
       try {
         // Uses java.util.regex as a standard for regex processing
         // in Calcite instead of RE2 used by BigQuery/GoogleSQL
-        pattern = cache.getUnchecked(Ord.of(0, regex));
+        pattern = cache.getUnchecked(new Key(0, regex));
       } catch (UncheckedExecutionException e) {
         if (e.getCause() instanceof PatternSyntaxException) {
           throw RESOURCE.invalidInputForRegexpContains(
@@ -430,7 +437,7 @@ public class SqlFunctions {
       }
 
       final int flags = matchType == null ? 0 : makeRegexpFlags(matchType);
-      final Pattern pattern = cache.getUnchecked(Ord.of(flags, regex));
+      final Pattern pattern = cache.getUnchecked(new Key(flags, regex));
 
       return Unsafe.regexpReplace(s, pattern, replacement, pos, occurrence);
     }
@@ -460,7 +467,7 @@ public class SqlFunctions {
 
     /** SQL {@code RLIKE} function. */
     public boolean rlike(String s, String pattern) {
-      return cache.getUnchecked(Ord.of(0, pattern)).matcher(s).find();
+      return cache.getUnchecked(new Key(0, pattern)).matcher(s).find();
     }
   }
 
@@ -989,13 +996,14 @@ public class SqlFunctions {
   /** State for {@code PARSE_URL}. */
   @Deterministic
   public static class ParseUrlFunction {
+    static Pattern keyToPattern(String keyToExtract) {
+      return Pattern.compile("(&|^)" + keyToExtract + "=([^&]*)");
+    }
+
     private final LoadingCache<String, Pattern> cache =
-        CacheBuilder.newBuilder().build(
-            new CacheLoader<String, Pattern>() {
-              @Override public Pattern load(String keyToExtract) {
-                return Pattern.compile("(&|^)" + keyToExtract + "=([^&]*)");
-              }
-            });
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(ParseUrlFunction::keyToPattern));
 
     /** SQL {@code PARSE_URL(urlStr, partToExtract, keyToExtract)} function. */
     public @Nullable String parseUrl(String urlStr, String partToExtract,
@@ -1201,16 +1209,17 @@ public class SqlFunctions {
             && Objects.equals(escape, ((Key) obj).escape)
             && flags == ((Key) obj).flags;
       }
+
+      Pattern toPattern() {
+        String regex = Like.sqlToRegexLike(pattern, escape);
+        return Pattern.compile(regex, flags);
+      }
     }
 
     private final LoadingCache<Key, Pattern> cache =
-        CacheBuilder.newBuilder().build(
-            new CacheLoader<Key, Pattern>() {
-              @Override public Pattern load(Key key) {
-                String regex = Like.sqlToRegexLike(key.pattern, key.escape);
-                return Pattern.compile(regex, key.flags);
-              }
-            });
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(Key::toPattern));
 
     /** SQL {@code LIKE} function. */
     public boolean like(String s, String pattern) {
@@ -1241,12 +1250,11 @@ public class SqlFunctions {
   @Deterministic
   public static class SimilarFunction {
     private final LoadingCache<String, Pattern> cache =
-        CacheBuilder.newBuilder().build(
-            new CacheLoader<String, Pattern>() {
-              @Override public Pattern load(String pattern) {
-                return Pattern.compile(Like.sqlToRegexSimilar(pattern, null));
-              }
-            });
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(
+                CacheLoader.from(pattern ->
+                    Pattern.compile(Like.sqlToRegexSimilar(pattern, null))));
 
     /** SQL {@code SIMILAR} function. */
     public boolean similar(String s, String pattern) {
@@ -1256,17 +1264,25 @@ public class SqlFunctions {
 
   /** State for {@code SIMILAR} function with escape. */
   public static class SimilarEscapeFunction {
-    private final LoadingCache<MapEntry<String, String>, Pattern> cache =
-        CacheBuilder.newBuilder().build(
-            new CacheLoader<MapEntry<String, String>, Pattern>() {
-              @Override public Pattern load(MapEntry<String, String> p) {
-                return Pattern.compile(Like.sqlToRegexSimilar(p.t, p.u));
-              }
-            });
+    /** Cache key. */
+    private static class Key extends MapEntry<String, String> {
+      Key(String formatModel, String format) {
+        super(formatModel, format);
+      }
+
+      Pattern toPattern() {
+        return Pattern.compile(Like.sqlToRegexSimilar(t, u));
+      }
+    }
+
+    private final LoadingCache<Key, Pattern> cache =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(Key::toPattern));
 
     /** SQL {@code SIMILAR} function with escape. */
     public boolean similar(String s, String pattern, String escape) {
-      return cache.getUnchecked(new MapEntry<>(pattern, escape))
+      return cache.getUnchecked(new Key(pattern, escape))
           .matcher(s).matches();
     }
   }
@@ -1275,12 +1291,11 @@ public class SqlFunctions {
   @Deterministic
   public static class PosixRegexFunction {
     private final LoadingCache<Ord<String>, Pattern> cache =
-        CacheBuilder.newBuilder().build(
-            new CacheLoader<Ord<String>, Pattern>() {
-              @Override public Pattern load(Ord<String> pattern) {
-                return Like.posixRegexToPattern(pattern.e, pattern.i);
-              }
-            });
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(
+                CacheLoader.from(pattern ->
+                    Like.posixRegexToPattern(pattern.e, pattern.i)));
 
     boolean posixRegex(String s, String regex, int flags) {
       final Ord<String> key = Ord.of(flags, regex);
@@ -3293,14 +3308,9 @@ public class SqlFunctions {
     }
 
     private final LoadingCache<Key, List<FormatElement>> formatCache =
-        CacheBuilder.newBuilder().build(
-            new CacheLoader<Key, List<FormatElement>>() {
-              @Override public List<FormatElement> load(Key key) {
-                final FormatModel formatModel = key.getKey();
-                final String fmt = key.getValue();
-                return formatModel.parseNoCache(fmt);
-              }
-            });
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(key -> key.t.parseNoCache(key.u)));
 
     /** Given a format string and a format model, calls an action with the
      * list of elements obtained by parsing that format string. */
@@ -3345,30 +3355,14 @@ public class SqlFunctions {
    * {@code PARSE_DATETIME}, {@code PARSE_TIME} functions. */
   @Deterministic
   public static class DateParseFunction {
+    /** Use a {@link DateFormatFunction} for its cache of parsed
+     * format strings. */
+    final DateFormatFunction f = new DateFormatFunction();
+
     private final LoadingCache<Key, DateFormat> cache =
-        CacheBuilder.newBuilder().build(
-            new CacheLoader<Key, DateFormat>() {
-              /** Use a {@link DateFormatFunction} for its cache of parsed
-               * format strings. */
-              final DateFormatFunction f = new DateFormatFunction();
-
-              @SuppressWarnings("MagicConstant")
-              @Override public DateFormat load(Key key) {
-                StringBuilder sb = new StringBuilder();
-                f.withElements(FormatModels.BIG_QUERY, key.fmt, elements ->
-                    elements.forEach(ele -> ele.toPattern(sb)));
-                final String javaFmt = sb.toString();
-
-                // TODO: make Locale configurable. ENGLISH set for weekday
-                // parsing (e.g. Thursday, Friday).
-                final DateFormat parser =
-                    new SimpleDateFormat(javaFmt, Locale.ENGLISH);
-                parser.setLenient(false);
-                TimeZone tz = TimeZone.getTimeZone(key.timeZone);
-                parser.setCalendar(Calendar.getInstance(tz, Locale.ROOT));
-                return parser;
-              }
-            });
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(key -> key.toDateFormat(f)));
 
     private <T> T withParser(String fmt, String timeZone,
         Function<DateFormat, T> action) {
@@ -3451,6 +3445,22 @@ public class SqlFunctions {
             || obj instanceof Key
             && fmt.equals(((Key) obj).fmt)
             && timeZone.equals(((Key) obj).timeZone);
+      }
+
+      DateFormat toDateFormat(DateFormatFunction f) {
+        f.sb.setLength(0);
+        f.withElements(FormatModels.BIG_QUERY, fmt, elements ->
+            elements.forEach(ele -> ele.toPattern(f.sb)));
+        final String javaFmt = f.sb.toString();
+
+        // TODO: make Locale configurable. ENGLISH set for weekday
+        // parsing (e.g. Thursday, Friday).
+        final DateFormat parser =
+            new SimpleDateFormat(javaFmt, Locale.ENGLISH);
+        parser.setLenient(false);
+        TimeZone tz = TimeZone.getTimeZone(timeZone);
+        parser.setCalendar(Calendar.getInstance(tz, Locale.ROOT));
+        return parser;
       }
     }
   }
