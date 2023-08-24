@@ -32,7 +32,7 @@ import java.util.List;
  * such as {@link RelMetadataQuery}.
  *
  * <p>For background and motivation, see <a
- * href="http://wiki.eigenbase.org/RelationalExpressionMetadata">wiki</a>.
+ * href="http://www.hydromatic.net/wiki/RelationalExpressionMetadata">wiki</a>.
  *
  * <p>If your provider is not a singleton, we recommend that you implement
  * {@link Object#equals(Object)} and {@link Object#hashCode()} methods. This
