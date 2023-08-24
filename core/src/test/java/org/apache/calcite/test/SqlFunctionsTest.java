@@ -63,7 +63,6 @@ import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.sha256;
 import static org.apache.calcite.runtime.SqlFunctions.sha512;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
-import static org.apache.calcite.runtime.SqlFunctions.toChar;
 import static org.apache.calcite.runtime.SqlFunctions.toInt;
 import static org.apache.calcite.runtime.SqlFunctions.toIntOptional;
 import static org.apache.calcite.runtime.SqlFunctions.toLong;
@@ -1499,24 +1498,23 @@ class SqlFunctionsTest {
     String pattern1 = "YYYY-MM-DD HH24:MI:SS.MS";
     String pattern2 = "Day, DD HH12:MI:SS";
 
-    assertThat(
-        toChar(0, pattern1),
+    final SqlFunctions.DateFormatFunction f =
+        new SqlFunctions.DateFormatFunction();
+    assertThat(f.toChar(0, pattern1),
         is("1970-01-01 00:00:00.000"));
 
-    assertThat(
-        toChar(0, pattern2),
+    assertThat(f.toChar(0, pattern2),
         is("Thursday, 01 12:00:00"));
 
-    assertThat(
-        toChar(timestampStringToUnixDate("2014-09-30 15:28:27.356"), pattern1),
+    final long ts0 = timestampStringToUnixDate("2014-09-30 15:28:27.356");
+    assertThat(f.toChar(ts0, pattern1),
         is("2014-09-30 15:28:27.356"));
 
-    assertThat(
-        toChar(timestampStringToUnixDate("2014-09-30 15:28:27.356"), pattern2),
+    assertThat(f.toChar(ts0, pattern2),
         is("Tuesday, 30 03:28:27"));
 
-    assertThat(
-        toChar(timestampStringToUnixDate("1500-04-30 12:00:00.123"), pattern1),
+    final long ts1 = timestampStringToUnixDate("1500-04-30 12:00:00.123");
+    assertThat(f.toChar(ts1, pattern1),
         is("1500-04-30 12:00:00.123"));
   }
 

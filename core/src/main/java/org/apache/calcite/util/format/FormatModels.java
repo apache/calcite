@@ -237,7 +237,7 @@ public class FormatModels {
       return elementMap;
     }
 
-    private List<FormatElement> internalParse(String format) {
+    @Override public List<FormatElement> parseNoCache(String format) {
       final ImmutableList.Builder<FormatElement> elements =
           ImmutableList.builder();
       final Matcher matcher = pattern.matcher(format);
@@ -263,7 +263,7 @@ public class FormatModels {
     }
 
     @Override public List<FormatElement> parse(String format) {
-      return memoizedElements.computeIfAbsent(format, this::internalParse);
+      return memoizedElements.computeIfAbsent(format, this::parseNoCache);
     }
   }
 

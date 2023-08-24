@@ -44,6 +44,7 @@ import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.format.FormatElement;
+import org.apache.calcite.util.format.FormatModel;
 import org.apache.calcite.util.format.FormatModels;
 
 import org.apache.commons.codec.DecoderException;
@@ -76,6 +77,7 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
@@ -114,6 +116,8 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -3274,97 +3278,178 @@ public class SqlFunctions {
         .toString();
   }
 
-  private static String internalFormatDatetime(String fmtString, java.util.Date date) {
-    StringBuilder sb = new StringBuilder();
-    List<FormatElement> elements = FormatModels.BIG_QUERY.parse(fmtString);
-    elements.forEach(ele -> ele.format(sb, date));
-    return sb.toString();
-  }
+  /** State for {@code FORMAT_DATE}, {@code FORMAT_TIMESTAMP},
+   * {@code FORMAT_DATETIME}, {@code FORMAT_TIME}, {@code TO_CHAR} functions. */
+  @Deterministic
+  public static class DateFormatFunction {
+    /** Work space for various functions. Clear it before you use it. */
+    final StringBuilder sb = new StringBuilder();
 
-  public static String formatTimestamp(DataContext ctx, String fmtString, long timestamp) {
-    return internalFormatDatetime(fmtString, internalToTimestamp(timestamp));
-  }
+    protected final LoadingCache<MapEntry<FormatModel, String>,
+        List<FormatElement>> formatCache =
+        CacheBuilder.newBuilder().build(
+            new CacheLoader<MapEntry<FormatModel, String>, List<FormatElement>>() {
+              @Override public List<FormatElement> load(
+                  MapEntry<FormatModel, String> key) {
+                final FormatModel formatModel = key.getKey();
+                final String fmt = key.getValue();
+                return formatModel.parseNoCache(fmt);
+              }
+            });
 
-  public static String toChar(long timestamp, String pattern) {
-    List<FormatElement> elements = FormatModels.POSTGRESQL.parse(pattern);
-    StringBuilder sb = new StringBuilder();
-    elements.forEach(ele ->  ele.format(sb, internalToTimestamp(timestamp)));
-    return sb.toString().trim();
-  }
-
-  public static String formatDate(DataContext ctx, String fmtString, int date) {
-    return internalFormatDatetime(fmtString, internalToDate(date));
-  }
-
-  public static String formatTime(DataContext ctx, String fmtString, int time) {
-    return internalFormatDatetime(fmtString, internalToTime(time));
-  }
-
-  private static String parseDatetimePattern(String fmtString) {
-    StringBuilder sb = new StringBuilder();
-    List<FormatElement> elements = FormatModels.BIG_QUERY.parse(fmtString);
-    elements.forEach(ele -> ele.toPattern(sb));
-    return sb.toString();
-  }
-
-  private static long internalParseDatetime(String fmtString, String datetime) {
-    return internalParseDatetime(fmtString, datetime,
-        DateTimeUtils.DEFAULT_ZONE);
-  }
-
-  private static long internalParseDatetime(String fmt, String datetime,
-      TimeZone tz) {
-    final String javaFmt = parseDatetimePattern(fmt);
-    // TODO: make Locale configurable. ENGLISH set for weekday parsing (e.g.
-    // Thursday, Friday).
-    final DateFormat parser = new SimpleDateFormat(javaFmt, Locale.ENGLISH);
-    final ParsePosition pos = new ParsePosition(0);
-    parser.setLenient(false);
-    parser.setCalendar(Calendar.getInstance(tz, Locale.ROOT));
-    Date parsed = parser.parse(datetime, pos);
-    // Throw if either the parse was unsuccessful, or the format string did not
-    // contain enough elements to parse the datetime string completely.
-    if (pos.getErrorIndex() >= 0 || pos.getIndex() != datetime.length()) {
-      SQLException e =
-          new SQLException(
-              String.format(Locale.ROOT,
-                  "Invalid format: '%s' for datetime string: '%s'.", fmt,
-                  datetime));
-      throw Util.toUnchecked(e);
+    /** Given a format string and a format model, calls an action with the
+     * list of elements obtained by parsing that format string. */
+    protected void withElements(FormatModel formatModel, String format,
+        Consumer<List<FormatElement>> consumer) {
+      List<FormatElement> elements =
+          formatCache.getUnchecked(new MapEntry<>(formatModel, format));
+      consumer.accept(elements);
     }
-    // Suppress the Errorprone warning "[JavaUtilDate] Date has a bad API that
-    // leads to bugs; prefer java.time.Instant or LocalDate" because we know
-    // what we're doing.
-    @SuppressWarnings("JavaUtilDate")
-    final long millisSinceEpoch = parsed.getTime();
-    return millisSinceEpoch;
+
+    private String internalFormatDatetime(String fmtString,
+        java.util.Date date) {
+      sb.setLength(0);
+      withElements(FormatModels.BIG_QUERY, fmtString, elements ->
+          elements.forEach(element -> element.format(sb, date)));
+      return sb.toString();
+    }
+
+    public String formatTimestamp(DataContext ctx, String fmtString,
+        long timestamp) {
+      return internalFormatDatetime(fmtString, internalToTimestamp(timestamp));
+    }
+
+    public String toChar(long timestamp, String pattern) {
+      final Timestamp sqlTimestamp = internalToTimestamp(timestamp);
+      sb.setLength(0);
+      withElements(FormatModels.POSTGRESQL, pattern, elements ->
+          elements.forEach(element -> element.format(sb, sqlTimestamp)));
+      return sb.toString().trim();
+    }
+
+    public String formatDate(DataContext ctx, String fmtString, int date) {
+      return internalFormatDatetime(fmtString, internalToDate(date));
+    }
+
+    public String formatTime(DataContext ctx, String fmtString, int time) {
+      return internalFormatDatetime(fmtString, internalToTime(time));
+    }
   }
 
-  public static int parseDate(String fmtString, String date) {
-    final long millisSinceEpoch = internalParseDatetime(fmtString, date);
-    return toInt(new java.sql.Date(millisSinceEpoch));
-  }
+  /** State for {@code PARSE_DATE}, {@code PARSE_TIMESTAMP},
+   * {@code PARSE_DATETIME}, {@code PARSE_TIME} functions.
+   *
+   * <p>Inherits from {@link DateFormatFunction} because, like functions like
+   * {@code FORMAT_TIMESTAMP}, we want to parse format strings using
+   * {@link FormatModel#parseNoCache(String)} and keep our own cache of the
+   * results. */
+  @Deterministic
+  public static class DateParseFunction extends DateFormatFunction {
+    private final LoadingCache<Key, DateFormat> cache =
+        CacheBuilder.newBuilder().build(
+            new CacheLoader<Key, DateFormat>() {
+              @SuppressWarnings("MagicConstant")
+              @Override public DateFormat load(Key key) {
+                sb.setLength(0);
+                formatCache
+                    .getUnchecked(new MapEntry<>(FormatModels.BIG_QUERY, key.fmt))
+                    .forEach(ele -> ele.toPattern(sb));
+                final String javaFmt = sb.toString();
 
-  public static long parseDatetime(String fmtString, String datetime) {
-    final long millisSinceEpoch = internalParseDatetime(fmtString, datetime);
-    return toLong(new java.sql.Timestamp(millisSinceEpoch));
-  }
+                // TODO: make Locale configurable. ENGLISH set for weekday
+                // parsing (e.g. Thursday, Friday).
+                final DateFormat parser =
+                    new SimpleDateFormat(javaFmt, Locale.ENGLISH);
+                parser.setLenient(false);
+                TimeZone tz = TimeZone.getTimeZone(key.timeZone);
+                parser.setCalendar(Calendar.getInstance(tz, Locale.ROOT));
+                return parser;
+              }
+            });
 
-  public static int parseTime(String fmtString, String time) {
-    final long millisSinceEpoch = internalParseDatetime(fmtString, time);
-    return toInt(new java.sql.Time(millisSinceEpoch));
-  }
+    private <T> T withParser(String fmt, String timeZone,
+        Function<DateFormat, T> action) {
+      final DateFormat dateFormat = cache.getUnchecked(new Key(fmt, timeZone));
+      return action.apply(dateFormat);
+    }
 
-  public static long parseTimestamp(String fmtString, String timestamp) {
-    return parseTimestamp(fmtString, timestamp, "UTC");
-  }
+    private long internalParseDatetime(String fmtString, String datetime) {
+      return internalParseDatetime(fmtString, datetime,
+          DateTimeUtils.DEFAULT_ZONE.getID());
+    }
 
-  public static long parseTimestamp(String fmtString, String timestamp,
-      String timeZone) {
-    TimeZone tz = TimeZone.getTimeZone(timeZone);
-    final long millisSinceEpoch =
-        internalParseDatetime(fmtString, timestamp, tz);
-    return toLong(new java.sql.Timestamp(millisSinceEpoch), tz);
+    private long internalParseDatetime(String fmt, String datetime,
+        String timeZone) {
+      final ParsePosition pos = new ParsePosition(0);
+      Date parsed =
+          withParser(fmt, timeZone, parser -> parser.parse(datetime, pos));
+      // Throw if either the parse was unsuccessful, or the format string did
+      // not contain enough elements to parse the datetime string completely.
+      if (pos.getErrorIndex() >= 0 || pos.getIndex() != datetime.length()) {
+        SQLException e =
+            new SQLException(
+                String.format(Locale.ROOT,
+                    "Invalid format: '%s' for datetime string: '%s'.", fmt,
+                    datetime));
+        throw Util.toUnchecked(e);
+      }
+      // Suppress the Errorprone warning "[JavaUtilDate] Date has a bad API that
+      // leads to bugs; prefer java.time.Instant or LocalDate" because we know
+      // what we're doing.
+      @SuppressWarnings("JavaUtilDate")
+      final long millisSinceEpoch = parsed.getTime();
+      return millisSinceEpoch;
+    }
+
+    public int parseDate(String fmtString, String date) {
+      final long millisSinceEpoch = internalParseDatetime(fmtString, date);
+      return toInt(new java.sql.Date(millisSinceEpoch));
+    }
+
+    public long parseDatetime(String fmtString, String datetime) {
+      final long millisSinceEpoch = internalParseDatetime(fmtString, datetime);
+      return toLong(new Timestamp(millisSinceEpoch));
+    }
+
+    public int parseTime(String fmtString, String time) {
+      final long millisSinceEpoch = internalParseDatetime(fmtString, time);
+      return toInt(new Time(millisSinceEpoch));
+    }
+
+    public long parseTimestamp(String fmtString, String timestamp) {
+      return parseTimestamp(fmtString, timestamp, "UTC");
+    }
+
+    public long parseTimestamp(String fmtString, String timestamp,
+        String timeZone) {
+      TimeZone tz = TimeZone.getTimeZone(timeZone);
+      final long millisSinceEpoch =
+          internalParseDatetime(fmtString, timestamp, timeZone);
+      return toLong(new java.sql.Timestamp(millisSinceEpoch), tz);
+    }
+
+    /** Key for cache of parsed format strings. */
+    private static final class Key {
+      final String fmt;
+      final String timeZone;
+
+      Key(String fmt, String timeZone) {
+        this.fmt = fmt;
+        this.timeZone = timeZone;
+      }
+
+      @Override public int hashCode() {
+        return fmt.hashCode()
+            + timeZone.hashCode() * 37;
+      }
+
+      @Override public boolean equals(@Nullable Object obj) {
+        return this == obj
+            || obj instanceof Key
+            && fmt.equals(((Key) obj).fmt)
+            && timeZone.equals(((Key) obj).timeZone);
+      }
+    }
   }
 
   /**

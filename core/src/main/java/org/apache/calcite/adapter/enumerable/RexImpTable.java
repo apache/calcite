@@ -715,17 +715,13 @@ public class RexImpTable {
           NullPolicy.STRICT);
 
       // Datetime parsing methods
-      defineMethod(PARSE_DATE, BuiltInMethod.PARSE_DATE.method,
-          NullPolicy.STRICT);
-      defineMethod(PARSE_DATETIME, BuiltInMethod.PARSE_DATETIME.method,
-          NullPolicy.STRICT);
-      defineMethod(PARSE_TIME, BuiltInMethod.PARSE_TIME.method,
-          NullPolicy.STRICT);
-      defineMethod(PARSE_TIMESTAMP, BuiltInMethod.PARSE_TIMESTAMP.method,
-          NullPolicy.STRICT);
+      defineReflective(PARSE_DATE, BuiltInMethod.PARSE_DATE.method);
+      defineReflective(PARSE_DATETIME, BuiltInMethod.PARSE_DATETIME.method);
+      defineReflective(PARSE_TIME, BuiltInMethod.PARSE_TIME.method);
+      defineReflective(PARSE_TIMESTAMP, BuiltInMethod.PARSE_TIMESTAMP.method);
 
       // Datetime formatting methods
-      defineMethod(TO_CHAR, BuiltInMethod.TO_CHAR.method, NullPolicy.STRICT);
+      defineReflective(TO_CHAR, BuiltInMethod.TO_CHAR.method);
       final FormatDatetimeImplementor datetimeFormatImpl =
           new FormatDatetimeImplementor();
       map.put(FORMAT_DATE, datetimeFormatImpl);
@@ -2621,9 +2617,12 @@ public class RexImpTable {
    * {@code FORMAT_TIME} and {@code FORMAT_DATETIME} functions.
    */
   private static class FormatDatetimeImplementor
-      extends AbstractRexCallImplementor {
+      extends ReflectiveImplementor {
     FormatDatetimeImplementor() {
-      super("formatDatetime", NullPolicy.STRICT, false);
+      super(
+          ImmutableList.of(BuiltInMethod.FORMAT_DATE.method,
+              BuiltInMethod.FORMAT_TIME.method,
+              BuiltInMethod.FORMAT_TIMESTAMP.method));
     }
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
@@ -2641,7 +2640,7 @@ public class RexImpTable {
       default:
         method = BuiltInMethod.FORMAT_TIMESTAMP.method;
       }
-      return Expressions.call(method, translator.getRoot(), operand0, operand1);
+      return implementSafe(method, ImmutableList.of(translator.getRoot(), operand0, operand1));
     }
   }
 
@@ -4075,20 +4074,25 @@ public class RexImpTable {
         RexCall call, List<Expression> argValueList) {
       for (Method method : methods) {
         if (method.getParameterCount() == argValueList.size()) {
-          List<Expression> argValueList0 =
-              EnumUtils.fromInternal(method.getParameterTypes(),
-                  argValueList);
-          if (isStatic(method)) {
-            return Expressions.call(method, argValueList0);
-          } else {
-            // The class must have a public zero-args constructor.
-            final Expression target =
-                Expressions.new_(method.getDeclaringClass());
-            return Expressions.call(target, method, argValueList0);
-          }
+          return implementSafe(method, argValueList);
         }
       }
       throw new IllegalArgumentException("no matching method");
+    }
+
+    protected MethodCallExpression implementSafe(Method method,
+        List<Expression> argValueList) {
+      List<Expression> argValueList0 =
+          EnumUtils.fromInternal(method.getParameterTypes(),
+              argValueList);
+      if (isStatic(method)) {
+        return Expressions.call(method, argValueList0);
+      } else {
+        // The class must have a public zero-args constructor.
+        final Expression target =
+            Expressions.new_(method.getDeclaringClass());
+        return Expressions.call(target, method, argValueList0);
+      }
     }
   }
 
