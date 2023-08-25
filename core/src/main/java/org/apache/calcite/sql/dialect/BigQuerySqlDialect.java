@@ -422,7 +422,7 @@ public class BigQuerySqlDialect extends SqlDialect {
    * BQ(description char length): The maximum length is 1024 characters.
    */
   String limitTitleLength(String title) {
-    return title.length() > 1024 ? title.substring(0, 1024) : title;
+    return title.length() > 1024 ? title.substring(0, 1023) + "'" : title;
   }
 
   @Override public boolean supportsUnpivot() {
