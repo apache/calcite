@@ -12550,6 +12550,36 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
+  @Test void testNonAggregateExpressionInOrderBy() {
+    String query = "SELECT EXTRACT(DAY FROM \"birth_date\") \n"
+        + "FROM \"employee\" \n"
+        + "GROUP BY EXTRACT(DAY FROM \"birth_date\") \n"
+        + "ORDER BY EXTRACT(DAY FROM \"birth_date\")";
+    final String expected = "SELECT EXTRACT(DAY FROM birth_date)\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY EXTRACT(DAY FROM birth_date)\n"
+        + "ORDER BY 1 IS NULL, 1";
+
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
+        .withBigQuery().ok(expected);
+  }
+
+  @Test void testAggregateExpressionInOrderBy() {
+    String query = "SELECT EXTRACT(DAY FROM \"birth_date\") \n"
+        + "FROM \"employee\" \n"
+        + "GROUP BY EXTRACT(DAY FROM \"birth_date\") \n"
+        + "ORDER BY SUM(\"salary\")";
+    final String expected = "SELECT EXTRACT(DAY FROM birth_date), SUM(salary)\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY EXTRACT(DAY FROM birth_date)\n"
+        + "ORDER BY SUM(salary) IS NULL, SUM(salary)";
+
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
+        .withBigQuery().ok(expected);
+  }
+
   @Test void testBQCastToDecimal() {
     final String query = "select \"employee_id\",\n"
         + "  cast(\"salary_paid\" as DECIMAL)\n"
