@@ -271,11 +271,7 @@ public interface SqlWriter {
       return needsIndent;
     }
 
-    @Override public boolean isUDFLowerCase() {
-      return false;
-    }
-
-    /**
+       /**
      * Creates a frame type.
      *
      * @param name Name
@@ -289,10 +285,6 @@ public interface SqlWriter {
 
         @Override public boolean needsIndent() {
           return true;
-        }
-
-        @Override public boolean isUDFLowerCase() {
-          return false;
         }
       };
     }
@@ -590,6 +582,5 @@ public interface SqlWriter {
      * @return whether to further indent code within a frame of this type
      */
     boolean needsIndent();
-    boolean isUDFLowerCase();
   }
 }
