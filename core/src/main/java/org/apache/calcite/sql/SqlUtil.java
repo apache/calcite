@@ -304,9 +304,10 @@ public abstract class SqlUtil {
       }
       SqlIdentifier id = function.getSqlIdentifier();
       if (id == null) {
+        // The following code block is executed exclusively when the code flow originates from mig.
         if (((SqlFunction) operator).getFunctionType() == SqlFunctionCategory.USER_DEFINED_FUNCTION
             && writer.isUDFLowerCase()) {
-          writer.print(operator.getName());
+          writer.print(operator.getName().toLowerCase());
         } else {
           writer.keyword(operator.getName());
         }
