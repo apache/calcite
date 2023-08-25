@@ -41,7 +41,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -56,6 +55,7 @@ import java.util.Properties;
 
 import static org.apache.calcite.test.CalciteAssert.hr;
 import static org.apache.calcite.test.CalciteAssert.that;
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -361,7 +361,7 @@ public class JdbcFrontLinqBackTest {
         final JavaTypeFactory javaTypeFactory = (JavaTypeFactory) typeFactory;
         final List<RelDataTypeField> list = new ArrayList<>();
         for (Field field : Employee.class.getFields()) {
-          if (!Modifier.isStatic(field.getModifiers())) {
+          if (!isStatic(field)) {
             // FIXME: watch out for recursion
             final Type fieldType = field.getType();
             final RelDataType relType =

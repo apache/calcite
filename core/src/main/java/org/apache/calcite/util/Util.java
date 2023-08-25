@@ -68,7 +68,6 @@ import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -115,6 +114,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collector;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 import static java.util.Objects.requireNonNull;
 
@@ -479,7 +479,7 @@ public class Util {
       Field[] fields = clazz.getFields();
       int printed = 0;
       for (Field field : fields) {
-        if (Modifier.isStatic(field.getModifiers())) {
+        if (isStatic(field)) {
           continue;
         }
         if (printed++ > 0) {
@@ -795,7 +795,7 @@ public class Util {
    * Returns whether s == null or if s.length() == 0.
    */
   public static boolean isNullOrEmpty(@Nullable String s) {
-    return (null == s) || (s.length() == 0);
+    return s == null || s.isEmpty();
   }
 
   /**
@@ -863,7 +863,7 @@ public class Util {
    * rather than constructing intermediate strings.
    *
    * @see org.apache.calcite.linq4j.function.Functions#generate */
-  public static <E> StringBuilder printList(StringBuilder sb, int elementCount,
+  public static StringBuilder printList(StringBuilder sb, int elementCount,
       ObjIntConsumer<StringBuilder> consumer) {
     if (elementCount == 0) {
       return sb.append("[]");

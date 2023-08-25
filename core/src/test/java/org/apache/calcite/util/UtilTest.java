@@ -62,7 +62,6 @@ import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.management.MemoryType;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
@@ -106,6 +105,7 @@ import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.test.Matchers.isLinux;
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -1956,7 +1956,7 @@ class UtilTest {
 
   private void checkResourceMethodNames(Object resource) {
     for (Method method : resource.getClass().getMethods()) {
-      if (!Modifier.isStatic(method.getModifiers())
+      if (!isStatic(method)
           && !method.getName().matches("^[a-z][A-Za-z0-9_]*$")) {
         fail("resource method name must be camel case: " + method.getName());
       }
