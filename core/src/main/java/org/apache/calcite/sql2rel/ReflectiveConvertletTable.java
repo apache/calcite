@@ -30,9 +30,10 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.apache.calcite.util.ReflectUtil.isPublic;
 
 import static java.util.Objects.requireNonNull;
 
@@ -67,7 +68,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
   private void registerNodeTypeMethod(
       @UnderInitialization ReflectiveConvertletTable this,
       final Method method) {
-    if (!Modifier.isPublic(method.getModifiers())) {
+    if (!isPublic(method)) {
       return;
     }
     if (!method.getName().startsWith("convert")) {
@@ -110,7 +111,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
   private void registerOpTypeMethod(
       @UnderInitialization ReflectiveConvertletTable this,
       final Method method) {
-    if (!Modifier.isPublic(method.getModifiers())) {
+    if (!isPublic(method)) {
       return;
     }
     if (!method.getName().startsWith("convert")) {

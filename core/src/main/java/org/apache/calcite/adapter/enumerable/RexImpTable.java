@@ -94,7 +94,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -440,6 +439,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.USER;
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 import static java.util.Objects.requireNonNull;
 
@@ -1882,7 +1882,7 @@ public class RexImpTable {
     private static NewExpression makeNew(AggregateFunctionImpl afi) {
       try {
         Constructor<?> constructor = afi.declaringClass.getConstructor();
-        Objects.requireNonNull(constructor, "constructor");
+        requireNonNull(constructor, "constructor");
         return Expressions.new_(afi.declaringClass);
       } catch (NoSuchMethodException e) {
         // ignore, and try next constructor
@@ -1890,7 +1890,7 @@ public class RexImpTable {
       try {
         Constructor<?> constructor =
             afi.declaringClass.getConstructor(FunctionContext.class);
-        Objects.requireNonNull(constructor, "constructor");
+        requireNonNull(constructor, "constructor");
         return Expressions.new_(afi.declaringClass,
             Expressions.call(BuiltInMethod.FUNCTION_CONTEXTS_OF.method,
                 DataContext.ROOT,
@@ -2700,7 +2700,7 @@ public class RexImpTable {
 
     @Override Expression implementSafe(RexToLixTranslator translator,
         RexCall call, List<Expression> argValueList) {
-      if (Modifier.isStatic(method.getModifiers())) {
+      if (isStatic(method)) {
         return call(method, null, argValueList);
       } else {
         return call(method, argValueList.get(0), Util.skip(argValueList, 1));
@@ -4127,7 +4127,7 @@ public class RexImpTable {
         RexCall call, List<Expression> argValueList) {
       List<Expression> argValueList0 =
           EnumUtils.fromInternal(method.getParameterTypes(), argValueList);
-      if ((method.getModifiers() & Modifier.STATIC) != 0) {
+      if (isStatic(method)) {
         return Expressions.call(method, argValueList0);
       } else {
         // The UDF class must have a public zero-args constructor.

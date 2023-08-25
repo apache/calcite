@@ -31,7 +31,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
@@ -55,9 +54,12 @@ import java.util.ResourceBundle;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.lang.reflect.Modifier.isStatic;
+
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 /**
  * Defining wrapper classes around resources that allow the compiler to check
@@ -233,7 +235,7 @@ public class Resources {
   public static void validate(Object o, EnumSet<Validation> validations) {
     int count = 0;
     for (Method method : o.getClass().getMethods()) {
-      if (!Modifier.isStatic(method.getModifiers())
+      if (!isStatic(method)
           && Inst.class.isAssignableFrom(method.getReturnType())) {
         ++count;
         final Class<?>[] parameterTypes = method.getParameterTypes();

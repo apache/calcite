@@ -41,7 +41,6 @@ import com.google.common.collect.Interners;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -52,6 +51,8 @@ import java.util.Map;
 import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 import static java.util.Objects.requireNonNull;
 
@@ -509,7 +510,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   private @Nullable List<RelDataTypeFieldImpl> fieldsOf(Class clazz) {
     final List<RelDataTypeFieldImpl> list = new ArrayList<>();
     for (Field field : clazz.getFields()) {
-      if (Modifier.isStatic(field.getModifiers())) {
+      if (isStatic(field)) {
         continue;
       }
       list.add(

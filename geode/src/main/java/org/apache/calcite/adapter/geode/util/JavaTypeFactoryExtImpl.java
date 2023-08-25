@@ -27,11 +27,12 @@ import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.geode.pdx.PdxInstance;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 /**
  * Implementation of {@link JavaTypeFactory}.
@@ -50,7 +51,7 @@ public class JavaTypeFactoryExtImpl
 
     final List<RelDataTypeField> list = new ArrayList<>();
     for (Field field : type.getDeclaredFields()) {
-      if (!Modifier.isStatic(field.getModifiers())) {
+      if (!isStatic(field)) {
         // FIXME: watch out for recursion
         final Type fieldType = field.getType();
         list.add(

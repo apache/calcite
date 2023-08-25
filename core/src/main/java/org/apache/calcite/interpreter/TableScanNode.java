@@ -36,6 +36,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
@@ -47,7 +48,6 @@ import com.google.common.collect.Lists;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
 
@@ -142,8 +142,7 @@ public class TableScanNode implements Node {
       ImmutableList.Builder<Field> fieldBuilder = ImmutableList.builder();
       Class type = (Class) elementType;
       for (Field field : type.getFields()) {
-        if (Modifier.isPublic(field.getModifiers())
-            && !Modifier.isStatic(field.getModifiers())) {
+        if (ReflectUtil.isPublic(field) && !ReflectUtil.isStatic(field)) {
           fieldBuilder.add(field);
         }
       }

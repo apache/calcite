@@ -34,7 +34,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
@@ -43,10 +42,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import static org.apache.calcite.util.ReflectUtil.isPublic;
+import static org.apache.calcite.util.ReflectUtil.isStatic;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of the {@link RelMetadataProvider} interface that dispatches
@@ -248,8 +251,8 @@ public class ReflectiveRelMetadataProvider
   @Deprecated // to be removed before 2.0
   private static boolean couldImplement(Method handlerMethod, Method method) {
     if (!handlerMethod.getName().equals(method.getName())
-        || (handlerMethod.getModifiers() & Modifier.STATIC) != 0
-        || (handlerMethod.getModifiers() & Modifier.PUBLIC) == 0) {
+        || isStatic(handlerMethod)
+        || !isPublic(handlerMethod)) {
       return false;
     }
     final Class<?>[] parameterTypes1 = handlerMethod.getParameterTypes();
@@ -339,7 +342,7 @@ public class ReflectiveRelMetadataProvider
      * {@code map}. */
     @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
     Method find(final Class<? extends RelNode> relNodeClass, Method method) {
-      Objects.requireNonNull(relNodeClass, "relNodeClass");
+      requireNonNull(relNodeClass, "relNodeClass");
       for (Class r = relNodeClass;;) {
         Method implementingMethod = handlerMap.get(Pair.of(r, method));
         if (implementingMethod != null) {
