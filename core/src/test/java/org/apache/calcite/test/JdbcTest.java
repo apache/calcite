@@ -8144,10 +8144,9 @@ public class JdbcTest {
    * ClassCastException retrieving from ARRAY that has mixed INTEGER and DECIMAL
    * elements</a>. */
   @Test void testIntAndBigDecimalInArray() {
-    // Result should be "EXPR$0=[1, 1.1]\n"; [CALCITE-4850] logged.
     CalciteAssert.that()
         .query("select array[1, 1.1]")
-        .returns("EXPR$0=[0E+1, 1.1]\n");
+        .returns("EXPR$0=[1, 1.1]\n");
   }
 
   /** Test case for

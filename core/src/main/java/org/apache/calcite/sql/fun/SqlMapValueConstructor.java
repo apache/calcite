@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -44,10 +45,15 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
     super("MAP", SqlKind.MAP_VALUE_CONSTRUCTOR);
   }
 
+  @SuppressWarnings("argument.type.incompatible")
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     Pair<@Nullable RelDataType, @Nullable RelDataType> type =
         getComponentTypes(
             opBinding.getTypeFactory(), opBinding.collectOperandTypes());
+
+    // explicit cast elements to component type if they are not same
+    SqlValidatorUtil.adjustTypeForMapConstructor(type, opBinding);
+
     return SqlTypeUtil.createMapType(
         opBinding.getTypeFactory(),
         requireNonNull(type.left, "inferred key type"),

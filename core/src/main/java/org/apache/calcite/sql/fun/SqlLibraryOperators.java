@@ -43,6 +43,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Static;
@@ -1066,6 +1067,10 @@ public abstract class SqlLibraryOperators {
               : opBinding.getTypeFactory().createUnknownType();
     }
     requireNonNull(type, "inferred array element type");
+
+    // explicit cast elements to component type if they are not same
+    SqlValidatorUtil.adjustTypeForArrayConstructor(type, opBinding);
+
     return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, false);
   }
 

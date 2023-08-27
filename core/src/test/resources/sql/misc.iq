@@ -2207,12 +2207,12 @@ select array[1,null,2] as a from (values (1));
 
 values array['a',null,'bcd'],
   array['efgh'];
-+----------------+
-| EXPR$0         |
-+----------------+
-| [a, null, bcd] |
-| [efgh]         |
-+----------------+
++------------------+
+| EXPR$0           |
++------------------+
+| [a  , null, bcd] |
+| [efgh]           |
++------------------+
 (2 rows)
 
 !ok

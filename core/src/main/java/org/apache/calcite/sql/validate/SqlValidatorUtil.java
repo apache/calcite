@@ -38,6 +38,7 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -48,6 +49,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSyntax;
@@ -1307,6 +1309,93 @@ public class SqlValidatorUtil {
     // The implementation of this method will be extended when we add the
     // 'AS MEASURE' construct in [CALCITE-4496].
     return null;
+  }
+
+  /**
+   * When the array element does not equal the array component type, make explicit casting.
+   *
+   * @param componentType derived array component type
+   * @param opBinding description of call
+   */
+  public static void adjustTypeForArrayConstructor(
+      RelDataType componentType, SqlOperatorBinding opBinding) {
+    if (opBinding instanceof SqlCallBinding) {
+      requireNonNull(componentType, "array component type");
+      adjustTypeForMultisetConstructor(
+          componentType, componentType, (SqlCallBinding) opBinding);
+    }
+  }
+
+  /**
+   * When the map key or value does not equal the map component key type or value type,
+   * make explicit casting.
+   *
+   * @param componentType derived map pair component type
+   * @param opBinding description of call
+   */
+  public static void adjustTypeForMapConstructor(
+      Pair<RelDataType, RelDataType> componentType, SqlOperatorBinding opBinding) {
+    if (opBinding instanceof SqlCallBinding) {
+      requireNonNull(componentType.getKey(), "map key type");
+      requireNonNull(componentType.getValue(), "map value type");
+      adjustTypeForMultisetConstructor(
+          componentType.getKey(), componentType.getValue(), (SqlCallBinding) opBinding);
+    }
+  }
+
+  /**
+   * Adjusts the types for operands in a SqlCallBinding during the construction of a sql collection
+   * type such as Array or Map. This method iterates from the operands of a {@link SqlCall}
+   * obtained from the provided {@link SqlCallBinding}.
+   * It modifies each operand to match the specified 'evenType' or 'oddType' depending on whether
+   * the operand's position is even or odd, respectively. The type adjustment is performed by
+   * explicitly casting each operand to the desired type if the existing operand type does not
+   * match the desired type without considering field names.
+   * If we adjust array, we should set 'evenType' and 'oddType' to same desired type,
+   * if we adjust map, we should set 'evenType' as map key type and 'oddType' as map value type.
+   *
+   * <p>For example, if the operand types are {@code [INT, STRING, INT, STRING]}
+   * with {@code evenType} as {@code BOOLEAN} and {@code oddType} as {@code DOUBLE},
+   * after executing this method, the types should be {@code [BOOLEAN, DOUBLE, BOOLEAN, DOUBLE]},
+   * then the corresponding operands are cast to these types.
+   *
+   * @param evenType the {@link RelDataType} to which the operands at even positions should be cast
+   * @param oddType the {@link RelDataType} to which the operands at odd positions should be cast
+   * @param sqlCallBinding the {@link SqlCallBinding} containing the operands to be adjusted
+   */
+  private static void adjustTypeForMultisetConstructor(
+      RelDataType evenType, RelDataType oddType, SqlCallBinding sqlCallBinding) {
+    SqlCall call = sqlCallBinding.getCall();
+    List<RelDataType> operandTypes = sqlCallBinding.collectOperandTypes();
+    List<SqlNode> operands = call.getOperandList();
+    RelDataType elementType;
+    for (int i = 0; i < operands.size(); i++) {
+      if (i % 2 == 0) {
+        elementType = evenType;
+      } else {
+        elementType = oddType;
+      }
+      if (!operandTypes.get(i).equalsSansFieldNames(elementType)) {
+        call.setOperand(i, castTo(operands.get(i), elementType));
+      }
+    }
+  }
+
+  /**
+   * Creates a CAST operation to cast a given {@link SqlNode} to a specified {@link RelDataType}.
+   * This method uses the {@link SqlStdOperatorTable#CAST} operator to create a new {@link SqlCall}
+   * node representing a CAST operation. The original 'node' is cast to the desired 'type',
+   * preserving the nullability of the 'type'.
+   *
+   * @param node the {@link SqlNode} which is to be cast
+   * @param type the target {@link RelDataType} to which 'node' should be cast
+   * @return a new {@link SqlNode} representing the CAST operation
+   */
+  private static SqlNode castTo(SqlNode node, RelDataType type) {
+    return SqlStdOperatorTable.CAST.createCall(
+        SqlParserPos.ZERO,
+        node,
+        SqlTypeUtil.convertTypeToSpec(type).withNullable(type.isNullable()));
   }
 
   //~ Inner Classes ----------------------------------------------------------
