@@ -1301,6 +1301,97 @@ class RelOptRulesTest extends RelOptTestBase {
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5940">[CALCITE-5940]
+   * Add the Rule to merge Limit</a>. */
+  @Test void testLimitMerge() {
+    final String sql = "select deptno from\n"
+        + "(select deptno from emp where sal > 100 limit 10000)\n"
+        + "limit 10";
+    sql(sql)
+        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
+        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_REMOVE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5940">[CALCITE-5940]
+   * Add the Rule to merge Limit</a>. */
+  @Test void testLimitMerge1() {
+    final String sql = "select deptno from\n"
+        + "(select deptno from emp where sal > 100 order by sal desc limit 10000)\n"
+        + "limit 10";
+    sql(sql)
+        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
+        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5940">[CALCITE-5940]
+   * Add the Rule to merge Limit</a>. */
+  @Test void testLimitMerge2() {
+    final String sql = "select deptno from\n"
+        + "(select deptno from emp where sal > 100 order by sal desc limit 10)\n"
+        + "limit 10000";
+    sql(sql)
+        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
+        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5940">[CALCITE-5940]
+   * Add the Rule to merge Limit</a>. */
+  @Test void testLimitMerge3() {
+    final String sql = "select deptno from\n"
+        + "(select deptno from emp where sal > 100 limit 100)\n"
+        + "order by deptno desc";
+    sql(sql)
+        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
+        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_REMOVE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5940">[CALCITE-5940]
+   * Add the Rule to merge Limit</a>. */
+  @Test void testLimitMerge4() {
+    final String sql = "select deptno from\n"
+        + "(select deptno from emp where sal > 100 order by sal desc limit 10)\n"
+        + "order by deptno limit 10000";
+    sql(sql)
+        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
+        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5940">[CALCITE-5940]
+   * Add the Rule to merge Limit</a>. */
+  @Test void testLimitMerge5() {
+    final String sql = "select deptno from\n"
+        + "(select deptno from emp where sal > 100 order by sal desc limit 10000)\n"
+        + "order by deptno limit 10";
+    sql(sql)
+        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
+        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5940">[CALCITE-5940]
+   * Add the Rule to merge Limit</a>. */
+  @Test void testLimitMerge6() {
+    final String sql = "select deptno from\n"
+        + "(select deptno from emp where sal > 100 offset 100)\n"
+        + "limit 10";
+    sql(sql)
+        .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
+        .withRule(CoreRules.LIMIT_MREGE)
+        .checkUnchanged();
+  }
+
   @Test void testSemiJoinRuleExists() {
     final String sql = "select * from dept where exists (\n"
         + "  select * from emp\n"

@@ -195,6 +195,13 @@ public abstract class RelOptUtil {
   }
 
   /**
+   * Whether this node contains a offset specification.
+   */
+  public static boolean isOffset(RelNode rel) {
+    return (rel instanceof Sort) && ((Sort) rel).offset != null;
+  }
+
+  /**
    * Returns a set of tables used by this expression or its children.
    */
   public static Set<RelOptTable> findTables(RelNode rel) {

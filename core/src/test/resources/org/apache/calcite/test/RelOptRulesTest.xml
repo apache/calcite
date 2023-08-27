@@ -6025,6 +6025,176 @@ LogicalProject(EXPR$0=[1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testLimitMerge">
+    <Resource name="sql">
+      <![CDATA[select deptno from
+(select deptno from emp where sal > 100 limit 10000)
+limit 10]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7])
+    LogicalSort(fetch=[10])
+      LogicalSort(fetch=[10000])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalSort(fetch=[10])
+    LogicalFilter(condition=[>($5, 100)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLimitMerge1">
+    <Resource name="sql">
+      <![CDATA[select deptno from
+(select deptno from emp where sal > 100 order by sal desc limit 10000)
+limit 10]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalSort(fetch=[10])
+      LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10000])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
+    LogicalFilter(condition=[>($5, 100)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLimitMerge2">
+    <Resource name="sql">
+      <![CDATA[select deptno from
+(select deptno from emp where sal > 100 order by sal desc limit 10)
+limit 10000]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalSort(fetch=[10000])
+      LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
+    LogicalFilter(condition=[>($5, 100)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLimitMerge3">
+    <Resource name="sql">
+      <![CDATA[select deptno from
+(select deptno from emp where sal > 100 limit 100)
+order by deptno desc]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7])
+    LogicalSort(sort0=[$7], dir0=[DESC])
+      LogicalSort(fetch=[100])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalSort(sort0=[$7], dir0=[DESC])
+    LogicalSort(fetch=[100])
+      LogicalFilter(condition=[>($5, 100)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLimitMerge4">
+    <Resource name="sql">
+      <![CDATA[select deptno from
+(select deptno from emp where sal > 100 order by sal desc limit 10)
+order by deptno limit 10000]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalSort(sort0=[$7], dir0=[ASC], fetch=[10000])
+      LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalSort(sort0=[$7], dir0=[ASC], fetch=[10000])
+    LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10])
+      LogicalFilter(condition=[>($5, 100)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLimitMerge5">
+    <Resource name="sql">
+      <![CDATA[select deptno from
+(select deptno from emp where sal > 100 order by sal desc limit 10000)
+order by deptno limit 10]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalSort(sort0=[$7], dir0=[ASC], fetch=[10])
+      LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10000])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalSort(sort0=[$7], dir0=[ASC], fetch=[10])
+    LogicalSort(sort0=[$5], dir0=[DESC], fetch=[10000])
+      LogicalFilter(condition=[>($5, 100)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLimitMerge6">
+    <Resource name="sql">
+      <![CDATA[select deptno from
+(select deptno from emp where sal > 100 offset 100)
+limit 10]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7])
+    LogicalSort(fetch=[10])
+      LogicalSort(offset=[100])
+        LogicalFilter(condition=[>($5, 100)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testLimitSort">
     <Resource name="sql">
       <![CDATA[select mgr from sales.emp
