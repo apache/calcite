@@ -290,7 +290,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     Expression convert = getConvertExpression(sourceType, targetType, operand);
     Expression convert2 = checkExpressionPadTruncate(convert, sourceType, targetType);
     Expression convert3 = expressionHandlingSafe(convert2, safe);
-    return scaleIntervalToNumber(sourceType, targetType, convert3);
+    return scaleValue(sourceType, targetType, convert3);
   }
 
   private Expression getConvertExpression(
@@ -969,38 +969,23 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     return root;
   }
 
-  private static Expression scaleIntervalToNumber(
+  /** If an expression is a {@code NUMERIC} derived from an {@code INTERVAL},
+   * scales it appropriately; returns the operand unchanged if the conversion
+   * is not from {@code INTERVAL} to {@code NUMERIC}. */
+  private static Expression scaleValue(
       RelDataType sourceType,
       RelDataType targetType,
       Expression operand) {
-    switch (requireNonNull(targetType.getSqlTypeName().getFamily(),
-        () -> "SqlTypeFamily for " + targetType)) {
-    case NUMERIC:
-      switch (sourceType.getSqlTypeName()) {
-      case INTERVAL_YEAR:
-      case INTERVAL_YEAR_MONTH:
-      case INTERVAL_MONTH:
-      case INTERVAL_DAY:
-      case INTERVAL_DAY_HOUR:
-      case INTERVAL_DAY_MINUTE:
-      case INTERVAL_DAY_SECOND:
-      case INTERVAL_HOUR:
-      case INTERVAL_HOUR_MINUTE:
-      case INTERVAL_HOUR_SECOND:
-      case INTERVAL_MINUTE:
-      case INTERVAL_MINUTE_SECOND:
-      case INTERVAL_SECOND:
-        // Scale to the given field.
-        final BigDecimal multiplier = BigDecimal.ONE;
-        final BigDecimal divider =
-            sourceType.getSqlTypeName().getEndUnit().multiplier;
-        return RexImpTable.multiplyDivide(operand, multiplier, divider);
-      default:
-        break;
-      }
-      break;
-    default:
-      break;
+    final SqlTypeFamily targetFamily = targetType.getSqlTypeName().getFamily();
+    final SqlTypeFamily sourceFamily = sourceType.getSqlTypeName().getFamily();
+    if (targetFamily == SqlTypeFamily.NUMERIC
+        && (sourceFamily == SqlTypeFamily.INTERVAL_YEAR_MONTH
+            || sourceFamily == SqlTypeFamily.INTERVAL_DAY_TIME)) {
+      // Scale to the given field.
+      final BigDecimal multiplier = BigDecimal.ONE;
+      final BigDecimal divider =
+          sourceType.getSqlTypeName().getEndUnit().multiplier;
+      return RexImpTable.multiplyDivide(operand, multiplier, divider);
     }
     return operand;
   }
@@ -1009,13 +994,15 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    * Visit {@code RexInputRef}. If it has never been visited
    * under current storage type before, {@code RexToLixTranslator}
    * generally produces three lines of code.
-   * For example, when visiting a column (named commission) in
+   *
+   * <p>For example, when visiting a column (named commission) in
    * table Employee, the generated code snippet is:
-   * {@code
-   *   final Employee current =(Employee) inputEnumerator.current();
-       final Integer input_value = current.commission;
-       final boolean input_isNull = input_value == null;
-   * }
+   *
+   * <blockquote><pre>{@code
+   * final Employee current = (Employee) inputEnumerator.current();
+   * final Integer input_value = current.commission;
+   * final boolean input_isNull = input_value == null;
+   * }</pre></blockquote>
    */
   @Override public Result visitInputRef(RexInputRef inputRef) {
     final Pair<RexNode, @Nullable Type> key = Pair.of(inputRef, currentStorageType);

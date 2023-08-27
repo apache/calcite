@@ -1389,10 +1389,29 @@ public class SqlOperatorTest {
         INVALID_CHAR_MESSAGE, true);
   }
 
+  @Test void testCastRowType() {
+    final SqlOperatorFixture f = fixture();
+    f.checkScalar("cast((1, 2) as row(f0 integer, f1 bigint))",
+        "{1, 2}",
+        "RecordType(INTEGER NOT NULL F0, BIGINT NOT NULL F1) NOT NULL");
+    f.checkScalar("cast((1, 2) as row(f0 integer, f1 decimal(2)))",
+        "{1, 2}",
+        "RecordType(INTEGER NOT NULL F0, DECIMAL(2, 0) NOT NULL F1) NOT NULL");
+    f.checkScalar("cast((1, '2') as row(f0 integer, f1 varchar))",
+        "{1, 2}",
+        "RecordType(INTEGER NOT NULL F0, VARCHAR NOT NULL F1) NOT NULL");
+    f.checkScalar("cast(('A', 'B') as row(f0 varchar, f1 varchar))",
+        "{A, B}",
+        "RecordType(VARCHAR NOT NULL F0, VARCHAR NOT NULL F1) NOT NULL");
+    f.checkNull("cast(null as row(f0 integer, f1 bigint))");
+    f.checkNull("cast(null as row(f0 integer, f1 decimal(2,0)))");
+    f.checkNull("cast(null as row(f0 integer, f1 varchar))");
+    f.checkNull("cast(null as row(f0 varchar, f1 varchar))");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4861">[CALCITE-4861]
-   * Optimisation of chained cast calls can lead to unexpected behaviour.</a>.
-   */
+   * Optimization of chained CAST calls leads to unexpected behavior</a>. */
   @Test void testChainedCast() {
     final SqlOperatorFixture f = fixture();
     f.checkFails("CAST(CAST(CAST(123456 AS TINYINT) AS INT) AS BIGINT)",

@@ -1420,6 +1420,18 @@ from "scott".emp;
 
 !ok
 
+# [CALCITE-5960] CAST failed if SqlTypeFamily of targetType is NULL
+# Cast row
+SELECT cast(row(1, 2) as row(a integer, b tinyint)) as r;
++--------+
+| R      |
++--------+
+| {1, 2} |
++--------+
+(1 row)
+
+!ok
+
 # [CALCITE-877] Allow ROW as argument to COLLECT
 select deptno, collect(r) as empnos
 from (select deptno, (empno, deptno) as r
