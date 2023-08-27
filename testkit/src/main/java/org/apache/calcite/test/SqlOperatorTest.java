@@ -6001,6 +6001,13 @@ public class SqlOperatorTest {
     f.checkScalar("array_compact(array())", "[]",
         "UNKNOWN NOT NULL ARRAY NOT NULL");
     f.checkNull("array_compact(null)");
+    // elements cast
+    f.checkScalar("array_compact(array[null, 1, null, cast(2 as tinyint)])", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_compact(array[null, 1, null, cast(2 as bigint)])", "[1, 2]",
+        "BIGINT NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_compact(array[null, 1, null, cast(2 as decimal)])", "[1, 2]",
+        "DECIMAL(19, 0) NOT NULL ARRAY NOT NULL");
   }
 
   /** Tests {@code ARRAY_CONCAT} function from BigQuery. */
@@ -6063,6 +6070,13 @@ public class SqlOperatorTest {
     f.checkScalar("array_distinct(array[null, 1, null])", "[null, 1]",
         "INTEGER ARRAY NOT NULL");
     f.checkNull("array_distinct(null)");
+    // elements cast
+    f.checkScalar("array_distinct(array[null, cast(1 as tinyint), 1, cast(2 as smallint)])",
+        "[null, 1, 2]", "INTEGER ARRAY NOT NULL");
+    f.checkScalar("array_distinct(array[null, cast(1 as tinyint), 1, cast(2 as bigint)])",
+        "[null, 1, 2]", "BIGINT ARRAY NOT NULL");
+    f.checkScalar("array_distinct(array[null, cast(1 as tinyint), 1, cast(2 as decimal)])",
+        "[null, 1, 2]", "DECIMAL(19, 0) ARRAY NOT NULL");
   }
 
   @Test void testArrayJoinFunc() {
@@ -6072,16 +6086,30 @@ public class SqlOperatorTest {
         + " signature ARRAY_JOIN\\(<CHAR\\(2\\) ARRAY>, <CHARACTER>\\)", false);
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
-    f.checkScalar("array_join(array['aa', 'b', 'c'], '-')", "aa-b-c",
+    f.checkScalar("array_join(array['aa', 'b', 'c'], '-')", "aa-b -c ",
         "VARCHAR NOT NULL");
     f.checkScalar("array_join(array[null, 'aa', null, 'b', null], '-', 'empty')",
-        "empty-aa-empty-b-empty", "VARCHAR NOT NULL");
-    f.checkScalar("array_join(array[null, 'aa', null, 'b', null], '-')", "aa-b",
+        "empty-aa-empty-b -empty", "VARCHAR NOT NULL");
+    f.checkScalar("array_join(array[null, 'aa', null, 'b', null], '-')", "aa-b ",
         "VARCHAR NOT NULL");
     f.checkScalar("array_join(array[null, x'aa', null, x'bb', null], '-')", "aa-bb",
         "VARCHAR NOT NULL");
-    f.checkScalar("array_join(array['', 'b'], '-')", "-b", "VARCHAR NOT NULL");
+    f.checkScalar("array_join(array['', 'b'], '-')", " -b", "VARCHAR NOT NULL");
     f.checkScalar("array_join(array['', ''], '-')", "-", "VARCHAR NOT NULL");
+
+    final SqlOperatorFixture f1 =
+        f.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    f1.checkScalar("array_join(array['aa', 'b', 'c'], '-')", "aa-b-c",
+        "VARCHAR NOT NULL");
+    f1.checkScalar("array_join(array[null, 'aa', null, 'b', null], '-', 'empty')",
+        "empty-aa-empty-b-empty", "VARCHAR NOT NULL");
+    f1.checkScalar("array_join(array[null, 'aa', null, 'b', null], '-')", "aa-b",
+        "VARCHAR NOT NULL");
+    f1.checkScalar("array_join(array[null, x'aa', null, x'bb', null], '-')", "aa-bb",
+        "VARCHAR NOT NULL");
+    f1.checkScalar("array_join(array['', 'b'], '-')", "-b", "VARCHAR NOT NULL");
+    f1.checkScalar("array_join(array['', ''], '-')", "-", "VARCHAR NOT NULL");
+
     f.checkNull("array_join(null, '-')");
     f.checkNull("array_join(array['a', 'b', null], null)");
     f.checkFails("^array_join(array[1, 2, 3], '-', ' ')^",
@@ -6104,6 +6132,13 @@ public class SqlOperatorTest {
     f.checkType("array_max(array())", "UNKNOWN");
     f.checkNull("array_max(array())");
     f.checkNull("array_max(cast(null as integer array))");
+    // elements cast
+    f.checkScalar("array_max(array[null, 1, cast(2 as tinyint)])", "2",
+        "INTEGER");
+    f.checkScalar("array_max(array[null, 1, cast(2 as bigint)])", "2",
+        "BIGINT");
+    f.checkScalar("array_max(array[null, 1, cast(2 as decimal)])", "2",
+        "DECIMAL(19, 0)");
   }
 
   /** Tests {@code ARRAY_MIN} function from Spark. */
@@ -6119,6 +6154,13 @@ public class SqlOperatorTest {
     f.checkType("array_min(array())", "UNKNOWN");
     f.checkNull("array_min(array())");
     f.checkNull("array_min(cast(null as integer array))");
+    // elements cast
+    f.checkScalar("array_min(array[null, 1, cast(2 as tinyint)])", "1",
+        "INTEGER");
+    f.checkScalar("array_min(array[null, 1, cast(2 as bigint)])", "1",
+        "BIGINT");
+    f.checkScalar("array_min(array[null, 1, cast(2 as decimal)])", "1",
+        "DECIMAL(19, 0)");
   }
 
   /** Tests {@code ARRAY_POSITION} function from Spark. */
@@ -6236,6 +6278,13 @@ public class SqlOperatorTest {
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_repeat(cast(null as integer), 2)", "[null, null]",
         "INTEGER ARRAY NOT NULL");
+    // elements cast
+    f.checkScalar("array_repeat(cast(1 as tinyint), 2)", "[1, 1]",
+        "TINYINT NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_repeat(cast(1 as bigint), 2)", "[1, 1]",
+        "BIGINT NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_repeat(cast(1 as decimal), 2)", "[1, 1]",
+        "DECIMAL(19, 0) NOT NULL ARRAY NOT NULL");
     f.checkNull("array_repeat(1, null)");
   }
 
@@ -6252,6 +6301,19 @@ public class SqlOperatorTest {
         "INTEGER NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_reverse(array[null, 1])", "[1, null]",
         "INTEGER ARRAY NOT NULL");
+    // elements cast
+    f.checkScalar("array_reverse(array[cast(1 as tinyint), 2])", "[2, 1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_reverse(array[null, 1, cast(2 as tinyint)])", "[2, 1, null]",
+        "INTEGER ARRAY NOT NULL");
+    f.checkScalar("array_reverse(array[cast(1 as bigint), 2])", "[2, 1]",
+        "BIGINT NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_reverse(array[null, 1, cast(2 as bigint)])", "[2, 1, null]",
+        "BIGINT ARRAY NOT NULL");
+    f.checkScalar("array_reverse(array[cast(1 as decimal), 2])", "[2, 1]",
+        "DECIMAL(19, 0) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_reverse(array[null, 1, cast(2 as decimal)])", "[2, 1, null]",
+        "DECIMAL(19, 0) ARRAY NOT NULL");
   }
 
   /** Tests {@code ARRAY_SIZE} function from Spark. */
@@ -6267,6 +6329,13 @@ public class SqlOperatorTest {
     f.checkScalar("array_size(array[1, 2, null])", "3",
         "INTEGER NOT NULL");
     f.checkNull("array_size(null)");
+    // elements cast
+    f.checkScalar("array_size(array[cast(1 as tinyint), 2])", "2",
+        "INTEGER NOT NULL");
+    f.checkScalar("array_size(array[null, 1, cast(2 as tinyint)])", "3",
+        "INTEGER NOT NULL");
+    f.checkScalar("array_size(array[cast(1 as bigint), 2])", "2",
+        "INTEGER NOT NULL");
   }
 
   /** Tests {@code ARRAY_LENGTH} function from BigQuery. */
@@ -6281,6 +6350,13 @@ public class SqlOperatorTest {
     f.checkScalar("array_length(array[1, 2, null])", "3",
         "INTEGER NOT NULL");
     f.checkNull("array_length(null)");
+    // elements cast
+    f.checkScalar("array_length(array[cast(1 as tinyint), 2])", "2",
+        "INTEGER NOT NULL");
+    f.checkScalar("array_length(array[null, 1, cast(2 as tinyint)])", "3",
+        "INTEGER NOT NULL");
+    f.checkScalar("array_length(array[cast(1 as bigint), 2])", "2",
+        "INTEGER NOT NULL");
   }
 
   @Test void testArrayToStringFunc() {
@@ -6290,15 +6366,15 @@ public class SqlOperatorTest {
         + " signature ARRAY_TO_STRING\\(<CHAR\\(2\\) ARRAY>, <CHARACTER>\\)", false);
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkScalar("array_to_string(array['aa', 'b', 'c'], '-')", "aa-b-c",
+    f.checkScalar("array_to_string(array['aa', 'b', 'c'], '-')", "aa-b -c ",
         "VARCHAR NOT NULL");
     f.checkScalar("array_to_string(array[null, 'aa', null, 'b', null], '-', 'empty')",
-        "empty-aa-empty-b-empty", "VARCHAR NOT NULL");
-    f.checkScalar("array_to_string(array[null, 'aa', null, 'b', null], '-')", "aa-b",
+        "empty-aa-empty-b -empty", "VARCHAR NOT NULL");
+    f.checkScalar("array_to_string(array[null, 'aa', null, 'b', null], '-')", "aa-b ",
         "VARCHAR NOT NULL");
     f.checkScalar("array_to_string(array[null, x'aa', null, x'bb', null], '-')", "aa-bb",
         "VARCHAR NOT NULL");
-    f.checkScalar("array_to_string(array['', 'b'], '-')", "-b", "VARCHAR NOT NULL");
+    f.checkScalar("array_to_string(array['', 'b'], '-')", " -b", "VARCHAR NOT NULL");
     f.checkScalar("array_to_string(array['', ''], '-')", "-", "VARCHAR NOT NULL");
     f.checkNull("array_to_string(null, '-')");
     f.checkNull("array_to_string(array['a', 'b', null], null)");
@@ -6306,6 +6382,19 @@ public class SqlOperatorTest {
         "Cannot apply 'ARRAY_TO_STRING' to arguments of type 'ARRAY_TO_STRING"
             + "\\(<INTEGER ARRAY>, <CHAR\\(1\\)>, <CHAR\\(1\\)>\\)'\\. Supported form\\(s\\):"
             + " ARRAY_TO_STRING\\(<STRING ARRAY>, <CHARACTER>\\[, <CHARACTER>\\]\\)", false);
+
+    final SqlOperatorFixture f1 =
+        f.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    f1.checkScalar("array_to_string(array['aa', 'b', 'c'], '-')", "aa-b-c",
+        "VARCHAR NOT NULL");
+    f1.checkScalar("array_to_string(array[null, 'aa', null, 'b', null], '-', 'empty')",
+        "empty-aa-empty-b-empty", "VARCHAR NOT NULL");
+    f1.checkScalar("array_to_string(array[null, 'aa', null, 'b', null], '-')", "aa-b",
+        "VARCHAR NOT NULL");
+    f1.checkScalar("array_to_string(array[null, x'aa', null, x'bb', null], '-')", "aa-bb",
+        "VARCHAR NOT NULL");
+    f1.checkScalar("array_to_string(array['', 'b'], '-')", "-b", "VARCHAR NOT NULL");
+    f1.checkScalar("array_to_string(array['', ''], '-')", "-", "VARCHAR NOT NULL");
   }
 
   /** Tests {@code ARRAY_EXCEPT} function from Spark. */
@@ -6549,6 +6638,16 @@ public class SqlOperatorTest {
         "UNKNOWN NOT NULL ARRAY NOT NULL");
     f.checkNull("sort_array(null)");
 
+    // elements cast
+    f.checkScalar("sort_array(array[cast(1 as tinyint), 2])", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[null, 1, cast(2 as tinyint)])", "[null, 1, 2]",
+        "INTEGER ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[cast(1 as bigint), 2])", "[1, 2]",
+        "BIGINT NOT NULL ARRAY NOT NULL");
+    f.checkScalar("sort_array(array[cast(1 as decimal), 2])", "[1, 2]",
+        "DECIMAL(19, 0) NOT NULL ARRAY NOT NULL");
+
     f.checkFails("^sort_array(array[2, null, 1], cast(1 as boolean))^",
         "Argument to function 'SORT_ARRAY' must be a literal", false);
     f.checkFails("^sort_array(array[2, null, 1], 1)^",
@@ -6619,6 +6718,21 @@ public class SqlOperatorTest {
         "RecordType(CHAR(3) NOT NULL f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
     f.checkScalar("map_entries(map['foo', 1, null, 2])", "[{foo, 1}, {null, 2}]",
         "RecordType(CHAR(3) f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
+    // elements cast
+    // key cast
+    f.checkScalar("map_entries(map[cast(1 as tinyint), 1, 2, 2])", "[{1, 1}, {2, 2}]",
+        "RecordType(INTEGER NOT NULL f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("map_entries(map[cast(1 as bigint), 1, null, 2])", "[{1, 1}, {null, 2}]",
+        "RecordType(BIGINT f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("map_entries(map[cast(1 as decimal), 1, null, 2])", "[{1, 1}, {null, 2}]",
+        "RecordType(DECIMAL(19, 0) f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
+    // value cast
+    f.checkScalar("map_entries(map[1, cast(1 as tinyint), 2, 2])", "[{1, 1}, {2, 2}]",
+        "RecordType(INTEGER NOT NULL f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("map_entries(map[1, cast(1 as bigint), null, 2])", "[{1, 1}, {null, 2}]",
+        "RecordType(INTEGER f0, BIGINT NOT NULL f1) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("map_entries(map[1, cast(1 as decimal), null, 2])", "[{1, 1}, {null, 2}]",
+        "RecordType(INTEGER f0, DECIMAL(19, 0) NOT NULL f1) NOT NULL ARRAY NOT NULL");
   }
 
   /** Tests {@code MAP_KEYS} function from Spark. */
@@ -6633,6 +6747,21 @@ public class SqlOperatorTest {
         "CHAR(3) NOT NULL ARRAY NOT NULL");
     f.checkScalar("map_keys(map['foo', 1, null, 2])", "[foo, null]",
         "CHAR(3) ARRAY NOT NULL");
+    // elements cast
+    // key cast
+    f.checkScalar("map_keys(map[cast(1 as tinyint), 1, 2, 2])", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("map_keys(map[cast(1 as bigint), 1, null, 2])", "[1, null]",
+        "BIGINT ARRAY NOT NULL");
+    f.checkScalar("map_keys(map[cast(1 as decimal), 1, null, 2])", "[1, null]",
+        "DECIMAL(19, 0) ARRAY NOT NULL");
+    // value cast
+    f.checkScalar("map_keys(map[1, cast(1 as tinyint), 2, 2])", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("map_keys(map[1, cast(1 as bigint), null, 2])", "[1, null]",
+        "INTEGER ARRAY NOT NULL");
+    f.checkScalar("map_keys(map[1, cast(1 as decimal), null, 2])", "[1, null]",
+        "INTEGER ARRAY NOT NULL");
   }
 
   /** Tests {@code MAP_VALUES} function from Spark. */
@@ -6661,7 +6790,13 @@ public class SqlOperatorTest {
     f.checkScalar("map_from_arrays(array[1, 2], array['foo', 'bar'])", "{1=foo, 2=bar}",
         "(INTEGER NOT NULL, CHAR(3) NOT NULL) MAP NOT NULL");
     f.checkScalar("map_from_arrays(array[1, 1, null], array['foo', 'bar', 'name'])",
-        "{1=bar, null=name}", "(INTEGER, CHAR(4) NOT NULL) MAP NOT NULL");
+        "{1=bar , null=name}", "(INTEGER, CHAR(4) NOT NULL) MAP NOT NULL");
+
+    final SqlOperatorFixture f1 =
+        f.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    f1.checkScalar("map_from_arrays(array[1, 1, null], array['foo', 'bar', 'name'])",
+        "{1=bar, null=name}", "(INTEGER, VARCHAR(4) NOT NULL) MAP NOT NULL");
+
     f.checkScalar("map_from_arrays(array(), array())",
         "{}", "(UNKNOWN NOT NULL, UNKNOWN NOT NULL) MAP NOT NULL");
     f.checkType("map_from_arrays(cast(null as integer array), array['foo', 'bar'])",
@@ -9968,6 +10103,13 @@ public class SqlOperatorTest {
         "[foo, null]", "CHAR(3) ARRAY NOT NULL");
     f.checkScalar("Array[null]",
         "[null]", "NULL ARRAY NOT NULL");
+    // element cast
+    f.checkScalar("Array[cast(1 as tinyint), cast(2 as smallint)]",
+        "[1, 2]", "SMALLINT NOT NULL ARRAY NOT NULL");
+    f.checkScalar("Array[1, cast(2 as tinyint), cast(3 as smallint)]",
+        "[1, 2, 3]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("Array[1, cast(2 as tinyint), cast(3 as smallint), cast(4 as bigint)]",
+        "[1, 2, 3, 4]", "BIGINT NOT NULL ARRAY NOT NULL");
     // empty array is illegal per SQL spec. presumably because one can't
     // infer type
     f.checkFails("^Array[]^", "Require at least 1 argument", false);
@@ -9995,14 +10137,15 @@ public class SqlOperatorTest {
         "[null, foo]", "CHAR(3) ARRAY NOT NULL");
     f2.checkScalar("array(null)",
         "[null]", "NULL ARRAY NOT NULL");
+    // calcite default cast char type will fill extra spaces
     f2.checkScalar("array(1, 2, 'Hi')",
-        "[1, 2, Hi]", "CHAR(2) NOT NULL ARRAY NOT NULL");
+        "[1 , 2 , Hi]", "CHAR(2) NOT NULL ARRAY NOT NULL");
     f2.checkScalar("array(1, 2, 'Hi', 'Hello')",
-        "[1, 2, Hi, Hello]", "CHAR(5) NOT NULL ARRAY NOT NULL");
+        "[1    , 2    , Hi   , Hello]", "CHAR(5) NOT NULL ARRAY NOT NULL");
     f2.checkScalar("array(1, 2, 'Hi', null)",
-        "[1, 2, Hi, null]", "CHAR(2) ARRAY NOT NULL");
+        "[1 , 2 , Hi, null]", "CHAR(2) ARRAY NOT NULL");
     f2.checkScalar("array(1, 2, 'Hi', cast(null as char(10)))",
-        "[1, 2, Hi, null]", "CHAR(10) ARRAY NOT NULL");
+        "[1         , 2         , Hi        , null]", "CHAR(10) ARRAY NOT NULL");
   }
 
   /**
@@ -10169,14 +10312,36 @@ public class SqlOperatorTest {
     f.checkFails("^map[1, 1, 2, 'x']^",
         "Parameters must be of the same type", false);
     f.checkScalar("map['washington', 1, 'obama', 44]",
-        "{washington=1, obama=44}",
+        "{washington=1, obama     =44}",
         "(CHAR(10) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    // elements cast
+    f.checkScalar("map['A', 1, 'ABC', 2]", "{A  =1, ABC=2}",
+        "(CHAR(3) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f.checkScalar("Map[cast(1 as tinyint), 1, cast(2 as smallint), 2]",
+        "{1=1, 2=2}", "(SMALLINT NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f.checkScalar("Map[1, cast(1 as tinyint), 2, cast(2 as smallint)]",
+        "{1=1, 2=2}", "(INTEGER NOT NULL, SMALLINT NOT NULL) MAP NOT NULL");
+    f.checkScalar("Map[1, cast(1 as tinyint), cast(2 as bigint), cast(2 as smallint)]",
+        "{1=1, 2=2}", "(BIGINT NOT NULL, SMALLINT NOT NULL) MAP NOT NULL");
+    f.checkScalar("Map[cast(1 as bigint), cast(1 as tinyint), 2, cast(2 as smallint)]",
+        "{1=1, 2=2}", "(BIGINT NOT NULL, SMALLINT NOT NULL) MAP NOT NULL");
 
     final SqlOperatorFixture f1 =
         f.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
     f1.checkScalar("map['washington', 1, 'obama', 44]",
         "{washington=1, obama=44}",
         "(VARCHAR(10) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    // elements cast
+    f1.checkScalar("map['A', 1, 'ABC', 2]", "{A=1, ABC=2}",
+        "(VARCHAR(3) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f1.checkScalar("Map[cast(1 as tinyint), 1, cast(2 as smallint), 2]",
+        "{1=1, 2=2}", "(SMALLINT NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f1.checkScalar("Map[1, cast(1 as tinyint), 2, cast(2 as smallint)]",
+        "{1=1, 2=2}", "(INTEGER NOT NULL, SMALLINT NOT NULL) MAP NOT NULL");
+    f1.checkScalar("Map[1, cast(1 as tinyint), cast(2 as bigint), cast(2 as smallint)]",
+        "{1=1, 2=2}", "(BIGINT NOT NULL, SMALLINT NOT NULL) MAP NOT NULL");
+    f1.checkScalar("Map[cast(1 as bigint), cast(1 as tinyint), 2, cast(2 as smallint)]",
+        "{1=1, 2=2}", "(BIGINT NOT NULL, SMALLINT NOT NULL) MAP NOT NULL");
   }
 
   @Test void testCeilFunc() {

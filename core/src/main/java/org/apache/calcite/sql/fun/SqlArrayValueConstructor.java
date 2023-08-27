@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import static java.util.Objects.requireNonNull;
 
@@ -38,6 +39,10 @@ public class SqlArrayValueConstructor extends SqlMultisetValueConstructor {
             opBinding.getTypeFactory(),
             opBinding.collectOperandTypes());
     requireNonNull(type, "inferred array element type");
+
+    // explicit cast elements to component type if they are not same
+    SqlValidatorUtil.adjustTypeForArrayConstructor(type, opBinding);
+
     return SqlTypeUtil.createArrayType(
         opBinding.getTypeFactory(), type, false);
   }
