@@ -715,6 +715,11 @@ public class CoreRules {
   public static final SortRemoveRule SORT_REMOVE =
       SortRemoveRule.Config.DEFAULT.toRule();
 
+  /** Rule that merge a {@link Sort} representing the Limit semantics and
+   * another {@link Sort} representing the Limit or TOPN semantics. */
+  public static final SortMergeRule LIMIT_MREGE =
+      SortMergeRule.Config.LIMIT_MERGE.toRule();
+
   /** Rule that removes keys from a {@link Sort}
    * if those keys are known to be constant, or removes the entire Sort if all
    * keys are constant. */
