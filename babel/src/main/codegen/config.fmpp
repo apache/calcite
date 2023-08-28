@@ -42,6 +42,7 @@ data: {
     # List of new keywords. Example: "DATABASES", "TABLES". If the keyword is
     # not a reserved keyword, add it to the 'nonReservedKeywords' section.
     keywords: [
+      "ANTI"
       "DISCARD"
       "IF"
       "PLANS"
@@ -56,6 +57,7 @@ data: {
     # items in this list become non-reserved
     nonReservedKeywordsToAdd: [
       # not in core, added in babel
+      "ANTI"
       "DISCARD"
       "IF"
       "PLANS"
@@ -545,6 +547,7 @@ data: {
     # List of additional join types. Each is a method with no arguments.
     # Example: "LeftSemiJoin".
     joinTypes: [
+      "LeftAntiJoin",
       "LeftSemiJoin"
     ]
 

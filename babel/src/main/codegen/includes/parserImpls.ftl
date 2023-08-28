@@ -22,6 +22,13 @@ JoinType LeftSemiJoin() :
     <LEFT> <SEMI> <JOIN> { return JoinType.LEFT_SEMI_JOIN; }
 }
 
+JoinType LeftAntiJoin() :
+{
+}
+{
+    <LEFT> <ANTI> <JOIN> { return JoinType.LEFT_ANTI_JOIN; }
+}
+
 SqlNode DateaddFunctionCall() :
 {
     final Span s;

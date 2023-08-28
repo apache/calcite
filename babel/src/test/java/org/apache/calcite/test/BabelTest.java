@@ -247,6 +247,21 @@ class BabelTest {
         .type("RecordType(INTEGER NOT NULL DEPTNO) NOT NULL");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5962">[CALCITE-5962]
+   * Support parse Spark-style syntax "LEFT ANTI JOIN" in Babel parser</a>. */
+  @Test public void testLeftAntiJoin() {
+    final SqlValidatorFixture v = Fixtures.forValidator()
+        .withParserConfig(c -> c.withParserFactory(SqlBabelParserImpl.FACTORY))
+        .withConformance(SqlConformanceEnum.BABEL);
+
+    v.withSql("SELECT * FROM dept LEFT ANTI JOIN emp ON emp.deptno = dept.deptno")
+        .type("RecordType(INTEGER NOT NULL DEPTNO, VARCHAR(10) NOT NULL NAME) NOT NULL");
+
+    v.withSql("SELECT name FROM dept LEFT ANTI JOIN emp ON emp.deptno = dept.deptno")
+        .type("RecordType(VARCHAR(10) NOT NULL NAME) NOT NULL");
+  }
+
   private void checkSqlResult(String funLibrary, String query, String result) {
     CalciteAssert.that()
         .with(CalciteConnectionProperty.PARSER_FACTORY,

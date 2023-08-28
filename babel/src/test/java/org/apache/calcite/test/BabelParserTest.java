@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
+import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserFixture;
@@ -428,6 +429,39 @@ class BabelParserTest extends SqlParserTest {
     f.sql("DISCARD SEQUENCES").same();
     f.sql("DISCARD TEMPORARY").same();
     f.sql("DISCARD TEMP").same();
+  }
+
+  @Test void testSparkLeftAntiJoin() {
+    final SqlParserFixture f = fixture().withDialect(SparkSqlDialect.DEFAULT);
+    final String sql = "select a.cid, a.cname, count(1) as amount\n"
+        + "from geo.area1 as a\n"
+        + "left anti join (select distinct cid, cname\n"
+        + "from geo.area2\n"
+        + "where cname = 'cityA') as b on a.cid = b.cid\n"
+        + "group by a.cid, a.cname";
+    final String expected = "SELECT A.CID, A.CNAME, COUNT(1) AMOUNT\n"
+        + "FROM GEO.AREA1 A\n"
+        + "LEFT ANTI JOIN (SELECT DISTINCT CID, CNAME\n"
+        + "FROM GEO.AREA2\n"
+        + "WHERE (CNAME = 'cityA')) B ON (A.CID = B.CID)\n"
+        + "GROUP BY A.CID, A.CNAME";
+    f.sql(sql).ok(expected);
+  }
+
+  @Test void testLeftAntiJoin() {
+    final String sql = "select a.cid, a.cname, count(1) as amount\n"
+        + "from geo.area1 as a\n"
+        + "left anti join (select distinct cid, cname\n"
+        + "from geo.area2\n"
+        + "where cname = 'cityA') as b on a.cid = b.cid\n"
+        + "group by a.cid, a.cname";
+    final String expected = "SELECT `A`.`CID`, `A`.`CNAME`, COUNT(1) AS `AMOUNT`\n"
+        + "FROM `GEO`.`AREA1` AS `A`\n"
+        + "LEFT ANTI JOIN (SELECT DISTINCT `CID`, `CNAME`\n"
+        + "FROM `GEO`.`AREA2`\n"
+        + "WHERE (`CNAME` = 'cityA')) AS `B` ON (`A`.`CID` = `B`.`CID`)\n"
+        + "GROUP BY `A`.`CID`, `A`.`CNAME`";
+    sql(sql).ok(expected);
   }
 
   /** Similar to {@link #testHoist()} but using custom parser. */
