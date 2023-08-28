@@ -1342,14 +1342,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     String matchArgument = call.operand(2).toString().replaceAll("'", "");
     switch (matchArgument) {
     case "i":
-      String updatedRegexForI = removeLeadingAndTrailingSingleQuotes
-          (call.operand(1).toString());
-      if (updatedRegexForI.startsWith("^") && updatedRegexForI.endsWith("$")) {
-        updatedRegexForI = "(?i)".concat(updatedRegexForI);
-      } else {
-        updatedRegexForI = "^(?i)".concat(updatedRegexForI).concat("$");
-      }
-      return SqlLiteral.createCharString(updatedRegexForI, SqlParserPos.ZERO);
+      return modifyRegexStringForMatchArgumentI(call, "(?i)");
     case "x":
       String updatedRegexForX = removeLeadingAndTrailingSingleQuotes
           (call.operand(1).toString().replaceAll("\\s+", ""));
@@ -1357,6 +1350,18 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       return call.operand(1);
     }
+  }
+
+  private static SqlCharStringLiteral modifyRegexStringForMatchArgumentI(SqlCall call,
+      String matchArgumentRegexLiteral) {
+    String updatedRegexForI = removeLeadingAndTrailingSingleQuotes
+        (call.operand(1).toString());
+    if (updatedRegexForI.startsWith("^") && updatedRegexForI.endsWith("$")) {
+      updatedRegexForI = matchArgumentRegexLiteral.concat(updatedRegexForI);
+    } else {
+      updatedRegexForI = "^(?i)".concat(updatedRegexForI).concat("$");
+    }
+    return SqlLiteral.createCharString(updatedRegexForI, SqlParserPos.ZERO);
   }
 
   private void unparseRegexpContains(SqlWriter writer, SqlCall call,
