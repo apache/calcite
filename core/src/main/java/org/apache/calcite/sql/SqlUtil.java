@@ -358,6 +358,7 @@ public abstract class SqlUtil {
     }
     writer.endList(frame);
   }
+
   /**
    * Unparse a SqlIdentifier syntax.
    *
