@@ -59,7 +59,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -2615,6 +2614,42 @@ public class RexSimplify {
     }
     list.set(index, newVal);
     return true;
+  }
+
+  private RexNode simplifyIf(RexCall e, RexUnknownAs unknownAs) {
+    List<RexNode> operands = e.getOperands();
+    List<RexNode> resultRexNode = new ArrayList<>();
+
+    for (RexNode operand : operands) {
+      resultRexNode.add(simplify(operand, unknownAs));
+    }
+
+    if (resultRexNode.get(0).isAlwaysTrue()) {
+      return resultRexNode.get(1);
+    } else if (resultRexNode.get(0).isAlwaysFalse()) {
+      return resultRexNode.get(2);
+    }
+    return e;
+  }
+
+  /***
+   * Simplifying NVL function, If first operand is not null then return
+   * first operand else return second operand.
+   * And return whole NVL function if first operand is not simplifiable.
+   * @param e RexCall
+   * @return RexNode
+   */
+  private RexNode simplifyNvl(RexCall e) {
+    final List<RexNode> operands = new ArrayList<>(e.operands);
+    simplifyList(operands, UNKNOWN);
+
+    RexNode rexNode = simplifyIsNotNull(operands.get(0));
+    if (rexNode != null && rexNode.isAlwaysTrue()) {
+      return operands.get(0);
+    } else if (rexNode != null && rexNode.isAlwaysFalse()) {
+      return operands.get(1);
+    }
+    return rexBuilder.makeCall(e.getType(), e.getOperator(), operands);
   }
 
   /** Gathers expressions that can be converted into

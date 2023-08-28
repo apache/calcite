@@ -167,6 +167,22 @@ class RelToSqlConverterTest {
         UnaryOperator.identity(), null, ImmutableList.of());
   }
 
+  private Sql sqlTest(String sql) {
+    return new Sql(CalciteAssert.SchemaSpec.FOODMART_TEST, sql,
+        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
+        UnaryOperator.identity(), null, ImmutableList.of());
+  }
+
+  public static Frameworks.ConfigBuilder salesConfig() {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    return Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT)
+        .defaultSchema(
+            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SALESSCHEMA))
+        .traitDefs((List<RelTraitDef>) null)
+        .programs(Programs.ofRules(Programs.RULE_SET));
+  }
+
   /** Initiates a test case with a given {@link RelNode} supplier. */
   private Sql relFn(Function<RelBuilder, RelNode> relFn) {
     return sql("?").relFn(relFn);

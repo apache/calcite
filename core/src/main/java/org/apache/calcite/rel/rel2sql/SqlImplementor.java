@@ -148,8 +148,11 @@ public abstract class SqlImplementor {
   // So we just quote it.
   public static final SqlParserPos POS = SqlParserPos.QUOTED_ZERO;
 
+  public static final int DEFAULT_BLOAT = 100;
+
   public final SqlDialect dialect;
   protected final Set<String> aliasSet = new LinkedHashSet<>();
+  protected final Map<String, SqlNode> ordinalMap = new HashMap<>();
 
   protected final Map<CorrelationId, Context> correlTableMap = new HashMap<>();
   protected boolean isTableNameColumnNameIdentical = false;
@@ -159,8 +162,17 @@ public abstract class SqlImplementor {
   final RexBuilder rexBuilder =
       new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
 
-  protected SqlImplementor(SqlDialect dialect) {
+  /**
+   *  <p>nested projects will only be merged if complexity of the result is
+   *  less than or equal to the sum of the complexity of the originals plus {@code bloat}.
+   *
+   *  <p>refer to {@link org.apache.calcite.tools.RelBuilder.Config#bloat()} for more details.
+   */
+  private final int bloat;
+
+  protected SqlImplementor(SqlDialect dialect, int bloat) {
     this.dialect = requireNonNull(dialect);
+    this.bloat = bloat;
   }
 
   /** Visits a relational expression that has no parent. */
@@ -379,11 +391,10 @@ public abstract class SqlImplementor {
               rightContext.field(op0.getIndex() - leftFieldCount));
         }
       }
+    default:
       joinContext =
           leftContext.implementor().joinContext(leftContext, rightContext);
       return joinContext.toSql(null, node);
-    default:
-      throw new AssertionError(node);
     }
   }
 
@@ -792,7 +803,7 @@ public abstract class SqlImplementor {
         }
 
       case LITERAL:
-        return SqlImplementor.toSql(program, (RexLiteral) rex);
+        return SqlImplementor.toSql(program, (RexLiteral) rex, dialect);
 
       case CASE:
         final RexCall caseCall = (RexCall) rex;
@@ -1461,7 +1472,8 @@ public abstract class SqlImplementor {
 
   /** Converts a {@link RexLiteral} in the context of a {@link RexProgram}
    * to a {@link SqlNode}. */
-  public static SqlNode toSql(@Nullable RexProgram program, RexLiteral literal) {
+  public static SqlNode toSql(
+      @Nullable RexProgram program, RexLiteral literal, SqlDialect dialect) {
     switch (literal.getTypeName()) {
     case SYMBOL:
       final Enum symbol = (Enum) literal.getValue();
@@ -1471,7 +1483,7 @@ public abstract class SqlImplementor {
       //noinspection unchecked
       final List<RexLiteral> list = castNonNull(literal.getValueAs(List.class));
       return SqlStdOperatorTable.ROW.createCall(POS,
-          list.stream().map(e -> toSql(program, e))
+          list.stream().map(e -> toSql(program, e, dialect))
               .collect(Util.toImmutableList()));
 
     case SARG:
@@ -1480,7 +1492,7 @@ public abstract class SqlImplementor {
           + "] should be handled as part of predicates, not as literals");
 
     default:
-      return toSql(literal);
+      return toSql(literal, dialect);
     }
   }
 
@@ -1531,12 +1543,17 @@ public abstract class SqlImplementor {
       return SqlLiteral.createDate(castNonNull(literal.getValueAs(DateString.class)),
           POS);
     case TIME:
-      return SqlLiteral.createTime(castNonNull(literal.getValueAs(TimeString.class)),
+      return dialect.getTimeLiteral(castNonNull(literal.getValueAs(TimeString.class)),
           literal.getType().getPrecision(), POS);
     case TIMESTAMP:
-      return SqlLiteral.createTimestamp(
-          castNonNull(literal.getValueAs(TimestampString.class)),
-          literal.getType().getPrecision(), POS);
+      TimestampString timestampString = literal.getValueAs(TimestampString.class);
+      int precision = literal.getType().getPrecision();
+
+      if (typeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+        return SqlLiteral.createTimestamp(timestampString, precision, POS);
+      }
+
+      return dialect.getTimestampLiteral(castNonNull(timestampString), precision, POS);
     case ANY:
     case NULL:
       switch (typeName) {
@@ -1812,6 +1829,11 @@ public abstract class SqlImplementor {
       final boolean needNew = needNewSubQuery(rel, this.clauses, clauses2);
       assert needNew == this.needNew;
       boolean keepColumnAlias = false;
+
+      if (rel instanceof LogicalSort
+          && dialect.getConformance().isSortByAlias()) {
+        keepColumnAlias = true;
+      }
 
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
