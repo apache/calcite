@@ -11484,12 +11484,12 @@ class RelToSqlConverterTest {
 
   @Test public void testForRegexpLikeFunctionWithThirdArgumentAsI() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexp_like = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexplike = builder.call(SqlLibraryOperators.REGEXP_LIKE,
         builder.literal("Mike Bird"), builder.literal("Mike B(i|y)RD"),
         builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexp_like, "A"))
+        .project(builder.alias(regexplike, "A"))
         .build();
 
     final String expectedBqSql = "SELECT REGEXP_CONTAINS('Mike Bird' , "
