@@ -3619,6 +3619,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Which join types require/allow a ON/USING condition, or allow
     // a NATURAL keyword?
     switch (joinType) {
+    case LEFT_ANTI_JOIN:
+      if (!this.config.conformance().isLiberal()) {
+        throw newValidationError(join.getJoinTypeNode(),
+            RESOURCE.dialectDoesNotSupportFeature("LEFT ANTI JOIN"));
+      }
     case LEFT_SEMI_JOIN:
       if (!this.config.conformance().isLiberal()) {
         throw newValidationError(join.getJoinTypeNode(),

@@ -49,7 +49,8 @@ data: {
       "SEMI"
       "SEQUENCES"
       "TEMP"
-      "VOLATILE"
+      "VOLATILE",
+      "ANTI"
     ]
 
     # List of non-reserved keywords to add;
@@ -62,7 +63,8 @@ data: {
       "SEED"
       "SEMI"
       "SEQUENCES"
-      "TEMP"
+      "TEMP",
+      "ANTI"
 
       # The following keywords are reserved in core Calcite,
       # are reserved in some version of SQL,
@@ -545,7 +547,8 @@ data: {
     # List of additional join types. Each is a method with no arguments.
     # Example: "LeftSemiJoin".
     joinTypes: [
-      "LeftSemiJoin"
+      "LeftSemiJoin",
+      "LeftAntiJoin"
     ]
 
     # List of methods for parsing builtin function calls.
