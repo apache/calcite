@@ -4411,6 +4411,15 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(CoreRules.AGGREGATE_CASE_TO_FILTER).check();
   }
 
+  @Test void testAggregateCaseToFilterNoMatch() {
+    final String sql = "select\n"
+        + " sum(case when deptno = -1 then 1 else 0 end) as sum_no_match,\n"
+        + " sum(case when deptno = -1 then 2 else 0 end) as sum_no_match2,\n"
+        + " sum(case when deptno = -1 then 3 else -1 end) as sum_no_match3\n"
+        + "from emp";
+    sql(sql).withRule(CoreRules.AGGREGATE_CASE_TO_FILTER).checkUnchanged();
+  }
+
   @Test void testPullAggregateThroughUnion() {
     final String sql = "select deptno, job from"
         + " (select deptno, job from emp as e1"

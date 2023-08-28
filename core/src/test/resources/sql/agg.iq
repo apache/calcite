@@ -1679,6 +1679,61 @@ from (values 0, null, 0, 1) as t(x);
 
 !ok
 
+# Convert CASE to FILTER with no input rows
+select  COALESCE(sum(case when x = 1 then 1 else 0 end),0) as a,
+        COALESCE(sum(case when x = 1 then 2 else 0 end),0) as b,
+        COALESCE(sum(case when x = 1 then 3 else -1 end),0) as c
+from (values 0, null, 0, 2) as t(x) where x*x=1;
++---+---+---+
+| A | B | C |
++---+---+---+
+| 0 | 0 | 0 |
++---+---+---+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], $f0=[$t3], $f1=[$t1], $f2=[$t2])
+  EnumerableAggregate(group=[{}], agg#0=[COUNT() FILTER $1], agg#1=[$SUM0($2) FILTER $3], agg#2=[$SUM0($0)])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[=($t0, $t1)], expr#3=[3], expr#4=[-1], expr#5=[CASE($t2, $t3, $t4)], expr#6=[IS TRUE($t2)], expr#7=[2], expr#8=[*($t0, $t0)], expr#9=[=($t8, $t1)], $f2=[$t5], $f3=[$t6], $f4=[$t7], $f5=[$t6], $condition=[$t9])
+      EnumerableValues(tuples=[[{ 0 }, { null }, { 0 }, { 2 }]])
+!plan
+
+# Convert CASE to FILTER with no input rows
+select  sum(case when x = 1 then 1 else 0 end) as a,
+        sum(case when x = 1 then 2 else 0 end) as b,
+        sum(case when x = 1 then 3 else -1 end) as c
+from (values 0, null, 0, 2) as t(x) where x*x=1;
++---+---+---+
+| A | B | C |
++---+---+---+
+|   |   |   |
++---+---+---+
+(1 row)
+
+!ok
+EnumerableAggregate(group=[{}], A=[SUM($0)], B=[SUM($1)], C=[SUM($2)])
+  EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[=($t0, $t1)], expr#3=[0], expr#4=[CASE($t2, $t1, $t3)], expr#5=[2], expr#6=[CASE($t2, $t5, $t3)], expr#7=[3], expr#8=[-1], expr#9=[CASE($t2, $t7, $t8)], expr#10=[*($t0, $t0)], expr#11=[=($t10, $t1)], $f0=[$t4], $f1=[$t6], $f2=[$t9], $condition=[$t11])
+    EnumerableValues(tuples=[[{ 0 }, { null }, { 0 }, { 2 }]])
+!plan
+
+# Convert CASE to FILTER without matches
+select  sum(case when x = 1 then 1 else 0 end) as a,
+        sum(case when x = 1 then 2 else 0 end) as b,
+        sum(case when x = 1 then 3 else -1 end) as c
+from (values 0, null, 0, 2) as t(x);
++---+---+----+
+| A | B | C  |
++---+---+----+
+| 0 | 0 | -4 |
++---+---+----+
+(1 row)
+
+!ok
+EnumerableAggregate(group=[{}], A=[SUM($0)], B=[SUM($1)], C=[SUM($2)])
+  EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[=($t0, $t1)], expr#3=[0], expr#4=[CASE($t2, $t1, $t3)], expr#5=[2], expr#6=[CASE($t2, $t5, $t3)], expr#7=[3], expr#8=[-1], expr#9=[CASE($t2, $t7, $t8)], $f0=[$t4], $f1=[$t6], $f2=[$t9])
+    EnumerableValues(tuples=[[{ 0 }, { null }, { 0 }, { 2 }]])
+!plan
+
 # Same, expressed as FILTER
 select count(*) filter (where (x = 0) is not true) as c
 from (values 0, null, 0, 1) as t(x);
