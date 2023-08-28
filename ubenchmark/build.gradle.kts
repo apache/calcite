@@ -19,15 +19,15 @@ plugins {
 }
 
 dependencies {
-    // Make jmhCompileClasspath resolvable
-    @Suppress("DEPRECATION")
-    jmhCompileClasspath(platform(project(":bom")))
+    jmhImplementation(platform(project(":bom")))
     jmhImplementation(project(":core"))
     jmhImplementation(project(":linq4j"))
     jmhImplementation("com.google.guava:guava")
     jmhImplementation("org.codehaus.janino:commons-compiler")
     jmhImplementation("org.openjdk.jmh:jmh-core")
     jmhImplementation("org.openjdk.jmh:jmh-generator-annprocess")
+    jmhImplementation(project(":testkit"))
+    jmhImplementation("org.hsqldb:hsqldb")
 }
 
 // See https://github.com/melix/jmh-gradle-plugin

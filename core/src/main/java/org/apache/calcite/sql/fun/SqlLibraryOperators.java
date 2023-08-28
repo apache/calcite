@@ -19,6 +19,7 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
@@ -489,6 +490,16 @@ public abstract class SqlLibraryOperators {
   public static final SqlSpecialOperator NOT_ILIKE =
       new SqlLikeOperator("NOT ILIKE", SqlKind.LIKE, true, false);
 
+  /** The regex variant of the LIKE operator. */
+  @LibraryOperator(libraries = {SPARK, HIVE})
+  public static final SqlSpecialOperator RLIKE =
+      new SqlLikeOperator("RLIKE", SqlKind.RLIKE, false, true);
+
+  /** The regex variant of the NOT LIKE operator. */
+  @LibraryOperator(libraries = {SPARK, HIVE})
+  public static final SqlSpecialOperator NOT_RLIKE =
+      new SqlLikeOperator("NOT RLIKE", SqlKind.RLIKE, true, true);
+
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
@@ -514,6 +525,36 @@ public abstract class SqlLibraryOperators {
           InferTypes.RETURN_TYPE,
           OperandTypes.STRING_SAME_SAME,
           SqlFunctionCategory.STRING);
+
+  /** The "ARRAY_LENGTH(array)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ARRAY_LENGTH =
+      new SqlFunction("ARRAY_LENGTH",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.ARRAY,
+          SqlFunctionCategory.SYSTEM);
+
+  /** The "ARRAY_REVERSE(array)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ARRAY_REVERSE =
+      new SqlFunction("ARRAY_REVERSE",
+          SqlKind.ARRAY_REVERSE,
+          ReturnTypes.ARG0_NULLABLE,
+          null,
+          OperandTypes.ARRAY,
+          SqlFunctionCategory.SYSTEM);
+
+  /** The "ARRAY_CONCAT(array [, array]*)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ARRAY_CONCAT =
+      new SqlFunction("ARRAY_CONCAT",
+          SqlKind.ARRAY_CONCAT,
+          ReturnTypes.LEAST_RESTRICTIVE,
+          null,
+          OperandTypes.AT_LEAST_ONE_SAME_VARIADIC,
+          SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction REVERSE =
@@ -666,4 +707,17 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = { POSTGRESQL })
   public static final SqlOperator INFIX_CAST =
       new SqlCastOperator();
+
+  /** NULL-safe "&lt;=&gt;" equal operator used by MySQL, for example
+   * {@code 1<=>NULL}. */
+  @LibraryOperator(libraries = { MYSQL })
+  public static final SqlOperator NULL_SAFE_EQUAL =
+      new SqlBinaryOperator(
+          "<=>",
+          SqlKind.IS_NOT_DISTINCT_FROM,
+          30,
+          true,
+          ReturnTypes.BOOLEAN,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
 }

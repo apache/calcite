@@ -16,9 +16,7 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.adapter.enumerable.EnumUtils;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
@@ -270,22 +268,6 @@ public class SqlCallBinding extends SqlOperatorBinding {
       Class<T> clazz) {
     final SqlNode node = operand(ordinal);
     return valueAs(node, clazz);
-  }
-
-  @Override public @Nullable Object getOperandLiteralValue(int ordinal, RelDataType type) {
-    if (!(type instanceof RelDataTypeFactoryImpl.JavaType)) {
-      return null;
-    }
-    final Class<?> clazz = ((RelDataTypeFactoryImpl.JavaType) type).getJavaClass();
-    final Object o = getOperandLiteralValue(ordinal, Object.class);
-    if (o == null) {
-      return null;
-    }
-    if (clazz.isInstance(o)) {
-      return clazz.cast(o);
-    }
-    final Object o2 = o instanceof NlsString ? ((NlsString) o).getValue() : o;
-    return EnumUtils.evaluate(o2, clazz);
   }
 
   private static <T extends Object> @Nullable T valueAs(SqlNode node, Class<T> clazz) {

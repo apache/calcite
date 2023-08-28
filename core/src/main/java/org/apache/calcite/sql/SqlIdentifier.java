@@ -150,8 +150,7 @@ public class SqlIdentifier extends SqlNode {
 
   /** Converts empty strings in a list of names to stars. */
   public static List<String> toStar(List<String> names) {
-    return Util.transform(names,
-        s -> s.equals("") ? "*" : s.equals("*") ? "\"*\"" : s);
+    return Util.transform(names, s -> s.equals("") ? "*" : s);
   }
 
   /**

@@ -27,12 +27,15 @@ import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
-import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.test.schemata.catchall.CatchallSchema;
+import org.apache.calcite.test.schemata.catchall.CatchallSchema.EveryType;
+import org.apache.calcite.test.schemata.hr.Employee;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -44,7 +47,6 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -55,11 +57,8 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Date;
 import java.util.List;
 import java.util.Properties;
-
-import static org.apache.calcite.test.JdbcTest.Employee;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -100,7 +99,7 @@ public class ReflectiveSchemaTest {
                     null,
                     LINQ4J_AS_ENUMERABLE_METHOD,
                     Expressions.constant(
-                        new JdbcTest.HrSchema().emps)),
+                        new HrSchema().emps)),
                 "asQueryable"),
             Employee.class)
             .where(
@@ -149,7 +148,7 @@ public class ReflectiveSchemaTest {
                     Types.of(Enumerable.class, Employee.class),
                     null,
                     LINQ4J_AS_ENUMERABLE_METHOD,
-                    Expressions.constant(new JdbcTest.HrSchema().emps)),
+                    Expressions.constant(new HrSchema().emps)),
                 "asQueryable"),
             Employee.class)
             .select(
@@ -176,7 +175,7 @@ public class ReflectiveSchemaTest {
         TableMacroImpl.create(Smalls.GENERATE_STRINGS_METHOD));
     schema.add("StringUnion",
         TableMacroImpl.create(Smalls.STRING_UNION_METHOD));
-    rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
         + "from table(s.StringUnion(\n"
@@ -200,7 +199,7 @@ public class ReflectiveSchemaTest {
         ViewTable.viewMacro(schema,
             "select * from \"hr\".\"emps\" where \"deptno\" = 10",
             null, Arrays.asList("s", "emps_view"), null));
-    rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
     ResultSet resultSet = connection.createStatement().executeQuery(
         "select *\n"
         + "from \"s\".\"emps_view\"\n"
@@ -237,7 +236,7 @@ public class ReflectiveSchemaTest {
     schema.add("null_emps",
         ViewTable.viewMacro(schema, "select * from \"emps\"", null,
             ImmutableList.of("s", "null_emps"), null));
-    rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
     final Statement statement = connection.createStatement();
     ResultSet resultSet;
     resultSet = statement.executeQuery(
@@ -605,7 +604,7 @@ public class ReflectiveSchemaTest {
     with.query("select \"wrapperLong\" / \"wrapperLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
-            "final Long input_value = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
+            "final Long input_value = ((org.apache.calcite.test.schemata.catchall.CatchallSchema.EveryType) inputEnumerator.current()).wrapperLong;")
         .planContains(
             "return input_value == null ? (Long) null : Long.valueOf(input_value.longValue() / input_value.longValue());")
         .returns("C=null\n");
@@ -618,7 +617,7 @@ public class ReflectiveSchemaTest {
         + "+ \"wrapperLong\" / \"wrapperLong\" as c\n"
         + " from \"s\".\"everyTypes\" where \"primitiveLong\" <> 0")
         .planContains(
-            "final Long input_value = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
+            "final Long input_value = ((org.apache.calcite.test.schemata.catchall.CatchallSchema.EveryType) inputEnumerator.current()).wrapperLong;")
         .planContains(
             "final Long binary_call_value = input_value == null ? (Long) null : Long.valueOf(input_value.longValue() / input_value.longValue());")
         .planContains(
@@ -678,17 +677,6 @@ public class ReflectiveSchemaTest {
         });
   }
 
-  private static boolean isNumeric(Class type) {
-    switch (Primitive.flavor(type)) {
-    case BOX:
-      return Primitive.ofBox(type).isNumeric();
-    case PRIMITIVE:
-      return Primitive.of(type).isNumeric();
-    default:
-      return Number.class.isAssignableFrom(type); // e.g. BigDecimal
-    }
-  }
-
   /** Tests that if a field of a relation has an unrecognized type (in this
    * case a {@link BitSet}) then it is treated as an object.
    *
@@ -743,7 +731,7 @@ public class ReflectiveSchemaTest {
   @Disabled
   @Test void testTableMacroIsView() throws Exception {
     CalciteAssert.that()
-        .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
+        .withSchema("s", new ReflectiveSchema(new HrSchema()))
         .query("select * from table(\"s\".\"view\"('abc'))")
         .returns(
             "empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
@@ -754,7 +742,7 @@ public class ReflectiveSchemaTest {
   @Disabled
   @Test void testTableMacro() throws Exception {
     CalciteAssert.that()
-        .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
+        .withSchema("s", new ReflectiveSchema(new HrSchema()))
         .query("select * from table(\"s\".\"foo\"(3))")
         .returns(
             "empid=2; deptno=10; name=Ab; salary=0.0; commission=null\n"
@@ -881,173 +869,6 @@ public class ReflectiveSchemaTest {
         java.sql.Date hireDate) {
       super(empid, deptno, name, salary, commission);
       this.hireDate = hireDate;
-    }
-  }
-
-  /** Record that has a field of every interesting type. */
-  public static class EveryType {
-    public final boolean primitiveBoolean;
-    public final byte primitiveByte;
-    public final char primitiveChar;
-    public final short primitiveShort;
-    public final int primitiveInt;
-    public final long primitiveLong;
-    public final float primitiveFloat;
-    public final double primitiveDouble;
-    public final Boolean wrapperBoolean;
-    public final Byte wrapperByte;
-    public final Character wrapperCharacter;
-    public final Short wrapperShort;
-    public final Integer wrapperInteger;
-    public final Long wrapperLong;
-    public final Float wrapperFloat;
-    public final Double wrapperDouble;
-    public final java.sql.Date sqlDate;
-    public final Time sqlTime;
-    public final Timestamp sqlTimestamp;
-    public final Date utilDate;
-    public final String string;
-    public final BigDecimal bigDecimal;
-
-    public EveryType(
-        boolean primitiveBoolean,
-        byte primitiveByte,
-        char primitiveChar,
-        short primitiveShort,
-        int primitiveInt,
-        long primitiveLong,
-        float primitiveFloat,
-        double primitiveDouble,
-        Boolean wrapperBoolean,
-        Byte wrapperByte,
-        Character wrapperCharacter,
-        Short wrapperShort,
-        Integer wrapperInteger,
-        Long wrapperLong,
-        Float wrapperFloat,
-        Double wrapperDouble,
-        java.sql.Date sqlDate,
-        Time sqlTime,
-        Timestamp sqlTimestamp,
-        Date utilDate,
-        String string,
-        BigDecimal bigDecimal) {
-      this.primitiveBoolean = primitiveBoolean;
-      this.primitiveByte = primitiveByte;
-      this.primitiveChar = primitiveChar;
-      this.primitiveShort = primitiveShort;
-      this.primitiveInt = primitiveInt;
-      this.primitiveLong = primitiveLong;
-      this.primitiveFloat = primitiveFloat;
-      this.primitiveDouble = primitiveDouble;
-      this.wrapperBoolean = wrapperBoolean;
-      this.wrapperByte = wrapperByte;
-      this.wrapperCharacter = wrapperCharacter;
-      this.wrapperShort = wrapperShort;
-      this.wrapperInteger = wrapperInteger;
-      this.wrapperLong = wrapperLong;
-      this.wrapperFloat = wrapperFloat;
-      this.wrapperDouble = wrapperDouble;
-      this.sqlDate = sqlDate;
-      this.sqlTime = sqlTime;
-      this.sqlTimestamp = sqlTimestamp;
-      this.utilDate = utilDate;
-      this.string = string;
-      this.bigDecimal = bigDecimal;
-    }
-
-    static Enumerable<Field> fields() {
-      return Linq4j.asEnumerable(EveryType.class.getFields());
-    }
-
-    static Enumerable<Field> numericFields() {
-      return fields()
-          .where(v1 -> isNumeric(v1.getType()));
-    }
-  }
-
-  /** All field are private, therefore the resulting record has no fields. */
-  public static class AllPrivate {
-    private final int x = 0;
-  }
-
-  /** Table that has a field that cannot be recognized as a SQL type. */
-  public static class BadType {
-    public final int integer = 0;
-    public final BitSet bitSet = new BitSet(0);
-  }
-
-  /** Table that has integer and string fields. */
-  public static class IntAndString {
-    public final int id;
-    public final String value;
-
-    public IntAndString(int id, String value) {
-      this.id = id;
-      this.value = value;
-    }
-  }
-
-  /** Object whose fields are relations. Called "catch-all" because it's OK
-   * if tests add new fields. */
-  public static class CatchallSchema {
-    public final Enumerable<Employee> enumerable =
-        Linq4j.asEnumerable(
-            Arrays.asList(new JdbcTest.HrSchema().emps));
-
-    public final List<Employee> list =
-        Arrays.asList(new JdbcTest.HrSchema().emps);
-
-    public final BitSet bitSet = new BitSet(1);
-
-    public final EveryType[] everyTypes = {
-        new EveryType(
-            false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
-            false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
-            new java.sql.Date(0), new Time(0), new Timestamp(0),
-            new Date(0), "1", BigDecimal.ZERO),
-        new EveryType(
-            true, Byte.MAX_VALUE, Character.MAX_VALUE, Short.MAX_VALUE,
-            Integer.MAX_VALUE, Long.MAX_VALUE, Float.MAX_VALUE,
-            Double.MAX_VALUE,
-            null, null, null, null, null, null, null, null,
-            null, null, null, null, null, null),
-    };
-
-    public final AllPrivate[] allPrivates = { new AllPrivate() };
-
-    public final BadType[] badTypes = { new BadType() };
-
-    public final Employee[] prefixEmps = {
-        new Employee(1, 10, "A", 0f, null),
-        new Employee(2, 10, "Ab", 0f, null),
-        new Employee(3, 10, "Abc", 0f, null),
-        new Employee(4, 10, "Abd", 0f, null),
-    };
-
-    public final Integer[] primesBoxed = {1, 3, 5};
-
-    public final int[] primes = {1, 3, 5};
-
-    public final IntHolder[] primesCustomBoxed =
-        {new IntHolder(1), new IntHolder(3), new IntHolder(5)};
-
-    public final IntAndString[] nullables = {
-        new IntAndString(1, "A"), new IntAndString(2, "B"), new IntAndString(2, "C"),
-        new IntAndString(3, null)};
-
-    public final IntAndString[] bools = {
-        new IntAndString(1, "T"), new IntAndString(2, "F"), new IntAndString(3, null)};
-  }
-
-  /**
-   * Custom java class that holds just a single field.
-   */
-  public static class IntHolder {
-    public final int value;
-
-    public IntHolder(int value) {
-      this.value = value;
     }
   }
 

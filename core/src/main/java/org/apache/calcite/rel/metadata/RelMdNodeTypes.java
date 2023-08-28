@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -36,7 +35,6 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -52,7 +50,7 @@ public class RelMdNodeTypes
     implements MetadataHandler<BuiltInMetadata.NodeTypes> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.NODE_TYPES.method, new RelMdNodeTypes());
+          new RelMdNodeTypes(), BuiltInMetadata.NodeTypes.Handler.class);
 
   //~ Methods ----------------------------------------------------------------
 
@@ -69,11 +67,6 @@ public class RelMdNodeTypes
   public @Nullable Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelNode rel,
       RelMetadataQuery mq) {
     return getNodeTypes(rel, RelNode.class, mq);
-  }
-
-  public @Nullable Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(HepRelVertex rel,
-      RelMetadataQuery mq) {
-    return mq.getNodeTypes(rel.getCurrentRel());
   }
 
   public @Nullable Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelSubset rel,

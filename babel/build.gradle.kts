@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import com.github.autostyle.gradle.AutostyleTask
+
 plugins {
-    kotlin("jvm")
     id("com.github.vlsi.ide")
     calcite.fmpp
     calcite.javacc
@@ -23,17 +24,18 @@ plugins {
 
 dependencies {
     api(project(":core"))
+    api("org.apache.calcite.avatica:avatica-core")
 
     implementation("com.google.guava:guava")
-    implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.slf4j:slf4j-api")
 
     testImplementation("net.hydromatic:quidem")
     testImplementation("net.hydromatic:scott-data-hsqldb")
     testImplementation("org.hsqldb:hsqldb")
     testImplementation("org.incava:java-diff")
-    testImplementation("org.slf4j:slf4j-log4j12")
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
+
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }
 
 val fmppMain by tasks.registering(org.apache.calcite.buildtools.fmpp.FmppTask::class) {
@@ -50,6 +52,15 @@ val javaCCMain by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCT
     }
     inputFile.from(parserFile)
     packageName.set("org.apache.calcite.sql.parser.babel")
+}
+
+tasks.withType<Checkstyle>().matching { it.name == "checkstyleMain" }
+    .configureEach {
+        mustRunAfter(javaCCMain)
+    }
+
+tasks.withType<AutostyleTask>().configureEach {
+    mustRunAfter(javaCCMain)
 }
 
 ide {

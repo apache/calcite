@@ -65,6 +65,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       .withLiteralQuoteString("'")
       .withLiteralEscapedQuoteString("\\'")
       .withIdentifierQuoteString("`")
+      .withIdentifierEscapedQuoteString("\\`")
       .withNullCollation(NullCollation.LOW)
       .withUnquotedCasing(Casing.UNCHANGED)
       .withQuotedCasing(Casing.UNCHANGED)
@@ -114,6 +115,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return super.supportsImplicitTypeCoercion(call)
             && RexUtil.isLiteral(call.getOperands().get(0), false)
             && !SqlTypeUtil.isNumeric(call.type);
+  }
+
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
   }
 
   @Override public boolean supportsNestedAggregations() {

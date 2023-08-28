@@ -113,11 +113,12 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     this(ordering, new HashMap<>(), childFunction, parentFunction);
   }
 
-  @SuppressWarnings("Guava")
+  @SuppressWarnings({"Guava", "UnnecessaryMethodReference"})
   @Deprecated // to be removed before 2.0
   public PartiallyOrderedSet(Ordering<E> ordering,
       com.google.common.base.Function<E, Iterable<E>> childFunction,
       com.google.common.base.Function<E, Iterable<E>> parentFunction) {
+    //noinspection FunctionalExpressionCanBeFolded
     this(ordering, (Function<E, Iterable<E>>) childFunction::apply,
         parentFunction::apply);
   }

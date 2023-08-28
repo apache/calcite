@@ -31,6 +31,8 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -53,6 +55,7 @@ import java.util.stream.Collectors;
  * <blockquote>
  * <pre>select s.product_id from sales as s</pre></blockquote>
  */
+@Value.Enclosing
 public class ProjectJoinRemoveRule
     extends RelRule<ProjectJoinRemoveRule.Config>
     implements SubstitutionRule {
@@ -124,8 +127,9 @@ public class ProjectJoinRemoveRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableProjectJoinRemoveRule.Config.of()
         .withOperandFor(LogicalProject.class, LogicalJoin.class);
 
     @Override default ProjectJoinRemoveRule toRule() {

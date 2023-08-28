@@ -44,6 +44,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -72,6 +73,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @see CoreRules#CALC_REDUCE_DECIMALS
  */
+@Value.Enclosing
 public class ReduceDecimalsRule
     extends RelRule<ReduceDecimalsRule.Config>
     implements TransformationRule {
@@ -1323,10 +1325,10 @@ public class ReduceDecimalsRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(LogicalCalc.class).anyInputs())
-        .as(Config.class);
+    Config DEFAULT = ImmutableReduceDecimalsRule.Config.of()
+        .withOperandSupplier(b -> b.operand(LogicalCalc.class).anyInputs());
 
     @Override default ReduceDecimalsRule toRule() {
       return new ReduceDecimalsRule(this);

@@ -27,6 +27,7 @@ import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.javac.JaninoCompiler;
 
+import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import java.io.File;
@@ -44,8 +45,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
   private final HttpServer classServer;
   private final AtomicInteger classId;
+  private final SparkConf sparkConf =
+      new SparkConf().set("spark.driver.bindAddress", "localhost");
   private final JavaSparkContext sparkContext =
-      new JavaSparkContext("local[1]", "calcite");
+      new JavaSparkContext("local[1]", "calcite", sparkConf);
 
   /** Thread-safe holder. */
   private static class Holder {

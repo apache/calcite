@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -133,7 +134,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlValidatorScope scope,
       SqlValidatorScope operandScope) {
     super.validateCall(call, validator, scope, operandScope);
-    validator.validateAggregateParams(call, null, null, scope);
+    validator.validateAggregateParams(call, null, null, null, scope);
   }
 
   @Override public final boolean requiresOrder() {
@@ -206,6 +207,23 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
   /** Returns whether this aggregate function allows specifying null treatment
    * ({@code RESPECT NULLS} or {@code IGNORE NULLS}). */
   public boolean allowsNullTreatment() {
+    return false;
+  }
+
+  /**
+   * Gets rollup aggregation function.
+   */
+  public @Nullable SqlAggFunction getRollup() {
+    return null;
+  }
+
+  /** Returns whether this aggregate function is a PERCENTILE function.
+   * Such functions require a {@code WITHIN GROUP} clause that has precisely
+   * one sort key.
+   *
+   * <p>NOTE: This API is experimental and subject to change without notice. */
+  @Experimental
+  public boolean isPercentile() {
     return false;
   }
 }

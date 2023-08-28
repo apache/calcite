@@ -23,6 +23,7 @@ import com.google.common.collect.Multimap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 /**
  * RelMetadataProvider defines an interface for obtaining metadata about
@@ -59,14 +60,35 @@ public interface RelMetadataProvider {
    * Double d = selectivity.selectivity(predicate);
    * </pre></blockquote>
    *
+   * @deprecated Use {@link RelMetadataQuery}.
+   *
    * @param relClass Type of relational expression
    * @param metadataClass Type of metadata
    * @return Function that will field a metadata instance; or null if this
    *     provider cannot supply metadata of this type
    */
+  @Deprecated // to be removed before 2.0
   <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass);
 
+  @Deprecated // to be removed before 2.0
   <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def);
+
+  /**
+   * Retrieves a list of {@link MetadataHandler} for implements a particular
+   * {@link MetadataHandler}.class.  The resolution order is specificity of the relNode class,
+   * with preference given to handlers that occur earlier in the list.
+   *
+   * For instance, given a return list of {A, B, C} where A implements RelNode and Scan,
+   * B implements Scan, and C implements LogicalScan and Filter.
+   *
+   * Scan dispatches to a.method(Scan)
+   * LogicalFilter dispatches to c.method(Filter).
+   * LogicalScan dispatches to c.method(LogicalScan).
+   * Aggregate dispatches to a.method(RelNode).
+   *
+   * The behavior is undefined if the class hierarchy for dispatching is not a tree.
+   */
+  List<MetadataHandler<?>> handlers(Class<? extends MetadataHandler<?>> handlerClass);
 }

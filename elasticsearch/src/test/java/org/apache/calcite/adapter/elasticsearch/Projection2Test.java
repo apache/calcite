@@ -68,36 +68,34 @@ class Projection2Test {
     NODE.insertDocument(NAME, (ObjectNode) NODE.mapper().readTree(doc));
   }
 
-  private CalciteAssert.ConnectionFactory newConnectionFactory() {
-    return new CalciteAssert.ConnectionFactory() {
-      @Override public Connection createConnection() throws SQLException {
-        final Connection connection = DriverManager.getConnection("jdbc:calcite:");
-        final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
+  private static Connection createConnection() throws SQLException {
+    final Connection connection =
+        DriverManager.getConnection("jdbc:calcite:");
+    final SchemaPlus root =
+        connection.unwrap(CalciteConnection.class).getRootSchema();
 
-        root.add("elastic", new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), NAME));
+    root.add("elastic", new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), NAME));
 
-        // add calcite view programmatically
-        final String viewSql = String.format(Locale.ROOT,
-            "select _MAP['a'] AS \"a\", "
-                + " _MAP['b.a']  AS \"b.a\", "
-                +  " _MAP['b.b'] AS \"b.b\", "
-                +  " _MAP['b.c.a'] AS \"b.c.a\", "
-                +  " _MAP['_id'] AS \"id\" " // _id field is implicit
-                +  " from \"elastic\".\"%s\"", NAME);
+    // add calcite view programmatically
+    final String viewSql = String.format(Locale.ROOT,
+        "select _MAP['a'] AS \"a\", "
+            + " _MAP['b.a']  AS \"b.a\", "
+            + " _MAP['b.b'] AS \"b.b\", "
+            + " _MAP['b.c.a'] AS \"b.c.a\", "
+            + " _MAP['_id'] AS \"id\" " // _id field is implicit
+            + " from \"elastic\".\"%s\"", NAME);
 
-        ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
-            Collections.singletonList("elastic"), Arrays.asList("elastic", "view"), false);
-        root.add("VIEW", macro);
-        return connection;
-      }
-    };
+    ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
+        Collections.singletonList("elastic"), Arrays.asList("elastic", "view"), false);
+    root.add("VIEW", macro);
+    return connection;
   }
 
   @Test void projection() {
     CalciteAssert.that()
-            .with(newConnectionFactory())
-            .query("select \"a\", \"b.a\", \"b.b\", \"b.c.a\" from view")
-            .returns("a=1; b.a=2; b.b=3; b.c.a=foo\n");
+        .with(Projection2Test::createConnection)
+        .query("select \"a\", \"b.a\", \"b.b\", \"b.c.a\" from view")
+        .returns("a=1; b.a=2; b.b=3; b.c.a=foo\n");
   }
 
   @Test void projection2() {
@@ -105,20 +103,20 @@ class Projection2Test {
         + "_MAP['b.c.a'], _MAP['missing'], _MAP['b.missing'] from \"elastic\".\"%s\"", NAME);
 
     CalciteAssert.that()
-            .with(newConnectionFactory())
-            .query(sql)
-            .returns("EXPR$0=1; EXPR$1=2; EXPR$2=3; EXPR$3=foo; EXPR$4=null; EXPR$5=null\n");
+        .with(Projection2Test::createConnection)
+        .query(sql)
+        .returns("EXPR$0=1; EXPR$1=2; EXPR$2=3; EXPR$3=foo; EXPR$4=null; EXPR$5=null\n");
   }
 
   @Test void projection3() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(Projection2Test::createConnection)
         .query(
             String.format(Locale.ROOT, "select * from \"elastic\".\"%s\"", NAME))
         .returns("_MAP={a=1, b={a=2, b=3, c={a=foo}}}\n");
 
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(Projection2Test::createConnection)
         .query(
             String.format(Locale.ROOT, "select *, _MAP['a'] from \"elastic\".\"%s\"", NAME))
         .returns("_MAP={a=1, b={a=2, b=3, c={a=foo}}}; EXPR$1=1\n");
@@ -129,64 +127,56 @@ class Projection2Test {
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">ID Field</a>
    */
   @Test void projectionWithIdField() {
+    final CalciteAssert.AssertThat fixture =
+        CalciteAssert.that()
+            .with(Projection2Test::createConnection);
 
-    final CalciteAssert.AssertThat factory = CalciteAssert.that().with(newConnectionFactory());
-
-    factory
-        .query("select \"id\" from view")
+    fixture.query("select \"id\" from view")
         .returns(regexMatch("id=\\p{Graph}+"));
 
-    factory
-        .query("select \"id\", \"id\" from view")
+    fixture.query("select \"id\", \"id\" from view")
         .returns(regexMatch("id=\\p{Graph}+; id=\\p{Graph}+"));
 
-    factory
-        .query("select \"id\", \"a\" from view")
+    fixture.query("select \"id\", \"a\" from view")
         .returns(regexMatch("id=\\p{Graph}+; a=1"));
 
-    factory
-        .query("select \"a\", \"id\" from view")
+    fixture.query("select \"a\", \"id\" from view")
         .returns(regexMatch("a=1; id=\\p{Graph}+"));
 
     // single _id column
     final String sql1 = String.format(Locale.ROOT, "select _MAP['_id'] "
         + " from \"elastic\".\"%s\"", NAME);
-    factory
-        .query(sql1)
+    fixture.query(sql1)
         .returns(regexMatch("EXPR$0=\\p{Graph}+"));
 
     // multiple columns: _id and a
     final String sql2 = String.format(Locale.ROOT, "select _MAP['_id'], _MAP['a'] "
         + " from \"elastic\".\"%s\"", NAME);
-    factory
-        .query(sql2)
+    fixture.query(sql2)
         .returns(regexMatch("EXPR$0=\\p{Graph}+; EXPR$1=1"));
 
     // multiple _id columns
     final String sql3 = String.format(Locale.ROOT, "select _MAP['_id'], _MAP['_id'] "
         + " from \"elastic\".\"%s\"", NAME);
-    factory
-        .query(sql3)
+    fixture.query(sql3)
         .returns(regexMatch("EXPR$0=\\p{Graph}+; EXPR$1=\\p{Graph}+"));
 
     // _id column with same alias
     final String sql4 = String.format(Locale.ROOT, "select _MAP['_id'] as \"_id\" "
         + " from \"elastic\".\"%s\"", NAME);
-    factory
-        .query(sql4)
+    fixture.query(sql4)
         .returns(regexMatch("_id=\\p{Graph}+"));
 
     // _id field not available implicitly
-    factory
-        .query(
-            String.format(Locale.ROOT, "select * from \"elastic\".\"%s\"",
-                NAME))
+    String sql5 =
+        String.format(Locale.ROOT, "select * from \"elastic\".\"%s\"", NAME);
+    fixture.query(sql5)
         .returns(regexMatch("_MAP={a=1, b={a=2, b=3, c={a=foo}}}"));
 
-    factory
-        .query(
-            String.format(Locale.ROOT,
-                "select *, _MAP['_id'] from \"elastic\".\"%s\"", NAME))
+    String sql6 =
+        String.format(Locale.ROOT,
+            "select *, _MAP['_id'] from \"elastic\".\"%s\"", NAME);
+    fixture.query(sql6)
         .returns(regexMatch("_MAP={a=1, b={a=2, b=3, c={a=foo}}}; EXPR$1=\\p{Graph}+"));
   }
 
@@ -200,13 +190,13 @@ class Projection2Test {
    */
   @Test void simpleProjectionNoScripting() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(Projection2Test::createConnection)
         .query(
             String.format(Locale.ROOT, "select _MAP['_id'], _MAP['a'], _MAP['b.a'] from "
                 + " \"elastic\".\"%s\" where _MAP['b.a'] = 2", NAME))
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'query.constant_score.filter.term.b.a':2",
-            "_source:['a', 'b.a']", "size:5196"))
+                "_source:['a', 'b.a']", "size:5196"))
         .returns(regexMatch("EXPR$0=\\p{Graph}+; EXPR$1=1; EXPR$2=2"));
 
   }
@@ -216,7 +206,7 @@ class Projection2Test {
    * ElasticSearch query with varchar literal projection fails with JsonParseException</a>. */
   @Test void projectionStringLiteral() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(Projection2Test::createConnection)
         .query(
             String.format(Locale.ROOT, "select 'foo' as \"lit\"\n"
                 + "from \"elastic\".\"%s\"", NAME))
@@ -228,7 +218,7 @@ class Projection2Test {
    * ElasticSearch query with varchar literal projection fails with JsonParseException</a>. */
   @Test void projectionStringLiteralAndColumn() {
     CalciteAssert.that()
-        .with(newConnectionFactory())
+        .with(Projection2Test::createConnection)
         .query(
             String.format(Locale.ROOT, "select 'foo\\\"bar\\\"' as \"lit\", _MAP['a'] as \"a\"\n"
                 + "from \"elastic\".\"%s\"", NAME))

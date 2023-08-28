@@ -136,7 +136,7 @@ public interface SqlSplittableAggFunction {
     @Override public @Nullable AggregateCall other(RelDataTypeFactory typeFactory,
         AggregateCall e) {
       return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
-          false, ImmutableIntList.of(), -1, RelCollations.EMPTY,
+          false, ImmutableIntList.of(), -1, null, RelCollations.EMPTY,
           typeFactory.createSqlType(SqlTypeName.BIGINT), null);
     }
 
@@ -165,8 +165,8 @@ public interface SqlSplittableAggFunction {
       }
       int ordinal = extra.register(node);
       return AggregateCall.create(SqlStdOperatorTable.SUM0, false, false,
-          false, ImmutableList.of(ordinal), -1, aggregateCall.collation,
-          aggregateCall.type, aggregateCall.name);
+          false, ImmutableList.of(ordinal), -1, aggregateCall.distinctKeys,
+          aggregateCall.collation, aggregateCall.type, aggregateCall.name);
     }
 
     /**
@@ -205,7 +205,8 @@ public interface SqlSplittableAggFunction {
               || top.getAggregation().getKind() == SqlKind.SUM0)) {
         return AggregateCall.create(bottom.getAggregation(),
             bottom.isDistinct(), bottom.isApproximate(), false,
-            bottom.getArgList(), bottom.filterArg, bottom.getCollation(),
+            bottom.getArgList(), bottom.filterArg,
+            bottom.distinctKeys, bottom.getCollation(),
             bottom.getType(), top.getName());
       } else {
         return null;
@@ -242,15 +243,15 @@ public interface SqlSplittableAggFunction {
       assert (leftSubTotal >= 0) != (rightSubTotal >= 0);
       assert aggregateCall.collation.getFieldCollations().isEmpty();
       final int arg = leftSubTotal >= 0 ? leftSubTotal : rightSubTotal;
-      return aggregateCall.copy(ImmutableIntList.of(arg), -1,
-          RelCollations.EMPTY);
+      return aggregateCall.withArgList(ImmutableIntList.of(arg));
     }
 
     @Override public @Nullable AggregateCall merge(AggregateCall top, AggregateCall bottom) {
       if (top.getAggregation().getKind() == bottom.getAggregation().getKind()) {
         return AggregateCall.create(bottom.getAggregation(),
             bottom.isDistinct(), bottom.isApproximate(), false,
-            bottom.getArgList(), bottom.filterArg, bottom.getCollation(),
+            bottom.getArgList(), bottom.filterArg,
+            bottom.distinctKeys, bottom.getCollation(),
             bottom.getType(), top.getName());
       } else {
         return null;
@@ -266,9 +267,7 @@ public interface SqlSplittableAggFunction {
       final int arg = aggregateCall.getArgList().get(0);
       final RelDataTypeField field = inputRowType.getFieldList().get(arg);
       final RelDataType fieldType = field.getType();
-      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
-      RelDataType type = typeFactory.getTypeSystem().deriveSumType(typeFactory, fieldType);
-      return rexBuilder.makeInputRef(type, arg);
+      return rexBuilder.makeInputRef(fieldType, arg);
     }
 
     @Override public AggregateCall split(AggregateCall aggregateCall,
@@ -279,9 +278,7 @@ public interface SqlSplittableAggFunction {
     @Override public @Nullable AggregateCall other(RelDataTypeFactory typeFactory,
         AggregateCall e) {
       return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
-          false,
-          ImmutableIntList.of(), -1,
-          RelCollations.EMPTY,
+          false, ImmutableIntList.of(), -1, null, RelCollations.EMPTY,
           typeFactory.createSqlType(SqlTypeName.BIGINT), null);
     }
 
@@ -312,7 +309,8 @@ public interface SqlSplittableAggFunction {
       }
       int ordinal = extra.register(node);
       return AggregateCall.create(getMergeAggFunctionOfTopSplit(), false, false,
-          false, ImmutableList.of(ordinal), -1, aggregateCall.collation,
+          false, ImmutableList.of(ordinal), -1,
+          aggregateCall.distinctKeys, aggregateCall.collation,
           aggregateCall.type, aggregateCall.name);
     }
 
@@ -323,7 +321,8 @@ public interface SqlSplittableAggFunction {
               || topKind == SqlKind.SUM0)) {
         return AggregateCall.create(bottom.getAggregation(),
             bottom.isDistinct(), bottom.isApproximate(), false,
-            bottom.getArgList(), bottom.filterArg, bottom.getCollation(),
+            bottom.getArgList(), bottom.filterArg,
+            bottom.distinctKeys, bottom.getCollation(),
             bottom.getType(), top.getName());
       } else {
         return null;

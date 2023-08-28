@@ -1027,6 +1027,168 @@ select deptno
 
 !ok
 
+# There are duplicate GROUPING SETS
+select deptno, sum(sal) as s
+from "scott".emp as t
+group by grouping sets (deptno, deptno);
++--------+----------+
+| DEPTNO | S        |
++--------+----------+
+|     10 |  8750.00 |
+|     10 |  8750.00 |
+|     20 | 10875.00 |
+|     20 | 10875.00 |
+|     30 |  9400.00 |
+|     30 |  9400.00 |
++--------+----------+
+(6 rows)
+
+!ok
+
+# Similar, not duplicate GROUPING SETS
+select deptno, sum(sal) as s
+from "scott".emp as t
+group by grouping sets (deptno);
++--------+----------+
+| DEPTNO | S        |
++--------+----------+
+|     10 |  8750.00 |
+|     20 | 10875.00 |
+|     30 |  9400.00 |
++--------+----------+
+(3 rows)
+
+!ok
+
+# Complex GROUPING SETS clause that contains duplicates
+select sum(sal) as s
+from "scott".emp as t
+group by job,
+    grouping sets ( deptno,
+    grouping sets ( (deptno, comm is null), comm is null),
+         (comm is null)),
+    ();
++---------+
+| S       |
++---------+
+| 1300.00 |
+| 1300.00 |
+| 2450.00 |
+| 2450.00 |
+| 2850.00 |
+| 2850.00 |
+| 2975.00 |
+| 2975.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 6000.00 |
+|  950.00 |
+|  950.00 |
+| 1900.00 |
+| 1900.00 |
+| 4150.00 |
+| 4150.00 |
+| 5600.00 |
+| 5600.00 |
+| 5600.00 |
+| 5600.00 |
+| 6000.00 |
+| 6000.00 |
+| 6000.00 |
+| 8275.00 |
+| 8275.00 |
++---------+
+(28 rows)
+
+!ok
+
+# Equivalent query using flat GROUPING SETS
+select sum(sal) as s
+from "scott".emp
+group by grouping sets ((job, deptno, comm is null),
+  (job, deptno), (job, comm is null), (job, comm is null));
++---------+
+| S       |
++---------+
+| 1300.00 |
+| 1300.00 |
+| 2450.00 |
+| 2450.00 |
+| 2850.00 |
+| 2850.00 |
+| 2975.00 |
+| 2975.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 6000.00 |
+|  950.00 |
+|  950.00 |
+| 1900.00 |
+| 1900.00 |
+| 4150.00 |
+| 4150.00 |
+| 5600.00 |
+| 5600.00 |
+| 5600.00 |
+| 5600.00 |
+| 6000.00 |
+| 6000.00 |
+| 6000.00 |
+| 8275.00 |
+| 8275.00 |
++---------+
+(28 rows)
+
+!ok
+
+# Equivalent query, but with GROUP_ID and GROUPING_ID
+select sum(sal) as s,
+  grouping_id(job, deptno, comm is null) as g,
+  group_id() as i
+from "scott".emp
+group by grouping sets ((job, deptno, comm is null),
+  (job, deptno), (job, comm is null), (job, comm is null))
+order by g, i, s desc;
++---------+---+---+
+| S       | G | I |
++---------+---+---+
+| 6000.00 | 0 | 0 |
+| 5600.00 | 0 | 0 |
+| 5000.00 | 0 | 0 |
+| 2975.00 | 0 | 0 |
+| 2850.00 | 0 | 0 |
+| 2450.00 | 0 | 0 |
+| 1900.00 | 0 | 0 |
+| 1300.00 | 0 | 0 |
+|  950.00 | 0 | 0 |
+| 8275.00 | 0 | 1 |
+| 6000.00 | 0 | 1 |
+| 5600.00 | 0 | 1 |
+| 5000.00 | 0 | 1 |
+| 4150.00 | 0 | 1 |
+| 6000.00 | 1 | 0 |
+| 5600.00 | 1 | 0 |
+| 5000.00 | 1 | 0 |
+| 2975.00 | 1 | 0 |
+| 2850.00 | 1 | 0 |
+| 2450.00 | 1 | 0 |
+| 1900.00 | 1 | 0 |
+| 1300.00 | 1 | 0 |
+|  950.00 | 1 | 0 |
+| 8275.00 | 2 | 0 |
+| 6000.00 | 2 | 0 |
+| 5600.00 | 2 | 0 |
+| 5000.00 | 2 | 0 |
+| 4150.00 | 2 | 0 |
++---------+---+---+
+(28 rows)
+
+!ok
+
 # [KYLIN-751] Max on negative double values is not working
 # [CALCITE-735] Primitive.DOUBLE.min should be large and negative
 select max(v) as x, min(v) as n
@@ -2295,6 +2457,47 @@ where false;
 
 !ok
 
+# [CALCITE-4609] AggregateRemoveRule throws while handling AVG
+# Note that the outer GROUP BY is a no-op, and therefore
+# AggregateRemoveRule kicks in.
+SELECT job, AVG(avg_sal) AS avg_sal2
+FROM (
+    SELECT deptno, job, AVG(sal) AS avg_sal
+    FROM "scott".emp
+    GROUP BY deptno, job) AS EmpAnalytics
+WHERE deptno = 30
+GROUP BY job;
++----------+----------+
+| JOB      | AVG_SAL2 |
++----------+----------+
+| CLERK    |   950.00 |
+| MANAGER  |  2850.00 |
+| SALESMAN |  1400.00 |
++----------+----------+
+(3 rows)
+
+!ok
+
+# Same, using WITH
+WITH EmpAnalytics AS (
+    SELECT deptno, job, AVG(sal) AS avg_sal
+    FROM "scott".emp
+    GROUP BY deptno, job)
+SELECT job, AVG(avg_sal) AS avg_sal2
+FROM EmpAnalytics
+WHERE deptno = 30
+GROUP BY job;
++----------+----------+
+| JOB      | AVG_SAL2 |
++----------+----------+
+| CLERK    |   950.00 |
+| MANAGER  |  2850.00 |
+| SALESMAN |  1400.00 |
++----------+----------+
+(3 rows)
+
+!ok
+
 # [CALCITE-1930] AggregateExpandDistinctAggregateRules should handle multiple aggregate calls with same input ref
 select count(distinct EMPNO), COUNT(SAL), MIN(SAL), MAX(SAL) from "scott".emp;
 +--------+--------+--------+---------+
@@ -2946,6 +3149,203 @@ from (select 1 as a, 2 as b, 3 as c);
 | 2 |
 +---+
 (1 row)
+
+!ok
+
+# [CALCITE-3661] Add MODE aggregate function
+
+# MODE without GROUP BY
+select MODE(gender) as m
+from emp;
++---+
+| M |
++---+
+| F |
++---+
+(1 row)
+
+!ok
+
+# MODE with DISTINCT is pretty much useless (because every value occurs once),
+# but we allow it. It returns the first value seen, in this case 'F'.
+select MODE(distinct gender) as m
+from emp;
++---+
+| M |
++---+
+| F |
++---+
+(1 row)
+
+!ok
+
+# MODE function with WHERE.
+select MODE(gender) as m
+from emp
+where deptno <= 20;
++---+
+| M |
++---+
+| M |
++---+
+(1 row)
+
+!ok
+
+# MODE function with WHERE that removes all rows.
+# Result is NULL even though MODE is applied to a not-NULL column.
+select MODE(gender) as m
+from emp
+where deptno > 60;
++---+
+| M |
++---+
+|   |
++---+
+(1 row)
+
+!ok
+
+# MODE function with GROUP BY.
+select deptno, MODE(gender) as m
+from emp
+where deptno > 10
+group by deptno;
++--------+---+
+| DEPTNO | M |
++--------+---+
+|     20 | M |
+|     30 | F |
+|     50 | M |
+|     60 | F |
++--------+---+
+(4 rows)
+
+!ok
+
+# MODE function with GROUP BY; note that key is NULL but result is not NULL.
+select deptno, MODE(gender) as m
+from emp
+where ename = 'Wilma'
+group by deptno;
++--------+---+
+| DEPTNO | M |
++--------+---+
+|        | F |
++--------+---+
+(1 row)
+
+!ok
+
+# MODE function with GROUP BY; key is NULL and input value is NULL.
+select deptno, MODE(deptno) as m
+from emp
+where ename = 'Wilma'
+group by deptno;
++--------+---+
+| DEPTNO | M |
++--------+---+
+|        |   |
++--------+---+
+(1 row)
+
+!ok
+
+# MODE function applied to NULL value.
+# (Calcite requires CAST so that it can deduce type.)
+select deptno, MODE(CAST(null AS INTEGER)) as m
+from emp
+group by deptno;
++--------+---+
+| DEPTNO | M |
++--------+---+
+|     10 |   |
+|     20 |   |
+|     30 |   |
+|     50 |   |
+|     60 |   |
+|        |   |
++--------+---+
+(6 rows)
+
+!ok
+
+# MODE function with GROUPING SETS.
+select deptno, ename, MODE(gender) as m
+from emp
+group by grouping sets (deptno, ename);
++--------+-------+---+
+| DEPTNO | ENAME | M |
++--------+-------+---+
+|     10 |       | F |
+|     20 |       | M |
+|     30 |       | F |
+|     50 |       | M |
+|     60 |       | F |
+|        | Adam  | M |
+|        | Alice | F |
+|        | Bob   | M |
+|        | Eric  | M |
+|        | Eve   | F |
+|        | Grace | F |
+|        | Jane  | F |
+|        | Susan | F |
+|        | Wilma | F |
+|        |       | F |
++--------+-------+---+
+(15 rows)
+
+!ok
+
+# [CALCITE-4665] Allow Aggregate.groupKey to be a strict superset of
+# Aggregate.groupKeys
+# Use a condition on grouping_id to filter out the superset grouping sets.
+select ename, deptno, gender, grouping(ename) as g_e,
+  grouping(deptno) as g_d, grouping(gender) as g_g
+from emp
+where gender = 'M'
+group by grouping sets (ename, deptno, (ename, deptno),
+  (ename, deptno, gender))
+having grouping_id(ename, deptno, gender) <> 0
+order by ename, deptno;
++-------+--------+--------+-----+-----+-----+
+| ENAME | DEPTNO | GENDER | G_E | G_D | G_G |
++-------+--------+--------+-----+-----+-----+
+| Adam  |     50 |        |   0 |   0 |   1 |
+| Adam  |        |        |   0 |   1 |   1 |
+| Bob   |     10 |        |   0 |   0 |   1 |
+| Bob   |        |        |   0 |   1 |   1 |
+| Eric  |     20 |        |   0 |   0 |   1 |
+| Eric  |        |        |   0 |   1 |   1 |
+|       |     10 |        |   1 |   0 |   1 |
+|       |     20 |        |   1 |   0 |   1 |
+|       |     50 |        |   1 |   0 |   1 |
++-------+--------+--------+-----+-----+-----+
+(9 rows)
+
+!ok
+
+# just a comparison about the above sql
+select ename, deptno, grouping(ename) as g_e,
+  grouping(deptno) as g_d
+from emp
+where gender = 'M'
+group by grouping sets (ename, deptno, (ename, deptno))
+order by ename, deptno;
++-------+--------+-----+-----+
+| ENAME | DEPTNO | G_E | G_D |
++-------+--------+-----+-----+
+| Adam  |     50 |   0 |   0 |
+| Adam  |        |   0 |   1 |
+| Bob   |     10 |   0 |   0 |
+| Bob   |        |   0 |   1 |
+| Eric  |     20 |   0 |   0 |
+| Eric  |        |   0 |   1 |
+|       |     10 |   1 |   0 |
+|       |     20 |   1 |   0 |
+|       |     50 |   1 |   0 |
++-------+--------+-----+-----+
+(9 rows)
 
 !ok
 

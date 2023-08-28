@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.function.Supplier;
+
 /**
  * Thread-local variable that returns a handle that can be closed.
  *
@@ -52,13 +54,58 @@ public class TryThreadLocal<@Nullable T> extends ThreadLocal<T> {
   public Memo push(T value) {
     final T previous = get();
     set(value);
-    return () -> {
-      if (previous == initialValue) {
-        remove();
-      } else {
-        set(previous);
+    return () -> restoreTo(previous);
+  }
+
+  /** Sets the value back to a previous value.
+   *
+   * <p>If the previous value was {@link #initialValue}, calls
+   * {@link #remove()}. There's no way to tell whether {@link #set} has
+   * been called previously, but the effect is the same. */
+  protected void restoreTo(T previous) {
+    if (previous == initialValue) {
+      remove();
+    } else {
+      set(previous);
+    }
+  }
+
+  /** Performs an action with this ThreadLocal set to a particular value
+   * in this thread, and restores the previous value afterwards.
+   *
+   * <p>This method is named after the Standard ML {@code let} construct,
+   * for example {@code let val x = 1 in x + 2 end}. */
+  public void letIn(T t, Runnable runnable) {
+    final T previous = get();
+    if (previous == t) {
+      runnable.run();
+    } else {
+      try {
+        set(t);
+        runnable.run();
+      } finally {
+        restoreTo(previous);
       }
-    };
+    }
+  }
+
+  /** Calls a Supplier with this ThreadLocal set to a particular value,
+   * in this thread, and restores the previous value afterwards.
+   *
+   * <p>This method is named after the Standard ML {@code let} construct,
+   * for example {@code let val x = 1 in x + 2 end}. */
+  public <R> R letIn(T t, Supplier<R> supplier) {
+    final T previous = get();
+    if (previous == t) {
+      return supplier.get();
+    } else {
+      try {
+        set(t);
+        return supplier.get();
+      } finally {
+        restoreTo(previous);
+      }
+    }
   }
 
   /** Remembers to set the value back. */

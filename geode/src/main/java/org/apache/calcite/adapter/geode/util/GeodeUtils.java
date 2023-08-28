@@ -246,7 +246,7 @@ public class GeodeUtils {
     return values;
   }
 
-  @SuppressWarnings("JdkObsolete")
+  @SuppressWarnings("JavaUtilDate")
   private static Object convert(Object o, Class clazz) {
     if (o == null) {
       return null;

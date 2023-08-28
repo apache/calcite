@@ -31,13 +31,13 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -52,6 +52,7 @@ import java.util.Set;
  * @see CoreRules#PROJECT_FILTER_TRANSPOSE_WHOLE_EXPRESSIONS
  * @see CoreRules#PROJECT_FILTER_TRANSPOSE_WHOLE_PROJECT_EXPRESSIONS
  */
+@Value.Enclosing
 public class ProjectFilterTransposeRule
     extends RelRule<ProjectFilterTransposeRule.Config>
     implements TransformationRule {
@@ -229,12 +230,9 @@ public class ProjectFilterTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(LogicalProject.class, LogicalFilter.class)
-        .withPreserveExprCondition(expr -> false)
-        .withWholeProject(false)
-        .withWholeFilter(false);
+    Config DEFAULT = ImmutableProjectFilterTransposeRule.Config.of();
 
     Config PROJECT = DEFAULT.withWholeProject(true);
 
@@ -245,26 +243,27 @@ public class ProjectFilterTransposeRule
     }
 
     /** Expressions that should be preserved in the projection. */
-    @ImmutableBeans.Property
-    PushProjector.ExprCondition preserveExprCondition();
+    @Value.Default default PushProjector.ExprCondition preserveExprCondition() {
+      return expr -> false;
+    }
 
     /** Sets {@link #preserveExprCondition()}. */
     Config withPreserveExprCondition(PushProjector.ExprCondition condition);
 
     /** Whether to push whole expressions from the project;
      * if false (the default), only pushes references. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean isWholeProject();
+    @Value.Default default boolean isWholeProject() {
+      return false;
+    }
 
     /** Sets {@link #isWholeProject()}. */
     Config withWholeProject(boolean wholeProject);
 
     /** Whether to push whole expressions from the filter;
      * if false (the default), only pushes references. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean isWholeFilter();
+    @Value.Default default boolean isWholeFilter() {
+      return false;
+    }
 
     /** Sets {@link #isWholeFilter()}. */
     Config withWholeFilter(boolean wholeFilter);
@@ -276,6 +275,12 @@ public class ProjectFilterTransposeRule
           b0.operand(projectClass).oneInput(b1 ->
               b1.operand(filterClass).anyInputs()))
           .as(Config.class);
+    }
+
+    @Override @Value.Default default OperandTransform operandSupplier() {
+      return b0 ->
+           b0.operand(LogicalProject.class).oneInput(b1 ->
+               b1.operand(LogicalFilter.class).anyInputs());
     }
 
     /** Defines an operand tree for the given 3 classes. */

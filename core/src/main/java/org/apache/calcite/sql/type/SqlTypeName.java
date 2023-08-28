@@ -106,6 +106,7 @@ public enum SqlTypeName {
   VARBINARY(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.VARBINARY,
       SqlTypeFamily.BINARY),
   NULL(PrecScale.NO_NO, true, Types.NULL, SqlTypeFamily.NULL),
+  UNKNOWN(PrecScale.NO_NO, true, Types.NULL, SqlTypeFamily.NULL),
   ANY(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES, true,
       Types.JAVA_OBJECT, SqlTypeFamily.ANY),
   SYMBOL(PrecScale.NO_NO, true, Types.OTHER, null),

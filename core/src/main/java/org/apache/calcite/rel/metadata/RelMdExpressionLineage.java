@@ -17,7 +17,6 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -41,7 +40,6 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -85,7 +83,7 @@ public class RelMdExpressionLineage
     implements MetadataHandler<BuiltInMetadata.ExpressionLineage> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.EXPRESSION_LINEAGE.method, new RelMdExpressionLineage());
+          new RelMdExpressionLineage(), BuiltInMetadata.ExpressionLineage.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -101,11 +99,6 @@ public class RelMdExpressionLineage
   public @Nullable Set<RexNode> getExpressionLineage(RelNode rel,
       RelMetadataQuery mq, RexNode outputExpression) {
     return null;
-  }
-
-  public @Nullable Set<RexNode> getExpressionLineage(HepRelVertex rel, RelMetadataQuery mq,
-      RexNode outputExpression) {
-    return mq.getExpressionLineage(rel.getCurrentRel(), outputExpression);
   }
 
   public @Nullable Set<RexNode> getExpressionLineage(RelSubset rel,
@@ -500,9 +493,8 @@ public class RelMdExpressionLineage
       Map<RexInputRef, RexNode> singleMapping, Set<RexNode> result) {
     if (mapping.isEmpty()) {
       final RexReplacer replacer = new RexReplacer(singleMapping);
-      final List<RexNode> updatedPreds = new ArrayList<>(
-          RelOptUtil.conjunctions(
-              rexBuilder.copy(expr)));
+      final List<RexNode> updatedPreds = new ArrayList<>(1);
+      updatedPreds.add(rexBuilder.copy(expr));
       replacer.mutate(updatedPreds);
       result.addAll(updatedPreds);
     } else {

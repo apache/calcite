@@ -68,6 +68,10 @@ public class ClickHouseSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsAliasedValues() {
+    return false;
+  }
+
   @Override public CalendarPolicy getCalendarPolicy() {
     return CalendarPolicy.SHIFT;
   }

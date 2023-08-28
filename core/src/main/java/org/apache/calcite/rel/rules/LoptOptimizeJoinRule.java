@@ -49,6 +49,7 @@ import org.apache.calcite.util.mapping.IntPair;
 
 import org.checkerframework.checker.nullness.qual.KeyFor;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -72,6 +73,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @see CoreRules#MULTI_JOIN_OPTIMIZE
  */
+@Value.Enclosing
 public class LoptOptimizeJoinRule
     extends RelRule<LoptOptimizeJoinRule.Config>
     implements TransformationRule {
@@ -2086,10 +2088,10 @@ public class LoptOptimizeJoinRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(MultiJoin.class).anyInputs())
-        .as(Config.class);
+    Config DEFAULT = ImmutableLoptOptimizeJoinRule.Config.of()
+        .withOperandSupplier(b -> b.operand(MultiJoin.class).anyInputs());
 
     @Override default LoptOptimizeJoinRule toRule() {
       return new LoptOptimizeJoinRule(this);

@@ -258,6 +258,11 @@ public class SqlWindow extends SqlCall {
     } else {
       return false;
     }
+    return isAlwaysNonEmpty(lower, upper);
+  }
+
+  public static boolean isAlwaysNonEmpty(RexWindowBound lower,
+      RexWindowBound upper) {
     final int lowerKey = lower.getOrderKey();
     final int upperKey = upper.getOrderKey();
     return lowerKey > -1 && lowerKey <= upperKey;
@@ -700,27 +705,18 @@ public class SqlWindow extends SqlCall {
       // if this is a range spec check and make sure the boundary type
       // and order by type are compatible
       if (orderTypeFam != null && !isRows) {
-        RelDataType bndType = validator.deriveType(scope, boundVal);
-        SqlTypeFamily bndTypeFam = bndType.getSqlTypeName().getFamily();
-        switch (orderTypeFam) {
-        case NUMERIC:
-          if (SqlTypeFamily.NUMERIC != bndTypeFam) {
-            throw validator.newValidationError(boundVal,
-                RESOURCE.orderByRangeMismatch());
-          }
-          break;
-        case DATE:
-        case TIME:
-        case TIMESTAMP:
-          if (SqlTypeFamily.INTERVAL_DAY_TIME != bndTypeFam
-              && SqlTypeFamily.INTERVAL_YEAR_MONTH != bndTypeFam) {
-            throw validator.newValidationError(boundVal,
-                RESOURCE.orderByRangeMismatch());
-          }
-          break;
-        default:
+        final RelDataType boundType = validator.deriveType(scope, boundVal);
+        final SqlTypeFamily boundTypeFamily =
+            boundType.getSqlTypeName().getFamily();
+        final List<SqlTypeFamily> allowableBoundTypeFamilies =
+            orderTypeFam.allowableDifferenceTypes();
+        if (allowableBoundTypeFamilies.isEmpty()) {
           throw validator.newValidationError(boundVal,
               RESOURCE.orderByDataTypeProhibitsRange());
+        }
+        if (!allowableBoundTypeFamilies.contains(boundTypeFamily)) {
+          throw validator.newValidationError(boundVal,
+              RESOURCE.orderByRangeMismatch());
         }
       }
       break;

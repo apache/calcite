@@ -18,6 +18,7 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
@@ -899,6 +900,15 @@ public class ImmutableBitSet
         throw new NullPointerException("Index " + i + " is not mapped in " + map);
       }
       builder.set(value);
+    }
+    return builder.build();
+  }
+
+  /** Permutes a bit set according to a given mapping. */
+  public ImmutableBitSet permute(Mappings.TargetMapping mapping) {
+    final Builder builder = builder();
+    for (int i = nextSetBit(0); i >= 0; i = nextSetBit(i + 1)) {
+      builder.set(mapping.getTarget(i));
     }
     return builder.build();
   }

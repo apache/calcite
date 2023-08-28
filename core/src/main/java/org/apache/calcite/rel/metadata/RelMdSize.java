@@ -38,7 +38,6 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
@@ -64,8 +63,7 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
    * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Size}. */
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(new RelMdSize(),
-          BuiltInMethod.AVERAGE_COLUMN_SIZES.method,
-          BuiltInMethod.AVERAGE_ROW_SIZE.method);
+          BuiltInMetadata.Size.Handler.class);
 
   /** Bytes per character (2). */
   public static final int BYTES_PER_CHARACTER = Character.SIZE / Byte.SIZE;

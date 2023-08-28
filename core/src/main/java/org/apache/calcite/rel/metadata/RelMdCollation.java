@@ -19,6 +19,7 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.adapter.enumerable.EnumerableCorrelate;
 import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableMergeUnion;
 import org.apache.calcite.adapter.enumerable.EnumerableNestedLoopJoin;
 import org.apache.calcite.adapter.jdbc.JdbcToEnumerableConverter;
 import org.apache.calcite.linq4j.Ord;
@@ -50,7 +51,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
@@ -83,7 +83,7 @@ public class RelMdCollation
     implements MetadataHandler<BuiltInMetadata.Collation> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.COLLATIONS.method, new RelMdCollation());
+          new RelMdCollation(), BuiltInMetadata.Collation.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -173,6 +173,17 @@ public class RelMdCollation
     return copyOf(
         RelMdCollation.enumerableNestedLoopJoin(mq, join.getLeft(), join.getRight(),
             join.getJoinType()));
+  }
+
+  public @Nullable ImmutableList<RelCollation> collations(EnumerableMergeUnion mergeUnion,
+      RelMetadataQuery mq) {
+    final RelCollation collation = mergeUnion.getTraitSet().getCollation();
+    if (collation == null) {
+      // should not happen
+      return null;
+    }
+    // MergeUnion guarantees order, like a sort
+    return copyOf(RelMdCollation.sort(collation));
   }
 
   public @Nullable ImmutableList<RelCollation> collations(EnumerableCorrelate join,

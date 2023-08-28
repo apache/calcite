@@ -17,14 +17,14 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
-import org.apache.calcite.util.ImmutableBeans;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 /** Configuration for {@link SqlWriter} and {@link SqlPrettyWriter}. */
+@Value.Immutable
 public interface SqlWriterConfig {
   /** Returns the dialect. */
-  @ImmutableBeans.Property
   @Nullable SqlDialect dialect();
 
   /** Sets {@link #dialect()}. */
@@ -32,9 +32,9 @@ public interface SqlWriterConfig {
 
   /** Returns whether to print keywords (SELECT, AS, etc.) in lower-case.
    * Default is false: keywords are printed in upper-case. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.BooleanDefault(false)
-  boolean keywordsLowerCase();
+  @Value.Default default boolean keywordsLowerCase() {
+    return false;
+  }
 
   /** Sets {@link #keywordsLowerCase}. */
   SqlWriterConfig withKeywordsLowerCase(boolean keywordsLowerCase);
@@ -42,17 +42,17 @@ public interface SqlWriterConfig {
   /** Returns whether to quote all identifiers, even those which would be
    * correct according to the rules of the {@link SqlDialect} if quotation
    * marks were omitted. Default is true. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.BooleanDefault(true)
-  boolean quoteAllIdentifiers();
+  @Value.Default default boolean quoteAllIdentifiers() {
+    return true;
+  }
 
   /** Sets {@link #quoteAllIdentifiers}. */
   SqlWriterConfig withQuoteAllIdentifiers(boolean quoteAllIdentifiers);
 
   /** Returns the number of spaces indentation. Default is 4. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.IntDefault(4)
-  int indentation();
+  @Value.Default default int indentation() {
+    return 4;
+  }
 
   /** Sets {@link #indentation}. */
   SqlWriterConfig withIndentation(int indentation);
@@ -60,18 +60,18 @@ public interface SqlWriterConfig {
   /** Returns whether a clause (FROM, WHERE, GROUP BY, HAVING, WINDOW,
    * ORDER BY) starts a new line. Default is true. SELECT is always at the
    * start of a line. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.BooleanDefault(true)
-  boolean clauseStartsLine();
+  @Value.Default default boolean clauseStartsLine() {
+    return true;
+  }
 
   /** Sets {@link #clauseStartsLine}. */
   SqlWriterConfig withClauseStartsLine(boolean clauseStartsLine);
 
   /** Returns whether a clause (FROM, WHERE, GROUP BY, HAVING, WINDOW,
    * ORDER BY) is followed by a new line. Default is false. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.BooleanDefault(false)
-  boolean clauseEndsLine();
+  @Value.Default default boolean clauseEndsLine() {
+    return false;
+  }
 
   /** Sets {@link #clauseEndsLine()}. */
   SqlWriterConfig withClauseEndsLine(boolean clauseEndsLine);
@@ -82,9 +82,9 @@ public interface SqlWriterConfig {
    * <p>Default is false;
    * this property is superseded by {@link #selectFolding()},
    * {@link #groupByFolding()}, {@link #orderByFolding()}. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.BooleanDefault(false)
-  boolean selectListItemsOnSeparateLines();
+  @Value.Default default boolean selectListItemsOnSeparateLines() {
+    return false;
+  }
 
   /** Sets {@link #selectListItemsOnSeparateLines}. */
   SqlWriterConfig withSelectListItemsOnSeparateLines(
@@ -101,7 +101,6 @@ public interface SqlWriterConfig {
    * {@link #valuesListNewline()},
    * {@link #updateSetListNewline()},
    * {@link #windowDeclListNewline()} are used. */
-  @ImmutableBeans.Property
   @Nullable LineFolding lineFolding();
 
   /** Sets {@link #lineFolding()}. */
@@ -109,7 +108,6 @@ public interface SqlWriterConfig {
 
   /** Returns the line-folding policy for the SELECT clause.
    * If not set, the value of {@link #lineFolding()} is used. */
-  @ImmutableBeans.Property
   @Nullable LineFolding selectFolding();
 
   /** Sets {@link #selectFolding()}. */
@@ -117,16 +115,15 @@ public interface SqlWriterConfig {
 
   /** Returns the line-folding policy for the FROM clause (and JOIN).
    * If not set, the value of {@link #lineFolding()} is used. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.EnumDefault("TALL")
-  LineFolding fromFolding();
+  @Value.Default default LineFolding fromFolding() {
+    return LineFolding.TALL;
+  }
 
   /** Sets {@link #fromFolding()}. */
   SqlWriterConfig withFromFolding(LineFolding lineFolding);
 
   /** Returns the line-folding policy for the WHERE clause.
    * If not set, the value of {@link #lineFolding()} is used. */
-  @ImmutableBeans.Property
   @Nullable LineFolding whereFolding();
 
   /** Sets {@link #whereFolding()}. */
@@ -134,7 +131,6 @@ public interface SqlWriterConfig {
 
   /** Returns the line-folding policy for the GROUP BY clause.
    * If not set, the value of {@link #lineFolding()} is used. */
-  @ImmutableBeans.Property
   @Nullable LineFolding groupByFolding();
 
   /** Sets {@link #groupByFolding()}. */
@@ -142,7 +138,6 @@ public interface SqlWriterConfig {
 
   /** Returns the line-folding policy for the HAVING clause.
    * If not set, the value of {@link #lineFolding()} is used. */
-  @ImmutableBeans.Property
   @Nullable LineFolding havingFolding();
 
   /** Sets {@link #havingFolding()}. */
@@ -150,7 +145,6 @@ public interface SqlWriterConfig {
 
   /** Returns the line-folding policy for the WINDOW clause.
    * If not set, the value of {@link #lineFolding()} is used. */
-  @ImmutableBeans.Property
   @Nullable LineFolding windowFolding();
 
   /** Sets {@link #windowFolding()}. */
@@ -158,7 +152,6 @@ public interface SqlWriterConfig {
 
   /** Returns the line-folding policy for the MATCH_RECOGNIZE clause.
    * If not set, the value of {@link #lineFolding()} is used. */
-  @ImmutableBeans.Property
   @Nullable LineFolding matchFolding();
 
   /** Sets {@link #matchFolding()}. */
@@ -166,7 +159,6 @@ public interface SqlWriterConfig {
 
   /** Returns the line-folding policy for the ORDER BY clause.
    * If not set, the value of {@link #lineFolding()} is used. */
-  @ImmutableBeans.Property
   @Nullable LineFolding orderByFolding();
 
   /** Sets {@link #orderByFolding()}. */
@@ -174,7 +166,6 @@ public interface SqlWriterConfig {
 
   /** Returns the line-folding policy for the OVER clause or a window
    * declaration. If not set, the value of {@link #lineFolding()} is used. */
-  @ImmutableBeans.Property
   @Nullable LineFolding overFolding();
 
   /** Sets {@link #overFolding()}. */
@@ -182,7 +173,6 @@ public interface SqlWriterConfig {
 
   /** Returns the line-folding policy for the VALUES expression.
    * If not set, the value of {@link #lineFolding()} is used. */
-  @ImmutableBeans.Property
   @Nullable LineFolding valuesFolding();
 
   /** Sets {@link #valuesFolding()}. */
@@ -190,7 +180,6 @@ public interface SqlWriterConfig {
 
   /** Returns the line-folding policy for the SET clause of an UPDATE statement.
    * If not set, the value of {@link #lineFolding()} is used. */
-  @ImmutableBeans.Property
   @Nullable LineFolding updateSetFolding();
 
   /** Sets {@link #updateSetFolding()}. */
@@ -221,9 +210,9 @@ public interface SqlWriterConfig {
    * </pre></blockquote>
    * </ul>
    */
-  @ImmutableBeans.Property
-  @ImmutableBeans.BooleanDefault(true)
-  boolean selectListExtraIndentFlag();
+  @Value.Default default boolean selectListExtraIndentFlag() {
+    return true;
+  }
 
   /** Sets {@link #selectListExtraIndentFlag}. */
   SqlWriterConfig withSelectListExtraIndentFlag(boolean selectListExtraIndentFlag);
@@ -233,9 +222,9 @@ public interface SqlWriterConfig {
    *
    * <p>Default is true;
    * this property is superseded by {@link #windowFolding()}. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.BooleanDefault(true)
-  boolean windowDeclListNewline();
+  @Value.Default default boolean windowDeclListNewline() {
+    return true;
+  }
 
   /** Sets {@link #windowDeclListNewline}. */
   SqlWriterConfig withWindowDeclListNewline(boolean windowDeclListNewline);
@@ -245,9 +234,9 @@ public interface SqlWriterConfig {
    *
    * <p>Default is true;
    * this property is superseded by {@link #valuesFolding()}. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.BooleanDefault(true)
-  boolean valuesListNewline();
+  @Value.Default default boolean valuesListNewline() {
+    return true;
+  }
 
   /** Sets {@link #valuesListNewline}. */
   SqlWriterConfig withValuesListNewline(boolean valuesListNewline);
@@ -257,35 +246,35 @@ public interface SqlWriterConfig {
    *
    * <p>Default is true;
    * this property is superseded by {@link #updateSetFolding()}. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.BooleanDefault(true)
-  boolean updateSetListNewline();
+  @Value.Default default boolean updateSetListNewline() {
+    return true;
+  }
 
   /** Sets {@link #updateSetListNewline}. */
   SqlWriterConfig withUpdateSetListNewline(boolean updateSetListNewline);
 
   /** Returns whether a WINDOW clause should start its own line. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.BooleanDefault(false)
-  boolean windowNewline();
+  @Value.Default default boolean windowNewline() {
+    return false;
+  }
 
   /** Sets {@link #windowNewline}. */
   SqlWriterConfig withWindowNewline(boolean windowNewline);
 
   /** Returns whether commas in SELECT, GROUP BY and ORDER clauses should
    * appear at the start of the line. Default is false. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.BooleanDefault(false)
-  boolean leadingComma();
+  @Value.Default default boolean leadingComma() {
+    return false;
+  }
 
   /** Sets {@link #leadingComma()}. */
   SqlWriterConfig withLeadingComma(boolean leadingComma);
 
   /** Returns the sub-query style.
    * Default is {@link SqlWriter.SubQueryStyle#HYDE}. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.EnumDefault("HYDE")
-  SqlWriter.SubQueryStyle subQueryStyle();
+  @Value.Default default SqlWriter.SubQueryStyle subQueryStyle() {
+    return SqlWriter.SubQueryStyle.HYDE;
+  }
 
   /** Sets {@link #subQueryStyle}. */
   SqlWriterConfig withSubQueryStyle(SqlWriter.SubQueryStyle subQueryStyle);
@@ -294,9 +283,9 @@ public interface SqlWriterConfig {
    * higher level) in WHERE clauses.
    *
    * <p>NOTE: Ignored when alwaysUseParentheses is set to true. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.BooleanDefault(false)
-  boolean whereListItemsOnSeparateLines();
+  @Value.Default default boolean whereListItemsOnSeparateLines() {
+    return false;
+  }
 
   /** Sets {@link #whereListItemsOnSeparateLines}. */
   SqlWriterConfig withWhereListItemsOnSeparateLines(
@@ -304,18 +293,18 @@ public interface SqlWriterConfig {
 
   /** Returns whether expressions should always be included in parentheses.
    * Default is false. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.BooleanDefault(false)
-  boolean alwaysUseParentheses();
+  @Value.Default default boolean alwaysUseParentheses() {
+    return false;
+  }
 
   /** Sets {@link #alwaysUseParentheses}. */
   SqlWriterConfig withAlwaysUseParentheses(boolean alwaysUseParentheses);
 
   /** Returns the maximum line length. Default is zero, which means there is
    * no maximum. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.IntDefault(0)
-  int lineLength();
+  @Value.Default default int lineLength() {
+    return 0;
+  }
 
   /** Sets {@link #lineLength}. */
   SqlWriterConfig withLineLength(int lineLength);
@@ -323,18 +312,18 @@ public interface SqlWriterConfig {
   /** Returns the line length at which items are chopped or folded (for clauses
    * that have chosen {@link LineFolding#CHOP} or {@link LineFolding#FOLD}).
    * Default is 80. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.IntDefault(80)
-  int foldLength();
+  @Value.Default default int foldLength() {
+    return 80;
+  }
 
   /** Sets {@link #foldLength()}. */
   SqlWriterConfig withFoldLength(int lineLength);
 
   /** Returns whether the WHEN, THEN and ELSE clauses of a CASE expression
    * appear at the start of a new line. The default is false. */
-  @ImmutableBeans.Property
-  @ImmutableBeans.BooleanDefault(false)
-  boolean caseClausesOnNewLines();
+  @Value.Default default boolean caseClausesOnNewLines() {
+    return false;
+  }
 
   /** Sets {@link #caseClausesOnNewLines}. */
   SqlWriterConfig withCaseClausesOnNewLines(boolean caseClausesOnNewLines);
@@ -432,5 +421,13 @@ public interface SqlWriterConfig {
 
     /** Wrap always. Items are on separate lines. */
     TALL
+  }
+
+  /**
+   * Create a default SqlWriterConfig object.
+   * @return The config.
+   */
+  static SqlWriterConfig of() {
+    return ImmutableSqlWriterConfig.of();
   }
 }

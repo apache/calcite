@@ -730,6 +730,10 @@ public abstract class CalciteSchema {
       CalciteSchema.this.add(name, table);
     }
 
+    @Override public boolean removeTable(String name) {
+      return CalciteSchema.this.removeTable(name);
+    }
+
     @Override public void add(String name, Function function) {
       CalciteSchema.this.add(name, function);
     }

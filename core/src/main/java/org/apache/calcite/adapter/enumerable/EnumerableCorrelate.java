@@ -52,7 +52,7 @@ public class EnumerableCorrelate extends Correlate
       RelNode left, RelNode right,
       CorrelationId correlationId,
       ImmutableBitSet requiredColumns, JoinRelType joinType) {
-    super(cluster, traits, left, right, correlationId, requiredColumns,
+    super(cluster, traits, ImmutableList.of(), left, right, correlationId, requiredColumns,
         joinType);
   }
 

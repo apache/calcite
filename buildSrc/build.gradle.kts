@@ -52,12 +52,6 @@ fun Project.applyKotlinProjectConventions() {
         apply(plugin = "org.gradle.kotlin.kotlin-dsl")
     }
 
-    plugins.withType<KotlinDslPlugin> {
-        configure<KotlinDslPluginOptions> {
-            experimentalWarning.set(false)
-        }
-    }
-
     tasks.withType<KotlinCompile> {
         sourceCompatibility = "unused"
         targetCompatibility = "unused"

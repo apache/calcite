@@ -115,7 +115,7 @@ class MongoEnumerator implements Enumerator<Object> {
             : (Function1) listGetter(fields);
   }
 
-  @SuppressWarnings("JdkObsolete")
+  @SuppressWarnings("JavaUtilDate")
   private static Object convert(Object o, Class clazz) {
     if (o == null) {
       return null;

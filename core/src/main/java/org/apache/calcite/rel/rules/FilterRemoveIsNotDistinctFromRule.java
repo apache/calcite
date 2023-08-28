@@ -30,13 +30,18 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that replaces {@code IS NOT DISTINCT FROM}
  * in a {@link Filter} with logically equivalent operations.
  *
  * @see org.apache.calcite.sql.fun.SqlStdOperatorTable#IS_NOT_DISTINCT_FROM
  * @see CoreRules#FILTER_EXPAND_IS_NOT_DISTINCT_FROM
+ * @see RelBuilder#isDistinctFrom
+ * @see RelBuilder#isNotDistinctFrom
  */
+@Value.Enclosing
 public final class FilterRemoveIsNotDistinctFromRule
     extends RelRule<FilterRemoveIsNotDistinctFromRule.Config>
     implements TransformationRule {
@@ -114,10 +119,10 @@ public final class FilterRemoveIsNotDistinctFromRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(Filter.class).anyInputs())
-        .as(Config.class);
+    Config DEFAULT = ImmutableFilterRemoveIsNotDistinctFromRule.Config.of()
+        .withOperandSupplier(b -> b.operand(Filter.class).anyInputs());
 
     @Override default FilterRemoveIsNotDistinctFromRule toRule() {
       return new FilterRemoveIsNotDistinctFromRule(this);

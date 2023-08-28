@@ -35,6 +35,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -51,6 +53,7 @@ import java.util.stream.Collectors;
  *
  * @see FilterTableScanRule
  */
+@Value.Enclosing
 public class ProjectTableScanRule
     extends RelRule<ProjectTableScanRule.Config> {
 
@@ -144,15 +147,15 @@ public class ProjectTableScanRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
     /** Config that matches Project on TableScan. */
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableProjectTableScanRule.Config.of()
         .withOperandSupplier(b0 ->
             b0.operand(Project.class).oneInput(b1 ->
                 b1.operand(TableScan.class)
                     .predicate(ProjectTableScanRule::test)
-                    .noInputs()))
-        .as(Config.class);
+                    .noInputs()));
 
     /** Config that matches Project on EnumerableInterpreter on TableScan. */
     Config INTERPRETER = DEFAULT

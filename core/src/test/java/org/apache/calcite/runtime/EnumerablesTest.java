@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.function.EqualityComparer;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.linq4j.function.Predicate2;
@@ -31,8 +32,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -966,6 +969,503 @@ class EnumerablesTest {
             + " null, Dept(30, Development)]"));
   }
 
+  @Test void testMergeUnionAllEmptyOnRight() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, "Lilly"),
+                        new Emp(30, "Joe"),
+                        new Emp(30, "Greg"))),
+                Linq4j.emptyEnumerable()),
+            e -> e.deptno,
+            INTEGER_ASC,
+            true,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo("[Emp(20, Lilly), Emp(30, Joe), Emp(30, Greg)]"));
+  }
+
+  @Test void testMergeUnionAllEmptyOnLeft() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.emptyEnumerable(),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, "Lilly"),
+                        new Emp(30, "Joe"),
+                        new Emp(30, "Greg")))),
+            e -> e.deptno,
+            INTEGER_ASC,
+            true,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo("[Emp(20, Lilly), Emp(30, Joe), Emp(30, Greg)]"));
+  }
+
+  @Test void testMergeUnionAllEmptyOnBoth() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.emptyEnumerable(),
+                Linq4j.emptyEnumerable()),
+            e -> e.deptno,
+            INTEGER_ASC,
+            true,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo("[]"));
+  }
+
+  @Test void testMergeUnionAllOrderByDeptAsc2inputs() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, "Lilly"),
+                        new Emp(30, "Joe"),
+                        new Emp(30, "Greg"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(10, "Fred"),
+                        new Emp(30, "Theodore"),
+                        new Emp(40, "Sebastian")))),
+            e -> e.deptno,
+            INTEGER_ASC,
+            true,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(10, Fred), Emp(20, Lilly), Emp(30, Joe), Emp(30, Greg), Emp(30, Theodore), Emp(40, Sebastian)]"));
+  }
+
+  @Test void testMergeUnionAllOrderByDeptAsc3inputs() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, "Lilly"),
+                        new Emp(30, "Joe"),
+                        new Emp(30, "Greg"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(15, "Phyllis"),
+                        new Emp(18, "Maddie"),
+                        new Emp(22, "Jenny"),
+                        new Emp(42, "Susan"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(10, "Fred"),
+                        new Emp(30, "Joe"),
+                        new Emp(40, "Sebastian")))),
+            e -> e.deptno,
+            INTEGER_ASC,
+            true,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(10, Fred), Emp(15, Phyllis), Emp(18, Maddie), Emp(20, Lilly), Emp(22, Jenny),"
+                + " Emp(30, Joe), Emp(30, Greg), Emp(30, Joe), Emp(40, Sebastian), Emp(42, Susan)]"));
+  }
+
+  @Test void testMergeUnionOrderByDeptAsc3inputs() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(15, "Phyllis"),
+                        new Emp(15, "Phyllis"),
+                        new Emp(20, "Lilly"),
+                        new Emp(30, "Joe"),
+                        new Emp(30, "Greg"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(15, "Phyllis"),
+                        new Emp(18, "Maddie"),
+                        new Emp(22, "Jenny"),
+                        new Emp(30, "Joe"),
+                        new Emp(42, "Susan"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(10, "Fred"),
+                        new Emp(15, "Phyllis"),
+                        new Emp(30, "Joe"),
+                        new Emp(30, "Joe"),
+                        new Emp(40, "Sebastian")))),
+            e -> e.deptno,
+            INTEGER_ASC,
+            false,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(10, Fred), Emp(15, Phyllis), Emp(18, Maddie), Emp(20, Lilly), Emp(22, Jenny),"
+                + " Emp(30, Joe), Emp(30, Greg), Emp(40, Sebastian), Emp(42, Susan)]"));
+  }
+
+  @Test void testMergeUnionAllOrderByDeptDesc2inputs() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(42, "Lilly"),
+                        new Emp(30, "Joe"),
+                        new Emp(30, "Greg"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(50, "Fred"),
+                        new Emp(30, "Theodore"),
+                        new Emp(10, "Sebastian")))),
+            e -> e.deptno,
+            INTEGER_DESC,
+            true,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(50, Fred), Emp(42, Lilly), Emp(30, Joe), Emp(30, Greg), Emp(30, Theodore), Emp(10, Sebastian)]"));
+  }
+
+  @Test void testMergeUnionAllOrderByDeptDesc3inputs() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(35, "Lilly"),
+                        new Emp(22, "Jenny"),
+                        new Emp(20, "Joe"),
+                        new Emp(20, "Greg"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(45, "Phyllis"),
+                        new Emp(42, "Maddie"),
+                        new Emp(22, "Jenny"),
+                        new Emp(22, "Jenny"),
+                        new Emp(12, "Susan"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(50, "Fred"),
+                        new Emp(20, "Theodore"),
+                        new Emp(15, "Sebastian")))),
+            e -> e.deptno,
+            INTEGER_DESC,
+            true,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(50, Fred), Emp(45, Phyllis), Emp(42, Maddie), Emp(35, Lilly), Emp(22, Jenny),"
+                + " Emp(22, Jenny), Emp(22, Jenny), Emp(20, Joe), Emp(20, Greg), Emp(20, Theodore), Emp(15, Sebastian), Emp(12, Susan)]"));
+  }
+
+  @Test void testMergeUnionOrderByDeptDesc3inputs() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(35, "Lilly"),
+                        new Emp(22, "Jenny"),
+                        new Emp(22, "Jenny"),
+                        new Emp(20, "Joe"),
+                        new Emp(20, "Greg"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(45, "Phyllis"),
+                        new Emp(42, "Maddie"),
+                        new Emp(22, "Jenny"),
+                        new Emp(12, "Susan"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(50, "Fred"),
+                        new Emp(22, "Jenny"),
+                        new Emp(20, "Theodore"),
+                        new Emp(20, "Joe"),
+                        new Emp(15, "Sebastian")))),
+            e -> e.deptno,
+            INTEGER_DESC,
+            false,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(50, Fred), Emp(45, Phyllis), Emp(42, Maddie), Emp(35, Lilly), Emp(22, Jenny),"
+                + " Emp(20, Joe), Emp(20, Greg), Emp(20, Theodore), Emp(15, Sebastian), Emp(12, Susan)]"));
+  }
+
+  @Test void testMergeUnionAllOrderByNameAscNullsFirst() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, null),
+                        new Emp(10, null),
+                        new Emp(30, "Greg"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, null),
+                        new Emp(30, "Sebastian"),
+                        new Emp(10, "Theodore")))),
+            e -> e.name,
+            STRING_ASC_NULLS_FIRST,
+            true,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(20, null), Emp(10, null), Emp(20, null), Emp(30, Greg), Emp(30, Sebastian), Emp(10, Theodore)]"));
+  }
+
+  @Test void testMergeUnionOrderByNameAscNullsFirst() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, null),
+                        new Emp(10, null),
+                        new Emp(30, "Greg"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, null),
+                        new Emp(30, "Sebastian"),
+                        new Emp(10, "Theodore")))),
+            e -> e.name,
+            STRING_ASC_NULLS_FIRST,
+            false,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(20, null), Emp(10, null), Emp(30, Greg), Emp(30, Sebastian), Emp(10, Theodore)]"));
+  }
+
+  @Test void testMergeUnionAllOrderByNameDescNullsFirst() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, null),
+                        new Emp(10, null),
+                        new Emp(30, "Greg"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, null),
+                        new Emp(30, "Theodore"),
+                        new Emp(10, "Sebastian")))),
+            e -> e.name,
+            STRING_DESC_NULLS_FIRST,
+            true,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(20, null), Emp(10, null), Emp(20, null), Emp(30, Theodore), Emp(10, Sebastian), Emp(30, Greg)]"));
+  }
+
+  @Test void testMergeUnionOrderByNameDescNullsFirst() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, null),
+                        new Emp(10, null),
+                        new Emp(30, "Greg"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, null),
+                        new Emp(30, "Theodore"),
+                        new Emp(10, "Sebastian")))),
+            e -> e.name,
+            STRING_DESC_NULLS_FIRST,
+            false,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(20, null), Emp(10, null), Emp(30, Theodore), Emp(10, Sebastian), Emp(30, Greg)]"));
+  }
+
+  @Test void testMergeUnionAllOrderByNameAscNullsLast() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, "Greg"),
+                        new Emp(10, null),
+                        new Emp(30, null))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, "Greg"),
+                        new Emp(30, "Sebastian"),
+                        new Emp(30, "Theodore"),
+                        new Emp(10, null)))),
+            e -> e.name,
+            STRING_ASC_NULLS_LAST,
+            true,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(20, Greg), Emp(20, Greg), Emp(30, Sebastian), Emp(30, Theodore), Emp(10, null), Emp(30, null), Emp(10, null)]"));
+  }
+
+  @Test void testMergeUnionOrderByNameAscNullsLast() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, "Greg"),
+                        new Emp(10, null),
+                        new Emp(30, null))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, "Greg"),
+                        new Emp(30, "Sebastian"),
+                        new Emp(30, "Theodore"),
+                        new Emp(10, null)))),
+            e -> e.name,
+            STRING_ASC_NULLS_LAST,
+            false,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(20, Greg), Emp(30, Sebastian), Emp(30, Theodore), Emp(10, null), Emp(30, null)]"));
+  }
+
+  @Test void testMergeUnionAllOrderByNameDescNullsLast() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, "Greg"),
+                        new Emp(10, null),
+                        new Emp(30, null))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(30, "Theodore"),
+                        new Emp(30, "Sebastian"),
+                        new Emp(20, "Greg"),
+                        new Emp(10, null)))),
+            e -> e.name,
+            STRING_DESC_NULLS_LAST,
+            true,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(30, Theodore), Emp(30, Sebastian), Emp(20, Greg), Emp(20, Greg), Emp(10, null), Emp(30, null), Emp(10, null)]"));
+  }
+
+  @Test void testMergeUnionOrderByNameDescNullsLast() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, "Greg"),
+                        new Emp(10, null),
+                        new Emp(30, null))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(30, "Theodore"),
+                        new Emp(30, "Sebastian"),
+                        new Emp(20, "Greg"),
+                        new Emp(10, null)))),
+            e -> e.name,
+            STRING_DESC_NULLS_LAST,
+            false,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(30, Theodore), Emp(30, Sebastian), Emp(20, Greg), Emp(10, null), Emp(30, null)]"));
+  }
+
+  @Test void testMergeUnionAllOrderByDeptAscNameDescNullsFirst() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(new Emp(10, null))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, "Lilly"),
+                        new Emp(20, "Lilly"),
+                        new Emp(20, "Antoine"),
+                        new Emp(22, null),
+                        new Emp(30, "Joe"),
+                        new Emp(30, "Greg"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, null),
+                        new Emp(20, "Annie"),
+                        new Emp(22, "Jenny"),
+                        new Emp(42, "Susan"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(new Emp(50, "Lolly"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(10, "Fred"),
+                        new Emp(20, "Lilly"),
+                        new Emp(22, null),
+                        new Emp(30, "Joe"),
+                        new Emp(40, "Sebastian")))),
+            e -> e,
+            DEPT_ASC_AND_NAME_DESC_NULLS_FIRST,
+            true,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(10, null), Emp(10, Fred), Emp(20, null), Emp(20, Lilly), Emp(20, Lilly), Emp(20, Lilly),"
+                + " Emp(20, Antoine), Emp(20, Annie), Emp(22, null), Emp(22, null), Emp(22, Jenny),"
+                + " Emp(30, Joe), Emp(30, Joe), Emp(30, Greg), Emp(40, Sebastian), Emp(42, Susan), Emp(50, Lolly)]"));
+  }
+
+  @Test void testMergeUnionOrderByDeptAscNameDescNullsFirst() {
+    assertThat(
+        EnumerableDefaults.mergeUnion(
+            Arrays.asList(
+                Linq4j.asEnumerable(
+                    Arrays.asList(new Emp(10, null))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, "Lilly"),
+                        new Emp(20, "Lilly"),
+                        new Emp(20, "Antoine"),
+                        new Emp(22, null),
+                        new Emp(30, "Joe"),
+                        new Emp(30, "Greg"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(20, null),
+                        new Emp(20, "Annie"),
+                        new Emp(22, "Jenny"),
+                        new Emp(42, "Susan"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(new Emp(50, "Lolly"))),
+                Linq4j.asEnumerable(
+                    Arrays.asList(
+                        new Emp(10, "Fred"),
+                        new Emp(20, "Lilly"),
+                        new Emp(22, null),
+                        new Emp(30, "Joe"),
+                        new Emp(40, "Sebastian")))),
+            e -> e,
+            DEPT_ASC_AND_NAME_DESC_NULLS_FIRST,
+            false,
+            EMP_EQUALITY_COMPARER).toList().toString(),
+        equalTo(
+            "[Emp(10, null), Emp(10, Fred), Emp(20, null), Emp(20, Lilly),"
+                + " Emp(20, Antoine), Emp(20, Annie), Emp(22, null), Emp(22, Jenny),"
+                + " Emp(30, Joe), Emp(30, Greg), Emp(40, Sebastian), Emp(42, Susan), Emp(50, Lolly)]"));
+  }
+
+  private static final Comparator<Integer> INTEGER_ASC = Integer::compare;
+  private static final Comparator<Integer> INTEGER_DESC = INTEGER_ASC.reversed();
+
+  private static final Comparator<String> STRING_ASC = Comparator.naturalOrder();
+  private static final Comparator<String> STRING_DESC = STRING_ASC.reversed();
+
+  private static final Comparator<String> STRING_ASC_NULLS_FIRST =
+      Comparator.nullsFirst(STRING_ASC);
+  private static final Comparator<String> STRING_ASC_NULLS_LAST =
+      Comparator.nullsLast(STRING_ASC);
+  private static final Comparator<String> STRING_DESC_NULLS_FIRST =
+      Comparator.nullsFirst(STRING_DESC);
+  private static final Comparator<String> STRING_DESC_NULLS_LAST =
+      Comparator.nullsLast(STRING_DESC);
+
+  private static final Comparator<Emp> DEPT_ASC_AND_NAME_DESC_NULLS_FIRST =
+      Comparator.<Emp>comparingInt(emp -> emp.deptno)
+          .thenComparing(emp -> emp.name, STRING_DESC_NULLS_FIRST);
+
+  private static final EqualityComparer<Emp> EMP_EQUALITY_COMPARER = Functions.identityComparer();
+
   /** Employee record. */
   private static class Emp {
     final int deptno;
@@ -974,6 +1474,21 @@ class EnumerablesTest {
     Emp(int deptno, String name) {
       this.deptno = deptno;
       this.name = name;
+    }
+
+    @Override public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || this.getClass() != o.getClass()) {
+        return false;
+      }
+      final Emp emp = (Emp) o;
+      return this.deptno == emp.deptno && Objects.equals(this.name, emp.name);
+    }
+
+    @Override public int hashCode() {
+      return Objects.hash(this.deptno, this.name);
     }
 
     @Override public String toString() {

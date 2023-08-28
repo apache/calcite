@@ -47,8 +47,17 @@ public class BlockBuilder {
 
   private final boolean optimizing;
   private final @Nullable BlockBuilder parent;
+  private final boolean removeUnused;
 
   private static final Shuttle OPTIMIZE_SHUTTLE = new OptimizeShuttle();
+
+  /** Private constructor. */
+  private BlockBuilder(boolean optimizing, @Nullable BlockBuilder parent,
+      boolean removeUnused) {
+    this.optimizing = optimizing;
+    this.parent = parent;
+    this.removeUnused = removeUnused;
+  }
 
   /**
    * Creates a non-optimizing BlockBuilder.
@@ -72,8 +81,7 @@ public class BlockBuilder {
    * @param optimizing Whether to eliminate common sub-expressions
    */
   public BlockBuilder(boolean optimizing, @Nullable BlockBuilder parent) {
-    this.optimizing = optimizing;
-    this.parent = parent;
+    this(optimizing, parent, true);
   }
 
   /**
@@ -115,7 +123,7 @@ public class BlockBuilder {
       }
     }
     Expression result = null;
-    final Map<ParameterExpression, Expression> replacements =
+    final IdentityHashMap<ParameterExpression, Expression> replacements =
         new IdentityHashMap<>();
     final Shuttle shuttle = new SubstituteVariableVisitor(replacements);
     for (int i = 0; i < block.statements.size(); i++) {
@@ -322,7 +330,7 @@ public class BlockBuilder {
    * Returns a block consisting of the current list of statements.
    */
   public BlockStatement toBlock() {
-    if (optimizing) {
+    if (optimizing && removeUnused) {
       // We put an artificial limit of 10 iterations just to prevent an endless
       // loop. Optimize should not loop forever, however it is hard to prove if
       // it always finishes in reasonable time.
@@ -357,7 +365,7 @@ public class BlockBuilder {
         statement.accept(useCounter);
       }
     }
-    final Map<ParameterExpression, Expression> subMap =
+    final IdentityHashMap<ParameterExpression, Expression> subMap =
         new IdentityHashMap<>(useCounter.map.size());
     final Shuttle visitor = new InlineVariableVisitor(
         subMap);
@@ -510,10 +518,14 @@ public class BlockBuilder {
     return this;
   }
 
+  public BlockBuilder withRemoveUnused(boolean removeUnused) {
+    return new BlockBuilder(optimizing, parent, removeUnused);
+  }
+
   /** Substitute Variable Visitor. */
   private static class SubstituteVariableVisitor extends Shuttle {
     protected final Map<ParameterExpression, Expression> map;
-    private final Map<ParameterExpression, Boolean> actives =
+    private final IdentityHashMap<ParameterExpression, Boolean> actives =
         new IdentityHashMap<>();
 
     SubstituteVariableVisitor(Map<ParameterExpression, Expression> map) {
@@ -580,7 +592,7 @@ public class BlockBuilder {
 
   /** Use counter. */
   private static class UseCounter extends VisitorImpl<Void> {
-    private final Map<ParameterExpression, Slot> map = new IdentityHashMap<>();
+    private final IdentityHashMap<ParameterExpression, Slot> map = new IdentityHashMap<>();
 
     @Override public Void visit(ParameterExpression parameter) {
       final Slot slot = map.get(parameter);

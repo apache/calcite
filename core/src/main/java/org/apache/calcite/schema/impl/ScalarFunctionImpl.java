@@ -130,8 +130,9 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
    */
   public static ScalarFunction create(Method method) {
     if (!Modifier.isStatic(method.getModifiers())) {
-      Class clazz = method.getDeclaringClass();
-      if (!classHasPublicZeroArgsConstructor(clazz)) {
+      Class<?> clazz = method.getDeclaringClass();
+      if (!classHasPublicZeroArgsConstructor(clazz)
+          && !classHasPublicFunctionContextConstructor(clazz)) {
         throw RESOURCE.requireDefaultConstructor(clazz.getName()).ex();
       }
     }

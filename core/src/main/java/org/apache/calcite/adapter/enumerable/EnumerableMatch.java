@@ -44,7 +44,6 @@ import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.sql.SqlMatchFunction;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
@@ -53,7 +52,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -469,9 +467,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
         PhysType physType) {
       this.row = row;
       this.passedRows = passedRows;
-      generator = e -> new RexToLixTranslator.InputGetterImpl(
-          Collections.singletonList(
-              Pair.of(e, physType)));
+      generator = e -> new RexToLixTranslator.InputGetterImpl(e, physType);
       this.physType = physType;
     }
 
@@ -508,9 +504,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
 
     PrevInputGetter(ParameterExpression row, PhysType physType) {
       this.row = row;
-      generator = e -> new RexToLixTranslator.InputGetterImpl(
-          Collections.singletonList(
-              Pair.of(e, physType)));
+      generator = e -> new RexToLixTranslator.InputGetterImpl(e, physType);
       this.physType = physType;
     }
 

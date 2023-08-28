@@ -16,43 +16,23 @@
   ~ limitations under the License.
   -->
 <Root>
-  <TestCase name="testInOperation">
+  <TestCase name="testBinaryComparison">
     <Resource name="sql">
       <![CDATA[select
-1 in ('1', '2', '3') as f0,
-(1, 2) in (('1', '2')) as f1,
-(1, 2) in (('1', '2'), ('3', '4')) as f2
-from (values (true, true, true))]]>
-    </Resource>
-    <Resource name="plan">
-      <![CDATA[
-LogicalValues(tuples=[[{ true, true, true }]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testNotInOperation">
-    <Resource name="sql">
-      <![CDATA[select
-1 not in ('1', '2', '3') as f0,
-(1, 2) not in (('1', '2')) as f1,
-(1, 2) not in (('1', '2'), ('3', '4')) as f2
-from (values (false, false, false))]]>
-    </Resource>
-    <Resource name="plan">
-      <![CDATA[
-LogicalValues(tuples=[[{ false, false, false }]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testInDateTimestamp">
-    <Resource name="sql">
-      <![CDATA[select (t1_timestamp, t1_date)
-in ((DATE '2020-04-16', TIMESTAMP '2020-04-16 11:40:53'))
+1<'1' as f0,
+1<='1' as f1,
+1>'1' as f2,
+1>='1' as f3,
+1='1' as f4,
+t1_date > t1_timestamp as f5,
+'2' is not distinct from 2 as f6,
+'2019-09-23' between t1_date and t1_timestamp as f7,
+cast('2019-09-23' as date) between t1_date and t1_timestamp as f8
 from t1]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(EXPR$0=[AND(=($7, 2020-04-16 00:00:00), =(CAST($8):TIMESTAMP(0) NOT NULL, 2020-04-16 11:40:53))])
+LogicalProject(F0=[false], F1=[true], F2=[false], F3=[true], F4=[true], F5=[>(CAST($8):TIMESTAMP(0) NOT NULL, $7)], F6=[true], F7=[AND(>=(2019-09-23 00:00:00, CAST($8):TIMESTAMP(0) NOT NULL), <=(2019-09-23 00:00:00, $7))], F8=[AND(>=(2019-09-23 00:00:00, CAST($8):TIMESTAMP(0) NOT NULL), <=(2019-09-23 00:00:00, $7))])
   LogicalTableScan(table=[[CATALOG, SALES, T1]])
 ]]>
     </Resource>
@@ -75,27 +55,6 @@ LogicalProject(F0=[true], F1=[true], F2=[false], F3=[NOT($10)], F4=[=($1, CASE($
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testBinaryComparison">
-    <Resource name="sql">
-      <![CDATA[select
-1<'1' as f0,
-1<='1' as f1,
-1>'1' as f2,
-1>='1' as f3,
-1='1' as f4,
-t1_date > t1_timestamp as f5,
-'2' is not distinct from 2 as f6,
-'2019-09-23' between t1_date and t1_timestamp as f7,
-cast('2019-09-23' as date) between t1_date and t1_timestamp as f8
-from t1]]>
-    </Resource>
-    <Resource name="plan">
-      <![CDATA[
-LogicalProject(F0=[false], F1=[true], F2=[false], F3=[true], F4=[true], F5=[>(CAST($8):TIMESTAMP(0) NOT NULL, $7)], F6=[true], F7=[AND(>=(2019-09-23 00:00:00, CAST($8):TIMESTAMP(0) NOT NULL), <=(2019-09-23 00:00:00, $7))], F8=[AND(>=(2019-09-23 00:00:00, CAST($8):TIMESTAMP(0) NOT NULL), <=(2019-09-23 00:00:00, $7))])
-  LogicalTableScan(table=[[CATALOG, SALES, T1]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testBuiltinFunctionCoercion">
     <Resource name="sql">
       <![CDATA[select 1||'a' from (values true)]]>
@@ -107,17 +66,68 @@ LogicalProject(EXPR$0=[||('1':VARCHAR, 'a')])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testStarImplicitTypeCoercion">
+  <TestCase name="testCaseWhen">
     <Resource name="sql">
-      <![CDATA[select * from (values(1, '3')) union select * from (values('2', 4))]]>
+      <![CDATA[select case when 1 > 0 then t2_bigint else t2_decimal end from t2]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalUnion(all=[false])
-  LogicalProject(EXPR$0=[CAST($0):VARCHAR NOT NULL], EXPR$1=[$1])
-    LogicalValues(tuples=[[{ 1, '3' }]])
-  LogicalProject(EXPR$0=[$0], EXPR$1=[CAST($1):VARCHAR NOT NULL])
-    LogicalValues(tuples=[[{ '2', 4 }]])
+LogicalProject(EXPR$0=[CAST($3):DECIMAL(19, 0) NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, T2]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInDateTimestamp">
+    <Resource name="sql">
+      <![CDATA[select (t1_timestamp, t1_date)
+in ((DATE '2020-04-16', TIMESTAMP '2020-04-16 11:40:53'))
+from t1]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[AND(=($7, 2020-04-16 00:00:00), =(CAST($8):TIMESTAMP(0) NOT NULL, 2020-04-16 11:40:53))])
+  LogicalTableScan(table=[[CATALOG, SALES, T1]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInOperation">
+    <Resource name="sql">
+      <![CDATA[select
+1 in ('1', '2', '3') as f0,
+(1, 2) in (('1', '2')) as f1,
+(1, 2) in (('1', '2'), ('3', '4')) as f2
+from (values (true, true, true))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalValues(tuples=[[{ true, true, true }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInsertQuerySourceCoercion">
+    <Resource name="sql">
+      <![CDATA[insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,
+t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[false])
+  LogicalProject(t1_varchar20=[CAST($1):VARCHAR(20) NOT NULL], t1_smallint=[CAST($2):SMALLINT NOT NULL], t1_int=[CAST($3):INTEGER NOT NULL], t1_bigint=[CAST($4):BIGINT NOT NULL], t1_float=[CAST($5):FLOAT NOT NULL], t1_double=[CAST($6):DOUBLE NOT NULL], t1_decimal=[CAST($2):DECIMAL(19, 0) NOT NULL], t1_timestamp=[CAST($8):TIMESTAMP(0) NOT NULL], t1_date=[CAST($7):DATE NOT NULL], t1_binary=[CAST($0):BINARY(1) NOT NULL], t1_boolean=[<>($2, 0)])
+    LogicalTableScan(table=[[CATALOG, SALES, T2]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNotInOperation">
+    <Resource name="sql">
+      <![CDATA[select
+1 not in ('1', '2', '3') as f0,
+(1, 2) not in (('1', '2')) as f1,
+(1, 2) not in (('1', '2'), ('3', '4')) as f2
+from (values (false, false, false))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalValues(tuples=[[{ false, false, false }]])
 ]]>
     </Resource>
   </TestCase>
@@ -141,27 +151,17 @@ LogicalUnion(all=[false])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testCaseWhen">
+  <TestCase name="testStarImplicitTypeCoercion">
     <Resource name="sql">
-      <![CDATA[select case when 1 > 0 then t2_bigint else t2_decimal end from t2]]>
+      <![CDATA[select * from (values(1, '3')) union select * from (values('2', 4))]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(EXPR$0=[CAST($3):DECIMAL(19, 0) NOT NULL])
-  LogicalTableScan(table=[[CATALOG, SALES, T2]])
-]]>
-    </Resource>
-  </TestCase>
-  <TestCase name="testInsertQuerySourceCoercion">
-    <Resource name="sql">
-      <![CDATA[insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,
-t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2]]>
-    </Resource>
-    <Resource name="plan">
-      <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[false])
-  LogicalProject(t1_varchar20=[CAST($1):VARCHAR(20) NOT NULL], t1_smallint=[CAST($2):SMALLINT NOT NULL], t1_int=[CAST($3):INTEGER NOT NULL], t1_bigint=[CAST($4):BIGINT NOT NULL], t1_float=[CAST($5):FLOAT NOT NULL], t1_double=[CAST($6):DOUBLE NOT NULL], t1_decimal=[CAST($2):DECIMAL(19, 0) NOT NULL], t1_timestamp=[CAST($8):TIMESTAMP(0) NOT NULL], t1_date=[CAST($7):DATE NOT NULL], t1_binary=[CAST($0):BINARY(1) NOT NULL], t1_boolean=[<>($2, 0)])
-    LogicalTableScan(table=[[CATALOG, SALES, T2]])
+LogicalUnion(all=[false])
+  LogicalProject(EXPR$0=[CAST($0):VARCHAR NOT NULL], EXPR$1=[$1])
+    LogicalValues(tuples=[[{ 1, '3' }]])
+  LogicalProject(EXPR$0=[$0], EXPR$1=[CAST($1):VARCHAR NOT NULL])
+    LogicalValues(tuples=[[{ '2', 4 }]])
 ]]>
     </Resource>
   </TestCase>

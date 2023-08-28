@@ -150,7 +150,7 @@ public class FilesTableFunction {
       }
 
       @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+        JavaTypeFactory typeFactory = root.getTypeFactory();
         final RelDataType rowType = getRowType(typeFactory);
         final List<String> fieldNames =
             ImmutableList.copyOf(rowType.getFieldNames());

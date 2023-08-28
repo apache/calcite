@@ -103,6 +103,11 @@ public class EnumerableRules {
       EnumerableRepeatUnionRule.DEFAULT_CONFIG
           .toRule(EnumerableRepeatUnionRule.class);
 
+  /** Rule to convert a {@link org.apache.calcite.rel.logical.LogicalSort} on top of a
+   * {@link org.apache.calcite.rel.logical.LogicalUnion} into a {@link EnumerableMergeUnion}. */
+  public static final EnumerableMergeUnionRule ENUMERABLE_MERGE_UNION_RULE =
+      EnumerableMergeUnionRule.Config.DEFAULT_CONFIG.toRule();
+
   /** Rule that converts a {@link LogicalTableSpool} into an
    * {@link EnumerableTableSpool}. */
   @Experimental
@@ -210,6 +215,7 @@ public class EnumerableRules {
       EnumerableRules.ENUMERABLE_LIMIT_RULE,
       EnumerableRules.ENUMERABLE_COLLECT_RULE,
       EnumerableRules.ENUMERABLE_UNCOLLECT_RULE,
+      EnumerableRules.ENUMERABLE_MERGE_UNION_RULE,
       EnumerableRules.ENUMERABLE_UNION_RULE,
       EnumerableRules.ENUMERABLE_REPEAT_UNION_RULE,
       EnumerableRules.ENUMERABLE_TABLE_SPOOL_RULE,

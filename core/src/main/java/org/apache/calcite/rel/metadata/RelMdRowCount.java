@@ -36,7 +36,6 @@ import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Util;
@@ -51,7 +50,7 @@ public class RelMdRowCount
     implements MetadataHandler<BuiltInMetadata.RowCount> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.ROW_COUNT.method, new RelMdRowCount());
+          new RelMdRowCount(), BuiltInMetadata.RowCount.Handler.class);
 
   //~ Methods ----------------------------------------------------------------
 

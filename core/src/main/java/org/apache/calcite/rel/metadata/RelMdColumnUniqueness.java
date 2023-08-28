@@ -17,7 +17,6 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptPredicateList;
-import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
@@ -46,7 +45,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -68,7 +66,7 @@ public class RelMdColumnUniqueness
     implements MetadataHandler<BuiltInMetadata.ColumnUniqueness> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.COLUMN_UNIQUENESS.method, new RelMdColumnUniqueness());
+          new RelMdColumnUniqueness(), BuiltInMetadata.ColumnUniqueness.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -385,12 +383,6 @@ public class RelMdColumnUniqueness
       ImmutableBitSet columns, boolean ignoreNulls) {
     columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     return mq.areColumnsUnique(rel.getInput(), columns, ignoreNulls);
-  }
-
-  public @Nullable Boolean areColumnsUnique(HepRelVertex rel, RelMetadataQuery mq,
-      ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
-    return mq.areColumnsUnique(rel.getCurrentRel(), columns, ignoreNulls);
   }
 
   public @Nullable Boolean areColumnsUnique(RelSubset rel, RelMetadataQuery mq,

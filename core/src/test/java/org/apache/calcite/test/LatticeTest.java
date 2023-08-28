@@ -26,6 +26,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.rules.materialize.MaterializedViewRules;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 
@@ -173,7 +174,7 @@ class LatticeTest {
         + "{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"
-        + JdbcTest.FOODMART_SCHEMA
+        + FoodmartSchema.FOODMART_SCHEMA
         + ",\n"
         + "     {\n"
         + "       name: 'adhoc',\n"
@@ -380,7 +381,6 @@ class LatticeTest {
                   containsStringLinux(
                       "LogicalAggregate(group=[{2, 10}])\n"
                           + "  StarTableScan(table=[[adhoc, star]])\n")));
-          return null;
         });
     assertThat(counter.intValue(), equalTo(2));
     that.explainContains(""
@@ -844,7 +844,7 @@ class LatticeTest {
         + "{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"
-        + JdbcTest.FOODMART_SCHEMA
+        + FoodmartSchema.FOODMART_SCHEMA
         + ",\n"
         + "     {\n"
         + "       name: 'adhoc',\n"
@@ -900,7 +900,7 @@ class LatticeTest {
         + "{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"
-        + JdbcTest.FOODMART_SCHEMA
+        + FoodmartSchema.FOODMART_SCHEMA
         + ",\n"
         + "     {\n"
         + "       name: 'adhoc',\n"

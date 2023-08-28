@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.function.UnaryOperator;
 
 /**
@@ -57,5 +59,11 @@ public class Holder<E> {
   /** Creates a holder containing a given value. */
   public static <E> Holder<E> of(E e) {
     return new Holder<>(e);
+  }
+
+  /** Creates a holder containing null. */
+  @SuppressWarnings("ConstantConditions")
+  public static <E> Holder<@Nullable E> empty() {
+    return new Holder<@Nullable E>(null);
   }
 }

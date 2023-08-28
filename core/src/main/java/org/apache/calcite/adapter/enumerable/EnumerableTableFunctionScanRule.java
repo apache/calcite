@@ -29,8 +29,7 @@ import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
  * @see EnumerableRules#ENUMERABLE_TABLE_FUNCTION_SCAN_RULE */
 public class EnumerableTableFunctionScanRule extends ConverterRule {
   /** Default configuration. */
-  public static final Config DEFAULT_CONFIG = Config.EMPTY
-      .as(Config.class)
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
       .withConversion(LogicalTableFunctionScan.class, Convention.NONE,
           EnumerableConvention.INSTANCE, "EnumerableTableFunctionScanRule")
       .withRuleFactory(EnumerableTableFunctionScanRule::new);

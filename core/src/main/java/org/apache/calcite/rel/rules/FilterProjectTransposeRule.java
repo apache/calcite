@@ -31,7 +31,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
+
+import org.immutables.value.Value;
 
 import java.util.Collections;
 import java.util.function.Predicate;
@@ -43,6 +44,7 @@ import java.util.function.Predicate;
  *
  * @see CoreRules#FILTER_PROJECT_TRANSPOSE
  */
+@Value.Enclosing
 public class FilterProjectTransposeRule
     extends RelRule<FilterProjectTransposeRule.Config>
     implements TransformationRule {
@@ -203,8 +205,9 @@ public class FilterProjectTransposeRule
    * <p>Defining predicates for the Filter (using {@code filterPredicate})
    * and/or the Project (using {@code projectPredicate} allows making the rule
    * more restrictive. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableFilterProjectTransposeRule.Config.of()
         .withOperandFor(Filter.class,
             f -> !RexUtil.containsCorrelation(f.getCondition()),
             Project.class, p -> true)
@@ -217,18 +220,18 @@ public class FilterProjectTransposeRule
 
     /** Whether to create a {@link Filter} of the same convention as the
      * matched Filter. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean isCopyFilter();
+    @Value.Default default boolean isCopyFilter() {
+      return true;
+    }
 
     /** Sets {@link #isCopyFilter()}. */
     Config withCopyFilter(boolean copyFilter);
 
     /** Whether to create a {@link Project} of the same convention as the
      * matched Project. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(true)
-    boolean isCopyProject();
+    @Value.Default default boolean isCopyProject() {
+      return true;
+    }
 
     /** Sets {@link #isCopyProject()}. */
     Config withCopyProject(boolean copyProject);

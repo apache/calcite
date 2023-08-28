@@ -33,6 +33,8 @@ import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,6 +48,7 @@ import java.util.List;
  *
  * @see CoreRules#AGGREGATE_REMOVE
  */
+@Value.Enclosing
 public class AggregateRemoveRule
     extends RelRule<AggregateRemoveRule.Config>
     implements SubstitutionRule {
@@ -110,7 +113,9 @@ public class AggregateRemoveRule
           aggregation.unwrapOrThrow(SqlSplittableAggFunction.class);
       final RexNode singleton =
           splitter.singleton(rexBuilder, input.getRowType(), aggCall);
-      projects.add(singleton);
+      final RexNode cast =
+          rexBuilder.ensureType(aggCall.type, singleton, false);
+      projects.add(cast);
     }
 
     final RelNode newInput = convert(input, aggregate.getTraitSet().simplify());
@@ -129,10 +134,10 @@ public class AggregateRemoveRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableAggregateRemoveRule.Config.of()
         .withRelBuilderFactory(RelFactories.LOGICAL_BUILDER)
-        .as(Config.class)
         .withOperandFor(LogicalAggregate.class);
 
     @Override default AggregateRemoveRule toRule() {

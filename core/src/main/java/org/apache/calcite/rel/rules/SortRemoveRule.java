@@ -25,6 +25,8 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that removes
  * a {@link org.apache.calcite.rel.core.Sort} if its input is already sorted.
@@ -33,6 +35,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see CoreRules#SORT_REMOVE
  */
+@Value.Enclosing
 public class SortRemoveRule
     extends RelRule<SortRemoveRule.Config>
     implements TransformationRule {
@@ -71,11 +74,11 @@ public class SortRemoveRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableSortRemoveRule.Config.of()
         .withOperandSupplier(b ->
-            b.operand(Sort.class).anyInputs())
-        .as(Config.class);
+            b.operand(Sort.class).anyInputs());
 
     @Override default SortRemoveRule toRule() {
       return new SortRemoveRule(this);

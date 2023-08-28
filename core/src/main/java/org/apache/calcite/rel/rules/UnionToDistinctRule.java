@@ -24,6 +24,8 @@ import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that translates a distinct
  * {@link org.apache.calcite.rel.core.Union}
@@ -34,6 +36,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see CoreRules#UNION_TO_DISTINCT
  */
+@Value.Enclosing
 public class UnionToDistinctRule
     extends RelRule<UnionToDistinctRule.Config>
     implements TransformationRule {
@@ -71,8 +74,9 @@ public class UnionToDistinctRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableUnionToDistinctRule.Config.of()
         .withOperandFor(LogicalUnion.class);
 
     @Override default UnionToDistinctRule toRule() {

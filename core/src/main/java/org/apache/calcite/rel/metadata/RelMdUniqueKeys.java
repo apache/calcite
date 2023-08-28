@@ -35,7 +35,6 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
@@ -60,7 +59,7 @@ public class RelMdUniqueKeys
     implements MetadataHandler<BuiltInMetadata.UniqueKeys> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.UNIQUE_KEYS.method, new RelMdUniqueKeys());
+          new RelMdUniqueKeys(), BuiltInMetadata.UniqueKeys.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 

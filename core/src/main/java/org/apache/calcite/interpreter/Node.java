@@ -19,6 +19,9 @@ package org.apache.calcite.interpreter;
 /**
  * Relational expression that can be executed using an interpreter.
  */
-public interface Node {
+public interface Node extends AutoCloseable {
   void run() throws InterruptedException;
+
+  @Override default void close() {
+  }
 }

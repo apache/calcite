@@ -20,7 +20,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
-import org.apache.calcite.util.BuiltInMethod;
 
 /**
  * Default implementations of the
@@ -36,8 +35,7 @@ public class RelMdParallelism
    * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Parallelism}. */
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(new RelMdParallelism(),
-          BuiltInMethod.IS_PHASE_TRANSITION.method,
-          BuiltInMethod.SPLIT_COUNT.method);
+          BuiltInMetadata.Parallelism.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 

@@ -51,8 +51,10 @@ import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.UnionMergeRule;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -77,6 +79,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.RelBuilderTest;
+import org.apache.calcite.test.schemata.tpch.TpchSchema;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
@@ -85,6 +88,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.Matcher;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -93,7 +97,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.calcite.test.RelMetadataTest.sortsAs;
+import static org.apache.calcite.test.Matchers.sortsAs;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -247,7 +251,7 @@ class PlannerTest {
   @Test void testValidateUserDefinedFunctionInSchema() throws Exception {
     SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     rootSchema.add("my_plus",
-        ScalarFunctionImpl.create(Smalls.MyPlusFunction.class, "eval"));
+        ScalarFunctionImpl.create(Smalls.MY_PLUS_EVAL_METHOD));
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .defaultSchema(
             CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))
@@ -1170,7 +1174,8 @@ class PlannerTest {
   public static class MyProjectFilterRule
       extends RelRule<MyProjectFilterRule.Config> {
     static Config config(String description) {
-      return Config.EMPTY
+      return ImmutableMyProjectFilterRuleConfig.builder()
+          .build()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalProject.class).oneInput(b1 ->
                   b1.operand(LogicalFilter.class).anyInputs()))
@@ -1191,6 +1196,8 @@ class PlannerTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableMyProjectFilterRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default MyProjectFilterRule toRule() {
         return new MyProjectFilterRule(this);
@@ -1202,12 +1209,12 @@ class PlannerTest {
   public static class MyFilterProjectRule
       extends RelRule<MyFilterProjectRule.Config> {
     static Config config(String description) {
-      return Config.EMPTY
+      return ImmutableMyFilterProjectRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalFilter.class).oneInput(b1 ->
                   b1.operand(LogicalProject.class).anyInputs()))
           .withDescription(description)
-          .as(Config.class);
+          .build();
     }
 
     protected MyFilterProjectRule(Config config) {
@@ -1222,6 +1229,8 @@ class PlannerTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableMyFilterProjectRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default MyFilterProjectRule toRule() {
         return new MyFilterProjectRule(this);
@@ -1524,5 +1533,61 @@ class PlannerTest {
     final SqlNode validate = planner.validate(parse);
     final RelRoot root = planner.rel(validate);
     assertThat(toString(root.rel), matcher);
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-4642">[CALCITE-4642]
+   * Checks that custom type systems can be registered in a planner by
+   * comparing options for converting unions of chars.</a>.
+   */
+  @Test void testCustomTypeSystem() throws Exception {
+    final String sql = "select Case when DEPTNO <> 30 then 'hi' else 'world' end from dept";
+    final String expectedVarying = "LogicalProject("
+        + "EXPR$0=["
+        + "CASE(<>($0, 30),"
+        + " 'hi':VARCHAR(5), "
+        + "'world':VARCHAR(5))])\n"
+        + "  LogicalValues("
+        + "tuples=[[{ 10, 'Sales' },"
+        + " { 20, 'Marketing' },"
+        + " { 30, 'Engineering' },"
+        + " { 40, 'Empty' }]])\n";
+    final String expectedDefault = ""
+        + "LogicalProject(EXPR$0=[CASE(<>($0, 30), 'hi   ', 'world')])\n"
+        + "  LogicalValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])\n";
+    assertValidPlan(sql, new VaryingTypeSystem(DelegatingTypeSystem.DEFAULT), is(expectedVarying));
+    assertValidPlan(sql, DelegatingTypeSystem.DEFAULT, is(expectedDefault));
+  }
+
+  /**
+   *  Asserts a Planner generates the correct plan using the provided
+   *  type system.
+   */
+  private void assertValidPlan(String sql, RelDataTypeSystem typeSystem,
+      Matcher<String> planMatcher)  throws SqlParseException,
+      ValidationException, RelConversionException {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(
+            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.POST))
+        .typeSystem(typeSystem).build();
+    final Planner planner = Frameworks.getPlanner(config);
+    SqlNode parse = planner.parse(sql);
+    final SqlNode validate = planner.validate(parse);
+    final RelRoot root = planner.rel(validate);
+    assertThat(toString(root.rel), planMatcher);
+  }
+
+  /**
+   * Custom type system that converts union of chars to varchars.
+   */
+  private static class VaryingTypeSystem extends DelegatingTypeSystem {
+
+    VaryingTypeSystem(RelDataTypeSystem typeSystem) {
+      super(typeSystem);
+    }
+
+    @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
+      return true;
+    }
   }
 }

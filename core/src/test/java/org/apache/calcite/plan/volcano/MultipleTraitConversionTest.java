@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class MultipleTraitConversionTest {
   @SuppressWarnings("ConstantConditions")
-  @Test public void testMultipleTraitConversion() {
+  @Test void testMultipleTraitConversion() {
     VolcanoPlanner planner = new VolcanoPlanner();
 
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);

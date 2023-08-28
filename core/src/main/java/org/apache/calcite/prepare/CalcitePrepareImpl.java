@@ -127,11 +127,12 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Shit just got real.
@@ -727,7 +728,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final CalciteConnectionConfig connectionConfig = context.config();
     final SqlValidator.Config config = SqlValidator.Config.DEFAULT
         .withLenientOperatorLookup(connectionConfig.lenientOperatorLookup())
-        .withSqlConformance(connectionConfig.conformance())
+        .withConformance(connectionConfig.conformance())
         .withDefaultNullCollation(connectionConfig.defaultNullCollation())
         .withIdentifierExpansion(true);
     return new CalciteSqlValidator(opTab, catalogReader, typeFactory,
@@ -1075,7 +1076,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       SqlToRelConverter sqlToRelConverter =
           getSqlToRelConverter(validator, catalogReader, config);
       RelRoot root =
-          sqlToRelConverter.convertQuery(sqlNode, true, false);
+          sqlToRelConverter.convertQuery(sqlNode, true, true);
 
       --expansionDepth;
       return root;
@@ -1129,7 +1130,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           internalParameters.put("_conformance", conformance);
           bindable = EnumerableInterpretable.toBindable(internalParameters,
               context.spark(), enumerable,
-              Objects.requireNonNull(prefer, "EnumerableRel.Prefer prefer"));
+              requireNonNull(prefer, "EnumerableRel.Prefer prefer"));
         } finally {
           CatalogReader.THREAD_LOCAL.remove();
         }
@@ -1145,8 +1146,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
       return new PreparedResultImpl(
           resultType,
-          Objects.requireNonNull(parameterRowType, "parameterRowType"),
-          Objects.requireNonNull(fieldOrigins, "fieldOrigins"),
+          requireNonNull(parameterRowType, "parameterRowType"),
+          requireNonNull(fieldOrigins, "fieldOrigins"),
           root.collation.getFieldCollations().isEmpty()
               ? ImmutableList.of()
               : ImmutableList.of(root.collation),
@@ -1258,7 +1259,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         // Case-sensitive name match because name was previously resolved.
         MemberExpression memberExpression = (MemberExpression) expression;
         PseudoField field = memberExpression.field;
-        Expression targetExpression = Objects.requireNonNull(memberExpression.expression,
+        Expression targetExpression = requireNonNull(memberExpression.expression,
             () -> "static field access is not implemented yet."
                 + " field.name=" + field.getName()
                 + ", field.declaringClass=" + field.getDeclaringClass());

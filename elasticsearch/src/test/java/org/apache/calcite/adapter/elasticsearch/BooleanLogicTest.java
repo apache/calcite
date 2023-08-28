@@ -19,14 +19,12 @@ package org.apache.calcite.adapter.elasticsearch;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
-import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.test.CalciteAssert;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -42,7 +40,6 @@ import java.util.Map;
 /**
  * Test of different boolean expressions (some more complex than others).
  */
-@Disabled("RestClient often timeout in PR CI")
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
 class BooleanLogicTest {
 
@@ -67,30 +64,28 @@ class BooleanLogicTest {
     NODE.insertDocument(NAME, (ObjectNode) NODE.mapper().readTree(doc));
   }
 
-  private CalciteAssert.ConnectionFactory newConnectionFactory() {
-    return new CalciteAssert.ConnectionFactory() {
-      @Override public Connection createConnection() throws SQLException {
-        final Connection connection = DriverManager.getConnection("jdbc:calcite:");
-        final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
+  private static Connection createConnection() throws SQLException {
+    final Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    final SchemaPlus root =
+        connection.unwrap(CalciteConnection.class).getRootSchema();
 
-        root.add("elastic", new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), NAME));
+    root.add("elastic",
+        new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), NAME));
 
-        // add calcite view programmatically
-        final String viewSql = String.format(Locale.ROOT,
-            "select cast(_MAP['a'] AS varchar(2)) AS a, "
-                + " cast(_MAP['b'] AS varchar(2)) AS b, "
-                +  " cast(_MAP['c'] AS varchar(2)) AS c, "
-                +  " cast(_MAP['int'] AS integer) AS num"
-                +  " from \"elastic\".\"%s\"", NAME);
+    // add calcite view programmatically
+    final String viewSql = String.format(Locale.ROOT,
+        "select cast(_MAP['a'] AS varchar(2)) AS a, "
+            + " cast(_MAP['b'] AS varchar(2)) AS b, "
+            + " cast(_MAP['c'] AS varchar(2)) AS c, "
+            + " cast(_MAP['int'] AS integer) AS num"
+            + " from \"elastic\".\"%s\"", NAME);
 
-        ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
+    root.add("VIEW",
+        ViewTable.viewMacro(root, viewSql,
             Collections.singletonList("elastic"),
-            Arrays.asList("elastic", "view"), false);
-        root.add("VIEW", macro);
+            Arrays.asList("elastic", "view"), false));
 
-        return connection;
-      }
-    };
+    return connection;
   }
 
   @Test void expressions() {
@@ -121,6 +116,7 @@ class BooleanLogicTest {
     assertEmpty("select * from view where num > 42 or num < 42 and num = 42");
     assertSingle("select * from view where num > 42 and num < 42 or num = 42");
     assertSingle("select * from view where num > 42 or num < 42 or num = 42");
+    assertEmpty("select * from view where num is null");
     assertSingle("select * from view where num >= 42 and num <= 42 and num = 42");
     assertEmpty("select * from view where num >= 42 and num <= 42 and num <> 42");
     assertEmpty("select * from view where num < 42");
@@ -170,14 +166,14 @@ class BooleanLogicTest {
 
   private void assertSingle(String query) {
     CalciteAssert.that()
-            .with(newConnectionFactory())
+            .with(BooleanLogicTest::createConnection)
             .query(query)
             .returns("A=a; B=b; C=c; NUM=42\n");
   }
 
   private void assertEmpty(String query) {
     CalciteAssert.that()
-            .with(newConnectionFactory())
+            .with(BooleanLogicTest::createConnection)
             .query(query)
             .returns("");
   }

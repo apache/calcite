@@ -80,6 +80,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.List;
 import java.util.Map;
@@ -90,6 +91,7 @@ import java.util.SortedSet;
 /**
  * Utilities pertaining to {@link BindableRel} and {@link BindableConvention}.
  */
+@Value.Enclosing
 public class Bindables {
   private Bindables() {}
 
@@ -188,11 +190,11 @@ public class Bindables {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
     public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+      Config DEFAULT = ImmutableBindables.Config.of()
           .withOperandSupplier(b ->
-              b.operand(LogicalTableScan.class).noInputs())
-          .as(Config.class);
+              b.operand(LogicalTableScan.class).noInputs());
 
       @Override default BindableTableScanRule toRule() {
         return new BindableTableScanRule(this);
@@ -734,6 +736,10 @@ public class Bindables {
         if (aggCall.isDistinct()) {
           throw new InvalidRelException(
               "distinct aggregation not supported");
+        }
+        if (aggCall.distinctKeys != null) {
+          throw new InvalidRelException(
+              "within-distinct aggregation not supported");
         }
         AggImplementor implementor2 =
             RexImpTable.INSTANCE.get(aggCall.getAggregation(), false);

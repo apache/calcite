@@ -175,7 +175,7 @@ public class LatticeSuggester {
     }
 
     // Translate the query graph to mutable nodes
-    final Map<TableRef, @Nullable MutableNode> nodes = new IdentityHashMap<>();
+    final IdentityHashMap<TableRef, @Nullable MutableNode> nodes = new IdentityHashMap<>();
     final Map<List, MutableNode> nodesByParent = new HashMap<>();
     final List<MutableNode> rootNodes = new ArrayList<>();
     for (TableRef tableRef : TopologicalOrderIterator.of(g)) {

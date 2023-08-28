@@ -17,21 +17,19 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
-import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.math.BigDecimal;
@@ -87,41 +85,16 @@ public abstract class RexProgramBuilderBase {
   // It maps non-nullable type to struct of (10 nullable, 10 non-nullable) fields
   private Map<RelDataType, RexDynamicParam> dynamicParams;
 
-  /**
-   * Dummy data context for test.
-   */
-  private static class DummyTestDataContext implements DataContext {
-    private final ImmutableMap<String, Object> map;
-
-    DummyTestDataContext() {
-      this.map =
-          ImmutableMap.of(
-              Variable.TIME_ZONE.camelName, TimeZone.getTimeZone("America/Los_Angeles"),
-              Variable.CURRENT_TIMESTAMP.camelName, 1311120000000L);
-    }
-
-    public SchemaPlus getRootSchema() {
-      return null;
-    }
-
-    public @Nullable JavaTypeFactory getTypeFactory() {
-      return null;
-    }
-
-    public @Nullable QueryProvider getQueryProvider() {
-      return null;
-    }
-
-    public @Nullable Object get(String name) {
-      return map.get(name);
-    }
-  }
-
   @BeforeEach public void setUp() {
     typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     rexBuilder = new RexBuilder(typeFactory);
-    executor =
-        new RexExecutorImpl(new DummyTestDataContext());
+    final DataContext dataContext =
+        DataContexts.of(
+            ImmutableMap.of(DataContext.Variable.TIME_ZONE.camelName,
+                TimeZone.getTimeZone("America/Los_Angeles"),
+                DataContext.Variable.CURRENT_TIMESTAMP.camelName,
+                1311120000000L));
+    executor = new RexExecutorImpl(dataContext);
     simplify =
         new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, executor)
             .withParanoid(true);
@@ -187,18 +160,22 @@ public abstract class RexProgramBuilderBase {
   }
 
   protected RexNode isFalse(RexNode node) {
+    assert node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_FALSE, node);
   }
 
   protected RexNode isNotFalse(RexNode node) {
+    assert node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_FALSE, node);
   }
 
   protected RexNode isTrue(RexNode node) {
+    assert node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, node);
   }
 
   protected RexNode isNotTrue(RexNode node) {
+    assert node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN;
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_TRUE, node);
   }
 

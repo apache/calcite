@@ -828,7 +828,6 @@ class TpchTest {
         .convertMatches(relNode -> {
           String s = RelOptUtil.toString(relNode);
           assertThat(s, not(containsString("Correlator")));
-          return null;
         });
   }
 

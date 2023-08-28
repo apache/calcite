@@ -356,10 +356,13 @@ public interface CalciteResource {
   @BaseMessage("WITHIN GROUP must not contain aggregate expression")
   ExInst<SqlValidatorException> aggregateInWithinGroupIllegal();
 
-  @BaseMessage("Aggregate expression ''{0}'' must contain a within group clause")
+  @BaseMessage("WITHIN DISTINCT must not contain aggregate expression")
+  ExInst<SqlValidatorException> aggregateInWithinDistinctIllegal();
+
+  @BaseMessage("Aggregate expression ''{0}'' must contain a WITHIN GROUP clause")
   ExInst<SqlValidatorException> aggregateMissingWithinGroupClause(String a0);
 
-  @BaseMessage("Aggregate expression ''{0}'' must not contain a within group clause")
+  @BaseMessage("Aggregate expression ''{0}'' must not contain a WITHIN GROUP clause")
   ExInst<SqlValidatorException> withinGroupClauseIllegalInAggregate(String a0);
 
   @BaseMessage("Aggregate expression is illegal in ORDER BY clause of non-aggregating SELECT")
@@ -469,11 +472,20 @@ public interface CalciteResource {
   @BaseMessage("Type ''{0}'' is not supported")
   ExInst<SqlValidatorException> typeNotSupported(String a0);
 
+  @BaseMessage("Invalid type ''{0}'' in ORDER BY clause of ''{1}'' function. Only NUMERIC types are supported")
+  ExInst<SqlValidatorException> unsupportedTypeInOrderBy(String a0, String a1);
+
+  @BaseMessage("''{0}'' requires precisely one ORDER BY key")
+  ExInst<SqlValidatorException> orderByRequiresOneKey(String a0);
+
   @BaseMessage("DISTINCT/ALL not allowed with {0} function")
   ExInst<SqlValidatorException> functionQuantifierNotAllowed(String a0);
 
   @BaseMessage("WITHIN GROUP not allowed with {0} function")
   ExInst<SqlValidatorException> withinGroupNotAllowed(String a0);
+
+  @BaseMessage("WITHIN DISTINCT not allowed with {0} function")
+  ExInst<SqlValidatorException> withinDistinctNotAllowed(String a0);
 
   @BaseMessage("Some but not all arguments are named")
   ExInst<SqlValidatorException> someButNotAllArgumentsAreNamed();
@@ -533,6 +545,9 @@ public interface CalciteResource {
 
   @BaseMessage("Argument to function ''{0}'' must be a positive integer literal")
   ExInst<SqlValidatorException> argumentMustBePositiveInteger(String a0);
+
+  @BaseMessage("Argument to function ''{0}'' must be a numeric literal between {1,number,#} and {2,number,#}")
+  ExInst<SqlValidatorException> argumentMustBeNumericLiteralInRange(String a0, int min, int max);
 
   @BaseMessage("Validation Error: {0}")
   ExInst<CalciteException> validationError(String a0);
@@ -952,4 +967,8 @@ public interface CalciteResource {
 
   @BaseMessage("Different length for bitwise operands: the first: {0,number,#}, the second: {1,number,#}")
   ExInst<CalciteException> differentLengthForBitwiseOperands(int l0, int l1);
+
+  @BaseMessage("No operator for ''{0}'' with kind: ''{1}'', syntax: ''{2}'' during JSON deserialization")
+  ExInst<CalciteException> noOperator(String name, String kind, String syntax);
+
 }

@@ -74,6 +74,10 @@ public class OracleSqlDialect extends SqlDialect {
     super(context);
   }
 
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
+
   @Override public boolean supportsCharSet() {
     return false;
   }

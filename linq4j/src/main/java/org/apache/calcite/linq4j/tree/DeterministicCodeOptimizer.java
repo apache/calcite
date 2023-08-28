@@ -49,7 +49,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * For instance, cast expression will not be factored to a field,
    * but we still need to track its constant status.
    */
-  protected final Map<Expression, Boolean> constants = new IdentityHashMap<>();
+  protected final IdentityHashMap<Expression, Boolean> constants = new IdentityHashMap<>();
 
   /**
    * The map that de-duplicates expressions, so the same expressions may reuse

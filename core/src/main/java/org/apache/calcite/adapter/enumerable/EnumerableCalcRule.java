@@ -23,16 +23,18 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.logical.LogicalCalc;
 
+import org.immutables.value.Value;
+
 /**
  * Rule to convert a {@link LogicalCalc} to an {@link EnumerableCalc}.
  * You may provide a custom config to convert other nodes that extend {@link Calc}.
  *
  * @see EnumerableRules#ENUMERABLE_CALC_RULE
  */
+@Value.Enclosing
 class EnumerableCalcRule extends ConverterRule {
   /** Default configuration. */
-  public static final Config DEFAULT_CONFIG = Config.EMPTY
-      .as(Config.class)
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
       // The predicate ensures that if there's a multiset,
       // FarragoMultisetSplitter will work on it first.
       .withConversion(LogicalCalc.class, RelOptUtil::notContainsWindowedAgg,

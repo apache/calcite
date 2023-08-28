@@ -48,6 +48,8 @@ import org.apache.calcite.util.graph.TopologicalOrderIterator;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -88,14 +90,8 @@ public abstract class ProjectToWindowRule
    */
   public static class CalcToWindowRule extends ProjectToWindowRule {
     /** Creates a CalcToWindowRule. */
-    protected CalcToWindowRule(Config config) {
+    protected CalcToWindowRule(CalcToWindowRuleConfig config) {
       super(config);
-    }
-
-    @Deprecated // to be removed before 2.0
-    public CalcToWindowRule(RelBuilderFactory relBuilderFactory) {
-      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class));
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -108,14 +104,14 @@ public abstract class ProjectToWindowRule
     }
 
     /** Rule configuration. */
-    public interface Config extends ProjectToWindowRule.Config {
-      Config DEFAULT = EMPTY
+    @Value.Immutable
+    public interface CalcToWindowRuleConfig extends ProjectToWindowRule.Config {
+      CalcToWindowRuleConfig DEFAULT = ImmutableCalcToWindowRuleConfig.of()
           .withOperandSupplier(b ->
               b.operand(Calc.class)
                   .predicate(Calc::containsOver)
                   .anyInputs())
-          .withDescription("ProjectToWindowRule")
-          .as(Config.class);
+          .withDescription("ProjectToWindowRule");
 
       @Override default CalcToWindowRule toRule() {
         return new CalcToWindowRule(this);
@@ -132,17 +128,19 @@ public abstract class ProjectToWindowRule
    * @see CoreRules#PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW
    */
   public static class ProjectToLogicalProjectAndWindowRule
-      extends ProjectToWindowRule {
+        extends ProjectToWindowRule {
     /** Creates a ProjectToLogicalProjectAndWindowRule. */
-    protected ProjectToLogicalProjectAndWindowRule(Config config) {
+    protected ProjectToLogicalProjectAndWindowRule(
+        ProjectToLogicalProjectAndWindowRuleConfig config) {
       super(config);
     }
 
     @Deprecated // to be removed before 2.0
     public ProjectToLogicalProjectAndWindowRule(
         RelBuilderFactory relBuilderFactory) {
-      this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class));
+      this(ProjectToLogicalProjectAndWindowRuleConfig.DEFAULT
+          .withRelBuilderFactory(relBuilderFactory)
+          .as(ProjectToLogicalProjectAndWindowRuleConfig.class));
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -184,14 +182,15 @@ public abstract class ProjectToWindowRule
     }
 
     /** Rule configuration. */
-    public interface Config extends ProjectToWindowRule.Config {
-      Config DEFAULT = EMPTY
-          .withOperandSupplier(b ->
-              b.operand(Project.class)
-                  .predicate(Project::containsOver)
-                  .anyInputs())
-          .withDescription("ProjectToWindowRule:project")
-          .as(Config.class);
+    @Value.Immutable
+    public interface ProjectToLogicalProjectAndWindowRuleConfig extends ProjectToWindowRule.Config {
+      ProjectToLogicalProjectAndWindowRuleConfig DEFAULT =
+          ImmutableProjectToLogicalProjectAndWindowRuleConfig.of()
+              .withOperandSupplier(b ->
+                  b.operand(Project.class)
+                      .predicate(Project::containsOver)
+                      .anyInputs())
+              .withDescription("ProjectToWindowRule:project");
 
       @Override default ProjectToLogicalProjectAndWindowRule toRule() {
         return new ProjectToLogicalProjectAndWindowRule(this);

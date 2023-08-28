@@ -34,7 +34,6 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -47,7 +46,7 @@ public class RelMdMinRowCount
     implements MetadataHandler<BuiltInMetadata.MinRowCount> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.MIN_ROW_COUNT.method, new RelMdMinRowCount());
+          new RelMdMinRowCount(), BuiltInMetadata.MinRowCount.Handler.class);
 
   //~ Methods ----------------------------------------------------------------
 

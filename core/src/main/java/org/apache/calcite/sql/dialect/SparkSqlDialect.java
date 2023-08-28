@@ -78,6 +78,10 @@ public class SparkSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
+
   @Override public boolean supportsGroupByWithCube() {
     return true;
   }

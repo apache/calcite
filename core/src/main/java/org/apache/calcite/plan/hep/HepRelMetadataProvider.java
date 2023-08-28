@@ -23,12 +23,14 @@ import org.apache.calcite.rel.metadata.MetadataHandler;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.UnboundMetadata;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
@@ -36,6 +38,7 @@ import static java.util.Objects.requireNonNull;
  * HepRelMetadataProvider implements the {@link RelMetadataProvider} interface
  * by combining metadata from the rels inside of a {@link HepRelVertex}.
  */
+@Deprecated // to be removed before 2.0
 class HepRelMetadataProvider implements RelMetadataProvider {
   //~ Methods ----------------------------------------------------------------
 
@@ -47,6 +50,7 @@ class HepRelMetadataProvider implements RelMetadataProvider {
     return 107;
   }
 
+  @Deprecated // to be removed before 2.0
   @Override public <@Nullable M extends @Nullable Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
@@ -66,8 +70,14 @@ class HepRelMetadataProvider implements RelMetadataProvider {
     };
   }
 
+  @Deprecated // to be removed before 2.0
   @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     return ImmutableMultimap.of();
+  }
+
+  @Override public List<MetadataHandler<?>> handlers(
+      Class<? extends MetadataHandler<?>> handlerClass) {
+    return ImmutableList.of();
   }
 }

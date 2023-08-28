@@ -73,7 +73,7 @@ class DocumentationTest {
         if (line.equals("{% comment %} start {% endcomment %}")) {
           ++stage;
           SqlAbstractParserImpl.Metadata metadata =
-              new SqlParserTest().getSqlParser("").getMetadata();
+              new SqlParserTest().fixture().parser().getMetadata();
           int z = 0;
           for (String s : metadata.getTokens()) {
             if (z++ > 0) {

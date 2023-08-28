@@ -33,6 +33,8 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that pushes a {@link org.apache.calcite.rel.core.Sort} past a
  * {@link org.apache.calcite.rel.core.Join}.
@@ -43,6 +45,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see CoreRules#SORT_JOIN_TRANSPOSE
  */
+@Value.Enclosing
 public class SortJoinTransposeRule
     extends RelRule<SortJoinTransposeRule.Config>
     implements TransformationRule {
@@ -164,8 +167,9 @@ public class SortJoinTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableSortJoinTransposeRule.Config.of()
         .withOperandFor(LogicalSort.class, LogicalJoin.class);
 
     @Override default SortJoinTransposeRule toRule() {

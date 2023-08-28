@@ -287,8 +287,16 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
       if (resultType == null) {
         resultType = type;
-        if (resultType.getSqlTypeName() == SqlTypeName.ROW) {
+        SqlTypeName sqlTypeName = resultType.getSqlTypeName();
+        if (sqlTypeName == SqlTypeName.ROW) {
           return leastRestrictiveStructuredType(types);
+        }
+        if (sqlTypeName == SqlTypeName.ARRAY
+            || sqlTypeName == SqlTypeName.MULTISET) {
+          return leastRestrictiveArrayMultisetType(types, sqlTypeName);
+        }
+        if (sqlTypeName == SqlTypeName.MAP) {
+          return leastRestrictiveMapType(types, sqlTypeName);
         }
       }
 
@@ -562,9 +570,20 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
   /** The unknown type. Similar to the NULL type, but is only equal to
    * itself. */
-  private static class UnknownSqlType extends BasicSqlType {
+  static class UnknownSqlType extends BasicSqlType {
     UnknownSqlType(RelDataTypeFactory typeFactory) {
-      super(typeFactory.getTypeSystem(), SqlTypeName.NULL);
+      this(typeFactory.getTypeSystem(), false);
+    }
+
+    private UnknownSqlType(RelDataTypeSystem typeSystem, boolean nullable) {
+      super(typeSystem, SqlTypeName.UNKNOWN, nullable);
+    }
+
+    @Override BasicSqlType createWithNullability(boolean nullable) {
+      if (nullable == this.isNullable) {
+        return this;
+      }
+      return new UnknownSqlType(this.typeSystem, nullable);
     }
 
     @Override protected void generateTypeString(StringBuilder sb,

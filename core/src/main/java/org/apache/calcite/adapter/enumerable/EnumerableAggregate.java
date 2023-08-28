@@ -63,6 +63,10 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
         throw new InvalidRelException(
             "distinct aggregation not supported");
       }
+      if (aggCall.distinctKeys != null) {
+        throw new InvalidRelException(
+            "within-distinct aggregation not supported");
+      }
       AggImplementor implementor2 =
           RexImpTable.INSTANCE.get(aggCall.getAggregation(), false);
       if (implementor2 == null) {

@@ -35,6 +35,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that converts
  * a {@link org.apache.calcite.rel.core.Filter}
@@ -51,6 +53,7 @@ import com.google.common.collect.ImmutableList;
  * @see CoreRules#FILTER_SCAN
  * @see CoreRules#FILTER_INTERPRETER_SCAN
  */
+@Value.Enclosing
 public class FilterTableScanRule
     extends RelRule<FilterTableScanRule.Config> {
   @SuppressWarnings("Guava")
@@ -65,14 +68,14 @@ public class FilterTableScanRule
 
   @Deprecated // to be removed before 2.0
   protected FilterTableScanRule(RelOptRuleOperand operand, String description) {
-    this(Config.EMPTY.as(Config.class));
+    this(ImmutableFilterTableScanRule.Config.of().as(Config.class));
     throw new UnsupportedOperationException();
   }
 
   @Deprecated // to be removed before 2.0
   protected FilterTableScanRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, String description) {
-    this(Config.EMPTY.as(Config.class));
+    this(ImmutableFilterTableScanRule.Config.of().as(Config.class));
     throw new UnsupportedOperationException();
   }
 
@@ -125,22 +128,21 @@ public class FilterTableScanRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableFilterTableScanRule.Config.of()
         .withOperandSupplier(b0 ->
             b0.operand(Filter.class).oneInput(b1 ->
                 b1.operand(TableScan.class)
-                    .predicate(FilterTableScanRule::test).noInputs()))
-        .as(Config.class);
+                    .predicate(FilterTableScanRule::test).noInputs()));
 
-    Config INTERPRETER = EMPTY
+    Config INTERPRETER = ImmutableFilterTableScanRule.Config.of()
         .withOperandSupplier(b0 ->
             b0.operand(Filter.class).oneInput(b1 ->
                 b1.operand(EnumerableInterpreter.class).oneInput(b2 ->
                     b2.operand(TableScan.class)
                         .predicate(FilterTableScanRule::test).noInputs())))
-        .withDescription("FilterTableScanRule:interpreter")
-        .as(Config.class);
+        .withDescription("FilterTableScanRule:interpreter");
 
     @Override default FilterTableScanRule toRule() {
       return new FilterTableScanRule(this);

@@ -657,10 +657,9 @@ public class RelMdUtil {
       RelOptUtil.classifyFilters(
           joinRel,
           predList,
-          joinType,
-          !joinType.isOuterJoin(),
-          !joinType.generatesNullsOnLeft(),
-          !joinType.generatesNullsOnRight(),
+          joinType.canPushIntoFromAbove(),
+          joinType.canPushLeftFromAbove(),
+          joinType.canPushRightFromAbove(),
           joinFilters,
           leftFilters,
           rightFilters);

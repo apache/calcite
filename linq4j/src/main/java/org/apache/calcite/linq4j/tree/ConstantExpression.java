@@ -136,6 +136,10 @@ public class ConstantExpression extends Expression {
       write(writer, value, primitive2.primitiveClass);
       return writer.append(")");
     }
+    Primitive primitive3 = Primitive.ofBox(value.getClass());
+    if (Object.class.equals(type) && primitive3 != null) {
+      return write(writer, value, primitive3.primitiveClass);
+    }
     if (value instanceof Enum) {
       return writer.append(((Enum) value).getDeclaringClass())
           .append('.')
@@ -206,6 +210,7 @@ public class ConstantExpression extends Expression {
           "(\n", ",\n", ")");
       return writer;
     }
+
     return writer.append(value);
   }
 

@@ -30,6 +30,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -95,9 +96,9 @@ class ComboRuleTest {
   /** Rule that adds an intermediate node above the {@link PhysLeafRel}. */
   public static class AddIntermediateNodeRule
       extends RelRule<AddIntermediateNodeRule.Config> {
-    static final AddIntermediateNodeRule INSTANCE = Config.EMPTY
+    static final AddIntermediateNodeRule INSTANCE = ImmutableAddIntermediateNodeRuleConfig.builder()
+        .build()
         .withOperandSupplier(b -> b.operand(NoneLeafRel.class).anyInputs())
-        .as(Config.class)
         .toRule();
 
     AddIntermediateNodeRule(Config config) {
@@ -118,6 +119,8 @@ class ComboRuleTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(typeImmutable = "ImmutableAddIntermediateNodeRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default AddIntermediateNodeRule toRule() {
         return new AddIntermediateNodeRule(this);
@@ -128,12 +131,12 @@ class ComboRuleTest {
   /** Matches {@link PhysSingleRel}-{@link IntermediateNode}-Any
    * and converts to {@link IntermediateNode}-{@link PhysSingleRel}-Any. */
   public static class ComboRule extends RelRule<ComboRule.Config> {
-    static final ComboRule INSTANCE = Config.EMPTY
+    static final ComboRule INSTANCE = ImmutableComboRuleConfig.builder()
+        .build()
         .withOperandSupplier(b0 ->
             b0.operand(PhysSingleRel.class).oneInput(b1 ->
                 b1.operand(IntermediateNode.class).oneInput(b2 ->
                     b2.operand(RelNode.class).anyInputs())))
-        .as(Config.class)
         .toRule();
 
     ComboRule(Config config) {
@@ -167,6 +170,8 @@ class ComboRuleTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(typeImmutable = "ImmutableComboRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default ComboRule toRule() {
         return new ComboRule(this);

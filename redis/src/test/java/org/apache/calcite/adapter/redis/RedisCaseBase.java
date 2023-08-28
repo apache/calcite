@@ -16,13 +16,20 @@
  */
 package org.apache.calcite.adapter.redis;
 
+import org.apache.calcite.config.CalciteSystemProperty;
+
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.testcontainers.DockerClientFactory;
+import org.testcontainers.containers.GenericContainer;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.logging.Logger;
 
 import redis.embedded.RedisServer;
 
@@ -32,20 +39,46 @@ import redis.embedded.RedisServer;
 @Execution(ExecutionMode.SAME_THREAD)
 public abstract class RedisCaseBase {
 
-  public static final int PORT = getAvailablePort();
-  public static final String HOST = "127.0.0.1";
+  private static final int PORT = getAvailablePort();
+  private static final String HOST = "127.0.0.1";
   private static final String MAX_HEAP = "maxheap 51200000";
 
+  /**
+   * The Redis Docker container.
+   *
+   * Uses the Redis 2.8.19 version to be aligned with the embedded server.
+   */
+  private static final GenericContainer<?> REDIS_CONTAINER =
+      new GenericContainer<>("redis:2.8.19").withExposedPorts(6379);
+
+  /**
+   * The embedded Redis server.
+   *
+   * With the existing dependencies (com.github.kstyrc:embedded-redis:0.6) it uses by default
+   * Redis 2.8.19 version.
+   */
   private static RedisServer redisServer;
+
+  @BeforeAll
+  public static void startRedisContainer() {
+    // Check if docker is running, and start container if possible
+    if (CalciteSystemProperty.TEST_WITH_DOCKER_CONTAINER.value()
+        && DockerClientFactory.instance().isDockerAvailable()) {
+      REDIS_CONTAINER.start();
+    }
+  }
 
   @BeforeEach
   public void createRedisServer() throws IOException {
-    if (isWindows()) {
-      redisServer = RedisServer.builder().port(PORT).setting(MAX_HEAP).build();
-    } else {
-      redisServer = new RedisServer(PORT);
+    if (!REDIS_CONTAINER.isRunning()) {
+      if (isWindows()) {
+        redisServer = RedisServer.builder().port(PORT).setting(MAX_HEAP).build();
+      } else {
+        redisServer = new RedisServer(PORT);
+      }
+      Logger.getAnonymousLogger().info("Not using Docker, starting RedisMiniServer");
+      redisServer.start();
     }
-    redisServer.start();
   }
 
   private static boolean isWindows() {
@@ -54,7 +87,9 @@ public abstract class RedisCaseBase {
 
   @AfterEach
   public void stopRedisServer() {
-    redisServer.stop();
+    if (!REDIS_CONTAINER.isRunning()) {
+      redisServer.stop();
+    }
   }
 
   /**
@@ -75,4 +110,20 @@ public abstract class RedisCaseBase {
 
     throw new RuntimeException("Could not find an available port on the host.");
   }
+
+  @AfterAll
+  public static void stopRedisContainer() {
+    if (REDIS_CONTAINER != null && REDIS_CONTAINER.isRunning()) {
+      REDIS_CONTAINER.stop();
+    }
+  }
+
+  static int getRedisServerPort() {
+    return  REDIS_CONTAINER.isRunning() ? REDIS_CONTAINER.getMappedPort(6379) : PORT;
+  }
+
+  static String getRedisServerHost() {
+    return REDIS_CONTAINER.isRunning() ? REDIS_CONTAINER.getContainerIpAddress() : HOST;
+  }
+
 }

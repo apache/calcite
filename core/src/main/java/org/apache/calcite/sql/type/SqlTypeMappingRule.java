@@ -44,9 +44,9 @@ public interface SqlTypeMappingRule {
     Objects.requireNonNull(to, "to");
     Objects.requireNonNull(from, "from");
 
-    if (to == SqlTypeName.NULL) {
+    if (to == SqlTypeName.NULL || to == SqlTypeName.UNKNOWN) {
       return false;
-    } else if (from == SqlTypeName.NULL) {
+    } else if (from == SqlTypeName.NULL || from == SqlTypeName.UNKNOWN) {
       return true;
     }
 

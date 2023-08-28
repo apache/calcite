@@ -31,7 +31,6 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -69,7 +68,6 @@ public final class LogicalFilter extends Filter {
       ImmutableSet<CorrelationId> variablesSet) {
     super(cluster, traitSet, child, condition);
     this.variablesSet = Objects.requireNonNull(variablesSet, "variablesSet");
-    assert isValid(Litmus.THROW, null);
   }
 
   @Deprecated // to be removed before 2.0

@@ -23,6 +23,8 @@ import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that removes a trivial
  * {@link org.apache.calcite.rel.logical.LogicalCalc}.
@@ -33,6 +35,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see ProjectRemoveRule
  */
+@Value.Enclosing
 public class CalcRemoveRule extends RelRule<CalcRemoveRule.Config>
     implements SubstitutionRule {
 
@@ -61,8 +64,9 @@ public class CalcRemoveRule extends RelRule<CalcRemoveRule.Config>
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableCalcRemoveRule.Config.of()
         .withOperandSupplier(b ->
             b.operand(LogicalCalc.class)
                 .predicate(calc -> calc.getProgram().isTrivial())

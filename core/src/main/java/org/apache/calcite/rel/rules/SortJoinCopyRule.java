@@ -31,6 +31,8 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,6 +51,7 @@ import java.util.List;
  *
  * @see CoreRules#SORT_JOIN_COPY
  */
+@Value.Enclosing
 public class SortJoinCopyRule
     extends RelRule<SortJoinCopyRule.Config>
     implements TransformationRule {
@@ -165,8 +168,9 @@ public class SortJoinCopyRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableSortJoinCopyRule.Config.of()
         .withOperandFor(LogicalSort.class, LogicalJoin.class);
 
     @Override default SortJoinCopyRule toRule() {

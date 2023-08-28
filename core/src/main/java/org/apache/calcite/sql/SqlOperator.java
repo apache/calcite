@@ -33,6 +33,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
@@ -274,7 +275,8 @@ public abstract class SqlOperator {
       SqlParserPos pos,
       @Nullable SqlNode... operands) {
     pos = pos.plusAll(operands);
-    return new SqlBasicCall(this, operands, pos, false, functionQualifier);
+    return new SqlBasicCall(this, ImmutableNullableList.copyOf(operands), pos,
+        functionQualifier);
   }
 
   /** Not supported. Choose between
@@ -965,8 +967,29 @@ public abstract class SqlOperator {
    * {@code SqlStdOperatorTable.NOT_LIKE}, and vice versa.
    *
    * <p>By default, returns {@code null}, which means there is no inverse
-   * operator. */
+   * operator.
+   *
+   * @see #reverse */
   public @Nullable SqlOperator not() {
+    return null;
+  }
+
+  /** Returns the operator that has the same effect as this operator
+   * if its arguments are reversed.
+   *
+   * <p>For example, {@code SqlStdOperatorTable.GREATER_THAN.reverse()} returns
+   * {@code SqlStdOperatorTable.LESS_THAN}, and vice versa,
+   * because {@code a > b} is equivalent to {@code b < a}.
+   *
+   * <p>{@code SqlStdOperatorTable.EQUALS.reverse()} returns itself.
+   *
+   * <p>By default, returns {@code null}, which means there is no inverse
+   * operator.
+   *
+   * @see SqlOperator#not()
+   * @see SqlKind#reverse()
+   */
+  public @Nullable SqlOperator reverse() {
     return null;
   }
 

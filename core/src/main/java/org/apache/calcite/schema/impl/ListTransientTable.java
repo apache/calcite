@@ -49,8 +49,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * {@link TransientTable} backed by a Java list. It will be automatically added to the
  * current schema when {@link #scan(DataContext)} method gets called.
@@ -61,7 +59,9 @@ import static java.util.Objects.requireNonNull;
 public class ListTransientTable extends AbstractQueryableTable
     implements TransientTable, ModifiableTable, ScannableTable {
   private static final Type TYPE = Object[].class;
+  @SuppressWarnings("rawtypes")
   private final List rows = new ArrayList();
+  @SuppressWarnings({"unused", "FieldCanBeLocal"})
   private final String name;
   private final RelDataType protoRowType;
 
@@ -84,20 +84,19 @@ public class ListTransientTable extends AbstractQueryableTable
         updateColumnList, sourceExpressionList, flattened);
   }
 
+  @SuppressWarnings("rawtypes")
   @Override public Collection getModifiableCollection() {
     return rows;
   }
 
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-    // add the table into the schema, so that it is accessible by any potential operator
-    requireNonNull(root.getRootSchema(), "root.getRootSchema()")
-        .add(name, this);
 
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
 
     return new AbstractEnumerable<@Nullable Object[]>() {
       @Override public Enumerator<@Nullable Object[]> enumerator() {
         return new Enumerator<@Nullable Object[]>() {
+          @SuppressWarnings({"rawtypes", "unchecked"})
           private final List list = new ArrayList(rows);
           private int i = -1;
 
@@ -129,7 +128,7 @@ public class ListTransientTable extends AbstractQueryableTable
   }
 
   @Override public Expression getExpression(SchemaPlus schema, String tableName,
-                                  Class clazz) {
+      @SuppressWarnings("rawtypes") Class clazz) {
     return Schemas.tableExpression(schema, elementType, tableName, clazz);
   }
 

@@ -31,6 +31,8 @@ import org.apache.calcite.util.ImmutableIntList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,6 +52,7 @@ import java.util.List;
  *
  * @see CoreRules#SEMI_JOIN_JOIN_TRANSPOSE
  */
+@Value.Enclosing
 public class SemiJoinJoinTransposeRule
     extends RelRule<SemiJoinJoinTransposeRule.Config>
     implements TransformationRule {
@@ -221,8 +224,9 @@ public class SemiJoinJoinTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableSemiJoinJoinTransposeRule.Config.of()
         .withOperandFor(LogicalJoin.class, Join.class);
 
     @Override default SemiJoinJoinTransposeRule toRule() {

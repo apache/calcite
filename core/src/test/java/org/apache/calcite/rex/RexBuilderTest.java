@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlCollation;
@@ -791,5 +792,24 @@ class RexBuilderTest {
     RexFieldAccess fieldAccess = new RexFieldAccess(inputRef, field);
     RexChecker checker = new RexChecker(structType, () -> null, Litmus.THROW);
     assertThat(fieldAccess.accept(checker), is(true));
+  }
+
+  /** Emulate a user defined type. */
+  private static class UDT extends RelDataTypeImpl {
+    UDT() {
+      this.digest = "(udt)NOT NULL";
+    }
+
+    @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+      sb.append("udt");
+    }
+  }
+
+  @Test void testUDTLiteralDigest() {
+    RexLiteral literal = new RexLiteral(new BigDecimal(0L), new UDT(), SqlTypeName.BIGINT);
+
+    // when the space before "NOT NULL" is missing, the digest is not correct
+    // and the suffix should not be removed.
+    assertThat(literal.digest, is("0L:(udt)NOT NULL"));
   }
 }

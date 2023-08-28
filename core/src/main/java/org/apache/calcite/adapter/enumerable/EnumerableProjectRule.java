@@ -30,7 +30,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
  */
 class EnumerableProjectRule extends ConverterRule {
   /** Default configuration. */
-  static final Config DEFAULT_CONFIG = Config.EMPTY
+  static final Config DEFAULT_CONFIG = Config.INSTANCE
       .as(Config.class)
       .withConversion(LogicalProject.class, p -> !p.containsOver(),
           Convention.NONE, EnumerableConvention.INSTANCE,

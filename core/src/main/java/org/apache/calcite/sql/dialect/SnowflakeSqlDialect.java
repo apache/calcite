@@ -35,4 +35,8 @@ public class SnowflakeSqlDialect extends SqlDialect {
   public SnowflakeSqlDialect(Context context) {
     super(context);
   }
+
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
 }

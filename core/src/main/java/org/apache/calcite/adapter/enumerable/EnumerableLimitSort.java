@@ -20,15 +20,10 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rex.RexDynamicParam;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
@@ -127,32 +122,5 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
                             Expressions.constant(fetchVal)))
             )));
     return implementor.result(physType, builder.toBlock());
-  }
-
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
-      RelMetadataQuery mq) {
-    final double rowCount = mq.getRowCount(this.input).doubleValue();
-    double toSort = getValue(this.fetch, rowCount);
-    if (this.offset != null) {
-      toSort += getValue(this.offset, rowCount);
-    }
-    // we need to sort at most rowCount rows
-    toSort = Math.min(rowCount, toSort);
-
-    // we need to process rowCount rows, and for every row
-    // we search the key in a TreeMap with at most toSort entries
-    final double lookup = Math.max(1., Math.log(toSort));
-    final double bytesPerRow = this.getRowType().getFieldCount() * 4.;
-    final double cpu = (rowCount * lookup) * bytesPerRow;
-
-    RelOptCost cost = planner.getCostFactory().makeCost(rowCount, cpu, 0);
-    return cost;
-  }
-
-  private static double getValue(@Nullable RexNode r, double defaultValue) {
-    if (r == null || r instanceof RexDynamicParam) {
-      return defaultValue;
-    }
-    return RexLiteral.intValue(r);
   }
 }

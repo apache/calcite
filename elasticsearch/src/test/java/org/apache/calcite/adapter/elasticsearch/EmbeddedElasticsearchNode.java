@@ -19,13 +19,13 @@ package org.apache.calcite.adapter.elasticsearch;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.base.Preconditions;
-import com.google.common.io.Files;
 
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
@@ -34,6 +34,8 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.Netty4Plugin;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
@@ -48,7 +50,7 @@ import static java.util.Collections.emptyMap;
 class EmbeddedElasticsearchNode implements AutoCloseable {
 
   private final Node node;
-  private volatile boolean  isStarted;
+  private volatile boolean isStarted;
 
   private EmbeddedElasticsearchNode(Node node) {
     this.node = Objects.requireNonNull(node, "node");
@@ -75,10 +77,16 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
    * @return instance which needs to be explicitly started (using {@link #start()})
    */
   public static synchronized EmbeddedElasticsearchNode create() {
-    File data = Files.createTempDir();
-    data.deleteOnExit();
-    File home = Files.createTempDir();
-    home.deleteOnExit();
+    File data;
+    File home;
+    try {
+      data = Files.createTempDirectory("es-data").toFile();
+      data.deleteOnExit();
+      home = Files.createTempDirectory("es-home").toFile();
+      home.deleteOnExit();
+    } catch (IOException e) {
+      throw TestUtil.rethrow(e);
+    }
 
     Settings settings = Settings.builder()
         .put("node.name", "fake-elastic")
@@ -119,7 +127,8 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
           + response.getNodes().size());
     }
     NodeInfo node = response.getNodes().get(0);
-    return node.getHttp().address().boundAddresses()[0];
+    HttpInfo httpInfo = node.getInfo(HttpInfo.class);
+    return httpInfo.address().boundAddresses()[0];
   }
 
   /**

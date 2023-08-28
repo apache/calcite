@@ -36,7 +36,7 @@ public abstract class CsvTable extends AbstractTable {
   protected final Source source;
   protected final RelProtoDataType protoRowType;
   private RelDataType rowType;
-  private List<CsvFieldType> fieldTypes;
+  private List<RelDataType> fieldTypes;
 
   /** Creates a CsvTable. */
   CsvTable(Source source, RelProtoDataType protoRowType) {
@@ -56,7 +56,7 @@ public abstract class CsvTable extends AbstractTable {
   }
 
   /** Returns the field types of this CSV table. */
-  public List<CsvFieldType> getFieldTypes(RelDataTypeFactory typeFactory) {
+  public List<RelDataType> getFieldTypes(RelDataTypeFactory typeFactory) {
     if (fieldTypes == null) {
       fieldTypes = new ArrayList<>();
       CsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source,

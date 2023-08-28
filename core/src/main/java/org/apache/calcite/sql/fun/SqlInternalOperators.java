@@ -18,8 +18,6 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlInternalOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -82,6 +80,11 @@ public abstract class SqlInternalOperators {
         }
       };
 
+  /** "$THROW_UNLESS(condition, message)" throws an error with the given message
+   * if condition is not TRUE, otherwise returns TRUE. */
+  public static final SqlInternalOperator THROW_UNLESS =
+      new SqlInternalOperator("$THROW_UNLESS", SqlKind.OTHER);
+
   /** An IN operator for Druid.
    *
    * <p>Unlike the regular
@@ -111,13 +114,5 @@ public abstract class SqlInternalOperators {
   public static final SqlOperator SEPARATOR =
       new SqlInternalOperator("SEPARATOR", SqlKind.SEPARATOR, 20, false,
           ReturnTypes.ARG0, InferTypes.RETURN_TYPE, OperandTypes.ANY);
-
-  /** All implementations of {@code SUBSTRING} and {@code SUBSTR} map onto
-   * this. */
-  // TODO:
-  public static final SqlFunction SUBSTRING_INTERNAL =
-      new SqlFunction("$SUBSTRING", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null,
-          OperandTypes.STRING_INTEGER_INTEGER, SqlFunctionCategory.SYSTEM);
 
 }

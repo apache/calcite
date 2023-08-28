@@ -17,7 +17,6 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.util.BuiltInMethod;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -34,9 +33,7 @@ public class RelMdMemory implements MetadataHandler<BuiltInMetadata.Memory> {
    * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Memory}. */
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(new RelMdMemory(),
-          BuiltInMethod.MEMORY.method,
-          BuiltInMethod.CUMULATIVE_MEMORY_WITHIN_PHASE.method,
-          BuiltInMethod.CUMULATIVE_MEMORY_WITHIN_PHASE_SPLIT.method);
+          BuiltInMetadata.Memory.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 

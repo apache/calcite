@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.xml.transform.ErrorListener;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
@@ -61,7 +62,11 @@ public class XmlFunctions {
   private static final ThreadLocal<@Nullable XPathFactory> XPATH_FACTORY =
       ThreadLocal.withInitial(XPathFactory::newInstance);
   private static final ThreadLocal<@Nullable TransformerFactory> TRANSFORMER_FACTORY =
-      ThreadLocal.withInitial(TransformerFactory::newInstance);
+      ThreadLocal.withInitial(() -> {
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        transformerFactory.setErrorListener(new InternalErrorListener());
+        return transformerFactory;
+      });
 
   private static final Pattern VALID_NAMESPACE_PATTERN = Pattern
       .compile("^(([0-9a-zA-Z:_-]+=\"[^\"]*\")( [0-9a-zA-Z:_-]+=\"[^\"]*\")*)$");
@@ -107,6 +112,7 @@ public class XmlFunctions {
           .newTransformer(xsltSource);
       final StringWriter writer = new StringWriter();
       final StreamResult result = new StreamResult(writer);
+      transformer.setErrorListener(new InternalErrorListener());
       transformer.transform(xmlSource, result);
       return writer.toString();
     } catch (TransformerConfigurationException e) {
@@ -203,8 +209,26 @@ public class XmlFunctions {
   private static String convertNodeToString(Node node) throws TransformerException {
     StringWriter writer = new StringWriter();
     Transformer transformer = castNonNull(TRANSFORMER_FACTORY.get()).newTransformer();
+    transformer.setErrorListener(new InternalErrorListener());
     transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
     transformer.transform(new DOMSource(node), new StreamResult(writer));
     return writer.toString();
+  }
+
+  /** The internal default ErrorListener for Transformer. Just rethrows errors to
+   * discontinue the XML transformation. */
+  private static class InternalErrorListener implements ErrorListener {
+
+    @Override public void warning(TransformerException exception) throws TransformerException {
+      throw exception;
+    }
+
+    @Override public void error(TransformerException exception) throws TransformerException {
+      throw exception;
+    }
+
+    @Override public void fatalError(TransformerException exception) throws TransformerException {
+      throw exception;
+    }
   }
 }

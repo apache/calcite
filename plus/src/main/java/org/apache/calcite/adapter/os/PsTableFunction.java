@@ -42,8 +42,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * Table function that executes the OS "ps" command
  * to list processes.
@@ -59,7 +57,7 @@ public class PsTableFunction {
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
       @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+        JavaTypeFactory typeFactory = root.getTypeFactory();
         final RelDataType rowType = getRowType(typeFactory);
         final List<String> fieldNames =
             ImmutableList.copyOf(rowType.getFieldNames());

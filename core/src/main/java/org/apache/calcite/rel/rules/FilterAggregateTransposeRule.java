@@ -35,6 +35,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,6 +47,7 @@ import java.util.List;
  * @see org.apache.calcite.rel.rules.AggregateFilterTransposeRule
  * @see CoreRules#FILTER_AGGREGATE_TRANSPOSE
  */
+@Value.Enclosing
 public class FilterAggregateTransposeRule
     extends RelRule<FilterAggregateTransposeRule.Config>
     implements TransformationRule {
@@ -147,8 +150,9 @@ public class FilterAggregateTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableFilterAggregateTransposeRule.Config.of()
         .withOperandFor(Filter.class, Aggregate.class);
 
     @Override default FilterAggregateTransposeRule toRule() {

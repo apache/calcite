@@ -362,12 +362,12 @@ A scalar sub-query is a sub-query used as an expression.
 If the sub-query returns no rows, the value is NULL; if it
 returns more than one row, it is an error.
 
-IN, EXISTS and scalar sub-queries can occur
+IN, EXISTS, UNIQUE and scalar sub-queries can occur
 in any place where an expression can occur (such as the SELECT clause,
 WHERE clause, ON clause of a JOIN, or as an argument to an aggregate
 function).
 
-An IN, EXISTS or scalar sub-query may be correlated; that is, it
+An IN, EXISTS, UNIQUE or scalar sub-query may be correlated; that is, it
 may refer to tables in the FROM clause of an enclosing query.
 
 *selectWithoutFrom* is equivalent to VALUES,
@@ -859,6 +859,7 @@ RETURNING,
 **RETURNS**,
 **REVOKE**,
 **RIGHT**,
+RLIKE,
 ROLE,
 **ROLLBACK**,
 **ROLLUP**,
@@ -1149,7 +1150,8 @@ Note:
 
 | Type     | Description                | Example literals
 |:-------- |:---------------------------|:---------------
-| ANY      | A value of an unknown type |
+| ANY      | The union of all types |
+| UNKNOWN  | A value of an unknown type; used as a placeholder |
 | ROW      | Row with 1 or more columns | Example: Row(f0 int null, f1 varchar)
 | MAP      | Collection of keys mapped to values |
 | MULTISET | Unordered collection that may contain duplicates | Example: int multiset
@@ -1202,13 +1204,13 @@ The operator precedence and associativity, highest to lowest.
 | * / % &#124;&#124;                                | left
 | + -                                               | left
 | BETWEEN, IN, LIKE, SIMILAR, OVERLAPS, CONTAINS etc. | -
-| < > = <= >= <> !=                                 | left
+| < > = <= >= <> != <=>                             | left
 | IS NULL, IS FALSE, IS NOT TRUE etc.               | -
 | NOT                                               | right
 | AND                                               | left
 | OR                                                | left
 
-Note that `::` is dialect-specific, but is shown in this table for
+Note that `::`,`<=>` is dialect-specific, but is shown in this table for
 completeness.
 
 ### Comparison operators
@@ -1222,6 +1224,7 @@ completeness.
 | value1 >= value2                                  | Greater than or equal
 | value1 < value2                                   | Less than
 | value1 <= value2                                  | Less than or equal
+| value1 <=> value2                                 | Whether two values are equal, treating null values as the same
 | value IS NULL                                     | Whether *value* is null
 | value IS NOT NULL                                 | Whether *value* is not null
 | value1 IS DISTINCT FROM value2                    | Whether two values are not equal, treating null values as the same
@@ -1240,6 +1243,7 @@ completeness.
 | value comparison ANY (sub-query)                  | Synonym for `SOME`
 | value comparison ALL (sub-query)                  | Whether *value* *comparison* every row returned by *sub-query*
 | EXISTS (sub-query)                                | Whether *sub-query* returns at least one row
+| UNIQUE (sub-query)                                | Whether the rows returned by *sub-query* are unique (ignoring null values)
 
 {% highlight sql %}
 comp:
@@ -1249,6 +1253,7 @@ comp:
   |   >=
   |   <
   |   <=
+  |   <=>
 {% endhighlight %}
 
 ### Logical operators
@@ -1796,7 +1801,8 @@ Syntax:
 {% highlight sql %}
 aggregateCall:
       agg '(' [ ALL | DISTINCT ] value [, value ]* ')'
-      [ WITHIN GROUP (ORDER BY orderItem [, orderItem ]*) ]
+      [ WITHIN DISTINCT '(' expression [, expression ]* ')' ]
+      [ WITHIN GROUP '(' ORDER BY orderItem [, orderItem ]* ')' ]
       [ FILTER '(' WHERE condition ')' ]
   |   agg '(' '*' ')' [ FILTER (WHERE condition) ]
 {% endhighlight %}
@@ -1810,6 +1816,9 @@ If `FILTER` is present, the aggregate function only considers rows for which
 If `DISTINCT` is present, duplicate argument values are eliminated before being
 passed to the aggregate function.
 
+If `WITHIN DISTINCT` is present, argument values are made distinct within
+each value of specified keys before being passed to the aggregate function.
+
 If `WITHIN GROUP` is present, the aggregate function sorts the input rows
 according to the `ORDER BY` clause inside `WITHIN GROUP` before aggregating
 values. `WITHIN GROUP` is only allowed for hypothetical set functions (`RANK`,
@@ -1819,33 +1828,34 @@ and `LISTAGG`).
 
 | Operator syntax                    | Description
 |:---------------------------------- |:-----------
-| COLLECT( [ ALL &#124; DISTINCT ] value)       | Returns a multiset of the values
-| LISTAGG( [ ALL &#124; DISTINCT ] value [, separator]) | Returns values concatenated into a string, delimited by separator (default ',')
-| COUNT( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
-| COUNT(*)                           | Returns the number of input rows
-| FUSION(multiset)                   | Returns the multiset union of *multiset* across all input values
-| INTERSECTION(multiset)             | Returns the multiset intersection of *multiset* across all input values
+| ANY_VALUE( [ ALL &#124; DISTINCT ] value)     | Returns one of the values of *value* across all input values; this is NOT specified in the SQL standard
 | APPROX_COUNT_DISTINCT(value [, value ]*)      | Returns the approximate number of distinct values of *value*; the database is allowed to use an approximation but is not required to
 | AVG( [ ALL &#124; DISTINCT ] numeric)         | Returns the average (arithmetic mean) of *numeric* across all input values
-| SUM( [ ALL &#124; DISTINCT ] numeric)         | Returns the sum of *numeric* across all input values
-| MAX( [ ALL &#124; DISTINCT ] value)           | Returns the maximum value of *value* across all input values
-| MIN( [ ALL &#124; DISTINCT ] value)           | Returns the minimum value of *value* across all input values
-| ANY_VALUE( [ ALL &#124; DISTINCT ] value)     | Returns one of the values of *value* across all input values; this is NOT specified in the SQL standard
-| SOME(condition)                               | Returns TRUE if one or more of the values of *condition* is TRUE
-| EVERY(condition)                              | Returns TRUE if all of the values of *condition* are TRUE
 | BIT_AND( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise AND of all non-null input values, or null if none; integer and binary types are supported
 | BIT_OR( [ ALL &#124; DISTINCT ] value)        | Returns the bitwise OR of all non-null input values, or null if none; integer and binary types are supported
 | BIT_XOR( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise XOR of all non-null input values, or null if none; integer and binary types are supported
+| COLLECT( [ ALL &#124; DISTINCT ] value)       | Returns a multiset of the values
+| COUNT(*)                                      | Returns the number of input rows
+| COUNT( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
+| COVAR_POP(numeric1, numeric2)                 | Returns the population covariance of the pair (*numeric1*, *numeric2*) across all input values
+| COVAR_SAMP(numeric1, numeric2)                | Returns the sample covariance of the pair (*numeric1*, *numeric2*) across all input values
+| EVERY(condition)                              | Returns TRUE if all of the values of *condition* are TRUE
+| FUSION(multiset)                              | Returns the multiset union of *multiset* across all input values
+| INTERSECTION(multiset)                        | Returns the multiset intersection of *multiset* across all input values
+| LISTAGG( [ ALL &#124; DISTINCT ] value [, separator]) | Returns values concatenated into a string, delimited by separator (default ',')
+| MAX( [ ALL &#124; DISTINCT ] value)           | Returns the maximum value of *value* across all input values
+| MIN( [ ALL &#124; DISTINCT ] value)           | Returns the minimum value of *value* across all input values
+| MODE(value)                                   | Returns the most frequent value of *value* across all input values
+| REGR_COUNT(numeric1, numeric2)                | Returns the number of rows where both dependent and independent expressions are not null
+| REGR_SXX(numeric1, numeric2)                  | Returns the sum of squares of the dependent expression in a linear regression model
+| REGR_SYY(numeric1, numeric2)                  | Returns the sum of squares of the independent expression in a linear regression model
+| SOME(condition)                               | Returns TRUE if one or more of the values of *condition* is TRUE
+| STDDEV( [ ALL &#124; DISTINCT ] numeric)      | Synonym for `STDDEV_SAMP`
 | STDDEV_POP( [ ALL &#124; DISTINCT ] numeric)  | Returns the population standard deviation of *numeric* across all input values
 | STDDEV_SAMP( [ ALL &#124; DISTINCT ] numeric) | Returns the sample standard deviation of *numeric* across all input values
-| STDDEV( [ ALL &#124; DISTINCT ] numeric)      | Synonym for `STDDEV_SAMP`
+| SUM( [ ALL &#124; DISTINCT ] numeric)         | Returns the sum of *numeric* across all input values
 | VAR_POP( [ ALL &#124; DISTINCT ] value)       | Returns the population variance (square of the population standard deviation) of *numeric* across all input values
 | VAR_SAMP( [ ALL &#124; DISTINCT ] numeric)    | Returns the sample variance (square of the sample standard deviation) of *numeric* across all input values
-| COVAR_POP(numeric1, numeric2)      | Returns the population covariance of the pair (*numeric1*, *numeric2*) across all input values
-| COVAR_SAMP(numeric1, numeric2)     | Returns the sample covariance of the pair (*numeric1*, *numeric2*) across all input values
-| REGR_COUNT(numeric1, numeric2)     | Returns the number of rows where both dependent and independent expressions are not null
-| REGR_SXX(numeric1, numeric2)       | Returns the sum of squares of the dependent expression in a linear regression model
-| REGR_SYY(numeric1, numeric2)       | Returns the sum of squares of the independent expression in a linear regression model
 
 Not implemented:
 
@@ -1855,6 +1865,21 @@ Not implemented:
 * REGR_R2(numeric1, numeric2)
 * REGR_SLOPE(numeric1, numeric2)
 * REGR_SXY(numeric1, numeric2)
+
+#### Ordered-Set Aggregate Functions
+
+The syntax is as for *aggregateCall*, except that `WITHIN GROUP` is
+required.
+
+In the following:
+
+* *fraction* is a numeric literal between 0 and 1, inclusive, and
+  represents a percentage
+
+| Operator syntax                    | Description
+|:---------------------------------- |:-----------
+| PERCENTILE_CONT(fraction) WITHIN GROUP (ORDER BY orderItem) | Returns a percentile based on a continuous distribution of the column values, interpolating between adjacent input items if needed
+| PERCENTILE_DISC(fraction) WITHIN GROUP (ORDER BY orderItem [, orderItem ]*) | Returns a percentile based on a discrete distribution of the column values returning the first input value whose position in the ordering equals or exceeds the specified fraction
 
 ### Window functions
 
@@ -2032,7 +2057,7 @@ completeness. Session is applied per product.
 **Note**: The `Tumble`, `Hop` and `Session` window table functions assign
 each row in the original table to a window. The output table has all
 the same columns as the original table plus two additional columns `window_start`
-and `window_end`, which repesent the start and end of the window interval, respectively.
+and `window_end`, which represent the start and end of the window interval, respectively.
 
 ### Grouped window functions
 **warning**: grouped window functions are deprecated.
@@ -2491,6 +2516,10 @@ semantics.
 | C | Operator syntax                                | Description
 |:- |:-----------------------------------------------|:-----------
 | p | expr :: type                                   | Casts *expr* to *type*
+| m | expr1 <=> expr2                                | Whether two values are equal, treating null values as the same, and it's similar to `IS NOT DISTINCT FROM`
+| b | ARRAY_CONCAT(array [, array ]*)                | Concatenates one or more arrays. If any input argument is `NULL` the function returns `NULL`
+| b | ARRAY_LENGTH(array)                            | Synonym for `CARDINALITY`
+| b | ARRAY_REVERSE(array)                           | Reverses elements of *array*
 | o | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
 | o | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | o | CONCAT(string, string)                         | Concatenates two strings
@@ -2529,6 +2558,8 @@ semantics.
 | m p | REPEAT(string, integer)                      | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | m | REVERSE(string)                                | Returns *string* with the order of the characters reversed
 | m p | RIGHT(string, length)                        | Returns the rightmost *length* characters from the *string*
+| h s | string1 RLIKE string2                        | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
+| h s | string1 NOT RLIKE string2                    | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
 | o | RTRIM(string)                                  | Returns *string* with all blanks removed from the end
 | m p | SHA1(string)                                 | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | o | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
@@ -2604,7 +2635,7 @@ LIMIT 10;
 Result
 
 | c1     | c2    | c3      | c4      |
-| ------ | ----- | ------- | ------- |
+|:------:|:-----:|:-------:|:-------:|
 | OBJECT | ARRAY | INTEGER | BOOLEAN |
 
 ##### JSON_DEPTH example
@@ -2623,7 +2654,7 @@ LIMIT 10;
 Result
 
 | c1     | c2    | c3      | c4      |
-| ------ | ----- | ------- | ------- |
+|:------:|:-----:|:-------:|:-------:|
 | 3      | 2     | 1       | 1       |
 
 ##### JSON_LENGTH example
@@ -2642,7 +2673,7 @@ LIMIT 10;
 Result
 
 | c1     | c2    | c3      | c4      |
-| ------ | ----- | ------- | ------- |
+|:------:|:-----:|:-------:|:-------:|
 | 1      | 2     | 1       | 1       |
 
 ##### JSON_KEYS example
@@ -2650,7 +2681,7 @@ Result
 SQL
 
 {% highlight sql %}
-ELECT JSON_KEYS(v) AS c1,
+SELECT JSON_KEYS(v) AS c1,
   JSON_KEYS(v, 'lax $.a') AS c2,
   JSON_KEYS(v, 'lax $.b') AS c2,
   JSON_KEYS(v, 'strict $.a[0]') AS c3,
@@ -2662,7 +2693,7 @@ LIMIT 10;
  Result
 
 | c1         | c2   | c3    | c4   | c5   |
-| ---------- | ---- | ----- | ---- | ---- |
+|:----------:|:----:|:-----:|:----:|:----:|
 | ["a", "b"] | NULL | ["c"] | NULL | NULL |
 
 ##### JSON_REMOVE example
@@ -2678,7 +2709,7 @@ LIMIT 10;
  Result
 
 | c1         |
-| ---------- |
+|:----------:|
 | ["a", "d"] |
 
 
@@ -2698,7 +2729,7 @@ limit 10;
  Result
 
 | c1 | c2 | c3 | c4 |
-| -- | ---| ---| -- |
+|:--:|:---:|:---:|:--:|
 | 29 | 35 | 37 | 36 |
 
 
@@ -2718,7 +2749,7 @@ FROM (VALUES (1, 2, 3, 4, 5)) AS t(f1, f2, f3, f4, f5);
  Result
 
 | c1          | c2          | c3          | c4          | c5          |
-| ----------- | ----------- | ----------- | ----------- | ----------- |
+|:-----------:|:-----------:|:-----------:|:-----------:|:-----------:|
 | aa          | bb          | cc          | dd          | ee          |
 
 #### TRANSLATE example
@@ -2736,7 +2767,7 @@ FROM (VALUES (true)) AS t(f0);
 Result
 
 | c1          | c2          | c3          | c4          |
-| ----------- | ----------- | ----------- | ----------- |
+|:-----------:|:-----------:|:-----------:|:-----------:|
 | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d |
 
 Not implemented:

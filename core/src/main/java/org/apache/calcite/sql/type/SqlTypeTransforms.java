@@ -145,6 +145,8 @@ public abstract class SqlTypeTransforms {
             return SqlTypeName.ANY;
           case NULL:
             return SqlTypeName.NULL;
+          case UNKNOWN:
+            return SqlTypeName.UNKNOWN;
           default:
             throw Util.unexpected(sqlTypeName);
           }
@@ -181,6 +183,17 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform TO_ARRAY =
       (opBinding, typeToTransform) ->
           opBinding.getTypeFactory().createArrayType(typeToTransform, -1);
+
+  /**
+   * Parameter type-inference transform strategy that converts a two-field
+   * record type to a MAP type.
+   *
+   * @see org.apache.calcite.rel.type.RelDataTypeFactory#createMapType
+   */
+  public static final SqlTypeTransform TO_MAP =
+      (opBinding, typeToTransform) ->
+          SqlTypeUtil.createMapTypeFromRecord(opBinding.getTypeFactory(),
+              typeToTransform);
 
   /**
    * Parameter type-inference transform strategy where a derived type must be

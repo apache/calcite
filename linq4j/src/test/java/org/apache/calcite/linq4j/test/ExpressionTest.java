@@ -1357,6 +1357,21 @@ public class ExpressionTest {
         Expressions.toString(Expressions.constant(12.34, BigDecimal.class)));
   }
 
+  @Test void testObjectConstantExpression() {
+    assertEquals("(byte)100",
+        Expressions.toString(Expressions.constant((byte) 100, Object.class)));
+    assertEquals("(char)100",
+        Expressions.toString(Expressions.constant((char) 100, Object.class)));
+    assertEquals("(short)100",
+        Expressions.toString(Expressions.constant((short) 100, Object.class)));
+    assertEquals("100L",
+        Expressions.toString(Expressions.constant(100L, Object.class)));
+    assertEquals("100.0F",
+        Expressions.toString(Expressions.constant(100F, Object.class)));
+    assertEquals("100.0D",
+        Expressions.toString(Expressions.constant(100D, Object.class)));
+  }
+
   @Test void testClassDecl() {
     final NewExpression newExpression =
         Expressions.new_(

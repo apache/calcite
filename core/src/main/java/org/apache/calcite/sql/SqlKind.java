@@ -209,6 +209,9 @@ public enum SqlKind {
   /** {@code WITHIN GROUP} operator. */
   WITHIN_GROUP,
 
+  /** {@code WITHIN DISTINCT} operator. */
+  WITHIN_DISTINCT,
+
   /** Window specification. */
   WINDOW,
 
@@ -351,6 +354,9 @@ public enum SqlKind {
 
   /** {@code LIKE} operator. */
   LIKE,
+
+  /** {@code RLIKE} operator. */
+  RLIKE,
 
   /** {@code SIMILAR} operator. */
   SIMILAR,
@@ -629,6 +635,12 @@ public enum SqlKind {
   /** {@code EXTRACT} function. */
   EXTRACT,
 
+  /** {@code ARRAY_CONCAT} function (BigQuery semantics). */
+  ARRAY_CONCAT,
+
+  /** {@code ARRAY_REVERSE} function (BigQuery semantics). */
+  ARRAY_REVERSE,
+
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
 
@@ -840,6 +852,15 @@ public enum SqlKind {
 
   /** The {@code COLLECT} aggregate function. */
   COLLECT,
+
+  /** The {@code MODE} aggregate function. */
+  MODE,
+
+  /** The {@code PERCENTILE_CONT} aggregate function. */
+  PERCENTILE_CONT,
+
+  /** The {@code PERCENTILE_DISC} aggregate function. */
+  PERCENTILE_DISC,
 
   /** The {@code FUSION} aggregate function. */
   FUSION,
@@ -1065,9 +1086,10 @@ public enum SqlKind {
       EnumSet.of(COUNT, SUM, SUM0, MIN, MAX, LEAD, LAG, FIRST_VALUE,
           LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
-          FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
+          MODE, FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
           CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR,
           LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG, GROUP_CONCAT, COUNTIF,
+          PERCENTILE_CONT, PERCENTILE_DISC,
           INTERSECTION, ANY_VALUE);
 
   /**
@@ -1414,17 +1436,6 @@ public enum SqlKind {
       return this;
     default:
       return this.negate();
-    }
-  }
-
-  public SqlKind negateNullSafe2() {
-    switch (this) {
-    case IS_NOT_NULL:
-      return IS_NULL;
-    case IS_NULL:
-      return IS_NOT_NULL;
-    default:
-      return this.negateNullSafe();
     }
   }
 

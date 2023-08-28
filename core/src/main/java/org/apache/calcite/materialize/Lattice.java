@@ -837,7 +837,7 @@ public class Lattice {
       // Convert the graph into a tree of nodes, each connected to a parent and
       // with a join condition to that parent.
       MutableNode root = null;
-      final Map<LatticeTable, MutableNode> map = new IdentityHashMap<>();
+      final IdentityHashMap<LatticeTable, MutableNode> map = new IdentityHashMap<>();
       for (Vertex vertex : TopologicalOrderIterator.of(graph)) {
         final List<Edge> edges = graph.getInwardEdges(vertex);
         MutableNode node;

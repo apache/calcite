@@ -17,6 +17,7 @@
 package org.apache.calcite.materialize;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.clone.CloneSchema;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -393,8 +394,9 @@ public class MaterializationService {
           new AbstractQueryable<Object>() {
             @Override public Enumerator<Object> enumerator() {
               final DataContext dataContext =
-                  Schemas.createDataContext(connection,
-                      requireNonNull(calciteSignature.rootSchema, "rootSchema").plus());
+                  DataContexts.of(connection,
+                      requireNonNull(calciteSignature.rootSchema, "rootSchema")
+                          .plus());
               return calciteSignature.enumerable(dataContext).enumerator();
             }
 
@@ -412,8 +414,9 @@ public class MaterializationService {
 
             @Override public Iterator<Object> iterator() {
               final DataContext dataContext =
-                  Schemas.createDataContext(connection,
-                      requireNonNull(calciteSignature.rootSchema, "rootSchema").plus());
+                  DataContexts.of(connection,
+                      requireNonNull(calciteSignature.rootSchema, "rootSchema")
+                          .plus());
               return calciteSignature.enumerable(dataContext).iterator();
             }
           });

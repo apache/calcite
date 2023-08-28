@@ -26,7 +26,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlSelect</code> is a node of a parse tree which represents a select
@@ -42,7 +43,7 @@ public class SqlSelect extends SqlCall {
   public static final int HAVING_OPERAND = 5;
 
   SqlNodeList keywordList;
-  @Nullable SqlNodeList selectList;
+  SqlNodeList selectList;
   @Nullable SqlNode from;
   @Nullable SqlNode where;
   @Nullable SqlNodeList groupBy;
@@ -57,7 +58,7 @@ public class SqlSelect extends SqlCall {
 
   public SqlSelect(SqlParserPos pos,
       @Nullable SqlNodeList keywordList,
-      @Nullable SqlNodeList selectList,
+      SqlNodeList selectList,
       @Nullable SqlNode from,
       @Nullable SqlNode where,
       @Nullable SqlNodeList groupBy,
@@ -68,14 +69,14 @@ public class SqlSelect extends SqlCall {
       @Nullable SqlNode fetch,
       @Nullable SqlNodeList hints) {
     super(pos);
-    this.keywordList = Objects.requireNonNull(keywordList != null
+    this.keywordList = requireNonNull(keywordList != null
         ? keywordList : new SqlNodeList(pos));
-    this.selectList = selectList;
+    this.selectList = requireNonNull(selectList, "selectList");
     this.from = from;
     this.where = where;
     this.groupBy = groupBy;
     this.having = having;
-    this.windowDecls = Objects.requireNonNull(windowDecls != null
+    this.windowDecls = requireNonNull(windowDecls != null
         ? windowDecls : new SqlNodeList(pos));
     this.orderBy = orderBy;
     this.offset = offset;
@@ -102,10 +103,10 @@ public class SqlSelect extends SqlCall {
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
-      keywordList = Objects.requireNonNull((SqlNodeList) operand);
+      keywordList = requireNonNull((SqlNodeList) operand);
       break;
     case 1:
-      selectList = (SqlNodeList) operand;
+      selectList = requireNonNull((SqlNodeList) operand);
       break;
     case 2:
       from = operand;
@@ -120,7 +121,7 @@ public class SqlSelect extends SqlCall {
       having = operand;
       break;
     case 6:
-      windowDecls = Objects.requireNonNull((SqlNodeList) operand);
+      windowDecls = requireNonNull((SqlNodeList) operand);
       break;
     case 7:
       orderBy = (SqlNodeList) operand;
@@ -179,11 +180,11 @@ public class SqlSelect extends SqlCall {
   }
 
   @Pure
-  public final @Nullable SqlNodeList getSelectList() {
+  public final SqlNodeList getSelectList() {
     return selectList;
   }
 
-  public void setSelectList(@Nullable SqlNodeList selectList) {
+  public void setSelectList(SqlNodeList selectList) {
     this.selectList = selectList;
   }
 

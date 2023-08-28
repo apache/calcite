@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.core;
 
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -79,8 +78,7 @@ public abstract class Filter extends SingleRel {
     super(cluster, traits, child);
     this.condition = requireNonNull(condition, "condition");
     assert RexUtil.isFlat(condition) : "RexUtil.isFlat should be true for condition " + condition;
-    // Too expensive for everyday use:
-    assert !CalciteSystemProperty.DEBUG.value() || isValid(Litmus.THROW, null);
+    assert isValid(Litmus.THROW, null);
   }
 
   /**

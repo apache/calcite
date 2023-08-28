@@ -63,6 +63,7 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -370,6 +371,15 @@ public class Util {
   }
 
   /**
+   * Computes <code>nlog(m)</code> using the natural logarithm (or <code>
+   * n</code> if <code>m &lt; {@link Math#E}</code>, so the result is never
+   * negative.
+   */
+  public static double nLogM(double n, double m) {
+    return (m < Math.E) ? n : (n * Math.log(m));
+  }
+
+  /**
    * Prints an object using reflection. We can handle <code>null</code>;
    * arrays of objects and primitive values; for regular objects, we print all
    * public fields.
@@ -648,7 +658,7 @@ public class Util {
    * string reflects the current time.
    */
   @Deprecated // to be removed before 2.0
-  @SuppressWarnings("JdkObsolete")
+  @SuppressWarnings("JavaUtilDate")
   public static String getFileTimestamp() {
     SimpleDateFormat sdf =
         new SimpleDateFormat(FILE_TIMESTAMP_FORMAT, Locale.ROOT);
@@ -957,6 +967,9 @@ public class Util {
       throwable.addSuppressed(new Throwable(message));
       throw (Error) throwable;
     }
+    if (throwable instanceof IOException) {
+      return new UncheckedIOException(message, (IOException) throwable);
+    }
     throw new RuntimeException(message, throwable);
   }
 
@@ -968,6 +981,9 @@ public class Util {
   public static RuntimeException toUnchecked(Exception e) {
     if (e instanceof RuntimeException) {
       return (RuntimeException) e;
+    }
+    if (e instanceof IOException) {
+      return new UncheckedIOException((IOException) e);
     }
     return new RuntimeException(e);
   }
@@ -2425,7 +2441,7 @@ public class Util {
     };
   }
 
-  @SuppressWarnings("Guava")
+  @SuppressWarnings({"Guava", "UnnecessaryMethodReference"})
   @Deprecated
   public static <K, V> Map<K, V> asIndexMap(
       final Collection<V> values,

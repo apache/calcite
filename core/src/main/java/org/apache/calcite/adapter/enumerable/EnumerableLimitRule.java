@@ -21,6 +21,8 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 
+import org.immutables.value.Value;
+
 /**
  * Rule to convert an {@link org.apache.calcite.rel.core.Sort} that has
  * {@code offset} or {@code fetch} set to an
@@ -29,6 +31,7 @@ import org.apache.calcite.rel.core.Sort;
  *
  * @see EnumerableRules#ENUMERABLE_LIMIT_RULE
  */
+@Value.Enclosing
 public class EnumerableLimitRule
     extends RelRule<EnumerableLimitRule.Config> {
   /** Creates an EnumerableLimitRule. */
@@ -64,10 +67,10 @@ public class EnumerableLimitRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(Sort.class).anyInputs())
-        .as(Config.class);
+    Config DEFAULT = ImmutableEnumerableLimitRule.Config.of()
+        .withOperandSupplier(b -> b.operand(Sort.class).anyInputs());
 
     @Override default EnumerableLimitRule toRule() {
       return new EnumerableLimitRule(this);

@@ -29,6 +29,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.util.TestUtil;
 
 import org.junit.jupiter.api.Disabled;
@@ -218,7 +219,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test void testInsert() {
-    final List<JdbcTest.Employee> employees = new ArrayList<>();
+    final List<Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("select * from \"foo\".\"bar\"")
         .returns(
@@ -241,7 +242,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test void testInsertBind() throws Exception {
-    final List<JdbcTest.Employee> employees = new ArrayList<>();
+    final List<Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("select count(*) as c from \"foo\".\"bar\"")
         .returns("C=1\n");
@@ -267,7 +268,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test void testDelete() {
-    final List<JdbcTest.Employee> employees = new ArrayList<>();
+    final List<Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("select * from \"foo\".\"bar\"")
         .returnsUnordered(
@@ -299,14 +300,14 @@ public class JdbcFrontLinqBackTest {
    * @return a connection post-processor
    */
   private static CalciteAssert.ConnectionPostProcessor makePostProcessor(
-      final List<JdbcTest.Employee> initialData) {
+      final List<Employee> initialData) {
     return connection -> {
       CalciteConnection calciteConnection =
           connection.unwrap(CalciteConnection.class);
       SchemaPlus rootSchema = calciteConnection.getRootSchema();
       SchemaPlus mapSchema = rootSchema.add("foo", new AbstractSchema());
       final String tableName = "bar";
-      final JdbcTest.AbstractModifiableTable table =
+      final AbstractModifiableTable table =
           mutable(tableName, initialData);
       mapSchema.add(tableName, table);
       return calciteConnection;
@@ -319,7 +320,7 @@ public class JdbcFrontLinqBackTest {
    * @param initialData record to be presented in table
    */
   public static Connection makeConnection(
-        final List<JdbcTest.Employee> initialData) throws Exception {
+        final List<Employee> initialData) throws Exception {
     Properties info = new Properties();
     Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
     connection = makePostProcessor(initialData).apply(connection);
@@ -328,27 +329,27 @@ public class JdbcFrontLinqBackTest {
 
   /**
    * Creates a connection with an empty modifiable table with
-   * {@link JdbcTest.Employee} schema.
+   * {@link Employee} schema.
    */
   public static Connection makeConnection() throws Exception {
-    return makeConnection(new ArrayList<JdbcTest.Employee>());
+    return makeConnection(new ArrayList<Employee>());
   }
 
   private CalciteAssert.AssertThat mutable(
-      final List<JdbcTest.Employee> employees) {
-    employees.add(new JdbcTest.Employee(0, 0, "first", 0f, null));
+      final List<Employee> employees) {
+    employees.add(new Employee(0, 0, "first", 0f, null));
     return that()
         .with(CalciteAssert.Config.REGULAR)
         .with(makePostProcessor(employees));
   }
 
-  static JdbcTest.AbstractModifiableTable mutable(String tableName,
-      final List<JdbcTest.Employee> employees) {
-    return new JdbcTest.AbstractModifiableTable(tableName) {
+  static AbstractModifiableTable mutable(String tableName,
+                                         final List<Employee> employees) {
+    return new AbstractModifiableTable(tableName) {
       public RelDataType getRowType(
           RelDataTypeFactory typeFactory) {
         return ((JavaTypeFactory) typeFactory)
-            .createType(JdbcTest.Employee.class);
+            .createType(Employee.class);
       }
 
       public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
@@ -363,7 +364,7 @@ public class JdbcFrontLinqBackTest {
       }
 
       public Type getElementType() {
-        return JdbcTest.Employee.class;
+        return Employee.class;
       }
 
       public Expression getExpression(SchemaPlus schema, String tableName,
@@ -379,7 +380,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   @Test void testInsert2() {
-    final List<JdbcTest.Employee> employees = new ArrayList<>();
+    final List<Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)")
         .updates(1);
@@ -396,7 +397,7 @@ public class JdbcFrontLinqBackTest {
 
   /** Local Statement insert. */
   @Test void testInsert3() throws Exception {
-    Connection connection = makeConnection(new ArrayList<JdbcTest.Employee>());
+    Connection connection = makeConnection(new ArrayList<Employee>());
     String sql = "insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)";
 
     Statement statement = connection.createStatement();
@@ -410,7 +411,7 @@ public class JdbcFrontLinqBackTest {
 
   /** Local PreparedStatement insert WITHOUT bind variables. */
   @Test void testPreparedStatementInsert() throws Exception {
-    Connection connection = makeConnection(new ArrayList<JdbcTest.Employee>());
+    Connection connection = makeConnection(new ArrayList<Employee>());
     assertFalse(connection.isClosed());
 
     String sql = "insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)";
@@ -431,7 +432,7 @@ public class JdbcFrontLinqBackTest {
 
   /** Some of the rows have the wrong number of columns. */
   @Test void testInsertMultipleRowMismatch() {
-    final List<JdbcTest.Employee> employees = new ArrayList<>();
+    final List<Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("insert into \"foo\".\"bar\" values\n"
         + " (1, 3, 'third'),\n"

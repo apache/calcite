@@ -205,6 +205,8 @@ public interface RelNode extends RelOptNode, Cloneable {
   /**
    * Returns a metadata interface.
    *
+   * @deprecated Use {@link RelMetadataQuery} via {@link #getCluster()}.
+   *
    * @param <M> Type of metadata being requested
    * @param metadataClass Metadata interface
    * @param mq Metadata query
@@ -213,6 +215,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *     although if the information is not present the metadata object may
    *     return null from all methods)
    */
+  @Deprecated // to be removed before 2.0
   <@Nullable M extends @Nullable Metadata> M metadata(Class<M> metadataClass, RelMetadataQuery mq);
 
   /**
@@ -419,6 +422,11 @@ public interface RelNode extends RelOptNode, Cloneable {
    * this node's children
    */
   RelNode accept(RexShuttle shuttle);
+
+  /** Returns whether a field is nullable. */
+  default boolean fieldIsNullable(int i) {
+    return getRowType().getFieldList().get(i).getType().isNullable();
+  }
 
   /** Context of a relational expression, for purposes of checking validity. */
   interface Context {

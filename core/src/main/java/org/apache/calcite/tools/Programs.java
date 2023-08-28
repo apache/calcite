@@ -81,6 +81,7 @@ public class Programs {
           EnumerableRules.ENUMERABLE_SORT_RULE,
           EnumerableRules.ENUMERABLE_LIMIT_RULE,
           EnumerableRules.ENUMERABLE_UNION_RULE,
+          EnumerableRules.ENUMERABLE_MERGE_UNION_RULE,
           EnumerableRules.ENUMERABLE_INTERSECT_RULE,
           EnumerableRules.ENUMERABLE_MINUS_RULE,
           EnumerableRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
@@ -150,6 +151,7 @@ public class Programs {
   }
 
   /** Creates a program that executes a {@link HepProgram}. */
+  @SuppressWarnings("deprecation")
   public static Program of(final HepProgram hepProgram, final boolean noDag,
       final RelMetadataProvider metadataProvider) {
     return (planner, rel, requiredOutputTraits, materializations, lattices) -> {
