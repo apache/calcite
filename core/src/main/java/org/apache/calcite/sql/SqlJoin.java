@@ -236,6 +236,10 @@ public class SqlJoin extends SqlCall {
         writer.sep(join.isNatural() ? "NATURAL LEFT SEMI JOIN"
             : "LEFT SEMI JOIN");
         break;
+      case LEFT_ANTI_JOIN:
+        writer.sep(join.isNatural() ? "NATURAL LEFT ANTI JOIN"
+            : "LEFT ANTI JOIN");
+        break;
       case RIGHT:
         writer.sep(join.isNatural() ? "NATURAL RIGHT JOIN" : "RIGHT JOIN");
         break;

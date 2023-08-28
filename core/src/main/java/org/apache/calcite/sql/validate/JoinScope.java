@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlWindow;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import static org.apache.calcite.sql.JoinType.LEFT_ANTI_JOIN;
 import static org.apache.calcite.sql.JoinType.LEFT_SEMI_JOIN;
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
@@ -70,8 +71,9 @@ public class JoinScope extends ListScope {
       boolean nullable) {
     super.addChild(ns, alias, nullable);
 
-    // LEFT SEMI JOIN can only come from Babel.
-    if (join.getJoinType() == LEFT_SEMI_JOIN
+    // LEFT SEMI JOIN and LEFT ANTI JOIN can only come from Babel.
+    if ((join.getJoinType() == LEFT_SEMI_JOIN
+        || join.getJoinType() == LEFT_ANTI_JOIN)
         && stripAs(join.getRight()) == ns.getNode()) {
       // Ignore the right hand side.
       return;

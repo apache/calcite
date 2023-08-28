@@ -1988,8 +1988,8 @@ SqlLiteral JoinType() :
 }
 {
     (
-    LOOKAHEAD(3) // required for "LEFT SEMI JOIN" in Babel
 <#list (parser.joinTypes!default.parser.joinTypes) as method>
+        LOOKAHEAD(3) // required for "LEFT SEMI JOIN" and "LEFT ANTI JOIN" in Babel
         joinType = ${method}()
     |
 </#list>
