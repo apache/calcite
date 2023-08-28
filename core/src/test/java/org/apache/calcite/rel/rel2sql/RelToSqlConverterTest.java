@@ -12482,7 +12482,7 @@ class RelToSqlConverterTest {
 
   @Test public void testFunctionsWithRegexOperands() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpLikeRex = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexpSimilarRex = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
     final RexNode regexpExtractRex = builder.call(SqlLibraryOperators.REGEXP_EXTRACT,
         builder.literal("Calcite"), builder.literal("\\."), builder.literal("DM."));
@@ -12490,7 +12490,7 @@ class RelToSqlConverterTest {
         builder.literal("Calcite"), builder.literal("\\."), builder.literal("DM."));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexpLikeRex, "regexpLike"),
+        .project(builder.alias(regexpSimilarRex, "regexpLike"),
             builder.alias(regexpExtractRex, "regexpExtract"),
             builder.alias(regexpReplaceRex, "regexpReplace"))
         .build();
