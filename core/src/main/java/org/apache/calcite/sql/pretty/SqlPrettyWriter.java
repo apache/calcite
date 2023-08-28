@@ -1450,4 +1450,5 @@ public class SqlPrettyWriter implements SqlWriter {
       return names.toArray(new String[0]);
     }
   }
+
 }

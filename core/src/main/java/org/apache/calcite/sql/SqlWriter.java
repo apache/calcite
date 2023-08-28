@@ -271,7 +271,7 @@ public interface SqlWriter {
       return needsIndent;
     }
 
-       /**
+     /**
      * Creates a frame type.
      *
      * @param name Name
