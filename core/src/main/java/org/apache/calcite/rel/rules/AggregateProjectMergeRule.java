@@ -24,8 +24,6 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.RavenDistinctProject;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
@@ -90,10 +88,6 @@ public class AggregateProjectMergeRule
 
   public static @Nullable RelNode apply(RelOptRuleCall call, Aggregate aggregate,
       Project project) {
-    // Find all fields which we need to be straightforward field projections.
-    if (aggregate instanceof LogicalAggregate && project instanceof RavenDistinctProject) {
-      return null;
-    }
     final Set<Integer> interestingFields = RelOptUtil.getAllFields(aggregate);
 
     // Build the map from old to new; abort if any entry is not a
