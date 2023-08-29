@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.sql.SqlFunction;
@@ -26,6 +25,9 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+/**
+ * class for SPLIT_TO_TABLE tableFunction".
+ */
 public class SplitToTableFunction extends SqlFunction
     implements SqlTableFunction {
 
