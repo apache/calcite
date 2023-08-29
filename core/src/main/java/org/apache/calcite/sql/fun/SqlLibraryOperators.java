@@ -1115,6 +1115,10 @@ public abstract class SqlLibraryOperators {
       OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction SPLIT_TO_TABLE =
+      new SplitToTableFunction();
+
   /** The "TO_VARCHAR(numeric, string)" function; casts string
    * Format first_operand to specified in second operand. */
   @LibraryOperator(libraries = {SNOWFLAKE})

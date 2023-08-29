@@ -12603,6 +12603,20 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testSplitToTable() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .functionScan(SqlLibraryOperators.SPLIT_TO_TABLE, 0,
+            builder.literal("a,b,c"), builder.literal(","))
+        .project(builder.field(0))
+        .build();
+
+    final String expectedBiqQuery = "SELECT 'Datam\"etica' AS `$f0`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testSimpleStrtokFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode strtokNode = builder.call(SqlLibraryOperators.STRTOK,
