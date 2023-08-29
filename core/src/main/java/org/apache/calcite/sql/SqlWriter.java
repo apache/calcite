@@ -31,6 +31,10 @@ import java.util.function.Consumer;
  * [scott]</code>.
  */
 public interface SqlWriter {
+
+  /**
+   * To check whether conversion of USER_DEFINED_FUNCTION to lower case is required.
+   */
   boolean isUDFLowerCase();
   //~ Enums ------------------------------------------------------------------
 
