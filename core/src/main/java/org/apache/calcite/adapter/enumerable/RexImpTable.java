@@ -44,6 +44,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
+import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.schema.ImplementableAggFunction;
@@ -2865,7 +2866,7 @@ public class RexImpTable {
     @Override Expression implementSafe(
         final RexToLixTranslator translator,
         final RexCall call,
-        final List<Expression> argValueList) {
+        List<Expression> argValueList) {
       // neither nullable:
       //   return x OP y
       // x nullable
@@ -2892,7 +2893,8 @@ public class RexImpTable {
       final Expression fieldComparator =
           generateCollatorExpression(relDataType0.getCollation());
       if (fieldComparator != null) {
-        argValueList.add(fieldComparator);
+        // We need to add the comparator, the argValueList might be non-mutable, so create a new one
+        argValueList = FlatLists.append(argValueList, fieldComparator);
       }
 
       final Primitive primitive = Primitive.ofBoxOr(type0);

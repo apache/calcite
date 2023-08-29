@@ -137,6 +137,29 @@ class EnumerableStringComparisonTest {
             "name=presales");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5967">[CALCITE-5967]
+   * UnsupportedOperationException while implementing a call that requires a special collator</a>.
+   */
+  @Test void testFilterStringSpecialCollation() {
+    tester()
+        .withRel(builder -> builder
+            .values(
+                createRecordVarcharSpecialCollation(builder),
+                "Legal", "presales", "hr", "Administration", "MARKETING")
+            // Filter on a field with special collation:
+            // a special comparator needs to be used inside the eq operation
+            .filter(
+                builder.equals(
+                    builder.field(1, 0, "name"),
+                    builder.literal("MARKETING")))
+            .build())
+        .explainHookMatches(""
+            + "EnumerableCalc(expr#0=[{inputs}], expr#1=['MARKETING'], expr#2=[=($t0, $t1)], name=[$t0], $condition=[$t2])\n"
+            + "  EnumerableValues(tuples=[[{ 'Legal' }, { 'presales' }, { 'hr' }, { 'Administration' }, { 'MARKETING' }]])\n")
+        .returnsUnordered("name=MARKETING");
+  }
+
   @Test void testMergeJoinOnStringSpecialCollation() {
     tester()
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
