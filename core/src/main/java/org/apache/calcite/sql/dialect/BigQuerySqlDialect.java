@@ -87,6 +87,7 @@ import java.util.regex.Pattern;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_MONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_MONTH_UPPERCASE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_NAME_OF_DAY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.AMPM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ANTE_MERIDIAN_INDICATOR;
@@ -216,7 +217,7 @@ public class BigQuerySqlDialect extends SqlDialect {
               "RESPECT", "RIGHT", "ROLLUP", "ROWS", "SELECT", "SET", "SOME",
               "STRUCT", "TABLESAMPLE", "THEN", "TO", "TREAT", "TRUE",
               "UNBOUNDED", "UNION", "UNNEST", "USING", "WHEN", "WHERE",
-              "WINDOW", "WITH", "WITHIN"));
+              "WINDOW", "WITH", "WITHIN", "CURRENT_TIMESTAMP"));
 
   /**
    * An unquoted BigQuery identifier must start with a letter and be followed
@@ -302,6 +303,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(QUARTER, "%Q");
         put(TIMEOFDAY, "%c");
         put(WEEK_OF_YEAR, "%W");
+        put(ABBREVIATED_MONTH_UPPERCASE, "%^b");
       }};
 
   private static final String OR = "|";
@@ -408,7 +410,19 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override public void unparseTitleInColumnDefinition(SqlWriter writer, String title,
       int leftPrec, int rightPrec) {
+    char commentStart = title.charAt(0);
+    char commentEnd = title.charAt(title.length() - 1);
+    title = title.substring(1, title.length() - 1).replace("''", "\\'");
+    title = commentStart + title + commentEnd;
+    title = limitTitleLength(title);
     writer.print("OPTIONS(description=" + title + ")");
+  }
+
+  /**
+   * BQ(description char length): The maximum length is 1024 characters.
+   */
+  String limitTitleLength(String title) {
+    return title.length() > 1024 ? title.substring(0, 1023) + "'" : title;
   }
 
   @Override public boolean supportsUnpivot() {
@@ -1700,7 +1714,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     return dateTimeFormat
         .replace("%Y-%m-%d", "%F")
         .replace("'", "")
-        .replace("%S.", "%E");
+        .replace("%S.", "%E")
+        .replace("%E.*S", "%E*S");
   }
 
   /**

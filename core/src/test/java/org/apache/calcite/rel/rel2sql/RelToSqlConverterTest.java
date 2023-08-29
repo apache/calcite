@@ -6959,7 +6959,7 @@ class RelToSqlConverterTest {
     String query = "select current_timestamp";
     final String expectedHiveQuery = "SELECT CURRENT_TIMESTAMP `CURRENT_TIMESTAMP`";
     final String expectedSparkQuery = "SELECT CURRENT_TIMESTAMP `CURRENT_TIMESTAMP`";
-    final String expectedBigQuery = "SELECT CURRENT_DATETIME() AS CURRENT_TIMESTAMP";
+    final String expectedBigQuery = "SELECT CURRENT_DATETIME() AS `CURRENT_TIMESTAMP`";
 
     sql(query)
         .withHiveIdentifierQuoteString()
@@ -12550,6 +12550,36 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
+  @Test void testNonAggregateExpressionInOrderBy() {
+    String query = "SELECT EXTRACT(DAY FROM \"birth_date\") \n"
+        + "FROM \"employee\" \n"
+        + "GROUP BY EXTRACT(DAY FROM \"birth_date\") \n"
+        + "ORDER BY EXTRACT(DAY FROM \"birth_date\")";
+    final String expected = "SELECT EXTRACT(DAY FROM birth_date)\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY EXTRACT(DAY FROM birth_date)\n"
+        + "ORDER BY 1 IS NULL, 1";
+
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
+        .withBigQuery().ok(expected);
+  }
+
+  @Test void testAggregateExpressionInOrderBy() {
+    String query = "SELECT EXTRACT(DAY FROM \"birth_date\") \n"
+        + "FROM \"employee\" \n"
+        + "GROUP BY EXTRACT(DAY FROM \"birth_date\") \n"
+        + "ORDER BY SUM(\"salary\")";
+    final String expected = "SELECT EXTRACT(DAY FROM birth_date), SUM(salary)\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY EXTRACT(DAY FROM birth_date)\n"
+        + "ORDER BY SUM(salary) IS NULL, SUM(salary)";
+
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
+        .withBigQuery().ok(expected);
+  }
+
   @Test void testBQCastToDecimal() {
     final String query = "select \"employee_id\",\n"
         + "  cast(\"salary_paid\" as DECIMAL)\n"
@@ -12799,4 +12829,57 @@ class RelToSqlConverterTest {
         isLinux(expectedBigQuery));
   }
 
+  @Test public void testToCurrentTimestampFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
+        builder.literal("2009-03-20 12:25:50.123456"),
+        builder.literal("yyyy-MM-dd HH24:MI:MS.sssss"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseTSNode1, "timestamp_value"))
+        .build();
+    final String expectedSql =
+        "SELECT TO_TIMESTAMP('2009-03-20 12:25:50.123456', 'yyyy-MM-dd HH24:MI:MS.sssss') AS "
+            + "\"timestamp_value\"\nFROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery =
+        "SELECT PARSE_DATETIME('%F %H:%M:%E*S', '2009-03-20 12:25:50.123456') AS timestamp_value\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testMONInUppercase() {
+    final RelBuilder builder = relBuilder();
+    final RexNode monthInUppercase = builder.call(SqlLibraryOperators.FORMAT_DATE,
+        builder.literal("MONU"), builder.scan("EMP").field(4));
+
+    final RelNode doyRoot = builder
+        .scan("EMP")
+        .project(builder.alias(monthInUppercase, "month"))
+        .build();
+
+    final String expectedMONBiqQuery = "SELECT FORMAT_DATE('%^b', HIREDATE) AS month\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(doyRoot, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedMONBiqQuery));
+  }
+
+  @Test public void testToHexFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toHexFunction = builder.call(SqlLibraryOperators.TO_HEX,
+        builder.call(SqlLibraryOperators.MD5, builder.literal("snowflake")));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toHexFunction, "md5_hashed"))
+        .build();
+    final String expectedSql = "SELECT TO_HEX(MD5('snowflake')) AS \"md5_hashed\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TO_HEX(MD5('snowflake')) AS md5_hashed\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }

@@ -953,6 +953,15 @@ public abstract class SqlLibraryOperators {
         OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
         SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TO_HEX =
+      new SqlFunction("TO_HEX",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.family(SqlTypeFamily.STRING),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction SHA1 =
       new SqlFunction("SHA1",
