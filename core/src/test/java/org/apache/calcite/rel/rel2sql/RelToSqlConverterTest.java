@@ -12608,11 +12608,11 @@ class RelToSqlConverterTest {
     final RelNode root = builder
         .functionScan(SqlLibraryOperators.SPLIT_TO_TABLE, 0,
             builder.literal("a,b,c"), builder.literal(","))
-        .project(builder.field(0))
+        .project(builder.field(2))
         .build();
 
-    final String expectedBiqQuery = "SELECT 'Datam\"etica' AS `$f0`\n"
-        + "FROM scott.EMP";
+    final String expectedBiqQuery = "SELECT \"VALUE\"\n"
+        + "FROM TABLE(SPLIT_TO_TABLE('a,b,c', ','))";
 
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBiqQuery));
   }
