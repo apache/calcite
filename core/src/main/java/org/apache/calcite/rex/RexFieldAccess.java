@@ -75,7 +75,7 @@ public class RexFieldAccess extends RexNode {
     Preconditions.checkArgument(
         fieldIdx >= 0 && fieldIdx < exprType.getFieldList().size()
             && exprType.getFieldList().get(fieldIdx).equals(field),
-        "Field " + field + " does not exist for expression " + expr);
+        "Field %s does not exist for expression %s", field, expr);
   }
 
   public RelDataTypeField getField() {
