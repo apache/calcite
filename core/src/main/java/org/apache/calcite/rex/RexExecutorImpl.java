@@ -115,13 +115,13 @@ public class RexExecutorImpl implements RexExecutor {
    * @param exps Expressions
    * @param rowType describes the structure of the input row.
    */
-  public static RexExecutable getExecutable(RexBuilder rexBuilder, List<RexNode> exps,
+  @Override public RexExecutable getExecutable(RexBuilder rexBuilder, List<RexNode> exps,
       RelDataType rowType) {
     final JavaTypeFactoryImpl typeFactory =
         new JavaTypeFactoryImpl(rexBuilder.getTypeFactory().getTypeSystem());
     final InputGetter getter = new DataContextInputGetter(rowType, typeFactory);
     final String code = compile(rexBuilder, exps, getter, rowType);
-    return new RexExecutable(code, "generated Rex code");
+    return new RexExecutableImpl(code, "generated Rex code");
   }
 
   /**
@@ -134,7 +134,7 @@ public class RexExecutorImpl implements RexExecutor {
           throw new UnsupportedOperationException();
         });
 
-    final RexExecutable executable = new RexExecutable(code, constExps);
+    final RexExecutable executable = new RexExecutableImpl(code, constExps);
     executable.setDataContext(dataContext);
     executable.reduce(rexBuilder, constExps, reducedValues);
   }
