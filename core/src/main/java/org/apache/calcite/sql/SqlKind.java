@@ -434,6 +434,9 @@ public enum SqlKind {
   /** {@code MEDIAN} function. */
   MEDIAN,
 
+  /** {@code HASH_AGG} function. */
+  HASH_AGG,
+
   // prefix operators
 
   /** Logical {@code NOT} operator. */
