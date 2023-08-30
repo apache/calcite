@@ -192,28 +192,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
-  /** The "SAFE_CAST(expr AS type)" function; identical to CAST(),
-   * except that if conversion fails, it returns NULL instead of raising an
-   * error. */
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction SAFE_CAST =
-      new SqlCastFunction("SAFE_CAST", SqlKind.SAFE_CAST);
-
-  /** The "TRY_CAST(expr AS type)" function; identical to CAST(),
-   * except that if conversion fails, it returns NULL instead of raising an
-   * error. */
-  @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction TRY_CAST =
-      new SqlCastFunction("TRY_CAST", SqlKind.SAFE_CAST);
-
-  @LibraryOperator(libraries = {SNOWFLAKE})
- public static final SqlFunction IS_REAL =
-      new SqlFunction("IS_REAL",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.BOOLEAN_NULLABLE, null,
-          OperandTypes.family(SqlTypeFamily.ANY),
-          SqlFunctionCategory.NUMERIC);
-
   /** MySQL's "SUBSTR(string, position [, substringLength ])" function. */
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction SUBSTR_MYSQL =
@@ -385,40 +363,6 @@ public abstract class SqlLibraryOperators {
           .create(SqlKind.COUNTIF, ReturnTypes.BIGINT, OperandTypes.BOOLEAN)
           .withDistinct(Optionality.FORBIDDEN);
 
-  /**Array subscript operator:
-   array_expression[array_subscript_specifier]
-
-   array_subscript_specifier:
-   position_keyword(index)
-
-   position_keyword:
-   { OFFSET | SAFE_OFFSET | ORDINAL | SAFE_ORDINAL }
-   Gets a value from an array at a specific position.*/
-
-  /** The "OFFSET(index)" array subscript operator used by BigQuery. The index
-   * starts at 0 and produces an error if the index is out of range. */
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlOperator OFFSET =
-      new SqlItemOperator("OFFSET", OperandTypes.ARRAY, 0, false);
-
-  /** The "ORDINAL(index)" array subscript operator used by BigQuery. The index
-   * starts at 1 and produces an error if the index is out of range. */
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlOperator ORDINAL =
-      new SqlItemOperator("ORDINAL", OperandTypes.ARRAY, 1, false);
-
-  /** The "SAFE_OFFSET(index)" array subscript operator used by BigQuery. The index
-   * starts at 0 and returns null if the index is out of range. */
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlOperator SAFE_OFFSET =
-      new SqlItemOperator("SAFE_OFFSET", OperandTypes.ARRAY, 0, true);
-
-  /** The "SAFE_ORDINAL(index)" array subscript operator used by BigQuery. The index
-   * starts at 1 and returns null if the index is out of range. */
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlOperator SAFE_ORDINAL =
-      new SqlItemOperator("SAFE_ORDINAL", OperandTypes.ARRAY, 1, true);
-
   /** The "ARRAY_AGG(value [ ORDER BY ...])" aggregate function,
    * in BIG_QUERY and PostgreSQL, gathers values into arrays. */
   @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})
@@ -503,11 +447,6 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction CURRENT_TIMESTAMP_WITH_TIME_ZONE =
       new SqlCurrentTimestampFunction("CURRENT_TIMESTAMP_TZ",
           SqlTypeName.TIMESTAMP_WITH_TIME_ZONE);
-
-  @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction CURRENT_TIMESTAMP_WITH_LOCAL_TIME_ZONE =
-      new SqlCurrentTimestampFunction("CURRENT_TIMESTAMP_LTZ",
-          SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
 
   /**
    * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
@@ -1176,12 +1115,11 @@ public abstract class SqlLibraryOperators {
       OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {HIVE, SPARK, BIG_QUERY})
+  @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction SPLIT = new SqlFunction(
       "SPLIT",
       SqlKind.OTHER_FUNCTION,
-      ReturnTypes.ARG0
-          .andThen(SqlTypeTransforms.TO_ARRAY),
+      ReturnTypes.MULTISET_NULLABLE,
       null,
       OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
@@ -1591,16 +1529,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATETIME,
               SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
 
-  @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction SNOWFLAKE_DATE_TRUNC =
-      new SqlFunction(
-          "DATE_TRUNC",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG1_NULLABLE,
-          null,
-          OperandTypes.family(SqlTypeFamily.STRING,
-              SqlTypeFamily.DATETIME), SqlFunctionCategory.SYSTEM);
-
   @LibraryOperator(libraries = {SPARK, BIG_QUERY})
   public static final SqlFunction DATE_TRUNC =
       new SqlFunction(
@@ -1672,19 +1600,6 @@ public abstract class SqlLibraryOperators {
               number -> number == 2),
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {TERADATA})
-  public static final SqlFunction REGEXP_SIMILAR =
-      new SqlFunction("REGEXP_SIMILAR",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER,
-          null,
-          OperandTypes.family(
-              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
-                  SqlTypeFamily.STRING),
-              // Third operand optional (operand index 0, 1, 2)
-              number -> number == 2),
-          SqlFunctionCategory.STRING);
-
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction NEXT_DAY =
       new SqlFunction(
@@ -1736,17 +1651,6 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.TIMESTAMP_NULLABLE,
           null,
           OperandTypes.DATETIME,
-          SqlFunctionCategory.TIMEDATE);
-
-  @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction SNOWFLAKE_LAST_DAY =
-      new SqlFunction(
-          "LAST_DAY",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATE_NULLABLE,
-          null,
-          OperandTypes.family(ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
-              number -> number == 2),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {TERADATA, SNOWFLAKE})
@@ -1811,34 +1715,6 @@ public abstract class SqlLibraryOperators {
       new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction SPLIT_PART = new SqlFunction(
-      "SPLIT_PART",
-      SqlKind.OTHER_FUNCTION,
-      ReturnTypes.VARCHAR_2000_NULLABLE,
-      null,
-      OperandTypes.or(OperandTypes.STRING_STRING_INTEGER,
-          OperandTypes.NULL_STRING_INTEGER),
-      SqlFunctionCategory.STRING);
-
-  @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction LOG =
-      new SqlFunction("LOG",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DOUBLE_NULLABLE, null,
-          OperandTypes.family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
-              // Second operand is optional
-              number -> number == 1),
-          SqlFunctionCategory.NUMERIC);
-
-  @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction PARSE_JSON =
-      new SqlFunction("PARSE_JSON",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.VARCHAR_2000_NULLABLE, null,
-          OperandTypes.STRING,
-          SqlFunctionCategory.SYSTEM);
-
-  @LibraryOperator(libraries = {TERADATA})
-  public static final SqlFunction QUANTILE =
-      new SqlQuantileFunction(SqlKind.QUANTILE, ReturnTypes.INTEGER);
+  public static final SqlAggFunction HASH_AGG =
+      new SqlHashAggFunction(SqlKind.HASH_AGG, ReturnTypes.BIGINT);
 }
