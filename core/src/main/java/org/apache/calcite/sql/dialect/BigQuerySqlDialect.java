@@ -1927,6 +1927,10 @@ public class BigQuerySqlDialect extends SqlDialect {
       case INTERVAL_DAY_SECOND:
       case INTERVAL_DAY_MINUTE:
       case INTERVAL_DAY_HOUR:
+      case INTERVAL_DAY:
+      case INTERVAL_HOUR:
+      case INTERVAL_MINUTE:
+      case INTERVAL_MONTH:
         return createSqlDataTypeSpecByName("INT64", typeName);
       // BigQuery only supports FLOAT64(aka. Double) for floating point types.
       case FLOAT:
