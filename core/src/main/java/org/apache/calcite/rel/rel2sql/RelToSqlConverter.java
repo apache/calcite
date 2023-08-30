@@ -486,12 +486,12 @@ public class RelToSqlConverter extends SqlImplementor
    */
   private boolean isJoinDuplicateName(RelNode relNode) {
     if (relNode instanceof Join || relNode instanceof MultiJoin) {
-      List<RelNode> inputs = relNode.getInputs();
-      List<String> fieldNames = new ArrayList<>();
+      final List<RelNode> inputs = relNode.getInputs();
+      final List<String> fieldNames = new ArrayList<>();
       for (RelNode input : inputs) {
         fieldNames.addAll(input.getRowType().getFieldNames());
       }
-      boolean caseSensitive = super.dialect.isCaseSensitive();
+      final boolean caseSensitive = dialect.isCaseSensitive();
       return !Util.isDistinct(fieldNames, caseSensitive);
     }
     return false;
