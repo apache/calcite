@@ -2173,6 +2173,10 @@ public class Util {
    * case-sensitivity policy.
    */
   public static boolean isDistinct(List<String> list, boolean caseSensitive) {
+    if (list.size() < 2) {
+      // Lists of size 0 and 1 are always distinct.
+      return true;
+    }
     if (caseSensitive) {
       return isDistinct(list);
     }
