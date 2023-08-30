@@ -11905,9 +11905,11 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSnowflakeSql = "SELECT DATE_TRUNC('DAY', CURRENT_DATE) AS \"$f0\"\n"
         + "FROM \"scott\".\"EMP\"";
+    final String expectedBqSql = "SELECT DATE_TRUNC(CURRENT_DATE, DAY) AS `$f0`\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
   }
-
 
   @Test public void testBracesForScalarSubQuery() {
     final RelBuilder builder = relBuilder();

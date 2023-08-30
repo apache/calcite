@@ -1534,7 +1534,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
           "DATE_TRUNC",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG1,
+          ReturnTypes.ARG1_NULLABLE,
           null,
           OperandTypes.family(SqlTypeFamily.STRING,
               SqlTypeFamily.DATETIME), SqlFunctionCategory.SYSTEM);
