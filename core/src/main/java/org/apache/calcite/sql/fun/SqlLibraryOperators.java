@@ -1093,11 +1093,26 @@ public abstract class SqlLibraryOperators {
           SqlLibraryOperators::arrayAppendPrependReturnType,
           OperandTypes.ARRAY_ELEMENT);
 
+  @SuppressWarnings("argument.type.incompatible")
+  private static RelDataType arrayCompactReturnType(SqlOperatorBinding opBinding) {
+    final RelDataType arrayType = opBinding.collectOperandTypes().get(0);
+    if (arrayType.getSqlTypeName() == SqlTypeName.NULL) {
+      return arrayType;
+    }
+    RelDataType type = arrayType.getComponentType();
+    // force set nullable=false, and there are no side effects for 'NULL' type
+    if (type != null && type.isNullable()) {
+      type = opBinding.getTypeFactory().createTypeWithNullability(type, false);
+    }
+    requireNonNull(type, "inferred array element type");
+    return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, arrayType.isNullable());
+  }
+
   /** The "ARRAY_COMPACT(array)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_COMPACT =
       SqlBasicFunction.create(SqlKind.ARRAY_COMPACT,
-          ReturnTypes.ARG0_NULLABLE,
+          SqlLibraryOperators::arrayCompactReturnType,
           OperandTypes.ARRAY);
 
   /** The "ARRAY_CONCAT(array [, array]*)" function. */

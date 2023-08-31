@@ -5970,10 +5970,14 @@ public class SqlOperatorTest {
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_compact(array[null, 1, null, 2])", "[1, 2]",
-        "INTEGER ARRAY NOT NULL");
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_compact(array[1, 2])", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_compact(array[null, 'hello', null, 'world'])", "[hello, world]",
+        "CHAR(5) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_compact(array['hello', 'world'])", "[hello, world]",
+        "CHAR(5) NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_compact(array[null])", "[]",
-        "NULL ARRAY NOT NULL");
-    f.checkScalar("array_compact(array(null))", "[]",
         "NULL ARRAY NOT NULL");
     f.checkScalar("array_compact(array())", "[]",
         "UNKNOWN NOT NULL ARRAY NOT NULL");
