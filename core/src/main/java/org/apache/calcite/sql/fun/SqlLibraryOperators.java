@@ -1711,4 +1711,11 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           null, OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction ARRAY_LENGTH =
+      new SqlFunction("ARRAY_LENGTH", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null, OperandTypes.ARRAY, SqlFunctionCategory.SYSTEM);
+
+
 }
