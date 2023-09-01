@@ -199,6 +199,13 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction SAFE_CAST =
       new SqlCastFunction("SAFE_CAST", SqlKind.SAFE_CAST);
 
+  /** The "TRY_CAST(expr AS type)" function; identical to CAST(),
+   * except that if conversion fails, it returns NULL instead of raising an
+   * error. */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TRY_CAST =
+      new SqlCastFunction("TRY_CAST", SqlKind.SAFE_CAST);
+
   /** MySQL's "SUBSTR(string, position [, substringLength ])" function. */
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction SUBSTR_MYSQL =

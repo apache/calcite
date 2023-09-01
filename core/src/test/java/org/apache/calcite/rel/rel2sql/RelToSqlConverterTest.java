@@ -11187,6 +11187,21 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
   }
 
+  @Test public void testTryCast() {
+    final RelBuilder builder = relBuilder();
+    RelDataType type = builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    final RexNode safeCastNode = builder.getRexBuilder().makeCall(type,
+        SqlLibraryOperators.TRY_CAST,
+        ImmutableList.of(builder.literal(1234)));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(safeCastNode)
+        .build();
+    final String expectedBqSql = "SELECT TRY_CAST(1234 AS VARCHAR) AS \"$f0\"\n"
+         + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBqSql));
+  }
+
   @Test public void testFormatFunctionCastAsInteger() {
     final RelBuilder builder = relBuilder();
     final RexNode formatIntegerCastRexNode = builder.cast(

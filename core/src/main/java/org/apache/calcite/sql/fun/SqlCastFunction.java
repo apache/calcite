@@ -90,7 +90,7 @@ public class SqlCastFunction extends SqlFunction {
   }
 
   public SqlCastFunction(String name, SqlKind kind) {
-    super(kind.toString(), kind, returnTypeInference(kind == SqlKind.SAFE_CAST),
+    super(name, kind, returnTypeInference(kind == SqlKind.SAFE_CAST),
         InferTypes.FIRST_KNOWN, null, SqlFunctionCategory.SYSTEM);
     checkArgument(kind == SqlKind.CAST || kind == SqlKind.SAFE_CAST, kind);
   }
