@@ -33,6 +33,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.aMapWithSize;
+import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -196,5 +197,25 @@ class ElasticsearchJsonTest {
     assertThat(result.get("type"), is("text"));
     assertThat(result.get("keyword"), is("keyword"));
     assertThat(result.get("properties"), is("long"));
+  }
+
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5974">[CALCITE-5974]
+   * Elasticsearch adapter throws ClassCastException when index mapping sets
+   * dynamic_templates without properties</a>. */
+  @Test void reservedEmptyPropertiesMapping() throws Exception {
+    // have special property names: type and properties
+    ObjectNode mapping =
+        mapper.readValue("{dynamic_templates:["
+            + "{integers:"
+            + "{match_mapping_type:'long',mapping:{type:'integer'}}"
+            + "}]}", ObjectNode.class);
+
+    // The 'dynamic_templates' object has no 'properties' field,
+    // so the result is empty.
+    Map<String, String> result = new HashMap<>();
+    ElasticsearchJson.visitMappingProperties(mapping, result::put);
+    assertThat(result, anEmptyMap());
   }
 }
