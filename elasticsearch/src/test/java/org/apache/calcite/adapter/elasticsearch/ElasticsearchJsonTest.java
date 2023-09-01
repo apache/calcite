@@ -197,4 +197,21 @@ class ElasticsearchJsonTest {
     assertThat(result.get("keyword"), is("keyword"));
     assertThat(result.get("properties"), is("long"));
   }
+
+
+  /**
+   * Validate that ES index sets dynamic_templates without properties.
+   */
+  @Test void reservedEmptyPropertiesMapping() throws Exception {
+    // have special property names: type and properties
+    ObjectNode mapping = mapper.readValue("{dynamic_templates:["
+        + "{integers:"
+        + "{match_mapping_type:'long',mapping:{type:'integer'}}"
+        + "}]}", ObjectNode.class);
+
+    Map<String, String> result = new HashMap<>();
+    ElasticsearchJson.visitMappingProperties(mapping, result::put);
+
+    assertThat(result.isEmpty(), is(true));
+  }
 }
