@@ -305,7 +305,12 @@ public abstract class SqlUtil {
       }
       SqlIdentifier id = function.getSqlIdentifier();
       if (id == null) {
-        writer.keyword(operator.getName());
+        if (isUDFLowerCase((SqlFunction) operator, writer)) {
+          // The following code block is executed exclusively when the code flow originates from mig
+          writer.print(operator.getName().toLowerCase());
+        } else {
+          writer.keyword(operator.getName());
+        }
       } else {
         unparseSqlIdentifierSyntax(writer, id, true);
       }
@@ -1332,5 +1337,18 @@ public abstract class SqlUtil {
     @Override public Void visit(SqlDataTypeSpec type) {
       return check(type);
     }
+  }
+
+  /**
+   * Checks if the conversion of a given USER_DEFINED_FUNCTION to lowercase is necessary.
+   *
+   * @param operator The SqlFunction to be checked.
+   * @param writer   The SqlWriter providing context.
+   * @return True if the function is a USER_DEFINED_FUNCTION and lowercase conversion is
+   * required, false otherwise.
+   */
+  private static boolean isUDFLowerCase(SqlFunction operator, SqlWriter writer) {
+    return operator.getFunctionType() == SqlFunctionCategory.USER_DEFINED_FUNCTION
+        && writer.isUDFLowerCase();
   }
 }
