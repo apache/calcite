@@ -1996,6 +1996,18 @@ LogicalProject(MYROW=[ROW(ROW(1))])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testDistinctWithFieldAlias">
+        <Resource name="sql">
+            <![CDATA[select distinct empno as emp_id from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalProject(EMP_ID=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testJoinWithUnion">
         <Resource name="sql">
             <![CDATA[select grade
@@ -7432,6 +7444,68 @@ from emp]]>
             <![CDATA[
 LogicalProject(EXPR$0=[ITEM(ARRAY(1, 2, 3, 4), 0)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAnalyticalFunctionInParentWithDistinctInSubQueryAndParent">
+        <Resource name="sql">
+            <![CDATA[select distinct deptno, row_number() over (order by deptno desc) as num_row
+from (select distinct deptno as deptno from dept)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0, 1}])
+  LogicalProject(DEPTNO=[$0], NUM_ROW=[ROW_NUMBER() OVER (ORDER BY $0 DESC)])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAnalyticalFunctionInChildWithDistinctInSubQueryAndParent">
+        <Resource name="sql">
+            <![CDATA[select distinct deptno
+            from (select distinct deptno, row_number() over (order by deptno desc) as num_row
+            from dept)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalProject(DEPTNO=[$0])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$0], NUM_ROW=[ROW_NUMBER() OVER (ORDER BY $0 DESC)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAnalyticalFunctionInChildWithDistinctInSubQuery">
+        <Resource name="sql">
+            <![CDATA[select deptno
+            from (select distinct deptno, row_number() over (order by deptno desc) as num_row
+            from dept)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalAggregate(group=[{0, 1}])
+    LogicalProject(DEPTNO=[$0], NUM_ROW=[ROW_NUMBER() OVER (ORDER BY $0 DESC)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDistinctInParentAndSubQueryWithGroupBy">
+        <Resource name="sql">
+            <![CDATA[select distinct deptno = 2 from (
+select distinct deptno as deptno from dept group by deptno)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalProject(EXPR$0=[=($0, 2)])
+    LogicalAggregate(group=[{0}])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>

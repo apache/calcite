@@ -334,6 +334,16 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test void testAggregateFilterWhereToSqlFromProductTable1() {
+    String query = "select *\n"
+        + "from \"foodmart\".\"product\"\n"
+        + "group by \"product_class_id\", \"product_id\", \"brand_name\", \"product_name\", \"SKU\", \"SRP\", \"gross_weight\", \"net_weight\", \"recyclable_package\", \"low_fat\", \"units_per_case\", \"cases_per_pallet\", \"shelf_width\", \"shelf_height\", \"shelf_depth\"";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\", \"product_id\", \"brand_name\", \"product_name\", \"SKU\", \"SRP\", \"gross_weight\", \"net_weight\", \"recyclable_package\", \"low_fat\", \"units_per_case\", \"cases_per_pallet\", \"shelf_width\", \"shelf_height\", \"shelf_depth\"";
+    sql(query).ok(expected);
+  }
+
   @Test void testAggregateFilterWhereToBigQuerySqlFromProductTable() {
     String query = "select\n"
         + "  sum(\"shelf_width\") filter (where \"net_weight\" > 0),\n"
@@ -1279,13 +1289,13 @@ class RelToSqlConverterTest {
         + "GROUP BY CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX(salary) OVER "
         + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
         + "ELSE NULL END";
-    final String expectedSpark = "SELECT rnk\n"
+    final String expectedSpark = "SELECT *\n"
         + "FROM (SELECT CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX(salary) OVER "
         + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
         + "ELSE NULL END rnk\n"
         + "FROM foodmart.employee) t\n"
         + "GROUP BY rnk";
-    final String expectedBigQuery = "SELECT rnk\n"
+    final String expectedBigQuery = "SELECT *\n"
         + "FROM (SELECT CASE WHEN CAST(salary AS NUMERIC) = 20 THEN MAX(salary) OVER "
         + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
         + "ELSE NULL END AS rnk\n"
@@ -1327,12 +1337,12 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee\n"
         + "GROUP BY CASE WHEN (ROW_NUMBER() "
         + "OVER (PARTITION BY hire_date)) = 1 THEN 100 ELSE 200 END";
-    final String expectedSpark = "SELECT rnk\n"
+    final String expectedSpark = "SELECT *\n"
         + "FROM (SELECT CASE WHEN (ROW_NUMBER() OVER (PARTITION BY hire_date)) = 1 THEN 100 ELSE "
         + "200 END rnk\n"
         + "FROM foodmart.employee) t\n"
         + "GROUP BY rnk";
-    final String expectedBigQuery = "SELECT rnk\n"
+    final String expectedBigQuery = "SELECT *\n"
         + "FROM (SELECT CASE WHEN (ROW_NUMBER() OVER "
         + "(PARTITION BY hire_date)) = 1 THEN 100 ELSE 200 END AS rnk\n"
         + "FROM foodmart.employee) AS t\n"
@@ -4060,6 +4070,77 @@ class RelToSqlConverterTest {
         CoreRules.FILTER_INTO_JOIN,
         CoreRules.JOIN_CONDITION_PUSH,
         CoreRules.AGGREGATE_PROJECT_MERGE, CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED);
+    sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expect);
+  }
+
+  @Test void testDistinctWithGroupByAndAlias() {
+    String query =
+        "SELECT distinct \"product_id\", SUM(\"store_sales\"), COUNT(*) AS \"$f2\" "
+            + "FROM \"foodmart\".\"sales_fact_dec_1998\" "
+            + "GROUP BY \"product_id\"";
+
+    String expect =
+        "SELECT \"product_id\", SUM(\"store_sales\"), COUNT(*) AS \"$f2\""
+            + "\nFROM \"foodmart\".\"sales_fact_dec_1998\""
+            + "\nGROUP BY \"product_id\"";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterJoinRule.class);
+    builder.addRuleClass(AggregateProjectMergeRule.class);
+    builder.addRuleClass(AggregateJoinTransposeRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(
+        CoreRules.FILTER_INTO_JOIN,
+        CoreRules.JOIN_CONDITION_PUSH,
+        CoreRules.AGGREGATE_PROJECT_MERGE, CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED);
+    sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expect);
+  }
+
+  @Test void testselectAllFieldsWithGroupByAllFieldsInSameSequence() {
+    String query =
+        "SELECT \"product_id\", \"time_id\", \"customer_id\", \"promotion_id\", \"store_id\", \"store_sales\", \"store_cost\", \"unit_sales\""
+            + "FROM \"foodmart\".\"sales_fact_dec_1998\" "
+            + "GROUP BY \"product_id\", \"time_id\", \"customer_id\", \"promotion_id\", \"store_id\", \"store_sales\", \"store_cost\", \"unit_sales\"";
+
+    String expect =
+        "SELECT *"
+            + "\nFROM \"foodmart\".\"sales_fact_dec_1998\""
+            + "\nGROUP BY \"product_id\", \"time_id\", \"customer_id\", \"promotion_id\", \"store_id\", \"store_sales\", \"store_cost\", \"unit_sales\"";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterJoinRule.class);
+    builder.addRuleClass(AggregateProjectMergeRule.class);
+    builder.addRuleClass(AggregateJoinTransposeRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(
+        CoreRules.FILTER_INTO_JOIN,
+        CoreRules.JOIN_CONDITION_PUSH,
+        CoreRules.AGGREGATE_PROJECT_MERGE,
+        CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED);
+    sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expect);
+  }
+
+  @Test void testselectAllFieldsWithGroupByAllFieldsInDifferentSequence() {
+    String query =
+        "SELECT \"promotion_id\", \"store_id\", \"store_sales\", \"store_cost\", \"unit_sales\", \"product_id\", \"time_id\", \"customer_id\""
+            + "FROM \"foodmart\".\"sales_fact_dec_1998\" "
+            + "GROUP BY \"product_id\", \"time_id\", \"customer_id\", \"promotion_id\", \"store_id\", \"store_sales\", \"store_cost\", \"unit_sales\"";
+
+    String expect =
+        "SELECT \"promotion_id\", \"store_id\", \"store_sales\", \"store_cost\", \"unit_sales\", \"product_id\", \"time_id\", \"customer_id\""
+            + "\nFROM \"foodmart\".\"sales_fact_dec_1998\""
+            + "\nGROUP BY \"product_id\", \"time_id\", \"customer_id\", \"promotion_id\", \"store_id\", \"store_sales\", \"store_cost\", \"unit_sales\"";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterJoinRule.class);
+    builder.addRuleClass(AggregateProjectMergeRule.class);
+    builder.addRuleClass(AggregateJoinTransposeRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(
+        CoreRules.FILTER_INTO_JOIN,
+        CoreRules.JOIN_CONDITION_PUSH,
+        CoreRules.AGGREGATE_PROJECT_MERGE,
+        CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED);
     sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expect);
   }
 
@@ -7352,7 +7433,7 @@ class RelToSqlConverterTest {
         + "FROM foodmart.product\n"
         + "GROUP BY product_id, MAX(product_id) OVER (PARTITION BY product_id "
         + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)";
-    final String expectedBQ = "SELECT product_id, ABC\n"
+    final String expectedBQ = "SELECT *\n"
         + "FROM (SELECT product_id, MAX(product_id) OVER "
         + "(PARTITION BY product_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS ABC\n"
         + "FROM foodmart.product) AS t\n"
@@ -7370,7 +7451,7 @@ class RelToSqlConverterTest {
         + "FROM [foodmart].[product]\n"
         + "GROUP BY [product_id], MAX([product_id]) OVER (PARTITION BY [product_id] "
         + "ORDER BY [product_id] ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)";
-    final String expectedSpark = "SELECT product_id, ABC\n"
+    final String expectedSpark = "SELECT *\n"
         + "FROM (SELECT product_id, MAX(product_id) OVER (PARTITION BY product_id RANGE BETWEEN "
         + "UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) ABC\n"
         + "FROM foodmart.product) t\n"
@@ -12550,6 +12631,36 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
+  @Test void testNonAggregateExpressionInOrderBy() {
+    String query = "SELECT EXTRACT(DAY FROM \"birth_date\") \n"
+        + "FROM \"employee\" \n"
+        + "GROUP BY EXTRACT(DAY FROM \"birth_date\") \n"
+        + "ORDER BY EXTRACT(DAY FROM \"birth_date\")";
+    final String expected = "SELECT EXTRACT(DAY FROM birth_date)\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY EXTRACT(DAY FROM birth_date)\n"
+        + "ORDER BY 1 IS NULL, 1";
+
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
+        .withBigQuery().ok(expected);
+  }
+
+  @Test void testAggregateExpressionInOrderBy() {
+    String query = "SELECT EXTRACT(DAY FROM \"birth_date\") \n"
+        + "FROM \"employee\" \n"
+        + "GROUP BY EXTRACT(DAY FROM \"birth_date\") \n"
+        + "ORDER BY SUM(\"salary\")";
+    final String expected = "SELECT EXTRACT(DAY FROM birth_date), SUM(salary)\n"
+        + "FROM foodmart.employee\n"
+        + "GROUP BY EXTRACT(DAY FROM birth_date)\n"
+        + "ORDER BY SUM(salary) IS NULL, SUM(salary)";
+
+    sql(query)
+        .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
+        .withBigQuery().ok(expected);
+  }
+
   @Test void testBQCastToDecimal() {
     final String query = "select \"employee_id\",\n"
         + "  cast(\"salary_paid\" as DECIMAL)\n"
@@ -12813,5 +12924,22 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(doyRoot, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedMONBiqQuery));
+  }
+
+  @Test public void testToHexFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toHexFunction = builder.call(SqlLibraryOperators.TO_HEX,
+        builder.call(SqlLibraryOperators.MD5, builder.literal("snowflake")));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toHexFunction, "md5_hashed"))
+        .build();
+    final String expectedSql = "SELECT TO_HEX(MD5('snowflake')) AS \"md5_hashed\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TO_HEX(MD5('snowflake')) AS md5_hashed\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 }
