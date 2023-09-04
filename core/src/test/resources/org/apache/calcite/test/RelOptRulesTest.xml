@@ -1373,6 +1373,28 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCanNotPushSemiJoinToLeftJoinRightInput">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($9, $12)], joinType=[semi])
+  LogicalJoin(condition=[=($7, $8)], joinType=[left])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+  LogicalTableScan(table=[[scott, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCanNotPushSemiJoinToRightJoinLeftInput">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($1, $12)], joinType=[semi])
+  LogicalJoin(condition=[=($0, $10)], joinType=[right])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, EMP]])
+  LogicalTableScan(table=[[scott, BONUS]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCasePushIsAlwaysWorking">
     <Resource name="sql">
       <![CDATA[select empno from emp where case when sal > 1000 then empno else sal end = 1]]>
@@ -10712,6 +10734,46 @@ LogicalProject(ENAME=[$0], EXPR$1=[$1], EXPR$2=[$2], DEPTNO=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPushSemiJoinToLeftJoinLeftInput">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($1, $12)], joinType=[semi])
+  LogicalJoin(condition=[=($0, $10)], joinType=[left])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, EMP]])
+  LogicalTableScan(table=[[scott, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalJoin(condition=[=($0, $10)], joinType=[left])
+  LogicalJoin(condition=[=($1, $4)], joinType=[semi])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, BONUS]])
+  LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPushSemiJoinToRightJoinRightInput">
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalJoin(condition=[=($9, $12)], joinType=[semi])
+  LogicalJoin(condition=[=($7, $8)], joinType=[right])
+    LogicalTableScan(table=[[scott, EMP]])
+    LogicalTableScan(table=[[scott, DEPT]])
+  LogicalTableScan(table=[[scott, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalJoin(condition=[=($7, $8)], joinType=[right])
+  LogicalTableScan(table=[[scott, EMP]])
+  LogicalJoin(condition=[=($1, $4)], joinType=[semi])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalTableScan(table=[[scott, BONUS]])
 ]]>
     </Resource>
   </TestCase>
