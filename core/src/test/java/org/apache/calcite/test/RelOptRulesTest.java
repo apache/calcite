@@ -2767,6 +2767,98 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5952">[CALCITE-5952]
+   * SemiJoinJoinTransposeRule should check if JoinType supports pushing predicates
+   * into its inputs</a>. */
+  @Test void testPushSemiJoinToLeftJoinLeftInput() {
+    // tests the case that semijoin can be pushed to the left input of the left join
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("DEPT")
+        .scan("EMP")
+        .join(JoinRelType.LEFT,
+            b.equals(
+                b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO"))
+        )
+        .scan("BONUS")
+        .semiJoin(
+            b.equals(
+                b.field(2, 0, "DNAME"),
+                b.field(2, 1, "JOB")))
+        .build();
+    relFn(relFn).withRule(CoreRules.SEMI_JOIN_JOIN_TRANSPOSE).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5952">[CALCITE-5952]
+   * SemiJoinJoinTransposeRule should check if JoinType supports pushing predicates
+   * into its inputs</a>. */
+  @Test void testPushSemiJoinToRightJoinRightInput() {
+    // tests the case that semijoin can be pushed to the right input of the right join
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.RIGHT,
+            b.equals(
+                b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO"))
+        )
+        .scan("BONUS")
+        .semiJoin(
+            b.equals(
+                b.field(2, 0, "DNAME"),
+                b.field(2, 1, "JOB")))
+        .build();
+    relFn(relFn).withRule(CoreRules.SEMI_JOIN_JOIN_TRANSPOSE).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5952">[CALCITE-5952]
+   * SemiJoinJoinTransposeRule should check if JoinType supports pushing predicates
+   * into its inputs</a>. */
+  @Test void testCanNotPushSemiJoinToLeftJoinRightInput() {
+    // tests the case that semijoin cannot be pushed to the right input of the left join
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.LEFT,
+            b.equals(
+                b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO"))
+        )
+        .scan("BONUS")
+        .semiJoin(
+            b.equals(
+                b.field(2, 0, "DNAME"),
+                b.field(2, 1, "JOB")))
+        .build();
+    relFn(relFn).withRule(CoreRules.SEMI_JOIN_JOIN_TRANSPOSE).checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5952">[CALCITE-5952]
+   * SemiJoinJoinTransposeRule should check if JoinType supports pushing predicates
+   * into its inputs</a>. */
+  @Test void testCanNotPushSemiJoinToRightJoinLeftInput() {
+    // tests the case that semijoin cannot be pushed to the left input of the right join
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("DEPT")
+        .scan("EMP")
+        .join(JoinRelType.RIGHT,
+            b.equals(
+                b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO"))
+        )
+        .scan("BONUS")
+        .semiJoin(
+            b.equals(
+                b.field(2, 0, "DNAME"),
+                b.field(2, 1, "JOB")))
+        .build();
+    relFn(relFn).withRule(CoreRules.SEMI_JOIN_JOIN_TRANSPOSE).checkUnchanged();
+  }
+
   @Test void testPushSemiJoinPastFilter() {
     final String sql = "select e.ename from emp e, dept d\n"
         + "where e.deptno = d.deptno and e.ename = 'foo'";
