@@ -1653,17 +1653,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
-  @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction SNOWFLAKE_LAST_DAY =
-      new SqlFunction(
-          "LAST_DAY",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATE_NULLABLE,
-          null,
-          OperandTypes.family(ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
-              number -> number == 2),
-          SqlFunctionCategory.TIMEDATE);
-
   @LibraryOperator(libraries = {TERADATA, SNOWFLAKE})
   public static final SqlFunction GETBIT =
       new SqlFunction("GETBIT",

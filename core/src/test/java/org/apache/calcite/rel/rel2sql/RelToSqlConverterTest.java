@@ -111,7 +111,12 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -12169,28 +12174,6 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
-  }
-
-  @Test public void testSnowflakeLastDay() {
-    RelBuilder relBuilder = relBuilder().scan("EMP");
-    RexNode lastDayNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
-        relBuilder.literal("13-JAN-1999"));
-    RexNode lastDayWithDatePartNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
-        relBuilder.literal("13-JAN-1999"),
-        relBuilder.literal("YEAR"));
-
-    RelNode root = relBuilder
-        .project(lastDayWithDatePartNode, lastDayNode)
-        .build();
-    final String expectedSnowflakeSql = "SELECT LAST_DAY('13-JAN-1999', 'YEAR') AS \"$f0\", "
-        + "LAST_DAY('13-JAN-1999') AS \"$f1\"\n"
-        + "FROM \"scott\".\"EMP\"";
-    final String expectedBQSql = "SELECT LAST_DAY('13-JAN-1999', YEAR) AS `$f0`, "
-        + "LAST_DAY('13-JAN-1999') AS `$f1`\n"
-        + "FROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
   @Test public void testOracleRoundFunction() {
