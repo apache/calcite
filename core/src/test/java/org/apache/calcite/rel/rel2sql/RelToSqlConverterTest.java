@@ -111,11 +111,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -12963,5 +12959,33 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testJSON_OBJECT() {
+    final RelBuilder builder = relBuilder();
+
+    Map <String, String> obj = new HashMap<>();
+    obj.put("Name", "John");
+    obj.put("Surname", "Mark");
+    obj.put("Age", "30");
+    List<RexNode> operands = new ArrayList();
+
+    for (Map.Entry<String, String> m : obj.entrySet()) {
+      operands.add(builder.literal(m.getKey()));
+      operands.add(builder.literal(m.getValue()));
+    }
+
+    final RexNode jsonNode = builder.call(SqlLibraryOperators.JSON_OBJECT, operands);
+
+    final RelNode doyRoot = builder
+        .scan("EMP")
+        .project(jsonNode)
+        .build();
+
+    final String expectedMONBiqQuery = "SELECT JSON_OBJECT('Surname', 'Mark', 'Age', '30', " +
+        "'Name', 'John') AS `$f0`\nFROM scott.EMP";
+
+    assertThat(toSql(doyRoot, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedMONBiqQuery));
   }
 }

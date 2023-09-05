@@ -1725,4 +1725,13 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction MEDIAN =
       new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
 
-}
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction JSON_OBJECT =
+      new SqlFunction("JSON_OBJECT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.VARIADIC,
+          SqlFunctionCategory.SYSTEM);
+    }
+
