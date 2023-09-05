@@ -240,6 +240,7 @@ class SqlFunctionsTest {
     assertThat(f.regexpContains("abcdef", "abz*"), is(true));
     assertThat(f.regexpContains("zabzz", "abz*"), is(true));
     assertThat(f.regexpContains("zazbbzz", "abz*"), is(false));
+    assertThat(f.regexpContains("abcadcabcaecghi", ""), is(true));
 
     try {
       final boolean b = f.regexpContains("abc def ghi", "(abc");
@@ -274,6 +275,7 @@ class SqlFunctionsTest {
 
     // basic extracts
     assertThat(f.regexpExtract("abcadcabcaecghi", "ac"), nullValue());
+    assertThat(f.regexpExtract("abcadcabcaecghi", ""), is(""));
     assertThat(f.regexpExtract("a9cadca5c4aecghi", "a[0-9]c"), is("a9c"));
     assertThat(f.regexpExtract("abcadcabcaecghi", "a.*c"), is("abcadcabcaec"));
 
@@ -342,6 +344,7 @@ class SqlFunctionsTest {
     final SqlFunctions.RegexFunction f = new SqlFunctions.RegexFunction();
 
     assertThat(f.regexpExtractAll("abcadcabcaecghi", "ac"), is(list()));
+    assertThat(f.regexpExtractAll("abcadc", ""), is(list("", "", "", "", "", "", "")));
     assertThat(f.regexpExtractAll("abcadcabcaecghi", "abc(a.c)"), is(list("adc", "aec")));
     assertThat(f.regexpExtractAll("abcadcabcaecghi", "a.c"), is(list("abc", "adc", "abc", "aec")));
     assertThat(f.regexpExtractAll("banana", "ana"), is(list("ana")));
@@ -364,6 +367,80 @@ class SqlFunctionsTest {
       assertThat(e.getMessage(),
           is("Multiple capturing groups (count=3) not allowed in regex input for "
               + "REGEXP_EXTRACT_ALL"));
+    }
+  }
+
+  @Test void testRegexpInstr() {
+    final SqlFunctions.RegexFunction f = new SqlFunctions.RegexFunction();
+
+    // basic searches
+    assertThat(f.regexpInstr("abcdefghij", "adc"), is(0));
+    assertThat(f.regexpInstr("abcdefghij", ""), is(0));
+    assertThat(f.regexpInstr("a9ca5c4aechi", "a[0-9]c"), is(1));
+    assertThat(f.regexpInstr("abcadcabcaecghi", ".dc"), is(4));
+
+    // capturing group searches
+    assertThat(f.regexpInstr("abcadcabcaecghi", "abc(a.c)"), is(4));
+    assertThat(f.regexpInstr("abcadcabcaecghi", "abc(a.c)", 4), is(10));
+    assertThat(f.regexpInstr("abcadcabcaecghi", "abc(a.c)", 1, 2), is(10));
+    assertThat(f.regexpInstr("abcadcabcaecghi", "abc(a.c)", 1, 2, 1), is(13));
+
+    // position-based searches
+    assertThat(f.regexpInstr("abcadcabcaecghi", ".ec", 25), is(0));
+    assertThat(f.regexpInstr("a9cadca5c4aecghi", "a[0-9]c", 4), is(7));
+    assertThat(f.regexpInstr("abcadcabcaecghi", "a.*c", 7), is(7));
+
+    // occurrence-based searches
+    assertThat(f.regexpInstr("a9cadca5c4aecghi", "a[0-9]c", 1, 3), is(0));
+    assertThat(f.regexpInstr("a9cadca5c4aecghi", "a[0-9]c", 2, 1), is(7));
+    assertThat(f.regexpInstr("a9cadca5c4aecghi", "a[0-9]c", 1, 1), is(1));
+
+    // occurrence_position-based searches
+    assertThat(f.regexpInstr("a9cadca5c4aecghi", "a[0-9]c", 1, 1, 0), is(1));
+    assertThat(f.regexpInstr("abcadcabcaecghi", "abc(a.c)", 7, 1, 1), is(13));
+    assertThat(f.regexpInstr("abcadcabcaec", "abc(a.c)", 4, 1, 1), is(13));
+
+    // exceptional scenarios
+    try {
+      final int idx = f.regexpInstr("abc def ghi", "{4,1}");
+      fail("expected error, got " + idx);
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          is("Invalid regular expression for REGEXP_INSTR: 'Illegal repetition range near index 4"
+              + " {4,1}     ^'"));
+    }
+
+    try {
+      final int idx = f.regexpInstr("abcadcabcaecghi", "(.)a(.c)");
+      fail("expected error, got " + idx);
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          is("Multiple capturing groups (count=2) not allowed in regex input for "
+              + "REGEXP_INSTR"));
+    }
+
+    try {
+      final int idx = f.regexpInstr("abcadcabcaecghi", "a.c", 0);
+      fail("expected error, got " + idx);
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          is("Invalid integer input '0' for argument 'position' in REGEXP_INSTR"));
+    }
+
+    try {
+      final int idx = f.regexpInstr("abcadcabcaecghi", "a.c", 3, -1);
+      fail("expected error, got " + idx);
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          is("Invalid integer input '-1' for argument 'occurrence' in REGEXP_INSTR"));
+    }
+
+    try {
+      final int idx = f.regexpInstr("abcadcabcaecghi", "a.c", 2, 4, -4);
+      fail("expected error, got " + idx);
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage(),
+          is("Invalid integer input '-4' for argument 'occurrence_position' in REGEXP_INSTR"));
     }
   }
 

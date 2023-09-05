@@ -4635,6 +4635,7 @@ public class SqlOperatorTest {
     f.checkBoolean("regexp_contains('11555666442233', '^\\d{10}$')", false);
     f.checkBoolean("regexp_contains('55566644221133', '\\d{10}')", true);
     f.checkBoolean("regexp_contains('55as56664as422', '\\d{10}')", false);
+    f.checkBoolean("regexp_contains('55as56664as422', '')", true);
 
     f.checkQuery("select regexp_contains('abc def ghi', 'abc')");
     f.checkQuery("select regexp_contains('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
@@ -4696,6 +4697,36 @@ public class SqlOperatorTest {
     f.checkQuery("select regexp_extract_all('abc def ghi', 'abc')");
     f.checkQuery("select regexp_extract_all('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
     f.checkQuery("select regexp_extract_all('55as56664as422', '\\d{10}')");
+  }
+
+  @Test void testRegexpInstrFunc() {
+    final SqlOperatorFixture f =
+        fixture().setFor(SqlLibraryOperators.REGEXP_INSTR).withLibrary(SqlLibrary.BIG_QUERY);
+
+    f.checkScalar("regexp_instr('abc def ghi', 'def')", 5, "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('abcadcaecghi', 'a.c', 2)", 4, "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('abcadcaecghi', 'a.c', 1, 3)", 7, "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('abcadcaecghi', 'a.c', 1, 3, 1)", 10, "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('a9cadca513ca4cecghi', 'a([0-9]+)', 1, 2, 1)", 11,
+        "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('a9cadca513ca4cecghi', 'a([0-9]*)', 8, 1, 0)", 13,
+        "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('55as56664as422', '\\d{3}', 3, 2, 0)", 12, "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('55as56664as422', '\\d{2}', 2, 2, 1)", 9, "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('55as56664as422', '', 2, 2, 1)", 0, "INTEGER NOT NULL");
+
+    f.checkNull("regexp_instr('abc def ghi', cast(null as varchar))");
+    f.checkNull("regexp_instr(cast(null as varchar), 'abc')");
+    f.checkNull("regexp_instr(cast(null as varchar), cast(null as varchar))");
+    f.checkNull("regexp_instr('abc def ghi', 'abc', cast(null as integer))");
+    f.checkNull("regexp_instr('abc def ghi', 'abc', 1, cast(null as integer))");
+    f.checkNull("regexp_instr('abc def ghi', 'abc', 1, 3, cast(null as integer))");
+
+    f.checkQuery("select regexp_instr('abc def ghi', 'abc')");
+    f.checkQuery("select regexp_instr('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
+    f.checkQuery("select regexp_instr('55as56664as422', '\\d{10}')");
+    f.checkQuery("select regexp_instr('abcadcabcaecghi', 'c(a.c)', 4)");
+    f.checkQuery("select regexp_instr('a9cadca5c4aecghi', 'a[0-9]c', 1, 3)");
   }
 
   @Test void testRegexpReplaceFunc() {

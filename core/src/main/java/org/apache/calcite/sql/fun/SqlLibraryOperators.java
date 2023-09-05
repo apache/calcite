@@ -500,6 +500,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
+  /** The "REGEXP_INSTR(value, regexp [, position[, occurrence, [occurrence_position]]])" function.
+   * Returns the lowest 1-based position of a regexp in value. Returns NULL if there is no match. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlBasicFunction REGEXP_INSTR =
+      SqlBasicFunction.create("REGEXP_INSTR", ReturnTypes.INTEGER_NULLABLE,
+          OperandTypes.STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER_OPTIONAL_INTEGER,
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
