@@ -1209,9 +1209,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case "DATE_TRUNC":
       final SqlWriter.Frame funcFrame = writer.startFunCall(call.getOperator().getName());
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.sep(",", true);
-      writer.keyword(requireNonNull(unquoteStringLiteral(String.valueOf(call.operand(0)))));
+      writer.keyword(requireNonNull(unquoteStringLiteral(String.valueOf(call.operand(1)))));
       writer.endFunCall(funcFrame);
       break;
     case "HASHBUCKET":
