@@ -178,6 +178,10 @@ public abstract class QuidemTest {
           .build();
       new Quidem(config).execute();
     }
+    // Sanity check: we do not allow an empty input file, it may indicate that it was overwritten
+    if (inFile.length() == 0) {
+      fail("Input file was empty: " + inFile + "\n");
+    }
     final String diff = DiffTestCase.diff(inFile, outFile);
     if (!diff.isEmpty()) {
       fail("Files differ: " + outFile + " " + inFile + "\n"
@@ -193,7 +197,7 @@ public abstract class QuidemTest {
    */
   private static File replaceDir(File file, String target, String replacement) {
     return new File(
-        file.getAbsolutePath().replace(n2u('/' + target + '/'),
+        n2u(file.getAbsolutePath()).replace(n2u('/' + target + '/'),
             n2u('/' + replacement + '/')));
   }
 
