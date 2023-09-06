@@ -39,6 +39,7 @@ import org.apache.calcite.sql.ddl.SqlTruncateTable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -141,6 +142,57 @@ class ServerTest {
         s.execute("create or replace schema s");
         s.execute("create table s.t (i int not null)");
       }, "REPLACE must overwrite the existing schema");
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5905">[CALCITE-5905]
+   * Documentation for CREATE TYPE is incorrect</a>. */
+  @Test void testCreateTypeDocumentationExample() throws SQLException {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      boolean b = s.execute("CREATE TYPE address_typ AS (\n"
+          + "   street          VARCHAR(30),\n"
+          + "   city            VARCHAR(20),\n"
+          + "   state           CHAR(2),\n"
+          + "   postal_code     VARCHAR(6))");
+      assertThat(b, is(false));
+      b = s.execute("CREATE TYPE employee_typ AS (\n"
+          + "  employee_id       DECIMAL(6),\n"
+          + "  first_name        VARCHAR(20),\n"
+          + "  last_name         VARCHAR(25),\n"
+          + "  email             VARCHAR(25),\n"
+          + "  phone_number      VARCHAR(20),\n"
+          + "  hire_date         DATE,\n"
+          + "  job_id            VARCHAR(10),\n"
+          + "  salary            DECIMAL(8,2),\n"
+          + "  commission_pct    DECIMAL(2,2),\n"
+          + "  manager_id        DECIMAL(6),\n"
+          + "  department_id     DECIMAL(4),\n"
+          + "  address           address_typ)\n");
+      assertThat(b, is(false));
+      try (ResultSet r =
+               s.executeQuery("SELECT employee_typ(315, 'Francis', 'Logan', 'FLOGAN',\n"
+                   + "    '555.777.2222', DATE '2004-05-01', 'SA_MAN', 11000, .15, 101, 110,\n"
+                   + "     address_typ('376 Mission', 'San Francisco', 'CA', '94222'))")) {
+        assertThat(r.next(), is(true));
+        Struct obj = r.getObject(1, Struct.class);
+        Object[] data = obj.getAttributes();
+        assertThat(data[0], is(315));
+        assertThat(data[1], is("Francis"));
+        assertThat(data[2], is("Logan"));
+        assertThat(data[3], is("FLOGAN"));
+        assertThat(data[4], is("555.777.2222"));
+        assertThat(data[5], is(java.sql.Date.valueOf("2004-05-01")));
+        assertThat(data[6], is("SA_MAN"));
+        assertThat(data[7], is(11000));
+        assertThat(data[8], is(new BigDecimal(".15")));
+        assertThat(data[9], is(101));
+        assertThat(data[10], is(110));
+        Struct address = (Struct) data[11];
+        assertArrayEquals(address.getAttributes(),
+            new Object[] { "376 Mission", "San Francisco", "CA", "94222" });
+      }
     }
   }
 
