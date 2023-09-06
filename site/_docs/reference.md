@@ -3503,24 +3503,24 @@ instantiated. Each object can hold different values.
 For example, we can declare types `address_typ` and `employee_typ`:
 
 {% highlight sql %}
-CREATE TYPE address_typ AS OBJECT (
-   street          VARCHAR2(30),
-   city            VARCHAR2(20),
+CREATE TYPE address_typ AS (
+   street          VARCHAR(30),
+   city            VARCHAR(20),
    state           CHAR(2),
-   postal_code     VARCHAR2(6));
+   postal_code     VARCHAR(6));
 
-CREATE TYPE employee_typ AS OBJECT (
-  employee_id       NUMBER(6),
-  first_name        VARCHAR2(20),
-  last_name         VARCHAR2(25),
-  email             VARCHAR2(25),
-  phone_number      VARCHAR2(20),
+CREATE TYPE employee_typ AS (
+  employee_id       DECIMAL(6),
+  first_name        VARCHAR(20),
+  last_name         VARCHAR(25),
+  email             VARCHAR(25),
+  phone_number      VARCHAR(20),
   hire_date         DATE,
-  job_id            VARCHAR2(10),
-  salary            NUMBER(8,2),
-  commission_pct    NUMBER(2,2),
-  manager_id        NUMBER(6),
-  department_id     NUMBER(4),
+  job_id            VARCHAR(10),
+  salary            DECIMAL(8,2),
+  commission_pct    DECIMAL(2,2),
+  manager_id        DECIMAL(6),
+  department_id     DECIMAL(4),
   address           address_typ);
 {% endhighlight %}
 
@@ -3528,6 +3528,6 @@ Using these types, you can instantiate objects as follows:
 
 {% highlight sql %}
 employee_typ(315, 'Francis', 'Logan', 'FLOGAN',
-    '555.777.2222', '01-MAY-04', 'SA_MAN', 11000, .15, 101, 110,
+    '555.777.2222', DATE '2004-05-01', 'SA_MAN', 11000, .15, 101, 110,
      address_typ('376 Mission', 'San Francisco', 'CA', '94222'))
 {% endhighlight %}
