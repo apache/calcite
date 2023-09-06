@@ -147,6 +147,10 @@ class CachingCalciteSchema extends CalciteSchema {
         return tableEntry(tableName2, table);
       }
     }
+    Table table = schema.getTable(tableName, caseSensitive);
+    if (table != null) {
+      return tableEntry(tableName, table);
+    }
     return null;
   }
 

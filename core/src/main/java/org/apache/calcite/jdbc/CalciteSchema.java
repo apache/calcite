@@ -18,6 +18,7 @@ package org.apache.calcite.jdbc;
 
 import org.apache.calcite.adapter.jdbc.JdbcCatalogSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.materialize.Lattice;
@@ -50,6 +51,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.sql.DataSource;
 
 import static java.util.Objects.requireNonNull;
@@ -545,6 +547,16 @@ public abstract class CalciteSchema {
     return typeMap.remove(name) != null;
   }
 
+  public Set<String> getTableNamesByPattern(final Meta.Pat p) {
+    Set<String> tablNameByPattern = getTableNames().stream()
+        .filter(t -> CalciteMetaImpl.matcher(p).apply(t))
+        .collect(Collectors.toSet());
+
+    tablNameByPattern.addAll(schema.getTableNamesByPattern(p));
+
+    return tablNameByPattern;
+  }
+
   /**
    * Entry in a schema, such as a table or sub-schema.
    *
@@ -652,7 +664,11 @@ public abstract class CalciteSchema {
     }
 
     @Override public @Nullable Table getTable(String name) {
-      final TableEntry entry = CalciteSchema.this.getTable(name, true);
+      return getTable(name, true);
+    }
+
+    @Override public @Nullable Table getTable(String name, boolean caseSensitive) {
+      final TableEntry entry = CalciteSchema.this.getTable(name, caseSensitive);
       return entry == null ? null : entry.getTable();
     }
 

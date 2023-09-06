@@ -38,6 +38,7 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     implements CalciteConnectionConfig {
   public CalciteConnectionConfigImpl(Properties properties) {
     super(properties);
+    THREAD_LOCAL.set(this);
   }
 
   /** Returns a copy of this configuration with one property changed.

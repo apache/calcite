@@ -352,6 +352,10 @@ public class JdbcSchema implements Schema {
   }
 
   @Override public @Nullable Table getTable(String name) {
+    return getTable(name, true);
+  }
+
+  @Override public @Nullable Table getTable(String name, boolean caseSensitive) {
     return getTableMap(false).get(name);
   }
 

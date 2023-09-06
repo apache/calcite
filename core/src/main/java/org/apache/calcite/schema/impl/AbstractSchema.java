@@ -92,6 +92,10 @@ public class AbstractSchema implements Schema {
   }
 
   @Override public final @Nullable Table getTable(String name) {
+    return getTable(name, true);
+  }
+
+  @Override public @Nullable Table getTable(String name, boolean caseSensitive) {
     return getTableMap().get(name);
   }
 

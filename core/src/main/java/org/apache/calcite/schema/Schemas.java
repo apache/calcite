@@ -154,7 +154,8 @@ public final class Schemas {
       expression =
           Expressions.call(expression(schema),
               BuiltInMethod.SCHEMA_GET_TABLE.method,
-              Expressions.constant(tableName));
+              Expressions.constant(tableName),
+              Expressions.constant(CalciteConnectionConfig.THREAD_LOCAL.get().caseSensitive()));
       if (ScannableTable.class.isAssignableFrom(clazz)) {
         return Expressions.call(
             BuiltInMethod.SCHEMAS_ENUMERABLE_SCANNABLE.method,

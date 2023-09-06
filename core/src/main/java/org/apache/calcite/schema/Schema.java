@@ -16,12 +16,16 @@
  */
 package org.apache.calcite.schema;
 
+import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.type.RelProtoDataType;
+
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -70,6 +74,31 @@ public interface Schema {
    * @return Names of the tables in this schema
    */
   Set<String> getTableNames();
+
+  /**
+   * Returns a table with a given name, or null if not found.
+   *  This method  only be called when your SQL references a certain table.
+   *  Notes:  Actually,
+   *         1、 {@link #getTable(String)} and {@link #getTableNames()} are a pair of methods ,
+   *              if you choose to implement them, You can ignore the configuration of
+   *              the case sentitive attribute in the connection, and you have to load
+   *              all table names in memory by {@link #getTableNames()} ,because
+   *              {@link #getTable(String)} relies on {@link #getTableNames()} to provide
+   *              information.
+   *         2、 {@link #getTable(String, boolean)}
+   *              and {@link #getTableNamesByPattern(Meta.Pat p)} are a pair of methods ,
+   *              if you choose to implement them, You must consider the case sentitive of
+   *              table names and regex matching of table names , but You don't have to add
+   *              all tableinformation into memory, maybe you can put them into the database
+   *              and query them by database, because these methods  only be called when
+   *              your SQL references a certain table.
+   *         you case choose to implement one of these two pairs of methods.
+   * @param name Table name, this name is the name of the table in the SQL statement.
+   * @param caseSensitive whether table need case-sensitive,
+   *                      this is true if set connection conf caseSensitive=true ,else false.
+   * @return
+   */
+  @Nullable Table getTable(String name, boolean caseSensitive);
 
   /**
    * Returns a type with a given name, or null if not found.
@@ -147,6 +176,14 @@ public interface Schema {
    * @return the schema snapshot.
    */
   Schema snapshot(SchemaVersion version);
+
+  default Set<String> getTableNamesByPattern(Meta.Pat p) {
+    Table table = getTable(p.s, true);
+    if (table != null) {
+      return ImmutableSet.of(p.s);
+    }
+    return Collections.emptySet();
+  }
 
   /** Table type. */
   enum TableType {
