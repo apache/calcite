@@ -63,6 +63,7 @@ import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -106,6 +107,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -168,16 +170,6 @@ public abstract class SqlImplementor {
    *  <p>refer to {@link org.apache.calcite.tools.RelBuilder.Config#bloat()} for more details.
    */
   private final int bloat;
-
-  /** Maps a {@link SqlKind} to a {@link SqlOperator} that implements NOT
-   * applied to that kind. */
-  private static final Map<SqlKind, SqlOperator> NOT_KIND_OPERATORS =
-      ImmutableMap.<SqlKind, SqlOperator>builder()
-          .put(SqlKind.IN, SqlStdOperatorTable.NOT_IN)
-          .put(SqlKind.NOT_IN, SqlStdOperatorTable.IN)
-          .put(SqlKind.LIKE, SqlStdOperatorTable.NOT_LIKE)
-          .put(SqlKind.SIMILAR, SqlStdOperatorTable.NOT_SIMILAR_TO)
-          .build();
 
   protected SqlImplementor(SqlDialect dialect, int bloat) {
     this.dialect = requireNonNull(dialect);
@@ -326,6 +318,13 @@ public abstract class SqlImplementor {
     if (node.isAlwaysFalse()) {
       return SqlLiteral.createBoolean(false, POS);
     }
+    if (node instanceof RexInputRef) {
+      Context joinContext = leftContext.implementor().joinContext(leftContext, rightContext);
+      return joinContext.toSql(null, node);
+    }
+    if (!(node instanceof RexCall)) {
+      throw new AssertionError(node);
+    }
     final List<RexNode> operands;
     final SqlOperator op;
     final Context joinContext;
@@ -379,8 +378,23 @@ public abstract class SqlImplementor {
       joinContext =
           leftContext.implementor().joinContext(leftContext, rightContext);
       return joinContext.toSql(null, node);
+    case IS_NULL:
+    case IS_NOT_NULL:
+      operands = ((RexCall) node).getOperands();
+      if (operands.size() == 1
+          && operands.get(0) instanceof RexInputRef) {
+        op = ((RexCall) node).getOperator();
+        final RexInputRef op0 = (RexInputRef) operands.get(0);
+        if (op0.getIndex() < leftFieldCount) {
+          return op.createCall(POS, leftContext.field(op0.getIndex()));
+        } else {
+          return op.createCall(POS,
+              rightContext.field(op0.getIndex() - leftFieldCount));
+        }
+      }
     default:
-      joinContext = leftContext.implementor().joinContext(leftContext, rightContext);
+      joinContext =
+          leftContext.implementor().joinContext(leftContext, rightContext);
       return joinContext.toSql(null, node);
     }
   }
@@ -677,7 +691,8 @@ public abstract class SqlImplementor {
     }
     switch (node.getKind()) {
     case IDENTIFIER:
-      return !dialect.hasImplicitTableAlias() || (!dialect.supportsIdenticalTableAndColumnName()
+      return !dialect.hasImplicitTableAlias()
+          || (!dialect.supportsIdenticalTableAndColumnName()
           && isTableNameColumnNameIdentical);
     case AS:
     case JOIN:
@@ -859,7 +874,7 @@ public abstract class SqlImplementor {
       case NOT:
         RexNode operand = ((RexCall) rex).operands.get(0);
         final SqlNode node = toSql(program, operand);
-        final SqlOperator inverseOperator = NOT_KIND_OPERATORS.get(operand.getKind());
+        final SqlOperator inverseOperator = getInverseOperator(operand);
         if (inverseOperator != null) {
           switch (operand.getKind()) {
           case IN:
@@ -909,7 +924,7 @@ public abstract class SqlImplementor {
         break;
       case NOT:
         RexNode operand = call.operands.get(0);
-        if (NOT_KIND_OPERATORS.containsKey(operand.getKind())) {
+        if (getInverseOperator(operand) != null) {
           return callToSql(program, (RexCall) operand, !not);
         }
         break;
@@ -917,9 +932,8 @@ public abstract class SqlImplementor {
         break;
       }
       if (not) {
-        SqlKind kind = op.getKind();
-        op = requireNonNull(NOT_KIND_OPERATORS.get(kind),
-            () -> "unable to negate " + kind);
+        op = requireNonNull(getInverseOperator(call),
+            () -> "unable to negate " + call.getKind());
       }
       final List<SqlNode> nodeList = toSql(program, call.getOperands());
       switch (call.getKind()) {
@@ -934,8 +948,8 @@ public abstract class SqlImplementor {
           SqlNode fieldOperand = field(ordinal);
           return SqlStdOperatorTable.CURSOR.createCall(SqlParserPos.ZERO, fieldOperand);
         }
-        assert nodeList.size() == 1;
         if (ignoreCast) {
+          assert nodeList.size() == 1;
           return nodeList.get(0);
         } else {
           RelDataType castFrom = call.operands.get(0).getType();
@@ -955,6 +969,18 @@ public abstract class SqlImplementor {
       return SqlUtil.createCall(op, POS, nodeList);
     }
 
+    /** If {@code node} is a {@link RexCall}, extracts the operator and
+     * finds the corresponding inverse operator using {@link SqlOperator#not()}.
+     * Returns null if {@code node} is not a {@link RexCall},
+     * or if the operator has no logical inverse. */
+    private static @Nullable SqlOperator getInverseOperator(RexNode node) {
+      if (node instanceof RexCall) {
+        return ((RexCall) node).getOperator().not();
+      } else {
+        return null;
+      }
+    }
+
     /** Converts a Sarg to SQL, generating "operand IN (c1, c2, ...)" if the
      * ranges are all points. */
     @SuppressWarnings({"BetaApi", "UnstableApiUsage"})
@@ -966,29 +992,42 @@ public abstract class SqlImplementor {
         orList.add(SqlStdOperatorTable.IS_NULL.createCall(POS, operandSql));
       }
       if (sarg.isPoints()) {
-        final SqlNodeList list = sarg.rangeSet.asRanges().stream()
-            .map(range ->
-                toSql(program,
-                    implementor().rexBuilder.makeLiteral(range.lowerEndpoint(),
-                        type, true, true)))
-            .collect(SqlNode.toList());
-        switch (list.size()) {
-        case 1:
-          orList.add(
-              SqlStdOperatorTable.EQUALS.createCall(POS, operandSql,
-                  list.get(0)));
-          break;
-        default:
-          orList.add(SqlStdOperatorTable.IN.createCall(POS, operandSql, list));
-        }
+        // generate 'x = 10' or 'x IN (10, 20, 30)'
+        orList.add(
+            toIn(operandSql, SqlStdOperatorTable.EQUALS,
+                SqlStdOperatorTable.IN, program, type, sarg.rangeSet));
+      } else if (sarg.isComplementedPoints()) {
+        // generate 'x <> 10' or 'x NOT IN (10, 20, 30)'
+        orList.add(
+            toIn(operandSql, SqlStdOperatorTable.NOT_EQUALS,
+                SqlStdOperatorTable.NOT_IN, program, type,
+                sarg.rangeSet.complement()));
       } else {
         final RangeSets.Consumer<C> consumer =
             new RangeToSql<>(operandSql, orList, v ->
                 toSql(program,
-                    implementor().rexBuilder.makeLiteral(v, type, false, true)));
+                    implementor().rexBuilder.makeLiteral(v, type)));
         RangeSets.forEach(sarg.rangeSet, consumer);
       }
       return SqlUtil.createCall(SqlStdOperatorTable.OR, POS, orList);
+    }
+
+    @SuppressWarnings("BetaApi")
+    private <C extends Comparable<C>> SqlNode toIn(SqlNode operandSql,
+        SqlBinaryOperator eqOp, SqlBinaryOperator inOp,
+        @Nullable RexProgram program, RelDataType type, RangeSet<C> rangeSet) {
+      final SqlNodeList list = rangeSet.asRanges().stream()
+          .map(range ->
+              toSql(program,
+                  implementor().rexBuilder.makeLiteral(range.lowerEndpoint(),
+                      type, true, true)))
+          .collect(SqlNode.toList());
+      switch (list.size()) {
+      case 1:
+        return eqOp.createCall(POS, operandSql, list.get(0));
+      default:
+        return inOp.createCall(POS, operandSql, list);
+      }
     }
 
     /** Converts an expression from {@link RexWindowBound} to {@link SqlNode}
@@ -1506,7 +1545,7 @@ public abstract class SqlImplementor {
           POS);
     case TIME:
       return dialect.getTimeLiteral(castNonNull(literal.getValueAs(TimeString.class)),
-        literal.getType().getPrecision(), POS);
+          literal.getType().getPrecision(), POS);
     case TIMESTAMP:
       TimestampString timestampString = literal.getValueAs(TimestampString.class);
       int precision = literal.getType().getPrecision();
@@ -1642,11 +1681,6 @@ public abstract class SqlImplementor {
         final List<RelDataTypeField> fields = alias.getValue().getFieldList();
         if (ordinal < fields.size()) {
           RelDataTypeField field = fields.get(ordinal);
-          final SqlNode mappedSqlNode =
-              ordinalMap.get(field.getName().toLowerCase(Locale.ROOT));
-          if (mappedSqlNode != null) {
-            return mappedSqlNode;
-          }
           return new SqlIdentifier(!qualified
               ? ImmutableList.of(field.getName())
               : ImmutableList.of(alias.getKey(), field.getName()),
@@ -1793,7 +1827,7 @@ public abstract class SqlImplementor {
       assert expectedClauses.containsAll(clauses);
       assert rel.equals(expectedRel);
       final Set<Clause> clauses2 = ignoreClauses ? ImmutableSet.of() : clauses;
-      boolean needNew = needNewSubQuery(rel, this.clauses, clauses2);
+      final boolean needNew = needNewSubQuery(rel, this.clauses, clauses2);
       assert needNew == this.needNew;
       boolean keepColumnAlias = false;
 

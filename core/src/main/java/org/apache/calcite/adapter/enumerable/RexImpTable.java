@@ -128,6 +128,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_VALUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_XML;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ILIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.INSTR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.INT2SHL;
@@ -520,11 +521,15 @@ public class RexImpTable {
     map.put(IS_FALSE, new IsFalseImplementor());
     map.put(IS_NOT_FALSE, new IsNotFalseImplementor());
 
-    // LIKE and SIMILAR
+    // LIKE, ILIKE and SIMILAR
     final MethodImplementor likeImplementor =
         new MethodImplementor(BuiltInMethod.LIKE.method, NullPolicy.STRICT,
             false);
     map.put(LIKE, likeImplementor);
+    final MethodImplementor ilikeImplementor =
+        new MethodImplementor(BuiltInMethod.ILIKE.method, NullPolicy.STRICT,
+            false);
+    map.put(ILIKE, ilikeImplementor);
     final MethodImplementor similarImplementor =
         new MethodImplementor(BuiltInMethod.SIMILAR.method, NullPolicy.STRICT,
             false);
