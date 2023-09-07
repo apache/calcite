@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
@@ -755,6 +756,10 @@ public class CoreRules {
    * (<code>all</code> = <code>true</code>). */
   public static final UnionToDistinctRule UNION_TO_DISTINCT =
       UnionToDistinctRule.Config.DEFAULT.toRule();
+
+  /** Rule that rewrite {@link Sample} which is bernoulli to the {@link Filter}. */
+  public static final SampleToFilterRule SAMPLE_TO_FILTER =
+      SampleToFilterRule.Config.DEFAULT.toRule();
 
   /** Rule that applies an {@link Aggregate} to a {@link Values} (currently just
    * an empty {@code Values}). */
