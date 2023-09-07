@@ -12577,6 +12577,44 @@ LogicalProject(EXPR$0=[1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSampleToFilter">
+    <Resource name="sql">
+      <![CDATA[select deptno from emp tablesample bernoulli(50)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[-])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[<(RAND(), 0.5:DECIMAL(2, 1))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSampleToFilterWithSeed">
+    <Resource name="sql">
+      <![CDATA[select deptno from emp tablesample bernoulli(50) REPEATABLE(10)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[10])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[<(RAND(10), 0.5:DECIMAL(2, 1))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSelectAnyCorrelated">
     <Resource name="sql">
       <![CDATA[select empno > ANY (

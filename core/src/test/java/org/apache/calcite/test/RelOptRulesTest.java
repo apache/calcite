@@ -263,6 +263,26 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5971">[CALCITE-5971]
+   * Add the RelRule to rewrite the bernoulli sample as Filter</a>. */
+  @Test void testSampleToFilter() {
+    final String sql = "select deptno from emp tablesample bernoulli(50)";
+    sql(sql)
+        .withRule(CoreRules.SAMPLE_TO_FILTER)
+        .check();
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5971">[CALCITE-5971]
+   * Add the RelRule to rewrite the bernoulli sample as Filter</a>. */
+  @Test void testSampleToFilterWithSeed() {
+    final String sql = "select deptno from emp tablesample bernoulli(50) REPEATABLE(10)";
+    sql(sql)
+        .withRule(CoreRules.SAMPLE_TO_FILTER)
+        .check();
+  }
+
+  /**
    * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
    * Type inference for sql functions REPEAT, SPACE, XML_TRANSFORM,
    * and XML_EXTRACT is incorrect</a>. */
