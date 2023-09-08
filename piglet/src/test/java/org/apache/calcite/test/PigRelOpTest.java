@@ -232,7 +232,7 @@ class PigRelOpTest extends PigRelTestBase {
     final String sql = ""
         + "SELECT *\n"
         + "FROM scott.DEPT\n"
-        + "WHERE RAND() < 0.5";
+        + "WHERE RAND() < 5E-1";
     pig(script).assertRel(hasTree(plan))
         .assertSql(is(sql));
   }

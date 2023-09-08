@@ -1406,10 +1406,19 @@ public abstract class SqlImplementor {
     default:
       break;
     }
-    SqlTypeFamily family =
-        requireNonNull(typeName.getFamily(),
-            () -> "literal " + literal
-                + " has null SqlTypeFamily, and is SqlTypeName is " + typeName);
+    SqlTypeFamily family = typeName.getPrimaryFamily();
+    SqlTypeFamily secondaryFamily = typeName.getSecondaryFamily();
+    if (family == null) {
+      if (secondaryFamily == SqlTypeFamily.ANY || secondaryFamily == SqlTypeFamily.NULL) {
+        if (typeName == SqlTypeName.NULL) {
+          return SqlLiteral.createNull(POS);
+        }
+      }
+      throw new RuntimeException("literal " + literal
+          + " has null SqlTypeFamily, " + secondaryFamily
+          + " secondaryTypeFamily, and is SqlTypeName is " + typeName);
+    }
+
     switch (family) {
     case CHARACTER: {
       final NlsString value = literal.getValueAs(NlsString.class);
@@ -1425,16 +1434,19 @@ public abstract class SqlImplementor {
       // Create a string without specifying a charset
       return SqlLiteral.createCharString((String) castNonNull(literal.getValue2()), POS);
     }
-    case NUMERIC:
-    case EXACT_NUMERIC:
-      return SqlLiteral.createExactNumeric(
-          castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
-    case APPROXIMATE_NUMERIC:
-      return SqlLiteral.createApproxNumeric(
-          castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
+    case NUMERIC: {
+      if (secondaryFamily == null || secondaryFamily == SqlTypeFamily.EXACT_NUMERIC) {
+        return SqlLiteral.createExactNumeric(
+            castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
+      } else if (secondaryFamily == SqlTypeFamily.APPROXIMATE_NUMERIC) {
+        return SqlLiteral.createApproxNumeric(
+            castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
+      } else {
+        throw new AssertionError(literal + ": " + typeName);
+      }
+    }
     case BOOLEAN:
-      return SqlLiteral.createBoolean(castNonNull(literal.getValueAs(Boolean.class)),
-          POS);
+      return SqlLiteral.createBoolean(castNonNull(literal.getValueAs(Boolean.class)), POS);
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_DAY_TIME:
       final boolean negative = castNonNull(literal.getValueAs(Boolean.class));
@@ -1442,8 +1454,7 @@ public abstract class SqlImplementor {
           castNonNull(literal.getValueAs(String.class)),
           castNonNull(literal.getType().getIntervalQualifier()), POS);
     case DATE:
-      return SqlLiteral.createDate(castNonNull(literal.getValueAs(DateString.class)),
-          POS);
+      return SqlLiteral.createDate(castNonNull(literal.getValueAs(DateString.class)), POS);
     case TIME:
       return SqlLiteral.createTime(castNonNull(literal.getValueAs(TimeString.class)),
           literal.getType().getPrecision(), POS);

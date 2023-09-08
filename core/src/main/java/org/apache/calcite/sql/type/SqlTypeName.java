@@ -52,82 +52,89 @@ import java.util.Set;
  * </ul>
  */
 public enum SqlTypeName {
-  BOOLEAN(PrecScale.NO_NO, false, Types.BOOLEAN, SqlTypeFamily.BOOLEAN),
-  TINYINT(PrecScale.NO_NO, false, Types.TINYINT, SqlTypeFamily.NUMERIC),
-  SMALLINT(PrecScale.NO_NO, false, Types.SMALLINT, SqlTypeFamily.NUMERIC),
-  INTEGER(PrecScale.NO_NO, false, Types.INTEGER, SqlTypeFamily.NUMERIC),
-  BIGINT(PrecScale.NO_NO, false, Types.BIGINT, SqlTypeFamily.NUMERIC),
+  BOOLEAN(PrecScale.NO_NO, false, Types.BOOLEAN, SqlTypeFamily.BOOLEAN, null),
+  TINYINT(PrecScale.NO_NO, false, Types.TINYINT,
+      SqlTypeFamily.NUMERIC, SqlTypeFamily.EXACT_NUMERIC),
+  SMALLINT(PrecScale.NO_NO, false, Types.SMALLINT,
+      SqlTypeFamily.NUMERIC, SqlTypeFamily.EXACT_NUMERIC),
+  INTEGER(PrecScale.NO_NO, false, Types.INTEGER,
+      SqlTypeFamily.NUMERIC, SqlTypeFamily.EXACT_NUMERIC),
+  BIGINT(PrecScale.NO_NO, false, Types.BIGINT,
+      SqlTypeFamily.NUMERIC, SqlTypeFamily.EXACT_NUMERIC),
   DECIMAL(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES, false,
-      Types.DECIMAL, SqlTypeFamily.NUMERIC),
-  FLOAT(PrecScale.NO_NO, false, Types.FLOAT, SqlTypeFamily.NUMERIC),
-  REAL(PrecScale.NO_NO, false, Types.REAL, SqlTypeFamily.NUMERIC),
-  DOUBLE(PrecScale.NO_NO, false, Types.DOUBLE, SqlTypeFamily.NUMERIC),
-  DATE(PrecScale.NO_NO, false, Types.DATE, SqlTypeFamily.DATE),
+      Types.DECIMAL, SqlTypeFamily.NUMERIC, SqlTypeFamily.EXACT_NUMERIC),
+  FLOAT(PrecScale.NO_NO, false, Types.FLOAT,
+      SqlTypeFamily.NUMERIC, SqlTypeFamily.APPROXIMATE_NUMERIC),
+  REAL(PrecScale.NO_NO, false, Types.REAL,
+      SqlTypeFamily.NUMERIC, SqlTypeFamily.APPROXIMATE_NUMERIC),
+  DOUBLE(PrecScale.NO_NO, false, Types.DOUBLE,
+      SqlTypeFamily.NUMERIC, SqlTypeFamily.APPROXIMATE_NUMERIC),
+  DATE(PrecScale.NO_NO, false, Types.DATE, SqlTypeFamily.DATE, SqlTypeFamily.DATETIME),
   TIME(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.TIME,
-      SqlTypeFamily.TIME),
+      SqlTypeFamily.TIME, SqlTypeFamily.DATETIME),
   TIME_WITH_LOCAL_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
-      SqlTypeFamily.TIME),
+      SqlTypeFamily.TIME, SqlTypeFamily.DATETIME),
   TIMESTAMP(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.TIMESTAMP,
-      SqlTypeFamily.TIMESTAMP),
+      SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATETIME),
   TIMESTAMP_WITH_LOCAL_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false,
-      Types.TIMESTAMP, SqlTypeFamily.TIMESTAMP),
+      Types.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATETIME),
   INTERVAL_YEAR(PrecScale.NO_NO, false, Types.OTHER,
-      SqlTypeFamily.INTERVAL_YEAR_MONTH),
+      SqlTypeFamily.INTERVAL_YEAR_MONTH, SqlTypeFamily.DATETIME_INTERVAL),
   INTERVAL_YEAR_MONTH(PrecScale.NO_NO, false, Types.OTHER,
-      SqlTypeFamily.INTERVAL_YEAR_MONTH),
+      SqlTypeFamily.INTERVAL_YEAR_MONTH, SqlTypeFamily.DATETIME_INTERVAL),
   INTERVAL_MONTH(PrecScale.NO_NO, false, Types.OTHER,
-      SqlTypeFamily.INTERVAL_YEAR_MONTH),
+      SqlTypeFamily.INTERVAL_YEAR_MONTH, SqlTypeFamily.DATETIME_INTERVAL),
   INTERVAL_DAY(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
-      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
+      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME, SqlTypeFamily.DATETIME_INTERVAL),
   INTERVAL_DAY_HOUR(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
-      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
+      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME, SqlTypeFamily.DATETIME_INTERVAL),
   INTERVAL_DAY_MINUTE(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
-      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
+      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME, SqlTypeFamily.DATETIME_INTERVAL),
   INTERVAL_DAY_SECOND(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
-      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
+      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME, SqlTypeFamily.DATETIME_INTERVAL),
   INTERVAL_HOUR(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
-      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
+      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME, SqlTypeFamily.DATETIME_INTERVAL),
   INTERVAL_HOUR_MINUTE(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
-      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
+      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME, SqlTypeFamily.DATETIME_INTERVAL),
   INTERVAL_HOUR_SECOND(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
-      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
+      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME, SqlTypeFamily.DATETIME_INTERVAL),
   INTERVAL_MINUTE(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
-      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
+      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME, SqlTypeFamily.DATETIME_INTERVAL),
   INTERVAL_MINUTE_SECOND(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
-      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
+      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME, SqlTypeFamily.DATETIME_INTERVAL),
   INTERVAL_SECOND(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
-      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
+      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME, SqlTypeFamily.DATETIME_INTERVAL),
   CHAR(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.CHAR,
-      SqlTypeFamily.CHARACTER),
+      SqlTypeFamily.CHARACTER, SqlTypeFamily.STRING),
   VARCHAR(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.VARCHAR,
-      SqlTypeFamily.CHARACTER),
+      SqlTypeFamily.CHARACTER, SqlTypeFamily.STRING),
   BINARY(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.BINARY,
-      SqlTypeFamily.BINARY),
+      SqlTypeFamily.BINARY, SqlTypeFamily.STRING),
   VARBINARY(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.VARBINARY,
-      SqlTypeFamily.BINARY),
-  NULL(PrecScale.NO_NO, true, Types.NULL, SqlTypeFamily.NULL),
-  UNKNOWN(PrecScale.NO_NO, true, Types.NULL, SqlTypeFamily.NULL),
+      SqlTypeFamily.BINARY, SqlTypeFamily.STRING),
+  NULL(PrecScale.NO_NO, true, Types.NULL, null, SqlTypeFamily.NULL),
+  UNKNOWN(PrecScale.NO_NO, true, Types.NULL, null, SqlTypeFamily.NULL),
   ANY(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES, true,
-      Types.JAVA_OBJECT, SqlTypeFamily.ANY),
-  SYMBOL(PrecScale.NO_NO, true, Types.OTHER, null),
-  MULTISET(PrecScale.NO_NO, false, Types.ARRAY, SqlTypeFamily.MULTISET),
-  ARRAY(PrecScale.NO_NO, false, Types.ARRAY, SqlTypeFamily.ARRAY),
-  MAP(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.MAP),
-  DISTINCT(PrecScale.NO_NO, false, Types.DISTINCT, null),
-  STRUCTURED(PrecScale.NO_NO, false, Types.STRUCT, null),
-  ROW(PrecScale.NO_NO, false, Types.STRUCT, null),
-  OTHER(PrecScale.NO_NO, false, Types.OTHER, null),
-  CURSOR(PrecScale.NO_NO, false, ExtraSqlTypes.REF_CURSOR,
+      Types.JAVA_OBJECT, null, SqlTypeFamily.ANY),
+  SYMBOL(PrecScale.NO_NO, true, Types.OTHER, null, null),
+  MULTISET(PrecScale.NO_NO, false, Types.ARRAY, null, SqlTypeFamily.MULTISET),
+  ARRAY(PrecScale.NO_NO, false, Types.ARRAY, null, SqlTypeFamily.ARRAY),
+  MAP(PrecScale.NO_NO, false, Types.OTHER, null, SqlTypeFamily.MAP),
+  DISTINCT(PrecScale.NO_NO, false, Types.DISTINCT, null, null),
+  STRUCTURED(PrecScale.NO_NO, false, Types.STRUCT, null, null),
+  ROW(PrecScale.NO_NO, false, Types.STRUCT, null, null),
+  OTHER(PrecScale.NO_NO, false, Types.OTHER, null, null),
+  CURSOR(PrecScale.NO_NO, false, ExtraSqlTypes.REF_CURSOR, null,
       SqlTypeFamily.CURSOR),
-  COLUMN_LIST(PrecScale.NO_NO, false, Types.OTHER + 2,
+  COLUMN_LIST(PrecScale.NO_NO, false, Types.OTHER + 2, null,
       SqlTypeFamily.COLUMN_LIST),
   DYNAMIC_STAR(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES, true,
-      Types.JAVA_OBJECT, SqlTypeFamily.ANY),
+      Types.JAVA_OBJECT, null, SqlTypeFamily.ANY),
   /** Spatial type. Though not standard, it is common to several DBs, so we
    * do not flag it 'special' (internal). */
-  GEOMETRY(PrecScale.NO_NO, false, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO),
-  MEASURE(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
-  SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY);
+  GEOMETRY(PrecScale.NO_NO, false, ExtraSqlTypes.GEOMETRY, null, SqlTypeFamily.GEO),
+  MEASURE(PrecScale.NO_NO, true, Types.OTHER, null, SqlTypeFamily.ANY),
+  SARG(PrecScale.NO_NO, true, Types.OTHER, null, SqlTypeFamily.ANY);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 
@@ -271,19 +278,24 @@ public enum SqlTypeName {
   private final int signatures;
 
   /**
-   * Returns true if not of a "pure" standard sql type. "Inpure" types are
+   * True if not of a "pure" standard sql type. "Impure" types are
    * {@link #ANY}, {@link #NULL} and {@link #SYMBOL}
    */
   private final boolean special;
   private final int jdbcOrdinal;
+  /** The primary family of the type. */
   private final @Nullable SqlTypeFamily family;
+  private final @Nullable SqlTypeFamily secondaryFamily;
 
   SqlTypeName(int signatures, boolean special, int jdbcType,
-      @Nullable SqlTypeFamily family) {
+      @Nullable SqlTypeFamily family, @Nullable SqlTypeFamily secondaryFamily) {
     this.signatures = signatures;
     this.special = special;
     this.jdbcOrdinal = jdbcType;
     this.family = family;
+    this.secondaryFamily = secondaryFamily;
+    assert family == null || family.isPrimary();
+    assert secondaryFamily == null || !secondaryFamily.isPrimary();
   }
 
   /**
@@ -292,15 +304,6 @@ public enum SqlTypeName {
    * @return Type name, or null if not found
    */
   public static @Nullable SqlTypeName get(String name) {
-    if (false) {
-      // The following code works OK, but the spurious exceptions are
-      // annoying.
-      try {
-        return SqlTypeName.valueOf(name);
-      } catch (IllegalArgumentException e) {
-        return null;
-      }
-    }
     return VALUES_MAP.get(name);
   }
 
@@ -404,11 +407,28 @@ public enum SqlTypeName {
 
   /**
    * Gets the SqlTypeFamily containing this SqlTypeName.
+   * This function is preserved for backwards-compatibility and should be removed
+   * once all its uses have been eliminated.
+   * We recommend using one of getPrimaryFamily() or getSecondaryFamily() instead.
    *
    * @return containing family, or null for none (SYMBOL, DISTINCT, STRUCTURED, ROW, OTHER)
    */
   public @Nullable SqlTypeFamily getFamily() {
+    if (family != null) {
+      return family;
+    } else {
+      return secondaryFamily;
+    }
+  }
+
+  /** The primary family of this type.  See {@link SqlTypeFamily}. */
+  public @Nullable SqlTypeFamily getPrimaryFamily() {
     return family;
+  }
+
+  /** The secondary family of this type.  See {@link SqlTypeFamily}. */
+  public @Nullable SqlTypeFamily getSecondaryFamily() {
+    return secondaryFamily;
   }
 
   /**

@@ -50,36 +50,42 @@ import java.util.Map;
  */
 public enum SqlTypeFamily implements RelDataTypeFamily {
   // Primary families.
-  CHARACTER,
-  BINARY,
-  NUMERIC,
-  DATE,
-  TIME,
-  TIMESTAMP,
-  BOOLEAN,
-  INTERVAL_YEAR_MONTH,
-  INTERVAL_DAY_TIME,
+  CHARACTER(true),
+  BINARY(true),
+  NUMERIC(true),
+  DATE(true),
+  TIME(true),
+  TIMESTAMP(true),
+  BOOLEAN(true),
+  INTERVAL_YEAR_MONTH(true),
+  INTERVAL_DAY_TIME(true),
 
   // Secondary families.
 
-  STRING,
-  APPROXIMATE_NUMERIC,
-  EXACT_NUMERIC,
-  DECIMAL,
-  INTEGER,
-  DATETIME,
-  DATETIME_INTERVAL,
-  MULTISET,
-  ARRAY,
-  MAP,
-  NULL,
-  ANY,
-  CURSOR,
-  COLUMN_LIST,
-  GEO,
+  STRING(false),
+  APPROXIMATE_NUMERIC(false),
+  EXACT_NUMERIC(false),
+  DECIMAL(false),
+  INTEGER(false),
+  DATETIME(false),
+  DATETIME_INTERVAL(false),
+  MULTISET(false),
+  ARRAY(false),
+  MAP(false),
+  NULL(false),
+  ANY(false),
+  CURSOR(false),
+  COLUMN_LIST(false),
+  GEO(false),
   /** Like ANY, but do not even validate the operand. It may not be an
    * expression. */
-  IGNORE;
+  IGNORE(false);
+
+  private final boolean primary;
+
+  SqlTypeFamily(boolean primary) {
+    this.primary = primary;
+  }
 
   private static final Map<Integer, SqlTypeFamily> JDBC_TYPE_TO_FAMILY =
       ImmutableMap.<Integer, SqlTypeFamily>builder()
@@ -128,6 +134,10 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
    */
   public static @Nullable SqlTypeFamily getFamilyForJdbcType(int jdbcType) {
     return JDBC_TYPE_TO_FAMILY.get(jdbcType);
+  }
+
+  public boolean isPrimary() {
+    return primary;
   }
 
   /** For this type family, returns the allow types of the difference between
