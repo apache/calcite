@@ -1611,6 +1611,19 @@ public abstract class SqlLibraryOperators {
               number -> number == 2),
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction REGEXP_SIMILAR =
+      new SqlFunction("REGEXP_SIMILAR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+                  SqlTypeFamily.STRING),
+              // Third operand optional (operand index 0, 1, 2)
+              number -> number == 2),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction NEXT_DAY =
       new SqlFunction(
@@ -1725,4 +1738,14 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction MEDIAN =
       new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
 
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction LOG =
+      new SqlFunction("LOG",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE, null,
+          OperandTypes.family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+              // Second operand is optional
+              number -> number == 1),
+          SqlFunctionCategory.NUMERIC);
 }

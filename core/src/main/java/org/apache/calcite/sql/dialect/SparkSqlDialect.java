@@ -727,7 +727,7 @@ public class SparkSqlDialect extends SqlDialect {
       SqlWriter.Frame piFrame = writer.startFunCall("PI");
       writer.endFunCall(piFrame);
       break;
-    case "REGEXP_LIKE":
+    case "REGEXP_SIMILAR":
       unParseRegexpLike(writer, call, leftPrec, rightPrec);
       break;
     case "TRUNC":
