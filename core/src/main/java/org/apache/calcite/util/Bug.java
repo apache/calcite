@@ -208,6 +208,11 @@ public abstract class Bug {
    * MILLISECOND and MICROSECOND units in INTERVAL literal</a> is fixed. */
   public static final boolean CALCITE_5422_FIXED = false;
 
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5990">[CALCITE-5990]
+   * Explicit cast to numeric type doesn't check overflow</a> is fixed. */
+  public static final boolean CALCITE_5990_FIXED = false;
+
   /**
    * Use this to flag temporary code.
    */

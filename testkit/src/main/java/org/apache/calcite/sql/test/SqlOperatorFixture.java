@@ -96,7 +96,7 @@ public interface SqlOperatorFixture extends AutoCloseable {
   // Error messages when an invalid time unit is given as
   // input to extract for a particular input type.
   String INVALID_EXTRACT_UNIT_CONVERTLET_ERROR =
-      "Extract.*from.*type data is not supported";
+      "Was not expecting value.*for enumeration.*in this context";
 
   String INVALID_EXTRACT_UNIT_VALIDATION_ERROR =
       "Cannot apply 'EXTRACT' to arguments of type .*'\n.*";

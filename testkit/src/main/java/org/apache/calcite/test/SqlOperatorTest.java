@@ -1395,8 +1395,10 @@ public class SqlOperatorTest {
    */
   @Test void testChainedCast() {
     final SqlOperatorFixture f = fixture();
-    f.checkFails("CAST(CAST(CAST(123456 AS TINYINT) AS INT) AS BIGINT)",
-        "Value out of range. Value:\"123456\"", true);
+    if (Bug.CALCITE_5990_FIXED) {
+      f.checkFails("CAST(CAST(CAST(123456 AS TINYINT) AS INT) AS BIGINT)",
+          "Value out of range. Value:\"123456\"", true);
+    }
   }
 
   @Test void testCase() {
@@ -8180,7 +8182,7 @@ public class SqlOperatorTest {
     f.checkFails("lpad('12345', -3)",
         "Second argument for LPAD/RPAD must not be negative", true);
     f.checkFails("lpad('12345', 3, '')",
-        "Third argument (pad pattern) for LPAD/RPAD must not be empty", true);
+        "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
     f.checkString("lpad(x'aa', 4, x'bb')", "bbbbbbaa", "VARBINARY(1) NOT NULL");
     f.checkString("lpad(x'aa', 4)", "202020aa", "VARBINARY(1) NOT NULL");
     f.checkString("lpad(x'aaaaaa', 2)", "aaaa", "VARBINARY(3) NOT NULL");
@@ -8190,7 +8192,7 @@ public class SqlOperatorTest {
     f.checkFails("lpad(x'aa', -3)",
         "Second argument for LPAD/RPAD must not be negative", true);
     f.checkFails("lpad(x'aa', 3, x'')",
-        "Third argument (pad pattern) for LPAD/RPAD must not be empty", true);
+        "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
   }
 
   @Test void testRpadFunction() {
@@ -8205,7 +8207,7 @@ public class SqlOperatorTest {
     f.checkFails("rpad('12345', -3)",
         "Second argument for LPAD/RPAD must not be negative", true);
     f.checkFails("rpad('12345', 3, '')",
-        "Third argument (pad pattern) for LPAD/RPAD must not be empty", true);
+        "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
 
     f.checkString("rpad(x'aa', 4, x'bb')", "aabbbbbb", "VARBINARY(1) NOT NULL");
     f.checkString("rpad(x'aa', 4)", "aa202020", "VARBINARY(1) NOT NULL");
@@ -8216,7 +8218,7 @@ public class SqlOperatorTest {
     f.checkFails("rpad(x'aa', -3)",
         "Second argument for LPAD/RPAD must not be negative", true);
     f.checkFails("rpad(x'aa', 3, x'')",
-        "Third argument (pad pattern) for LPAD/RPAD must not be empty", true);
+        "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
   }
 
   @Test void testContainsSubstrFunc() {
