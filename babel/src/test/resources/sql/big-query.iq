@@ -2030,6 +2030,160 @@ Input arguments of CODE_POINTS_TO_BYTES out of range: 2147483648
 !error
 
 #####################################################################
+# CODE_POINTS_TO_STRING(array<integer>)
+#
+# Takes an array of Unicode code points as ARRAY<INT64>
+# and returns a STRING.
+#
+SELECT CODE_POINTS_TO_STRING(array[65, 66, 67, 68]) as result;
++--------+
+| result |
++--------+
+| ABCD   |
++--------+
+(1 row)
+
+!ok
+
+SELECT CODE_POINTS_TO_STRING(array[255, 254, 1024, 70000]) as result;
++--------+
+| result |
++--------+
+| ÿþЀ𑅰  |
++--------+
+(1 row)
+
+!ok
+
+SELECT CODE_POINTS_TO_STRING(array[1+2, 3]) as result;
++--------+
+| result |
++--------+
+|      |
++--------+
+(1 row)
+
+!ok
+
+SELECT CODE_POINTS_TO_STRING(null) as result;
++--------+
+| result |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+SELECT CODE_POINTS_TO_STRING(array[65, null]) as result;
++--------+
+| result |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+SELECT CODE_POINTS_TO_STRING('abc') as result;
+Cannot apply 'CODE_POINTS_TO_STRING' to arguments of type 'CODE_POINTS_TO_STRING(<CHAR(3)>)'. Supported form(s): CODE_POINTS_TO_STRING(<INTEGER ARRAY>)
+!error
+
+SELECT CODE_POINTS_TO_STRING(array[-1]) as result;
+Input arguments of CODE_POINTS_TO_STRING out of range: -1
+!error
+
+SELECT CODE_POINTS_TO_STRING(array[2147483648, 1]);
+Input arguments of CODE_POINTS_TO_STRING out of range: 2147483648
+!error
+
+#####################################################################
+# TO_CODE_POINTS(value)
+#
+# Takes a STRING or BYTES value and returns an array of INT64 values
+# that represent code points or extended ASCII character values.
+# 1. If value is a STRING, each element in the returned array
+# represents a code point. Each code point falls within the range of
+# [0, 0xD7FF] and [0xE000, 0x10FFFF].
+# 2. If value is BYTES, each element in the array is an extended
+# ASCII character value in the range of [0, 255].
+#
+SELECT TO_CODE_POINTS('ABCD') as result;
++------------------+
+| result           |
++------------------+
+| [65, 66, 67, 68] |
++------------------+
+(1 row)
+
+!ok
+
+SELECT TO_CODE_POINTS(x'11223344') as result;
++------------------+
+| result           |
++------------------+
+| [17, 34, 51, 68] |
++------------------+
+(1 row)
+
+!ok
+
+SELECT TO_CODE_POINTS(CODE_POINTS_TO_STRING(array[255, 254, 1024, 70000, 65])) as result;
++-----------------------------+
+| result                      |
++-----------------------------+
+| [255, 254, 1024, 70000, 65] |
++-----------------------------+
+(1 row)
+
+!ok
+
+SELECT TO_CODE_POINTS(CODE_POINTS_TO_BYTES(array[64, 65, 66, 67])) as result;
++------------------+
+| result           |
++------------------+
+| [64, 65, 66, 67] |
++------------------+
+(1 row)
+
+!ok
+
+SELECT TO_CODE_POINTS(null) as result;
++--------+
+| result |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+SELECT TO_CODE_POINTS('') as result;
++--------+
+| result |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+SELECT TO_CODE_POINTS(x'') as result;
++--------+
+| result |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+SELECT to_code_points(array[1, 2, 3]) as result;
+Error while executing SQL "SELECT to_code_points(array[1, 2, 3]) as result": From line 1, column 8 to line 1, column 37: Cannot apply 'TO_CODE_POINTS' to arguments of type 'TO_CODE_POINTS(<INTEGER ARRAY>)'. Supported form(s): 'TO_CODE_POINTS(<STRING>)'
+'TO_CODE_POINTS(<BINARY>)'
+!error
+
+#####################################################################
 # DATE
 #
 # 0. DATE(string)

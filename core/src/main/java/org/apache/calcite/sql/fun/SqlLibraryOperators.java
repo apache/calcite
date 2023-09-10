@@ -317,8 +317,7 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("SPLIT",
           ReturnTypes.ARG0
               .andThen(SqlLibraryOperators::deriveTypeSplit)
-              .andThen(SqlTypeTransforms.TO_ARRAY)
-              .andThen(SqlTypeTransforms.TO_NULLABLE),
+              .andThen(SqlTypeTransforms.TO_ARRAY_NULLABLE),
           OperandTypes.or(OperandTypes.CHARACTER_CHARACTER,
               OperandTypes.CHARACTER,
               OperandTypes.BINARY_BINARY,
@@ -1786,11 +1785,32 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
 
+  /** The "CODE_POINTS_TO_BYTES(integers)" function (BigQuery); Converts an array of extended ASCII
+   * code points to bytes. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction CODE_POINTS_TO_BYTES =
       SqlBasicFunction.create("CODE_POINTS_TO_BYTES",
           ReturnTypes.VARBINARY_NULLABLE,
           OperandTypes.ARRAY_OF_INTEGER,
+          SqlFunctionCategory.STRING);
+
+  /** The "CODE_POINTS_TO_STRING(integers)" function (BigQuery); Converts an array of Unicode code
+   * points to string. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction CODE_POINTS_TO_STRING =
+      SqlBasicFunction.create("CODE_POINTS_TO_STRING",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.ARRAY_OF_INTEGER,
+          SqlFunctionCategory.STRING);
+
+  /** The "TO_CODE_POINTS(string or binary)" function (BigQuery); Converts a {@code string} or
+   * {@code binary} value to an array of integers that represent code points or extended ASCII
+   * character values. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TO_CODE_POINTS =
+      SqlBasicFunction.create("TO_CODE_POINTS",
+          ReturnTypes.INTEGER.andThen(SqlTypeTransforms.TO_ARRAY_NULLABLE),
+          OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ALL})

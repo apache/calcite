@@ -1820,9 +1820,11 @@ public class SqlOperatorTest {
         false);
 
     f.checkFails("code_points_to_bytes(array[-1])",
-        "Input arguments of CODE_POINTS_TO_BYTES out of range: -1", true);
+        "Input arguments of CODE_POINTS_TO_BYTES out of range: -1;"
+            + " should be in the range of [0, 255]", true);
     f.checkFails("code_points_to_bytes(array[2147483648, 1])",
-        "Input arguments of CODE_POINTS_TO_BYTES out of range: 2147483648", true);
+        "Input arguments of CODE_POINTS_TO_BYTES out of range: 2147483648;"
+            + " should be in the range of [0, 255]", true);
 
     f.checkString("code_points_to_bytes(array[65, 66, 67, 68])", "41424344", "VARBINARY NOT NULL");
     f.checkString("code_points_to_bytes(array[255, 254, 65, 64])", "fffe4140",
@@ -1833,6 +1835,67 @@ public class SqlOperatorTest {
     f.checkNull("code_points_to_bytes(null)");
     f.checkNull("code_points_to_bytes(array[null])");
     f.checkNull("code_points_to_bytes(array[65, null])");
+  }
+
+  @Test void testCodePointsToString() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.CODE_POINTS_TO_STRING, VM_FENNEL, VM_JAVA)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkFails("^code_points_to_string('abc')^",
+        "Cannot apply 'CODE_POINTS_TO_STRING' to arguments of type "
+            + "'CODE_POINTS_TO_STRING\\(<CHAR\\(3\\)>\\)'\\. "
+            + "Supported form\\(s\\): CODE_POINTS_TO_STRING\\(<INTEGER ARRAY>\\)",
+        false);
+    f.checkFails("^code_points_to_string(array['abc'])^",
+        "Cannot apply 'CODE_POINTS_TO_STRING' to arguments of type "
+            + "'CODE_POINTS_TO_STRING\\(<CHAR\\(3\\) ARRAY>\\)'\\. "
+            + "Supported form\\(s\\): CODE_POINTS_TO_STRING\\(<INTEGER ARRAY>\\)",
+        false);
+
+    f.checkFails("code_points_to_string(array[-1])",
+        "Input arguments of CODE_POINTS_TO_STRING out of range: -1;"
+            + " should be in the range of [0, 0xD7FF] and [0xE000, 0x10FFFF]", true);
+    f.checkFails("code_points_to_string(array[2147483648, 1])",
+        "Input arguments of CODE_POINTS_TO_STRING out of range: 2147483648;"
+            + " should be in the range of [0, 0xD7FF] and [0xE000, 0x10FFFF]", true);
+
+    f.checkString("code_points_to_string(array[65, 66, 67, 68])", "ABCD",
+        "VARCHAR NOT NULL");
+    f.checkString("code_points_to_string(array[255, 254, 1024, 70000])", "ÿþЀ\uD804\uDD70",
+        "VARCHAR NOT NULL");
+    f.checkString("code_points_to_string(array[1+2, 3])", "\u0003\u0003",
+        "VARCHAR NOT NULL");
+
+    f.checkNull("code_points_to_string(null)");
+    f.checkNull("code_points_to_string(array[null])");
+    f.checkNull("code_points_to_string(array[65, null])");
+  }
+
+  @Test void testToCodePoints() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.TO_CODE_POINTS, VM_FENNEL, VM_JAVA)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkNull("to_code_points(null)");
+    f.checkFails("^to_code_points(array[1,2,3])^",
+        "Cannot apply 'TO_CODE_POINTS' to arguments of type "
+            + "'TO_CODE_POINTS\\(<INTEGER ARRAY>\\)'\\. "
+            + "Supported form\\(s\\): 'TO_CODE_POINTS\\(<STRING>\\)'\n"
+            + "'TO_CODE_POINTS\\(<BINARY>\\)'", false);
+
+    f.checkScalar("to_code_points(_UTF8'ÿþЀ\uD804\uDD70A')", "[255, 254, 1024, 70000, 65]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("to_code_points('ABCD')", "[65, 66, 67, 68]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("to_code_points(x'11223344')", "[17, 34, 51, 68]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("to_code_points(code_points_to_string(array[255, 254, 1024, 70000, 65]))",
+        "[255, 254, 1024, 70000, 65]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("to_code_points(code_points_to_bytes(array[64, 65, 66, 67]))",
+        "[64, 65, 66, 67]", "INTEGER NOT NULL ARRAY NOT NULL");
+
+    f.checkNull("to_code_points(null)");
+    f.checkNull("to_code_points('')");
+    f.checkNull("to_code_points(x'')");
   }
 
   @Test void testSelect() {
@@ -6915,10 +6978,13 @@ public class SqlOperatorTest {
       f.checkNull("atanh(cast(null as integer))");
       f.checkNull("atanh(cast(null as double))");
       f.checkFails("atanh(1)",
-          "Input parameter of atanh cannot be out of the range \\(-1, 1\\)!",
+          "Input arguments of ATANH out of range: 1; should be in the range of (-1, 1)",
           true);
       f.checkFails("atanh(-1)",
-          "Input parameter of atanh cannot be out of the range \\(-1, 1\\)!",
+          "Input arguments of ATANH out of range: -1; should be in the range of (-1, 1)",
+          true);
+      f.checkFails("atanh(-1.5)",
+          "Input arguments of ATANH out of range: -1.5; should be in the range of (-1, 1)",
           true);
     };
     f0.forEachLibrary(list(SqlLibrary.ALL), consumer);

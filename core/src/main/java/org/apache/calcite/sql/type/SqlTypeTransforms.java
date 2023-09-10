@@ -224,13 +224,21 @@ public abstract class SqlTypeTransforms {
 
   /**
    * Parameter type-inference transform strategy that wraps a given type
-   * in a array.
+   * in an array.
    *
    * @see org.apache.calcite.rel.type.RelDataTypeFactory#createArrayType(RelDataType, long)
    */
   public static final SqlTypeTransform TO_ARRAY =
       (opBinding, typeToTransform) ->
           opBinding.getTypeFactory().createArrayType(typeToTransform, -1);
+
+  /**
+   * Parameter type-inference transform strategy that wraps a given type in an array,
+   * but nullable if any of element of a calls operands is nullable.
+   */
+  public static final SqlTypeTransform TO_ARRAY_NULLABLE =
+      (opBinding, typeToTransform) ->
+          TO_NULLABLE.transformType(opBinding, TO_ARRAY.transformType(opBinding, typeToTransform));
 
   /** Parameter type-inference transform that transforms {@code T} to
    * {@code MEASURE<T>} for some type T. */
