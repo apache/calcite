@@ -2060,6 +2060,26 @@ public class RexSimplify {
           }
         }
         break;
+      case IS_NOT_TRUE:
+        RexNode arg = ((RexCall) term).getOperands().get(0);
+        if (isSafeExpression(arg) && terms.contains(arg)) {
+          return trueLiteral;
+        }
+        break;
+      case NOT:
+        RexNode x = ((RexCall) term).getOperands().get(0);
+        if (isSafeExpression(x) && terms.contains(x)) {
+          if (!x.getType().isNullable()) {
+            return trueLiteral;
+          }
+
+          final RexNode isNotNull =
+              rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, x);
+          terms.set(terms.indexOf(x), simplifyIs((RexCall) isNotNull, unknownAs));
+          terms.set(i, rexBuilder.makeNullLiteral(x.getType()));
+          i--;
+        }
+        break;
       default:
         break;
       }
