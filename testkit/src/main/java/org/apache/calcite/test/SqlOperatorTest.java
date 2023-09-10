@@ -3702,7 +3702,8 @@ public class SqlOperatorTest {
 
     // some negative tests
     f.checkFails("'yd' similar to '[x-ze-a]d'",
-        "Illegal character range near index 6\n"
+        "java\\.util\\.regex\\.PatternSyntaxException: "
+            + "Illegal character range near index 6\n"
             + "\\[x-ze-a\\]d\n"
             + "      \\^",
         true);   // illegal range
@@ -3710,10 +3711,10 @@ public class SqlOperatorTest {
     // Slightly different error message from JDK 13 onwards
     final String expectedError =
         TestUtil.getJavaMajorVersion() >= 13
-            ? "Illegal repetition near index 22\n"
+            ? "java.util.regex.PatternSyntaxException: Illegal repetition near index 22\n"
               + "\\[\\:LOWER\\:\\]\\{2\\}\\[\\:DIGIT\\:\\]\\{,5\\}\n"
               + "                      \\^"
-            : "Illegal repetition near index 20\n"
+            : "java.util.regex.PatternSyntaxException: Illegal repetition near index 20\n"
                 + "\\[\\:LOWER\\:\\]\\{2\\}\\[\\:DIGIT\\:\\]\\{,5\\}\n"
                 + "                    \\^";
     f.checkFails("'yd3223' similar to '[:LOWER:]{2}[:DIGIT:]{,5}'",
@@ -8274,8 +8275,8 @@ public class SqlOperatorTest {
     f.checkBoolean("CONTAINS_SUBSTR('{\"foo\":\"bar\"}', 'bar', "
             + "json_scope=>'JSON_KEYS_AND_VALUES')", true);
     f.checkFails("CONTAINS_SUBSTR('{\"foo\":\"bar\"}', 'bar', json_scope=>'JSON_JSON')",
-        "json_scope argument must be one of: \"JSON_KEYS\", \"JSON_VALUES\", "
-            + "\"JSON_KEYS_AND_VALUES\".", true);
+        "No enum constant org\\.apache\\.calcite\\.runtime\\."
+            + "SqlFunctions\\.JsonScope\\.JSON_JSON", true);
     // Null behavior
     f.checkNull("CONTAINS_SUBSTR(cast(null as integer), 'hello')");
     f.checkNull("CONTAINS_SUBSTR(null, 'a')");
@@ -8795,7 +8796,7 @@ public class SqlOperatorTest {
 
       // test with illegal argument
       f.checkFails("format_number(12332.123456, -1)",
-          "Illegal arguments for 'FORMAT_NUMBER' function:"
+          "Illegal arguments for FORMAT_NUMBER function:"
               + " negative decimal value not allowed",
           true);
 
