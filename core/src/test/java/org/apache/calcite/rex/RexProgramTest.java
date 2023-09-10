@@ -2318,7 +2318,7 @@ class RexProgramTest extends RexProgramTestBase {
             isTrue(vBool()), literal(1),
             isNotTrue(vBool()), literal(1),
             literal(2)),
-        "CASE(OR(?0.bool0, IS NOT TRUE(?0.bool0)), 1, 2)");
+        "1");
   }
 
   @Test void testSimplifyCaseBranchesCollapse2() {
@@ -3302,6 +3302,48 @@ class RexProgramTest extends RexProgramTestBase {
         "AND(null, IS NULL(?0.int1), OR(null, IS NOT NULL(?0.int2)))",
         "false",
         "IS NULL(?0.int1)");
+  }
+
+  /** Unit test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4189">[CALCITE-4189]
+   * Simplify 'p OR (p IS NOT TRUE)' to 'TRUE'</a>. */
+  @Test public void testSimplifyOrNot2() {
+    final SqlOperator func =
+        SqlBasicFunction.create("func", ReturnTypes.BOOLEAN_NULLABLE, OperandTypes.VARIADIC);
+    final RexNode unsafeRel = rexBuilder.makeCall(func, div(vInt(0), literal(2)));
+    // x OR x IS NOT TRUE ==> "true"
+    checkSimplify(or(vBool(), isNotTrue(vBool())), "true");
+    checkSimplify(or(vBoolNotNull(), isNotTrue(vBoolNotNull())), "true");
+    // outside unsafe expression will not prevent simplification
+    checkSimplify(or(unsafeRel, vBool(), isNotTrue(vBool())), "true");
+
+    // x OR NOT x ==> "true" (if x is not nullable)
+    checkSimplify(or(vBoolNotNull(), not(vBoolNotNull())), "true");
+    checkSimplify(or(unsafeRel, vBoolNotNull(), not(vBoolNotNull())), "true");
+
+    // x OR NOT x ==> x IS NOT NULL OR NULL (if x is nullable)
+    checkSimplify3(or(vBool(), not(vBool())),
+        "OR(IS NOT NULL(?0.bool0), null)",
+        "IS NOT NULL(?0.bool0)",
+        "true");
+    checkSimplify3(or(unsafeRel, vBool(), not(vBool())),
+        "OR(func(/(?0.int0, 2)), IS NOT NULL(?0.bool0), null)",
+        "OR(func(/(?0.int0, 2)), IS NOT NULL(?0.bool0))",
+        "true");
+    // remove all redundant NULL
+    checkSimplify3(or(vBool(0), not(vBool(0)), vBool(1), not(vBool(1))),
+        "OR(IS NOT NULL(?0.bool0), null, IS NOT NULL(?0.bool1))",
+        "OR(IS NOT NULL(?0.bool0), IS NOT NULL(?0.bool1))",
+        "true");
+
+    // unsafe expression can not be simplified
+    checkSimplify3(or(unsafeRel, isNotTrue(unsafeRel)),
+        "OR(func(/(?0.int0, 2)), IS NOT TRUE(func(/(?0.int0, 2))))",
+        "OR(func(/(?0.int0, 2)), IS NOT TRUE(func(/(?0.int0, 2))))",
+        "OR(func(/(?0.int0, 2)), NOT(func(/(?0.int0, 2))))");
+    checkSimplifyUnchanged(or(unsafeRel, not(unsafeRel)));
+
+    checkSimplify(or(unsafeRel, trueLiteral), "true");
   }
 
   private void checkSarg(String message, Sarg sarg,

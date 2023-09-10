@@ -41,6 +41,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import org.immutables.value.Value;
 
@@ -314,10 +315,7 @@ public class GeodeRules {
 
     private static boolean isBooleanColumnReference(RexNode node, List<String> fieldNames) {
       // FIXME Ignore casts for rel and assume they aren't really necessary
-      if (node.isA(SqlKind.CAST)) {
-        node = ((RexCall) node).getOperands().get(0);
-      }
-      if (node.isA(SqlKind.NOT)) {
+      while (node.isA(ImmutableList.of(SqlKind.NOT, SqlKind.CAST, SqlKind.IS_NOT_NULL))) {
         node = ((RexCall) node).getOperands().get(0);
       }
       if (node.isA(SqlKind.INPUT_REF)) {
