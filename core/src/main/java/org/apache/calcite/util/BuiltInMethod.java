@@ -358,6 +358,8 @@ public enum BuiltInMethod {
   CHAR_FROM_ASCII(SqlFunctions.class, "charFromAscii", int.class),
   CHAR_FROM_UTF8(SqlFunctions.class, "charFromUtf8", int.class),
   CODE_POINTS_TO_BYTES(SqlFunctions.class, "codePointsToBytes", List.class),
+  CODE_POINTS_TO_STRING(SqlFunctions.class, "codePointsToString", List.class),
+  TO_CODE_POINTS(SqlFunctions.class, "toCodePoints", String.class),
   CONVERT(SqlFunctions.class, "convertWithCharset", String.class, String.class,
       String.class),
   EXP(SqlFunctions.class, "exp", double.class),

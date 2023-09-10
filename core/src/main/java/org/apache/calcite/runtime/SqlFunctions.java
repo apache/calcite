@@ -1194,7 +1194,7 @@ public class SqlFunctions {
   }
 
   /**
-   * SQL CODE_POINTS_TO_BYTES function.
+   * SQL CODE_POINTS_TO_BYTES(list) function.
    */
   public static @Nullable ByteString codePointsToBytes(List codePoints) {
     int length = codePoints.size();
@@ -1207,12 +1207,68 @@ public class SqlFunctions {
       assert codePoint instanceof Number;
       long cp = ((Number) codePoint).longValue();
       if (cp < 0 || cp > 255) {
-        throw RESOURCE.inputArgumentsOfCodePointsToBytesOutOfRange(cp).ex();
+        throw RESOURCE.inputArgumentsOfFunctionOutOfRange(
+            "CODE_POINTS_TO_BYTES", cp, "[0, 255]").ex();
       }
       bytes[i] = (byte) cp;
     }
 
     return new ByteString(bytes);
+  }
+
+  /**
+   * SQL CODE_POINTS_TO_STRING(list) function.
+   */
+  public static @Nullable String codePointsToString(List codePoints) {
+    StringBuilder sb = new StringBuilder();
+    for (Object codePoint: codePoints) {
+      if (codePoint == null) {
+        return null;
+      }
+      assert codePoint instanceof Number;
+      long cp = ((Number) codePoint).longValue();
+      // Each valid code point should fall within the range of [0, 0xD7FF] and [0xE000, 0x10FFFF]
+      if (cp >= 0 && cp <= 0xD7FF || cp >= 0xE000 && cp <= 0x10FFFF) {
+        sb.append(charFromUtf8((int) cp));
+      } else {
+        throw RESOURCE.inputArgumentsOfFunctionOutOfRange(
+            "CODE_POINTS_TO_STRING", cp, "[0, 0xD7FF] and [0xE000, 0x10FFFF]").ex();
+      }
+    }
+
+    return sb.toString();
+  }
+
+  /**
+   * SQL TO_CODE_POINTS(string) function.
+   */
+  public static @Nullable List<Integer> toCodePoints(String s) {
+    if (s.length() == 0) {
+      return null;
+    }
+    final ImmutableList.Builder<Integer> builder = new ImmutableList.Builder<>();
+    final int length = s.length();
+    int i = 0;
+    while (i < length) {
+      int cp = s.codePointAt(i);
+      builder.add(cp);
+      i += cp == s.charAt(i) ? 1 : 2;
+    }
+    return builder.build();
+  }
+
+  /**
+   * SQL TO_CODE_POINTS(string) function for binary string.
+   */
+  public static @Nullable List<Integer> toCodePoints(ByteString s) {
+    if (s.length() == 0) {
+      return null;
+    }
+    final ImmutableList.Builder<Integer> builder = new ImmutableList.Builder<>();
+    for (byte b : s.getBytes()) {
+      builder.add((int) b);
+    }
+    return builder.build();
   }
 
   /** SQL OCTET_LENGTH(binary) function. */
@@ -2897,8 +2953,7 @@ public class SqlFunctions {
   /** SQL <code>ATANH</code> operator applied to double values. */
   public static double atanh(double b) {
     if (Math.abs(b) >= 1) {
-      throw new IllegalArgumentException("Input parameter of atanh cannot be out of the "
-          + "range (-1, 1)!");
+      throw RESOURCE.inputArgumentsOfFunctionOutOfRange("ATANH", b, "(-1, 1)").ex();
     }
     final double mult;
     // check the sign bit of the raw representation to handle -0.
