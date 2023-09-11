@@ -12493,6 +12493,36 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
+  @Test public void testForToJsonStringFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toJsonString = builder.call(SqlLibraryOperators.TO_JSON_STRING,
+        builder.scan("EMP").field(5));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toJsonString, "TO_JSON_STRING"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT TO_JSON_STRING(SAL) AS TO_JSON_STRING"
+        + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForBitXorFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode bitXor = builder.call(SqlLibraryOperators.BIT_XOR,
+        builder.scan("EMP").field(5));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(bitXor, "BIT_XOR"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT BIT_XOR(SAL) AS BIT_XOR\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test void testBloatedProjects() {
     final RelBuilder builder = relBuilder();
 
