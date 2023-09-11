@@ -1728,14 +1728,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction MEDIAN =
       new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
 
-
   @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction LOG =
-      new SqlFunction("LOG",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DOUBLE_NULLABLE, null,
-          OperandTypes.family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
-              // Second operand is optional
-              number -> number == 1),
-          SqlFunctionCategory.NUMERIC);
+  public static final SqlAggFunction HASH_AGG =
+      new SqlHashAggFunction(SqlKind.HASH_AGG, ReturnTypes.BIGINT);
 }
