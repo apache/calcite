@@ -1437,6 +1437,8 @@ public abstract class SqlImplementor {
       return SqlLiteral.createTimestamp(typeName,
           castNonNull(literal.getValueAs(TimestampString.class)),
           literal.getType().getPrecision(), POS);
+    case BINARY:
+      return SqlLiteral.createBinaryString(castNonNull(literal.getValueAs(byte[].class)), POS);
     case ANY:
     case NULL:
       switch (typeName) {
