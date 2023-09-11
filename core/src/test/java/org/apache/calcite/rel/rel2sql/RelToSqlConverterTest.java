@@ -220,6 +220,16 @@ class RelToSqlConverterTest {
         .getSql();
   }
 
+  /**
+   * Test for <a href="https://issues.apache.org/jira/browse/CALCITE-5988">[CALCITE-5988]</a>
+   * SqlImplementor.toSql cannot emit VARBINARY literals.
+   */
+  @Test void testBinary() {
+    String query = "SELECT x'ABCD'";
+    String expected = "SELECT X'ABCD'";
+    sql(query).withMysql().ok(expected);
+  }
+
   @Test void testGroupByBooleanLiteral() {
     String query = "select avg(\"salary\") from \"employee\" group by true";
     String expectedRedshift = "SELECT AVG(\"employee\".\"salary\")\n"
