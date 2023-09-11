@@ -715,6 +715,11 @@ public class CoreRules {
   public static final SortRemoveConstantKeysRule SORT_REMOVE_CONSTANT_KEYS =
       SortRemoveConstantKeysRule.Config.DEFAULT.toRule();
 
+  /** Rule that removes redundant {@link Sort} if its input max row number
+   * is less than or equal to one. */
+  public static final SortRemoveRedundantRule SORT_REMOVE_REDUNDANT =
+      SortRemoveRedundantRule.Config.DEFAULT.toRule();
+
   /** Rule that pushes a {@link Sort} past a {@link Join}. */
   public static final SortJoinTransposeRule SORT_JOIN_TRANSPOSE =
       SortJoinTransposeRule.Config.DEFAULT.toRule();
