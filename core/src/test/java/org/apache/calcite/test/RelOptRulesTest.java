@@ -1214,6 +1214,33 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5994">[CALCITE-5994]
+   * Add optimization rule to remove Sort when its input's row number
+   * is less or equal to one</a>. */
+  @Test void testSortRemoveWhenAggregateMaxRowCntIsOne() {
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp order by c";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5994">[CALCITE-5994]
+   * Add optimization rule to remove Sort when its input's row number
+   * is less or equal to one</a>. */
+  @Test void testSortRemoveWhenLimitMaxRowCntIsOne() {
+    final String sql = "select *\n"
+        + "from (select * from sales.emp limit 1)\n"
+        + "order by deptno";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT,
+            CoreRules.SORT_PROJECT_TRANSPOSE,
+            CoreRules.PROJECT_REMOVE)
+        .check();
+  }
+
   /** Tests that an {@link EnumerableLimit} and {@link EnumerableSort} are
    * replaced by an {@link EnumerableLimitSort}, per
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3920">[CALCITE-3920]
