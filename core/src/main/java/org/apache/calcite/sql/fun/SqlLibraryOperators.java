@@ -1748,4 +1748,12 @@ public abstract class SqlLibraryOperators {
               // Second operand is optional
               number -> number == 1),
           SqlFunctionCategory.NUMERIC);
+  @LibraryOperator(libraries = {SNOWFLAKE, ORACLE, TERADATA})
+  public static final SqlFunction ANY =
+      new SqlFunction("ANY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000, null,
+          OperandTypes.SAME_VARIADIC,
+          SqlFunctionCategory.SYSTEM);
+
 }
