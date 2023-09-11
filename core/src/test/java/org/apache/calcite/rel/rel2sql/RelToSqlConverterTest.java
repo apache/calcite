@@ -127,7 +127,6 @@ import static org.apache.calcite.avatica.util.TimeUnit.MICROSECOND;
 import static org.apache.calcite.avatica.util.TimeUnit.MINUTE;
 import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
 import static org.apache.calcite.avatica.util.TimeUnit.SECOND;
-import static org.apache.calcite.avatica.util.TimeUnit.WEEK;
 import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
@@ -137,7 +136,6 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MO
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.QUARTERNUMBER_OF_YEAR;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
@@ -10657,23 +10655,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
-  @Test public void testPlusForDateAddForWeek() {
-    final RelBuilder builder = relBuilder();
-
-    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
-        builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
-        builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(604800000),
-            new SqlIntervalQualifier(WEEK, 7, WEEK,
-                -1, SqlParserPos.ZERO)));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(createRexNode, "FD"))
-        .build();
-    final String expectedBiqQuery = "SELECT DATE_ADD(DATE '1999-07-01', INTERVAL 1 WEEK) AS FD\n"
-        + "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-  }
-
   @Test public void testPlusForDateSub() {
     final RelBuilder builder = relBuilder();
 
@@ -11483,13 +11464,13 @@ class RelToSqlConverterTest {
         .ok(expectedBQ);
   }
 
-  @Test public void testForRegexpSimilarFunction() {
+  @Test public void testForRegexpLikeFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
+    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
         builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexpSimilar, "A"))
+        .project(builder.alias(regexp_similar, "A"))
         .build();
 
     final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('12-12-2000' , "
@@ -11503,18 +11484,18 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
-  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsI() {
+  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsI() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
+    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
         builder.literal("Mike BIrd"), builder.literal("MikE B(i|y)RD"),
         builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexpSimilar, "A"))
+        .project(builder.alias(regexp_similar, "A"))
         .build();
 
     final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike BIrd' , "
-        + "r'^(?i)MikE B(i|y)RD$'), 1, 0) AS A\n"
+        + "r'(?i)MikE B(i|y)RD'), 1, 0) AS A\n"
         + "FROM scott.EMP";
 
     final String expectedSparkSql = "SELECT IF('Mike BIrd' rlike r'(?i)MikE B(i|y)RD', 1, 0)"
@@ -11524,13 +11505,13 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
-  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsX() {
+  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsX() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
+    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
         builder.literal("Mike"), builder.literal("M i k e"), builder.literal("x"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexpSimilar, "A"))
+        .project(builder.alias(regexp_similar, "A"))
         .build();
 
     final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike' , r'Mike'), 1, 0) AS A\n"
@@ -11544,14 +11525,14 @@ class RelToSqlConverterTest {
   }
 
 
-  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsC() {
+  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsC() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
+    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
         builder.literal("Mike Bird"), builder.literal("Mike B(i|y)RD"),
         builder.literal("c"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexpSimilar, "A"))
+        .project(builder.alias(regexp_similar, "A"))
         .build();
 
     final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike Bird' , "
@@ -11561,23 +11542,18 @@ class RelToSqlConverterTest {
     final String expectedSparkSql = "SELECT IF('Mike Bird' rlike r'Mike B(i|y)RD', 1, 0)"
         + " A\nFROM scott.EMP";
 
-    final String expectedSnowflake = "SELECT IF(REGEXP_LIKE('Mike Bird', 'Mike B(i|y)RD', 'c'), "
-        + "1, 0) AS \"A\"\n"
-        + "FROM \"scott\".\"EMP\"";
-
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
-    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflake));
   }
 
-  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsN() {
+  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsN() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
+    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
         builder.literal("abcd\n"
             + "e"), builder.literal(".*e"), builder.literal("n"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexpSimilar, "A"))
+        .project(builder.alias(regexp_similar, "A"))
         .build();
 
     final String expectedSparkSql = "SELECT IF('abcd\n"
@@ -11587,33 +11563,16 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
-  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsI() {
+  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsM() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexplike = builder.call(SqlLibraryOperators.REGEXP_LIKE,
-        builder.literal("Mike Bird"), builder.literal("Mike B(i|y)RD"),
-        builder.literal("i"));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(regexplike, "A"))
-        .build();
-
-    final String expectedBqSql = "SELECT REGEXP_CONTAINS('Mike Bird' , "
-        + "r'^(?i)Mike B(i|y)RD$') AS A\n"
-        + "FROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
-  }
-
-  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsM() {
-    final RelBuilder builder = relBuilder();
-    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
+    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
         builder.literal("MikeBira\n"
             + "aaa\n"
             + "bb\n"
             + "MikeBird"), builder.literal("^MikeBird$"), builder.literal("m"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexpSimilar, "A"))
+        .project(builder.alias(regexp_similar, "A"))
         .build();
 
     final String expectedSparkSql = "SELECT IF('MikeBira\n"
@@ -12138,21 +12097,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
-  @Test public void testCurrentTimestampWithLocalTimeZone() {
-    final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode currentTimestampRexNode = builder.call(
-        SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_LOCAL_TIME_ZONE,
-        builder.literal(6));
-    RelNode root = builder
-        .project(currentTimestampRexNode)
-        .build();
-
-    final String expectedBQSql = "SELECT CURRENT_TIMESTAMP() AS `$f0`\n"
-        + "FROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
-  }
-
   @Test public void testMonthsBetween() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode dateTruncNode = builder.call(SqlLibraryOperators.MONTHS_BETWEEN,
@@ -12229,28 +12173,6 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
-  }
-
-  @Test public void testSnowflakeLastDay() {
-    RelBuilder relBuilder = relBuilder().scan("EMP");
-    RexNode lastDayNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
-        relBuilder.literal("13-JAN-1999"));
-    RexNode lastDayWithDatePartNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
-        relBuilder.literal("13-JAN-1999"),
-        relBuilder.literal("YEAR"));
-
-    RelNode root = relBuilder
-        .project(lastDayWithDatePartNode, lastDayNode)
-        .build();
-    final String expectedSnowflakeSql = "SELECT LAST_DAY('13-JAN-1999', 'YEAR') AS \"$f0\", "
-        + "LAST_DAY('13-JAN-1999') AS \"$f1\"\n"
-        + "FROM \"scott\".\"EMP\"";
-    final String expectedBQSql = "SELECT LAST_DAY('13-JAN-1999', YEAR) AS `$f0`, "
-        + "LAST_DAY('13-JAN-1999') AS `$f1`\n"
-        + "FROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
   @Test public void testOracleRoundFunction() {
@@ -12493,47 +12415,31 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
-  @Test public void testForHashAggFunction() {
+  @Test public void testForToJsonStringFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode hashAgg = builder.call(SqlLibraryOperators.HASH_AGG,
+    final RexNode toJsonString = builder.call(SqlLibraryOperators.TO_JSON_STRING,
         builder.scan("EMP").field(5));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(hashAgg, "hash_value"))
+        .project(builder.alias(toJsonString, "TO_JSON_STRING"))
         .build();
 
-    final String expectedSnowFlakeQuery = "SELECT HASH_AGG(\"SAL\") AS \"hash_value\""
-        + "\nFROM \"scott\".\"EMP\"";
-
-    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowFlakeQuery));
-  }
-
-  @Test public void testForBitXorAndToJsonStringFunction() {
-    final RelBuilder builder = relBuilder();
-    final RexNode bitXor = builder.call(SqlLibraryOperators.BIT_XOR,
-        builder.call(SqlLibraryOperators.FARM_FINGERPRINT, builder.call(SqlLibraryOperators.TO_JSON_STRING,
-            builder.scan("EMP").field(5))));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(bitXor, "value"))
-        .build();
-
-    final String expectedBiqQuery = "SELECT BIT_XOR(FARM_FINGERPRINT(TO_JSON_STRING(SAL))) AS value\n"
-        + "FROM scott.EMP";
+    final String expectedBiqQuery = "SELECT TO_JSON_STRING(SAL) AS TO_JSON_STRING"
+        + "\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testForJsonStringFunction() {
+  @Test public void testForBitXorFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode bitXor = builder.call(SqlLibraryOperators.TO_JSON_STRING,
-            builder.scan("EMP").field(5));
+    final RexNode bitXor = builder.call(SqlLibraryOperators.BIT_XOR,
+        builder.scan("EMP").field(5));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(bitXor, "value"))
+        .project(builder.alias(bitXor, "BIT_XOR"))
         .build();
 
-    final String expectedBiqQuery = "SELECT TO_JSON_STRING(SAL) AS value\n"
+    final String expectedBiqQuery = "SELECT BIT_XOR(SAL) AS BIT_XOR\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
@@ -12670,7 +12576,7 @@ class RelToSqlConverterTest {
 
   @Test public void testFunctionsWithRegexOperands() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpSimilarRex = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
+    final RexNode regexpLikeRex = builder.call(SqlLibraryOperators.REGEXP_LIKE,
         builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
     final RexNode regexpExtractRex = builder.call(SqlLibraryOperators.REGEXP_EXTRACT,
         builder.literal("Calcite"), builder.literal("\\."), builder.literal("DM."));
@@ -12678,7 +12584,7 @@ class RelToSqlConverterTest {
         builder.literal("Calcite"), builder.literal("\\."), builder.literal("DM."));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexpSimilarRex, "regexpLike"),
+        .project(builder.alias(regexpLikeRex, "regexpLike"),
             builder.alias(regexpExtractRex, "regexpExtract"),
             builder.alias(regexpReplaceRex, "regexpReplace"))
         .build();
@@ -12952,17 +12858,6 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
-  @Test public void testLogFunction() {
-    final RelBuilder builder = relBuilder();
-    final RexNode logRexNode = builder.call(SqlLibraryOperators.LOG,
-        builder.literal(3), builder.literal(2));
-    final RelNode root = builder
-        .values(new String[] {""}, 1)
-        .project(builder.alias(logRexNode, "value"))
-        .build();
-    final String expectedSFQuery = "SELECT LOG(3, 2) AS \"value\"";
-    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
-  }
 
   @Test public void testPercentileCont() {
     final String query = "SELECT\n"
@@ -13024,41 +12919,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testSplitPartFunction() {
-    final RelBuilder builder = relBuilder();
-    RexNode splitPart = builder.call(SqlLibraryOperators.SPLIT_PART,
-        builder.literal("123@Domain|Example"), builder.literal("@"), builder.literal(2));
-
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(splitPart, "Result"))
-        .build();
-    final String expectedSnowFlakeQuery = "SELECT SPLIT_PART('123@Domain|Example', '@', 2) AS "
-        + "\"Result\"\nFROM \"scott\".\"EMP\"";
-
-    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()),
-        isLinux(expectedSnowFlakeQuery));
-
-  }
-
-  @Test public void testSplitFunction() {
-    final RelBuilder builder = relBuilder();
-    RexNode split = builder.call(SqlLibraryOperators.SPLIT,
-        builder.literal("123@Domain|Example"), builder.literal("@"));
-
-    RexNode splitAccess = builder.call(SAFE_OFFSET, split, builder.literal(2));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(splitAccess, "Result"))
-        .build();
-
-    final String expectedBigQuery = "SELECT SPLIT('123@Domain|Example', '@')[SAFE_OFFSET(2)] "
-        + "AS Result\nFROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
-        isLinux(expectedBigQuery));
-  }
-
   @Test public void testToCurrentTimestampFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
@@ -13111,86 +12971,5 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-  }
-
-  @Test public void testParseJsonFunction() {
-    final RelBuilder builder = relBuilder();
-    final RexNode parseJsonNode = builder.call(SqlLibraryOperators.PARSE_JSON,
-        builder.literal("NULL"));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(parseJsonNode, "null_value"))
-        .build();
-    final String expectedBigquery = "SELECT PARSE_JSON('NULL') AS null_value\n"
-        + "FROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
-  }
-
-  @Test public void testQuantileFunction() {
-    final RelBuilder builder = relBuilder();
-    RexNode finalRexforQuantile = createRexForQuantile(builder);
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(finalRexforQuantile, "quantile"))
-        .build();
-
-    final String expectedBiqQuery = "SELECT CAST(FLOOR(((RANK() OVER (ORDER BY 23)) - 1) * 5 "
-        + "/ (COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))) AS INT64)"
-        + " AS quantile\n"
-        + "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-  }
-
-  @Test public void testQuantileFunctionWithQualify() {
-    final RelBuilder builder = relBuilder();
-    RexNode finalRexforQuantile = createRexForQuantile(builder);
-    final RelNode root = builder
-        .scan("EMP")
-        .filter(
-            builder.call(SqlLibraryOperators.NOT_BETWEEN,
-                builder.field("EMPNO"), builder.literal(1), builder.literal(3)))
-        .project(builder.field("DEPTNO"), builder.alias(finalRexforQuantile, "quantile"))
-        .filter(
-            builder.call(SqlStdOperatorTable.EQUALS,
-                builder.field("quantile"), builder.literal(1)))
-        .project(builder.field("DEPTNO"))
-        .build();
-
-    final String expectedBiqQuery = "SELECT DEPTNO\n"
-        + "FROM scott.EMP\n"
-        + "WHERE EMPNO NOT BETWEEN 1 AND 3\n"
-        + "QUALIFY CAST(FLOOR(((RANK() OVER (ORDER BY 23)) - 1) * 5 / "
-        + "(COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))) AS INT64) "
-        + "= 1";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-  }
-
-  private RexNode createRexForQuantile(RelBuilder builder) {
-    List<RexFieldCollation> windowOrderCollation = new ArrayList<>();
-    final RelDataType rankRelDataType =
-        builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-    windowOrderCollation.add(
-        new RexFieldCollation(builder.literal(23),
-        Collections.singleton(SqlKind.NULLS_FIRST)));
-
-    final RexNode windowRexNode = builder.getRexBuilder().makeOver(rankRelDataType,
-        SqlStdOperatorTable.RANK, ImmutableList.of(), ImmutableList.of(),
-        ImmutableList.copyOf(windowOrderCollation),
-        RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING, true,
-        true, false, false, false);
-
-    RexNode minusRexNode =
-        builder.call(SqlStdOperatorTable.MINUS, windowRexNode, builder.literal(1));
-    RexNode multiplicationRex =
-        builder.call(SqlStdOperatorTable.MULTIPLY, minusRexNode, builder.literal(5));
-
-    final RexNode windowRexNodeOfCount = builder.getRexBuilder().makeOver(rankRelDataType,
-        SqlStdOperatorTable.COUNT, ImmutableList.of(), ImmutableList.of(),
-        ImmutableList.of(), RexWindowBounds.UNBOUNDED_PRECEDING,
-        RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false,
-        false, false);
-    return builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, multiplicationRex,
-        windowRexNodeOfCount);
   }
 }
