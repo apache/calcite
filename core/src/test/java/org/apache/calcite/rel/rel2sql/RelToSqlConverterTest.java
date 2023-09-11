@@ -11542,8 +11542,13 @@ class RelToSqlConverterTest {
     final String expectedSparkSql = "SELECT IF('Mike Bird' rlike r'Mike B(i|y)RD', 1, 0)"
         + " A\nFROM scott.EMP";
 
+    final String expectedSnowflake = "SELECT IF(REGEXP_LIKE('Mike Bird', 'Mike B(i|y)RD', 'c'), "
+        + "1, 0) AS \"A\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflake));
   }
 
   @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsN() {
