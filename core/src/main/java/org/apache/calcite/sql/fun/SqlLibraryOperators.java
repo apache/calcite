@@ -1737,4 +1737,8 @@ public abstract class SqlLibraryOperators {
               // Second operand is optional
               number -> number == 1),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction QUANTILE =
+      new SqlQuantileFunction(SqlKind.QUANTILE, ReturnTypes.INTEGER);
 }
