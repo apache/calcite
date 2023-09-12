@@ -127,6 +127,7 @@ import static org.apache.calcite.avatica.util.TimeUnit.MICROSECOND;
 import static org.apache.calcite.avatica.util.TimeUnit.MINUTE;
 import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
 import static org.apache.calcite.avatica.util.TimeUnit.SECOND;
+import static org.apache.calcite.avatica.util.TimeUnit.WEEK;
 import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
@@ -10653,6 +10654,23 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testPlusForDateAddForWeek() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
+        builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
+        builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(604800000),
+            new SqlIntervalQualifier(WEEK, 7, WEEK,
+                -1, SqlParserPos.ZERO)));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "FD"))
+        .build();
+    final String expectedBiqQuery = "SELECT DATE_ADD(DATE '1999-07-01', INTERVAL 1 WEEK) AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test public void testPlusForDateSub() {
