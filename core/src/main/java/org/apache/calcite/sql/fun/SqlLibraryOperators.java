@@ -38,12 +38,9 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
-import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
-
-import org.apache.calcite.util.Static;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -365,6 +362,16 @@ public abstract class SqlLibraryOperators {
       SqlBasicAggFunction
           .create(SqlKind.COUNTIF, ReturnTypes.BIGINT, OperandTypes.BOOLEAN)
           .withDistinct(Optionality.FORBIDDEN);
+
+  /**Array subscript operator:
+   array_expression[array_subscript_specifier]
+
+   array_subscript_specifier:
+   position_keyword(index)
+
+   position_keyword:
+   { OFFSET | SAFE_OFFSET | ORDINAL | SAFE_ORDINAL }
+   Gets a value from an array at a specific position.*/
 
   /** The "OFFSET(index)" array subscript operator used by BigQuery. The index
    * starts at 0 and produces an error if the index is out of range. */
@@ -1742,14 +1749,14 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction MEDIAN =
       new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
 
-  @LibraryOperator(libraries = {SNOWFLAKE, BIG_QUERY})
+  @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction SPLIT_PART = new SqlFunction(
       "SPLIT_PART",
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.VARCHAR_2000_NULLABLE,
       null,
       OperandTypes.or(OperandTypes.STRING_STRING_INTEGER,
-          OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER)),
+          OperandTypes.NULL_STRING_INTEGER),
       SqlFunctionCategory.STRING);
 
 }

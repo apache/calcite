@@ -124,8 +124,9 @@ public class SqlItemOperator extends SqlSpecialOperator {
     case ROW:
     case ANY:
     case DYNAMIC_STAR:
-      return OperandTypes.family(SqlTypeFamily.INTEGER)
-          .or(OperandTypes.family(SqlTypeFamily.CHARACTER));
+      return OperandTypes.or(
+          OperandTypes.family(SqlTypeFamily.INTEGER),
+          OperandTypes.family(SqlTypeFamily.CHARACTER));
     default:
       throw callBinding.newValidationSignatureError();
     }
@@ -180,7 +181,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
         throw new AssertionError("Unsupported field identifier type: '"
             + indexType + "'");
       }
-      if (operandType.isNullable()) {
+      if (fieldType != null && operandType.isNullable()) {
         fieldType = typeFactory.createTypeWithNullability(fieldType, true);
       }
       return fieldType;
