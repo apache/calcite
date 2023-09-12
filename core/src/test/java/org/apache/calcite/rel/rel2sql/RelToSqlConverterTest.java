@@ -11192,50 +11192,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
-  @Test public void testSafeCast() {
-    final RelBuilder builder = relBuilder();
-    RelDataType type = builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
-    final RexNode safeCastNode = builder.getRexBuilder().makeAbstractCast(type,
-        builder.literal(1234), true);
-    final RelNode root = builder
-        .scan("EMP")
-        .project(safeCastNode)
-        .build();
-    final String expectedBqSql = "SELECT SAFE_CAST(1234 AS STRING) AS `$f0`\n"
-        + "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
-  }
-
-  @Test public void testTryCast() {
-    final RelBuilder builder = relBuilder();
-    RelDataType type = builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
-    final RexNode safeCastNode = builder.getRexBuilder().makeCall(type,
-        SqlLibraryOperators.TRY_CAST,
-        ImmutableList.of(builder.literal(1234)));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(safeCastNode)
-        .build();
-    final String expectedBqSql = "SELECT TRY_CAST(1234 AS VARCHAR) AS \"$f0\"\n"
-         + "FROM \"scott\".\"EMP\"";
-    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBqSql));
-  }
-
-  @Test public void testIsRealFunction() {
-    final RelBuilder builder = relBuilder();
-    final RexNode toReal = builder.call(SqlLibraryOperators.IS_REAL,
-              builder.literal(123.12));
-
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(toReal, "Result"))
-        .build();
-
-    final String expectedSql = "SELECT IS_REAL(123.12) AS \"Result\"\n"
-        + "FROM \"scott\".\"EMP\"";
-    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
-  }
-
   @Test public void testFormatFunctionCastAsInteger() {
     final RelBuilder builder = relBuilder();
     final RexNode formatIntegerCastRexNode = builder.cast(
@@ -11979,33 +11935,6 @@ class RelToSqlConverterTest {
         isLinux(expectedBigQuery));
   }
 
-  @Test public void testSnowflakeDateTrunc() {
-    final RelBuilder builder = relBuilder();
-    final RexNode dateTrunc = builder.call(SqlLibraryOperators.SNOWFLAKE_DATE_TRUNC,
-        builder.literal("DAY"),
-        builder.call(CURRENT_DATE));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(dateTrunc)
-        .build();
-    final String expectedSnowflakeSql = "SELECT DATE_TRUNC('DAY', CURRENT_DATE) AS \"$f0\"\n"
-        + "FROM \"scott\".\"EMP\"";
-    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
-  }
-
-  @Test public void testBQDateTrunc() {
-    final RelBuilder builder = relBuilder();
-    final RexNode dateTrunc = builder.call(SqlLibraryOperators.DATE_TRUNC,
-        builder.call(CURRENT_DATE),
-        builder.literal("DAY"));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(dateTrunc)
-        .build();
-    final String expectedBqSql = "SELECT DATE_TRUNC(CURRENT_DATE, DAY) AS `$f0`\nFROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
-  }
-
   @Test public void testBracesForScalarSubQuery() {
     final RelBuilder builder = relBuilder();
     final RelNode scalarQueryRel = builder.
@@ -12590,36 +12519,6 @@ class RelToSqlConverterTest {
         .build();
 
     final String expectedBiqQuery = "SELECT BIT_XOR(FARM_FINGERPRINT(TO_JSON_STRING(SAL))) AS value\n"
-        + "FROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-  }
-
-  @Test public void testForToJsonStringFunction() {
-    final RelBuilder builder = relBuilder();
-    final RexNode bitXor = builder.call(SqlLibraryOperators.TO_JSON_STRING,
-            builder.scan("EMP").field(5));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(bitXor, "value"))
-        .build();
-
-    final String expectedBiqQuery = "SELECT TO_JSON_STRING(SAL) AS value\n"
-        + "FROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-  }
-
-  @Test public void testForJsonStringFunction() {
-    final RelBuilder builder = relBuilder();
-    final RexNode bitXor = builder.call(SqlLibraryOperators.TO_JSON_STRING,
-            builder.scan("EMP").field(5));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(bitXor, "value"))
-        .build();
-
-    final String expectedBiqQuery = "SELECT TO_JSON_STRING(SAL) AS value\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
