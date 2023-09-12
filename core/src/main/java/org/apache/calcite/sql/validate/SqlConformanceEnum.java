@@ -416,6 +416,15 @@ public enum SqlConformanceEnum implements SqlConformance {
       return false;
     }
   }
+  
+  @Override public boolean useUtf8AsDefaultCharset() {
+    switch (this) {
+    case BIG_QUERY:
+      return true;
+    default:
+      return false;
+    }
+  }
 
   @Override public SqlLibrary semantics() {
     switch (this) {

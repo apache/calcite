@@ -177,6 +177,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
                     ((SourceStringReader) reader).getSourceString();
                 parser.setOriginalSql(sql);
             }
+          parser.setConformance(SqlConformanceEnum.DEFAULT);  
           return parser;
         }
     };
@@ -4518,7 +4519,7 @@ SqlNode StringLiteral() :
     String p;
     final List<SqlLiteral> frags;
     char unicodeEscapeChar = 0;
-    String charSet = null;
+    String charSet = this.conformance.useUtf8AsDefaultCharset() ? "UTF-8" : null;
     SqlCharStringLiteral literal;
 }
 {
