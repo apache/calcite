@@ -1315,6 +1315,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print(")");
   }
 
+
   private boolean isBasicCallWithNegativePrefix(SqlNode secondOperand) {
     return secondOperand instanceof SqlBasicCall
         && ((SqlBasicCall) secondOperand).getOperator().getKind() == SqlKind.MINUS_PREFIX;
