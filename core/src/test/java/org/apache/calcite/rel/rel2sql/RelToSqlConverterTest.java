@@ -12508,17 +12508,17 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowFlakeQuery));
   }
 
-  @Test public void testForBitXorFunction() {
+  @Test public void testForBitXorAndToJsonStringFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode bitXor = builder.call(SqlLibraryOperators.BIT_XOR,
-        builder.call(SqlLibraryOperators.FARM_FINGERPRINT, builder.call(SqlLibraryOperators.FARM_FINGERPRINT,
+        builder.call(SqlLibraryOperators.FARM_FINGERPRINT, builder.call(SqlLibraryOperators.TO_JSON_STRING,
             builder.scan("EMP").field(5))));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(bitXor, "value"))
         .build();
 
-    final String expectedBiqQuery = "SELECT BIT_XOR(FARM_FINGERPRINT(FARM_FINGERPRINT(SAL))) AS value\n"
+    final String expectedBiqQuery = "SELECT BIT_XOR(FARM_FINGERPRINT(TO_JSON_STRING(SAL))) AS value\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
