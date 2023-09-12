@@ -114,9 +114,9 @@ import java.time.DayOfWeek;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -12970,5 +12970,20 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(doyRoot, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedMONBiqQuery));
+  }
+
+  @Test public void testParseJsonFuction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toParseJson = builder.call(SqlLibraryOperators.PARSE_JSON,
+        builder.literal(null));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toParseJson, "FD"))
+        .build();
+    final String expectedSql = "SELECT PARSE_JSON(NULL) AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT PARSE_JSON(NULL) AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 }
