@@ -1738,6 +1738,9 @@ class RelToSqlConverterTest {
     assertThat(toSql(root), isLinux(expectedSql));
   }
 
+
+
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5394">[CALCITE-5394]
    * RelToSql converter fails when semi-join is under a join node</a>. */
@@ -3008,6 +3011,20 @@ class RelToSqlConverterTest {
     sql(query)
         .withPostgresql().ok(expectedPostgresql)
         .withBigQuery().ok(expectedBigQuery);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6001">[CALCITE-6001]
+   * Add withCharset to allow dialect-specific encoding</a>. */
+  @Test void testStringLiteralEncoding() {
+    final SqlParser.Config parserConfig =
+        BigQuerySqlDialect.DEFAULT.configureParser(SqlParser.config());
+    final String query = "select 'ק' from `foodmart`.`product`";
+    final String failedQuery = "select 'ק' from \"product\"";
+    final String expectedBigQuery = "SELECT 'ק'\nFROM foodmart.product";
+
+    sql(failedQuery).throws_("Failed to encode 'ק' in character set 'ISO-8859-1'");
+    sql(query).parserConfig(parserConfig).withBigQuery().ok(expectedBigQuery);
   }
 
   @Test void testIdentifier() {

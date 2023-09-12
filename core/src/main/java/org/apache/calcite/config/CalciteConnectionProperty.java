@@ -100,6 +100,10 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * If not specified, value from {@link #LEX} is used. */
   CASE_SENSITIVE("caseSensitive", Type.BOOLEAN, null, false),
 
+    /** Which charset to use during parsing.
+   * If not specified, ISO-8859-1 is used. */
+  CHARSET("charset", Type.STRING, "ISO-8859-1", false),
+
   /** Parser factory.
    *
    * <p>The name of a class that implements

@@ -71,6 +71,7 @@ import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.linq4j.tree.Expressions.list;
 import static org.apache.calcite.util.Static.RESOURCE;
 import static org.apache.calcite.util.Util.toLinux;
 
@@ -623,6 +624,7 @@ public class SqlParserTest {
       SqlDialect.DatabaseProduct.POSTGRESQL.getDialect();
   private static final SqlDialect REDSHIFT =
       SqlDialect.DatabaseProduct.REDSHIFT.getDialect();
+
 
   /** Creates the test fixture that determines the behavior of tests.
    * Sub-classes that, say, test different parser implementations should
@@ -1895,6 +1897,24 @@ public class SqlParserTest {
 
     expr("cast('foo' as bar)")
         .ok("CAST('foo' AS `BAR`)");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6001">[CALCITE-6001]
+   * Add withCharset to allow dialect-specific encoding</a>. */
+  @Test void testDialectSpecificEncoding() {
+    final SqlParserFixture f0 = fixture();
+    // UTF-8 character that the Calcite default (ISO-8859-1) would not be able to encode.
+    f0.sql("select 'ק'")
+        .fails("Failed to encode 'ק' in character set 'ISO-8859-1'");
+    // BigQuery has UTF-8 set as the default, so it should be able to encode non-ISO chars.
+    final SqlParserFixture f = f0.withDialect(BIG_QUERY);
+    // UTF-8
+    f.sql("select 'ק'").ok("SELECT 'ק'");
+    // ASCII 7-bit
+    f.sql("select 'm'").ok("SELECT 'm'");
+    // ASCII 8-bit
+    f.sql("select 'Ç'").ok("SELECT 'Ç'");
   }
 
   @Test void testCastFails() {
@@ -3591,9 +3611,9 @@ public class SqlParserTest {
     expr("'abba'\n'abba'").same();
     expr("'abba'\n'0001'").same();
     expr("N'yabba'\n'dabba'\n'doo'")
-        .ok("_ISO-8859-1'yabba'\n'dabba'\n'doo'");
+        .ok("'yabba'\n'dabba'\n'doo'");
     expr("_iso-8859-1'yabba'\n'dabba'\n'don''t'")
-        .ok("_ISO-8859-1'yabba'\n'dabba'\n'don''t'");
+        .ok("'yabba'\n'dabba'\n'don''t'");
 
     expr("x'01aa'\n'03ff'")
         .ok("X'01AA'\n'03FF'");
@@ -5305,19 +5325,19 @@ public class SqlParserTest {
     expr("_latin1'hi'")
         .ok("_LATIN1'hi'");
     expr("N'is it a plane? no it''s superman!'")
-        .ok("_ISO-8859-1'is it a plane? no it''s superman!'");
+        .ok("'is it a plane? no it''s superman!'");
     expr("n'lowercase n'")
-        .ok("_ISO-8859-1'lowercase n'");
+        .ok("'lowercase n'");
     expr("'boring string'").same();
     expr("_iSo-8859-1'bye'")
-        .ok("_ISO-8859-1'bye'");
+        .ok("'bye'");
     expr("'three'\n' blind'\n' mice'").same();
     expr("'three' -- comment\n' blind'\n' mice'")
         .ok("'three'\n' blind'\n' mice'");
     expr("N'bye' \t\r\f\f\n' bye'")
-        .ok("_ISO-8859-1'bye'\n' bye'");
+        .ok("'bye'\n' bye'");
     expr("_iso-8859-1'bye'\n\n--\n-- this is a comment\n' bye'")
-        .ok("_ISO-8859-1'bye'\n' bye'");
+        .ok("'bye'\n' bye'");
     expr("_utf8'hi'")
         .ok("_UTF8'hi'");
 
@@ -5341,7 +5361,7 @@ public class SqlParserTest {
 
     // valid syntax, but should give a validator error
     sql("select (N'1' '2') from t")
-        .ok("SELECT _ISO-8859-1'1'\n"
+        .ok("SELECT '1'\n"
             + "'2'\n"
             + "FROM `T`");
   }

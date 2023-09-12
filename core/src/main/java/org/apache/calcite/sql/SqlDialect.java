@@ -157,6 +157,7 @@ public class SqlDialect {
   private final Casing unquotedCasing;
   private final Casing quotedCasing;
   private final boolean caseSensitive;
+  private final String charset;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -241,6 +242,7 @@ public class SqlDialect {
     this.unquotedCasing = requireNonNull(context.unquotedCasing());
     this.quotedCasing = requireNonNull(context.quotedCasing());
     this.caseSensitive = context.caseSensitive();
+    this.charset = context.charset();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -248,7 +250,7 @@ public class SqlDialect {
   /** Creates an empty context. Use {@link #EMPTY_CONTEXT} to reference the instance. */
   private static Context emptyContext() {
     return new ContextImpl(DatabaseProduct.UNKNOWN, null, null, -1, -1,
-        "'", "''", null, null,
+        "'", "''", null, null, "ISO-8859-1",
         Casing.UNCHANGED, Casing.TO_UPPER, true, SqlConformanceEnum.DEFAULT,
         NullCollation.HIGH, RelDataTypeSystemImpl.DEFAULT,
         JethroDataSqlDialect.JethroInfo.EMPTY);
@@ -433,13 +435,19 @@ public class SqlDialect {
    */
   public void quoteStringLiteral(StringBuilder buf, @Nullable String charsetName,
       String val) {
-    if (charsetName != null) {
-      buf.append("_");
-      buf.append(charsetName);
+    if (containsNonISO88591(val) && charsetName == null) {
+      quoteStringLiteralUnicode(buf, val);
+    } else {
+      // Don't append charset if it matches dialect default, e.g. BigQuery shouldn't append _UTF-8
+      // because that is the default
+      if (charsetName != null && !charsetName.equals(getCharset())) {
+        buf.append("_");
+        buf.append(charsetName);
+      }
+      buf.append(literalQuoteString);
+      buf.append(val.replace(literalEndQuoteString, literalEscapedQuote));
+      buf.append(literalEndQuoteString);
     }
-    buf.append(literalQuoteString);
-    buf.append(val.replace(literalEndQuoteString, literalEscapedQuote));
-    buf.append(literalEndQuoteString);
   }
 
   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
@@ -562,6 +570,24 @@ public class SqlDialect {
   /** Converts table scan hints. The default implementation suppresses all hints. */
   public void unparseTableScanHints(SqlWriter writer,
       SqlNodeList hints, int leftPrec, int rightPrec) {
+  }
+
+  /**
+   * Returns whether the string contains any characters outside of
+   * ISO-8859-1 (Calcite's default character set).
+   *
+   * <p></p>
+   *
+   * @param str String
+   * @return whether str contains any non-ISO-8859-1 characters.
+   */
+  protected static boolean containsNonISO88591(String str)  {
+    for (char c : str.toCharArray()) {
+      if (c > 255) {
+        return true; // Found a non-ISO-8859-1 character
+      }
+    }
+    return false; // No non-ISO-8859-1 characters found
   }
 
   /**
@@ -1235,7 +1261,8 @@ public class SqlDialect {
         .withUnquotedCasing(getUnquotedCasing())
         .withCaseSensitive(isCaseSensitive())
         .withConformance(getConformance())
-        .withCharLiteralStyles(ImmutableSet.of(CharLiteralStyle.STANDARD));
+        .withCharLiteralStyles(ImmutableSet.of(CharLiteralStyle.STANDARD))
+        .withCharset(getCharset());
   }
 
   @Deprecated // to be removed before 2.0
@@ -1293,6 +1320,11 @@ public class SqlDialect {
   /** Returns how quoted identifiers are stored. */
   public Casing getQuotedCasing() {
     return quotedCasing;
+  }
+
+  /** Returns charset to use for encoding. */
+  public String getCharset() {
+    return charset;
   }
 
   /** Returns whether matching of identifiers is case-sensitive. */
@@ -1484,6 +1516,8 @@ public class SqlDialect {
     @Nullable String identifierEscapedQuoteString();
     Context withIdentifierEscapedQuoteString(
         @Nullable String identifierEscapedQuoteString);
+    String charset();
+    Context withCharset(String charset);
     Casing unquotedCasing();
     Context withUnquotedCasing(Casing unquotedCasing);
     Casing quotedCasing();
@@ -1511,6 +1545,7 @@ public class SqlDialect {
     private final String literalEscapedQuoteString;
     private final @Nullable String identifierQuoteString;
     private final @Nullable String identifierEscapedQuoteString;
+    private final String charset;
     private final Casing unquotedCasing;
     private final Casing quotedCasing;
     private final boolean caseSensitive;
@@ -1524,7 +1559,7 @@ public class SqlDialect {
         int databaseMajorVersion, int databaseMinorVersion,
         String literalQuoteString, String literalEscapedQuoteString,
         @Nullable String identifierQuoteString,
-        @Nullable String identifierEscapedQuoteString,
+        @Nullable String identifierEscapedQuoteString, String charset,
         Casing quotedCasing, Casing unquotedCasing, boolean caseSensitive,
         SqlConformance conformance, NullCollation nullCollation,
         RelDataTypeSystem dataTypeSystem,
@@ -1538,6 +1573,7 @@ public class SqlDialect {
       this.literalEscapedQuoteString = literalEscapedQuoteString;
       this.identifierQuoteString = identifierQuoteString;
       this.identifierEscapedQuoteString = identifierEscapedQuoteString;
+      this.charset = charset;
       this.quotedCasing = requireNonNull(quotedCasing, "quotedCasing");
       this.unquotedCasing = requireNonNull(unquotedCasing, "unquotedCasing");
       this.caseSensitive = caseSensitive;
@@ -1557,7 +1593,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1570,7 +1606,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1583,7 +1619,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1596,7 +1632,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1609,7 +1645,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1622,7 +1658,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1636,7 +1672,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1650,7 +1686,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1664,7 +1700,20 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
+          conformance, nullCollation, dataTypeSystem, jethroInfo);
+    }
+
+    @Override public String charset() {
+      return charset;
+    }
+
+    @Override public Context withCharset(String charset) {
+      return new ContextImpl(databaseProduct, databaseProductName,
+          databaseVersion, databaseMajorVersion, databaseMinorVersion,
+          literalQuoteString, literalEscapedQuoteString,
+          identifierQuoteString, identifierEscapedQuoteString,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1677,7 +1726,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1690,7 +1739,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1703,7 +1752,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1716,7 +1765,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1730,7 +1779,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1743,7 +1792,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
 
@@ -1756,7 +1805,7 @@ public class SqlDialect {
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
           literalQuoteString, literalEscapedQuoteString,
           identifierQuoteString, identifierEscapedQuoteString,
-          quotedCasing, unquotedCasing, caseSensitive,
+          charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
   }

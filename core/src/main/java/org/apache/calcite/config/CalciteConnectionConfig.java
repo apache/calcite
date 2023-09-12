@@ -75,6 +75,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   Casing quotedCasing();
   /** Returns the value of {@link CalciteConnectionProperty#CASE_SENSITIVE}. */
   boolean caseSensitive();
+    /** Returns the value of {@link CalciteConnectionProperty#CHARSET}. */
+  String charset();
   /** Returns the value of {@link CalciteConnectionProperty#PARSER_FACTORY},
    * or a default parser if not set. If {@code defaultParserFactory}
    * is not null, the result is never null. */
