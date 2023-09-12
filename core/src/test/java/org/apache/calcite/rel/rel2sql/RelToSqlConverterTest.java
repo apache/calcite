@@ -288,7 +288,7 @@ class RelToSqlConverterTest {
   @Test void testCharset() {
     sql("select _UTF8'\u4F60\u597D'")
         .withMysql() // produces a simpler output query
-        .ok("SELECT _UTF-8'\u4F60\u597D'");
+        .ok("SELECT '\u4F60\u597D'");
     sql("select _UTF16'" + ConversionUtil.TEST_UNICODE_STRING + "'")
         .withMysql()
         .ok("SELECT _UTF-16LE'" + ConversionUtil.TEST_UNICODE_STRING + "'");
@@ -1512,6 +1512,9 @@ class RelToSqlConverterTest {
     assertThat(toSql(root), isLinux(expectedSql));
   }
 
+
+
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5394">[CALCITE-5394]
    * RelToSql converter fails when semi-join is under a join node</a>. */
@@ -2571,6 +2574,29 @@ class RelToSqlConverterTest {
     sql(query)
         .withPostgresql().ok(expectedPostgresql)
         .withBigQuery().ok(expectedBigQuery);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6001">[CALCITE-6001]
+   * Add withCharset to allow dialect-specific encoding</a>. */
+  @Test void testStringLiteralEncoding() {
+    final SqlParser.Config parserConfig =
+        BigQuerySqlDialect.DEFAULT.configureParser(SqlParser.config());
+    final String query = "select 'ק' from `foodmart`.`product`";
+    final String failedQuery = "select 'ק' from \"product\"";
+    final String expectedBigQuery = "SELECT 'ק'\nFROM foodmart.product";
+    final String expectedMySql = "SELECT 'ק'\nFROM `foodmart`.`product`";
+    final String expectedRedshift = "SELECT 'ק'\nFROM \"foodmart\".\"product\"";
+    // Dialects that do not use UTF-8 as their default should have a prefix appended
+    final String expectedOracle = "SELECT _UTF-8'ק'\nFROM \"foodmart\".\"product\"";
+
+    sql(failedQuery).throws_("Failed to encode 'ק' in character set 'ISO-8859-1'");
+    sql(query).parserConfig(parserConfig).withBigQuery().ok(expectedBigQuery);
+    sql(query).parserConfig(parserConfig).withHive().ok(expectedBigQuery);
+    sql(query).parserConfig(parserConfig).withMysql().ok(expectedMySql);
+    sql(query).parserConfig(parserConfig).withRedshift().ok(expectedRedshift);
+    sql(query).parserConfig(parserConfig).withSpark().ok(expectedBigQuery);
+    sql(query).parserConfig(parserConfig).withOracle().ok(expectedOracle);
   }
 
   @Test void testIdentifier() {

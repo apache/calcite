@@ -166,7 +166,6 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
         if (operand.i == 0) {
           collation = nls.getCollation();
 
-          // print with prefix
           writer.literal(nls.asSql(true, false, writer.getDialect()));
         } else {
           // print without prefix

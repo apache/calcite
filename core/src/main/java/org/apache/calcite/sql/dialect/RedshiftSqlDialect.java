@@ -62,6 +62,7 @@ public class RedshiftSqlDialect extends SqlDialect {
       .withQuotedCasing(Casing.TO_LOWER)
       .withUnquotedCasing(Casing.TO_LOWER)
       .withCaseSensitive(false)
+      .withCharset("UTF-8")
       .withDataTypeSystem(TYPE_SYSTEM);
 
   public static final SqlDialect DEFAULT = new RedshiftSqlDialect(DEFAULT_CONTEXT);
