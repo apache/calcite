@@ -52,7 +52,6 @@ import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.Context;
@@ -12974,8 +12973,7 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test
-  public void testQuantileFunction() {
+  @Test public void testQuantileFunction() {
     final RelBuilder builder = relBuilder();
     List<RexNode> rexArgs = new ArrayList<>();
     List<RexNode> partitionRexKey = new ArrayList<>();
@@ -13012,8 +13010,8 @@ class RelToSqlConverterTest {
 
     final String expectedBiqQuery = "SELECT CAST(FLOOR(((RANK() OVER (ORDER BY 23)) - 1) * 5 "
         + "/ (COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))) AS INT64)"
-        + " AS quantile\n" +
-        "FROM scott.EMP";
+        + " AS quantile\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 }

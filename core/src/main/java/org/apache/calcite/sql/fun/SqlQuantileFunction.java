@@ -27,7 +27,7 @@ import org.apache.calcite.util.Optionality;
 /**
  * <code>QUANTILE</code> is window function
  * Takes a value for number of partition and list of element to sort
- * and returns the Integer Value
+ * and returns the Integer Value.
  */
 public class SqlQuantileFunction extends SqlAggFunction {
   public SqlQuantileFunction(SqlKind sqlKind, SqlReturnTypeInference sqlReturnTypeInference) {
