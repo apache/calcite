@@ -13051,4 +13051,55 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test public void testQuantileFunctionWithQualify() {
+    final RelBuilder builder = relBuilder();
+    List<RexNode> rexArgs = new ArrayList<>();
+    List<RexNode> partitionRexKey = new ArrayList<>();
+    List<RexFieldCollation> windowOrderCollation = new ArrayList<>();
+    final RelDataType rankRelDataType =
+        builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+    Set<SqlKind> sqlKindList = new HashSet<>();
+    sqlKindList.add(SqlKind.NULLS_FIRST);
+    windowOrderCollation.add(new RexFieldCollation(builder.literal(23), sqlKindList));
+
+    final RexNode windowRexNode = builder.getRexBuilder().makeOver(rankRelDataType,
+        SqlStdOperatorTable.RANK, rexArgs, partitionRexKey,
+        ImmutableList.copyOf(windowOrderCollation),
+        RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING, true,
+        true, false, false, false);
+
+    RexNode minusRexNode =
+        builder.call(SqlStdOperatorTable.MINUS, windowRexNode, builder.literal(1));
+    RexNode multiplicationRex =
+        builder.call(SqlStdOperatorTable.MULTIPLY, minusRexNode, builder.literal(5));
+
+    final RexNode windowRexNodeOfCount = builder.getRexBuilder().makeOver(rankRelDataType,
+        SqlStdOperatorTable.COUNT, rexArgs, partitionRexKey,
+        ImmutableList.of(), RexWindowBounds.UNBOUNDED_PRECEDING,
+        RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false,
+        false, false);
+
+    RexNode finalRex =
+        builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, multiplicationRex, windowRexNodeOfCount);
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.call(SqlLibraryOperators.NOT_BETWEEN,
+            builder.field("EMPNO"), builder.literal(1), builder.literal(3)))
+        .project(builder.field("DEPTNO"), builder.alias(finalRex, "quantile"))
+        .filter(
+            builder.call(SqlStdOperatorTable.EQUALS,
+            builder.field("quantile"), builder.literal(1)))
+        .project(builder.field("DEPTNO"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT DEPTNO\n"
+        + "FROM scott.EMP\n"
+        + "WHERE EMPNO NOT BETWEEN 1 AND 3\n"
+        + "QUALIFY CAST(FLOOR(((RANK() OVER (ORDER BY 23)) - 1) * 5 / "
+        + "(COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))) AS INT64) "
+        + "= 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }
