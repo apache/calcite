@@ -8903,7 +8903,7 @@ public class SqlOperatorTest {
           "INTEGER");
       f.checkScalar("least(false, true)", false, "BOOLEAN NOT NULL");
 
-      final SqlOperatorFixture f12 = f0.forOracle(SqlConformanceEnum.ORACLE_12);
+      final SqlOperatorFixture f12 = f.forOracle(SqlConformanceEnum.ORACLE_12);
       f12.checkString("least('on', 'earth')", "earth", "VARCHAR(5) NOT NULL");
       f12.checkString("least('show', 'on', 'earth')", "earth",
           "VARCHAR(5) NOT NULL");
