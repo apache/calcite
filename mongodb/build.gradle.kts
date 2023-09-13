@@ -21,7 +21,7 @@ dependencies {
     api("org.slf4j:slf4j-api")
 
     implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.mongodb:mongo-java-driver")
+    implementation("org.mongodb:mongodb-driver-sync")
 
     testImplementation(project(":testkit"))
     testImplementation("de.bwaldvogel:mongo-java-server-core")

@@ -146,7 +146,7 @@ dependencies {
         apiv("org.jsoup:jsoup")
         apiv("org.junit:junit-bom", "junit5")
         apiv("org.mockito:mockito-core", "mockito")
-        apiv("org.mongodb:mongo-java-driver")
+        apiv("org.mongodb:mongodb-driver-sync")
         apiv("org.ow2.asm:asm")
         apiv("org.ow2.asm:asm-all", "asm")
         apiv("org.ow2.asm:asm-analysis", "asm")
