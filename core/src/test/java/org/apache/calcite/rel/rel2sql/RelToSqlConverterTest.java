@@ -12993,4 +12993,18 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test public void testParseJsonFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseJsonNode = builder.call(SqlLibraryOperators.PARSE_JSON,
+        builder.literal("NULL"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseJsonNode, "null_value"))
+        .build();
+    final String expectedBigquery = "SELECT PARSE_JSON('NULL') AS null_value\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
+  }
 }
