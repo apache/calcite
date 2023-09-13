@@ -47,6 +47,11 @@ import java.util.Map;
  * with the primary categorization. It is used in type strategies for more
  * specific or more general categorization than the primary families. Secondary
  * families are never returned by RelDataType.getFamily().
+ *
+ * <p>Note: there are several incorrect facts in this comment, but it
+ * is not entirely clear how the comment should be fixed:
+ * - there are types that have no primary SqlTypeFamily
+ * - RelDataType.getFamily() does not have the type SqlTypeFamily.
  */
 public enum SqlTypeFamily implements RelDataTypeFamily {
   // Primary families.

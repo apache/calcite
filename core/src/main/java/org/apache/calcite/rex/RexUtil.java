@@ -1689,8 +1689,8 @@ public class RexUtil {
           && source.getPrecision() <= target.getPrecision();
     }
     // 3) From NUMERIC family to CHARACTER family: it depends on the precision/scale
-    if (sourceSqlTypeName.getFamily() == SqlTypeFamily.NUMERIC
-        && targetSqlTypeName.getFamily() == SqlTypeFamily.CHARACTER) {
+    if (sourceSqlTypeName.getPrimaryFamily() == SqlTypeFamily.NUMERIC
+        && targetSqlTypeName.getPrimaryFamily() == SqlTypeFamily.CHARACTER) {
       int sourceLength = source.getPrecision() + 1; // include sign
       if (source.getScale() != -1 && source.getScale() != 0) {
         sourceLength += source.getScale() + 1; // include decimal mark

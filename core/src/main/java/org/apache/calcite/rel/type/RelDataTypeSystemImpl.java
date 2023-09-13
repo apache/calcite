@@ -211,7 +211,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
   }
 
   @Override public int getNumTypeRadix(SqlTypeName typeName) {
-    if (typeName.getFamily() == SqlTypeFamily.NUMERIC
+    if (typeName.getPrimaryFamily() == SqlTypeFamily.NUMERIC
         && getDefaultPrecision(typeName) != -1) {
       return 10;
     }

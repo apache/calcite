@@ -414,7 +414,7 @@ public abstract class SqlTypeUtil {
 
   /** Returns whether a type name is in SqlTypeFamily.Character. */
   public static boolean inCharFamily(SqlTypeName typeName) {
-    return typeName.getFamily() == SqlTypeFamily.CHARACTER;
+    return typeName.getPrimaryFamily() == SqlTypeFamily.CHARACTER;
   }
 
   /** Returns whether a type is in SqlTypeFamily.Boolean. */

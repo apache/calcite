@@ -129,7 +129,7 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
     }
 
     // Null
-    if (SqlTypeFamily.NULL == literal.getTypeName().getFamily()) {
+    if (SqlTypeFamily.NULL == literal.getTypeName().getSecondaryFamily()) {
       return SqlLiteral.createNull(SqlParserPos.ZERO);
     }
 

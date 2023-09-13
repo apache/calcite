@@ -266,7 +266,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           true,
           ReturnTypes.ARG0.andThen((opBinding, typeToTransform) -> {
             SqlReturnTypeInference returnType =
-                typeToTransform.getSqlTypeName().getFamily() == SqlTypeFamily.ARRAY
+                typeToTransform.getSqlTypeName().getSecondaryFamily() == SqlTypeFamily.ARRAY
                     ? ReturnTypes.LEAST_RESTRICTIVE
                     : ReturnTypes.DYADIC_STRING_SUM_PRECISION_NULLABLE;
 

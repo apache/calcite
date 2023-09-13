@@ -417,9 +417,9 @@ public class RexSimplify {
   }
 
   private RexNode simplifyArithmetic(RexCall e) {
-    if (e.getType().getSqlTypeName().getFamily() != SqlTypeFamily.NUMERIC
+    if (e.getType().getSqlTypeName().getPrimaryFamily() != SqlTypeFamily.NUMERIC
         || e.getOperands().stream().anyMatch(
-          o -> e.getType().getSqlTypeName().getFamily() != SqlTypeFamily.NUMERIC)) {
+          o -> e.getType().getSqlTypeName().getPrimaryFamily() != SqlTypeFamily.NUMERIC)) {
       // we only support simplifying numeric types.
       return simplifyGenericNode(e);
     }

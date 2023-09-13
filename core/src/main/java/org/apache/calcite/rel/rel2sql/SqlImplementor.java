@@ -1553,7 +1553,7 @@ public abstract class SqlImplementor {
     @Override public SqlNode toSql(@Nullable RexProgram program, RexNode rex) {
       if (rex.getKind() == SqlKind.LITERAL) {
         final RexLiteral literal = (RexLiteral) rex;
-        if (literal.getTypeName().getFamily() == SqlTypeFamily.CHARACTER) {
+        if (literal.getTypeName().getPrimaryFamily() == SqlTypeFamily.CHARACTER) {
           return new SqlIdentifier(castNonNull(RexLiteral.stringValue(literal)), POS);
         }
       }

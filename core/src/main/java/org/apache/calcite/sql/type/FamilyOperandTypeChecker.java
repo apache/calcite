@@ -128,7 +128,7 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
     SqlTypeName typeName = type.getSqlTypeName();
 
     // Pass type checking for operators if it's of type 'ANY'.
-    if (typeName.getFamily() == SqlTypeFamily.ANY) {
+    if (typeName.getSecondaryFamily() == SqlTypeFamily.ANY) {
       return true;
     }
 

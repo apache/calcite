@@ -283,8 +283,16 @@ public enum SqlTypeName {
    */
   private final boolean special;
   private final int jdbcOrdinal;
-  /** The primary family of the type. */
+  /** The primary family of this type.
+   * The primary family of a type is supposed to be a partitioning of the
+   * types into disjoint fundamental classes. (However, there are some
+   * types that have a 'null' primary family). */
   private final @Nullable SqlTypeFamily family;
+  /**
+   * The secondary type family of tis type.
+   * The secondary family encodes useful properties of a type that
+   * are useful in some analyses; it is independent on the primary family.
+   */
   private final @Nullable SqlTypeFamily secondaryFamily;
 
   SqlTypeName(int signatures, boolean special, int jdbcType,
@@ -407,9 +415,11 @@ public enum SqlTypeName {
 
   /**
    * Gets the SqlTypeFamily containing this SqlTypeName.
-   * This function is preserved for backwards-compatibility and should be removed
+   *
+   * <p>This function is preserved for backwards-compatibility and should be removed
    * once all its uses have been eliminated.
-   * We recommend using one of getPrimaryFamily() or getSecondaryFamily() instead.
+   * Use one of {@link SqlTypeName#getPrimaryFamily} or
+   * {@link SqlTypeName#getSecondaryFamily} instead.
    *
    * @return containing family, or null for none (SYMBOL, DISTINCT, STRUCTURED, ROW, OTHER)
    */
