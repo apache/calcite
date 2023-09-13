@@ -876,7 +876,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseRegexSubstr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlCall extractCall;
     extractCall = makeRegexpSubstrSqlCall(call);
-    REGEXP_SUBSTR.unparse(writer, extractCall, leftPrec, rightPrec);
+    unparseRegexpExtractAndSubstr(writer, extractCall, leftPrec, rightPrec);
   }
 
   private SqlCall makeRegexpSubstrSqlCall(SqlCall call) {
@@ -1188,7 +1188,10 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseRegexpContains(writer, call, leftPrec, rightPrec);
       break;
     case "REGEXP_EXTRACT":
-      unparseRegexpExtract(writer, call, leftPrec, rightPrec);
+      unparseRegexpExtractAndSubstr(writer, call, leftPrec, rightPrec);
+      break;
+    case "REGEXP_SUBSTR":
+      unparseRegexSubstr(writer, call, leftPrec, rightPrec);
       break;
     case "REGEXP_REPLACE":
       unparseRegexpReplace(writer, call, leftPrec, rightPrec);
@@ -1536,6 +1539,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlWriter.Frame arrayLengthFrame = writer.startFunCall("ARRAY_LENGTH");
     unparseRegexpExtractAll(writer, call, leftPrec, rightPrec);
     writer.endFunCall(arrayLengthFrame);
+  }
+
+  private void unparseRegexpExtractAndSubstr(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    int indexOfRegexOperand = 1;
+    SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall(call.getOperator().getName());
+    List<SqlNode> operandList = call.getOperandList();
+    unparseRegexFunctionsOperands(writer, leftPrec, rightPrec, indexOfRegexOperand, operandList);
+    writer.endFunCall(regexpExtractAllFrame);
   }
 
   private void unparseRegexpExtract(SqlWriter writer, SqlCall call,

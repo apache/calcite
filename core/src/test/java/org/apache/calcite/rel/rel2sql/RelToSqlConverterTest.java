@@ -6289,7 +6289,7 @@ class RelToSqlConverterTest {
         + "1,1,'i')\n"
         + "from \"foodmart\".\"product\" where \"product_id\" in (1, 2, 3, 4)";
     final String expected = "SELECT "
-        + "REGEXP_SUBSTR('chocolate Chip cookies', '(?i)[-\\\\_] V[0-9]+', 1, 1)\n"
+        + "REGEXP_SUBSTR('chocolate Chip cookies', '(?i)[-\\_] V[0-9]+', 1, 1)\n"
         + "FROM foodmart.product\n"
         + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3 OR product_id = 4";
     sql(query)
