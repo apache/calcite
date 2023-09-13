@@ -191,18 +191,20 @@ abstract class CalciteConnectionImpl
     return super.unwrap(iface);
   }
 
-  /** If a subclass is passed in for CalciteMetaTable or MetaColumn for
-   * {@code CalciteConnectionProperty.META_TABLE_CLASS} or
-   * {@code CalciteConnectionProperty.META_COLUMN_CLASS} when connecting, calls to getTables()
-   * or getColumns() will create an enumerable using the subclass, otherwise it
-   * will default to creating CaliteMetaTable / MetaColumn. */
-  public Class<?> getMetaClass(CalciteConnectionProperty connectionProperty,
-      Class<?> defaultClass) {
+  /** If the connection properties {@code CalciteConnectionProperty.META_TABLE_CLASS} or
+   * {@code CalciteConnectionProperty.META_COLUMN_CLASS} is set with a subclass of
+   * {@link org.apache.calcite.jdbc.CalciteMetaImpl} or
+   * {@link org.apache.calcite.avatica.MetaImpl.MetaColumn} respectively, calls to getTables() /
+   * getColumns() will instantiate instances of the provided subclass. <p>
+   * Otherwise it will default to creating {@link org.apache.calcite.jdbc.CalciteMetaImpl} /
+   * {@link org.apache.calcite.avatica.MetaImpl.MetaColumn}. */
+  public <T> Class<? extends T> getMetaClass(CalciteConnectionProperty connectionProperty,
+      Class<T> defaultClass) {
     String className =
         (String) info.getOrDefault(connectionProperty.camelName(),
             defaultClass.getName());
     try {
-      return Class.forName(className);
+      return (Class<? extends T>) Class.forName(className);
     } catch (ClassNotFoundException e) {
       return defaultClass;
     }

@@ -93,16 +93,17 @@ import static java.util.Objects.requireNonNull;
  */
 public class CalciteMetaImpl extends MetaImpl {
   static final Driver DRIVER = new Driver();
-  private final Class metaTableClass;
-  private final Class metaColumnClass;
+  private final Class<? extends CalciteMetaTable> metaTableClass;
+  private final Class<? extends MetaColumn> metaColumnClass;
 
   @Deprecated // to be removed before 2.0
   public CalciteMetaImpl(CalciteConnectionImpl connection) {
     this(connection, CalciteMetaTable.class, MetaColumn.class);
   }
 
-  public CalciteMetaImpl(CalciteConnectionImpl connection, @Nullable Class<?> metaTableClass,
-      @Nullable Class<?> metaColumnClass) {
+  public CalciteMetaImpl(CalciteConnectionImpl connection,
+      @Nullable Class<? extends CalciteMetaTable> metaTableClass,
+      @Nullable Class<? extends MetaColumn> metaColumnClass) {
     super(connection);
     this.connProps
         .setAutoCommit(false)
@@ -111,13 +112,11 @@ public class CalciteMetaImpl extends MetaImpl {
     this.connProps.setDirty(false);
 
     if (metaTableClass != null) {
-      assert CalciteMetaTable.class.isAssignableFrom(metaTableClass);
       this.metaTableClass = metaTableClass;
     } else {
       this.metaTableClass = CalciteMetaTable.class;
     }
     if (metaColumnClass != null) {
-      assert MetaColumn.class.isAssignableFrom(metaColumnClass);
       this.metaColumnClass = metaColumnClass;
     } else {
       this.metaColumnClass = MetaColumn.class;
@@ -292,7 +291,7 @@ public class CalciteMetaImpl extends MetaImpl {
         .where(schemaMatcher)
         .selectMany(schema -> tables(schema, matcher(tableNamePattern)))
         .where(typeFilter);
-    String[] columnNames = getColumnNames(this.metaTableClass);
+    String[] columnNames = getColumnNames(this.metaTableClass, CalciteMetaTable.class);
     return createResultSet(tables,
         this.metaTableClass,
         columnNames);
@@ -301,12 +300,14 @@ public class CalciteMetaImpl extends MetaImpl {
   /** The provided subclass needs to overload getColumnNames() with the expected columns in the
    * enumerable.
    * */
-  private String[] getColumnNames(Class<?> clazz) {
+  private <T> String[] getColumnNames(Class<? extends T> clazz, Class<T> defaultClass) {
     try {
       Method m = clazz.getMethod("getColumnNames");
       String[] columnNames = (String[]) m.invoke(null);
       return columnNames;
     } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+      // Method m = defaultClass.getMethod("getColumnNames");
+      // return (String[]) m.invoke(null);
       throw new RuntimeException(e);
     }
   }
@@ -344,7 +345,7 @@ public class CalciteMetaImpl extends MetaImpl {
     final Predicate1<MetaSchema> schemaMatcher = namedMatcher(schemaPattern);
     final Predicate1<MetaColumn> columnMatcher =
         namedMatcher(columnNamePattern);
-    String[] columnNames = getColumnNames(this.metaColumnClass);
+    String[] columnNames = getColumnNames(this.metaColumnClass, MetaColumn.class);
     return createResultSet(schemas(catalog)
             .where(schemaMatcher)
             .selectMany(schema -> tables(schema, tableNameMatcher))
