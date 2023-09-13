@@ -129,6 +129,7 @@ import static org.apache.calcite.avatica.util.TimeUnit.MICROSECOND;
 import static org.apache.calcite.avatica.util.TimeUnit.MINUTE;
 import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
 import static org.apache.calcite.avatica.util.TimeUnit.SECOND;
+import static org.apache.calcite.avatica.util.TimeUnit.WEEK;
 import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
@@ -10657,6 +10658,23 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
+  @Test public void testPlusForDateAddForWeek() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
+        builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
+        builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(604800000),
+            new SqlIntervalQualifier(WEEK, 7, WEEK,
+                -1, SqlParserPos.ZERO)));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "FD"))
+        .build();
+    final String expectedBiqQuery = "SELECT DATE_ADD(DATE '1999-07-01', INTERVAL 1 WEEK) AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testPlusForDateSub() {
     final RelBuilder builder = relBuilder();
 
@@ -11544,8 +11562,13 @@ class RelToSqlConverterTest {
     final String expectedSparkSql = "SELECT IF('Mike Bird' rlike r'Mike B(i|y)RD', 1, 0)"
         + " A\nFROM scott.EMP";
 
+    final String expectedSnowflake = "SELECT IF(REGEXP_LIKE('Mike Bird', 'Mike B(i|y)RD', 'c'), "
+        + "1, 0) AS \"A\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflake));
   }
 
   @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsN() {
@@ -12971,6 +12994,20 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testParseJsonFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseJsonNode = builder.call(SqlLibraryOperators.PARSE_JSON,
+        builder.literal("NULL"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseJsonNode, "null_value"))
+        .build();
+    final String expectedBigquery = "SELECT PARSE_JSON('NULL') AS null_value\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
   }
 
   @Test public void testQuantileFunction() {

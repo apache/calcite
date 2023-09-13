@@ -1738,6 +1738,15 @@ public abstract class SqlLibraryOperators {
               number -> number == 1),
           SqlFunctionCategory.NUMERIC);
 
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction PARSE_JSON =
+      new SqlFunction("PARSE_JSON",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction QUANTILE =
       new SqlQuantileFunction(SqlKind.QUANTILE, ReturnTypes.INTEGER);
