@@ -57,9 +57,8 @@ public class RelToSqlUtils {
   private boolean isOperandAnalyticalInFollowingProject(RelNode rel, Integer rexOperandIndex) {
     if (rel instanceof Project) {
       return (((Project) rel).getChildExps().size() - 1) >= rexOperandIndex
-          && ((Project) rel).getChildExps().get(rexOperandIndex) instanceof RexOver
-          || ((((Project) rel).getChildExps().size() - 1) >= rexOperandIndex
-          && checkForRexCall(((Project) rel).getChildExps().get(rexOperandIndex)));
+          && (((Project) rel).getChildExps().get(rexOperandIndex) instanceof RexOver
+          || isRexOverPresentInRexCall(((Project) rel).getChildExps().get(rexOperandIndex)));
     } else {
       if (rel.getInputs().size() > 0) {
         return isOperandAnalyticalInFollowingProject(rel.getInput(0), rexOperandIndex);
@@ -68,21 +67,7 @@ public class RelToSqlUtils {
     return false;
   }
 
-  private boolean checkForRexCall(RexNode rexNode) {
-    if (rexNode instanceof RexCall) {
-      List<RexNode> listOfRexNode = ((RexCall) rexNode).getOperands();
-      for (RexNode node : listOfRexNode) {
-        if (node instanceof RexOver) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Returns whether an Analytical Function is present in filter condition.
-   */
+  /** Returns whether an Analytical Function is present in filter condition. */
   protected boolean hasAnalyticalFunctionInFilter(Filter rel) {
     Integer rexOperandIndex = null;
     RexNode filterCondition = rel.getCondition();
@@ -125,6 +110,18 @@ public class RelToSqlUtils {
     } else if (rexNode instanceof RexCall) {
       for (RexNode operand : ((RexCall) rexNode).getOperands()) {
         if (isAnalyticalRex(operand)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean isRexOverPresentInRexCall(RexNode rexNode) {
+    if (rexNode instanceof RexCall) {
+      List<RexNode> listOfRexNode = ((RexCall) rexNode).getOperands();
+      for (RexNode node : listOfRexNode) {
+        if (node instanceof RexOver) {
           return true;
         }
       }
