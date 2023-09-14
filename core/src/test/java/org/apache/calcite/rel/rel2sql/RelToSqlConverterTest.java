@@ -114,10 +114,8 @@ import java.time.DayOfWeek;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -13012,37 +13010,10 @@ class RelToSqlConverterTest {
 
   @Test public void testQuantileFunction() {
     final RelBuilder builder = relBuilder();
-    List<RexNode> rexArgs = new ArrayList<>();
-    List<RexNode> partitionRexKey = new ArrayList<>();
-    List<RexFieldCollation> windowOrderCollation = new ArrayList<>();
-    final RelDataType rankRelDataType =
-        builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-    Set<SqlKind> sqlKindList = new HashSet<>();
-    sqlKindList.add(SqlKind.NULLS_FIRST);
-    windowOrderCollation.add(new RexFieldCollation(builder.literal(23), sqlKindList));
-
-    final RexNode windowRexNode = builder.getRexBuilder().makeOver(rankRelDataType,
-        SqlStdOperatorTable.RANK, rexArgs, partitionRexKey,
-        ImmutableList.copyOf(windowOrderCollation),
-        RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING, true,
-        true, false, false, false);
-
-    RexNode minusRexNode =
-        builder.call(SqlStdOperatorTable.MINUS, windowRexNode, builder.literal(1));
-    RexNode multiplicationRex =
-        builder.call(SqlStdOperatorTable.MULTIPLY, minusRexNode, builder.literal(5));
-
-    final RexNode windowRexNodeOfCount = builder.getRexBuilder().makeOver(rankRelDataType,
-        SqlStdOperatorTable.COUNT, rexArgs, partitionRexKey,
-        ImmutableList.of(), RexWindowBounds.UNBOUNDED_PRECEDING,
-        RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false,
-        false, false);
-
-    RexNode finalRex =
-        builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, multiplicationRex, windowRexNodeOfCount);
+    RexNode finalRexforQuantile = createRexForQuantile(builder);
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(finalRex, "quantile"))
+        .project(builder.alias(finalRexforQuantile, "quantile"))
         .build();
 
     final String expectedBiqQuery = "SELECT CAST(FLOOR(((RANK() OVER (ORDER BY 23)) - 1) * 5 "
@@ -13054,43 +13025,16 @@ class RelToSqlConverterTest {
 
   @Test public void testQuantileFunctionWithQualify() {
     final RelBuilder builder = relBuilder();
-    List<RexNode> rexArgs = new ArrayList<>();
-    List<RexNode> partitionRexKey = new ArrayList<>();
-    List<RexFieldCollation> windowOrderCollation = new ArrayList<>();
-    final RelDataType rankRelDataType =
-        builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-    Set<SqlKind> sqlKindList = new HashSet<>();
-    sqlKindList.add(SqlKind.NULLS_FIRST);
-    windowOrderCollation.add(new RexFieldCollation(builder.literal(23), sqlKindList));
-
-    final RexNode windowRexNode = builder.getRexBuilder().makeOver(rankRelDataType,
-        SqlStdOperatorTable.RANK, rexArgs, partitionRexKey,
-        ImmutableList.copyOf(windowOrderCollation),
-        RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING, true,
-        true, false, false, false);
-
-    RexNode minusRexNode =
-        builder.call(SqlStdOperatorTable.MINUS, windowRexNode, builder.literal(1));
-    RexNode multiplicationRex =
-        builder.call(SqlStdOperatorTable.MULTIPLY, minusRexNode, builder.literal(5));
-
-    final RexNode windowRexNodeOfCount = builder.getRexBuilder().makeOver(rankRelDataType,
-        SqlStdOperatorTable.COUNT, rexArgs, partitionRexKey,
-        ImmutableList.of(), RexWindowBounds.UNBOUNDED_PRECEDING,
-        RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false,
-        false, false);
-
-    RexNode finalRex =
-        builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, multiplicationRex, windowRexNodeOfCount);
+    RexNode finalRexforQuantile = createRexForQuantile(builder);
     final RelNode root = builder
         .scan("EMP")
         .filter(
             builder.call(SqlLibraryOperators.NOT_BETWEEN,
-            builder.field("EMPNO"), builder.literal(1), builder.literal(3)))
-        .project(builder.field("DEPTNO"), builder.alias(finalRex, "quantile"))
+                builder.field("EMPNO"), builder.literal(1), builder.literal(3)))
+        .project(builder.field("DEPTNO"), builder.alias(finalRexforQuantile, "quantile"))
         .filter(
             builder.call(SqlStdOperatorTable.EQUALS,
-            builder.field("quantile"), builder.literal(1)))
+                builder.field("quantile"), builder.literal(1)))
         .project(builder.field("DEPTNO"))
         .build();
 
@@ -13101,5 +13045,33 @@ class RelToSqlConverterTest {
         + "(COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))) AS INT64) "
         + "= 1";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  private RexNode createRexForQuantile(RelBuilder builder) {
+    List<RexFieldCollation> windowOrderCollation = new ArrayList<>();
+    final RelDataType rankRelDataType =
+        builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+    windowOrderCollation.add(
+        new RexFieldCollation(builder.literal(23),
+        Collections.singleton(SqlKind.NULLS_FIRST)));
+
+    final RexNode windowRexNode = builder.getRexBuilder().makeOver(rankRelDataType,
+        SqlStdOperatorTable.RANK, ImmutableList.of(), ImmutableList.of(),
+        ImmutableList.copyOf(windowOrderCollation),
+        RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING, true,
+        true, false, false, false);
+
+    RexNode minusRexNode =
+        builder.call(SqlStdOperatorTable.MINUS, windowRexNode, builder.literal(1));
+    RexNode multiplicationRex =
+        builder.call(SqlStdOperatorTable.MULTIPLY, minusRexNode, builder.literal(5));
+
+    final RexNode windowRexNodeOfCount = builder.getRexBuilder().makeOver(rankRelDataType,
+        SqlStdOperatorTable.COUNT, ImmutableList.of(), ImmutableList.of(),
+        ImmutableList.of(), RexWindowBounds.UNBOUNDED_PRECEDING,
+        RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false,
+        false, false);
+    return builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, multiplicationRex,
+        windowRexNodeOfCount);
   }
 }
