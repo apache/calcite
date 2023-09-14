@@ -37,7 +37,7 @@ dependencies {
     testImplementation(project(":testkit"))
     testImplementation("net.hydromatic:scott-data-hsqldb")
     testImplementation("org.apache.hadoop:hadoop-client")
-    testImplementation("org.hsqldb:hsqldb")
+    testImplementation("org.hsqldb:hsqldb::jdk8")
     testRuntimeOnly("org.slf4j:slf4j-log4j12")
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")

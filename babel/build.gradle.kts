@@ -31,7 +31,7 @@ dependencies {
 
     testImplementation("net.hydromatic:quidem")
     testImplementation("net.hydromatic:scott-data-hsqldb")
-    testImplementation("org.hsqldb:hsqldb")
+    testImplementation("org.hsqldb:hsqldb::jdk8")
     testImplementation("org.incava:java-diff")
     testImplementation(project(":testkit"))
 
