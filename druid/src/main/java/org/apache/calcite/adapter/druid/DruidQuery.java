@@ -369,16 +369,16 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       return false;
     }
     final SqlTypeName toTypeName = rexNode.getType().getSqlTypeName();
-    if (toTypeName.getPrimaryFamily() == SqlTypeFamily.CHARACTER) {
+    if (toTypeName.getFamily() == SqlTypeFamily.CHARACTER) {
       // CAST of input to character type
       return true;
     }
-    if (toTypeName.getPrimaryFamily() == SqlTypeFamily.NUMERIC) {
+    if (toTypeName.getFamily() == SqlTypeFamily.NUMERIC) {
       // CAST of input to numeric type, it is part of a bounded comparison
       return true;
     }
-    if (toTypeName.getPrimaryFamily() == SqlTypeFamily.TIMESTAMP
-        || toTypeName.getSecondaryFamily() == SqlTypeFamily.DATETIME) {
+    if (toTypeName.getFamily() == SqlTypeFamily.TIMESTAMP
+        || toTypeName.getFamily() == SqlTypeFamily.DATETIME) {
       // CAST of literal to timestamp type
       return true;
     }

@@ -138,11 +138,11 @@ public class DruidExpressions {
       } else if (SqlTypeName.NUMERIC_TYPES.contains(sqlTypeName)) {
         return DruidExpressions.numberLiteral((Number) RexLiteral
             .value(rexNode));
-      } else if (SqlTypeFamily.INTERVAL_DAY_TIME == sqlTypeName.getPrimaryFamily()) {
+      } else if (SqlTypeFamily.INTERVAL_DAY_TIME == sqlTypeName.getFamily()) {
         // Calcite represents DAY-TIME intervals in milliseconds.
         final long milliseconds = ((Number) RexLiteral.value(rexNode)).longValue();
         return DruidExpressions.numberLiteral(milliseconds);
-      } else if (SqlTypeFamily.INTERVAL_YEAR_MONTH == sqlTypeName.getPrimaryFamily()) {
+      } else if (SqlTypeFamily.INTERVAL_YEAR_MONTH == sqlTypeName.getFamily()) {
         // Calcite represents YEAR-MONTH intervals in months.
         final long months = ((Number) RexLiteral.value(rexNode)).longValue();
         return DruidExpressions.numberLiteral(months);
