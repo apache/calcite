@@ -27,7 +27,7 @@ dependencies {
     implementation("net.hydromatic:chinook-data-hsqldb")
     implementation("net.hydromatic:tpcds")
     implementation("org.apache.calcite.avatica:avatica-server")
-    implementation("org.hsqldb:hsqldb")
+    implementation("org.hsqldb:hsqldb::jdk8")
 
     testImplementation(project(":testkit"))
     testImplementation("org.incava:java-diff")
