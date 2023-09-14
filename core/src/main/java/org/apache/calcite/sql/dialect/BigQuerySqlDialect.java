@@ -1267,6 +1267,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "BITNOT":
       unparseBitNotFunction(writer, call);
       break;
+    case "LAST_DAY":
+      unparseLastDay(writer, call, leftPrec, rightPrec);
+      break;
     case "SHIFTRIGHT":
       unparseShiftLeftAndShiftRight(writer, call, false);
       break;
@@ -1321,6 +1324,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print(")");
   }
 
+  private void unparseLastDay(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame funcFrame = writer.startFunCall(call.getOperator().getName());
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    if (call.operandCount() == 2) {
+      writer.sep(",", true);
+      writer.keyword(requireNonNull(unquoteStringLiteral(String.valueOf(call.operand(1)))));
+    }
+    writer.endFunCall(funcFrame);
+  }
 
   private boolean isBasicCallWithNegativePrefix(SqlNode secondOperand) {
     return secondOperand instanceof SqlBasicCall
