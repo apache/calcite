@@ -127,6 +127,7 @@ import static org.apache.calcite.avatica.util.TimeUnit.MICROSECOND;
 import static org.apache.calcite.avatica.util.TimeUnit.MINUTE;
 import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
 import static org.apache.calcite.avatica.util.TimeUnit.SECOND;
+import static org.apache.calcite.avatica.util.TimeUnit.WEEK;
 import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
@@ -10655,6 +10656,23 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
+  @Test public void testPlusForDateAddForWeek() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
+        builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
+        builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(604800000),
+            new SqlIntervalQualifier(WEEK, 7, WEEK,
+                -1, SqlParserPos.ZERO)));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "FD"))
+        .build();
+    final String expectedBiqQuery = "SELECT DATE_ADD(DATE '1999-07-01', INTERVAL 1 WEEK) AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testPlusForDateSub() {
     final RelBuilder builder = relBuilder();
 
@@ -11493,13 +11511,13 @@ class RelToSqlConverterTest {
         .ok(expectedBQ);
   }
 
-  @Test public void testForRegexpLikeFunction() {
+  @Test public void testForRegexpSimilarFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexp_similar, "A"))
+        .project(builder.alias(regexpSimilar, "A"))
         .build();
 
     final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('12-12-2000' , "
@@ -11513,18 +11531,18 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
-  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsI() {
+  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsI() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("Mike BIrd"), builder.literal("MikE B(i|y)RD"),
         builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexp_similar, "A"))
+        .project(builder.alias(regexpSimilar, "A"))
         .build();
 
     final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike BIrd' , "
-        + "r'(?i)MikE B(i|y)RD'), 1, 0) AS A\n"
+        + "r'^(?i)MikE B(i|y)RD$'), 1, 0) AS A\n"
         + "FROM scott.EMP";
 
     final String expectedSparkSql = "SELECT IF('Mike BIrd' rlike r'(?i)MikE B(i|y)RD', 1, 0)"
@@ -11534,13 +11552,13 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
-  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsX() {
+  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsX() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("Mike"), builder.literal("M i k e"), builder.literal("x"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexp_similar, "A"))
+        .project(builder.alias(regexpSimilar, "A"))
         .build();
 
     final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike' , r'Mike'), 1, 0) AS A\n"
@@ -11554,14 +11572,14 @@ class RelToSqlConverterTest {
   }
 
 
-  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsC() {
+  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsC() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("Mike Bird"), builder.literal("Mike B(i|y)RD"),
         builder.literal("c"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexp_similar, "A"))
+        .project(builder.alias(regexpSimilar, "A"))
         .build();
 
     final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike Bird' , "
@@ -11571,18 +11589,23 @@ class RelToSqlConverterTest {
     final String expectedSparkSql = "SELECT IF('Mike Bird' rlike r'Mike B(i|y)RD', 1, 0)"
         + " A\nFROM scott.EMP";
 
+    final String expectedSnowflake = "SELECT IF(REGEXP_LIKE('Mike Bird', 'Mike B(i|y)RD', 'c'), "
+        + "1, 0) AS \"A\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflake));
   }
 
-  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsN() {
+  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsN() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("abcd\n"
             + "e"), builder.literal(".*e"), builder.literal("n"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexp_similar, "A"))
+        .project(builder.alias(regexpSimilar, "A"))
         .build();
 
     final String expectedSparkSql = "SELECT IF('abcd\n"
@@ -11592,16 +11615,33 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
-  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsM() {
+  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsI() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexplike = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+        builder.literal("Mike Bird"), builder.literal("Mike B(i|y)RD"),
+        builder.literal("i"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexplike, "A"))
+        .build();
+
+    final String expectedBqSql = "SELECT REGEXP_CONTAINS('Mike Bird' , "
+        + "r'^(?i)Mike B(i|y)RD$') AS A\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
+  }
+
+  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsM() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("MikeBira\n"
             + "aaa\n"
             + "bb\n"
             + "MikeBird"), builder.literal("^MikeBird$"), builder.literal("m"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexp_similar, "A"))
+        .project(builder.alias(regexpSimilar, "A"))
         .build();
 
     final String expectedSparkSql = "SELECT IF('MikeBira\n"
@@ -12204,6 +12244,28 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testSnowflakeLastDay() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexNode lastDayNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
+        relBuilder.literal("13-JAN-1999"));
+    RexNode lastDayWithDatePartNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
+        relBuilder.literal("13-JAN-1999"),
+        relBuilder.literal("YEAR"));
+
+    RelNode root = relBuilder
+        .project(lastDayWithDatePartNode, lastDayNode)
+        .build();
+    final String expectedSnowflakeSql = "SELECT LAST_DAY('13-JAN-1999', 'YEAR') AS \"$f0\", "
+        + "LAST_DAY('13-JAN-1999') AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBQSql = "SELECT LAST_DAY('13-JAN-1999', YEAR) AS `$f0`, "
+        + "LAST_DAY('13-JAN-1999') AS `$f1`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
   @Test public void testOracleRoundFunction() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
@@ -12575,7 +12637,7 @@ class RelToSqlConverterTest {
 
   @Test public void testFunctionsWithRegexOperands() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpLikeRex = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexpSimilarRex = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
     final RexNode regexpExtractRex = builder.call(SqlLibraryOperators.REGEXP_EXTRACT,
         builder.literal("Calcite"), builder.literal("\\."), builder.literal("DM."));
@@ -12583,7 +12645,7 @@ class RelToSqlConverterTest {
         builder.literal("Calcite"), builder.literal("\\."), builder.literal("DM."));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexpLikeRex, "regexpLike"),
+        .project(builder.alias(regexpSimilarRex, "regexpLike"),
             builder.alias(regexpExtractRex, "regexpExtract"),
             builder.alias(regexpReplaceRex, "regexpReplace"))
         .build();
@@ -12857,6 +12919,17 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
+  @Test public void testLogFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode logRexNode = builder.call(SqlLibraryOperators.LOG,
+        builder.literal(3), builder.literal(2));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(logRexNode, "value"))
+        .build();
+    final String expectedSFQuery = "SELECT LOG(3, 2) AS \"value\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
+  }
 
   @Test public void testPercentileCont() {
     final String query = "SELECT\n"
@@ -12970,5 +13043,19 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testParseJsonFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseJsonNode = builder.call(SqlLibraryOperators.PARSE_JSON,
+        builder.literal("NULL"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseJsonNode, "null_value"))
+        .build();
+    final String expectedBigquery = "SELECT PARSE_JSON('NULL') AS null_value\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
   }
 }

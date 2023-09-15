@@ -180,7 +180,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
 import static org.apache.calcite.util.Util.isNumericLiteral;
-import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
 import static org.apache.calcite.util.Util.removeLeadingAndTrailingSingleQuotes;
 
 import static java.util.Objects.requireNonNull;
@@ -1187,6 +1186,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "REGEXP_LIKE":
       unParseRegexpLike(writer, call, leftPrec, rightPrec);
       break;
+    case "REGEXP_SIMILAR":
+      unParseRegexpSimilar(writer, call, leftPrec, rightPrec);
+      break;
     case "REGEXP_CONTAINS":
       unparseRegexpContains(writer, call, leftPrec, rightPrec);
       break;
@@ -1270,6 +1272,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "BITNOT":
       unparseBitNotFunction(writer, call);
       break;
+    case "LAST_DAY":
+      unparseLastDay(writer, call, leftPrec, rightPrec);
+      break;
     case "SHIFTRIGHT":
       unparseShiftLeftAndShiftRight(writer, call, false);
       break;
@@ -1292,6 +1297,10 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unParseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    unparseIfRegexpContains(writer, call, leftPrec, rightPrec);
+  }
+
+  private void unParseRegexpSimilar(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlWriter.Frame ifFrame = writer.startFunCall("IF");
     unparseIfRegexpContains(writer, call, leftPrec, rightPrec);
     writer.sep(",");
@@ -1320,6 +1329,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print(")");
   }
 
+  private void unparseLastDay(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame funcFrame = writer.startFunCall(call.getOperator().getName());
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    if (call.operandCount() == 2) {
+      writer.sep(",", true);
+      writer.keyword(requireNonNull(unquoteStringLiteral(String.valueOf(call.operand(1)))));
+    }
+    writer.endFunCall(funcFrame);
+  }
 
   private boolean isBasicCallWithNegativePrefix(SqlNode secondOperand) {
     return secondOperand instanceof SqlBasicCall
@@ -1353,7 +1371,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     String matchArgument = call.operand(2).toString().replaceAll("'", "");
     switch (matchArgument) {
     case "i":
-      return modifyRegexStringForMatchArgument(call, "(?i)");
+      return modifyRegexStringForMatchArgumentI(call, "(?i)");
     case "x":
       String updatedRegexForX = removeLeadingAndTrailingSingleQuotes
           (call.operand(1).toString().replaceAll("\\s+", ""));
@@ -1361,6 +1379,18 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       return call.operand(1);
     }
+  }
+
+  private static SqlCharStringLiteral modifyRegexStringForMatchArgumentI(SqlCall call,
+      String matchArgumentRegexLiteral) {
+    String updatedRegexForI = removeLeadingAndTrailingSingleQuotes
+        (call.operand(1).toString());
+    if (updatedRegexForI.startsWith("^") && updatedRegexForI.endsWith("$")) {
+      updatedRegexForI = matchArgumentRegexLiteral.concat(updatedRegexForI);
+    } else {
+      updatedRegexForI = "^(?i)".concat(updatedRegexForI).concat("$");
+    }
+    return SqlLiteral.createCharString(updatedRegexForI, SqlParserPos.ZERO);
   }
 
   private void unparseRegexpContains(SqlWriter writer, SqlCall call,
@@ -1932,6 +1962,12 @@ public class BigQuerySqlDialect extends SqlDialect {
       case INTERVAL_DAY_SECOND:
       case INTERVAL_DAY_MINUTE:
       case INTERVAL_DAY_HOUR:
+      case INTERVAL_DAY:
+      case INTERVAL_HOUR:
+      case INTERVAL_MINUTE:
+      case INTERVAL_MONTH:
+      case INTERVAL_SECOND:
+      case INTERVAL_YEAR:
         return createSqlDataTypeSpecByName("INT64", typeName);
       // BigQuery only supports FLOAT64(aka. Double) for floating point types.
       case FLOAT:
