@@ -206,6 +206,14 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TRY_CAST =
       new SqlCastFunction("TRY_CAST", SqlKind.SAFE_CAST);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+ public static final SqlFunction IS_REAL =
+      new SqlFunction("IS_REAL",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BOOLEAN_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.ANY),
+          SqlFunctionCategory.NUMERIC);
+
   /** MySQL's "SUBSTR(string, position [, substringLength ])" function. */
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction SUBSTR_MYSQL =

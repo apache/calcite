@@ -11220,6 +11220,21 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBqSql));
   }
 
+  @Test public void testIsRealFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toReal = builder.call(SqlLibraryOperators.IS_REAL,
+              builder.literal(123.12));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toReal, "Result"))
+        .build();
+
+    final String expectedSql = "SELECT IS_REAL(123.12) AS \"Result\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testFormatFunctionCastAsInteger() {
     final RelBuilder builder = relBuilder();
     final RexNode formatIntegerCastRexNode = builder.cast(
