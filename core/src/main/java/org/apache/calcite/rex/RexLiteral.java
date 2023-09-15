@@ -32,6 +32,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserUtil;
+import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.CompositeList;
 import org.apache.calcite.util.ConversionUtil;
@@ -547,8 +548,15 @@ public class RexLiteral extends RexNode {
   private String intervalString(BigDecimal v) {
     final List<TimeUnit> timeUnits = getTimeUnits(type.getSqlTypeName());
     final StringBuilder b = new StringBuilder();
+    final long millisPerWeek = 604800000;
+    BigDecimal[] result;
     for (TimeUnit timeUnit : timeUnits) {
-      final BigDecimal[] result = v.divideAndRemainder(timeUnit.multiplier);
+      if (((IntervalSqlType) this.type).getIntervalQualifier().timeUnitRange.name()
+          == TimeUnit.WEEK.name()) {
+        result = v.divideAndRemainder(BigDecimal.valueOf(millisPerWeek));
+      } else {
+        result = v.divideAndRemainder(timeUnit.multiplier);
+      }
       if (b.length() > 0) {
         b.append(timeUnit.separator);
       }
