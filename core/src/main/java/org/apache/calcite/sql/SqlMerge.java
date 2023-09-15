@@ -194,7 +194,7 @@ public class SqlMerge extends SqlCall {
 
   /** Maintaining an call order list. If not mentioned then we follow
    * the default order list of [ UDPATE, DELETE, INSERT ]
-   * @return List<SqlCall> callOrderList
+   * @return List of callOrderList
    */
   public List<SqlCall> getCallOrderList() {
     if (this.callOrderList.isEmpty()) {
