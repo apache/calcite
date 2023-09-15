@@ -27,6 +27,9 @@ import java.util.List;
 public class CalciteMetaTableFactoryImpl implements
     CalciteMetaTableFactory {
 
+  public static final CalciteMetaTableFactoryImpl INSTANCE = new CalciteMetaTableFactoryImpl();
+  public CalciteMetaTableFactoryImpl() {};
+
   public static final List<String> META_TABLE_COLUMN_NAMES =
       Collections.unmodifiableList(
           Arrays.asList("TABLE_CAT",
@@ -48,7 +51,6 @@ public class CalciteMetaTableFactoryImpl implements
   @Override public List<String> getColumnNames() {
     return META_TABLE_COLUMN_NAMES;
   }
-
 
   @Override public Class<?> getMetaTableClass() {
     return CalciteMetaTable.class;

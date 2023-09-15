@@ -32,7 +32,6 @@ import org.apache.calcite.avatica.UnregisteredDriver;
 import org.apache.calcite.avatica.remote.TypedValue;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
-import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalcitePrepare.Context;
 import org.apache.calcite.linq4j.BaseQueryable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -190,25 +189,6 @@ abstract class CalciteConnectionImpl
     }
     return super.unwrap(iface);
   }
-
-  public CalciteMetaTableFactory getMetaTableFactory(CalciteConnectionProperty connectionProperty) {
-    Object value = info.getOrDefault(connectionProperty.camelName(), null);
-    if (value != null) {
-      return (CalciteMetaTableFactory) value;
-    } else {
-      return null;
-    }
-  }
-
-  public CalciteMetaColumnFactory getMetaColumnFactory(CalciteConnectionProperty connectionProperty) {
-    Object value = info.getOrDefault(connectionProperty.camelName(), null);
-    if (value != null) {
-      return (CalciteMetaColumnFactory) value;
-    } else {
-      return null;
-    }
-  }
-
   @Override public CalciteStatement createStatement(int resultSetType,
       int resultSetConcurrency, int resultSetHoldability) throws SQLException {
     return (CalciteStatement) super.createStatement(resultSetType,

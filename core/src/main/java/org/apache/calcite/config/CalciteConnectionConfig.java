@@ -111,9 +111,15 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   /** Returns the value of {@link CalciteConnectionProperty#TOPDOWN_OPT}. */
   boolean topDownOpt();
 
-  /** Returns the value of {@link CalciteConnectionProperty#META_TABLE_CLASS}. */
-  Class<?> metaTableClass();
+  /** Returns the value of {@link CalciteConnectionProperty#META_TABLE_FACTORY},
+   * or a default meta table factory if not set. If {@code defaultMetaTableFactory}
+   * is not null, the result is never null. */
+  <T> @PolyNull T metaTableFactory(Class<T> metaTableFactoryClass,
+      @PolyNull T defaultMetaTableFactory);
 
-  /** Returns the value of {@link CalciteConnectionProperty#META_COLUMN_CLASS}. */
-  Class<?> metaColumnClass();
+  /** Returns the value of {@link CalciteConnectionProperty#META_COLUMN_FACTORY},
+   * or a default meta column factory if not set. If {@code defaultMetaColumnFactory}
+   * is not null, the result is never null. */
+  <T> @PolyNull T metaColumnFactory(Class<T> metaColumnFactoryClass,
+      @PolyNull T defaultMetaColumnFactory);
 }

@@ -26,6 +26,7 @@ import org.apache.calcite.avatica.Handler;
 import org.apache.calcite.avatica.HandlerImpl;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.UnregisteredDriver;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.model.JsonSchema;
@@ -211,31 +212,12 @@ public class Driver extends UnregisteredDriver {
   }
 
   @Override public Meta createMeta(AvaticaConnection connection) {
-    CalciteMetaTableFactory metaTableFactory =
-        getMetaTableFactory(connection, CalciteConnectionProperty.META_TABLE_FACTORY);
-    CalciteMetaColumnFactory metaColumnFactory =
-        getMetaColumnFactory(connection, CalciteConnectionProperty.META_COLUMN_FACTORY);
+    CalciteMetaTableFactory metaTableFactory = ((CalciteConnectionConfig) connection.config())
+        .metaTableFactory(CalciteMetaTableFactory.class, null);
+    CalciteMetaColumnFactory metaColumnFactory = ((CalciteConnectionConfig) connection.config())
+            .metaColumnFactory(CalciteMetaColumnFactory.class, null);
     return new CalciteMetaImpl((CalciteConnectionImpl) connection,
         metaTableFactory, metaColumnFactory);
-  }
-  private CalciteMetaTableFactory getMetaTableFactory(AvaticaConnection connection,
-      CalciteConnectionProperty connectionProperty) {
-    try {
-      CalciteConnectionImpl calciteConnection = connection.unwrap(CalciteConnectionImpl.class);
-      return calciteConnection.getMetaTableFactory(connectionProperty);
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private CalciteMetaColumnFactory getMetaColumnFactory(AvaticaConnection connection,
-      CalciteConnectionProperty connectionProperty) {
-    try {
-      CalciteConnectionImpl calciteConnection = connection.unwrap(CalciteConnectionImpl.class);
-      return calciteConnection.getMetaColumnFactory(connectionProperty);
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   /** Creates an internal connection. */

@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.avatica.MetaImpl.MetaTable;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteMetaImpl.CalciteMetaTable;
+import org.apache.calcite.jdbc.CalciteMetaTableFactory;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.util.TestUtil;
 
@@ -28,7 +30,8 @@ import org.junit.jupiter.api.Test;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Map;
+import java.util.Collections;
+import java.util.List;
 
 import static org.apache.calcite.test.CalciteAssert.that;
 
@@ -80,39 +83,57 @@ class JdbcFrontJdbcBackTest {
   }
 
 
-  /** Sample subclass testing getMetaTables. */
+  /**
+   * Sample subclass used in {@link JdbcFrontJdbcBackTest#testTablesExtraColumn()}.
+   */
   public static class MetaExtraTable extends CalciteMetaTable {
     public final String extraLabel;
-
-    // Got a RedundantModifier alert, however CalciteMetaImpl does need this constructor to be
-    // explicitly public in order to create an instance.
-    // CHECKSTYLE: IGNORE 2
     public MetaExtraTable(Table calciteTable, String tableCat,
         String tableSchem, String tableName) {
       super(calciteTable, tableCat, tableSchem, tableName);
-      Map<String, Object> metadataMap = calciteTable.getTableMetadata();
-      Object extraLabel1 = metadataMap.getOrDefault("extraLabel", null);
-      this.extraLabel = extraLabel1 != null ? (String) extraLabel1 : null;
-    }
-    public static String[] getColumnNames() {
-      return Arrays.asList("TABLE_CAT",
-          "TABLE_SCHEM",
-          "TABLE_NAME",
-          "TABLE_TYPE",
-          "REMARKS",
-          "TYPE_CAT",
-          "TYPE_SCHEM",
-          "TYPE_NAME",
-          "SELF_REFERENCING_COL_NAME",
-          "REF_GENERATION",
-          "EXTRA_LABEL").toArray(new String[0]);
+      this.extraLabel = "extraLabel1";
     }
   }
+
+  /** Sample factory that creates MetaExtraTables. */
+  public static class MetaExtraTableFactoryImpl implements CalciteMetaTableFactory {
+
+    public static final MetaExtraTableFactoryImpl INSTANCE = new MetaExtraTableFactoryImpl();
+
+    MetaExtraTableFactoryImpl() {}
+
+    @Override public MetaTable newMetaTable(Table table, String tableCat, String tableSchem,
+        String tableName) {
+      return new MetaExtraTable(table, tableCat, tableSchem, tableName);
+    }
+
+    @Override public List<String> getColumnNames() {
+      return Collections.unmodifiableList(
+          Arrays.asList(
+              "TABLE_CAT",
+              "TABLE_SCHEM",
+              "TABLE_NAME",
+              "TABLE_TYPE",
+              "REMARKS",
+              "TYPE_CAT",
+              "TYPE_SCHEM",
+              "TYPE_NAME",
+              "SELF_REFERENCING_COL_NAME",
+              "REF_GENERATION",
+              "EXTRA_LABEL"));
+    }
+
+    @Override public Class<?> getMetaTableClass() {
+      return MetaExtraTable.class;
+    }
+  }
+
   @Test void testTablesExtraColumn() throws Exception {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .with(
-            CalciteConnectionProperty.META_TABLE_CLASS.camelName(), MetaExtraTable.class.getName())
+            CalciteConnectionProperty.META_TABLE_FACTORY.camelName(),
+            MetaExtraTableFactoryImpl.class.getName())
         .doWithConnection(connection -> {
           try {
             ResultSet rset =

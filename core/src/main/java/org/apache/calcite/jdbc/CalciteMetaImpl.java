@@ -200,11 +200,16 @@ public class CalciteMetaImpl extends MetaImpl {
     for (String name : names) {
       final int index = fields.size();
       final String fieldName = AvaticaUtils.toCamelCase(name);
-      final Field field;
+      Field field;
       try {
         field = clazz.getField(fieldName);
       } catch (NoSuchFieldException e) {
-        throw new RuntimeException(e);
+        try {
+          // Check if subclass contains the desired field.
+          field = clazz.getDeclaredField(fieldName);
+        } catch (NoSuchFieldException e2) {
+          throw new RuntimeException(e2);
+        }
       }
       columns.add(columnMetaData(name, index, field.getType(), false));
       fields.add(field);

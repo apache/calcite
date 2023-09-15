@@ -23,8 +23,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+/** Default implementation of CalciteMetaColumnFactoryImpl. */
 public class CalciteMetaColumnFactoryImpl implements
     CalciteMetaColumnFactory {
+
+  public static final CalciteMetaColumnFactoryImpl INSTANCE = new CalciteMetaColumnFactoryImpl();
+  public CalciteMetaColumnFactoryImpl() {};
 
   public static final List<String> META_COLUMN_COLUMN_NAMES =
       Collections.unmodifiableList(
@@ -94,6 +98,6 @@ public class CalciteMetaColumnFactoryImpl implements
   }
 
   @Override public Class<?> getMetaColumnClass() {
-    return null;
+    return MetaColumn.class;
   }
 }

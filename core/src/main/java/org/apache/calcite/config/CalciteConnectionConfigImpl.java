@@ -214,11 +214,15 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return CalciteConnectionProperty.TOPDOWN_OPT.wrap(properties).getBoolean();
   }
 
-  @Override public Class<?> metaTableClass() {
-    return CalciteConnectionProperty.META_TABLE_CLASS.wrap(properties).getClass();
+  @Override public <T> @PolyNull T metaTableFactory(Class<T> metaTableFactoryClass,
+      @PolyNull T defaultMetaTableFactory) {
+    return CalciteConnectionProperty.META_TABLE_FACTORY.wrap(properties).getPlugin(
+        metaTableFactoryClass, defaultMetaTableFactory);
   }
 
-  @Override public Class<?> metaColumnClass() {
-    return CalciteConnectionProperty.META_COLUMN_CLASS.wrap(properties).getClass();
+  @Override public <T> @PolyNull T metaColumnFactory(Class<T> metaColumnFactoryClass,
+      @PolyNull T defaultMetaColumnFactory) {
+    return CalciteConnectionProperty.META_COLUMN_FACTORY.wrap(properties).getPlugin(
+        metaColumnFactoryClass, defaultMetaColumnFactory);
   }
 }
