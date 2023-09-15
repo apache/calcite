@@ -19,7 +19,7 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.avatica.MetaImpl.MetaColumn;
 import org.apache.calcite.schema.Table;
 
-import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /** Factory for creating MetaColumns for getColumns(). */
 public interface CalciteMetaColumnFactory {
@@ -33,17 +33,15 @@ public interface CalciteMetaColumnFactory {
       int dataType,
       String typeName,
       Integer columnSize,
-      Integer decimalDigits,
+      @Nullable Integer decimalDigits,
       Integer numPrecRadix,
       int nullable,
       Integer charOctetLength,
       int ordinalPosition,
-      String isNullable,
-      String isAutoincrement,
-      String isGeneratedcolumn);
+      String isNullable);
 
   /** Returns the list of expected column names. */
-  List<String> getColumnNames();
+  String[] getColumnNames();
 
   /** Returns the class of MetaColumn that is created. */
   Class<?> getMetaColumnClass();

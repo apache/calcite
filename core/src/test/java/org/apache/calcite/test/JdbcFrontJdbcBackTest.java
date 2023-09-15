@@ -29,9 +29,6 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 import static org.apache.calcite.test.CalciteAssert.that;
 
@@ -88,7 +85,7 @@ class JdbcFrontJdbcBackTest {
    */
   public static class MetaExtraTable extends CalciteMetaTable {
     public final String extraLabel;
-    public MetaExtraTable(Table calciteTable, String tableCat,
+    MetaExtraTable(Table calciteTable, String tableCat,
         String tableSchem, String tableName) {
       super(calciteTable, tableCat, tableSchem, tableName);
       this.extraLabel = "extraLabel1";
@@ -107,20 +104,20 @@ class JdbcFrontJdbcBackTest {
       return new MetaExtraTable(table, tableCat, tableSchem, tableName);
     }
 
-    @Override public List<String> getColumnNames() {
-      return Collections.unmodifiableList(
-          Arrays.asList(
-              "TABLE_CAT",
-              "TABLE_SCHEM",
-              "TABLE_NAME",
-              "TABLE_TYPE",
-              "REMARKS",
-              "TYPE_CAT",
-              "TYPE_SCHEM",
-              "TYPE_NAME",
-              "SELF_REFERENCING_COL_NAME",
-              "REF_GENERATION",
-              "EXTRA_LABEL"));
+    @Override public String[] getColumnNames() {
+      // 11 columns total.
+      return new String[] {
+          "TABLE_CAT",
+          "TABLE_SCHEM",
+          "TABLE_NAME",
+          "TABLE_TYPE",
+          "REMARKS",
+          "TYPE_CAT",
+          "TYPE_SCHEM",
+          "TYPE_NAME",
+          "SELF_REFERENCING_COL_NAME",
+          "REF_GENERATION",
+          "EXTRA_LABEL"};
     }
 
     @Override public Class<?> getMetaTableClass() {
@@ -140,6 +137,8 @@ class JdbcFrontJdbcBackTest {
                 connection.getMetaData().getTables(
                     null, null, null, null);
             assertTrue(rset.next());
+            // Asserts that the number of columns in the result set equals
+            // MetaExtraTableFactoryImpl's expected number of columns.
             assertEquals(rset.getMetaData().getColumnCount(), 11);
             assertEquals(rset.getMetaData().getColumnName(11), "EXTRA_LABEL");
           } catch (SQLException e) {

@@ -19,10 +19,6 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.jdbc.CalciteMetaImpl.CalciteMetaTable;
 import org.apache.calcite.schema.Table;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 /** Default implementation of CalciteMetaTableFactory. */
 public class CalciteMetaTableFactoryImpl implements
     CalciteMetaTableFactory {
@@ -30,9 +26,8 @@ public class CalciteMetaTableFactoryImpl implements
   public static final CalciteMetaTableFactoryImpl INSTANCE = new CalciteMetaTableFactoryImpl();
   public CalciteMetaTableFactoryImpl() {};
 
-  public static final List<String> META_TABLE_COLUMN_NAMES =
-      Collections.unmodifiableList(
-          Arrays.asList("TABLE_CAT",
+  public static String[] columnNames =
+      new String[] {"TABLE_CAT",
           "TABLE_SCHEM",
           "TABLE_NAME",
           "TABLE_TYPE",
@@ -41,15 +36,18 @@ public class CalciteMetaTableFactoryImpl implements
           "TYPE_SCHEM",
           "TYPE_NAME",
           "SELF_REFERENCING_COL_NAME",
-          "REF_GENERATION"));
+          "REF_GENERATION"};
 
-  @Override public CalciteMetaTable newMetaTable(Table table, String tableCat,
-      String tableSchem, String tableName) {
+  @Override public CalciteMetaTable newMetaTable(
+      Table table,
+      String tableCat,
+      String tableSchem,
+      String tableName) {
     return new CalciteMetaTable(table, tableCat, tableSchem, tableName);
   }
 
-  @Override public List<String> getColumnNames() {
-    return META_TABLE_COLUMN_NAMES;
+  @Override public String[] getColumnNames() {
+    return columnNames;
   }
 
   @Override public Class<?> getMetaTableClass() {

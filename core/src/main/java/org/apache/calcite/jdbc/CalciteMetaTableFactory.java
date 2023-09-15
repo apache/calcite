@@ -19,15 +19,13 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.avatica.MetaImpl.MetaTable;
 import org.apache.calcite.schema.Table;
 
-import java.util.List;
-
 /** Factory for creating MetaTables for getTables(). */
 public interface CalciteMetaTableFactory {
   /** Instantiates a MetaTable. */
   MetaTable newMetaTable(Table table, String tableCat, String tableSchem, String tableName);
 
   /** Returns the list of expected column names. */
-  List<String> getColumnNames();
+  String[] getColumnNames();
 
   /** Returns the class of MetaTable that is created. */
   Class<?> getMetaTableClass();

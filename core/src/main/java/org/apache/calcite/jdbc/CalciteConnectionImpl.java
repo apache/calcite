@@ -189,6 +189,7 @@ abstract class CalciteConnectionImpl
     }
     return super.unwrap(iface);
   }
+
   @Override public CalciteStatement createStatement(int resultSetType,
       int resultSetConcurrency, int resultSetHoldability) throws SQLException {
     return (CalciteStatement) super.createStatement(resultSetType,

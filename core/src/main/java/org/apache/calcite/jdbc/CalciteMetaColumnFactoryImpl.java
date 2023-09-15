@@ -19,9 +19,7 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.avatica.MetaImpl.MetaColumn;
 import org.apache.calcite.schema.Table;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /** Default implementation of CalciteMetaColumnFactoryImpl. */
 public class CalciteMetaColumnFactoryImpl implements
@@ -30,33 +28,32 @@ public class CalciteMetaColumnFactoryImpl implements
   public static final CalciteMetaColumnFactoryImpl INSTANCE = new CalciteMetaColumnFactoryImpl();
   public CalciteMetaColumnFactoryImpl() {};
 
-  public static final List<String> META_COLUMN_COLUMN_NAMES =
-      Collections.unmodifiableList(
-          Arrays.asList(
-              "TABLE_CAT",
-              "TABLE_SCHEM",
-              "TABLE_NAME",
-              "COLUMN_NAME",
-              "DATA_TYPE",
-              "TYPE_NAME",
-              "COLUMN_SIZE",
-              "BUFFER_LENGTH",
-              "DECIMAL_DIGITS",
-              "NUM_PREC_RADIX",
-              "NULLABLE",
-              "REMARKS",
-              "COLUMN_DEF",
-              "SQL_DATA_TYPE",
-              "SQL_DATETIME_SUB",
-              "CHAR_OCTET_LENGTH",
-              "ORDINAL_POSITION",
-              "IS_NULLABLE",
-              "SCOPE_CATALOG",
-              "SCOPE_SCHEMA",
-              "SCOPE_TABLE",
-              "SOURCE_DATA_TYPE",
-              "IS_AUTOINCREMENT",
-              "IS_GENERATEDCOLUMN"));
+  public static String[] columnNames =
+      new String[] {
+          "TABLE_CAT",
+          "TABLE_SCHEM",
+          "TABLE_NAME",
+          "COLUMN_NAME",
+          "DATA_TYPE",
+          "TYPE_NAME",
+          "COLUMN_SIZE",
+          "BUFFER_LENGTH",
+          "DECIMAL_DIGITS",
+          "NUM_PREC_RADIX",
+          "NULLABLE",
+          "REMARKS",
+          "COLUMN_DEF",
+          "SQL_DATA_TYPE",
+          "SQL_DATETIME_SUB",
+          "CHAR_OCTET_LENGTH",
+          "ORDINAL_POSITION",
+          "IS_NULLABLE",
+          "SCOPE_CATALOG",
+          "SCOPE_SCHEMA",
+          "SCOPE_TABLE",
+          "SOURCE_DATA_TYPE",
+          "IS_AUTOINCREMENT",
+          "IS_GENERATEDCOLUMN"};
 
   @Override public MetaColumn newMetaColumn(
       Table table,
@@ -67,14 +64,12 @@ public class CalciteMetaColumnFactoryImpl implements
       int dataType,
       String typeName,
       Integer columnSize,
-      Integer decimalDigits,
+      @Nullable Integer decimalDigits,
       Integer numPrecRadix,
       int nullable,
       Integer charOctetLength,
       int ordinalPosition,
-      String isNullable,
-      String isAutoincrement,
-      String isGeneratedcolumn) {
+      String isNullable) {
     return new MetaColumn(
         tableCat,
         tableSchem,
@@ -88,13 +83,11 @@ public class CalciteMetaColumnFactoryImpl implements
         nullable,
         charOctetLength,
         ordinalPosition,
-        isNullable,
-        isAutoincrement,
-        isGeneratedcolumn);
+        isNullable);
   }
 
-  @Override public List<String> getColumnNames() {
-    return META_COLUMN_COLUMN_NAMES;
+  @Override public String[] getColumnNames() {
+    return columnNames;
   }
 
   @Override public Class<?> getMetaColumnClass() {
