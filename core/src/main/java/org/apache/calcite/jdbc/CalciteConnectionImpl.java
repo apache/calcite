@@ -191,22 +191,21 @@ abstract class CalciteConnectionImpl
     return super.unwrap(iface);
   }
 
-  /** If the connection properties {@code CalciteConnectionProperty.META_TABLE_CLASS} or
-   * {@code CalciteConnectionProperty.META_COLUMN_CLASS} is set with a subclass of
-   * {@link org.apache.calcite.jdbc.CalciteMetaImpl} or
-   * {@link org.apache.calcite.avatica.MetaImpl.MetaColumn} respectively, calls to getTables() /
-   * getColumns() will instantiate instances of the provided subclass. <p>
-   * Otherwise it will default to creating {@link org.apache.calcite.jdbc.CalciteMetaImpl} /
-   * {@link org.apache.calcite.avatica.MetaImpl.MetaColumn}. */
-  public <T> Class<? extends T> getMetaClass(CalciteConnectionProperty connectionProperty,
-      Class<T> defaultClass) {
-    String className =
-        (String) info.getOrDefault(connectionProperty.camelName(),
-            defaultClass.getName());
-    try {
-      return (Class<? extends T>) Class.forName(className);
-    } catch (ClassNotFoundException e) {
-      return defaultClass;
+  public CalciteMetaTableFactory getMetaTableFactory(CalciteConnectionProperty connectionProperty) {
+    Object value = info.getOrDefault(connectionProperty.camelName(), null);
+    if (value != null) {
+      return (CalciteMetaTableFactory) value;
+    } else {
+      return null;
+    }
+  }
+
+  public CalciteMetaColumnFactory getMetaColumnFactory(CalciteConnectionProperty connectionProperty) {
+    Object value = info.getOrDefault(connectionProperty.camelName(), null);
+    if (value != null) {
+      return (CalciteMetaColumnFactory) value;
+    } else {
+      return null;
     }
   }
 

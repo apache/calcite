@@ -25,10 +25,8 @@ import org.apache.calcite.avatica.DriverVersion;
 import org.apache.calcite.avatica.Handler;
 import org.apache.calcite.avatica.HandlerImpl;
 import org.apache.calcite.avatica.Meta;
-import org.apache.calcite.avatica.MetaImpl.MetaColumn;
 import org.apache.calcite.avatica.UnregisteredDriver;
 import org.apache.calcite.config.CalciteConnectionProperty;
-import org.apache.calcite.jdbc.CalciteMetaImpl.CalciteMetaTable;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.model.ModelHandler;
@@ -213,21 +211,30 @@ public class Driver extends UnregisteredDriver {
   }
 
   @Override public Meta createMeta(AvaticaConnection connection) {
-    Class<? extends CalciteMetaTable> metaTableClass =
-        getMetaClass(connection, CalciteConnectionProperty.META_TABLE_CLASS,
-            CalciteMetaTable.class);
-    Class<? extends MetaColumn> metaColumnClass =
-        getMetaClass(connection, CalciteConnectionProperty.META_COLUMN_CLASS, MetaColumn.class);
-    return new CalciteMetaImpl((CalciteConnectionImpl) connection, metaTableClass, metaColumnClass);
+    CalciteMetaTableFactory metaTableFactory =
+        getMetaTableFactory(connection, CalciteConnectionProperty.META_TABLE_FACTORY);
+    CalciteMetaColumnFactory metaColumnFactory =
+        getMetaColumnFactory(connection, CalciteConnectionProperty.META_COLUMN_FACTORY);
+    return new CalciteMetaImpl((CalciteConnectionImpl) connection,
+        metaTableFactory, metaColumnFactory);
   }
-
-  private <T> Class<? extends T> getMetaClass(AvaticaConnection connection,
-      CalciteConnectionProperty connectionProperty, Class<T> defaultClass) {
+  private CalciteMetaTableFactory getMetaTableFactory(AvaticaConnection connection,
+      CalciteConnectionProperty connectionProperty) {
     try {
       CalciteConnectionImpl calciteConnection = connection.unwrap(CalciteConnectionImpl.class);
-      return calciteConnection.getMetaClass(connectionProperty, defaultClass);
+      return calciteConnection.getMetaTableFactory(connectionProperty);
     } catch (SQLException e) {
-      return defaultClass;
+      throw new RuntimeException(e);
+    }
+  }
+
+  private CalciteMetaColumnFactory getMetaColumnFactory(AvaticaConnection connection,
+      CalciteConnectionProperty connectionProperty) {
+    try {
+      CalciteConnectionImpl calciteConnection = connection.unwrap(CalciteConnectionImpl.class);
+      return calciteConnection.getMetaColumnFactory(connectionProperty);
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
     }
   }
 
