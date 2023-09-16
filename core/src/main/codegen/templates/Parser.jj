@@ -163,6 +163,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
 
     private Casing unquotedCasing;
     private Casing quotedCasing;
+    private String charset;
     private int identifierMaxLength;
     private SqlConformance conformance;
 
@@ -220,6 +221,10 @@ public class ${parser.class} extends SqlAbstractParserImpl
 
     public void setUnquotedCasing(Casing unquotedCasing) {
         this.unquotedCasing = unquotedCasing;
+    }
+    
+    public void setCharset(String charset) {
+        this.charset = charset;
     }
 
     public void setIdentifierMaxLength(int identifierMaxLength) {
@@ -4519,7 +4524,7 @@ SqlNode StringLiteral() :
     String p;
     final List<SqlLiteral> frags;
     char unicodeEscapeChar = 0;
-    String charSet = this.conformance.useUtf8AsDefaultCharset() ? "UTF-8" : null;
+    String charSet;
     SqlCharStringLiteral literal;
 }
 {

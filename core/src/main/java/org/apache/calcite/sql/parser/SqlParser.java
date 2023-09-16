@@ -19,6 +19,7 @@ package org.apache.calcite.sql.parser;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.config.CharLiteralStyle;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -75,6 +76,7 @@ public class SqlParser {
     parser.setIdentifierMaxLength(config.identifierMaxLength());
     parser.setTimeUnitCodes(config.timeUnitCodes());
     parser.setConformance(config.conformance());
+    parser.setCharset(config.charset());
     parser.switchTo(SqlAbstractParserImpl.LexicalState.forConfig(config));
   }
 
@@ -287,6 +289,13 @@ public class SqlParser {
 
     /** Sets {@link #unquotedCasing()}. */
     Config withUnquotedCasing(Casing casing);
+    
+    @Value.Default default String charset() {
+    	return CalciteSystemProperty.DEFAULT_CHARSET.value();
+    }
+    
+    /** Sets {@link #charset()}. */
+    Config withCharset(String charset);
 
     @Value.Default default Quoting quoting() {
       return Quoting.DOUBLE_QUOTE;
@@ -378,7 +387,11 @@ public class SqlParser {
     public ConfigBuilder setUnquotedCasing(Casing unquotedCasing) {
       return setConfig(config.withUnquotedCasing(unquotedCasing));
     }
-
+    
+    public ConfigBuilder setCharset(String charset) {
+			return setConfig(config.withCharset(charset));
+    }
+    
     public ConfigBuilder setQuoting(Quoting quoting) {
       return setConfig(config.withQuoting(quoting));
     }
