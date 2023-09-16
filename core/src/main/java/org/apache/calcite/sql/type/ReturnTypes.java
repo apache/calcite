@@ -646,6 +646,13 @@ public abstract class ReturnTypes {
       ARG0.andThen(SqlTypeTransforms.TO_ARRAY);
 
   /**
+   * Same as {@link #TO_ARRAY} but returns with nullability if any of the
+   * operands is nullable.
+   */
+  public static final SqlReturnTypeInference ARRAY_NULLABLE =
+      TO_ARRAY.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
    * Returns a MAP type.
    *
    * <p>For example, given {@code Record(f0: INTEGER, f1: DATE)}, returns
