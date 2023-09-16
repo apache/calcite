@@ -451,6 +451,24 @@ public interface SqlOperatorFixture extends AutoCloseable {
       ResultChecker checker);
 
   /**
+   * Checks that an aggregate expression returns the expected result.
+   *
+   * <p>For example, <code>checkAgg("AVG(DISTINCT x)", new String[] {"2", "3",
+   * null, "3" }, "INTEGER", isSingle([2, 3]));</code>
+   *
+   * @param expr        Aggregate expression, e.g. <code>SUM(DISTINCT x)</code>
+   * @param inputValues Array of input values, e.g. <code>["1", null,
+   *                    "2"]</code>.
+   * @param type        Expected result type
+   * @param checker     Result checker
+   */
+  void checkAgg(
+      String expr,
+      String[] inputValues,
+      String type,
+      ResultChecker checker);
+
+  /**
    * Checks that an aggregate expression with multiple args returns the expected
    * result.
    *
