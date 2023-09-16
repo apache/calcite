@@ -671,6 +671,13 @@ public abstract class ReturnTypes {
       ARG0.andThen(SqlTypeTransforms.TO_ARRAY);
 
   /**
+   * Type-inference strategy whereby the result type of a call is nullable
+   * <code>ARRAY</code>.
+   */
+  public static final SqlReturnTypeInference TO_ARRAY_NULLABLE =
+      TO_ARRAY.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
    * Returns a MAP type.
    *
    * <p>For example, given {@code Record(f0: INTEGER, f1: DATE)}, returns

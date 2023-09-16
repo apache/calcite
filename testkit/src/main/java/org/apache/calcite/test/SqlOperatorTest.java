@@ -11089,11 +11089,12 @@ public class SqlOperatorTest {
   }
 
   private static void checkArrayAggFunc(SqlOperatorFixture f) {
-    f.setFor(SqlLibraryOperators.ARRAY_CONCAT_AGG, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlLibraryOperators.ARRAY_AGG, VM_FENNEL, VM_JAVA);
     final String[] values = {"'x'", "null", "'yz'"};
-    f.checkAgg("array_agg(x)", values, isSingle("[x, yz]"));
-    f.checkAgg("array_agg(x ignore nulls)", values, isSingle("[x, yz]"));
-    f.checkAgg("array_agg(x respect nulls)", values, isSingle("[x, yz]"));
+    f.checkAggType("array_agg(x)", "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkAgg("array_agg(x)", values, "CHAR(2) ARRAY", isSingle("[x, yz]"));
+    f.checkAgg("array_agg(x ignore nulls)", values, "CHAR(2) ARRAY", isSingle("[x, yz]"));
+    f.checkAgg("array_agg(x respect nulls)", values, "CHAR(2) ARRAY", isSingle("[x, yz]"));
     final String expectedError = "Invalid number of arguments "
         + "to function 'ARRAY_AGG'. Was expecting 1 arguments";
     f.checkAggFails("^array_agg(x,':')^", values, expectedError, false);
@@ -11104,7 +11105,7 @@ public class SqlOperatorTest {
   }
 
   private static void checkArrayAggFuncFails(SqlOperatorFixture t) {
-    t.setFor(SqlLibraryOperators.ARRAY_CONCAT_AGG, VM_FENNEL, VM_JAVA);
+    t.setFor(SqlLibraryOperators.ARRAY_AGG, VM_FENNEL, VM_JAVA);
     final String[] values = {"'x'", "'y'"};
     final String expectedError = "No match found for function signature "
         + "ARRAY_AGG\\(<CHARACTER>\\)";

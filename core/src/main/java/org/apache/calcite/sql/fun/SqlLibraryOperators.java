@@ -677,7 +677,7 @@ public abstract class SqlLibraryOperators {
       SqlBasicAggFunction
           .create(SqlKind.ARRAY_AGG,
               ReturnTypes.andThen(ReturnTypes::stripOrderBy,
-                  ReturnTypes.TO_ARRAY), OperandTypes.ANY)
+                  ReturnTypes.TO_ARRAY_NULLABLE), OperandTypes.ANY)
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withSyntax(SqlSyntax.ORDERED_FUNCTION)
           .withAllowsNullTreatment(true);
