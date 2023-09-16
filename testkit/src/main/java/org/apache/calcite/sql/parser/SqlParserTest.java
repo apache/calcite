@@ -937,6 +937,10 @@ public class SqlParserTest {
         .ok("SELECT 211");
     sql("select DECIMAL '.11E-2'")
         .ok("SELECT 0.0011");
+    // Test case for [CALCITE-5999] DECIMAL literals as sometimes unparsed
+    // looking as DOUBLE literals.
+    sql("select DECIMAL '0.00000000000000001'")
+        .ok("SELECT 0.00000000000000001");
     sql("select DECIMAL ^''^")
         .fails("(?s)Literal '' can not be parsed to type 'DECIMAL'.*");
     sql("select DECIMAL ^'-'^")

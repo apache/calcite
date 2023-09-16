@@ -88,9 +88,9 @@ public class SqlNumericLiteral extends SqlLiteral {
   }
 
   @Override public String toValue() {
-    BigDecimal bd = getValueNonNull();
+    final BigDecimal bd = getValueNonNull();
     if (isExact) {
-      return getValueNonNull().toString();
+      return bd.toPlainString();
     }
     return Util.toScientificNotation(bd);
   }
