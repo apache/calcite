@@ -3395,9 +3395,6 @@ public class SqlToRelConverter {
     for (SqlNode e : r.groupExprList) {
       aggConverter.addGroupExpr(e);
     }
-    for (SqlNode e : r.measureExprList) {
-      aggConverter.addMeasureExpr(e);
-    }
 
     final RexNode havingExpr;
     final PairList<RexNode, String> projects = PairList.of();
