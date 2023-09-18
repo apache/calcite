@@ -12215,6 +12215,28 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testSnowflakeLastDay() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexNode lastDayNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
+        relBuilder.literal("13-JAN-1999"));
+    RexNode lastDayWithDatePartNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
+        relBuilder.literal("13-JAN-1999"),
+        relBuilder.literal("YEAR"));
+
+    RelNode root = relBuilder
+        .project(lastDayWithDatePartNode, lastDayNode)
+        .build();
+    final String expectedSnowflakeSql = "SELECT LAST_DAY('13-JAN-1999', 'YEAR') AS \"$f0\", "
+        + "LAST_DAY('13-JAN-1999') AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBQSql = "SELECT LAST_DAY('13-JAN-1999', YEAR) AS `$f0`, "
+        + "LAST_DAY('13-JAN-1999') AS `$f1`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
   @Test public void testOracleRoundFunction() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
