@@ -132,6 +132,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         SqlStdOperatorTable.IS_NOT_DISTINCT_FROM);
     addAlias(SqlStdOperatorTable.PERCENT_REMAINDER, SqlStdOperatorTable.MOD);
     addAlias(SqlLibraryOperators.IFNULL, SqlLibraryOperators.NVL);
+    addAlias(SqlLibraryOperators.REGEXP_SUBSTR, SqlLibraryOperators.REGEXP_EXTRACT);
 
     // Register convertlets for specific objects.
     registerOp(SqlStdOperatorTable.CAST, this::convertCast);

@@ -196,14 +196,14 @@ public class AggregateCaseToFilterRule
 
     // Four styles supported:
     //
-    // A1: AGG(CASE WHEN x = 'foo' THEN cnt END)
-    //   => operands (x = 'foo', cnt, null)
-    // A2: SUM(CASE WHEN x = 'foo' THEN cnt ELSE 0 END)
-    //   => operands (x = 'foo', cnt, 0); must be SUM
-    // B: SUM(CASE WHEN x = 'foo' THEN 1 ELSE 0 END)
-    //   => operands (x = 'foo', 1, 0); must be SUM
+    // A1: AGG(CASE WHEN x = 'foo' THEN expr END)
+    //   => AGG(expr) FILTER (x = 'foo')
+    // A2: SUM0(CASE WHEN x = 'foo' THEN cnt ELSE 0 END)
+    //   => SUM0(cnt) FILTER (x = 'foo')
+    // B: SUM0(CASE WHEN x = 'foo' THEN 1 ELSE 0 END)
+    //   => COUNT() FILTER (x = 'foo')
     // C: COUNT(CASE WHEN x = 'foo' THEN 'dummy' END)
-    //   => operands (x = 'foo', 'dummy', null)
+    //   => COUNT() FILTER (x = 'foo')
 
     if (kind == SqlKind.COUNT // Case C
         && arg1.isA(SqlKind.LITERAL)
@@ -214,7 +214,7 @@ public class AggregateCaseToFilterRule
           false, call.rexList, ImmutableList.of(), newProjects.size() - 1, null,
           RelCollations.EMPTY, call.getType(),
           call.getName());
-    } else if (kind == SqlKind.SUM // Case B
+    } else if (kind == SqlKind.SUM0 // Case B
         && isIntLiteral(arg1, BigDecimal.ONE)
         && isIntLiteral(arg2, BigDecimal.ZERO)) {
 
@@ -228,7 +228,7 @@ public class AggregateCaseToFilterRule
           RelCollations.EMPTY, dataType, call.getName());
     } else if ((RexLiteral.isNullLiteral(arg2) // Case A1
             && call.getAggregation().allowsFilter())
-        || (kind == SqlKind.SUM // Case A2
+        || (kind == SqlKind.SUM0 // Case A2
             && isIntLiteral(arg2, BigDecimal.ZERO))) {
       newProjects.add(arg1);
       newProjects.add(filter);

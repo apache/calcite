@@ -1804,6 +1804,37 @@ public class SqlOperatorTest {
         consumer);
   }
 
+  @Test void testCodePointsToBytes() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.CODE_POINTS_TO_BYTES, VM_FENNEL, VM_JAVA)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkFails("^code_points_to_bytes('abc')^",
+        "Cannot apply 'CODE_POINTS_TO_BYTES' to arguments of type "
+            + "'CODE_POINTS_TO_BYTES\\(<CHAR\\(3\\)>\\)'\\. "
+            + "Supported form\\(s\\): CODE_POINTS_TO_BYTES\\(<INTEGER ARRAY>\\)",
+        false);
+    f.checkFails("^code_points_to_bytes(array['abc'])^",
+        "Cannot apply 'CODE_POINTS_TO_BYTES' to arguments of type "
+            + "'CODE_POINTS_TO_BYTES\\(<CHAR\\(3\\) ARRAY>\\)'\\. "
+            + "Supported form\\(s\\): CODE_POINTS_TO_BYTES\\(<INTEGER ARRAY>\\)",
+        false);
+
+    f.checkFails("code_points_to_bytes(array[-1])",
+        "Input arguments of CODE_POINTS_TO_BYTES out of range: -1", true);
+    f.checkFails("code_points_to_bytes(array[2147483648, 1])",
+        "Input arguments of CODE_POINTS_TO_BYTES out of range: 2147483648", true);
+
+    f.checkString("code_points_to_bytes(array[65, 66, 67, 68])", "41424344", "VARBINARY NOT NULL");
+    f.checkString("code_points_to_bytes(array[255, 254, 65, 64])", "fffe4140",
+        "VARBINARY NOT NULL");
+    f.checkString("code_points_to_bytes(array[1+2, 3, 4])", "030304",
+        "VARBINARY NOT NULL");
+
+    f.checkNull("code_points_to_bytes(null)");
+    f.checkNull("code_points_to_bytes(array[null])");
+    f.checkNull("code_points_to_bytes(array[65, null])");
+  }
+
   @Test void testSelect() {
     final SqlOperatorFixture f = fixture();
     f.check("select * from (values(1))", SqlTests.INTEGER_TYPE_CHECKER, 1);
@@ -4635,6 +4666,7 @@ public class SqlOperatorTest {
     f.checkBoolean("regexp_contains('11555666442233', '^\\d{10}$')", false);
     f.checkBoolean("regexp_contains('55566644221133', '\\d{10}')", true);
     f.checkBoolean("regexp_contains('55as56664as422', '\\d{10}')", false);
+    f.checkBoolean("regexp_contains('55as56664as422', '')", true);
 
     f.checkQuery("select regexp_contains('abc def ghi', 'abc')");
     f.checkQuery("select regexp_contains('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
@@ -4643,6 +4675,89 @@ public class SqlOperatorTest {
     f.checkNull("regexp_contains('abc def ghi', cast(null as varchar))");
     f.checkNull("regexp_contains(cast(null as varchar), 'abc')");
     f.checkNull("regexp_contains(cast(null as varchar), cast(null as varchar))");
+  }
+
+  @Test void testRegexpExtractFunc() {
+    final SqlOperatorFixture f =
+        fixture().setFor(SqlLibraryOperators.REGEXP_EXTRACT).withLibrary(SqlLibrary.BIG_QUERY);
+
+    f.checkString("regexp_extract('abc def ghi', 'def')", "def", "VARCHAR NOT NULL");
+    f.checkString("regexp_extract('abcadcaecghi', 'a.c', 1, 3)", "aec", "VARCHAR NOT NULL");
+    f.checkString("regexp_extract('abcadcaecghi', 'abc(a.c)')", "adc", "VARCHAR NOT NULL");
+    f.checkString("regexp_extract('55as56664as422', '\\d{3}')", "566", "VARCHAR NOT NULL");
+    f.checkString("regexp_extract('abcadcabcaecghi', 'c(a.c)', 4)", "abc", "VARCHAR NOT NULL");
+    f.checkString("regexp_extract('abcadcabcaecghi', 'a.c(a.c)', 1, 2)", "aec", "VARCHAR NOT NULL");
+    f.checkString("regexp_extract('a9cadca5c4aecghi', 'a[0-9]c', 6)", "a5c", "VARCHAR NOT NULL");
+    f.checkString("regexp_extract('a9cadca5ca4cecghi', 'a[0-9]c', 1, 3)", "a4c", "VARCHAR NOT "
+        + "NULL");
+
+    f.checkNull("regexp_extract('abc def ghi', 'asd')");
+    f.checkNull("regexp_extract('abc def ghi', 'abc', 25)");
+    f.checkNull("regexp_extract('abc def ghi', 'abc', 1, 4)");
+    f.checkNull("regexp_extract('abc def ghi', cast(null as varchar))");
+    f.checkNull("regexp_extract(cast(null as varchar), 'abc')");
+    f.checkNull("regexp_extract(cast(null as varchar), cast(null as varchar))");
+    f.checkNull("regexp_extract('abc def ghi', 'abc', cast(null as integer))");
+    f.checkNull("regexp_extract('abc def ghi', 'abc', 1, cast(null as integer))");
+
+    f.checkQuery("select regexp_extract('abc def ghi', 'abc')");
+    f.checkQuery("select regexp_extract('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
+    f.checkQuery("select regexp_extract('55as56664as422', '\\d{10}')");
+    f.checkQuery("select regexp_extract('abcadcabcaecghi', 'c(a.c)', 4)");
+    f.checkQuery("select regexp_extract('a9cadca5c4aecghi', 'a[0-9]c', 1, 3)");
+  }
+
+  @Test void testRegexpExtractAllFunc() {
+    final SqlOperatorFixture f =
+        fixture().setFor(SqlLibraryOperators.REGEXP_EXTRACT_ALL).withLibrary(SqlLibrary.BIG_QUERY);
+
+    f.checkScalar("regexp_extract_all('a9cadca5c4aecghi', 'a[0-9]c')", "[a9c, a5c]", "CHAR(16) "
+        + "NOT NULL ARRAY NOT NULL");
+    f.checkScalar("regexp_extract_all('abcde', '.')", "[a, b, c, d, e]", "CHAR(5) NOT NULL ARRAY "
+        + "NOT NULL");
+    f.checkScalar("regexp_extract_all('abcadcabcaecghi', 'ac')", "[]", "CHAR(15) NOT NULL ARRAY "
+        + "NOT NULL");
+    f.checkScalar("regexp_extract_all('foo@bar.com, foo@gmail.com, foo@outlook.com', "
+        + "'@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+')", "[@bar.com, @gmail.com, @outlook.com]", "CHAR(43) "
+        + "NOT NULL ARRAY NOT NULL");
+
+    f.checkNull("regexp_extract_all('abc def ghi', cast(null as varchar))");
+    f.checkNull("regexp_extract_all(cast(null as varchar), 'abc')");
+    f.checkNull("regexp_extract_all(cast(null as varchar), cast(null as varchar))");
+
+    f.checkQuery("select regexp_extract_all('abc def ghi', 'abc')");
+    f.checkQuery("select regexp_extract_all('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
+    f.checkQuery("select regexp_extract_all('55as56664as422', '\\d{10}')");
+  }
+
+  @Test void testRegexpInstrFunc() {
+    final SqlOperatorFixture f =
+        fixture().setFor(SqlLibraryOperators.REGEXP_INSTR).withLibrary(SqlLibrary.BIG_QUERY);
+
+    f.checkScalar("regexp_instr('abc def ghi', 'def')", 5, "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('abcadcaecghi', 'a.c', 2)", 4, "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('abcadcaecghi', 'a.c', 1, 3)", 7, "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('abcadcaecghi', 'a.c', 1, 3, 1)", 10, "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('a9cadca513ca4cecghi', 'a([0-9]+)', 1, 2, 1)", 11,
+        "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('a9cadca513ca4cecghi', 'a([0-9]*)', 8, 1, 0)", 13,
+        "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('55as56664as422', '\\d{3}', 3, 2, 0)", 12, "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('55as56664as422', '\\d{2}', 2, 2, 1)", 9, "INTEGER NOT NULL");
+    f.checkScalar("regexp_instr('55as56664as422', '', 2, 2, 1)", 0, "INTEGER NOT NULL");
+
+    f.checkNull("regexp_instr('abc def ghi', cast(null as varchar))");
+    f.checkNull("regexp_instr(cast(null as varchar), 'abc')");
+    f.checkNull("regexp_instr(cast(null as varchar), cast(null as varchar))");
+    f.checkNull("regexp_instr('abc def ghi', 'abc', cast(null as integer))");
+    f.checkNull("regexp_instr('abc def ghi', 'abc', 1, cast(null as integer))");
+    f.checkNull("regexp_instr('abc def ghi', 'abc', 1, 3, cast(null as integer))");
+
+    f.checkQuery("select regexp_instr('abc def ghi', 'abc')");
+    f.checkQuery("select regexp_instr('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
+    f.checkQuery("select regexp_instr('55as56664as422', '\\d{10}')");
+    f.checkQuery("select regexp_instr('abcadcabcaecghi', 'c(a.c)', 4)");
+    f.checkQuery("select regexp_instr('a9cadca5c4aecghi', 'a[0-9]c', 1, 3)");
   }
 
   @Test void testRegexpReplaceFunc() {
@@ -4682,6 +4797,29 @@ public class SqlOperatorTest {
       f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3, 'i')");
     };
     f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.ORACLE), consumer);
+  }
+
+  @Test void testRegexpSubstrFunc() {
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.REGEXP_SUBSTR)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+
+    f.checkString("regexp_substr('abc def ghi', 'ghi')", "ghi",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_substr('abcadcaecghi', 'a.c', 1, 2)", "adc",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_substr('abcadcabcaecghi', 'abc(a.c)', 1, 2)", "aec",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_substr('55as56664as422', '\\d{3}')", "566",
+        "VARCHAR NOT NULL");
+
+    f.checkNull("regexp_substr('abc def ghi', 'bqi')");
+    f.checkNull("regexp_substr('abc def ghi', cast(null as varchar))");
+    f.checkNull("regexp_substr(cast(null as varchar), 'bqi')");
+    f.checkNull("regexp_substr(cast(null as varchar), cast(null as varchar))");
+
+    f.checkQuery("select regexp_substr('abcdefghi', 'abc')");
+    f.checkQuery("select regexp_substr('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
+    f.checkQuery("select regexp_substr('55as56664as422', '\\d{10}')");
   }
 
   @Test void testJsonExists() {
@@ -7342,8 +7480,8 @@ public class SqlOperatorTest {
         "21.2345", "DECIMAL(19, 4)");
     f.checkScalar("safe_add(cast(1.2345 as decimal(5,4)), cast(20 as bigint))",
         "21.2345", "DECIMAL(19, 4)");
-    f.checkScalar("safe_add(cast(1.2345 as decimal(5,4)), "
-        + "cast(2.0 as decimal(2, 1)))", "3.2345", "DECIMAL(6, 4)");
+    f.checkScalar("safe_add(cast(1.2345 as decimal(5,4)), cast(2.0 as decimal(2, 1)))",
+        "3.2345", "DECIMAL(6, 4)");
     f.checkScalar("safe_add(cast(3 as double), cast(3 as bigint))",
         "6.0", "DOUBLE");
     f.checkScalar("safe_add(cast(3 as bigint), cast(3 as double))",
@@ -7405,6 +7543,78 @@ public class SqlOperatorTest {
     // Check that null argument retuns null
     f.checkNull("safe_add(cast(null as double), cast(3 as bigint))");
     f.checkNull("safe_add(cast(3 as double), cast(null as bigint))");
+  }
+
+  @Test void testSafeDivideFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SAFE_DIVIDE);
+    f0.checkFails("^safe_divide(2, 3)^",
+        "No match found for function signature "
+        + "SAFE_DIVIDE\\(<NUMERIC>, <NUMERIC>\\)", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    // Basic test for each of the 9 2-permutations of BIGINT, DECIMAL, and FLOAT
+    f.checkScalar("safe_divide(cast(2 as bigint), cast(4 as bigint))",
+        "0.5", "DOUBLE");
+    f.checkScalar("safe_divide(cast(15 as bigint), cast(1.2 as decimal(2,1)))",
+        "12.5", "DECIMAL(19, 0)");
+    f.checkScalar("safe_divide(cast(4.5 as decimal(2,1)), cast(3 as bigint))",
+        "1.5", "DECIMAL(19, 18)");
+    f.checkScalar("safe_divide(cast(4.5 as decimal(2,1)), "
+        + "cast(1.5 as decimal(2, 1)))", "3", "DECIMAL(8, 6)");
+    f.checkScalar("safe_divide(cast(3 as double), cast(3 as bigint))",
+        "1.0", "DOUBLE");
+    f.checkScalar("safe_divide(cast(3 as bigint), cast(3 as double))",
+        "1.0", "DOUBLE");
+    f.checkScalar("safe_divide(cast(3 as double), cast(1.5 as decimal(5, 4)))",
+        "2.0", "DOUBLE");
+    f.checkScalar("safe_divide(cast(1.5 as decimal(5, 4)), cast(3 as double))",
+        "0.5", "DOUBLE");
+    f.checkScalar("safe_divide(cast(3 as double), cast(3 as double))",
+        "1.0", "DOUBLE");
+    // Tests for + and - Infinity
+    f.checkScalar("safe_divide(cast('Infinity' as double), cast(3 as double))",
+        "Infinity", "DOUBLE");
+    f.checkScalar("safe_divide(cast('-Infinity' as double), cast(3 as double))",
+        "-Infinity", "DOUBLE");
+    f.checkScalar("safe_divide(cast('-Infinity' as double), "
+        + "cast('Infinity' as double))", "NaN", "DOUBLE");
+    // Tests for NaN
+    f.checkScalar("safe_divide(cast('NaN' as double), cast(3 as bigint))",
+        "NaN", "DOUBLE");
+    f.checkScalar("safe_divide(cast('NaN' as double), cast(1.23 as decimal(3, 2)))",
+        "NaN", "DOUBLE");
+    f.checkScalar("safe_divide(cast('NaN' as double), cast('Infinity' as double))",
+        "NaN", "DOUBLE");
+    f.checkScalar("safe_divide(cast(3 as bigint), cast('NaN' as double))",
+        "NaN", "DOUBLE");
+    f.checkScalar("safe_divide(cast(1.23 as decimal(3, 2)), cast('NaN' as double))",
+        "NaN", "DOUBLE");
+    f.checkNull("safe_divide(cast(0 as bigint), cast(0 as bigint))");
+    f.checkNull("safe_divide(cast(0 as bigint), cast(0 as double))");
+    f.checkNull("safe_divide(cast(0 as bigint), cast(0 as decimal(1, 0)))");
+    f.checkNull("safe_divide(cast(0 as double), cast(0 as bigint))");
+    f.checkNull("safe_divide(cast(0 as double), cast(0 as double))");
+    f.checkNull("safe_divide(cast(0 as double), cast(0 as decimal(1, 0)))");
+    f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as bigint))");
+    f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as double))");
+    f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as decimal(1, 0)))");
+    // Overflow test for each pairing
+    f.checkNull("safe_divide(cast(10 as bigint), cast(3.5e-75 as DECIMAL(76, 0)))");
+    f.checkNull("safe_divide(cast(10 as bigint), cast(-3.5e75 as DECIMAL(76, 0)))");
+    f.checkNull("safe_divide(cast(3.5e75 as DECIMAL(76, 0)), "
+        + "cast(1.5 as DECIMAL(2, 1)))");
+    f.checkNull("safe_divide(cast(-3.5e75 as DECIMAL(76, 0)), "
+        + "cast(1.5 as DECIMAL(2, 1)))");
+    f.checkNull("safe_divide(cast(1.7e308 as double), cast(0.5 as decimal(3, 2)))");
+    f.checkNull("safe_divide(cast(-1.7e308 as double), cast(0.5 as decimal(2, 1)))");
+    f.checkNull("safe_divide(cast(5e20 as decimal(1, 0)), cast(1.7e-309 as double))");
+    f.checkNull("safe_divide(cast(5e20 as decimal(1, 0)), cast(-1.7e-309 as double))");
+    f.checkNull("safe_divide(cast(3 as bigint), cast(1.7e-309 as double))");
+    f.checkNull("safe_divide(cast(3 as bigint), cast(-1.7e-309 as double))");
+    f.checkNull("safe_divide(cast(3 as double), cast(1.7e-309 as double))");
+    f.checkNull("safe_divide(cast(3 as double), cast(-1.7e-309 as double))");
+    // Check that null argument retuns null
+    f.checkNull("safe_divide(cast(null as double), cast(3 as bigint))");
+    f.checkNull("safe_divide(cast(3 as double), cast(null as bigint))");
   }
 
   @Test void testSafeMultiplyFunc() {
@@ -7480,84 +7690,119 @@ public class SqlOperatorTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5770">[CALCITE-5770]
-   * Add SAFE_SUBTRACT function (enabled in BigQuery library).</a>.
+   * Add SAFE_NEGATE function (enabled in BigQuery library)</a>.
+   */
+  @Test void testSafeNegateFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SAFE_NEGATE);
+    f0.checkFails("^safe_negate(2)^",
+        "No match found for function signature "
+        + "SAFE_NEGATE\\(<NUMERIC>\\)", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("safe_negate(cast(20 as bigint))", "-20",
+        "BIGINT");
+    f.checkScalar("safe_negate(cast(-20 as bigint))", "20",
+        "BIGINT");
+    f.checkScalar("safe_negate(cast(1.5 as decimal(2, 1)))", "-1.5",
+        "DECIMAL(2, 1)");
+    f.checkScalar("safe_negate(cast(-1.5 as decimal(2, 1)))", "1.5",
+        "DECIMAL(2, 1)");
+    f.checkScalar("safe_negate(cast(12.3456 as double))", "-12.3456",
+        "DOUBLE");
+    f.checkScalar("safe_negate(cast(-12.3456 as double))", "12.3456",
+        "DOUBLE");
+    // Infinity and NaN tests
+    f.checkScalar("safe_negate(cast('Infinity' as double))",
+        "-Infinity", "DOUBLE");
+    f.checkScalar("safe_negate(cast('-Infinity' as double))",
+        "Infinity", "DOUBLE");
+    f.checkScalar("safe_negate(cast('NaN' as double))",
+        "NaN", "DOUBLE");
+    // Null cases are rarer for SAFE_NEGATE
+    f.checkNull("safe_negate(-9223372036854775808)");
+    f.checkNull("safe_negate(-1 + -9223372036854775807)");
+    f.checkNull("safe_negate(cast(null as bigint))");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5770">[CALCITE-5770]
+   * Add SAFE_SUBTRACT function (enabled in BigQuery library)</a>.
    */
   @Test void testSafeSubtractFunc() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SAFE_SUBTRACT);
     f0.checkFails("^safe_subtract(2, 3)^",
-                  "No match found for function signature "
-                    + "SAFE_SUBTRACT\\(<NUMERIC>, <NUMERIC>\\)", false);
+        "No match found for function signature "
+        + "SAFE_SUBTRACT\\(<NUMERIC>, <NUMERIC>\\)", false);
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
     // Basic test for each of the 9 2-permutations of BIGINT, DECIMAL, and FLOAT
     f.checkScalar("safe_subtract(cast(20 as bigint), cast(20 as bigint))",
-                  "0", "BIGINT");
+        "0", "BIGINT");
     f.checkScalar("safe_subtract(cast(20 as bigint), cast(-1.2345 as decimal(5,4)))",
-                  "21.2345", "DECIMAL(19, 4)");
+        "21.2345", "DECIMAL(19, 4)");
     f.checkScalar("safe_subtract(cast(1.2345 as decimal(5,4)), cast(-20 as bigint))",
-                  "21.2345", "DECIMAL(19, 4)");
+        "21.2345", "DECIMAL(19, 4)");
     f.checkScalar("safe_subtract(cast(1.23 as decimal(3,2)), "
-                    + "cast(-2.0 as decimal(2, 1)))", "3.23", "DECIMAL(4, 2)");
+        + "cast(-2.0 as decimal(2, 1)))", "3.23", "DECIMAL(4, 2)");
     f.checkScalar("safe_subtract(cast(3 as double), cast(-3 as bigint))",
-                  "6.0", "DOUBLE");
+        "6.0", "DOUBLE");
     f.checkScalar("safe_subtract(cast(3 as bigint), cast(-3 as double))",
-                  "6.0", "DOUBLE");
+        "6.0", "DOUBLE");
     f.checkScalar("safe_subtract(cast(3 as double), cast(-1.2345 as decimal(5, 4)))",
-                  "4.2345", "DOUBLE");
+        "4.2345", "DOUBLE");
     f.checkScalar("safe_subtract(cast(1.2345 as decimal(5, 4)), cast(-3 as double))",
-                  "4.2345", "DOUBLE");
+        "4.2345", "DOUBLE");
     f.checkScalar("safe_subtract(cast(3 as double), cast(3 as double))",
-                  "0.0", "DOUBLE");
+        "0.0", "DOUBLE");
     // Tests for + and - Infinity
     f.checkScalar("safe_subtract(cast('Infinity' as double), cast(3 as double))",
-                  "Infinity", "DOUBLE");
+        "Infinity", "DOUBLE");
     f.checkScalar("safe_subtract(cast('-Infinity' as double), cast(3 as double))",
-                  "-Infinity", "DOUBLE");
+        "-Infinity", "DOUBLE");
     f.checkScalar("safe_subtract(cast('Infinity' as double), "
-                    + "cast('Infinity' as double))", "NaN", "DOUBLE");
+        + "cast('Infinity' as double))", "NaN", "DOUBLE");
     // Tests for NaN
     f.checkScalar("safe_subtract(cast('NaN' as double), cast(3 as bigint))",
-                  "NaN", "DOUBLE");
+        "NaN", "DOUBLE");
     f.checkScalar("safe_subtract(cast('NaN' as double), cast(1.23 as decimal(3, 2)))",
-                  "NaN", "DOUBLE");
+        "NaN", "DOUBLE");
     f.checkScalar("safe_subtract(cast('NaN' as double), cast('Infinity' as double))",
-                  "NaN", "DOUBLE");
+        "NaN", "DOUBLE");
     f.checkScalar("safe_subtract(cast(3 as bigint), cast('NaN' as double))",
-                  "NaN", "DOUBLE");
+        "NaN", "DOUBLE");
     f.checkScalar("safe_subtract(cast(1.23 as decimal(3, 2)), cast('NaN' as double))",
-                  "NaN", "DOUBLE");
+        "NaN", "DOUBLE");
     // Overflow test for each pairing
     f.checkNull("safe_subtract(cast(20 as bigint), "
-                  + "cast(-9223372036854775807 as bigint))");
+        + "cast(-9223372036854775807 as bigint))");
     f.checkNull("safe_subtract(cast(-20 as bigint), "
-                  + "cast(9223372036854775807 as bigint))");
+        + "cast(9223372036854775807 as bigint))");
     f.checkNull("safe_subtract(9, cast(-9.999999999999999999e75 as DECIMAL(38, 19)))");
     f.checkNull("safe_subtract(-9, cast(9.999999999999999999e75 as DECIMAL(38, 19)))");
     f.checkNull("safe_subtract(cast(-9.999999999999999999e75 as DECIMAL(38, 19)), 9)");
     f.checkNull("safe_subtract(cast(9.999999999999999999e75 as DECIMAL(38, 19)), -9)");
     f.checkNull("safe_subtract(cast(-9.9e75 as DECIMAL(76, 0)), "
-                  + "cast(9.9e75 as DECIMAL(76, 0)))");
+        + "cast(9.9e75 as DECIMAL(76, 0)))");
     f.checkNull("safe_subtract(cast(9.9e75 as DECIMAL(76, 0)), "
-                  + "cast(-9.9e75 as DECIMAL(76, 0)))");
+        + "cast(-9.9e75 as DECIMAL(76, 0)))");
     f.checkNull("safe_subtract(cast(1.7976931348623157e308 as double), "
-                  + "cast(-9.9e7 as decimal(76, 0)))");
+        + "cast(-9.9e7 as decimal(76, 0)))");
     f.checkNull("safe_subtract(cast(-1.7976931348623157e308 as double), "
-                  + "cast(9.9e7 as decimal(76, 0)))");
+        + "cast(9.9e7 as decimal(76, 0)))");
     f.checkNull("safe_subtract(cast(9.9e7 as decimal(76, 0)), "
-                  + "cast(-1.7976931348623157e308 as double))");
+        + "cast(-1.7976931348623157e308 as double))");
     f.checkNull("safe_subtract(cast(-9.9e7 as decimal(76, 0)), "
-                  + "cast(1.7976931348623157e308 as double))");
+        + "cast(1.7976931348623157e308 as double))");
     f.checkNull("safe_subtract(cast(1.7976931348623157e308 as double), "
-                  + "cast(-3 as bigint))");
+        + "cast(-3 as bigint))");
     f.checkNull("safe_subtract(cast(-1.7976931348623157e308 as double), "
-                  + "cast(3 as bigint))");
+        + "cast(3 as bigint))");
     f.checkNull("safe_subtract(cast(3 as bigint), "
-                  + "cast(-1.7976931348623157e308 as double))");
+        + "cast(-1.7976931348623157e308 as double))");
     f.checkNull("safe_subtract(cast(-3 as bigint), "
-                  + "cast(1.7976931348623157e308 as double))");
+        + "cast(1.7976931348623157e308 as double))");
     f.checkNull("safe_subtract(cast(3 as double), "
-                  + "cast(-1.7976931348623157e308 as double))");
+        + "cast(-1.7976931348623157e308 as double))");
     f.checkNull("safe_subtract(cast(-3 as double), "
-                  + "cast(1.7976931348623157e308 as double))");
+        + "cast(1.7976931348623157e308 as double))");
     // Check that null argument retuns null
     f.checkNull("safe_subtract(cast(null as double), cast(3 as bigint))");
     f.checkNull("safe_subtract(cast(3 as double), cast(null as bigint))");
@@ -8494,6 +8739,105 @@ public class SqlOperatorTest {
     }
   }
 
+  @Test void testFormatNumber() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.FORMAT_NUMBER);
+    f0.checkFails("^format_number(123, 2)^",
+        "No match found for function signature FORMAT_NUMBER\\(<NUMERIC>, <NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      // test with tinyint type
+      f.checkString("format_number(cast(1 as tinyint), 4)", "1.0000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(1 as tinyint), '#,###,###,###,###,###,##0.0000')",
+          "1.0000",
+          "VARCHAR NOT NULL");
+
+      // test with smallint type
+      f.checkString("format_number(cast(1 as smallint), 4)", "1.0000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(1234 as smallint), '#,###,###,###,###,###,##0.0000000')",
+          "1,234.0000000",
+          "VARCHAR NOT NULL");
+
+      // test with integer type
+      f.checkString("format_number(cast(1 as integer), 4)", "1.0000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(1234 as integer), '#,###,###,###,###,###,##0.0000000')",
+          "1,234.0000000",
+          "VARCHAR NOT NULL");
+
+      // test with bigint type
+      f.checkString("format_number(cast(0 as bigint), 0)", "0",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(1 as bigint), 4)", "1.0000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(1234 as bigint), 7)", "1,234.0000000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(1234 as bigint), '#,###,###,###,###,###,##0.0000000')",
+          "1,234.0000000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(-1 as bigint), 4)", "-1.0000",
+          "VARCHAR NOT NULL");
+
+      // test with float type
+      f.checkString("format_number(cast(12332.123456 as float), 4)", "12,332.1235",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(123456.123456789 as float), '########.###')",
+          "123456.123",
+          "VARCHAR NOT NULL");
+
+      // test with double type
+      f.checkString("format_number(cast(1234567.123456789 as double), 7)", "1,234,567.1234568",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(1234567.123456789 as double), '##,###,###.##')",
+          "1,234,567.12",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(-0.123456789 as double), 15)", "-0.123456789000000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(-0.123456789 as double),"
+              + " '#,###,###,###,###,###,##0.000000000000000')",
+          "-0.123456789000000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(0.000000 as double), 1)", "0.0",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(cast(0.000000 as double), '#,###,###,###,###,###,##0.0')",
+          "0.0",
+          "VARCHAR NOT NULL");
+
+      // test with decimal type
+      f.checkString("format_number(1234567.123456789, 7)", "1,234,567.1234568",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(1234567.123456789, '##,###,###.##')",
+          "1,234,567.12",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(-0.123456789, 15)", "-0.123456789000000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(-0.123456789,"
+              + " '#,###,###,###,###,###,##0.000000000000000')",
+          "-0.123456789000000",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(0.000000, 1)", "0.0",
+          "VARCHAR NOT NULL");
+      f.checkString("format_number(0.0, '#,###,###,###,###,###,##0.0000')",
+          "0.0000",
+          "VARCHAR NOT NULL");
+
+      // test with illegal argument
+      f.checkFails("format_number(12332.123456, -1)",
+          "Illegal arguments for 'FORMAT_NUMBER' function:"
+              + " negative decimal value not allowed",
+          true);
+
+      // test with null values
+      f.checkNull("format_number(cast(null as integer), 1)");
+      f.checkNull("format_number(0, cast(null as integer))");
+      f.checkNull("format_number(0, cast(null as varchar))");
+      f.checkNull("format_number(cast(null as integer), cast(null as integer))");
+      f.checkNull("format_number(cast(null as integer), cast(null as varchar))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.HIVE, SqlLibrary.SPARK), consumer);
+  }
+
   @Test void testTrimFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.TRIM, VmName.EXPAND);
@@ -8590,7 +8934,7 @@ public class SqlOperatorTest {
           "INTEGER");
       f.checkScalar("least(false, true)", false, "BOOLEAN NOT NULL");
 
-      final SqlOperatorFixture f12 = f0.forOracle(SqlConformanceEnum.ORACLE_12);
+      final SqlOperatorFixture f12 = f.forOracle(SqlConformanceEnum.ORACLE_12);
       f12.checkString("least('on', 'earth')", "earth", "VARCHAR(5) NOT NULL");
       f12.checkString("least('show', 'on', 'earth')", "earth",
           "VARCHAR(5) NOT NULL");
@@ -9628,6 +9972,14 @@ public class SqlOperatorTest {
         "[null, foo]", "CHAR(3) ARRAY NOT NULL");
     f2.checkScalar("array(null)",
         "[null]", "NULL ARRAY NOT NULL");
+    f2.checkScalar("array(1, 2, 'Hi')",
+        "[1, 2, Hi]", "CHAR(2) NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array(1, 2, 'Hi', 'Hello')",
+        "[1, 2, Hi, Hello]", "CHAR(5) NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array(1, 2, 'Hi', null)",
+        "[1, 2, Hi, null]", "CHAR(2) ARRAY NOT NULL");
+    f2.checkScalar("array(1, 2, 'Hi', cast(null as char(10)))",
+        "[1, 2, Hi, null]", "CHAR(10) ARRAY NOT NULL");
   }
 
   /**

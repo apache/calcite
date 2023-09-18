@@ -2699,6 +2699,47 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Tests {@link org.apache.calcite.rel.rules.MinusToDistinctRule},
+   * which rewrites an {@link Minus} operator with 3 inputs. */
+  @Test void testMinusToDistinct() {
+    final String sql = "select EMPNO, ENAME, JOB from emp where deptno = 10\n"
+        + "except\n"
+        + "select EMPNO, ENAME, JOB from emp where deptno = 20\n"
+        + "except\n"
+        + "select EMPNO, ENAME, JOB from emp where deptno = 30\n";
+    sql(sql)
+        .withRule(CoreRules.MINUS_MERGE, CoreRules.MINUS_TO_DISTINCT, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Tests {@link org.apache.calcite.rel.rules.MinusToDistinctRule},
+   *  correctly ignores an {@code EXCEPT ALL}. It can only handle
+   *  {@code EXCEPT DISTINCT}. */
+  @Test void testMinusToDistinctAll() {
+    final String sql = "select EMPNO, ENAME, JOB from emp where deptno = 10\n"
+        + "except\n"
+        + "select EMPNO, ENAME, JOB from emp where deptno = 20\n"
+        + "except all\n"
+        + "select EMPNO, ENAME, JOB from emp where deptno = 30\n";
+    sql(sql)
+        .withRule(CoreRules.MINUS_MERGE, CoreRules.MINUS_TO_DISTINCT, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Tests {@link org.apache.calcite.rel.rules.MinusToDistinctRule},
+   *  correctly ignores an {@code EXCEPT ALL}. It can only handle
+   *  {@code EXCEPT DISTINCT}. */
+  @Test void testMinusToDistinctAllAndDistinct() {
+    final String sql = "select EMPNO, ENAME, JOB from emp where deptno = 10\n"
+        + "except all\n"
+        + "select EMPNO, ENAME, JOB from emp where deptno = 20\n"
+        + "except\n"
+        + "select EMPNO, ENAME, JOB from emp where deptno = 30\n";
+    sql(sql)
+        .withRule(CoreRules.MINUS_TO_DISTINCT, CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
   /** Tests {@link CoreRules#MINUS_MERGE}
    * does not merge {@code Minus(a, Minus(b, c))}
    * into {@code Minus(a, b, c)}, which would be incorrect. */
@@ -2765,6 +2806,98 @@ class RelOptRulesTest extends RelOptTestBase {
             CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN,
             CoreRules.SEMI_JOIN_JOIN_TRANSPOSE)
         .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5952">[CALCITE-5952]
+   * SemiJoinJoinTransposeRule should check if JoinType supports pushing predicates
+   * into its inputs</a>. */
+  @Test void testPushSemiJoinToLeftJoinLeftInput() {
+    // tests the case that semijoin can be pushed to the left input of the left join
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("DEPT")
+        .scan("EMP")
+        .join(JoinRelType.LEFT,
+            b.equals(
+                b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO"))
+        )
+        .scan("BONUS")
+        .semiJoin(
+            b.equals(
+                b.field(2, 0, "DNAME"),
+                b.field(2, 1, "JOB")))
+        .build();
+    relFn(relFn).withRule(CoreRules.SEMI_JOIN_JOIN_TRANSPOSE).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5952">[CALCITE-5952]
+   * SemiJoinJoinTransposeRule should check if JoinType supports pushing predicates
+   * into its inputs</a>. */
+  @Test void testPushSemiJoinToRightJoinRightInput() {
+    // tests the case that semijoin can be pushed to the right input of the right join
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.RIGHT,
+            b.equals(
+                b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO"))
+        )
+        .scan("BONUS")
+        .semiJoin(
+            b.equals(
+                b.field(2, 0, "DNAME"),
+                b.field(2, 1, "JOB")))
+        .build();
+    relFn(relFn).withRule(CoreRules.SEMI_JOIN_JOIN_TRANSPOSE).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5952">[CALCITE-5952]
+   * SemiJoinJoinTransposeRule should check if JoinType supports pushing predicates
+   * into its inputs</a>. */
+  @Test void testCanNotPushSemiJoinToLeftJoinRightInput() {
+    // tests the case that semijoin cannot be pushed to the right input of the left join
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.LEFT,
+            b.equals(
+                b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO"))
+        )
+        .scan("BONUS")
+        .semiJoin(
+            b.equals(
+                b.field(2, 0, "DNAME"),
+                b.field(2, 1, "JOB")))
+        .build();
+    relFn(relFn).withRule(CoreRules.SEMI_JOIN_JOIN_TRANSPOSE).checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5952">[CALCITE-5952]
+   * SemiJoinJoinTransposeRule should check if JoinType supports pushing predicates
+   * into its inputs</a>. */
+  @Test void testCanNotPushSemiJoinToRightJoinLeftInput() {
+    // tests the case that semijoin cannot be pushed to the left input of the right join
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("DEPT")
+        .scan("EMP")
+        .join(JoinRelType.RIGHT,
+            b.equals(
+                b.field(2, 0, "DEPTNO"),
+                b.field(2, 1, "DEPTNO"))
+        )
+        .scan("BONUS")
+        .semiJoin(
+            b.equals(
+                b.field(2, 0, "DNAME"),
+                b.field(2, 1, "JOB")))
+        .build();
+    relFn(relFn).withRule(CoreRules.SEMI_JOIN_JOIN_TRANSPOSE).checkUnchanged();
   }
 
   @Test void testPushSemiJoinPastFilter() {
@@ -4411,6 +4544,15 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(CoreRules.AGGREGATE_CASE_TO_FILTER).check();
   }
 
+  @Test void testAggregateCaseToFilterNoMatch() {
+    final String sql = "select\n"
+        + " sum(case when deptno = -1 then 1 else 0 end) as sum_no_match,\n"
+        + " sum(case when deptno = -1 then 2 else 0 end) as sum_no_match2,\n"
+        + " sum(case when deptno = -1 then 3 else -1 end) as sum_no_match3\n"
+        + "from emp";
+    sql(sql).withRule(CoreRules.AGGREGATE_CASE_TO_FILTER).checkUnchanged();
+  }
+
   @Test void testPullAggregateThroughUnion() {
     final String sql = "select deptno, job from"
         + " (select deptno, job from emp as e1"
@@ -4968,6 +5110,26 @@ class RelOptRulesTest extends RelOptTestBase {
         .withPre(preBuilder.build())
         .withPlanner(hepPlanner)
         .check();
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5861">
+   * [CALCITE-5861] ReduceExpressionsRule rules should constant-fold
+   * expressions in window bounds</a>.
+   */
+  @Test void testExpressionPreceding() {
+    HepProgramBuilder preBuilder = new HepProgramBuilder();
+    preBuilder.addRuleInstance(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
+    preBuilder.addRuleInstance(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
+
+    final String sql =
+        "select COUNT(*) over (\n"
+            + "ORDER BY empno\n"
+            + "ROWS BETWEEN 5 + 5 PRECEDING AND 1 PRECEDING) AS w_count from emp\n";
+    sql(sql)
+        .withPre(preBuilder.build())
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .checkUnchanged();
   }
 
   /** Test case for

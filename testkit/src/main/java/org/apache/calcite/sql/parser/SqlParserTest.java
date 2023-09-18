@@ -5491,16 +5491,25 @@ public class SqlParserTest {
             + "FROM `T`");
 
     expr("convert('abc' using utf8)")
-        .ok("TRANSLATE('abc', `UTF8`)");
+        .ok("TRANSLATE('abc' USING `UTF8`)");
     sql("select convert(name using gbk) as newName from t")
-        .ok("SELECT TRANSLATE(`NAME`, `GBK`) AS `NEWNAME`\n"
+        .ok("SELECT TRANSLATE(`NAME` USING `GBK`) AS `NEWNAME`\n"
             + "FROM `T`");
 
     expr("translate('abc' using lazy_translation)")
-        .ok("TRANSLATE('abc', `LAZY_TRANSLATION`)");
+        .ok("TRANSLATE('abc' USING `LAZY_TRANSLATION`)");
     sql("select translate(name using utf8) as newName from t")
-        .ok("SELECT TRANSLATE(`NAME`, `UTF8`) AS `NEWNAME`\n"
+        .ok("SELECT TRANSLATE(`NAME` USING `UTF8`) AS `NEWNAME`\n"
             + "FROM `T`");
+
+    // Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5996">[CALCITE-5996]</a>
+    // TRANSLATE operator is incorrectly unparsed
+    sql("select translate(col using utf8)\n"
+        + "from (select 'a' as col\n"
+        + " from (values(true)))\n")
+        .ok("SELECT TRANSLATE(`COL` USING `UTF8`)\n"
+            + "FROM (SELECT 'a' AS `COL`\n"
+            + "FROM (VALUES (ROW(TRUE))))");
   }
 
   @Test void testTranslate3() {

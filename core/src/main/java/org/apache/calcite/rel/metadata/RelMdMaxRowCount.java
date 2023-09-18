@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
@@ -101,6 +102,10 @@ public class RelMdMaxRowCount
   }
 
   public @Nullable Double getMaxRowCount(Exchange rel, RelMetadataQuery mq) {
+    return mq.getMaxRowCount(rel.getInput());
+  }
+
+  public @Nullable Double getMaxRowCount(Sample rel, RelMetadataQuery mq) {
     return mq.getMaxRowCount(rel.getInput());
   }
 

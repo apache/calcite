@@ -3356,6 +3356,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     win("window w as (rows ^2.5^ preceding)")
         .fails("ROWS value must be a non-negative integral constant");
 
+    // CALCITE-5931 - Allow integers like 1.00 in window frame
+    win("window w as (rows 2.00 preceding)").ok();
+
     // -----------------------------------
     // --   negative testings           --
     // -----------------------------------

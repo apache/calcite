@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -108,5 +109,15 @@ public class SqlTranslateFunction extends SqlConvertFunction {
 
   @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(2);
+  }
+
+  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame frame = writer.startFunCall(getName());
+    List<SqlNode> operandList = call.getOperandList();
+    operandList.get(0).unparse(writer, leftPrec, rightPrec);
+    writer.keyword("USING");
+    operandList.get(1).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(frame);
   }
 }

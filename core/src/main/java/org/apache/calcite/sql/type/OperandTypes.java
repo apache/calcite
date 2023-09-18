@@ -364,6 +364,9 @@ public abstract class OperandTypes {
           // Second operand optional (operand index 0, 1)
           number -> number == 1);
 
+  public static final SqlSingleOperandTypeChecker NUMERIC_CHARACTER =
+      family(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER);
+
   public static final SqlSingleOperandTypeChecker NUMERIC_INTEGER =
       family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER);
 
@@ -510,6 +513,38 @@ public abstract class OperandTypes {
         }
       };
 
+  public static final SqlSingleOperandTypeChecker ARRAY_OF_INTEGER =
+      new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.ARRAY), i -> false) {
+        @Override public boolean checkSingleOperandType(SqlCallBinding callBinding, SqlNode operand,
+            int iFormalOperand, SqlTypeFamily family, boolean throwOnFailure) {
+          if (!super.checkSingleOperandType(
+              callBinding,
+              operand,
+              iFormalOperand,
+              family,
+              throwOnFailure)) {
+            return false;
+          }
+          RelDataType type = SqlTypeUtil.deriveType(callBinding, operand);
+          if (SqlTypeUtil.isNull(type)) {
+            return true;
+          }
+          RelDataType componentType =
+              requireNonNull(type.getComponentType(), "componentType");
+          if (SqlTypeUtil.isIntType(componentType) || SqlTypeUtil.isNull(componentType)) {
+            return true;
+          }
+
+          if (throwOnFailure) {
+            throw callBinding.newValidationSignatureError();
+          }
+          return false;
+        }
+
+        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+          return opName + "(<INTEGER ARRAY>)";
+        }
+      };
 
   /** Checks that returns whether a value is a multiset or an array.
    * Cf Java, where list and set are collections but a map is not. */
@@ -826,6 +861,17 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker STRING_STRING_INTEGER_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
+
+  public static final SqlSingleOperandTypeChecker STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER =
+      family(
+          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER,
+              SqlTypeFamily.INTEGER), i -> i == 2 || i == 3);
+
+  public static final SqlSingleOperandTypeChecker
+      STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER_OPTIONAL_INTEGER =
+      family(
+          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER,
+              SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER), i -> i == 2 || i == 3 || i == 4);
 
   public static final SqlSingleOperandTypeChecker STRING_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);

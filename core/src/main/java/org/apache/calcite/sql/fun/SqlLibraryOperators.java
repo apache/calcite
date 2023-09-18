@@ -475,9 +475,6 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction JSON_SET = new SqlJsonModifyFunction("JSON_SET");
 
-  @LibraryOperator(libraries = {MYSQL, ORACLE})
-  public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
-
   /** The "REGEXP_CONTAINS(value, regexp)" function.
    * Returns TRUE if value is a partial match for the regular expression, regexp. */
   @LibraryOperator(libraries = {BIG_QUERY})
@@ -485,6 +482,39 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("REGEXP_CONTAINS", ReturnTypes.BOOLEAN_NULLABLE,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
+
+  /** The "REGEXP_EXTRACT(value, regexp[, position[, occurrence]])" function.
+   * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlBasicFunction REGEXP_EXTRACT =
+      SqlBasicFunction.create("REGEXP_EXTRACT", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER,
+          SqlFunctionCategory.STRING);
+
+  /** The "REGEXP_EXTRACT_ALL(value, regexp)" function.
+   * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlBasicFunction REGEXP_EXTRACT_ALL =
+      SqlBasicFunction.create("REGEXP_EXTRACT_ALL", ReturnTypes.ARG0_NULLABLE
+              .andThen(SqlTypeTransforms.TO_ARRAY),
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
+  /** The "REGEXP_INSTR(value, regexp [, position[, occurrence, [occurrence_position]]])" function.
+   * Returns the lowest 1-based position of a regexp in value. Returns NULL if there is no match. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlBasicFunction REGEXP_INSTR =
+      SqlBasicFunction.create("REGEXP_INSTR", ReturnTypes.INTEGER_NULLABLE,
+          OperandTypes.STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER_OPTIONAL_INTEGER,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL, ORACLE})
+  public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
+
+  /** The "REGEXP_SUBSTR(value, regexp[, position[, occurrence]])" function.
+   * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction REGEXP_SUBSTR = REGEXP_EXTRACT.withName("REGEXP_SUBSTR");
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction COMPRESS =
@@ -989,10 +1019,46 @@ public abstract class SqlLibraryOperators {
           .withKind(SqlKind.CONCAT_WS_MSSQL);
 
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
-    RelDataType type =
-        opBinding.getOperandCount() > 0
-            ? ReturnTypes.LEAST_RESTRICTIVE.inferReturnType(opBinding)
-            : opBinding.getTypeFactory().createUnknownType();
+    final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
+
+    // only numeric & character types check
+    boolean hasNumeric = false;
+    boolean hasCharacter = false;
+    boolean hasOthers = false;
+    for (RelDataType type : operandTypes) {
+      SqlTypeFamily family = type.getSqlTypeName().getFamily();
+      requireNonNull(family, "array element type family");
+      switch (family) {
+      case NUMERIC:
+        hasNumeric = true;
+        break;
+      case CHARACTER:
+        hasCharacter = true;
+        break;
+      case NULL:
+        // skip it becase we allow null
+        break;
+      default:
+        hasOthers = true;
+        break;
+      }
+    }
+
+    RelDataType type;
+    boolean useCharacterTypes = hasNumeric && hasCharacter && !hasOthers;
+    if (useCharacterTypes) {
+      List<RelDataType> characterTypes =
+          // may include NULL literal
+          operandTypes.stream().filter(
+              t -> t.getSqlTypeName().getFamily() != SqlTypeFamily.NUMERIC)
+              .collect(Collectors.toList());
+      type = opBinding.getTypeFactory().leastRestrictive(characterTypes);
+    } else {
+      type =
+          opBinding.getOperandCount() > 0
+              ? ReturnTypes.LEAST_RESTRICTIVE.inferReturnType(opBinding)
+              : opBinding.getTypeFactory().createUnknownType();
+    }
     requireNonNull(type, "inferred array element type");
     return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, false);
   }
@@ -1378,6 +1444,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.BINARY,
           SqlFunctionCategory.STRING);
 
+  /** The "FORMAT_NUMBER(value, decimalOrFormat)" function. */
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction FORMAT_NUMBER =
+      SqlBasicFunction.create("FORMAT_NUMBER",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.or(
+              OperandTypes.NUMERIC_NUMERIC,
+              OperandTypes.NUMERIC_CHARACTER),
+          SqlFunctionCategory.STRING);
+
   /** The "TO_CHAR(timestamp, format)" function;
    * converts {@code timestamp} to string according to the given {@code format}.
    */
@@ -1700,6 +1776,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The "SAFE_DIVIDE(numeric1, numeric2)" function; equivalent to the {@code /} operator but
+   * returns null if an error occurs, such as overflow or division by zero. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SAFE_DIVIDE =
+      SqlBasicFunction.create("SAFE_DIVIDE",
+          ReturnTypes.DOUBLE_IF_INTEGERS.orElse(ReturnTypes.QUOTIENT_FORCE_NULLABLE),
+          OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   /** The "SAFE_MULTIPLY(numeric1, numeric2)" function; equivalent to the {@code *} operator but
    * returns null if overflow occurs. */
   @LibraryOperator(libraries = {BIG_QUERY})
@@ -1707,6 +1792,15 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("SAFE_MULTIPLY",
           ReturnTypes.PRODUCT_FORCE_NULLABLE,
           OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The "SAFE_NEGATE(numeric)" function; negates {@code numeric} and returns null if overflow
+   * occurs. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SAFE_NEGATE =
+      SqlBasicFunction.create("SAFE_NEGATE",
+          ReturnTypes.ARG0_FORCE_NULLABLE,
+          OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
   /** The "SAFE_SUBTRACT(numeric1, numeric2)" function; equivalent to the {@code -} operator but
@@ -1734,6 +1828,13 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("CHR",
           ReturnTypes.CHAR,
           OperandTypes.INTEGER,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction CODE_POINTS_TO_BYTES =
+      SqlBasicFunction.create("CODE_POINTS_TO_BYTES",
+          ReturnTypes.VARBINARY_NULLABLE,
+          OperandTypes.ARRAY_OF_INTEGER,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ALL})

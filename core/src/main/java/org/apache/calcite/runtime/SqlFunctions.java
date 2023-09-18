@@ -365,7 +365,8 @@ public class SqlFunctions {
     return DigestUtils.sha512Hex(string.getBytes());
   }
 
-  /** State for {@code REGEXP_CONTAINS}, {@code REGEXP_REPLACE}, {@code RLIKE}.
+  /** State for {@code REGEXP_CONTAINS}, {@code REGEXP_EXTRACT}, {@code REGEXP_EXTRACT_ALL},
+   * {@code REGEXP_INSTR}, {@code REGEXP_REPLACE}, {@code RLIKE}.
    *
    * <p>Marked deterministic so that the code generator instantiates one once
    * per query, not once per row. */
@@ -388,29 +389,186 @@ public class SqlFunctions {
             .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
             .build(CacheLoader.from(Key::toPattern));
 
-    /** SQL {@code REGEXP_CONTAINS(value, regexp)} function.
-     * Throws a runtime exception for invalid regular expressions.*/
-    public boolean regexpContains(String value, String regex) {
-      final Pattern pattern;
+    /** Helper for regex validation in REGEXP_* fns. */
+    private Pattern validateRegexPattern(String regex, String methodName) {
       try {
         // Uses java.util.regex as a standard for regex processing
         // in Calcite instead of RE2 used by BigQuery/GoogleSQL
-        pattern = cache.getUnchecked(new Key(0, regex));
+        return cache.getUnchecked(new Key(0, regex));
       } catch (UncheckedExecutionException e) {
         if (e.getCause() instanceof PatternSyntaxException) {
-          throw RESOURCE.invalidInputForRegexpContains(
-              stripLineEndings(
-                  requireNonNull(e.getCause().getMessage(), "message"))).ex();
+          throw RESOURCE.invalidRegexInputForRegexpFunctions(
+              requireNonNull(e.getCause().getMessage(), "message")
+                  .replace(System.lineSeparator(), " "), methodName).ex();
         }
         throw e;
       }
+    }
+
+    /** Helper for multiple capturing group regex check in REGEXP_* fns. */
+    private void checkMultipleCapturingGroupsInRegex(Matcher matcher, String methodName) {
+      if (matcher.groupCount() > 1) {
+        throw RESOURCE.multipleCapturingGroupsForRegexpExtract(
+            Integer.toString(matcher.groupCount()), methodName).ex();
+      }
+    }
+
+    /** Helper for checking values of position and occurrence arguments in REGEXP_* fns.
+     * Regex fns not using occurrencePosition param pass a default value of 0.
+     * Throws an exception or returns true in case of failed value checks. */
+    private boolean checkPosOccurrenceParamValues(int position,
+        int occurrence, int occurrencePosition, String value, String methodName) {
+      if (position <= 0) {
+        throw RESOURCE.invalidIntegerInputForRegexpFunctions(Integer.toString(position),
+            "position", methodName).ex();
+      }
+      if (occurrence <= 0) {
+        throw RESOURCE.invalidIntegerInputForRegexpFunctions(Integer.toString(occurrence),
+            "occurrence", methodName).ex();
+      }
+      if (occurrencePosition != 0 && occurrencePosition != 1) {
+        throw RESOURCE.invalidIntegerInputForRegexpFunctions(Integer.toString(occurrencePosition),
+            "occurrence_position", methodName).ex();
+      }
+      if (position <= value.length()) {
+        return false;
+      }
+      return true;
+    }
+
+    /** SQL {@code REGEXP_CONTAINS(value, regexp)} function.
+     * Throws a runtime exception for invalid regular expressions. */
+    public boolean regexpContains(String value, String regex) {
+      final Pattern pattern = validateRegexPattern(regex, "REGEXP_CONTAINS");
       return pattern.matcher(value).find();
     }
 
-    private static String stripLineEndings(String message) {
-      return message.replace("\r\n", " ")
-          .replace("\n", " ")
-          .replace("\r", " ");
+    /** SQL {@code REGEXP_EXTRACT(value, regexp)} function.
+     * Returns NULL if there is no match. Returns an exception if regex is invalid.
+     * Uses position=1 and occurrence=1 as default values when not specified. */
+    public @Nullable String regexpExtract(String value, String regex) {
+      return regexpExtract(value, regex, 1, 1);
+    }
+
+    /** SQL {@code REGEXP_EXTRACT(value, regexp, position)} function.
+     * Returns NULL if there is no match, or if position is beyond range.
+     * Returns an exception if regex or position is invalid.
+     * Uses occurrence=1 as default value when not specified. */
+    public @Nullable String regexpExtract(String value, String regex, int position) {
+      return regexpExtract(value, regex, position, 1);
+    }
+
+    /** SQL {@code REGEXP_EXTRACT(value, regexp, position, occurrence)} function.
+     * Returns NULL if there is no match, or if position or occurrence are beyond range.
+     * Returns an exception if regex, position or occurrence are invalid. */
+    public @Nullable String regexpExtract(String value, String regex, int position,
+        int occurrence) {
+      // Uses java.util.regex as a standard for regex processing
+      // in Calcite instead of RE2 used by BigQuery/GoogleSQL
+      final String methodName = "REGEXP_EXTRACT";
+      final Pattern pattern = validateRegexPattern(regex, methodName);
+
+      if (checkPosOccurrenceParamValues(position, occurrence, 0, value, methodName)) {
+        return null;
+      }
+
+      Matcher matcher = pattern.matcher(value);
+      checkMultipleCapturingGroupsInRegex(matcher, methodName);
+      matcher.region(position - 1, value.length());
+
+      String match = null;
+      while (occurrence > 0) {
+        if (matcher.find()) {
+          match = matcher.group(matcher.groupCount());
+        } else {
+          return null;
+        }
+        occurrence--;
+      }
+
+      return match;
+    }
+
+    /** SQL {@code REGEXP_EXTRACT_ALL(value, regexp)} function.
+     * Returns an empty array if there is no match, returns an exception if regex is invalid. */
+    public List<String> regexpExtractAll(String value, String regex) {
+      // Uses java.util.regex as a standard for regex processing
+      // in Calcite instead of RE2 used by BigQuery/GoogleSQL
+      final String methodName = "REGEXP_EXTRACT_ALL";
+      final Pattern regexp = validateRegexPattern(regex, methodName);
+
+      Matcher matcher = regexp.matcher(value);
+      checkMultipleCapturingGroupsInRegex(matcher, methodName);
+
+      ImmutableList.Builder<String> matches = ImmutableList.builder();
+      while (matcher.find()) {
+        String match = matcher.group(matcher.groupCount());
+        if (match != null) {
+          matches.add(match);
+        }
+      }
+      return matches.build();
+    }
+
+    /** SQL {@code REGEXP_INSTR(value, regexp)} function.
+     * Returns 0 if there is no match or regex is empty. Returns an exception if regex is invalid.
+     * Uses position=1, occurrence=1, occurrencePosition=0 as default values if not specified. */
+    public int regexpInstr(String value, String regex) {
+      return regexpInstr(value, regex, 1, 1, 0);
+    }
+
+    /** SQL {@code REGEXP_INSTR(value, regexp, position)} function.
+     * Returns 0 if there is no match, regex is empty, or if position is beyond range.
+     * Returns an exception if regex or position is invalid.
+     * Uses occurrence=1, occurrencePosition=0 as default value when not specified. */
+    public int regexpInstr(String value, String regex, int position) {
+      return regexpInstr(value, regex, position, 1, 0);
+    }
+
+    /** SQL {@code REGEXP_INSTR(value, regexp, position, occurrence)} function.
+     * Returns 0 if there is no match, regex is empty, or if position or occurrence
+     * are beyond range. Returns an exception if regex, position or occurrence are invalid.
+     * Uses occurrencePosition=0 as default value when not specified. */
+    public int regexpInstr(String value, String regex, int position,
+        int occurrence) {
+      return regexpInstr(value, regex, position, occurrence, 0);
+    }
+
+    /** SQL {@code REGEXP_INSTR(value, regexp, position, occurrence, occurrencePosition)}
+     * function. Returns 0 if there is no match, regex is empty, or if position or occurrence
+     * are beyond range. Returns an exception if regex, position, occurrence
+     * or occurrencePosition are invalid. */
+    public int regexpInstr(String value, String regex, int position,
+        int occurrence, int occurrencePosition) {
+      // Uses java.util.regex as a standard for regex processing
+      // in Calcite instead of RE2 used by BigQuery/GoogleSQL
+      final String methodName = "REGEXP_INSTR";
+      final Pattern pattern = validateRegexPattern(regex, methodName);
+
+      if (checkPosOccurrenceParamValues(position, occurrence, occurrencePosition, value,
+          methodName) || regex.isEmpty()) {
+        return 0;
+      }
+
+      Matcher matcher = pattern.matcher(value);
+      checkMultipleCapturingGroupsInRegex(matcher, methodName);
+      matcher.region(position - 1, value.length());
+
+      int matchIndex = 0;
+      while (occurrence > 0) {
+        if (matcher.find()) {
+          if (occurrencePosition == 0) {
+            matchIndex = matcher.start(matcher.groupCount()) + 1;
+          } else {
+            matchIndex = matcher.end(matcher.groupCount()) + 1;
+          }
+        } else {
+          return 0;
+        }
+        occurrence--;
+      }
+
+      return matchIndex;
     }
 
     /** SQL {@code REGEXP_REPLACE} function with 3 arguments. */
@@ -804,6 +962,62 @@ public class SqlFunctions {
     return c.substring(s0, e0);
   }
 
+  /** SQL FORMAT_NUMBER(value, decimalOrFormat) function. */
+  public static String formatNumber(long value, int decimalVal) {
+    DecimalFormat numberFormat = getNumberFormat(decimalVal);
+    return numberFormat.format(value);
+  }
+
+  public static String formatNumber(double value, int decimalVal) {
+    DecimalFormat numberFormat = getNumberFormat(decimalVal);
+    return numberFormat.format(value);
+  }
+
+  public static String formatNumber(BigDecimal value, int decimalVal) {
+    DecimalFormat numberFormat = getNumberFormat(decimalVal);
+    return numberFormat.format(value);
+  }
+
+  public static String formatNumber(long value, String format) {
+    DecimalFormat numberFormat = getNumberFormat(format);
+    return numberFormat.format(value);
+  }
+
+  public static String formatNumber(double value, String format) {
+    DecimalFormat numberFormat = getNumberFormat(format);
+    return numberFormat.format(value);
+  }
+
+  public static String formatNumber(BigDecimal value, String format) {
+    DecimalFormat numberFormat = getNumberFormat(format);
+    return numberFormat.format(value);
+  }
+
+  public static String getFormatPattern(int decimalVal) {
+    StringBuilder pattern = new StringBuilder();
+    pattern.append("#,###,###,###,###,###,##0");
+
+    if (decimalVal > 0) {
+      pattern.append(".");
+      for (int i = 0; i < decimalVal; i++) {
+        pattern.append("0");
+      }
+    }
+    return pattern.toString();
+  }
+
+  private static DecimalFormat getNumberFormat(String pattern) {
+    return NumberUtil.decimalFormat(pattern);
+  }
+
+  private static DecimalFormat getNumberFormat(int decimalVal) {
+    if (decimalVal < 0) {
+      throw RESOURCE.illegalNegativeDecimalValue().ex();
+    }
+    String pattern = getFormatPattern(decimalVal);
+    return getNumberFormat(pattern);
+  }
+
   /** SQL UPPER(string) function. */
   public static String upper(String s) {
     return s.toUpperCase(Locale.ROOT);
@@ -976,6 +1190,28 @@ public class SqlFunctions {
    * <p>Returns the UTF-8 character whose code is {@code n}. */
   public static String charFromUtf8(int n) {
     return String.valueOf(Character.toChars(n));
+  }
+
+  /**
+   * SQL CODE_POINTS_TO_BYTES function.
+   */
+  public static @Nullable ByteString codePointsToBytes(List codePoints) {
+    int length = codePoints.size();
+    byte[] bytes = new byte[length];
+    for (int i = 0; i < length; i++) {
+      Object codePoint = codePoints.get(i);
+      if (codePoint == null) {
+        return null;
+      }
+      assert codePoint instanceof Number;
+      long cp = ((Number) codePoint).longValue();
+      if (cp < 0 || cp > 255) {
+        throw RESOURCE.inputArgumentsOfCodePointsToBytesOutOfRange(cp).ex();
+      }
+      bytes[i] = (byte) cp;
+    }
+
+    return new ByteString(bytes);
   }
 
   /** SQL OCTET_LENGTH(binary) function. */
@@ -2044,6 +2280,73 @@ public class SqlFunctions {
   /** SQL <code>SAFE_ADD</code> function applied to double values. */
   public static @Nullable Double safeAdd(double b0, double b1) {
     double ans = b0 + b1;
+    boolean isFinite = Double.isFinite(b0) && Double.isFinite(b1);
+    return safeDouble(ans) || !isFinite ? ans : null;
+  }
+
+  /** SQL <code>SAFE_MULTIPLY</code> function applied to long values. */
+  public static @Nullable Double safeDivide(long b0, long b1) {
+    double ans = (double) b0 / b1;
+    return safeDouble(ans) && b1 != 0 ? ans : null;
+  }
+
+  /** SQL <code>SAFE_DIVIDE</code> function applied to long and BigDecimal values. */
+  public static @Nullable BigDecimal safeDivide(long b0, BigDecimal b1) {
+    try {
+      BigDecimal ans = BigDecimal.valueOf(b0).divide(b1);
+      return safeDecimal(ans) ? ans : null;
+    } catch (ArithmeticException e) {
+      return null;
+    }
+  }
+
+  /** SQL <code>SAFE_DIVIDE</code> function applied to BigDecimal and long values. */
+  public static @Nullable BigDecimal safeDivide(BigDecimal b0, long b1) {
+    try {
+      BigDecimal ans = b0.divide(BigDecimal.valueOf(b1));
+      return safeDecimal(ans) ? ans : null;
+    } catch (ArithmeticException e) {
+      return null;
+    }
+  }
+
+  /** SQL <code>SAFE_DIVIDE</code> function applied to BigDecimal values. */
+  public static @Nullable BigDecimal safeDivide(BigDecimal b0, BigDecimal b1) {
+    try {
+      BigDecimal ans = b0.divide(b1);
+      return safeDecimal(ans) ? ans : null;
+    } catch (ArithmeticException e) {
+      return null;
+    }
+  }
+
+  /** SQL <code>SAFE_DIVIDE</code> function applied to double and long values. */
+  public static @Nullable Double safeDivide(double b0, long b1) {
+    double ans = b0 / b1;
+    return safeDouble(ans) || !Double.isFinite(b0) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_DIVIDE</code> function applied to long and double values. */
+  public static @Nullable Double safeDivide(long b0, double b1) {
+    double ans = b0 / b1;
+    return safeDouble(ans) || !Double.isFinite(b1) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_DIVIDE</code> function applied to double and BigDecimal values. */
+  public static @Nullable Double safeDivide(double b0, BigDecimal b1) {
+    double ans = b0 / b1.doubleValue();
+    return safeDouble(ans) || !Double.isFinite(b0) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_DIVIDE</code> function applied to BigDecimal and double values. */
+  public static @Nullable Double safeDivide(BigDecimal b0, double b1) {
+    double ans = b0.doubleValue() / b1;
+    return safeDouble(ans) || !Double.isFinite(b1) ? ans : null;
+  }
+
+  /** SQL <code>SAFE_DIVIDE</code> function applied to double values. */
+  public static @Nullable Double safeDivide(double b0, double b1) {
+    double ans = b0 / b1;
     boolean isFinite = Double.isFinite(b0) && Double.isFinite(b1);
     return safeDouble(ans) || !isFinite ? ans : null;
   }

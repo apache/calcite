@@ -2138,6 +2138,7 @@ public abstract class RelOptUtil {
     case INSERT:
     case DELETE:
     case UPDATE:
+    case MERGE:
       return typeFactory.createStructType(
           PairList.of(AvaticaConnection.ROWCOUNT_COLUMN_NAME,
               typeFactory.createSqlType(SqlTypeName.BIGINT)));

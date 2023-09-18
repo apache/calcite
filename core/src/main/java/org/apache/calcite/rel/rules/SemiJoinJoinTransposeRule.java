@@ -114,6 +114,18 @@ public class SemiJoinJoinTransposeRule
       return;
     }
 
+    // join type needs to allow pushing predicate (represented as semi-join in our case)
+    // to the corresponding input
+    if (nKeysFromX > 0) {
+      if (!join.getJoinType().canPushLeftFromAbove()) {
+        return;
+      }
+    } else {
+      if (!join.getJoinType().canPushRightFromAbove()) {
+        return;
+      }
+    }
+
     // need to convert the semi-join condition and possibly the keys
     final RexNode newSemiJoinFilter;
     int[] adjustments = new int[nTotalFields];

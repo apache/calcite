@@ -35,7 +35,7 @@ import java.util.Collections;
  * CREATE TABLE "emps" (
  *   "empid" INTEGER NOT NULL,
  *   "deptno" INTEGER NOT NULL,
- *   "name" VARCHAR2(10) NOT NULL,
+ *   "name" VARCHAR(10) NOT NULL,
  *   "salary" NUMBER(6, 2) NOT NULL,
  *   "commission" INTEGER);
  * INSERT INTO "emps" VALUES (100, 10, 'Bill', 10000, 1000);
@@ -45,7 +45,7 @@ import java.util.Collections;
  *
  * CREATE TABLE "depts" (
  *   "deptno" INTEGER NOT NULL,
- *   "name" VARCHAR2(10) NOT NULL,
+ *   "name" VARCHAR(10) NOT NULL,
  *   "employees" ARRAY OF "Employee",
  *   "location" "Location");
  * INSERT INTO "depts" VALUES (10, 'Sales', null, (-122, 38));

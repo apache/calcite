@@ -220,6 +220,20 @@ class RelToSqlConverterTest {
         .getSql();
   }
 
+  /**
+   * Test for <a href="https://issues.apache.org/jira/browse/CALCITE-5988">[CALCITE-5988]</a>
+   * SqlImplementor.toSql cannot emit VARBINARY literals.
+   */
+  @Test void testBinaryLiteral() {
+    String query = "SELECT x'ABCD'";
+    String expected = "SELECT X'ABCD'";
+    // We use Mysql here because using the default Calcite dialect
+    // the expected string is a bit too verbose:
+    // "SELECT *\nFROM (VALUES (X'ABCD')) AS \"t\" (\"EXPR$0\")"
+    sql(query).withMysql().ok(expected);
+    sql("SELECT cast(null as binary)").withMysql().ok("SELECT NULL");
+  }
+
   @Test void testGroupByBooleanLiteral() {
     String query = "select avg(\"salary\") from \"employee\" group by true";
     String expectedRedshift = "SELECT AVG(\"employee\".\"salary\")\n"
@@ -7041,6 +7055,136 @@ class RelToSqlConverterTest {
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected);
+  }
+
+  @Test void testMerge() {
+    final String sql1 = "merge into \"DEPT\" as \"t\"\n"
+        + "using \"DEPT\" as \"s\"\n"
+        + "on \"t\".\"DEPTNO\" = \"s\".\"DEPTNO\"\n"
+        + "when matched then\n"
+        + "update set \"DNAME\" = \"s\".\"DNAME\"\n"
+        + "when not matched then\n"
+        + "insert (DEPTNO, DNAME, LOC)\n"
+        + "values (\"s\".\"DEPTNO\" + 1, lower(\"s\".\"DNAME\"), upper(\"s\".\"LOC\"))";
+    final String expected1 = "MERGE INTO \"SCOTT\".\"DEPT\" AS \"DEPT0\"\n"
+        + "USING \"SCOTT\".\"DEPT\"\n"
+        + "ON \"DEPT\".\"DEPTNO\" = \"DEPT0\".\"DEPTNO\"\n"
+        + "WHEN MATCHED THEN UPDATE SET \"DNAME\" = \"DEPT\".\"DNAME\"\n"
+        + "WHEN NOT MATCHED THEN INSERT (\"DEPTNO\", \"DNAME\", \"LOC\") "
+        + "VALUES CAST(\"DEPT\".\"DEPTNO\" + 1 AS TINYINT),\n"
+        + "LOWER(\"DEPT\".\"DNAME\"),\n"
+        + "UPPER(\"DEPT\".\"LOC\")";
+    sql(sql1)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected1);
+
+    // without insert columns
+    final String sql2 = "merge into \"DEPT\" as \"t\"\n"
+        + "using \"DEPT\" as \"s\"\n"
+        + "on \"t\".\"DEPTNO\" = \"s\".\"DEPTNO\"\n"
+        + "when matched then\n"
+        + "update set \"DNAME\" = \"s\".\"DNAME\"\n"
+        + "when not matched then insert\n"
+        + "values (\"s\".\"DEPTNO\" + 1, lower(\"s\".\"DNAME\"), upper(\"s\".\"LOC\"))";
+    final String expected2 = expected1;
+    sql(sql2)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected2);
+
+    // reorder insert columns
+    final String sql3 = "merge into \"DEPT\" as \"t\"\n"
+        + "using \"DEPT\" as \"s\"\n"
+        + "on \"t\".\"DEPTNO\" = \"s\".\"DEPTNO\"\n"
+        + "when matched then\n"
+        + "update set \"DNAME\" = \"s\".\"DNAME\"\n"
+        + "when not matched then\n"
+        + "insert (DEPTNO, LOC, DNAME)\n"
+        + "values (\"s\".\"DEPTNO\" + 1, lower(\"s\".\"DNAME\"), 'abc')";
+    final String expected3 = "MERGE INTO \"SCOTT\".\"DEPT\" AS \"DEPT0\"\n"
+        + "USING \"SCOTT\".\"DEPT\"\n"
+        + "ON \"DEPT\".\"DEPTNO\" = \"DEPT0\".\"DEPTNO\"\n"
+        + "WHEN MATCHED THEN UPDATE SET \"DNAME\" = \"DEPT\".\"DNAME\"\n"
+        + "WHEN NOT MATCHED THEN INSERT (\"DEPTNO\", \"DNAME\", \"LOC\") "
+        + "VALUES CAST(\"DEPT\".\"DEPTNO\" + 1 AS TINYINT),\n"
+        + "'abc',\n"
+        + "LOWER(\"DEPT\".\"DNAME\")";
+    sql(sql3)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected3);
+
+    // without WHEN NOT MATCHED THEN
+    final String sql4 = "merge into \"DEPT\" as \"t\"\n"
+        + "using \"DEPT\" as \"s\"\n"
+        + "on \"t\".\"DEPTNO\" = \"s\".\"DEPTNO\"\n"
+        + "when matched then\n"
+        + "update set \"DNAME\" = \"s\".\"DNAME\"";
+    final String expected4 = "MERGE INTO \"SCOTT\".\"DEPT\" AS \"DEPT0\"\n"
+        + "USING \"SCOTT\".\"DEPT\"\n"
+        + "ON \"DEPT\".\"DEPTNO\" = \"DEPT0\".\"DEPTNO\"\n"
+        + "WHEN MATCHED THEN UPDATE SET \"DNAME\" = \"DEPT\".\"DNAME\"";
+    sql(sql4)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected4);
+
+    // without WHEN MATCHED THEN
+    final String sql5 = "merge into \"DEPT\" as \"t\"\n"
+        + "using \"DEPT\" as \"s\"\n"
+        + "on \"t\".\"DEPTNO\" = \"s\".\"DEPTNO\"\n"
+        + "when not matched then\n"
+        + "insert (DEPTNO, DNAME, LOC)\n"
+        + "values (\"s\".\"DEPTNO\" + 1, lower(\"s\".\"DNAME\"), upper(\"s\".\"LOC\"))";
+    final String expected5 = "MERGE INTO \"SCOTT\".\"DEPT\" AS \"DEPT0\"\n"
+        + "USING \"SCOTT\".\"DEPT\"\n"
+        + "ON \"DEPT\".\"DEPTNO\" = \"DEPT0\".\"DEPTNO\"\n"
+        + "WHEN NOT MATCHED THEN INSERT (\"DEPTNO\", \"DNAME\", \"LOC\") "
+        + "VALUES CAST(\"DEPT\".\"DEPTNO\" + 1 AS TINYINT),\n"
+        + "LOWER(\"DEPT\".\"DNAME\"),\n"
+        + "UPPER(\"DEPT\".\"LOC\")";
+    sql(sql5)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected5);
+
+    // using query
+    final String sql6 = "merge into \"DEPT\" as \"t\"\n"
+        + "using (select * from \"DEPT\" where \"DEPTNO\" <> 5) as \"s\"\n"
+        + "on \"t\".\"DEPTNO\" = \"s\".\"DEPTNO\"\n"
+        + "when not matched then\n"
+        + "insert (DEPTNO, DNAME, LOC)\n"
+        + "values (\"s\".\"DEPTNO\" + 1, lower(\"s\".\"DNAME\"), upper(\"s\".\"LOC\"))";
+    final String expected6 = "MERGE INTO \"SCOTT\".\"DEPT\" AS \"DEPT0\"\n"
+        + "USING (SELECT *\n"
+        + "FROM \"SCOTT\".\"DEPT\"\n"
+        + "WHERE CAST(\"DEPTNO\" AS INTEGER) <> 5) AS \"t0\"\n"
+        + "ON \"t0\".\"DEPTNO\" = \"DEPT0\".\"DEPTNO\"\n"
+        + "WHEN NOT MATCHED THEN INSERT (\"DEPTNO\", \"DNAME\", \"LOC\") "
+        + "VALUES CAST(\"t0\".\"DEPTNO\" + 1 AS TINYINT),\n"
+        + "LOWER(\"t0\".\"DNAME\"),\n"
+        + "UPPER(\"t0\".\"LOC\")";
+    sql(sql6)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected6);
+
+    final String sql7 = "merge into \"DEPT\" as \"t\"\n"
+        + "using (select * from (values (1, 'name', 'loc'))) as \"s\"(\"a\", \"b\", \"c\")\n"
+        + "on \"t\".\"DEPTNO\" = \"s\".\"a\"\n"
+        + "when matched then\n"
+        + "update set \"DNAME\" = 'abc'"
+        + "when not matched then\n"
+        + "insert (DEPTNO, DNAME, LOC)\n"
+        + "values (\"s\".\"a\" + 1, lower(\"s\".\"b\"), upper(\"s\".\"c\"))";
+    final String expected7 = "MERGE INTO \"SCOTT\".\"DEPT\" AS \"t1\"\n"
+        + "USING (SELECT *\n"
+        + "FROM (VALUES (1, 'name', 'loc')) "
+        + "AS \"t\" (\"EXPR$0\", \"EXPR$1\", \"EXPR$2\")) AS \"t0\"\n"
+        + "ON \"t0\".\"EXPR$0\" = \"t1\".\"DEPTNO0\"\n"
+        + "WHEN MATCHED THEN UPDATE SET \"DNAME\" = 'abc'\n"
+        + "WHEN NOT MATCHED THEN INSERT (\"DEPTNO\", \"DNAME\", \"LOC\") "
+        + "VALUES CAST(\"t0\".\"EXPR$0\" + 1 AS TINYINT),\n"
+        + "LOWER(\"t0\".\"EXPR$1\"),\n"
+        + "UPPER(\"t0\".\"EXPR$2\")";
+    sql(sql7)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected7);
   }
 
   /** Test case for

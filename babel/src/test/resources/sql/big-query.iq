@@ -668,6 +668,77 @@ SELECT SAFE_ADD(CAST('NaN' AS DOUBLE), CAST(3 as BIGINT)) as NaN_result;
 (1 row)
 
 !ok
+
+#####################################################################
+# SAFE_DIVIDE
+#
+# SAFE_DIVIDE(value1, value2)
+#
+# Equivalent to the divide operator (/), but returns NULL if overflow/underflow occurs 
+# or if value2 is zero.
+SELECT SAFE_DIVIDE(20, 4) as result;
++--------+
+| result |
++--------+
+|    5.0 |
++--------+
+(1 row)
+
+!ok
+
+# Dividing by zero should return NULL
+SELECT SAFE_DIVIDE(-9223372036854775806, 0) as zero_result;
++-------------+
+| zero_result |
++-------------+
+|             |
++-------------+
+(1 row)
+
+!ok
+
+SELECT SAFE_DIVIDE(CAST(1.7e308 as DOUBLE), CAST(1.7e-308 as DOUBLE)) as double_overflow;
++-----------------+
+| double_overflow |
++-----------------+
+|                 |
++-----------------+
+(1 row)
+
+!ok
+
+SELECT SAFE_DIVIDE(CAST(-3.5e75 AS DECIMAL(76, 0)), CAST(3.5e-75 AS DECIMAL(76, 0))) 
+    as decimal_overflow;
++------------------+
+| decimal_overflow |
++------------------+
+|                  |
++------------------+
+(1 row)
+
+!ok
+
+# NaN arguments should return NaN
+SELECT SAFE_DIVIDE(CAST('NaN' AS DOUBLE), CAST(3 as BIGINT)) as NaN_result;
++------------+
+| NaN_result |
++------------+
+|        NaN |
++------------+
+(1 row)
+
+!ok
+
+# Expression parameters should be valid
+SELECT SAFE_DIVIDE(1, CAST(1 AS DOUBLE) / CAST(9223372036854775807 AS DOUBLE)) as expr_result;
++----------------------+
+| expr_result          |
++----------------------+
+| 9.223372036854776E18 |
++----------------------+
+(1 row)
+
+!ok
 #####################################################################
 # SAFE_MULTIPLY
 #
@@ -733,6 +804,52 @@ SELECT SAFE_MULTIPLY(CAST('NaN' AS DOUBLE), CAST(3 as BIGINT)) as NaN_result;
 +------------+
 |        NaN |
 +------------+
+(1 row)
+
+!ok
+
+#####################################################################
+# SAFE_NEGATE
+#
+# SAFE_NEGATE(value)
+#
+# Returns value * -1, or NULL on overflow.
+SELECT SAFE_NEGATE(5) as result;
++--------+
+| result |
++--------+
+|     -5 |
++--------+
+(1 row)
+
+!ok
+
+SELECT SAFE_NEGATE(-5) as result;
++--------+
+| result |
++--------+
+|      5 |
++--------+
+(1 row)
+
+!ok
+
+SELECT SAFE_NEGATE(-9223372036854775808) as overflow_result;
++-----------------+
+| overflow_result |
++-----------------+
+|                 |
++-----------------+
+(1 row)
+
+!ok
+
+SELECT SAFE_NEGATE(1 + 2 + 3 + 4) as expr_result;
++-------------+
+| expr_result |
++-------------+
+|         -10 |
++-------------+
 (1 row)
 
 !ok
@@ -930,6 +1047,478 @@ Invalid regular expression for REGEXP_CONTAINS: 'Illegal repetition range near i
 !error
 
 #####################################################################
+# REGEXP_EXTRACT(value, regexp[, position[, occurrence]])
+#
+# Returns the substring in value that matches the regexp.
+# Returns NULL if there is no match, or if position or occurrence are beyond range.
+# Returns an exception if regex, position or occurrence are invalid.
+
+WITH email_addresses AS
+  (SELECT 'foo@example.com' as email
+  UNION ALL
+  SELECT 'bar@example.org' as email
+  UNION ALL
+  SELECT 'baz@example.net' as email)
+SELECT
+  REGEXP_EXTRACT(email, '^[a-zA-Z0-9_.+-]+')
+  AS user_name
+FROM email_addresses;
++-----------+
+| user_name |
++-----------+
+| foo       |
+| bar       |
+| baz       |
++-----------+
+(3 rows)
+
+!ok
+
+WITH
+characters AS (
+ SELECT 'ab' AS value, '.b' AS regex UNION ALL
+ SELECT 'ab' AS value, '(.)b' AS regex UNION ALL
+ SELECT 'xyztb' AS value, '(.)+b' AS regex UNION ALL
+ SELECT 'ab' AS value, '(z)?b' AS regex
+)
+SELECT value, regex, REGEXP_EXTRACT(value, regex) AS result FROM characters;
++-------+-------+--------+
+| value | regex | result |
++-------+-------+--------+
+| ab    | (.)b  | a      |
+| ab    | (z)?b |        |
+| ab    | .b    | ab     |
+| xyztb | (.)+b | t      |
++-------+-------+--------+
+(4 rows)
+
+!ok
+
+WITH example AS
+(SELECT 'Hello Helloo and Hellooo' AS value, 'H?ello+' AS regex, 1 as position,
+1 AS occurrence UNION ALL
+SELECT 'Hello Helloo and Hellooo', 'H?ello+', 1, 2 UNION ALL
+SELECT 'Hello Helloo and Hellooo', 'H?ello+', 1, 3 UNION ALL
+SELECT 'Hello Helloo and Hellooo', 'H?ello+', 1, 4 UNION ALL
+SELECT 'Hello Helloo and Hellooo', 'H?ello+', 2, 1 UNION ALL
+SELECT 'Hello Helloo and Hellooo', 'H?ello+', 3, 1 UNION ALL
+SELECT 'Hello Helloo and Hellooo', 'H?ello+', 3, 2 UNION ALL
+SELECT 'Hello Helloo and Hellooo', 'H?ello+', 3, 3 UNION ALL
+SELECT 'Hello Helloo and Hellooo', 'H?ello+', 20, 1 UNION ALL
+SELECT 'cats&dogs&rabbits' ,'\\w+&', 1, 2 UNION ALL
+SELECT 'cats&dogs&rabbits', '\\w+&', 2, 3
+)
+SELECT value, regex, position, occurrence, REGEXP_EXTRACT(value, regex,
+position, occurrence) AS regexp_value FROM example;
++--------------------------+---------+----------+------------+--------------+
+| value                    | regex   | position | occurrence | regexp_value |
++--------------------------+---------+----------+------------+--------------+
+| Hello Helloo and Hellooo | H?ello+ |        1 |          1 | Hello        |
+| Hello Helloo and Hellooo | H?ello+ |        1 |          2 | Helloo       |
+| Hello Helloo and Hellooo | H?ello+ |        1 |          3 | Hellooo      |
+| Hello Helloo and Hellooo | H?ello+ |        1 |          4 |              |
+| Hello Helloo and Hellooo | H?ello+ |        2 |          1 | ello         |
+| Hello Helloo and Hellooo | H?ello+ |       20 |          1 |              |
+| Hello Helloo and Hellooo | H?ello+ |        3 |          1 | Helloo       |
+| Hello Helloo and Hellooo | H?ello+ |        3 |          2 | Hellooo      |
+| Hello Helloo and Hellooo | H?ello+ |        3 |          3 |              |
+| cats&dogs&rabbits        | \\w+&   |        1 |          2 |              |
+| cats&dogs&rabbits        | \\w+&   |        2 |          3 |              |
++--------------------------+---------+----------+------------+--------------+
+(11 rows)
+
+!ok
+
+SELECT REGEXP_EXTRACT("abcadcabcaecghi", "a.+c");
++--------------+
+| EXPR$0       |
++--------------+
+| abcadcabcaec |
++--------------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_EXTRACT("abcadcabcaecghi", "abc(a.c)", 4);
++--------+
+| EXPR$0 |
++--------+
+| aec    |
++--------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_EXTRACT("abcadcabcaecghi", "a.c", 25);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_EXTRACT("abcadcabcaecghi", "a.c", 1, 5);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_EXTRACT("abc def ghi", "{2,1}");
+Invalid regular expression for REGEXP_EXTRACT: 'Illegal repetition range near index 4 {2,1}     ^'
+!error
+
+SELECT REGEXP_EXTRACT("abcadcabcaecghi", "(abc)ax(a.c)");
+Multiple capturing groups (count=2) not allowed in regex input for REGEXP_EXTRACT
+!error
+
+SELECT REGEXP_EXTRACT("abcadcabcaecghi", "a.c", -4);
+Invalid integer input '-4' for argument 'position' in REGEXP_EXTRACT
+!error
+
+SELECT REGEXP_EXTRACT("abcadcabcaecghi", "a.c", 3, 0);
+Invalid integer input '0' for argument 'occurrence' in REGEXP_EXTRACT
+!error
+
+#####################################################################
+# REGEXP_EXTRACT_ALL(value, regexp)
+#
+# Returns an array of all substrings in value that matches the regexp.
+# Returns an empty array if there is no match.
+# Returns an exception if regex is invalid or has more than one capturing group.
+
+WITH code_markdown AS
+  (SELECT 'Try `function(x)` or `function(y)`' as code)
+SELECT
+  REGEXP_EXTRACT_ALL(code, '`(.+?)`') AS example
+FROM code_markdown;
++----------------------------+
+| example                    |
++----------------------------+
+| [function(x), function(y)] |
++----------------------------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_EXTRACT_ALL("abcadcabcaecghi", "abc(a.c)");
++------------+
+| EXPR$0     |
++------------+
+| [adc, aec] |
++------------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_EXTRACT_ALL("abacadaeafa", "a.a");
++-----------------+
+| EXPR$0          |
++-----------------+
+| [aba, ada, afa] |
++-----------------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_EXTRACT_ALL("12345abc123", "a[0-9]");
++--------+
+| EXPR$0 |
++--------+
+| []     |
++--------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_EXTRACT_ALL("abc def ghi", "{4,1}");
+Invalid regular expression for REGEXP_EXTRACT_ALL: 'Illegal repetition range near index 4 {4,1}     ^'
+!error
+
+SELECT REGEXP_EXTRACT_ALL("abcadcabcaecghi", "(a.c).(.*)$");
+Multiple capturing groups (count=2) not allowed in regex input for REGEXP_EXTRACT_ALL
+!error
+
+#####################################################################
+# REGEXP_INSTR(value, regexp[, position[, occurrence[, occurrence_position]]])
+#
+# Returns the lowest 1-based position of regexp in value.
+# Returns 0 if there is no match, regex is empty or if position or occurrence are beyond range.
+# Returns an exception if regex, position, occurrence or occurrence_position are invalid.
+
+WITH example AS (
+  SELECT 'ab@cd-ef' AS source_value, '@[^-]*' AS regexp UNION ALL
+  SELECT 'ab@d-ef', '@[^-]*' UNION ALL
+  SELECT 'abc@cd-ef', '@[^-]*' UNION ALL
+  SELECT 'abc-ef', '@[^-]*')
+SELECT source_value, regexp, REGEXP_INSTR(source_value, regexp) AS instr
+FROM example;
++--------------+--------+-------+
+| source_value | regexp | instr |
++--------------+--------+-------+
+| ab@cd-ef     | @[^-]* |     3 |
+| ab@d-ef      | @[^-]* |     3 |
+| abc-ef       | @[^-]* |     0 |
+| abc@cd-ef    | @[^-]* |     4 |
++--------------+--------+-------+
+(4 rows)
+
+!ok
+
+WITH example AS (
+  SELECT 'a@cd-ef b@cd-ef' AS source_value, '@[^-]*' AS regexp, 1 AS position UNION ALL
+  SELECT 'a@cd-ef b@cd-ef', '@[^-]*', 2 UNION ALL
+  SELECT 'a@cd-ef b@cd-ef', '@[^-]*', 3 UNION ALL
+  SELECT 'a@cd-ef b@cd-ef', '@[^-]*', 4)
+SELECT
+  source_value, regexp, position,
+  REGEXP_INSTR(source_value, regexp, position) AS instr
+FROM example;
++-----------------+--------+----------+-------+
+| source_value    | regexp | position | instr |
++-----------------+--------+----------+-------+
+| a@cd-ef b@cd-ef | @[^-]* |        1 |     2 |
+| a@cd-ef b@cd-ef | @[^-]* |        2 |     2 |
+| a@cd-ef b@cd-ef | @[^-]* |        3 |    10 |
+| a@cd-ef b@cd-ef | @[^-]* |        4 |    10 |
++-----------------+--------+----------+-------+
+(4 rows)
+
+!ok
+
+WITH example AS (
+  SELECT 'a@cd-ef b@cd-ef c@cd-ef' AS source_value,
+         '@[^-]*' AS regexp, 1 AS position, 1 AS occurrence UNION ALL
+  SELECT 'a@cd-ef b@cd-ef c@cd-ef', '@[^-]*', 1, 2 UNION ALL
+  SELECT 'a@cd-ef b@cd-ef c@cd-ef', '@[^-]*', 1, 3)
+SELECT
+  source_value, regexp, position, occurrence,
+  REGEXP_INSTR(source_value, regexp, position, occurrence) AS instr
+FROM example;
++-------------------------+--------+----------+------------+-------+
+| source_value            | regexp | position | occurrence | instr |
++-------------------------+--------+----------+------------+-------+
+| a@cd-ef b@cd-ef c@cd-ef | @[^-]* |        1 |          1 |     2 |
+| a@cd-ef b@cd-ef c@cd-ef | @[^-]* |        1 |          2 |    10 |
+| a@cd-ef b@cd-ef c@cd-ef | @[^-]* |        1 |          3 |    18 |
++-------------------------+--------+----------+------------+-------+
+(3 rows)
+
+!ok
+
+WITH example AS (
+  SELECT 'a@cd-ef' AS source_value, '@[^-]*' AS regexp,
+         1 AS position, 1 AS occurrence, 0 AS o_position UNION ALL
+  SELECT 'a@cd-ef', '@[^-]*', 1, 1, 1)
+SELECT
+  source_value, regexp, position, occurrence, o_position,
+  REGEXP_INSTR(source_value, regexp, position, occurrence, o_position) AS instr
+FROM example;
++--------------+--------+----------+------------+------------+-------+
+| source_value | regexp | position | occurrence | o_position | instr |
++--------------+--------+----------+------------+------------+-------+
+| a@cd-ef      | @[^-]* |        1 |          1 |          0 |     2 |
+| a@cd-ef      | @[^-]* |        1 |          1 |          1 |     5 |
++--------------+--------+----------+------------+------------+-------+
+(2 rows)
+
+!ok
+
+SELECT REGEXP_INSTR("abcadcabcaecghi", "a.+c");
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_INSTR("abcadcabcaecghi", "abc(a.c)", 4);
++--------+
+| EXPR$0 |
++--------+
+|     10 |
++--------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_INSTR("abcadcabcaecghi", "a.c", 25);
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_INSTR("abcadcabcaecghi", "a.c", 1, 5);
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_INSTR("a9cadca5c4aecghi", "a[0-9]c", 1, 2, 1);
++--------+
+| EXPR$0 |
++--------+
+|     10 |
++--------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_INSTR("abc def ghi", "adz)");
+Invalid regular expression for REGEXP_INSTR: 'Unmatched closing ')' near index 2 adz)   ^'
+!error
+
+SELECT REGEXP_INSTR("abc def ghi", "(^)a(.*)b($)");
+Multiple capturing groups (count=3) not allowed in regex input for REGEXP_INSTR
+!error
+
+SELECT REGEXP_INSTR("abcadcabcaecghi", "a.c", 0);
+Invalid integer input '0' for argument 'position' in REGEXP_INSTR
+!error
+
+SELECT REGEXP_INSTR("abcadcabcaecghi", "a.c", 3, -2);
+Invalid integer input '-2' for argument 'occurrence' in REGEXP_INSTR
+!error
+
+SELECT REGEXP_INSTR("abcadcabcaecghi", "a.c", 3, 2, -2);
+Invalid integer input '-2' for argument 'occurrence_position' in REGEXP_INSTR
+!error
+
+#####################################################################
+# REGEXP_SUBSTR(value, regexp[, position[, occurrence]])
+#
+# Synonym for REGEXP_EXTRACT. Returns the substring in value that matches the regexp.
+# Returns NULL if there is no match, or if position or occurrence are beyond range.
+# Returns an exception if regex, position or occurrence are invalid.
+
+WITH email_addresses AS
+  (SELECT 'foo@example.com' as email
+  UNION ALL
+  SELECT 'bar@example.org' as email
+  UNION ALL
+  SELECT 'baz@example.net' as email)
+SELECT
+  REGEXP_SUBSTR(email, '^[a-zA-Z0-9_.+-]+')
+  AS user_name
+FROM email_addresses;
++-----------+
+| user_name |
++-----------+
+| foo       |
+| bar       |
+| baz       |
++-----------+
+(3 rows)
+
+!ok
+
+WITH
+characters AS (
+ SELECT 'ab' AS value, '.b' AS regex UNION ALL
+ SELECT 'ab' AS value, '(.)b' AS regex UNION ALL
+ SELECT 'xyztb' AS value, '(.)+b' AS regex UNION ALL
+ SELECT 'ab' AS value, '(z)?b' AS regex
+)
+SELECT value, regex, REGEXP_SUBSTR(value, regex) AS result FROM characters;
++-------+-------+--------+
+| value | regex | result |
++-------+-------+--------+
+| ab    | (.)b  | a      |
+| ab    | (z)?b |        |
+| ab    | .b    | ab     |
+| xyztb | (.)+b | t      |
++-------+-------+--------+
+(4 rows)
+
+!ok
+
+WITH example AS
+(SELECT 'Hello World Helloo' AS value, 'H?ello+' AS regex, 1 AS position, 1 AS
+occurrence
+)
+SELECT value, regex, position, occurrence, REGEXP_SUBSTR(value, regex,
+position, occurrence) AS regexp_value FROM example;
++--------------------+---------+----------+------------+--------------+
+| value              | regex   | position | occurrence | regexp_value |
++--------------------+---------+----------+------------+--------------+
+| Hello World Helloo | H?ello+ |        1 |          1 | Hello        |
++--------------------+---------+----------+------------+--------------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_SUBSTR("abcadcabcaecghi", "a.+c");
++--------------+
+| EXPR$0       |
++--------------+
+| abcadcabcaec |
++--------------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_SUBSTR("abcadcabcaecghi", "abc(a.c)", 4);
++--------+
+| EXPR$0 |
++--------+
+| aec    |
++--------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_SUBSTR("abcadcabcaecghi", "a.c", 25);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_SUBSTR("abcadcabcaecghi", "a.c", 1, 5);
++--------+
+| EXPR$0 |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+SELECT REGEXP_SUBSTR("abc def ghi", "{2,1}");
+Invalid regular expression for REGEXP_EXTRACT: 'Illegal repetition range near index 4 {2,1}     ^'
+!error
+
+SELECT REGEXP_SUBSTR("abcadcabcaecghi", "(abc)ax(a.c)");
+Multiple capturing groups (count=2) not allowed in regex input for REGEXP_EXTRACT
+!error
+
+SELECT REGEXP_SUBSTR("abcadcabcaecghi", "a.c", -4);
+Invalid integer input '-4' for argument 'position' in REGEXP_EXTRACT
+!error
+
+SELECT REGEXP_SUBSTR("abcadcabcaecghi", "a.c", 3, 0);
+Invalid integer input '0' for argument 'occurrence' in REGEXP_EXTRACT
+!error
+
+#####################################################################
 # SPLIT
 #
 # SPLIT(string [, delimiter])
@@ -1071,7 +1660,7 @@ java.sql.SQLException: Error while executing SQL "SELECT OFFSET(1)": parse faile
 
 #####################################################################
 # IS_INF
-# 
+#
 # IS_INF(x)
 #
 # Returns whether x is infinite.
@@ -1107,7 +1696,7 @@ SELECT IS_INF(CAST('NaN' AS DOUBLE)) AS nan_result;
 
 #####################################################################
 # IS_NAN
-# 
+#
 # IS_NAN(x)
 #
 # Returns whether x is NaN.
@@ -1536,6 +2125,64 @@ SELECT CONTAINS_SUBSTR('{"lunch":"soup"}', "lunch", json_scope=>"JSON_KEYS_AND_V
 (1 row)
 
 !ok
+
+#####################################################################
+# CODE_POINTS_TO_BYTES(array<integer>)
+#
+# Takes an array of extended ASCII code points as ARRAY<INT64>
+# and returns BYTES.
+#
+SELECT CODE_POINTS_TO_BYTES(array[65, 66, 67, 68]) as result;
++----------+
+| result   |
++----------+
+| 41424344 |
++----------+
+(1 row)
+
+!ok
+
+SELECT CODE_POINTS_TO_BYTES(array[255, 254, 65, 64]) as result;
++----------+
+| result   |
++----------+
+| fffe4140 |
++----------+
+(1 row)
+
+!ok
+
+SELECT CODE_POINTS_TO_BYTES(null) as result;
++--------+
+| result |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+SELECT CODE_POINTS_TO_BYTES(array[65, null]) as result;
++--------+
+| result |
++--------+
+|        |
++--------+
+(1 row)
+
+!ok
+
+SELECT CODE_POINTS_TO_BYTES('abc') as result;
+Cannot apply 'CODE_POINTS_TO_BYTES' to arguments of type 'CODE_POINTS_TO_BYTES(<CHAR(3)>)'. Supported form(s): CODE_POINTS_TO_BYTES(<INTEGER ARRAY>)
+!error
+
+SELECT CODE_POINTS_TO_BYTES(array[-1]) as result;
+Input arguments of CODE_POINTS_TO_BYTES out of range: -1
+!error
+
+SELECT CODE_POINTS_TO_BYTES(array[2147483648, 1]);
+Input arguments of CODE_POINTS_TO_BYTES out of range: 2147483648
+!error
 
 #####################################################################
 # DATE

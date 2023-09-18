@@ -2685,6 +2685,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | CEIL(value)                                    | Similar to standard `CEIL(value)` except if *value* is an integer type, the return type is a double
 | m s | CHAR(integer)                                | Returns the character whose ASCII code is *integer* % 256, or null if *integer* &lt; 0
 | b o p | CHR(integer)                               | Returns the character whose UTF-8 code is *integer*
+| b | CODE_POINTS_TO_BYTES(integers)                 | Converts *integers*, an array of integers between 0 and 255 inclusive, into bytes; throws error if any element is out of range
 | o | CONCAT(string, string)                         | Concatenates two strings, returns null only when both string arguments are null, otherwise treats null as empty string
 | b m | CONCAT(string [, string ]*)                  | Concatenates one or more strings, returns null if any of the arguments is null
 | p q | CONCAT(string [, string ]*)                  | Concatenates one or more strings, null is treated as empty string
@@ -2731,6 +2732,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | FLOOR(value)                                   | Similar to standard `FLOOR(value)` except if *value* is an integer type, the return type is a double
 | b | FORMAT_DATE(string, date)                      | Formats *date* according to the specified format *string*
 | b | FORMAT_DATETIME(string, timestamp)             | Formats *timestamp* according to the specified format *string*
+| h s | FORMAT_NUMBER(value, decimalVal)             | Formats the number *value* like '#,###,###.##', rounded to decimal places *decimalVal*. If *decimalVal* is 0, the result has no decimal point or fractional part
+| h s | FORMAT_NUMBER(value, format)                 | Formats the number *value* to MySQL's FORMAT *format*, like '#,###,###.##0.00'
 | b | FORMAT_TIME(string, time)                      | Formats *time* according to the specified format *string*
 | b | FORMAT_TIMESTAMP(string timestamp)             | Formats *timestamp* according to the specified format *string*
 | s | GETBIT(value, position)                        | Equivalent to `BIT_GET(value, position)`
@@ -2785,7 +2788,11 @@ BigQuery's type system uses confusingly different names for types and functions:
 | h s | PARSE_URL(urlString, partToExtract [, keyToExtract] ) | Returns the specified *partToExtract* from the *urlString*. Valid values for *partToExtract* include HOST, PATH, QUERY, REF, PROTOCOL, AUTHORITY, FILE, and USERINFO. *keyToExtract* specifies which query to extract
 | b | POW(numeric1, numeric2)                        | Returns *numeric1* raised to the power *numeric2*
 | b | REGEXP_CONTAINS(string, regexp)                | Returns whether *string* is a partial match for the *regexp*
+| b | REGEXP_EXTRACT(string, regexp [, position [, occurrence]]) | Returns the substring in *string* that matches the *regexp*, starting search at *position* (default 1), and until locating the nth *occurrence* (default 1). Returns NULL if there is no match
+| b | REGEXP_EXTRACT_ALL(string, regexp)             | Returns an array of all substrings in *string* that matches the *regexp*. Returns an empty array if there is no match
+| b | REGEXP_INSTR(string, regexp [, position [, occurrence [, occurrence_position]]]) | Returns the lowest 1-based position of the substring in *string* that matches the *regexp*, starting search at *position* (default 1), and until locating the nth *occurrence* (default 1). Setting occurrence_position (default 0) to 1 returns the end position of substring + 1. Returns 0 if there is no match
 | m o | REGEXP_REPLACE(string, regexp, rep [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* means which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
+| b | REGEXP_SUBSTR(string, regexp [, position [, occurrence]]) | Synonym for REGEXP_EXTRACT
 | b m p | REPEAT(string, integer)                    | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | b m | REVERSE(string)                              | Returns *string* with the order of the characters reversed
 | b m p | RIGHT(string, length)                      | Returns the rightmost *length* characters from the *string*
@@ -2795,7 +2802,9 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b o | RTRIM(string)                                | Returns *string* with all blanks removed from the end
 | b | SAFE_ADD(numeric1, numeric2)                   | Returns *numeric1* + *numeric2*, or NULL on overflow
 | b | SAFE_CAST(value AS type)                       | Converts *value* to *type*, returning NULL if conversion fails
+| b | SAFE_DIVIDE(numeric1, numeric2)                | Returns *numeric1* / *numeric2*, or NULL on overflow or if *numeric2* is zero
 | b | SAFE_MULTIPLY(numeric1, numeric2)              | Returns *numeric1* * *numeric2*, or NULL on overflow
+| b | SAFE_NEGATE(numeric)                           | Returns *numeric* * -1, or NULL on overflow
 | b | SAFE_OFFSET(index)                             | Similar to `OFFSET` except null is returned if *index* is out of bounds
 | b | SAFE_ORDINAL(index)                            | Similar to `OFFSET` except *index* begins at 1 and null is returned if *index* is out of bounds
 | b | SAFE_SUBTRACT(numeric1, numeric2)              | Returns *numeric1* - *numeric2*, or NULL on overflow
@@ -3496,24 +3505,24 @@ instantiated. Each object can hold different values.
 For example, we can declare types `address_typ` and `employee_typ`:
 
 {% highlight sql %}
-CREATE TYPE address_typ AS OBJECT (
-   street          VARCHAR2(30),
-   city            VARCHAR2(20),
+CREATE TYPE address_typ AS (
+   street          VARCHAR(30),
+   city            VARCHAR(20),
    state           CHAR(2),
-   postal_code     VARCHAR2(6));
+   postal_code     VARCHAR(6));
 
-CREATE TYPE employee_typ AS OBJECT (
-  employee_id       NUMBER(6),
-  first_name        VARCHAR2(20),
-  last_name         VARCHAR2(25),
-  email             VARCHAR2(25),
-  phone_number      VARCHAR2(20),
+CREATE TYPE employee_typ AS (
+  employee_id       DECIMAL(6),
+  first_name        VARCHAR(20),
+  last_name         VARCHAR(25),
+  email             VARCHAR(25),
+  phone_number      VARCHAR(20),
   hire_date         DATE,
-  job_id            VARCHAR2(10),
-  salary            NUMBER(8,2),
-  commission_pct    NUMBER(2,2),
-  manager_id        NUMBER(6),
-  department_id     NUMBER(4),
+  job_id            VARCHAR(10),
+  salary            DECIMAL(8,2),
+  commission_pct    DECIMAL(2,2),
+  manager_id        DECIMAL(6),
+  department_id     DECIMAL(4),
   address           address_typ);
 {% endhighlight %}
 
@@ -3521,6 +3530,6 @@ Using these types, you can instantiate objects as follows:
 
 {% highlight sql %}
 employee_typ(315, 'Francis', 'Logan', 'FLOGAN',
-    '555.777.2222', '01-MAY-04', 'SA_MAN', 11000, .15, 101, 110,
+    '555.777.2222', DATE '2004-05-01', 'SA_MAN', 11000, .15, 101, 110,
      address_typ('376 Mission', 'San Francisco', 'CA', '94222'))
 {% endhighlight %}

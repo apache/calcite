@@ -44,6 +44,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
+import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.schema.ImplementableAggFunction;
@@ -149,6 +150,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CEIL_BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CODE_POINTS_TO_BYTES;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COMPRESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION;
@@ -175,6 +177,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_XML;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FLOOR_BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_DATETIME;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_NUMBER;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE32;
@@ -219,6 +222,9 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_URL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.POW;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_INSTR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
@@ -227,7 +233,9 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_CAST;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_DIVIDE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_MULTIPLY;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_NEGATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_ORDINAL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_SUBTRACT;
@@ -518,6 +526,7 @@ public class RexImpTable {
       defineMethod(SHA256, BuiltInMethod.SHA256.method, NullPolicy.STRICT);
       defineMethod(SHA512, BuiltInMethod.SHA512.method, NullPolicy.STRICT);
       defineMethod(SUBSTRING, BuiltInMethod.SUBSTRING.method, NullPolicy.STRICT);
+      defineMethod(FORMAT_NUMBER, BuiltInMethod.FORMAT_NUMBER.method, NullPolicy.STRICT);
       defineMethod(LEFT, BuiltInMethod.LEFT.method, NullPolicy.ANY);
       defineMethod(RIGHT, BuiltInMethod.RIGHT.method, NullPolicy.ANY);
       defineMethod(LPAD, BuiltInMethod.LPAD.method, NullPolicy.STRICT);
@@ -557,6 +566,8 @@ public class RexImpTable {
       defineMethod(ASCII, BuiltInMethod.ASCII.method, NullPolicy.STRICT);
       defineMethod(CHAR, BuiltInMethod.CHAR_FROM_ASCII.method,
           NullPolicy.SEMI_STRICT);
+      defineMethod(CODE_POINTS_TO_BYTES, BuiltInMethod.CODE_POINTS_TO_BYTES.method,
+          NullPolicy.STRICT);
       defineMethod(REPEAT, BuiltInMethod.REPEAT.method, NullPolicy.STRICT);
       defineMethod(SPACE, BuiltInMethod.SPACE.method, NullPolicy.STRICT);
       defineMethod(STRCMP, BuiltInMethod.STRCMP.method, NullPolicy.STRICT);
@@ -569,6 +580,12 @@ public class RexImpTable {
       defineReflective(PARSE_URL, BuiltInMethod.PARSE_URL2.method,
           BuiltInMethod.PARSE_URL3.method);
       defineReflective(REGEXP_CONTAINS, BuiltInMethod.REGEXP_CONTAINS.method);
+      defineReflective(REGEXP_EXTRACT, BuiltInMethod.REGEXP_EXTRACT2.method,
+          BuiltInMethod.REGEXP_EXTRACT3.method, BuiltInMethod.REGEXP_EXTRACT4.method);
+      defineReflective(REGEXP_EXTRACT_ALL, BuiltInMethod.REGEXP_EXTRACT_ALL.method);
+      defineReflective(REGEXP_INSTR, BuiltInMethod.REGEXP_INSTR2.method,
+          BuiltInMethod.REGEXP_INSTR3.method, BuiltInMethod.REGEXP_INSTR4.method,
+          BuiltInMethod.REGEXP_INSTR5.method);
 
       map.put(TRIM, new TrimImplementor());
 
@@ -644,7 +661,11 @@ public class RexImpTable {
 
       map.put(SAFE_ADD,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_ADD.method));
+      map.put(SAFE_DIVIDE,
+          new SafeArithmeticImplementor(BuiltInMethod.SAFE_DIVIDE.method));
       map.put(SAFE_MULTIPLY,
+          new SafeArithmeticImplementor(BuiltInMethod.SAFE_MULTIPLY.method));
+      map.put(SAFE_NEGATE,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_MULTIPLY.method));
       map.put(SAFE_SUBTRACT,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_SUBTRACT.method));
@@ -2477,10 +2498,16 @@ public class RexImpTable {
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
-      Expression arg0 = convertType(argValueList.get(0), call.operands.get(0));
-      Expression arg1 = convertType(argValueList.get(1), call.operands.get(1));
-      return super.implementSafe(translator, call,
-          ImmutableList.of(arg0, arg1));
+      List<Expression> args = new ArrayList<Expression>();
+      args.add(convertType(argValueList.get(0), call.operands.get(0)));
+      // SAFE_NEGATE only has one argument so create constant -1L to use
+      // SAFE_MULTIPLY implementation.
+      if (argValueList.size() == 1) {
+        args.add(Expressions.constant(-1L));
+      } else {
+        args.add(convertType(argValueList.get(1), call.operands.get(1)));
+      }
+      return super.implementSafe(translator, call, args);
     }
 
     // Because BigQuery treats all int types as aliases for BIGINT (Java's long)
@@ -2846,7 +2873,7 @@ public class RexImpTable {
     @Override Expression implementSafe(
         final RexToLixTranslator translator,
         final RexCall call,
-        final List<Expression> argValueList) {
+        List<Expression> argValueList) {
       // neither nullable:
       //   return x OP y
       // x nullable
@@ -2873,7 +2900,8 @@ public class RexImpTable {
       final Expression fieldComparator =
           generateCollatorExpression(relDataType0.getCollation());
       if (fieldComparator != null) {
-        argValueList.add(fieldComparator);
+        // We need to add the comparator, the argValueList might be non-mutable, so create a new one
+        argValueList = FlatLists.append(argValueList, fieldComparator);
       }
 
       final Primitive primitive = Primitive.ofBoxOr(type0);

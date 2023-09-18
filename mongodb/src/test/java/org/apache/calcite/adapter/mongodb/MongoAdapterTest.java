@@ -68,8 +68,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Testing mongo adapter functionality. By default runs with
- * <a href="https://github.com/fakemongo/fongo">Fongo</a> unless {@code IT} maven profile is enabled
+ * Testing mongo adapter functionality. By default, runs with
+ * Mongo Java Server unless {@code IT} maven profile is enabled
  * (via {@code $ mvn -Pit install}).
  *
  * @see MongoDatabasePolicy

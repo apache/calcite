@@ -591,6 +591,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     case INSERT:
     case DELETE:
     case UPDATE:
+    case MERGE:
       return Meta.StatementType.IS_DML;
     default:
       return Meta.StatementType.SELECT;
@@ -667,6 +668,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       case INSERT:
       case DELETE:
       case UPDATE:
+      case MERGE:
       case EXPLAIN:
         // FIXME: getValidatedNodeType is wrong for DML
         x = RelOptUtil.createDmlRowType(sqlNode.getKind(), typeFactory);
