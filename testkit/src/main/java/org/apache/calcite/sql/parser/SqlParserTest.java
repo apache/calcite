@@ -725,6 +725,37 @@ public class SqlParserTest {
             + ".*");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5997">[CALCITE-5997]
+   * OFFSET operator is incorrectly unparsed</a>. */
+  @Test void testOffset() {
+    sql("SELECT ARRAY[2,4,6][2]")
+        .ok("SELECT (ARRAY[2, 4, 6])[2]");
+    sql("SELECT ARRAY[2,4,6][ORDINAL(2)]")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT (ARRAY[2, 4, 6])[ORDINAL(2)]");
+    sql("SELECT ARRAY[2,4,6][OFFSET(2)]")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT (ARRAY[2, 4, 6])[OFFSET(2)]");
+    sql("SELECT ARRAY[2,4,6][SAFE_OFFSET(2)]")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT (ARRAY[2, 4, 6])[SAFE_OFFSET(2)]");
+    sql("SELECT ARRAY[2,4,6][SAFE_ORDINAL(2)]")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT (ARRAY[2, 4, 6])[SAFE_ORDINAL(2)]");
+
+    // All these tests work without BIG_QUERY as well.
+    // The SQL parser accepts this syntax, so we need to be
+    // able to unparse it into something.
+    sql("SELECT ARRAY[2,4,6][ORDINAL(2)]")
+        .ok("SELECT (ARRAY[2, 4, 6])[ORDINAL(2)]");
+    sql("SELECT ARRAY[2,4,6][OFFSET(2)]")
+        .ok("SELECT (ARRAY[2, 4, 6])[OFFSET(2)]");
+    sql("SELECT ARRAY[2,4,6][SAFE_OFFSET(2)]")
+        .ok("SELECT (ARRAY[2, 4, 6])[SAFE_OFFSET(2)]");
+    sql("SELECT ARRAY[2,4,6][SAFE_ORDINAL(2)]")
+        .ok("SELECT (ARRAY[2, 4, 6])[SAFE_ORDINAL(2)]");
+  }
+
   @Test void testInvalidToken() {
     // Causes problems to the test infrastructure because the token mgr
     // throws a java.lang.Error. The usual case is that the parser throws
