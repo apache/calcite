@@ -78,7 +78,13 @@ public class SqlItemOperator extends SqlSpecialOperator {
       SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     call.operand(0).unparse(writer, leftPrec, 0);
     final SqlWriter.Frame frame = writer.startList("[", "]");
-    call.operand(1).unparse(writer, 0, 0);
+    if (!this.getName().equals("ITEM")) {
+      final SqlWriter.Frame offsetFrame = writer.startFunCall(this.getName());
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endFunCall(offsetFrame);
+    } else {
+      call.operand(1).unparse(writer, 0, 0);
+    }
     writer.endList(frame);
   }
 
