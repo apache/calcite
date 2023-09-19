@@ -110,6 +110,7 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
+import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
@@ -395,13 +396,18 @@ public enum BuiltInMethod {
       String.class),
   JSON_API_COMMON_SYNTAX(JsonFunctions.class, "jsonApiCommonSyntax",
       String.class, String.class),
-  JSON_EXISTS(JsonFunctions.class, "jsonExists", String.class, String.class),
-  JSON_VALUE(JsonFunctions.class, "jsonValue", String.class, String.class,
+  JSON_API_COMMON_SYNTAX_WITH_CACHE(JsonFunctions.StatefulFunction.class,
+      "jsonApiCommonSyntaxWithCache", String.class, String.class),
+  JSON_EXISTS2(JsonFunctions.StatefulFunction.class, "jsonExists",
+      String.class, String.class),
+  JSON_EXISTS3(JsonFunctions.StatefulFunction.class, "jsonExists",
+      String.class, String.class, SqlJsonExistsErrorBehavior.class),
+  JSON_VALUE(JsonFunctions.StatefulFunction.class, "jsonValue",
+      String.class, String.class,
       SqlJsonValueEmptyOrErrorBehavior.class, Object.class,
       SqlJsonValueEmptyOrErrorBehavior.class, Object.class),
-  JSON_QUERY(JsonFunctions.class, "jsonQuery", String.class,
-      String.class,
-      SqlJsonQueryWrapperBehavior.class,
+  JSON_QUERY(JsonFunctions.StatefulFunction.class, "jsonQuery", String.class,
+      String.class, SqlJsonQueryWrapperBehavior.class,
       SqlJsonQueryEmptyOrErrorBehavior.class,
       SqlJsonQueryEmptyOrErrorBehavior.class),
   JSON_OBJECT(JsonFunctions.class, "jsonObject",

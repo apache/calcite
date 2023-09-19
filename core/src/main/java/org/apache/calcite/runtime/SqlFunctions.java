@@ -406,7 +406,8 @@ public class SqlFunctions {
     }
 
     /** Helper for multiple capturing group regex check in REGEXP_* fns. */
-    private void checkMultipleCapturingGroupsInRegex(Matcher matcher, String methodName) {
+    private static void checkMultipleCapturingGroupsInRegex(Matcher matcher,
+        String methodName) {
       if (matcher.groupCount() > 1) {
         throw RESOURCE.multipleCapturingGroupsForRegexpExtract(
             Integer.toString(matcher.groupCount()), methodName).ex();
@@ -416,7 +417,7 @@ public class SqlFunctions {
     /** Helper for checking values of position and occurrence arguments in REGEXP_* fns.
      * Regex fns not using occurrencePosition param pass a default value of 0.
      * Throws an exception or returns true in case of failed value checks. */
-    private boolean checkPosOccurrenceParamValues(int position,
+    private static boolean checkPosOccurrenceParamValues(int position,
         int occurrence, int occurrencePosition, String value, String methodName) {
       if (position <= 0) {
         throw RESOURCE.invalidIntegerInputForRegexpFunctions(Integer.toString(position),

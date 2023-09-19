@@ -905,10 +905,11 @@ public class RexImpTable {
           BuiltInMethod.JSON_VALUE_EXPRESSION.method, NullPolicy.STRICT);
       defineMethod(JSON_TYPE_OPERATOR,
           BuiltInMethod.JSON_VALUE_EXPRESSION.method, NullPolicy.STRICT);
-      defineMethod(JSON_EXISTS, BuiltInMethod.JSON_EXISTS.method, NullPolicy.ARG0);
+      defineReflective(JSON_EXISTS, BuiltInMethod.JSON_EXISTS2.method,
+          BuiltInMethod.JSON_EXISTS3.method);
       map.put(JSON_VALUE,
           new JsonValueImplementor(BuiltInMethod.JSON_VALUE.method));
-      defineMethod(JSON_QUERY, BuiltInMethod.JSON_QUERY.method, NullPolicy.ARG0);
+      defineReflective(JSON_QUERY, BuiltInMethod.JSON_QUERY.method);
       defineMethod(JSON_TYPE, BuiltInMethod.JSON_TYPE.method, NullPolicy.ARG0);
       defineMethod(JSON_DEPTH, BuiltInMethod.JSON_DEPTH.method, NullPolicy.ARG0);
       defineMethod(JSON_INSERT, BuiltInMethod.JSON_INSERT.method, NullPolicy.ARG0);
@@ -2778,7 +2779,6 @@ public class RexImpTable {
 
     @Override Expression implementSafe(RexToLixTranslator translator,
         RexCall call, List<Expression> argValueList) {
-      final Expression expression;
       final List<Expression> newOperands = new ArrayList<>();
       newOperands.add(argValueList.get(0));
       newOperands.add(argValueList.get(1));
@@ -2821,13 +2821,11 @@ public class RexImpTable {
       newOperands.add(defaultValueOnEmpty);
       newOperands.add(errorBehavior);
       newOperands.add(defaultValueOnError);
-      @SuppressWarnings("rawtypes")
-      final Class clazz = method.getDeclaringClass();
-      expression = EnumUtils.call(null, clazz, method.getName(), newOperands);
-
-      final Type returnType =
-          translator.typeFactory.getJavaClass(call.getType());
-      return EnumUtils.convert(expression, returnType);
+      List<Expression> argValueList0 =
+          EnumUtils.fromInternal(method.getParameterTypes(), newOperands);
+      final Expression target =
+          Expressions.new_(method.getDeclaringClass());
+      return Expressions.call(target, method, argValueList0);
     }
   }
 
