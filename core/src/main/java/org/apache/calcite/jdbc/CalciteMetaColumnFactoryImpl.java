@@ -26,9 +26,9 @@ public class CalciteMetaColumnFactoryImpl implements
     CalciteMetaColumnFactory {
 
   public static final CalciteMetaColumnFactoryImpl INSTANCE = new CalciteMetaColumnFactoryImpl();
-  public CalciteMetaColumnFactoryImpl() {};
+  public CalciteMetaColumnFactoryImpl() {}
 
-  public static String[] columnNames =
+  protected static final String[] COLUMN_NAMES =
       new String[] {
           "TABLE_CAT",
           "TABLE_SCHEM",
@@ -87,7 +87,7 @@ public class CalciteMetaColumnFactoryImpl implements
   }
 
   @Override public String[] getColumnNames() {
-    return columnNames;
+    return COLUMN_NAMES;
   }
 
   @Override public Class<?> getMetaColumnClass() {
