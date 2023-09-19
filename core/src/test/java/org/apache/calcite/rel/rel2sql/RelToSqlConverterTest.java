@@ -10484,6 +10484,20 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFSql));
   }
 
+  @Test public void testSnowflakeSha256Function() {
+    final RelBuilder builder = relBuilder();
+    final RexNode sha2Node = builder.call(SqlLibraryOperators.SHA256,
+        builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(sha2Node, "hashing"))
+        .build();
+    final String expectedBQSql = "SELECT SHA256(ENAME) AS hashing\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
 
   RelNode createLogicalValueRel(RexNode col1, RexNode col2) {
     final RelBuilder builder = relBuilder();
