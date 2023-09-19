@@ -134,6 +134,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SECONDS_PRECISION;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SEC_FROM_MIDNIGHT;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEOFDAY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEWITHTIMEZONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOURMIN;
@@ -301,6 +302,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(SEC_FROM_MIDNIGHT, "SEC_FROM_MIDNIGHT");
         put(QUARTER, "%Q");
         put(TIMEOFDAY, "%c");
+        put(TIMEWITHTIMEZONE, "%c%z");
         put(WEEK_OF_YEAR, "%W");
         put(ABBREVIATED_MONTH_UPPERCASE, "%^b");
       }};
