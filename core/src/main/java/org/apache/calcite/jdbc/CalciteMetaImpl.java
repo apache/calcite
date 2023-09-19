@@ -93,8 +93,8 @@ public class CalciteMetaImpl extends MetaImpl {
   private final CalciteMetaTableFactory metaTableFactory;
   private final CalciteMetaColumnFactory metaColumnFactory;
 
-  /**
-   * Creates a CalciteMetaImpl.
+  /** Creates a CalciteMetaImpl.
+   *
    * @deprecated Use
    * {@link #CalciteMetaImpl(CalciteConnectionImpl, CalciteMetaTableFactory, CalciteMetaColumnFactory)}
    * instead.
