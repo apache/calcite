@@ -10625,6 +10625,19 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expSprk));
   }
 
+  @Test public void testTimeWithTimezoneFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatTimestampRexNode2 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("%c%z"), builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatTimestampRexNode2, "FD2"))
+        .build();
+    final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%c%z', CURRENT_DATETIME()) AS FD2\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test void testConversionOfFilterWithCrossJoinToFilterWithInnerJoin() {
     String query =
         "select *\n"
