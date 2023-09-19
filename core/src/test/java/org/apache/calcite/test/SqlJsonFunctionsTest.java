@@ -651,15 +651,17 @@ class SqlJsonFunctionsTest {
 
   private void assertJsonExists(JsonFunctions.JsonPathContext context,
       SqlJsonExistsErrorBehavior errorBehavior, Matcher<? super Boolean> matcher) {
-    assertThat(invocationDesc(BuiltInMethod.JSON_EXISTS.getMethodName(), context, errorBehavior),
-        JsonFunctions.jsonExists(context, errorBehavior), matcher);
+    final JsonFunctions.CacheableJsonFunction f = new JsonFunctions.CacheableJsonFunction();
+    assertThat(invocationDesc(BuiltInMethod.JSON_EXISTS2.getMethodName(), context, errorBehavior),
+        f.jsonExists(context, errorBehavior), matcher);
   }
 
   private void assertJsonExistsFailed(JsonFunctions.JsonPathContext context,
       SqlJsonExistsErrorBehavior errorBehavior,
       Matcher<? super Throwable> matcher) {
-    assertFailed(invocationDesc(BuiltInMethod.JSON_EXISTS.getMethodName(), context, errorBehavior),
-        () -> JsonFunctions.jsonExists(
+    final JsonFunctions.CacheableJsonFunction f = new JsonFunctions.CacheableJsonFunction();
+    assertFailed(invocationDesc(BuiltInMethod.JSON_EXISTS2.getMethodName(), context, errorBehavior),
+        () -> f.jsonExists(
             context, errorBehavior), matcher);
   }
 
@@ -669,10 +671,11 @@ class SqlJsonFunctionsTest {
       SqlJsonValueEmptyOrErrorBehavior errorBehavior,
       Object defaultValueOnError,
       Matcher<Object> matcher) {
+    final JsonFunctions.CacheableJsonFunction f = new JsonFunctions.CacheableJsonFunction();
     assertThat(
         invocationDesc(BuiltInMethod.JSON_VALUE.getMethodName(), context, emptyBehavior,
             defaultValueOnEmpty, errorBehavior, defaultValueOnError),
-        JsonFunctions.jsonValue(context, emptyBehavior, defaultValueOnEmpty,
+        f.jsonValue(context, emptyBehavior, defaultValueOnEmpty,
             errorBehavior, defaultValueOnError),
         matcher);
   }
@@ -683,10 +686,11 @@ class SqlJsonFunctionsTest {
       SqlJsonValueEmptyOrErrorBehavior errorBehavior,
       Object defaultValueOnError,
       Matcher<? super Throwable> matcher) {
+    final JsonFunctions.CacheableJsonFunction f = new JsonFunctions.CacheableJsonFunction();
     assertFailed(
         invocationDesc(BuiltInMethod.JSON_VALUE.getMethodName(), input, emptyBehavior,
             defaultValueOnEmpty, errorBehavior, defaultValueOnError),
-        () -> JsonFunctions.jsonValue(input, emptyBehavior,
+        () -> f.jsonValue(input, emptyBehavior,
             defaultValueOnEmpty, errorBehavior, defaultValueOnError),
         matcher);
   }
@@ -696,10 +700,11 @@ class SqlJsonFunctionsTest {
       SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
       SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
       Matcher<? super String> matcher) {
+    final JsonFunctions.CacheableJsonFunction f = new JsonFunctions.CacheableJsonFunction();
     assertThat(
         invocationDesc(BuiltInMethod.JSON_QUERY.getMethodName(), input, wrapperBehavior,
             emptyBehavior, errorBehavior),
-        JsonFunctions.jsonQuery(input, wrapperBehavior, emptyBehavior,
+        f.jsonQuery(input, wrapperBehavior, emptyBehavior,
             errorBehavior),
         matcher);
   }
@@ -709,10 +714,11 @@ class SqlJsonFunctionsTest {
       SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
       SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
       Matcher<? super Throwable> matcher) {
+    final JsonFunctions.CacheableJsonFunction f = new JsonFunctions.CacheableJsonFunction();
     assertFailed(
         invocationDesc(BuiltInMethod.JSON_QUERY.getMethodName(), input, wrapperBehavior,
             emptyBehavior, errorBehavior),
-        () -> JsonFunctions.jsonQuery(input, wrapperBehavior, emptyBehavior,
+        () -> f.jsonQuery(input, wrapperBehavior, emptyBehavior,
             errorBehavior),
         matcher);
   }
