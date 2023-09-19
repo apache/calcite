@@ -6917,6 +6917,8 @@ public class SqlParserTest {
             + "    \"MONTHS\" \\.\\.\\.\n"
             + "    \"SECOND\" \\.\\.\\.\n"
             + "    \"SECONDS\" \\.\\.\\.\n"
+            + "    \"WEEK\" \\.\\.\\.\n"
+            + "    \"WEEKS\" \\.\\.\\.\n"
             + "    \"YEAR\" \\.\\.\\.\n"
             + "    \"YEARS\" \\.\\.\\.\n"
             + "    ");

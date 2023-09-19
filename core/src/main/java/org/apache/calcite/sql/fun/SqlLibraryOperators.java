@@ -1677,6 +1677,17 @@ public abstract class SqlLibraryOperators {
           OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction SNOWFLAKE_LAST_DAY =
+      new SqlFunction(
+          "LAST_DAY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.family(ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
+              number -> number == 2),
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {TERADATA, SNOWFLAKE})
   public static final SqlFunction GETBIT =
       new SqlFunction("GETBIT",
@@ -1748,6 +1759,15 @@ public abstract class SqlLibraryOperators {
               // Second operand is optional
               number -> number == 1),
           SqlFunctionCategory.NUMERIC);
+
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction PARSE_JSON =
+      new SqlFunction("PARSE_JSON",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.SYSTEM);
   @LibraryOperator(libraries = {SNOWFLAKE, ORACLE, TERADATA})
   public static final SqlFunction ANY =
       new SqlFunction("ANY",

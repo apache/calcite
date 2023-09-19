@@ -132,6 +132,7 @@ import static org.apache.calcite.avatica.util.TimeUnit.MICROSECOND;
 import static org.apache.calcite.avatica.util.TimeUnit.MINUTE;
 import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
 import static org.apache.calcite.avatica.util.TimeUnit.SECOND;
+import static org.apache.calcite.avatica.util.TimeUnit.WEEK;
 import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
@@ -10696,6 +10697,23 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
+  @Test public void testPlusForDateAddForWeek() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
+        builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
+        builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(604800000),
+            new SqlIntervalQualifier(WEEK, 7, WEEK,
+                -1, SqlParserPos.ZERO)));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "FD"))
+        .build();
+    final String expectedBiqQuery = "SELECT DATE_ADD(DATE '1999-07-01', INTERVAL 1 WEEK) AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testPlusForDateSub() {
     final RelBuilder builder = relBuilder();
 
@@ -12238,6 +12256,28 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testSnowflakeLastDay() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexNode lastDayNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
+        relBuilder.literal("13-JAN-1999"));
+    RexNode lastDayWithDatePartNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
+        relBuilder.literal("13-JAN-1999"),
+        relBuilder.literal("YEAR"));
+
+    RelNode root = relBuilder
+        .project(lastDayWithDatePartNode, lastDayNode)
+        .build();
+    final String expectedSnowflakeSql = "SELECT LAST_DAY('13-JAN-1999', 'YEAR') AS \"$f0\", "
+        + "LAST_DAY('13-JAN-1999') AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBQSql = "SELECT LAST_DAY('13-JAN-1999', YEAR) AS `$f0`, "
+        + "LAST_DAY('13-JAN-1999') AS `$f1`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
   @Test public void testOracleRoundFunction() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
@@ -13015,5 +13055,19 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testParseJsonFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseJsonNode = builder.call(SqlLibraryOperators.PARSE_JSON,
+        builder.literal("NULL"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseJsonNode, "null_value"))
+        .build();
+    final String expectedBigquery = "SELECT PARSE_JSON('NULL') AS null_value\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
   }
 }
