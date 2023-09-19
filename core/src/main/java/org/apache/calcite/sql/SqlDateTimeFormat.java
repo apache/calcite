@@ -90,6 +90,7 @@ public enum SqlDateTimeFormat {
   WEEK_OF_MONTH("W"),
   TIMEOFDAY("TIMEOFDAY"),
   YYYYDDMM("YYYYDDMM"),
+  TIMEWITHTIMEZONE("%c%z"),
   ABBREVIATED_MONTH_UPPERCASE("MONU");
 
   public final String value;
