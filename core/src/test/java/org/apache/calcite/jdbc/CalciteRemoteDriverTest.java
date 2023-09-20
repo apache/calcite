@@ -129,6 +129,15 @@ class CalciteRemoteDriverTest {
         }
       };
 
+  private static final Function<Connection, ResultSet> GET_TABLES =
+      connection -> {
+        try {
+          return connection.getMetaData().getTables(null, null, null, null);
+        } catch (SQLException e) {
+          throw TestUtil.rethrow(e);
+        }
+      };
+
   private static final Function<Connection, ResultSet> GET_TYPEINFO =
       connection -> {
         try {
@@ -277,11 +286,38 @@ class CalciteRemoteDriverTest {
             + "TABLE_SCHEM=metadata; TABLE_CATALOG=null\n");
   }
 
+  /** This checks that the default getTables() response
+   * contains the 24 standard columns specified in the JDBC specification
+   * and in the correct order.
+   */
   @Test void testRemoteColumns() {
     CalciteAssert.hr()
         .with(CalciteRemoteDriverTest::getRemoteConnection)
         .metaData(GET_COLUMNS)
-        .returns(CalciteAssert.checkResultContains("COLUMN_NAME=EMPNO"));
+        .returns(
+            CalciteAssert.checkResultContains("TABLE_CAT=null; "
+            + "TABLE_SCHEM=POST; TABLE_NAME=EMPS; COLUMN_NAME=EMPNO; DATA_TYPE=4; "
+            + "TYPE_NAME=INTEGER NOT NULL; COLUMN_SIZE=-1; BUFFER_LENGTH=null; "
+            + "DECIMAL_DIGITS=null; NUM_PREC_RADIX=10; NULLABLE=0; REMARKS=null; "
+            + "COLUMN_DEF=null; SQL_DATA_TYPE=null; SQL_DATETIME_SUB=null; "
+            + "CHAR_OCTET_LENGTH=-1; ORDINAL_POSITION=1; IS_NULLABLE=NO; "
+            + "SCOPE_CATALOG=null; SCOPE_SCHEMA=null; SCOPE_TABLE=null; "
+            + "SOURCE_DATA_TYPE=null; IS_AUTOINCREMENT=; IS_GENERATEDCOLUMN="));
+  }
+
+  /** This checks that the default getTables() response
+   * contains the 10 standard columns specified in the JDBC specification
+   * and in the correct order.
+    */
+  @Test void testRemoteTables() {
+    CalciteAssert.hr()
+        .with(CalciteRemoteDriverTest::getRemoteConnection)
+        .metaData(GET_TABLES)
+        .returns(
+            CalciteAssert.checkResultContains(
+            "TABLE_CAT=null; TABLE_SCHEM=POST; TABLE_NAME=DEPT; "
+            + "TABLE_TYPE=VIEW; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; "
+            + "TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null"));
   }
 
   @Test void testRemoteTypeInfo() {
