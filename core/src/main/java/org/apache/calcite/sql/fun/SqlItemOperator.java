@@ -59,8 +59,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
     this.safe = safe;
   }
 
-  @Override
-  public ReduceResult reduceExpr(int ordinal,
+  @Override public ReduceResult reduceExpr(int ordinal,
       TokenSequence list) {
     SqlNode left = list.node(ordinal - 1);
     SqlNode right = list.node(ordinal + 1);
@@ -75,8 +74,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
             right));
   }
 
-  @Override
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     call.operand(0).unparse(writer, leftPrec, 0);
     final SqlWriter.Frame frame = writer.startList("[", "]");
@@ -84,13 +82,11 @@ public class SqlItemOperator extends SqlSpecialOperator {
     writer.endList(frame);
   }
 
-  @Override
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(2);
   }
 
-  @Override
-  public boolean checkOperandTypes(SqlCallBinding callBinding,
+  @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
       boolean throwOnFailure) {
     final SqlNode left = callBinding.operand(0);
     final SqlNode right = callBinding.operand(1);
@@ -103,8 +99,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
         throwOnFailure);
   }
 
-  @Override
-  public SqlSingleOperandTypeChecker getOperandTypeChecker() {
+  @Override public SqlSingleOperandTypeChecker getOperandTypeChecker() {
     return (SqlSingleOperandTypeChecker)
         requireNonNull(super.getOperandTypeChecker(), "operandTypeChecker");
   }
@@ -132,8 +127,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
     }
   }
 
-  @Override
-  public String getAllowedSignatures(String name) {
+  @Override public String getAllowedSignatures(String name) {
     if (name.equals("ITEM")) {
       return "<ARRAY>[<INTEGER>]\n"
           + "<MAP>[<ANY>]\n"
@@ -143,8 +137,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
     }
   }
 
-  @Override
-  public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+  @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     final RelDataType operandType = opBinding.getOperandType(0);
     switch (operandType.getSqlTypeName()) {
