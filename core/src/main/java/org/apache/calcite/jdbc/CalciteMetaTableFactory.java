@@ -19,14 +19,34 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.avatica.MetaImpl.MetaTable;
 import org.apache.calcite.schema.Table;
 
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
+
 /** Factory for creating MetaTables for getTables(). */
 public interface CalciteMetaTableFactory {
   /** Instantiates a MetaTable. */
   MetaTable newMetaTable(Table table, String tableCat, String tableSchem, String tableName);
 
-  /** Returns the list of expected column names. */
-  String[] getColumnNames();
+  /** Returns the list of expected column names.
+   *  The default implementation returns the columns described in the JDBC specification.
+   * */
+  default List<String> getColumnNames() {
+    return JDBC_STANDARD_COLUMNS;
+  }
 
-  /** Returns the class of MetaTable that is created. */
-  Class<?> getMetaTableClass();
+  /** Returns the type of object created. Must be a subclass of MetaTable. */
+  Class<? extends MetaTable> getMetaTableClass();
+
+  List<String> JDBC_STANDARD_COLUMNS =
+      ImmutableList.of("TABLE_CAT",
+      "TABLE_SCHEM",
+      "TABLE_NAME",
+      "TABLE_TYPE",
+      "REMARKS",
+      "TYPE_CAT",
+      "TYPE_SCHEM",
+      "TYPE_NAME",
+      "SELF_REFERENCING_COL_NAME",
+      "REF_GENERATION");
 }

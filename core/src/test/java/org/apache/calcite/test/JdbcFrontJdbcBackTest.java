@@ -29,6 +29,8 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.apache.calcite.test.CalciteAssert.that;
 
@@ -80,10 +82,8 @@ class JdbcFrontJdbcBackTest {
   }
 
 
-  /**
-   * Sample subclass used in {@link JdbcFrontJdbcBackTest#testTablesExtraColumn()}.
-   */
-  public static class MetaExtraTable extends CalciteMetaTable {
+  /** Sample subclass used in {@link JdbcFrontJdbcBackTest#testTablesExtraColumn()}.*/
+  private static class MetaExtraTable extends CalciteMetaTable {
     public final String extraLabel;
     MetaExtraTable(Table calciteTable, String tableCat,
         String tableSchem, String tableName) {
@@ -92,7 +92,9 @@ class JdbcFrontJdbcBackTest {
     }
   }
 
-  /** Sample factory that creates MetaExtraTables. */
+  /** Sample factory that creates MetaExtraTables.
+   * This needs to be public otherwise inaccessible from {@link org.apache.calcite.jdbc.Driver}
+   * */
   public static class MetaExtraTableFactoryImpl implements CalciteMetaTableFactory {
 
     public static final MetaExtraTableFactoryImpl INSTANCE = new MetaExtraTableFactoryImpl();
@@ -104,9 +106,9 @@ class JdbcFrontJdbcBackTest {
       return new MetaExtraTable(table, tableCat, tableSchem, tableName);
     }
 
-    @Override public String[] getColumnNames() {
+    @Override public List<String> getColumnNames() {
       // 11 columns total.
-      return new String[] {
+      return Arrays.asList(
           "TABLE_CAT",
           "TABLE_SCHEM",
           "TABLE_NAME",
@@ -117,10 +119,10 @@ class JdbcFrontJdbcBackTest {
           "TYPE_NAME",
           "SELF_REFERENCING_COL_NAME",
           "REF_GENERATION",
-          "EXTRA_LABEL"};
+          "EXTRA_LABEL");
     }
 
-    @Override public Class<?> getMetaTableClass() {
+    @Override public Class<? extends MetaTable> getMetaTableClass() {
       return MetaExtraTable.class;
     }
   }

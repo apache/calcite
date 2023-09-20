@@ -19,7 +19,11 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.avatica.MetaImpl.MetaColumn;
 import org.apache.calcite.schema.Table;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
 
 /** Factory for creating MetaColumns for getColumns(). */
 public interface CalciteMetaColumnFactory {
@@ -40,9 +44,39 @@ public interface CalciteMetaColumnFactory {
       int ordinalPosition,
       String isNullable);
 
-  /** Returns the list of expected column names. */
-  String[] getColumnNames();
+  /** Returns the list of expected column names.
+   *  The default implementation returns the columns described in the JDBC specification.
+   * */
+  default List<String> getColumnNames() {
+    return JDBC_STANDARD_COLUMNS;
+  }
 
-  /** Returns the class of MetaColumn that is created. */
-  Class<?> getMetaColumnClass();
+  /** Returns the type of object created. Must be a subclass of MetaColumn. */
+  Class<? extends MetaColumn> getMetaColumnClass();
+
+  List<String> JDBC_STANDARD_COLUMNS =
+      ImmutableList.of("TABLE_CAT",
+      "TABLE_SCHEM",
+      "TABLE_NAME",
+      "COLUMN_NAME",
+      "DATA_TYPE",
+      "TYPE_NAME",
+      "COLUMN_SIZE",
+      "BUFFER_LENGTH",
+      "DECIMAL_DIGITS",
+      "NUM_PREC_RADIX",
+      "NULLABLE",
+      "REMARKS",
+      "COLUMN_DEF",
+      "SQL_DATA_TYPE",
+      "SQL_DATETIME_SUB",
+      "CHAR_OCTET_LENGTH",
+      "ORDINAL_POSITION",
+      "IS_NULLABLE",
+      "SCOPE_CATALOG",
+      "SCOPE_SCHEMA",
+      "SCOPE_TABLE",
+      "SOURCE_DATA_TYPE",
+      "IS_AUTOINCREMENT",
+      "IS_GENERATEDCOLUMN");
 }

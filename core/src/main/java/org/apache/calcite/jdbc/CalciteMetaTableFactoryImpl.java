@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.jdbc;
 
+import org.apache.calcite.avatica.MetaImpl.MetaTable;
 import org.apache.calcite.jdbc.CalciteMetaImpl.CalciteMetaTable;
 import org.apache.calcite.schema.Table;
 
@@ -25,19 +26,6 @@ public class CalciteMetaTableFactoryImpl implements
 
   public static final CalciteMetaTableFactoryImpl INSTANCE = new CalciteMetaTableFactoryImpl();
   public CalciteMetaTableFactoryImpl() {}
-
-  protected static final String[] COLUMN_NAMES =
-      new String[] {"TABLE_CAT",
-          "TABLE_SCHEM",
-          "TABLE_NAME",
-          "TABLE_TYPE",
-          "REMARKS",
-          "TYPE_CAT",
-          "TYPE_SCHEM",
-          "TYPE_NAME",
-          "SELF_REFERENCING_COL_NAME",
-          "REF_GENERATION"};
-
   @Override public CalciteMetaTable newMetaTable(
       Table table,
       String tableCat,
@@ -46,11 +34,7 @@ public class CalciteMetaTableFactoryImpl implements
     return new CalciteMetaTable(table, tableCat, tableSchem, tableName);
   }
 
-  @Override public String[] getColumnNames() {
-    return COLUMN_NAMES;
-  }
-
-  @Override public Class<?> getMetaTableClass() {
+  @Override public Class<? extends MetaTable> getMetaTableClass() {
     return CalciteMetaTable.class;
   }
 }
