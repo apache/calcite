@@ -646,8 +646,8 @@ public abstract class ReturnTypes {
       ARG0.andThen(SqlTypeTransforms.TO_ARRAY);
 
   /**
-   * Same as {@link #TO_ARRAY} but returns with nullability if any of the
-   * operands is nullable.
+   * Type-inference strategy whereby the result type of a call is nullable
+   * <code>ARRAY</code>.
    */
   public static final SqlReturnTypeInference ARRAY_NULLABLE =
       TO_ARRAY.andThen(SqlTypeTransforms.TO_NULLABLE);
