@@ -1283,13 +1283,12 @@ class RelToSqlConverterTest {
     final String query = "select\n"
         + "  AVG(\"net_weight\") OVER (order by \"product_id\" rows 3 preceding)\n"
         + "from \"foodmart\".\"product\"";
-    final String expectedPostgresql = "SELECT CASE WHEN (COUNT(\"net_weight\")"
-        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW)) > 0 "
-        + "THEN COALESCE(SUM(\"net_weight\")"
-        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0)"
-        + " ELSE NULL END / (COUNT(\"net_weight\")"
-        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW))\n"
-        + "FROM \"foodmart\".\"product\"";
+    final String expectedPostgresql =
+        "SELECT "
+            + "(SUM(\"net_weight\") OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW))"
+            + " / "
+            + "(COUNT(\"net_weight\") OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW))\n"
+            + "FROM \"foodmart\".\"product\"";
     sql(query)
         .withPostgresql().ok(expectedPostgresql);
   }
@@ -4170,12 +4169,9 @@ class RelToSqlConverterTest {
     String query8 = "SELECT "
         + "sum(distinct \"position_id\") over (order by \"hire_date\") FROM \"employee\"";
     String expected8 =
-        "SELECT CASE WHEN (COUNT(DISTINCT \"position_id\") OVER (ORDER BY \"hire_date\" "
-            + "RANGE"
-            + " BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) > 0 THEN COALESCE(SUM(DISTINCT "
-            + "\"position_id\") OVER (ORDER BY \"hire_date\" RANGE BETWEEN UNBOUNDED "
-            + "PRECEDING AND CURRENT ROW), 0) ELSE NULL END\n"
-            + "FROM \"foodmart\".\"employee\"";
+        "SELECT SUM(DISTINCT \"position_id\") "
+            + "OVER (ORDER BY \"hire_date\" RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)"
+            + " AS \"$0\"\nFROM \"foodmart\".\"employee\"";
 
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(ProjectToWindowRule.class);
