@@ -250,11 +250,17 @@ public class Programs {
 
   /** Returns the standard program used by Prepare. */
   public static Program standard() {
-    return standard(DefaultRelMetadataProvider.INSTANCE);
+    return standard(DefaultRelMetadataProvider.INSTANCE, true);
   }
 
   /** Returns the standard program with user metadata provider. */
   public static Program standard(RelMetadataProvider metadataProvider) {
+    return standard(metadataProvider, true);
+  }
+
+  /** Returns the standard program with user metadata provider and enableFieldTrimming config. */
+  public static Program standard(RelMetadataProvider metadataProvider,
+      boolean enableFieldTrimming) {
     final Program program1 =
         (planner, rel, requiredOutputTraits, materializations, lattices) -> {
           for (RelOptMaterialization materialization : materializations) {
@@ -278,7 +284,8 @@ public class Programs {
           return rootRel3;
         };
 
-    return sequence(subQuery(metadataProvider),
+    List<Program> programs =
+        Lists.newArrayList(subQuery(metadataProvider),
         new DecorrelateProgram(),
         new TrimFieldsProgram(),
         program1,
@@ -286,6 +293,10 @@ public class Programs {
         // Second planner pass to do physical "tweaks". This the first time
         // that EnumerableCalcRel is introduced.
         calc(metadataProvider));
+
+    programs.removeIf(program -> !enableFieldTrimming && program instanceof TrimFieldsProgram);
+
+    return new SequenceProgram(ImmutableList.copyOf(programs));
   }
 
   /** Program backed by a {@link RuleSet}. */
