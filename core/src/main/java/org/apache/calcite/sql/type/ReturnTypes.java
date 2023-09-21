@@ -649,7 +649,7 @@ public abstract class ReturnTypes {
    * Type-inference strategy whereby the result type of a call is nullable
    * <code>ARRAY</code>.
    */
-  public static final SqlReturnTypeInference ARRAY_NULLABLE =
+  public static final SqlReturnTypeInference TO_ARRAY_NULLABLE =
       TO_ARRAY.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
