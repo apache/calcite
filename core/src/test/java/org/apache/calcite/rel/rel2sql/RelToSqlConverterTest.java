@@ -12455,6 +12455,25 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(snowflakeSql));
   }
 
+  @Test public void testTryToTimeFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode tryToTimeNode = builder.call(SqlLibraryOperators.TRY_TO_TIME,
+        builder.literal("01:02:03"));
+    final RexNode tryToTimeNodeWithFormat = builder.call(SqlLibraryOperators.TRY_TO_TIME,
+        builder.literal("01:02:03"), builder.literal("HH24:MI:SS"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(tryToTimeNode, "time_value"), tryToTimeNodeWithFormat)
+        .build();
+
+    final String snowflakeSql =
+        "SELECT TRY_TO_TIME('01:02:03') AS \"time_value\", TRY_TO_TIME('01:02:03', "
+            + "'HH24:MI:SS') AS \"$f1\"\n"
+            + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(snowflakeSql));
+  }
+
   @Test public void testCountSetWithLiteralParameter() {
     RelBuilder builder = relBuilder();
     final RexNode bitCountRexNode = builder.call(SqlLibraryOperators.BIT_COUNT,
