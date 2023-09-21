@@ -868,8 +868,6 @@ public abstract class SqlLibraryOperators {
               OperandTypes.STRING_STRING),
           SqlFunctionCategory.TIMEDATE);
 
-  /**Same as {@link #TO_TIME}, except ,if the conversion cannot be performed,
-   * it returns a NULL value instead of raising an error.*/
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction TRY_TO_TIME =
       new SqlFunction("TRY_TO_TIME",
@@ -878,8 +876,7 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.or(
               OperandTypes.STRING,
-              OperandTypes.STRING_STRING,
-              OperandTypes.INTEGER),
+              OperandTypes.STRING_STRING),
           SqlFunctionCategory.TIMEDATE);
 
   /**Same as {@link #TO_DATE}, except ,if the conversion cannot be performed,
