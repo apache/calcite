@@ -392,6 +392,9 @@ public abstract class SqlImplementor {
               rightContext.field(op0.getIndex() - leftFieldCount));
         }
       }
+      joinContext =
+          leftContext.implementor().joinContext(leftContext, rightContext);
+      return joinContext.toSql(null, node);
     default:
       joinContext =
           leftContext.implementor().joinContext(leftContext, rightContext);
