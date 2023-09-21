@@ -137,6 +137,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MO
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.QUARTERNUMBER_OF_YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
@@ -12215,6 +12216,28 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testSnowflakeLastDay() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexNode lastDayNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
+        relBuilder.literal("13-JAN-1999"));
+    RexNode lastDayWithDatePartNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
+        relBuilder.literal("13-JAN-1999"),
+        relBuilder.literal("YEAR"));
+
+    RelNode root = relBuilder
+        .project(lastDayWithDatePartNode, lastDayNode)
+        .build();
+    final String expectedSnowflakeSql = "SELECT LAST_DAY('13-JAN-1999', 'YEAR') AS \"$f0\", "
+        + "LAST_DAY('13-JAN-1999') AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBQSql = "SELECT LAST_DAY('13-JAN-1999', YEAR) AS `$f0`, "
+        + "LAST_DAY('13-JAN-1999') AS `$f1`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
   @Test public void testOracleRoundFunction() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
@@ -12938,6 +12961,41 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testSplitPartFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode splitPart = builder.call(SqlLibraryOperators.SPLIT_PART,
+        builder.literal("123@Domain|Example"), builder.literal("@"), builder.literal(2));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(splitPart, "Result"))
+        .build();
+    final String expectedSnowFlakeQuery = "SELECT SPLIT_PART('123@Domain|Example', '@', 2) AS "
+        + "\"Result\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()),
+        isLinux(expectedSnowFlakeQuery));
+
+  }
+
+  @Test public void testSplitFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode split = builder.call(SqlLibraryOperators.SPLIT,
+        builder.literal("123@Domain|Example"), builder.literal("@"));
+
+    RexNode splitAccess = builder.call(SAFE_OFFSET, split, builder.literal(2));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(splitAccess, "Result"))
+        .build();
+
+    final String expectedBigQuery = "SELECT SPLIT('123@Domain|Example', '@')[SAFE_OFFSET(2)] "
+        + "AS Result\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
   }
 
   @Test public void testToCurrentTimestampFunction() {

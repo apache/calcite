@@ -747,6 +747,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case OVER:
       unparseOver(writer, call, leftPrec, rightPrec);
       break;
+    case ITEM:
+      unparseItem(writer, call, leftPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -758,6 +761,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     } else {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseItem(SqlWriter writer, SqlCall call, final int leftPrec) {
+    call.operand(0).unparse(writer, leftPrec, 0);
+    final SqlWriter.Frame frame = writer.startList("[", "]");
+    final SqlWriter.Frame funcFrame = writer.startFunCall(call.getOperator().getName());
+    call.operand(1).unparse(writer, 0, 0);
+    writer.endFunCall(funcFrame);
+    writer.endList(frame);
   }
 
   private boolean isFirstOperandPercentileCont(SqlCall call) {
@@ -1267,6 +1279,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "BITNOT":
       unparseBitNotFunction(writer, call);
       break;
+    case "LAST_DAY":
+      unparseLastDay(writer, call, leftPrec, rightPrec);
+      break;
     case "SHIFTRIGHT":
       unparseShiftLeftAndShiftRight(writer, call, false);
       break;
@@ -1321,6 +1336,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.print(")");
   }
 
+  private void unparseLastDay(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame funcFrame = writer.startFunCall(call.getOperator().getName());
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    if (call.operandCount() == 2) {
+      writer.sep(",", true);
+      writer.keyword(requireNonNull(unquoteStringLiteral(String.valueOf(call.operand(1)))));
+    }
+    writer.endFunCall(funcFrame);
+  }
 
   private boolean isBasicCallWithNegativePrefix(SqlNode secondOperand) {
     return secondOperand instanceof SqlBasicCall
