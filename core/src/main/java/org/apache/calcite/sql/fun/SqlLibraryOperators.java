@@ -1811,4 +1811,8 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
           OperandTypes.STRING,
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction QUANTILE =
+      new SqlQuantileFunction(SqlKind.QUANTILE, ReturnTypes.INTEGER);
 }
