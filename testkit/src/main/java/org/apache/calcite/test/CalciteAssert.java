@@ -679,6 +679,7 @@ public class CalciteAssert {
       Connection connection,
       String sql,
       boolean materializationsEnabled,
+      List<Pair<Hook, Consumer>> hooks,
       final Consumer<RelNode> convertChecker,
       final Consumer<RelNode> substitutionChecker) {
     try (Closer closer = new Closer()) {
@@ -689,6 +690,9 @@ public class CalciteAssert {
       if (substitutionChecker != null) {
         closer.add(
             Hook.SUB.addThread(substitutionChecker));
+      }
+      for (Pair<Hook, Consumer> hook : hooks) {
+        closer.add(hook.left.addThread(hook.right));
       }
       ((CalciteConnection) connection).getProperties().setProperty(
           CalciteConnectionProperty.MATERIALIZATIONS_ENABLED.camelName(),
@@ -1559,14 +1563,14 @@ public class CalciteAssert {
 
     public AssertQuery convertMatches(final Consumer<RelNode> checker) {
       return withConnection(connection ->
-        assertPrepare(connection, sql, this.materializationsEnabled,
+        assertPrepare(connection, sql, this.materializationsEnabled, hooks,
             checker, null));
     }
 
     public AssertQuery substitutionMatches(
         final Consumer<RelNode> checker) {
       return withConnection(connection ->
-        assertPrepare(connection, sql, materializationsEnabled, null, checker));
+        assertPrepare(connection, sql, materializationsEnabled, hooks, null, checker));
     }
 
     public AssertQuery explainContains(String expected) {

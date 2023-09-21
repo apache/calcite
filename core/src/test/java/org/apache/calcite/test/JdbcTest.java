@@ -47,10 +47,13 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -85,6 +88,8 @@ import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
 import org.apache.calcite.test.schemata.hr.Department;
 import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.test.schemata.hr.HrSchema;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.JsonBuilder;
@@ -149,6 +154,7 @@ import javax.sql.DataSource;
 import static org.apache.calcite.adapter.enumerable.EnumerableRules.ENUMERABLE_MINUS_RULE;
 import static org.apache.calcite.test.CalciteAssert.checkResult;
 import static org.apache.calcite.test.Matchers.isLinux;
+import static org.apache.calcite.tools.Programs.sequence;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -3117,6 +3123,96 @@ public class JdbcTest {
             + "    EnumerableTableScan(table=[[hr, emps]])")
         .returnsUnordered(
             "deptno=10; name=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5984">[CALCITE-5984]</a>
+   * Disabling trimming of unused fields via config and program. */
+  @Test void testJoinWithTrimmingDisabled() {
+    CalciteAssert.hr().query("select \"d\".\"name\" from \"hr\".\"depts\" as \"d\" \n"
+                + "  join \"hr\".\"emps\" as \"e\" on \"d\".\"deptno\" = \"e\".\"deptno\" \n")
+        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
+            (Consumer<Holder<Config>>) configHolder ->
+            configHolder.set(configHolder.get().withTrimUnusedFields(false)))
+        .withHook(Hook.PROGRAM,
+            (Consumer<Holder<Program>>)
+            programHolder -> programHolder
+                    .set(sequence(Programs.SUB_QUERY_PROGRAM, getProgram(), Programs.CALC_PROGRAM)))
+        .convertContains(""
+                + "LogicalProject(name=[$1])\n"
+                + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
+                + "    LogicalTableScan(table=[[hr, depts]])\n"
+                + "    LogicalTableScan(table=[[hr, emps]])\n"
+                + "");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5984">[CALCITE-5984]</a>
+   * Disabling trimming of unused fields via config and program. */
+  @Test void testJoinWithTrimmingEnabledByConfig() {
+    CalciteAssert.hr().query("select \"d\".\"name\" from \"hr\".\"depts\" as \"d\" \n"
+                + "  join \"hr\".\"emps\" as \"e\" on \"d\".\"deptno\" = \"e\".\"deptno\" \n")
+        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
+            (Consumer<Holder<Config>>) configHolder ->
+            configHolder.set(configHolder.get().withTrimUnusedFields(true)))
+        .withHook(Hook.PROGRAM,
+            (Consumer<Holder<Program>>)
+            programHolder -> programHolder
+                    .set(sequence(Programs.SUB_QUERY_PROGRAM, getProgram(), Programs.CALC_PROGRAM)))
+        .convertContains(""
+                + "LogicalProject(name=[$1])\n"
+                + "  LogicalJoin(condition=[=($0, $2)], joinType=[inner])\n"
+                + "    LogicalProject(deptno=[$0], name=[$1])\n"
+                + "      LogicalTableScan(table=[[hr, depts]])\n"
+                + "    LogicalProject(deptno=[$1])\n"
+                + "      LogicalTableScan(table=[[hr, emps]])\n"
+                + "");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5984">[CALCITE-5984]</a>
+   * Disabling trimming of unused fields via config and program. */
+  @Test void testJoinWithTrimmingEnabledByProgram() {
+    CalciteAssert.hr().query("select \"d\".\"name\" from \"hr\".\"depts\" as \"d\" \n"
+                + "  join \"hr\".\"emps\" as \"e\" on \"d\".\"deptno\" = \"e\".\"deptno\" \n")
+        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
+            (Consumer<Holder<Config>>) configHolder ->
+            configHolder.set(configHolder.get().withTrimUnusedFields(false)))
+        .withHook(Hook.PROGRAM,
+            (Consumer<Holder<Program>>)
+            programHolder -> programHolder
+                    .set(Programs.standard()))
+        .convertContains(""
+                + "LogicalProject(name=[$1])\n"
+                + "  LogicalJoin(condition=[=($0, $2)], joinType=[inner])\n"
+                + "    LogicalProject(deptno=[$0], name=[$1])\n"
+                + "      LogicalTableScan(table=[[hr, depts]])\n"
+                + "    LogicalProject(deptno=[$1])\n"
+                + "      LogicalTableScan(table=[[hr, emps]])\n"
+                + "");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5984">[CALCITE-5984]</a>
+   * Disabling trimming of unused fields via config and program. */
+  @Test void testJoinWithTrimmingEnabledByProgramAndConfig() {
+    CalciteAssert.hr().query("select \"d\".\"name\" from \"hr\".\"depts\" as \"d\" \n"
+                + "  join \"hr\".\"emps\" as \"e\" on \"d\".\"deptno\" = \"e\".\"deptno\" \n")
+        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
+            (Consumer<Holder<Config>>) configHolder ->
+                configHolder.set(configHolder.get().withTrimUnusedFields(true)))
+        .withHook(Hook.PROGRAM,
+            (Consumer<Holder<Program>>)
+            programHolder -> programHolder
+                    .set(Programs.standard()))
+        .convertContains(""
+                + "LogicalProject(name=[$1])\n"
+                + "  LogicalJoin(condition=[=($0, $2)], joinType=[inner])\n"
+                + "    LogicalProject(deptno=[$0], name=[$1])\n"
+                + "      LogicalTableScan(table=[[hr, depts]])\n"
+                + "    LogicalProject(deptno=[$1])\n"
+                + "      LogicalTableScan(table=[[hr, emps]])\n"
+                + "");
   }
 
   /** A difficult query: an IN list so large that the planner promotes it
@@ -8245,6 +8341,33 @@ public class JdbcTest {
       }
     }
     return b.toString();
+  }
+
+  /** A program that omits {@link TrimFieldsProgram}. */
+  private static Program getProgram() {
+    final Program program1 =
+        (planner, rel, requiredOutputTraits, materializations, lattices) -> {
+          for (RelOptMaterialization materialization : materializations) {
+            planner.addMaterialization(materialization);
+          }
+          for (RelOptLattice lattice : lattices) {
+            planner.addLattice(lattice);
+          }
+
+          planner.setRoot(rel);
+          final RelNode rootRel2 =
+              rel.getTraitSet().equals(requiredOutputTraits)
+                  ? rel
+                  : planner.changeTraits(rel, requiredOutputTraits);
+          assert rootRel2 != null;
+
+          planner.setRoot(rootRel2);
+          final RelOptPlanner planner2 = planner.chooseDelegate();
+          final RelNode rootRel3 = planner2.findBestExp();
+          assert rootRel3 != null : "could not implement exp";
+          return rootRel3;
+        };
+    return program1;
   }
 
   // Disable checkstyle, so it doesn't complain about fields like "customer_id".
