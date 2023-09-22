@@ -133,6 +133,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.QUARTER;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SECONDS_PRECISION;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SEC_FROM_MIDNIGHT;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TIME;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEOFDAY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEWITHTIMEZONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
@@ -303,6 +304,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(QUARTER, "%Q");
         put(TIMEOFDAY, "%c");
         put(TIMEWITHTIMEZONE, "%c%z");
+        put(TIME, "%c");
         put(WEEK_OF_YEAR, "%W");
         put(ABBREVIATED_MONTH_UPPERCASE, "%^b");
       }};
@@ -1086,6 +1088,15 @@ public class BigQuerySqlDialect extends SqlDialect {
       SqlCall formatCall = PARSE_DATETIME.createCall(SqlParserPos.ZERO,
           createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
       super.unparseCall(writer, formatCall, leftPrec, rightPrec);
+      break;
+    case "PARSE_TIMESTAMP_WITH_TIMEZONE":
+      String dateFormt = call.operand(0) instanceof SqlCharStringLiteral
+          ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
+          .getValue()
+          : call.operand(0).toString();
+      SqlCall formtCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
+          createDateTimeFormatSqlCharLiteral(dateFormt), call.operand(1));
+      super.unparseCall(writer, formtCall, leftPrec, rightPrec);
       break;
     case "FORMAT_TIME":
       unparseFormatCall(writer, call, leftPrec, rightPrec);

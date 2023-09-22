@@ -86,15 +86,19 @@ public abstract class SqlLibraryOperators {
           OperandTypes.CHARACTER_CHARACTER_DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
-  /** The "CONVERT_TIMEZONE(target_timezone, timestamp)" function;
-   * converts the timezone of {@code timestamp} to {@code target_timezone}. */
+  /**
+   * The "CONVERT_TIMEZONE(source_timezone, target_timezone, timestamp)" function;
+   * "CONVERT_TIMEZONE(target_timezone, timestamp)" function;
+   * converts the timezone of {@code timestamp} to {@code target_timezone}.
+   */
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction CONVERT_TIMEZONE_SF =
       new SqlFunction("CONVERT_TIMEZONE_SF",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP_WITH_TIME_ZONE_NULLABLE,
           null,
-          OperandTypes.or(OperandTypes.STRING_DATETIME, OperandTypes.STRING_STRING),
+          OperandTypes.or(OperandTypes.STRING_DATETIME, OperandTypes.STRING_STRING,
+              OperandTypes.STRING_STRING_STRING, OperandTypes.STRING_STRING_TIMESTAMP),
           SqlFunctionCategory.TIMEDATE);
 
   /** Return type inference for {@code DECODE}. */
@@ -1119,6 +1123,15 @@ public abstract class SqlLibraryOperators {
         null,
         OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
         SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction PARSE_TIMESTAMP_WITH_TIMEZONE =
+      new SqlFunction("PARSE_TIMESTAMP_WITH_TIMEZONE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_WITH_TIME_ZONE_NULLABLE,
+          null,
+          OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
+          SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction PARSE_DATETIME =
