@@ -162,6 +162,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CSC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CSCH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME;
@@ -996,6 +997,7 @@ public class RexImpTable {
       map.put(CURRENT_TIME, systemFunctionImplementor);
       map.put(CURRENT_TIMESTAMP, systemFunctionImplementor);
       map.put(CURRENT_DATE, systemFunctionImplementor);
+      map.put(CURRENT_DATETIME, systemFunctionImplementor);
       map.put(LOCALTIME, systemFunctionImplementor);
       map.put(LOCALTIMESTAMP, systemFunctionImplementor);
 
@@ -3476,6 +3478,13 @@ public class RexImpTable {
         return Expressions.call(BuiltInMethod.CURRENT_TIME.method, root);
       } else if (op == CURRENT_DATE) {
         return Expressions.call(BuiltInMethod.CURRENT_DATE.method, root);
+      } else if (op == CURRENT_DATETIME) {
+        if (call.getOperands().isEmpty()) {
+          return Expressions.call(BuiltInMethod.CURRENT_DATETIME.method, root);
+        } else {
+          return Expressions.call(BuiltInMethod.CURRENT_DATETIME2.method, root,
+            argValueList.get(0));
+        }
       } else if (op == LOCALTIMESTAMP) {
         return Expressions.call(BuiltInMethod.LOCAL_TIMESTAMP.method, root);
       } else if (op == LOCALTIME) {
