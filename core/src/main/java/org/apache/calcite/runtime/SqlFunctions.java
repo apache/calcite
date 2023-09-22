@@ -4708,6 +4708,23 @@ public class SqlFunctions {
     return date;
   }
 
+  /** SQL {@code CURRENT_DATETIME} function. */
+  @NonDeterministic
+  public static Long currentDatetime(DataContext root) {
+    final long timestamp = DataContext.Variable.CURRENT_TIMESTAMP.get(root);
+    return datetime(timestamp);
+  }
+
+  /** SQL {@code CURRENT_DATETIME} function with a specified timezone. */
+  @NonDeterministic
+  public static @Nullable Long currentDatetime(DataContext root, @Nullable String timezone) {
+    if (timezone == null) {
+      return null;
+    }
+    final long timestamp = DataContext.Variable.UTC_TIMESTAMP.get(root);
+    return datetime(timestamp, timezone);
+  }
+
   /** SQL {@code LOCAL_TIMESTAMP} function. */
   @NonDeterministic
   public static long localTimestamp(DataContext root) {

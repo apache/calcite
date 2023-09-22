@@ -79,20 +79,24 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
       SqlSyntax syntax,
       List<SqlOperator> operatorList,
       SqlNameMatcher nameMatcher) {
-    for (SqlOperator operator : this.operatorList) {
-      if (operator.getSyntax().family != syntax) {
-        continue;
-      }
+    for (SqlOperator op : this.operatorList) {
       if (!opName.isSimple()
-          || !nameMatcher.matches(operator.getName(), opName.getSimple())) {
+          || !nameMatcher.matches(op.getName(), opName.getSimple())) {
         continue;
       }
       if (category != null
-          && category != category(operator)
+          && category != category(op)
           && !category.isUserDefinedNotSpecificFunction()) {
         continue;
       }
-      operatorList.add(operator);
+      if (op.getSyntax() == syntax) {
+        operatorList.add(op);
+      } else if (syntax == SqlSyntax.FUNCTION
+          && op instanceof SqlFunction) {
+        // this special case is needed for operators like CAST,
+        // which are treated as functions but have special syntax
+        operatorList.add(op);
+      }
     }
   }
 

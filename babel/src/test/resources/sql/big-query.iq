@@ -148,23 +148,25 @@ SELECT current_date() AS the_date, t.current_date FROM t;
 #
 # Returns DATETIME
 
-!if (false) {
-SELECT CURRENT_DATETIME() as now;
-+----------------------------+
-| now                        |
-+----------------------------+
-| 2016-05-19T10:38:47.046465 |
-+----------------------------+
+SELECT CURRENT_DATETIME() > DATETIME '2008-12-25 15:30:00' as now;
++------+
+| now  |
++------+
+| true |
++------+
+(1 row)
+
 !ok
 
-SELECT CURRENT_DATETIME as now;
-+----------------------------+
-| now                        |
-+----------------------------+
-| 2016-05-19T10:38:47.046465 |
-+----------------------------+
+SELECT CURRENT_DATETIME > DATETIME '2008-12-25 15:30:00' as now;
++------+
+| now  |
++------+
+| true |
++------+
+(1 row)
+
 !ok
-!}
 
 # When a column named current_datetime is present, the column name and
 # the function call without parentheses are ambiguous. To ensure the
@@ -173,16 +175,26 @@ SELECT CURRENT_DATETIME as now;
 # select the function in the now column and the table column in the
 # current_datetime column.
 
-!if (false) {
 WITH t AS (SELECT 'column value' AS `current_datetime`)
-SELECT current_datetime() as now, t.current_datetime FROM t;
-+----------------------------+------------------+
-| now                        | current_datetime |
-+----------------------------+------------------+
-| 2016-05-19T10:38:47.046465 | column value     |
-+----------------------------+------------------+
+SELECT current_datetime() > DATETIME '2008-12-25 15:30:00' as now, t.current_datetime FROM t;
++------+------------------+
+| now  | current_datetime |
++------+------------------+
+| true | column value     |
++------+------------------+
+(1 row)
+
 !ok
-!}
+
+SELECT CURRENT_DATETIME('UTC') > DATETIME '2008-12-25 15:30:00';
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
 
 #####################################################################
 # CURRENT_TIME
