@@ -799,4 +799,45 @@ from emp;
 (9 rows)
 
 !ok
+
+# [CALCITE-6011] Add the planner rule that pushes the Filter past a Window
+# Get the initial result which not push filter past window.
+select gender, count(*) over(partition by gender order by ename) as count1 from emp;
++--------+--------+
+| GENDER | COUNT1 |
++--------+--------+
+| F      |      1 |
+| F      |      2 |
+| F      |      3 |
+| F      |      4 |
+| F      |      5 |
+| F      |      6 |
+| M      |      1 |
+| M      |      2 |
+| M      |      3 |
++--------+--------+
+(9 rows)
+
+!ok
+
+# Get the plan and result which push filter past window
+select gender, count(*) over(partition by gender order by ename) as count1 from emp where gender = 'F';
+EnumerableCalc(expr#0..3=[{inputs}], GENDER=[$t2], $1=[$t3])
+  EnumerableWindow(window#0=[window(partition {2} order by [0] aggs [COUNT()])])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=['F'], expr#4=[=($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])
+      EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+!plan
++--------+--------+
+| GENDER | COUNT1 |
++--------+--------+
+| F      |      1 |
+| F      |      2 |
+| F      |      3 |
+| F      |      4 |
+| F      |      5 |
+| F      |      6 |
++--------+--------+
+(6 rows)
+
+!ok
 # End winagg.iq

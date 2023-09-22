@@ -7121,6 +7121,30 @@ LogicalProject(EXPR$0=[1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNotPushFilterPastWindowWhenPredicateNotOnPartitionKey">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select NAME, DEPTNO, count(*) over (partition by NAME) from dept) t
+where DEPTNO = 0]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(NAME=[$0], DEPTNO=[$1], EXPR$2=[$2])
+  LogicalFilter(condition=[=($1, 0)])
+    LogicalProject(NAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
+      LogicalWindow(window#0=[window(partition {1} aggs [COUNT()])])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(NAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
+  LogicalFilter(condition=[=($0, 0)])
+    LogicalWindow(window#0=[window(partition {1} aggs [COUNT()])])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testOrAlwaysTrue">
     <Resource name="sql">
       <![CDATA[select * from EMPNULLABLES_20
@@ -9907,6 +9931,79 @@ LogicalProject(NAME=[$1])
               LogicalFilter(condition=[>($0, 10)])
                 LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPushFilterPastWindowWithDoubleWindows">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select NAME, DEPTNO, count(*) over (partition by NAME, DEPTNO) as cnt,
+sum(1) over (partition by DEPTNO) as all_sum from dept) t
+where DEPTNO = 1]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(NAME=[$0], DEPTNO=[$1], CNT=[$2], ALL_SUM=[$3])
+  LogicalFilter(condition=[=($1, 1)])
+    LogicalProject(NAME=[$1], DEPTNO=[$0], CNT=[$2], ALL_SUM=[$3])
+      LogicalWindow(window#0=[window(partition {0, 1} aggs [COUNT()])], window#1=[window(partition {0} aggs [SUM($2)])])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(NAME=[$1], DEPTNO=[$0], CNT=[$2], ALL_SUM=[$3])
+  LogicalFilter(condition=[=($0, 1)])
+    LogicalWindow(window#0=[window(partition {0, 1} aggs [COUNT()])], window#1=[window(partition {0} aggs [SUM($2)])])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPushFilterPastWindowWithOnePartitionColumn">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select NAME, DEPTNO, count(*) over (partition by DEPTNO) from dept)
+where DEPTNO > 0]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(NAME=[$0], DEPTNO=[$1], EXPR$2=[$2])
+  LogicalFilter(condition=[>($1, 0)])
+    LogicalProject(NAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
+      LogicalWindow(window#0=[window(partition {0} aggs [COUNT()])])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(NAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
+  LogicalWindow(window#0=[window(partition {0} aggs [COUNT()])])
+    LogicalFilter(condition=[>($0, 0)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testPushFilterPastWindowWithTwoPartitionColumns">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select NAME, DEPTNO, count(*) over (partition by NAME, DEPTNO) from dept)
+where DEPTNO > 0]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(NAME=[$0], DEPTNO=[$1], EXPR$2=[$2])
+  LogicalFilter(condition=[>($1, 0)])
+    LogicalProject(NAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
+      LogicalWindow(window#0=[window(partition {0, 1} aggs [COUNT()])])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(NAME=[$1], DEPTNO=[$0], EXPR$2=[$2])
+  LogicalWindow(window#0=[window(partition {0, 1} aggs [COUNT()])])
+    LogicalFilter(condition=[>($0, 0)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
     </Resource>
   </TestCase>
