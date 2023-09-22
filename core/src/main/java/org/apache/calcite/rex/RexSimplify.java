@@ -78,7 +78,7 @@ public class RexSimplify {
    *
    * @param rexBuilder Rex builder
    * @param predicates Predicates known to hold on input fields
-   * @param executor   Executor for constant reduction, not null
+   * @param executor Executor for constant reduction, not null
    */
   public RexSimplify(RexBuilder rexBuilder, RelOptPredicateList predicates,
       RexExecutor executor) {
@@ -581,11 +581,22 @@ public class RexSimplify {
           && !RexLiteral.isNullLiteral(a)) {
         return rexBuilder.makeLiteral(!RexLiteral.booleanValue(a));
       }
-      break;
-
-    case AND:
+    }
+    final SqlKind negateKind = a.getKind().negate();
+    if (a.getKind() != negateKind) {
+      return simplify(
+          rexBuilder.makeCall(RexUtil.op(negateKind),
+              ((RexCall) a).getOperands()), unknownAs);
+    }
+    final SqlKind negateKind2 = a.getKind().negateNullSafe();
+    if (a.getKind() != negateKind2) {
+      return simplify(
+          rexBuilder.makeCall(RexUtil.op(negateKind2),
+              ((RexCall) a).getOperands()), unknownAs);
+    }
+    if (a.getKind() == SqlKind.AND) {
       // NOT distributivity for AND
-      List<RexNode> newOperands = new ArrayList<>();
+      final List<RexNode> newOperands = new ArrayList<>();
       for (RexNode operand : ((RexCall) a).getOperands()) {
         newOperands.add(
             simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, operand),
@@ -593,9 +604,10 @@ public class RexSimplify {
       }
       return simplify(
           rexBuilder.makeCall(SqlStdOperatorTable.OR, newOperands), unknownAs);
-    case OR:
+    }
+    if (a.getKind() == SqlKind.OR) {
       // NOT distributivity for OR
-      newOperands = new ArrayList<>();
+      final List<RexNode> newOperands = new ArrayList<>();
       for (RexNode operand : ((RexCall) a).getOperands()) {
         newOperands.add(
             simplify(rexBuilder.makeCall(SqlStdOperatorTable.NOT, operand),
@@ -603,10 +615,9 @@ public class RexSimplify {
       }
       return simplify(
           rexBuilder.makeCall(SqlStdOperatorTable.AND, newOperands), unknownAs);
-
-
-    case CASE:
-      newOperands = new ArrayList<>();
+    }
+    if (a.getKind() == SqlKind.CASE) {
+      final List<RexNode> newOperands = new ArrayList<>();
       List<RexNode> operands = ((RexCall) a).getOperands();
       for (int i = 0; i < operands.size(); i += 2) {
         if (i + 1 == operands.size()) {
@@ -618,24 +629,6 @@ public class RexSimplify {
       }
       return simplify(
           rexBuilder.makeCall(SqlStdOperatorTable.CASE, newOperands), unknownAs);
-    case IN:
-    case NOT_IN:
-      // do not try to negate
-      break;
-
-    default:
-      final SqlKind negateKind = a.getKind().negate();
-      if (a.getKind() != negateKind) {
-        return simplify(
-            rexBuilder.makeCall(RexUtil.op(negateKind),
-                ((RexCall) a).getOperands()), unknownAs);
-      }
-      final SqlKind negateKind2 = a.getKind().negateNullSafe();
-      if (a.getKind() != negateKind2) {
-        return simplify(
-            rexBuilder.makeCall(RexUtil.op(negateKind2),
-                ((RexCall) a).getOperands()), unknownAs);
-      }
     }
     RexNode a2 = simplify(a, unknownAs.negate());
     if (a == a2) {

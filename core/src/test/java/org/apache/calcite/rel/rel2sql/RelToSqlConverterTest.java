@@ -4715,16 +4715,22 @@ class RelToSqlConverterTest {
     String expected = "SELECT \"product_name\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_name\" ILIKE 'abC'";
-    sql(query).withLibrary(SqlLibrary.POSTGRESQL).ok(expected);
+    sql(query).withLibrary(SqlLibrary.SNOWFLAKE).ok(expected);
   }
 
   @Test void testNotIlike() {
-    String query = "select \"product_name\" from \"product\" a "
-        + "where \"product_name\" not ilike 'abC'";
-    String expected = "SELECT \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"product_name\" NOT ILIKE 'abC'";
-    sql(query).withLibrary(SqlLibrary.POSTGRESQL).ok(expected);
+    final RelBuilder builder = relBuilder();
+    RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.call(SqlLibraryOperators.NOT_ILIKE,
+                    builder.field("ENAME"),
+                    builder.literal("a%b%c")))
+            .build();
+    String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"ENAME\" NOT ILIKE 'a%b%c'";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expected));
   }
 
   @Test void testMatchRecognizePatternExpression() {
