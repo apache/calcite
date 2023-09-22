@@ -89,7 +89,8 @@ public class RelOptRules {
           CoreRules.EXCHANGE_REMOVE_CONSTANT_KEYS,
           CoreRules.SORT_EXCHANGE_REMOVE_CONSTANT_KEYS,
           CoreRules.SAMPLE_TO_FILTER,
-          CoreRules.FILTER_SAMPLE_TRANSPOSE);
+          CoreRules.FILTER_SAMPLE_TRANSPOSE,
+          CoreRules.FILTER_WINDOW_TRANSPOSE);
 
   static final List<RelOptRule> ABSTRACT_RULES =
       ImmutableList.of(CoreRules.AGGREGATE_ANY_PULL_UP_CONSTANTS,

@@ -4798,6 +4798,28 @@ public class JdbcTest {
             "deptno=20; A=1; B=-1");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6011">[CALCITE-6011]
+   * Add the planner rule that pushes the Filter past a Window</a>. */
+  @Test void testPushFilterToWindow() {
+    CalciteAssert.hr()
+        .query("select * from (select \"deptno\", sum(1) over (partition by \"deptno\"\n"
+            + "  order by \"empid\" rows between unbounded preceding and current row) as a\n"
+            + "from \"hr\".\"emps\")"
+            + " where \"deptno\" = 10")
+        .explainContains(""
+            + "PLAN=EnumerableCalc(expr#0..2=[{inputs}], deptno=[$t1], $1=[$t2])\n"
+            + "  EnumerableWindow(window#0=[window(partition {1} order by [0] rows between "
+            + "UNBOUNDED PRECEDING and CURRENT ROW aggs [SUM($2)])])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):INTEGER NOT NULL], "
+            + "expr#6=[10], expr#7=[=($t5, $t6)], proj#0..1=[{exprs}], $condition=[$t7])\n"
+            + "      EnumerableTableScan(table=[[hr, emps]])\n")
+        .returnsUnordered(
+            "deptno=10; A=1",
+            "deptno=10; A=2",
+            "deptno=10; A=3");
+  }
+
   /** Tests window aggregate PARTITION BY constant. */
   @Test void testWinAggPartitionByConstant() {
     CalciteAssert.that()
