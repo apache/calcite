@@ -12138,6 +12138,21 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
+  @Test public void testCurrentTimestampWithLocalTimeZone() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode currentTimestampRexNode = builder.call(
+        SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_LOCAL_TIME_ZONE,
+        builder.literal(6));
+    RelNode root = builder
+        .project(currentTimestampRexNode)
+        .build();
+
+    final String expectedBQSql = "SELECT CURRENT_TIMESTAMP() AS `$f0`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
   @Test public void testMonthsBetween() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode dateTruncNode = builder.call(SqlLibraryOperators.MONTHS_BETWEEN,

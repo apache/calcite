@@ -106,6 +106,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.E4;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFIVE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONNINE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONSIX;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTHREE;
@@ -273,6 +274,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(FRACTIONFOUR, "4S");
         put(FRACTIONFIVE, "5S");
         put(FRACTIONSIX, "6S");
+        put(FRACTIONNINE, "9S");
         put(AMPM, "%p");
         put(TIMEZONE, "%Z");
         put(YYYYMM, "%Y%m");
@@ -1036,6 +1038,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       break;
     case "CURRENT_TIMESTAMP_TZ":
+    case "CURRENT_TIMESTAMP_LTZ":
       final SqlWriter.Frame currentTimestampFunc = writer.startFunCall("CURRENT_TIMESTAMP");
       writer.endFunCall(currentTimestampFunc);
       break;
