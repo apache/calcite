@@ -2350,7 +2350,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case PIVOT:
       case UNPIVOT:
       case MATCH_RECOGNIZE:
-
+      case WITH:
         // give this anonymous construct a name since later
         // query processing stages rely on it
         alias = SqlValidatorUtil.alias(node, nextGeneratedId++);

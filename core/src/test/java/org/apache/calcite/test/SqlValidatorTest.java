@@ -7993,6 +7993,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "FROM `DEPT`");
   }
 
+  @Test void testSubQueryWithoutAlias() {
+    sql("select a from (select 1 as a)")
+        .withValidatorIdentifierExpansion(true)
+        .rewritesTo("SELECT `EXPR$0`.`A`\n"
+            + "FROM (SELECT 1 AS `A`) AS `EXPR$0`");
+    sql("select a from (with sub as (select 1 as a) select a from sub)")
+        .withValidatorIdentifierExpansion(true)
+        .rewritesTo("SELECT `EXPR$0`.`A`\n"
+            + "FROM (WITH `SUB` AS (SELECT 1 AS `A`) SELECT `SUB`.`A`\n"
+            + "FROM `SUB` AS `SUB`) AS `EXPR$0`");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1238">[CALCITE-1238]
    * Unparsing LIMIT without ORDER BY after validation</a>. */
