@@ -796,6 +796,34 @@ having exists
 
 !ok
 
+# [CALCITE-6007] Sub-query that contains WITH and has no alias generates invalid SQL after expansion
+SELECT a, b
+FROM (
+  WITH sub AS (SELECT 1 AS a, 2 AS b)
+  SELECT * FROM sub)
+WHERE a IS NOT NULL;
++---+---+
+| A | B |
++---+---+
+| 1 | 2 |
++---+---+
+(1 row)
+
+!ok
+
+# Similar pattern to previous, without WITH
+SELECT a, b
+FROM (SELECT 1 AS a, 2 AS b)
+WHERE a IS NOT NULL;
++---+---+
+| A | B |
++---+---+
+| 1 | 2 |
++---+---+
+(1 row)
+
+!ok
+
 # [CALCITE-411] Duplicate aliases
 select 1 as a, 2 as a from (values (true));
 +---+---+
