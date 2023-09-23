@@ -16,46 +16,44 @@
  */
 package org.apache.calcite.sql.util;
 
+import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.LibraryOperator;
+import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Field;
-import java.util.Collection;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * ReflectiveSqlOperatorTable implements the {@link SqlOperatorTable} interface
  * by reflecting the public fields of a subclass.
  */
-public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
+public abstract class ReflectiveSqlOperatorTable
+    extends SqlOperatorTables.IndexedSqlOperatorTable
+    implements SqlOperatorTable {
   public static final String IS_NAME = "INFORMATION_SCHEMA";
 
   //~ Instance fields --------------------------------------------------------
 
-  private final Multimap<CaseSensitiveKey, SqlOperator> caseSensitiveOperators =
-      HashMultimap.create();
-
-  private final Multimap<CaseInsensitiveKey, SqlOperator> caseInsensitiveOperators =
-      HashMultimap.create();
-
   //~ Constructors -----------------------------------------------------------
 
   protected ReflectiveSqlOperatorTable() {
+    // Initialize using an empty list of operators. After construction is
+    // complete we will call init() and set the true operator list.
+    super(ImmutableList.of());
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -65,29 +63,34 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
    * be part of the constructor, because the subclass constructor needs to
    * complete first.
    */
-  public final void init() {
+  public final SqlOperatorTable init() {
     // Use reflection to register the expressions stored in public fields.
+    final List<SqlOperator> list = new ArrayList<>();
     for (Field field : getClass().getFields()) {
       try {
-        if (SqlFunction.class.isAssignableFrom(field.getType())) {
-          SqlFunction op = (SqlFunction) field.get(this);
-          if (op != null) {
-            register(op);
+        final Object o = field.get(this);
+        if (o instanceof SqlOperator) {
+          // Fields do not need the LibraryOperator tag, but if they have it,
+          // we index them only if they contain STANDARD library.
+          LibraryOperator libraryOperator =
+              field.getAnnotation(LibraryOperator.class);
+          if (libraryOperator != null) {
+            if (Arrays.stream(libraryOperator.libraries())
+                .noneMatch(library -> library == SqlLibrary.STANDARD)) {
+              continue;
+            }
           }
-        } else if (
-            SqlOperator.class.isAssignableFrom(field.getType())) {
-          SqlOperator op = (SqlOperator) field.get(this);
-          if (op != null) {
-            register(op);
-          }
+
+          list.add((SqlOperator) o);
         }
       } catch (IllegalArgumentException | IllegalAccessException e) {
         throw Util.throwAsRuntime(Util.causeOrSelf(e));
       }
     }
+    setOperators(buildIndex(list));
+    return this;
   }
 
-  // implement SqlOperatorTable
   @Override public void lookupOperatorOverloads(SqlIdentifier opName,
       @Nullable SqlFunctionCategory category, SqlSyntax syntax,
       List<SqlOperator> operatorList, SqlNameMatcher nameMatcher) {
@@ -105,12 +108,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
       simpleName = opName.getSimple();
     }
 
-    final Collection<SqlOperator> list =
-        lookUpOperators(simpleName, syntax, nameMatcher);
-    if (list.isEmpty()) {
-      return;
-    }
-    for (SqlOperator op : list) {
+    lookUpOperators(simpleName, nameMatcher.isCaseSensitive(), op -> {
       if (op.getSyntax() == syntax) {
         operatorList.add(op);
       } else if (syntax == SqlSyntax.FUNCTION
@@ -119,7 +117,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
         // which are treated as functions but have special syntax
         operatorList.add(op);
       }
-    }
+    });
 
     // REVIEW jvs 1-Jan-2005:  why is this extra lookup required?
     // Shouldn't it be covered by search above?
@@ -127,71 +125,27 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
     case BINARY:
     case PREFIX:
     case POSTFIX:
-      for (SqlOperator extra
-          : lookUpOperators(simpleName, syntax, nameMatcher)) {
+      lookUpOperators(simpleName, nameMatcher.isCaseSensitive(), extra -> {
         // REVIEW: should only search operators added during this method?
         if (extra != null && !operatorList.contains(extra)) {
           operatorList.add(extra);
         }
-      }
+      });
       break;
     default:
       break;
-    }
-  }
-
-  /**
-   * Look up operators based on case-sensitiveness.
-   */
-  private Collection<SqlOperator> lookUpOperators(String name, SqlSyntax syntax,
-      SqlNameMatcher nameMatcher) {
-    // Case sensitive only works for UDFs.
-    // Always look up built-in operators case-insensitively. Even in sessions
-    // with unquotedCasing=UNCHANGED and caseSensitive=true.
-    if (nameMatcher.isCaseSensitive()
-        && !(this instanceof SqlStdOperatorTable)) {
-      return caseSensitiveOperators.get(new CaseSensitiveKey(name, syntax));
-    } else {
-      return caseInsensitiveOperators.get(new CaseInsensitiveKey(name, syntax));
     }
   }
 
   /**
    * Registers a function or operator in the table.
+   *
+   * @deprecated This table is designed to be initialized from the fields of
+   * a class, and adding operators is not efficient
    */
+  @Deprecated
   public void register(SqlOperator op) {
-    // Register both for case-sensitive and case-insensitive look up.
-    caseSensitiveOperators.put(new CaseSensitiveKey(op.getName(), op.getSyntax()), op);
-    caseInsensitiveOperators.put(new CaseInsensitiveKey(op.getName(), op.getSyntax()), op);
-  }
-
-  @Override public List<SqlOperator> getOperatorList() {
-    return ImmutableList.copyOf(caseSensitiveOperators.values());
-  }
-
-  /** Key for looking up operators. The name is stored in upper-case because we
-   * store case-insensitively, even in a case-sensitive session. */
-  private static class CaseInsensitiveKey extends Pair<String, SqlSyntax> {
-    CaseInsensitiveKey(String name, SqlSyntax syntax) {
-      super(name.toUpperCase(Locale.ROOT), normalize(syntax));
-    }
-  }
-
-  /** Key for looking up operators. The name kept as what it is to look up case-sensitively. */
-  private static class CaseSensitiveKey extends Pair<String, SqlSyntax> {
-    CaseSensitiveKey(String name, SqlSyntax syntax) {
-      super(name, normalize(syntax));
-    }
-  }
-
-  private static SqlSyntax normalize(SqlSyntax syntax) {
-    switch (syntax) {
-    case BINARY:
-    case PREFIX:
-    case POSTFIX:
-      return syntax;
-    default:
-      return SqlSyntax.FUNCTION;
-    }
+    // Rebuild the immutable collections with their current contents plus one.
+    setOperators(buildIndex(ConsList.of(op, getOperatorList())));
   }
 }

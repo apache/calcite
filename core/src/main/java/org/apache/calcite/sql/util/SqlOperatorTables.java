@@ -22,9 +22,13 @@ import org.apache.calcite.sql.SqlSpatialTypeOperatorTable;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -89,8 +93,59 @@ public class SqlOperatorTables {
    * Operators cannot be added or removed after creation. */
   private static class ImmutableListSqlOperatorTable
       extends ListSqlOperatorTable {
-    ImmutableListSqlOperatorTable(ImmutableList<SqlOperator> operatorList) {
-      super(operatorList, false);
+    ImmutableListSqlOperatorTable(Iterable<? extends SqlOperator> operators) {
+      super(operators);
+    }
+  }
+
+  /** Base class for implementations of {@link SqlOperatorTable} whose list of
+   * operators rarely changes. */
+  abstract static class IndexedSqlOperatorTable implements SqlOperatorTable {
+    /** Contains all (name, operator) pairs. Effectively a sorted immutable
+     * multimap.
+     *
+     * <p>There can be several operators with the same name (case-insensitive or
+     * case-sensitive) and these operators will lie in a contiguous range which
+     * we can find efficiently using binary search. */
+    protected ImmutableMultimap<String, SqlOperator> operators;
+
+    protected IndexedSqlOperatorTable(Iterable<? extends SqlOperator> list) {
+      operators = buildIndex(list);
+    }
+
+    @Override public List<SqlOperator> getOperatorList() {
+      return operators.values().asList();
+    }
+
+    protected void setOperators(Multimap<String, SqlOperator> operators) {
+      this.operators = ImmutableMultimap.copyOf(operators);
+    }
+
+    /** Derives a value to be assigned to {@link #operators} from a given list
+     * of operators. */
+    protected static ImmutableMultimap<String, SqlOperator> buildIndex(
+        Iterable<? extends SqlOperator> operators) {
+      final ImmutableMultimap.Builder<String, SqlOperator> map =
+          ImmutableMultimap.builder();
+      operators.forEach(op ->
+          map.put(op.getName().toUpperCase(Locale.ROOT), op));
+      return map.build();
+    }
+
+    /** Looks up operators, optionally matching case-sensitively. */
+    protected void lookUpOperators(String name,
+        boolean caseSensitive, Consumer<SqlOperator> consumer) {
+      final String upperName = name.toUpperCase(Locale.ROOT);
+      if (caseSensitive) {
+        operators.get(upperName)
+            .forEach(operator -> {
+              if (operator.getName().equals(name)) {
+                consumer.accept(operator);
+              }
+            });
+      } else {
+        operators.get(upperName).forEach(consumer);
+      }
     }
   }
 }

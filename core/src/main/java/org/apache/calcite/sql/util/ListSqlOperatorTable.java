@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.util;
 
+import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -24,19 +25,19 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Implementation of the {@link SqlOperatorTable} interface by using a list of
  * {@link SqlOperator operators}.
  */
-public class ListSqlOperatorTable implements SqlOperatorTable {
-  //~ Instance fields --------------------------------------------------------
-
-  private final List<SqlOperator> operatorList;
+public class ListSqlOperatorTable
+    extends SqlOperatorTables.IndexedSqlOperatorTable
+    implements SqlOperatorTable {
 
   //~ Constructors -----------------------------------------------------------
 
@@ -46,7 +47,7 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
    * table. */
   @Deprecated // to be removed before 2.0
   public ListSqlOperatorTable() {
-    this(new ArrayList<>(), false);
+    this(ImmutableSet.of());
   }
 
   /** Creates a mutable ListSqlOperatorTable backed by a given list.
@@ -55,12 +56,12 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
    * table. */
   @Deprecated // to be removed before 2.0
   public ListSqlOperatorTable(List<SqlOperator> operatorList) {
-    this(operatorList, false);
+    this((Iterable<SqlOperator>) operatorList);
   }
 
   // internal constructor
-  ListSqlOperatorTable(List<SqlOperator> operatorList, boolean ignored) {
-    this.operatorList = operatorList;
+  ListSqlOperatorTable(Iterable<? extends SqlOperator> operatorList) {
+    super(operatorList);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -71,7 +72,8 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
    * table. */
   @Deprecated // to be removed before 2.0
   public void add(SqlOperator op) {
-    operatorList.add(op);
+    // Rebuild the immutable collections with their current contents plus one.
+    setOperators(buildIndex(ConsList.of(op, getOperatorList())));
   }
 
   @Override public void lookupOperatorOverloads(SqlIdentifier opName,
@@ -79,25 +81,26 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
       SqlSyntax syntax,
       List<SqlOperator> operatorList,
       SqlNameMatcher nameMatcher) {
-    for (SqlOperator op : this.operatorList) {
-      if (!opName.isSimple()
-          || !nameMatcher.matches(op.getName(), opName.getSimple())) {
-        continue;
+    if (!opName.isSimple()) {
+      return;
+    }
+    final String simpleName = opName.getSimple();
+    lookUpOperators(simpleName, nameMatcher.isCaseSensitive(), op -> {
+      if (op.getSyntax() != syntax
+          && op.getSyntax().family != syntax.family) {
+        // Allow retrieval on exact syntax or family; for example,
+        // CURRENT_DATETIME has FUNCTION_ID syntax but can also be called with
+        // both FUNCTION_ID and FUNCTION syntax (e.g. SELECT CURRENT_DATETIME,
+        // CURRENT_DATETIME('UTC')).
+        return;
       }
       if (category != null
           && category != category(op)
           && !category.isUserDefinedNotSpecificFunction()) {
-        continue;
+        return;
       }
-      if (op.getSyntax() == syntax) {
-        operatorList.add(op);
-      } else if (syntax == SqlSyntax.FUNCTION
-          && op instanceof SqlFunction) {
-        // this special case is needed for operators like CAST,
-        // which are treated as functions but have special syntax
-        operatorList.add(op);
-      }
-    }
+      operatorList.add(op);
+    });
   }
 
   protected static SqlFunctionCategory category(SqlOperator operator) {
@@ -106,9 +109,5 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
     } else {
       return SqlFunctionCategory.SYSTEM;
     }
-  }
-
-  @Override public List<SqlOperator> getOperatorList() {
-    return operatorList;
   }
 }
