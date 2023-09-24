@@ -80,9 +80,9 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -101,7 +101,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * The standard operator table.
    */
   private static final Supplier<SqlStdOperatorTable> INSTANCE =
-      Suppliers.memoize(SqlStdOperatorTable::new)::get;
+      Suppliers.memoize(() ->
+          (SqlStdOperatorTable) new SqlStdOperatorTable().init())::get;
 
   //-------------------------------------------------------------
   //                   SET OPERATORS
@@ -2541,12 +2542,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Creates and initializes a SqlStdOperatorTable. */
-  private SqlStdOperatorTable() {
-    super();
-    init();
-  }
-
   /**
    * Returns the standard operator table, creating it if necessary.
    */
@@ -2554,12 +2549,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     return INSTANCE.get();
   }
 
-  @Override protected Collection<SqlOperator> lookUpOperators(String name,
-      SqlSyntax syntax, boolean caseSensitive) {
+  @Override protected void lookUpOperators(String name,
+      boolean caseSensitive, Consumer<SqlOperator> consumer) {
     // Only UDFs are looked up using case-sensitive search.
     // Always look up built-in operators case-insensitively. Even in sessions
     // with unquotedCasing=UNCHANGED and caseSensitive=true.
-    return super.lookUpOperators(name, syntax, false);
+    super.lookUpOperators(name, false, consumer);
   }
 
   /** Returns the group function for which a given kind is an auxiliary

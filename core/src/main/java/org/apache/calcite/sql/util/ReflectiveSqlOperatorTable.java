@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.util;
 
+import org.apache.calcite.runtime.ImmutablePairList;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -25,19 +27,24 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.fun.LibraryOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Field;
+import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * ReflectiveSqlOperatorTable implements the {@link SqlOperatorTable} interface
@@ -48,11 +55,8 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
 
   //~ Instance fields --------------------------------------------------------
 
-  private ImmutableMultimap<CaseSensitiveKey, SqlOperator>
-      caseSensitiveOperators = ImmutableMultimap.of();
-
-  private ImmutableMultimap<CaseInsensitiveKey, SqlOperator>
-      caseInsensitiveOperators = ImmutableMultimap.of();
+  private ImmutableSortedPairList<String, SqlOperator> operators =
+      ImmutableSortedPairList.of(ImmutableList.of(), String.CASE_INSENSITIVE_ORDER);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -66,7 +70,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
    * be part of the constructor, because the subclass constructor needs to
    * complete first.
    */
-  public final void init() {
+  public final SqlOperatorTable init() {
     // Use reflection to register the expressions stored in public fields.
     final Initializer initializer = new Initializer();
     for (Field field : getClass().getFields()) {
@@ -90,7 +94,8 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
         throw Util.throwAsRuntime(Util.causeOrSelf(e));
       }
     }
-    initializer.done(this);
+    initializer.done();
+    return this;
   }
 
   @Override public void lookupOperatorOverloads(SqlIdentifier opName,
@@ -110,12 +115,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
       simpleName = opName.getSimple();
     }
 
-    final Collection<SqlOperator> list =
-        lookUpOperators(simpleName, syntax, nameMatcher);
-    if (list.isEmpty()) {
-      return;
-    }
-    for (SqlOperator op : list) {
+    lookUpOperators(simpleName, nameMatcher.isCaseSensitive(), op -> {
       if (op.getSyntax() == syntax) {
         operatorList.add(op);
       } else if (syntax == SqlSyntax.FUNCTION
@@ -124,7 +124,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
         // which are treated as functions but have special syntax
         operatorList.add(op);
       }
-    }
+    });
 
     // REVIEW jvs 1-Jan-2005:  why is this extra lookup required?
     // Shouldn't it be covered by search above?
@@ -132,36 +132,29 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
     case BINARY:
     case PREFIX:
     case POSTFIX:
-      for (SqlOperator extra
-          : lookUpOperators(simpleName, syntax, nameMatcher)) {
+      lookUpOperators(simpleName, nameMatcher.isCaseSensitive(), extra -> {
         // REVIEW: should only search operators added during this method?
         if (extra != null && !operatorList.contains(extra)) {
           operatorList.add(extra);
         }
-      }
+      });
       break;
     default:
       break;
     }
   }
 
-  /** Looks up operators based on a name matcher. */
-  private Collection<SqlOperator> lookUpOperators(String name, SqlSyntax syntax,
-      SqlNameMatcher nameMatcher) {
-    return lookUpOperators(name, syntax, nameMatcher.isCaseSensitive());
-  }
-
   /** Looks up operators, optionally matching case-sensitively. */
-  protected Collection<SqlOperator> lookUpOperators(String name,
-      SqlSyntax syntax, boolean caseSensitive) {
+  protected void lookUpOperators(String name,
+      boolean caseSensitive, Consumer<SqlOperator> consumer) {
     // Only UDFs are looked up using case-sensitive search.
     // Always look up built-in operators case-insensitively. Even in sessions
     // with unquotedCasing=UNCHANGED and caseSensitive=true.
-    if (caseSensitive) {
-      return caseSensitiveOperators.get(new CaseSensitiveKey(name, syntax));
-    } else {
-      return caseInsensitiveOperators.get(new CaseInsensitiveKey(name, syntax));
-    }
+    operators.forEachBetween(name,
+        (name2, operator) -> consumer.accept(operator),
+        caseSensitive
+            ? Comparator.naturalOrder()
+            : String.CASE_INSENSITIVE_ORDER);
   }
 
   /**
@@ -177,60 +170,99 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
     final Initializer initializer = new Initializer();
     list.forEach(initializer::add);
     initializer.add(op);
-    initializer.done(this);
+    initializer.done();
   }
 
   @Override public List<SqlOperator> getOperatorList() {
-    return ImmutableList.copyOf(caseSensitiveOperators.values());
+    return operators.pairList.rightList();
   }
 
-  /** Key for looking up operators. The name is stored in upper-case because we
-   * store case-insensitively, even in a case-sensitive session. */
-  private static class CaseInsensitiveKey extends Pair<String, SqlSyntax> {
-    CaseInsensitiveKey(String name, SqlSyntax syntax) {
-      super(name.toUpperCase(Locale.ROOT), normalize(syntax));
-    }
-  }
-
-  /** Key for looking up operators. The name kept as what it is to look up case-sensitively. */
-  private static class CaseSensitiveKey extends Pair<String, SqlSyntax> {
-    CaseSensitiveKey(String name, SqlSyntax syntax) {
-      super(name, normalize(syntax));
-    }
-  }
-
-  private static SqlSyntax normalize(SqlSyntax syntax) {
-    switch (syntax) {
-    case BINARY:
-    case PREFIX:
-    case POSTFIX:
-      return syntax;
-    default:
-      return SqlSyntax.FUNCTION;
-    }
-  }
-
-  /** Builds a list of operators. */
-  private static class Initializer {
-    private final ImmutableMultimap.Builder<CaseSensitiveKey, SqlOperator>
-        caseSensitiveOperators =
-        ImmutableMultimap.builder();
-
-    private final ImmutableMultimap.Builder<CaseInsensitiveKey, SqlOperator>
-        caseInsensitiveOperators =
-        ImmutableMultimap.builder();
+  /** Builds a list of operators, and writes it back into the operator table
+   * when done. */
+  private class Initializer {
+    final PairList<String, SqlOperator> pairList = PairList.of();
 
     void add(SqlOperator op) {
-      // Register both for case-sensitive and case-insensitive look up.
-      caseSensitiveOperators.put(
-          new CaseSensitiveKey(op.getName(), op.getSyntax()), op);
-      caseInsensitiveOperators.put(
-          new CaseInsensitiveKey(op.getName(), op.getSyntax()), op);
+      pairList.add(op.getName(), op);
     }
 
-    void done(ReflectiveSqlOperatorTable table) {
-      table.caseInsensitiveOperators = this.caseInsensitiveOperators.build();
-      table.caseSensitiveOperators = this.caseSensitiveOperators.build();
+    void done() {
+      operators =
+          ImmutableSortedPairList.of(pairList, String.CASE_INSENSITIVE_ORDER);
     }
   }
+
+  /** List of pairs that is sorted by applying a comparator to the left part of
+   * each pair.
+   *
+   * @param <T> First type
+   * @param <U> Second type
+   */
+  public static class ImmutableSortedPairList<T, U>
+      extends AbstractList<Map.Entry<T, U>> {
+    private final PairList<T, U> pairList;
+    private final Comparator<T> comparator;
+
+    /** Creates an ImmutableSortedPairList. */
+    public static <T, U> ImmutableSortedPairList<T, U> of(
+        Collection<? extends Map.Entry<T, U>> entries,
+        Comparator<T> comparator) {
+      final PairList<T, U> pairList = PairList.of();
+      pairList.addAll(entries);
+      pairList.sort(Map.Entry.comparingByKey(comparator));
+      return new ImmutableSortedPairList<>(
+          ImmutablePairList.copyOf(pairList), comparator);
+    }
+
+    private ImmutableSortedPairList(ImmutablePairList<T, U> pairList,
+        Comparator<T> comparator) {
+      this.pairList = requireNonNull(pairList, "pairList");
+      this.comparator = requireNonNull(comparator, "comparator");
+    }
+
+    @Override public Map.Entry<T, U> get(int index) {
+      return pairList.get(index);
+    }
+
+    @Override public int size() {
+      return pairList.size();
+    }
+
+    /** For each entry whose key is equal to {@code t}, calls the consumer. */
+    public void forEachBetween(T t, BiConsumer<T, U> consumer) {
+      forEachBetween(t, consumer, comparator);
+    }
+
+    /** For each entry whose key is equal to {@code t}
+     * according to a given comparator, calls the consumer.
+     *
+     * <p>The comparator must be the same as, or weaker than, the comparator
+     * used to sort the list. */
+    public void forEachBetween(T t, BiConsumer<T, U> consumer,
+        Comparator<T> comparator) {
+      final List<T> leftList = pairList.leftList();
+      final List<U> rightList = pairList.rightList();
+      int i = Collections.binarySearch(leftList, t, comparator);
+      if (i >= 0) {
+        // Back-track so that "i" points to the last entry less than "k".
+        do {
+          --i;
+        } while (i >= 0
+            && comparator.compare(leftList.get(i), t) >= 0);
+      } else {
+        i = -(i + 1);
+      }
+
+      // Output values for all keys equal to "t"
+      for (;;) {
+        ++i;
+        if (i >= leftList.size()
+            || comparator.compare(leftList.get(i), t) > 0) {
+          break;
+        }
+        consumer.accept(leftList.get(i), rightList.get(i));
+      }
+    }
+  }
+
 }

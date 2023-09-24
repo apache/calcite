@@ -38,7 +38,8 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
    * The table of Oracle-specific operators.
    */
   private static final Supplier<OracleSqlOperatorTable> INSTANCE =
-      Suppliers.memoize(OracleSqlOperatorTable::new)::get;
+      Suppliers.memoize(() ->
+          (OracleSqlOperatorTable) new OracleSqlOperatorTable().init())::get;
 
   @Deprecated // to be removed before 2.0
   public static final SqlFunction DECODE = SqlLibraryOperators.DECODE;
@@ -69,11 +70,5 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static synchronized OracleSqlOperatorTable instance() {
     return INSTANCE.get();
-  }
-
-  /** Creates and initializes a OracleSqlOperatorTable. */
-  private OracleSqlOperatorTable() {
-    super();
-    init();
   }
 }

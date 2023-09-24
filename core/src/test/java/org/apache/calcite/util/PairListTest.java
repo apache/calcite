@@ -19,16 +19,19 @@ package org.apache.calcite.util;
 import org.apache.calcite.runtime.ImmutablePairList;
 import org.apache.calcite.runtime.MapEntry;
 import org.apache.calcite.runtime.PairList;
+import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable.ImmutableSortedPairList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
@@ -457,5 +460,55 @@ class PairListTest {
         hasToString("[<5, 6>, <3, 4>, <1, 2>]"));
     assertThat(list.reversed(), is(Lists.reverse(list)));
     assertThat(list.reversed().reversed(), is(list));
+  }
+
+  @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
+  @Test void testSorted() {
+    final PairList<String, Integer> pairList = PairList.of();
+    pairList.add("b", 2);
+    pairList.add("c", 3);
+    pairList.add("c", 4);
+    pairList.add("c", 5);
+    pairList.add("e", 6);
+    final ImmutableSortedPairList<String, Integer> list =
+        ImmutableSortedPairList.of(pairList, Comparator.naturalOrder());
+    assertThatValuesForKey(list, "a", is(Arrays.asList()));
+    assertThatValuesForKey(list, "b", is(Arrays.asList(2)));
+    assertThatValuesForKey(list, "c", is(Arrays.asList(3, 4, 5)));
+    assertThatValuesForKey(list, "d", is(Arrays.asList()));
+    assertThatValuesForKey(list, "e", is(Arrays.asList(6)));
+    assertThatValuesForKey(list, "f", is(Arrays.asList()));
+
+    // Empty list
+    pairList.clear();
+    final ImmutableSortedPairList<String, Integer> list2 =
+        ImmutableSortedPairList.of(pairList, Comparator.naturalOrder());
+    assertThat(list2, empty());
+    assertThatValuesForKey(list2, "a", is(Arrays.asList()));
+
+    // Singleton list
+    pairList.clear();
+    pairList.add("x", -5);
+    final ImmutableSortedPairList<String, Integer> list3 =
+        ImmutableSortedPairList.of(pairList, Comparator.naturalOrder());
+    assertThat(list3, hasSize(1));
+    assertThatValuesForKey(list3, "a", is(Arrays.asList()));
+    assertThatValuesForKey(list3, "x", is(Arrays.asList(-5)));
+
+    // Two equal keys
+    pairList.add("x", -6);
+    final ImmutableSortedPairList<String, Integer> list4 =
+        ImmutableSortedPairList.of(pairList, Comparator.naturalOrder());
+    assertThat(list4, hasSize(2));
+    assertThatValuesForKey(list4, "a", is(Arrays.asList()));
+    assertThatValuesForKey(list4, "x", is(Arrays.asList(-5, -6)));
+  }
+
+  private static <K, V> void assertThatValuesForKey(
+      ImmutableSortedPairList<K, V> list, K key,
+      Matcher<List<V>> matcher) {
+    final List<V> values = new ArrayList<>();
+    list.forEachBetween(key, (k, v) -> values.add(v));
+    assertThat(values, matcher);
   }
 }
