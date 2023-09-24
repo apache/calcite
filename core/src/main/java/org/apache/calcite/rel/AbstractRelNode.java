@@ -486,7 +486,7 @@ public abstract class AbstractRelNode implements RelNode {
         // convert it to String to keep the same behaviour.
         value = "" + value;
       }
-      attrs.add(Pair.of(term, value));
+      attrs.add(term, value);
       return this;
     }
 

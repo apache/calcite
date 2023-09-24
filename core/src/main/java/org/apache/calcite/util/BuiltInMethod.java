@@ -265,7 +265,10 @@ public enum BuiltInMethod {
   FUNCTION1_APPLY(Function1.class, "apply", Object.class),
   ARRAYS_AS_LIST(Arrays.class, "asList", Object[].class),
   ARRAY(SqlFunctions.class, "array", Object[].class),
-  PAIR_LIST_COPY_OF(PairList.class, "copyOf", Object.class, Object.class,
+  // class PairList.Helper is deprecated to discourage code from calling its
+  // methods directly, but use via Janino code generation is just fine.
+  @SuppressWarnings("deprecation")
+  PAIR_LIST_COPY_OF(PairList.Helper.class, "copyOf", Object.class, Object.class,
       Object[].class),
   FLAT_PRODUCT(SqlFunctions.class, "flatProduct", int[].class, boolean.class,
       FlatProductInputType[].class),

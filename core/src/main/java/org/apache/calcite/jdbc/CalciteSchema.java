@@ -39,7 +39,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -247,7 +246,7 @@ public abstract class CalciteSchema {
         list.add(s.name);
       }
     }
-    return ImmutableList.copyOf(Lists.reverse(list));
+    return ImmutableList.copyOf(list).reverse();
   }
 
   public final @Nullable CalciteSchema getSubSchema(String schemaName,

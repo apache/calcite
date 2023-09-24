@@ -115,6 +115,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
   static final String DEFAULT_CATALOG = "CATALOG";
   static final String DEFAULT_SCHEMA = "SALES";
   static final List<String> PREFIX = ImmutableList.of(DEFAULT_SCHEMA);
+  private static final Schema DUMMY_SCHEMA = new AbstractSchema();
 
   /**
    * Creates a MockCatalogReader.
@@ -863,12 +864,9 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       }
 
       @Override public Path getTablePath() {
-        final ImmutableList.Builder<Pair<String, Schema>> builder =
-            ImmutableList.builder();
-        for (String name : fromTable.names) {
-          builder.add(Pair.of(name, null));
-        }
-        return Schemas.path(builder.build());
+        final PairList<String, Schema> list = PairList.of();
+        fromTable.names.forEach(name -> list.add(name, DUMMY_SCHEMA));
+        return Schemas.path(list);
       }
 
       @Override public ImmutableIntList getColumnMapping() {

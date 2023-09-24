@@ -281,6 +281,35 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
     }
   }
 
+  /** Calls a consumer with an ordinal for each pair of items in two
+   * iterables. */
+  public static <K, V> void forEachIndexed(Iterable<K> ks, Iterable<V> vs,
+      PairWithOrdinalConsumer<K, V> consumer) {
+    int i = 0;
+    final Iterator<K> ki = ks.iterator();
+    final Iterator<V> vi = vs.iterator();
+    while (ki.hasNext() && vi.hasNext()) {
+      consumer.accept(i++, ki.next(), vi.next());
+    }
+  }
+
+  /** Calls a consumer with an ordinal for each pair of items in an iterable
+   * of pairs. */
+  public static <K, V> void forEachIndexed(
+      Iterable<? extends Map.Entry<K, V>> pairs,
+      PairWithOrdinalConsumer<K, V> consumer) {
+    int i = 0;
+    for (Map.Entry<K, V> pair : pairs) {
+      consumer.accept(i++, pair.getKey(), pair.getValue());
+    }
+  }
+
+  /** Calls a consumer for each entry in a map. */
+  public static <K, V> void forEachIndexed(Map<K, V> map,
+      PairWithOrdinalConsumer<K, V> consumer) {
+    forEachIndexed(map.entrySet(), consumer);
+  }
+
   /** Applies an action to every element of an iterable of pairs.
    *
    * @see Map#forEach(java.util.function.BiConsumer)
@@ -539,5 +568,27 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
       vs.set(index, pair.right);
       return previous;
     }
+  }
+
+  /**
+   * Represents an operation that accepts two input arguments and an ordinal,
+   * and returns no result.
+   *
+   * <p>This is a specialization of {@link java.util.function.Consumer},
+   * similar to {@link BiConsumer}.
+   *
+   * @param <K> Key type
+   * @param <V> Value type
+   */
+  @FunctionalInterface
+  public interface PairWithOrdinalConsumer<K, V> {
+    /**
+     * Performs this operation on the given arguments.
+     *
+     * @param ordinal Ordinal
+     * @param k the first input argument
+     * @param v the second input argument
+     */
+    void accept(int ordinal, K k, V v);
   }
 }
