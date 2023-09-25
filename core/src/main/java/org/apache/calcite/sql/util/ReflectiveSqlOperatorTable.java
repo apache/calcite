@@ -31,6 +31,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Field;
@@ -198,29 +199,29 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
    * @param <T> First type
    * @param <U> Second type
    */
-  public static class ImmutableSortedPairList<T, U>
+  public static class ImmutableSortedPairList<@NonNull T, @NonNull U>
       extends AbstractList<Map.Entry<T, U>> {
-    private final PairList<T, U> pairList;
+    private final ImmutablePairList<@NonNull T, @NonNull U> pairList;
     private final Comparator<T> comparator;
 
     /** Creates an ImmutableSortedPairList. */
-    public static <T, U> ImmutableSortedPairList<T, U> of(
-        Collection<? extends Map.Entry<T, U>> entries,
+    public static <@NonNull T, @NonNull U> ImmutableSortedPairList<T, U> of(
+        Collection<? extends Map.Entry<@NonNull T, @NonNull U>> entries,
         Comparator<T> comparator) {
-      final PairList<T, U> pairList = PairList.of();
+      final PairList<@NonNull T, @NonNull U> pairList = PairList.of();
       pairList.addAll(entries);
       pairList.sort(Map.Entry.comparingByKey(comparator));
       return new ImmutableSortedPairList<>(
           ImmutablePairList.copyOf(pairList), comparator);
     }
 
-    private ImmutableSortedPairList(ImmutablePairList<T, U> pairList,
+    private ImmutableSortedPairList(ImmutablePairList<@NonNull T, @NonNull U> pairList,
         Comparator<T> comparator) {
       this.pairList = requireNonNull(pairList, "pairList");
       this.comparator = requireNonNull(comparator, "comparator");
     }
 
-    @Override public Map.Entry<T, U> get(int index) {
+    @Override public Map.Entry<@NonNull T, @NonNull U> get(int index) {
       return pairList.get(index);
     }
 
@@ -240,8 +241,8 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
      * used to sort the list. */
     public void forEachBetween(T t, BiConsumer<T, U> consumer,
         Comparator<T> comparator) {
-      final List<T> leftList = pairList.leftList();
-      final List<U> rightList = pairList.rightList();
+      final List<@NonNull T> leftList = pairList.leftList();
+      final List<@NonNull U> rightList = pairList.rightList();
       int i = Collections.binarySearch(leftList, t, comparator);
       if (i >= 0) {
         // Back-track so that "i" points to the last entry less than "k".
