@@ -3127,7 +3127,8 @@ public class JdbcTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5984">[CALCITE-5984]</a>
-   * Disabling trimming of unused fields via config and program. */
+   * Disabling trimming of unused fields via config and program.
+   * Case: trimmingByProgram: false ; trimmingByConfig: false. */
   @Test void testJoinWithTrimmingDisabled() {
     CalciteAssert.hr().query("select \"d\".\"name\" from \"hr\".\"depts\" as \"d\" \n"
                 + "  join \"hr\".\"emps\" as \"e\" on \"d\".\"deptno\" = \"e\".\"deptno\" \n")
@@ -3148,7 +3149,8 @@ public class JdbcTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5984">[CALCITE-5984]</a>
-   * Disabling trimming of unused fields via config and program. */
+   * Disabling trimming of unused fields via config and program.
+   * Case: trimmingByProgram: false ; trimmingByConfig: true. */
   @Test void testJoinWithTrimmingEnabledByConfig() {
     CalciteAssert.hr().query("select \"d\".\"name\" from \"hr\".\"depts\" as \"d\" \n"
                 + "  join \"hr\".\"emps\" as \"e\" on \"d\".\"deptno\" = \"e\".\"deptno\" \n")
@@ -3171,7 +3173,8 @@ public class JdbcTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5984">[CALCITE-5984]</a>
-   * Disabling trimming of unused fields via config and program. */
+   * Disabling trimming of unused fields via config and program.
+   * Case: trimmingByProgram: true ; trimmingByConfig: false. */
   @Test void testJoinWithTrimmingEnabledByProgram() {
     CalciteAssert.hr().query("select \"d\".\"name\" from \"hr\".\"depts\" as \"d\" \n"
                 + "  join \"hr\".\"emps\" as \"e\" on \"d\".\"deptno\" = \"e\".\"deptno\" \n")
@@ -3194,7 +3197,8 @@ public class JdbcTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5984">[CALCITE-5984]</a>
-   * Disabling trimming of unused fields via config and program. */
+   * Disabling trimming of unused fields via config and program.
+   * Case: trimmingByProgram: true ; trimmingByConfig: true. */
   @Test void testJoinWithTrimmingEnabledByProgramAndConfig() {
     CalciteAssert.hr().query("select \"d\".\"name\" from \"hr\".\"depts\" as \"d\" \n"
                 + "  join \"hr\".\"emps\" as \"e\" on \"d\".\"deptno\" = \"e\".\"deptno\" \n")
