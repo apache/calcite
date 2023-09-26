@@ -490,10 +490,10 @@ public class RexUtil {
     final SqlTypeName name2 = type2.getSqlTypeName();
     final RelDataType type1Final = type1;
     SqlTypeFamily family =
-        requireNonNull(name1.getFamily(),
+        requireNonNull(name1.getPrimaryOrSecondaryFamily(),
             () -> "SqlTypeFamily is null for type " + type1Final
                 + ", SqlTypeName " + name1);
-    if (family == name2.getFamily()) {
+    if (family == name2.getPrimaryOrSecondaryFamily()) {
       switch (family) {
       case NUMERIC:
         if (SqlTypeUtil.isExactNumeric(type1)

@@ -1289,7 +1289,7 @@ public abstract class OperandTypes {
     }
 
     @Override public SqlTypeFamily getOperandSqlTypeFamily(int iFormalOperand) {
-      return requireNonNull(typeName.getFamily(), "family");
+      return requireNonNull(typeName.getPrimaryOrSecondaryFamily(), "family");
     }
 
     @Override public String getAllowedSignatures(SqlOperator op, String opName) {

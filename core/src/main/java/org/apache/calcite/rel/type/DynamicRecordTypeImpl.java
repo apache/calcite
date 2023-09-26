@@ -86,7 +86,7 @@ public class DynamicRecordTypeImpl extends DynamicRecordType {
   }
 
   @Override public RelDataTypeFamily getFamily() {
-    SqlTypeFamily family = getSqlTypeName().getFamily();
+    SqlTypeFamily family = getSqlTypeName().getPrimaryOrSecondaryFamily();
     return family != null ? family : this;
   }
 

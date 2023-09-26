@@ -655,7 +655,8 @@ public class PigRelBuilder extends RelBuilder {
         return false;
       }
     }
-    return t1.getSqlTypeName().getFamily() == t2.getSqlTypeName().getFamily();
+    return t1.getSqlTypeName().getPrimaryOrSecondaryFamily()
+        == t2.getSqlTypeName().getPrimaryOrSecondaryFamily();
   }
 
   /**

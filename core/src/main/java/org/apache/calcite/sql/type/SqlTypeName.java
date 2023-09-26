@@ -289,7 +289,7 @@ public enum SqlTypeName {
    * types that have a 'null' primary family). */
   private final @Nullable SqlTypeFamily family;
   /**
-   * The secondary type family of tis type.
+   * The secondary type family of this type.
    * The secondary family encodes useful properties of a type that
    * are useful in some analyses; it is independent on the primary family.
    */
@@ -414,21 +414,35 @@ public enum SqlTypeName {
   }
 
   /**
-   * Gets the SqlTypeFamily containing this SqlTypeName.
+   * If this SqlType has a primary family, return it.
+   * Otherwise, return the secondary family.
+   * For some types (SYMBOL, DISTINCT, STRUCTURED, ROW, OTHER)
+   * both families are 'null' as well, and in this case
+   * 'null' is returned.
    *
    * <p>This function is preserved for backwards-compatibility and should be removed
    * once all its uses have been eliminated.
-   * Use one of {@link SqlTypeName#getPrimaryFamily} or
-   * {@link SqlTypeName#getSecondaryFamily} instead.
-   *
-   * @return containing family, or null for none (SYMBOL, DISTINCT, STRUCTURED, ROW, OTHER)
+   * Instead, one should use one of {@link SqlTypeName#getPrimaryFamily} or
+   * {@link SqlTypeName#getSecondaryFamily}.
    */
-  public @Nullable SqlTypeFamily getFamily() {
+  public @Nullable SqlTypeFamily getPrimaryOrSecondaryFamily() {
     if (family != null) {
       return family;
     } else {
       return secondaryFamily;
     }
+  }
+
+  /**
+   * Get the type family of the type.
+   *
+   * @deprecated
+   * Use one of {@link SqlTypeName#getPrimaryFamily} or
+   * {@link SqlTypeName#getSecondaryFamily} instead.
+   */
+  @Deprecated
+  public @Nullable SqlTypeFamily getFamily() {
+    return getPrimaryOrSecondaryFamily();
   }
 
   /** The primary family of this type.  See {@link SqlTypeFamily}. */

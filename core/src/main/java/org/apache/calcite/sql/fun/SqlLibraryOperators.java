@@ -1033,7 +1033,7 @@ public abstract class SqlLibraryOperators {
     boolean hasCharacter = false;
     boolean hasOthers = false;
     for (RelDataType type : operandTypes) {
-      SqlTypeFamily family = type.getSqlTypeName().getFamily();
+      SqlTypeFamily family = type.getSqlTypeName().getPrimaryOrSecondaryFamily();
       requireNonNull(family, "array element type family");
       switch (family) {
       case NUMERIC:
@@ -1057,7 +1057,7 @@ public abstract class SqlLibraryOperators {
       List<RelDataType> characterTypes =
           // may include NULL literal
           operandTypes.stream().filter(
-              t -> t.getSqlTypeName().getFamily() != SqlTypeFamily.NUMERIC)
+              t -> t.getSqlTypeName().getPrimaryOrSecondaryFamily() != SqlTypeFamily.NUMERIC)
               .collect(Collectors.toList());
       type = opBinding.getTypeFactory().leastRestrictive(characterTypes);
     } else {

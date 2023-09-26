@@ -6165,7 +6165,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         SqlNode node = orderList.get(0);
         assert node != null;
         final RelDataType type = deriveType(scope, node);
-        final @Nullable SqlTypeFamily family = type.getSqlTypeName().getFamily();
+        final @Nullable SqlTypeFamily family = type.getSqlTypeName().getPrimaryOrSecondaryFamily();
         if (family == null
             || family.allowableDifferenceTypes().isEmpty()) {
           throw newValidationError(orderList,

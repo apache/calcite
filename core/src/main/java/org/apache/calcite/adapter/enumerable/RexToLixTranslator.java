@@ -612,7 +612,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
       final SqlTypeFamily family =
-          requireNonNull(sourceType.getSqlTypeName().getFamily(),
+          requireNonNull(sourceType.getSqlTypeName().getPrimaryOrSecondaryFamily(),
               () -> "null SqlTypeFamily for " + sourceType + ", SqlTypeName "
                   + sourceType.getSqlTypeName());
       switch (family) {
@@ -976,8 +976,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       RelDataType sourceType,
       RelDataType targetType,
       Expression operand) {
-    final SqlTypeFamily targetFamily = targetType.getSqlTypeName().getFamily();
-    final SqlTypeFamily sourceFamily = sourceType.getSqlTypeName().getFamily();
+    final SqlTypeFamily targetFamily = targetType.getSqlTypeName().getPrimaryOrSecondaryFamily();
+    final SqlTypeFamily sourceFamily = sourceType.getSqlTypeName().getPrimaryOrSecondaryFamily();
     if (targetFamily == SqlTypeFamily.NUMERIC
         && (sourceFamily == SqlTypeFamily.INTERVAL_YEAR_MONTH
             || sourceFamily == SqlTypeFamily.INTERVAL_DAY_TIME)) {

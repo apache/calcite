@@ -455,7 +455,7 @@ public class SqlLiteral extends SqlNode {
         return (Enum<?>) literal.value;
       }
       // Literals always have non-null family
-      switch (requireNonNull(literal.getTypeName().getFamily())) {
+      switch (requireNonNull(literal.getTypeName().getPrimaryOrSecondaryFamily())) {
       case CHARACTER:
         return (NlsString) literal.value;
       case NUMERIC:

@@ -55,7 +55,7 @@ public class ExplicitOperandTypeChecker implements SqlOperandTypeChecker {
         }
       } else {
         families.add(
-            requireNonNull(sqlTypeName.getFamily(),
+            requireNonNull(sqlTypeName.getPrimaryOrSecondaryFamily(),
                 () -> "keyType.getSqlTypeName().getFamily() null, type is " + sqlTypeName));
       }
     }

@@ -620,7 +620,7 @@ public class SqlWindow extends SqlCall {
             validator.deriveType(
                 operandScope,
                 orderList.get(0));
-        orderTypeFam = orderType.getSqlTypeName().getFamily();
+        orderTypeFam = orderType.getSqlTypeName().getPrimaryOrSecondaryFamily();
       } else {
         // requires an ORDER BY clause if frame is logical(RANGE)
         // We relax this requirement if the table appears to be
@@ -709,7 +709,7 @@ public class SqlWindow extends SqlCall {
       if (orderTypeFam != null && !isRows) {
         final RelDataType boundType = validator.deriveType(scope, boundVal);
         final SqlTypeFamily boundTypeFamily =
-            boundType.getSqlTypeName().getFamily();
+            boundType.getSqlTypeName().getPrimaryOrSecondaryFamily();
         final List<SqlTypeFamily> allowableBoundTypeFamilies =
             orderTypeFam.allowableDifferenceTypes();
         if (allowableBoundTypeFamilies.isEmpty()) {

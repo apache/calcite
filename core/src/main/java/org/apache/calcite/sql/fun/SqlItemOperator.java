@@ -120,7 +120,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
           requireNonNull(operandType.getKeyType(), "operandType.getKeyType()");
       SqlTypeName sqlTypeName = keyType.getSqlTypeName();
       return OperandTypes.family(
-          requireNonNull(sqlTypeName.getFamily(),
+          requireNonNull(sqlTypeName.getPrimaryOrSecondaryFamily(),
               () -> "keyType.getSqlTypeName().getFamily() null, type is " + sqlTypeName));
     case ROW:
     case ANY:

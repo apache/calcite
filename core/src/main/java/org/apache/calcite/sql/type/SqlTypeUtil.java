@@ -1586,7 +1586,7 @@ public abstract class SqlTypeUtil {
     // the Saffron type system happy.
     RelDataTypeFamily family = null;
     if (type.getSqlTypeName() != null) {
-      family = type.getSqlTypeName().getFamily();
+      family = type.getSqlTypeName().getPrimaryOrSecondaryFamily();
     }
     if (family == null) {
       family = type.getFamily();

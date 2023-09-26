@@ -797,7 +797,7 @@ class TypeCoercionTest {
       assertThat(reason,
           from.equals(castedType)
               || SqlTypeUtil.equalSansNullability(typeFactory, castedType, expected)
-              || expected.getSqlTypeName().getFamily().contains(castedType),
+              || expected.getSqlTypeName().getPrimaryOrSecondaryFamily().contains(castedType),
           is(true));
     }
 
@@ -818,9 +818,9 @@ class TypeCoercionTest {
     private void checkShouldCast(RelDataType checked, List<RelDataType> types) {
       for (RelDataType type : allTypes) {
         if (contains(types, type)) {
-          shouldCast(checked, type.getSqlTypeName().getFamily(), type);
+          shouldCast(checked, type.getSqlTypeName().getPrimaryOrSecondaryFamily(), type);
         } else {
-          shouldNotCast(checked, type.getSqlTypeName().getFamily());
+          shouldNotCast(checked, type.getSqlTypeName().getPrimaryOrSecondaryFamily());
         }
       }
     }
@@ -830,7 +830,8 @@ class TypeCoercionTest {
     private static boolean contains(List<RelDataType> types, RelDataType type) {
       for (RelDataType type1 : types) {
         if (type1.equals(type)
-            || type1.getSqlTypeName().getFamily() == type.getSqlTypeName().getFamily()) {
+            || type1.getSqlTypeName().getPrimaryOrSecondaryFamily()
+            == type.getSqlTypeName().getPrimaryOrSecondaryFamily()) {
           return true;
         }
       }

@@ -246,7 +246,7 @@ public class PigRelSqlUdfs {
   private static List<SqlTypeFamily> getTypeFamilies(ImmutableList<RexNode> operands) {
     List<SqlTypeFamily> ret = new ArrayList<>();
     for (RexNode operand : operands) {
-      SqlTypeFamily family = operand.getType().getSqlTypeName().getFamily();
+      SqlTypeFamily family = operand.getType().getSqlTypeName().getPrimaryOrSecondaryFamily();
       ret.add(family != null ? family : SqlTypeFamily.ANY);
     }
     return ret;

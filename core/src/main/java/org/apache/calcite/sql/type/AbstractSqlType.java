@@ -68,7 +68,7 @@ public abstract class AbstractSqlType
   }
 
   @Override public RelDataTypeFamily getFamily() {
-    SqlTypeFamily family = typeName.getFamily();
+    SqlTypeFamily family = typeName.getPrimaryOrSecondaryFamily();
     // If typename does not have family, treat the current type as the only member its family
     return family != null ? family : this;
   }
