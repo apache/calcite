@@ -52,11 +52,11 @@ import org.immutables.value.Value;
  * @see CoreRules#SAMPLE_TO_FILTER
  */
 @Value.Enclosing
-public class RewriteSampleToFilterRule
-    extends RelRule<RewriteSampleToFilterRule.Config>
+public class SampleToFilterRule
+    extends RelRule<SampleToFilterRule.Config>
     implements TransformationRule {
 
-  protected RewriteSampleToFilterRule(final RewriteSampleToFilterRule.Config config) {
+  protected SampleToFilterRule(final SampleToFilterRule.Config config) {
     super(config);
   }
 
@@ -79,19 +79,19 @@ public class RewriteSampleToFilterRule
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    RewriteSampleToFilterRule.Config DEFAULT = ImmutableRewriteSampleToFilterRule.Config.of()
+    SampleToFilterRule.Config DEFAULT = ImmutableSampleToFilterRule.Config.of()
         .withOperandFor(Sample.class);
 
-    @Override default RewriteSampleToFilterRule toRule() {
-      return new RewriteSampleToFilterRule(this);
+    @Override default SampleToFilterRule toRule() {
+      return new SampleToFilterRule(this);
     }
 
     /** Defines an operand tree for the given classes. */
-    default RewriteSampleToFilterRule.Config withOperandFor(Class<? extends Sample> sampleClass) {
+    default SampleToFilterRule.Config withOperandFor(Class<? extends Sample> sampleClass) {
       return withOperandSupplier(b ->
           b.operand(sampleClass)
               .predicate(sample -> sample.getSamplingParameters().isBernoulli()).anyInputs())
-          .as(RewriteSampleToFilterRule.Config.class);
+          .as(SampleToFilterRule.Config.class);
     }
   }
 }

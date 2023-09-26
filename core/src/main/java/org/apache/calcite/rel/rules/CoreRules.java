@@ -747,8 +747,8 @@ public class CoreRules {
       UnionToDistinctRule.Config.DEFAULT.toRule();
 
   /** Rule that rewrite {@link Sample} which is bernoulli to the {@link Filter}. */
-  public static final RewriteSampleToFilterRule SAMPLE_TO_FILTER =
-      RewriteSampleToFilterRule.Config.DEFAULT.toRule();
+  public static final SampleToFilterRule SAMPLE_TO_FILTER =
+      SampleToFilterRule.Config.DEFAULT.toRule();
 
   /** Rule that applies an {@link Aggregate} to a {@link Values} (currently just
    * an empty {@code Values}). */
