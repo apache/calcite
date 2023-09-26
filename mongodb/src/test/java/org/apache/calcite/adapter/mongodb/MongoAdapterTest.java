@@ -818,4 +818,14 @@ public class MongoAdapterTest implements SchemaFactory {
       }
     };
   }
+
+  @Test void testColumnQuoting() {
+    assertModel(MODEL)
+        .query("select state as \"STATE\", avg(pop) as \"AVG(pop)\" "
+            + "from zips "
+            + "group by \"STATE\" "
+            + "order by \"AVG(pop)\"")
+        .limit(2)
+        .returns("STATE=VT; AVG(pop)=26408\nSTATE=AK; AVG(pop)=26856\n");
+  }
 }
