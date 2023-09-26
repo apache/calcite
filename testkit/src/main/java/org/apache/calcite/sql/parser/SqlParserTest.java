@@ -8762,6 +8762,14 @@ public class SqlParserTest {
             + "FORMAT JSON NULL ON NULL)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6003">[CALCITE-6003]
+   * JSON_ARRAY() with no arguments does not unparse correctly</a>. */
+  @Test void testEmptyJsonArray() {
+    expr("json_array()")
+        .ok("JSON_ARRAY()");
+  }
+
   @Test void testJsonArray() {
     expr("json_array('foo')")
         .ok("JSON_ARRAY('foo' ABSENT ON NULL)");
