@@ -247,14 +247,73 @@ SqlCreate SqlCreateTable(Span s, boolean replace) :
     final SqlIdentifier id;
     SqlNodeList tableElementList = null;
     SqlNode query = null;
+
+    SqlCreate createTableLike = null;
 }
 {
     <TABLE> ifNotExists = IfNotExistsOpt() id = CompoundIdentifier()
-    [ tableElementList = TableElementList() ]
-    [ <AS> query = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY) ]
+    (
+        <LIKE> createTableLike = SqlCreateTableLike(s, replace, ifNotExists, id) {
+            return createTableLike;
+        }
+    |
+        [ tableElementList = TableElementList() ]
+        [ <AS> query = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY) ]
+        {
+            return SqlDdlNodes.createTable(s.end(this), replace, ifNotExists, id, tableElementList, query);
+        }
+    )
+}
+
+SqlCreate SqlCreateTableLike(Span s, boolean replace, boolean ifNotExists, SqlIdentifier id) :
+{
+    final SqlIdentifier sourceTable;
+    final boolean likeOptions;
+    final SqlNodeList including = new SqlNodeList(getPos());
+    final SqlNodeList excluding = new SqlNodeList(getPos());
+}
+{
+    sourceTable = CompoundIdentifier()
+    [ LikeOptions(including, excluding) ]
     {
-        return SqlDdlNodes.createTable(s.end(this), replace, ifNotExists, id,
-            tableElementList, query);
+        return SqlDdlNodes.createTableLike(s.end(this), replace, ifNotExists, id, sourceTable, including, excluding);
+    }
+}
+
+void LikeOptions(SqlNodeList including, SqlNodeList excluding) :
+{
+}
+{
+    LikeOption(including, excluding)
+    (
+        LikeOption(including, excluding)
+    )*
+}
+
+void LikeOption(SqlNodeList includingOptions, SqlNodeList excludingOptions) :
+{
+    boolean including = false;
+    SqlCreateTableLike.LikeOption option;
+}
+{
+    (
+        <INCLUDING> { including = true; }
+    |
+        <EXCLUDING> { including = false; }
+    )
+    (
+        <ALL> { option = SqlCreateTableLike.LikeOption.ALL; }
+    |
+        <DEFAULTS> { option = SqlCreateTableLike.LikeOption.DEFAULTS; }
+    |
+        <GENERATED> { option = SqlCreateTableLike.LikeOption.GENERATED; }
+    )
+    {
+        if (including) {
+            includingOptions.add(option.symbol(getPos()));
+        } else {
+            excludingOptions.add(option.symbol(getPos()));
+        }
     }
 }
 
