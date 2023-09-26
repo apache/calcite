@@ -30,13 +30,14 @@ import java.util.Comparator;
  * {@link #floorKey(java.lang.String)}
  * and {@link #ceilingKey(java.lang.String)}.
  */
-class CaseInsensitiveComparator implements Comparator {
-  static final CaseInsensitiveComparator COMPARATOR = new CaseInsensitiveComparator();
+public class CaseInsensitiveComparator implements Comparator<CharSequence> {
+  public static final CaseInsensitiveComparator COMPARATOR =
+      new CaseInsensitiveComparator();
 
   /**
    * Enables to create floor and ceiling keys for given string.
    */
-  private static final class Key {
+  private static final class Key implements CharSequence {
     public final String value;
     public final int compareResult;
 
@@ -48,17 +49,29 @@ class CaseInsensitiveComparator implements Comparator {
     @Override public String toString() {
       return value;
     }
+
+    @Override public int length() {
+      return value.length();
+    }
+
+    @Override public char charAt(int index) {
+      return value.charAt(index);
+    }
+
+    @Override public CharSequence subSequence(int start, int end) {
+      return value.subSequence(start, end);
+    }
   }
 
-  Object floorKey(String key) {
+  public CharSequence floorKey(String key) {
     return new Key(key, -1);
   }
 
-  Object ceilingKey(String key) {
+  public CharSequence ceilingKey(String key) {
     return new Key(key, 1);
   }
 
-  @Override public int compare(Object o1, Object o2) {
+  @Override public int compare(CharSequence o1, CharSequence o2) {
     String s1 = o1.toString();
     String s2 = o2.toString();
     int c = s1.compareToIgnoreCase(s2);

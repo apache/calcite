@@ -27,7 +27,8 @@ import java.util.Set;
 
 /** Set of names that can be accessed with and without case sensitivity. */
 public class NameSet {
-  public static final Comparator<String> COMPARATOR = CaseInsensitiveComparator.COMPARATOR;
+  public static final Comparator<CharSequence> COMPARATOR =
+      CaseInsensitiveComparator.COMPARATOR;
 
   private static final Object DUMMY = new Object();
 
