@@ -30,6 +30,7 @@ data: {
       "org.apache.calcite.sql.SqlCreate"
       "org.apache.calcite.sql.SqlDrop"
       "org.apache.calcite.sql.SqlTruncate"
+      "org.apache.calcite.sql.ddl.SqlCreateTableLike"
       "org.apache.calcite.sql.ddl.SqlDdlNodes"
     ]
 

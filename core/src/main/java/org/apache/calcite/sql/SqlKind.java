@@ -1161,6 +1161,9 @@ public enum SqlKind {
   /** {@code CREATE TABLE} DDL statement. */
   CREATE_TABLE,
 
+  /** {@code CREATE TABLE LIKE} DDL statement. */
+  CREATE_TABLE_LIKE,
+
   /** {@code ALTER TABLE} DDL statement. */
   ALTER_TABLE,
 
@@ -1281,7 +1284,8 @@ public enum SqlKind {
   public static final EnumSet<SqlKind> DDL =
       EnumSet.of(COMMIT, ROLLBACK, ALTER_SESSION,
           CREATE_SCHEMA, CREATE_FOREIGN_SCHEMA, DROP_SCHEMA,
-          CREATE_TABLE, ALTER_TABLE, DROP_TABLE, TRUNCATE_TABLE,
+          CREATE_TABLE, CREATE_TABLE_LIKE,
+          ALTER_TABLE, DROP_TABLE, TRUNCATE_TABLE,
           CREATE_FUNCTION, DROP_FUNCTION,
           CREATE_VIEW, ALTER_VIEW, DROP_VIEW,
           CREATE_MATERIALIZED_VIEW, ALTER_MATERIALIZED_VIEW,
