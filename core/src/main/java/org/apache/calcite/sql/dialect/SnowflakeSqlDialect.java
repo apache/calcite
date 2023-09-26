@@ -362,6 +362,9 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case "REGEXP_CONTAINS":
       unparseRegexContains(writer, call, leftPrec, rightPrec);
       break;
+    case "REGEXP_SIMILAR":
+      unparseRegexpSimilar(writer, call, leftPrec, rightPrec);
+      break;
     case "SUBSTRING":
       final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
       for (SqlNode operand : call.getOperandList()) {
@@ -398,6 +401,17 @@ public class SnowflakeSqlDialect extends SqlDialect {
       operand.unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(regexpLikeFrame);
+  }
+
+  private void unparseRegexpSimilar(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    SqlWriter.Frame ifFrame = writer.startFunCall("IF");
+    unparseRegexContains(writer, call, leftPrec, rightPrec);
+    writer.sep(",");
+    writer.literal("1");
+    writer.sep(",");
+    writer.literal("0");
+    writer.endFunCall(ifFrame);
   }
 
   private void unparseToHex(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

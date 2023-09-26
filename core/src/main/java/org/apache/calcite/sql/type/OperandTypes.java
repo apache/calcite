@@ -311,6 +311,11 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker ARRAY =
       family(SqlTypeFamily.ARRAY);
 
+  public static final SqlSingleOperandTypeChecker ARRAY_OR_MAP =
+      or(family(SqlTypeFamily.ARRAY),
+          family(SqlTypeFamily.MAP),
+          family(SqlTypeFamily.ANY));
+
   /** Checks that returns whether a value is a multiset or an array.
    * Cf Java, where list and set are collections but a map is not. */
   public static final SqlSingleOperandTypeChecker COLLECTION =
@@ -507,6 +512,9 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker STRING_STRING_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
+
+  public static final SqlSingleOperandTypeChecker NULL_STRING_INTEGER =
+      family(SqlTypeFamily.NULL, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
 
   public static final SqlSingleOperandTypeChecker STRING_STRING_INTEGER_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
