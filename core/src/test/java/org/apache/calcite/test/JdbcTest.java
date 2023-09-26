@@ -47,13 +47,11 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function0;
-import org.apache.calcite.plan.RelOptLattice;
-import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.Prepare;
-import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -154,7 +152,6 @@ import javax.sql.DataSource;
 import static org.apache.calcite.adapter.enumerable.EnumerableRules.ENUMERABLE_MINUS_RULE;
 import static org.apache.calcite.test.CalciteAssert.checkResult;
 import static org.apache.calcite.test.Matchers.isLinux;
-import static org.apache.calcite.tools.Programs.sequence;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -3138,7 +3135,7 @@ public class JdbcTest {
         .withHook(Hook.PROGRAM,
             (Consumer<Holder<Program>>)
             programHolder -> programHolder
-                    .set(sequence(Programs.SUB_QUERY_PROGRAM, getProgram(), Programs.CALC_PROGRAM)))
+                    .set(Programs.standard(DefaultRelMetadataProvider.INSTANCE, false)))
         .convertContains(""
                 + "LogicalProject(name=[$1])\n"
                 + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
@@ -3160,7 +3157,7 @@ public class JdbcTest {
         .withHook(Hook.PROGRAM,
             (Consumer<Holder<Program>>)
             programHolder -> programHolder
-                    .set(sequence(Programs.SUB_QUERY_PROGRAM, getProgram(), Programs.CALC_PROGRAM)))
+                    .set(Programs.standard(DefaultRelMetadataProvider.INSTANCE, false)))
         .convertContains(""
                 + "LogicalProject(name=[$1])\n"
                 + "  LogicalJoin(condition=[=($0, $2)], joinType=[inner])\n"
@@ -8345,33 +8342,6 @@ public class JdbcTest {
       }
     }
     return b.toString();
-  }
-
-  /** A program that omits {@link TrimFieldsProgram}. */
-  private static Program getProgram() {
-    final Program program1 =
-        (planner, rel, requiredOutputTraits, materializations, lattices) -> {
-          for (RelOptMaterialization materialization : materializations) {
-            planner.addMaterialization(materialization);
-          }
-          for (RelOptLattice lattice : lattices) {
-            planner.addLattice(lattice);
-          }
-
-          planner.setRoot(rel);
-          final RelNode rootRel2 =
-              rel.getTraitSet().equals(requiredOutputTraits)
-                  ? rel
-                  : planner.changeTraits(rel, requiredOutputTraits);
-          assert rootRel2 != null;
-
-          planner.setRoot(rootRel2);
-          final RelOptPlanner planner2 = planner.chooseDelegate();
-          final RelNode rootRel3 = planner2.findBestExp();
-          assert rootRel3 != null : "could not implement exp";
-          return rootRel3;
-        };
-    return program1;
   }
 
   // Disable checkstyle, so it doesn't complain about fields like "customer_id".
