@@ -28,7 +28,7 @@ public class CalciteMetaColumnFactoryImpl implements
   public static final CalciteMetaColumnFactoryImpl INSTANCE = new CalciteMetaColumnFactoryImpl();
   public CalciteMetaColumnFactoryImpl() {}
 
-  @Override public MetaColumn newMetaColumn(
+  @Override public MetaColumn createColumn(
       Table table,
       String tableCat,
       String tableSchem,

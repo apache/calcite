@@ -101,7 +101,7 @@ class JdbcFrontJdbcBackTest {
 
     MetaExtraTableFactoryImpl() {}
 
-    @Override public MetaTable newMetaTable(Table table, String tableCat, String tableSchem,
+    @Override public MetaTable createTable(Table table, String tableCat, String tableSchem,
         String tableName) {
       return new MetaExtraTable(table, tableCat, tableSchem, tableName);
     }

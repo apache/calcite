@@ -397,7 +397,7 @@ public class CalciteMetaImpl extends MetaImpl {
               requireNonNull(schema.calciteSchema.getTable(name, true),
                   () -> "table " + name + " is not found (case sensitive)")
                   .getTable();
-          return metaTableFactory.newMetaTable(table, schema.tableCatalog,
+          return metaTableFactory.createTable(table, schema.tableCatalog,
               schema.tableSchem, name);
         })
         .concat(
@@ -406,7 +406,7 @@ public class CalciteMetaImpl extends MetaImpl {
                     .entrySet())
                 .select(pair -> {
                   final Table table = pair.getValue();
-                  return metaTableFactory.newMetaTable(table,
+                  return metaTableFactory.createTable(table,
                       schema.tableCatalog,
                       schema.tableSchem,
                       pair.getKey());
@@ -476,7 +476,7 @@ public class CalciteMetaImpl extends MetaImpl {
                   .map(RelDataType::getSqlTypeName)
                   .map(SqlTypeName::getJdbcOrdinal)
                   .orElse(field.getType().getSqlTypeName().getJdbcOrdinal());
-          return metaColumnFactory.newMetaColumn(
+          return metaColumnFactory.createColumn(
               table.calciteTable,
               table.tableCat,
               table.tableSchem,

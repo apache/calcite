@@ -28,7 +28,7 @@ import java.util.List;
 /** Factory for creating MetaColumns for getColumns(). */
 public interface CalciteMetaColumnFactory {
   /** Instantiates a MetaColumn. */
-  MetaColumn newMetaColumn(
+  MetaColumn createColumn(
       Table table,
       String tableCat,
       String tableSchem,

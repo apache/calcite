@@ -26,7 +26,7 @@ public class CalciteMetaTableFactoryImpl implements
 
   public static final CalciteMetaTableFactoryImpl INSTANCE = new CalciteMetaTableFactoryImpl();
   public CalciteMetaTableFactoryImpl() {}
-  @Override public CalciteMetaTable newMetaTable(
+  @Override public CalciteMetaTable createTable(
       Table table,
       String tableCat,
       String tableSchem,

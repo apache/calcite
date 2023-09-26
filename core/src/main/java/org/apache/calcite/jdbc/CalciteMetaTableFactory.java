@@ -26,7 +26,7 @@ import java.util.List;
 /** Factory for creating MetaTables for getTables(). */
 public interface CalciteMetaTableFactory {
   /** Instantiates a MetaTable. */
-  MetaTable newMetaTable(Table table, String tableCat, String tableSchem, String tableName);
+  MetaTable createTable(Table table, String tableCat, String tableSchem, String tableName);
 
   /** Returns the list of expected column names.
    *  The default implementation returns the columns described in the JDBC specification.
