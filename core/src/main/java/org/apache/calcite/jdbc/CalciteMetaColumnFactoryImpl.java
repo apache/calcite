@@ -38,7 +38,7 @@ public class CalciteMetaColumnFactoryImpl implements
       String typeName,
       Integer columnSize,
       @Nullable Integer decimalDigits,
-      Integer numPrecRadix,
+      int numPrecRadix,
       int nullable,
       Integer charOctetLength,
       int ordinalPosition,

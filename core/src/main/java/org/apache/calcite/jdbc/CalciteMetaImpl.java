@@ -115,8 +115,8 @@ public class CalciteMetaImpl extends MetaImpl {
    * @param metaColumnFactory Factory for creating MetaColumn or subclass of MetaColumn
    * */
   public CalciteMetaImpl(CalciteConnectionImpl connection,
-      CalciteMetaTableFactory metaTableFactory,
-      CalciteMetaColumnFactory metaColumnFactory) {
+      @Nullable CalciteMetaTableFactory metaTableFactory,
+      @Nullable CalciteMetaColumnFactory metaColumnFactory) {
     super(connection);
     this.connProps
         .setAutoCommit(false)
