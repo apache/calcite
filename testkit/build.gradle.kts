@@ -20,6 +20,7 @@ plugins {
 
 dependencies {
     api(project(":core"))
+    api(project(":babel"))
     api("org.checkerframework:checker-qual")
 
     implementation(platform("org.junit:junit-bom"))

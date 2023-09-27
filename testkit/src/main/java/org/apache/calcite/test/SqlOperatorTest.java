@@ -50,6 +50,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.AbstractSqlTester;
 import org.apache.calcite.sql.test.SqlOperatorFixture;
@@ -89,6 +90,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 
+import java.io.Reader;
+import java.io.StringReader;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -9722,6 +9725,15 @@ public class SqlOperatorTest {
         false);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6029">
+   * [CALCITE-6029] SqlOperatorTest cannot test operators that require the Babel parser</a>. */
+  @Test void testBabel() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL)
+        .withParserConfig(p -> p.withParserFactory(SqlBabelParserImpl.FACTORY));
+    f.checkScalar("10::integer",
+        "10", "INTEGER NOT NULL");
+  }
+
   @Test void testExtractDate() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.EXTRACT, VM_FENNEL, VM_JAVA);
@@ -13038,9 +13050,19 @@ public class SqlOperatorTest {
       super.check(factory, query, typeChecker, parameterChecker, resultChecker);
       final RelDataTypeSystem typeSystem =
           factory.typeSystemTransform.apply(RelDataTypeSystem.DEFAULT);
+      // Create a fake reader so we can invoke the getParser() method.
+      // We don't plan to invoke the parser, so we just pass an empty string.
+      Reader reader = new StringReader("");
+      String parserClass = factory
+          .parserConfig()
+          .parserFactory()
+          .getParser(reader)
+          .getClass()
+          .getCanonicalName();
       final ConnectionFactory connectionFactory =
           factory.connectionFactory
-              .with(CalciteConnectionProperty.TYPE_SYSTEM, uri(FIELD));
+              .with(CalciteConnectionProperty.TYPE_SYSTEM, uri(FIELD))
+              .with(CalciteConnectionProperty.PARSER_FACTORY, parserClass + "#FACTORY");
       try (TryThreadLocal.Memo ignore = THREAD_TYPE_SYSTEM.push(typeSystem);
            Connection connection = connectionFactory.createConnection();
            Statement statement = connection.createStatement()) {
