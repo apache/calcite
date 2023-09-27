@@ -8771,14 +8771,19 @@ class RelToSqlConverterTest {
 
   @Test public void testParseTimestampWithTimezoneFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP_WITH_TIMEZONE,
-        builder.literal("yyyy-MM-dd-HH:mm:ss.S(3)@ZZ"), builder.literal("2015-09-11-09:07:23"));
+    final RexNode parseTSNode =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP_WITH_TIMEZONE,
+        builder.literal("%c%z"), builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+            builder.literal("%c%z"),
+            builder.cast(builder.literal("2008-08-21 07:23:54"), SqlTypeName.TIMESTAMP),
+            builder.literal("America/Los_Angeles")));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(parseTSNode1, "timestamp"))
+        .project(builder.alias(parseTSNode, "timestamp"))
         .build();
     final String expectedBiqQuery =
-        "SELECT PARSE_TIMESTAMP('%F-%I:%m:%E3S%Ez', '2015-09-11-09:07:23') AS timestamp\n"
+        "SELECT PARSE_TIMESTAMP('%c%z', FORMAT_TIMESTAMP('%c%z', CAST('2008-08-21 07:23:54' AS "
+            + "DATETIME), 'America/Los_Angeles')) AS timestamp\n"
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));

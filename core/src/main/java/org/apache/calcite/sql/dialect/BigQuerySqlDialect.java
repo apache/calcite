@@ -1546,8 +1546,14 @@ public class BigQuerySqlDialect extends SqlDialect {
         ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
         .getValue()
         : call.operand(0).toString();
-    SqlCall formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
-        createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+    SqlCall formatCall;
+    if (call.operandCount() == 3) {
+      formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
+          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1), call.operand(2));
+    } else {
+      formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
+          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+    }
     super.unparseCall(writer, formatCall, leftPrec, rightPrec);
   }
 
