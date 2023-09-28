@@ -594,6 +594,11 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       return referentialConstraints;
     }
 
+
+    public void setReferentialConstraints(List<RelReferentialConstraint> referentialConstraints) {
+      this.referentialConstraints.addAll(referentialConstraints);
+    }
+
     @Override public RelDataType getRowType() {
       return rowType;
     }
