@@ -32,7 +32,7 @@ public interface CalciteMetaColumnFactory {
       String tableName, String columnName, int dataType, String typeName,
       Integer columnSize, @Nullable Integer decimalDigits, int numPrecRadix,
       int nullable, Integer charOctetLength, int ordinalPosition,
-      String isNullable);
+      String isNullable, String isAutoincrement, String isGeneratedcolumn);
 
   /** Returns the list of expected column names.
    *
