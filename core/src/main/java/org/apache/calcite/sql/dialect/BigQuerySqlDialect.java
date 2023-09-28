@@ -177,9 +177,9 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.util.Util.isNumericLiteral;
 import static org.apache.calcite.util.Util.removeLeadingAndTrailingSingleQuotes;
 
@@ -591,7 +591,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       SqlNode castNode = CAST.createCall(pos,
           SqlLiteral.createExactNumeric(value.toPlainString(), pos), numericNode);
       return ROUND.createCall(pos, castNode,
-          SqlLiteral.createExactNumeric(requireNonNull(literal.getType().getScale()).toString(), pos));
+          SqlLiteral.createExactNumeric(
+              requireNonNull(literal.getType().getScale()).toString(), pos));
     }
     return super.getNumericLiteral(literal, pos);
   }
