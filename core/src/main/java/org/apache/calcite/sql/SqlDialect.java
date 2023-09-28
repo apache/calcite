@@ -27,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
@@ -53,6 +54,7 @@ import org.checkerframework.dataflow.qual.Pure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
@@ -66,6 +68,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
@@ -971,7 +974,7 @@ public class SqlDialect {
 
   public SqlNode getCastCall(SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
     return CAST.createCall(SqlParserPos.ZERO,
-      operandToCast, Nullness.castNonNull(this.getCastSpec(castTo)));
+      operandToCast, castNonNull(this.getCastSpec(castTo)));
   }
 
   public SqlNode getTimeLiteral(TimeString timeString, int precision, SqlParserPos pos) {
@@ -981,6 +984,11 @@ public class SqlDialect {
   public SqlNode getTimestampLiteral(TimestampString timestampString,
       int precision, SqlParserPos pos) {
     return SqlLiteral.createTimestamp(timestampString, precision, pos);
+  }
+
+  public SqlNode getNumericLiteral(RexLiteral literal, SqlParserPos pos) {
+    return SqlLiteral.createExactNumeric(
+        castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), pos);
   }
 
   /** Rewrite SINGLE_VALUE into expression based on database variants
