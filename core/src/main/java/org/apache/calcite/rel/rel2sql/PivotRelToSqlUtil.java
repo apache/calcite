@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rel2sql;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlPivot;
@@ -87,16 +88,18 @@ public class PivotRelToSqlUtil {
     for (AggregateCall aggCall : e.getAggCallList()) {
       String columnName1 = e.getRowType().getFieldList().get(aggCall.filterArg).getKey();
       if (columnName1.contains("_null")) {
-        columnName1 = columnName1.substring(0, columnName1.indexOf("_null"));
+        columnName1 = columnName1.replace("_null", "")
+            .replace("'", "");
       }
       String[] columnNameAndAlias = columnName1.split("_");
       SqlNode inListColumnNode;
       if (columnNameAndAlias.length == 1) {
-        inListColumnNode = new SqlIdentifier(columnNameAndAlias[0], pos);
+        inListColumnNode = SqlLiteral.createCharString(columnNameAndAlias[0], pos);
       } else {
         inListColumnNode = SqlStdOperatorTable.AS.createCall(
-            pos, new SqlIdentifier(
-                columnNameAndAlias[0], pos), new SqlIdentifier(columnNameAndAlias[1], pos));
+            pos, SqlLiteral.createCharString(
+                columnNameAndAlias[0], pos),
+            SqlLiteral.createCharString(columnNameAndAlias[1], pos));
       }
       inColumnList.add(inListColumnNode);
     }
@@ -113,7 +116,8 @@ public class PivotRelToSqlUtil {
           ).getKey());
     }
     SqlNode tempNode = new SqlIdentifier(new ArrayList<>(columnName).get(0), pos);
-    SqlNode aggFunctionNode = e.getAggCallList().get(0).getAggregation().createCall(pos, tempNode);
+    SqlNode aggFunctionNode =
+        e.getAggCallList().get(0).getAggregation().createCall(pos, tempNode);
     aggArgList.add(aggFunctionNode);
     SqlNodeList axesNodeList = new SqlNodeList(aggArgList, pos);
     return axesNodeList;
