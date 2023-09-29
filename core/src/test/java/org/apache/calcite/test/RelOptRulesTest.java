@@ -263,6 +263,46 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5989">[CALCITE-5989]
+   * Type inference for RPAD and LPAD functions (BIGQUERY) is incorrect</a>. */
+  @Test void testRpad() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ReduceExpressionsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
+
+    final String sql = "select RPAD('abc', 8, 'A')";
+    fixture()
+        .withFactory(
+            t -> t.withOperatorTable(opTab ->
+                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                    SqlLibrary.BIG_QUERY))) // needed for RPAD function
+        .sql(sql)
+        .withPlanner(hepPlanner)
+        .check();
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5989">[CALCITE-5989]
+   * Type inference for RPAD and LPAD functions (BIGQUERY) is incorrect</a>. */
+  @Test void testLpad() {
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ReduceExpressionsRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS);
+
+    final String sql = "select LPAD('abc', 8, 'A')";
+    fixture()
+        .withFactory(
+            t -> t.withOperatorTable(opTab ->
+                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                    SqlLibrary.BIG_QUERY))) // needed for LPAD function
+        .sql(sql)
+        .withPlanner(hepPlanner)
+        .check();
+  }
+
+  /**
    * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5971">[CALCITE-5971]
    * Add the RelRule to rewrite the bernoulli sample as Filter</a>. */
   @Test void testSampleToFilter() {

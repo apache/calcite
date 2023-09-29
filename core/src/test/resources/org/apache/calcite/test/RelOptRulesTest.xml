@@ -6224,6 +6224,23 @@ EnumerableLimitSort(sort0=[$0], dir0=[ASC], offset=[5], fetch=[10])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testLpad">
+    <Resource name="sql">
+      <![CDATA[select LPAD('abc', 8, 'A')]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[LPAD('abc', 8, 'A')])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=['AAAAAabc':VARCHAR])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testManyFiltersOnTopOfMultiJoinShouldCollapse">
     <Resource name="sql">
       <![CDATA[select * from (select * from emp e1 left outer join dept d
@@ -12876,6 +12893,23 @@ LogicalProject(EXPR$0=[1])
       LogicalFilter(condition=[=($1, 'Charlie')])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testRpad">
+    <Resource name="sql">
+      <![CDATA[select RPAD('abc', 8, 'A')]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[RPAD('abc', 8, 'A')])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=['abcAAAAA':VARCHAR])
+  LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
   </TestCase>
