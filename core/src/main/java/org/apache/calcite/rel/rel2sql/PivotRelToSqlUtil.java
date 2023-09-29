@@ -99,7 +99,7 @@ public class PivotRelToSqlUtil {
         inListColumnNode = SqlStdOperatorTable.AS.createCall(
             pos, SqlLiteral.createCharString(
                 columnNameAndAlias[0], pos),
-            SqlLiteral.createCharString(columnNameAndAlias[1], pos));
+            new SqlIdentifier(columnNameAndAlias[1], pos));
       }
       inColumnList.add(inListColumnNode);
     }
