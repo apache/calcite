@@ -17,15 +17,21 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rex.RexLiteral;
 
 import org.immutables.value.Value;
 
-/**
- * Planner rule that removes
- * the redundant {@link org.apache.calcite.rel.core.Sort} if its input
- * max row number is less than or equal to one.
+import java.util.Optional;
+
+/** Rule that removes redundant {@code Order By} or {@code Limit} when its input RelNode's
+ * max row count is less than or equal to specified row count.All of them
+ * are represented by {@link Sort}
+ *
+ * <p> If a {@code Sort} is pure order by,and its offset is null,when its input RelNode's
+ * max row count is less than or equal to 1,then we could remove the redundant sort.
  *
  * <p> For example:
  * <blockquote><pre>{@code
@@ -36,6 +42,23 @@ import org.immutables.value.Value;
  * <blockquote><pre>{@code
  *  select max(totalprice) from orders}
  *  </pre></blockquote>
+ *
+ * <p> If a {@code Sort} is pure limit,and its offset is null, when its input
+ * RelNode's max row count is less than or equal to the limit's fetch,then we could
+ * remove the redundant sort.
+ *
+ * <p> For example:
+ * <blockquote><pre>{@code
+ * SELECT * FROM (VALUES 1,2,3,4,5,6) AS t1 LIMIT 10}
+ * </pre></blockquote>
+ *
+ * <p> The above values max row count is 6 rows, and the limit's fetch is 10,
+ * so we could remove the redundant sort.
+ *
+ * <p> It could be converted to:
+ * <blockquote><pre>{@code
+ * SELECT * FROM (VALUES 1,2,3,4,5,6) AS t1}
+ * </pre></blockquote>
  *
  * @see CoreRules#SORT_REMOVE_REDUNDANT
  */
@@ -49,18 +72,41 @@ public class SortRemoveRedundantRule
 
   @Override public void onMatch(final RelOptRuleCall call) {
     final Sort sort = call.rel(0);
-    if (sort.offset != null || sort.fetch != null) {
-      // Don't remove sort if it has explicit OFFSET and LIMIT
+    if (RelOptUtil.isOffset(sort)) {
+      // Don't remove sort if it has explicit OFFSET
       return;
     }
 
     // Get the max row count for sort's input RelNode.
-    final Double maxRowCount = call.getMetadataQuery().getMaxRowCount(sort.getInput());
-    // If the max row count is not null and less than or equal to 1,
-    // then we could remove the sort.
-    if (maxRowCount != null && maxRowCount <= 1D) {
+    final Double inputMaxRowCount = call.getMetadataQuery().getMaxRowCount(sort.getInput());
+
+    // Get the target max row count with sort's semantics.
+    // If sort is pure order by, the target max row count is 1.
+    // If sort is pure limit, the target max row count is the limit's fetch.
+    final Optional<Double> targetMaxRowCount = getSortInputSpecificMaxRowCount(sort);
+
+    if (!targetMaxRowCount.isPresent()) {
+      return;
+    }
+
+    // If the max row count is not null and less than or equal to targetMaxRowCount,
+    // then we could remove the redundant sort.
+    if (inputMaxRowCount != null && inputMaxRowCount <= targetMaxRowCount.get()) {
       call.transformTo(sort.getInput());
     }
+  }
+
+  private Optional<Double> getSortInputSpecificMaxRowCount(Sort sort) {
+    // If the sort is pure limit, the specific max row count is limit's fetch.
+    if (RelOptUtil.isPureLimit(sort)) {
+      final double limit =
+          sort.fetch instanceof RexLiteral ? RexLiteral.intValue(sort.fetch) : -1D;
+      return Optional.of(limit);
+    } else if (RelOptUtil.isPureOrder(sort)) {
+      // If the sort is pure order by, the specific max row count is 1.
+      return Optional.of(1D);
+    }
+    return Optional.empty();
   }
 
   /** Rule configuration. */

@@ -727,8 +727,9 @@ public class CoreRules {
   public static final SortRemoveConstantKeysRule SORT_REMOVE_CONSTANT_KEYS =
       SortRemoveConstantKeysRule.Config.DEFAULT.toRule();
 
-  /** Rule that removes redundant {@link Sort} if its input max row number
-   * is less than or equal to one. */
+  /** Rule that removes redundant {@code Order By} or {@code Limit} when its input RelNode's
+   * max row count is less than or equal to specified row count.All of them
+   * are represented by {@link Sort}*/
   public static final SortRemoveRedundantRule SORT_REMOVE_REDUNDANT =
       SortRemoveRedundantRule.Config.DEFAULT.toRule();
 

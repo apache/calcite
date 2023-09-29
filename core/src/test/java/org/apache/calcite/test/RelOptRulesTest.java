@@ -1301,6 +1301,42 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6009">[CALCITE-6009]
+   * Add optimization to remove redundant LIMIT that is more than
+   * input row count</a>. */
+  @Test void testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch() {
+    final String sql = "select * from\n"
+        + "(VALUES 1,2,3,4,5,6) as t1 limit 10";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6009">[CALCITE-6009]
+   * Add optimization to remove redundant LIMIT that is more than input
+   * row count</a>. */
+  @Test void testSortRemoveWhenInputAggregateMaxRowCntLessOrEqualLimitFetch() {
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp limit 20";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6009">[CALCITE-6009]
+   * Add optimization to remove redundant LIMIT that is more than input
+   * row count</a>. */
+  @Test void testSortRemoveWhenHasOffset() {
+    final String sql = "select * from\n"
+        + "(select * from sales.emp limit 10) t limit 20 offset 1";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
+        .checkUnchanged();
+  }
+
   /** Tests that an {@link EnumerableLimit} and {@link EnumerableSort} are
    * replaced by an {@link EnumerableLimitSort}, per
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3920">[CALCITE-3920]

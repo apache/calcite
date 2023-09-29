@@ -14179,6 +14179,61 @@ LogicalAggregate(group=[{}], C=[COUNT()])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortRemoveWhenHasOffset">
+    <Resource name="sql">
+      <![CDATA[select * from
+(select * from sales.emp limit 10) t limit 20 offset 1]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(offset=[1], fetch=[20])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalSort(fetch=[10])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortRemoveWhenInputAggregateMaxRowCntLessOrEqualLimitFetch">
+    <Resource name="sql">
+      <![CDATA[select count(*) as c
+from sales.emp limit 20]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(fetch=[20])
+  LogicalAggregate(group=[{}], C=[COUNT()])
+    LogicalProject($f0=[0])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{}], C=[COUNT()])
+  LogicalProject($f0=[0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortRemoveWhenInputValuesMaxRowCntLessOrEqualLimitFetch">
+    <Resource name="sql">
+      <![CDATA[select * from
+(VALUES 1,2,3,4,5,6) as t1 limit 10]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalSort(fetch=[10])
+  LogicalProject(T1=[$0])
+    LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(T1=[$0])
+  LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSortRemoveWhenLimitMaxRowCntIsOne">
     <Resource name="sql">
       <![CDATA[select *
