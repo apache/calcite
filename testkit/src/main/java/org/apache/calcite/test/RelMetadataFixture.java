@@ -524,6 +524,16 @@ public class RelMetadataFixture {
     return this;
   }
 
+  /** Checks {@link RelMetadataQuery#functionallyDetermine(RelNode, ImmutableBitSet, int)}. */
+  public RelMetadataFixture assertThatFunctionallyDetermine(ImmutableBitSet columns, int column,
+      Matcher<Boolean> matcher) {
+    RelNode rel = toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final Boolean isDependent = mq.functionallyDetermine(rel, columns, column);
+    assertThat(isDependent, matcher);
+    return this;
+  }
+
   /**
    * A configuration that describes how metadata should be configured.
    */

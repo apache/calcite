@@ -732,6 +732,11 @@ public class CoreRules {
   public static final SortRemoveRedundantRule SORT_REMOVE_REDUNDANT =
       SortRemoveRedundantRule.Config.DEFAULT.toRule();
 
+  /** Rule that removes keys from a {@link Sort}
+   * if those keys are known to be functionally dependent on other sort keys. */
+  public static final SortRemoveRedundantKeysRule SORT_REMOVE_REDUNDANT_KEYS =
+      SortRemoveRedundantKeysRule.Config.DEFAULT.toRule();
+
   /** Rule that pushes a {@link Sort} past a {@link Join}. */
   public static final SortJoinTransposeRule SORT_JOIN_TRANSPOSE =
       SortJoinTransposeRule.Config.DEFAULT.toRule();

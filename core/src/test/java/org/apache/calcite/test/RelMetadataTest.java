@@ -994,6 +994,114 @@ public class RelMetadataTest {
   }
 
   // ----------------------------------------------------------------------
+  // Tests for functionallyDetermine
+  // ----------------------------------------------------------------------
+
+  @Test void testFunctionallyDetermineForAggregate() {
+    final String sql = ""
+        + "select deptno, ename, sum(sal), empno\n"
+        + "from emp\n"
+        + "group by deptno, ename, empno";
+    sql(sql)
+        .assertThatFunctionallyDetermine(bitSetOf(0, 1, 3), 2, is(true))
+        .assertThatFunctionallyDetermine(bitSetOf(0), 2, is(false))
+        .assertThatFunctionallyDetermine(bitSetOf(1), 2, is(false))
+        .assertThatFunctionallyDetermine(bitSetOf(1, 2), 0, is(false))
+        .assertThatFunctionallyDetermine(bitSetOf(0, 2), 1, is(false))
+        .assertThatFunctionallyDetermine(bitSetOf(3), 1, is(true));
+  }
+
+  @Test void testFunctionallyDetermineForAggregateWithConstantColumns() {
+    final String sql = ""
+        + "select deptno, ename, sum(sal)\n"
+        + "from emp\n"
+        + "where deptno=1010\n"
+        + "group by deptno, ename";
+    sql(sql)
+        .assertThatFunctionallyDetermine(bitSetOf(1), 2, is(true));
+  }
+
+  @Test void testFunctionallyDetermineForOnlyTable() {
+    sql("select empno, comm, deptno\n"
+        + "from emp\n")
+        .assertThatFunctionallyDetermine(bitSetOf(0), 1, is(true))
+        .assertThatFunctionallyDetermine(bitSetOf(0), 2, is(true));
+  }
+
+  @Test void testFunctionallyDetermineForFilter() {
+    sql("select *\n"
+        + "from (select distinct deptno, sal from emp)\n"
+        + "where sal=1000")
+        .assertThatFunctionallyDetermine(bitSetOf(0), 1, is(true))
+        .assertThatFunctionallyDetermine(bitSetOf(0, 1), 1, is(true));
+  }
+
+  @Test void testFunctionallyDetermineSortWithConstantColumns() {
+    final String sql = ""
+        + "select *\n"
+        + "from (select distinct deptno, sal from emp)\n"
+        + "where sal=1000\n"
+        + "order by deptno";
+    sql(sql)
+        .assertThatFunctionallyDetermine(bitSetOf(0), 1, is(true))
+        .assertThatFunctionallyDetermine(bitSetOf(0, 1), 1, is(true))
+        .assertThatFunctionallyDetermine(bitSetOf(1), 0, is(false));
+  }
+
+  @Test void testFunctionallyDetermineForJoinWithConstantColumns() {
+    final String sql = ""
+        + "select *\n"
+        + "from (select distinct deptno, sal from emp) A\n"
+        + "join (select distinct deptno, sal from emp) B\n"
+        + "on A.deptno=B.deptno and A.sal=1000 and B.sal=1000";
+    sql(sql)
+        .assertThatFunctionallyDetermine(bitSetOf(0, 2), 1, is(true))
+        .assertThatFunctionallyDetermine(bitSetOf(0, 1, 2), 3, is(true))
+        .assertThatFunctionallyDetermine(bitSetOf(0, 2, 3), 1, is(true))
+        .assertThatFunctionallyDetermine(bitSetOf(0, 1), 3, is(false));
+  }
+
+  @Test void testFunctionallyDetermineForUnion() {
+    final String unionSql = "select deptno, sal from emp where sal=1000\n"
+        + "union\n"
+        + "select deptno, sal from emp where sal=1000\n";
+    sql(unionSql)
+        .assertThatFunctionallyDetermine(bitSetOf(0), 1, is(true));
+
+    final String unionAllSql = "select deptno, sal from emp where sal=1000\n"
+        + "union all\n"
+        + "select deptno, sal from emp where sal=1000\n";
+    sql(unionAllSql)
+        .assertThatFunctionallyDetermine(bitSetOf(0), 1, is(false));
+  }
+
+  @Test void testFunctionallyDetermineForIntersect() {
+    final String sql = ""
+        + "select deptno, sal\n"
+        + "from (select distinct deptno, sal from emp)\n"
+        + "where sal=1000\n"
+        + "intersect all\n"
+        + "select deptno, sal from emp\n";
+    sql(sql)
+        .assertThatFunctionallyDetermine(bitSetOf(0, 1), 1, is(true))
+        .assertThatFunctionallyDetermine(bitSetOf(0), 1, is(true))
+        .assertThatFunctionallyDetermine(bitSetOf(1), 0, is(false));
+  }
+
+  @Test void tesFunctionallyDetermineForMinus() {
+    final String sql = ""
+        + "select deptno, sal\n"
+        + "from (select distinct deptno, sal from emp)\n"
+        + "where sal=1000\n"
+        + "except all\n"
+        + "select deptno, sal from emp\n";
+    sql(sql)
+        .assertThatFunctionallyDetermine(bitSetOf(0), 1, is(true))
+        .assertThatFunctionallyDetermine(bitSetOf(0, 1), 1, is(true))
+        .assertThatFunctionallyDetermine(bitSetOf(1), 0, is(false));
+  }
+
+  // ----------------------------------------------------------------------
   // Tests for getUniqueKeys
   // ----------------------------------------------------------------------
 
