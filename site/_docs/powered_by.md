@@ -95,6 +95,11 @@ uses Calcite for parsing streaming SQL and query optimization.
 <a href="https://storm.apache.org">Apache Storm</a>
 uses Calcite for parsing streaming SQL and query optimization.
 
+### Apache Wayang
+
+<a href="https://wayang.apache.org">Apache Wayang (Incubating)</a>
+uses Calcite for SQL parsing and query optimization.
+
 ### AthenaX
 
 <a href="https://www.uber.com/">Uber</a>'s SQL-based streaming analytics platform
