@@ -291,6 +291,25 @@ class HepPlannerTest {
     assertThat(listener.getApplyTimes() == 1, is(true));
   }
 
+  @Test void testJoinPushTransitivePredicatesNullabilityIssue() {
+    // Tests an issue when a field in the output of the join
+    // has a different nullability the field in the input table
+    // See CALCITE-5387
+    final String sql = "WITH\n"
+        + "non_null_table AS (\n"
+        + "  SELECT DATE '2023-08-07' AS date_col_non_null FROM dept\n"
+        + "),\n"
+        + "null_table AS (\n"
+        + "  SELECT CAST(null as DATE) AS date_col_null FROM dept\n"
+        + ")\n"
+        + "SELECT *\n"
+        + "FROM non_null_table\n"
+        + "JOIN null_table\n"
+        + "ON null_table.date_col_null = non_null_table.date_col_non_null";
+
+    sql(sql).withRule(CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES).check();
+  }
+
   @Test void testSubprogram() {
     // Verify that subprogram gets re-executed until fixpoint.
     // In this case, the first time through we limit it to generate

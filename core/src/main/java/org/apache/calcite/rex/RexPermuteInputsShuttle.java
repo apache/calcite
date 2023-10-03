@@ -35,8 +35,8 @@ import java.util.List;
 public class RexPermuteInputsShuttle extends RexShuttle {
   //~ Instance fields --------------------------------------------------------
 
-  private final Mappings.TargetMapping mapping;
-  private final ImmutableList<RelDataTypeField> fields;
+  protected final Mappings.TargetMapping mapping;
+  protected final ImmutableList<RelDataTypeField> fields;
 
   //~ Constructors -----------------------------------------------------------
 

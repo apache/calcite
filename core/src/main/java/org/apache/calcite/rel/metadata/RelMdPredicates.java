@@ -667,6 +667,29 @@ public class RelMdPredicates
     }
 
     /**
+     * As RexPermuteInputsShuttle, with one exception. When visiting an inputRef,
+     * it will replace the type of the InputRef with the type found in the input fields,
+     * instead of keeping the original type. This is used within
+     * generateLeftRightInferredPredicates, to avoid nullability mismatches between the types of
+     * the join and the types of the inputs.
+     */
+    private class TypeChangingRexPermuteInputsShuttle
+        extends org.apache.calcite.rex.RexPermuteInputsShuttle {
+
+      TypeChangingRexPermuteInputsShuttle(Mappings.TargetMapping mapping, RelNode... inputs) {
+        super(mapping, inputs);
+      }
+
+      @Override public RexNode visitInputRef(RexInputRef local) {
+        final int index = local.getIndex();
+        int target = mapping.getTarget(index);
+        return new RexInputRef(
+            target,
+            fields.get(target).getType());
+      }
+    }
+
+    /**
      * The PullUp Strategy is sound but not complete.
      * <ol>
      * <li>We only pullUp inferred predicates for now. Pulling up existing
@@ -714,12 +737,12 @@ public class RelMdPredicates
           Mappings.createShiftMapping(nSysFields + nFieldsLeft + nFieldsRight,
               0, nSysFields + nFieldsLeft, nFieldsRight);
       final RexPermuteInputsShuttle rightPermute =
-          new RexPermuteInputsShuttle(rightMapping, joinRel);
+          new TypeChangingRexPermuteInputsShuttle(rightMapping, joinRel.getRight());
       Mappings.TargetMapping leftMapping =
           Mappings.createShiftMapping(nSysFields + nFieldsLeft, 0, nSysFields,
               nFieldsLeft);
       final RexPermuteInputsShuttle leftPermute =
-          new RexPermuteInputsShuttle(leftMapping, joinRel);
+          new TypeChangingRexPermuteInputsShuttle(leftMapping, joinRel.getLeft());
       final List<RexNode> leftInferredPredicates = new ArrayList<>();
       final List<RexNode> rightInferredPredicates = new ArrayList<>();
 
