@@ -1764,14 +1764,6 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlAggFunction BIT_XOR =
-      SqlBasicAggFunction
-          .create(SqlKind.BIT_XOR, ReturnTypes.BIGINT,
-              OperandTypes.ANY)
-          .withFunctionType(SqlFunctionCategory.SYSTEM)
-          .withSyntax(SqlSyntax.ORDERED_FUNCTION);
-
-  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TO_JSON_STRING =
       new SqlFunction("TO_JSON_STRING", SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
@@ -1823,8 +1815,4 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction QUANTILE =
       new SqlQuantileFunction(SqlKind.QUANTILE, ReturnTypes.INTEGER);
-
-  @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlAggFunction HASH_AGG =
-      new SqlHashAggFunction(SqlKind.HASH_AGG, ReturnTypes.BIGINT);
 }
