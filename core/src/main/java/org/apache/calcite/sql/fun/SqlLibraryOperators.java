@@ -1542,6 +1542,17 @@ public abstract class SqlLibraryOperators {
               number -> number == 1),
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SHA256 =
+      new SqlFunction("SHA256",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.explicit(SqlTypeName.VARCHAR)
+              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          null,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
+              OperandTypes.family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER)),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction HASHROW =
       new SqlFunction(
