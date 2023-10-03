@@ -12524,7 +12524,7 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testForJsonStringFunction() {
+  @Test public void testForToJsonStringFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode bitXor = builder.call(SqlLibraryOperators.TO_JSON_STRING,
             builder.scan("EMP").field(5));
