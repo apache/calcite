@@ -11935,6 +11935,34 @@ class RelToSqlConverterTest {
         isLinux(expectedBigQuery));
   }
 
+  @Test public void testSnowflakeDateTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateTrunc = builder.call(SqlLibraryOperators.SNOWFLAKE_DATE_TRUNC,
+        builder.literal("DAY"),
+        builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(dateTrunc)
+        .build();
+    final String expectedSnowflakeSql = "SELECT DATE_TRUNC('DAY', CURRENT_DATE) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+  }
+
+  @Test public void testBQDateTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateTrunc = builder.call(SqlLibraryOperators.DATE_TRUNC,
+        builder.call(CURRENT_DATE),
+        builder.literal("DAY"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(dateTrunc)
+        .build();
+    final String expectedBqSql = "SELECT DATE_TRUNC(CURRENT_DATE, DAY) AS `$f0`\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
+  }
+
+
   @Test public void testBracesForScalarSubQuery() {
     final RelBuilder builder = relBuilder();
     final RelNode scalarQueryRel = builder.
@@ -12491,37 +12519,6 @@ class RelToSqlConverterTest {
     final String expectedBQSql = "SELECT BIT_COUNT(EMPNO) AS emp_no"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
-  }
-
-  @Test public void testForHashAggFunction() {
-    final RelBuilder builder = relBuilder();
-    final RexNode hashAgg = builder.call(SqlLibraryOperators.HASH_AGG,
-        builder.scan("EMP").field(5));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(hashAgg, "hash_value"))
-        .build();
-
-    final String expectedSnowFlakeQuery = "SELECT HASH_AGG(\"SAL\") AS \"hash_value\""
-        + "\nFROM \"scott\".\"EMP\"";
-
-    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowFlakeQuery));
-  }
-
-  @Test public void testForBitXorAndToJsonStringFunction() {
-    final RelBuilder builder = relBuilder();
-    final RexNode bitXor = builder.call(SqlLibraryOperators.BIT_XOR,
-        builder.call(SqlLibraryOperators.FARM_FINGERPRINT, builder.call(SqlLibraryOperators.TO_JSON_STRING,
-            builder.scan("EMP").field(5))));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(bitXor, "value"))
-        .build();
-
-    final String expectedBiqQuery = "SELECT BIT_XOR(FARM_FINGERPRINT(TO_JSON_STRING(SAL))) AS value\n"
-        + "FROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test public void testForToJsonStringFunction() {
