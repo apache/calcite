@@ -670,8 +670,8 @@ public class RelMdPredicates
      * As RexPermuteInputsShuttle, with one exception. When visiting an inputRef,
      * it will replace the type of the InputRef with the type found in the input fields,
      * instead of keeping the original type. This is used within
-     * generateLeftRightInferredPredicates, to avoid nullability mismatches between the types of
-     * the join and the types of the inputs.
+     * when generating the Left/RightInferredPredicates, to avoid nullability mismatches
+     * between the types of the join and the types of the inputs.
      */
     private class TypeChangingRexPermuteInputsShuttle
         extends org.apache.calcite.rex.RexPermuteInputsShuttle {
