@@ -1723,7 +1723,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.VARIADIC,
           SqlFunctionCategory.SYSTEM);
 
-  @LibraryOperator(libraries = {SNOWFLAKE,BIG_QUERY})
+  @LibraryOperator(libraries = {SNOWFLAKE, BIG_QUERY})
   public static final SqlFunction PARSE_JSON =
       new SqlFunction("PARSE_JSON",
           SqlKind.OTHER_FUNCTION,

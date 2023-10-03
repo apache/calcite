@@ -12944,10 +12944,10 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testJSON_OBJECT() {
+  @Test public void testJsonObjectFunction() {
     final RelBuilder builder = relBuilder();
 
-    Map <String, String> obj = new HashMap<>();
+    Map<String, String> obj = new HashMap<>();
     obj.put("Name", "John");
     obj.put("Surname", "Mark");
     obj.put("Age", "30");
@@ -12965,11 +12965,11 @@ class RelToSqlConverterTest {
         .project(jsonNode)
         .build();
 
-    final String expectedMONBiqQuery = "SELECT JSON_OBJECT('Surname', 'Mark', 'Age', '30', " +
-        "'Name', 'John') AS `$f0`\nFROM scott.EMP";
+    final String expectedBiqQuery = "SELECT JSON_OBJECT('Surname', 'Mark', 'Age', '30', "
+        + "'Name', 'John') AS `$f0`\nFROM scott.EMP";
 
     assertThat(toSql(doyRoot, DatabaseProduct.BIG_QUERY.getDialect()),
-        isLinux(expectedMONBiqQuery));
+        isLinux(expectedBiqQuery));
   }
 
   @Test public void testParseJsonFuction() {
@@ -12983,6 +12983,19 @@ class RelToSqlConverterTest {
     final String expectedSql = "SELECT PARSE_JSON(NULL) AS \"FD\"\n"
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT PARSE_JSON(NULL) AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testParseJsonFuctionWithValues() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toParseJson = builder.call(SqlLibraryOperators.PARSE_JSON,
+        builder.literal("null"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toParseJson, "FD"))
+        .build();
+    final String expectedBiqQuery = "SELECT PARSE_JSON('null') AS FD\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
