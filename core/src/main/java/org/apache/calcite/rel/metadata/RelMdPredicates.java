@@ -56,6 +56,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
@@ -667,23 +668,44 @@ public class RelMdPredicates
     }
 
     /**
-     * The PullUp Strategy is sound but not complete.
-     * <ol>
-     * <li>We only pullUp inferred predicates for now. Pulling up existing
-     * predicates causes an explosion of duplicates. The existing predicates are
-     * pushed back down as new predicates. Once we have rules to eliminate
-     * duplicate Filter conditions, we should pullUp all predicates.
-     * <li>For Left Outer: we infer new predicates from the left and set them as
-     * applicable on the Right side. No predicates are pulledUp.
-     * <li>Right Outer Joins are handled in an analogous manner.
-     * <li>For Full Outer Joins no predicates are pulledUp or inferred.
-     * </ol>
+     * As RexPermuteInputsShuttle, with one exception. When visiting an inputRef,
+     * it will replace the type of the InputRef with the type found in the input fields,
+     * instead of keeping the original type. This is used within
+     * generateLeftRightInferredPredicates, to avoid nullability mismatches between the types of
+     * the join and the types of the inputs.
      */
-    public RelOptPredicateList inferPredicates(
-        boolean includeEqualityInference) {
+    private class TypeChangingRexPermuteInputsShuttle
+        extends org.apache.calcite.rex.RexPermuteInputsShuttle {
+
+      TypeChangingRexPermuteInputsShuttle(Mappings.TargetMapping mapping, RelNode... inputs) {
+        super(mapping, inputs);
+      }
+
+      @Override public RexNode visitInputRef(RexInputRef local) {
+        final int index = local.getIndex();
+        int target = mapping.getTarget(index);
+        return new RexInputRef(
+            target,
+            fields.get(target).getType());
+      }
+    }
+
+
+    /**
+     * Helper function for inferPredicates. Generates the list of inferred predicates for the join
+     * node.
+     *
+     * @param includeEqualityInference Should equality predicates be included in the returned list.
+     * @param joinType The type of the join
+     * @return The list of inferred predicates
+     */
+    private List<RexNode> populateInferredPredicates(
+        boolean includeEqualityInference, JoinRelType joinType) {
+      assert joinType == joinRel.getJoinType();
+
       final List<RexNode> inferredPredicates = new ArrayList<>();
       final Set<RexNode> allExprs = new HashSet<>(this.allExprs);
-      final JoinRelType joinType = joinRel.getJoinType();
+
       switch (joinType) {
       case SEMI:
       case INNER:
@@ -710,16 +732,30 @@ public class RelMdPredicates
         break;
       }
 
+      return inferredPredicates;
+    }
+
+
+    /**
+     * Helper function for inferPredicates. Iterates over the inferredPredicates, and populates
+     * lists of predicates that are specific to the left/right inputs of the join.
+     *
+     * @param inferredPredicates The inferred predicates. Not modified by this function.
+     * @return A pair of lists containing the predicates specific to the left/right inputs of
+     * the join.
+     */
+    private Pair<List<RexNode>, List<RexNode>> generateLeftRightInferredPredicates(
+        List<RexNode> inferredPredicates) {
       Mappings.TargetMapping rightMapping =
           Mappings.createShiftMapping(nSysFields + nFieldsLeft + nFieldsRight,
               0, nSysFields + nFieldsLeft, nFieldsRight);
       final RexPermuteInputsShuttle rightPermute =
-          new RexPermuteInputsShuttle(rightMapping, joinRel);
+          new TypeChangingRexPermuteInputsShuttle(rightMapping, joinRel.getRight());
       Mappings.TargetMapping leftMapping =
           Mappings.createShiftMapping(nSysFields + nFieldsLeft, 0, nSysFields,
               nFieldsLeft);
       final RexPermuteInputsShuttle leftPermute =
-          new RexPermuteInputsShuttle(leftMapping, joinRel);
+          new TypeChangingRexPermuteInputsShuttle(leftMapping, joinRel.getLeft());
       final List<RexNode> leftInferredPredicates = new ArrayList<>();
       final List<RexNode> rightInferredPredicates = new ArrayList<>();
 
@@ -731,6 +767,35 @@ public class RelMdPredicates
           rightInferredPredicates.add(iP.accept(rightPermute));
         }
       }
+      return new Pair(leftInferredPredicates, rightInferredPredicates);
+    }
+
+
+
+    /**
+     * The PullUp Strategy is sound but not complete.
+     * <ol>
+     * <li>We only pullUp inferred predicates for now. Pulling up existing
+     * predicates causes an explosion of duplicates. The existing predicates are
+     * pushed back down as new predicates. Once we have rules to eliminate
+     * duplicate Filter conditions, we should pullUp all predicates.
+     * <li>For Left Outer: we infer new predicates from the left and set them as
+     * applicable on the Right side. No predicates are pulledUp.
+     * <li>Right Outer Joins are handled in an analogous manner.
+     * <li>For Full Outer Joins no predicates are pulledUp or inferred.
+     * </ol>
+     */
+    public RelOptPredicateList inferPredicates(
+        boolean includeEqualityInference) {
+      final JoinRelType joinType = joinRel.getJoinType();
+
+      final List<RexNode> inferredPredicates =
+          populateInferredPredicates(includeEqualityInference, joinType);
+
+      final Pair<List<RexNode>, List<RexNode>> leftRightInferedPredicates =
+          generateLeftRightInferredPredicates(inferredPredicates);
+      final List<RexNode> leftInferredPredicates = leftRightInferedPredicates.left;
+      final List<RexNode> rightInferredPredicates = leftRightInferedPredicates.right;
 
       final RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
       switch (joinType) {
