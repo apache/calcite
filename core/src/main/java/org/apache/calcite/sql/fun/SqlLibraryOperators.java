@@ -1773,6 +1773,20 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.INTEGER),
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlAggFunction BIT_XOR =
+      SqlBasicAggFunction
+          .create(SqlKind.BIT_XOR, ReturnTypes.BIGINT,
+              OperandTypes.ANY)
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withSyntax(SqlSyntax.ORDERED_FUNCTION);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TO_JSON_STRING =
+      new SqlFunction("TO_JSON_STRING", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
+
   /** The {@code PERCENTILE_CONT} function, BigQuery's
    * equivalent to {@link SqlStdOperatorTable#PERCENTILE_CONT},
    * but uses an {@code OVER} clause rather than {@code WITHIN GROUP}. */
@@ -1819,4 +1833,8 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction QUANTILE =
       new SqlQuantileFunction(SqlKind.QUANTILE, ReturnTypes.INTEGER);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction HASH_AGG =
+      new SqlHashAggFunction(SqlKind.HASH_AGG, ReturnTypes.BIGINT);
 }

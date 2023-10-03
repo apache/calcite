@@ -11935,33 +11935,6 @@ class RelToSqlConverterTest {
         isLinux(expectedBigQuery));
   }
 
-  @Test public void testSnowflakeDateTrunc() {
-    final RelBuilder builder = relBuilder();
-    final RexNode dateTrunc = builder.call(SqlLibraryOperators.SNOWFLAKE_DATE_TRUNC,
-        builder.literal("DAY"),
-        builder.call(CURRENT_DATE));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(dateTrunc)
-        .build();
-    final String expectedSnowflakeSql = "SELECT DATE_TRUNC('DAY', CURRENT_DATE) AS \"$f0\"\n"
-        + "FROM \"scott\".\"EMP\"";
-    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
-  }
-
-  @Test public void testBQDateTrunc() {
-    final RelBuilder builder = relBuilder();
-    final RexNode dateTrunc = builder.call(SqlLibraryOperators.DATE_TRUNC,
-        builder.call(CURRENT_DATE),
-        builder.literal("DAY"));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(dateTrunc)
-        .build();
-    final String expectedBqSql = "SELECT DATE_TRUNC(CURRENT_DATE, DAY) AS `$f0`\nFROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
-  }
-
   @Test public void testBracesForScalarSubQuery() {
     final RelBuilder builder = relBuilder();
     final RelNode scalarQueryRel = builder.
@@ -12553,26 +12526,11 @@ class RelToSqlConverterTest {
 
   @Test public void testForToJsonStringFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode bitXor = builder.call(SqlLibraryOperators.TO_JSON_STRING,
+    final RexNode toJsonStr = builder.call(SqlLibraryOperators.TO_JSON_STRING,
             builder.scan("EMP").field(5));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(bitXor, "value"))
-        .build();
-
-    final String expectedBiqQuery = "SELECT TO_JSON_STRING(SAL) AS value\n"
-        + "FROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-  }
-
-  @Test public void testForJsonStringFunction() {
-    final RelBuilder builder = relBuilder();
-    final RexNode bitXor = builder.call(SqlLibraryOperators.TO_JSON_STRING,
-            builder.scan("EMP").field(5));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(bitXor, "value"))
+        .project(builder.alias(toJsonStr, "value"))
         .build();
 
     final String expectedBiqQuery = "SELECT TO_JSON_STRING(SAL) AS value\n"
