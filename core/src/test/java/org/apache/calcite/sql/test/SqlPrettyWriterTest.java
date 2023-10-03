@@ -548,4 +548,10 @@ class SqlPrettyWriterTest {
         .withClauseEndsLine(true);
     System.out.println(new SqlPrettyWriter(config).format(node));
   }
+
+  @Test void testLowerCaseUDFWithDefaultValueFalse() {
+    final String sql = "SELECT myUDF(1, 2)";
+    final String formatted = "SELECT `MYUDF`(1, 2)";
+    expr(sql).expectingFormatted(formatted).check();
+  }
 }

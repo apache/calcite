@@ -18,6 +18,8 @@ package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.DistinctTrait;
+import org.apache.calcite.plan.DistinctTraitDef;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -36,7 +38,6 @@ import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableScan;
-import org.apache.calcite.rel.logical.RavenDistinctProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -1876,6 +1877,12 @@ public abstract class SqlImplementor {
                   }
                 }
               }
+            } else if (node instanceof SqlCall
+                && !SqlUtil.containsAgg(node)
+                && clauseList.contains(Clause.GROUP_BY)
+                && dialect.getConformance().isSortByOrdinal()) {
+              return SqlLiteral.createExactNumeric(
+                  Integer.toString(ordinal + 1), SqlParserPos.ZERO);
             }
             return node;
           }
@@ -1943,6 +1950,9 @@ public abstract class SqlImplementor {
     }
 
     private boolean ifSqlBasicCallAliased(SqlSelect sqlSelectNode) {
+      if (sqlSelectNode.getSelectList() == null) {
+        return false;
+      }
       for (SqlNode sqlNode: sqlSelectNode.getSelectList()) {
         if (sqlNode instanceof SqlBasicCall
             && ((SqlBasicCall) sqlNode).getOperator() != SqlStdOperatorTable.AS) {
@@ -1954,6 +1964,9 @@ public abstract class SqlImplementor {
 
 
     private boolean ifAliasUsedInHavingClause(List<String> aliases, SqlBasicCall havingClauseCall) {
+      if (havingClauseCall == null) {
+        return false;
+      }
       List<SqlNode> sqlNodes = havingClauseCall.getOperandList();
       for (SqlNode node : sqlNodes) {
         if (node instanceof SqlBasicCall) {
@@ -2028,7 +2041,8 @@ public abstract class SqlImplementor {
     }
 
     private boolean hasAggFunctionUsedInGroupBy(Project project) {
-      if (!(node instanceof SqlSelect && ((SqlSelect) node).getGroup() != null)) {
+      if (!(node instanceof SqlSelect && ((SqlSelect) node).getGroup() != null)
+          || ((SqlSelect) node).getSelectList() == null) {
         return false;
       }
       List<RexNode> expressions = project.getChildExps();
@@ -2139,16 +2153,17 @@ public abstract class SqlImplementor {
       // then new SELECT wrap is not required
       final Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
       for (Clause clause : expectedClauses) {
+        //if GROUP_BY rel is of type distinct treat it as SELECT
+        if (clause.ordinal() == 2) {
+          DistinctTrait distinctTrait = rel.getTraitSet().getTrait(DistinctTraitDef.instance);
+          if (distinctTrait != null && distinctTrait.isDistinct()) {
+            clause = Clause.SELECT;
+          }
+        }
         if (maxClause.ordinal() > clause.ordinal()
-            || (maxClause == clause
-                && !nonWrapSet.contains(clause))) {
+            || maxClause == clause && !nonWrapSet.contains(clause)) {
           return true;
         }
-      }
-
-      if (rel instanceof Project && rel.getInput(0) instanceof Aggregate
-          && !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {
-        return true;
       }
 
       if (rel instanceof Project && rel.getInput(0) instanceof Project
@@ -2163,10 +2178,19 @@ public abstract class SqlImplementor {
         return true;
       }
 
-      if (rel instanceof Project && rel.getInput(0) instanceof Aggregate
-          && dialect.getConformance().isGroupByAlias()
-          && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)) {
-        return true;
+      if (rel instanceof Project && rel.getInput(0) instanceof Aggregate) {
+        if (dialect.getConformance().isGroupByAlias()
+            && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)
+            || !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {
+          return true;
+        }
+
+        //check for distinct
+        Aggregate aggregate = (Aggregate) rel.getInput(0);
+        DistinctTrait distinctTrait = aggregate.getTraitSet().getTrait(DistinctTraitDef.instance);
+        if (distinctTrait != null && distinctTrait.isDistinct()) {
+          return true;
+        }
       }
 
       if (rel instanceof Aggregate && rel.getInput(0) instanceof Project
@@ -2213,11 +2237,6 @@ public abstract class SqlImplementor {
         if (clauses.contains(Clause.GROUP_BY)) {
           // Avoid losing the distinct attribute of inner aggregate.
           return !hasNestedAgg || Aggregate.isNotGrandTotal(agg);
-        }
-        if (rel instanceof Aggregate
-            && rel.getInput(0) instanceof RavenDistinctProject
-            && ((RavenDistinctProject) rel.getInput(0)).isDistinct()) {
-          return true;
         }
       }
 

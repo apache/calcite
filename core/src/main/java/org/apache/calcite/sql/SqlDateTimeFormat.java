@@ -67,6 +67,7 @@ public enum SqlDateTimeFormat {
   FRACTIONFOUR("S(4)"),
   FRACTIONFIVE("S(5)"),
   FRACTIONSIX("S(6)"),
+  FRACTIONNINE("S(9)"),
   AMPM("T"),
   TIMEZONE("Z"),
   MONTH_NAME("MONTH"),
@@ -89,7 +90,8 @@ public enum SqlDateTimeFormat {
   WEEK_OF_YEAR("WW"),
   WEEK_OF_MONTH("W"),
   TIMEOFDAY("TIMEOFDAY"),
-  YYYYDDMM("YYYYDDMM");
+  YYYYDDMM("YYYYDDMM"),
+  ABBREVIATED_MONTH_UPPERCASE("MONU");
 
   public final String value;
 

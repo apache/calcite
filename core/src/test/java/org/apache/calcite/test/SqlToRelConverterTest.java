@@ -91,6 +91,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         tester.getConformance());
   }
 
+  @Test void testDistinctWithFieldAlias() {
+    final String sql = "select distinct empno as emp_id from emp";
+    sql(sql).ok();
+  }
+
   @Test void testDotLiteralAfterNestedRow() {
     final String sql = "select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\" from emp";
     sql(sql).ok();
@@ -137,6 +142,31 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "  select a, b, c from (values (1, 2, 3)) as t (c, b, a)\n"
         + ") join dept on dept.deptno = c\n"
         + "order by c + a";
+    sql(sql).ok();
+  }
+
+  @Test void testDistinctInParentAndSubQueryWithGroupBy() {
+    final String sql = "select distinct deptno = 2 from (\n"
+        + "  select distinct deptno as deptno from dept group by deptno)";
+    sql(sql).ok();
+  }
+
+  @Test void testAnalyticalFunctionInChildWithDistinctInSubQuery() {
+    final String sql = "select deptno from (\n"
+        + "  select distinct deptno, row_number() over (order by deptno desc) as num_row from dept)";
+    sql(sql).ok();
+  }
+
+  @Test void testAnalyticalFunctionInChildWithDistinctInSubQueryAndParent() {
+    final String sql = "select distinct deptno from (\n"
+        + "  select distinct deptno, row_number() over (order by deptno desc) as num_row from dept)";
+    sql(sql).ok();
+  }
+
+  @Test void testAnalyticalFunctionInParentWithDistinctInSubQueryAndParent() {
+    final String sql = "select distinct deptno,"
+        + " row_number() over (order by deptno desc) as num_row from (\n"
+        + " select distinct deptno as deptno from dept)";
     sql(sql).ok();
   }
 
