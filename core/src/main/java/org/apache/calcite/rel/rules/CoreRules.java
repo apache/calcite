@@ -279,6 +279,10 @@ public class CoreRules {
   public static final FilterProjectTransposeRule FILTER_PROJECT_TRANSPOSE =
       FilterProjectTransposeRule.Config.DEFAULT.toRule();
 
+  /** Rule that pushes a {@link Filter} past a {@link Sample}. */
+  public static final FilterSampleTransposeRule FILTER_SAMPLE_TRANSPOSE =
+      FilterSampleTransposeRule.Config.DEFAULT.toRule();
+
   /** Rule that pushes a {@link LogicalFilter}
    * past a {@link LogicalTableFunctionScan}. */
   public static final FilterTableFunctionTransposeRule
