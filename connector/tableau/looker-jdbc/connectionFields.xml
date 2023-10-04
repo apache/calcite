@@ -29,7 +29,7 @@
     </selection-group>
   </field>
 
-  <field name="port" label="Port" value-type="string" category="endpoint" default-value="57198" />
+  <field name="port" label="Port" value-type="string" category="endpoint" default-value="443" />
 
   <field name="username" label="Username" value-type="string" category="authentication">
     <conditions>

@@ -26,8 +26,8 @@
     } else if (authAttrValue == "oauth") {
         props["token"] = attr["ACCESSTOKEN"];
     }
-    props["serialization"] = "PROTOBUF";
     props["database"] = ""; // attr[connectionHelper.attributeDatabase];
     props["schema"] = attr[connectionHelper.attributeSchema];
+//    props["verifySSL"] = "false" // Uncomment me for local testing
     return props;
 })

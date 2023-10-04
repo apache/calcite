@@ -18,9 +18,10 @@
  * source. See manifest.xml.
  */
 (function dsbuilder(attr) {
-    var urlBuilder = "jdbc:avatica:remote:url=https://" +
+    var urlBuilder = "jdbc:looker:url=https://" +
         attr[connectionHelper.attributeServer] +
         ":" + attr[connectionHelper.attributePort] +
-	"/jdbc/;serialization=JSON";
+	";userAgent=Tableau";
     return [urlBuilder];
 })
+
