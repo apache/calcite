@@ -479,6 +479,37 @@ class RelOptRulesTest extends RelOptTestBase {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6031">[CALCITE-6031]
+   * Add the planner rule that pushes the Filter past a Sample</a>. */
+  @Test void testFilterSampleTransposeWithBernoulli() {
+    final String sql = "select deptno from emp tablesample bernoulli(50) where deptno > 10";
+    sql(sql)
+        .withRule(CoreRules.FILTER_SAMPLE_TRANSPOSE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6031">[CALCITE-6031]
+   * Add the planner rule that pushes the Filter past a Sample</a>. */
+  @Test void testFilterSampleTransposeWithSystem() {
+    final String sql = "select deptno from emp tablesample system(50) where deptno > 10";
+    sql(sql)
+        .withRule(CoreRules.FILTER_SAMPLE_TRANSPOSE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6031">[CALCITE-6031]
+   * Add the planner rule that pushes the Filter past a Sample</a>. */
+  @Test void testFilterSampleTransposeWithSystemAndSeed() {
+    final String sql = "select deptno from emp\n"
+        + "tablesample system(50) repeatable(10) where deptno > 10";
+    sql(sql)
+        .withRule(CoreRules.FILTER_SAMPLE_TRANSPOSE)
+        .check();
+  }
+
   @Test void testReduceOrCaseWhen() {
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(ReduceExpressionsRule.class);

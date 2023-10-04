@@ -4517,6 +4517,70 @@ LogicalFilter(condition=[=($7, 20)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFilterSampleTransposeWithBernoulli">
+    <Resource name="sql">
+      <![CDATA[select deptno from emp tablesample bernoulli(50) where deptno > 10]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($7, 10)])
+    Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[-])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[0])
+    LogicalFilter(condition=[>($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testFilterSampleTransposeWithSystem">
+    <Resource name="sql">
+      <![CDATA[select deptno from emp tablesample system(50) where deptno > 10]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($7, 10)])
+    Sample(mode=[system], rate=[0.5], repeatableSeed=[-])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  Sample(mode=[system], rate=[0.5], repeatableSeed=[0])
+    LogicalFilter(condition=[>($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testFilterSampleTransposeWithSystemAndSeed">
+    <Resource name="sql">
+      <![CDATA[select deptno from emp
+tablesample system(50) repeatable(10) where deptno > 10]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  LogicalFilter(condition=[>($7, 10)])
+    Sample(mode=[system], rate=[0.5], repeatableSeed=[10])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7])
+  Sample(mode=[system], rate=[0.5], repeatableSeed=[10])
+    LogicalFilter(condition=[>($7, 10)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFlattenUncorrelatedCallBelowEquals">
     <Resource name="sql">
       <![CDATA[select * from emp e1 where exists (select * from emp e2 where e1.deptno = (e2.deptno+30))]]>
