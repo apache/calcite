@@ -12259,6 +12259,27 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testSnowflakeLastDay() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexNode lastDayNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
+        relBuilder.literal("13-JAN-1999"));
+    RexNode lastDayWithDatePartNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
+        relBuilder.literal("13-JAN-1999"),
+        relBuilder.literal("YEAR"));
+
+    RelNode root = relBuilder
+        .project(lastDayWithDatePartNode, lastDayNode)
+        .build();
+    final String expectedSnowflakeSql = "SELECT LAST_DAY('13-JAN-1999', 'YEAR') AS \"$f0\", "
+        + "LAST_DAY('13-JAN-1999') AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBQSql = "SELECT LAST_DAY('13-JAN-1999', YEAR) AS `$f0`, "
+        + "LAST_DAY('13-JAN-1999') AS `$f1`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
   @Test public void testOracleRoundFunction() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
@@ -13104,12 +13125,12 @@ class RelToSqlConverterTest {
   @Test public void testParseJsonFuctionWithValues() {
     final RelBuilder builder = relBuilder();
     final RexNode toParseJson = builder.call(SqlLibraryOperators.PARSE_JSON,
-        builder.literal("null"));
+        builder.literal("value"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(toParseJson, "FD"))
         .build();
-    final String expectedBiqQuery = "SELECT PARSE_JSON('null') AS FD\n"
+    final String expectedBiqQuery = "SELECT PARSE_JSON('value') AS FD\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
@@ -13117,13 +13138,25 @@ class RelToSqlConverterTest {
   @Test public void testParseJsonFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseJsonNode = builder.call(SqlLibraryOperators.PARSE_JSON,
-        builder.literal("NULL"));
+        builder.literal(null));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseJsonNode, "null_value"))
         .build();
-    final String expectedBigquery = "SELECT PARSE_JSON('NULL') AS null_value\n"
+    final String expectedBigquery = "SELECT PARSE_JSON(NULL) AS null_value\n"
         + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
+  }
+
+  @Test public void testParseJsonFunctionWithColumn() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.call(SqlLibraryOperators.PARSE_JSON,
+            builder.field("EMPNO")))
+        .build();
+    final String expectedBigquery = "SELECT PARSE_JSON(EMPNO) AS `$f0`\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
   }
