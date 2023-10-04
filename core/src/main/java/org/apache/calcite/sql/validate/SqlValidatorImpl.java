@@ -3082,13 +3082,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
 
     case INSERT_OVERWRITE:
-      SqlInsertOverwrite insertOverwrite = (SqlInsertOverwrite) node;
+      final SqlInsertOverwrite insertOverwrite = (SqlInsertOverwrite) node;
       if (insertOverwrite.getTarget() instanceof SqlIdentifier) {
-        InsertOvertwriteNamespace insertOvertwriteNamespace =
-            new InsertOvertwriteNamespace(this, insertOverwrite,
-            enclosingNode,
-            parentScope);
-        registerNamespace(usingScope, null, insertOvertwriteNamespace, forceNullable);
+        final InsertOverwriteNamesapce insertOverwriteNamesapce =
+            new InsertOverwriteNamesapce(
+                this,
+                insertOverwrite,
+                enclosingNode,
+                parentScope);
+        registerNamespace(usingScope, null, insertOverwriteNamesapce, forceNullable);
       }
       if (insertOverwrite.getSource() != null) {
         registerQuery(
@@ -6484,10 +6486,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   /**
    * Namespace for an INSERT_OVERWRITE statement.
    */
-  public static class InsertOvertwriteNamespace extends DmlNamespace {
+  public static class InsertOverwriteNamesapce extends DmlNamespace {
     private final SqlInsertOverwrite node;
 
-    protected InsertOvertwriteNamespace(SqlValidatorImpl validator, SqlInsertOverwrite node,
+    protected InsertOverwriteNamesapce(SqlValidatorImpl validator, SqlInsertOverwrite node,
         SqlNode enclosingNode, SqlValidatorScope parentScope) {
       super(validator, node.getTarget(), enclosingNode, parentScope);
       this.node = requireNonNull(node, "node");

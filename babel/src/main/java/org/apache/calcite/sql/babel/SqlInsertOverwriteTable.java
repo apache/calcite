@@ -28,14 +28,14 @@ import org.apache.calcite.sql.parser.SqlParserPos;
  * A <code>SqlInsertOverwriteTable</code> is a node of a parse tree which represents an
  * INSERT OVERWRITE TABLE statement.
  */
-public class SqlInsertOverwriteTbl extends SqlInsertOverwrite {
-  protected static final SqlSpecialOperator OPERATOR =
+public class SqlInsertOverwriteTable extends SqlInsertOverwrite {
+  private static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("INSERT OVERWRITE TABLE", SqlKind.INSERT_OVERWRITE);
-  private SqlNodeList partitionList;
-  private boolean ifNotExists;
-  private SqlNodeList columnList;
+  private final SqlNodeList partitionList;
+  private final boolean ifNotExists;
+  private final SqlNodeList columnList;
 
-  public SqlInsertOverwriteTbl(SqlParserPos pos, SqlNode targetTable,
+  public SqlInsertOverwriteTable(SqlParserPos pos, SqlNode targetTable,
       SqlNodeList partitionList, boolean ifNotExists, SqlNodeList columnList, SqlNode source) {
     super(
         OPERATOR,

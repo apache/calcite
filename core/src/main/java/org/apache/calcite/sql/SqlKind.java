@@ -1263,12 +1263,12 @@ public enum SqlKind {
    * Category consisting of all DML operators.
    *
    * <p>Consists of:
-   * {@link #INSERT},
-   * {@link #UPDATE},
    * {@link #DELETE},
+   * {@link #INSERT},
+   * {@link #INSERT_OVERWRITE},
    * {@link #MERGE},
-   * {@link #PROCEDURE_CALL}.
-   * {@link #INSERT_OVERWRITE}.
+   * {@link #PROCEDURE_CALL},
+   * {@link #UPDATE}.
    *
    * <p>NOTE jvs 1-June-2006: For now we treat procedure calls as DML;
    * this makes it easy for JDBC clients to call execute or

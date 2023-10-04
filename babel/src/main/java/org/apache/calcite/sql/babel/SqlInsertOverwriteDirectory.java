@@ -28,14 +28,14 @@ import org.apache.calcite.sql.parser.SqlParserPos;
  * A <code>SqlInsertOverwriteDirectory</code> is a node of a parse tree which represents an
  * INSERT OVERWRITE DIRECTORY statement.
  */
-public class SqlInsertOverwriteDir extends SqlInsertOverwrite {
-  public static final SqlSpecialOperator OPERATOR =
+public class SqlInsertOverwriteDirectory extends SqlInsertOverwrite {
+  private static final SqlSpecialOperator OPERATOR =
         new SqlSpecialOperator("INSERT OVERWRITE DIRECTORY", SqlKind.INSERT_OVERWRITE);
-  private boolean isLocal;
-  private SqlNode format;
-  private SqlNodeList optionList;
+  private final boolean isLocal;
+  private final SqlNode format;
+  private final SqlNodeList optionList;
 
-  public SqlInsertOverwriteDir(SqlParserPos pos,
+  public SqlInsertOverwriteDirectory(SqlParserPos pos,
       boolean isLocal,
       SqlNode target,
       SqlNode format,

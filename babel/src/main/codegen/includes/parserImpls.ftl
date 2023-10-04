@@ -190,7 +190,7 @@ SqlInsertOverwrite SqlInsertOverwrite() :
         )
         source = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
         {
-            return new SqlInsertOverwriteTbl(s.end(source), target, partitionList, ifNotExists, columnList, source);
+            return new SqlInsertOverwriteTable(s.end(source), target, partitionList, ifNotExists, columnList, source);
         }
     |
         (
@@ -207,7 +207,7 @@ SqlInsertOverwrite SqlInsertOverwrite() :
         )
         source = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
         {
-            return new SqlInsertOverwriteDir(s.end(source), isLocal, target, format, optionList, source);
+            return new SqlInsertOverwriteDirectory(s.end(source), isLocal, target, format, optionList, source);
         }
     )
 }

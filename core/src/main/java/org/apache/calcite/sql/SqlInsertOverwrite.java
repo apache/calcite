@@ -23,7 +23,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Base class for INSERT OVERWRITE TABLE and INSERT OVERWRITE DIRECTORY statements.
@@ -54,9 +55,9 @@ public abstract class SqlInsertOverwrite extends SqlCall {
       SqlNode source,
       SqlParserPos pos) {
     super(pos);
-    this.operator = Objects.requireNonNull(operator, "operator");
-    this.target =  Objects.requireNonNull(target, "target");
-    this.source =  Objects.requireNonNull(source, "source");
+    this.operator = requireNonNull(operator, "operator");
+    this.target = requireNonNull(target, "target");
+    this.source =  requireNonNull(source, "source");
   }
 
   @Override public List<SqlNode> getOperandList() {
