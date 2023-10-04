@@ -13138,7 +13138,7 @@ class RelToSqlConverterTest {
   @Test public void testParseJsonFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseJsonNode = builder.call(SqlLibraryOperators.PARSE_JSON,
-        builder.literal("null"));
+        builder.literal("NULL"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseJsonNode, "null_value"))
