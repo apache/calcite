@@ -106,6 +106,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.E4;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFIVE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONNINE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONSIX;
 import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTHREE;
@@ -178,7 +179,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
 import static org.apache.calcite.util.Util.isNumericLiteral;
-import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
 import static org.apache.calcite.util.Util.removeLeadingAndTrailingSingleQuotes;
 
 import static java.util.Objects.requireNonNull;
@@ -274,6 +274,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(FRACTIONFOUR, "4S");
         put(FRACTIONFIVE, "5S");
         put(FRACTIONSIX, "6S");
+        put(FRACTIONNINE, "9S");
         put(AMPM, "%p");
         put(TIMEZONE, "%Z");
         put(YYYYMM, "%Y%m");
@@ -748,6 +749,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case OVER:
       unparseOver(writer, call, leftPrec, rightPrec);
       break;
+    case ITEM:
+      unparseItem(writer, call, leftPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -759,6 +763,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     } else {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseItem(SqlWriter writer, SqlCall call, final int leftPrec) {
+    call.operand(0).unparse(writer, leftPrec, 0);
+    final SqlWriter.Frame frame = writer.startList("[", "]");
+    final SqlWriter.Frame funcFrame = writer.startFunCall(call.getOperator().getName());
+    call.operand(1).unparse(writer, 0, 0);
+    writer.endFunCall(funcFrame);
+    writer.endList(frame);
   }
 
   private boolean isFirstOperandPercentileCont(SqlCall call) {
@@ -1025,6 +1038,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       break;
     case "CURRENT_TIMESTAMP_TZ":
+    case "CURRENT_TIMESTAMP_LTZ":
       final SqlWriter.Frame currentTimestampFunc = writer.startFunCall("CURRENT_TIMESTAMP");
       writer.endFunCall(currentTimestampFunc);
       break;
@@ -1182,6 +1196,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "REGEXP_LIKE":
       unParseRegexpLike(writer, call, leftPrec, rightPrec);
       break;
+    case "REGEXP_SIMILAR":
+      unParseRegexpSimilar(writer, call, leftPrec, rightPrec);
+      break;
     case "REGEXP_CONTAINS":
       unparseRegexpContains(writer, call, leftPrec, rightPrec);
       break;
@@ -1206,6 +1223,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.print(",");
       writer.sep(removeSingleQuotes(call.operand(1)));
       writer.endFunCall(trunc);
+      break;
+    case "DATE_TRUNC":
+      final SqlWriter.Frame funcFrame = writer.startFunCall(call.getOperator().getName());
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",", true);
+      writer.keyword(requireNonNull(unquoteStringLiteral(String.valueOf(call.operand(1)))));
+      writer.endFunCall(funcFrame);
       break;
     case "HASHBUCKET":
       if (!call.getOperandList().isEmpty()) {
@@ -1287,6 +1311,10 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unParseRegexpLike(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    unparseIfRegexpContains(writer, call, leftPrec, rightPrec);
+  }
+
+  private void unParseRegexpSimilar(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlWriter.Frame ifFrame = writer.startFunCall("IF");
     unparseIfRegexpContains(writer, call, leftPrec, rightPrec);
     writer.sep(",");
@@ -1348,7 +1376,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     String matchArgument = call.operand(2).toString().replaceAll("'", "");
     switch (matchArgument) {
     case "i":
-      return modifyRegexStringForMatchArgument(call, "(?i)");
+      return modifyRegexStringForMatchArgumentI(call, "(?i)");
     case "x":
       String updatedRegexForX = removeLeadingAndTrailingSingleQuotes
           (call.operand(1).toString().replaceAll("\\s+", ""));
@@ -1356,6 +1384,18 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       return call.operand(1);
     }
+  }
+
+  private static SqlCharStringLiteral modifyRegexStringForMatchArgumentI(SqlCall call,
+      String matchArgumentRegexLiteral) {
+    String updatedRegexForI = removeLeadingAndTrailingSingleQuotes
+        (call.operand(1).toString());
+    if (updatedRegexForI.startsWith("^") && updatedRegexForI.endsWith("$")) {
+      updatedRegexForI = matchArgumentRegexLiteral.concat(updatedRegexForI);
+    } else {
+      updatedRegexForI = "^(?i)".concat(updatedRegexForI).concat("$");
+    }
+    return SqlLiteral.createCharString(updatedRegexForI, SqlParserPos.ZERO);
   }
 
   private void unparseRegexpContains(SqlWriter writer, SqlCall call,
