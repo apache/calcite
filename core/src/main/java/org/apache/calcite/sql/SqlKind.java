@@ -377,6 +377,9 @@ public enum SqlKind {
   /** {@code SIMILAR} operator. */
   SIMILAR,
 
+  /** The {@code QUANTILE} aggregate function. */
+  QUANTILE,
+
   /** {@code ~} operator (for POSIX-style regular expressions). */
   POSIX_REGEX_CASE_SENSITIVE,
 

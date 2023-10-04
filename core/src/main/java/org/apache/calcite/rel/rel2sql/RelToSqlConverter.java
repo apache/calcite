@@ -20,7 +20,10 @@ import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.config.QueryStyle;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.PivotRelTrait;
+import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -484,6 +487,15 @@ public class RelToSqlConverter extends SqlImplementor
   public Result visit(Aggregate e) {
     final Builder builder =
         visitAggregate(e, e.getGroupSet().toList(), Clause.GROUP_BY);
+    RelTrait relTrait = e.getTraitSet().getTrait(PivotRelTraitDef.instance);
+    if (relTrait != null && relTrait instanceof PivotRelTrait) {
+      if (((PivotRelTrait) relTrait).isPivotRel()) {
+        PivotRelToSqlUtil pivotRelToSqlUtil = new PivotRelToSqlUtil(POS);
+        SqlNode select =
+            pivotRelToSqlUtil.buildSqlPivotNode(e, builder, builder.select.getSelectList());
+        return result(select, ImmutableList.of(Clause.SELECT), e, null);
+      }
+    }
     return builder.result();
   }
 

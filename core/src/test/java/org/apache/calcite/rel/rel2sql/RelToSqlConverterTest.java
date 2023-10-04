@@ -137,6 +137,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MO
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.QUARTERNUMBER_OF_YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
@@ -11978,6 +11979,33 @@ class RelToSqlConverterTest {
         isLinux(expectedBigQuery));
   }
 
+  @Test public void testSnowflakeDateTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateTrunc = builder.call(SqlLibraryOperators.SNOWFLAKE_DATE_TRUNC,
+        builder.literal("DAY"),
+        builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(dateTrunc)
+        .build();
+    final String expectedSnowflakeSql = "SELECT DATE_TRUNC('DAY', CURRENT_DATE) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+  }
+
+  @Test public void testBQDateTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateTrunc = builder.call(SqlLibraryOperators.DATE_TRUNC,
+        builder.call(CURRENT_DATE),
+        builder.literal("DAY"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(dateTrunc)
+        .build();
+    final String expectedBqSql = "SELECT DATE_TRUNC(CURRENT_DATE, DAY) AS `$f0`\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
+  }
+
   @Test public void testBracesForScalarSubQuery() {
     final RelBuilder builder = relBuilder();
     final RelNode scalarQueryRel = builder.
@@ -12170,6 +12198,21 @@ class RelToSqlConverterTest {
     final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode currentTimestampRexNode = builder.call(
         SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE,
+        builder.literal(6));
+    RelNode root = builder
+        .project(currentTimestampRexNode)
+        .build();
+
+    final String expectedBQSql = "SELECT CURRENT_TIMESTAMP() AS `$f0`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testCurrentTimestampWithLocalTimeZone() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode currentTimestampRexNode = builder.call(
+        SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_LOCAL_TIME_ZONE,
         builder.literal(6));
     RelNode root = builder
         .project(currentTimestampRexNode)
@@ -13006,6 +13049,41 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testSplitPartFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode splitPart = builder.call(SqlLibraryOperators.SPLIT_PART,
+        builder.literal("123@Domain|Example"), builder.literal("@"), builder.literal(2));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(splitPart, "Result"))
+        .build();
+    final String expectedSnowFlakeQuery = "SELECT SPLIT_PART('123@Domain|Example', '@', 2) AS "
+        + "\"Result\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()),
+        isLinux(expectedSnowFlakeQuery));
+
+  }
+
+  @Test public void testSplitFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode split = builder.call(SqlLibraryOperators.SPLIT,
+        builder.literal("123@Domain|Example"), builder.literal("@"));
+
+    RexNode splitAccess = builder.call(SAFE_OFFSET, split, builder.literal(2));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(splitAccess, "Result"))
+        .build();
+
+    final String expectedBigQuery = "SELECT SPLIT('123@Domain|Example', '@')[SAFE_OFFSET(2)] "
+        + "AS Result\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
   @Test public void testToCurrentTimestampFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
@@ -13072,5 +13150,72 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
+  }
+
+  @Test public void testQuantileFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode finalRexforQuantile = createRexForQuantile(builder);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(finalRexforQuantile, "quantile"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT CAST(FLOOR(((RANK() OVER (ORDER BY 23)) - 1) * 5 "
+        + "/ (COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))) AS INT64)"
+        + " AS quantile\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testQuantileFunctionWithQualify() {
+    final RelBuilder builder = relBuilder();
+    RexNode finalRexforQuantile = createRexForQuantile(builder);
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.call(SqlLibraryOperators.NOT_BETWEEN,
+                builder.field("EMPNO"), builder.literal(1), builder.literal(3)))
+        .project(builder.field("DEPTNO"), builder.alias(finalRexforQuantile, "quantile"))
+        .filter(
+            builder.call(SqlStdOperatorTable.EQUALS,
+                builder.field("quantile"), builder.literal(1)))
+        .project(builder.field("DEPTNO"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT DEPTNO\n"
+        + "FROM scott.EMP\n"
+        + "WHERE EMPNO NOT BETWEEN 1 AND 3\n"
+        + "QUALIFY CAST(FLOOR(((RANK() OVER (ORDER BY 23)) - 1) * 5 / "
+        + "(COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))) AS INT64) "
+        + "= 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  private RexNode createRexForQuantile(RelBuilder builder) {
+    List<RexFieldCollation> windowOrderCollation = new ArrayList<>();
+    final RelDataType rankRelDataType =
+        builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+    windowOrderCollation.add(
+        new RexFieldCollation(builder.literal(23),
+        Collections.singleton(SqlKind.NULLS_FIRST)));
+
+    final RexNode windowRexNode = builder.getRexBuilder().makeOver(rankRelDataType,
+        SqlStdOperatorTable.RANK, ImmutableList.of(), ImmutableList.of(),
+        ImmutableList.copyOf(windowOrderCollation),
+        RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING, true,
+        true, false, false, false);
+
+    RexNode minusRexNode =
+        builder.call(SqlStdOperatorTable.MINUS, windowRexNode, builder.literal(1));
+    RexNode multiplicationRex =
+        builder.call(SqlStdOperatorTable.MULTIPLY, minusRexNode, builder.literal(5));
+
+    final RexNode windowRexNodeOfCount = builder.getRexBuilder().makeOver(rankRelDataType,
+        SqlStdOperatorTable.COUNT, ImmutableList.of(), ImmutableList.of(),
+        ImmutableList.of(), RexWindowBounds.UNBOUNDED_PRECEDING,
+        RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false,
+        false, false);
+    return builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, multiplicationRex,
+        windowRexNodeOfCount);
   }
 }
