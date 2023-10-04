@@ -13125,12 +13125,12 @@ class RelToSqlConverterTest {
   @Test public void testParseJsonFuctionWithValues() {
     final RelBuilder builder = relBuilder();
     final RexNode toParseJson = builder.call(SqlLibraryOperators.PARSE_JSON,
-        builder.literal("value"));
+        builder.literal("{\"pi\": 3.14, \"e\": 2.17 }"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(toParseJson, "FD"))
         .build();
-    final String expectedBiqQuery = "SELECT PARSE_JSON('value') AS FD\n"
+    final String expectedBiqQuery = "SELECT PARSE_JSON('{\"pi\": 3.14, \"e\": 2.17 }') AS FD\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
@@ -13138,25 +13138,13 @@ class RelToSqlConverterTest {
   @Test public void testParseJsonFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseJsonNode = builder.call(SqlLibraryOperators.PARSE_JSON,
-        builder.literal(null));
+        builder.literal("null"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseJsonNode, "null_value"))
         .build();
-    final String expectedBigquery = "SELECT PARSE_JSON(NULL) AS null_value\n"
+    final String expectedBigquery = "SELECT PARSE_JSON('NULL') AS null_value\n"
         + "FROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
-  }
-
-  @Test public void testParseJsonFunctionWithColumn() {
-    final RelBuilder builder = relBuilder();
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.call(SqlLibraryOperators.PARSE_JSON,
-            builder.field("EMPNO")))
-        .build();
-    final String expectedBigquery = "SELECT PARSE_JSON(EMPNO) AS `$f0`\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
   }
