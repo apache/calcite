@@ -39,6 +39,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
@@ -667,11 +668,11 @@ public class RelMdPredicates
     }
 
     /**
-     * As RexPermuteInputsShuttle, with one exception. When visiting an inputRef,
-     * it will replace the type of the InputRef with the type found in the input fields,
-     * instead of keeping the original type. This is used within
-     * when generating the Left/RightInferredPredicates, to avoid nullability mismatches
-     * between the types of the join and the types of the inputs.
+     * As RexPermuteInputsShuttle, with the modification that an RexInputRef is updated with
+     * the type found in the input fields (instead of keeping the original type).
+     * This is use when generating the Left/RightInferredPredicates, permitting different but
+     * compatible types for expressions which are moved around the tree (such as moving an
+     * expression to a location where an input type's nullability is different).
      */
     private class TypeChangingRexPermuteInputsShuttle
         extends org.apache.calcite.rex.RexPermuteInputsShuttle {
@@ -680,12 +681,20 @@ public class RelMdPredicates
         super(mapping, inputs);
       }
 
+      private boolean areCompatibleTypes(RelDataType t1, RelDataType t2) {
+        return t1.getSqlTypeName().getFamily().getTypeNames().contains(t2.getSqlTypeName());
+      }
+
       @Override public RexNode visitInputRef(RexInputRef local) {
         final int index = local.getIndex();
         int target = mapping.getTarget(index);
+        final RelDataType newType = fields.get(target).getType();
+        assert areCompatibleTypes(local.getType(), newType)
+            : "Internal error in TypeChangingRexPermuteInputsShuttle: "
+                + "Original type of input ref and type found in fields are not compatible.";
         return new RexInputRef(
             target,
-            fields.get(target).getType());
+            newType);
       }
     }
 

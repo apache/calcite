@@ -81,6 +81,45 @@ LogicalProject(DATE_COL_NON_NULL=[$0], DATE_COL_NULL=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinPushTransitivePredicatesUpcastingIssue">
+    <Resource name="sql">
+      <![CDATA[WITH
+bigint_table AS (
+  SELECT deptno AS bigint_col FROM dept WHERE deptno = 1
+),
+tinyint_table AS (
+  SELECT CAST(deptno as TINYINT) AS tinyint_col FROM dept
+)
+SELECT *
+FROM tinyint_table
+JOIN bigint_table
+ON bigint_col = tinyint_col
+]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(TINYINT_COL=[$0], BIGINT_COL=[$2])
+  LogicalJoin(condition=[=($2, $1)], joinType=[inner])
+    LogicalProject(TINYINT_COL=[CAST($0):TINYINT NOT NULL], DEPTNO=[CAST(CAST($0):TINYINT NOT NULL):INTEGER NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(BIGINT_COL=[$0])
+      LogicalFilter(condition=[=($0, 1)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(TINYINT_COL=[$0], BIGINT_COL=[$2])
+  LogicalJoin(condition=[=($2, $1)], joinType=[inner])
+    LogicalFilter(condition=[=($1, 1)])
+      LogicalProject(TINYINT_COL=[CAST($0):TINYINT NOT NULL], DEPTNO=[CAST(CAST($0):TINYINT NOT NULL):INTEGER NOT NULL])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(BIGINT_COL=[$0])
+      LogicalFilter(condition=[=($0, 1)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMatchLimitOneBottomUp">
     <Resource name="sql">
       <![CDATA[(select name from dept union select ename from emp) union (select ename from bonus)]]>
