@@ -88,7 +88,7 @@ public class RexExecutable {
         values = new Object[constExps.size()];
       } else {
         assert values.length == constExps.size();
-        final List<RexNode> successfullyReduced = new ArrayList<>();
+        final List<RexNode> successfullyReduced = new ArrayList<>(constExps.size());
         final List<@Nullable Object> valueList = Arrays.asList(values);
         for (Pair<RexNode, @Nullable Object> value : Pair.zip(constExps, valueList)) {
           successfullyReduced.add(
