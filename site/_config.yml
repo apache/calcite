@@ -36,8 +36,8 @@ apiRoot: /javadocAggregate
 # apiRoot: http://calcite.apache.org/javadocAggregate
 
 # The URL where Avatica's Javadocs are located
-avaticaApiRoot: /avatica/apidocs
-# avaticaApiRoot: http://calcite.apache.org/avatica/apidocs
+avaticaApiRoot: /avatica/javadocAggregate
+# avaticaApiRoot: http://calcite.apache.org/avatica/javadocAggregate
 
 # The URL where the JDK's Javadocs are located
 jdkApiRoot: https://docs.oracle.com/en/java/javase/17/docs/api/java.base/

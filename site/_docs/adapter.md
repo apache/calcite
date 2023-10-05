@@ -48,7 +48,7 @@ presenting the data as tables within a schema.
 
 ### Other language interfaces
 
-* Piglet (<a href="{{ site.apiRoot }}/org/apache/calcite/piglet/package-summary.html">calcite-piglet</a>) runs queries in a subset of <a href="https://pig.apache.org/docs/r0.7.0/piglatin_ref1.html">Pig Latin</a>
+* Piglet (<a href="{{ site.apiRoot }}/org/apache/calcite/piglet/package-summary.html">calcite-piglet</a>) runs queries in a subset of <a href="https://pig.apache.org/docs/latest/basic.html">Pig Latin</a>
 
 ## Engines
 
@@ -343,7 +343,7 @@ Grouped window functions are functions that operate the `GROUP BY` clause
 to gather together records into sets. The built-in grouped window functions
 are `HOP`, `TUMBLE` and `SESSION`.
 You can define additional functions by implementing
-[<code>interface SqlGroupedWindowFunction</code>]({{ site.apiRoot }}/org/apache/calcite/sql/fun/SqlGroupedWindowFunction.html).
+[<code>interface SqlGroupedWindowFunction</code>]({{ site.apiRoot }}/org/apache/calcite/sql/SqlGroupedWindowFunction.html).
 
 ### Table functions and table macros
 
@@ -497,7 +497,7 @@ Each of these has a "pure" logical sub-class,
 [<code>LogicalProject</code>]({{ site.apiRoot }}/org/apache/calcite/rel/logical/LogicalProject.html)
 and so forth. Any given adapter will have counterparts for the operations that
 its engine can implement efficiently; for example, the Cassandra adapter has
-[<code>CassandraProject</code>]({{ site.apiRoot }}/org/apache/calcite/rel/cassandra/CassandraProject.html)
+[<code>CassandraProject</code>]({{ site.apiRoot }}/org/apache/calcite/adapter/cassandra/CassandraProject.html)
 but there is no `CassandraJoin`.
 
 You can define your own sub-class of `RelNode` to add a new operator, or
@@ -590,7 +590,7 @@ Each kind of metadata has an interface with (usually) one method.
 For example, selectivity is defined by
 [<code>class RelMdSelectivity</code>]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdSelectivity.html)
 and the method
-[<code>getSelectivity(RelNode rel, RexNode predicate)</code>]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMetadataQuery.html#getSelectivity-org.apache.calcite.rel.RelNode-org.apache.calcite.rex.RexNode-).
+[<code>getSelectivity(RelNode rel, RexNode predicate)</code>]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMetadataQuery.html#getSelectivity(org.apache.calcite.rel.RelNode,org.apache.calcite.rex.RexNode)).
 
 There are many built-in kinds of metadata, including
 [collation]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdCollation.html),
