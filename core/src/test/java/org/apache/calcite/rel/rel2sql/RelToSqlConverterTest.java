@@ -13096,21 +13096,17 @@ class RelToSqlConverterTest {
 
   @Test public void testJsonObjectFunction() {
     final RelBuilder builder = relBuilder();
-
     Map<String, String> obj = new HashMap<>();
     obj.put("Name", "John");
     obj.put("Surname", "Mark");
     obj.put("Age", "30");
-    List<RexNode> operands = new ArrayList();
-
+    List<RexNode> operands = new ArrayList<>();
     for (Map.Entry<String, String> m : obj.entrySet()) {
       operands.add(builder.literal(m.getKey()));
       operands.add(builder.literal(m.getValue()));
     }
-
     final RexNode jsonNode = builder.call(SqlLibraryOperators.JSON_OBJECT, operands);
-
-    final RelNode doyRoot = builder
+    final RelNode root = builder
         .scan("EMP")
         .project(jsonNode)
         .build();
@@ -13118,21 +13114,8 @@ class RelToSqlConverterTest {
     final String expectedBiqQuery = "SELECT JSON_OBJECT('Surname', 'Mark', 'Age', '30', "
         + "'Name', 'John') AS `$f0`\nFROM scott.EMP";
 
-    assertThat(toSql(doyRoot, DatabaseProduct.BIG_QUERY.getDialect()),
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedBiqQuery));
-  }
-
-  @Test public void testParseJsonFuctionWithValues() {
-    final RelBuilder builder = relBuilder();
-    final RexNode toParseJson = builder.call(SqlLibraryOperators.PARSE_JSON,
-        builder.literal("{\"pi\": 3.14, \"e\": 2.17 }"));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(toParseJson, "FD"))
-        .build();
-    final String expectedBiqQuery = "SELECT PARSE_JSON('{\"pi\": 3.14, \"e\": 2.17 }') AS FD\n"
-        + "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test public void testParseJsonFunction() {
