@@ -12791,17 +12791,6 @@ class RelToSqlConverterTest {
     sql(query).withBigQuery().ok(expected);
   }
 
-  @Test void testBQCastToDecimalForLiteral() {
-    final String query = "select \"employee_id\",\n"
-        + " cast('1234.67' as DECIMAL(10,1)), cast(1234.6 as DECIMAL)\n"
-        + "from \"salary\"";
-    final String expected = "SELECT employee_id, "
-        + "ROUND(CAST(1234.67 AS NUMERIC), 1), ROUND(CAST"
-        + "(1234.6 AS NUMERIC), 0)\n"
-        + "FROM foodmart.salary";
-    sql(query).withBigQuery().ok(expected);
-  }
-
   @Test public void testQuoteInStringLiterals() {
     final RelBuilder builder = relBuilder();
     final RexNode literal = builder.literal("Datam\"etica");

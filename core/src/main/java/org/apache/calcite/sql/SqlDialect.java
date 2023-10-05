@@ -986,11 +986,6 @@ public class SqlDialect {
     return SqlLiteral.createTimestamp(timestampString, precision, pos);
   }
 
-  public SqlNode getNumericLiteral(RexLiteral literal, SqlParserPos pos) {
-    return SqlLiteral.createExactNumeric(
-        castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), pos);
-  }
-
   /** Rewrite SINGLE_VALUE into expression based on database variants
    *  E.g. HSQLDB, MYSQL, ORACLE, etc
    */

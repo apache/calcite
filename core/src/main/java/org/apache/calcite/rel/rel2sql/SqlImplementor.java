@@ -1488,7 +1488,8 @@ public abstract class SqlImplementor {
       return SqlLiteral.createCharString((String) castNonNull(literal.getValue2()), POS);
     case NUMERIC:
     case EXACT_NUMERIC:
-      return dialect.getNumericLiteral(literal, POS);
+      return SqlLiteral.createExactNumeric(
+          castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
     case APPROXIMATE_NUMERIC:
       return SqlLiteral.createApproxNumeric(
           castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
