@@ -1237,6 +1237,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.sep(removeSingleQuotes(call.operand(1)));
       writer.endFunCall(trunc);
       break;
+    case "DATE_TRUNC":
+      final SqlWriter.Frame funcFrame = writer.startFunCall(call.getOperator().getName());
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",", true);
+      writer.keyword(requireNonNull(unquoteStringLiteral(String.valueOf(call.operand(1)))));
+      writer.endFunCall(funcFrame);
+      break;
     case "HASHBUCKET":
       if (!call.getOperandList().isEmpty()) {
         unparseCall(writer, call.operand(0), leftPrec, rightPrec);
