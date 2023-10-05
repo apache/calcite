@@ -1833,15 +1833,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING,
           SqlFunctionCategory.SYSTEM);
 
-  @LibraryOperator(libraries = {SNOWFLAKE, ORACLE, TERADATA})
-  public static final SqlFunction ANY =
-      new SqlFunction("ANY",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.VARCHAR_2000, null,
-          OperandTypes.SAME_VARIADIC,
-          SqlFunctionCategory.SYSTEM);
-
-
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction QUANTILE =
       new SqlQuantileFunction(SqlKind.QUANTILE, ReturnTypes.INTEGER);
