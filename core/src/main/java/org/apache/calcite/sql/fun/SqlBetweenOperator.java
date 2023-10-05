@@ -69,7 +69,6 @@ public class SqlBetweenOperator extends SqlInfixOperator {
    * Ordinal of the 'lower' operand.
    */
   public static final int LOWER_OPERAND = 1;
-
   /**
    * Ordinal of the 'upper' operand.
    */
@@ -117,11 +116,6 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     return litmus.fail("not a rex operator");
   }
 
-  /**
-   * Returns whether this is 'NOT' variant of an operator.
-   *
-   * @see #not()
-   */
   public boolean isNegated() {
     return negated;
   }
