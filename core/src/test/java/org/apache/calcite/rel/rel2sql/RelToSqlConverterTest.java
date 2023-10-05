@@ -12009,6 +12009,7 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
   }
 
+
   @Test public void testBracesForScalarSubQuery() {
     final RelBuilder builder = relBuilder();
     final RelNode scalarQueryRel = builder.
@@ -12565,6 +12566,21 @@ class RelToSqlConverterTest {
     final String expectedBQSql = "SELECT BIT_COUNT(EMPNO) AS emp_no"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testForToJsonStringFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toJsonStr = builder.call(SqlLibraryOperators.TO_JSON_STRING,
+            builder.scan("EMP").field(5));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toJsonStr, "value"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT TO_JSON_STRING(SAL) AS value\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test void testBloatedProjects() {
