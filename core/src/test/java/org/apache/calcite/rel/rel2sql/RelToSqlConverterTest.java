@@ -11178,6 +11178,51 @@ class RelToSqlConverterTest {
         .ok(expectedSparkSql);
   }
 
+  @Test public void testSafeCast() {
+    final RelBuilder builder = relBuilder();
+    RelDataType type = builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    final RexNode safeCastNode = builder.getRexBuilder().makeAbstractCast(type,
+        builder.literal(1234), true);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(safeCastNode)
+        .build();
+    final String expectedBqSql = "SELECT SAFE_CAST(1234 AS STRING) AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
+  }
+
+  @Test public void testTryCast() {
+    final RelBuilder builder = relBuilder();
+    RelDataType type = builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    final RexNode safeCastNode = builder.getRexBuilder().makeCall(type,
+        SqlLibraryOperators.TRY_CAST,
+        ImmutableList.of(builder.literal(1234)));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(safeCastNode)
+        .build();
+    final String expectedBqSql = "SELECT TRY_CAST(1234 AS VARCHAR) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBqSql));
+  }
+
+  @Test public void testIsRealFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toReal = builder.call(SqlLibraryOperators.IS_REAL,
+        builder.literal(123.12));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toReal, "Result"))
+        .build();
+
+    final String expectedSql = "SELECT IS_REAL(123.12) AS \"Result\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
+
   @Test public void testTruncWithTimestamp() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
