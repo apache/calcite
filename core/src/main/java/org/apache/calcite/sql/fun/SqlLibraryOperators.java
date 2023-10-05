@@ -1529,6 +1529,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.ONE_OR_MORE,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction HASH_AGG =
+      SqlBasicAggFunction
+          .create("HASH_AGG", SqlKind.HASH_AGG, ReturnTypes.BIGINT,
+              OperandTypes.VARIADIC)
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withDistinct(Optionality.OPTIONAL);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FARM_FINGERPRINT =
       new SqlFunction(

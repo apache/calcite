@@ -12987,6 +12987,18 @@ class RelToSqlConverterTest {
         .ok(expectedSql);
   }
 
+  @Test void testHashAgg() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    RelBuilder.AggCall hashAggCall =
+        builder.aggregateCall(SqlLibraryOperators.HASH_AGG, builder.field(1));
+    final RelNode root = builder
+        .aggregate(builder.groupKey(), hashAggCall.as("hash"))
+        .build();
+    final String expectedSnowflakeSql = "SELECT HASH_AGG(\"ENAME\") AS \"hash\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+  }
+
   @Test public void testUnparsingOfPercentileCont() {
     final RelBuilder builder = relBuilder();
     builder.push(builder.scan("EMP").build());
