@@ -586,13 +586,15 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override public SqlNode getNumericLiteral(RexLiteral literal, SqlParserPos pos) {
     BigDecimal value = literal.getValueAs(BigDecimal.class);
-    if (value.scale() > literal.getType().getScale()) {
-      SqlNode numericNode = getCastSpec(literal.getType());
-      SqlNode castNode = CAST.createCall(pos,
-          SqlLiteral.createExactNumeric(value.toPlainString(), pos), numericNode);
-      return ROUND.createCall(pos, castNode,
-          SqlLiteral.createExactNumeric(
-              requireNonNull(literal.getType().getScale()).toString(), pos));
+    if (literal.getType().getSqlTypeName() == SqlTypeName.DECIMAL) {
+      if (value.scale() > literal.getType().getScale()) {
+        SqlNode numericNode = getCastSpec(literal.getType());
+        SqlNode castNode = CAST.createCall(pos,
+            SqlLiteral.createExactNumeric(value.toPlainString(), pos), numericNode);
+        return ROUND.createCall(pos, castNode,
+            SqlLiteral.createExactNumeric(
+                requireNonNull(literal.getType().getScale()).toString(), pos));
+      }
     }
     return super.getNumericLiteral(literal, pos);
   }
