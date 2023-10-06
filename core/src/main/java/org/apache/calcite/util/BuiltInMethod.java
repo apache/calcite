@@ -768,6 +768,7 @@ public enum BuiltInMethod {
   ARRAYS_OVERLAP(SqlFunctions.class, "arraysOverlap", List.class, List.class),
   ARRAYS_ZIP(SqlFunctions.class, "arraysZip", List.class, List.class),
   SORT_ARRAY(SqlFunctions.class, "sortArray", List.class, boolean.class),
+  MAP(SqlFunctions.class, "map", Object[].class),
   MAP_CONCAT(SqlFunctions.class, "mapConcat", Map[].class),
   MAP_ENTRIES(SqlFunctions.class, "mapEntries", Map.class),
   MAP_KEYS(SqlFunctions.class, "mapKeys", Map.class),
@@ -850,7 +851,7 @@ public enum BuiltInMethod {
   @SuppressWarnings("ImmutableEnumChecker")
   public final Field field;
 
-  public static final ImmutableMap<Method, BuiltInMethod> MAP;
+  public static final ImmutableMap<Method, BuiltInMethod> FUNCTIONS_MAPS;
 
   static {
     final ImmutableMap.Builder<Method, BuiltInMethod> builder =
@@ -860,7 +861,7 @@ public enum BuiltInMethod {
         builder.put(value.method, value);
       }
     }
-    MAP = builder.build();
+    FUNCTIONS_MAPS = builder.build();
   }
 
   BuiltInMethod(@Nullable Method method, @Nullable Constructor constructor, @Nullable Field field) {

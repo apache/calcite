@@ -29,6 +29,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -567,6 +568,9 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker MAP_FROM_ENTRIES =
       new MapFromEntriesOperandTypeChecker();
+
+  public static final SqlSingleOperandTypeChecker MAP_FUNCTION =
+      new MapFunctionOperandTypeChecker();
 
   /**
    * Operand type-checking strategy where type must be a literal or NULL.
@@ -1218,6 +1222,62 @@ public abstract class OperandTypes {
     @Override public String getAllowedSignatures(SqlOperator op, String opName) {
       return SqlUtil.getAliasedSignature(op, opName,
           ImmutableList.of("ARRAY<RECORDTYPE(TWO FIELDS)>"));
+    }
+  }
+
+  /**
+   * Operand type-checking strategy for a MAP function, it allows empty map.
+   */
+  private static class MapFunctionOperandTypeChecker
+      extends SameOperandTypeChecker {
+
+    MapFunctionOperandTypeChecker() {
+      // The args of map are non-fixed, so we set to -1 here. then operandCount
+      // can dynamically set according to the number of input args.
+      // details please see SameOperandTypeChecker#getOperandList.
+      super(-1);
+    }
+
+    @Override public boolean checkOperandTypes(final SqlCallBinding callBinding,
+        final boolean throwOnFailure) {
+      final List<RelDataType> argTypes =
+          SqlTypeUtil.deriveType(callBinding, callBinding.operands());
+      // allows empty map
+      if (argTypes.isEmpty()) {
+        return true;
+      }
+      // the size of map arg types must be even.
+      if (argTypes.size() % 2 != 0) {
+        throw callBinding.newValidationError(RESOURCE.mapRequiresEvenArgCount());
+      }
+      final Pair<@Nullable RelDataType, @Nullable RelDataType> componentType =
+          getComponentTypes(
+              callBinding.getTypeFactory(), argTypes);
+      // check key type & value type
+      if (null == componentType.left || null == componentType.right) {
+        if (throwOnFailure) {
+          throw callBinding.newValidationError(RESOURCE.needSameTypeParameter());
+        }
+        return false;
+      }
+      return true;
+    }
+
+    /**
+     * Extract the key type and value type of arg types.
+     */
+    private static Pair<@Nullable RelDataType, @Nullable RelDataType> getComponentTypes(
+        RelDataTypeFactory typeFactory,
+        List<RelDataType> argTypes) {
+      // Util.quotientList(argTypes, 2, 0):
+      // This extracts all elements at even indices from argTypes.
+      // It represents the types of keys in the map as they are placed at even positions
+      // e.g. 0, 2, 4, etc.
+      // Symmetrically, Util.quotientList(argTypes, 2, 1) represents odd-indexed elements.
+      // details please see Util.quotientList.
+      return Pair.of(
+          typeFactory.leastRestrictive(Util.quotientList(argTypes, 2, 0)),
+          typeFactory.leastRestrictive(Util.quotientList(argTypes, 2, 1)));
     }
   }
 

@@ -2770,6 +2770,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | TO_HEX(binary)                                 | Converts *binary* into a hexadecimal varchar
 | b | FROM_HEX(varchar)                              | Converts a hexadecimal-encoded *varchar* into bytes
 | b o | LTRIM(string)                                | Returns *string* with all blanks removed from the start
+| s | MAP()                                          | Returns an empty map
+| s | MAP(key, value [, key, value]*)                | Returns a map with the given *key*/*value* pairs
 | s | MAP_CONCAT(map [, map]*)                       | Concatenates one or more maps. If any input argument is `NULL` the function returns `NULL`. Note that calcite is using the LAST_WIN strategy
 | s | MAP_ENTRIES(map)                               | Returns the entries of the *map* as an array, the order of the entries is not defined
 | s | MAP_KEYS(map)                                  | Returns the keys of the *map* as an array, the order of the entries is not defined

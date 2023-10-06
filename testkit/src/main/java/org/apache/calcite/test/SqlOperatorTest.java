@@ -6722,6 +6722,7 @@ public class SqlOperatorTest {
 
   /** Tests {@code MAP_CONCAT} function from Spark. */
   @Test void testMapConcatFunc() {
+    // 1. check with std map constructor, map[k, v ...]
     final SqlOperatorFixture f0 = fixture();
     f0.setFor(SqlLibraryOperators.MAP_CONCAT);
     f0.checkFails("^map_concat(map['foo', 1], map['bar', 2])^",
@@ -6766,11 +6767,42 @@ public class SqlOperatorTest {
     // test operands not in same type family.
     f.checkFails("^map_concat(map[1, null], array[1])^",
         "Parameters must be of the same type", false);
+
+    // 2. check with map function, map(k, v ...)
+    final SqlOperatorFixture f1 = fixture()
+        .setFor(SqlLibraryOperators.MAP_CONCAT)
+        .withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("map_concat(map('foo', 1), map('bar', 2))", "{foo=1, bar=2}",
+        "(CHAR(3) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f1.checkScalar("map_concat(map('foo', 1), map('bar', 2), map('foo', 2))", "{foo=2, bar=2}",
+        "(CHAR(3) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f1.checkScalar("map_concat(map(null, 1), map(null, 2))", "{null=2}",
+        "(NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f1.checkScalar("map_concat(map(1, 2), map(1, null))", "{1=null}",
+        "(INTEGER NOT NULL, INTEGER) MAP NOT NULL");
+    f1.checkScalar("map_concat(map('foo', 1), map())", "{foo=1}",
+        "(UNKNOWN NOT NULL, UNKNOWN NOT NULL) MAP NOT NULL");
+
+    // test operand is null map
+    f1.checkNull("map_concat(map('foo', 1), cast(null as map<varchar, int>))");
+    f1.checkType("map_concat(map('foo', 1), cast(null as map<varchar, int>))",
+        "(VARCHAR NOT NULL, INTEGER NOT NULL) MAP");
+    f1.checkNull("map_concat(cast(null as map<varchar, int>), map['foo', 1])");
+    f1.checkType("map_concat(cast(null as map<varchar, int>), map['foo', 1])",
+        "(VARCHAR NOT NULL, INTEGER NOT NULL) MAP");
+
+    f1.checkFails("^map_concat(map('foo', 1), null)^",
+        "Function 'MAP_CONCAT' should all be of type map, "
+            + "but it is 'NULL'", false);
+    // test operands not in same type family.
+    f1.checkFails("^map_concat(map(1, null), array[1])^",
+        "Parameters must be of the same type", false);
   }
 
 
   /** Tests {@code MAP_ENTRIES} function from Spark. */
   @Test void testMapEntriesFunc() {
+    // 1. check with std map constructor, map[k, v ...]
     final SqlOperatorFixture f0 = fixture();
     f0.setFor(SqlLibraryOperators.MAP_ENTRIES);
     f0.checkFails("^map_entries(map['foo', 1, 'bar', 2])^",
@@ -6796,10 +6828,22 @@ public class SqlOperatorTest {
         "RecordType(INTEGER f0, BIGINT NOT NULL f1) NOT NULL ARRAY NOT NULL");
     f.checkScalar("map_entries(map[1, cast(1 as decimal), null, 2])", "[{1, 1}, {null, 2}]",
         "RecordType(INTEGER f0, DECIMAL(19, 0) NOT NULL f1) NOT NULL ARRAY NOT NULL");
+
+    // 2. check with map function, map(k, v ...)
+    final SqlOperatorFixture f1 = fixture()
+        .setFor(SqlLibraryOperators.MAP_ENTRIES)
+        .withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("map_entries(map())", "[]",
+        "RecordType(UNKNOWN NOT NULL f0, UNKNOWN NOT NULL f1) NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_entries(map('foo', 1, 'bar', 2))", "[{foo, 1}, {bar, 2}]",
+        "RecordType(CHAR(3) NOT NULL f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_entries(map('foo', 1, null, 2))", "[{foo, 1}, {null, 2}]",
+        "RecordType(CHAR(3) f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
   }
 
   /** Tests {@code MAP_KEYS} function from Spark. */
   @Test void testMapKeysFunc() {
+    // 1. check with std map constructor, map[k, v ...]
     final SqlOperatorFixture f0 = fixture();
     f0.setFor(SqlLibraryOperators.MAP_KEYS);
     f0.checkFails("^map_keys(map['foo', 1, 'bar', 2])^",
@@ -6825,10 +6869,22 @@ public class SqlOperatorTest {
         "INTEGER ARRAY NOT NULL");
     f.checkScalar("map_keys(map[1, cast(1 as decimal), null, 2])", "[1, null]",
         "INTEGER ARRAY NOT NULL");
+
+    // 2. check with map function, map(k, v ...)
+    final SqlOperatorFixture f1 = fixture()
+        .setFor(SqlLibraryOperators.MAP_KEYS)
+        .withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("map_keys(map())", "[]",
+        "UNKNOWN NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_keys(map('foo', 1, 'bar', 2))", "[foo, bar]",
+        "CHAR(3) NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_keys(map('foo', 1, null, 2))", "[foo, null]",
+        "CHAR(3) ARRAY NOT NULL");
   }
 
   /** Tests {@code MAP_VALUES} function from Spark. */
   @Test void testMapValuesFunc() {
+    // 1. check with std map constructor, map[k, v ...]
     final SqlOperatorFixture f0 = fixture();
     f0.setFor(SqlLibraryOperators.MAP_VALUES);
     f0.checkFails("^map_values(map['foo', 1, 'bar', 2])^",
@@ -6838,6 +6894,17 @@ public class SqlOperatorTest {
     f.checkScalar("map_values(map['foo', 1, 'bar', 2])", "[1, 2]",
         "INTEGER NOT NULL ARRAY NOT NULL");
     f.checkScalar("map_values(map['foo', 1, 'bar', cast(null as integer)])", "[1, null]",
+        "INTEGER ARRAY NOT NULL");
+
+    // 2. check with map function, map(k, v ...)
+    final SqlOperatorFixture f1 = fixture()
+        .setFor(SqlLibraryOperators.MAP_VALUES)
+        .withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("map_values(map())", "[]",
+        "UNKNOWN NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_values(map('foo', 1, 'bar', 2))", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_values(map('foo', 1, 'bar', cast(null as integer)))", "[1, null]",
         "INTEGER ARRAY NOT NULL");
   }
 
@@ -10444,6 +10511,55 @@ public class SqlOperatorTest {
         "{1=1, 2=2}", "(BIGINT NOT NULL, SMALLINT NOT NULL) MAP NOT NULL");
     f1.checkScalar("Map[cast(1 as bigint), cast(1 as tinyint), 2, cast(2 as smallint)]",
         "{1=1, 2=2}", "(BIGINT NOT NULL, SMALLINT NOT NULL) MAP NOT NULL");
+  }
+
+  @Test void testMapFunction() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.MAP, VmName.EXPAND);
+
+    f.checkFails("^Map()^",
+        "No match found for function signature "
+            + "MAP\\(\\)", false);
+    f.checkFails("^Map(1, 'x')^",
+        "No match found for function signature "
+            + "MAP\\(<NUMERIC>, <CHARACTER>\\)", false);
+    f.checkFails("^map(1, 'x', 2, 'x')^",
+        "No match found for function signature "
+            + "MAP\\(<NUMERIC>, <CHARACTER>, <NUMERIC>, <CHARACTER>\\)", false);
+
+    final SqlOperatorFixture f1 = f.withLibrary(SqlLibrary.SPARK);
+    f1.checkFails("^Map(1)^",
+        "Map requires an even number of arguments", false);
+    f1.checkFails("^Map(1, 'x', 2)^",
+        "Map requires an even number of arguments", false);
+    f1.checkFails("^map(1, 1, 2, 'x')^",
+        "Parameters must be of the same type", false);
+    // leastRestrictive for key
+    f1.checkFails("^MAP('k1', 1, 1, 2.0, 'k3', 1)^",
+        "Parameters must be of the same type", false);
+    // leastRestrictive for value
+    f1.checkFails("^MAP('k1', 1, 'k2', 2.0, 'k3', '3')^",
+        "Parameters must be of the same type", false);
+
+    // this behavior is different from std MapValueConstructor
+    f1.checkScalar("map()",
+        "{}",
+        "(UNKNOWN NOT NULL, UNKNOWN NOT NULL) MAP NOT NULL");
+    f1.checkScalar("map('washington', null)",
+        "{washington=null}",
+        "(CHAR(10) NOT NULL, NULL) MAP NOT NULL");
+    f1.checkScalar("map('washington', 1)",
+        "{washington=1}",
+        "(CHAR(10) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f1.checkScalar("map('washington', 1, 'washington', 2)",
+        "{washington=2}",
+        "(CHAR(10) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f1.checkScalar("map('washington', 1, 'obama', 44)",
+        "{washington=1, obama=44}",
+        "(CHAR(10) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f1.checkScalar("map('k1', 1, 'k2', 2.0)",
+        "{k1=1, k2=2.0}",
+        "(CHAR(2) NOT NULL, DECIMAL(11, 1) NOT NULL) MAP NOT NULL");
   }
 
   @Test void testCeilFunc() {

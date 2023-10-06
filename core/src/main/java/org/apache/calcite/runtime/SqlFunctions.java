@@ -5323,6 +5323,20 @@ public class SqlFunctions {
     return map;
   }
 
+  /** Support the MAP function.
+   *
+   * <p>odd-indexed elements are keys and even-indexed elements are values.
+   */
+  public static Map map(Object... args) {
+    final Map map = new LinkedHashMap<>();
+    for (int i = 0; i < args.length; i += 2) {
+      Object key = args[i];
+      Object value = args[i + 1];
+      map.put(key, value);
+    }
+    return map;
+  }
+
   /** Support the STR_TO_MAP function. */
   public static Map strToMap(String string, String stringDelimiter, String keyValueDelimiter) {
     final Map map = new LinkedHashMap();

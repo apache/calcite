@@ -6146,6 +6146,41 @@ public class SqlParserTest {
         .ok("(MAP[])");
   }
 
+  @Test void testMapFunction() {
+    expr("map()").ok("MAP()");
+    expr("MAP()").same();
+    // parser allows odd elements; validator will reject it
+    expr("map(1)").ok("MAP(1)");
+    expr("map(1, 'x', 2, 'y')")
+        .ok("MAP(1, 'x', 2, 'y')");
+    // with upper case
+    expr("MAP(1, 'x', 2, 'y')").same();
+    // with space
+    expr("map (1, 'x', 2, 'y')")
+        .ok("MAP(1, 'x', 2, 'y')");
+  }
+
+  @Test void testMapQueryConstructor() {
+    // parser allows odd elements; validator will reject it
+    sql("SELECT map(SELECT 1)")
+        .ok("SELECT (MAP ((SELECT 1)))");
+    sql("SELECT map(SELECT 1, 2)")
+        .ok("SELECT (MAP ((SELECT 1, 2)))");
+    // with upper case
+    sql("SELECT MAP(SELECT 1, 2)")
+        .ok("SELECT (MAP ((SELECT 1, 2)))");
+    // with space
+    sql("SELECT map (SELECT 1, 2)")
+        .ok("SELECT (MAP ((SELECT 1, 2)))");
+    sql("SELECT map(SELECT T.x, T.y FROM (VALUES(1, 2)) AS T(x, y))")
+        .ok("SELECT (MAP ((SELECT `T`.`X`, `T`.`Y`\n"
+            + "FROM (VALUES (ROW(1, 2))) AS `T` (`X`, `Y`))))");
+    sql("SELECT map(1, ^SELECT^ x FROM (VALUES(1)) x)")
+        .fails("(?s)Incorrect syntax near the keyword 'SELECT'.*");
+    sql("SELECT map(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")
+        .fails("(?s)Incorrect syntax near the keyword 'SELECT' at.*");
+  }
+
   @Test void testVisitSqlInsertWithSqlShuttle() {
     final String sql = "insert into emps select * from emps";
     final SqlNode sqlNode = sql(sql).node();
