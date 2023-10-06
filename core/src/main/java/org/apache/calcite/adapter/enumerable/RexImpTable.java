@@ -206,6 +206,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_CONCAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_ENTRIES;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_FROM_ARRAYS;
@@ -884,6 +885,7 @@ public class RexImpTable {
       map.put(MAP_VALUE_CONSTRUCTOR, value);
       map.put(ARRAY_VALUE_CONSTRUCTOR, value);
       defineMethod(ARRAY, BuiltInMethod.ARRAYS_AS_LIST.method, NullPolicy.NONE);
+      defineMethod(MAP, BuiltInMethod.MAP.method, NullPolicy.NONE);
 
       // ITEM operator
       map.put(ITEM, new ItemImplementor());

@@ -46,7 +46,9 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Static;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -1097,6 +1099,44 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("ARRAY",
           SqlLibraryOperators::arrayReturnType,
           OperandTypes.SAME_VARIADIC);
+
+  private static RelDataType mapReturnType(SqlOperatorBinding opBinding) {
+    Pair<@Nullable RelDataType, @Nullable RelDataType> type =
+        getComponentTypes(
+            opBinding.getTypeFactory(), opBinding.collectOperandTypes());
+    return SqlTypeUtil.createMapType(
+        opBinding.getTypeFactory(),
+        requireNonNull(type.left, "inferred key type"),
+        requireNonNull(type.right, "inferred value type"),
+        false);
+  }
+
+  private static Pair<@Nullable RelDataType, @Nullable RelDataType> getComponentTypes(
+      RelDataTypeFactory typeFactory,
+      List<RelDataType> argTypes) {
+    // special case, allows empty map
+    if (argTypes.isEmpty()) {
+      return Pair.of(typeFactory.createUnknownType(), typeFactory.createUnknownType());
+    }
+    // Util.quotientList(argTypes, 2, 0):
+    // This extracts all elements at even indices from argTypes.
+    // It represents the types of keys in the map as they are placed at even positions
+    // e.g. 0, 2, 4, etc.
+    // Symmetrically, Util.quotientList(argTypes, 2, 1) represents odd-indexed elements.
+    // details please see Util.quotientList.
+    return Pair.of(
+        typeFactory.leastRestrictive(Util.quotientList(argTypes, 2, 0)),
+        typeFactory.leastRestrictive(Util.quotientList(argTypes, 2, 1)));
+  }
+
+  /** The "MAP(key, value, ...)" function (Spark);
+   * compare with the standard map value constructor, "MAP[key, value, ...]". */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction MAP =
+      SqlBasicFunction.create("MAP",
+          SqlLibraryOperators::mapReturnType,
+          OperandTypes.MAP_FUNCTION,
+          SqlFunctionCategory.SYSTEM);
 
   @SuppressWarnings("argument.type.incompatible")
   private static RelDataType arrayAppendPrependReturnType(SqlOperatorBinding opBinding) {
