@@ -532,26 +532,30 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction EXTRACT_VALUE =
       SqlBasicFunction.create("EXTRACTVALUE",
           ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
-          OperandTypes.STRING_STRING);
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction XML_TRANSFORM =
       SqlBasicFunction.create("XMLTRANSFORM",
           ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE),
-          OperandTypes.STRING_STRING);
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction EXTRACT_XML =
       SqlBasicFunction.create("EXTRACT",
           ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE),
-          OperandTypes.STRING_STRING_OPTIONAL_STRING);
+          OperandTypes.STRING_STRING_OPTIONAL_STRING,
+          SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction EXISTS_NODE =
       SqlBasicFunction.create("EXISTSNODE",
           ReturnTypes.INTEGER_NULLABLE
               .andThen(SqlTypeTransforms.FORCE_NULLABLE),
-          OperandTypes.STRING_STRING_OPTIONAL_STRING);
+          OperandTypes.STRING_STRING_OPTIONAL_STRING,
+          SqlFunctionCategory.STRING);
 
   /** The "BOOL_AND(condition)" aggregate function, PostgreSQL and Redshift's
    * equivalent to {@link SqlStdOperatorTable#EVERY}. */
@@ -1075,7 +1079,8 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction ARRAY =
       SqlBasicFunction.create("ARRAY",
           SqlLibraryOperators::arrayReturnType,
-          OperandTypes.SAME_VARIADIC);
+          OperandTypes.SAME_VARIADIC,
+          SqlFunctionCategory.SYSTEM);
 
   @SuppressWarnings("argument.type.incompatible")
   private static RelDataType arrayAppendPrependReturnType(SqlOperatorBinding opBinding) {
