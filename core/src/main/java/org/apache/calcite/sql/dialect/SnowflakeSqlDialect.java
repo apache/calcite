@@ -221,9 +221,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   public SqlNode getCastCall(SqlKind sqlKind, SqlNode operandToCast,
       RelDataType castFrom, RelDataType castTo) {
-    SqlOperator operator = sqlKind == SqlKind.SAFE_CAST
-        ? SqlLibraryOperators.TRY_CAST : CAST;
-    return operator.createCall(SqlParserPos.ZERO,
+    return CAST.createCall(SqlParserPos.ZERO,
         operandToCast, Nullness.castNonNull(this.getCastSpec(castTo)));
   }
 
