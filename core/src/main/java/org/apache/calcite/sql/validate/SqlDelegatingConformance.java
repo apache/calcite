@@ -87,6 +87,10 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.isMinusAllowed();
   }
 
+  @Override public boolean isRegexReplaceCaptureGroupDollarIndexed() {
+    return delegate.isRegexReplaceCaptureGroupDollarIndexed();
+  }
+
   @Override public boolean isApplyAllowed() {
     return delegate.isApplyAllowed();
   }

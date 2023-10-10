@@ -482,6 +482,72 @@ class SqlFunctionsTest {
     }
   }
 
+  @Test void testReplaceNonDollarIndexedString() {
+    assertThat(SqlFunctions.RegexFunction.replaceNonDollarIndexedString("\\\\4_\\\\2"),
+        is("$4_$2"));
+    assertThat(SqlFunctions.RegexFunction.replaceNonDollarIndexedString("abc123"),
+        is("abc123"));
+    assertThat(SqlFunctions.RegexFunction.replaceNonDollarIndexedString("$007"),
+        is("\\$007"));
+    assertThat(SqlFunctions.RegexFunction.replaceNonDollarIndexedString("\\\\\\\\ \\\\\\\\"),
+        is("\\\\ \\\\"));
+    assertThat(SqlFunctions.RegexFunction.replaceNonDollarIndexedString("\\\\\\\\$ $\\\\\\\\"),
+        is("\\\\\\$ \\$\\\\"));
+    try {
+      SqlFunctions.RegexFunction.replaceNonDollarIndexedString("\\\\-x");
+      fail("'regexp_replace' with invalid replacement pattern is not possible");
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(),
+          is("Invalid replacement pattern for REGEXP_REPLACE: '\\\\-x'"));
+    }
+    try {
+      SqlFunctions.RegexFunction.replaceNonDollarIndexedString("\\\\ \\\\");
+      fail("'regexp_replace' with invalid replacement pattern is not possible");
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(),
+          is("Invalid replacement pattern for REGEXP_REPLACE: '\\\\ \\\\'"));
+    }
+    try {
+      SqlFunctions.RegexFunction.replaceNonDollarIndexedString("\\\\a");
+      fail("'regexp_replace' with invalid replacement pattern is not possible");
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(),
+          is("Invalid replacement pattern for REGEXP_REPLACE: '\\\\a'"));
+    }
+  }
+
+  @Test void testRegexpReplaceNonDollarIndexed() {
+    final SqlFunctions.RegexFunction f = new SqlFunctions.RegexFunction();
+    assertThat(f.regexpReplaceNonDollarIndexed("abascusB", "b", "X"), is("aXascusB"));
+    assertThat(f.regexpReplaceNonDollarIndexed("abc01def02ghi", "[a-z]+", "X"), is("X01X02X"));
+    assertThat(f.regexpReplaceNonDollarIndexed("a0b1c2d3", "0|2", "X"), is("aXb1cXd3"));
+
+    // Test double-backslash indexing for capturing groups
+    assertThat(f.regexpReplaceNonDollarIndexed("abc_defcon", "([a-z])_([a-z])", "\\\\2_\\\\1"),
+        is("abd_cefcon"));
+    assertThat(f.regexpReplaceNonDollarIndexed("1\\2\\3\\4\\5", "2.(.).4", "\\\\1"),
+        is("1\\3\\5"));
+    assertThat(f.regexpReplaceNonDollarIndexed("abc16", "b(.*)(\\d)", "\\\\\\\\"),
+        is("a\\"));
+    assertThat(f.regexpReplaceNonDollarIndexed("qwerty123", "([0-9]+)", "$147"),
+        is("qwerty$147"));
+
+    try {
+      f.regexpReplaceNonDollarIndexed("abcdefghijabc", "abc(.)", "\\\\-11x");
+      fail("'regexp_replace' with invalid replacement pattern is not possible");
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(),
+          is("Invalid replacement pattern for REGEXP_REPLACE: '\\\\-11x'"));
+    }
+    try {
+      f.regexpReplaceNonDollarIndexed("abcdefghijabc", "abc(.)", "\\\11x");
+      fail("'regexp_replace' with invalid replacement pattern is not possible");
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(),
+          is("Invalid replacement pattern for REGEXP_REPLACE: '\\\tx'"));
+    }
+  }
+
   @Test void testLower() {
     assertThat(lower("A bCd Iijk"), is("a bcd iijk"));
   }

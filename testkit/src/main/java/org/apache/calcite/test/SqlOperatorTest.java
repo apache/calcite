@@ -4892,6 +4892,8 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f0 = fixture();
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.setFor(SqlLibraryOperators.REGEXP_REPLACE);
+
+      // Tests for regexp replace generic functionality
       f.checkString("regexp_replace('a b c', 'b', 'X')", "a X c",
           "VARCHAR NOT NULL");
       f.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X')", "X X X",
@@ -4919,12 +4921,37 @@ public class SqlOperatorTest {
           "VARCHAR NOT NULL");
       f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\\w+', '+')", "+\t\n+\t\n+",
           "VARCHAR NOT NULL");
+
       f.checkQuery("select regexp_replace('a b c', 'b', 'X')");
       f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1)");
       f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3)");
       f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3, 'i')");
     };
-    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.ORACLE), consumer);
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.ORACLE, SqlLibrary.BIG_QUERY), consumer);
+
+    // Tests for double-backslash indexed capturing groups for regexp_replace in BQ
+    final SqlOperatorFixture f1 =
+        f0.withLibrary(SqlLibrary.BIG_QUERY).withConformance(SqlConformanceEnum.BIG_QUERY);
+    f1.checkString("regexp_replace('abc16', 'b(.*)(\\d)', '\\\\2\\\\1X')", "a6c1X",
+        "VARCHAR NOT NULL");
+    f1.checkString("regexp_replace('a\\bc56a\\bc37', 'b(.)(\\d)', '\\\\2\\\\0X')",
+        "a\\5bc5X6a\\3bc3X7", "VARCHAR NOT NULL");
+    f1.checkString("regexp_replace('abcdefghijabc', 'abc(.)', '\\\\\\\\123xyz')",
+        "\\123xyzefghijabc", "VARCHAR NOT NULL");
+    f1.checkString("regexp_replace('abcdefghijabc', 'abc(.)', '$1xy')",
+        "$1xyefghijabc", "VARCHAR NOT NULL");
+    f1.checkString("regexp_replace('abc123', 'b(.*)(\\d)', '\\\\\\\\$ $\\\\\\\\')",
+        "a\\$ $\\", "VARCHAR NOT NULL");
+
+    // Tests to verify double-backslashes are ignored for indexing in other dialects
+    final SqlOperatorFixture f2 =
+        f0.withLibrary(SqlLibrary.MYSQL).withConformance(SqlConformanceEnum.MYSQL_5);
+    f2.checkString("regexp_replace('abc16', 'b(.*)(\\d)', '\\\\2\\\\1X')", "a\\2\\1X",
+        "VARCHAR NOT NULL");
+    f2.checkString("regexp_replace('abcdefghijabc', 'abc(.)', '\\\\-11x')", "\\-11xefghijabc",
+        "VARCHAR NOT NULL");
+    f2.checkString("regexp_replace('abcdefghijabc', 'abc(.)', '$1x')", "dxefghijabc",
+        "VARCHAR NOT NULL");
   }
 
   @Test void testRegexpSubstrFunc() {
