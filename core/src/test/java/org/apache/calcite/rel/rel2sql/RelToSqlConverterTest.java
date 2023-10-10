@@ -2490,6 +2490,17 @@ class RelToSqlConverterTest {
     sql(query).withHive().ok(expected);
   }
 
+  @Test void testModFunctionWithDecimalValues() {
+    final String query = "select mod(11.9, 3), MOD(2, 4),"
+        + "MOD(3, 4.5), MOD(\"product_id\", 4.5)"
+        + " from \"product\"";
+    final String expected = "SELECT MOD(CAST(11.9 AS NUMERIC), 3), "
+        + "MOD(2, 4), MOD(3, CAST(4.5 AS NUMERIC)), "
+        + "MOD(product_id, CAST(4.5 AS NUMERIC))\n"
+        + "FROM foodmart.product";
+    sql(query).withBigQuery().ok(expected);
+  }
+
   @Test void testUnionOperatorForBigQuery() {
     final String query = "select mod(11,3) from \"product\"\n"
         + "UNION select 1 from \"product\"";

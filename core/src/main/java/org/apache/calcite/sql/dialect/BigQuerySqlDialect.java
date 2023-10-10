@@ -75,6 +75,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -172,6 +173,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
@@ -698,6 +700,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case EXTRACT:
       unparseExtractFunction(writer, call, leftPrec, rightPrec);
       break;
+    case MOD:
+      unparseModFunction(writer, call, leftPrec, rightPrec);
+      break;
     case GROUPING:
       unparseGroupingFunction(writer, call, leftPrec, rightPrec);
       break;
@@ -756,6 +761,36 @@ public class BigQuerySqlDialect extends SqlDialect {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
+
+  private void unparseModFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    List<SqlNode> modifiedNodes = getModifiedModOperands(call.getOperandList());
+    SqlCall modFunctionCall = MOD.createCall(SqlParserPos.ZERO, modifiedNodes);
+    MOD.unparse(writer, modFunctionCall, leftPrec, rightPrec);
+  }
+
+  private List<SqlNode> getModifiedModOperands(List<SqlNode> operandList) {
+    List<SqlNode> modifiedOperandList = new ArrayList<>();
+    for (SqlNode node : operandList) {
+      boolean isOperandNumericLiteral = node instanceof SqlNumericLiteral;
+      if (isOperandNumericLiteral) {
+        int precision = ((SqlNumericLiteral) node).getPrec();
+        int scale = ((SqlNumericLiteral) node).getScale();
+        if (scale > 0) {
+          SqlNode castType = getCastSpec(
+              new BasicSqlType(RelDataTypeSystem.DEFAULT,
+                  SqlTypeName.DECIMAL, precision, scale));
+          SqlNode castedNode = CAST.createCall(SqlParserPos.ZERO, node, castType);
+          modifiedOperandList.add(castedNode);
+        } else {
+          modifiedOperandList.add(node);
+        }
+      } else {
+        modifiedOperandList.add(node);
+      }
+    }
+    return modifiedOperandList;
+  }
+
   private void unparseOver(SqlWriter writer, SqlCall call, final int leftPrec,
       final int rightPrec) {
     if (isFirstOperandPercentileCont(call) && isLowerAndUpperBoundPresentInWindowDef(call)) {
