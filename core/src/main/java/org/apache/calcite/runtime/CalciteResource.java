@@ -1019,11 +1019,14 @@ public interface CalciteResource {
   ExInst<RuntimeException> invalidRegexInputForRegexpFunctions(String value, String methodName);
 
   @BaseMessage("Multiple capturing groups (count={0}) not allowed in regex input for {1}")
-  ExInst<RuntimeException> multipleCapturingGroupsForRegexpExtract(String value,
+  ExInst<RuntimeException> multipleCapturingGroupsForRegexpFunctions(String value,
       String methodName);
 
   @BaseMessage("Invalid input for REGEXP_REPLACE: ''{0}''")
   ExInst<CalciteException> invalidInputForRegexpReplace(String value);
+
+  @BaseMessage("Invalid replacement pattern for REGEXP_REPLACE: ''{0}''")
+  ExInst<CalciteException> invalidReplacePatternForRegexpReplace(String value);
 
   @BaseMessage("Invalid input for JSON_INSERT: jsonDoc: ''{0}'', kvs: ''{1}''")
   ExInst<CalciteException> invalidInputForJsonInsert(String jsonDoc, String kvs);

@@ -389,7 +389,13 @@ public class SqlFunctions {
             .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
             .build(CacheLoader.from(Key::toPattern));
 
-    /** Helper for regex validation in REGEXP_* fns. */
+    private final LoadingCache<String, String> replacementStrCache =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(RegexFunction::replaceNonDollarIndexedString));
+
+    /** Validate regex arguments in REGEXP_* fns, throws an exception
+     * for invalid regex patterns, else returns a Pattern object. */
     private Pattern validateRegexPattern(String regex, String methodName) {
       try {
         // Uses java.util.regex as a standard for regex processing
@@ -405,19 +411,21 @@ public class SqlFunctions {
       }
     }
 
-    /** Helper for multiple capturing group regex check in REGEXP_* fns. */
+    /** Check for multiple capturing groups in regex arguments in REGEXP_* fns, throws an
+     * exception if regex pattern has more than 1 capturing group, else nothing is returned. */
     private static void checkMultipleCapturingGroupsInRegex(Matcher matcher,
         String methodName) {
       if (matcher.groupCount() > 1) {
-        throw RESOURCE.multipleCapturingGroupsForRegexpExtract(
+        throw RESOURCE.multipleCapturingGroupsForRegexpFunctions(
             Integer.toString(matcher.groupCount()), methodName).ex();
       }
     }
 
-    /** Helper for checking values of position and occurrence arguments in REGEXP_* fns.
-     * Regex fns not using occurrencePosition param pass a default value of 0.
-     * Throws an exception or returns true in case of failed value checks. */
-    private static boolean checkPosOccurrenceParamValues(int position,
+    /** Validates the value ranges for position and occurrence arguments in REGEXP_* fns.
+     * Functions not using occurrencePosition param pass a default value of 0.
+     * Throws an exception or returns false if any arguments are beyond accepted range,
+     * returns true if all argument values are valid. */
+    private static boolean validatePosOccurrenceParamValues(int position,
         int occurrence, int occurrencePosition, String value, String methodName) {
       if (position <= 0) {
         throw RESOURCE.invalidIntegerInputForRegexpFunctions(Integer.toString(position),
@@ -431,10 +439,36 @@ public class SqlFunctions {
         throw RESOURCE.invalidIntegerInputForRegexpFunctions(Integer.toString(occurrencePosition),
             "occurrence_position", methodName).ex();
       }
-      if (position <= value.length()) {
-        return false;
+      return position <= value.length();
+    }
+
+    /** Preprocess double-backslash-based indexing for capturing groups into
+     * $-based indices recognized by java regex, throws an error for invalid escapes. */
+    public static String replaceNonDollarIndexedString(String replacement) {
+      // Explicitly escaping any $ symbols coming from input
+      // to ignore them from being considered as capturing group index
+      String indexedReplacement = replacement.replace("\\\\", "\\")
+          .replace("$", "\\$");
+
+      // Check each occurrence of escaped chars, convert '\<n>' integers into '$<n>' indices,
+      // keep occurrences of '\\' and '\$', throw an error for any other invalid escapes
+      int lastOccIdx = indexedReplacement.indexOf("\\");
+      while (lastOccIdx != -1 && lastOccIdx < indexedReplacement.length() - 1) {
+        // Fetch escaped symbol following the current '\' occurrence
+        final char escapedChar = indexedReplacement.charAt(lastOccIdx + 1);
+
+        // Replace '\<n>' with '$<n>' if escaped char is an integer
+        if (Character.isDigit(escapedChar)) {
+          indexedReplacement = indexedReplacement.replaceFirst("\\\\(\\d)", "\\$$1");
+        } else if (escapedChar != '\\' && escapedChar != '$') {
+          // Throw an error if escaped char is not an escaped '\' or an escaped '$'
+          throw RESOURCE.invalidReplacePatternForRegexpReplace(replacement).ex();
+        }
+        // Fetch next occurrence index after current escaped char
+        lastOccIdx = indexedReplacement.indexOf("\\", lastOccIdx + 2);
       }
-      return true;
+
+      return indexedReplacement;
     }
 
     /** SQL {@code REGEXP_CONTAINS(value, regexp)} function.
@@ -469,7 +503,7 @@ public class SqlFunctions {
       final String methodName = "REGEXP_EXTRACT";
       final Pattern pattern = validateRegexPattern(regex, methodName);
 
-      if (checkPosOccurrenceParamValues(position, occurrence, 0, value, methodName)) {
+      if (!validatePosOccurrenceParamValues(position, occurrence, 0, value, methodName)) {
         return null;
       }
 
@@ -546,8 +580,9 @@ public class SqlFunctions {
       final String methodName = "REGEXP_INSTR";
       final Pattern pattern = validateRegexPattern(regex, methodName);
 
-      if (checkPosOccurrenceParamValues(position, occurrence, occurrencePosition, value,
-          methodName) || regex.isEmpty()) {
+      if (regex.isEmpty()
+          || !validatePosOccurrenceParamValues(position, occurrence,
+          occurrencePosition, value, methodName)) {
         return 0;
       }
 
@@ -601,6 +636,26 @@ public class SqlFunctions {
       final Pattern pattern = cache.getUnchecked(new Key(flags, regex));
 
       return Unsafe.regexpReplace(s, pattern, replacement, pos, occurrence);
+    }
+
+    /** SQL {@code REGEXP_REPLACE} function with 3 arguments with
+     * {@code \\} based indexing for capturing groups. */
+    public String regexpReplaceNonDollarIndexed(String s, String regex,
+        String replacement) {
+      // Modify double-backslash capturing group indices in replacement argument,
+      // retrieved from cache when available.
+      String indexedReplacement;
+      try {
+        indexedReplacement = replacementStrCache.getUnchecked(replacement);
+      } catch (UncheckedExecutionException e) {
+        if (e.getCause() instanceof CalciteException) {
+          throw RESOURCE.invalidReplacePatternForRegexpReplace(replacement).ex();
+        }
+        throw e;
+      }
+
+      // Call generic regexp replace method with modified replacement pattern
+      return regexpReplace(s, regex, indexedReplacement, 1, 0, null);
     }
 
     private static int makeRegexpFlags(String stringFlags) {

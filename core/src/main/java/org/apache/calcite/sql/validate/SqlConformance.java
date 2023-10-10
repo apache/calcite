@@ -257,6 +257,19 @@ public interface SqlConformance {
   boolean isMinusAllowed();
 
   /**
+   * Whether dialect uses default syntax of {@code $} for indexing capturing groups in
+   * the replacement string of regular expression functions or uses the alternate syntax of
+   * {@code \\} for {@code REGEXP_REPLACE}.
+   * For example, BigQuery REGEXP_REPLACE("abc", "a(.)c", "X\\1") is equivalent to
+   * MySQL REGEXP_REPLACE("abc", "a(.)c", "X$1") to produce the result "Xb".
+   *
+   * <p>Among the built-in conformance levels, false in
+   * {@link SqlConformanceEnum#BIG_QUERY}
+   * true otherwise.
+   */
+  boolean isRegexReplaceCaptureGroupDollarIndexed();
+
+  /**
    * Whether {@code CROSS APPLY} and {@code OUTER APPLY} operators are allowed
    * in the parser.
    *
