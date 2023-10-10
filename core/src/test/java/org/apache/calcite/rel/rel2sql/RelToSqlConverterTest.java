@@ -8782,12 +8782,12 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(builder.alias(parseTSNode, "timestamp"))
         .build();
-    final String expectedBiqQuery =
+    final String expectedBigQuery =
         "SELECT PARSE_TIMESTAMP('%c%z', FORMAT_TIMESTAMP('%c%z', CAST('2008-08-21 07:23:54' AS "
             + "DATETIME), 'America/Los_Angeles')) AS timestamp\n"
             + "FROM scott.EMP";
 
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
   @Test public void testTimeWithTimezoneFunction() {
@@ -8798,9 +8798,9 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode, "FD2"))
         .build();
-    final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%c%z', CURRENT_DATETIME()) AS FD2\n"
+    final String expectedBigQuery = "SELECT FORMAT_TIMESTAMP('%c%z', CURRENT_DATETIME()) AS FD2\n"
         + "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
   @Test public void testParseTimestampFunctionFormat() {
