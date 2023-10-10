@@ -8758,11 +8758,11 @@ class RelToSqlConverterTest {
 
   @Test public void testConvertTimezoneFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.CONVERT_TIMEZONE_SF,
+    final RexNode convertTimezoneNode = builder.call(SqlLibraryOperators.CONVERT_TIMEZONE_SF,
         builder.literal("America/Los_Angeles"), builder.literal("2008-08-21 07:23:54"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(parseTSNode1, "time"))
+        .project(builder.alias(convertTimezoneNode, "time"))
         .build();
     final String expectedSF =
         "SELECT CONVERT_TIMEZONE_SF('America/Los_Angeles', '2008-08-21 07:23:54') AS \"time\"\nFROM \"scott\".\"EMP\"";
@@ -8787,6 +8787,19 @@ class RelToSqlConverterTest {
             + "DATETIME), 'America/Los_Angeles')) AS timestamp\n"
             + "FROM scott.EMP";
 
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testTimeWithTimezoneFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("%c%z"), builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatTimestampRexNode, "FD2"))
+        .build();
+    final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%c%z', CURRENT_DATETIME()) AS FD2\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
@@ -10760,19 +10773,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expSprk));
   }
 
-  @Test public void testTimeWithTimezoneFunction() {
-    final RelBuilder builder = relBuilder();
-    final RexNode formatTimestampRexNode2 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-        builder.literal("%c%z"), builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
-    final RelNode root = builder
-        .scan("EMP")
-        .project(builder.alias(formatTimestampRexNode2, "FD2"))
-        .build();
-    final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%c%z', CURRENT_DATETIME()) AS FD2\n"
-        + "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-  }
-
   @Test void testConversionOfFilterWithCrossJoinToFilterWithInnerJoin() {
     String query =
         "select *\n"
@@ -12010,7 +12010,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
   }
 
-
   @Test public void testBracesForScalarSubQuery() {
     final RelBuilder builder = relBuilder();
     final RelNode scalarQueryRel = builder.
@@ -12328,6 +12327,7 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
+
   @Test public void testOracleRoundFunction() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
