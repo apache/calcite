@@ -2490,7 +2490,7 @@ class RelToSqlConverterTest {
     sql(query).withHive().ok(expected);
   }
 
-  @Test void testModFunctionWithDecimalValues() {
+  @Test void testModFunctionWithNumericLiterals() {
     final String query = "select mod(11.9, 3), MOD(2, 4),"
         + "MOD(3, 4.5), MOD(\"product_id\", 4.5)"
         + " from \"product\"";

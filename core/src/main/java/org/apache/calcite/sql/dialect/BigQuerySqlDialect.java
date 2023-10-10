@@ -773,22 +773,26 @@ public class BigQuerySqlDialect extends SqlDialect {
     for (SqlNode node : operandList) {
       boolean isOperandNumericLiteral = node instanceof SqlNumericLiteral;
       if (isOperandNumericLiteral) {
-        int precision = ((SqlNumericLiteral) node).getPrec();
-        int scale = ((SqlNumericLiteral) node).getScale();
-        if (scale > 0) {
-          SqlNode castType = getCastSpec(
-              new BasicSqlType(RelDataTypeSystem.DEFAULT,
-                  SqlTypeName.DECIMAL, precision, scale));
-          SqlNode castedNode = CAST.createCall(SqlParserPos.ZERO, node, castType);
-          modifiedOperandList.add(castedNode);
-        } else {
-          modifiedOperandList.add(node);
-        }
+        castToDecimalIfNeeded(node, modifiedOperandList);
       } else {
         modifiedOperandList.add(node);
       }
     }
     return modifiedOperandList;
+  }
+
+  private void castToDecimalIfNeeded(SqlNode node, List<SqlNode> modifiedOperandList) {
+    int precision = ((SqlNumericLiteral) node).getPrec();
+    int scale = ((SqlNumericLiteral) node).getScale();
+    if (scale > 0) {
+      SqlNode castType = getCastSpec(
+          new BasicSqlType(RelDataTypeSystem.DEFAULT,
+              SqlTypeName.DECIMAL, precision, scale));
+      SqlNode castedNode = CAST.createCall(SqlParserPos.ZERO, node, castType);
+      modifiedOperandList.add(castedNode);
+    } else {
+      modifiedOperandList.add(node);
+    }
   }
 
   private void unparseOver(SqlWriter writer, SqlCall call, final int leftPrec,
