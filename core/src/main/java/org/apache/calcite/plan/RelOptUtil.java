@@ -3817,6 +3817,29 @@ public abstract class RelOptUtil {
         originalJoin, RelBuilder.proto(projectFactory));
   }
 
+  /**
+   * Builds a new RelNode with the pushed conditions and remaining conditions.
+   *
+   * <p> The pushed conditions will be pushed to the input of oldNode, and
+   * the remaining conditions will be keeped above the oldNode.
+   *
+   * @param builder RelBuilder
+   * @param oldNode original RelNode
+   * @param pushedConditions the conditions which pushed to the input of oldNode
+   * @param remainingConditions the conditions which keeped above the oldNode
+   */
+  public static RelNode buildRelNodeWithConditions(final RelBuilder builder, final RelNode oldNode,
+      final List<RexNode> pushedConditions, final List<RexNode> remainingConditions) {
+    RelNode rel =
+        builder.push(oldNode.getInput(0)).filter(pushedConditions).build();
+    if (rel == oldNode.getInput(0)) {
+      return oldNode;
+    }
+    rel = oldNode.copy(oldNode.getTraitSet(), ImmutableList.of(rel));
+    rel = builder.push(rel).filter(remainingConditions).build();
+    return rel;
+  }
+
   private static RelNode pushDownJoinConditions(Join originalJoin,
       RelBuilderFactory relBuilderFactory) {
     return pushDownJoinConditions(originalJoin,

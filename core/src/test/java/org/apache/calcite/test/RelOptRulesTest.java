@@ -588,6 +588,21 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6011">[CALCITE-6011]
+   * Add the planner rule that pushes the Filter past a Window</a>. */
+  @Test void testNotPushFilterPastWindowWhenPredicateNotOnPartitionKey() {
+    final String sql = "select * from\n"
+        + "(select NAME, DEPTNO, count(*) over (partition by NAME) from dept) t\n"
+        + "where DEPTNO = 0";
+    sql(sql)
+        .withPreRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
+        .withRule(
+            CoreRules.FILTER_PROJECT_TRANSPOSE,
+            CoreRules.FILTER_WINDOW_TRANSPOSE,
+            CoreRules.PROJECT_REMOVE).check();
+  }
+
   @Test void testAddRedundantSemiJoinRule() {
     final String sql = "select 1 from emp inner join dept on emp.deptno = dept.deptno";
     sql(sql).withRule(CoreRules.JOIN_ADD_REDUNDANT_SEMI_JOIN).check();
@@ -973,21 +988,6 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select * from\n"
         + "(select NAME, DEPTNO, count(*) over (partition by NAME, DEPTNO) from dept)\n"
         + "where DEPTNO > 0";
-    sql(sql)
-        .withPreRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
-        .withRule(
-            CoreRules.FILTER_PROJECT_TRANSPOSE,
-            CoreRules.FILTER_WINDOW_TRANSPOSE,
-            CoreRules.PROJECT_REMOVE).check();
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6011">[CALCITE-6011]
-   * Add the planner rule that pushes the Filter past a Window</a>. */
-  @Test void testPushFilterPastWindowWithNoPredicatePush() {
-    final String sql = "select * from\n"
-        + "(select NAME, DEPTNO, count(*) over (partition by NAME) from dept) t\n"
-        + "where DEPTNO = 0";
     sql(sql)
         .withPreRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
         .withRule(

@@ -23,10 +23,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
-
-import com.google.common.collect.ImmutableList;
 
 import org.immutables.value.Value;
 
@@ -104,15 +101,13 @@ public class FilterWindowTransposeRule
       }
     }
 
-    final RelBuilder builder = call.builder();
     // Use the pushed conditions to create a new filter above the window's input.
-    RelNode rel = builder.push(windowRel.getInput()).filter(pushedConditions).build();
-    if (rel == windowRel.getInput(0)) {
-      return;
+    final RelNode rel =
+        RelOptUtil.buildRelNodeWithConditions(call.builder(), windowRel,
+            pushedConditions, remainingConditions);
+    if (!rel.equals(windowRel)) {
+      call.transformTo(rel);
     }
-    rel = windowRel.copy(windowRel.getTraitSet(), ImmutableList.of(rel));
-    rel = builder.push(rel).filter(remainingConditions).build();
-    call.transformTo(rel);
   }
 
   /** Rule configuration. */

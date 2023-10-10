@@ -33,8 +33,6 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.collect.ImmutableList;
-
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
@@ -126,15 +124,13 @@ public class FilterAggregateTransposeRule
       }
     }
 
-    final RelBuilder builder = call.builder();
-    RelNode rel =
-        builder.push(aggRel.getInput()).filter(pushedConditions).build();
-    if (rel == aggRel.getInput(0)) {
-      return;
+    final RelNode rel =
+        RelOptUtil.buildRelNodeWithConditions(call.builder(), aggRel,
+            pushedConditions, remainingConditions);
+    // If the RelNode tree changed, we need to transform
+    if (!rel.equals(aggRel)) {
+      call.transformTo(rel);
     }
-    rel = aggRel.copy(aggRel.getTraitSet(), ImmutableList.of(rel));
-    rel = builder.push(rel).filter(remainingConditions).build();
-    call.transformTo(rel);
   }
 
   private static boolean canPush(Aggregate aggregate, ImmutableBitSet rCols) {
