@@ -12010,6 +12010,7 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
   }
 
+
   @Test public void testBracesForScalarSubQuery() {
     final RelBuilder builder = relBuilder();
     final RelNode scalarQueryRel = builder.
@@ -12327,7 +12328,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
-
   @Test public void testOracleRoundFunction() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
