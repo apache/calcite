@@ -195,3 +195,39 @@ void NullSafeEqual(List<Object> list, ExprContext exprContext, Span s) :
     }
     AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
 }
+
+void BitwiseBinaryOperator(List<Object> list, ExprContext exprContext, Span s) :
+{
+    final SqlOperator op;
+}
+{
+    (
+        <BITWISE_AND> {op = SqlLibraryOperators.BITWISE_AND;}
+    |   <BITWISE_LEFT_SHIFT> {op = SqlLibraryOperators.BITWISE_LEFT_SHIFT;}
+    |   BitwiseRightShift() {op = SqlLibraryOperators.BITWISE_RIGHT_SHIFT;}
+    |   <CARET> {op = SqlLibraryOperators.BITWISE_XOR;}
+    |   <VERTICAL_BAR> {op = SqlLibraryOperators.BITWISE_OR;}
+    )
+    {
+        checkNonQueryExpression(exprContext);
+        list.add(new SqlParserUtil.ToTreeListItem(op, getPos()));
+    }
+    AddExpression2b(list, ExprContext.ACCEPT_SUB_QUERY)
+}
+
+void BitwiseRightShift():
+{}
+{
+  ( LOOKAHEAD({ getToken(1).kind == GT &&
+                getToken(1).specialToken != null} )
+  <GT> <GT>
+  )
+}
+
+SqlPrefixOperator BitwisePrefixOperator() :
+{
+}
+{
+    <TILDE> { return SqlLibraryOperators.BITWISE_INVERSION; }
+|   <NEGATE> { return SqlLibraryOperators.BITWISE_NEGATE; }
+}

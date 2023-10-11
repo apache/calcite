@@ -577,6 +577,15 @@ data: {
     # Binary operators tokens.
     # Example: "< INFIX_CAST: \"::\" >".
     binaryOperatorsTokens: [
+      "< BITWISE_AND: \"&\" >"
+      "< BITWISE_LEFT_SHIFT: \"<<\" >"
+      "< BITWISE_RIGHT_SHIFT: \">>\" >
+      {
+        matchedToken.specialToken = matchedToken;
+        input_stream.backup(1);
+        matchedToken.image = \">\";
+        matchedToken.kind = GT;
+      }"
       "< INFIX_CAST: \"::\" >"
       "< NULL_SAFE_EQUAL: \"<=>\" >"
     ]
@@ -596,8 +605,15 @@ data: {
     # Binary operators initialization.
     # Example: "InfixCast".
     extraBinaryExpressions: [
+      "BitwiseBinaryOperator"
       "InfixCast"
       "NullSafeEqual"
+    ]
+
+    # Prefix operators initialization.
+    # Example: "BitwisePrefixOperator".
+    extraPrefixOperator: [
+      "BitwisePrefixOperator"
     ]
 
     # List of files in @includes directory that have parser method

@@ -240,6 +240,47 @@ class BabelTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5087">[CALCITE-5087]
+   * Support bitwise operators</a>. */
+  @Test void testBitwiseOperator() {
+    final SqlValidatorFixture f = Fixtures.forValidator()
+        .withParserConfig(c -> c.withParserFactory(SqlBabelParserImpl.FACTORY))
+        .withOperatorTable(operatorTableFor(SqlLibrary.MYSQL));
+
+    f.withSql("select 1 | 1")
+        .ok()
+        .type("RecordType(BIGINT NOT NULL EXPR$0) NOT NULL");
+
+    f.withSql("select x'65' & x'77'")
+        .ok()
+        .type("RecordType(BIGINT NOT NULL EXPR$0) NOT NULL");
+
+    f.withSql("select x'65' ^^ 1")
+        .ok()
+        .type("RecordType(BIGINT NOT NULL EXPR$0) NOT NULL");
+
+    f.withSql("select x'65' << 1")
+        .ok()
+        .type("RecordType(BIGINT NOT NULL EXPR$0) NOT NULL");
+
+    f.withSql("select 1 >> 1")
+        .ok()
+        .type("RecordType(BIGINT NOT NULL EXPR$0) NOT NULL");
+
+    f.withSql("select ~1")
+        .ok()
+        .type("RecordType(BIGINT NOT NULL EXPR$0) NOT NULL");
+
+    f.withSql("select !1")
+        .ok()
+        .type("RecordType(BIGINT NOT NULL EXPR$0) NOT NULL");
+
+    f.withSql("select !1 + 2")
+        .ok()
+        .type("RecordType(BIGINT NOT NULL EXPR$0) NOT NULL");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5816">[CALCITE-5816]
    * Query with LEFT SEMI JOIN should not refer to RHS columns</a>. */
   @Test public void testLeftSemiJoin() {

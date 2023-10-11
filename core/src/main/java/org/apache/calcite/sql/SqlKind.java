@@ -352,6 +352,21 @@ public enum SqlKind {
   /** Logical "AND" operator. */
   AND,
 
+  /** {@code BITWISE_OR} operator (MySQL). */
+  BITWISE_OR,
+
+  /** {@code BITWISE_XOR} operator (MySQL). */
+  BITWISE_XOR,
+
+  /** {@code BITWISE_AND} operator (MySQL). */
+  BITWISE_AND,
+
+  /** {@code BITWISE_LEFT_SHIFT} operator (MySQL). */
+  BITWISE_LEFT_SHIFT,
+
+  /** {@code BITWISE_RIGHT_SHIFT} operator (MySQL). */
+  BITWISE_RIGHT_SHIFT,
+
   // other infix
 
   /** Dot. */

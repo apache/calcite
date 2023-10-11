@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlBitwiseBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
@@ -29,6 +30,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlPrefixOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
@@ -2172,6 +2174,80 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BOOLEAN,
           InferTypes.FIRST_KNOWN,
           OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
+
+  /** The Bitwise AND "&" OPERATOR used by MySQL, for example
+   * {@code 1&1}. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlOperator BITWISE_AND =
+      new SqlBitwiseBinaryOperator(
+          "&",
+          SqlKind.BITWISE_AND,
+          36,
+          OperandTypes.ANY_ANY);
+
+  /** The Bitwise OR "|" OPERATOR used by MySQL, for example
+   * {@code 1|1}. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlOperator BITWISE_OR =
+      new SqlBitwiseBinaryOperator(
+          "|",
+          SqlKind.BITWISE_OR,
+          34,
+          OperandTypes.ANY_ANY);
+
+  /** The Bitwise XOR "^" OPERATOR used by MySQL, for example
+   * {@code 1^1}. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlOperator BITWISE_XOR =
+      new SqlBitwiseBinaryOperator(
+          "^",
+          SqlKind.BITWISE_XOR,
+          62,
+          OperandTypes.ANY_ANY);
+
+  /** The Bitwise Left Shift "<<" OPERATOR used by MySQL, for example
+   * {@code 1 << 1}. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlOperator BITWISE_LEFT_SHIFT =
+      new SqlBitwiseBinaryOperator(
+          "<<",
+          SqlKind.BITWISE_LEFT_SHIFT,
+          38,
+          OperandTypes.ANY_ANY);
+
+  /** The Bitwise Right Shift ">>" OPERATOR used by MySQL, for example
+   * {@code 1 >> 1}. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlOperator BITWISE_RIGHT_SHIFT =
+      new SqlBitwiseBinaryOperator(
+          ">>",
+          SqlKind.BITWISE_RIGHT_SHIFT,
+          38,
+          OperandTypes.ANY_ANY);
+
+  /** The Bitwise inversion "~" OPERATOR used by MySQL, for example
+   * {@code ~1}. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlPrefixOperator BITWISE_INVERSION =
+      new SqlPrefixOperator(
+          "~",
+          SqlKind.BITWISE_RIGHT_SHIFT,
+          80,
+          ReturnTypes.BIGINT_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.ANY);
+
+  /** The Bitwise negate "!" OPERATOR used by MySQL, for example
+   * {@code !1}. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlPrefixOperator BITWISE_NEGATE =
+      new SqlPrefixOperator(
+          "!",
+          SqlKind.NOT,
+          82,
+          ReturnTypes.BIGINT_NULLABLE,
+          InferTypes.RETURN_TYPE,
+          OperandTypes.ANY);
 
   /** The "BIT_LENGTH(string or binary)" function. */
   @LibraryOperator(libraries = {SPARK})

@@ -1248,9 +1248,14 @@ The operator precedence and associativity, highest to lowest.
 | .                                                 | left
 | ::                                                | left
 | [ ] (collection element)                          | left
-| + - (unary plus, minus)                           | right
+| \!                                                | right
+| + - ~(unary plus, minus)                          | right
+| ^                                                 | left
 | * / % &#124;&#124;                                | left
 | + -                                               | left
+| <<, >>                                            | left
+| &                                                 | left
+| \|                                                | left
 | BETWEEN, IN, LIKE, SIMILAR, OVERLAPS, CONTAINS etc. | -
 | < > = <= >= <> != <=>                             | left
 | IS NULL, IS FALSE, IS NOT TRUE etc.               | -
@@ -1258,8 +1263,8 @@ The operator precedence and associativity, highest to lowest.
 | AND                                               | left
 | OR                                                | left
 
-Note that `::`,`<=>` is dialect-specific, but is shown in this table for
-completeness.
+Note that `::`,`!`,`~`,`^`,`<<`,`>>`,`&`,`|`,`<=>` is dialect-specific,
+but is shown in this table for completeness.
 
 ### Comparison operators
 

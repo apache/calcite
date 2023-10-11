@@ -7825,13 +7825,18 @@ SqlBinaryOperator BinaryRowOperator() :
  * Parses a prefix row operator like NOT.
  */
 SqlPrefixOperator PrefixRowOperator() :
-{}
+{
+    final SqlPrefixOperator op;
+}
 {
     <PLUS> { return SqlStdOperatorTable.UNARY_PLUS; }
 |   <MINUS> { return SqlStdOperatorTable.UNARY_MINUS; }
 |   <NOT> { return SqlStdOperatorTable.NOT; }
 |   <EXISTS> { return SqlStdOperatorTable.EXISTS; }
 |   <UNIQUE> { return SqlStdOperatorTable.UNIQUE; }
+<#list (parser.extraPrefixOperator!default.parser.extraPrefixOperator) as extra >
+|   op = ${extra}() {return op;}
+</#list>
 }
 
 /**
