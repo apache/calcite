@@ -1368,6 +1368,30 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
+   * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
+   * and there is no 'OFFSET' clause</a>. */
+  @Test void testSortRemoveWhenIsOrderAndLimit() {
+    final String sql = "SELECT count(*) FROM sales.emp ORDER BY 1 LIMIT 10";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
+   * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
+   * and there is no 'OFFSET' clause</a>. */
+  @Test void testSortNotRemoveWhenIsOrderAndLimit() {
+    final String sql = "select * from\n"
+        + "(SELECT * FROM sales.emp limit 100)\n"
+        + "ORDER BY 1 LIMIT 10";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
+        .checkUnchanged();
+  }
+
   /** Tests that an {@link EnumerableLimit} and {@link EnumerableSort} are
    * replaced by an {@link EnumerableLimitSort}, per
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3920">[CALCITE-3920]
