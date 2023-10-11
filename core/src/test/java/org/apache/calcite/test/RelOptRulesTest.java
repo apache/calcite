@@ -1368,6 +1368,54 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
+   * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
+   * and there is no 'OFFSET' clause</a>. */
+  @Test void testSortRemoveWhenIsOrderAndLimit() {
+    final String sql = "SELECT count(*) FROM sales.emp ORDER BY 1 LIMIT 10";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
+   * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
+   * and there is no 'OFFSET' clause</a>. */
+  @Test void testSortNotRemoveWhenIsOrderAndLimit() {
+    final String sql = "select * from\n"
+        + "(SELECT * FROM sales.emp limit 100)\n"
+        + "ORDER BY 1 LIMIT 10";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
+   * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
+   * and there is no 'OFFSET' clause</a>. */
+  @Test void testSortNotRemoveWhenLimitFetchIsZeroHasOrder() {
+    final String sql = "select * from\n"
+        + "(SELECT * FROM sales.emp limit 1)\n"
+        + "ORDER BY 1 LIMIT 0";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
+   * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
+   * and there is no 'OFFSET' clause</a>. */
+  @Test void testSortNotRemoveWhenLimitFetchIsZeroWithoutOrder() {
+    final String sql = "SELECT count(*) FROM sales.emp LIMIT 0";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_REDUNDANT)
+        .checkUnchanged();
+  }
+
   /** Tests that an {@link EnumerableLimit} and {@link EnumerableSort} are
    * replaced by an {@link EnumerableLimitSort}, per
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3920">[CALCITE-3920]
@@ -1417,7 +1465,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "limit 10";
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.LIMIT_MERGE, CoreRules.PROJECT_REMOVE)
         .check();
   }
 
@@ -1430,7 +1478,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "limit 10";
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.LIMIT_MERGE, CoreRules.PROJECT_MERGE)
         .check();
   }
 
@@ -1443,7 +1491,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "limit 10000";
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.LIMIT_MERGE, CoreRules.PROJECT_MERGE)
         .check();
   }
 
@@ -1456,7 +1504,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "order by deptno desc";
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.LIMIT_MERGE, CoreRules.PROJECT_REMOVE)
         .check();
   }
 
@@ -1469,7 +1517,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "order by deptno limit 10000";
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.LIMIT_MERGE, CoreRules.PROJECT_MERGE)
         .check();
   }
 
@@ -1482,7 +1530,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "order by deptno limit 10";
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.LIMIT_MERGE, CoreRules.PROJECT_MERGE)
         .check();
   }
 
@@ -1495,7 +1543,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "limit 10";
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MREGE)
+        .withRule(CoreRules.LIMIT_MERGE)
         .checkUnchanged();
   }
 
