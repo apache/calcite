@@ -232,13 +232,11 @@ public class SqlMerge extends SqlCall {
     List<SqlCall> callOrderList = this.getCallOrderList();
     for (SqlCall call: callOrderList) {
       if (call instanceof SqlUpdate) {
-        SqlUpdate updateCall = this.updateCall;
-        if (updateCall != null) {
+        if (this.updateCall != null) {
           unparseUpdateCall(writer, opLeft, opRight);
         }
       } else if (call instanceof SqlDelete) {
-        SqlDelete deleteCall = this.deleteCall;
-        if (deleteCall != null) {
+        if (this.deleteCall != null) {
           unparseDeleteCall(writer, opLeft, opRight);
         }
       } else if (call instanceof SqlInsert) {
