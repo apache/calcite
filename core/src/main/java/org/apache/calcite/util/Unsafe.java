@@ -17,6 +17,7 @@
 package org.apache.calcite.util;
 
 import java.io.StringWriter;
+import java.lang.reflect.Field;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -86,5 +87,29 @@ public class Unsafe {
     matcher.appendTail(sb);
 
     return sb.toString();
+  }
+
+  /** Sets the field "fieldName" of object "o" to a given value.
+   *
+   * <p>If necessary, calls {@link Field#setAccessible(boolean)} to temporarily
+   * make the field accessible. */
+  public static void setField(Object o, String fieldName, Object value) {
+    try {
+      Field field = o.getClass().getDeclaredField(fieldName);
+      try {
+        field.set(o, value);
+      } catch (IllegalAccessException e) {
+        synchronized (field) {
+          try {
+            field.setAccessible(true);
+            field.set(o, value);
+          } finally {
+            field.setAccessible(false);
+          }
+        }
+      }
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
