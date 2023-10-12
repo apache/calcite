@@ -377,6 +377,9 @@ public enum SqlKind {
   /** {@code SIMILAR} operator. */
   SIMILAR,
 
+  /** The {@code QUANTILE} aggregate function. */
+  QUANTILE,
+
   /** {@code ~} operator (for POSIX-style regular expressions). */
   POSIX_REGEX_CASE_SENSITIVE,
 
@@ -632,6 +635,10 @@ public enum SqlKind {
    * "::".
    */
   CAST,
+
+  /** The {@code SAFE_CAST} function, which is similar to {@link #CAST} but
+   * returns NULL rather than throwing an error if the conversion fails. */
+  SAFE_CAST,
 
   /**
    * The "NEXT VALUE OF sequence" operator.

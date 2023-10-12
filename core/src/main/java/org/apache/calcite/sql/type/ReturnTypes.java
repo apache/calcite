@@ -284,6 +284,9 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference TIMESTAMP =
           explicit(SqlTypeName.TIMESTAMP);
 
+  public static final SqlReturnTypeInference TIMESTAMP_WITH_TIME_ZONE =
+      explicit(SqlTypeName.TIMESTAMP_WITH_TIME_ZONE);
+
   public static final SqlReturnTypeInference BINARY =
       explicit(SqlTypeName.BINARY);
 
@@ -313,6 +316,14 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference TIMESTAMP_NULLABLE =
       TIMESTAMP.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is nullable
+   * TIMESTAMP_WITH_TIME_ZONE.
+   */
+  public static final SqlReturnTypeInference TIMESTAMP_WITH_TIME_ZONE_NULLABLE =
+      TIMESTAMP_WITH_TIME_ZONE.andThen(SqlTypeTransforms.TO_NULLABLE);
+
 
   /**
    * Type-inference strategy whereby the result type of a call is Double.
