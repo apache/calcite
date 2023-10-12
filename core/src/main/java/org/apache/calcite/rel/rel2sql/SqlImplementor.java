@@ -924,7 +924,6 @@ public abstract class SqlImplementor {
       final List<SqlNode> nodeList = toSql(program, call.getOperands());
       switch (call.getKind()) {
       case CAST:
-      case SAFE_CAST:
         // CURSOR is used inside CAST, like 'CAST ($0): CURSOR NOT NULL',
         // convert it to sql call of {@link SqlStdOperatorTable#CURSOR}.
         RelDataType dataType = rex.getType();
@@ -941,7 +940,7 @@ public abstract class SqlImplementor {
         } else {
           RelDataType castFrom = call.operands.get(0).getType();
           RelDataType castTo = call.getType();
-          return dialect.getCastCall(call.getKind(), nodeList.get(0), castFrom, castTo);
+          return dialect.getCastCall(nodeList.get(0), castFrom, castTo);
         }
       case PLUS:
       case MINUS:

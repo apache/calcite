@@ -18,8 +18,6 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.TimeUnit;
-import org.apache.calcite.linq4j.Nullness;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -217,12 +215,6 @@ public class SnowflakeSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
-  }
-
-  public SqlNode getCastCall(SqlKind sqlKind, SqlNode operandToCast,
-      RelDataType castFrom, RelDataType castTo) {
-    return CAST.createCall(SqlParserPos.ZERO,
-        operandToCast, Nullness.castNonNull(this.getCastSpec(castTo)));
   }
 
   private void unparseIntervalTimes(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
