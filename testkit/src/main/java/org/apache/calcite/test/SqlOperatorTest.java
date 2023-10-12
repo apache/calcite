@@ -10442,6 +10442,27 @@ public class SqlOperatorTest {
     f.checkScalar("map['washington', 1, 'obama', 44]",
         "{washington=1, obama     =44}",
         "(CHAR(10) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+
+    // check null key or null value
+    f.checkScalar("map['foo', null]",
+        "{foo=null}",
+        "(CHAR(3) NOT NULL, NULL) MAP NOT NULL");
+    f.checkScalar("map[null, 'foo']",
+        "{null=foo}",
+        "(NULL, CHAR(3) NOT NULL) MAP NOT NULL");
+    f.checkScalar("map[1, 'foo', 2, null]",
+        "{1=foo, 2=null}",
+        "(INTEGER NOT NULL, CHAR(3)) MAP NOT NULL");
+    f.checkScalar("map[1, null, 2, 'foo']",
+        "{1=null, 2=foo}",
+        "(INTEGER NOT NULL, CHAR(3)) MAP NOT NULL");
+    f.checkScalar("map[1, null, 2, null]",
+        "{1=null, 2=null}",
+        "(INTEGER NOT NULL, NULL) MAP NOT NULL");
+    f.checkScalar("map[null, 1, null, 2]",
+        "{null=2}",
+        "(NULL, INTEGER NOT NULL) MAP NOT NULL");
+
     // elements cast
     f.checkScalar("map['A', 1, 'ABC', 2]", "{A  =1, ABC=2}",
         "(CHAR(3) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");

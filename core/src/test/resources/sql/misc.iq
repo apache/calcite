@@ -2602,4 +2602,20 @@ FROM (
 (1 row)
 
 !ok
+
+# [CALCITE-6040] The operand type inference of SqlMapValueConstructor is incorrect
+SELECT
+  map['foo', null],
+  map[null, 'foo'],
+  map[1, 'foo', 2, null],
+  map[1, null, 2, 'foo'];
++------------+------------+-----------------+-----------------+
+| EXPR$0     | EXPR$1     | EXPR$2          | EXPR$3          |
++------------+------------+-----------------+-----------------+
+| {foo=null} | {null=foo} | {1=foo, 2=null} | {1=null, 2=foo} |
++------------+------------+-----------------+-----------------+
+(1 row)
+
+!ok
+
 # End misc.iq
