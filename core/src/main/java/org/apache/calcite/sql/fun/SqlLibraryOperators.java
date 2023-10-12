@@ -86,6 +86,21 @@ public abstract class SqlLibraryOperators {
           OperandTypes.CHARACTER_CHARACTER_DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
+  /**
+   * The "CONVERT_TIMEZONE(source_timezone, target_timezone, timestamp)" function;
+   * "CONVERT_TIMEZONE(target_timezone, timestamp)" function;
+   * converts the timezone of {@code timestamp} to {@code target_timezone}.
+   */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction CONVERT_TIMEZONE_SF =
+      new SqlFunction("CONVERT_TIMEZONE_SF",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_WITH_TIME_ZONE_NULLABLE,
+          null,
+          OperandTypes.or(OperandTypes.STRING_DATETIME, OperandTypes.STRING_STRING,
+              OperandTypes.STRING_STRING_STRING, OperandTypes.STRING_STRING_TIMESTAMP),
+          SqlFunctionCategory.TIMEDATE);
+
   /** Return type inference for {@code DECODE}. */
   private static final SqlReturnTypeInference DECODE_RETURN_TYPE =
       opBinding -> {
@@ -191,6 +206,21 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.ARG0_NULLABLE_VARYING, null,
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
+
+  /** The "SAFE_CAST(expr AS type)" function; identical to CAST(),
+   * except that if conversion fails, it returns NULL instead of raising an
+   * error. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SAFE_CAST =
+      new SqlCastFunction("SAFE_CAST", SqlKind.SAFE_CAST);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction IS_REAL =
+      new SqlFunction("IS_REAL",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BOOLEAN_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.ANY),
+          SqlFunctionCategory.NUMERIC);
 
   /** MySQL's "SUBSTR(string, position [, substringLength ])" function. */
   @LibraryOperator(libraries = {MYSQL})
@@ -1126,6 +1156,15 @@ public abstract class SqlLibraryOperators {
         SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction PARSE_TIMESTAMP_WITH_TIMEZONE =
+      new SqlFunction("PARSE_TIMESTAMP_WITH_TIMEZONE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_WITH_TIME_ZONE_NULLABLE,
+          null,
+          OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction PARSE_DATETIME =
       new SqlFunction("PARSE_DATETIME",
           SqlKind.OTHER_FUNCTION,
@@ -1784,6 +1823,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.INTEGER),
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TO_JSON_STRING =
+      new SqlFunction("TO_JSON_STRING", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
+
   /** The {@code PERCENTILE_CONT} function, BigQuery's
    * equivalent to {@link SqlStdOperatorTable#PERCENTILE_CONT},
    * but uses an {@code OVER} clause rather than {@code WITHIN GROUP}. */
@@ -1798,6 +1843,15 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SNOWFLAKE, ORACLE, TERADATA})
   public static final SqlAggFunction MEDIAN =
       new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction JSON_OBJECT =
+      new SqlFunction("JSON_OBJECT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.VARIADIC,
+          SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction SPLIT_PART = new SqlFunction(
