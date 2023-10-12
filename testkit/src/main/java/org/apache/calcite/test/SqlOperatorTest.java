@@ -6022,6 +6022,8 @@ public class SqlOperatorTest {
         "No match found for function signature ARRAY_APPEND\\("
             + "<INTEGER ARRAY>, <NUMERIC>\\)", false);
 
+    // 1. test with std array constructor, array[...]
+
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_append(array[1], 2)", "[1, 2]",
         "INTEGER NOT NULL ARRAY NOT NULL");
@@ -6041,6 +6043,27 @@ public class SqlOperatorTest {
     f.checkType("array_append(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
     f.checkFails("^array_append(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("array_append(array(1), 2)", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_append(array(1), null)", "[1, null]",
+        "INTEGER ARRAY NOT NULL");
+    f1.checkScalar("array_append(array(null), null)", "[null, null]",
+        "NULL ARRAY NOT NULL");
+    // test empty array
+    f1.checkScalar("array_append(array(), null)", "[null]",
+        "UNKNOWN ARRAY NOT NULL");
+    f1.checkScalar("array_append(array(), 1)", "[1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array(array(1, 2)), array(3, 4))", "[[1, 2], [3, 4]]",
+        "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_append(array(map[1, 'a']), map[2, 'b'])", "[{1=a}, {2=b}]",
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+    f1.checkFails("^array_append(array(1, 2), true)^",
+        "INTEGER is not comparable to BOOLEAN", false);
   }
 
   /** Tests {@code ARRAY_COMPACT} function from Spark. */
@@ -6049,6 +6072,8 @@ public class SqlOperatorTest {
     f0.setFor(SqlLibraryOperators.ARRAY_COMPACT);
     f0.checkFails("^array_compact(array[null, 1, null, 2])^",
         "No match found for function signature ARRAY_COMPACT\\(<INTEGER ARRAY>\\)", false);
+
+    // 1. test with std array constructor, array[...]
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_compact(array[null, 1, null, 2])", "[1, 2]",
@@ -6070,6 +6095,31 @@ public class SqlOperatorTest {
     f.checkScalar("array_compact(array[null, 1, null, cast(2 as bigint)])", "[1, 2]",
         "BIGINT NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_compact(array[null, 1, null, cast(2 as decimal)])", "[1, 2]",
+        "DECIMAL(19, 0) NOT NULL ARRAY NOT NULL");
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("array_compact(array(null, 1, null, 2))", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_compact(array(1, 2))", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_compact(array(null, 'hello', null, 'world'))", "[hello, world]",
+        "CHAR(5) NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_compact(array('hello', 'world'))", "[hello, world]",
+        "CHAR(5) NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_compact(array(null))", "[]",
+        "NULL ARRAY NOT NULL");
+    // test empty array
+    f1.checkScalar("array_compact(array())", "[]",
+        "UNKNOWN NOT NULL ARRAY NOT NULL");
+    f1.checkNull("array_compact(null)");
+    // elements cast
+    f1.checkScalar("array_compact(array(null, 1, null, cast(2 as tinyint)))", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_compact(array(null, 1, null, cast(2 as bigint)))", "[1, 2]",
+        "BIGINT NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_compact(array(null, 1, null, cast(2 as decimal)))", "[1, 2]",
         "DECIMAL(19, 0) NOT NULL ARRAY NOT NULL");
   }
 
@@ -6097,6 +6147,8 @@ public class SqlOperatorTest {
         "No match found for function signature "
             + "ARRAY_CONTAINS\\(<INTEGER ARRAY>, <NUMERIC>\\)", false);
 
+    // 1. test with std array constructor, array[...]
+
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_contains(array[1, 2], 1)", true,
         "BOOLEAN NOT NULL");
@@ -6119,6 +6171,30 @@ public class SqlOperatorTest {
     f.checkType("array_contains(array[1, null], cast(null as integer))", "BOOLEAN");
     f.checkFails("^array_contains(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("array_contains(array(1, 2), 1)", true,
+        "BOOLEAN NOT NULL");
+    f1.checkScalar("array_contains(array(1), 1)", true,
+        "BOOLEAN NOT NULL");
+    // test empty array
+    f1.checkScalar("array_contains(array(), 1)", false,
+        "BOOLEAN NOT NULL");
+    f1.checkScalar("array_contains(array(array(1, 2), array(3, 4)), array[1, 2])", true,
+        "BOOLEAN NOT NULL");
+    f1.checkScalar("array_contains(array(map[1, 'a'], map[2, 'b']), map[1, 'a'])", true,
+        "BOOLEAN NOT NULL");
+    // Flink and Spark differ on the following. The expression
+    //   array_contains(array(1, null), cast(null as integer))
+    // returns TRUE in Flink, and returns UNKNOWN in Spark. The current
+    // function has Spark behavior, but if we supported a Flink function
+    // library (i.e. "fun=flink") we could add a function with Flink behavior.
+    f1.checkNull("array_contains(array(1, null), cast(null as integer))");
+    f1.checkType("array_contains(array(1, null), cast(null as integer))", "BOOLEAN");
+    f1.checkFails("^array_contains(array(1, 2), true)^",
+        "INTEGER is not comparable to BOOLEAN", false);
   }
 
   /** Tests {@code ARRAY_DISTINCT} function from Spark. */
@@ -6127,6 +6203,9 @@ public class SqlOperatorTest {
     f0.setFor(SqlLibraryOperators.ARRAY_DISTINCT);
     f0.checkFails("^array_distinct(array['foo'])^",
         "No match found for function signature ARRAY_DISTINCT\\(<CHAR\\(3\\) ARRAY>\\)", false);
+
+    // 1. test with std array constructor, array[...]
+
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_distinct(array[1, 2, 2, 1])", "[1, 2]",
         "INTEGER NOT NULL ARRAY NOT NULL");
@@ -6140,6 +6219,21 @@ public class SqlOperatorTest {
         "[null, 1, 2]", "BIGINT ARRAY NOT NULL");
     f.checkScalar("array_distinct(array[null, cast(1 as tinyint), 1, cast(2 as decimal)])",
         "[null, 1, 2]", "DECIMAL(19, 0) ARRAY NOT NULL");
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("array_distinct(array(1, 2, 2, 1))", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_distinct(array(null, 1, null))", "[null, 1]",
+        "INTEGER ARRAY NOT NULL");
+    // elements cast
+    f1.checkScalar("array_distinct(array(null, cast(1 as tinyint), 1, cast(2 as smallint)))",
+        "[null, 1, 2]", "INTEGER ARRAY NOT NULL");
+    f1.checkScalar("array_distinct(array(null, cast(1 as tinyint), 1, cast(2 as bigint)))",
+        "[null, 1, 2]", "BIGINT ARRAY NOT NULL");
+    f1.checkScalar("array_distinct(array(null, cast(1 as tinyint), 1, cast(2 as decimal)))",
+        "[null, 1, 2]", "DECIMAL(19, 0) ARRAY NOT NULL");
   }
 
   @Test void testArrayJoinFunc() {
@@ -6147,6 +6241,8 @@ public class SqlOperatorTest {
     f0.setFor(SqlLibraryOperators.ARRAY_JOIN);
     f0.checkFails("^array_join(array['aa', 'b', 'c'], '-')^", "No match found for function"
         + " signature ARRAY_JOIN\\(<CHAR\\(2\\) ARRAY>, <CHARACTER>\\)", false);
+
+    // 1. test with std array constructor, array[...]
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_join(array['aa', 'b', 'c'], '-')", "aa-b -c ",
@@ -6179,6 +6275,39 @@ public class SqlOperatorTest {
         "Cannot apply 'ARRAY_JOIN' to arguments of type 'ARRAY_JOIN\\("
             + "<INTEGER ARRAY>, <CHAR\\(1\\)>, <CHAR\\(1\\)>\\)'\\. Supported form\\(s\\):"
             + " ARRAY_JOIN\\(<STRING ARRAY>, <CHARACTER>\\[, <CHARACTER>\\]\\)", false);
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f2 = f0.withLibrary(SqlLibrary.SPARK);
+    f2.checkScalar("array_join(array('aa', 'b', 'c'), '-')", "aa-b -c ",
+        "VARCHAR NOT NULL");
+    f2.checkScalar("array_join(array(null, 'aa', null, 'b', null), '-', 'empty')",
+        "empty-aa-empty-b -empty", "VARCHAR NOT NULL");
+    f2.checkScalar("array_join(array(null, 'aa', null, 'b', null), '-')", "aa-b ",
+        "VARCHAR NOT NULL");
+    f2.checkScalar("array_join(array(null, x'aa', null, x'bb', null), '-')", "aa-bb",
+        "VARCHAR NOT NULL");
+    f2.checkScalar("array_join(array('', 'b'), '-')", " -b", "VARCHAR NOT NULL");
+    f2.checkScalar("array_join(array('', ''), '-')", "-", "VARCHAR NOT NULL");
+
+    final SqlOperatorFixture f3 =
+        f2.withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    f3.checkScalar("array_join(array('aa', 'b', 'c'), '-')", "aa-b-c",
+        "VARCHAR NOT NULL");
+    f3.checkScalar("array_join(array(null, 'aa', null, 'b', null), '-', 'empty')",
+        "empty-aa-empty-b-empty", "VARCHAR NOT NULL");
+    f3.checkScalar("array_join(array(null, 'aa', null, 'b', null), '-')", "aa-b",
+        "VARCHAR NOT NULL");
+    f3.checkScalar("array_join(array(null, x'aa', null, x'bb', null), '-')", "aa-bb",
+        "VARCHAR NOT NULL");
+    f3.checkScalar("array_join(array('', 'b'), '-')", "-b", "VARCHAR NOT NULL");
+    f3.checkScalar("array_join(array('', ''), '-')", "-", "VARCHAR NOT NULL");
+
+    f2.checkNull("array_join(array('a', 'b', null), null)");
+    f2.checkFails("^array_join(array(1, 2, 3), '-', ' ')^",
+        "Cannot apply 'ARRAY_JOIN' to arguments of type 'ARRAY_JOIN\\("
+            + "<INTEGER ARRAY>, <CHAR\\(1\\)>, <CHAR\\(1\\)>\\)'\\. Supported form\\(s\\):"
+            + " ARRAY_JOIN\\(<STRING ARRAY>, <CHARACTER>\\[, <CHARACTER>\\]\\)", false);
   }
 
   /** Tests {@code ARRAY_MAX} function from Spark. */
@@ -6187,6 +6316,8 @@ public class SqlOperatorTest {
     f0.setFor(SqlLibraryOperators.ARRAY_MAX);
     f0.checkFails("^array_max(array[1, 2])^",
         "No match found for function signature ARRAY_MAX\\(<INTEGER ARRAY>\\)", false);
+
+    // 1. test with std array constructor, array[...]
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_max(array[1, 2])", "2", "INTEGER");
@@ -6202,6 +6333,23 @@ public class SqlOperatorTest {
         "BIGINT");
     f.checkScalar("array_max(array[null, 1, cast(2 as decimal)])", "2",
         "DECIMAL(19, 0)");
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("array_max(array(1, 2))", "2", "INTEGER");
+    f1.checkScalar("array_max(array(1, 2, null))", "2", "INTEGER");
+    f1.checkScalar("array_max(array(1))", "1", "INTEGER");
+    f1.checkType("array_max(array())", "UNKNOWN");
+    f1.checkNull("array_max(array())");
+    f1.checkNull("array_max(cast(null as integer array))");
+    // elements cast
+    f1.checkScalar("array_max(array(null, 1, cast(2 as tinyint)))", "2",
+        "INTEGER");
+    f1.checkScalar("array_max(array(null, 1, cast(2 as bigint)))", "2",
+        "BIGINT");
+    f1.checkScalar("array_max(array(null, 1, cast(2 as decimal)))", "2",
+        "DECIMAL(19, 0)");
   }
 
   /** Tests {@code ARRAY_MIN} function from Spark. */
@@ -6210,6 +6358,8 @@ public class SqlOperatorTest {
     f0.setFor(SqlLibraryOperators.ARRAY_MIN);
     f0.checkFails("^array_min(array[1, 2])^",
         "No match found for function signature ARRAY_MIN\\(<INTEGER ARRAY>\\)", false);
+
+    // 1. test with std array constructor, array[...]
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_min(array[1, 2])", "1", "INTEGER");
@@ -6224,6 +6374,22 @@ public class SqlOperatorTest {
         "BIGINT");
     f.checkScalar("array_min(array[null, 1, cast(2 as decimal)])", "1",
         "DECIMAL(19, 0)");
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("array_min(array(1, 2))", "1", "INTEGER");
+    f1.checkScalar("array_min(array(1, 2, null))", "1", "INTEGER");
+    f1.checkType("array_min(array())", "UNKNOWN");
+    f1.checkNull("array_min(array())");
+    f1.checkNull("array_min(cast(null as integer array))");
+    // elements cast
+    f1.checkScalar("array_min(array(null, 1, cast(2 as tinyint)))", "1",
+        "INTEGER");
+    f1.checkScalar("array_min(array(null, 1, cast(2 as bigint)))", "1",
+        "BIGINT");
+    f1.checkScalar("array_min(array(null, 1, cast(2 as decimal)))", "1",
+        "DECIMAL(19, 0)");
   }
 
   /** Tests {@code ARRAY_POSITION} function from Spark. */
@@ -6233,6 +6399,8 @@ public class SqlOperatorTest {
     f0.checkFails("^array_position(array[1], 1)^",
         "No match found for function signature ARRAY_POSITION\\("
             + "<INTEGER ARRAY>, <NUMERIC>\\)", false);
+
+    // 1. test with std array constructor, array[...]
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_position(array[1], 1)", "1",
@@ -6253,6 +6421,28 @@ public class SqlOperatorTest {
     f.checkType("array_position(array[1], null)", "BIGINT");
     f.checkFails("^array_position(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("array_position(array(1), 1)", "1",
+        "BIGINT NOT NULL");
+    f1.checkScalar("array_position(array(1, 2, 2), 2)", "2",
+        "BIGINT NOT NULL");
+    f1.checkScalar("array_position(array(1), 2)", "0",
+        "BIGINT NOT NULL");
+    f1.checkScalar("array_position(array(), 1)", "0",
+        "BIGINT NOT NULL");
+    f1.checkScalar("array_position(array(array(1, 2)), array(1, 2))", "1",
+        "BIGINT NOT NULL");
+    f1.checkScalar("array_position(array(map[1, 'a']), map[1, 'a'])", "1",
+        "BIGINT NOT NULL");
+    f1.checkNull("array_position(cast(null as integer array), 1)");
+    f1.checkType("array_position(cast(null as integer array), 1)", "BIGINT");
+    f1.checkNull("array_position(array(1), null)");
+    f1.checkType("array_position(array(1), null)", "BIGINT");
+    f1.checkFails("^array_position(array(1, 2), true)^",
+        "INTEGER is not comparable to BOOLEAN", false);
   }
 
   /** Tests {@code ARRAY_PREPEND} function from Spark. */
@@ -6262,6 +6452,8 @@ public class SqlOperatorTest {
     f0.checkFails("^array_prepend(array[1], 2)^",
         "No match found for function signature ARRAY_PREPEND\\("
             + "<INTEGER ARRAY>, <NUMERIC>\\)", false);
+
+    // 1. test with std array constructor, array[...]
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_prepend(array[1], 2)", "[2, 1]",
@@ -6282,6 +6474,28 @@ public class SqlOperatorTest {
     f.checkType("array_prepend(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
     f.checkFails("^array_prepend(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
+
+    // 2. test with std array constructor, array[...]
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("array_prepend(array(1), 2)", "[2, 1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_prepend(array(1), null)", "[null, 1]",
+        "INTEGER ARRAY NOT NULL");
+    f1.checkScalar("array_prepend(array(null), null)", "[null, null]",
+        "NULL ARRAY NOT NULL");
+    f1.checkScalar("array_prepend(array(), null)", "[null]",
+        "UNKNOWN ARRAY NOT NULL");
+    f1.checkScalar("array_append(array(), 1)", "[1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_prepend(array(array(1, 2)), array(3, 4))", "[[3, 4], [1, 2]]",
+        "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_prepend(array(map[1, 'a']), map[2, 'b'])", "[{2=b}, {1=a}]",
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+    f1.checkNull("array_prepend(cast(null as integer array), 1)");
+    f1.checkType("array_prepend(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
+    f1.checkFails("^array_prepend(array(1, 2), true)^",
+        "INTEGER is not comparable to BOOLEAN", false);
   }
 
   /** Tests {@code ARRAY_REMOVE} function from Spark. */
@@ -6291,6 +6505,8 @@ public class SqlOperatorTest {
     f0.checkFails("^array_remove(array[1], 1)^",
         "No match found for function signature ARRAY_REMOVE\\("
             + "<INTEGER ARRAY>, <NUMERIC>\\)", false);
+
+    // 1. test with std array constructor, array[...]
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_remove(array[1], 1)", "[]",
@@ -6321,6 +6537,38 @@ public class SqlOperatorTest {
     f.checkType("array_remove(array[1, null], cast(null as integer))", "INTEGER ARRAY");
     f.checkFails("^array_remove(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("array_remove(array(1), 1)", "[]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_remove(array(1, 2, 1), 1)", "[2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_remove(array(1, 2, null), 1)", "[2, null]",
+        "INTEGER ARRAY NOT NULL");
+    f1.checkScalar("array_remove(array(1, 2, null), 3)", "[1, 2, null]",
+        "INTEGER ARRAY NOT NULL");
+    f1.checkScalar("array_remove(array(null), 1)", "[null]",
+        "NULL ARRAY NOT NULL");
+    f1.checkScalar("array_remove(array(), 1)", "[]",
+        "UNKNOWN NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_remove(array(array(1, 2)), array[1, 2])", "[]",
+        "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_remove(array(map[1, 'a']), map[1, 'a'])", "[]",
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+    f1.checkNull("array_remove(cast(null as integer array), 1)");
+    f1.checkType("array_remove(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
+
+    // Flink and Spark differ on the following. The expression
+    //   array_remove(array(1, null), cast(null as integer))
+    // returns [1] in Flink, and returns null in Spark. The current
+    // function has Spark behavior, but if we supported a Flink function
+    // library (i.e. "fun=flink") we could add a function with Flink behavior.
+    f1.checkNull("array_remove(array(1, null), cast(null as integer))");
+    f1.checkType("array_remove(array(1, null), cast(null as integer))", "INTEGER ARRAY");
+    f1.checkFails("^array_remove(array(1, 2), true)^",
+        "INTEGER is not comparable to BOOLEAN", false);
   }
 
   /** Tests {@code ARRAY_REPEAT} function from Spark. */
@@ -6329,6 +6577,8 @@ public class SqlOperatorTest {
     f0.setFor(SqlLibraryOperators.ARRAY_REPEAT);
     f0.checkFails("^array_repeat(1, 2)^",
         "No match found for function signature ARRAY_REPEAT\\(<NUMERIC>, <NUMERIC>\\)", false);
+
+    // 1. test with std array constructor, array[...]
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_repeat(1, 2)", "[1, 1]",
@@ -6349,6 +6599,12 @@ public class SqlOperatorTest {
     f.checkScalar("array_repeat(cast(1 as decimal), 2)", "[1, 1]",
         "DECIMAL(19, 0) NOT NULL ARRAY NOT NULL");
     f.checkNull("array_repeat(1, null)");
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("array_repeat(array(1, 2), 2)", "[[1, 2], [1, 2]]",
+        "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
   }
 
   /** Tests {@code ARRAY_REVERSE} function from BigQuery. */
@@ -6357,6 +6613,7 @@ public class SqlOperatorTest {
     f0.setFor(SqlLibraryOperators.ARRAY_REVERSE);
     f0.checkFails("^array_reverse(array[1])^",
         "No match found for function signature ARRAY_REVERSE\\(<INTEGER ARRAY>\\)", false);
+
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
     f.checkScalar("array_reverse(array[1])", "[1]",
         "INTEGER NOT NULL ARRAY NOT NULL");
@@ -6386,6 +6643,8 @@ public class SqlOperatorTest {
     f0.checkFails("^array_size(array[1])^",
         "No match found for function signature ARRAY_SIZE\\(<INTEGER ARRAY>\\)", false);
 
+    // 1. test with std array constructor, array[...]
+
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_size(array[1])", "1",
         "INTEGER NOT NULL");
@@ -6398,6 +6657,21 @@ public class SqlOperatorTest {
     f.checkScalar("array_size(array[null, 1, cast(2 as tinyint)])", "3",
         "INTEGER NOT NULL");
     f.checkScalar("array_size(array[cast(1 as bigint), 2])", "2",
+        "INTEGER NOT NULL");
+
+    // 2. test with spark array function, array(...)
+
+    SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("array_size(array(1))", "1",
+        "INTEGER NOT NULL");
+    f1.checkScalar("array_size(array(1, 2, null))", "3",
+        "INTEGER NOT NULL");
+    // elements cast
+    f1.checkScalar("array_size(array(cast(1 as tinyint), 2))", "2",
+        "INTEGER NOT NULL");
+    f1.checkScalar("array_size(array(null, 1, cast(2 as tinyint)))", "3",
+        "INTEGER NOT NULL");
+    f1.checkScalar("array_size(array(cast(1 as bigint), 2))", "2",
         "INTEGER NOT NULL");
   }
 
@@ -6468,6 +6742,8 @@ public class SqlOperatorTest {
         "No match found for function signature "
             + "ARRAY_EXCEPT\\(<INTEGER ARRAY>, <INTEGER ARRAY>\\)", false);
 
+    // 1. test with std array constructor, array[...]
+
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_except(array[2, 3, 3], array[2])",
         "[3]", "INTEGER NOT NULL ARRAY NOT NULL");
@@ -6478,6 +6754,19 @@ public class SqlOperatorTest {
     f.checkNull("array_except(cast(null as integer array), array[1])");
     f.checkNull("array_except(array[1], cast(null as integer array))");
     f.checkNull("array_except(cast(null as integer array), cast(null as integer array))");
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("array_except(array(2, 3, 3), array[2])",
+        "[3]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_except(array(2), array[2, 3])",
+        "[]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_except(array(2, null, 3, 3), array[1, 2, null])",
+        "[3]", "INTEGER ARRAY NOT NULL");
+    f1.checkNull("array_except(cast(null as integer array), array(1))");
+    f1.checkNull("array_except(array(1), cast(null as integer array))");
+    f1.checkNull("array_except(cast(null as integer array), cast(null as integer array))");
   }
 
   /** Tests {@code ARRAY_INSERT} function from Spark. */
@@ -6493,6 +6782,8 @@ public class SqlOperatorTest {
     f0.checkFails("^array_insert(array[1], 3, null)^",
         "No match found for function signature "
             + "ARRAY_INSERT\\(<INTEGER ARRAY>, <NUMERIC>, <NULL>\\)", false);
+
+    // 1. test with std array constructor, array[...]
 
     final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
 
@@ -6553,6 +6844,65 @@ public class SqlOperatorTest {
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[map[1, 'a']], -1, map[2, 'b'])", "[{2=b}, {1=a}]",
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f2 = f0.withLibrary(SqlLibrary.SPARK);
+
+    // can't be NULL
+    f2.checkFails("array_insert(array(1), ^null^, 4)",
+        "Argument to function 'ARRAY_INSERT' must not be NULL", false);
+    f2.checkFails("array_insert(array(1), 3, ^null^)",
+        "Argument to function 'ARRAY_INSERT' must not be NULL", false);
+
+    // return null
+    f2.checkNull("array_insert(array(1), cast(null as integer), 4)");
+
+    // op1 must be Integer type
+    f2.checkFails("^array_insert(array(1, 2, 3), cast(3 as tinyint), 4)^",
+        "TINYINT is not comparable to INTEGER", false);
+    f2.checkFails("^array_insert(array(1, 2, 3), cast(3 as smallint), 4)^",
+        "SMALLINT is not comparable to INTEGER", false);
+    f2.checkFails("^array_insert(array(1, 2, 3), cast(3 as bigint), 4)^",
+        "BIGINT is not comparable to INTEGER", false);
+    f2.checkFails("^array_insert(array(1, 2, 3), 3.0, 4)^",
+        "DECIMAL is not comparable to INTEGER", false);
+    f2.checkFails("^array_insert(array(1, 2, 3), '3', 4)^",
+        "CHAR is not comparable to INTEGER", false);
+    // op1 can't be 0
+    f2.checkFails("array_insert(array(2, 3, 4), 0, 1)",
+        "The index 0 is invalid. "
+            + "An index shall be either < 0 or > 0 \\(the first element has index 1\\) "
+            + "and not exceeds the allowed limit.", true);
+    // op1 overflow
+    f2.checkFails("array_insert(array(2, 3, 4), 2147483647, 1)",
+        "The index 0 is invalid. "
+            + "An index shall be either < 0 or > 0 \\(the first element has index 1\\) "
+            + "and not exceeds the allowed limit.", true);
+    f2.checkFails("array_insert(array(2, 3, 4), -2147483648, 1)",
+        "The index 0 is invalid. "
+            + "An index shall be either < 0 or > 0 \\(the first element has index 1\\) "
+            + "and not exceeds the allowed limit.", true);
+
+    f2.checkScalar("array_insert(array(1, 2, 3), 3, 4)",
+        "[1, 2, 4, 3]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array_insert(array[1, 2, 3], 3, cast(null as integer))",
+        "[1, 2, null, 3]", "INTEGER ARRAY NOT NULL");
+    f2.checkScalar("array_insert(array(2, 3, 4), 1, 1)",
+        "[1, 2, 3, 4]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array_insert(array(1, 3, 4), -2, 2)",
+        "[1, 2, 3, 4]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array_insert(array(2, 3, null, 4), -5, 1)",
+        "[1, null, 2, 3, null, 4]", "INTEGER ARRAY NOT NULL");
+    // check complex type
+    f2.checkScalar("array_insert(array(array(1,2)), 1, array[1])",
+        "[[1], [1, 2]]", "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array_insert(array(array(1,2)), -1, array[1])",
+        "[[1], [1, 2]]", "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array_insert(array(map[1, 'a']), 1, map[2, 'b'])", "[{2=b}, {1=a}]",
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array_insert(array(map[1, 'a']), -1, map[2, 'b'])", "[{2=b}, {1=a}]",
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
   }
 
   /** Tests {@code ARRAY_INTERSECT} function from Spark. */
@@ -6562,6 +6912,8 @@ public class SqlOperatorTest {
     f0.checkFails("^array_intersect(array[2, null, 2], array[1, 2, null])^",
         "No match found for function signature "
             + "ARRAY_INTERSECT\\(<INTEGER ARRAY>, <INTEGER ARRAY>\\)", false);
+
+    // 1. test with std array constructor, array[...]
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_intersect(array[2, 3, 3], array[3])",
@@ -6573,6 +6925,19 @@ public class SqlOperatorTest {
     f.checkNull("array_intersect(cast(null as integer array), array[1])");
     f.checkNull("array_intersect(array[1], cast(null as integer array))");
     f.checkNull("array_intersect(cast(null as integer array), cast(null as integer array))");
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("array_intersect(array(2, 3, 3), array(3))",
+        "[3]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_intersect(array(1), array(2, 3))",
+        "[]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_intersect(array(2, null, 2), array(1, 2, null))",
+        "[2, null]", "INTEGER ARRAY NOT NULL");
+    f1.checkNull("array_intersect(cast(null as integer array), array(1))");
+    f1.checkNull("array_intersect(array(1), cast(null as integer array))");
+    f1.checkNull("array_intersect(cast(null as integer array), cast(null as integer array))");
   }
 
   /** Tests {@code ARRAY_UNION} function from Spark. */
@@ -6583,6 +6948,8 @@ public class SqlOperatorTest {
         "No match found for function signature "
             + "ARRAY_UNION\\(<INTEGER ARRAY>, <INTEGER ARRAY>\\)", false);
 
+    // 1. test with std array constructor, array[...]
+
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_intersect(array[2, 3, 3], array[3])",
         "[3]", "INTEGER NOT NULL ARRAY NOT NULL");
@@ -6591,6 +6958,16 @@ public class SqlOperatorTest {
     f.checkNull("array_union(cast(null as integer array), array[1])");
     f.checkNull("array_union(array[1], cast(null as integer array))");
     f.checkNull("array_union(cast(null as integer array), cast(null as integer array))");
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("array_intersect(array(2, 3, 3), array[3])",
+        "[3]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_union(array(2, null, 2), array[1, 2, null])",
+        "[2, null, 1]", "INTEGER ARRAY NOT NULL");
+    f1.checkNull("array_union(cast(null as integer array), array(1))");
+    f1.checkNull("array_union(array(1), cast(null as integer array))");
   }
 
   /** Tests {@code ARRAYS_OVERLAP} function from Spark. */
@@ -6600,6 +6977,8 @@ public class SqlOperatorTest {
     f0.checkFails("^arrays_overlap(array[1, 2], array[2])^",
         "No match found for function signature ARRAYS_OVERLAP\\("
             + "<INTEGER ARRAY>, <INTEGER ARRAY>\\)", false);
+
+    // 1. test with std array constructor, array[...]
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("arrays_overlap(array[1, 2], array[2])", true,
@@ -6628,6 +7007,36 @@ public class SqlOperatorTest {
         "Cannot apply 'ARRAYS_OVERLAP' to arguments of type 'ARRAYS_OVERLAP\\("
             + "<INTEGER ARRAY>, <BOOLEAN>\\)'. Supported form\\(s\\): 'ARRAYS_OVERLAP\\("
             + "<EQUIVALENT_TYPE>, <EQUIVALENT_TYPE>\\)'", false);
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("arrays_overlap(array(1, 2), array(2))", true,
+        "BOOLEAN NOT NULL");
+    f1.checkScalar("arrays_overlap(array(1, 2), array(3))", false,
+        "BOOLEAN NOT NULL");
+    f1.checkScalar("arrays_overlap(array[1, null], array(1))", true,
+        "BOOLEAN");
+    f1.checkScalar("arrays_overlap(array(), array(2))", false,
+        "BOOLEAN NOT NULL");
+    f1.checkScalar("arrays_overlap(array(), array())", false,
+        "BOOLEAN NOT NULL");
+    f1.checkScalar("arrays_overlap(array(), array(1, null))", false,
+        "BOOLEAN");
+    f1.checkScalar("arrays_overlap(array(array(1, 2), array(3, 4)), array(array(1, 2)))", true,
+        "BOOLEAN NOT NULL");
+    f1.checkScalar("arrays_overlap(array(map[1, 'a'], map[2, 'b']), array(map[1, 'a']))", true,
+        "BOOLEAN NOT NULL");
+    f1.checkNull("arrays_overlap(cast(null as integer array), array(1, 2))");
+    f1.checkType("arrays_overlap(cast(null as integer array), array(1, 2))", "BOOLEAN");
+    f1.checkNull("arrays_overlap(array(1, 2), cast(null as integer array))");
+    f1.checkType("arrays_overlap(array(1, 2), cast(null as integer array))", "BOOLEAN");
+    f1.checkNull("arrays_overlap(array(1), array(2, null))");
+    f1.checkType("arrays_overlap(array(2, null), array(1))", "BOOLEAN");
+    f1.checkFails("^arrays_overlap(array(1, 2), true)^",
+        "Cannot apply 'ARRAYS_OVERLAP' to arguments of type 'ARRAYS_OVERLAP\\("
+            + "<INTEGER ARRAY>, <BOOLEAN>\\)'. Supported form\\(s\\): 'ARRAYS_OVERLAP\\("
+            + "<EQUIVALENT_TYPE>, <EQUIVALENT_TYPE>\\)'", false);
   }
 
   /** Tests {@code ARRAYS_ZIP} function from Spark. */
@@ -6637,6 +7046,8 @@ public class SqlOperatorTest {
     f0.checkFails("^arrays_zip(array[1, 2], array[2])^",
         "No match found for function signature ARRAYS_ZIP\\("
             + "<INTEGER ARRAY>, <INTEGER ARRAY>\\)", false);
+
+    // 1. test with std array constructor, array[...]
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("arrays_zip(array[1, 2], array[2, 3], array[3, 4])", "[{1, 2, 3}, {2, 3, 4}]",
@@ -6675,6 +7086,44 @@ public class SqlOperatorTest {
         "RecordType(INTEGER NOT NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY");
     f.checkFails("^arrays_zip(array[1, 2], true)^",
         "Parameters must be of the same type", false);
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("arrays_zip(array(1, 2), array(2, 3), array(3, 4))", "[{1, 2, 3}, {2, 3, 4}]",
+        "RecordType(INTEGER NOT NULL 0, INTEGER NOT NULL 1, INTEGER NOT NULL 2) "
+            + "NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("arrays_zip(array(1, 2), array(2))", "[{1, 2}, {2, null}]",
+        "RecordType(INTEGER NOT NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("arrays_zip(array(1), array(2, null))", "[{1, 2}, {null, null}]",
+        "RecordType(INTEGER NOT NULL 0, INTEGER 1) NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("arrays_zip(array(1, 2))", "[{1}, {2}]",
+        "RecordType(INTEGER NOT NULL 0) NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("arrays_zip(array(), array(1, 2))", "[{null, 1}, {null, 2}]",
+        "RecordType(UNKNOWN NOT NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("arrays_zip(array(), array())", "[]",
+        "RecordType(UNKNOWN NOT NULL 0, UNKNOWN NOT NULL 1) NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("arrays_zip(array())", "[]",
+        "RecordType(UNKNOWN NOT NULL 0) NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("arrays_zip(array(null), array(1))", "[{null, 1}]",
+        "RecordType(NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("arrays_zip(array(array(1, 2), array(3, 4)), array(array(1, 2)))",
+        "[{[1, 2], [1, 2]}, {[3, 4], null}]",
+        "RecordType(INTEGER NOT NULL ARRAY NOT NULL 0, INTEGER NOT NULL ARRAY NOT NULL 1) "
+            + "NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("arrays_zip(array(map[1, 'a'], map[2, 'b']), array(map[1, 'a']))",
+        "[{{1=a}, {1=a}}, {{2=b}, null}]",
+        "RecordType((INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL 0, "
+            + "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL 1) NOT NULL ARRAY NOT NULL");
+
+    f1.checkNull("arrays_zip(cast(null as integer array), array(1, 2))");
+    f1.checkType("arrays_zip(cast(null as integer array), array(1, 2))",
+        "RecordType(INTEGER NOT NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY");
+    f1.checkNull("arrays_zip(array(1, 2), cast(null as integer array))");
+    f1.checkType("arrays_zip(array(1, 2), cast(null as integer array))",
+        "RecordType(INTEGER NOT NULL 0, INTEGER NOT NULL 1) NOT NULL ARRAY");
+    f1.checkFails("^arrays_zip(array(1, 2), true)^",
+        "Parameters must be of the same type", false);
   }
 
   /** Tests {@code SORT_ARRAY} function from Spark. */
@@ -6685,6 +7134,8 @@ public class SqlOperatorTest {
         "No match found for function signature SORT_ARRAY\\(<INTEGER ARRAY>\\)", false);
     f0.checkFails("^sort_array(array[null, 1, null, 2], true)^",
         "No match found for function signature SORT_ARRAY\\(<INTEGER ARRAY>, <BOOLEAN>\\)", false);
+
+    // 1. test with std array constructor, array[...]
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("sort_array(array[2, null, 1])", "[null, 1, 2]",
@@ -6714,6 +7165,41 @@ public class SqlOperatorTest {
     f.checkFails("^sort_array(array[2, null, 1], cast(1 as boolean))^",
         "Argument to function 'SORT_ARRAY' must be a literal", false);
     f.checkFails("^sort_array(array[2, null, 1], 1)^",
+        "Cannot apply 'SORT_ARRAY' to arguments of type "
+            + "'SORT_ARRAY\\(<INTEGER ARRAY>, <INTEGER>\\)'\\."
+            + " Supported form\\(s\\): 'SORT_ARRAY\\(<ARRAY>\\)'\n"
+            + "'SORT_ARRAY\\(<ARRAY>, <BOOLEAN>\\)'", false);
+
+    // 2. test with spark array function, array(...)
+
+    final SqlOperatorFixture f1 = f0.withLibrary(SqlLibrary.SPARK);
+    f1.checkScalar("sort_array(array(2, null, 1))", "[null, 1, 2]",
+        "INTEGER ARRAY NOT NULL");
+    f1.checkScalar("sort_array(array(2, null, 1), false)", "[2, 1, null]",
+        "INTEGER ARRAY NOT NULL");
+    f1.checkScalar("sort_array(array(true, false, null))", "[null, false, true]",
+        "BOOLEAN ARRAY NOT NULL");
+    f1.checkScalar("sort_array(array(true, false, null), false)", "[true, false, null]",
+        "BOOLEAN ARRAY NOT NULL");
+    f1.checkScalar("sort_array(array(null))", "[null]",
+        "NULL ARRAY NOT NULL");
+    f1.checkScalar("sort_array(array())", "[]",
+        "UNKNOWN NOT NULL ARRAY NOT NULL");
+    f1.checkNull("sort_array(null)");
+
+    // elements cast
+    f1.checkScalar("sort_array(array(cast(1 as tinyint), 2))", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("sort_array(array(null, 1, cast(2 as tinyint)))", "[null, 1, 2]",
+        "INTEGER ARRAY NOT NULL");
+    f1.checkScalar("sort_array(array(cast(1 as bigint), 2))", "[1, 2]",
+        "BIGINT NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("sort_array(array(cast(1 as decimal), 2))", "[1, 2]",
+        "DECIMAL(19, 0) NOT NULL ARRAY NOT NULL");
+
+    f1.checkFails("^sort_array(array(2, null, 1), cast(1 as boolean))^",
+        "Argument to function 'SORT_ARRAY' must be a literal", false);
+    f1.checkFails("^sort_array(array(2, null, 1), 1)^",
         "Cannot apply 'SORT_ARRAY' to arguments of type "
             + "'SORT_ARRAY\\(<INTEGER ARRAY>, <INTEGER>\\)'\\."
             + " Supported form\\(s\\): 'SORT_ARRAY\\(<ARRAY>\\)'\n"
