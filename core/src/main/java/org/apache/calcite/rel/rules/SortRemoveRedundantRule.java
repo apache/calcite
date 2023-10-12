@@ -26,12 +26,11 @@ import org.immutables.value.Value;
 
 import java.util.Optional;
 
-/**
- * Rule that removes redundant {@code Order By} or {@code Limit}
- * when its input RelNode's max row count is less than or equal to specified row count.
- * All of them are represented by {@link Sort}
+/** Rule that removes redundant {@code Order By} or {@code Limit} when its input RelNode's
+ * max row count is less than or equal to specified row count.All of them
+ * are represented by {@link Sort}
  *
- * <p> If a {@code Sort} is order by,and its offset is null,when its input RelNode's
+ * <p> If a {@code Sort} is pure order by,and its offset is null,when its input RelNode's
  * max row count is less than or equal to 1,then we could remove the redundant sort.
  *
  * <p> For example:
@@ -44,19 +43,9 @@ import java.util.Optional;
  *  select max(totalprice) from orders}
  *  </pre></blockquote>
  *
- * <p> For example:
- * <blockquote><pre>{@code
- *  SELECT count(*) FROM orders ORDER BY 1 LIMIT 10 }
- *  </pre></blockquote>
- *
- * <p> could be converted to
- * <blockquote><pre>{@code
- *  SELECT count(*) FROM orders}
- *  </pre></blockquote>
- *
  * <p> If a {@code Sort} is pure limit,and its offset is null, when its input
  * RelNode's max row count is less than or equal to the limit's fetch,then we could
- * remove the redundant {@code Limit}.
+ * remove the redundant sort.
  *
  * <p> For example:
  * <blockquote><pre>{@code
@@ -92,7 +81,7 @@ public class SortRemoveRedundantRule
     final Double inputMaxRowCount = call.getMetadataQuery().getMaxRowCount(sort.getInput());
 
     // Get the target max row count with sort's semantics.
-    // If sort is 'order by x' or 'order by x limit n', the target max row count is 1.
+    // If sort is pure order by, the target max row count is 1.
     // If sort is pure limit, the target max row count is the limit's fetch.
     final Optional<Double> targetMaxRowCount = getSortInputSpecificMaxRowCount(sort);
 
@@ -113,9 +102,8 @@ public class SortRemoveRedundantRule
       final double limit =
           sort.fetch instanceof RexLiteral ? RexLiteral.intValue(sort.fetch) : -1D;
       return Optional.of(limit);
-    } else if (RelOptUtil.isOrder(sort)) {
-      // If the sort is 'order by x' or 'order by x limit n', the specific max row count is 1.
-      return Optional.of(1D);
+    } else if (RelOptUtil.isPureOrder(sort)) {
+      return  Optional.of(1D);
     }
     return Optional.empty();
   }
