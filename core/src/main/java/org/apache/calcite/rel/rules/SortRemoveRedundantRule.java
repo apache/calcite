@@ -31,7 +31,7 @@ import java.util.Optional;
  * when its input RelNode's max row count is less than or equal to specified row count.
  * All of them are represented by {@link Sort}
  *
- * <p> If a {@code Sort} is `order by`,and its offset is null,when its input RelNode's
+ * <p> If a {@code Sort} is order by,and its offset is null,when its input RelNode's
  * max row count is less than or equal to 1,then we could remove the redundant sort.
  *
  * <p> For example:
@@ -92,7 +92,7 @@ public class SortRemoveRedundantRule
     final Double inputMaxRowCount = call.getMetadataQuery().getMaxRowCount(sort.getInput());
 
     // Get the target max row count with sort's semantics.
-    // If sort is `order by x` or `order by x limit n`, the target max row count is 1.
+    // If sort is 'order by x' or 'order by x limit n', the target max row count is 1.
     // If sort is pure limit, the target max row count is the limit's fetch.
     final Optional<Double> targetMaxRowCount = getSortInputSpecificMaxRowCount(sort);
 
@@ -114,7 +114,7 @@ public class SortRemoveRedundantRule
           sort.fetch instanceof RexLiteral ? RexLiteral.intValue(sort.fetch) : -1D;
       return Optional.of(limit);
     } else if (RelOptUtil.isOrder(sort)) {
-      // If the sort is `order by x` or `order by x limit n`, the specific max row count is 1.
+      // If the sort is 'order by x' or 'order by x limit n', the specific max row count is 1.
       return Optional.of(1D);
     }
     return Optional.empty();
