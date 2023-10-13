@@ -76,7 +76,7 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
     return tester;
   }
 
-  @Override public SqlOperatorFixtureImpl withFactory(
+  @Override public SqlOperatorFixture withFactory(
       UnaryOperator<SqlTestFactory> transform) {
     final SqlTestFactory factory = transform.apply(this.factory);
     if (factory == this.factory) {
