@@ -209,6 +209,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       unparseItem(writer, call, leftPrec);
       break;
+    case WITHIN_GROUP:
+      unparseWithinGroup(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -290,6 +293,17 @@ public class BigQuerySqlDialect extends SqlDialect {
     call.operand(1).unparse(writer, 0, 0);
     writer.endFunCall(subscriptFrame);
     writer.endList(frame);
+  }
+
+  private static void unparseWithinGroup(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    assert call.operandCount() == 2;
+    call.operand(0).unparse(writer, 0, 0);
+    writer.keyword("OVER");
+    final SqlWriter.Frame orderFrame =
+        writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST, "(", ")");
+    writer.keyword("ORDER BY");
+    call.operand(1).unparse(writer, 0, 0);
+    writer.endList(orderFrame);
   }
 
   private static TimeUnit validate(TimeUnit timeUnit) {

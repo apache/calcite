@@ -1294,6 +1294,18 @@ class RelToSqlConverterTest {
         .withPostgresql().ok(expectedPostgresql);
   }
 
+  @Test void testPercentileContWithinGroupClauseBigQuery() {
+    final String query = "select percentile_cont(0.5) WITHIN GROUP (ORDER BY `product_class_id`)\n"
+        + "from `foodmart`.`product`";
+    final String expected = "SELECT PERCENTILE_CONT(0.5) OVER (ORDER BY product_class_id NULLS LAST)\n"
+        + "FROM foodmart.product";
+    final SqlParser.Config parserConfig =
+        BigQuerySqlDialect.DEFAULT.configureParser(SqlParser.config());
+    final Sql sql = fixture()
+        .withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).parserConfig(parserConfig);
+    sql.withSql(query).ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2722">[CALCITE-2722]
    * SqlImplementor createLeftCall method throws StackOverflowError</a>. */
