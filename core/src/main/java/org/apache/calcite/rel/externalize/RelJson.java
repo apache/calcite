@@ -995,7 +995,7 @@ public class RelJson {
     operatorTable.lookupOperatorOverloads(
         new SqlIdentifier(name, new SqlParserPos(0, 0)),
         null,
-        sqlSyntax,
+        sqlSyntax.family,
         operators,
         SqlNameMatchers.liberal());
     for (SqlOperator operator : operators) {
