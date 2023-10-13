@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptForeignKey;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
@@ -100,6 +101,43 @@ public abstract class BuiltInMetadata {
           boolean ignoreNulls);
 
       @Override default MetadataDef<UniqueKeys> getDef() {
+        return DEF;
+      }
+    }
+  }
+
+  /**
+   * Metadata about which columns have foreign keys.
+   */
+  public interface ForeignKeys extends Metadata {
+    MetadataDef<ForeignKeys> DEF =
+        MetadataDef.of(ForeignKeys.class, ForeignKeys.Handler.class,
+            BuiltInMethod.FOREIGN_KEYS.method);
+
+    /**
+     * Extract foreign keys from {@link org.apache.calcite.rel.RelNode}.
+     * Foreign keys are represented as an {@link org.apache.calcite.util.ImmutableBitSet},
+     * where each bit position represents a 0-based output column ordinal.
+     *
+     * @param ignoreNulls if true, allow containing null values when determining
+     *                     whether the keys are foreign keys
+     *
+     * @return bit set of foreign keys, or empty if not enough information is
+     * available to make that determination
+     */
+    Set<RelOptForeignKey> getForeignKeys(boolean ignoreNulls);
+
+    /**
+     * Handler API.
+     */
+    @FunctionalInterface
+    interface Handler extends MetadataHandler<ForeignKeys> {
+      Set<RelOptForeignKey> getForeignKeys(
+          RelNode rel,
+          RelMetadataQuery mq,
+          boolean ignoreNulls);
+
+      @Override default MetadataDef<ForeignKeys> getDef() {
         return DEF;
       }
     }
@@ -837,6 +875,6 @@ public abstract class BuiltInMetadata {
   interface All extends Selectivity, UniqueKeys, RowCount, DistinctRowCount,
       PercentageOriginalRows, ColumnUniqueness, ColumnOrigin, Predicates,
       Collation, Distribution, Size, Parallelism, Memory, AllPredicates,
-      ExpressionLineage, TableReferences, NodeTypes {
+      ExpressionLineage, TableReferences, NodeTypes, ForeignKeys {
   }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test.catalog;
 
+import org.apache.calcite.rel.RelReferentialConstraintImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -31,8 +32,10 @@ import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 
@@ -86,6 +89,15 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     empTable.addColumn("COMM", fixture.intType);
     empTable.addColumn("DEPTNO", fixture.intType);
     empTable.addColumn("SLACKER", fixture.booleanType);
+    // Mock the referentialConstraint,
+    // the foreign key is the DEPTNO column of CATALOG.SALES.EMP table,
+    // reference the DEPTNO unique column of CATALOG.SALES.DEPT table.
+    empTable.setReferentialConstraints(
+        Lists.newArrayList(
+            RelReferentialConstraintImpl.of(
+        Lists.newArrayList(DEFAULT_CATALOG, DEFAULT_SCHEMA, "EMP"),
+        Lists.newArrayList(DEFAULT_CATALOG, DEFAULT_SCHEMA, "DEPT"),
+        Lists.newArrayList(IntPair.of(7, 0)))));
     registerTable(empTable);
   }
 
@@ -99,6 +111,15 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     empNullablesTable.addColumn("COMM", fixture.intTypeNull);
     empNullablesTable.addColumn("DEPTNO", fixture.intTypeNull);
     empNullablesTable.addColumn("SLACKER", fixture.booleanTypeNull);
+    // Mock the referentialConstraint,
+    // the foreign key is the DEPTNO column of CATALOG.SALES.EMPNULLABLES table,
+    // reference the DEPTNO unique column of CATALOG.SALES.DEPT table.
+    empNullablesTable.setReferentialConstraints(
+        Lists.newArrayList(
+            RelReferentialConstraintImpl.of(
+        Lists.newArrayList(DEFAULT_CATALOG, DEFAULT_SCHEMA, "EMPNULLABLES"),
+        Lists.newArrayList(DEFAULT_CATALOG, DEFAULT_SCHEMA, "DEPT"),
+        Lists.newArrayList(IntPair.of(7, 0)))));
     registerTable(empNullablesTable);
   }
 
@@ -468,6 +489,9 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
             "customBigInt"),
         typeFactory -> typeFactory.createSqlType(SqlTypeName.BIGINT));
 
+    // Register "DEPT" table.
+    registerTableDept(salesSchema, fixture);
+
     // Register "EMP" table.
     final MockTable empTable =
         MockTable.create(this, salesSchema, "EMP", false, 14, null,
@@ -484,9 +508,6 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
 
     // Register "EMP_B" table. As "EMP", birth with a "BIRTHDATE" column.
     registerTableEmpB(salesSchema, fixture);
-
-    // Register "DEPT" table.
-    registerTableDept(salesSchema, fixture);
 
     // Register "DEPTNULLABLES" table.
     registerTableDeptNullables(salesSchema, fixture);

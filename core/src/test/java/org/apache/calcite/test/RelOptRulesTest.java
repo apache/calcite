@@ -6542,6 +6542,280 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * Similar to {@link #testProjectJoinRemove4()};
+   * Should remove the right join since the join key is referential constraints
+   * and the right is unique. */
+  @Test void testProjectJoinRemove11() {
+    final String sql = "SELECT e.deptno\n"
+        + "FROM sales.emp e\n"
+        + "INNER JOIN sales.dept d ON e.deptno = d.deptno";
+    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * Should not remove the right join since the join key is
+   * not referential constraints. */
+  @Test void testProjectJoinRemove12() {
+    final String sql = "SELECT e1.deptno\n"
+        + "FROM sales.emp e1\n"
+        + "INNER JOIN sales.emp e2 ON e1.deptno = e2.deptno";
+    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * Should not remove the right join since the project use columns in the right
+   * input of the join. */
+  @Test void testProjectJoinRemove13() {
+    final String sql = "SELECT e.deptno, d.name\n"
+        + "FROM sales.emp e\n"
+        + "INNER JOIN sales.dept d ON e.deptno = d.deptno";
+    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * The project references the last column of the left input.
+   * The rule should be fired and remove right.*/
+  @Test void testProjectJoinRemove14() {
+    final String sql = "SELECT e.deptno, e.slacker\n"
+        + "FROM sales.emp e\n"
+        + "INNER JOIN sales.dept d ON e.deptno = d.deptno";
+    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * Similar to {@link #testProjectJoinRemove11()};
+   * Should remove the left join since the join key of the left input is
+   * unique and the join key of the right input is foreign key, only use the right. */
+  @Test void testProjectJoinRemove15() {
+    final String sql = "SELECT e.slacker\n"
+        + "FROM sales.dept d\n"
+        + "INNER JOIN sales.emp e ON d.deptno = e.deptno";
+    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * Similar to {@link #testProjectJoinRemove15()};
+   * Should not remove the left join, even if the join key of the left input is
+   * unique and the join key of the right input is foreign key, but foreign key is nullable. */
+  @Test void testProjectJoinRemove16() {
+    final String sql = "SELECT e.slacker\n"
+        + "FROM sales.dept d\n"
+        + "INNER JOIN sales.empnullables e ON d.deptno = e.deptno";
+    sql(sql).withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * Should remove the left join, since the join key of the left input is
+   * unique and the join key of the right input is foreign key, only use the right. */
+  @Test void testProjectJoinRemove17() {
+    final String sql = "SELECT e.deptno, e.ename "
+        + "FROM sales.dept d "
+        + "INNER JOIN "
+        + "   (SELECT ename, deptno, count(job)"
+        + "   FROM sales.emp"
+        + "   WHERE ename IN ('lucy', 'lily')"
+        + "   GROUP BY ename, deptno) e "
+        + "ON d.deptno = e.deptno "
+        + "WHERE e.deptno = 'd001'";
+    sql(sql)
+        .withPreRule(CoreRules.FILTER_INTO_JOIN)
+        .withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * Should remove the right join, since the join key of the right input is
+   * unique and the join key of the left input is foreign key, only use the left. */
+  @Test void testProjectJoinRemove18() {
+    final String sql = "SELECT e.deptno, e.ename "
+        + "FROM "
+        + "   (SELECT ename, deptno, count(job) "
+        + "   FROM sales.emp "
+        + "   WHERE ename IN ('lucy', 'lily') "
+        + "   GROUP BY ename, deptno) e "
+        + "INNER JOIN "
+        + "   (SELECT deptno, name "
+        + "   FROM sales.dept "
+        + "   WHERE deptno NOT IN (10003)) d "
+        + "ON d.deptno = e.deptno "
+        + "WHERE d.deptno IN (10001, 10002) and e.ename IN ('transportation', 'architecture')";
+    sql(sql)
+        .withPreRule(CoreRules.FILTER_INTO_JOIN)
+        .withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * Should remove the right join, since the join key of the right input is
+   * unique and the join key of the left input is foreign key, only use the left. */
+  @Test void testProjectJoinRemove19() {
+    final String sql = "SELECT e.deptno, e.ename "
+        + "FROM "
+        + "   (SELECT ename, deptno "
+        + "   FROM sales.emp "
+        + "   UNION ALL "
+        + "   SELECT ename, deptno FROM sales.emp "
+        + "   UNION "
+        + "   SELECT ename, deptno FROM sales.emp) e "
+        + "INNER JOIN "
+        + "(SELECT deptno, name FROM sales.dept) d "
+        + "ON d.deptno = e.deptno";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * Should not remove the right join, since the join key of left input is
+   * not foreign key. */
+  @Test void testProjectJoinRemove20() {
+    final String sql = "SELECT e.deptno, e.ename "
+        + "FROM "
+        + "   (SELECT ename, deptno "
+        + "   FROM sales.emp "
+        + "   UNION ALL "
+        + "   SELECT name, deptno "
+        + "   FROM sales.dept) e "
+        + "INNER JOIN "
+        + "   (SELECT deptno, name FROM sales.dept) d "
+        + "ON d.deptno = e.deptno";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * Should not remove the right join, since the join key of left input is
+   * not foreign key. */
+  @Test void testProjectJoinRemove21() {
+    final String sql = "SELECT e.deptno, e.ename "
+        + "FROM "
+        + "   (SELECT ename, deptno "
+        + "   FROM sales.emp "
+        + "   UNION "
+        + "   SELECT name, deptno "
+        + "   FROM sales.dept) e "
+        + "INNER JOIN "
+        + "(SELECT deptno, name FROM sales.dept) d "
+        + "ON d.deptno = e.deptno";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * Should remove the left join, since the join key of the left input is
+   * unique and the join key of the right input is foreign key, only use the right. */
+  @Test void testProjectJoinRemove22() {
+    final String sql = "SELECT e.deptno, e.ename "
+        + "FROM "
+        + "   (SELECT deptno, name FROM sales.dept) d "
+        + "INNER JOIN "
+        + "   (SELECT ename, deptno "
+        + "   FROM sales.emp "
+        + "   EXCEPT ALL "
+        + "   SELECT ename, deptno "
+        + "   FROM sales.emp) e "
+        + "ON d.deptno = e.deptno";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * Should not remove the right join, since the join key of the right input is
+   * not foreign key. */
+  @Test void testProjectJoinRemove23() {
+    final String sql = "SELECT e.deptno, e.ename "
+        + "FROM "
+        + "   (SELECT deptno, name FROM sales.dept) d "
+        + "INNER JOIN "
+        + "   (SELECT ename, deptno "
+        + "   FROM sales.emp "
+        + "   EXCEPT ALL "
+        + "   SELECT name, deptno "
+        + "   FROM sales.dept) e "
+        + "ON d.deptno = e.deptno";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * Should remove the left join, since the join key of the left input is
+   * unique and the join key of the right input is foreign key, only use the right. */
+  @Test void testProjectJoinRemove24() {
+    final String sql = "SELECT e.deptno, e.ename "
+        + "FROM "
+        + "   (SELECT deptno, name FROM sales.dept) d "
+        + "INNER JOIN "
+        + "   (SELECT ename, deptno "
+        + "   FROM sales.emp "
+        + "   INTERSECT ALL "
+        + "   SELECT ename, deptno "
+        + "   FROM sales.emp) e "
+        + "ON d.deptno = e.deptno";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5756">[CALCITE-5756]
+   * Expand ProjectJoinRemoveRule to support inner join remove</a>.
+   * Should not remove the right join, since the join key of the right input is
+   * not foreign key. */
+  @Test void testProjectJoinRemove25() {
+    final String sql = "SELECT e.deptno, e.ename "
+        + "FROM "
+        + "   (SELECT deptno, name FROM sales.dept) d "
+        + "INNER JOIN "
+        + "   (SELECT ename, deptno "
+        + "   FROM sales.emp "
+        + "   INTERSECT ALL "
+        + "   SELECT name, deptno "
+        + "   FROM sales.dept) e "
+        + "ON d.deptno = e.deptno";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_JOIN_REMOVE)
+        .checkUnchanged();
+  }
+
   @Test void testSwapOuterJoin() {
     final HepProgram program = new HepProgramBuilder()
         .addMatchLimit(1)
