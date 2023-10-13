@@ -699,6 +699,8 @@ class RexBuilderTest {
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType varchar =
         typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    final RelDataType string =
+        typeFactory.createSqlType(SqlTypeName.STRING);
     final RexBuilder builder = new RexBuilder(typeFactory);
 
     final NlsString latin1 = new NlsString("foobar", "LATIN1", SqlCollation.IMPLICIT);
@@ -737,6 +739,9 @@ class RexBuilderTest {
     assertEquals("_LATIN1'foobar'", literal.toString());
     literal = builder.makeLiteral(utf8, varchar);
     assertEquals("_UTF8'foobar'", literal.toString());
+
+    literal = builder.makeLiteral("foobar", string);
+    assertEquals("'foobar'", literal.toString());
   }
 
   /** Tests {@link RexBuilder#makeExactLiteral(java.math.BigDecimal)}. */

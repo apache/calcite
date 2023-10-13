@@ -127,7 +127,8 @@ public enum SqlTypeName {
    * do not flag it 'special' (internal). */
   GEOMETRY(PrecScale.NO_NO, false, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO),
   MEASURE(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
-  SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY);
+  SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
+  STRING(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.STRING);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 
@@ -159,7 +160,7 @@ public enum SqlTypeName {
           INTERVAL_DAY_SECOND, INTERVAL_HOUR, INTERVAL_HOUR_MINUTE,
           INTERVAL_HOUR_SECOND, INTERVAL_MINUTE, INTERVAL_MINUTE_SECOND,
           INTERVAL_SECOND, TIME_WITH_LOCAL_TIME_ZONE, TIMESTAMP_WITH_LOCAL_TIME_ZONE,
-          FLOAT, MULTISET, DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST);
+          FLOAT, MULTISET, DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST, STRING);
 
   public static final List<SqlTypeName> BOOLEAN_TYPES =
       ImmutableList.of(BOOLEAN);
@@ -183,7 +184,7 @@ public enum SqlTypeName {
       combine(APPROX_TYPES, ImmutableList.of(DECIMAL));
 
   public static final List<SqlTypeName> CHAR_TYPES =
-      ImmutableList.of(CHAR, VARCHAR);
+      ImmutableList.of(CHAR, VARCHAR, STRING);
 
   public static final List<SqlTypeName> STRING_TYPES =
       combine(CHAR_TYPES, BINARY_TYPES);

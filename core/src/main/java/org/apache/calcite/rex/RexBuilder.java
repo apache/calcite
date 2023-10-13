@@ -1629,6 +1629,8 @@ public class RexBuilder {
       } else {
         return literal;
       }
+    case STRING:
+      return makePreciseStringLiteral((String) value);
     case BINARY:
       return makeBinaryLiteral(
           padRight((ByteString) value, type.getPrecision()));
@@ -1802,6 +1804,8 @@ public class RexBuilder {
       assert type.getCharset() != null : type + ".getCharset() must not be null";
       return new NlsString((String) o, type.getCharset().name(),
           type.getCollation());
+    case STRING:
+      return o;
     case TIME:
       if (o instanceof TimeString) {
         return o;

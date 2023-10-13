@@ -815,7 +815,12 @@ public class SqlDialect {
 
   /** Returns whether this dialect supports a given type. */
   public boolean supportsDataType(RelDataType type) {
-    return true;
+    switch (type.getSqlTypeName()) {
+    case STRING:
+      return false;
+    default:
+      return true;
+    }
   }
 
  /** Returns SqlNode for type in "cast(column as type)", which might be

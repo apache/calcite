@@ -1803,6 +1803,8 @@ public class SqlParserTest {
         .ok("CAST(`X` AS DECIMAL(1, 1))");
     expr("cast(x as char(1))")
         .ok("CAST(`X` AS CHAR(1))");
+    expr("cast(x as string)")
+        .ok("CAST(`X` AS STRING)");
     expr("cast(x as binary(1))")
         .ok("CAST(`X` AS BINARY(1))");
     expr("cast(x as varbinary(1))")

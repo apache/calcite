@@ -375,6 +375,8 @@ public class RexLiteral extends RexNode {
       return (value instanceof NlsString)
           && (((NlsString) value).getCharset() != null)
           && (((NlsString) value).getCollation() != null);
+    case STRING:
+      return value instanceof String;
     case SARG:
       return value instanceof Sarg;
     case SYMBOL:

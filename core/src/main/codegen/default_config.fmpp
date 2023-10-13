@@ -314,6 +314,7 @@ parser: {
     "SQL_VARCHAR"
     "STATE"
     "STATEMENT"
+    "STRING"
     "STRING_AGG"
     "STRUCTURE"
     "STYLE"

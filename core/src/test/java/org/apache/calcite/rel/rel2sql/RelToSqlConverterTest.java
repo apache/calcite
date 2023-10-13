@@ -2127,7 +2127,8 @@ class RelToSqlConverterTest {
             + "cast(cast(\"employee_id\" as varchar) as decimal), "
             + "cast(cast(\"employee_id\" as varchar) as date), "
             + "cast(cast(\"employee_id\" as varchar) as time), "
-            + "cast(cast(\"employee_id\" as varchar) as boolean) "
+            + "cast(cast(\"employee_id\" as varchar) as boolean), "
+            + "cast(cast(\"employee_id\" as varchar) as string) "
             + "from \"foodmart\".\"reserve_employee\" ";
     final String expected = "SELECT CAST(CAST(employee_id AS STRING) AS INT64), "
             + "CAST(CAST(employee_id AS STRING) AS INT64), "
@@ -2142,7 +2143,8 @@ class RelToSqlConverterTest {
             + "CAST(CAST(employee_id AS STRING) AS NUMERIC), "
             + "CAST(CAST(employee_id AS STRING) AS DATE), "
             + "CAST(CAST(employee_id AS STRING) AS TIME), "
-            + "CAST(CAST(employee_id AS STRING) AS BOOL)\n"
+            + "CAST(CAST(employee_id AS STRING) AS BOOL), "
+            + "CAST(CAST(employee_id AS STRING) AS STRING)\n"
             + "FROM foodmart.reserve_employee";
     sql(query).withBigQuery().ok(expected);
   }
@@ -6757,12 +6759,20 @@ class RelToSqlConverterTest {
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType booleanDataType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType integerDataType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType stringDataType = typeFactory.createSqlType(SqlTypeName.STRING);
     final SqlDialect oracleDialect = DatabaseProduct.ORACLE.getDialect();
-    assertFalse(oracleDialect.supportsDataType(booleanDataType));
+    assertFalse(oracleDialect.supportsDataType(stringDataType));
     assertTrue(oracleDialect.supportsDataType(integerDataType));
+    assertFalse(oracleDialect.supportsDataType(booleanDataType));
     final SqlDialect postgresqlDialect = DatabaseProduct.POSTGRESQL.getDialect();
     assertTrue(postgresqlDialect.supportsDataType(booleanDataType));
     assertTrue(postgresqlDialect.supportsDataType(integerDataType));
+    assertFalse(oracleDialect.supportsDataType(stringDataType));
+    final SqlDialect sparkSqlDialect = DatabaseProduct.SPARK.getDialect();
+    assertTrue(sparkSqlDialect.supportsDataType(stringDataType));
+    final SqlDialect bigQuerySqlDialect = DatabaseProduct.BIG_QUERY.getDialect();
+    assertTrue(bigQuerySqlDialect.supportsDataType(stringDataType));
+
   }
 
   /** Test case for

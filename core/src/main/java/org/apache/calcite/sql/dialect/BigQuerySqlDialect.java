@@ -126,6 +126,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsDataType(RelDataType type) {
+    return true;
+  }
+
   @Override public SqlParser.Config configureParser(
       SqlParser.Config configBuilder) {
     return super.configureParser(configBuilder)

@@ -150,6 +150,9 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.VARCHAR);
     rules.add(SqlTypeName.VARCHAR, rule);
 
+    // STRING is assignable from...
+    rules.add(SqlTypeName.STRING, rule);
+
     // BOOLEAN is assignable from...
     rules.add(SqlTypeName.BOOLEAN, EnumSet.of(SqlTypeName.BOOLEAN));
 
