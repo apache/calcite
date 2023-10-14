@@ -722,7 +722,7 @@ public class CoreRules {
 
   /** Rule that merge a {@link Sort} representing the Limit semantics and
    * another {@link Sort} representing the Limit or TOPN semantics. */
-  public static final SortMergeRule LIMIT_MREGE =
+  public static final SortMergeRule LIMIT_MERGE =
       SortMergeRule.Config.LIMIT_MERGE.toRule();
 
   /** Rule that removes keys from a {@link Sort}

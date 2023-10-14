@@ -65,7 +65,7 @@ import org.immutables.value.Value;
  *
  * <p> In the future,we could also extend other sort merge logic in this rule.
  *
- * @see CoreRules#LIMIT_MREGE
+ * @see CoreRules#LIMIT_MERGE
  */
 @Value.Enclosing
 public class SortMergeRule

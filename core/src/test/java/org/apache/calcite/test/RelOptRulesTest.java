@@ -1465,7 +1465,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "limit 10";
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.LIMIT_MERGE, CoreRules.PROJECT_REMOVE)
         .check();
   }
 
@@ -1478,7 +1478,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "limit 10";
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.LIMIT_MERGE, CoreRules.PROJECT_MERGE)
         .check();
   }
 
@@ -1491,7 +1491,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "limit 10000";
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.LIMIT_MERGE, CoreRules.PROJECT_MERGE)
         .check();
   }
 
@@ -1504,7 +1504,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "order by deptno desc";
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_REMOVE)
+        .withRule(CoreRules.LIMIT_MERGE, CoreRules.PROJECT_REMOVE)
         .check();
   }
 
@@ -1517,7 +1517,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "order by deptno limit 10000";
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.LIMIT_MERGE, CoreRules.PROJECT_MERGE)
         .check();
   }
 
@@ -1530,7 +1530,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "order by deptno limit 10";
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MREGE, CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.LIMIT_MERGE, CoreRules.PROJECT_MERGE)
         .check();
   }
 
@@ -1543,7 +1543,7 @@ class RelOptRulesTest extends RelOptTestBase {
         + "limit 10";
     sql(sql)
         .withPreRule(CoreRules.SORT_PROJECT_TRANSPOSE)
-        .withRule(CoreRules.LIMIT_MREGE)
+        .withRule(CoreRules.LIMIT_MERGE)
         .checkUnchanged();
   }
 
