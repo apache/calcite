@@ -150,6 +150,6 @@ public abstract class ReflectiveSqlOperatorTable
   }
 
   @Override public List<SqlOperator> getOperatorList() {
-    return operators.rightList();
+    return operators.values().asList();
   }
 }

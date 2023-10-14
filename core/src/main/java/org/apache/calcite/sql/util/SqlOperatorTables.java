@@ -16,22 +16,20 @@
  */
 package org.apache.calcite.sql.util;
 
-import org.apache.calcite.runtime.ImmutablePairList;
-import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSpatialTypeOperatorTable;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-import static org.apache.calcite.util.CaseInsensitiveComparator.COMPARATOR;
 
 /**
  * Utilities for {@link SqlOperatorTable}s.
@@ -110,45 +108,40 @@ public class SqlOperatorTables {
      * <p>There can be several operators with the same name (case-insensitive or
      * case-sensitive) and these operators will lie in a contiguous range which
      * we can find efficiently using binary search. */
-    protected ImmutablePairList<CharSequence, SqlOperator> operators;
+    protected ImmutableMultimap<String, SqlOperator> operators;
 
     protected IndexedSqlOperatorTable(List<SqlOperator> list) {
       operators = buildIndex(list);
     }
 
-    protected void setOperators(
-        ImmutablePairList<CharSequence, SqlOperator> operators) {
-      this.operators = operators;
+    protected void setOperators(Multimap<String, SqlOperator> operators) {
+      this.operators = ImmutableMultimap.copyOf(operators);
     }
 
     /** Derives a value to be assigned to {@link #operators} from a given list
      * of operators. */
-    protected static ImmutablePairList<CharSequence, SqlOperator> buildIndex(
+    protected static ImmutableMultimap<String, SqlOperator> buildIndex(
         List<SqlOperator> list) {
-      final PairList<CharSequence, SqlOperator> pairList = PairList.of();
-      list.forEach(op -> pairList.add(op.getName(), op));
-      pairList.sort(Map.Entry.comparingByKey(COMPARATOR));
-      return pairList.immutable();
+      final ImmutableMultimap.Builder<String, SqlOperator> map =
+          ImmutableMultimap.builder();
+      list.forEach(op -> map.put(op.getName().toUpperCase(Locale.ROOT), op));
+      return map.build();
     }
 
     /** Looks up operators, optionally matching case-sensitively. */
     protected void lookUpOperators(String name,
         boolean caseSensitive, Consumer<SqlOperator> consumer) {
-      // Only UDFs are looked up using case-sensitive search.
-      // Always look up built-in operators case-insensitively. Even in sessions
-      // with unquotedCasing=UNCHANGED and caseSensitive=true.
-      CharSequence floorKey;
-      CharSequence ceilingKey;
+      final String upperName = name.toUpperCase(Locale.ROOT);
       if (caseSensitive) {
-        floorKey = name;
-        ceilingKey = name;
+        operators.get(upperName)
+            .forEach(operator -> {
+              if (operator.getName().equals(name)) {
+                consumer.accept(operator);
+              }
+            });
       } else {
-        floorKey = COMPARATOR.floorKey(name);
-        ceilingKey = COMPARATOR.ceilingKey(name);
+        operators.get(upperName).forEach(consumer);
       }
-      operators.forEachBetween(floorKey, ceilingKey,
-          (name2, operator) -> consumer.accept(operator),
-          COMPARATOR);
     }
   }
 }

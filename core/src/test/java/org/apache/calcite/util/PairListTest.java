@@ -23,9 +23,7 @@ import org.apache.calcite.runtime.PairList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
 
-import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -45,8 +43,6 @@ import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
-
-import static java.util.Comparator.naturalOrder;
 
 /** Unit test for {@code PairList}. */
 class PairListTest {
@@ -461,48 +457,5 @@ class PairListTest {
         hasToString("[<5, 6>, <3, 4>, <1, 2>]"));
     assertThat(list.reversed(), is(Lists.reverse(list)));
     assertThat(list.reversed().reversed(), is(list));
-  }
-
-  @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
-  @Test void testForEachBetween() {
-    final PairList<String, Integer> list = PairList.of();
-    list.add("b", 2);
-    list.add("c", 3);
-    list.add("c", 4);
-    list.add("c", 5);
-    list.add("e", 6);
-    assertThatValuesForKey(list, "a", is(Arrays.asList()));
-    assertThatValuesForKey(list, "b", is(Arrays.asList(2)));
-    assertThatValuesForKey(list, "c", is(Arrays.asList(3, 4, 5)));
-    assertThatValuesForKey(list, "d", is(Arrays.asList()));
-    assertThatValuesForKey(list, "e", is(Arrays.asList(6)));
-    assertThatValuesForKey(list, "f", is(Arrays.asList()));
-
-    // Empty list
-    list.clear();
-    assertThat(list, empty());
-    assertThatValuesForKey(list, "a", is(Arrays.asList()));
-
-    // Singleton list
-    list.clear();
-    list.add("x", -5);
-    assertThat(list, hasSize(1));
-    assertThatValuesForKey(list, "a", is(Arrays.asList()));
-    assertThatValuesForKey(list, "x", is(Arrays.asList(-5)));
-
-    // Two equal keys
-    list.add("x", -6);
-    assertThat(list, hasSize(2));
-    assertThatValuesForKey(list, "a", is(Arrays.asList()));
-    assertThatValuesForKey(list, "x", is(Arrays.asList(-5, -6)));
-  }
-
-  private static <K extends Comparable<K>, V> void assertThatValuesForKey(
-      PairList<K, V> list, K key, Matcher<List<V>> matcher) {
-    assertThat(list,
-        is(Ordering.from(Map.Entry.<K, V>comparingByKey()).sortedCopy(list)));
-    final List<V> values = new ArrayList<>();
-    list.forEachBetween(key, key, (k, v) -> values.add(v), naturalOrder());
-    assertThat(values, matcher);
   }
 }

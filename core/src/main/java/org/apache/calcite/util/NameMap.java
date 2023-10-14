@@ -44,7 +44,7 @@ public class NameMap<V> {
 
   /** Creates a NameMap, initially empty. */
   public NameMap() {
-    this(new TreeMap<>(COMPARATOR));
+    this(new TreeMap<String, V>(COMPARATOR));
   }
 
   @Override public String toString() {
@@ -73,7 +73,6 @@ public class NameMap<V> {
   /** Returns a map containing all the entries in the map that match the given
    * name. If case-sensitive, that map will have 0 or 1 elements; if
    * case-insensitive, it may have 0 or more. */
-  @SuppressWarnings({"rawtypes", "unchecked"})
   public NavigableMap<String, V> range(String name, boolean caseSensitive) {
     Object floorKey;
     Object ceilingKey;
@@ -84,9 +83,8 @@ public class NameMap<V> {
       floorKey = COMPARATOR.floorKey(name);
       ceilingKey = COMPARATOR.ceilingKey(name);
     }
-    NavigableMap<String, V> subMap =
-        ((NavigableMap) map).subMap(floorKey, true, ceilingKey, true);
-    return Collections.unmodifiableNavigableMap(subMap);
+    NavigableMap subMap = ((NavigableMap) map).subMap(floorKey, true, ceilingKey, true);
+    return Collections.unmodifiableNavigableMap((NavigableMap<String, V>) subMap);
   }
 
   /** Returns whether this map contains a given key, with a given

@@ -20,13 +20,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -145,36 +142,6 @@ public interface PairList<T, U> extends List<Map.Entry<T, U>> {
 
   /** Calls a BiConsumer with each pair in this list. */
   void forEachIndexed(IndexedBiConsumer<T, U> consumer);
-
-  /** For each entry whose key is equal to {@code t}
-   * according to a given comparator, calls the consumer.
-   *
-   * <p>The list must be sorted on the comparator. */
-  default void forEachBetween(T startKey, T endKey, BiConsumer<T, U> consumer,
-      Comparator<T> comparator) {
-    final List<@NonNull T> leftList = leftList();
-    final List<@NonNull U> rightList = rightList();
-    int i = Collections.binarySearch(leftList, startKey, comparator);
-    if (i >= 0) {
-      // Back-track so that "i" points to the last entry less than "k".
-      do {
-        --i;
-      } while (i >= 0
-          && comparator.compare(leftList.get(i), startKey) >= 0);
-    } else {
-      i = -(i + 2);
-    }
-
-    // Output values for all keys equal to "t"
-    for (;;) {
-      ++i;
-      if (i >= leftList.size()
-          || comparator.compare(leftList.get(i), endKey) > 0) {
-        break;
-      }
-      consumer.accept(leftList.get(i), rightList.get(i));
-    }
-  }
 
   /** Creates an {@link ImmutableMap} whose entries are the pairs in this list.
    * Throws if keys are not unique. */
