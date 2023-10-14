@@ -117,11 +117,11 @@ jobs:
 
   linux-jdk8-oldest-guava-tz:
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 8), Oldest Guava, America/New_York Timezone'
+    name: 'Linux (JDK 8), oldest Guava, America/New_York Timezone'
     runs-on: ubuntu-latest
     env:
       TZ: 'America/New_York' # flips between −05:00 and −04:00
-      GUAVA: '19.0' # oldest supported Guava version
+      GUAVA: '19.0' # oldest Guava
     steps:
       - uses: actions/checkout@v3
         with:
@@ -144,11 +144,11 @@ jobs:
 
   linux-jdk8-latest-guava-tz:
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 8), Latest Guava, America/New_York Timezone'
+    name: 'Linux (JDK 8), latest Guava, America/New_York Timezone'
     runs-on: ubuntu-latest
     env:
       TZ: 'America/New_York' # flips between −05:00 and −04:00
-      GUAVA: '31.1-jre' # latest supported Guava version
+      GUAVA: '32.1.3-jre' # latest supported Guava version
     steps:
       - uses: actions/checkout@v3
         with:
@@ -199,7 +199,7 @@ jobs:
     name: 'Linux (JDK 17)'
     runs-on: ubuntu-latest
     env:
-      GUAVA: '19.0'
+      GUAVA: '19.0' # oldest Guava
     steps:
       - uses: actions/checkout@v3
         with:
@@ -225,7 +225,7 @@ jobs:
     name: 'Linux (JDK 19)'
     runs-on: ubuntu-latest
     env:
-      GUAVA: '19.0'
+      GUAVA: '19.0' # oldest Guava
     steps:
       - uses: actions/checkout@v3
         with:
@@ -324,12 +324,12 @@ jobs:
           echo sqlsh
           ./sqlsh -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
 
-  errorprone-guava31:  # LTS JDK version, don't remove until EOL
+  errorprone-guava-latest: # LTS JDK version, don't remove until EOL
     if: github.event.action != 'labeled'
-    name: 'Error Prone (JDK 11), Guava 31'
+    name: 'Error Prone (JDK 11), latest Guava'
     runs-on: ubuntu-latest
     env:
-      GUAVA: '31.1-jre' # ErrorProne checks for Beta APIs, so use the newest supported Guava version
+      GUAVA: '32.1.3-jre' # ErrorProne checks for Beta APIs, so use the latest supported Guava version
     steps:
       - uses: actions/checkout@v3
         with:
@@ -374,10 +374,10 @@ jobs:
           arguments: --scan --no-parallel --no-daemon -PenableCheckerframework :linq4j:classes :core:classes
 
   linux-checkerframework-guava29:
-    name: 'CheckerFramework (JDK 11), Guava 29'
+    name: 'CheckerFramework (JDK 11), oldest Guava'
     runs-on: ubuntu-latest
     env:
-      GUAVA: '29.0-jre'
+      GUAVA: '19.0' # oldest Guava
     steps:
       - uses: actions/checkout@v3
         with:
