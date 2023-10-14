@@ -57,7 +57,7 @@ public interface PairList<T, U> extends List<Map.Entry<T, U>> {
   /** Creates a PairList with one or more entries. */
   static <T, U> PairList<T, U> copyOf(T t, U u, Object... rest) {
     checkArgument(rest.length % 2 == 0, "even number");
-    final List<Object> list = Lists.asList(t, u, rest);
+    final List<@Nullable Object> list = Lists.asList(t, u, rest);
     return new PairLists.MutablePairList<>(new ArrayList<>(list));
   }
 

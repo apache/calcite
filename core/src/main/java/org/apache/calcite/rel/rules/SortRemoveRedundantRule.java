@@ -96,7 +96,7 @@ public class SortRemoveRedundantRule
     }
   }
 
-  private Optional<Double> getSortInputSpecificMaxRowCount(Sort sort) {
+  private static Optional<Double> getSortInputSpecificMaxRowCount(Sort sort) {
     // If the sort is pure limit, the specific max row count is limit's fetch.
     if (RelOptUtil.isPureLimit(sort)) {
       final double limit =
