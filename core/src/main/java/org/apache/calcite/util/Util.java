@@ -40,7 +40,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -923,13 +922,6 @@ public class Util {
   @SuppressWarnings("MissingSummary")
   public static Error newInternal(Throwable e, String s) {
     return new AssertionError("Internal error: " + s, e);
-  }
-
-  /** Until we upgrade to Guava 19. */
-  @CanIgnoreReturnValue
-  public static <T> T verifyNotNull(@Nullable T reference) {
-    Bug.upgrade("Remove when minimum Guava version is 17");
-    return requireNonNull(reference, "expected a non-null reference");
   }
 
   /** As {@link Throwables}{@code .throwIfUnchecked(Throwable)},
