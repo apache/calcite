@@ -157,6 +157,8 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rel.rules.AggregateRemoveRule.canFlattenStatic;
 import static org.apache.calcite.sql.SqlKind.UNION;
@@ -2345,8 +2347,8 @@ public class RelBuilder {
                 new AggCallImpl2(aggregateCall,
                     aggregateCall.getArgList().stream()
                         .map(this::field)
-                        .collect(Util.toImmutableList())))
-            .collect(Util.toImmutableList()));
+                        .collect(toImmutableList())))
+            .collect(toImmutableList()));
   }
 
   /** Creates an {@link Aggregate} with multiple calls. */
@@ -2642,7 +2644,7 @@ public class RelBuilder {
         Aggregate.deriveRowType(getTypeFactory(), peek().getRowType(), false,
             groupSet, groupSets.asList(),
             aggregateCalls.stream().map(AggCallPlus::aggregateCall)
-                .collect(Util.toImmutableList())).getFieldNames();
+                .collect(toImmutableList())).getFieldNames();
 
     // If n duplicates exist for a particular grouping, the {@code GROUP_ID()}
     // function produces values in the range 0 to n-1. For each value,
@@ -4226,7 +4228,7 @@ public class RelBuilder {
       if (aggFunction instanceof SqlCountAggFunction && !distinct) {
         args = args.stream()
             .filter(r::fieldIsNullable)
-            .collect(Util.toImmutableList());
+            .collect(toImmutableList());
       }
 
       return AggregateCall.create(aggFunction, distinct, approximate,

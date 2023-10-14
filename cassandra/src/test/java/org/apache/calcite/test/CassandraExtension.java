@@ -117,6 +117,10 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
    *
    * @see <a href="https://issues.apache.org/jira/browse/CASSANDRA-14883">CASSANDRA-14883</a>
    *
+   * <p>Cassandra requires method
+   * {@link com.google.common.collect.ImmutableSet#builderWithExpectedSize(int)}
+   * and therefore Guava 23 or higher.
+   *
    * @return {@code true} if test is compatible with current environment,
    *         {@code false} otherwise
    */
@@ -125,7 +129,7 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
     boolean enabled = CalciteSystemProperty.TEST_CASSANDRA.value();
     Bug.upgrade("remove JDK version check once cassandra-unit supports JDK11+");
     boolean compatibleJdk = TestUtil.getJavaMajorVersion() < 11;
-    boolean compatibleGuava = TestUtil.getGuavaMajorVersion() >= 20;
+    boolean compatibleGuava = TestUtil.getGuavaMajorVersion() >= 23;
     Bug.upgrade("remove JVM check once Cassandra supports Eclipse OpenJ9 JVM");
     boolean compatibleJVM = !"Eclipse OpenJ9".equals(TestUtil.getJavaVirtualMachineVendor());
     if (enabled && compatibleJdk && compatibleGuava && compatibleJVM) {

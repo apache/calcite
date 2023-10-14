@@ -125,7 +125,7 @@ public abstract class RelOptMaterializations {
             Util.transform(queryTables, RelOptTable::getQualifiedName));
     // Remember leaf-join form of root so we convert at most once.
     final Supplier<RelNode> leafJoinRoot =
-        Suppliers.memoize(() -> RelOptMaterialization.toLeafJoinForm(rel))::get;
+        Suppliers.memoize(() -> RelOptMaterialization.toLeafJoinForm(rel));
     for (RelOptLattice lattice : lattices) {
       if (queryTableNames.contains(lattice.rootTable().getQualifiedName())) {
         RelNode rel2 = lattice.rewrite(leafJoinRoot.get());

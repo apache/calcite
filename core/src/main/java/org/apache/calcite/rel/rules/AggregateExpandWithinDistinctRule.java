@@ -50,6 +50,8 @@ import java.util.TreeSet;
 import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import static org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule.groupValue;
 import static org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule.remap;
 
@@ -158,7 +160,7 @@ public class AggregateExpandWithinDistinctRule
         aggregate.getAggCallList()
             .stream()
             .map(c -> unDistinct(c, aggregate.getInput()::fieldIsNullable))
-            .collect(Util.toImmutableList());
+            .collect(toImmutableList());
 
     // Find all within-distinct expressions.
     final Multimap<ImmutableBitSet, AggregateCall> argLists =

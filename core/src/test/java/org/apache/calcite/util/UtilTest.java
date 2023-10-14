@@ -1048,7 +1048,7 @@ class UtilTest {
 
     final List<Pair<String, Integer>> pairs =
         Pair.zip(strings, integers, false);
-    final Map<String, Integer> map = Compatible.copyOf(pairs);
+    final Map<String, Integer> map = ImmutableMap.copyOf(pairs);
 
     // shorter list on the right
     final AtomicInteger size = new AtomicInteger();
