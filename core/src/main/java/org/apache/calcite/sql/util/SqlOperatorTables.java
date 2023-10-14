@@ -94,8 +94,8 @@ public class SqlOperatorTables {
    * Operators cannot be added or removed after creation. */
   private static class ImmutableListSqlOperatorTable
       extends ListSqlOperatorTable {
-    ImmutableListSqlOperatorTable(ImmutableList<SqlOperator> operatorList) {
-      super(operatorList, false);
+    ImmutableListSqlOperatorTable(Iterable<? extends SqlOperator> operators) {
+      super(operators);
     }
   }
 
@@ -110,8 +110,12 @@ public class SqlOperatorTables {
      * we can find efficiently using binary search. */
     protected ImmutableMultimap<String, SqlOperator> operators;
 
-    protected IndexedSqlOperatorTable(List<SqlOperator> list) {
+    protected IndexedSqlOperatorTable(Iterable<? extends SqlOperator> list) {
       operators = buildIndex(list);
+    }
+
+    @Override public List<SqlOperator> getOperatorList() {
+      return operators.values().asList();
     }
 
     protected void setOperators(Multimap<String, SqlOperator> operators) {
@@ -121,10 +125,11 @@ public class SqlOperatorTables {
     /** Derives a value to be assigned to {@link #operators} from a given list
      * of operators. */
     protected static ImmutableMultimap<String, SqlOperator> buildIndex(
-        List<SqlOperator> list) {
+        Iterable<? extends SqlOperator> operators) {
       final ImmutableMultimap.Builder<String, SqlOperator> map =
           ImmutableMultimap.builder();
-      list.forEach(op -> map.put(op.getName().toUpperCase(Locale.ROOT), op));
+      operators.forEach(op ->
+          map.put(op.getName().toUpperCase(Locale.ROOT), op));
       return map.build();
     }
 

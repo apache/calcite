@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.util;
 
+import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -24,9 +25,10 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 
+import com.google.common.collect.ImmutableSet;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -37,10 +39,6 @@ public class ListSqlOperatorTable
     extends SqlOperatorTables.IndexedSqlOperatorTable
     implements SqlOperatorTable {
 
-  //~ Instance fields --------------------------------------------------------
-
-  private final List<SqlOperator> operatorList;
-
   //~ Constructors -----------------------------------------------------------
 
   /** Creates an empty, mutable ListSqlOperatorTable.
@@ -49,7 +47,7 @@ public class ListSqlOperatorTable
    * table. */
   @Deprecated // to be removed before 2.0
   public ListSqlOperatorTable() {
-    this(new ArrayList<>(), false);
+    this(ImmutableSet.of());
   }
 
   /** Creates a mutable ListSqlOperatorTable backed by a given list.
@@ -58,13 +56,12 @@ public class ListSqlOperatorTable
    * table. */
   @Deprecated // to be removed before 2.0
   public ListSqlOperatorTable(List<SqlOperator> operatorList) {
-    this(operatorList, false);
+    this((Iterable<SqlOperator>) operatorList);
   }
 
   // internal constructor
-  ListSqlOperatorTable(List<SqlOperator> operatorList, boolean ignored) {
+  ListSqlOperatorTable(Iterable<? extends SqlOperator> operatorList) {
     super(operatorList);
-    this.operatorList = operatorList;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -75,7 +72,8 @@ public class ListSqlOperatorTable
    * table. */
   @Deprecated // to be removed before 2.0
   public void add(SqlOperator op) {
-    operatorList.add(op);
+    // Rebuild the immutable collections with their current contents plus one.
+    setOperators(buildIndex(ConsList.of(op, getOperatorList())));
   }
 
   @Override public void lookupOperatorOverloads(SqlIdentifier opName,
@@ -88,7 +86,12 @@ public class ListSqlOperatorTable
     }
     final String simpleName = opName.getSimple();
     lookUpOperators(simpleName, nameMatcher.isCaseSensitive(), op -> {
-      if (op.getSyntax().family != syntax) {
+      if (op.getSyntax() != syntax
+          && op.getSyntax().family != syntax.family) {
+        // Allow retrieval on exact syntax or family; for example,
+        // CURRENT_DATETIME has FUNCTION_ID syntax but can also be called with
+        // both FUNCTION_ID and FUNCTION syntax (e.g. SELECT CURRENT_DATETIME,
+        // CURRENT_DATETIME('UTC')).
         return;
       }
       if (category != null
@@ -106,9 +109,5 @@ public class ListSqlOperatorTable
     } else {
       return SqlFunctionCategory.SYSTEM;
     }
-  }
-
-  @Override public List<SqlOperator> getOperatorList() {
-    return operatorList;
   }
 }

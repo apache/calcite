@@ -148,8 +148,4 @@ public abstract class ReflectiveSqlOperatorTable
     // Rebuild the immutable collections with their current contents plus one.
     setOperators(buildIndex(ConsList.of(op, getOperatorList())));
   }
-
-  @Override public List<SqlOperator> getOperatorList() {
-    return operators.values().asList();
-  }
 }
