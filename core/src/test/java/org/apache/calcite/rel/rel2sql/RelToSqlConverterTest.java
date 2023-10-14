@@ -4016,6 +4016,25 @@ class RelToSqlConverterTest {
     sql(query).withSpark().ok(expected);
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5570">[CALCITE-5570]
+   * Support nested map type for SqlDataTypeSpec</a>.
+   */
+  @Test void testCastAsMapType() {
+    sql("SELECT CAST(MAP['A', 1.0] AS MAP<VARCHAR, DOUBLE>)")
+        .ok("SELECT CAST(MAP['A', 1.0] AS MAP< VARCHAR CHARACTER SET \"ISO-8859-1\", DOUBLE >)\n"
+            + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
+    sql("SELECT CAST(MAP['A', ARRAY[1, 2, 3]] AS MAP<VARCHAR, INT ARRAY>)")
+        .ok("SELECT CAST(MAP['A', ARRAY[1, 2, 3]] AS "
+            + "MAP< VARCHAR CHARACTER SET \"ISO-8859-1\", INTEGER ARRAY >)\n"
+            + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
+    sql("SELECT CAST(MAP[ARRAY['A'], MAP[1, 2]] AS MAP<VARCHAR ARRAY, MAP<INT, INT>>)")
+        .ok("SELECT CAST(MAP[ARRAY['A'], MAP[1, 2]] AS "
+            + "MAP< VARCHAR CHARACTER SET \"ISO-8859-1\" ARRAY, MAP< INTEGER, INTEGER > >)\n"
+            + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4674">[CALCITE-4674]
    * Excess quotes in generated SQL when STAR is a column alias</a>. */

@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlCollectionTypeNameSpec;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlMapTypeNameSpec;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlRowTypeNameSpec;
 import org.apache.calcite.sql.SqlTypeNameSpec;
@@ -1146,6 +1147,14 @@ public abstract class SqlTypeUtil {
           .map(f -> convertTypeToSpec(f.getType()))
           .collect(Collectors.toList());
       typeNameSpec = new SqlRowTypeNameSpec(SqlParserPos.ZERO, fieldNames, fieldTypes);
+    } else if (isMap(type)) {
+      final RelDataType keyType =
+          requireNonNull(type.getKeyType(), () -> "keyType of " + type);
+      final RelDataType valueType =
+          requireNonNull(type.getValueType(), () -> "valueType of " + type);
+      final SqlDataTypeSpec keyTypeSpec = convertTypeToSpec(keyType);
+      final SqlDataTypeSpec valueTypeSpec = convertTypeToSpec(valueType);
+      typeNameSpec = new SqlMapTypeNameSpec(keyTypeSpec, valueTypeSpec, SqlParserPos.ZERO);
     } else {
       throw new UnsupportedOperationException(
           "Unsupported type when convertTypeToSpec: " + typeName);
@@ -1212,7 +1221,7 @@ public abstract class SqlTypeUtil {
   public static RelDataType createRecordTypeFromMap(
       RelDataTypeFactory typeFactory, RelDataType type) {
     RelDataType keyType = requireNonNull(type.getKeyType(), () -> "keyType of " + type);
-    RelDataType valueType = requireNonNull(type.getValueType(), () -> "keyType of " + type);
+    RelDataType valueType = requireNonNull(type.getValueType(), () -> "valueType of " + type);
     return typeFactory.createStructType(
         Arrays.asList(keyType, valueType), Arrays.asList("f0", "f1"));
   }
