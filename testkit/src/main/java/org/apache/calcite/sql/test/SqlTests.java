@@ -249,6 +249,10 @@ public abstract class SqlTests {
     int actualEndLine = 100;
     int actualEndColumn = 99;
 
+    if (ex instanceof ExceptionInInitializerError) {
+      ex = ((ExceptionInInitializerError) ex).getException();
+    }
+
     // Search for an CalciteContextException somewhere in the stack.
     CalciteContextException ece = null;
     for (Throwable x = ex; x != null; x = x.getCause()) {
@@ -294,10 +298,10 @@ public abstract class SqlTests {
         actualMessage = actualException.getMessage();
       }
     } else {
-      final String message = ex.getMessage();
-      if (message != null) {
+      actualMessage = ex.getMessage();
+      if (actualMessage != null) {
         java.util.regex.Matcher matcher =
-            LINE_COL_TWICE_PATTERN.matcher(message);
+            LINE_COL_TWICE_PATTERN.matcher(actualMessage);
         if (matcher.matches()) {
           actualLine = Integer.parseInt(matcher.group(1));
           actualColumn = Integer.parseInt(matcher.group(2));
@@ -305,7 +309,7 @@ public abstract class SqlTests {
           actualEndColumn = Integer.parseInt(matcher.group(4));
           actualMessage = matcher.group(5);
         } else {
-          matcher = LINE_COL_PATTERN.matcher(message);
+          matcher = LINE_COL_PATTERN.matcher(actualMessage);
           if (matcher.matches()) {
             actualLine = Integer.parseInt(matcher.group(1));
             actualColumn = Integer.parseInt(matcher.group(2));

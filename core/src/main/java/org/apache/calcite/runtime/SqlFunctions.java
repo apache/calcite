@@ -860,17 +860,22 @@ public class SqlFunctions {
     assert map != null;
     Set<String> keys = map.keySet();
     Collection<String> values = map.values();
-    switch (JsonScope.valueOf(jsonScope)) {
-    case JSON_KEYS:
-      return keys.contains(substr);
-    case JSON_KEYS_AND_VALUES:
-      return keys.contains(substr) || values.contains(substr);
-    case JSON_VALUES:
-      return values.contains(substr);
-    default:
-      throw new IllegalArgumentException("json_scope argument must be one of: \"JSON_KEYS\", "
-          + "\"JSON_VALUES\", \"JSON_KEYS_AND_VALUES\".");
+    try {
+      switch (JsonScope.valueOf(jsonScope)) {
+      case JSON_KEYS:
+        return keys.contains(substr);
+      case JSON_KEYS_AND_VALUES:
+        return keys.contains(substr) || values.contains(substr);
+      case JSON_VALUES:
+        return values.contains(substr);
+      default:
+        break;
+      }
+    } catch (IllegalArgumentException ignored) {
+      // Happens when jsonScope is not one of the legal enum values
     }
+    throw new IllegalArgumentException("json_scope argument must be one of: \"JSON_KEYS\", "
+          + "\"JSON_VALUES\", \"JSON_KEYS_AND_VALUES\".");
   }
 
   /** SQL <code>CONTAINS_SUBSTR(expr, substr)</code> operator. */
