@@ -1602,6 +1602,22 @@ public abstract class SqlLibraryOperators {
           OperandTypes.ONE_OR_MORE,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction HASH_AGG =
+      SqlBasicAggFunction
+          .create("HASH_AGG", SqlKind.HASH_AGG, ReturnTypes.BIGINT,
+              OperandTypes.VARIADIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC)
+          .withDistinct(Optionality.OPTIONAL);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlAggFunction BIT_XOR =
+      SqlBasicAggFunction
+          .create("BIT_XOR", SqlKind.BIT_XOR, ReturnTypes.BIGINT,
+              OperandTypes.INTEGER)
+          .withFunctionType(SqlFunctionCategory.NUMERIC)
+          .withDistinct(Optionality.OPTIONAL);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FARM_FINGERPRINT =
       new SqlFunction(

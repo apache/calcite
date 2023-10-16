@@ -1309,12 +1309,12 @@ public abstract class SqlImplementor {
       }
 
       // Handle collation
-      return withOrder(call2, collation);
+      return withOrder(call2, collation, qualifier);
     }
 
     /** Wraps a call in a {@link SqlKind#WITHIN_GROUP} call, if
      * {@code collation} is non-empty. */
-    private SqlCall withOrder(SqlCall call, RelCollation collation) {
+    private SqlCall withOrder(SqlCall call, RelCollation collation, SqlLiteral qualifier) {
       SqlOperator sqlOperator = call.getOperator();
       if (collation.getFieldCollations().isEmpty()) {
         return call;
@@ -1328,7 +1328,7 @@ public abstract class SqlImplementor {
       operandList.addAll(call.getOperandList());
       operandList.add(orderNodeList);
       if (sqlOperator.getSyntax() == SqlSyntax.ORDERED_FUNCTION) {
-        return sqlOperator.createCall(POS, operandList);
+        return sqlOperator.createCall(qualifier, POS, operandList);
       }
       return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, call, orderNodeList);
     }

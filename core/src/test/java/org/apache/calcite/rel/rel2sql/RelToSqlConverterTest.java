@@ -13117,6 +13117,29 @@ class RelToSqlConverterTest {
         .ok(expectedSql);
   }
 
+  @Test void testHashAgg() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    RelBuilder.AggCall hashAggCall =
+        builder.aggregateCall(SqlLibraryOperators.HASH_AGG, builder.field(1));
+    final RelNode root = builder
+        .aggregate(builder.groupKey(), hashAggCall.as("hash"))
+        .build();
+    final String expectedSnowflakeSql = "SELECT HASH_AGG(\"ENAME\") AS \"hash\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+  }
+
+  @Test void testBitXor() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    RelBuilder.AggCall xorCall =
+        builder.aggregateCall(SqlLibraryOperators.BIT_XOR, builder.field("EMPNO"));
+    final RelNode root = builder
+        .aggregate(builder.groupKey(), xorCall.as("hash"))
+        .build();
+    final String expectedBQSql = "SELECT BIT_XOR(EMPNO) AS `hash`\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
   @Test public void testUnparsingOfPercentileCont() {
     final RelBuilder builder = relBuilder();
     builder.push(builder.scan("EMP").build());
@@ -13343,5 +13366,18 @@ class RelToSqlConverterTest {
         false, false);
     return builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, multiplicationRex,
         windowRexNodeOfCount);
+  }
+
+  @Test void testArrayAgg() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall = builder.aggregateCall(SqlLibraryOperators.ARRAY_AGG,
+        builder.field("ENAME")).sort(builder.field("ENAME"));
+    final RelNode rel = builder
+        .aggregate(relBuilder().groupKey(), aggCall)
+        .build();
+    final String expectedBigQuery = "SELECT ARRAY_AGG(ENAME ORDER BY ENAME IS NULL, ENAME)"
+        + " AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 }
