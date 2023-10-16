@@ -13325,4 +13325,17 @@ class RelToSqlConverterTest {
     return builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, multiplicationRex,
         windowRexNodeOfCount);
   }
+
+  @Test void testArrayAgg() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall = builder.aggregateCall(SqlLibraryOperators.ARRAY_AGG,
+        builder.field("ENAME")).sort(builder.field("ENAME"));
+    final RelNode rel = builder
+        .aggregate(relBuilder().groupKey(), aggCall)
+        .build();
+    final String expectedBigQuery = "SELECT ARRAY_AGG(ENAME ORDER BY ENAME IS NULL, ENAME)"
+        + " AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
 }
