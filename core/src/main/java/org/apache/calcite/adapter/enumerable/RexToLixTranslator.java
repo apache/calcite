@@ -28,6 +28,7 @@ import org.apache.calcite.linq4j.tree.CatchBlock;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
@@ -76,6 +77,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -625,7 +627,10 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       default:
         return operand;
       }
-
+    case DECIMAL:
+      return sourceType.getScale() == targetType.getScale()
+          ? operand
+          : adjustDecimalScale(targetType.getScale(), operand);
     default:
       return operand;
     }
@@ -774,10 +779,15 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         return Expressions.constant(bd, javaClass);
       }
       assert javaClass == BigDecimal.class;
-      return Expressions.new_(BigDecimal.class,
-          Expressions.constant(
+      Expression expression =
+          Expressions.new_(
+              BigDecimal.class, constant(
               requireNonNull(bd,
                   () -> "value for " + literal).toString()));
+      if (type.getScale() != bd.scale()) {
+        expression = adjustDecimalScale(type.getScale(), expression);
+      }
+      return expression;
     case DATE:
     case TIME:
     case TIME_WITH_LOCAL_TIME_ZONE:
@@ -836,6 +846,13 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       }
     }
     return Expressions.constant(value2, javaClass);
+  }
+
+  static MethodCallExpression adjustDecimalScale(int scale,
+      Expression expression) {
+    assert expression.getType() == BigDecimal.class;
+    return Expressions.call(expression, BuiltInMethod.BIG_DECIMAL_SET_SCALE.method,
+        Expressions.constant(scale), Expressions.constant(RoundingMode.HALF_UP));
   }
 
   public List<Expression> translateList(

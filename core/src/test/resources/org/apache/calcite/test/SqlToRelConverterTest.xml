@@ -6222,7 +6222,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2])
     <Resource name="plan">
       <![CDATA[
 LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
-  LogicalProject($f0=[0.1:DECIMAL(19, 9)])
+  LogicalProject($f0=[0.100000000:DECIMAL(19, 9)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>

@@ -1524,11 +1524,11 @@ order by empno;
 
 # [CALCITE-1486] Invalid "Invalid literal" error for complex expression
 select 8388608/(60+27.39);
-+-------------------+
-| EXPR$0            |
-+-------------------+
-| 95990.47945989244 |
-+-------------------+
++---------------+
+| EXPR$0        |
++---------------+
+| 95990.4794599 |
++---------------+
 (1 row)
 
 !ok
@@ -2417,13 +2417,13 @@ FROM (VALUES (0, 2, 4, 8),
    (1, 2, 4, 8),
    (CAST(null as int), CAST(null as int), CAST(null as int), CAST(null as int))) AS T(A,B,C,D);
 V
-13.0
-9.5
-1.75
-1.875
 null
-0
-14
+0E-8
+1.75000000
+1.87500000
+13.00000000
+14.00000000
+9.50000000
 !ok
 
 # TIMESTAMP literals without a time part are OK.
