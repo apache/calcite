@@ -1588,8 +1588,8 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.explicit(SqlTypeName.VARCHAR)
               .andThen(SqlTypeTransforms.TO_NULLABLE),
           null,
-          OperandTypes.or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
-              OperandTypes.family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER)),
+          OperandTypes.or(OperandTypes.STRING_INTEGER,
+              OperandTypes.BINARY_INTEGER),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {TERADATA})
