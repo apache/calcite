@@ -121,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TZ: 'America/New_York' # flips between −05:00 and −04:00
-      GUAVA: '19.0' # oldest Guava
+      GUAVA: '21.0' # oldest Guava
     steps:
       - uses: actions/checkout@v3
         with:
@@ -199,7 +199,7 @@ jobs:
     name: 'Linux (JDK 17)'
     runs-on: ubuntu-latest
     env:
-      GUAVA: '19.0' # oldest Guava
+      GUAVA: '21.0' # oldest Guava
     steps:
       - uses: actions/checkout@v3
         with:
@@ -225,7 +225,7 @@ jobs:
     name: 'Linux (JDK 19)'
     runs-on: ubuntu-latest
     env:
-      GUAVA: '19.0' # oldest Guava
+      GUAVA: '21.0' # oldest Guava
     steps:
       - uses: actions/checkout@v3
         with:
@@ -377,7 +377,7 @@ jobs:
     name: 'CheckerFramework (JDK 11), oldest Guava'
     runs-on: ubuntu-latest
     env:
-      GUAVA: '19.0' # oldest Guava
+      GUAVA: '21.0' # oldest Guava
     steps:
       - uses: actions/checkout@v3
         with:
