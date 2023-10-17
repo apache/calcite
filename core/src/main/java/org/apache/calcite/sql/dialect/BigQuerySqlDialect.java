@@ -130,7 +130,8 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public SqlParser.Config configureParser(
       SqlParser.Config configBuilder) {
     return super.configureParser(configBuilder)
-        .withCharLiteralStyles(Lex.BIG_QUERY.charLiteralStyles);
+        .withCharLiteralStyles(Lex.BIG_QUERY.charLiteralStyles)
+        .withCharset("UTF-8");
   }
 
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
@@ -362,6 +363,26 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
     }
     return super.getCastSpec(type);
+  }
+
+  @Override public void quoteStringLiteral(StringBuilder buf, @Nullable String charsetName,
+      String val) {
+    if (containsNonAscii(val) && charsetName == null) {
+      //use dialect's default charset
+      buf.append("_");
+      buf.append(getCharset());
+      buf.append(literalQuoteString);
+      buf.append(val.replace(literalEndQuoteString, literalEscapedQuote));
+      buf.append(literalEndQuoteString);
+    } else {
+      if (charsetName != null) {
+        buf.append("_");
+        buf.append(charsetName);
+      }
+      buf.append(literalQuoteString);
+      buf.append(val.replace(literalEndQuoteString, literalEscapedQuote));
+      buf.append(literalEndQuoteString);
+    }
   }
 
   private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,

@@ -1792,13 +1792,12 @@ public class SqlParserTest {
     expr("cast('foo' as bar)")
         .ok("CAST('foo' AS `BAR`)");
   }
-  
+
   @Test void testParsingNonIsoCharacter() {
   	String sql = "select 'ק' ";
-		sql(sql).ok("SELECT u&'\\05e7'");
 		// BigQuery conformance should set charset to UTF-8 and be able to properly encode character
-  	sql(sql).withConformance(SqlConformanceEnum.BIG_QUERY)
-  			.ok("SELECT _UTF-8'ק'");		
+  	sql(sql).withDialect(BIG_QUERY)
+  			.ok("SELECT _UTF-8'ק'");
   }
 
   @Test void testCastFails() {

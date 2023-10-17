@@ -543,7 +543,7 @@ class RelToSqlConverterTest {
     sql.withSql(query).ok("SELECT TIMESTAMP_SECONDS(CAST(CEIL(3) AS INT64)) AS "
         + "created_thing\nFROM foodmart.product");
   }
-	
+
   @Test void testBigQueryFloorPreservesCast() {
     final String query = "SELECT TIMESTAMP_SECONDS(CAST(FLOOR(CAST(3 AS BIGINT)) AS BIGINT)) "
         + "as created_thing\n FROM `foodmart`.`product`";
@@ -1488,7 +1488,7 @@ class RelToSqlConverterTest {
 
 
 
-  
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5394">[CALCITE-5394]
    * RelToSql converter fails when semi-join is under a join node</a>. */
@@ -7134,6 +7134,19 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"\n"
         + "GROUP BY \"employee_id\", \"full_name\")), 'NAME'))";
     sql(query).ok(expected);
+  }
+
+  @Test void testBigQueryUnicode() {
+    final Function<RelBuilder, RelNode> relFn = b ->
+        b.scan("EMP")
+            .filter(
+                b.call(SqlStdOperatorTable.EQUALS, b.field("ENAME"),
+                    b.literal("schön")))
+            .build();
+    final String expectedSql = "SELECT *\n" +
+        "FROM scott.EMP\n" +
+        "WHERE ENAME = _UTF-8'schön'";
+    relFn(relFn).withBigQuery().ok(expectedSql);
   }
 
   /** Test case for

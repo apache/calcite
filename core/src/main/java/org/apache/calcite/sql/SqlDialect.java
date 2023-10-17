@@ -1248,6 +1248,11 @@ public class SqlDialect {
     return caseSensitive;
   }
 
+  /** Returns the charset supported by the dialect. */
+  public String getCharset() {
+    return charset;
+  }
+
   /**
    * A few utility functions copied from org.apache.calcite.util.Util. We have
    * copied them because we wish to keep SqlDialect's dependencies to a
@@ -1618,11 +1623,11 @@ public class SqlDialect {
           charset, quotedCasing, unquotedCasing, caseSensitive,
           conformance, nullCollation, dataTypeSystem, jethroInfo);
     }
-    
+
     @Override public String charset() {
     	return charset;
     }
-    
+
     @Override public Context withCharset(String charset) {
       return new ContextImpl(databaseProduct, databaseProductName,
           databaseVersion, databaseMajorVersion, databaseMinorVersion,
