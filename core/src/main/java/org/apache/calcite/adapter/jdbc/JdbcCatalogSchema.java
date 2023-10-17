@@ -28,7 +28,6 @@ import org.apache.calcite.sql.SqlDialectFactory;
 import org.apache.calcite.sql.SqlDialectFactoryImpl;
 import org.apache.calcite.util.BuiltInMethod;
 
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 
@@ -38,6 +37,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.function.Supplier;
 import javax.sql.DataSource;
 
 import static java.util.Objects.requireNonNull;
@@ -63,7 +63,7 @@ public class JdbcCatalogSchema extends AbstractSchema {
   /** Sub-schemas by name, lazily initialized. */
   @SuppressWarnings("method.invocation.invalid")
   final Supplier<SubSchemaMap> subSchemaMapSupplier =
-      Suppliers.memoize(() -> computeSubSchemaMap());
+      Suppliers.memoize(this::computeSubSchemaMap);
 
   /** Creates a JdbcCatalogSchema. */
   public JdbcCatalogSchema(DataSource dataSource, SqlDialect dialect,

@@ -72,9 +72,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
 
   /** Computes and stores information that cannot be computed on construction,
    * but only after sub-queries have been validated. */
-  @SuppressWarnings({"methodref.receiver.bound.invalid", "FunctionalExpressionCanBeFolded"})
+  @SuppressWarnings({"methodref.receiver.bound.invalid"})
   public final Supplier<AggregatingSelectScope.Resolved> resolved =
-      Suppliers.memoize(this::resolve)::get;
+      Suppliers.memoize(this::resolve);
 
   /** Use while resolving. */
   SqlValidatorUtil.@Nullable GroupAnalyzer groupAnalyzer;

@@ -120,10 +120,10 @@ public class SqlTestFactory {
     this.typeSystemTransform = typeSystemTransform;
     this.typeFactorySupplier = Suppliers.memoize(() ->
         typeFactoryFactory.create(validatorConfig.conformance(),
-            typeSystemTransform.apply(RelDataTypeSystem.DEFAULT)))::get;
+            typeSystemTransform.apply(RelDataTypeSystem.DEFAULT)));
     this.catalogReaderSupplier = Suppliers.memoize(() ->
         catalogReaderFactory.create(this.typeFactorySupplier.get(),
-            parserConfig.caseSensitive()))::get;
+            parserConfig.caseSensitive()));
     this.parserConfig = parserConfig;
     this.validatorConfig = validatorConfig;
   }

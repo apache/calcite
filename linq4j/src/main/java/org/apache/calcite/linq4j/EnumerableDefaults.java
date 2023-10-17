@@ -34,7 +34,6 @@ import org.apache.calcite.linq4j.function.NullableLongFunction1;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
@@ -67,6 +66,7 @@ import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Linq4j.CollectionEnumerable;
 import static org.apache.calcite.linq4j.Linq4j.ListEnumerable;
