@@ -936,34 +936,35 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseRegexSubstr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlCall extractCall;
-    extractCall = makeRegexpSubstrSqlCall(call);
-    REGEXP_SUBSTR.unparse(writer, extractCall, leftPrec, rightPrec);
+    List<SqlNode> modifiedOperands = modifyRegexpSubstrOperands(call);
+    SqlWriter.Frame substrFrame = writer.startFunCall(call.getOperator().getName());
+    for (SqlNode operand: modifiedOperands) {
+      writer.sep(",");
+      if (operand instanceof SqlCharStringLiteral) {
+        unparseRegexLiteral(writer, operand);
+      } else {
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+    }
+    writer.endFunCall(substrFrame);
   }
 
-  private SqlCall makeRegexpSubstrSqlCall(SqlCall call) {
-    if (call.operandCount() == 5 || call.operand(1).toString().contains("\\")) {
+  private List<SqlNode> modifyRegexpSubstrOperands(SqlCall call) {
+    if (call.operandCount() == 5) {
       SqlCharStringLiteral regexNode = makeRegexNode(call);
       call.setOperand(1, regexNode);
+      return call.getOperandList().subList(0, 4);
     }
-    SqlNode[] extractNodeOperands;
-    if (call.operandCount() == 5) {
-      extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1),
-          call.operand(2), call.operand(3)};
-    } else {
-      extractNodeOperands = call.getOperandList().toArray(new SqlNode[0]);
-    }
-    return new SqlBasicCall(REGEXP_SUBSTR, extractNodeOperands, SqlParserPos.ZERO);
+    return call.getOperandList();
   }
 
   private SqlCharStringLiteral makeRegexNode(SqlCall call) {
-    String regexLiteral = call.operand(1).toString();
-    regexLiteral = regexLiteral.substring(1, regexLiteral.length() - 1);
+    String regexLiteral = ((SqlCharStringLiteral) call.operand(1)).toValue();
+    assert regexLiteral != null;
     if (call.operandCount() == 5 && call.operand(4).toString().equals("'i'")) {
       regexLiteral = "(?i)".concat(regexLiteral);
     }
-    return SqlLiteral.createCharString(regexLiteral,
-        call.operand(1).getParserPosition());
+    return SqlLiteral.createCharString(regexLiteral, call.operand(1).getParserPosition());
   }
 
   /**
