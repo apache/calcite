@@ -924,18 +924,10 @@ public class Util {
     return new AssertionError("Internal error: " + s, e);
   }
 
-  /** As {@link Throwables}{@code .throwIfUnchecked(Throwable)},
-   * which was introduced in Guava 20,
-   * but we don't require Guava version 20 yet. */
+  /** @deprecated Use Guava {@link Throwables#throwIfUnchecked(Throwable)}. */
+  @Deprecated // to be removed before 2.0
   public static void throwIfUnchecked(Throwable throwable) {
-    Bug.upgrade("Remove when minimum Guava version is 20");
-    requireNonNull(throwable, "throwable");
-    if (throwable instanceof RuntimeException) {
-      throw (RuntimeException) throwable;
-    }
-    if (throwable instanceof Error) {
-      throw (Error) throwable;
-    }
+    Throwables.throwIfUnchecked(throwable);
   }
 
   /**
@@ -951,7 +943,7 @@ public class Util {
    */
   @API(since = "1.26", status = API.Status.EXPERIMENTAL)
   public static RuntimeException throwAsRuntime(Throwable throwable) {
-    throwIfUnchecked(throwable);
+    Throwables.throwIfUnchecked(throwable);
     throw new RuntimeException(throwable);
   }
 
