@@ -924,7 +924,7 @@ public class Util {
     return new AssertionError("Internal error: " + s, e);
   }
 
-  /** @deprecated Use Guava {@link Throwables#throwIfUnchecked(Throwable)}. */
+  /** As {@link Throwables#throwIfUnchecked(Throwable)}. */
   @Deprecated // to be removed before 2.0
   public static void throwIfUnchecked(Throwable throwable) {
     Throwables.throwIfUnchecked(throwable);
