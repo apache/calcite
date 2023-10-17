@@ -1782,9 +1782,9 @@ public class SqlParserTest {
     expr("cast(x as time with local time zone)")
         .ok("CAST(`X` AS TIME WITH LOCAL TIME ZONE)");
     expr("cast(x as timestamp without time zone)")
-        .ok("CAST(`X` AS TIMESTAMP)");
+        .ok("CAST(`X` AS `TIMESTAMP`)");
     expr("cast(x as timestamp with local time zone)")
-        .ok("CAST(`X` AS TIMESTAMP WITH LOCAL TIME ZONE)");
+        .ok("CAST(`X` AS `TIMESTAMP WITH LOCAL TIME ZONE`)");
     expr("cast(x as time(0))")
         .ok("CAST(`X` AS TIME(0))");
     expr("cast(x as time(0) without time zone)")
@@ -1792,13 +1792,13 @@ public class SqlParserTest {
     expr("cast(x as time(0) with local time zone)")
         .ok("CAST(`X` AS TIME(0) WITH LOCAL TIME ZONE)");
     expr("cast(x as timestamp(0))")
-        .ok("CAST(`X` AS TIMESTAMP(0))");
+        .ok("CAST(`X` AS `TIMESTAMP`(0))");
     expr("cast(x as timestamp(0) without time zone)")
-        .ok("CAST(`X` AS TIMESTAMP(0))");
+        .ok("CAST(`X` AS `TIMESTAMP`(0))");
     expr("cast(x as timestamp(0) with local time zone)")
-        .ok("CAST(`X` AS TIMESTAMP(0) WITH LOCAL TIME ZONE)");
+        .ok("CAST(`X` AS `TIMESTAMP WITH LOCAL TIME ZONE`(0))");
     expr("cast(x as timestamp)")
-        .ok("CAST(`X` AS TIMESTAMP)");
+        .ok("CAST(`X` AS `TIMESTAMP`)");
     expr("cast(x as decimal(1,1))")
         .ok("CAST(`X` AS DECIMAL(1, 1))");
     expr("cast(x as char(1))")
@@ -6115,12 +6115,12 @@ public class SqlParserTest {
         + "f1 timestamp not null))")
         .ok("CAST(`A` AS ROW("
             + "`F0` ROW(`FF0` INTEGER, `FF1` VARCHAR NULL) NULL, "
-            + "`F1` TIMESTAMP))");
+            + "`F1` `TIMESTAMP`))");
     // test row type in collection data types.
     expr("cast(a as row(f0 bigint not null, f1 decimal null) array)")
         .ok("CAST(`A` AS ROW(`F0` BIGINT, `F1` DECIMAL NULL) ARRAY)");
     expr("cast(a as row(f0 varchar not null, f1 timestamp null) multiset)")
-        .ok("CAST(`A` AS ROW(`F0` VARCHAR, `F1` TIMESTAMP NULL) MULTISET)");
+        .ok("CAST(`A` AS ROW(`F0` VARCHAR, `F1` `TIMESTAMP` NULL) MULTISET)");
   }
 
   /**

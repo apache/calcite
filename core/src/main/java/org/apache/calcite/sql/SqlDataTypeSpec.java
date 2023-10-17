@@ -125,7 +125,7 @@ public class SqlDataTypeSpec extends SqlNode {
   //~ Methods ----------------------------------------------------------------
 
   @Override public SqlNode clone(SqlParserPos pos) {
-    return new SqlDataTypeSpec(typeNameSpec, timeZone, pos);
+    return new SqlDataTypeSpec(typeNameSpec, timeZone, nullable, pos);
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {

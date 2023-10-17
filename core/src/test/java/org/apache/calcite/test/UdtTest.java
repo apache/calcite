@@ -29,6 +29,14 @@ class UdtTest {
         + "     {\n"
         + "       name: 'foo',\n"
         + "       type: 'BIGINT'\n"
+        + "     },\n"
+        + "     {\n"
+        + "       name: 'TIMESTAMP',\n"
+        + "       type: 'TIMESTAMP_WITH_LOCAL_TIME_ZONE'\n"
+        + "     },\n"
+        + "     {\n"
+        + "       name: 'DATETIME',\n"
+        + "       type: 'TIMESTAMP'\n"
         + "     }"
         + "   ],\n"
         + "   schemas: [\n"
@@ -69,6 +77,15 @@ class UdtTest {
     final String sql = "select CAST(\"id\" AS foo) as ld "
         + "from (VALUES ROW(1, 'SameName')) AS \"t\" (\"id\", \"desc\")";
     withUdt().query(sql).returns("LD=1\n");
+  }
+
+  @Test void testAliasOnBasicType() {
+    final String sql1 = "select CAST(\"date\" AS TIMESTAMP) as ts "
+        + "from (VALUES ROW(DATE '2020-12-25', 'SameName')) AS \"t\" (\"date\", \"desc\")";
+    final String sql2 = "select CAST(\"date\" AS DATETIME) as ts "
+        + "from (VALUES ROW(DATE '2020-12-25', 'SameName')) AS \"t\" (\"date\", \"desc\")";
+    withUdt().query(sql1).typeIs("[TS TIMESTAMP_WITH_LOCAL_TIME_ZONE NOT NULL]");
+    withUdt().query(sql2).typeIs("[TS TIMESTAMP NOT NULL]");
   }
 
   /** Test case for
