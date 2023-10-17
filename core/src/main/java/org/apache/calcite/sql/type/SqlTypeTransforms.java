@@ -274,6 +274,17 @@ public abstract class SqlTypeTransforms {
               typeToTransform);
 
   /**
+   * Parameter type-inference transform strategy that converts a two-field
+   * record type to a MAP query type.
+   *
+   * @see org.apache.calcite.sql.fun.SqlMapQueryConstructor
+   */
+  public static final SqlTypeTransform TO_MAP_QUERY =
+      (opBinding, typeToTransform) ->
+          TO_MAP.transformType(opBinding,
+              SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.MAP, typeToTransform));
+
+  /**
    * Parameter type-inference transform strategy that converts a type to a MAP type,
    * which key and value type is same.
    *
