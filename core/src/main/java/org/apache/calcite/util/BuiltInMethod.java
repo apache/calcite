@@ -289,6 +289,7 @@ public enum BuiltInMethod {
   AS_ENUMERABLE(Linq4j.class, "asEnumerable", Object[].class),
   AS_ENUMERABLE2(Linq4j.class, "asEnumerable", Iterable.class),
   ENUMERABLE_TO_LIST(ExtendedEnumerable.class, "toList"),
+  ENUMERABLE_TO_MAP(ExtendedEnumerable.class, "toMap", Function1.class, Function1.class),
   AS_LIST(Primitive.class, "asList", Object.class),
   MEMORY_GET0(MemoryFactory.Memory.class, "get"),
   MEMORY_GET1(MemoryFactory.Memory.class, "get", int.class),

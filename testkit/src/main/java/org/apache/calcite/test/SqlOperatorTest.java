@@ -10683,6 +10683,40 @@ public class SqlOperatorTest {
         "(CHAR(2) NOT NULL, DECIMAL(11, 1) NOT NULL) MAP NOT NULL");
   }
 
+  @Test void testMapQueryConstructor() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.MAP_QUERY, VmName.EXPAND);
+    // must be 2 fields
+    f.checkFails("map(select 1)", "MAP requires exactly two fields, got 1; "
+        + "row type RecordType\\(INTEGER EXPR\\$0\\)", false);
+    f.checkFails("map(select 1, 2, 3)", "MAP requires exactly two fields, got 3; "
+        + "row type RecordType\\(INTEGER EXPR\\$0, INTEGER EXPR\\$1, "
+        + "INTEGER EXPR\\$2\\)", false);
+    f.checkFails("map(select 1, 'x', 2, 'x')", "MAP requires exactly two fields, got 4; "
+        + "row type RecordType\\(INTEGER EXPR\\$0, CHAR\\(1\\) EXPR\\$1, INTEGER EXPR\\$2, "
+        + "CHAR\\(1\\) EXPR\\$3\\)", false);
+    f.checkScalar("map(select 1, 2)", "{1=2}",
+          "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f.checkScalar("map(select 1, 2.0)", "{1=2.0}",
+        "(INTEGER NOT NULL, DECIMAL(2, 1) NOT NULL) MAP NOT NULL");
+    f.checkScalar("map(select 1, true)", "{1=true}",
+        "(INTEGER NOT NULL, BOOLEAN NOT NULL) MAP NOT NULL");
+    f.checkScalar("map(select 'x', 1)", "{x=1}",
+        "(CHAR(1) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    // element cast
+    f.checkScalar("map(select cast(1 as bigint), 2)", "{1=2}",
+        "(BIGINT NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f.checkScalar("map(select 1, cast(2 as varchar))", "{1=2}",
+        "(INTEGER NOT NULL, VARCHAR NOT NULL) MAP NOT NULL");
+    // null key or value
+    f.checkScalar("map(select 1, null)", "{1=null}",
+        "(INTEGER NOT NULL, NULL) MAP NOT NULL");
+    f.checkScalar("map(select null, 1)", "{null=1}",
+        "(NULL, INTEGER NOT NULL) MAP NOT NULL");
+    f.checkScalar("map(select null, null)", "{null=null}",
+        "(NULL, NULL) MAP NOT NULL");
+  }
+
   @Test void testCeilFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CEIL, VM_FENNEL);

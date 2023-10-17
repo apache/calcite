@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
@@ -88,39 +89,73 @@ public class EnumerableCollect extends Collect implements EnumerableRel {
             getRowType(),
             JavaRowFormat.LIST);
 
+    final SqlTypeName collectionType = getCollectionType();
+
     // final Enumerable child = <<child adapter>>;
     // final Enumerable<Object[]> converted = child.select(<<conversion code>>);
-    // final List<Object[]> list = converted.toList();
+    // if collectionType is ARRAY or MULTISET: final List<Object[]> list = converted.toList();
+    // if collectionType is MAP:               final Map<Object, Object> map = converted.toMap();
     Expression child_ =
         builder.append(
             "child", result.block);
 
-    RelDataType collectionComponentType =
-        requireNonNull(rowType().getFieldList().get(0).getType().getComponentType());
-    RelDataType childRecordType = result.physType.getRowType().getFieldList().get(0).getType();
-
     Expression conv_ = child_;
-    if (!SqlTypeUtil.sameNamedType(collectionComponentType, childRecordType)) {
-      // In the internal representation of multisets , every element must be a record. In case the
-      // result above is a scalar type we have to wrap it around a physical type capable of
-      // representing records. For this reason the following conversion is necessary.
-      // REVIEW zabetak January 7, 2019: If we can ensure that the input to this operator
-      // has the correct physical type (e.g., respecting the Prefer.ARRAY above)
-      // then this conversion can be removed.
-      conv_ =
-          builder.append(
-              "converted", result.physType.convertTo(child_, JavaRowFormat.ARRAY));
-    }
+    Expression collectionExpr;
+    switch (collectionType) {
+    case ARRAY:
+    case MULTISET:
+      RelDataType collectionComponentType =
+          requireNonNull(rowType().getFieldList().get(0).getType().getComponentType());
+      RelDataType childRecordType = result.physType.getRowType().getFieldList().get(0).getType();
 
-    Expression list_ =
-        builder.append("list",
-            Expressions.call(conv_,
-                BuiltInMethod.ENUMERABLE_TO_LIST.method));
+      if (!SqlTypeUtil.sameNamedType(collectionComponentType, childRecordType)) {
+        // In the internal representation of multisets , every element must be a record. In case the
+        // result above is a scalar type we have to wrap it around a physical type capable of
+        // representing records. For this reason the following conversion is necessary.
+        // REVIEW zabetak January 7, 2019: If we can ensure that the input to this operator
+        // has the correct physical type (e.g., respecting the Prefer.ARRAY above)
+        // then this conversion can be removed.
+        conv_ =
+            builder.append(
+                "converted", result.physType.convertTo(child_, JavaRowFormat.ARRAY));
+      }
+
+      collectionExpr =
+          builder.append("list",
+              Expressions.call(conv_,
+                  BuiltInMethod.ENUMERABLE_TO_LIST.method));
+      break;
+    case MAP:
+      // Convert input 'Object[]' to MAP data, we don't specify a comparator, just
+      // keep the original order of this map. (the inner map is a LinkedHashMap)
+      ParameterExpression input = Expressions.parameter(Object.class, "input");
+
+      // keySelector lambda: input -> ((Object[])input)[0]
+      Expression keySelector =
+          Expressions.lambda(
+              Expressions.arrayIndex(Expressions.convert_(input, Object[].class),
+                  Expressions.constant(0)), input);
+
+      // valueSelector lambda: input -> ((Object[])input)[1]
+      Expression valueSelector =
+          Expressions.lambda(
+              Expressions.arrayIndex(Expressions.convert_(input, Object[].class),
+                  Expressions.constant(1)), input);
+
+      collectionExpr =
+          builder.append("map",
+              Expressions.call(conv_,
+                  BuiltInMethod.ENUMERABLE_TO_MAP.method, keySelector, valueSelector));
+      break;
+    default:
+      throw new IllegalArgumentException("unknown collection type " + collectionType);
+    }
 
     builder.add(
         Expressions.return_(null,
             Expressions.call(
-                BuiltInMethod.SINGLETON_ENUMERABLE.method, list_)));
+                BuiltInMethod.SINGLETON_ENUMERABLE.method, collectionExpr)));
+
     return implementor.result(physType, builder.toBlock());
   }
 }

@@ -3685,4 +3685,40 @@ FROM dept d1;
 
 !ok
 
+# [CALCITE-6041] MAP sub-query gives NullPointerException
+# map size > 1
+SELECT map(SELECT empno, deptno from emp where deptno < 20);
++-----------------------------+
+| EXPR$0                      |
++-----------------------------+
+| {7782=10, 7839=10, 7934=10} |
++-----------------------------+
+(1 row)
+
+!ok
+
+# [CALCITE-6041] MAP sub-query gives NullPointerException
+# map size = 1
+SELECT map(SELECT empno, deptno from emp where empno = 7369);
++-----------+
+| EXPR$0    |
++-----------+
+| {7369=20} |
++-----------+
+(1 row)
+
+!ok
+
+# [CALCITE-6041] MAP sub-query gives NullPointerException
+# empty map
+SELECT map(SELECT empno, deptno from emp where false);
++--------+
+| EXPR$0 |
++--------+
+| {}     |
++--------+
+(1 row)
+
+!ok
+
 # End sub-query.iq

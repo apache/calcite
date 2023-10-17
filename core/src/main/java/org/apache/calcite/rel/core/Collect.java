@@ -148,6 +148,7 @@ public class Collect extends SingleRel {
     RelDataType rowType;
     switch (sqlKind) {
     case ARRAY_QUERY_CONSTRUCTOR:
+    case MAP_QUERY_CONSTRUCTOR:
     case MULTISET_QUERY_CONSTRUCTOR:
       rowType =
           deriveRowType(input.getCluster().getTypeFactory(), collectionType,

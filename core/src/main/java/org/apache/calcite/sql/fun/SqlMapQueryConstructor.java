@@ -29,6 +29,6 @@ public class SqlMapQueryConstructor extends SqlMultisetQueryConstructor {
   //~ Constructors -----------------------------------------------------------
 
   public SqlMapQueryConstructor() {
-    super("MAP", SqlKind.MAP_QUERY_CONSTRUCTOR, SqlTypeTransforms.TO_MAP);
+    super("MAP", SqlKind.MAP_QUERY_CONSTRUCTOR, SqlTypeTransforms.TO_MAP_QUERY);
   }
 }
