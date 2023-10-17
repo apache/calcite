@@ -126,6 +126,7 @@ class BabelQuidemTest extends QuidemTest {
                   ConnectionFactories.addType("TIMESTAMP", typeFactory ->
                       typeFactory.createSqlType(
                           SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)))
+              .with(CalciteConnectionProperty.TIME_ZONE, "UTC")
               .connect();
         case "scott-postgresql":
           return CalciteAssert.that()

@@ -6167,6 +6167,15 @@ SqlTypeNameSpec DateTimeTypeName() :
         return new SqlBasicTypeNameSpec(typeName, getPos());
     }
 |
+    // DATETIME is the BigQuery-specific name for ISO SQL's TIMESTAMP type.
+    // In order to support this, the schema UDT map must be properly configued.
+    // See the BigQuery Quidem tests in the babel component for an example.
+    <DATETIME> {
+        s = span();
+        return new SqlUserDefinedTypeNameSpec(
+            unquotedIdentifier(), precision, s.end(this));
+    }
+|
     LOOKAHEAD(2)
     <TIME> { s = span(); }
     precision = PrecisionOpt()
@@ -6179,7 +6188,12 @@ SqlTypeNameSpec DateTimeTypeName() :
     precision = PrecisionOpt()
     typeName = TimeZoneOpt(false)
     {
-        return new SqlBasicTypeNameSpec(typeName, precision, s.end(this));
+        // Like DATETIME above, TIMESTAMP may have a different meaning for
+        // certain SQL dialects (namely, BigQuery). Unlike DATETIME, TIMESTAMP
+        // types names have default standard types that will be used in the
+        // absence of a UDT mapping.
+        return new SqlUserDefinedTypeNameSpec(
+            typeName.getSpaceName(), precision, s.end(this));
     }
 }
 
