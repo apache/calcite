@@ -210,13 +210,6 @@ public class SqlOperatorTest {
 
   public static final boolean TODO = false;
 
-  /** Whether Apache Calcite Avatica 1.24.0 is released.
-   * This release will be expected to contain the
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5678">[CALCITE-5678],
-   * which Calcite will reject date literals not satisfying Gregorian calendar,
-   * per SQL standard</a>. */
-  public static final boolean AVATICA_1_24_0_RELEASED = false;
-
   /**
    * Regular expression for a SQL TIME(0) value.
    */
@@ -1261,7 +1254,8 @@ public class SqlOperatorTest {
       f.checkScalar("cast('1945-02-24 12:42:25.34' as TIMESTAMP(2))",
           "1945-02-24 12:42:25.34", "TIMESTAMP(2) NOT NULL");
     }
-    if (AVATICA_1_24_0_RELEASED) {
+    // Remove the if condition and the else block once CALCITE-6053 is fixed
+    if (TestUtil.AVATICA_VERSION.startsWith("1.0.0-dev-main")) {
       if (castType == CastType.CAST) {
         f.checkFails("cast('1945-2-2 12:2:5' as TIMESTAMP)",
             "Invalid DATE value, '1945-2-2 12:2:5'", true);
@@ -1281,6 +1275,17 @@ public class SqlOperatorTest {
         f.checkNull("cast('1945-01-24 25:42:25.34' as TIMESTAMP)");
         f.checkNull("cast('1945-1-24 12:23:34.454' as TIMESTAMP)");
       }
+    } else {
+      f.checkScalar("cast('1945-2-2 12:2:5' as TIMESTAMP)",
+          "1945-02-02 12:02:05", "TIMESTAMP(0) NOT NULL");
+      f.checkScalar("cast('1241241' as TIMESTAMP)",
+          "1241-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+      f.checkScalar("cast('1945-20-24 12:42:25.34' as TIMESTAMP)",
+          "1946-08-26 12:42:25", "TIMESTAMP(0) NOT NULL");
+      f.checkScalar("cast('1945-01-24 25:42:25.34' as TIMESTAMP)",
+          "1945-01-25 01:42:25", "TIMESTAMP(0) NOT NULL");
+      f.checkScalar("cast('1945-1-24 12:23:34.454' as TIMESTAMP)",
+          "1945-01-24 12:23:34", "TIMESTAMP(0) NOT NULL");
     }
     f.checkFails("cast('nottime' as TIMESTAMP)", BAD_DATETIME_MESSAGE, true);
 
