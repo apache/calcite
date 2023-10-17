@@ -49,6 +49,8 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 
 /**
@@ -137,7 +139,7 @@ public class Matchers {
   private static <E> Iterable<String> toStringList(Iterable<E> items) {
     return StreamSupport.stream(items.spliterator(), false)
         .map(Object::toString)
-        .collect(Util.toImmutableList());
+        .collect(toImmutableList());
   }
 
   /**

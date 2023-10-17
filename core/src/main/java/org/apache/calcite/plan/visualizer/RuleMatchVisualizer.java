@@ -24,7 +24,6 @@ import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.util.Util;
 
 import org.apache.commons.io.IOUtils;
 
@@ -54,6 +53,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.apache.calcite.util.Util.transform;
 
@@ -355,7 +356,7 @@ public class RuleMatchVisualizer implements RelOptListener {
     List<String> matchedRels =
         Arrays.stream(ruleCall == null ? new RelNode[0] : ruleCall.rels)
             .map(RuleMatchVisualizer::key)
-            .collect(Util.toImmutableList());
+            .collect(toImmutableList());
     this.steps.add(new StepInfo(stepID, nextNodeUpdates, matchedRels));
   }
 

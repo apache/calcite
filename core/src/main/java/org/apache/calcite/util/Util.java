@@ -2608,22 +2608,11 @@ public class Util {
    * Returns a {@code Collector} that accumulates the input elements into a
    * Guava {@link ImmutableList} via a {@link ImmutableList.Builder}.
    *
-   * <p>It will be obsolete when we move to {@link Bug#upgrade Guava 28.0-jre}.
-   * Guava 21.0 introduced {@code ImmutableList.toImmutableList()}, but it had
-   * a {@link com.google.common.annotations.Beta} tag until 28.0-jre.
-   *
-   * <p>In {@link Bug#upgrade Guava 21.0}, change this method to call
-   * {@code ImmutableList.toImmutableList()}, ignoring the {@code @Beta} tag.
-   *
-   * @param <T> Type of the input elements
-   *
-   * @return a {@code Collector} that collects all the input elements into an
-   * {@link ImmutableList}, in encounter order
+   * @deprecated Use {@link ImmutableList#toImmutableList()}
    */
-  public static <T> Collector<T, ImmutableList.Builder<T>, ImmutableList<T>>
-      toImmutableList() {
-    return Collector.of(ImmutableList::builder, ImmutableList.Builder::add, Util::combine,
-        ImmutableList.Builder::build);
+  @Deprecated // to be removed before 2.0
+  public static <T> Collector<T, ?, ImmutableList<T>> toImmutableList() {
+    return ImmutableList./* do not simplify. */toImmutableList();
   }
 
   /** Combines a second immutable list builder into a first. */

@@ -70,6 +70,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -640,7 +642,7 @@ public class RexUtil {
               rexBuilder.makeCall(SqlStdOperatorTable.NOT_EQUALS, ref,
                   rexBuilder.makeLiteral(range.lowerEndpoint(),
                       type, true, true)))
-          .collect(Util.toImmutableList());
+          .collect(toImmutableList());
       orList.add(composeConjunction(rexBuilder, list));
     } else {
       final RangeSets.Consumer<C> consumer =

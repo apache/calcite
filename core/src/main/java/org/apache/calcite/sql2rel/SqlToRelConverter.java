@@ -213,6 +213,7 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.runtime.FlatLists.append;
@@ -2707,7 +2708,7 @@ public class SqlToRelConverter {
         valueList.add(
             Pair.of(alias,
                 nodeList.stream().map(bb::convertExpression)
-                    .collect(Util.toImmutableList()))));
+                    .collect(toImmutableList()))));
 
     final RelNode rel =
         relBuilder.pivot(groupKey, aggCalls, axes, valueList.build())
@@ -2726,10 +2727,10 @@ public class SqlToRelConverter {
 
     final List<String> measureNames = unpivot.measureList.stream()
         .map(node -> ((SqlIdentifier) node).getSimple())
-        .collect(Util.toImmutableList());
+        .collect(toImmutableList());
     final List<String> axisNames =  unpivot.axisList.stream()
         .map(node -> ((SqlIdentifier) node).getSimple())
-        .collect(Util.toImmutableList());
+        .collect(toImmutableList());
     final ImmutableList.Builder<Pair<List<RexLiteral>, List<RexNode>>> axisMap =
         ImmutableList.builder();
     unpivot.forEachNameValues((nodeList, valueList) -> {
@@ -2748,7 +2749,7 @@ public class SqlToRelConverter {
       });
       final List<RexNode> nodes = nodeList.stream()
           .map(unpivotBb::convertExpression)
-          .collect(Util.toImmutableList());
+          .collect(toImmutableList());
       axisMap.add(Pair.of(literals, nodes));
     });
     relBuilder.unpivot(unpivot.includeNulls, measureNames, axisNames,

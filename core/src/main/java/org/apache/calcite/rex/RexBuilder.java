@@ -77,6 +77,7 @@ import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Verify.verifyNotNull;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -361,7 +362,7 @@ public class RexBuilder {
       IntPredicate isNullable) {
     return list0.stream()
         .filter(isNullable::test)
-        .collect(Util.toImmutableList());
+        .collect(toImmutableList());
   }
 
   @Deprecated // to be removed before 2.0
@@ -1392,7 +1393,7 @@ public class RexBuilder {
     }
     return RexUtil.composeDisjunction(this, ranges.stream()
         .map(r -> makeCall(SqlStdOperatorTable.EQUALS, arg, r))
-        .collect(Util.toImmutableList()));
+        .collect(toImmutableList()));
   }
 
   /** Returns whether and argument and bounds are have types that are

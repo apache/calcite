@@ -24,7 +24,6 @@ import org.apache.calcite.test.Matchers;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -51,6 +50,8 @@ import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -541,7 +542,7 @@ class ProfilerTest {
                   p.profile(rows, columns, initialGroups);
               final List<Profiler.Statistic> statistics =
                   profile.statistics().stream().filter(predicate)
-                      .collect(Util.toImmutableList());
+                      .collect(toImmutableList());
 
               // If no comparator specified, use the function that converts to
               // JSON strings

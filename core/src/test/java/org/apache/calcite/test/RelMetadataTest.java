@@ -131,6 +131,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import static org.apache.calcite.test.Matchers.hasFieldNames;
 import static org.apache.calcite.test.Matchers.isAlmost;
 import static org.apache.calcite.test.Matchers.sortsAs;
@@ -3398,7 +3400,7 @@ public class RelMetadataTest {
   /** Converts a Map to a sorted list of its entries. */
   static <K, V> List<String> toSortedStringList(Map<K, V> map) {
     return map.entrySet().stream().map(Object::toString)
-        .sorted().collect(Util.toImmutableList());
+        .sorted().collect(toImmutableList());
   }
 
   /** Test case for
