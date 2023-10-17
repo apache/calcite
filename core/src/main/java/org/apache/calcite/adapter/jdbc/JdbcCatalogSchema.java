@@ -61,9 +61,9 @@ public class JdbcCatalogSchema extends AbstractSchema {
   final String catalog;
 
   /** Sub-schemas by name, lazily initialized. */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings({"method.invocation.invalid", "Convert2MethodRef"})
   final Supplier<SubSchemaMap> subSchemaMapSupplier =
-      Suppliers.memoize(this::computeSubSchemaMap);
+      Suppliers.memoize(() -> computeSubSchemaMap());
 
   /** Creates a JdbcCatalogSchema. */
   public JdbcCatalogSchema(DataSource dataSource, SqlDialect dialect,
