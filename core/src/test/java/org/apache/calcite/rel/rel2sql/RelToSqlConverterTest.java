@@ -1486,9 +1486,6 @@ class RelToSqlConverterTest {
     assertThat(toSql(root), isLinux(expectedSql));
   }
 
-
-
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5394">[CALCITE-5394]
    * RelToSql converter fails when semi-join is under a join node</a>. */
@@ -7136,6 +7133,9 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3933">[CALCITE-3933]
+   * Incorrect SQL Emitted for Unicode for Several Dialects</a>. */
   @Test void testBigQueryUnicode() {
     final Function<RelBuilder, RelNode> relFn = b ->
         b.scan("EMP")

@@ -537,18 +537,18 @@ public interface SqlConformance {
    */
   boolean isValueAllowed();
 
-	/**
+  /**
 	 * Whether {@code UTF-8} should be used as the default charset in
 	 * the parser.
-	 * 
+	 *
 	 * <p>Among the built-in conformance levels, true in
 	 * {@link SqlConformanceEnum#BABEL},
 	 * {@link SqlConformanceEnum#BIG_QUERY},
 	 * {@link SqlConformanceEnum#LENIENT},
 	 * false otherwise.
-	 */ 
+	 */
 	boolean useUtf8AsDefaultCharset();
-	
+
 	/**
    * Controls the behavior of operators that are part of Standard SQL but
    * nevertheless have different behavior in different databases.

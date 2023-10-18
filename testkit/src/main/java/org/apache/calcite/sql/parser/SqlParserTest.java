@@ -1795,6 +1795,7 @@ public class SqlParserTest {
 
   @Test void testParsingNonIsoCharacter() {
   	String sql = "select 'ק' ";
+    sql(sql).fails("Failed to encode 'ק' in character set 'ISO-8859-1'");
 		// BigQuery conformance should set charset to UTF-8 and be able to properly encode character
   	sql(sql).withDialect(BIG_QUERY)
   			.ok("SELECT _UTF-8'ק'");
