@@ -10516,6 +10516,48 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testSnowflakeHashFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode hashNode = builder.call(SqlLibraryOperators.HASH,
+        builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(hashNode, "FD"))
+        .build();
+    final String expectedSFSql = "SELECT HASH(\"ENAME\") AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFSql));
+  }
+
+  @Test public void testSnowflakeSha2Function() {
+    final RelBuilder builder = relBuilder();
+    final RexNode sha2Node = builder.call(SqlLibraryOperators.SHA2,
+        builder.scan("EMP").field(1), builder.literal(256));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(sha2Node, "hashing"))
+        .build();
+    final String expectedSFSql = "SELECT SHA2(\"ENAME\", 256) AS \"hashing\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFSql));
+  }
+
+  @Test public void testBigQuerySha256Function() {
+    final RelBuilder builder = relBuilder();
+    final RexNode sha256Node = builder.call(SqlLibraryOperators.SHA256,
+        builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(sha256Node, "hashing"))
+        .build();
+    final String expectedBQSql = "SELECT SHA256(ENAME) AS hashing\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
 
   RelNode createLogicalValueRel(RexNode col1, RexNode col2) {
     final RelBuilder builder = relBuilder();

@@ -532,6 +532,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker STRING_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
 
+  public static final SqlSingleOperandTypeChecker BINARY_INTEGER =
+      family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER);
+
   public static final SqlSingleOperandTypeChecker STRING_INTEGER_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER,
           SqlTypeFamily.INTEGER);
