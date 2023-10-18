@@ -295,7 +295,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endList(frame);
   }
 
-  private static void unparseWithinGroup(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  private static void unparseWithinGroup(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
     assert call.operandCount() == 2;
     call.operand(0).unparse(writer, 0, 0);
     writer.keyword("OVER");
