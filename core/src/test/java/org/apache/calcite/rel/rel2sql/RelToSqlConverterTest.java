@@ -6302,7 +6302,7 @@ class RelToSqlConverterTest {
         + "1,1,'i')\n"
         + "from \"foodmart\".\"product\" where \"product_id\" in (1, 2, 3, 4)";
     final String expected = "SELECT "
-        + "REGEXP_SUBSTR('chocolate Chip cookies', '(?i)[-\\\\_] V[0-9]+', 1, 1)\n"
+        + "REGEXP_SUBSTR('chocolate Chip cookies', '(?i)[-\\_] V[0-9]+', 1, 1)\n"
         + "FROM foodmart.product\n"
         + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3 OR product_id = 4";
     sql(query)
@@ -10516,6 +10516,48 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testSnowflakeHashFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode hashNode = builder.call(SqlLibraryOperators.HASH,
+        builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(hashNode, "FD"))
+        .build();
+    final String expectedSFSql = "SELECT HASH(\"ENAME\") AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFSql));
+  }
+
+  @Test public void testSnowflakeSha2Function() {
+    final RelBuilder builder = relBuilder();
+    final RexNode sha2Node = builder.call(SqlLibraryOperators.SHA2,
+        builder.scan("EMP").field(1), builder.literal(256));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(sha2Node, "hashing"))
+        .build();
+    final String expectedSFSql = "SELECT SHA2(\"ENAME\", 256) AS \"hashing\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFSql));
+  }
+
+  @Test public void testBigQuerySha256Function() {
+    final RelBuilder builder = relBuilder();
+    final RexNode sha256Node = builder.call(SqlLibraryOperators.SHA256,
+        builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(sha256Node, "hashing"))
+        .build();
+    final String expectedBQSql = "SELECT SHA256(ENAME) AS hashing\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
 
   RelNode createLogicalValueRel(RexNode col1, RexNode col2) {
     final RelBuilder builder = relBuilder();
@@ -13075,6 +13117,29 @@ class RelToSqlConverterTest {
         .ok(expectedSql);
   }
 
+  @Test void testHashAgg() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    RelBuilder.AggCall hashAggCall =
+        builder.aggregateCall(SqlLibraryOperators.HASH_AGG, builder.field(1));
+    final RelNode root = builder
+        .aggregate(builder.groupKey(), hashAggCall.as("hash"))
+        .build();
+    final String expectedSnowflakeSql = "SELECT HASH_AGG(\"ENAME\") AS \"hash\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+  }
+
+  @Test void testBitXor() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    RelBuilder.AggCall xorCall =
+        builder.aggregateCall(SqlLibraryOperators.BIT_XOR, builder.field("EMPNO"));
+    final RelNode root = builder
+        .aggregate(builder.groupKey(), xorCall.as("hash"))
+        .build();
+    final String expectedBQSql = "SELECT BIT_XOR(EMPNO) AS `hash`\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
   @Test public void testUnparsingOfPercentileCont() {
     final RelBuilder builder = relBuilder();
     builder.push(builder.scan("EMP").build());
@@ -13301,5 +13366,18 @@ class RelToSqlConverterTest {
         false, false);
     return builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, multiplicationRex,
         windowRexNodeOfCount);
+  }
+
+  @Test void testArrayAgg() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall = builder.aggregateCall(SqlLibraryOperators.ARRAY_AGG,
+        builder.field("ENAME")).sort(builder.field("ENAME"));
+    final RelNode rel = builder
+        .aggregate(relBuilder().groupKey(), aggCall)
+        .build();
+    final String expectedBigQuery = "SELECT ARRAY_AGG(ENAME ORDER BY ENAME IS NULL, ENAME)"
+        + " AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 }

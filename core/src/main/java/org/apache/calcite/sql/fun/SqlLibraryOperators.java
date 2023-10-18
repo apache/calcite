@@ -1558,6 +1558,40 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTEGER,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction HASH =
+      new SqlFunction(
+          "HASH",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DECIMAL,
+          null,
+          OperandTypes.ONE_OR_MORE,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction SHA2 =
+      new SqlFunction(
+          "SHA2",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
+                  // Second operand optional (operand index 0, 1)
+              number -> number == 1),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SHA256 =
+      new SqlFunction("SHA256",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.explicit(SqlTypeName.VARCHAR)
+              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          null,
+          OperandTypes.or(OperandTypes.STRING_INTEGER,
+              OperandTypes.BINARY_INTEGER),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction HASHROW =
       new SqlFunction(
@@ -1567,6 +1601,22 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.ONE_OR_MORE,
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction HASH_AGG =
+      SqlBasicAggFunction
+          .create("HASH_AGG", SqlKind.HASH_AGG, ReturnTypes.BIGINT,
+              OperandTypes.VARIADIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC)
+          .withDistinct(Optionality.OPTIONAL);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlAggFunction BIT_XOR =
+      SqlBasicAggFunction
+          .create("BIT_XOR", SqlKind.BIT_XOR, ReturnTypes.BIGINT,
+              OperandTypes.INTEGER)
+          .withFunctionType(SqlFunctionCategory.NUMERIC)
+          .withDistinct(Optionality.OPTIONAL);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FARM_FINGERPRINT =
