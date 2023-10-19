@@ -2418,6 +2418,58 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testWithRecursive() {
+    final String sql = "WITH RECURSIVE aux(i) AS (\n"
+        + "  VALUES (1)\n"
+        + "  UNION ALL\n"
+        + "  SELECT i+1 FROM aux WHERE i < 10\n"
+        + "  )\n"
+        + "  SELECT * FROM aux";
+    final String expected = "WITH RECURSIVE `AUX` (`I`) AS ((VALUES (ROW(1)))\n"
+        + "UNION ALL\n"
+        + "SELECT (`I` + 1)\n"
+        + "FROM `AUX`\n"
+        + "WHERE (`I` < 10)) SELECT *\n"
+        + "FROM `AUX`";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testMultipleWithRecursive() {
+    final String sql = "WITH RECURSIVE a(x) AS\n"
+        + "  (SELECT 1),\n"
+        + "               b(y) AS\n"
+        + "  (SELECT x\n"
+        + "   FROM a\n"
+        + "   UNION ALL SELECT y + 1\n"
+        + "   FROM b\n"
+        + "   WHERE y < 2),\n"
+        + "               c(z) AS\n"
+        + "  (SELECT y\n"
+        + "   FROM b\n"
+        + "   UNION ALL SELECT z * 4\n"
+        + "   FROM c\n"
+        + "   WHERE z < 4 )\n"
+        + "SELECT *\n"
+        + "FROM a,\n"
+        + "     b,\n"
+        + "     c";
+    final String expected = "WITH RECURSIVE `A` (`X`) AS (SELECT 1), `B` (`Y`) AS (SELECT `X`\n"
+        + "FROM `A`\n"
+        + "UNION ALL\n"
+        + "SELECT (`Y` + 1)\n"
+        + "FROM `B`\n"
+        + "WHERE (`Y` < 2)), `C` (`Z`) AS (SELECT `Y`\n"
+        + "FROM `B`\n"
+        + "UNION ALL\n"
+        + "SELECT (`Z` * 4)\n"
+        + "FROM `C`\n"
+        + "WHERE (`Z` < 4)) SELECT *\n"
+        + "FROM `A`,\n"
+        + "`B`,\n"
+        + "`C`";
+    sql(sql).ok(expected);
+  }
+
   @Test void testWith() {
     final String sql = "with femaleEmps as (select * from emps where gender = 'F')"
         + "select deptno from femaleEmps";

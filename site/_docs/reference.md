@@ -182,7 +182,7 @@ delete:
 
 query:
       values
-  |   WITH withItem [ , withItem ]* query
+  |   WITH [ RECURSIVE ] withItem [ , withItem ]* query
   |   {
           select
       |   selectWithoutFrom

@@ -5232,6 +5232,74 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "select * from emp2")
         .type(EMP_RECORD_TYPE);
 
+    // simplest with recursive fails
+    sql("with RECURSIVE emp2 as (select * from ^emp2^)\n"
+        + "select * from emp2")
+        .fails("Object 'EMP2' not found");
+
+    sql("with RECURSIVE emp2 as ("
+        + "select * from emp "
+        + " union select * from ^emp2^"
+        + " union select * from emp2"
+        + ")\n"
+        + "select * from emp2")
+        .fails("Object 'EMP2' not found");
+
+    // mutually recursive queries are not supported.
+    sql("WITH RECURSIVE\n"
+        + "x (id) AS (SELECT 1 UNION ALL SELECT id+1 FROM ^y^ WHERE id < 5),\n"
+        + "y (id) AS (SELECT 1 UNION ALL SELECT id+1 FROM x WHERE id < 5)\n"
+        + "SELECT * FROM x")
+        .fails("Object 'Y' not found");
+
+    sql("WITH RECURSIVE t_out(n) AS\n"
+        + "  (WITH RECURSIVE t_in(n) AS\n"
+        + "     (\n"
+        + "      VALUES (1)\n"
+        + "      UNION ALL SELECT n+1\n"
+        + "      FROM ^t_out^\n"
+        + "      WHERE n < 9 ) SELECT n\n"
+        + "   FROM t_in\n"
+        + "   UNION ALL SELECT n*10\n"
+        + "   FROM t_out\n"
+        + "   WHERE n < 100 )\n"
+        + "SELECT n\n"
+        + "FROM t_out")
+        .fails("Object 'T_OUT' not found");
+
+    sql("WITH RECURSIVE cte (n) AS\n"
+        + "(\n"
+        + "  SELECT 1, 2\n"
+        + "  UNION ALL\n"
+        + "  SELECT ^n + 1^ FROM cte WHERE n < 5\n"
+        + ")\n"
+        + "SELECT * FROM cte")
+        .fails("Column count mismatch in UNION ALL");
+
+    // simplest with RECURSIVE working case.
+    sql("with RECURSIVE emp2 as (select * from emp union select * from emp2)\n"
+        + "select * from emp2")
+        .type(EMP_RECORD_TYPE);
+
+    // union all with recursive working case.
+    sql("with RECURSIVE emp2 as (select * from emp union all select * from emp2)\n"
+        + "select * from emp2")
+        .type(EMP_RECORD_TYPE);
+
+    // recursive usage of the with clause table name on the left child should throw an error.
+    sql("with RECURSIVE emp2 as (select * from ^emp2^ union all select * from emp2)\n"
+        + "select * from emp2")
+        .fails("Object 'EMP2' not found");
+
+    sql("with RECURSIVE emp2 as (select * from emp intersect select * from ^emp2^)\n"
+        + "select * from emp2")
+        .fails("Object 'EMP2' not found");
+
+    sql("with recursive emp2 as (select * from emp),\n"
+        + "emp3 as (select * from emp2 union all select * from emp3)\n"
+        + "select * from emp2")
+        .type(EMP_RECORD_TYPE);
+
     // degree of emp2 column list does not match its query
     sql("with emp2 ^(x, y)^ as (select * from emp)\n"
         + "select * from emp2")

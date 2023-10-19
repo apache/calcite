@@ -30,13 +30,23 @@ import java.util.List;
 public class SqlWithItem extends SqlCall {
   public SqlIdentifier name;
   public @Nullable SqlNodeList columnList; // may be null
+  public SqlLiteral recursive;
   public SqlNode query;
 
+  @Deprecated // to be removed before 2.0
   public SqlWithItem(SqlParserPos pos, SqlIdentifier name,
       @Nullable SqlNodeList columnList, SqlNode query) {
+    this(pos, name, columnList, query,
+        SqlLiteral.createBoolean(false, SqlParserPos.ZERO));
+  }
+
+  public SqlWithItem(SqlParserPos pos, SqlIdentifier name,
+      @Nullable SqlNodeList columnList, SqlNode query,
+      SqlLiteral recursive) {
     super(pos);
     this.name = name;
     this.columnList = columnList;
+    this.recursive = recursive;
     this.query = query;
   }
 
@@ -106,7 +116,8 @@ public class SqlWithItem extends SqlCall {
       assert functionQualifier == null;
       assert operands.length == 3;
       return new SqlWithItem(pos, (SqlIdentifier) operands[0],
-          (SqlNodeList) operands[1], operands[2]);
+          (SqlNodeList) operands[1], operands[2],
+          SqlLiteral.createBoolean(false, SqlParserPos.ZERO));
     }
   }
 }
