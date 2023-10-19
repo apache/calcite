@@ -56,7 +56,7 @@ public class SqlWindowTableFunction extends SqlFunction
   protected static final String PARAM_SIZE = "SIZE";
 
   /** The optional align offset for each window. */
-  protected static final String PARAM_OFFSET = "OFFSET";
+  protected static final String PARAM_OFFSET = "OFFSETSIZE";
 
   /** The session key(s), only used for SESSION window. */
   protected static final String PARAM_KEY = "KEY";

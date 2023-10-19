@@ -2258,6 +2258,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "  DATA => table Shipments,\n"
         + "  SLIDE => INTERVAL '1' MINUTE,\n"
         + "  TIMECOL => descriptor(rowtime),\n"
+        + "  OFFSETSIZE => INTERVAL '1' MINUTE,\n"
         + "  SIZE => INTERVAL '2' MINUTE))";
     sql(sql).ok();
   }

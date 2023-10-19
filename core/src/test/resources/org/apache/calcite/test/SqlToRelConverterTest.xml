@@ -7289,12 +7289,13 @@ hop(
   DATA => table Shipments,
   SLIDE => INTERVAL '1' MINUTE,
   TIMECOL => descriptor(rowtime),
+  OFFSETSIZE => INTERVAL '1' MINUTE,
   SIZE => INTERVAL '2' MINUTE))]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
-  LogicalTableFunctionScan(invocation=[HOP(DESCRIPTOR($1), 60000:INTERVAL MINUTE, 120000:INTERVAL MINUTE)], rowType=[RecordType(INTEGER ORDERID, TIMESTAMP(0) ROWTIME, TIMESTAMP(3) window_start, TIMESTAMP(3) window_end)])
+  LogicalTableFunctionScan(invocation=[HOP(DESCRIPTOR($1), 60000:INTERVAL MINUTE, 120000:INTERVAL MINUTE, 60000:INTERVAL MINUTE)], rowType=[RecordType(INTEGER ORDERID, TIMESTAMP(0) ROWTIME, TIMESTAMP(3) window_start, TIMESTAMP(3) window_end)])
     LogicalProject(ORDERID=[$0], ROWTIME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
 ]]>
