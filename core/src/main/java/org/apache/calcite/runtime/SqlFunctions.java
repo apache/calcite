@@ -92,6 +92,7 @@ import java.text.DecimalFormat;
 import java.text.Normalizer;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -166,6 +167,8 @@ public class SqlFunctions {
   private static final DecimalFormat DOUBLE_FORMAT =
       NumberUtil.decimalFormat("0.0E0");
 
+  private static final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
+
   private static final TimeZone LOCAL_TZ = TimeZone.getDefault();
 
   private static final DateTimeFormatter ROOT_DAY_FORMAT =
@@ -223,12 +226,11 @@ public class SqlFunctions {
   private static final ByteString SINGLE_SPACE_BYTE_STRING =
       ByteString.of("20", 16);
 
-  // Date formatter for BigQuery's timestamp literals:
-  // https://cloud.google.com/bigquery/docs/reference/standard-sql/lexical#timestamp_literals
-  private static final DateTimeFormatter BIG_QUERY_TIMESTAMP_LITERAL_FORMATTER =
+  /** Date formatter used to *parse* timestamp literals. */
+  private static final DateTimeFormatter TIMESTAMP_LITERAL_FORMATTER =
       new DateTimeFormatterBuilder()
-          // Unlike ISO 8601, BQ only supports years between 1 - 9999,
-          // but can support single-digit month and day parts.
+          // Support 4-digit years between 0001 - 9999.
+          // Month and day parts may be single-digit.
           .appendValue(ChronoField.YEAR, 4)
           .appendLiteral('-')
           .appendValue(ChronoField.MONTH_OF_YEAR, 1, 2, SignStyle.NOT_NEGATIVE)
@@ -236,21 +238,25 @@ public class SqlFunctions {
           .appendValue(ChronoField.DAY_OF_MONTH, 1, 2, SignStyle.NOT_NEGATIVE)
           // Everything after the date is optional. Optional sections can be nested.
           .optionalStart()
-          // BQ accepts either a literal 'T' or a space to separate the date from the time,
+          // Accept either a literal 'T' or a space to separate the date from the time,
           // so make the 'T' optional but pad with 1 space if it's omitted.
           .padNext(1, ' ')
           .optionalStart()
+          .parseCaseInsensitive()
           .appendLiteral('T')
           .optionalEnd()
-          // Unlike ISO 8601, BQ can support single-digit hour, minute, and second parts.
+          // Support single-digit hour, minute, and second parts.
           .appendValue(ChronoField.HOUR_OF_DAY, 1, 2, SignStyle.NOT_NEGATIVE)
           .appendLiteral(':')
           .appendValue(ChronoField.MINUTE_OF_HOUR, 1, 2, SignStyle.NOT_NEGATIVE)
           .appendLiteral(':')
           .appendValue(ChronoField.SECOND_OF_MINUTE, 1, 2, SignStyle.NOT_NEGATIVE)
-          // ISO 8601 supports up to nanosecond precision, but BQ only up to microsecond.
+          // Calcite's internal representation for timestamps (integer milliseconds since epoch)
+          // does not support nanosecond precision, but we will pretend like it does for the purpose
+          // of parsing timestamp literals. Sub-millisecond precision will be truncated :(.
+          // See [CALCITE-5308].
           .optionalStart()
-          .appendFraction(ChronoField.MICRO_OF_SECOND, 0, 6, true)
+          .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
           .optionalEnd()
           .optionalStart()
           .parseLenient()
@@ -4849,25 +4855,40 @@ public class SqlFunctions {
   public static long timestamp(String expression) {
     // Calcite represents TIMESTAMP WITH LOCAL TIME ZONE as Unix integers
     // (milliseconds since epoch).
-    return parseBigQueryTimestampLiteral(expression).toInstant().toEpochMilli();
+    return parseTimestampLiteralPermissively(expression, UTC_ZONE_ID).toInstant().toEpochMilli();
   }
 
   /** SQL {@code TIMESTAMP(<string>, <timeZone>)} function. */
   public static long timestamp(String expression, String timeZone) {
     // Calcite represents TIMESTAMP WITH LOCAL TIME ZONE as Unix integers
     // (milliseconds since epoch).
-    return parseBigQueryTimestampLiteral(expression)
-        .atZoneSimilarLocal(ZoneId.of(timeZone))
+    return parseTimestampLiteralPermissively(expression, ZoneId.of(timeZone))
         .toInstant()
         .toEpochMilli();
   }
 
-  private static OffsetDateTime parseBigQueryTimestampLiteral(String expression) {
-    // First try to parse with an offset, otherwise parse as a local and assume
-    // UTC ("no offset").
+  private static OffsetDateTime parseTimestampLiteralPermissively(
+      String expression, ZoneId defaultZoneId) {
+    // First, look for a zone ID, e.g. "America/Los_Angeles", at the end of the expression.
+    // This is different from a zone offset, e.g. "-07:00".
+    final int lastSpaceIndex = expression.lastIndexOf(' ');
+    if (lastSpaceIndex > 0 && lastSpaceIndex < expression.length() - 1) {
+      final String maybeZoneId = expression.substring(lastSpaceIndex + 1);
+      try {
+        // Look up the zone ID, supplanting defaultZoneId if it's valid.
+        defaultZoneId = ZoneId.of(maybeZoneId);
+        // If the zone ID lookup succeeded, parse the rest of the expression without it.
+        // We'll apply the right offset before returning.
+        expression = expression.substring(0, lastSpaceIndex);
+      } catch (DateTimeException e) {
+        // maybeZoneId lookup failed. Neither the expression nor defaultZoneId has been modified.
+      }
+    }
+
+    // Try to parse with an offset,
+    // otherwise parse as a local datetime and apply the default zone ID.
     try {
-      return OffsetDateTime.parse(expression,
-          BIG_QUERY_TIMESTAMP_LITERAL_FORMATTER);
+      return OffsetDateTime.parse(expression, TIMESTAMP_LITERAL_FORMATTER);
     } catch (DateTimeParseException e) {
       // ignore
     }
@@ -4877,20 +4898,19 @@ public class SqlFunctions {
       // match "+00:00".
       try {
         expression += ":00";
-        return OffsetDateTime.parse(expression,
-            BIG_QUERY_TIMESTAMP_LITERAL_FORMATTER);
+        return OffsetDateTime.parse(expression, TIMESTAMP_LITERAL_FORMATTER);
       } catch (DateTimeParseException e) {
         // ignore
       }
     }
     try {
-      return LocalDateTime
-          .parse(expression, BIG_QUERY_TIMESTAMP_LITERAL_FORMATTER)
-          .atOffset(ZoneOffset.UTC);
+      LocalDateTime localDateTime =
+          LocalDateTime.parse(expression, TIMESTAMP_LITERAL_FORMATTER);
+      return localDateTime.atOffset(
+          defaultZoneId.getRules().getOffset(localDateTime));
     } catch (DateTimeParseException e2) {
       throw new IllegalArgumentException(
-          String.format(Locale.ROOT,
-              "Could not parse BigQuery timestamp literal: %s", expression),
+          String.format(Locale.ROOT, "Could not parse timestamp literal: %s", expression),
           e2);
     }
   }
@@ -4932,8 +4952,7 @@ public class SqlFunctions {
     // TIME ZONE and TIMESTAMP, respectively) are represented internally as
     // milliseconds since epoch UTC and epoch.
     final Instant instant = Instant.ofEpochMilli(millisSinceEpoch);
-    final ZoneId utcZone = ZoneId.of("UTC");
-    return OffsetDateTime.ofInstant(instant, utcZone)
+    return OffsetDateTime.ofInstant(instant, UTC_ZONE_ID)
         .atZoneSimilarLocal(ZoneId.of(timeZone))
         .toInstant()
         .toEpochMilli();
@@ -4976,10 +4995,9 @@ public class SqlFunctions {
     if (v == null) {
       return castNonNull(null);
     }
-    return new TimestampWithTimeZoneString(v)
-        .withTimeZone(DateTimeUtils.UTC_ZONE)
-        .getLocalTimestampString()
-        .getMillisSinceEpoch();
+    return parseTimestampLiteralPermissively(v, UTC_ZONE_ID)
+        .toInstant()
+        .toEpochMilli();
   }
 
   public static @PolyNull Long toTimestampWithLocalTimeZone(@PolyNull String v,
@@ -4987,10 +5005,9 @@ public class SqlFunctions {
     if (v == null) {
       return castNonNull(null);
     }
-    return new TimestampWithTimeZoneString(v + " " + timeZone.getID())
-        .withTimeZone(DateTimeUtils.UTC_ZONE)
-        .getLocalTimestampString()
-        .getMillisSinceEpoch();
+    return parseTimestampLiteralPermissively(v, timeZone.toZoneId())
+        .toInstant()
+        .toEpochMilli();
   }
 
   // Don't need shortValueOf etc. - Short.valueOf is sufficient.
