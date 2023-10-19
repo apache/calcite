@@ -341,6 +341,7 @@ parser: {
     "VERSION"
     "VIEW"
     "WEEK"
+    "WEEKS"
     "WORK"
     "WRAPPER"
     "WRITE"

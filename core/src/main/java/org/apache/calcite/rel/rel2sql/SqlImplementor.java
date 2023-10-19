@@ -924,6 +924,7 @@ public abstract class SqlImplementor {
       final List<SqlNode> nodeList = toSql(program, call.getOperands());
       switch (call.getKind()) {
       case CAST:
+      case SAFE_CAST:
         // CURSOR is used inside CAST, like 'CAST ($0): CURSOR NOT NULL',
         // convert it to sql call of {@link SqlStdOperatorTable#CURSOR}.
         RelDataType dataType = rex.getType();
@@ -940,7 +941,7 @@ public abstract class SqlImplementor {
         } else {
           RelDataType castFrom = call.operands.get(0).getType();
           RelDataType castTo = call.getType();
-          return dialect.getCastCall(nodeList.get(0), castFrom, castTo);
+          return dialect.getCastCall(call.getKind(), nodeList.get(0), castFrom, castTo);
         }
       case PLUS:
       case MINUS:
@@ -1308,12 +1309,12 @@ public abstract class SqlImplementor {
       }
 
       // Handle collation
-      return withOrder(call2, collation);
+      return withOrder(call2, collation, qualifier);
     }
 
     /** Wraps a call in a {@link SqlKind#WITHIN_GROUP} call, if
      * {@code collation} is non-empty. */
-    private SqlCall withOrder(SqlCall call, RelCollation collation) {
+    private SqlCall withOrder(SqlCall call, RelCollation collation, SqlLiteral qualifier) {
       SqlOperator sqlOperator = call.getOperator();
       if (collation.getFieldCollations().isEmpty()) {
         return call;
@@ -1327,7 +1328,7 @@ public abstract class SqlImplementor {
       operandList.addAll(call.getOperandList());
       operandList.add(orderNodeList);
       if (sqlOperator.getSyntax() == SqlSyntax.ORDERED_FUNCTION) {
-        return sqlOperator.createCall(POS, operandList);
+        return sqlOperator.createCall(qualifier, POS, operandList);
       }
       return SqlStdOperatorTable.WITHIN_GROUP.createCall(POS, call, orderNodeList);
     }

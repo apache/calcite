@@ -18,6 +18,8 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.linq4j.Nullness;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -217,6 +219,12 @@ public class SnowflakeSqlDialect extends SqlDialect {
     }
   }
 
+  public SqlNode getCastCall(SqlKind sqlKind, SqlNode operandToCast,
+      RelDataType castFrom, RelDataType castTo) {
+    return CAST.createCall(SqlParserPos.ZERO,
+        operandToCast, Nullness.castNonNull(this.getCastSpec(castTo)));
+  }
+
   private void unparseIntervalTimes(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     if (call.operand(0) instanceof SqlIntervalLiteral) {
       SqlCall multipleCall = new SnowflakeDateTimestampInterval().unparseMultipleInterval(call);
@@ -362,6 +370,9 @@ public class SnowflakeSqlDialect extends SqlDialect {
     case "REGEXP_CONTAINS":
       unparseRegexContains(writer, call, leftPrec, rightPrec);
       break;
+    case "REGEXP_SIMILAR":
+      unparseRegexpSimilar(writer, call, leftPrec, rightPrec);
+      break;
     case "SUBSTRING":
       final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
       for (SqlNode operand : call.getOperandList()) {
@@ -398,6 +409,17 @@ public class SnowflakeSqlDialect extends SqlDialect {
       operand.unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(regexpLikeFrame);
+  }
+
+  private void unparseRegexpSimilar(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    SqlWriter.Frame ifFrame = writer.startFunCall("IF");
+    unparseRegexContains(writer, call, leftPrec, rightPrec);
+    writer.sep(",");
+    writer.literal("1");
+    writer.sep(",");
+    writer.literal("0");
+    writer.endFunCall(ifFrame);
   }
 
   private void unparseToHex(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

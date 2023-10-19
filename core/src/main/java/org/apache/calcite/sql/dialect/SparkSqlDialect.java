@@ -327,7 +327,7 @@ public class SparkSqlDialect extends SqlDialect {
   }
 
   @Override public SqlNode getCastCall(
-      SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
+      SqlKind sqlKind, SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
     if (castTo.getSqlTypeName() == SqlTypeName.TIMESTAMP && castTo.getPrecision() > 0) {
       return new CastCallBuilder(this).makCastCallForTimestampWithPrecision(operandToCast,
           castTo.getPrecision());
@@ -335,7 +335,7 @@ public class SparkSqlDialect extends SqlDialect {
       return new CastCallBuilder(this)
           .makeCastCallForTimeWithTimestamp(operandToCast, castTo.getPrecision());
     }
-    return super.getCastCall(operandToCast, castFrom, castTo);
+    return super.getCastCall(sqlKind, operandToCast, castFrom, castTo);
   }
 
   @Override public SqlNode getTimeLiteral(
@@ -727,7 +727,7 @@ public class SparkSqlDialect extends SqlDialect {
       SqlWriter.Frame piFrame = writer.startFunCall("PI");
       writer.endFunCall(piFrame);
       break;
-    case "REGEXP_LIKE":
+    case "REGEXP_SIMILAR":
       unParseRegexpLike(writer, call, leftPrec, rightPrec);
       break;
     case "TRUNC":
