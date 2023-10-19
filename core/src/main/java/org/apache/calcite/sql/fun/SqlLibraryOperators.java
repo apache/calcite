@@ -1923,11 +1923,12 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction QUANTILE =
       new SqlQuantileFunction(SqlKind.QUANTILE, ReturnTypes.INTEGER);
+
   @LibraryOperator(libraries = {SNOWFLAKE, TERADATA})
   public static final SqlFunction ZEROIFNULL =
       new SqlFunction("ZEROIFNULL",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER, null,
+          ReturnTypes.ARG0, null,
           OperandTypes.family(SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
 }
