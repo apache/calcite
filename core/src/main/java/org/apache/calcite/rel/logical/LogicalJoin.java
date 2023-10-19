@@ -181,8 +181,7 @@ public final class LogicalJoin extends Join {
   @Override public LogicalJoin copy(RelTraitSet traitSet, RexNode conditionExpr,
       RelNode left, RelNode right, JoinRelType joinType, boolean semiJoinDone) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new LogicalJoin(getCluster(),
-        getCluster().traitSetOf(Convention.NONE), hints, left, right, conditionExpr,
+    return new LogicalJoin(getCluster(), traitSet, hints, left, right, conditionExpr,
         variablesSet, joinType, semiJoinDone, systemFieldList);
   }
 
