@@ -45,6 +45,17 @@ import java.util.function.Consumer;
  */
 class EnumerableRepeatUnionTest {
 
+  @Test void testGenerateNumbersUsingSql() {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE delta(n) AS (\n"
+            + "  VALUES (1)\n"
+            + " UNION ALL\n"
+            + " SELECT n+1 FROM delta WHERE n < 10\n"
+            + ")\n"
+            + "SELECT * FROM delta\n")
+        .returnsOrdered("N=1", "N=2", "N=3", "N=4", "N=5", "N=6", "N=7", "N=8", "N=9", "N=10");
+  }
+
   @Test void testGenerateNumbers() {
     CalciteAssert.that()
         .withRel(
@@ -68,6 +79,47 @@ class EnumerableRepeatUnionTest {
                 .repeatUnion("DELTA", true)
                 .build())
         .returnsOrdered("i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9", "i=10");
+  }
+
+  @Test void testGenerateNumbers2UsingSql() {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE aux(i) AS (\n"
+            + "     VALUES (0)"
+            + "     UNION "
+            + "     SELECT MOD((i+1), 10) FROM aux WHERE i < 10"
+            + "  )"
+            + "   SELECT * FROM aux\n")
+        .returnsOrdered("I=0", "I=1", "I=2", "I=3", "I=4", "I=5", "I=6", "I=7", "I=8", "I=9");
+  }
+
+  @Test void testGenerateNumbers2UsingSqlCheckPlan() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.LEX, Lex.JAVA)
+        .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
+        .withSchema("s", new ReflectiveSchema(new HierarchySchema()))
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(JoinToCorrelateRule.Config.DEFAULT.toRule());
+          planner.removeRule(JoinCommuteRule.Config.DEFAULT.toRule());
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+        })
+        .query("WITH RECURSIVE aux(i) AS (\n"
+            + "     VALUES (0)"
+            + "     UNION "
+            + "     SELECT MOD((i+1), 10) FROM aux WHERE i < 10"
+            + "  )"
+            + "   SELECT * FROM aux\n")
+        .explainHookMatches(
+            "EnumerableRepeatUnion(all=[false])\n"
+                + "  EnumerableTableSpool(readType=[LAZY], writeType=[LAZY], table=[[aux]])\n"
+                + "    EnumerableValues(tuples=[[{ 0 }]])\n"
+                + "  EnumerableTableSpool(readType=[LAZY], writeType=[LAZY], table=[[aux]])\n"
+                + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[+($t0, $t1)], "
+                + "expr#3=[10], expr#4=[MOD($t2, $t3)], expr#5=[<($t0, $t3)], EXPR$0=[$t4], $condition=[$t5])\n"
+                + "      EnumerableInterpreter\n"
+                + "        BindableTableScan(table=[[aux]])\n"
+        )
+        .returnsOrdered("i=0", "i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9");
   }
 
   @Test void testGenerateNumbers2() {
@@ -95,6 +147,26 @@ class EnumerableRepeatUnionTest {
                 .repeatUnion("AUX", false)
                 .build())
         .returnsOrdered("i=0", "i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9");
+  }
+
+  @Test void testGenerateNumbers3UsingSql() {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE aux(i, j) AS (\n"
+            + "     VALUES (0, 0)\n"
+            + "     UNION -- (ALL would generate an infinite loop!)\n"
+            + "     SELECT MOD((i+1), 10), j FROM aux WHERE i < 10\n"
+            + "   )\n"
+            + "   SELECT * FROM aux\n")
+        .returnsOrdered("I=0; J=0",
+            "I=1; J=0",
+            "I=2; J=0",
+            "I=3; J=0",
+            "I=4; J=0",
+            "I=5; J=0",
+            "I=6; J=0",
+            "I=7; J=0",
+            "I=8; J=0",
+            "I=9; J=0");
   }
 
   @Test void testGenerateNumbers3() {
@@ -134,13 +206,31 @@ class EnumerableRepeatUnionTest {
             "i=9; j=0");
   }
 
+  @Test void testFactorialUsingSql() {
+    CalciteAssert.that()
+        .query("   WITH RECURSIVE delta(n, fact) AS (\n"
+            + "     VALUES (0, 1)\n"
+            + "     UNION ALL\n"
+            + "     SELECT n+1, (n+1)*fact FROM delta WHERE n < 7\n"
+            + "   )\n"
+            + "   SELECT * FROM delta\n")
+        .returnsOrdered("N=0; FACT=1",
+            "N=1; FACT=1",
+            "N=2; FACT=2",
+            "N=3; FACT=6",
+            "N=4; FACT=24",
+            "N=5; FACT=120",
+            "N=6; FACT=720",
+            "N=7; FACT=5040");
+  }
+
   @Test void testFactorial() {
     CalciteAssert.that()
         .withRel(
-            //   WITH RECURSIVE d(n, fact) AS (
+            //   WITH RECURSIVE delta(n, fact) AS (
             //     VALUES (0, 1)
             //     UNION ALL
-            //     SELECT n+1, (n+1)*fact FROM d WHERE n < 7
+            //     SELECT n+1, (n+1)*fact FROM delta WHERE n < 7
             //   )
             //   SELECT * FROM delta
             builder -> builder
@@ -171,6 +261,41 @@ class EnumerableRepeatUnionTest {
             "n=5; fact=120",
             "n=6; fact=720",
             "n=7; fact=5040");
+  }
+
+  @Test void testGenerateNumbersNestedTwoLevelRecursionUsingSql() {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE t_out(n) AS (\n"
+            + "     WITH RECURSIVE t_in(n) AS (\n"
+            + "       VALUES (1)\n"
+            + "       UNION ALL\n"
+            + "       SELECT n+1 FROM t_out WHERE n < 9\n"
+            + "     )\n"
+            + "     SELECT n FROM t_in\n"
+            + "     UNION ALL\n"
+            + "     SELECT n*10 FROM t_out WHERE n < 100\n"
+            + "   )\n"
+            + "   SELECT n FROM t_out\n")
+        .failsAtValidation("Object 'T_OUT' not found");
+  }
+
+  @Test void testGenerateNumbersNestedRecursionUsingSql() {
+    CalciteAssert.that()
+        .query("   WITH RECURSIVE t_out(n) AS (\n"
+            + "     WITH RECURSIVE t_in(n) AS (\n"
+            + "       VALUES (1)\n"
+            + "       UNION ALL\n"
+            + "       SELECT n+1 FROM t_in WHERE n < 9\n"
+            + "     )\n"
+            + "     SELECT n FROM t_in\n"
+            + "     UNION ALL\n"
+            + "     SELECT n*10 FROM t_out WHERE n < 100\n"
+            + "   )\n"
+            + "   SELECT n FROM t_out\n")
+        .returnsOrdered(
+            "N=1",   "N=2",   "N=3",   "N=4",   "N=5",   "N=6",   "N=7",   "N=8",   "N=9",
+            "N=10",  "N=20",  "N=30",  "N=40",  "N=50",  "N=60",  "N=70",  "N=80",  "N=90",
+            "N=100", "N=200", "N=300", "N=400", "N=500", "N=600", "N=700", "N=800", "N=900");
   }
 
   @Test void testGenerateNumbersNestedRecursion() {
@@ -237,6 +362,46 @@ class EnumerableRepeatUnionTest {
                 .repeatUnion("DELTA", true)
                 .build())
         .returnsOrdered("i=1", "i=2", "i=null", "i=3", "i=2", "i=3", "i=3");
+  }
+
+  @Test void testRepeatUnionWithCorrelateWithTransientScanOnItsRightUsingSql() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.LEX, Lex.JAVA)
+        .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
+        .withSchema("s", new ReflectiveSchema(new HierarchySchema()))
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(JoinToCorrelateRule.Config.DEFAULT.toRule());
+          planner.removeRule(JoinCommuteRule.Config.DEFAULT.toRule());
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+        })
+        .query("   WITH RECURSIVE delta(empid, name) as (\n"
+            + "     SELECT empid, name FROM emps WHERE empid = 2\n"
+            + "     UNION ALL\n"
+            + "     SELECT e.empid, e.name FROM delta d\n"
+            + "                            JOIN hierarchies h ON d.empid = h.managerid\n"
+            + "                            JOIN emps e        ON h.subordinateid = e.empid\n"
+            + "   )\n"
+            + "   SELECT empid, name FROM delta\n")
+        .explainHookMatches(""
+            + "EnumerableRepeatUnion(all=[true])\n"
+            + "  EnumerableTableSpool(readType=[LAZY], writeType=[LAZY], table=[[delta]])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t0):INTEGER NOT NULL], expr#6=[2], expr#7=[=($t5, $t6)], empid=[$t0], name=[$t2], $condition=[$t7])\n"
+            + "      EnumerableTableScan(table=[[s, emps]])\n"
+            + "  EnumerableTableSpool(readType=[LAZY], writeType=[LAZY], table=[[delta]])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], empid=[$t3], name=[$t4])\n"
+            + "      EnumerableCorrelate(correlation=[$cor1], joinType=[inner], requiredColumns=[{2}])\n"
+            + "        EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0}])\n"
+            + "          EnumerableCalc(expr#0..1=[{inputs}], empid=[$t0])\n"
+            + "            EnumerableInterpreter\n"
+            + "              BindableTableScan(table=[[delta]])\n"
+            + "          EnumerableCalc(expr#0..1=[{inputs}], expr#2=[$cor0], expr#3=[$t2.empid], expr#4=[=($t3, $t0)], proj#0..1=[{exprs}], $condition=[$t4])\n"
+            + "            EnumerableTableScan(table=[[s, hierarchies]])\n"
+            + "        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[$cor1], expr#6=[$t5.subordinateid], expr#7=[=($t6, $t0)], empid=[$t0], name=[$t2], $condition=[$t7])\n"
+            + "          EnumerableTableScan(table=[[s, emps]])\n")
+        .returnsUnordered("empid=2; name=Emp2",
+            "empid=3; name=Emp3",
+            "empid=5; name=Emp5");
   }
 
   /** Test case for
@@ -316,5 +481,42 @@ class EnumerableRepeatUnionTest {
         .returnsUnordered("empid=2; name=Emp2",
             "empid=3; name=Emp3",
             "empid=5; name=Emp5");
+  }
+
+  @Test void testNumbersGeneration() {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE aux(i) AS (\n"
+            + "WITH RECURSIVE aux1(i) as (\n"
+            + "  VALUES (1)\n"
+            + "  UNION ALL\n"
+            + "  SELECT i+1 FROM aux1 WHERE i < 11\n"
+            + ")\n"
+            + "select * from aux1)\n"
+            + "SELECT * FROM aux")
+        .returnsOrdered("I=1", "I=2", "I=3", "I=4",
+            "I=5", "I=6", "I=7", "I=8", "I=9", "I=10", "I=11");
+  }
+  @Test void testMultipleWithListEntries() {
+    CalciteAssert.that()
+        .query("WITH RECURSIVE a(x) AS (SELECT 1), \n"
+            + "                          b(y) AS (\n"
+            + "                               SELECT x FROM a\n"
+            + "                               UNION ALL\n"
+            + "                               SELECT y + 1 FROM b WHERE y < 2\n"
+            + "),\n"
+            + "                          c(z) AS (\n"
+            + "                               SELECT y FROM b\n"
+            + "                               UNION ALL\n"
+            + "                               SELECT z * 4 FROM c WHERE z < 4\n"
+            + "                               )\n"
+            + "                          SELECT * FROM a, b, c")
+        .returnsOrdered("X=1; Y=1; Z=1",
+            "X=1; Y=1; Z=2",
+            "X=1; Y=1; Z=4",
+            "X=1; Y=1; Z=8",
+            "X=1; Y=2; Z=1",
+            "X=1; Y=2; Z=2",
+            "X=1; Y=2; Z=4",
+            "X=1; Y=2; Z=8");
   }
 }

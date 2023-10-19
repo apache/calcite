@@ -849,6 +849,12 @@ public interface CalciteResource {
   @BaseMessage("Must contain an ORDER BY clause when WITHIN is used")
   ExInst<SqlValidatorException> cannotUseWithinWithoutOrderBy();
 
+  @BaseMessage("A recursive query only supports UNION [ALL] operator")
+  ExInst<SqlValidatorException> recursiveWithMustHaveUnionSetOp();
+
+  @BaseMessage("A recursive query only supports binary UNION [ALL] operator")
+  ExInst<SqlValidatorException> recursiveWithMustHaveTwoChildUnionSetOp();
+
   @BaseMessage("First column of ORDER BY must be of type TIMESTAMP")
   ExInst<SqlValidatorException> firstColumnOfOrderByMustBeTimestamp();
 

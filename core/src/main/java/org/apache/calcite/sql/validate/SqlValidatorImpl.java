@@ -123,6 +123,7 @@ import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.KeyFor;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.dataflow.qual.Pure;
@@ -2895,7 +2896,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           parentScope,
           usingScope,
           node,
-          node,
+          enclosingNode,
           alias,
           forceNullable);
       break;
@@ -3099,9 +3100,23 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // A setop is in the same scope as its parent.
     scopes.put(call, parentScope);
-    for (SqlNode operand : call.getOperandList()) {
+    @NonNull SqlValidatorScope recursiveScope = parentScope;
+    if (enclosingNode.getKind() == SqlKind.WITH_ITEM) {
+      if (node.getKind() != SqlKind.UNION) {
+        throw newValidationError(node, RESOURCE.recursiveWithMustHaveUnionSetOp());
+      } else if (call.getOperandList().size() > 2) {
+        throw newValidationError(node, RESOURCE.recursiveWithMustHaveTwoChildUnionSetOp());
+      }
+      WithScope scope = (WithScope) scopes.get(enclosingNode);
+      // recursive scope is only set for the recursive queries.
+      recursiveScope = scope != null && scope.getRecursiveScope() != null
+          ? Objects.requireNonNull(scope.getRecursiveScope()) : parentScope;
+    }
+    for (int i = 0; i < call.getOperandList().size(); i++) {
+      SqlNode operand = call.getOperandList().get(i);
+      @NonNull SqlValidatorScope scope = i == 0 ? parentScope : recursiveScope;
       registerQuery(
-          parentScope,
+          scope,
           null,
           operand,
           operand,
@@ -3126,17 +3141,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlValidatorScope scope = parentScope;
     for (SqlNode withItem_ : with.withList) {
       final SqlWithItem withItem = (SqlWithItem) withItem_;
-      final WithScope withScope = new WithScope(scope, withItem);
+
+      final boolean isRecursiveWith = withItem.recursive.booleanValue();
+      final SqlValidatorScope withScope =
+          new WithScope(scope, withItem,
+              isRecursiveWith ? new WithRecursiveScope(scope, withItem) : null);
       scopes.put(withItem, withScope);
 
-      registerQuery(scope, null, withItem.query, with,
-          withItem.name.getSimple(), false);
+      registerQuery(scope, null, withItem.query,
+          withItem.recursive.booleanValue() ? withItem : with, withItem.name.getSimple(),
+          forceNullable);
       registerNamespace(null, alias,
           new WithItemNamespace(this, withItem, enclosingNode),
           false);
       scope = withScope;
     }
-
     registerQuery(scope, null, with.body, enclosingNode, alias, forceNullable,
         checkUpdate);
   }

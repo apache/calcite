@@ -32,7 +32,7 @@ class WithItemNamespace extends AbstractNamespace {
   private final SqlWithItem withItem;
 
   WithItemNamespace(SqlValidatorImpl validator, SqlWithItem withItem,
-      SqlNode enclosingNode) {
+      @Nullable SqlNode enclosingNode) {
     super(validator, enclosingNode);
     this.withItem = withItem;
   }

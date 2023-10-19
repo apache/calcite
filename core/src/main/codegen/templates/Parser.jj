@@ -3486,14 +3486,16 @@ SqlNodeList WithList() :
 {
     final Span s;
     final List<SqlWithItem> list = new ArrayList<SqlWithItem>();
+    boolean recursive = false;
 }
 {
-    <WITH> { s = span(); }
-    AddWithItem(list) ( <COMMA> AddWithItem(list) )*
+    <WITH> [ <RECURSIVE> { recursive = true; } ]{ s = span(); }
+    AddWithItem(list, SqlLiteral.createBoolean(recursive, getPos()))
+    ( <COMMA> AddWithItem(list, SqlLiteral.createBoolean(recursive, getPos())) )*
     { return new SqlNodeList(list, s.end(this)); }
 }
 
-void AddWithItem(List<SqlWithItem> list) :
+void AddWithItem(List<SqlWithItem> list, SqlLiteral recursive) :
 {
     final SqlIdentifier id;
     final SqlNodeList columnList;
@@ -3504,7 +3506,7 @@ void AddWithItem(List<SqlWithItem> list) :
     ( columnList = ParenthesizedSimpleIdentifierList() | { columnList = null; } )
     <AS>
     definition = ParenthesizedExpression(ExprContext.ACCEPT_QUERY)
-    { list.add(new SqlWithItem(id.getParserPosition(), id, columnList, definition)); }
+    { list.add(new SqlWithItem(id.getParserPosition(), id, columnList, definition, recursive)); }
 }
 
 /**

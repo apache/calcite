@@ -5232,6 +5232,39 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "select * from emp2")
         .type(EMP_RECORD_TYPE);
 
+    // simplest with recursive fails
+    sql("with RECURSIVE emp2 as (select * from ^emp2^)\n"
+        + "select * from emp2")
+        .fails("Object 'EMP2' not found");
+
+    sql("with RECURSIVE emp2 as ("
+        + "select * from emp "
+        + " union select * from ^emp2^"
+        + " union select * from emp2"
+        + ")\n"
+        + "select * from emp2")
+        .fails("Object 'EMP2' not found");
+
+    // simplest with RECURSIVE working case.
+    sql("with RECURSIVE emp2 as (select * from emp union select * from emp2)\n"
+        + "select * from emp2")
+        .type(EMP_RECORD_TYPE);
+
+    // union all with recursive working case.
+    sql("with RECURSIVE emp2 as (select * from emp union all select * from emp2)\n"
+        + "select * from emp2")
+        .type(EMP_RECORD_TYPE);
+
+    // union all with recursive working case.
+    sql("with RECURSIVE emp2 as (select * from ^emp2^ union all select * from emp2)\n"
+        + "select * from emp2")
+        .fails("Object 'EMP2' not found");
+
+    sql("with recursive emp2 as (select * from emp),\n"
+        + "emp3 as (select * from emp2 union all select * from emp3)\n"
+        + "select * from emp2")
+        .type(EMP_RECORD_TYPE);
+
     // degree of emp2 column list does not match its query
     sql("with emp2 ^(x, y)^ as (select * from emp)\n"
         + "select * from emp2")
