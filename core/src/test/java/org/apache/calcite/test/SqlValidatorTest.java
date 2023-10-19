@@ -10155,7 +10155,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "data => table orders,\n"
         + "timecol => descriptor(rowtime),\n"
         + "size => interval '2' hour,\n"
-        + "\"OFFSET\" => interval '1' hour))").ok();
+        + "OFFSETSIZE => interval '1' hour))").ok();
     // negative tests.
     sql("select rowtime, productid, orderid, 'window_start', 'window_end'\n"
         + "from table(\n"
@@ -10235,7 +10235,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "timecol => descriptor(rowtime),\n"
         + "slide => interval '2' hour,\n"
         + "size => interval '1' hour,\n"
-        + "\"OFFSET\" => interval '20' minute))").ok();
+        + "OFFSETSIZE => interval '20' minute))").ok();
     // negative tests.
     sql("select rowtime, productid, orderid, 'window_start', 'window_end'\n"
         + "from table(\n"
