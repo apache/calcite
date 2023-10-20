@@ -101,6 +101,42 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3679">[CALCITE-3679]
+   * Allow lambda expressions in SQL queries</a>. */
+  @Test void testLambdaExpression() {
+    final String sql = "select higher_order_function(1, (x, y) -> y + 1)";
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t -> MockSqlOperatorTable.standard().extend()))
+        .withSql(sql)
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3679">[CALCITE-3679]
+   * Allow lambda expressions in SQL queries</a>. */
+  @Test void testLambdaExpression2() {
+    final String sql = "select higher_order_function2(1, () -> -1)";
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t -> MockSqlOperatorTable.standard().extend()))
+        .withSql(sql)
+        .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3679">[CALCITE-3679]
+   * Allow lambda expressions in SQL queries</a>. */
+  @Test void testLambdaExpression3() {
+    final String sql = "select higher_order_function(deptno, (x, deptno) -> deptno + 1) from emp";
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t -> MockSqlOperatorTable.standard().extend()))
+        .withSql(sql)
+        .ok();
+  }
+
   @Test void testDotLiteralAfterRow() {
     final String sql = "select row(1,2).\"EXPR$1\" from emp";
     sql(sql).ok();

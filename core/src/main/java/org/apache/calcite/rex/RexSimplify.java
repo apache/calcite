@@ -1401,6 +1401,13 @@ public class RexSimplify {
       return false;
     }
 
+    @Override public Boolean visitLambda(RexLambda lambda) {
+      return lambda.getExpression().accept(this);
+    }
+
+    @Override public Boolean visitLambdaRef(RexLambdaRef lambdaRef) {
+      return true;
+    }
   }
 
   /** Analyzes a given {@link RexNode} and decides whenever it is safe to

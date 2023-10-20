@@ -44,6 +44,8 @@ import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
@@ -66,6 +68,7 @@ import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLambda;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
@@ -778,6 +781,19 @@ public abstract class SqlImplementor {
         } else {
           return SqlStdOperatorTable.NOT.createCall(POS, node);
         }
+
+      case LAMBDA:
+        final RexLambda lambda = (RexLambda) rex;
+        final SqlNodeList parameters = new SqlNodeList(POS);
+        for (RexLambdaRef parameter : lambda.getParameters()) {
+          parameters.add(toSql(program, parameter));
+        }
+        final SqlNode expression = toSql(program, lambda.getExpression());
+        return new SqlLambda(POS, parameters, expression);
+
+      case LAMBDA_REF:
+        final RexLambdaRef lambdaRef = (RexLambdaRef) rex;
+        return new SqlIdentifier(lambdaRef.getName(), POS);
 
       default:
         if (rex instanceof RexOver) {

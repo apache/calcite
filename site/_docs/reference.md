@@ -1205,6 +1205,7 @@ Note:
 | MULTISET | Unordered collection that may contain duplicates | Example: int multiset
 | ARRAY    | Ordered, contiguous collection that may contain duplicates | Example: varchar(10) array
 | CURSOR   | Cursor over the result of executing a query |
+| FUNCTION | A function definition that is not bound to an identifier, it is not fully supported in CAST or DDL | Example FUNCTION(INTEGER, VARCHAR(30)) -> INTEGER
 
 Note:
 
@@ -3116,6 +3117,24 @@ Result
 | c1          | c2          | c3          | c4          |
 |:-----------:|:-----------:|:-----------:|:-----------:|
 | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d |
+
+### Higher-order Functions
+
+A higher-order function takes one or more lambda expressions as arguments.
+
+Lambda Expression Syntax:
+{% highlight sql %}
+lambdaExpression:
+      parameters '->' expression
+
+parameters:
+      '(' [ identifier [, identifier ] ] ')'
+  |   identifier
+{% endhighlight %}
+
+Higher-order functions are not included in the SQL standard, so all the functions will be listed in the
+[Dialect-specific OperatorsPermalink]({{ site.baseurl }}/docs/reference.html#dialect-specific-operators)
+as well.
 
 ## User-defined functions
 

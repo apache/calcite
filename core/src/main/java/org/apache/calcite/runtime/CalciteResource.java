@@ -241,6 +241,9 @@ public interface CalciteResource {
   ExInst<SqlValidatorException> paramNotFoundInFunctionDidYouMean(String a0,
       String a1, String a2);
 
+  @BaseMessage("Param ''{0}'' not found in lambda expression ''{1}''")
+  ExInst<SqlValidatorException> paramNotFoundInLambdaExpression(String a0, String a1);
+
   @BaseMessage("Operand {0} must be a query")
   ExInst<SqlValidatorException> needQueryOp(String a0);
 

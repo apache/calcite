@@ -121,6 +121,12 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
+  @Override public RelDataType createFunctionSqlType(
+      RelDataType parameterType,
+      RelDataType returnType) {
+    return canonize(new FunctionSqlType(parameterType, returnType));
+  }
+
   @Override public RelDataType createMeasureType(RelDataType valueType) {
     MeasureSqlType newType = MeasureSqlType.create(valueType);
     return canonize(newType);

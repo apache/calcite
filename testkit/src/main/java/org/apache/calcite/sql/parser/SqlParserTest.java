@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLambda;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -9213,6 +9214,46 @@ public class SqlParserTest {
         + "where deptno < [3:DECIMAL:40]\n"
         + "and hiredate > [4:DATE:2010-05-06]";
     assertThat(hoisted.substitute(SqlParserTest::varToStr), is(expected2));
+  }
+
+  /** Tests {@link SqlLambda}. */
+  @Test public void testLambdaExpression() {
+    sql("select higher_order_func(1, (x, y) -> (x + y)) from t")
+        .ok("SELECT `HIGHER_ORDER_FUNC`(1, (`X`, `Y`) -> (`X` + `Y`))\n"
+            + "FROM `T`");
+
+    sql("select higher_order_func(1, (x, y) -> x + char_length(y)) from t")
+        .ok("SELECT `HIGHER_ORDER_FUNC`(1, (`X`, `Y`) -> (`X` + CHAR_LENGTH(`Y`)))\n"
+            + "FROM `T`");
+
+    sql("select higher_order_func(a -> a + 1, 1) from t")
+        .ok("SELECT `HIGHER_ORDER_FUNC`(`A` -> (`A` + 1), 1)\n"
+            + "FROM `T`");
+
+    sql("select higher_order_func((a) -> 1, 1) from t")
+        .ok("SELECT `HIGHER_ORDER_FUNC`(`A` -> 1, 1)\n"
+            + "FROM `T`");
+
+    sql("select higher_order_func(() -> 1 + 1, 1) from t")
+        .ok("SELECT `HIGHER_ORDER_FUNC`(() -> (1 + 1), 1)\n"
+            + "FROM `T`");
+
+    final String errorMessage1 = "(?s).*Encountered \"\\)\" at .*";
+    sql("select (^)^ -> 1")
+        .fails(errorMessage1);
+
+    sql("select * from t where (^)^ -> a = 1")
+        .fails(errorMessage1);
+
+    final String errorMessage2 = "(?s).*Encountered \"->\" at .*";
+    sql("select (a, b) ^->^ a + b")
+        .fails(errorMessage2);
+
+    sql("select * from t where (a, b) ^->^ a = 1")
+        .fails(errorMessage2);
+
+    sql("select 1 || (a, b) ^->^ a + b")
+        .fails(errorMessage2);
   }
 
   protected static String varToStr(Hoist.Variable v) {

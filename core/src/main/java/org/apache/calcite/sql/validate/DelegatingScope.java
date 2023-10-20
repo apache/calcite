@@ -25,6 +25,7 @@ import org.apache.calcite.schema.CustomColumnResolvingTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlLambda;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
@@ -233,6 +234,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
   @Override public SqlValidatorScope getOperandScope(SqlCall call) {
     if (call instanceof SqlSelect) {
       return validator.getSelectScope((SqlSelect) call);
+    } else if (call instanceof SqlLambda) {
+      return validator.getLambdaScope((SqlLambda) call);
     }
     return this;
   }

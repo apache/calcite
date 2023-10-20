@@ -62,6 +62,7 @@ import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLambda;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
@@ -1213,6 +1214,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   @Override public SqlValidatorScope getMatchRecognizeScope(SqlMatchRecognize node) {
+    return getScopeOrThrow(node);
+  }
+
+  @Override public SqlValidatorScope getLambdaScope(SqlLambda node) {
     return getScopeOrThrow(node);
   }
 
@@ -2901,6 +2906,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           forceNullable);
       break;
 
+    case LAMBDA:
+      call = (SqlCall) node;
+      SqlLambdaScope lambdaScope =
+          new SqlLambdaScope(parentScope, (SqlLambda) call);
+      scopes.put(call, lambdaScope);
+      final LambdaNamespace lambdaNamespace =
+          new LambdaNamespace(this, (SqlLambda) call, node);
+      registerNamespace(
+          usingScope,
+          alias,
+          lambdaNamespace,
+          forceNullable);
+      operands = call.getOperandList();
+      for (int i = 0; i < operands.size(); i++) {
+        registerOperandSubQueries(parentScope, call, i);
+      }
+      break;
+
     case WITH:
       registerWith(parentScope, usingScope, (SqlWith) node, enclosingNode,
           alias, forceNullable, checkUpdate);
@@ -3241,6 +3264,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return;
     }
     if (node.getKind().belongsTo(SqlKind.QUERY)
+        || node.getKind() == SqlKind.LAMBDA
         || node.getKind() == SqlKind.MULTISET_QUERY_CONSTRUCTOR
         || node.getKind() == SqlKind.MULTISET_VALUE_CONSTRUCTOR) {
       registerQuery(parentScope, null, node, node, null, false);
@@ -3935,6 +3959,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // only need to check operand[0] for CONVERT or TRANSLATE
         SqlNode child = ((SqlCall) stripDot).getOperandList().get(0);
         checkRollUp(parent, current, child, scope, contextClause);
+      } else if (stripDot.getKind() == SqlKind.LAMBDA) {
+        // do not need to check lambda
       } else {
         List<? extends @Nullable SqlNode> children =
             ((SqlCall) stripDot).getOperandList();
@@ -5614,6 +5640,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     inWindow = false;
   }
 
+  @Override public void validateLambda(SqlLambda lambdaExpr) {
+    final SqlLambdaScope scope = (SqlLambdaScope) scopes.get(lambdaExpr);
+    requireNonNull(scope, "scope");
+    final LambdaNamespace ns =
+        getNamespaceOrThrow(lambdaExpr).unwrap(LambdaNamespace.class);
+
+    deriveType(scope, lambdaExpr.getExpression());
+    RelDataType type = deriveTypeImpl(scope, lambdaExpr);
+    setValidatedNodeType(lambdaExpr, type);
+    ns.setType(type);
+  }
+
   @Override public void validateMatchRecognize(SqlCall call) {
     final SqlMatchRecognize matchRecognize = (SqlMatchRecognize) call;
     final MatchRecognizeScope scope =
@@ -6728,6 +6766,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case CURRENT_VALUE:
       case NEXT_VALUE:
       case WITH:
+      case LAMBDA:
         return call;
       default:
         break;

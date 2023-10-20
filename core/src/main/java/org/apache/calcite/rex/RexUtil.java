@@ -767,6 +767,14 @@ public class RexUtil {
       // "<expr>.FIELD" is constant iff "<expr>" is constant.
       return fieldAccess.getReferenceExpr().accept(this);
     }
+
+    @Override public Boolean visitLambda(RexLambda lambda) {
+      return false;
+    }
+
+    @Override public Boolean visitLambdaRef(RexLambdaRef lambdaRef) {
+      return false;
+    }
   }
 
   /**

@@ -6687,6 +6687,48 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("'PERCENTILE_DISC' requires precisely one ORDER BY key");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3679">[CALCITE-3679]
+   * Allow lambda expressions in SQL queries</a>. */
+  @Test void testHigherOrderFunction() {
+    final SqlValidatorFixture s = fixture()
+        .withOperatorTable(MockSqlOperatorTable.standard().extend());
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1)").ok();
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> y)").ok();
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> char_length(x) + 1)").ok();
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> null)").ok();
+    s.withSql("select HIGHER_ORDER_FUNCTION2(1, () -> 0.1)").ok();
+    s.withSql("select emp.deptno, HIGHER_ORDER_FUNCTION(1, (x, deptno) -> deptno) from emp").ok();
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> char_length(x) + 1)")
+        .type("RecordType(INTEGER NOT NULL EXPR$0) NOT NULL");
+    s.withSql("select HIGHER_ORDER_FUNCTION2(1, () -> 0.1)")
+        .type("RecordType(INTEGER NOT NULL EXPR$0) NOT NULL");
+
+    // test for type check
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> ^x + 1^)")
+        .withTypeCoercion(false)
+        .fails("(?s)Cannot apply '\\+' to arguments of type '<VARCHAR> \\+ <INTEGER>'\\..*");
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> ^null^)")
+        .withTypeCoercion(false)
+        .fails("(?s)Illegal use of 'NULL'.*");
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> ^array[1] = x^)")
+        .fails("Cannot apply '=' to arguments of type '<INTEGER ARRAY> = <VARCHAR>'.*");
+    s.withSql("select ^HIGHER_ORDER_FUNCTION(1, null)^")
+        .fails("Cannot apply '(?s).*HIGHER_ORDER_FUNCTION' to arguments of type "
+            + "'HIGHER_ORDER_FUNCTION\\(<INTEGER>, <NULL>\\)'.*");
+    s.withSql("select ^HIGHER_ORDER_FUNCTION(1, (x, y, z) -> x + 1)^")
+        .fails("Cannot apply '(?s).*HIGHER_ORDER_FUNCTION' to arguments of type "
+            + "'HIGHER_ORDER_FUNCTION\\(<INTEGER>, <FUNCTION\\(ANY, ANY, ANY\\) -> ANY>\\)'.*");
+
+    // test for illegal parameters
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + ^emp.deptno^) from emp")
+        .fails("Param 'EMP\\.DEPTNO' not found in lambda expression "
+            + "'\\(`X`, `Y`\\) -> `X` \\+ 1 \\+ `EMP`\\.`DEPTNO`'");
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + ^deptno^) from emp")
+        .fails("Param 'DEPTNO' not found in lambda expression "
+            + "'\\(`X`, `Y`\\) -> `X` \\+ 1 \\+ `DEPTNO`'");
+  }
+
   @Test void testPercentileFunctionsBigQuery() {
     final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
     final String sql = "select\n"
