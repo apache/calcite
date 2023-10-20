@@ -1297,7 +1297,8 @@ class RelToSqlConverterTest {
   @Test void testPercentileContWithinGroupClauseBigQuery() {
     final String query = "select percentile_cont(0.5) WITHIN GROUP (ORDER BY `product_class_id`)\n"
         + "from `foodmart`.`product`";
-    final String expected = "SELECT PERCENTILE_CONT(0.5) OVER (ORDER BY product_class_id NULLS LAST)\n"
+    final String expected = "SELECT PERCENTILE_CONT(0.5) OVER "
+        + "(ORDER BY product_class_id NULLS LAST)\n"
         + "FROM foodmart.product";
     final SqlParser.Config parserConfig =
         BigQuerySqlDialect.DEFAULT.configureParser(SqlParser.config());
