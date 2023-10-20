@@ -7340,6 +7340,49 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3679">[CALCITE-3679]
+   * Allow lambda expressions in SQL queries</a>. */
+  @Test void testHigherOrderFunction() {
+    final String sql1 = "select higher_order_function(1, (x, y) -> char_length(x) + 1)";
+    final String expected1 = "SELECT HIGHER_ORDER_FUNCTION("
+        + "1, (\"X\", \"Y\") -> CHAR_LENGTH(\"X\") + 1)\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql1).ok(expected1);
+
+    final String sql2 = "select higher_order_function2(1, () -> abs(-1))";
+    final String expected2 = "SELECT HIGHER_ORDER_FUNCTION2("
+        + "1, () -> ABS(-1))\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql2).ok(expected2);
+
+    final String sql3 = "select \"department_id\", "
+        + "higher_order_function(1, (department_id, y) -> department_id + 1) from \"employee\"";
+    final String expected3 = "SELECT \"department_id\", HIGHER_ORDER_FUNCTION(1, "
+        + "(\"DEPARTMENT_ID\", \"Y\") -> CAST(\"DEPARTMENT_ID\" AS INTEGER) + 1)\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(sql3).ok(expected3);
+
+    final String sql4 = "select higher_order_function2(1, () -> null)";
+    final String expected4 = "SELECT HIGHER_ORDER_FUNCTION2("
+        + "1, () -> NULL)\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql4).ok(expected4);
+
+    final String sql5 = "select \"employee_id\", "
+        + "higher_order_function("
+        + "\"employee_id\", (product_id, employee_id) -> char_length(product_id) + employee_id"
+        + ") from \"employee\"";
+    final String expected5 = "SELECT \"employee_id\", HIGHER_ORDER_FUNCTION("
+        + "\"employee_id\", (\"PRODUCT_ID\", \"EMPLOYEE_ID\") -> "
+        + "CHAR_LENGTH(\"PRODUCT_ID\") + \"EMPLOYEE_ID\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(sql5).ok(expected5);
+
+    final String sql6 = "select higher_order_function(1, (y, x) -> x + char_length(y) + 1)";
+    final String expected6 = "SELECT HIGHER_ORDER_FUNCTION("
+        + "1, (\"Y\", \"X\") -> \"X\" + CHAR_LENGTH(\"Y\") + 1)\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql6).ok(expected6);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5265">[CALCITE-5265]
    * JDBC adapter sometimes adds unnecessary parentheses around SELECT in INSERT</a>. */
   @Test void testInsertUnionThenIntersect() {

@@ -1745,6 +1745,17 @@ public class RexBuilder {
     }
   }
 
+  /**
+   * Creates a lambda expression.
+   *
+   * @param expr expression of the lambda
+   * @param parameters parameters of the lambda
+   * @return RexNode representing the lambda
+   */
+  public RexNode makeLambdaCall(RexNode expr, List<RexLambdaRef> parameters) {
+    return new RexLambda(parameters, expr);
+  }
+
   /** Converts the type of a value to comply with
    * {@link org.apache.calcite.rex.RexLiteral#valueMatchesType}.
    *

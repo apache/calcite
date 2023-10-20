@@ -25,6 +25,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
@@ -363,6 +364,9 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
 
           @Override public SqlNode visit(SqlCall call) {
             SqlOperator operator = call.getOperator();
+            if (operator.getKind() == SqlKind.LAMBDA) {
+              return call;
+            }
             if (operator instanceof SqlUnresolvedFunction) {
               final SqlUnresolvedFunction unresolvedFunction =
                   (SqlUnresolvedFunction) operator;

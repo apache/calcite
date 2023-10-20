@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -97,7 +98,9 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
                 new ScoreTableFunction(),
                 new TopNTableFunction(),
                 new SimilarlityTableFunction(),
-                new InvalidTableFunction())));
+                new InvalidTableFunction(),
+                HIGHER_ORDER_FUNCTION,
+                HIGHER_ORDER_FUNCTION2)));
   }
 
   /** Adds a library set. */
@@ -623,4 +626,21 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       return typeFactory.createSqlType(SqlTypeName.BIGINT);
     }
   }
+
+  private static final SqlFunction HIGHER_ORDER_FUNCTION =
+      SqlBasicFunction.create("HIGHER_ORDER_FUNCTION",
+          ReturnTypes.ARG0,
+          OperandTypes.sequence("HIGHER_ORDER_FUNCTION(INTEGER, FUNCTION(STRING, ANY) -> NUMERIC)",
+              OperandTypes.family(SqlTypeFamily.INTEGER),
+              OperandTypes.function(
+                  SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING, SqlTypeFamily.ANY)),
+          SqlFunctionCategory.SYSTEM);
+
+  private static final SqlFunction HIGHER_ORDER_FUNCTION2 =
+      SqlBasicFunction.create("HIGHER_ORDER_FUNCTION2",
+          ReturnTypes.ARG0,
+          OperandTypes.sequence("HIGHER_ORDER_FUNCTION(INTEGER, FUNCTION() -> NUMERIC)",
+              OperandTypes.family(SqlTypeFamily.INTEGER),
+              OperandTypes.function(SqlTypeFamily.NUMERIC)),
+          SqlFunctionCategory.SYSTEM);
 }

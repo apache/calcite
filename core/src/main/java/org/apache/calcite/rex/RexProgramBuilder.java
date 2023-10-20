@@ -922,6 +922,11 @@ public class RexProgramBuilder {
       final RexNode expr = super.visitCorrelVariable(variable);
       return registerInternal(expr, false);
     }
+
+    @Override public RexNode visitLambda(RexLambda lambda) {
+      super.visitLambda(lambda);
+      return registerInternal(lambda, false);
+    }
   }
 
   /**
