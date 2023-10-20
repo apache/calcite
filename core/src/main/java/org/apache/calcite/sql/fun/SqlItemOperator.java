@@ -48,22 +48,15 @@ import static java.util.Objects.requireNonNull;
  * {@code myStruct[2]} or {@code myStruct['fieldName']}.
  */
 public class SqlItemOperator extends SqlSpecialOperator {
+  public final int offset;
+  public final boolean safe;
 
-  private boolean isInvalidIndexAllowed;
-  private static final SqlSingleOperandTypeChecker ARRAY_OR_MAP =
-      OperandTypes.or(
-          OperandTypes.family(SqlTypeFamily.ARRAY),
-          OperandTypes.family(SqlTypeFamily.MAP),
-          OperandTypes.family(SqlTypeFamily.ANY));
-
-  public SqlItemOperator() {
-    super("ITEM", SqlKind.ITEM, 100, true, null, null, null);
-    this.isInvalidIndexAllowed = false;
-  }
-
-  public SqlItemOperator(boolean isInvalidIndexAllowed) {
-    super("ITEM", SqlKind.ITEM, 100, true, null, null, null);
-    this.isInvalidIndexAllowed = isInvalidIndexAllowed;
+  public SqlItemOperator(String name,
+      SqlSingleOperandTypeChecker operandTypeChecker,
+      int offset, boolean safe) {
+    super(name, SqlKind.ITEM, 100, true, null, null, operandTypeChecker);
+    this.offset = offset;
+    this.safe = safe;
   }
 
   @Override public ReduceResult reduceExpr(int ordinal,
@@ -93,12 +86,11 @@ public class SqlItemOperator extends SqlSpecialOperator {
     return SqlOperandCountRanges.of(2);
   }
 
-  @Override public boolean checkOperandTypes(
-      SqlCallBinding callBinding,
+  @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
       boolean throwOnFailure) {
     final SqlNode left = callBinding.operand(0);
     final SqlNode right = callBinding.operand(1);
-    if (!ARRAY_OR_MAP.checkSingleOperandType(callBinding, left, 0,
+    if (!getOperandTypeChecker().checkSingleOperandType(callBinding, left, 0,
         throwOnFailure)) {
       return false;
     }
@@ -107,14 +99,19 @@ public class SqlItemOperator extends SqlSpecialOperator {
         throwOnFailure);
   }
 
+  @Override public SqlSingleOperandTypeChecker getOperandTypeChecker() {
+    return (SqlSingleOperandTypeChecker)
+        requireNonNull(super.getOperandTypeChecker(), "operandTypeChecker");
+  }
+
   private static SqlSingleOperandTypeChecker getChecker(SqlCallBinding callBinding) {
     final RelDataType operandType = callBinding.getOperandType(0);
     switch (operandType.getSqlTypeName()) {
     case ARRAY:
       return OperandTypes.family(SqlTypeFamily.INTEGER);
     case MAP:
-      RelDataType keyType = requireNonNull(operandType.getKeyType(),
-          "operandType.getKeyType()");
+      RelDataType keyType =
+          requireNonNull(operandType.getKeyType(), "operandType.getKeyType()");
       SqlTypeName sqlTypeName = keyType.getSqlTypeName();
       return OperandTypes.family(
           requireNonNull(sqlTypeName.getFamily(),
@@ -131,9 +128,13 @@ public class SqlItemOperator extends SqlSpecialOperator {
   }
 
   @Override public String getAllowedSignatures(String name) {
-    return "<ARRAY>[<INTEGER>]\n"
-        + "<MAP>[<ANY>]\n"
-        + "<ROW>[<CHARACTER>|<INTEGER>]";
+    if (name.equals("ITEM")) {
+      return "<ARRAY>[<INTEGER>]\n"
+          + "<MAP>[<ANY>]\n"
+          + "<ROW>[<CHARACTER>|<INTEGER>]";
+    } else {
+      return "<ARRAY>[" + name + "(<INTEGER>)]";
+    }
   }
 
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
@@ -184,9 +185,5 @@ public class SqlItemOperator extends SqlSpecialOperator {
     default:
       throw new AssertionError();
     }
-  }
-
-  public boolean isInvalidIndexAllowed() {
-    return this.isInvalidIndexAllowed;
   }
 }

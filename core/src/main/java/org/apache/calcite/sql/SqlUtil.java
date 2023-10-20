@@ -37,6 +37,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BarfingInvocationHandler;
@@ -304,7 +305,12 @@ public abstract class SqlUtil {
       }
       SqlIdentifier id = function.getSqlIdentifier();
       if (id == null) {
-        writer.keyword(operator.getName());
+        if (isUDFLowerCase((SqlFunction) operator, writer)) {
+          // The following code block is executed exclusively when the code flow originates from mig
+          writer.print(operator.getName().toLowerCase());
+        } else {
+          writer.keyword(operator.getName());
+        }
       } else {
         unparseSqlIdentifierSyntax(writer, id, true);
       }
@@ -1193,6 +1199,38 @@ public abstract class SqlUtil {
     return op.createCall(pos, leftNode, rightNode);
   }
 
+  /**
+   * Returns whether an AST tree contains a call to an aggregate function.
+   * @param node AST tree
+   */
+  public static boolean containsAgg(SqlNode node) {
+    final Predicate<SqlCall> callPredicate = call ->
+        call.getOperator().isAggregator();
+    return containsCall(node, callPredicate);
+  }
+
+  /** Returns whether an AST tree contains a call that matches a given
+   * predicate. */
+  private static boolean containsCall(SqlNode node,
+      Predicate<SqlCall> callPredicate) {
+    try {
+      SqlVisitor<Void> visitor =
+          new SqlBasicVisitor<Void>() {
+            @Override public Void visit(SqlCall call) {
+              if (callPredicate.test(call)) {
+                throw new Util.FoundOne(call);
+              }
+              return super.visit(call);
+            }
+          };
+      node.accept(visitor);
+      return false;
+    } catch (Util.FoundOne e) {
+      Util.swallow(e, null);
+      return true;
+    }
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -1299,5 +1337,18 @@ public abstract class SqlUtil {
     @Override public Void visit(SqlDataTypeSpec type) {
       return check(type);
     }
+  }
+
+  /**
+   * Checks if the conversion of a given USER_DEFINED_FUNCTION to lowercase is necessary.
+   *
+   * @param operator The SqlFunction to be checked.
+   * @param writer   The SqlWriter providing context.
+   * @return True if the function is a USER_DEFINED_FUNCTION and lowercase conversion is
+   * required, false otherwise.
+   */
+  private static boolean isUDFLowerCase(SqlFunction operator, SqlWriter writer) {
+    return operator.getFunctionType() == SqlFunctionCategory.USER_DEFINED_FUNCTION
+        && writer.isUDFLowerCase();
   }
 }

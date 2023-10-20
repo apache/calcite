@@ -436,6 +436,10 @@ public class SqlPrettyWriter implements SqlWriter {
     config = config();
   }
 
+  @Override public boolean isUDFLowerCase() {
+    return false;
+  }
+
   @Override public void reset() {
     buf.setLength(0);
     lineStart = 0;
