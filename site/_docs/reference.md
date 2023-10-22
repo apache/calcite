@@ -2739,6 +2739,9 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | FORMAT_TIMESTAMP(string timestamp)             | Formats *timestamp* according to the specified format *string*
 | s | GETBIT(value, position)                        | Equivalent to `BIT_GET(value, position)`
 | b o | GREATEST(expr [, expr ]*)                    | Returns the greatest of the expressions
+| h s | HEX(binary)                                  | Converts *binary* into a hexadecimal string. For example, hex(x'6162') returns '6162'
+| h s | HEX(bigint)                                  | Converts *bigint* into a shortened hexadecimal string with leading zeros removed. For example, hex(10) returns 'A'
+| h s | HEX(string)                                  | Converts *string* into a hexadecimal string. It converts each character of *string* into its hexadecimal representation. For example, hex('ab') returns '6162'
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
 | b | IFNULL(value1, value2)                         | Equivalent to `NVL(value1, value2)`
 | p | string1 ILIKE string2 [ ESCAPE string3 ]       | Whether *string1* matches pattern *string2*, ignoring case (similar to `LIKE`)
@@ -2768,7 +2771,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
 | b m | FROM_BASE64(string)                          | Returns the decoded result of a base-64 *string* as a string
 | b | TO_HEX(binary)                                 | Converts *binary* into a hexadecimal varchar
-| b | FROM_HEX(varchar)                              | Converts a hexadecimal-encoded *varchar* into bytes
+| b | FROM_HEX(string)                               | Converts a hexadecimal-encoded *string* into bytes; throws if *string* is not a valid hexadecimal string
 | b o | LTRIM(string)                                | Returns *string* with all blanks removed from the start
 | s | MAP_CONCAT(map [, map]*)                       | Concatenates one or more maps. If any input argument is `NULL` the function returns `NULL`. Note that calcite is using the LAST_WIN strategy
 | s | MAP_ENTRIES(map)                               | Returns the entries of the *map* as an array, the order of the entries is not defined
@@ -2852,6 +2855,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b o p | TRANSLATE(expr, fromString, toString)      | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
 | b | TRUNC(numeric1 [, numeric2 ])                  | Truncates *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point
 | q | TRY_CAST(value AS type)                        | Converts *value* to *type*, returning NULL if conversion fails
+| h s | UNHEX(string)                                | Converts a hexadecimal-encoded *string* into bytes; returns NULL if *string* is not a valid hexadecimal string
 | b | UNIX_MICROS(timestamp)                         | Returns the number of microseconds since 1970-01-01 00:00:00
 | b | UNIX_MILLIS(timestamp)                         | Returns the number of milliseconds since 1970-01-01 00:00:00
 | b | UNIX_SECONDS(timestamp)                        | Returns the number of seconds since 1970-01-01 00:00:00
