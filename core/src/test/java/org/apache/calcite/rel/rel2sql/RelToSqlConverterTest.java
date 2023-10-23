@@ -13380,4 +13380,16 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
     assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
+
+  @Test public void testZEROIFNULL() {
+    final RelBuilder builder = relBuilder();
+    final RexNode zeroIfNullRexNode = builder.call(SqlLibraryOperators.ZEROIFNULL,
+        builder.literal(5));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(zeroIfNullRexNode)
+        .build();
+    final String expectedSFQuery = "SELECT ZEROIFNULL(5) AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
+  }
 }
