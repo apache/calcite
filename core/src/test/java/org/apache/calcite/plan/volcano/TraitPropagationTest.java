@@ -73,6 +73,7 @@ import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
@@ -164,7 +165,7 @@ class TraitPropagationTest {
               (RexNode) rexBuilder.makeInputRef(stringType, 0),
               rexBuilder.makeInputRef(integerType, 1)),
           typeFactory.builder().add("s", stringType).add("i", integerType)
-          .build());
+          .build(), ImmutableSet.of());
 
       // aggregate on s, count
       AggregateCall aggCall = AggregateCall.create(SqlStdOperatorTable.COUNT,
@@ -364,7 +365,7 @@ class TraitPropagationTest {
   private static class PhysProj extends Project implements Phys {
     PhysProj(RelOptCluster cluster, RelTraitSet traits, RelNode child,
         List<RexNode> exps, RelDataType rowType) {
-      super(cluster, traits, ImmutableList.of(), child, exps, rowType);
+      super(cluster, traits, ImmutableList.of(), child, exps, rowType, ImmutableSet.of());
     }
 
     public static PhysProj create(final RelNode input,

@@ -2033,7 +2033,7 @@ public abstract class SqlImplementor {
       if (node instanceof SqlSelect) {
         Project projectRel = (Project) rel.getInput(0);
         for (int i = 0; i < projectRel.getRowType().getFieldNames().size(); i++) {
-          if (relToSqlUtils.isAnalyticalRex(projectRel.getChildExps().get(i))) {
+          if (relToSqlUtils.isAnalyticalRex(projectRel.getProjects().get(i))) {
             return true;
           }
         }
@@ -2046,7 +2046,7 @@ public abstract class SqlImplementor {
           || ((SqlSelect) node).getSelectList() == null) {
         return false;
       }
-      List<RexNode> expressions = project.getChildExps();
+      List<RexNode> expressions = project.getProjects();
       List<Pair<Integer, List<RexInputRef>>> identifiersPerSelectListItem = new ArrayList<>();
       int index = 0;
       for (RexNode expr : expressions) {
@@ -2373,7 +2373,7 @@ public abstract class SqlImplementor {
         return false;
       }
       List<RexInputRef> rexInputRefsInAnalytical = new ArrayList<>();
-      for (RexNode rexNode : rel.getChildExps()) {
+      for (RexNode rexNode : rel.getProjects()) {
         if (relToSqlUtils.isAnalyticalRex(rexNode)) {
           rexInputRefsInAnalytical.addAll(getIdentifiers(rexNode));
         }
