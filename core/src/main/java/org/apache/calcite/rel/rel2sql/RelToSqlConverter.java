@@ -83,9 +83,9 @@ import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlModality;
@@ -116,8 +116,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
@@ -223,15 +223,15 @@ public class RelToSqlConverter extends SqlImplementor
     if (isCrossJoin(e) && currentDialectJoinType != JoinType.INNER) {
       joinType = currentDialectJoinType;
       condType = JoinConditionType.NONE.symbol(POS);
-    } else if(isUsingOperator(e)) {
+    } else if (isUsingOperator(e)) {
       Map<SqlNode, SqlNode> usingSourceTargetMap = new LinkedHashMap<>();
       boolean isValidUsing = checkForValidUsingOperands(e.getCondition(), leftContext,
           rightContext, usingSourceTargetMap);
-      if(isValidUsing) {
+      if (isValidUsing) {
         List<SqlNode> usingNodeList = new ArrayList<>();
         for (SqlNode usingNode : usingSourceTargetMap.values()) {
-          String name = ((SqlIdentifier)usingNode).names.size() > 1 ?
-              ((SqlIdentifier) usingNode).names.get(1) : ((SqlIdentifier) usingNode).names.get(0);
+          String name = ((SqlIdentifier) usingNode).names.size() > 1
+              ? ((SqlIdentifier) usingNode).names.get(1) : ((SqlIdentifier) usingNode).names.get(0);
           usingNodeList.add(new SqlIdentifier(name, POS));
         }
         sqlCondition = new SqlNodeList(usingNodeList, POS);
@@ -259,12 +259,12 @@ public class RelToSqlConverter extends SqlImplementor
 
   private boolean isUsingOperator(Join e) {
     return RexCall.class.isInstance(e.getCondition())
-        && ((RexCall)e.getCondition()).getOperator() == SqlLibraryOperators.USING;
+        && ((RexCall) e.getCondition()).getOperator() == SqlLibraryOperators.USING;
   }
 
   private boolean checkForValidUsingOperands(RexNode condition, Context leftContext,
       Context rightContext,  Map<SqlNode, SqlNode> usingSourceTargetMap) {
-    List<RexNode> usingOperands = ((RexCall)condition).getOperands();
+    List<RexNode> usingOperands = ((RexCall) condition).getOperands();
     boolean isValidUsing = true;
     Context joinContext =
         leftContext.implementor().joinContext(leftContext, rightContext);
@@ -276,17 +276,17 @@ public class RelToSqlConverter extends SqlImplementor
       SqlNode targetNode = joinContext.toSql(null, targetRex);
       usingSourceTargetMap.put(sourceNode, targetNode);
 
-      String sourceName = ((SqlIdentifier)sourceNode).names.size() > 1 ?
-          ((SqlIdentifier) sourceNode).names.get(1) : ((SqlIdentifier) sourceNode).names.get(0);
-      String targetName = ((SqlIdentifier)targetNode).names.size() > 1 ?
-          ((SqlIdentifier) targetNode).names.get(1) : ((SqlIdentifier) targetNode).names.get(0);
+      String sourceName = ((SqlIdentifier) sourceNode).names.size() > 1
+          ? ((SqlIdentifier) sourceNode).names.get(1) : ((SqlIdentifier) sourceNode).names.get(0);
+      String targetName = ((SqlIdentifier) targetNode).names.size() > 1
+          ? ((SqlIdentifier) targetNode).names.get(1) : ((SqlIdentifier) targetNode).names.get(0);
       isValidUsing = isValidUsing && Objects.equals(sourceName, targetName);
     }
 
     return isValidUsing;
   }
 
-  private SqlNode processOperandsForONCondition( Map<SqlNode, SqlNode> usingSourceTargetMap) {
+  private SqlNode processOperandsForONCondition(Map<SqlNode, SqlNode> usingSourceTargetMap) {
     List<SqlNode> equalOperands = new ArrayList<>();
     for (Map.Entry<SqlNode, SqlNode> entry : usingSourceTargetMap.entrySet()) {
       List<SqlNode> operands = new ArrayList<>();
@@ -294,8 +294,9 @@ public class RelToSqlConverter extends SqlImplementor
       operands.add(entry.getValue());
       equalOperands.add(SqlStdOperatorTable.EQUALS.createCall(new SqlNodeList(operands, POS)));
     }
-    return equalOperands.size() > 1 ?
-        SqlStdOperatorTable.AND.createCall(new SqlNodeList(equalOperands, POS)) : equalOperands.get(0);
+    return equalOperands.size() > 1
+        ? SqlStdOperatorTable.AND.createCall(new SqlNodeList(equalOperands, POS))
+        : equalOperands.get(0);
   }
 
 
