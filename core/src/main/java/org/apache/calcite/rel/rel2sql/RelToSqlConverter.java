@@ -20,7 +20,10 @@ import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.config.QueryStyle;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.PivotRelTrait;
+import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -545,13 +548,28 @@ public class RelToSqlConverter extends SqlImplementor
   public Result visit(Aggregate e) {
     final Builder builder =
         visitAggregate(e, e.getGroupSet().toList(), Clause.GROUP_BY);
+    RelTrait relTrait = e.getTraitSet().getTrait(PivotRelTraitDef.instance);
+    if (relTrait != null && relTrait instanceof PivotRelTrait) {
+      if (((PivotRelTrait) relTrait).isPivotRel()) {
+        PivotRelToSqlUtil pivotRelToSqlUtil = new PivotRelToSqlUtil(POS);
+        SqlNode select =
+            pivotRelToSqlUtil.buildSqlPivotNode(e, builder, builder.select.getSelectList());
+        return result(select, ImmutableList.of(Clause.SELECT), e, null);
+      }
+    }
     return builder.result();
   }
 
   private Builder visitAggregate(Aggregate e, List<Integer> groupKeyList,
       Clause... clauses) {
     // "select a, b, sum(x) from ( ... ) group by a, b"
-    final boolean ignoreClauses = e.getInput() instanceof Project;
+    boolean ignoreClauses = false;
+    if (e.getInput() instanceof Project) {
+      if (!(((Project) e.getInput()).getInput() instanceof Filter
+          && ((Filter) ((Project) e.getInput()).getInput()).getInput() instanceof Filter)) {
+        ignoreClauses = true;
+      }
+    }
     final Result x = visitInput(e, 0, isAnon(), ignoreClauses,
         ImmutableSet.copyOf(clauses));
     final Builder builder = x.builder(e);
@@ -596,13 +614,34 @@ public class RelToSqlConverter extends SqlImplementor
       }
       addSelect(selectList, aggCallSqlNode, e.getRowType());
     }
-    builder.setSelect(new SqlNodeList(selectList, POS));
+    if (!isStarInAggregateRel(e)) {
+      builder.setSelect(new SqlNodeList(selectList, POS));
+    }
     if (!groupByList.isEmpty() || e.getAggCallList().isEmpty()) {
       // Some databases don't support "GROUP BY ()". We can omit it as long
       // as there is at least one aggregate function.
       builder.setGroupBy(new SqlNodeList(groupByList, POS));
     }
     return builder;
+  }
+
+  /**
+   * Evaluates if projection fields can be replaced with aestrisk.
+   * @param e aggregate rel
+   * @return true if selectList is required to be added in sqlNode
+   */
+  boolean isStarInAggregateRel(Aggregate e) {
+    if (e.getAggCallList().size() > 0) {
+      return false;
+    }
+    RelNode input = e.getInput();
+    while (input != null) {
+      if (input instanceof Project || input instanceof TableScan || input instanceof Join) {
+        break;
+      }
+      input = input.getInput(0);
+    }
+    return e.getRowType().getFieldNames().equals(input.getRowType().getFieldNames());
   }
 
   /** Generates the GROUP BY items, for example {@code GROUP BY x, y},

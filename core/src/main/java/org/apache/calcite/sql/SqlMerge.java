@@ -26,6 +26,7 @@ import org.apache.calcite.util.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -41,8 +42,11 @@ public class SqlMerge extends SqlCall {
   SqlNode source;
   @Nullable SqlUpdate updateCall;
   @Nullable SqlInsert insertCall;
+  @Nullable SqlDelete deleteCall;
   @Nullable SqlSelect sourceSelect;
   @Nullable SqlIdentifier alias;
+
+  List<SqlCall> callOrderList = new LinkedList<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -64,6 +68,26 @@ public class SqlMerge extends SqlCall {
     this.alias = alias;
   }
 
+  public SqlMerge(SqlParserPos pos,
+      SqlNode targetTable,
+      SqlNode condition,
+      SqlNode source,
+      @Nullable SqlUpdate updateCall,
+      @Nullable SqlDelete deleteCall,
+      @Nullable SqlMergeInsert insertCall,
+      @Nullable SqlSelect sourceSelect,
+      @Nullable SqlIdentifier alias) {
+    super(pos);
+    this.targetTable = targetTable;
+    this.condition = condition;
+    this.source = source;
+    this.updateCall = updateCall;
+    this.deleteCall = deleteCall;
+    this.insertCall = insertCall;
+    this.sourceSelect = sourceSelect;
+    this.alias = alias;
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   @Override public SqlOperator getOperator() {
@@ -76,7 +100,7 @@ public class SqlMerge extends SqlCall {
 
   @SuppressWarnings("nullness")
   @Override public List<@Nullable SqlNode> getOperandList() {
-    return ImmutableNullableList.of(targetTable, condition, source, updateCall,
+    return ImmutableNullableList.of(targetTable, condition, source, updateCall, deleteCall,
         insertCall, sourceSelect, alias);
   }
 
@@ -97,12 +121,15 @@ public class SqlMerge extends SqlCall {
       updateCall = (@Nullable SqlUpdate) operand;
       break;
     case 4:
-      insertCall = (@Nullable SqlInsert) operand;
+      deleteCall = (@Nullable SqlDelete) operand;
       break;
     case 5:
-      sourceSelect = (@Nullable SqlSelect) operand;
+      insertCall = (@Nullable SqlInsert) operand;
       break;
     case 6:
+      sourceSelect = (@Nullable SqlSelect) operand;
+      break;
+    case 7:
       alias = (SqlIdentifier) operand;
       break;
     default:
@@ -161,6 +188,27 @@ public class SqlMerge extends SqlCall {
     this.sourceSelect = sourceSelect;
   }
 
+  public void setCallOrderList(List<SqlCall> callOrderList) {
+    this.callOrderList = callOrderList;
+  }
+
+  /** Maintaining an call order list. If not mentioned then we follow
+   * the default order list of [ UDPATE, DELETE, INSERT ]
+   * @return List of callOrderList
+   */
+  public List<SqlCall> getCallOrderList() {
+    if (this.callOrderList.isEmpty()) {
+      List<SqlCall> callOrderList = new LinkedList<>();
+      callOrderList.add(this.updateCall);
+      callOrderList.add(this.deleteCall);
+      callOrderList.add(this.insertCall);
+      setCallOrderList(callOrderList);
+      return callOrderList;
+    }
+
+    return this.callOrderList;
+  }
+
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.SELECT, "MERGE INTO", "");
@@ -181,40 +229,76 @@ public class SqlMerge extends SqlCall {
     writer.keyword("ON");
     condition.unparse(writer, opLeft, opRight);
 
-    SqlUpdate updateCall = this.updateCall;
-    if (updateCall != null) {
-      writer.newlineAndIndent();
-      writer.keyword("WHEN MATCHED THEN UPDATE");
-      final SqlWriter.Frame setFrame =
-          writer.startList(
-              SqlWriter.FrameTypeEnum.UPDATE_SET_LIST,
-              "SET",
-              "");
-
-      for (Pair<SqlNode, SqlNode> pair : Pair.zip(
-          updateCall.targetColumnList, updateCall.sourceExpressionList)) {
-        writer.sep(",");
-        SqlIdentifier id = (SqlIdentifier) pair.left;
-        id.unparse(writer, opLeft, opRight);
-        writer.keyword("=");
-        SqlNode sourceExp = pair.right;
-        sourceExp.unparse(writer, opLeft, opRight);
+    List<SqlCall> callOrderList = this.getCallOrderList();
+    for (SqlCall call: callOrderList) {
+      if (call instanceof SqlUpdate) {
+        if (this.updateCall != null) {
+          unparseUpdateCall(writer, opLeft, opRight);
+        }
+      } else if (call instanceof SqlDelete) {
+        if (this.deleteCall != null) {
+          unparseDeleteCall(writer, opLeft, opRight);
+        }
+      } else if (call instanceof SqlInsert) {
+        SqlInsert insertCall = this.insertCall;
+        if (insertCall != null) {
+          writer.newlineAndIndent();
+          writer.keyword("WHEN NOT MATCHED");
+          if (this.insertCall instanceof SqlMergeInsert
+              && ((SqlMergeInsert) this.insertCall).condition != null) {
+            writer.keyword("AND");
+            ((SqlMergeInsert) this.insertCall).condition.unparse(writer, opLeft, opRight);
+          }
+          writer.keyword("THEN INSERT");
+          SqlNodeList targetColumnList = insertCall.getTargetColumnList();
+          if (targetColumnList != null) {
+            targetColumnList.unparse(writer, opLeft, opRight);
+          }
+          insertCall.getSource().unparse(writer, opLeft, opRight);
+          writer.endList(frame);
+        }
       }
-      writer.endList(setFrame);
     }
+  }
 
-    SqlInsert insertCall = this.insertCall;
-    if (insertCall != null) {
-      writer.newlineAndIndent();
-      writer.keyword("WHEN NOT MATCHED THEN INSERT");
-      SqlNodeList targetColumnList = insertCall.getTargetColumnList();
-      if (targetColumnList != null) {
-        targetColumnList.unparse(writer, opLeft, opRight);
-      }
-      insertCall.getSource().unparse(writer, opLeft, opRight);
-
-      writer.endList(frame);
+  private void unparseUpdateCall(SqlWriter writer, int opLeft, int opRight) {
+    writer.newlineAndIndent();
+    writer.keyword("WHEN MATCHED");
+    if (this.updateCall.condition != null) {
+      writer.keyword("AND");
+      this.updateCall.condition.unparse(writer, opLeft, opRight);
     }
+    writer.keyword("THEN UPDATE");
+    final SqlWriter.Frame setFrame =
+        writer.startList(
+            SqlWriter.FrameTypeEnum.UPDATE_SET_LIST,
+            "SET",
+            "");
+
+    for (Pair<SqlNode, SqlNode> pair : Pair.zip(
+        updateCall.targetColumnList, updateCall.sourceExpressionList)) {
+      writer.sep(",");
+      SqlIdentifier id = (SqlIdentifier) pair.left;
+        assert id != null;
+      id.unparse(writer, opLeft, opRight);
+      writer.keyword("=");
+      SqlNode sourceExp = pair.right;
+        assert sourceExp != null;
+      sourceExp.unparse(writer, opLeft, opRight);
+    }
+    writer.endList(setFrame);
+  }
+
+  private void unparseDeleteCall(SqlWriter writer, int opLeft, int opRight) {
+    writer.newlineAndIndent();
+    writer.keyword("WHEN MATCHED");
+    if (this.deleteCall.condition != null) {
+      writer.keyword("AND");
+      this.deleteCall.condition.unparse(writer, opLeft, opRight);
+    }
+    writer.keyword("THEN");
+    writer.newlineAndIndent();
+    writer.keyword("DELETE");
   }
 
   @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
