@@ -2740,6 +2740,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | FORMAT_TIMESTAMP(string timestamp)             | Formats *timestamp* according to the specified format *string*
 | s | GETBIT(value, position)                        | Equivalent to `BIT_GET(value, position)`
 | b o | GREATEST(expr [, expr ]*)                    | Returns the greatest of the expressions
+| s | HYPOT(numeric1, numeric2)                      | Returns sqrt(*numeric1*^2 + *numeric2*^2) without intermediate overflow or underflow
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
 | b | IFNULL(value1, value2)                         | Equivalent to `NVL(value1, value2)`
 | p | string1 ILIKE string2 [ ESCAPE string3 ]       | Whether *string1* matches pattern *string2*, ignoring case (similar to `LIKE`)

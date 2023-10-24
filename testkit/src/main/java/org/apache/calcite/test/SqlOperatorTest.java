@@ -7659,6 +7659,34 @@ public class SqlOperatorTest {
     f.checkNull("pow(cast(null as integer), 2)");
   }
 
+  @Test void testHypotFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.HYPOT);
+    f0.checkFails("^hypot(3, 4)^",
+        "No match found for function signature HYPOT\\(<NUMERIC>, <NUMERIC>\\)",
+        false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalarApprox("hypot(3, 4)", "DOUBLE NOT NULL",
+        isWithin(5.0000d, 0.0001d));
+    f.checkScalarApprox("hypot(3.0, cast(4 as bigint))", "DOUBLE NOT NULL",
+        isWithin(5.0000d, 0.0001d));
+    f.checkScalarApprox("hypot(cast(-2 as bigint), cast(-4 as bigint))",
+        "DOUBLE NOT NULL",
+        isWithin(4.4721d, 0.0001d));
+    f.checkScalarApprox("hypot(cast(3.0 as double), cast(4.0 as double))",
+        "DOUBLE NOT NULL",
+        isWithin(5.0000d, 0.0001d));
+    f.checkScalarApprox("hypot(-2.5, cast(-4.5 as double))", "DOUBLE NOT NULL",
+        isWithin(5.1478d, 0.0001d));
+    f.checkScalarApprox("hypot(-2.5, -4.5)", "DOUBLE NOT NULL",
+        isWithin(5.1478d, 0.0001d));
+    f.checkType("hypot(cast(null as bigint), 1)", "DOUBLE");
+    f.checkNull("hypot(cast(null as bigint), 1)");
+    f.checkNull("hypot(1, cast(null as bigint))");
+    f.checkNull("hypot(cast(null as bigint), cast(null as bigint))");
+    f.checkNull("hypot(cast(null as double), cast(null as double))");
+    f.checkNull("hypot(cast(null as decimal), cast(null as decimal))");
+  }
+
   @Test void testInfinity() {
     final SqlOperatorFixture f = fixture();
     f.checkScalar("cast('Infinity' as double)", "Infinity",
