@@ -28,11 +28,11 @@ import java.util.Optional;
 
 /**
  * Rule that removes redundant {@code Order By} or {@code Limit}
- * when its input RelNode's max row count is less than or equal to specified row count.
+ * when its input RelNode's threshold is less than or equal to specified row count.
  * All of them are represented by {@link Sort}
  *
  * <p> If a {@code Sort} is order by,and its offset is null,when its input RelNode's
- * max row count is less than or equal to 1,then we could remove the redundant sort.
+ * threshold is less than or equal to 1,then we could remove the redundant sort.
  *
  * <p> For example:
  * <blockquote><pre>{@code
@@ -55,7 +55,7 @@ import java.util.Optional;
  *  </pre></blockquote>
  *
  * <p> If a {@code Sort} is pure limit,and its offset is null, when its input
- * RelNode's max row count is less than or equal to the limit's fetch,then we could
+ * RelNode's threshold is less than or equal to the limit's fetch,then we could
  * remove the redundant {@code Limit}.
  *
  * <p> For example:
@@ -63,7 +63,7 @@ import java.util.Optional;
  * SELECT * FROM (VALUES 1,2,3,4,5,6) AS t1 LIMIT 10}
  * </pre></blockquote>
  *
- * <p> The above values max row count is 6 rows, and the limit's fetch is 10,
+ * <p> The above values threshold is 6 rows, and the limit's fetch is 10,
  * so we could remove the redundant sort.
  *
  * <p> It could be converted to:
@@ -88,12 +88,12 @@ public class SortRemoveRedundantRule
       return;
     }
 
-    // Get the max row count for sort's input RelNode.
+    // Get the threshold for sort's input RelNode.
     final Double inputMaxRowCount = call.getMetadataQuery().getMaxRowCount(sort.getInput());
 
-    // Get the target max row count with sort's semantics.
-    // If sort is 'order by x' or 'order by x limit n', the target max row count is 1.
-    // If sort is pure limit, the target max row count is the limit's fetch.
+    // Get the target threshold with sort's semantics.
+    // If sort is 'order by x' or 'order by x limit n', the target threshold is 1.
+    // If sort is pure limit, the target threshold is the limit's fetch.
     // If the limit's fetch is 0, we could use CoreRules.SORT_FETCH_ZERO_INSTANCE to deal with it,
     // so we don't need to deal with it in this rule.
     final Optional<Integer> targetMaxRowCount = getSortInputSpecificMaxRowCount(sort);
@@ -102,7 +102,7 @@ public class SortRemoveRedundantRule
       return;
     }
 
-    // If the max row count is not null and less than or equal to targetMaxRowCount,
+    // If the threshold is not null and less than or equal to targetMaxRowCount,
     // then we could remove the redundant sort.
     if (inputMaxRowCount != null && inputMaxRowCount <= targetMaxRowCount.get()) {
       call.transformTo(sort.getInput());
