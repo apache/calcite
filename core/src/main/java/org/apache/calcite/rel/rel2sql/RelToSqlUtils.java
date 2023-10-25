@@ -56,8 +56,9 @@ public class RelToSqlUtils {
    * is Analytical function or not. */
   private boolean isOperandAnalyticalInFollowingProject(RelNode rel, Integer rexOperandIndex) {
     if (rel instanceof Project) {
-      return (((Project) rel).getChildExps().size() - 1) >= rexOperandIndex
-          && ((Project) rel).getChildExps().get(rexOperandIndex) instanceof RexOver;
+      return (((Project) rel).getProjects().size() - 1) >= rexOperandIndex
+          && (((Project) rel).getProjects().get(rexOperandIndex) instanceof RexOver
+          || isRexOverPresentInRexCall(((Project) rel).getProjects().get(rexOperandIndex)));
     } else {
       if (rel.getInputs().size() > 0) {
         return isOperandAnalyticalInFollowingProject(rel.getInput(0), rexOperandIndex);
@@ -95,7 +96,7 @@ public class RelToSqlUtils {
 
   /** Returns whether any Analytical Function (RexOver) is present in projection. */
   protected boolean isAnalyticalFunctionPresentInProjection(Project projectRel) {
-    for (RexNode currentRex : projectRel.getChildExps()) {
+    for (RexNode currentRex : projectRel.getProjects()) {
       if (currentRex instanceof RexOver) {
         return true;
       }
@@ -109,6 +110,18 @@ public class RelToSqlUtils {
     } else if (rexNode instanceof RexCall) {
       for (RexNode operand : ((RexCall) rexNode).getOperands()) {
         if (isAnalyticalRex(operand)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean isRexOverPresentInRexCall(RexNode rexNode) {
+    if (rexNode instanceof RexCall) {
+      List<RexNode> listOfRexNode = ((RexCall) rexNode).getOperands();
+      for (RexNode node : listOfRexNode) {
+        if (node instanceof RexOver) {
           return true;
         }
       }

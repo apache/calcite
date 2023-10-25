@@ -20,7 +20,6 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.NullCollation;
-import org.apache.calcite.linq4j.Nullness;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
@@ -66,6 +65,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
@@ -969,9 +969,10 @@ public class SqlDialect {
     return this.getCastSpec(type);
   }
 
-  public SqlNode getCastCall(SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
+  public SqlNode getCastCall(SqlKind sqlKind, SqlNode operandToCast,
+      RelDataType castFrom, RelDataType castTo) {
     return CAST.createCall(SqlParserPos.ZERO,
-      operandToCast, Nullness.castNonNull(this.getCastSpec(castTo)));
+      operandToCast, castNonNull(this.getCastSpec(castTo)));
   }
 
   public SqlNode getTimeLiteral(TimeString timeString, int precision, SqlParserPos pos) {

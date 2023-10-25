@@ -790,7 +790,7 @@ public class SqlToRelConverter {
       }
       rel =
           LogicalProject.create(rel, ImmutableList.of(),
-              Pair.left(newProjects), Pair.right(newProjects));
+              Pair.left(newProjects), Pair.right(newProjects), project.getVariablesSet());
       bb.root = rel;
       distinctify(bb, false);
       rel = bb.root();
@@ -811,7 +811,7 @@ public class SqlToRelConverter {
 
       rel =
           LogicalProject.create(rel, ImmutableList.of(),
-              Pair.left(undoProjects), Pair.right(undoProjects));
+              Pair.left(undoProjects), Pair.right(undoProjects), ImmutableSet.of());
       bb.setRoot(
           rel,
           false);
@@ -890,7 +890,8 @@ public class SqlToRelConverter {
           LogicalProject.create(bb.root(),
               ImmutableList.of(),
               exprs,
-              rowType.getFieldNames().subList(0, fieldCount)),
+              rowType.getFieldNames().subList(0, fieldCount),
+              ImmutableSet.of()),
           false);
     }
   }
