@@ -13269,7 +13269,7 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSFQuery = "SELECT REGEXP_COUNT('foo1 foo foo40 foo', 'foo') AS \"value\"";
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
-  }  
+  }
 
   @Test public void testMONInUppercase() {
     final RelBuilder builder = relBuilder();
