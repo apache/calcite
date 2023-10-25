@@ -13259,6 +13259,18 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testRegexpCount() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpCountRexNode = builder.call(SqlLibraryOperators.REGEXP_COUNT,
+        builder.literal("foo1 foo foo40 foo"), builder.literal("foo"));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(regexpCountRexNode, "value"))
+        .build();
+    final String expectedSFQuery = "SELECT REGEXP_COUNT('foo1 foo foo40 foo', 'foo') AS \"value\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
+  }
+
   @Test public void testMONInUppercase() {
     final RelBuilder builder = relBuilder();
     final RexNode monthInUppercase = builder.call(SqlLibraryOperators.FORMAT_DATE,
