@@ -130,6 +130,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
@@ -3302,6 +3303,29 @@ public abstract class RelOptUtil {
   public static RelNode createProject(RelNode child, Mappings.TargetMapping mapping,
           RelFactories.ProjectFactory projectFactory) {
     return createProject(projectFactory, child, Mappings.asListNonNull(mapping.inverse()));
+  }
+
+  /** Returns the relational table node for {@code tableName} if it occurs within a
+   * relational expression {@code root} otherwise an empty option is returned. */
+  public static Optional<RelOptTable> findTable(RelNode root, final String tableName) {
+    Optional<RelOptTable>[] table = new Optional[] {Optional.empty()};
+    try {
+      RelShuttle visitor = new RelHomogeneousShuttle() {
+        @Override public RelNode visit(TableScan scan) {
+          final RelOptTable scanTable = scan.getTable();
+          final List<String> qualifiedName = scanTable.getQualifiedName();
+          if (qualifiedName.get(qualifiedName.size() - 1).equals(tableName)) {
+            table[0] = Optional.of(scanTable);
+            throw Util.FoundOne.NULL;
+          }
+          return super.visit(scan);
+        }
+      };
+      root.accept(visitor);
+      return table[0];
+    } catch (Util.FoundOne e) {
+      return table[0];
+    }
   }
 
   /** Returns whether relational expression {@code target} occurs within a

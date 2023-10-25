@@ -95,14 +95,7 @@ class EnumerableRepeatUnionTest {
   @Test void testGenerateNumbers2UsingSqlCheckPlan() {
     CalciteAssert.that()
         .with(CalciteConnectionProperty.LEX, Lex.JAVA)
-        .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
         .withSchema("s", new ReflectiveSchema(new HierarchySchema()))
-        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
-          planner.addRule(JoinToCorrelateRule.Config.DEFAULT.toRule());
-          planner.removeRule(JoinCommuteRule.Config.DEFAULT.toRule());
-          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
-          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
-        })
         .query("WITH RECURSIVE aux(i) AS (\n"
             + "     VALUES (0)"
             + "     UNION "

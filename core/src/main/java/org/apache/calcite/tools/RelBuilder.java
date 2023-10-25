@@ -33,7 +33,6 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -129,7 +128,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
@@ -148,6 +146,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -2897,45 +2896,25 @@ public class RelBuilder {
    */
   @Experimental
   public RelBuilder repeatUnion(String tableName, boolean all, int iterationLimit) {
-    RelOptTableFinder finder = new RelOptTableFinder(tableName);
+    Optional<RelOptTable> table = Optional.empty();
     for (int i = 0; i < stack.size(); i++) { // search scan(tableName) in the stack
-      peek(i).accept(finder);
-      if (finder.relOptTable != null) { // found
+      table = RelOptUtil.findTable(peek(i), tableName);
+      if (table.isPresent()) { // found
         break;
       }
     }
-    if (finder.relOptTable == null) {
+    if (!table.isPresent()) {
       throw RESOURCE.tableNotFound(tableName).ex();
     }
 
-    RelNode iterative = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, finder.relOptTable).build();
-    RelNode seed = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, finder.relOptTable).build();
+    RelNode iterative = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, table.get()).build();
+    RelNode seed = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, table.get()).build();
     RelNode repeatUnion =
         struct.repeatUnionFactory.createRepeatUnion(seed, iterative, all,
-            iterationLimit, finder.relOptTable);
+            iterationLimit, table.get());
     return push(repeatUnion);
   }
 
-  /**
-   * Auxiliary class to find a certain RelOptTable based on its name.
-   */
-  private static final class RelOptTableFinder extends RelHomogeneousShuttle {
-    private @MonotonicNonNull RelOptTable relOptTable = null;
-    private final String tableName;
-
-    private RelOptTableFinder(String tableName) {
-      this.tableName = tableName;
-    }
-
-    @Override public RelNode visit(TableScan scan) {
-      final RelOptTable scanTable = scan.getTable();
-      final List<String> qualifiedName = scanTable.getQualifiedName();
-      if (qualifiedName.get(qualifiedName.size() - 1).equals(tableName)) {
-        relOptTable = scanTable;
-      }
-      return super.visit(scan);
-    }
-  }
 
   /** Creates a {@link Join} with an array of conditions. */
   public RelBuilder join(JoinRelType joinType, RexNode condition0,

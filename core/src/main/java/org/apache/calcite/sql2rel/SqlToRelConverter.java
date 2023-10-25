@@ -39,7 +39,6 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.RelShuttleImpl;
-import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -3791,24 +3790,6 @@ public class SqlToRelConverter {
     }
   }
 
-  public static boolean hasATableScanWithName(RelNode root, final String recurTableName) {
-    try {
-      new RelVisitor() {
-        @Override public void visit(RelNode node, int ordinal,
-            @Nullable RelNode parent) {
-          if (node instanceof LogicalTableScan
-              && ((LogicalTableScan) node).getTable().getQualifiedName().contains(recurTableName)) {
-            throw Util.FoundOne.NULL;
-          }
-          super.visit(node, ordinal, parent);
-        }
-      }.go(root);
-      return false;
-    } catch (Util.FoundOne e) {
-      return true;
-    }
-  }
-
   private RelNode createUnion(SqlCall call,
       RelNode left,
       RelNode right) {
@@ -3821,7 +3802,7 @@ public class SqlToRelConverter {
         if (enclosingNode.getKind() == SqlKind.WITH_ITEM) {
           name = ((SqlWithItem) enclosingNode).name.getSimple();
         }
-        if (hasATableScanWithName(right, name)) {
+        if (RelOptUtil.findTable(right, name).isPresent()) {
           return this.relBuilder.
               push(left).
               push(right).
