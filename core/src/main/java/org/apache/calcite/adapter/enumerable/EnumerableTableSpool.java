@@ -44,7 +44,7 @@ import org.apache.calcite.util.BuiltInMethod;
 @Experimental
 public class EnumerableTableSpool extends TableSpool implements EnumerableRel {
 
-  private EnumerableTableSpool(RelOptCluster cluster, RelTraitSet traitSet,
+  protected EnumerableTableSpool(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, Type readType, Type writeType, RelOptTable table) {
     super(cluster, traitSet, input, readType, writeType, table);
   }
@@ -92,15 +92,19 @@ public class EnumerableTableSpool extends TableSpool implements EnumerableRel {
 
     Expression inputExp = builder.append("input", inputResult.block);
 
-    Expression spoolExp =
-        Expressions.call(BuiltInMethod.LAZY_COLLECTION_SPOOL.method,
-            collectionExp, inputExp);
-    builder.add(spoolExp);
-
     PhysType physType =
         PhysTypeImpl.of(implementor.getTypeFactory(),
             getRowType(), pref.prefer(inputResult.format));
+
+    Expression spoolExp = this.getSpoolExpression(collectionExp, inputExp, physType);
+    builder.add(spoolExp);
+
     return implementor.result(physType, builder.toBlock());
+  }
+
+  protected Expression getSpoolExpression(Expression collectionExp, Expression inputExp,
+      PhysType resultPhysType) {
+    return Expressions.call(BuiltInMethod.LAZY_COLLECTION_SPOOL.method, collectionExp, inputExp);
   }
 
   @Override protected Spool copy(RelTraitSet traitSet, RelNode input,
