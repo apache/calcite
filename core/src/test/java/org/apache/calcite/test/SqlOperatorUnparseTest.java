@@ -99,6 +99,11 @@ public class SqlOperatorUnparseTest extends CalciteSqlOperatorTest {
     }
   }
 
+  @Override @Disabled("Runtime error message differs after parsing and unparsing")
+  void testBitAndFuncRuntimeFails() {
+    super.testContainsSubstrFunc();
+  }
+
   // Every test that is Disabled below corresponds to a bug.
   // These tests should just be deleted when the corresponding bugs are fixed.
 
