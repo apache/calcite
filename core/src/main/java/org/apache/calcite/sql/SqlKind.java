@@ -437,6 +437,9 @@ public enum SqlKind {
   /** {@code MEDIAN} function. */
   MEDIAN,
 
+  /** {@code HASH_AGG} function. */
+  HASH_AGG,
+
   // prefix operators
 
   /** Logical {@code NOT} operator. */
@@ -635,6 +638,10 @@ public enum SqlKind {
    * "::".
    */
   CAST,
+
+  /** The {@code SAFE_CAST} function, which is similar to {@link #CAST} but
+   * returns NULL rather than throwing an error if the conversion fails. */
+  SAFE_CAST,
 
   /**
    * The "NEXT VALUE OF sequence" operator.

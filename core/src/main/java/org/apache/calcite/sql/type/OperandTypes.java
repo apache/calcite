@@ -296,6 +296,15 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker CHARACTER_CHARACTER_DATETIME =
       family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME);
 
+  public static final SqlSingleOperandTypeChecker STRING_DATETIME =
+      family(SqlTypeFamily.STRING, SqlTypeFamily.DATETIME);
+
+  public static final SqlSingleOperandTypeChecker STRING_STRING_DATETIME =
+      family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.DATETIME);
+
+  public static final SqlSingleOperandTypeChecker STRING_STRING_TIMESTAMP =
+      family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP);
+
   public static final SqlSingleOperandTypeChecker PERIOD =
       new PeriodOperandTypeChecker();
 
@@ -522,6 +531,9 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker STRING_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
+
+  public static final SqlSingleOperandTypeChecker BINARY_INTEGER =
+      family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER);
 
   public static final SqlSingleOperandTypeChecker STRING_INTEGER_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER,

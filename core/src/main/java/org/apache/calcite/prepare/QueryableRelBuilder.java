@@ -49,6 +49,7 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
@@ -549,7 +550,8 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     RelNode child = toRel(source);
     List<RexNode> nodes = translator.toRexList(selector, child);
     setRel(
-        LogicalProject.create(child, ImmutableList.of(), nodes, (List<String>)  null));
+        LogicalProject.create(child, ImmutableList.of(), nodes, (List<String>)  null,
+            ImmutableSet.of()));
     return castNonNull(null);
   }
 
