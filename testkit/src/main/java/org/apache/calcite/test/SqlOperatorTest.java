@@ -919,8 +919,8 @@ public class SqlOperatorTest {
   void testCastWithRoundingToScalar(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
-    f.checkFails("cast(1.25 as int)", "INTEGER", true);
-    f.checkFails("cast(1.25E0 as int)", "INTEGER", true);
+    f.checkScalar("cast(1.25 as int)", 1, "INTEGER NOT NULL");
+    f.checkScalar("cast(1.25E0 as int)", 1, "INTEGER NOT NULL");
     if (!f.brokenTestsEnabled()) {
       return;
     }
@@ -960,8 +960,8 @@ public class SqlOperatorTest {
   void testCastDecimalToDoubleToInteger(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
-    f.checkFails("cast( cast(1.25 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast( cast(-1.25 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkScalar("cast( cast(1.25 as double) as integer)", 1, "INTEGER NOT NULL");
+    f.checkScalar("cast( cast(-1.25 as double) as integer)", -1, "INTEGER NOT NULL");
     if (!f.brokenTestsEnabled()) {
       return;
     }
@@ -1222,7 +1222,11 @@ public class SqlOperatorTest {
           "12:42:25.34", "TIME(2) NOT NULL");
     }
 
-    f.checkFails("cast('nottime' as TIME)", BAD_DATETIME_MESSAGE, true);
+    if (castType == CastType.CAST) {
+      f.checkFails("cast('nottime' as TIME)", BAD_DATETIME_MESSAGE, true);
+    } else {
+      f.checkNull("cast('nottime' as TIME)");
+    }
     f.checkScalar("cast('1241241' as TIME)", "72:40:12", "TIME(0) NOT NULL");
     f.checkScalar("cast('12:54:78' as TIME)", "12:55:18", "TIME(0) NOT NULL");
     f.checkScalar("cast('12:34:5' as TIME)", "12:34:05", "TIME(0) NOT NULL");
@@ -1287,7 +1291,11 @@ public class SqlOperatorTest {
       f.checkScalar("cast('1945-1-24 12:23:34.454' as TIMESTAMP)",
           "1945-01-24 12:23:34", "TIMESTAMP(0) NOT NULL");
     }
-    f.checkFails("cast('nottime' as TIMESTAMP)", BAD_DATETIME_MESSAGE, true);
+    if (castType == CastType.CAST) {
+      f.checkFails("cast('nottime' as TIMESTAMP)", BAD_DATETIME_MESSAGE, true);
+    } else {
+      f.checkNull("cast('nottime' as TIMESTAMP)");
+    }
 
     // date <-> string
     f.checkCastToString("DATE '1945-02-24'", null, "1945-02-24", castType);
@@ -1297,7 +1305,11 @@ public class SqlOperatorTest {
     f.checkScalar("cast(' 1945-2-4 ' as DATE)", "1945-02-04", "DATE NOT NULL");
     f.checkScalar("cast('  1945-02-24  ' as DATE)",
         "1945-02-24", "DATE NOT NULL");
-    f.checkFails("cast('notdate' as DATE)", BAD_DATETIME_MESSAGE, true);
+    if (castType == CastType.CAST) {
+      f.checkFails("cast('notdate' as DATE)", BAD_DATETIME_MESSAGE, true);
+    } else {
+      f.checkNull("cast('notdate' as DATE)");
+    }
 
     f.checkScalar("cast('52534253' as DATE)", "7368-10-13", "DATE NOT NULL");
     f.checkScalar("cast('1945-30-24' as DATE)", "1947-06-26", "DATE NOT NULL");
@@ -1407,12 +1419,20 @@ public class SqlOperatorTest {
     f.checkBoolean("cast('  trUe' as boolean)", true);
     f.checkBoolean("cast('  tr' || 'Ue' as boolean)", true);
     f.checkBoolean("cast('  fALse' as boolean)", false);
-    f.checkFails("cast('unknown' as boolean)", INVALID_CHAR_MESSAGE, true);
+    if (castType == CastType.CAST) {
+      f.checkFails("cast('unknown' as boolean)", INVALID_CHAR_MESSAGE, true);
+    } else {
+      f.checkNull("cast('unknown' as boolean)");
+    }
 
     f.checkBoolean("cast(cast('true' as varchar(10))  as boolean)", true);
     f.checkBoolean("cast(cast('false' as varchar(10)) as boolean)", false);
-    f.checkFails("cast(cast('blah' as varchar(10)) as boolean)",
-        INVALID_CHAR_MESSAGE, true);
+    if (castType == CastType.CAST) {
+      f.checkFails("cast(cast('blah' as varchar(10)) as boolean)",
+          INVALID_CHAR_MESSAGE, true);
+    } else {
+      f.checkNull("cast(cast('blah' as varchar(10)) as boolean)");
+    }
   }
 
   @Test void testCastRowType() {
@@ -12913,7 +12933,10 @@ public class SqlOperatorTest {
         "cast(null AS BINARY)"};
     f.checkAgg("bit_and(x)", binaryValues, isSingle("02"));
     f.checkAgg("bit_and(x)", new String[]{"CAST(x'02' AS BINARY)"}, isSingle("02"));
+  }
 
+  @Test void testBitAndFuncRuntimeFails() {
+    final SqlOperatorFixture f = fixture();
     f.checkAggFails("bit_and(x)",
         new String[]{"CAST(x'0201' AS VARBINARY)", "CAST(x'02' AS VARBINARY)"},
         "Error while executing SQL"
