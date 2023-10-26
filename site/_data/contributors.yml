@@ -376,4 +376,9 @@
   githubId: kgyrtkirk
   org: Hortonworks
   role: Committer
+- name: Mihai Budiu
+  apacheId: mbudiu
+  githubId: mihaibudiu
+  org: Feldera.com
+  role: Committer
 # End contributors.yml
