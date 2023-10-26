@@ -39,7 +39,7 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
    */
   private static final Supplier<OracleSqlOperatorTable> INSTANCE =
       Suppliers.memoize(() ->
-          (OracleSqlOperatorTable) new OracleSqlOperatorTable().init())::get;
+          (OracleSqlOperatorTable) new OracleSqlOperatorTable().init());
 
   @Deprecated // to be removed before 2.0
   public static final SqlFunction DECODE = SqlLibraryOperators.DECODE;

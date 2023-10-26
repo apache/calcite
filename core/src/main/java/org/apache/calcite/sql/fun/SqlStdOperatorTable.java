@@ -102,7 +102,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   private static final Supplier<SqlStdOperatorTable> INSTANCE =
       Suppliers.memoize(() ->
-          (SqlStdOperatorTable) new SqlStdOperatorTable().init())::get;
+          (SqlStdOperatorTable) new SqlStdOperatorTable().init());
 
   //-------------------------------------------------------------
   //                   SET OPERATORS
