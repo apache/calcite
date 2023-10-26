@@ -17,9 +17,12 @@
 package org.apache.calcite.rex;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.DataContexts;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -33,6 +36,7 @@ import org.apache.calcite.test.Matchers;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -43,6 +47,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
@@ -378,4 +383,141 @@ class RexExecutorTest {
   interface Action {
     void check(RexBuilder rexBuilder, RexExecutorImpl executor);
   }
+
+  /**
+   * ArrayList-based DataContext to check Rex execution.
+   */
+  public static class TestDataContext extends SingleValueDataContext {
+    private TestDataContext(Object[] values) {
+      super("inputRecord", values);
+    }
+  }
+
+  /**
+   * Context that holds a value for a particular context name.
+   */
+  static class SingleValueDataContext implements DataContext {
+    private final String name;
+    private final Object value;
+
+    SingleValueDataContext(String name, Object value) {
+      this.name = name;
+      this.value = value;
+    }
+
+    public SchemaPlus getRootSchema() {
+      throw new RuntimeException("Unsupported");
+    }
+
+    public JavaTypeFactory getTypeFactory() {
+      throw new RuntimeException("Unsupported");
+    }
+
+    public QueryProvider getQueryProvider() {
+      throw new RuntimeException("Unsupported");
+    }
+
+    public Object get(String name) {
+      if (this.name.equals(name)) {
+        return value;
+      } else {
+        throw new RuntimeException("Wrong DataContext access");
+      }
+    }
+  }
+
+  /**
+   * User defined executable.
+   */
+  static class UserDefinedExecutableImpl implements RexExecutable {
+    final RexBuilder rexBuilder;
+    final List<RexNode> exps;
+    DataContext dataContext;
+    UserDefinedExecutableImpl(final RexBuilder rexBuilder, final List<RexNode> exps) {
+      assert exps != null && exps.size() == 1;
+      this.rexBuilder = rexBuilder;
+      this.exps = exps;
+    }
+    @Override public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
+        List<RexNode> reducedValues) {
+      Object[] values;
+      try {
+        values = execute();
+        assert values.length == constExps.size();
+        final List<Object> valueList = Arrays.asList(values);
+        for (Pair<RexNode, Object> value : Pair.zip(constExps, valueList)) {
+          reducedValues.add(
+              rexBuilder.makeLiteral(value.right, value.left.getType(), true));
+        }
+      } catch (RuntimeException e) {
+        // One or more of the expressions failed.
+        // Don't reduce any of the expressions.
+        reducedValues.clear();
+        reducedValues.addAll(constExps);
+      }
+    }
+    @Override public void setDataContext(DataContext dataContext) {
+      this.dataContext = dataContext;
+    }
+    @Override public Object[] execute() {
+      final RexNode exp = exps.get(0);
+      assert exp instanceof RexCall;
+      RexCall call = (RexCall) exp;
+      // NOTE: this isn't a correct substring function implementation, only for testing
+      if (!call.op.getName().equals("SUBSTRING")) {
+        throw new RuntimeException("not supported");
+      }
+      assert call.getOperands().get(0) instanceof RexInputRef;
+      assert call.getOperands().get(1) instanceof RexLiteral;
+      String str = (String) ((Object[]) dataContext.get("inputRecord"))[0];
+      Integer startIndex = ((RexLiteral) call.getOperands().get(1)).getValueAs(Integer.class);
+      Object[] values = new Object[1];
+      values[0] = str.substring(startIndex - 1);
+      return values;
+    }
+  }
+  /**
+   * User defined executor.
+   */
+  static class UserDefinedExecutorImpl implements RexExecutor {
+    @Override public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
+        List<RexNode> reducedValues) {
+      this.getExecutable(rexBuilder, constExps, null).reduce(rexBuilder, constExps, reducedValues);
+    }
+    @Override public RexExecutable getExecutable(RexBuilder rexBuilder, List<RexNode> exps,
+        RelDataType rowType) {
+      return new UserDefinedExecutableImpl(rexBuilder, exps);
+    }
+  }
+  @Test public void userExecutorTest() throws Exception {
+    check((rexBuilder, executor) -> {
+      Object[] values = new Object[1];
+      final DataContext testContext = new TestDataContext(values);
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      final RelDataType varchar =
+          typeFactory.createSqlType(SqlTypeName.VARCHAR);
+      final RelDataType integer =
+          typeFactory.createSqlType(SqlTypeName.INTEGER);
+      // Calcite is internally creating the input ref via a RexRangeRef
+      // which eventually leads to a RexInputRef. So we are good.
+      final RexInputRef input = rexBuilder.makeInputRef(varchar, 0);
+      final RexNode lengthArg = rexBuilder.makeLiteral(3, integer, true);
+      final RexNode substr =
+          rexBuilder.makeCall(SqlStdOperatorTable.SUBSTRING, input,
+              lengthArg);
+      ImmutableList<RexNode> constExps = ImmutableList.of(substr);
+      final RelDataType rowType = typeFactory.builder()
+          .add("someStr", varchar)
+          .build();
+      RexExecutor useExecutor = new UserDefinedExecutorImpl();
+      final RexExecutable exec =
+          useExecutor.getExecutable(rexBuilder, constExps, rowType);
+      exec.setDataContext(testContext);
+      values[0] = "Hello World";
+      Object[] result = exec.execute();
+      assertTrue(result[0] instanceof String);
+      assertThat((String) result[0], equalTo("llo World"));
+    });
+  }
+
 }

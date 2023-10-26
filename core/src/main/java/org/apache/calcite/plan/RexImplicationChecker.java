@@ -22,7 +22,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutable;
 import org.apache.calcite.rex.RexExecutor;
-import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
@@ -256,7 +255,7 @@ public class RexImplicationChecker {
     }
 
     ImmutableList<RexNode> constExps = ImmutableList.of(second);
-    final RexExecutable exec = RexExecutorImpl.getExecutable(builder, constExps, rowType);
+    final RexExecutable exec = executor.getExecutable(builder, constExps, rowType);
 
     @Nullable Object[] result;
     exec.setDataContext(dataValues);
