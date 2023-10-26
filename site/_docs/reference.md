@@ -1156,10 +1156,11 @@ name will have been converted to upper case also.
 | SMALLINT    | 2 byte signed integer     | Range is -32768 to 32767
 | INTEGER, INT | 4 byte signed integer    | Range is -2147483648 to 2147483647
 | BIGINT      | 8 byte signed integer     | Range is -9223372036854775808 to 9223372036854775807
-| DECIMAL(p, s) | Fixed point             | Example: 123.45 or DECIMAL '123.45' is a DECIMAL(5, 2) value.
-| NUMERIC     | Fixed point               |
-| REAL, FLOAT | 4 byte floating point     | 6 decimal digits precision
-| DOUBLE      | 8 byte floating point     | 15 decimal digits precision
+| DECIMAL(p, s) | Fixed point             | Example: 123.45 and DECIMAL '123.45' are identical values, and have type DECIMAL(5, 2)
+| NUMERIC(p, s) | Fixed point             | A synonym for DECIMAL
+| REAL        | 4 byte floating point     | 6 decimal digits precision; examples: CAST(1.2 AS REAL), CAST('Infinity' AS REAL)
+| DOUBLE      | 8 byte floating point     | 15 decimal digits precision; examples: 1.4E2, CAST('-Infinity' AS DOUBLE), CAST('NaN' AS DOUBLE)
+| FLOAT       | 8 byte floating point     | A synonym for DOUBLE
 | CHAR(n), CHARACTER(n) | Fixed-width character string | 'Hello', '' (empty string), _latin1'Hello', n'Hello', _UTF16'Hello', 'Hello' 'there' (literal split into multiple parts), e'Hello\nthere' (literal containing C-style escapes)
 | VARCHAR(n), CHARACTER VARYING(n) | Variable-length character string | As CHAR(n)
 | BINARY(n)   | Fixed-width binary string | x'45F0AB', x'' (empty binary string), x'AB' 'CD' (multi-part binary string literal)
@@ -2693,7 +2694,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | m p | CONCAT_WS(separator, str1 [, string ]*)      | Concatenates one or more strings, returns null only when separator is null, otherwise treats null arguments as empty strings
 | q | CONCAT_WS(separator, str1, str2 [, string ]*)  | Concatenates two or more strings, requires at least 3 arguments (up to 254), treats null arguments as empty strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string
-| b | CONTAINS_SUBSTR(expression, string [ , json_scope&#61;&#62;json_scope_value ]) | Returns whether *string* exists as a substring in *expression*. Optional *json_scope* argument specifies what scope to search if *expression* is in JSON format. Returns NULL if a NULL exists in *expression* that does not result in a match
+| b | CONTAINS_SUBSTR(expression, string [ , json_scope =&gt; json_scope_value ]) | Returns whether *string* exists as a substring in *expression*. Optional *json_scope* argument specifies what scope to search if *expression* is in JSON format. Returns NULL if a NULL exists in *expression* that does not result in a match
 | q | CONVERT(type, expression [ , style ])          | Equivalent to `CAST(expression AS type)`; ignores the *style* operand
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
 | * | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*

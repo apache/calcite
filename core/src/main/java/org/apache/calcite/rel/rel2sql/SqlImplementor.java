@@ -1428,12 +1428,19 @@ public abstract class SqlImplementor {
       return SqlLiteral.createCharString((String) castNonNull(literal.getValue2()), POS);
     }
     case NUMERIC:
-    case EXACT_NUMERIC:
-      return SqlLiteral.createExactNumeric(
-          castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
+    case EXACT_NUMERIC: {
+      if (SqlTypeName.APPROX_TYPES.contains(typeName)) {
+        return SqlLiteral.createApproxNumeric(
+            castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
+      } else {
+        return SqlLiteral.createExactNumeric(
+            castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
+      }
+    }
     case APPROXIMATE_NUMERIC:
-      return SqlLiteral.createApproxNumeric(
-          castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
+      // This case is currently unreachable, because the type family can never be
+      // APPROXIMATE_NUMERIC -- see the definition of SqlTypeName.
+      throw new AssertionError("Unreachable");
     case BOOLEAN:
       return SqlLiteral.createBoolean(castNonNull(literal.getValueAs(Boolean.class)),
           POS);
