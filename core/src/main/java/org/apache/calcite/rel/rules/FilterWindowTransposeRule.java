@@ -30,6 +30,8 @@ import org.immutables.value.Value;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.calcite.rel.rules.FilterAggregateTransposeRule.buildRelNodeWithConditions;
+
 /**
  * Planner rule that pushes a {@link org.apache.calcite.rel.core.Filter}
  * past a {@link org.apache.calcite.rel.core.Window}.
@@ -103,8 +105,8 @@ public class FilterWindowTransposeRule
 
     // Use the pushed conditions to create a new filter above the window's input.
     final RelNode rel =
-        RelOptUtil.buildRelNodeWithConditions(call.builder(), windowRel,
-            pushedConditions, remainingConditions);
+            buildRelNodeWithConditions(call.builder(), windowRel,
+                pushedConditions, remainingConditions);
     if (!rel.equals(windowRel)) {
       call.transformTo(rel);
     }
