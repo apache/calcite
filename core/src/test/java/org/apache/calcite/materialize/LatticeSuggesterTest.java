@@ -55,6 +55,8 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -470,7 +472,7 @@ class LatticeSuggesterTest {
         lattice.tables().stream().map(table ->
             table.t.getQualifiedName())
             .sorted(Comparator.comparing(Object::toString))
-            .collect(Util.toImmutableList());
+            .collect(toImmutableList());
     assertThat(tableNames,
         hasToString("[[foodmart, customer],"
             + " [foodmart, product],"

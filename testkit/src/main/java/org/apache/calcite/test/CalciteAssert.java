@@ -1745,7 +1745,19 @@ public class CalciteAssert {
     @Deprecated // to be removed before 2.0
     public final AssertQuery queryContains(
         com.google.common.base.Function<List, Void> predicate1) {
-      return queryContains((Consumer<List>) predicate1::apply);
+      return queryContains(functionConsumer(predicate1));
+    }
+
+    /** Converts a Guava function into a JDK consumer. */
+    @SuppressWarnings("Guava")
+    private static <T, R> Consumer<T> functionConsumer(
+        com.google.common.base.Function<T, R> handler) {
+      return t -> {
+        // Squash ErrorProne warnings that the return of the function is not
+        // used.
+        R r = handler.apply(t);
+        Util.discard(r);
+      };
     }
 
     /** Sets a limit on the number of rows returned. -1 means no limit. */

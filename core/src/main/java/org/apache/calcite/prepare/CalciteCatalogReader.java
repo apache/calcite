@@ -77,6 +77,8 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 /**
  * Implementation of {@link org.apache.calcite.prepare.Prepare.CatalogReader}
  * and also {@link org.apache.calcite.sql.SqlOperatorTable} based on tables and
@@ -305,20 +307,20 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
         typeFactory -> function.getParameters()
             .stream()
             .map(o -> o.getType(typeFactory))
-            .collect(Util.toImmutableList());
+            .collect(toImmutableList());
     final Function<RelDataTypeFactory, List<SqlTypeFamily>> typeFamiliesFactory =
         typeFactory -> argTypesFactory.apply(typeFactory)
             .stream()
             .map(type ->
                 Util.first(type.getSqlTypeName().getFamily(),
                     SqlTypeFamily.ANY))
-            .collect(Util.toImmutableList());
+            .collect(toImmutableList());
     final Function<RelDataTypeFactory, List<RelDataType>> paramTypesFactory =
         typeFactory ->
             argTypesFactory.apply(typeFactory)
                 .stream()
                 .map(type -> toSql(typeFactory, type))
-                .collect(Util.toImmutableList());
+                .collect(toImmutableList());
 
     // Use a short-lived type factory to populate "typeFamilies" and "argTypes".
     // SqlOperandMetadata.paramTypes will use the real type factory, during

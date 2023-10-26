@@ -1199,8 +1199,8 @@ Note:
 |:-------- |:---------------------------|:---------------
 | ANY      | The union of all types |
 | UNKNOWN  | A value of an unknown type; used as a placeholder |
-| ROW      | Row with 1 or more columns | Example: Row(f0 int null, f1 varchar)
-| MAP      | Collection of keys mapped to values |
+| ROW      | Row with 1 or more columns | Example: row(f0 int null, f1 varchar)
+| MAP      | Collection of keys mapped to values | Example: (int, varchar) map
 | MULTISET | Unordered collection that may contain duplicates | Example: int multiset
 | ARRAY    | Ordered, contiguous collection that may contain duplicates | Example: varchar(10) array
 | CURSOR   | Cursor over the result of executing a query |
@@ -3378,6 +3378,7 @@ ddlStatement:
       createSchemaStatement
   |   createForeignSchemaStatement
   |   createTableStatement
+  |   createTableLikeStatement
   |   createViewStatement
   |   createMaterializedViewStatement
   |   createTypeStatement
@@ -3408,6 +3409,13 @@ createTableStatement:
       CREATE TABLE [ IF NOT EXISTS ] name
       [ '(' tableElement [, tableElement ]* ')' ]
       [ AS query ]
+
+createTableLikeStatement:
+      CREATE TABLE [ IF NOT EXISTS ] name LIKE sourceTable
+      [ likeOption [, likeOption ]* ]
+
+likeOption:
+      { INCLUDING | EXCLUDING } { DEFAULTS | GENERATED | ALL }
 
 createTypeStatement:
       CREATE [ OR REPLACE ] TYPE name AS

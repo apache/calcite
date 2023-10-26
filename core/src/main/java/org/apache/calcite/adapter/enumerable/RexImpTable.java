@@ -169,6 +169,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FROM_UNIX_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_PART;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
@@ -688,6 +689,7 @@ public class RexImpTable {
       map.put(DATETIME_PLUS, new DatetimeArithmeticImplementor());
       map.put(MINUS_DATE, new DatetimeArithmeticImplementor());
       map.put(EXTRACT, new ExtractImplementor());
+      map.put(DATE_PART, new ExtractImplementor());
       map.put(FLOOR,
           new FloorImplementor(BuiltInMethod.FLOOR.method,
               BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,

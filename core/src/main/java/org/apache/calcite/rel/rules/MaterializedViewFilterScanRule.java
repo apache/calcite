@@ -56,7 +56,7 @@ public class MaterializedViewFilterScanRule
       new HepProgramBuilder()
           .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
           .addRuleInstance(CoreRules.PROJECT_MERGE)
-          .build())::get;
+          .build());
 
   //~ Constructors -----------------------------------------------------------
 

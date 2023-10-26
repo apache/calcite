@@ -76,7 +76,7 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
     return tester;
   }
 
-  @Override public SqlOperatorFixtureImpl withFactory(
+  @Override public SqlOperatorFixture withFactory(
       UnaryOperator<SqlTestFactory> transform) {
     final SqlTestFactory factory = transform.apply(this.factory);
     if (factory == this.factory) {
@@ -163,6 +163,7 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
       SqlValidator validator = factory.createValidator();
       SqlNode n = parseAndValidate(validator, sql);
       assertNotNull(n);
+      tester.checkFails(factory, sap, expectedError, runtime);
     } else {
       checkQueryFails(StringAndPos.of(sql),
           expectedError);
@@ -185,6 +186,7 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
       SqlValidator validator = factory.createValidator();
       SqlNode n = parseAndValidate(validator, sql);
       assertNotNull(n);
+      tester.checkAggFails(factory, expr, inputValues, expectedError, runtime);
     } else {
       checkQueryFails(StringAndPos.of(sql), expectedError);
     }

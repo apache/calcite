@@ -42,7 +42,8 @@ import static java.util.Objects.requireNonNull;
  */
 public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
   public SqlMapValueConstructor() {
-    super("MAP", SqlKind.MAP_VALUE_CONSTRUCTOR);
+    // no need to deduce NULL operand type
+    super("MAP", SqlKind.MAP_VALUE_CONSTRUCTOR, null);
   }
 
   @SuppressWarnings("argument.type.incompatible")

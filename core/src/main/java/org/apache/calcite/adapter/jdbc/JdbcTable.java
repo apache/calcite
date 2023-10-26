@@ -80,7 +80,7 @@ public class JdbcTable extends AbstractQueryableTable
     implements TranslatableTable, ScannableTable, ModifiableTable {
   @SuppressWarnings("methodref.receiver.bound.invalid")
   private final Supplier<RelProtoDataType> protoRowTypeSupplier =
-      Suppliers.memoize(this::supplyProto)::get;
+      Suppliers.memoize(this::supplyProto);
   public final JdbcSchema jdbcSchema;
   public final String jdbcCatalogName;
   public final String jdbcSchemaName;

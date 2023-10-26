@@ -36,9 +36,7 @@ class SqlRuntimeTester extends AbstractSqlTester {
 
   @Override public void checkFails(SqlTestFactory factory, StringAndPos sap,
       String expectedError, boolean runtime) {
-    final StringAndPos sap2 =
-        StringAndPos.of(runtime ? buildQuery2(factory, sap.addCarets())
-            : buildQuery(sap.addCarets()));
+    final StringAndPos sap2 = StringAndPos.of(buildQuery(sap.addCarets()));
     assertExceptionIsThrown(factory, sap2, expectedError, runtime);
   }
 

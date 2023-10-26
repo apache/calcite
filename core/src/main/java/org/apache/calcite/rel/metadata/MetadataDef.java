@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.SortedMap;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 /**
  * Definition of metadata.
@@ -47,7 +48,7 @@ public class MetadataDef<M extends Metadata> {
     this.methods =
         Arrays.stream(methods)
             .sorted(Comparator.comparing(Method::getName))
-            .collect(Util.toImmutableList());
+            .collect(toImmutableList());
     final SortedMap<String, Method> handlerMethods =
         MetadataHandler.handlerMethods(handlerClass);
 

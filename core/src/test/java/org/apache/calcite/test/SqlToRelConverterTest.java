@@ -4691,6 +4691,23 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for:
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6013">[CALCITE-6013]
+   * Unnecessary measures added as projects during rel construction</a>.
+   */
+  @Test void testAvoidUnnecessaryMeasureProject() {
+    final String sql = "select deptno\n"
+        + "from empm\n"
+        + "group by deptno";
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t ->
+                SqlValidatorTest.operatorTableFor(SqlLibrary.CALCITE)))
+        .withCatalogReader(MockCatalogReaderExtended::create)
+        .withSql(sql)
+        .ok();
+  }
+
+  /** Test case for:
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3310">[CALCITE-3310]
    * Approximate and exact aggregate calls are recognized as the same
    * during sql-to-rel conversion</a>.

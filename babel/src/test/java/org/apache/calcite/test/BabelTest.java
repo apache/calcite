@@ -232,6 +232,13 @@ class BabelTest {
         "EXPR$0=false\n");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6030">
+   * [CALCITE-6030] DATE_PART is not handled by the RexToLixTranslator</a>. */
+  @Test void testDatePart() {
+    checkSqlResult("postgresql", "SELECT DATE_PART(second, TIME '10:10:10')",
+        "EXPR$0=10\n");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5816">[CALCITE-5816]
    * Query with LEFT SEMI JOIN should not refer to RHS columns</a>. */

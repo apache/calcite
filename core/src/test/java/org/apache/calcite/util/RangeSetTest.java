@@ -213,11 +213,11 @@ class RangeSetTest {
 
     // Ranges are merged correctly.
     final ImmutableRangeSet<BigDecimal> rangeSet =
-        unionRangeSet(asList(range01point, range12));
+        ImmutableRangeSet.unionOf(asList(range01point, range12));
     final ImmutableRangeSet<BigDecimal> rangeSet2 =
-        unionRangeSet(asList(range01, range12));
+        ImmutableRangeSet.unionOf(asList(range01, range12));
     final ImmutableRangeSet<BigDecimal> rangeSet3 =
-        unionRangeSet(asList(range01, range1point2));
+        ImmutableRangeSet.unionOf(asList(range01, range1point2));
     assertThat(rangeSet.asRanges(), hasSize(1));
     assertThat(rangeSet, is(rangeSet2));
     assertThat(rangeSet, is(rangeSet3));
@@ -260,18 +260,6 @@ class RangeSetTest {
     assertThat(g2.apply(Range.closed(onePoint, onePoint)),
         isRangeSet("[[2.0..2.0]]"));
     assertThat(g2.apply(Range.closed(onePoint, two)), isRangeSet("[[2.0..4]]"));
-  }
-
-  /** Equivalent to {@link ImmutableRangeSet#unionOf(Iterable)}, which was only
-   * added in Guava 21. */
-  @SuppressWarnings("unchecked")
-  private static <C extends Comparable<C>> ImmutableRangeSet<C> unionRangeSet(
-      List<? extends Range<C>> ranges) {
-    final TreeRangeSet<C> treeRangeSet = TreeRangeSet.create();
-    for (Range<C> range : ranges) {
-      treeRangeSet.add(range);
-    }
-    return ImmutableRangeSet.copyOf(treeRangeSet);
   }
 
   /** Tests {@link RangeSets#isOpenInterval(RangeSet)}. */

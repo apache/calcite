@@ -54,8 +54,10 @@ public abstract class TestUtil {
   private static final String JAVA_VERSION =
       System.getProperties().getProperty("java.version");
 
+  public static final String AVATICA_VERSION =
+      System.getProperty("calcite.avatica.version");
   private static final Supplier<Integer> GUAVA_MAJOR_VERSION =
-      Suppliers.memoize(TestUtil::computeGuavaMajorVersion)::get;
+      Suppliers.memoize(TestUtil::computeGuavaMajorVersion);
 
   /** Matches a number with at least four zeros after the point. */
   private static final Pattern TRAILING_ZERO_PATTERN =

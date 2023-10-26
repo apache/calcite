@@ -298,7 +298,7 @@ public interface CalciteResource {
   @BaseMessage("Date literal ''{0}'' out of range")
   ExInst<SqlValidatorException> dateLiteralOutOfRange(String a0);
 
-  @BaseMessage("Input arguments of {0} out of range: {1,number,#}; should be in the range of {2}")
+  @BaseMessage("Input arguments of {0} out of range: {1,number,#.#}; should be in the range of {2}")
   ExInst<CalciteException> inputArgumentsOfFunctionOutOfRange(String a0, Number a1, String a2);
 
   @BaseMessage("String literal continued on same line")

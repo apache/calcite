@@ -37,7 +37,6 @@ import java.util.function.Supplier;
 public class SqlOperatorTables {
   private SqlOperatorTables() {}
 
-  @SuppressWarnings({"FunctionalExpressionCanBeFolded", "RedundantSuppression"})
   private static final Supplier<SqlOperatorTable> SPATIAL =
       Suppliers.memoize(SqlSpatialTypeOperatorTable::new);
 

@@ -83,6 +83,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -197,6 +198,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * null arguments or null results.</li>
  * </ul>
  */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SuppressWarnings("MethodCanBeStatic")
 public class SqlOperatorTest {
   //~ Static fields/initializers ---------------------------------------------
@@ -441,8 +443,9 @@ public class SqlOperatorTest {
   }
 
   /** Generates parameters to test both regular and safe cast. */
-  static Stream<Arguments> safeParameters() {
-    SqlOperatorFixture f = SqlOperatorFixtureImpl.DEFAULT;
+  @SuppressWarnings("unused")
+  private Stream<Arguments> safeParameters() {
+    SqlOperatorFixture f = fixture();
     SqlOperatorFixture f2 =
         SqlOperatorFixtures.safeCastWrapper(f.withLibrary(SqlLibrary.BIG_QUERY), "SAFE_CAST");
     SqlOperatorFixture f3 =
@@ -916,8 +919,8 @@ public class SqlOperatorTest {
   void testCastWithRoundingToScalar(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
-    f.checkFails("cast(1.25 as int)", "INTEGER", true);
-    f.checkFails("cast(1.25E0 as int)", "INTEGER", true);
+    f.checkScalar("cast(1.25 as int)", 1, "INTEGER NOT NULL");
+    f.checkScalar("cast(1.25E0 as int)", 1, "INTEGER NOT NULL");
     if (!f.brokenTestsEnabled()) {
       return;
     }
@@ -957,8 +960,8 @@ public class SqlOperatorTest {
   void testCastDecimalToDoubleToInteger(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
-    f.checkFails("cast( cast(1.25 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast( cast(-1.25 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkScalar("cast( cast(1.25 as double) as integer)", 1, "INTEGER NOT NULL");
+    f.checkScalar("cast( cast(-1.25 as double) as integer)", -1, "INTEGER NOT NULL");
     if (!f.brokenTestsEnabled()) {
       return;
     }
@@ -1219,7 +1222,11 @@ public class SqlOperatorTest {
           "12:42:25.34", "TIME(2) NOT NULL");
     }
 
-    f.checkFails("cast('nottime' as TIME)", BAD_DATETIME_MESSAGE, true);
+    if (castType == CastType.CAST) {
+      f.checkFails("cast('nottime' as TIME)", BAD_DATETIME_MESSAGE, true);
+    } else {
+      f.checkNull("cast('nottime' as TIME)");
+    }
     f.checkScalar("cast('1241241' as TIME)", "72:40:12", "TIME(0) NOT NULL");
     f.checkScalar("cast('12:54:78' as TIME)", "12:55:18", "TIME(0) NOT NULL");
     f.checkScalar("cast('12:34:5' as TIME)", "12:34:05", "TIME(0) NOT NULL");
@@ -1238,8 +1245,6 @@ public class SqlOperatorTest {
 
     f.checkScalar("cast('1945-02-24 12:42:25' as TIMESTAMP)",
         "1945-02-24 12:42:25", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("cast('1945-2-2 12:2:5' as TIMESTAMP)",
-        "1945-02-02 12:02:05", "TIMESTAMP(0) NOT NULL");
     f.checkScalar("cast('  1945-02-24 12:42:25  ' as TIMESTAMP)",
         "1945-02-24 12:42:25", "TIMESTAMP(0) NOT NULL");
     f.checkScalar("cast('1945-02-24 12:42:25.34' as TIMESTAMP)",
@@ -1253,15 +1258,44 @@ public class SqlOperatorTest {
       f.checkScalar("cast('1945-02-24 12:42:25.34' as TIMESTAMP(2))",
           "1945-02-24 12:42:25.34", "TIMESTAMP(2) NOT NULL");
     }
-    f.checkFails("cast('nottime' as TIMESTAMP)", BAD_DATETIME_MESSAGE, true);
-    f.checkScalar("cast('1241241' as TIMESTAMP)",
-        "1241-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("cast('1945-20-24 12:42:25.34' as TIMESTAMP)",
-        "1946-08-26 12:42:25", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("cast('1945-01-24 25:42:25.34' as TIMESTAMP)",
-        "1945-01-25 01:42:25", "TIMESTAMP(0) NOT NULL");
-    f.checkScalar("cast('1945-1-24 12:23:34.454' as TIMESTAMP)",
-        "1945-01-24 12:23:34", "TIMESTAMP(0) NOT NULL");
+    // Remove the if condition and the else block once CALCITE-6053 is fixed
+    if (TestUtil.AVATICA_VERSION.startsWith("1.0.0-dev-main")) {
+      if (castType == CastType.CAST) {
+        f.checkFails("cast('1945-2-2 12:2:5' as TIMESTAMP)",
+            "Invalid DATE value, '1945-2-2 12:2:5'", true);
+        f.checkFails("cast('1241241' as TIMESTAMP)",
+            "Invalid DATE value, '1241241'", true);
+        f.checkFails("cast('1945-20-24 12:42:25.34' as TIMESTAMP)",
+            "Invalid DATE value, '1945-20-24 12:42:25.34'", true);
+        f.checkFails("cast('1945-01-24 25:42:25.34' as TIMESTAMP)",
+            "Value of HOUR field is out of range in '1945-01-24 25:42:25.34'", true);
+        f.checkFails("cast('1945-1-24 12:23:34.454' as TIMESTAMP)",
+            "Invalid DATE value, '1945-1-24 12:23:34.454'", true);
+      } else {
+        // test cases for 'SAFE_CAST' and 'TRY_CAST'
+        f.checkNull("cast('1945-2-2 12:2:5' as TIMESTAMP)");
+        f.checkNull("cast('1241241' as TIMESTAMP)");
+        f.checkNull("cast('1945-20-24 12:42:25.34' as TIMESTAMP)");
+        f.checkNull("cast('1945-01-24 25:42:25.34' as TIMESTAMP)");
+        f.checkNull("cast('1945-1-24 12:23:34.454' as TIMESTAMP)");
+      }
+    } else {
+      f.checkScalar("cast('1945-2-2 12:2:5' as TIMESTAMP)",
+          "1945-02-02 12:02:05", "TIMESTAMP(0) NOT NULL");
+      f.checkScalar("cast('1241241' as TIMESTAMP)",
+          "1241-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+      f.checkScalar("cast('1945-20-24 12:42:25.34' as TIMESTAMP)",
+          "1946-08-26 12:42:25", "TIMESTAMP(0) NOT NULL");
+      f.checkScalar("cast('1945-01-24 25:42:25.34' as TIMESTAMP)",
+          "1945-01-25 01:42:25", "TIMESTAMP(0) NOT NULL");
+      f.checkScalar("cast('1945-1-24 12:23:34.454' as TIMESTAMP)",
+          "1945-01-24 12:23:34", "TIMESTAMP(0) NOT NULL");
+    }
+    if (castType == CastType.CAST) {
+      f.checkFails("cast('nottime' as TIMESTAMP)", BAD_DATETIME_MESSAGE, true);
+    } else {
+      f.checkNull("cast('nottime' as TIMESTAMP)");
+    }
 
     // date <-> string
     f.checkCastToString("DATE '1945-02-24'", null, "1945-02-24", castType);
@@ -1271,7 +1305,11 @@ public class SqlOperatorTest {
     f.checkScalar("cast(' 1945-2-4 ' as DATE)", "1945-02-04", "DATE NOT NULL");
     f.checkScalar("cast('  1945-02-24  ' as DATE)",
         "1945-02-24", "DATE NOT NULL");
-    f.checkFails("cast('notdate' as DATE)", BAD_DATETIME_MESSAGE, true);
+    if (castType == CastType.CAST) {
+      f.checkFails("cast('notdate' as DATE)", BAD_DATETIME_MESSAGE, true);
+    } else {
+      f.checkNull("cast('notdate' as DATE)");
+    }
 
     f.checkScalar("cast('52534253' as DATE)", "7368-10-13", "DATE NOT NULL");
     f.checkScalar("cast('1945-30-24' as DATE)", "1947-06-26", "DATE NOT NULL");
@@ -1381,12 +1419,20 @@ public class SqlOperatorTest {
     f.checkBoolean("cast('  trUe' as boolean)", true);
     f.checkBoolean("cast('  tr' || 'Ue' as boolean)", true);
     f.checkBoolean("cast('  fALse' as boolean)", false);
-    f.checkFails("cast('unknown' as boolean)", INVALID_CHAR_MESSAGE, true);
+    if (castType == CastType.CAST) {
+      f.checkFails("cast('unknown' as boolean)", INVALID_CHAR_MESSAGE, true);
+    } else {
+      f.checkNull("cast('unknown' as boolean)");
+    }
 
     f.checkBoolean("cast(cast('true' as varchar(10))  as boolean)", true);
     f.checkBoolean("cast(cast('false' as varchar(10)) as boolean)", false);
-    f.checkFails("cast(cast('blah' as varchar(10)) as boolean)",
-        INVALID_CHAR_MESSAGE, true);
+    if (castType == CastType.CAST) {
+      f.checkFails("cast(cast('blah' as varchar(10)) as boolean)",
+          INVALID_CHAR_MESSAGE, true);
+    } else {
+      f.checkNull("cast(cast('blah' as varchar(10)) as boolean)");
+    }
   }
 
   @Test void testCastRowType() {
@@ -1412,10 +1458,10 @@ public class SqlOperatorTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4861">[CALCITE-4861]
    * Optimization of chained CAST calls leads to unexpected behavior</a>. */
-  @Test void testChainedCast() {
+  @Test @Disabled("CALCITE-5990") void testChainedCast() {
     final SqlOperatorFixture f = fixture();
     f.checkFails("CAST(CAST(CAST(123456 AS TINYINT) AS INT) AS BIGINT)",
-        "Value out of range. Value:\"123456\"", true);
+        ".*Value 123456 out of range", true);
   }
 
   @Test void testCase() {
@@ -1840,10 +1886,10 @@ public class SqlOperatorTest {
 
     f.checkFails("code_points_to_bytes(array[-1])",
         "Input arguments of CODE_POINTS_TO_BYTES out of range: -1;"
-            + " should be in the range of [0, 255]", true);
+            + " should be in the range of \\[0, 255\\]", true);
     f.checkFails("code_points_to_bytes(array[2147483648, 1])",
         "Input arguments of CODE_POINTS_TO_BYTES out of range: 2147483648;"
-            + " should be in the range of [0, 255]", true);
+            + " should be in the range of \\[0, 255\\]", true);
 
     f.checkString("code_points_to_bytes(array[65, 66, 67, 68])", "41424344", "VARBINARY NOT NULL");
     f.checkString("code_points_to_bytes(array[255, 254, 65, 64])", "fffe4140",
@@ -1873,10 +1919,10 @@ public class SqlOperatorTest {
 
     f.checkFails("code_points_to_string(array[-1])",
         "Input arguments of CODE_POINTS_TO_STRING out of range: -1;"
-            + " should be in the range of [0, 0xD7FF] and [0xE000, 0x10FFFF]", true);
+            + " should be in the range of \\[0, 0xD7FF\\] and \\[0xE000, 0x10FFFF\\]", true);
     f.checkFails("code_points_to_string(array[2147483648, 1])",
         "Input arguments of CODE_POINTS_TO_STRING out of range: 2147483648;"
-            + " should be in the range of [0, 0xD7FF] and [0xE000, 0x10FFFF]", true);
+            + " should be in the range of \\[0, 0xD7FF\\] and \\[0xE000, 0x10FFFF\\]", true);
 
     f.checkString("code_points_to_string(array[65, 66, 67, 68])", "ABCD",
         "VARCHAR NOT NULL");
@@ -3782,7 +3828,7 @@ public class SqlOperatorTest {
 
     // some negative tests
     f.checkFails("'yd' similar to '[x-ze-a]d'",
-        "Illegal character range near index 6\n"
+        ".*Illegal character range near index 6\n"
             + "\\[x-ze-a\\]d\n"
             + "      \\^",
         true);   // illegal range
@@ -3790,10 +3836,10 @@ public class SqlOperatorTest {
     // Slightly different error message from JDK 13 onwards
     final String expectedError =
         TestUtil.getJavaMajorVersion() >= 13
-            ? "Illegal repetition near index 22\n"
+            ? ".*Illegal repetition near index 22\n"
               + "\\[\\:LOWER\\:\\]\\{2\\}\\[\\:DIGIT\\:\\]\\{,5\\}\n"
               + "                      \\^"
-            : "Illegal repetition near index 20\n"
+            : ".*Illegal repetition near index 20\n"
                 + "\\[\\:LOWER\\:\\]\\{2\\}\\[\\:DIGIT\\:\\]\\{,5\\}\n"
                 + "                    \\^";
     f.checkFails("'yd3223' similar to '[:LOWER:]{2}[:DIGIT:]{,5}'",
@@ -7203,13 +7249,13 @@ public class SqlOperatorTest {
       f.checkNull("atanh(cast(null as integer))");
       f.checkNull("atanh(cast(null as double))");
       f.checkFails("atanh(1)",
-          "Input arguments of ATANH out of range: 1; should be in the range of (-1, 1)",
+          "Input arguments of ATANH out of range: 1; should be in the range of \\(-1, 1\\)",
           true);
       f.checkFails("atanh(-1)",
-          "Input arguments of ATANH out of range: -1; should be in the range of (-1, 1)",
+          "Input arguments of ATANH out of range: -1; should be in the range of \\(-1, 1\\)",
           true);
       f.checkFails("atanh(-1.5)",
-          "Input arguments of ATANH out of range: -1.5; should be in the range of (-1, 1)",
+          "Input arguments of ATANH out of range: -1.5; should be in the range of \\(-1, 1\\)",
           true);
     };
     f0.forEachLibrary(list(SqlLibrary.ALL), consumer);
@@ -8471,7 +8517,7 @@ public class SqlOperatorTest {
     f.checkFails("lpad('12345', -3)",
         "Second argument for LPAD/RPAD must not be negative", true);
     f.checkFails("lpad('12345', 3, '')",
-        "Third argument (pad pattern) for LPAD/RPAD must not be empty", true);
+        "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
     f.checkString("lpad(x'aa', 4, x'bb')", "bbbbbbaa", "VARBINARY NOT NULL");
     f.checkString("lpad(x'aa', 4)", "202020aa", "VARBINARY NOT NULL");
     f.checkString("lpad(x'aaaaaa', 2)", "aaaa", "VARBINARY NOT NULL");
@@ -8481,7 +8527,7 @@ public class SqlOperatorTest {
     f.checkFails("lpad(x'aa', -3)",
         "Second argument for LPAD/RPAD must not be negative", true);
     f.checkFails("lpad(x'aa', 3, x'')",
-        "Third argument (pad pattern) for LPAD/RPAD must not be empty", true);
+        "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
   }
 
   @Test void testRpadFunction() {
@@ -8496,7 +8542,7 @@ public class SqlOperatorTest {
     f.checkFails("rpad('12345', -3)",
         "Second argument for LPAD/RPAD must not be negative", true);
     f.checkFails("rpad('12345', 3, '')",
-        "Third argument (pad pattern) for LPAD/RPAD must not be empty", true);
+        "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
 
     f.checkString("rpad(x'aa', 4, x'bb')", "aabbbbbb", "VARBINARY NOT NULL");
     f.checkString("rpad(x'aa', 4)", "aa202020", "VARBINARY NOT NULL");
@@ -8507,7 +8553,7 @@ public class SqlOperatorTest {
     f.checkFails("rpad(x'aa', -3)",
         "Second argument for LPAD/RPAD must not be negative", true);
     f.checkFails("rpad(x'aa', 3, x'')",
-        "Third argument (pad pattern) for LPAD/RPAD must not be empty", true);
+        "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
   }
 
   @Test void testContainsSubstrFunc() {
@@ -9084,7 +9130,7 @@ public class SqlOperatorTest {
 
       // test with illegal argument
       f.checkFails("format_number(12332.123456, -1)",
-          "Illegal arguments for 'FORMAT_NUMBER' function:"
+          "Illegal arguments for FORMAT_NUMBER function:"
               + " negative decimal value not allowed",
           true);
 
@@ -10416,6 +10462,27 @@ public class SqlOperatorTest {
     f.checkScalar("map['washington', 1, 'obama', 44]",
         "{washington=1, obama     =44}",
         "(CHAR(10) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+
+    // check null key or null value
+    f.checkScalar("map['foo', null]",
+        "{foo=null}",
+        "(CHAR(3) NOT NULL, NULL) MAP NOT NULL");
+    f.checkScalar("map[null, 'foo']",
+        "{null=foo}",
+        "(NULL, CHAR(3) NOT NULL) MAP NOT NULL");
+    f.checkScalar("map[1, 'foo', 2, null]",
+        "{1=foo, 2=null}",
+        "(INTEGER NOT NULL, CHAR(3)) MAP NOT NULL");
+    f.checkScalar("map[1, null, 2, 'foo']",
+        "{1=null, 2=foo}",
+        "(INTEGER NOT NULL, CHAR(3)) MAP NOT NULL");
+    f.checkScalar("map[1, null, 2, null]",
+        "{1=null, 2=null}",
+        "(INTEGER NOT NULL, NULL) MAP NOT NULL");
+    f.checkScalar("map[null, 1, null, 2]",
+        "{null=2}",
+        "(NULL, INTEGER NOT NULL) MAP NOT NULL");
+
     // elements cast
     f.checkScalar("map['A', 1, 'ABC', 2]", "{A  =1, ABC=2}",
         "(CHAR(3) NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
@@ -12866,7 +12933,10 @@ public class SqlOperatorTest {
         "cast(null AS BINARY)"};
     f.checkAgg("bit_and(x)", binaryValues, isSingle("02"));
     f.checkAgg("bit_and(x)", new String[]{"CAST(x'02' AS BINARY)"}, isSingle("02"));
+  }
 
+  @Test void testBitAndFuncRuntimeFails() {
+    final SqlOperatorFixture f = fixture();
     f.checkAggFails("bit_and(x)",
         new String[]{"CAST(x'0201' AS VARBINARY)", "CAST(x'02' AS VARBINARY)"},
         "Error while executing SQL"
@@ -12947,7 +13017,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testArgMin() {
-    final SqlOperatorFixture f0 = fixture().withTester(t -> TESTER);
+    final SqlOperatorFixture f0 = fixture();
     final String[] xValues = {"2", "3", "4", "4", "5", "7"};
 
     final Consumer<SqlOperatorFixture> consumer = f -> {
