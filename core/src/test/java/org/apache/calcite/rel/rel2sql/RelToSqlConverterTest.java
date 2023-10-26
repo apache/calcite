@@ -235,6 +235,12 @@ class RelToSqlConverterTest {
     sql("SELECT cast(null as binary)").withMysql().ok("SELECT NULL");
   }
 
+  @Test void testFPLiteral() {
+    String query = "SELECT CAST(0.1E0 AS DOUBLE), CAST(0.1E0 AS REAL), CAST(0.1E0 AS DOUBLE)";
+    String expected = "SELECT 1E-1, 1E-1, 1E-1";
+    sql(query).withMysql().ok(expected);
+  }
+
   @Test void testGroupByBooleanLiteral() {
     String query = "select avg(\"salary\") from \"employee\" group by true";
     String expectedRedshift = "SELECT AVG(\"employee\".\"salary\")\n"
