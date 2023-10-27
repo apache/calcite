@@ -1239,9 +1239,19 @@ public class SqlToRelConverter {
       //   SET empno = 1 WHERE emp.empno IN (
       //     SELECT emp.empno FROM emp WHERE emp.empno = 2)
       //
-      // In such case, when converting SqlUpdate#condition, bb.root is null
-      // and it makes no sense to do the sub-query substitution.
-      if (bb.root == null) {
+      // In such case, when converting SqlUpdate#condition, the bb.root is null,
+      // but we should skip the expr like 'ON (...) AND (...) IN (...) within JOIN'
+      // because in this case, bb.root can also be null.
+      // for example:
+      // "SELECT e1.empno FROM emps as e1
+      //    LEFT JOIN depts as d1
+      //    ON e1.deptno=d1.deptno
+      //    AND e1.deptno IN (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21)"
+      // note: if we use 'WHERE e1.deptno IN (...)',
+      // the bb.root is not null, doesn't apply to the case here
+      //
+      // and SqlUpdate#condition makes no sense to do the sub-query substitution here, return it.
+      if (bb.root == null && !(bb.scope.getNode() instanceof SqlJoin)) {
         return;
       }
       final RelDataType targetRowType =
@@ -5054,7 +5064,6 @@ public class SqlToRelConverter {
       requireNonNull(joinType, "joinType");
       registered.add(new RegisterArgs(rel, joinType, leftKeys));
       if (root == null) {
-        assert leftKeys == null : "leftKeys must be null";
         setRoot(rel, false);
         return rexBuilder.makeRangeReference(
             root().getRowType(),

@@ -2779,6 +2779,40 @@ FROM dept, emp WHERE emp.deptno = dept.deptno AND emp.sal < (
 )]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInSubQueryWithinJoin0">
+    <Resource name="sql">
+      <![CDATA[SELECT t1.x FROM (values (1, 'a')) as t1(x, y)
+left join (values (1, 'b')) as t2(x, y)
+ON t1.x=t2.x AND t1.x IN (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(X=[$0])
+  LogicalJoin(condition=[=($0, $2)], joinType=[left])
+    LogicalValues(tuples=[[{ 1, 'a' }]])
+    LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+      LogicalValues(tuples=[[{ 1, 'b' }]])
+      LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+        LogicalAggregate(group=[{0}])
+          LogicalValues(tuples=[[{ 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }, { 7 }, { 8 }, { 9 }, { 10 }, { 11 }, { 12 }, { 13 }, { 14 }, { 15 }, { 16 }, { 17 }, { 18 }, { 19 }, { 20 }, { 21 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInSubQueryWithinJoin1">
+    <Resource name="sql">
+      <![CDATA[SELECT t1.x FROM (values (1, 'a')) as t1(x, y)
+left join (values (1, 'b')) as t2(x, y)
+ON t1.x=t2.x AND t1.x IN (1,2,3,4,5)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(X=[$0])
+  LogicalJoin(condition=[AND(=($0, $2), SEARCH($0, Sarg[1, 2, 3, 4, 5]))], joinType=[left])
+    LogicalValues(tuples=[[{ 1, 'a' }]])
+    LogicalValues(tuples=[[{ 1, 'b' }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInToSemiJoin">
     <Resource name="sql">
       <![CDATA[SELECT empno

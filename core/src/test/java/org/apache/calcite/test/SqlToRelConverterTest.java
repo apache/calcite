@@ -4946,6 +4946,30 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6028">[CALCITE-6028]
+   * SqlToRelConverter#substituteSubQuery gives NullPointerException when convert
+   * expr JOIN ... ON ... AND ... IN ... and if size of IN exceeds IN_SUBQUERY_THRESHOLD</a>.
+   */
+  @Test void testInSubQueryWithinJoin0() {
+    String sql = "SELECT t1.x FROM (values (1, 'a')) as t1(x, y)\n"
+        + "left join (values (1, 'b')) as t2(x, y)\n"
+        + "ON t1.x=t2.x AND t1.x IN (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21)";
+    sql(sql).ok();
+  }
+
+  /**
+   * As {@link #testInSubQueryWithinJoin0()} but value size of IN < 20.
+   */
+  @Test void testInSubQueryWithinJoin1() {
+    String sql = "SELECT t1.x FROM (values (1, 'a')) as t1(x, y)\n"
+        + "left join (values (1, 'b')) as t2(x, y)\n"
+        + "ON t1.x=t2.x AND t1.x IN (1,2,3,4,5)";
+    sql(sql).ok();
+  }
+
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4295">[CALCITE-4295]
    * Composite of two checker with SqlOperandCountRange throws IllegalArgumentException</a>.
    */

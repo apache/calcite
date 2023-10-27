@@ -3721,4 +3721,41 @@ SELECT map(SELECT empno, deptno from emp where false);
 
 !ok
 
+# Test case for [CALCITE-6028] SqlToRelConverter#substituteSubQuery gives NullPointerException when convert
+# expr JOIN ... ON ... AND ... IN ... and if size of IN exceeds IN_SUBQUERY_THRESHOLD
+# IN value size < 20
+SELECT e1.empno FROM emp as e1 LEFT JOIN dept as d1 ON e1.deptno=d1.deptno
+WHERE e1.deptno IN (1,2,3,4,5,6,7,8,9,10);
++-------+
+| EMPNO |
++-------+
+|  7782 |
+|  7839 |
+|  7934 |
++-------+
+(3 rows)
+
+!ok
+
+# Test case for [CALCITE-6028] SqlToRelConverter#substituteSubQuery gives NullPointerException when convert
+# expr JOIN ... ON ... AND ... IN ... and if size of IN exceeds IN_SUBQUERY_THRESHOLD
+# IN value size > 20
+SELECT e1.empno FROM emp as e1 LEFT JOIN dept as d1 ON e1.deptno=d1.deptno
+WHERE e1.deptno IN (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21);
++-------+
+| EMPNO |
++-------+
+|  7369 |
+|  7566 |
+|  7782 |
+|  7788 |
+|  7839 |
+|  7876 |
+|  7902 |
+|  7934 |
++-------+
+(8 rows)
+
+!ok
+
 # End sub-query.iq
