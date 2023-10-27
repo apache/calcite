@@ -68,7 +68,7 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * Returns the Oracle operator table, creating it if necessary.
    */
-  public static synchronized OracleSqlOperatorTable instance() {
+  public static OracleSqlOperatorTable instance() {
     return INSTANCE.get();
   }
 }
