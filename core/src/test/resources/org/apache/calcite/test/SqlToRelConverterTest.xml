@@ -6215,6 +6215,28 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testRecursiveQuery">
+    <Resource name="sql">
+      <![CDATA[WITH RECURSIVE aux(i) AS (
+  VALUES (1)
+  UNION ALL
+  SELECT i+1 FROM aux WHERE i < 10
+)
+SELECT * FROM aux]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(I=[$0])
+  LogicalRepeatUnion(all=[true])
+    LogicalTableSpool(readType=[LAZY], writeType=[LAZY], table=[[AUX]])
+      LogicalValues(tuples=[[{ 1 }]])
+    LogicalTableSpool(readType=[LAZY], writeType=[LAZY], table=[[AUX]])
+      LogicalProject(EXPR$0=[+($0, 1)])
+        LogicalFilter(condition=[<($0, 10)])
+          LogicalTableScan(table=[[AUX]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testReduceConstExpr">
     <Resource name="sql">
       <![CDATA[select sum(case when 'y' = 'n' then ename else 0.1 end) from emp]]>

@@ -146,7 +146,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -2896,22 +2895,22 @@ public class RelBuilder {
    */
   @Experimental
   public RelBuilder repeatUnion(String tableName, boolean all, int iterationLimit) {
-    Optional<RelOptTable> table = Optional.empty();
+    RelOptTable table = null;
     for (int i = 0; i < stack.size(); i++) { // search scan(tableName) in the stack
       table = RelOptUtil.findTable(peek(i), tableName);
-      if (table.isPresent()) { // found
+      if (table != null) { // found
         break;
       }
     }
-    if (!table.isPresent()) {
+    if (table == null) {
       throw RESOURCE.tableNotFound(tableName).ex();
     }
 
-    RelNode iterative = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, table.get()).build();
-    RelNode seed = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, table.get()).build();
+    RelNode iterative = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, table).build();
+    RelNode seed = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, table).build();
     RelNode repeatUnion =
         struct.repeatUnionFactory.createRepeatUnion(seed, iterative, all,
-            iterationLimit, table.get());
+            iterationLimit, table);
     return push(repeatUnion);
   }
 

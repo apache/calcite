@@ -278,4 +278,230 @@ SELECT * FROM CTE WHERE node = 'D';
 
 !ok
 
+# Following tests are sql version of EnumerableRepeatUnionTests.java
+
+WITH RECURSIVE delta(n) AS
+  (
+   VALUES (1)
+   UNION ALL SELECT n+1
+   FROM delta
+   WHERE n < 10 )
+SELECT *
+FROM delta;
++----+
+| N  |
++----+
+|  1 |
+| 10 |
+|  2 |
+|  3 |
+|  4 |
+|  5 |
+|  6 |
+|  7 |
+|  8 |
+|  9 |
++----+
+(10 rows)
+
+!ok
+
+
+WITH RECURSIVE aux(i) AS
+  (
+   VALUES (0)
+   UNION SELECT MOD((i+1), 10)
+   FROM aux
+   WHERE i < 10 )
+SELECT *
+FROM aux;
++---+
+| I |
++---+
+| 0 |
+| 1 |
+| 2 |
+| 3 |
+| 4 |
+| 5 |
+| 6 |
+| 7 |
+| 8 |
+| 9 |
++---+
+(10 rows)
+
+!ok
+
+
+WITH RECURSIVE aux(i, j) AS
+  (
+   VALUES (0,
+           0)
+   UNION SELECT MOD((i+1), 10),
+                j
+   FROM aux
+   WHERE i < 10 )
+SELECT *
+FROM aux;
++---+---+
+| I | J |
++---+---+
+| 0 | 0 |
+| 1 | 0 |
+| 2 | 0 |
+| 3 | 0 |
+| 4 | 0 |
+| 5 | 0 |
+| 6 | 0 |
+| 7 | 0 |
+| 8 | 0 |
+| 9 | 0 |
++---+---+
+(10 rows)
+
+!ok
+
+
+WITH RECURSIVE delta(n, fact) AS
+  (
+   VALUES (0,
+           1)
+   UNION ALL SELECT n+1,
+                    (n+1)*fact
+   FROM delta
+   WHERE n < 7 )
+SELECT *
+FROM delta;
++---+------+
+| N | FACT |
++---+------+
+| 0 |    1 |
+| 1 |    1 |
+| 2 |    2 |
+| 3 |    6 |
+| 4 |   24 |
+| 5 |  120 |
+| 6 |  720 |
+| 7 | 5040 |
++---+------+
+(8 rows)
+
+!ok
+
+
+WITH RECURSIVE t_out(n) AS
+  (WITH RECURSIVE t_in(n) AS
+     (
+      VALUES (1)
+      UNION ALL SELECT n+1
+      FROM t_in
+      WHERE n < 9 ) SELECT n
+   FROM t_in
+   UNION ALL SELECT n*10
+   FROM t_out
+   WHERE n < 100 )
+SELECT n
+FROM t_out;
++-----+
+| N   |
++-----+
+|   1 |
+|  10 |
+| 100 |
+|   2 |
+|  20 |
+| 200 |
+|   3 |
+|  30 |
+| 300 |
+|   4 |
+|  40 |
+| 400 |
+|   5 |
+|  50 |
+| 500 |
+|   6 |
+|  60 |
+| 600 |
+|   7 |
+|  70 |
+| 700 |
+|   8 |
+|  80 |
+| 800 |
+|   9 |
+|  90 |
+| 900 |
++-----+
+(27 rows)
+
+!ok
+
+
+WITH RECURSIVE aux(i) AS
+  (WITH RECURSIVE aux1(i) AS
+     (
+      VALUES (1)
+      UNION ALL SELECT i+1
+      FROM aux1
+      WHERE i < 11 ) SELECT *
+   FROM aux1)
+SELECT *
+FROM aux;
++----+
+| I  |
++----+
+|  1 |
+| 10 |
+| 11 |
+|  2 |
+|  3 |
+|  4 |
+|  5 |
+|  6 |
+|  7 |
+|  8 |
+|  9 |
++----+
+(11 rows)
+
+!ok
+
+
+WITH RECURSIVE a(x) AS
+  (SELECT 1),
+               b(y) AS
+  (SELECT x
+   FROM a
+   UNION ALL SELECT y + 1
+   FROM b
+   WHERE y < 2 ),
+               c(z) AS
+  (SELECT y
+   FROM b
+   UNION ALL SELECT z * 4
+   FROM c
+   WHERE z < 4 )
+SELECT *
+FROM a,
+     b,
+     c;
++---+---+---+
+| X | Y | Z |
++---+---+---+
+| 1 | 1 | 1 |
+| 1 | 1 | 2 |
+| 1 | 1 | 4 |
+| 1 | 1 | 8 |
+| 1 | 2 | 1 |
+| 1 | 2 | 2 |
+| 1 | 2 | 4 |
+| 1 | 2 | 8 |
++---+---+---+
+(8 rows)
+
+!ok
+
+
 # End recursive_queries.iq

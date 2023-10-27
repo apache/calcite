@@ -7487,21 +7487,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  @Test void testRecursiveQuery() {
-    final String sql = "WITH RECURSIVE aux(i) AS (\n"
-        + "  VALUES (1)\n"
-        + "  UNION ALL\n"
-        + "  SELECT i+1 FROM aux WHERE i < 10\n"
-        + ")\n"
-        + "SELECT * FROM aux";
-
-    sql(sql)
-        .withLateDecorrelate(true)
-        .withTrim(true)
-        .withRule() // empty program
-        .checkUnchanged();
-  }
-
   /** Same as {@link #testDecorrelateAggWithMultiParamsAggCall}
    * but with a constant group key. */
   @Test void testDecorrelateAggWithMultiParamsAggCall2() {

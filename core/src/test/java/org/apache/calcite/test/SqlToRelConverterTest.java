@@ -614,6 +614,16 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testRecursiveQuery() {
+    final String sql = "WITH RECURSIVE aux(i) AS (\n"
+        + "  VALUES (1)\n"
+        + "  UNION ALL\n"
+        + "  SELECT i+1 FROM aux WHERE i < 10\n"
+        + ")\n"
+        + "SELECT * FROM aux";
+    sql(sql).ok();
+  }
+
   @Test void testGroupingSetsWith() {
     final String sql = "with t(a, b, c, d) as (values (1, 2, 3, 4))\n"
         + "select 1 from t\n"

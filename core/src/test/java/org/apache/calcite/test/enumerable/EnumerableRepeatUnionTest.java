@@ -45,17 +45,6 @@ import java.util.function.Consumer;
  */
 class EnumerableRepeatUnionTest {
 
-  @Test void testGenerateNumbersUsingSql() {
-    CalciteAssert.that()
-        .query("WITH RECURSIVE delta(n) AS (\n"
-            + "  VALUES (1)\n"
-            + " UNION ALL\n"
-            + " SELECT n+1 FROM delta WHERE n < 10\n"
-            + ")\n"
-            + "SELECT * FROM delta\n")
-        .returnsOrdered("N=1", "N=2", "N=3", "N=4", "N=5", "N=6", "N=7", "N=8", "N=9", "N=10");
-  }
-
   @Test void testGenerateNumbers() {
     CalciteAssert.that()
         .withRel(
@@ -79,17 +68,6 @@ class EnumerableRepeatUnionTest {
                 .repeatUnion("DELTA", true)
                 .build())
         .returnsOrdered("i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9", "i=10");
-  }
-
-  @Test void testGenerateNumbers2UsingSql() {
-    CalciteAssert.that()
-        .query("WITH RECURSIVE aux(i) AS (\n"
-            + "     VALUES (0)"
-            + "     UNION "
-            + "     SELECT MOD((i+1), 10) FROM aux WHERE i < 10"
-            + "  )"
-            + "   SELECT * FROM aux\n")
-        .returnsOrdered("I=0", "I=1", "I=2", "I=3", "I=4", "I=5", "I=6", "I=7", "I=8", "I=9");
   }
 
   @Test void testGenerateNumbers2UsingSqlCheckPlan() {
@@ -142,26 +120,6 @@ class EnumerableRepeatUnionTest {
         .returnsOrdered("i=0", "i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9");
   }
 
-  @Test void testGenerateNumbers3UsingSql() {
-    CalciteAssert.that()
-        .query("WITH RECURSIVE aux(i, j) AS (\n"
-            + "     VALUES (0, 0)\n"
-            + "     UNION -- (ALL would generate an infinite loop!)\n"
-            + "     SELECT MOD((i+1), 10), j FROM aux WHERE i < 10\n"
-            + "   )\n"
-            + "   SELECT * FROM aux\n")
-        .returnsOrdered("I=0; J=0",
-            "I=1; J=0",
-            "I=2; J=0",
-            "I=3; J=0",
-            "I=4; J=0",
-            "I=5; J=0",
-            "I=6; J=0",
-            "I=7; J=0",
-            "I=8; J=0",
-            "I=9; J=0");
-  }
-
   @Test void testGenerateNumbers3() {
     CalciteAssert.that()
         .withRel(
@@ -197,24 +155,6 @@ class EnumerableRepeatUnionTest {
             "i=7; j=0",
             "i=8; j=0",
             "i=9; j=0");
-  }
-
-  @Test void testFactorialUsingSql() {
-    CalciteAssert.that()
-        .query("   WITH RECURSIVE delta(n, fact) AS (\n"
-            + "     VALUES (0, 1)\n"
-            + "     UNION ALL\n"
-            + "     SELECT n+1, (n+1)*fact FROM delta WHERE n < 7\n"
-            + "   )\n"
-            + "   SELECT * FROM delta\n")
-        .returnsOrdered("N=0; FACT=1",
-            "N=1; FACT=1",
-            "N=2; FACT=2",
-            "N=3; FACT=6",
-            "N=4; FACT=24",
-            "N=5; FACT=120",
-            "N=6; FACT=720",
-            "N=7; FACT=5040");
   }
 
   @Test void testFactorial() {
@@ -254,41 +194,6 @@ class EnumerableRepeatUnionTest {
             "n=5; fact=120",
             "n=6; fact=720",
             "n=7; fact=5040");
-  }
-
-  @Test void testGenerateNumbersNestedTwoLevelRecursionUsingSql() {
-    CalciteAssert.that()
-        .query("WITH RECURSIVE t_out(n) AS (\n"
-            + "     WITH RECURSIVE t_in(n) AS (\n"
-            + "       VALUES (1)\n"
-            + "       UNION ALL\n"
-            + "       SELECT n+1 FROM t_out WHERE n < 9\n"
-            + "     )\n"
-            + "     SELECT n FROM t_in\n"
-            + "     UNION ALL\n"
-            + "     SELECT n*10 FROM t_out WHERE n < 100\n"
-            + "   )\n"
-            + "   SELECT n FROM t_out\n")
-        .failsAtValidation("Object 'T_OUT' not found");
-  }
-
-  @Test void testGenerateNumbersNestedRecursionUsingSql() {
-    CalciteAssert.that()
-        .query("   WITH RECURSIVE t_out(n) AS (\n"
-            + "     WITH RECURSIVE t_in(n) AS (\n"
-            + "       VALUES (1)\n"
-            + "       UNION ALL\n"
-            + "       SELECT n+1 FROM t_in WHERE n < 9\n"
-            + "     )\n"
-            + "     SELECT n FROM t_in\n"
-            + "     UNION ALL\n"
-            + "     SELECT n*10 FROM t_out WHERE n < 100\n"
-            + "   )\n"
-            + "   SELECT n FROM t_out\n")
-        .returnsOrdered(
-            "N=1",   "N=2",   "N=3",   "N=4",   "N=5",   "N=6",   "N=7",   "N=8",   "N=9",
-            "N=10",  "N=20",  "N=30",  "N=40",  "N=50",  "N=60",  "N=70",  "N=80",  "N=90",
-            "N=100", "N=200", "N=300", "N=400", "N=500", "N=600", "N=700", "N=800", "N=900");
   }
 
   @Test void testGenerateNumbersNestedRecursion() {
@@ -474,42 +379,5 @@ class EnumerableRepeatUnionTest {
         .returnsUnordered("empid=2; name=Emp2",
             "empid=3; name=Emp3",
             "empid=5; name=Emp5");
-  }
-
-  @Test void testNumbersGeneration() {
-    CalciteAssert.that()
-        .query("WITH RECURSIVE aux(i) AS (\n"
-            + "WITH RECURSIVE aux1(i) as (\n"
-            + "  VALUES (1)\n"
-            + "  UNION ALL\n"
-            + "  SELECT i+1 FROM aux1 WHERE i < 11\n"
-            + ")\n"
-            + "select * from aux1)\n"
-            + "SELECT * FROM aux")
-        .returnsOrdered("I=1", "I=2", "I=3", "I=4",
-            "I=5", "I=6", "I=7", "I=8", "I=9", "I=10", "I=11");
-  }
-  @Test void testMultipleWithListEntries() {
-    CalciteAssert.that()
-        .query("WITH RECURSIVE a(x) AS (SELECT 1), \n"
-            + "                          b(y) AS (\n"
-            + "                               SELECT x FROM a\n"
-            + "                               UNION ALL\n"
-            + "                               SELECT y + 1 FROM b WHERE y < 2\n"
-            + "),\n"
-            + "                          c(z) AS (\n"
-            + "                               SELECT y FROM b\n"
-            + "                               UNION ALL\n"
-            + "                               SELECT z * 4 FROM c WHERE z < 4\n"
-            + "                               )\n"
-            + "                          SELECT * FROM a, b, c")
-        .returnsOrdered("X=1; Y=1; Z=1",
-            "X=1; Y=1; Z=2",
-            "X=1; Y=1; Z=4",
-            "X=1; Y=1; Z=8",
-            "X=1; Y=2; Z=1",
-            "X=1; Y=2; Z=2",
-            "X=1; Y=2; Z=4",
-            "X=1; Y=2; Z=8");
   }
 }

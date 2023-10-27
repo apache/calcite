@@ -31,7 +31,7 @@ import org.apache.calcite.util.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /** Very similar to {@link WithItemNamespace} but created only for RECURSIVE queries. */
-public class WithItemRecursiveNameSpace extends WithItemNamespace {
+class WithItemRecursiveNameSpace extends WithItemNamespace {
   private final SqlWithItem withItem;
   private final SqlWithItemTableRef withItemTableRef;
   WithItemRecursiveNameSpace(SqlValidatorImpl validator,

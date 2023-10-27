@@ -130,7 +130,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
@@ -3307,15 +3306,15 @@ public abstract class RelOptUtil {
 
   /** Returns the relational table node for {@code tableName} if it occurs within a
    * relational expression {@code root} otherwise an empty option is returned. */
-  public static Optional<RelOptTable> findTable(RelNode root, final String tableName) {
-    Optional<RelOptTable>[] table = new Optional[] {Optional.empty()};
+  public static @Nullable RelOptTable findTable(RelNode root, final String tableName) {
+    RelOptTable[] table = new RelOptTable[1];
     try {
       RelShuttle visitor = new RelHomogeneousShuttle() {
         @Override public RelNode visit(TableScan scan) {
           final RelOptTable scanTable = scan.getTable();
           final List<String> qualifiedName = scanTable.getQualifiedName();
           if (qualifiedName.get(qualifiedName.size() - 1).equals(tableName)) {
-            table[0] = Optional.of(scanTable);
+            table[0] = scanTable;
             throw Util.FoundOne.NULL;
           }
           return super.visit(scan);

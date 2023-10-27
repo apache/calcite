@@ -5245,6 +5245,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "select * from emp2")
         .fails("Object 'EMP2' not found");
 
+    sql("WITH RECURSIVE t_out(n) AS\n"
+        + "  (WITH RECURSIVE t_in(n) AS\n"
+        + "     (\n"
+        + "      VALUES (1)\n"
+        + "      UNION ALL SELECT n+1\n"
+        + "      FROM ^t_out^\n"
+        + "      WHERE n < 9 ) SELECT n\n"
+        + "   FROM t_in\n"
+        + "   UNION ALL SELECT n*10\n"
+        + "   FROM t_out\n"
+        + "   WHERE n < 100 )\n"
+        + "SELECT n\n"
+        + "FROM t_out")
+        .fails("Object 'T_OUT' not found");
+
     // simplest with RECURSIVE working case.
     sql("with RECURSIVE emp2 as (select * from emp union select * from emp2)\n"
         + "select * from emp2")
@@ -5255,8 +5270,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "select * from emp2")
         .type(EMP_RECORD_TYPE);
 
-    // union all with recursive working case.
+    // recursive usage of the with clause table name on the left child should throw an error.
     sql("with RECURSIVE emp2 as (select * from ^emp2^ union all select * from emp2)\n"
+        + "select * from emp2")
+        .fails("Object 'EMP2' not found");
+
+    sql("with RECURSIVE emp2 as (select * from emp intersect select * from ^emp2^)\n"
         + "select * from emp2")
         .fails("Object 'EMP2' not found");
 

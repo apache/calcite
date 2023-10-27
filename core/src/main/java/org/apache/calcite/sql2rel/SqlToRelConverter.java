@@ -3802,7 +3802,7 @@ public class SqlToRelConverter {
         if (enclosingNode.getKind() == SqlKind.WITH_ITEM) {
           name = ((SqlWithItem) enclosingNode).name.getSimple();
         }
-        if (RelOptUtil.findTable(right, name).isPresent()) {
+        if (RelOptUtil.findTable(right, name) != null) {
           return this.relBuilder.
               push(left).
               push(right).

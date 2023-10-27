@@ -11441,38 +11441,6 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 ]]>
     </Resource>
   </TestCase>
-  <TestCase name="testRecursiveQuery">
-    <Resource name="sql">
-      <![CDATA[WITH RECURSIVE aux(i) AS (
-  VALUES (1)
-  UNION ALL
-  SELECT i+1 FROM aux WHERE i < 10
-)
-SELECT * FROM aux]]>
-    </Resource>
-    <Resource name="planBefore">
-      <![CDATA[
-LogicalRepeatUnion(all=[true])
-  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], table=[[AUX]])
-    LogicalValues(tuples=[[{ 1 }]])
-  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], table=[[AUX]])
-    LogicalProject(EXPR$0=[+($0, 1)])
-      LogicalFilter(condition=[<($0, 10)])
-        LogicalTableScan(table=[[AUX]])
-]]>
-    </Resource>
-    <Resource name="planMid">
-      <![CDATA[
-LogicalRepeatUnion(all=[true])
-  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], table=[[AUX]])
-    LogicalValues(tuples=[[{ 1 }]])
-  LogicalTableSpool(readType=[LAZY], writeType=[LAZY], table=[[AUX]])
-    LogicalProject(EXPR$0=[+($0, 1)])
-      LogicalFilter(condition=[<($0, 10)])
-        LogicalTableScan(table=[[AUX]])
-]]>
-    </Resource>
-  </TestCase>
   <TestCase name="testReduceAggregateFunctionsByGroup">
     <Resource name="sql">
       <![CDATA[select sal, max(sal) as sal_max, min(sal) as sal_min,
