@@ -5260,6 +5260,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "FROM t_out")
         .fails("Object 'T_OUT' not found");
 
+    sql("WITH RECURSIVE cte (n) AS\n"
+        + "(\n"
+        + "  SELECT 1, 2\n"
+        + "  UNION ALL\n"
+        + "  SELECT ^n + 1^ FROM cte WHERE n < 5\n"
+        + ")\n"
+        + "SELECT * FROM cte")
+        .fails("Column count mismatch in UNION ALL");
+
     // simplest with RECURSIVE working case.
     sql("with RECURSIVE emp2 as (select * from emp union select * from emp2)\n"
         + "select * from emp2")

@@ -98,7 +98,7 @@ public class SqlWith extends SqlCall {
           writer.startList(SqlWriter.FrameTypeEnum.WITH, "WITH", "");
       boolean isRecursive = ((SqlWithItem) with.withList.get(0)).recursive.booleanValue();
       if (isRecursive) {
-        writer.keyword(" RECURSIVE ");
+        writer.keyword("RECURSIVE");
       }
       final SqlWriter.Frame frame1 = writer.startList("", "");
       for (SqlNode node : with.withList) {

@@ -3107,7 +3107,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       } else if (call.getOperandList().size() > 2) {
         throw newValidationError(node, RESOURCE.recursiveWithMustHaveTwoChildUnionSetOp());
       }
-      WithScope scope = (WithScope) scopes.get(enclosingNode);
+      final WithScope scope = (WithScope) scopes.get(enclosingNode);
       // recursive scope is only set for the recursive queries.
       recursiveScope = scope != null && scope.getRecursiveScope() != null
           ? Objects.requireNonNull(scope.getRecursiveScope()) : parentScope;
