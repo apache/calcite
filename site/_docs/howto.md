@@ -58,7 +58,7 @@ Create a local copy of the GitHub repository,
 then build using the included Gradle wrapper:
 
 {% highlight bash %}
-$ git clone git@github.com:apache/calcite.git
+$ git clone https://github.com/apache/calcite.git
 $ cd calcite
 $ ./gradlew build
 {% endhighlight %}
