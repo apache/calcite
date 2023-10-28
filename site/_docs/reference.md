@@ -2730,6 +2730,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the XML fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
 | o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
+| h s | FACTORIAL(integer)                           | Returns the factorial of *integer*, the range of *integer* is [0, 20]. Otherwise, returns NULL
 | b | FLOOR(value)                                   | Similar to standard `FLOOR(value)` except if *value* is an integer type, the return type is a double
 | b | FORMAT_DATE(string, date)                      | Formats *date* according to the specified format *string*
 | b | FORMAT_DATETIME(string, timestamp)             | Formats *timestamp* according to the specified format *string*

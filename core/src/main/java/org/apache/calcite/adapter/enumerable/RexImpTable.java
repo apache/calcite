@@ -177,6 +177,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ENDS_WITH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXISTS_NODE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_VALUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_XML;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FACTORIAL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FLOOR_BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_DATETIME;
@@ -655,6 +656,7 @@ public class RexImpTable {
       defineMethod(CSC, BuiltInMethod.CSC.method, NullPolicy.STRICT);
       defineMethod(CSCH, BuiltInMethod.CSCH.method, NullPolicy.STRICT);
       defineMethod(DEGREES, BuiltInMethod.DEGREES.method, NullPolicy.STRICT);
+      defineMethod(FACTORIAL, BuiltInMethod.FACTORIAL.method, NullPolicy.STRICT);
       defineMethod(IS_INF, BuiltInMethod.IS_INF.method, NullPolicy.STRICT);
       defineMethod(IS_NAN, BuiltInMethod.IS_NAN.method, NullPolicy.STRICT);
       defineMethod(POW, BuiltInMethod.POWER.method, NullPolicy.STRICT);
