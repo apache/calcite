@@ -3307,23 +3307,22 @@ public abstract class RelOptUtil {
   /** Returns the relational table node for {@code tableName} if it occurs within a
    * relational expression {@code root} otherwise an empty option is returned. */
   public static @Nullable RelOptTable findTable(RelNode root, final String tableName) {
-    RelOptTable[] table = new RelOptTable[1];
     try {
       RelShuttle visitor = new RelHomogeneousShuttle() {
         @Override public RelNode visit(TableScan scan) {
           final RelOptTable scanTable = scan.getTable();
           final List<String> qualifiedName = scanTable.getQualifiedName();
           if (qualifiedName.get(qualifiedName.size() - 1).equals(tableName)) {
-            table[0] = scanTable;
-            throw Util.FoundOne.NULL;
+            throw new Util.FoundOne(scanTable);
           }
           return super.visit(scan);
         }
       };
       root.accept(visitor);
-      return table[0];
+      return null;
     } catch (Util.FoundOne e) {
-      return table[0];
+      Util.swallow(e, null);
+      return (RelOptTable) e.getNode();
     }
   }
 

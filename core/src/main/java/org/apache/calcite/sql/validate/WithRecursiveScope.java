@@ -26,7 +26,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
-/** Scope providing the objects that are being defined using the with clause to
+/** Scope providing the objects that are being defined using {@code WITH} clause to
  * the with clause query definitions.
  *
  * <p>For example, in
@@ -41,7 +41,7 @@ import java.util.List;
 class WithRecursiveScope extends ListScope {
   private final SqlWithItem withItem;
 
-  /** Creates a WithScope. */
+  /** Creates a WithRecursiveScope. */
   WithRecursiveScope(SqlValidatorScope parent, SqlWithItem withItem) {
     super(parent);
     this.withItem = withItem;

@@ -2772,7 +2772,8 @@ public class SqlToRelConverter {
     final SqlValidatorNamespace fromNamespace = getNamespace(withItem).resolve();
     bb.setRoot(
         relBuilder.transientScan(withItem.name.getSimple(),
-        fromNamespace.getRowType()).build(), true);
+            fromNamespace.getRowType()).build(),
+        true);
   }
 
   private void convertIdentifier(Blackboard bb, SqlIdentifier id,

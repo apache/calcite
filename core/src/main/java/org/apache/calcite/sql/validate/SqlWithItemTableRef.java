@@ -33,7 +33,7 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlWithItemTableRef</code> is a node created during validation for
- * recursive queries which represents a recursive with table reference.
+ * recursive queries which represents a table reference in a {@code WITH RECURSIVE} clause.
  */
 public class SqlWithItemTableRef extends SqlTableRef {
   private final SqlWithItem withItem;

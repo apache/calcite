@@ -30,12 +30,20 @@ import org.apache.calcite.util.Pair;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 /** Very similar to {@link WithItemNamespace} but created only for RECURSIVE queries. */
 class WithItemRecursiveNameSpace extends WithItemNamespace {
   private final SqlWithItem withItem;
   private final SqlWithItemTableRef withItemTableRef;
+
+  /**
+   * Creates a Namespace for a query specified in {@code WITH RECURSIVE} clause.
+   *
+   * @param validator Validator
+   * @param withItem A with query item specified in {@code WITH} clause
+   * @param enclosingNode Enclosing node
+   */
   WithItemRecursiveNameSpace(SqlValidatorImpl validator,
       SqlWithItem withItem,
       @Nullable SqlNode enclosingNode) {
@@ -67,7 +75,7 @@ class WithItemRecursiveNameSpace extends WithItemNamespace {
           leftChildType.getFieldList(),
           (name, field) -> builder.add(name, field.getType()));
       setType(builder.build());
-      Objects.requireNonNull(rowType, "setType should set the rowType");
+      requireNonNull(rowType, "setType should set the rowType");
     }
     return rowType;
   }

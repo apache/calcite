@@ -5245,6 +5245,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "select * from emp2")
         .fails("Object 'EMP2' not found");
 
+    // mutually recursive queries are not supported.
+    sql("WITH RECURSIVE\n"
+        + "x (id) AS (SELECT 1 UNION ALL SELECT id+1 FROM ^y^ WHERE id < 5),\n"
+        + "y (id) AS (SELECT 1 UNION ALL SELECT id+1 FROM x WHERE id < 5)\n"
+        + "SELECT * FROM x")
+        .fails("Object 'Y' not found");
+
     sql("WITH RECURSIVE t_out(n) AS\n"
         + "  (WITH RECURSIVE t_in(n) AS\n"
         + "     (\n"

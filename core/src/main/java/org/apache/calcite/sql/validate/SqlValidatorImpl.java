@@ -3109,8 +3109,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       final WithScope scope = (WithScope) scopes.get(enclosingNode);
       // recursive scope is only set for the recursive queries.
-      recursiveScope = scope != null && scope.getRecursiveScope() != null
-          ? Objects.requireNonNull(scope.getRecursiveScope()) : parentScope;
+      recursiveScope = scope != null && scope.recursiveScope != null
+          ? Objects.requireNonNull(scope.recursiveScope) : parentScope;
     }
     for (int i = 0; i < call.getOperandList().size(); i++) {
       SqlNode operand = call.getOperandList().get(i);

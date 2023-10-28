@@ -33,14 +33,11 @@ public class SqlWithItem extends SqlCall {
   public SqlLiteral recursive;
   public SqlNode query;
 
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   public SqlWithItem(SqlParserPos pos, SqlIdentifier name,
       @Nullable SqlNodeList columnList, SqlNode query) {
-    super(pos);
-    this.name = name;
-    this.columnList = columnList;
-    this.recursive = SqlLiteral.createBoolean(false, SqlParserPos.ZERO);
-    this.query = query;
+    this(pos, name, columnList, query,
+        SqlLiteral.createBoolean(false, SqlParserPos.ZERO));
   }
 
   public SqlWithItem(SqlParserPos pos, SqlIdentifier name,

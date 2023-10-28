@@ -40,7 +40,7 @@ import java.util.List;
  */
 class WithScope extends ListScope {
   private final SqlWithItem withItem;
-  private final @Nullable WithRecursiveScope recursiveScope;
+  protected final @Nullable WithRecursiveScope recursiveScope;
 
   /** Creates a WithScope. */
   WithScope(SqlValidatorScope parent, SqlWithItem withItem,
@@ -74,7 +74,4 @@ class WithScope extends ListScope {
     super.resolveTable(names, nameMatcher, path, resolved);
   }
 
-  public @Nullable WithRecursiveScope getRecursiveScope() {
-    return recursiveScope;
-  }
 }

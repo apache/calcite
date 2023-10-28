@@ -195,7 +195,7 @@ public enum SqlKind {
   /** Item in WITH clause. */
   WITH_ITEM,
 
-  /** Represents a recursive CTE as a table ref. **/
+  /** Represents a recursive CTE as a table ref. */
   WITH_ITEM_TABLE_REF,
 
   /** Item expression. */
