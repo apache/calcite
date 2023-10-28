@@ -7569,6 +7569,27 @@ public class SqlOperatorTest {
     f.checkNull("degrees(cast(null as double))");
   }
 
+  @Test void testFactorialFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.FACTORIAL);
+    f0.checkFails("^factorial(5)^",
+        "No match found for function signature FACTORIAL\\(<NUMERIC>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar("factorial(0)", "1",
+          "BIGINT");
+      f.checkScalar("factorial(1)", "1",
+          "BIGINT");
+      f.checkScalar("factorial(5)", "120",
+          "BIGINT");
+      f.checkScalar("factorial(20)", "2432902008176640000",
+          "BIGINT");
+      f.checkNull("factorial(21)");
+      f.checkNull("factorial(-1)");
+      f.checkNull("factorial(cast(null as integer))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.HIVE, SqlLibrary.SPARK), consumer);
+  }
+
   @Test void testPiFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.PI, VmName.EXPAND);

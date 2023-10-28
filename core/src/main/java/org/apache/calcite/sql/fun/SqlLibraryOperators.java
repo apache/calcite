@@ -2033,6 +2033,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code FACTORIAL(integer)} function.
+   * Returns the factorial of integer, the range of integer is [0, 20].
+   * Otherwise, returns NULL. */
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction FACTORIAL =
+      SqlBasicFunction.create("FACTORIAL",
+          ReturnTypes.BIGINT_FORCE_NULLABLE,
+          OperandTypes.INTEGER,
+          SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL, POSTGRESQL})
   public static final SqlFunction MD5 =
       SqlBasicFunction.create("MD5",

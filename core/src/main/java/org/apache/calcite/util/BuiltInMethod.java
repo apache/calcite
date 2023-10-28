@@ -489,6 +489,7 @@ public enum BuiltInMethod {
   CSC(SqlFunctions.class, "csc", double.class),
   CSCH(SqlFunctions.class, "csch", double.class),
   DEGREES(SqlFunctions.class, "degrees", double.class),
+  FACTORIAL(SqlFunctions.class, "factorial", int.class),
   IS_INF(SqlFunctions.class, "isInf", long.class),
   IS_NAN(SqlFunctions.class, "isNaN", double.class),
   OVERLAY(SqlFunctions.class, "overlay", String.class, String.class, int.class),

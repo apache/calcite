@@ -53,6 +53,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
 import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.math3.util.CombinatoricsUtils;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
 import com.google.common.base.Splitter;
@@ -3044,6 +3045,14 @@ public class SqlFunctions {
   /** SQL <code>DEGREES</code> operator applied to double values. */
   public static double degrees(double b0) {
     return Math.toDegrees(b0);
+  }
+
+  /** SQL <code>FACTORIAL</code> operator. */
+  public static @Nullable Long factorial(int b0) {
+    if (b0 < 0 || b0 > 20) {
+      return null;
+    }
+    return CombinatoricsUtils.factorial(b0);
   }
 
   /** SQL <code>IS_INF</code> operator applied to BigDecimal values. */
