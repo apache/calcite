@@ -109,6 +109,7 @@ import org.hsqldb.jdbcDriver;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
@@ -171,6 +172,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Tests for using Calcite via JDBC.
@@ -249,6 +251,45 @@ public class JdbcTest {
 
   static Stream<String> explainFormats() {
     return Stream.of("text", "dot");
+  }
+
+  static Stream<Arguments> disableTrimmingConfigsTestArguments() {
+    /** enableTrimmingByConfig, enableTrimmingByProgram, expectedLogicalPlan. */
+    return Stream.of(
+        arguments(true, true,
+            ""
+                + "LogicalProject(name=[$1])\n"
+                + "  LogicalJoin(condition=[=($0, $2)], joinType=[inner])\n"
+                + "    LogicalProject(deptno=[$0], name=[$1])\n"
+                + "      LogicalTableScan(table=[[hr, depts]])\n"
+                + "    LogicalProject(deptno=[$1])\n"
+                + "      LogicalTableScan(table=[[hr, emps]])\n"
+                + ""),
+        arguments(true, false,
+            ""
+                + "LogicalProject(name=[$1])\n"
+                + "  LogicalJoin(condition=[=($0, $2)], joinType=[inner])\n"
+                + "    LogicalProject(deptno=[$0], name=[$1])\n"
+                + "      LogicalTableScan(table=[[hr, depts]])\n"
+                + "    LogicalProject(deptno=[$1])\n"
+                + "      LogicalTableScan(table=[[hr, emps]])\n"
+                + ""),
+        arguments(false, true,
+            ""
+                + "LogicalProject(name=[$1])\n"
+                + "  LogicalJoin(condition=[=($0, $2)], joinType=[inner])\n"
+                + "    LogicalProject(deptno=[$0], name=[$1])\n"
+                + "      LogicalTableScan(table=[[hr, depts]])\n"
+                + "    LogicalProject(deptno=[$1])\n"
+                + "      LogicalTableScan(table=[[hr, emps]])\n"
+                + ""),
+        arguments(false, false,
+            ""
+                + "LogicalProject(name=[$1])\n"
+                + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
+                + "    LogicalTableScan(table=[[hr, depts]])\n"
+                + "    LogicalTableScan(table=[[hr, emps]])\n"
+                + ""));
   }
 
   /** Runs a task (such as a test) with and without expansion. */
@@ -3122,98 +3163,26 @@ public class JdbcTest {
             "deptno=10; name=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}");
   }
 
-  /** Test case for
+  /** Test cases for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5984">[CALCITE-5984]</a>
-   * Disabling trimming of unused fields via config and program.
-   * Case: trimmingByProgram: false ; trimmingByConfig: false. */
-  @Test void testJoinWithTrimmingDisabled() {
+   * Disabling trimming of unused fields via config and program. */
+  @ParameterizedTest
+  @MethodSource("disableTrimmingConfigsTestArguments")
+  void testJoinWithTrimmingConfigs(boolean enableTrimmingByConfig,
+      boolean enableTrimmingByProgram,
+      String expectedLogicalPlan) {
     CalciteAssert.hr().query("select \"d\".\"name\" from \"hr\".\"depts\" as \"d\" \n"
                 + "  join \"hr\".\"emps\" as \"e\" on \"d\".\"deptno\" = \"e\".\"deptno\" \n")
         .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
             (Consumer<Holder<Config>>) configHolder ->
-            configHolder.set(configHolder.get().withTrimUnusedFields(false)))
+            configHolder.set(configHolder.get().withTrimUnusedFields(enableTrimmingByConfig)))
         .withHook(Hook.PROGRAM,
             (Consumer<Holder<Program>>)
             programHolder -> programHolder
-                    .set(Programs.standard(DefaultRelMetadataProvider.INSTANCE, false)))
-        .convertContains(""
-                + "LogicalProject(name=[$1])\n"
-                + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
-                + "    LogicalTableScan(table=[[hr, depts]])\n"
-                + "    LogicalTableScan(table=[[hr, emps]])\n"
-                + "");
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5984">[CALCITE-5984]</a>
-   * Disabling trimming of unused fields via config and program.
-   * Case: trimmingByProgram: false ; trimmingByConfig: true. */
-  @Test void testJoinWithTrimmingEnabledByConfig() {
-    CalciteAssert.hr().query("select \"d\".\"name\" from \"hr\".\"depts\" as \"d\" \n"
-                + "  join \"hr\".\"emps\" as \"e\" on \"d\".\"deptno\" = \"e\".\"deptno\" \n")
-        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
-            (Consumer<Holder<Config>>) configHolder ->
-            configHolder.set(configHolder.get().withTrimUnusedFields(true)))
-        .withHook(Hook.PROGRAM,
-            (Consumer<Holder<Program>>)
-            programHolder -> programHolder
-                    .set(Programs.standard(DefaultRelMetadataProvider.INSTANCE, false)))
-        .convertContains(""
-                + "LogicalProject(name=[$1])\n"
-                + "  LogicalJoin(condition=[=($0, $2)], joinType=[inner])\n"
-                + "    LogicalProject(deptno=[$0], name=[$1])\n"
-                + "      LogicalTableScan(table=[[hr, depts]])\n"
-                + "    LogicalProject(deptno=[$1])\n"
-                + "      LogicalTableScan(table=[[hr, emps]])\n"
-                + "");
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5984">[CALCITE-5984]</a>
-   * Disabling trimming of unused fields via config and program.
-   * Case: trimmingByProgram: true ; trimmingByConfig: false. */
-  @Test void testJoinWithTrimmingEnabledByProgram() {
-    CalciteAssert.hr().query("select \"d\".\"name\" from \"hr\".\"depts\" as \"d\" \n"
-                + "  join \"hr\".\"emps\" as \"e\" on \"d\".\"deptno\" = \"e\".\"deptno\" \n")
-        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
-            (Consumer<Holder<Config>>) configHolder ->
-            configHolder.set(configHolder.get().withTrimUnusedFields(false)))
-        .withHook(Hook.PROGRAM,
-            (Consumer<Holder<Program>>)
-            programHolder -> programHolder
-                    .set(Programs.standard()))
-        .convertContains(""
-                + "LogicalProject(name=[$1])\n"
-                + "  LogicalJoin(condition=[=($0, $2)], joinType=[inner])\n"
-                + "    LogicalProject(deptno=[$0], name=[$1])\n"
-                + "      LogicalTableScan(table=[[hr, depts]])\n"
-                + "    LogicalProject(deptno=[$1])\n"
-                + "      LogicalTableScan(table=[[hr, emps]])\n"
-                + "");
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5984">[CALCITE-5984]</a>
-   * Disabling trimming of unused fields via config and program.
-   * Case: trimmingByProgram: true ; trimmingByConfig: true. */
-  @Test void testJoinWithTrimmingEnabledByProgramAndConfig() {
-    CalciteAssert.hr().query("select \"d\".\"name\" from \"hr\".\"depts\" as \"d\" \n"
-                + "  join \"hr\".\"emps\" as \"e\" on \"d\".\"deptno\" = \"e\".\"deptno\" \n")
-        .withHook(Hook.SQL2REL_CONVERTER_CONFIG_BUILDER,
-            (Consumer<Holder<Config>>) configHolder ->
-                configHolder.set(configHolder.get().withTrimUnusedFields(true)))
-        .withHook(Hook.PROGRAM,
-            (Consumer<Holder<Program>>)
-            programHolder -> programHolder
-                    .set(Programs.standard()))
-        .convertContains(""
-                + "LogicalProject(name=[$1])\n"
-                + "  LogicalJoin(condition=[=($0, $2)], joinType=[inner])\n"
-                + "    LogicalProject(deptno=[$0], name=[$1])\n"
-                + "      LogicalTableScan(table=[[hr, depts]])\n"
-                + "    LogicalProject(deptno=[$1])\n"
-                + "      LogicalTableScan(table=[[hr, emps]])\n"
-                + "");
+                    .set(
+                        Programs.standard(
+                        DefaultRelMetadataProvider.INSTANCE, enableTrimmingByProgram)))
+        .convertContains(expectedLogicalPlan);
   }
 
   /** A difficult query: an IN list so large that the planner promotes it
