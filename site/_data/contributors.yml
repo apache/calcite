@@ -254,6 +254,12 @@
   githubId: olivrlee
   org: Google
   role: Committer
+- name: Ran Tao
+  apacheId: taoran
+  githubId: chucheng92
+  pronouns: he/him
+  org: ByteDance
+  role: Committer
 - name: Ruben Quesada Lopez
   apacheId: rubenql
   githubId: rubenada
