@@ -65,7 +65,7 @@ class WithRecursiveScope extends ListScope {
       final SqlValidatorNamespace ns = validator.getNamespaceOrThrow(withItem);
       // create a recursive name space so that we can create a WITH_ITEM_TABLE_REFs
       final SqlValidatorNamespace recursiveNS =
-          new WithItemRecursiveNameSpace(this.validator, withItem, ns.getEnclosingNode());
+          new WithItemRecursiveNamespace(this.validator, withItem, ns.getEnclosingNode());
       final Step path2 = path
           .plus(recursiveNS.getRowType(), 0, names.get(0), StructKind.FULLY_QUALIFIED);
       resolved.found(recursiveNS, false, this, path2, ImmutableList.of());
