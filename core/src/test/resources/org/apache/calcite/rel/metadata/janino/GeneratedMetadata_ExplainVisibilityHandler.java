@@ -68,7 +68,9 @@ public final class GeneratedMetadata_ExplainVisibilityHandler
       org.apache.calcite.rel.RelNode r,
       org.apache.calcite.rel.metadata.RelMetadataQuery mq,
       org.apache.calcite.sql.SqlExplainLevel a2) {
-    if (r instanceof org.apache.calcite.rel.RelNode) {
+    if (r instanceof org.apache.calcite.rel.core.TableScan) {
+      return provider0.isVisibleInExplain((org.apache.calcite.rel.core.TableScan) r, mq, a2);
+    } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.isVisibleInExplain((org.apache.calcite.rel.RelNode) r, mq, a2);
     } else {
             throw new java.lang.IllegalArgumentException("No handler for method [public abstract java.lang.Boolean org.apache.calcite.rel.metadata.BuiltInMetadata$ExplainVisibility$Handler.isVisibleInExplain(org.apache.calcite.rel.RelNode,org.apache.calcite.rel.metadata.RelMetadataQuery,org.apache.calcite.sql.SqlExplainLevel)] applied to argument of type [" + r.getClass() + "]; we recommend you create a catch-all (RelNode) handler");

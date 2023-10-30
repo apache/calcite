@@ -22,13 +22,11 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.mutable.MutableRel;
 import org.apache.calcite.rel.mutable.MutableRels;
 import org.apache.calcite.rel.mutable.MutableScan;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 
@@ -180,11 +178,11 @@ class MutableRelTest {
   }
 
   @Test void testUpdateInputOfUnion() {
-    MutableRel mutableRel = createMutableRel(
-        "select sal from emp where deptno = 10"
+    MutableRel mutableRel =
+        createMutableRel("select sal from emp where deptno = 10"
             + "union select sal from emp where ename like 'John%'");
-    MutableRel childMutableRel = createMutableRel(
-        "select sal from emp where deptno = 12");
+    MutableRel childMutableRel =
+        createMutableRel("select sal from emp where deptno = 12");
     mutableRel.setInput(0, childMutableRel);
     String actual = RelOptUtil.toString(MutableRels.fromMutable(mutableRel));
     String expected = ""
@@ -199,10 +197,10 @@ class MutableRelTest {
   }
 
   @Test void testParentInfoOfUnion() {
-    MutableRel mutableRel = createMutableRel(
-        "select sal from emp where deptno = 10"
+    MutableRel mutableRel =
+        createMutableRel("select sal from emp where deptno = 10"
             + "union select sal from emp where ename like 'John%'");
-    for (MutableRel input: mutableRel.getInputs()) {
+    for (MutableRel input : mutableRel.getInputs()) {
       assertSame(input.getParent(), mutableRel);
     }
   }
@@ -220,7 +218,7 @@ class MutableRelTest {
   }
 
   /** Verifies equivalence of {@link MutableScan}. */
-  @Test public void testMutableScanEquivalence() {
+  @Test void testMutableScanEquivalence() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
 
@@ -253,14 +251,9 @@ class MutableRelTest {
    * RelNode remains identical to the original RelNode. */
   private static void checkConvertMutableRel(
       String rel, String sql, boolean decorrelate, List<RelOptRule> rules) {
-    final SqlToRelTestBase test = new SqlToRelTestBase() {
-    };
-    RelNode origRel = test.createTester().convertSqlToRel(sql).rel;
-    if (decorrelate) {
-      final RelBuilder relBuilder =
-          RelFactories.LOGICAL_BUILDER.create(origRel.getCluster(), null);
-      origRel = RelDecorrelator.decorrelateQuery(origRel, relBuilder);
-    }
+    final SqlToRelFixture fixture =
+        SqlToRelFixture.DEFAULT.withSql(sql).withDecorrelate(decorrelate);
+    RelNode origRel = fixture.toRel();
     if (rules != null) {
       final HepProgram hepProgram =
           new HepProgramBuilder().addRuleCollection(rules).build();
@@ -304,9 +297,7 @@ class MutableRelTest {
   }
 
   private static MutableRel createMutableRel(String sql) {
-    final SqlToRelTestBase test = new SqlToRelTestBase() {
-    };
-    RelNode rel = test.createTester().convertSqlToRel(sql).rel;
+    RelNode rel = SqlToRelFixture.DEFAULT.withSql(sql).toRel();
     return MutableRels.toMutable(rel);
   }
 

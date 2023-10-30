@@ -16,26 +16,26 @@
  */
 package org.apache.calcite.sql.test;
 
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlWriterConfig;
-import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.test.DiffRepository;
-import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Objects;
-import java.util.function.UnaryOperator;
+import static org.apache.calcite.test.Matchers.isLinux;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Unit test for {@link SqlPrettyWriter}.
@@ -43,116 +43,44 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>You must provide the system property "source.dir".
  */
 class SqlPrettyWriterTest {
-  protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(SqlPrettyWriterTest.class);
+  /** Fixture that can be re-used by other tests. */
+  public static final SqlPrettyWriterFixture FIXTURE =
+      new SqlPrettyWriterFixture(null, "?", false, null, "${formatted}",
+          w -> w);
+
+  /** Fixture that is local to this test. */
+  private static final SqlPrettyWriterFixture LOCAL_FIXTURE =
+      FIXTURE.withDiffRepos(DiffRepository.lookup(SqlPrettyWriterTest.class));
+
+  @Nullable
+  private static DiffRepository diffRepos = null;
+
+  @AfterAll
+  public static void checkActualAndReferenceFiles() {
+    if (diffRepos != null) {
+      diffRepos.checkActualAndReferenceFiles();
+    }
   }
 
-  /**
-   * Parses a SQL query. To use a different parser, override this method.
-   */
-  protected SqlNode parseQuery(String sql) {
-    SqlNode node;
-    try {
-      node = SqlParser.create(sql).parseQuery();
-    } catch (SqlParseException e) {
-      String message = "Received error while parsing SQL '" + sql + "'"
-          + "; error is:\n"
-          + e.toString();
-      throw new AssertionError(message);
-    }
-    return node;
+  /** Returns the default fixture for tests. Sub-classes may override. */
+  protected SqlPrettyWriterFixture fixture() {
+    diffRepos = LOCAL_FIXTURE.diffRepos();
+    return LOCAL_FIXTURE;
   }
 
-  /** Helper. */
-  class Sql {
-    private final String sql;
-    private final boolean expr;
-    private final String desc;
-    private final String formatted;
-    private final UnaryOperator<SqlWriterConfig> transform;
+  /** Returns a fixture with a given SQL query. */
+  public final SqlPrettyWriterFixture sql(String sql) {
+    return fixture().withSql(sql);
+  }
 
-    Sql(String sql, boolean expr, String desc, String formatted,
-        UnaryOperator<SqlWriterConfig> transform) {
-      this.sql = Objects.requireNonNull(sql, "sql");
-      this.expr = expr;
-      this.desc = desc;
-      this.formatted = Objects.requireNonNull(formatted, "formatted");
-      this.transform = Objects.requireNonNull(transform, "transform");
-    }
-
-    Sql withWriter(UnaryOperator<SqlWriterConfig> transform) {
-      Objects.requireNonNull(transform, "transform");
-      return new Sql(sql, expr, desc, formatted, w ->
-          transform.apply(this.transform.apply(w)));
-    }
-
-    Sql expectingDesc(String desc) {
-      return Objects.equals(this.desc, desc)
-          ? this
-          : new Sql(sql, expr, desc, formatted, transform);
-    }
-
-    Sql withExpr(boolean expr) {
-      return this.expr == expr
-          ? this
-          : new Sql(sql, expr, desc, formatted, transform);
-    }
-
-    Sql expectingFormatted(String formatted) {
-      return Objects.equals(this.formatted, formatted)
-          ? this
-          : new Sql(sql, expr, desc, formatted, transform);
-    }
-
-    Sql check() {
-      final SqlWriterConfig config =
-          transform.apply(SqlPrettyWriter.config()
-              .withDialect(AnsiSqlDialect.DEFAULT));
-      final SqlPrettyWriter prettyWriter = new SqlPrettyWriter(config);
-      final SqlNode node;
-      if (expr) {
-        final SqlCall valuesCall = (SqlCall) parseQuery("VALUES (" + sql + ")");
-        final SqlCall rowCall = valuesCall.operand(0);
-        node = rowCall.operand(0);
-      } else {
-        node = parseQuery(sql);
-      }
-
-      // Describe settings
-      if (desc != null) {
-        final StringWriter sw = new StringWriter();
-        final PrintWriter pw = new PrintWriter(sw);
-        prettyWriter.describe(pw, true);
-        pw.flush();
-        final String desc = sw.toString();
-        getDiffRepos().assertEquals("desc", this.desc, desc);
-      }
-
-      // Format
-      final String formatted = prettyWriter.format(node);
-      getDiffRepos().assertEquals("formatted", this.formatted, formatted);
-
-      // Now parse the result, and make sure it is structurally equivalent
-      // to the original.
-      final String actual2 = formatted.replace("`", "\"");
-      final SqlNode node2;
-      if (expr) {
-        final SqlCall valuesCall =
-            (SqlCall) parseQuery("VALUES (" + actual2 + ")");
-        final SqlCall rowCall = valuesCall.operand(0);
-        node2 = rowCall.operand(0);
-      } else {
-        node2 = parseQuery(actual2);
-      }
-      assertTrue(node.equalsDeep(node2, Litmus.THROW));
-
-      return this;
-    }
+  /** Returns a fixture with a given SQL expression. */
+  public final SqlPrettyWriterFixture expr(String sql) {
+    return fixture().withSql(sql).withExpr(true);
   }
 
   /** Creates a fluent test for a SQL statement that has most common lexical
    * features. */
-  private Sql simple() {
+  private SqlPrettyWriterFixture simple() {
     return sql("select x as a, b as b, c as c, d,"
         + " 'mixed-Case string',"
         + " unquotedCamelCaseId,"
@@ -170,21 +98,13 @@ class SqlPrettyWriterTest {
   }
 
   /** Creates a fluent test for a SQL statement that contains "tableAlias.*". */
-  private Sql tableDotStar() {
+  private SqlPrettyWriterFixture tableDotStar() {
     return sql("select x as a, b, s.*, t.* "
         + "from"
         + " (select *"
         + " from t"
         + " where x = y and a > 5) "
         + "order by g desc, h asc, i");
-  }
-
-  private Sql sql(String sql) {
-    return new Sql(sql, false, null, "${formatted}", w -> w);
-  }
-
-  private Sql expr(String sql) {
-    return sql(sql).withExpr(true);
   }
 
   // ~ Tests ----------------------------------------------------------------
@@ -468,6 +388,33 @@ class SqlPrettyWriterTest {
     sql(sql)
         .withWriter(c -> c.withLineFolding(SqlWriterConfig.LineFolding.TALL))
         .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4401">[CALCITE-4401]
+   * SqlJoin toString throws RuntimeException</a>. */
+  @Test void testJoinClauseToString() {
+    final String sql = "SELECT t.region_name, t0.o_totalprice\n"
+        + "FROM (SELECT c_custkey, region_name\n"
+        + "FROM tpch.out_tpch_vw__customer) AS t\n"
+        + "INNER JOIN (SELECT o_custkey, o_totalprice\n"
+        + "FROM tpch.out_tpch_vw__orders) AS t0 ON t.c_custkey = t0.o_custkey";
+
+    final String expectedJoinString = "SELECT *\n"
+        + "FROM (SELECT `C_CUSTKEY`, `REGION_NAME`\n"
+        + "FROM `TPCH`.`OUT_TPCH_VW__CUSTOMER`) AS `T`\n"
+        + "INNER JOIN (SELECT `O_CUSTKEY`, `O_TOTALPRICE`\n"
+        + "FROM `TPCH`.`OUT_TPCH_VW__ORDERS`) AS `T0`"
+        + " ON `T`.`C_CUSTKEY` = `T0`.`O_CUSTKEY`";
+
+    sql(sql)
+        .checkTransformedNode(root -> {
+          assertThat(root, instanceOf(SqlSelect.class));
+          SqlNode from = ((SqlSelect) root).getFrom();
+          assertThat(from, notNullValue());
+          assertThat(from, hasToString(isLinux(expectedJoinString)));
+          return from;
+        });
   }
 
   @Test void testWhereListItemsOnSeparateLinesOr() {

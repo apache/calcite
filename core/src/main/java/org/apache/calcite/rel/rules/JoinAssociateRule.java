@@ -38,7 +38,7 @@ import java.util.List;
 /**
  * Planner rule that changes a join based on the associativity rule.
  *
- * <p>((a JOIN b) JOIN c) &rarr; (a JOIN (b JOIN c))</p>
+ * <p>((a JOIN b) JOIN c) &rarr; (a JOIN (b JOIN c))
  *
  * <p>We do not need a rule to convert (a JOIN (b JOIN c)) &rarr;
  * ((a JOIN b) JOIN c) because we have

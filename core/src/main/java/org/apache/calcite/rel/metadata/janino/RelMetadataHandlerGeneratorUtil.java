@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.metadata.janino;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.metadata.MetadataDef;
 import org.apache.calcite.rel.metadata.MetadataHandler;
 
@@ -23,11 +24,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -58,12 +58,13 @@ public class RelMetadataHandlerGeneratorUtil {
   public static HandlerNameAndGeneratedCode generateHandler(
       Class<? extends MetadataHandler<?>> handlerClass,
       List<? extends MetadataHandler<?>> handlers) {
-    final String classPackage = castNonNull(RelMetadataHandlerGeneratorUtil.class.getPackage())
-        .getName();
+    final String classPackage =
+        castNonNull(RelMetadataHandlerGeneratorUtil.class.getPackage())
+            .getName();
     final String name =
         "GeneratedMetadata_" + simpleNameForHandler(handlerClass);
-    final Method[] declaredMethods = handlerClass.getDeclaredMethods();
-    Arrays.sort(declaredMethods, Comparator.comparing(Method::getName));
+    final SortedMap<String, Method> declaredMethods =
+        MetadataHandler.handlerMethods(handlerClass);
 
     final Map<MetadataHandler<?>, String> handlerToName = new LinkedHashMap<>();
     for (MetadataHandler<?> provider : handlers) {
@@ -76,20 +77,19 @@ public class RelMetadataHandlerGeneratorUtil {
     buff.append(LICENSE)
         .append("package ").append(classPackage).append(";\n\n");
 
-    //Class definition
+    // Class definition
     buff.append("public final class ").append(name).append("\n")
         .append("  implements ").append(handlerClass.getCanonicalName()).append(" {\n");
 
-    //PROPERTIES
-    for (int i = 0; i < declaredMethods.length; i++) {
-      CacheGeneratorUtil.cacheProperties(buff, declaredMethods[i], i);
-    }
+    // Properties
+    Ord.forEach(declaredMethods.values(), (declaredMethod, i) ->
+        CacheGeneratorUtil.cacheProperties(buff, declaredMethod, i));
     for (Map.Entry<MetadataHandler<?>, String> handlerAndName : handlerToName.entrySet()) {
       buff.append("  public final ").append(handlerAndName.getKey().getClass().getName())
           .append(' ').append(handlerAndName.getValue()).append(";\n");
     }
 
-    //CONSTRUCTOR
+    // Constructor
     buff.append("  public ").append(name).append("(\n");
     for (Map.Entry<MetadataHandler<?>, String> handlerAndName : handlerToName.entrySet()) {
       buff.append("      ")
@@ -108,7 +108,7 @@ public class RelMetadataHandlerGeneratorUtil {
     }
     buff.append("  }\n");
 
-    //METHODS
+    // Methods
     getDefMethod(buff,
         handlerToName.values()
             .stream()
@@ -116,11 +116,11 @@ public class RelMetadataHandlerGeneratorUtil {
             .orElse(null));
 
     DispatchGenerator dispatchGenerator = new DispatchGenerator(handlerToName);
-    for (int i = 0; i < declaredMethods.length; i++) {
-      CacheGeneratorUtil.cachedMethod(buff, declaredMethods[i], i);
-      dispatchGenerator.dispatchMethod(buff, declaredMethods[i], handlers);
-    }
-    //End of Class
+    Ord.forEach(declaredMethods.values(), (declaredMethod, i) -> {
+      CacheGeneratorUtil.cachedMethod(buff, declaredMethod, i);
+      dispatchGenerator.dispatchMethod(buff, declaredMethod, handlers);
+    });
+    // End of Class
     buff.append("\n}\n");
     return ImmutableHandlerNameAndGeneratedCode.builder()
         .withHandlerName(classPackage + "." + name)
@@ -145,10 +145,10 @@ public class RelMetadataHandlerGeneratorUtil {
 
   private static String simpleNameForHandler(Class<? extends MetadataHandler<?>> clazz) {
     String simpleName = clazz.getSimpleName();
-    //Previously the pattern was to have a nested in class named Handler
-    //So we need to add the parents class to get a unique name
+    // Previously the pattern was to have a nested in class named Handler.
+    // So we need to add the parents class to get a unique name.
     if (simpleName.equals("Handler")) {
-      String[] parts = clazz.getName().split("\\.|\\$");
+      String[] parts = clazz.getName().split("[.$]");
       return parts[parts.length - 2] + parts[parts.length - 1];
     } else {
       return simpleName;

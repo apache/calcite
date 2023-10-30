@@ -32,6 +32,7 @@ import java.io.Serializable;
 import java.io.StringReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -87,11 +88,14 @@ public class RexExecutable {
         values = new Object[constExps.size()];
       } else {
         assert values.length == constExps.size();
+        final List<RexNode> successfullyReduced = new ArrayList<>(constExps.size());
         final List<@Nullable Object> valueList = Arrays.asList(values);
         for (Pair<RexNode, @Nullable Object> value : Pair.zip(constExps, valueList)) {
-          reducedValues.add(
+          successfullyReduced.add(
               rexBuilder.makeLiteral(value.right, value.left.getType(), true));
         }
+        assert successfullyReduced.size() == constExps.size();
+        reducedValues.addAll(successfullyReduced);
       }
     } catch (RuntimeException e) {
       // One or more of the expressions failed.

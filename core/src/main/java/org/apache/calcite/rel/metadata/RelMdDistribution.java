@@ -91,6 +91,11 @@ public class RelMdDistribution
   }
 
   public @Nullable RelDistribution distribution(TableScan scan, RelMetadataQuery mq) {
+    final BuiltInMetadata.Distribution.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.Distribution.Handler.class);
+    if (handler != null) {
+      return handler.distribution(scan, mq);
+    }
     return table(scan.getTable());
   }
 
@@ -145,8 +150,8 @@ public class RelMdDistribution
     assert program.getCondition() != null || !program.getProjectList().isEmpty();
     final RelDistribution inputDistribution = mq.distribution(input);
     if (!program.getProjectList().isEmpty()) {
-      final Mappings.TargetMapping mapping = program.getPartialMapping(
-          input.getRowType().getFieldCount());
+      final Mappings.TargetMapping mapping =
+          program.getPartialMapping(input.getRowType().getFieldCount());
       return inputDistribution.apply(mapping);
     }
     return inputDistribution;

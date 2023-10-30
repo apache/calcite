@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.rel.externalize;
 
-import org.apache.calcite.plan.hep.HepRelVertex;
-import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -165,16 +163,7 @@ public class RelDotWriter extends RelWriterImpl {
   }
 
   private static List<RelNode> getInputs(RelNode parent) {
-    return Util.transform(parent.getInputs(), child -> {
-      if (child instanceof HepRelVertex) {
-        return ((HepRelVertex) child).getCurrentRel();
-      } else if (child instanceof RelSubset) {
-        RelSubset subset = (RelSubset) child;
-        return subset.getBestOrOriginal();
-      } else {
-        return child;
-      }
-    });
+    return Util.transform(parent.getInputs(), RelNode::stripped);
   }
 
   private void explainInputs(List<? extends @Nullable RelNode> inputs) {
@@ -223,6 +212,7 @@ public class RelDotWriter extends RelWriterImpl {
 
   /**
    * Format the label into multiple lines according to the options.
+   *
    * @param label the original label.
    * @param limit the maximal length of the formatted label.
    *              -1 means no limit.
@@ -246,10 +236,9 @@ public class RelDotWriter extends RelWriterImpl {
     }
 
     List<String> descParts = new ArrayList<>();
-    for (int idx = 0; idx < label.length(); idx += option.maxNodeLabelPerLine()) {
-      int endIdx = idx + option.maxNodeLabelPerLine() > label.length() ? label.length()
-          : idx + option.maxNodeLabelPerLine();
-      descParts.add(label.substring(idx, endIdx));
+    for (int i = 0; i < label.length(); i += option.maxNodeLabelPerLine()) {
+      int endIdx = Math.min(i + option.maxNodeLabelPerLine(), label.length());
+      descParts.add(label.substring(i, endIdx));
     }
 
     return String.join("\\n", descParts) + (trimmed ? "..." : "");

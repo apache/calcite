@@ -61,9 +61,9 @@ possible.
 
 -------------------- File System --------------------
 
-	+------------+      +-----+
-	| .ibd files | ...  |     |    InnoDB Data files
-	+------------+      +-----+
+        +------------+      +-----+
+        | .ibd files | ...  |     |    InnoDB Data files
+        +------------+      +-----+
 
 {% endhighlight %}
 

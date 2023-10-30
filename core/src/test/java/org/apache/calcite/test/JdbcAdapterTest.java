@@ -50,23 +50,25 @@ class JdbcAdapterTest {
    * same time. */
   private static final ReentrantLock LOCK = new ReentrantLock();
 
-  /** VALUES is not pushed down, currently. */
+  /** VALUES is pushed down. */
   @Test void testValuesPlan() {
     final String sql = "select * from \"days\", (values 1, 2) as t(c)";
-    final String explain = "PLAN="
-        + "EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
-        + "  JdbcToEnumerableConverter\n"
+    final String explain = "PLAN=JdbcToEnumerableConverter\n"
+        + "  JdbcJoin(condition=[true], joinType=[inner])\n"
         + "    JdbcTableScan(table=[[foodmart, days]])\n"
-        + "  EnumerableValues(tuples=[[{ 1 }, { 2 }]])";
+        + "    JdbcValues(tuples=[[{ 1 }, { 2 }]])";
     final String jdbcSql = "SELECT *\n"
-        + "FROM \"foodmart\".\"days\"";
+        + "FROM \"foodmart\".\"days\",\n"
+        + "(VALUES (1),\n"
+        + "(2)) AS \"t\" (\"C\")";
     CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query(sql)
         .explainContains(explain)
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB
             || CalciteAssert.DB == DatabaseInstance.POSTGRESQL)
-        .planHasSql(jdbcSql);
+        .planHasSql(jdbcSql)
+        .returnsCount(14);
   }
 
   @Test void testUnionPlan() {
@@ -360,17 +362,14 @@ class JdbcAdapterTest {
             + "FROM \"SCOTT\".\"DEPT\") AS \"t0\" ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\"");
   }
 
-  // JdbcJoin not used for this
   @Test void testCartesianJoinWithoutKeyPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select empno, ename, d.deptno, dname\n"
             + "from scott.emp e,scott.dept d")
-        .explainContains("PLAN=EnumerableNestedLoopJoin(condition=[true], "
-            + "joinType=[inner])\n"
-            + "  JdbcToEnumerableConverter\n"
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcJoin(condition=[true], joinType=[inner])\n"
             + "    JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
             + "      JdbcTableScan(table=[[SCOTT, EMP]])\n"
-            + "  JdbcToEnumerableConverter\n"
             + "    JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
             + "      JdbcTableScan(table=[[SCOTT, DEPT]])")
         .runs()
@@ -400,6 +399,26 @@ class JdbcAdapterTest {
             + "WHERE CAST(\"DEPTNO\" AS INTEGER) = 20) AS \"t0\"\n"
             + "INNER JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
             + "FROM \"SCOTT\".\"DEPT\") AS \"t1\" ON \"t0\".\"DEPTNO\" = \"t1\".\"DEPTNO\"");
+  }
+
+  @Test void testJoinConditionAlwaysTruePushDown() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select empno, ename, d.deptno, dname\n"
+                + "from scott.emp e,scott.dept d\n"
+                + "where true")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+                + "  JdbcJoin(condition=[true], joinType=[inner])\n"
+                + "    JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+                + "      JdbcTableScan(table=[[SCOTT, EMP]])\n"
+                + "    JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+                + "      JdbcTableScan(table=[[SCOTT, DEPT]])")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT *\n"
+                + "FROM (SELECT \"EMPNO\", \"ENAME\"\n"
+                + "FROM \"SCOTT\".\"EMP\") AS \"t\",\n"
+                + "(SELECT \"DEPTNO\", \"DNAME\"\n"
+                + "FROM \"SCOTT\".\"DEPT\") AS \"t0\"");
   }
 
   /** Test case for
@@ -446,7 +465,7 @@ class JdbcAdapterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1382">[CALCITE-1382]
    * ClassCastException in JDBC adapter</a>. */
-  @Test public void testJoinPlan3() {
+  @Test void testJoinPlan3() {
     final String sql = "SELECT count(*) AS c FROM (\n"
         + "  SELECT count(emp.empno) `Count Emp`,\n"
         + "      dept.dname `Department Name`\n"
@@ -544,8 +563,13 @@ class JdbcAdapterTest {
   }
 
   @Test void testTablesNoCatalogSchema() {
+    // Switch from "FOODMART" user, whose default schema is 'foodmart',
+    // to "sa", whose default schema is the root, and therefore cannot
+    // see the table unless directed to look in a particular schema.
     final String model =
         FoodmartSchema.FOODMART_MODEL
+            .replace("jdbcUser: 'FOODMART'", "jdbcUser: 'sa'")
+            .replace("jdbcPassword: 'FOODMART'", "jdbcPassword: ''")
             .replace("jdbcCatalog: 'foodmart'", "jdbcCatalog: null")
             .replace("jdbcSchema: 'foodmart'", "jdbcSchema: null");
     // Since Calcite uses PostgreSQL JDBC driver version >= 4.1,
@@ -958,11 +982,11 @@ class JdbcAdapterTest {
         final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\""
             + " (\"store_id\", \"account_id\", \"exp_date\", \"time_id\","
             + " \"category_id\", \"currency_id\", \"amount\")\n"
-            + "(SELECT \"store_id\", \"account_id\", \"exp_date\","
+            + "SELECT \"store_id\", \"account_id\", \"exp_date\","
             + " \"time_id\" + 1 AS \"time_id\", \"category_id\","
             + " \"currency_id\", \"amount\"\n"
             + "FROM \"foodmart\".\"expense_fact\"\n"
-            + "WHERE \"store_id\" = 666)";
+            + "WHERE \"store_id\" = 666";
         that.query(sql)
             .explainContains(explain)
             .planUpdateHasSql(jdbcSql, 1);
@@ -1067,6 +1091,60 @@ class JdbcAdapterTest {
             + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
             + "        JdbcTableScan(table=[[SCOTT, DEPT]])")
         .runs();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5243">[CALCITE-5243]
+   * "SELECT NULL AS C causes NoSuchMethodException: java.sql.ResultSet.getVoid(int)</a>. */
+  @Test void testNullSelect() {
+    final String sql = "select NULL AS C from \"days\"";
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
+        .query(sql)
+        .runs()
+        .returnsCount(7)
+        .returns("C=null\nC=null\nC=null\nC=null\nC=null\nC=null\nC=null\n");
+  }
+
+  @Test void testMerge() throws Exception {
+    final String sql = "merge into \"foodmart\".\"expense_fact\"\n"
+        + "using (values(666, 42)) as vals(store_id, amount)\n"
+        + "on \"expense_fact\".\"store_id\" = vals.store_id\n"
+        + "when matched then update\n"
+        + "set \"amount\" = vals.amount\n"
+        + "when not matched then insert\n"
+        + "values (vals.store_id, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666,"
+        + " vals.amount)";
+    final String explain = "PLAN=JdbcToEnumerableConverter\n"
+        + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[MERGE],"
+        + " updateColumnList=[[amount]], flattened=[false])\n"
+        + "    JdbcProject(STORE_ID=[$0], $f1=[666], $f2=[1997-01-01 00:00:00], $f3=[666],"
+        + " $f4=['666'], $f5=[666], AMOUNT=[CAST($1):DECIMAL(10, 4) NOT NULL], store_id=[$2],"
+        + " account_id=[$3], exp_date=[$4], time_id=[$5], category_id=[$6], currency_id=[$7],"
+        + " amount=[$8], AMOUNT0=[$1])\n"
+        + "      JdbcJoin(condition=[=($2, $0)], joinType=[left])\n"
+        + "        JdbcValues(tuples=[[{ 666, 42 }]])\n"
+        + "        JdbcTableScan(table=[[foodmart, expense_fact]])\n";
+    final String jdbcSql = "MERGE INTO \"foodmart\".\"expense_fact\"\n"
+        + "USING (VALUES (666, 42)) AS \"t\" (\"STORE_ID\", \"AMOUNT\")\n"
+        + "ON \"t\".\"STORE_ID\" = \"expense_fact\".\"store_id\"\n"
+        + "WHEN MATCHED THEN UPDATE SET \"amount\" = \"t\".\"AMOUNT\"\n"
+        + "WHEN NOT MATCHED THEN INSERT (\"store_id\", \"account_id\", \"exp_date\", \"time_id\", "
+        + "\"category_id\", \"currency_id\", \"amount\") VALUES \"t\".\"STORE_ID\",\n"
+        + "666,\nTIMESTAMP '1997-01-01 00:00:00',\n666,\n'666',\n666,\n"
+        + "CAST(\"t\".\"AMOUNT\" AS DECIMAL(10, 4))";
+    final AssertThat that =
+        CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
+            .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB);
+    that.doWithConnection(connection -> {
+      try (LockWrapper ignore = exclusiveCleanDb(connection)) {
+        that.query(sql)
+            .explainContains(explain)
+            .planUpdateHasSql(jdbcSql, 1);
+      } catch (SQLException e) {
+        throw TestUtil.rethrow(e);
+      }
+    });
   }
 
   /** Acquires a lock, and releases it when closed. */

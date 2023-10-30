@@ -80,6 +80,26 @@ public abstract class ListScope extends DelegatingScope {
     return Util.transform(children, scopeChild -> scopeChild.name);
   }
 
+  /**
+   * Whether the ith child namespace produces nullable result.
+   *
+   * <p>For example, in below query,
+   *
+   * <blockquote><pre>{@code
+   *   SELECT *
+   *   FROM EMPS
+   *   LEFT OUTER JOIN DEPT
+   * }</pre></blockquote>
+   *
+   * <p>the namespace which corresponding to 'DEPT' is nullable.
+   *
+   * @param i The child index.
+   * @return Whether it's nullable.
+   */
+  public boolean isChildNullable(int i) {
+    return children.get(i).nullable;
+  }
+
   private @Nullable ScopeChild findChild(List<String> names,
       SqlNameMatcher nameMatcher) {
     for (ScopeChild child : children) {
@@ -182,7 +202,8 @@ public abstract class ListScope extends DelegatingScope {
       final Step path =
           Path.EMPTY.plus(child0.namespace.getRowType(), child0.ordinal,
               child0.name, StructKind.FULLY_QUALIFIED);
-      resolved.found(child0.namespace, child0.nullable, this, path, null);
+      resolved.found(child0.namespace, child0.nullable, this, path,
+          ImmutableList.of());
       return;
     }
 

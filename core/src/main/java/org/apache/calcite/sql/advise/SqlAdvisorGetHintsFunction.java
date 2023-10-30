@@ -104,8 +104,8 @@ public class SqlAdvisorGetHintsFunction
   public static Enumerable<SqlAdvisorHint> getCompletionHints(
       final SqlAdvisor advisor, final String sql, final int pos) {
     final String[] replaced = new String[1];
-    final List<SqlMoniker> hints = advisor.getCompletionHints(sql,
-        pos, replaced);
+    final List<SqlMoniker> hints =
+        advisor.getCompletionHints(sql, pos, replaced);
     final List<SqlAdvisorHint> res = new ArrayList<>(hints.size() + 1);
     res.add(new SqlAdvisorHint(replaced[0], null, "MATCH"));
     for (SqlMoniker hint : hints) {

@@ -32,7 +32,7 @@ import java.util.Iterator;
  * {@link QueryableTable}.
  *
  * <p>Not to be confused with
- * {@link org.apache.calcite.adapter.java.AbstractQueryableTable}.</p>
+ * {@link org.apache.calcite.adapter.java.AbstractQueryableTable}.
  *
  * @param <T> element type
  */

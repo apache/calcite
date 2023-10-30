@@ -99,7 +99,6 @@ class EnumerableStringComparisonTest {
 
   @Test void testSortStringDefault() {
     tester()
-        .query("?")
         .withRel(builder -> builder
             .values(
                 builder.getTypeFactory().builder()
@@ -112,16 +111,15 @@ class EnumerableStringComparisonTest {
         .explainHookMatches(""
             + "EnumerableSort(sort0=[$0], dir0=[ASC])\n"
             + "  EnumerableValues(tuples=[[{ 'Legal' }, { 'presales' }, { 'hr' }, { 'Administration' }, { 'MARKETING' }]])\n")
-        .returnsOrdered("name=Administration\n"
-            + "name=Legal\n"
-            + "name=MARKETING\n"
-            + "name=hr\n"
-            + "name=presales");
+        .returnsOrdered("name=Administration",
+            "name=Legal",
+            "name=MARKETING",
+            "name=hr",
+            "name=presales");
   }
 
   @Test void testSortStringSpecialCollation() {
     tester()
-        .query("?")
         .withRel(builder -> builder
             .values(
                 createRecordVarcharSpecialCollation(builder),
@@ -132,16 +130,38 @@ class EnumerableStringComparisonTest {
         .explainHookMatches(""
             + "EnumerableSort(sort0=[$0], dir0=[ASC])\n"
             + "  EnumerableValues(tuples=[[{ 'Legal' }, { 'presales' }, { 'hr' }, { 'Administration' }, { 'MARKETING' }]])\n")
-        .returnsOrdered("name=Administration\n"
-            + "name=hr\n"
-            + "name=Legal\n"
-            + "name=MARKETING\n"
-            + "name=presales");
+        .returnsOrdered("name=Administration",
+            "name=hr",
+            "name=Legal",
+            "name=MARKETING",
+            "name=presales");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5967">[CALCITE-5967]
+   * UnsupportedOperationException while implementing a call that requires a special collator</a>.
+   */
+  @Test void testFilterStringSpecialCollation() {
+    tester()
+        .withRel(builder -> builder
+            .values(
+                createRecordVarcharSpecialCollation(builder),
+                "Legal", "presales", "hr", "Administration", "MARKETING")
+            // Filter on a field with special collation:
+            // a special comparator needs to be used inside the eq operation
+            .filter(
+                builder.equals(
+                    builder.field(1, 0, "name"),
+                    builder.literal("MARKETING")))
+            .build())
+        .explainHookMatches(""
+            + "EnumerableCalc(expr#0=[{inputs}], expr#1=['MARKETING'], expr#2=[=($t0, $t1)], name=[$t0], $condition=[$t2])\n"
+            + "  EnumerableValues(tuples=[[{ 'Legal' }, { 'presales' }, { 'hr' }, { 'Administration' }, { 'MARKETING' }]])\n")
+        .returnsUnordered("name=MARKETING");
   }
 
   @Test void testMergeJoinOnStringSpecialCollation() {
     tester()
-        .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
@@ -165,8 +185,42 @@ class EnumerableStringComparisonTest {
             + "    EnumerableValues(tuples=[[{ 'Legal' }, { 'presales' }, { 'HR' }, { 'Administration' }, { 'Marketing' }]])\n"
             + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
             + "    EnumerableValues(tuples=[[{ 'Marketing' }, { 'bureaucracy' }, { 'Sales' }, { 'HR' }]])\n")
-        .returnsOrdered("name=HR; name0=HR\n"
-            + "name=Marketing; name0=Marketing");
+        .returnsOrdered("name=HR; name0=HR",
+            "name=Marketing; name0=Marketing");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5003">[CALCITE-5003]
+   * MergeUnion on types with different collators produces wrong result</a>. */
+  @Test void testMergeUnionOnStringDifferentCollation() {
+    tester()
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
+            planner.removeRule(EnumerableRules.ENUMERABLE_UNION_RULE))
+        .withRel(b -> {
+          final RelBuilder builder = b.transform(c -> c.withSimplifyValues(false));
+          return builder
+              .values(builder.getTypeFactory().builder()
+                      .add("name",
+                          builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR)).build(),
+                  "facilities", "HR", "administration", "Marketing")
+              .values(createRecordVarcharSpecialCollation(builder),
+                  "Marketing", "administration", "presales", "HR")
+              .union(false)
+              .sort(0)
+              .build();
+        })
+        .explainHookMatches("" // It is important that we have MergeUnion in the plan
+            + "EnumerableMergeUnion(all=[false])\n"
+            + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):VARCHAR COLLATE \"ISO-8859-1$en_US$tertiary$JAVA_COLLATOR\" NOT NULL], name=[$t1])\n"
+            + "      EnumerableValues(tuples=[[{ 'facilities' }, { 'HR' }, { 'administration' }, { 'Marketing' }]])\n"
+            + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "    EnumerableValues(tuples=[[{ 'Marketing' }, { 'administration' }, { 'presales' }, { 'HR' }]])\n")
+        .returnsOrdered("name=administration",
+            "name=facilities",
+            "name=HR",
+            "name=Marketing",
+            "name=presales");
   }
 
   /** Test case for
@@ -265,7 +319,6 @@ class EnumerableStringComparisonTest {
                                     SqlOperator operator, SqlCollation col,
                                     boolean expectedResult) {
     tester()
-        .query("?")
         .withRel(builder -> {
           final RexBuilder rexBuilder = builder.getRexBuilder();
           final RelDataType varcharSpecialCollation = createVarcharSpecialCollation(builder, col);

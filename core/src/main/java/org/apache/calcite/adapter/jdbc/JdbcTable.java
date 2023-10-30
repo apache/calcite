@@ -74,13 +74,13 @@ import static java.util.Objects.requireNonNull;
  * such as
  * {@link org.apache.calcite.linq4j.Queryable#where(org.apache.calcite.linq4j.function.Predicate2)}.
  * The resulting queryable can then be converted to a SQL query, which can be
- * executed efficiently on the JDBC server.</p>
+ * executed efficiently on the JDBC server.
  */
 public class JdbcTable extends AbstractQueryableTable
     implements TranslatableTable, ScannableTable, ModifiableTable {
   @SuppressWarnings("methodref.receiver.bound.invalid")
   private final Supplier<RelProtoDataType> protoRowTypeSupplier =
-      Suppliers.memoize(this::supplyProto)::get;
+      Suppliers.memoize(this::supplyProto);
   public final JdbcSchema jdbcSchema;
   public final String jdbcCatalogName;
   public final String jdbcSchemaName;
@@ -150,7 +150,7 @@ public class JdbcTable extends AbstractQueryableTable
     final SqlNodeList selectList = SqlNodeList.SINGLETON_STAR;
     SqlSelect node =
         new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY, selectList,
-            tableName(), null, null, null, null, null, null, null, null);
+            tableName(), null, null, null, null, null, null, null, null, null);
     final SqlWriterConfig config = SqlPrettyWriter.config()
         .withAlwaysUseParentheses(true)
         .withDialect(jdbcSchema.dialect);

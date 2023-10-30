@@ -80,6 +80,8 @@ public final class GeneratedMetadata_DistinctRowCountHandler
       return provider0.getDistinctRowCount((org.apache.calcite.rel.core.Sort) r, mq, a2, a3);
     } else if (r instanceof org.apache.calcite.rel.core.TableModify) {
       return provider0.getDistinctRowCount((org.apache.calcite.rel.core.TableModify) r, mq, a2, a3);
+    } else if (r instanceof org.apache.calcite.rel.core.TableScan) {
+      return provider0.getDistinctRowCount((org.apache.calcite.rel.core.TableScan) r, mq, a2, a3);
     } else if (r instanceof org.apache.calcite.rel.core.Union) {
       return provider0.getDistinctRowCount((org.apache.calcite.rel.core.Union) r, mq, a2, a3);
     } else if (r instanceof org.apache.calcite.rel.core.Values) {

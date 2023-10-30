@@ -22,9 +22,12 @@ package org.apache.calcite.adapter.enumerable;
  * <p>STRICT and ANY are similar. STRICT says f(a0, a1) will NEVER return
  * null if a0 and a1 are not null. This means that we can check whether f
  * returns null just by checking its arguments. Use STRICT in preference to
- * ANY whenever possible.</p>
+ * ANY whenever possible.
  */
 public enum NullPolicy {
+  /** Returns null if and only if all of the arguments are null;
+   * If all of the arguments are false return false otherwise true. */
+  ALL,
   /** Returns null if and only if one of the arguments are null. */
   STRICT,
   /** Returns null if one of the arguments is null, and possibly other times. */

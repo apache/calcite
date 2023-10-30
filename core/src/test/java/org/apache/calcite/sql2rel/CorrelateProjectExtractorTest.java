@@ -55,7 +55,7 @@ public class CorrelateProjectExtractorTest {
     final RelBuilder builder = RelBuilder.create(config().build());
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     RelNode before = builder.scan("EMP")
-        .variable(v)
+        .variable(v::set)
         .scan("DEPT")
         .filter(
             builder.equals(builder.field(0),
@@ -88,20 +88,20 @@ public class CorrelateProjectExtractorTest {
     final RelBuilder builder = RelBuilder.create(config().build());
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     RelNode before = builder
-        .scan("EMP").variable(v)
-        .scan("DEPT").filter(
-            builder.equals(
-                builder.field("DEPTNO"),
+        .scan("EMP")
+        .variable(v::set)
+        .scan("DEPT")
+        .filter(
+            builder.equals(builder.field("DEPTNO"),
                 builder.call(SqlStdOperatorTable.PLUS,
                     builder.literal(10),
                     builder.field(v.get(), "DEPTNO"))))
         .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "DEPTNO"))
-        .variable(v)
-        .scan("DEPT").filter(
-            builder.equals(
-                builder.field("DEPTNO"),
-                builder.call(
-                    SqlStdOperatorTable.MINUS,
+        .variable(v::set)
+        .scan("DEPT")
+        .filter(
+            builder.equals(builder.field("DEPTNO"),
+                builder.call(SqlStdOperatorTable.MINUS,
                     builder.literal(50), builder.field(v.get(), "DEPTNO"))))
         .correlate(JoinRelType.LEFT, v.get().id, builder.field(2, 0, "DEPTNO"))
         .build();

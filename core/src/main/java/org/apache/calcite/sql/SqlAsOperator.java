@@ -34,6 +34,8 @@ import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * The <code>AS</code> operator associates an expression with an alias.
  */
@@ -131,7 +133,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
     // special case for AS:  never try to derive type for alias
     RelDataType nodeType =
         validator.deriveType(scope, call.operand(0));
-    assert nodeType != null;
+    requireNonNull(nodeType, "nodeType");
     return validateOperands(validator, scope, call);
   }
 

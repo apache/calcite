@@ -63,10 +63,12 @@ class SparkAdapterTest {
     final String plan = "PLAN="
         + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])";
 
-    final String expectedResult = "EXPR$0=1; EXPR$1=a\n"
-        + "EXPR$0=2; EXPR$1=b\n";
+    final String[] expectedResult = {
+        "EXPR$0=1; EXPR$1=a",
+        "EXPR$0=2; EXPR$1=b"
+    };
 
-    sql(sql).returns(expectedResult)
+    sql(sql).returnsOrdered(expectedResult)
         .explainContains(plan);
   }
 
@@ -76,13 +78,13 @@ class SparkAdapterTest {
         + "from " + VALUES1 + "\n"
         + "where x < 2";
 
-    final String expectedResult = "X=1; Y=a\n";
+    final String[] expectedResult = {"X=1; Y=a"};
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2], expr#3=[<($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n";
 
-    sql(sql).returns(expectedResult)
+    sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
   }
 
@@ -94,10 +96,12 @@ class SparkAdapterTest {
         + "EnumerableAggregate(group=[{0, 1}])\n"
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
-    final String expectedResult = "X=1; Y=a\n"
-        + "X=1; Y=b\n"
-        + "X=2; Y=b\n"
-        + "X=2; Y=c";
+    final String[] expectedResult = {
+        "X=1; Y=a",
+        "X=1; Y=b",
+        "X=2; Y=b",
+        "X=2; Y=c"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
@@ -118,8 +122,10 @@ class SparkAdapterTest {
         + "      EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], SUM_X=[$SUM0($0)], MIN_Y=[MIN($1)], MAX_Y=[MAX($1)], CNT_Y=[COUNT()], $g=[GROUPING($0, $1)])\n"
         + "        EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n";
 
-    final String expectedResult = "SUM_X=2; MIN_Y=a; MAX_Y=b; CNT_Y=2; CNT_DIST_Y=2\n"
-        + "SUM_X=6; MIN_Y=b; MAX_Y=c; CNT_Y=3; CNT_DIST_Y=2";
+    final String[] expectedResult = {
+        "SUM_X=2; MIN_Y=a; MAX_Y=b; CNT_Y=2; CNT_DIST_Y=2",
+        "SUM_X=6; MIN_Y=b; MAX_Y=c; CNT_Y=3; CNT_DIST_Y=2"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
@@ -233,13 +239,15 @@ class SparkAdapterTest {
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n";
 
-    final String expectedResult = "X=1; Y=a\n"
-        + "X=1; Y=a\n"
-        + "X=1; Y=b\n"
-        + "X=2; Y=b\n"
-        + "X=2; Y=b\n"
-        + "X=2; Y=c\n"
-        + "X=2; Y=c";
+    final String[] expectedResult = {
+        "X=1; Y=a",
+        "X=1; Y=a",
+        "X=1; Y=b",
+        "X=2; Y=b",
+        "X=2; Y=b",
+        "X=2; Y=c",
+        "X=2; Y=c"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
@@ -257,10 +265,12 @@ class SparkAdapterTest {
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n";
 
-    final String expectedResult = "X=1; Y=a\n"
-        + "X=1; Y=b\n"
-        + "X=2; Y=b\n"
-        + "X=2; Y=c";
+    final String[] expectedResult = {
+        "X=1; Y=a",
+        "X=1; Y=b",
+        "X=2; Y=b",
+        "X=2; Y=c"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
@@ -278,8 +288,10 @@ class SparkAdapterTest {
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n";
 
-    final String expectedResult = "X=1; Y=a\n"
-        + "X=2; Y=b";
+    final String[] expectedResult = {
+        "X=1; Y=a",
+        "X=2; Y=b"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
@@ -380,11 +392,13 @@ class SparkAdapterTest {
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
-    final String expectedResult = "Y=a; Z=a\n"
-        + "Y=b; Z=a\n"
-        + "Y=b; Z=b\n"
-        + "Y=c; Z=b\n"
-        + "Y=c; Z=b";
+    final String[] expectedResult = {
+        "Y=a; Z=a",
+        "Y=b; Z=a",
+        "Y=b; Z=b",
+        "Y=c; Z=b",
+        "Y=c; Z=b"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
@@ -403,11 +417,13 @@ class SparkAdapterTest {
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
-    final String expectedResult = "Z=a\n"
-        + "Z=a\n"
-        + "Z=b\n"
-        + "Z=b\n"
-        + "Z=b";
+    final String[] expectedResult = {
+        "Z=a",
+        "Z=a",
+        "Z=b",
+        "Z=b",
+        "Z=b"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
@@ -477,8 +493,10 @@ class SparkAdapterTest {
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[[3..4]]], expr#3=[SEARCH($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 3, 'b' }, { 4, 'c' }, { 2, 'c' }]])\n\n";
 
-    final String expectedResult = "X=3; Y=b\n"
-        + "X=4; Y=c";
+    final String[] expectedResult = {
+        "X=3; Y=b",
+        "X=4; Y=c"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
@@ -493,8 +511,10 @@ class SparkAdapterTest {
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[3, 4]], expr#3=[SEARCH($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 3, 'b' }, { 4, 'c' }, { 2, 'c' }]])\n\n";
 
-    final String expectedResult = "X=3; Y=b\n"
-        + "X=4; Y=c";
+    final String[] expectedResult = {
+        "X=3; Y=b",
+        "X=4; Y=c"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
@@ -508,11 +528,13 @@ class SparkAdapterTest {
     final String plan = "PLAN="
         + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
-    final String expectedResult = "X=1; Y=a\n"
-        + "X=1; Y=b\n"
-        + "X=2; Y=b\n"
-        + "X=2; Y=c\n"
-        + "X=2; Y=c";
+    final String[] expectedResult = {
+        "X=1; Y=a",
+        "X=1; Y=b",
+        "X=2; Y=b",
+        "X=2; Y=c",
+        "X=2; Y=c"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
@@ -541,11 +563,13 @@ class SparkAdapterTest {
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[1, 2]], expr#3=[SEARCH($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
-    final String expectedResult = "X=1; Y=a\n"
-        + "X=1; Y=b\n"
-        + "X=2; Y=b\n"
-        + "X=2; Y=c\n"
-        + "X=2; Y=c";
+    final String[] expectedResult = {
+        "X=1; Y=a",
+        "X=1; Y=b",
+        "X=2; Y=b",
+        "X=2; Y=c",
+        "X=2; Y=c"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
@@ -559,11 +583,13 @@ class SparkAdapterTest {
     final String plan = "PLAN="
         + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
-    final String expectedResult = "X=1; Y=a\n"
-        + "X=1; Y=b\n"
-        + "X=2; Y=b\n"
-        + "X=2; Y=c\n"
-        + "X=2; Y=c";
+    final String[] expectedResult = {
+        "X=1; Y=a",
+        "X=1; Y=b",
+        "X=2; Y=b",
+        "X=2; Y=c",
+        "X=2; Y=c"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
@@ -601,10 +627,12 @@ class SparkAdapterTest {
         + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[>($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n";
 
-    final String expectedResult = "X=2; Y=b\n"
-        + "X=2; Y=b\n"
-        + "X=2; Y=c\n"
-        + "X=2; Y=c";
+    final String[] expectedResult = {
+        "X=2; Y=b",
+        "X=2; Y=b",
+        "X=2; Y=c",
+        "X=2; Y=c"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
@@ -643,8 +671,10 @@ class SparkAdapterTest {
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t0, $t2)], expr#4=[>($t3, $t2)], X=[$t0], $condition=[$t4])\n"
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n\n";
 
-    final String expectedResult = "X=1\n"
-        + "X=2";
+    final String[] expectedResult = {
+        "X=1",
+        "X=2"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);
@@ -689,8 +719,10 @@ class SparkAdapterTest {
         + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[/($t0, $t0)], expr#3=[1], expr#4=[=($t2, $t3)], X=[$t0], $condition=[$t4])\n"
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n\n";
 
-    final String expectedResult = "X=1\n"
-        + "X=2";
+    final String[] expectedResult = {
+        "X=1",
+        "X=2"
+    };
 
     sql(sql).returnsUnordered(expectedResult)
         .explainContains(plan);

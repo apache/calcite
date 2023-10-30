@@ -76,6 +76,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -137,6 +138,37 @@ class VolcanoPlannerTest {
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
     assertTrue(result instanceof PhysSingleRel);
+  }
+
+  @Test void testMemoizeInputRelNodes() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    RelOptCluster cluster = newCluster(planner);
+
+    // The rule that triggers the assert rule
+    planner.addRule(PhysLeafRule.INSTANCE);
+    planner.addRule(GoodSingleRule.INSTANCE);
+
+    // Leaf RelNode
+    NoneLeafRel leafRel = new NoneLeafRel(cluster, "a");
+    RelNode leafPhy = planner
+        .changeTraits(leafRel, cluster.traitSetOf(PHYS_CALLING_CONVENTION));
+
+    // RelNode with leaf RelNode as single input
+    NoneSingleRel singleRel = new NoneSingleRel(cluster, leafPhy);
+    RelNode singlePhy = planner
+        .changeTraits(singleRel, cluster.traitSetOf(PHYS_CALLING_CONVENTION));
+
+    // Binary RelNode with identical input on either side
+    PhysBiRel parent =
+        new PhysBiRel(cluster, cluster.traitSetOf(PHYS_CALLING_CONVENTION),
+            singlePhy, singlePhy);
+    planner.setRoot(parent);
+
+    RelNode result = planner.chooseDelegate().findBestExp();
+
+    // Expect inputs to remain identical
+    assertEquals(result.getInput(0), result.getInput(1));
   }
 
   @Test void testPlanToDot() {
@@ -565,7 +597,7 @@ class VolcanoPlannerTest {
         isLinux(plan));
   }
 
-  @Test public void testPruneNode() {
+  @Test void testPruneNode() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
@@ -729,6 +761,48 @@ class VolcanoPlannerTest {
     // setA and setB have the same popularity (parentRels.size()).
     // Since setB is larger than setA, setA should be merged into setB.
     assertThat(setA.equivalentSet, sameInstance(setB));
+  }
+
+  /**
+   * Test whether {@link RelSubset#getParents()} can work correctly,
+   * after adding break to the inner loop.
+   */
+  @Test void testGetParents() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    RelOptCluster cluster = newCluster(planner);
+    RelBuilder relBuilder = RelFactories.LOGICAL_BUILDER.create(cluster, null);
+    RelNode joinRel = relBuilder
+        .values(new String[]{"id", "name"}, "2", "a", "1", "b")
+        .values(new String[]{"id", "name"}, "1", "x", "2", "y")
+        .join(JoinRelType.INNER, "id")
+        .build();
+    RelSubset joinSubset = planner.register(joinRel, null);
+    RelSubset leftRelSubset = planner.getSubset(joinRel.getInput(0));
+    assertNotNull(leftRelSubset);
+    RelNode leftParentRel = leftRelSubset.getParents().iterator().next();
+    assertEquals(leftParentRel, joinSubset.getRelList().get(0));
+  }
+
+  /**
+   * Test whether {@link RelSubset#getParentSubsets(VolcanoPlanner)} can work correctly,
+   * after adding break to the inner loop.
+   */
+  @Test void testGetParentSubsets() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    RelOptCluster cluster = newCluster(planner);
+    RelBuilder relBuilder = RelFactories.LOGICAL_BUILDER.create(cluster, null);
+    RelNode joinRel = relBuilder
+        .values(new String[]{"id", "name"}, "2", "a", "1", "b")
+        .values(new String[]{"id", "name"}, "1", "x", "2", "y")
+        .join(JoinRelType.INNER, "id")
+        .build();
+    RelSubset joinSubset = planner.register(joinRel, null);
+    RelSubset leftRelSubset = planner.getSubset(joinRel.getInput(0));
+    assertNotNull(leftRelSubset);
+    RelNode leftParentSubset = leftRelSubset.getParentSubsets(planner).iterator().next();
+    assertEquals(leftParentSubset, joinSubset);
   }
 
   private void checkEvent(

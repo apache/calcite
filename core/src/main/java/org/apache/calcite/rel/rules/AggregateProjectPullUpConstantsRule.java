@@ -160,7 +160,7 @@ public class AggregateProjectPullUpConstantsRule
           RelDataType originalType =
               aggregate.getRowType().getFieldList().get(projects.size()).getType();
           if (!originalType.equals(rexNode.getType())) {
-            expr = rexBuilder.makeCast(originalType, rexNode, true);
+            expr = rexBuilder.makeCast(originalType, rexNode, true, false);
           } else {
             expr = rexNode;
           }

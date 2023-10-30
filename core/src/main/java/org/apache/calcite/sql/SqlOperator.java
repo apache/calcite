@@ -48,6 +48,7 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.sql.type.SqlTypeUtil.isMeasure;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -484,10 +485,8 @@ public abstract class SqlOperator {
    * @param call      call to be validated
    * @return inferred type
    */
-  public final RelDataType validateOperands(
-      SqlValidator validator,
-      @Nullable SqlValidatorScope scope,
-      SqlCall call) {
+  public final RelDataType validateOperands(SqlValidator validator,
+      SqlValidatorScope scope, SqlCall call) {
     // Let subclasses know what's up.
     preValidateCall(validator, scope, call);
 
@@ -515,10 +514,8 @@ public abstract class SqlOperator {
    * @param scope     validation scope
    * @param call      the call being validated
    */
-  protected void preValidateCall(
-      SqlValidator validator,
-      @Nullable SqlValidatorScope scope,
-      SqlCall call) {
+  protected void preValidateCall(SqlValidator validator,
+      SqlValidatorScope scope, SqlCall call) {
   }
 
   /**
@@ -539,6 +536,11 @@ public abstract class SqlOperator {
         throw new IllegalArgumentException("Cannot infer return type for "
             + opBinding.getOperator() + "; operand types: "
             + opBinding.collectOperandTypes());
+      }
+
+      // MEASURE wrapper should be removed, e.g. MEASURE<DOUBLE> should just be DOUBLE
+      if (isMeasure(returnType) && returnType.getMeasureElementType() != null) {
+        returnType = Objects.requireNonNull(returnType.getMeasureElementType());
       }
 
       if (operandTypeInference != null
@@ -586,8 +588,8 @@ public abstract class SqlOperator {
 
     final List<SqlNode> args = constructOperandList(validator, call, null);
 
-    final List<RelDataType> argTypes = constructArgTypeList(validator, scope,
-        call, args, false);
+    final List<RelDataType> argTypes =
+        constructArgTypeList(validator, scope, call, args, false);
 
     // Always disable type coercion for builtin operator operands,
     // they are handled by the TypeCoercion specifically.
@@ -665,8 +667,9 @@ public abstract class SqlOperator {
     final SqlValidatorScope operandScope = scope.getOperandScope(call);
 
     final ImmutableList.Builder<RelDataType> argTypeBuilder =
-            ImmutableList.builder();
-    for (SqlNode operand : args) {
+        ImmutableList.builder();
+    for (int i = 0; i < args.size(); i++) {
+      SqlNode operand = args.get(i);
       RelDataType nodeType;
       // for row arguments that should be converted to ColumnList
       // types, set the nodeType to a ColumnList type but defer
@@ -675,14 +678,19 @@ public abstract class SqlOperator {
       if (operand.getKind() == SqlKind.ROW && convertRowArgToColumnList) {
         RelDataTypeFactory typeFactory = validator.getTypeFactory();
         nodeType = typeFactory.createSqlType(SqlTypeName.COLUMN_LIST);
-        ((SqlValidatorImpl) validator).setValidatedNodeType(operand, nodeType);
+        validator.setValidatedNodeType(operand, nodeType);
       } else {
-        nodeType = validator.deriveType(operandScope, operand);
+        nodeType = deriveOperandType(validator, operandScope, i, operand);
       }
       argTypeBuilder.add(nodeType);
     }
 
     return argTypeBuilder.build();
+  }
+
+  protected RelDataType deriveOperandType(SqlValidator validator,
+      SqlValidatorScope scope, int i, SqlNode operand) {
+    return validator.deriveType(scope, operand);
   }
 
   /**
@@ -778,7 +786,7 @@ public abstract class SqlOperator {
    * <p>Similar to {@link #checkOperandCount}, but some operators may have
    * different valid operands in {@link SqlNode} and {@code RexNode} formats
    * (some examples are CAST and AND), and this method throws internal errors,
-   * not user errors.</p>
+   * not user errors.
    */
   public boolean validRexOperands(int count, Litmus litmus) {
     return true;
@@ -832,11 +840,11 @@ public abstract class SqlOperator {
    * <dfn>window functions</dfn>.
    * Every aggregate function (e.g. SUM) is also a window function.
    * There are window functions that are not aggregate functions, e.g. RANK,
-   * NTILE, LEAD, FIRST_VALUE.</p>
+   * NTILE, LEAD, FIRST_VALUE.
    *
    * <p>Collectively, aggregate and window functions are called <dfn>analytic
    * functions</dfn>. Despite its name, this method returns true for every
-   * analytic function.</p>
+   * analytic function.
    *
    * @see #requiresOrder()
    *
@@ -870,7 +878,7 @@ public abstract class SqlOperator {
    *
    * <p>Per SQL:2011, 2, 6.10: "If &lt;ntile function&gt;, &lt;lead or lag
    * function&gt;, RANK or DENSE_RANK is specified, then the window ordering
-   * clause shall be present."</p>
+   * clause shall be present."
    *
    * @see #isAggregator()
    */

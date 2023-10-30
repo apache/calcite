@@ -25,6 +25,11 @@
   githubId: alanfgates
   org: Hortonworks
   role: PMC
+- name: Alessandro Solimando
+  apacheId: asolimando
+  githubId: asolimando
+  org: Cloudera
+  role: Committer
 - name: Aman Sinha
   apacheId: amansinha
   githubId: amansinha100
@@ -34,12 +39,23 @@
   apacheId: sereda
   githubId: asereda-gs
   org:
-  role: Committer
+  role: PMC
 - name: Ashutosh Chauhan
   apacheId: hashutosh
   githubId: ashutoshc
   org: Hortonworks
   role: PMC
+- name: Benchao Li
+  apacheId: libenchao
+  githubId: libenchao
+  pronouns: he/him
+  org: ByteDance
+  role: PMC
+- name: Bertil Chapuis
+  apacheId: bchapuis
+  githubId: bchapuis
+  org: HEIG-VD
+  role: Committer
 - name: Chris Baynes
   apacheId: cbaynes
   githubId: chris-baynes
@@ -54,12 +70,23 @@
   apacheId: chunwei
   githubId: chunweilei
   org: Alibaba
+  role: PMC
+- name: Dan Zou
+  apacheId: zoudan
+  githubId: zoudan
+  pronouns: he/him
+  org: ByteDance
   role: Committer
 - name: Danny Chan
   apacheId: danny0405
   githubId: danny0405
   org: Alibaba
   role: PMC
+- name: Dmitry Sysolyatin
+  apacheId: dmsysolyatin
+  githubId: dssysolyatin
+  org: Intertrust Technologies
+  role: Committer
 - name: Edmon Begoli
   apacheId: ebegoli
   githubId: ebegoli
@@ -90,11 +117,16 @@
   apacheId: hyuan
   githubId: hsyuan
   org: Alibaba
-  role: PMC Chair
+  role: PMC
 - name: Hongze Zhang
   apacheId: hongze
   githubId: zhztheplayer
   org: Tencent
+  role: Committer
+- name: Istvan Toth
+  apacheId: stoty
+  githubId: stoty
+  org: Cloudera
   role: Committer
 - name: James R. Taylor
   apacheId: jamestaylor
@@ -116,11 +148,21 @@
   githubId: jcamachor
   org: Hortonworks
   role: PMC
+- name: Jiajun Xie
+  apacheId: jiajunxie
+  githubId: jiajunbernoulli
+  org: ByteDance
+  role: Committer
 - name: Jinfeng Ni
   apacheId: jni
   githubId: jinfengni
   org: MapR
   role: PMC
+- name: Jing Zhang
+  apacheId: jingzhang
+  githubId: beyond1920
+  org: Kuaishou
+  role: Committer
 - name: Jin Xing
   apacheId: jinxing
   githubId: jinxing64
@@ -207,6 +249,17 @@
   githubId: nishantmonu51
   org: Hortonworks
   role: Committer
+- name: Oliver Lee
+  apacheId: oliver
+  githubId: olivrlee
+  org: Google
+  role: Committer
+- name: Ran Tao
+  apacheId: taoran
+  githubId: chucheng92
+  pronouns: he/him
+  org: ByteDance
+  role: Committer
 - name: Ruben Quesada Lopez
   apacheId: rubenql
   githubId: rubenada
@@ -237,19 +290,30 @@
   githubId: zabetak
   pronouns: he/him
   org: Cloudera
-  role: PMC
+  role: PMC Chair
   homepage: https://people.apache.org/~zabetak/
 - name: Steven Noels
   apacheId: stevenn
   githubId: stevenn
   org: NGData
   role: PMC
+- name: Tanner Clary
+  apacheId: tanner
+  githubId: tanclary
+  pronouns: he/him
+  org: Google
+  role: Committer
 - name: Ted Dunning
   apacheId: tdunning
   githubId: tdunning
   org: MapR
   role: PMC
-  avatar: https://mapr.com/blog/author/ted-dunning/assets/tdunning-panama.jpg
+- name: TJ Banghart
+  apacheId: tjbanghart
+  githubId: tjbanghart
+  pronouns: he/him
+  org: Google
+  role: Committer
 - name: Vineet Garg
   apacheId: vgarg
   githubId: vineetgarg02
@@ -264,7 +328,7 @@
   apacheId: vozerov
   githubId: devozerov
   org: Querify Labs
-  role: Committer
+  role: PMC
 - name: Volodymyr Vysotskyi
   apacheId: volodymyr
   githubId: vvysotskyi
@@ -281,10 +345,22 @@
   pronouns: he/him
   org: Hikvision
   role: Committer
+- name: Yong Liu
+  apacheId: jackylau
+  githubId: liuyongvs
+  pronouns: he/him
+  org: Ant Financial
+  role: Committer
 - name: Zhaohui Xu
   apacheId: zhaohui
   githubId: xy2953396112
   org: Ant Financial
+  role: Committer
+- name: Zhe Hu
+  apacheId: zhehu
+  githubId: ILuffZhe
+  pronouns: he/him
+  org: Hikvision
   role: Committer
 - name: Zhen Wang
   apacheId: zhenw
@@ -305,5 +381,10 @@
   apacheId: kgyrtkirk
   githubId: kgyrtkirk
   org: Hortonworks
+  role: Committer
+- name: Mihai Budiu
+  apacheId: mbudiu
+  githubId: mihaibudiu
+  org: Feldera.com
   role: Committer
 # End contributors.yml

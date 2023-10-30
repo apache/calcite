@@ -92,7 +92,7 @@ public interface RelDataType {
   /**
    * Looks up a field by name.
    *
-   * <p>NOTE: Be careful choosing the value of {@code caseSensitive}:</p>
+   * <p>NOTE: Be careful choosing the value of {@code caseSensitive}:
    * <ul>
    * <li>If the field name was supplied by an end-user (e.g. as a column alias
    * in SQL), use your session's case-sensitivity setting.</li>
@@ -140,6 +140,15 @@ public interface RelDataType {
   @Nullable RelDataType getValueType();
 
   /**
+   * Gets the element type if this type is a measure, otherwise null.
+   *
+   * @return canonical type descriptor for the value used in the measure
+   */
+  default @Nullable RelDataType getMeasureElementType() {
+    return null;
+  }
+
+  /**
    * Gets this type's character set, or null if this type cannot carry a
    * character set or has no character set defined.
    *
@@ -173,7 +182,7 @@ public interface RelDataType {
    * for an INTEGER type.
    *
    * <p>Returns {@link #PRECISION_NOT_SPECIFIED} (-1) if precision is not
-   * applicable for this type.</p>
+   * applicable for this type.
    *
    * @return number of decimal digits for exact numeric types; number of
    * decimal digits in mantissa for approximate numeric types; number of

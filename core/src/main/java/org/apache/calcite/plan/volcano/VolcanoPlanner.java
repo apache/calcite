@@ -103,7 +103,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    *
    * <p>Any operand can be an 'entry point' to a rule call, when a RelNode is
    * registered which matches the operand. This map allows us to narrow down
-   * operands based on the class of the RelNode.</p>
+   * operands based on the class of the RelNode.
    */
   private final Multimap<Class<? extends RelNode>, RelOptRuleOperand>
       classOperands = LinkedListMultimap.create();
@@ -128,7 +128,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * {@link RelSet} objects. Most {@link RelNode} objects are identified by
    * their digest, which involves the set that their child relational
    * expressions belong to. If those children belong to the same set, we have
-   * to be careful, otherwise it gets incestuous.</p>
+   * to be careful, otherwise it gets incestuous.
    */
   private final IdentityHashMap<RelNode, RelSubset> mapRel2Subset =
       new IdentityHashMap<>();
@@ -234,8 +234,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.zeroCost = this.costFactory.makeZeroCost();
     this.infCost = this.costFactory.makeInfiniteCost();
     // If LOGGER is debug enabled, enable provenance information to be captured
-    this.provenanceMap = LOGGER.isDebugEnabled() ? new HashMap<>()
-        : Util.blackholeMap();
+    this.provenanceMap =
+        LOGGER.isDebugEnabled() ? new HashMap<>()
+            : Util.blackholeMap();
     initRuleQueue();
   }
 
@@ -254,7 +255,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Enable or disable top-down optimization.
    *
    * <p>Note: Enabling top-down optimization will automatically enable
-   * top-down trait propagation.</p>
+   * top-down trait propagation.
    */
   public void setTopDownOpt(boolean value) {
     if (topDownOpt == value) {
@@ -697,6 +698,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Sets whether this planner should consider rel nodes with Convention.NONE
    * to have infinite cost or not.
+   *
    * @param infinite Whether to make none convention rel nodes infinite cost
    */
   public void setNoneConventionHasInfiniteCost(boolean infinite) {
@@ -705,6 +707,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /**
    * Returns cost of a relation or infinite cost if the cost is not known.
+   *
    * @param rel relation t
    * @param mq metadata query
    * @return cost of the relation or infinite cost if the cost is not known
@@ -1173,8 +1176,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Was the set we merged with the root? If so, the result is the new
     // root.
     if (set2 == getSet(root)) {
-      root = set1.getOrCreateSubset(
-          root.getCluster(), root.getTraitSet(), root.isRequired());
+      root =
+          set1.getOrCreateSubset(root.getCluster(), root.getTraitSet(),
+              root.isRequired());
       ensureRootConverters();
     }
 
@@ -1346,12 +1350,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Place the expression in the appropriate equivalence set.
     if (set == null) {
-      set = new RelSet(
-          nextSetId++,
-          Util.minus(
-              RelOptUtil.getVariablesSet(rel),
-              rel.getVariablesSet()),
-          RelOptUtil.getVariablesUsed(rel));
+      set =
+          new RelSet(nextSetId++,
+              Util.minus(RelOptUtil.getVariablesSet(rel),
+                  rel.getVariablesSet()),
+              RelOptUtil.getVariablesUsed(rel));
       this.allSets.add(set);
     }
 
@@ -1514,6 +1517,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /**
    * Decide whether a rule is logical or not.
+   *
    * @param rel The specific rel node
    * @return True if the relnode is a logical node
    */

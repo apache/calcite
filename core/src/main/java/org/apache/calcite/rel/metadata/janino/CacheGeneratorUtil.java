@@ -160,15 +160,14 @@ class CacheGeneratorUtil {
    */
   private enum CacheKeyStrategy {
     /**
-     * Generates an immutable method key, then during each call instantiates a new list to all
-     * the arguments.
+     * Generates an immutable method key, then during each call instantiates a
+     * new list to all the arguments.
      *
-     * Example:
-     * <code>
-     *     private final Object method_key_0 =
-     *        new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
+     * <p>Example:
      *
-     *  ...
+     * <blockquote><pre>{@code
+     *   private final Object method_key_0 =
+     *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
      *
      *   public java.lang.Double getDistinctRowCount(
      *       org.apache.calcite.rel.RelNode r,
@@ -176,12 +175,14 @@ class CacheGeneratorUtil {
      *       org.apache.calcite.util.ImmutableBitSet a2,
      *       org.apache.calcite.rex.RexNode a3) {
      *     final Object key;
-     *     key = org.apache.calcite.runtime.FlatLists.of(method_key_0, org.apache.calcite.rel
-     * .metadata.NullSentinel.mask(a2), a3);
+     *     key = org.apache.calcite.runtime.FlatLists.of(method_key_0,
+     *         org.apache.calcite.rel.metadata.NullSentinel.mask(a2), a3);
      *     final Object v = mq.map.get(r, key);
      *     if (v != null) {
-     *      ...
-     * </code>
+     *       ...
+     *     }
+     *   }
+     * }</pre></blockquote>
      */
     DEFAULT {
       @Override void cacheProperties(StringBuilder buff, Method method, int methodIndex) {
@@ -197,7 +198,7 @@ class CacheGeneratorUtil {
       @Override void cacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
         buff.append("    key = ")
             .append(
-                (method.getParameterTypes().length < 6
+                (method.getParameterCount() < 6
                     ? org.apache.calcite.runtime.FlatLists.class
                     : ImmutableList.class).getName())
             .append(".of(");
@@ -208,7 +209,7 @@ class CacheGeneratorUtil {
 
       /** Returns e.g. ", ignoreNulls". */
       private StringBuilder safeArgList(StringBuilder buff, Method method) {
-        //We ignore the first 2 arguments since they are included other ways.
+        // We ignore the first 2 arguments since they are included other ways.
         for (Ord<Class<?>> t : Ord.zip(method.getParameterTypes())
             .subList(2, method.getParameterCount())) {
           if (Primitive.is(t.e) || RexNode.class.isAssignableFrom(t.e)) {
@@ -221,13 +222,15 @@ class CacheGeneratorUtil {
         return buff;
       }
     },
+
     /**
      * Generates an immutable key that is reused across all calls.
      *
-     * Example:
-     * <code>
+     * <p>Example:
+     *
+     * <blockquote><pre><code>
      *     private final Object method_key_0 =
-     *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
+     *         new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
      *
      *   ...
      *
@@ -237,7 +240,7 @@ class CacheGeneratorUtil {
      *     final Object key;
      *     key = method_key_0;
      *     final Object v = mq.map.get(r, key);
-     * </code>
+     * </code></pre></blockquote>
      */
     NO_ARG {
       @Override void cacheProperties(StringBuilder buff, Method method, int methodIndex) {
@@ -256,14 +259,16 @@ class CacheGeneratorUtil {
     /**
      * Generates immutable cache keys for metadata calls with single enum argument.
      *
-     * Example:
-     * <code>
+     * <p>Example:
+     *
+     * <blockquote><pre><code>
      *   private final Object method_key_0Null =
      *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey(
-     *         "Boolean isVisibleInExplain(null)");
+     *           "Boolean isVisibleInExplain(null)");
      *   private final Object[] method_key_0 =
      *       org.apache.calcite.rel.metadata.janino.CacheUtil.generateEnum(
-     *         "Boolean isVisibleInExplain", org.apache.calcite.sql.SqlExplainLevel.values());
+     *           "Boolean isVisibleInExplain",
+     *           org.apache.calcite.sql.SqlExplainLevel.values());
      *
      *   ...
      *
@@ -277,7 +282,7 @@ class CacheGeneratorUtil {
      *     } else {
      *       key = method_key_0[a2.ordinal()];
      *     }
-     * </code>
+     * </code></pre></blockquote>
      */
     ENUM_ARG {
       @Override void cacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
@@ -314,17 +319,18 @@ class CacheGeneratorUtil {
             .append(".values());\n");
       }
     },
+
     /**
-     * Generates 2 immutable keys for functions that only take a single boolean arg.
+     * Generates 2 immutable keys for functions that only take a single boolean
+     * arg.
      *
-     * Example:
-     * <code>
-     *  private final Object method_key_0True =
+     * <p>Example:
+     *
+     * <blockquote><pre><code>
+     *   private final Object method_key_0True =
      *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
      *   private final Object method_key_0False =
      *       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
-     *
-     *   ...
      *
      *   public java.util.Set getUniqueKeys(
      *       org.apache.calcite.rel.RelNode r,
@@ -334,7 +340,8 @@ class CacheGeneratorUtil {
      *     key = a2 ? method_key_0True : method_key_0False;
      *     final Object v = mq.map.get(r, key);
      *     ...
-     * </code>
+     *   }
+     * </code></pre></blockquote>
      */
     BOOLEAN_ARG {
       @Override void cacheKeyBlock(StringBuilder buff, Method method, int methodIndex) {
@@ -358,11 +365,14 @@ class CacheGeneratorUtil {
         newDescriptiveCacheKey(buff, method, "false");
       }
     },
+
     /**
-     * Uses a flyweight for fixed range, otherwise instantiates a new list with the arguement in it.
+     * Uses a flyweight for fixed range, otherwise instantiates a new list with
+     * the argument in it.
      *
-     * Example:
-     * <code>
+     * <p>Example:
+     *
+     * <blockquote><pre><code>
      *   private final Object method_key_0 =
      *         new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("...");
      *   private final Object[] method_key_0FlyWeight =
@@ -381,7 +391,7 @@ class CacheGeneratorUtil {
      *     } else {
      *       key = org.apache.calcite.runtime.FlatLists.of(method_key_0, a2);
      *     }
-     * </code>
+     * </code></pre></blockquote>
      */
     INT_ARG {
       private final int min = -256;

@@ -177,7 +177,7 @@ public abstract class DiffTestCase {
    *
    * <p>NOTE: if you wrap the Writer returned by openTestLog() (e.g. with a
    * PrintWriter), be sure to flush the wrapping Writer before calling this
-   * method.</p>
+   * method.
    *
    * @see #diffFile(File, File)
    */

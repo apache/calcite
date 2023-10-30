@@ -58,8 +58,7 @@ class HepRelMetadataProvider implements RelMetadataProvider {
       if (!(rel instanceof HepRelVertex)) {
         return null;
       }
-      HepRelVertex vertex = (HepRelVertex) rel;
-      final RelNode rel2 = vertex.getCurrentRel();
+      final RelNode rel2 = rel.stripped();
       UnboundMetadata<M> function =
           requireNonNull(rel.getCluster().getMetadataProvider(), "metadataProvider")
               .apply(rel2.getClass(), metadataClass);

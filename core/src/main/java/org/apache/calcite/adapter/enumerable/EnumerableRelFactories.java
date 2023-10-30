@@ -26,6 +26,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
+import com.google.common.base.Preconditions;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
@@ -68,7 +70,10 @@ public class EnumerableRelFactories {
       implements org.apache.calcite.rel.core.RelFactories.ProjectFactory {
     @Override public RelNode createProject(RelNode input, List<RelHint> hints,
         List<? extends RexNode> childExprs,
-        @Nullable List<? extends @Nullable String> fieldNames) {
+        @Nullable List<? extends @Nullable String> fieldNames,
+        Set<CorrelationId> variablesSet) {
+      Preconditions.checkArgument(variablesSet.isEmpty(),
+          "EnumerableProject does not allow variables");
       final RelDataType rowType =
           RexUtil.createStructType(input.getCluster().getTypeFactory(), childExprs,
               fieldNames, SqlValidatorUtil.F_SUGGESTER);

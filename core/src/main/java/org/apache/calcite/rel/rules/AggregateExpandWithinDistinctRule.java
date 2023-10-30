@@ -50,6 +50,8 @@ import java.util.TreeSet;
 import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import static org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule.groupValue;
 import static org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule.remap;
 
@@ -158,7 +160,7 @@ public class AggregateExpandWithinDistinctRule
         aggregate.getAggCallList()
             .stream()
             .map(c -> unDistinct(c, aggregate.getInput()::fieldIsNullable))
-            .collect(Util.toImmutableList());
+            .collect(toImmutableList());
 
     // Find all within-distinct expressions.
     final Multimap<ImmutableBitSet, AggregateCall> argLists =
@@ -366,9 +368,7 @@ public class AggregateExpandWithinDistinctRule
                     SqlStdOperatorTable.GROUPING,
                     b.fields(fullGroupList)))
             : -1;
-    b.aggregate(
-        b.groupKey(fullGroupSet,
-            (Iterable<ImmutableBitSet>) groupSets), aggCalls);
+    b.aggregate(b.groupKey(fullGroupSet, groupSets), aggCalls);
 
     // Build the outer query
     //
@@ -400,13 +400,15 @@ public class AggregateExpandWithinDistinctRule
             b.equals(
                 b.field(grouping),
                 b.literal(
-                    groupValue(fullGroupList, union(aggregate.getGroupSet(), c.distinctKeys))));
+                    groupValue(fullGroupList,
+                        union(aggregate.getGroupSet(), c.distinctKeys))));
         filters.add(groupFilter);
       }
       RelBuilder.AggCall aggCall;
       if (c.distinctKeys == null) {
-        aggCall = b.aggregateCall(SqlStdOperatorTable.MIN,
-            b.field(registrar.getAgg(i)));
+        aggCall =
+            b.aggregateCall(SqlStdOperatorTable.MIN,
+                b.field(registrar.getAgg(i)));
       } else {
         // The inputs to this aggregate are outputs from MIN() calls from the
         // inner agg, and MIN() returns null iff it has no non-null inputs,
@@ -417,12 +419,13 @@ public class AggregateExpandWithinDistinctRule
         // ignore null inputs, we add a filter based on a COUNT() in the inner
         // aggregate.
         aggCall =
-            b.aggregateCall(
-                c.getAggregation(),
+            b.aggregateCall(c.getAggregation(),
                 b.fields(registrar.fields(c.getArgList(), c.filterArg)));
 
         if (mustBeCounted(c)) {
-          filters.add(b.greaterThan(b.field(registrar.getCount(c.filterArg)), b.literal(0)));
+          filters.add(
+              b.greaterThan(b.field(registrar.getCount(c.filterArg)),
+                  b.literal(0)));
         }
 
         if (config.throwIfNotUnique()) {
@@ -436,7 +439,8 @@ public class AggregateExpandWithinDistinctRule
             }
             String message = "more than one distinct value in agg UNIQUE_VALUE";
             filters.add(
-                b.call(SqlInternalOperators.THROW_UNLESS, isUniqueCondition, b.literal(message)));
+                b.call(SqlInternalOperators.THROW_UNLESS, isUniqueCondition,
+                    b.literal(message)));
           }
         }
       }
@@ -449,8 +453,7 @@ public class AggregateExpandWithinDistinctRule
     b.aggregate(
         b.groupKey(
             remap(fullGroupSet, aggregate.getGroupSet()),
-            (Iterable<ImmutableBitSet>)
-                remap(fullGroupSet, aggregate.getGroupSets())),
+            remap(fullGroupSet, aggregate.getGroupSets())),
         aggCalls);
     b.convert(aggregate.getRowType(), false);
     call.transformTo(b.build());

@@ -39,7 +39,7 @@ import org.apache.calcite.util.ImmutableIntList;
  * and column mapping is {@code [0, 2]}.
  *
  * <p>NOTE: The current API is inefficient and experimental. It will change
- * without notice.</p>
+ * without notice.
  */
 public interface ModifiableView extends Table {
   /** Returns a constraint that each candidate row must satisfy.

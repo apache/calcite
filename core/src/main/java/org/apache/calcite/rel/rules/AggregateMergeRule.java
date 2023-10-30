@@ -87,7 +87,7 @@ public class AggregateMergeRule
 
     final ImmutableBitSet bottomGroupSet = bottomAgg.getGroupSet();
     final Map<Integer, Integer> map = new HashMap<>();
-    bottomGroupSet.forEach(v -> map.put(map.size(), v));
+    bottomGroupSet.forEachInt(v -> map.put(map.size(), v));
     for (int k : topAgg.getGroupSet()) {
       if (!map.containsKey(k)) {
         return;

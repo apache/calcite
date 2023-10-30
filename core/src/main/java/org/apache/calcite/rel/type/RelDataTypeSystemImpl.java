@@ -226,12 +226,16 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
           && argumentType.getPrecision() != RelDataType.PRECISION_NOT_SPECIFIED) {
         int precision = typeFactory.getTypeSystem().getMaxPrecision(typeName);
         if (typeName.allowsScale()) {
-          argumentType = typeFactory.createTypeWithNullability(
-              typeFactory.createSqlType(typeName, precision, argumentType.getScale()),
-              argumentType.isNullable());
+          argumentType =
+              typeFactory.createTypeWithNullability(
+                  typeFactory.createSqlType(typeName, precision,
+                      argumentType.getScale()),
+                  argumentType.isNullable());
         } else {
-          argumentType = typeFactory.createTypeWithNullability(
-              typeFactory.createSqlType(typeName, precision), argumentType.isNullable());
+          argumentType =
+              typeFactory.createTypeWithNullability(
+                  typeFactory.createSqlType(typeName, precision),
+                  argumentType.isNullable());
         }
       }
     }
@@ -263,10 +267,6 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
   }
 
   @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
-    return false;
-  }
-
-  public boolean allowExtendedTrim() {
     return false;
   }
 

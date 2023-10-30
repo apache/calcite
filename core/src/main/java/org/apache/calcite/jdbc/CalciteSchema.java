@@ -39,7 +39,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -49,14 +48,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
-import java.util.Objects;
 import java.util.Set;
 import javax.sql.DataSource;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Schema.
  *
- * <p>Wrapper around user-defined schema used internally.</p>
+ * <p>Wrapper around user-defined schema used internally.
  */
 public abstract class CalciteSchema {
 
@@ -64,7 +64,7 @@ public abstract class CalciteSchema {
   public final Schema schema;
   public final String name;
   /** Tables explicitly defined in this schema. Does not include tables in
-   *  {@link #schema}. */
+   * {@link #schema}. */
   protected final NameMap<TableEntry> tableMap;
   protected final NameMultimap<FunctionEntry> functionMap;
   protected final NameMap<TypeEntry> typeMap;
@@ -87,21 +87,9 @@ public abstract class CalciteSchema {
     this.parent = parent;
     this.schema = schema;
     this.name = name;
-    if (tableMap == null) {
-      this.tableMap = new NameMap<>();
-    } else {
-      this.tableMap = Objects.requireNonNull(tableMap, "tableMap");
-    }
-    if (latticeMap == null) {
-      this.latticeMap = new NameMap<>();
-    } else {
-      this.latticeMap = Objects.requireNonNull(latticeMap, "latticeMap");
-    }
-    if (subSchemaMap == null) {
-      this.subSchemaMap = new NameMap<>();
-    } else {
-      this.subSchemaMap = Objects.requireNonNull(subSchemaMap, "subSchemaMap");
-    }
+    this.tableMap = tableMap != null ? tableMap : new NameMap<>();
+    this.latticeMap = latticeMap != null ? latticeMap : new NameMap<>();
+    this.subSchemaMap = subSchemaMap != null ? subSchemaMap : new NameMap<>();
     if (functionMap == null) {
       this.functionMap = new NameMultimap<>();
       this.functionNames = new NameSet();
@@ -109,14 +97,15 @@ public abstract class CalciteSchema {
     } else {
       // If you specify functionMap, you must also specify functionNames and
       // nullaryFunctionMap.
-      this.functionMap = Objects.requireNonNull(functionMap, "functionMap");
-      this.functionNames = Objects.requireNonNull(functionNames, "functionNames");
-      this.nullaryFunctionMap = Objects.requireNonNull(nullaryFunctionMap, "nullaryFunctionMap");
+      this.functionMap = functionMap;
+      this.functionNames = requireNonNull(functionNames, "functionNames");
+      this.nullaryFunctionMap =
+          requireNonNull(nullaryFunctionMap, "nullaryFunctionMap");
     }
     if (typeMap == null) {
       this.typeMap = new NameMap<>();
     } else {
-      this.typeMap = Objects.requireNonNull(typeMap, "typeMap");
+      this.typeMap = typeMap;
     }
     this.path = path;
   }
@@ -257,7 +246,7 @@ public abstract class CalciteSchema {
         list.add(s.name);
       }
     }
-    return ImmutableList.copyOf(Lists.reverse(list));
+    return ImmutableList.copyOf(list).reverse();
   }
 
   public final @Nullable CalciteSchema getSubSchema(String schemaName,
@@ -447,7 +436,7 @@ public abstract class CalciteSchema {
    *
    * <p>Currently, to accommodate the requirement of creating tables on the fly
    * for materializations, the snapshot will still use the same table map and
-   * lattice map as in the original CalciteSchema instead of making copies.</p>
+   * lattice map as in the original CalciteSchema instead of making copies.
    *
    * @param version The current schema version
    *
@@ -460,6 +449,7 @@ public abstract class CalciteSchema {
 
   /** Returns a subset of a map whose keys match the given string
    * case-insensitively.
+   *
    * @deprecated use NameMap
    */
   @Deprecated // to be removed before 2.0
@@ -470,6 +460,7 @@ public abstract class CalciteSchema {
 
   /** Returns a subset of a set whose values match the given string
    * case-insensitively.
+   *
    * @deprecated use NameSet
    */
   @Deprecated // to be removed before 2.0
@@ -559,7 +550,7 @@ public abstract class CalciteSchema {
    * <p>Each object's name is a property of its membership in a schema;
    * therefore in principle it could belong to several schemas, or
    * even the same schema several times, with different names. In this
-   * respect, it is like an inode in a Unix file system.</p>
+   * respect, it is like an inode in a Unix file system.
    *
    * <p>The members of a schema must have unique names.
    */
@@ -568,8 +559,8 @@ public abstract class CalciteSchema {
     public final String name;
 
     protected Entry(CalciteSchema schema, String name) {
-      this.schema = Objects.requireNonNull(schema, "schema");
-      this.name = Objects.requireNonNull(name, "name");
+      this.schema = requireNonNull(schema, "schema");
+      this.name = requireNonNull(name, "name");
     }
 
     /** Returns this object's path. For example ["hr", "emps"]. */
@@ -585,7 +576,7 @@ public abstract class CalciteSchema {
     protected TableEntry(CalciteSchema schema, String name,
         ImmutableList<String> sqls) {
       super(schema, name);
-      this.sqls = Objects.requireNonNull(sqls, "sqls");
+      this.sqls = requireNonNull(sqls, "sqls");
     }
 
     public abstract Table getTable();
@@ -730,6 +721,10 @@ public abstract class CalciteSchema {
       CalciteSchema.this.add(name, table);
     }
 
+    @Override public boolean removeTable(String name) {
+      return CalciteSchema.this.removeTable(name);
+    }
+
     @Override public void add(String name, Function function) {
       CalciteSchema.this.add(name, function);
     }
@@ -754,7 +749,7 @@ public abstract class CalciteSchema {
     public TableEntryImpl(CalciteSchema schema, String name, Table table,
         ImmutableList<String> sqls) {
       super(schema, name, sqls);
-      this.table = Objects.requireNonNull(table, "table");
+      this.table = requireNonNull(table, "table");
     }
 
     @Override public Table getTable() {

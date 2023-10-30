@@ -26,6 +26,8 @@ dependencies {
     jmhImplementation("org.codehaus.janino:commons-compiler")
     jmhImplementation("org.openjdk.jmh:jmh-core")
     jmhImplementation("org.openjdk.jmh:jmh-generator-annprocess")
+    jmhImplementation(project(":testkit"))
+    jmhImplementation("org.hsqldb:hsqldb::jdk8")
 }
 
 // See https://github.com/melix/jmh-gradle-plugin

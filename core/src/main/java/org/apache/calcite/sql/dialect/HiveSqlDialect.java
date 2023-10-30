@@ -27,7 +27,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.fun.SqlSubstringFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.util.RelToSqlConverterUtil;
@@ -99,21 +98,6 @@ public class HiveSqlDialect extends SqlDialect {
     case TRIM:
       RelToSqlConverterUtil.unparseHiveTrim(writer, call, leftPrec, rightPrec);
       break;
-    case OTHER_FUNCTION:
-      if (call.getOperator() instanceof SqlSubstringFunction) {
-        final SqlWriter.Frame funCallFrame = writer.startFunCall(call.getOperator().getName());
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.sep(",", true);
-        call.operand(1).unparse(writer, leftPrec, rightPrec);
-        if (3 == call.operandCount()) {
-          writer.sep(",", true);
-          call.operand(2).unparse(writer, leftPrec, rightPrec);
-        }
-        writer.endFunCall(funCallFrame);
-      } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
-      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -131,6 +115,10 @@ public class HiveSqlDialect extends SqlDialect {
     return true;
   }
 
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
+
   @Override public boolean supportsNestedAggregations() {
     return false;
   }
@@ -139,8 +127,9 @@ public class HiveSqlDialect extends SqlDialect {
     if (type instanceof BasicSqlType) {
       switch (type.getSqlTypeName()) {
       case INTEGER:
-        SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
-            "INT", type.getSqlTypeName(), SqlParserPos.ZERO);
+        SqlAlienSystemTypeNameSpec typeNameSpec =
+            new SqlAlienSystemTypeNameSpec("INT", type.getSqlTypeName(),
+                SqlParserPos.ZERO);
         return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
       default:
         break;

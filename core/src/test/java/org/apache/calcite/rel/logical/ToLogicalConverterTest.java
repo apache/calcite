@@ -80,8 +80,9 @@ class ToLogicalConverterTest {
 
   private static FrameworkConfig frameworkConfig() {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
-    final SchemaPlus schema = CalciteAssert.addSchema(rootSchema,
-        CalciteAssert.SchemaSpec.JDBC_FOODMART);
+    final SchemaPlus schema =
+        CalciteAssert.addSchema(rootSchema,
+            CalciteAssert.SchemaSpec.JDBC_FOODMART);
     return Frameworks.newConfigBuilder()
         .defaultSchema(schema)
         .sqlToRelConverterConfig(DEFAULT_REL_CONFIG)
@@ -325,7 +326,7 @@ class ToLogicalConverterTest {
     final RelBuilder builder = builder();
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     final RelNode rel = builder.scan("EMP")
-        .variable(v)
+        .variable(v::set)
         .scan("DEPT")
         .filter(
             builder.equals(builder.field(0), builder.field(v.get(), "DEPTNO")))

@@ -34,7 +34,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
@@ -43,10 +42,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import static org.apache.calcite.util.ReflectUtil.isPublic;
+import static org.apache.calcite.util.ReflectUtil.isStatic;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of the {@link RelMetadataProvider} interface that dispatches
@@ -56,7 +59,7 @@ import java.util.concurrent.ConcurrentMap;
  * the same signature as the implemented metadata method except for an
  * additional first parameter of type {@link RelNode} or a sub-class. That
  * parameter gives this provider an indication of that relational expressions it
- * can handle.</p>
+ * can handle.
  *
  * <p>For an example, see {@link RelMdColumnOrigins#SOURCE}.
  */
@@ -101,7 +104,7 @@ public class ReflectiveRelMetadataProvider
    *
    * <p>For example, {@link BuiltInMetadata.Selectivity} has a method
    * {@link BuiltInMetadata.Selectivity#getSelectivity(RexNode)}.
-   * A class</p>
+   * A class
    *
    * <blockquote><pre><code>
    * class RelMdSelectivity {
@@ -111,7 +114,7 @@ public class ReflectiveRelMetadataProvider
    *
    * <p>provides implementations of selectivity for relational expressions
    * that extend {@link org.apache.calcite.rel.core.Union}
-   * or {@link org.apache.calcite.rel.core.Filter}.</p>
+   * or {@link org.apache.calcite.rel.core.Filter}.
    */
   @Deprecated // to be removed before 2.0
   public static RelMetadataProvider reflectiveSource(Method method,
@@ -124,13 +127,16 @@ public class ReflectiveRelMetadataProvider
   @Deprecated // to be removed before 2.0
   public static RelMetadataProvider reflectiveSource(MetadataHandler target,
       Method... methods) {
-    return reflectiveSource(target, ImmutableList.copyOf(methods), target.getDef().handlerClass);
+    return reflectiveSource(target, ImmutableList.copyOf(methods),
+        target.getDef().handlerClass);
   }
 
   @SuppressWarnings("deprecation")
   public static <M extends Metadata> RelMetadataProvider reflectiveSource(
-      MetadataHandler<? extends M> handler, Class<? extends MetadataHandler<M>> handlerClass) {
-    //When deprecated code is removed, handler.getDef().methods will no longer be required
+      MetadataHandler<? extends M> handler,
+      Class<? extends MetadataHandler<M>> handlerClass) {
+    // When deprecated code is removed, handler.getDef().methods will
+    // no longer be required
     return reflectiveSource(handler, handler.getDef().methods, handlerClass);
   }
 
@@ -245,8 +251,8 @@ public class ReflectiveRelMetadataProvider
   @Deprecated // to be removed before 2.0
   private static boolean couldImplement(Method handlerMethod, Method method) {
     if (!handlerMethod.getName().equals(method.getName())
-        || (handlerMethod.getModifiers() & Modifier.STATIC) != 0
-        || (handlerMethod.getModifiers() & Modifier.PUBLIC) == 0) {
+        || isStatic(handlerMethod)
+        || !isPublic(handlerMethod)) {
       return false;
     }
     final Class<?>[] parameterTypes1 = handlerMethod.getParameterTypes();
@@ -336,7 +342,7 @@ public class ReflectiveRelMetadataProvider
      * {@code map}. */
     @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
     Method find(final Class<? extends RelNode> relNodeClass, Method method) {
-      Objects.requireNonNull(relNodeClass, "relNodeClass");
+      requireNonNull(relNodeClass, "relNodeClass");
       for (Class r = relNodeClass;;) {
         Method implementingMethod = handlerMap.get(Pair.of(r, method));
         if (implementingMethod != null) {

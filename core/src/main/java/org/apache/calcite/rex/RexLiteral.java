@@ -25,8 +25,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.FlatLists;
-import org.apache.calcite.runtime.GeoFunctions;
-import org.apache.calcite.runtime.Geometries;
+import org.apache.calcite.runtime.SpatialTypeFunctions;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -51,6 +50,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 import org.checkerframework.dataflow.qual.Pure;
+import org.locationtech.jts.geom.Geometry;
 
 import java.io.PrintWriter;
 import java.math.BigDecimal;
@@ -73,16 +73,16 @@ import static java.util.Objects.requireNonNull;
  * Constant value in a row-expression.
  *
  * <p>There are several methods for creating literals in {@link RexBuilder}:
- * {@link RexBuilder#makeLiteral(boolean)} and so forth.</p>
+ * {@link RexBuilder#makeLiteral(boolean)} and so forth.
  *
  * <p>How is the value stored? In that respect, the class is somewhat of a black
  * box. There is a {@link #getValue} method which returns the value as an
  * object, but the type of that value is implementation detail, and it is best
  * that your code does not depend upon that knowledge. It is better to use
  * task-oriented methods such as {@link #getValue2} and
- * {@link #toJavaString}.</p>
+ * {@link #toJavaString}.
  *
- * <p>The allowable types and combinations are:</p>
+ * <p>The allowable types and combinations are:
  *
  * <table>
  * <caption>Allowable types for RexLiteral instances</caption>
@@ -298,8 +298,7 @@ public class RexLiteral extends RexNode {
    */
   @RequiresNonNull("type")
   RexDigestIncludeType digestIncludesType(
-      @UnknownInitialization RexLiteral this
-  ) {
+      @UnknownInitialization RexLiteral this) {
     return shouldIncludeType(value, type);
   }
 
@@ -384,7 +383,7 @@ public class RexLiteral extends RexNode {
     case MULTISET:
       return value instanceof List;
     case GEOMETRY:
-      return value instanceof Geometries.Geom;
+      return value instanceof Geometry;
     case ANY:
       // Literal of type ANY is not legal. "CAST(2 AS ANY)" remains
       // an integer literal surrounded by a cast function.
@@ -446,7 +445,8 @@ public class RexLiteral extends RexNode {
   }
 
   /**
-   * Computes if data type can be omitted from the digset.
+   * Computes if data type can be omitted from the digest.
+   *
    * <p>For instance, {@code 1:BIGINT} has to keep data type while {@code 1:INT}
    * should be represented as just {@code 1}.
    *
@@ -609,7 +609,7 @@ public class RexLiteral extends RexNode {
    * Appends the specified value in the provided destination as a Java string. The value must be
    * consistent with the type, as per {@link #valueMatchesType}.
    *
-   * <p>Typical return values:</p>
+   * <p>Typical return values:
    *
    * <ul>
    * <li>true</li>
@@ -724,7 +724,7 @@ public class RexLiteral extends RexNode {
               sb3.append(list.get(i).computeDigest(includeType))));
       break;
     case GEOMETRY:
-      final String wkt = GeoFunctions.ST_AsWKT((Geometries.Geom) castNonNull(value));
+      final String wkt = SpatialTypeFunctions.ST_AsWKT((Geometry) castNonNull(value));
       sb.append(wkt);
       break;
     default:
@@ -844,9 +844,9 @@ public class RexLiteral extends RexNode {
       final Comparable v;
       switch (typeName) {
       case DATE:
-        final Calendar cal = DateTimeUtils.parseDateFormat(literal,
-            new SimpleDateFormat(format, Locale.ROOT),
-            tz);
+        final Calendar cal =
+            DateTimeUtils.parseDateFormat(literal,
+                new SimpleDateFormat(format, Locale.ROOT), tz);
         if (cal == null) {
           throw new AssertionError("fromJdbcString: invalid date/time value '"
               + literal + "'");

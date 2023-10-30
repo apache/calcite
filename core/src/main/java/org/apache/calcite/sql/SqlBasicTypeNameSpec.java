@@ -180,7 +180,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
       writer.keyword("WITH LOCAL TIME ZONE");
     }
 
-    if (charSetName != null) {
+    if (writer.getDialect().supportsCharSet() && charSetName != null) {
       writer.keyword("CHARACTER SET");
       writer.identifier(charSetName, true);
     }

@@ -29,7 +29,7 @@ import java.util.List;
  *
  * <p>It is a purely syntactic operator, and is eliminated by
  * {@link org.apache.calcite.sql.validate.SqlValidatorImpl#performUnconditionalRewrites}
- * and replaced with the ORDER_OPERAND of SqlSelect.</p>
+ * and replaced with the ORDER_OPERAND of SqlSelect.
  */
 public class SqlOrderBy extends SqlCall {
   public static final SqlSpecialOperator OPERATOR = new Operator() {

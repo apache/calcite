@@ -169,10 +169,10 @@ public class Lattice {
       populateAliases(join.getRight(), aliases, null);
     } else if (from.getKind() == SqlKind.AS) {
       populateAliases(SqlUtil.stripAs(from), aliases,
-          SqlValidatorUtil.getAlias(from, -1));
+          SqlValidatorUtil.alias(from));
     } else {
       if (current == null) {
-        current = SqlValidatorUtil.getAlias(from, -1);
+        current = SqlValidatorUtil.alias(from);
       }
       aliases.add(current);
     }
@@ -1117,12 +1117,14 @@ public class Lattice {
         if (node.alias == null) {
           node.alias = Util.last(node.table.t.getQualifiedName());
         }
-        node.alias = SqlValidatorUtil.uniquify(node.alias, aliases,
-            SqlValidatorUtil.ATTEMPT_SUGGESTER);
+        node.alias =
+            SqlValidatorUtil.uniquify(node.alias, aliases,
+                SqlValidatorUtil.ATTEMPT_SUGGESTER);
         node.startCol = c;
         for (String name : node.table.t.getRowType().getFieldNames()) {
-          final String alias = SqlValidatorUtil.uniquify(name,
-              columnAliases, SqlValidatorUtil.ATTEMPT_SUGGESTER);
+          final String alias =
+              SqlValidatorUtil.uniquify(name, columnAliases,
+                  SqlValidatorUtil.ATTEMPT_SUGGESTER);
           final BaseColumn column =
               new BaseColumn(c++, castNonNull(node.alias), name, alias);
           columnList.add(column);

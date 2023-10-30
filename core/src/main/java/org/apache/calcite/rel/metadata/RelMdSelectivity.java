@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLocalRef;
@@ -58,6 +59,16 @@ public class RelMdSelectivity
 
   @Override public MetadataDef<BuiltInMetadata.Selectivity> getDef() {
     return BuiltInMetadata.Selectivity.DEF;
+  }
+
+  public @Nullable Double getSelectivity(TableScan scan, RelMetadataQuery mq,
+      RexNode predicate) {
+    final BuiltInMetadata.Selectivity.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.Selectivity.Handler.class);
+    if (handler != null) {
+      return handler.getSelectivity(scan, mq, predicate);
+    }
+    return getSelectivity((RelNode) scan, mq, predicate);
   }
 
   public @Nullable Double getSelectivity(Union rel, RelMetadataQuery mq,

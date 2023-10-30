@@ -42,7 +42,7 @@ import java.util.List;
  *
  * <p>Concretely, this means iterating over the contents of an
  * {@link org.apache.calcite.linq4j.Enumerable}, storing them in a list, and
- * building an {@link org.apache.spark.rdd.RDD} on top of it.</p>
+ * building an {@link org.apache.spark.rdd.RDD} on top of it.
  */
 public class EnumerableToSparkConverter
     extends ConverterImpl

@@ -26,7 +26,7 @@ import org.apiguardian.api.API;
  * {@code #equals} and {@code #hashCode}, which are prohibited to override
  * for RelNode, for legacy reasons.
  *
- * <p>INTERNAL USE ONLY.</p>
+ * <p>INTERNAL USE ONLY.
  */
 @API(since = "1.24", status = API.Status.INTERNAL)
 public interface RelDigest {

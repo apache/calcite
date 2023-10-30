@@ -61,10 +61,12 @@ import org.apache.calcite.sql.ddl.SqlCreateFunction;
 import org.apache.calcite.sql.ddl.SqlCreateMaterializedView;
 import org.apache.calcite.sql.ddl.SqlCreateSchema;
 import org.apache.calcite.sql.ddl.SqlCreateTable;
+import org.apache.calcite.sql.ddl.SqlCreateTableLike;
 import org.apache.calcite.sql.ddl.SqlCreateType;
 import org.apache.calcite.sql.ddl.SqlCreateView;
 import org.apache.calcite.sql.ddl.SqlDropObject;
 import org.apache.calcite.sql.ddl.SqlDropSchema;
+import org.apache.calcite.sql.ddl.SqlTruncateTable;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
@@ -89,6 +91,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Reader;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -99,6 +103,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -143,8 +148,9 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
       path = Util.skipLast(id.names);
       name = Util.last(id.names);
     }
-    CalciteSchema schema = mutable ? context.getMutableRootSchema()
-        : context.getRootSchema();
+    CalciteSchema schema =
+        mutable ? context.getMutableRootSchema()
+            : context.getRootSchema();
     for (String p : path) {
       schema = schema.getSubSchema(p, true);
     }
@@ -162,7 +168,8 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
 
   /** Wraps a query to rename its columns. Used by CREATE VIEW and CREATE
    * MATERIALIZED VIEW. */
-  static SqlNode renameColumns(SqlNodeList columnList, SqlNode query) {
+  static SqlNode renameColumns(@Nullable SqlNodeList columnList,
+      SqlNode query) {
     if (columnList == null) {
       return query;
     }
@@ -176,7 +183,25 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
                 .addAll(columnList)
                 .build());
     return new SqlSelect(p, null, selectList, from, null, null, null, null,
-        null, null, null, null);
+        null, null, null, null, null);
+  }
+
+  /** Erase the table date that calcite-sever created. */
+  static void erase(SqlIdentifier name, CalcitePrepare.Context context) {
+    // Directly clearing data is more efficient than executing SQL
+    final Pair<CalciteSchema, String> pair = schema(context, true, name);
+    final CalciteSchema calciteSchema = pair.left;
+    final String tblName = pair.right;
+    final Table table = calciteSchema
+        .getTable(tblName, context.config().caseSensitive())
+        .getTable();
+    if (table instanceof MutableArrayTable) {
+      MutableArrayTable mutableArrayTable = (MutableArrayTable) table;
+      mutableArrayTable.rows.clear();
+    } else {
+      // Not calcite-server created, so not support truncate.
+      throw new UnsupportedOperationException("Only MutableArrayTable support truncate");
+    }
   }
 
   /** Populates the table called {@code name} by executing {@code query}. */
@@ -336,6 +361,25 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     default:
       throw new AssertionError(drop.getKind());
     }
+  }
+
+  /**
+   * Executes a {@code TRUNCATE TABLE} command.
+   */
+  public void execute(SqlTruncateTable truncate,
+      CalcitePrepare.Context context) {
+    final Pair<CalciteSchema, String> pair = schema(context, true, truncate.name);
+    if (pair.left.plus().getTable(pair.right) == null) {
+      throw SqlUtil.newContextException(truncate.name.getParserPosition(),
+          RESOURCE.tableNotFound(pair.right));
+    }
+
+    if (!truncate.continueIdentify) {
+      // Calcite not support RESTART IDENTIFY
+      throw new UnsupportedOperationException("RESTART IDENTIFY is not supported");
+    }
+
+    erase(truncate.name, context);
   }
 
   /** Executes a {@code CREATE MATERIALIZED VIEW} command. */
@@ -517,6 +561,58 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     }
   }
 
+  /** Executes a {@code CREATE TABLE LIKE} command. */
+  public void execute(SqlCreateTableLike create,
+      CalcitePrepare.Context context) {
+    final Pair<CalciteSchema, String> pair = schema(context, true, create.name);
+    if (pair.left.plus().getTable(pair.right) != null) {
+      // Table exists.
+      if (create.ifNotExists) {
+        return;
+      }
+      if (!create.getReplace()) {
+        // They did not specify IF NOT EXISTS, so give error.
+        throw SqlUtil.newContextException(create.name.getParserPosition(),
+            RESOURCE.tableExists(pair.right));
+      }
+    }
+
+    final Pair<CalciteSchema, String> sourceTablePair =
+        schema(context, true, create.sourceTable);
+    final Table table = sourceTablePair.left
+        .getTable(sourceTablePair.right, context.config().caseSensitive())
+        .getTable();
+
+    InitializerExpressionFactory ief = NullInitializerExpressionFactory.INSTANCE;
+    if (table instanceof Wrapper) {
+      final InitializerExpressionFactory sourceIef =
+          ((Wrapper) table).unwrap(InitializerExpressionFactory.class);
+      if (sourceIef != null) {
+        final Set<SqlCreateTableLike.LikeOption> optionSet = create.options();
+        final boolean includingGenerated =
+            optionSet.contains(SqlCreateTableLike.LikeOption.GENERATED)
+                || optionSet.contains(SqlCreateTableLike.LikeOption.ALL);
+        final boolean includingDefaults =
+            optionSet.contains(SqlCreateTableLike.LikeOption.DEFAULTS)
+                || optionSet.contains(SqlCreateTableLike.LikeOption.ALL);
+
+        // initializes columns based on the source table InitializerExpressionFactory
+        // and like options.
+        ief =
+            new CopiedTableInitializerExpressionFactory(
+                includingGenerated, includingDefaults, sourceIef);
+      }
+    }
+
+    final JavaTypeFactory typeFactory = context.getTypeFactory();
+    final RelDataType rowType = table.getRowType(typeFactory);
+    // Table does not exist. Create it.
+    pair.left.add(pair.right,
+        new MutableArrayTable(pair.right,
+            RelDataTypeImpl.proto(rowType),
+            RelDataTypeImpl.proto(rowType), ief));
+  }
+
   /** Executes a {@code CREATE TYPE} command. */
   public void execute(SqlCreateType create,
       CalcitePrepare.Context context) {
@@ -562,6 +658,51 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     final TranslatableTable x = viewTableMacro.apply(ImmutableList.of());
     Util.discard(x);
     schemaPlus.add(pair.right, viewTableMacro);
+  }
+
+  /**
+   * Initializes columns based on the source {@link InitializerExpressionFactory}
+   * and like options.
+   */
+  private static class CopiedTableInitializerExpressionFactory
+      extends NullInitializerExpressionFactory {
+
+    private final boolean includingGenerated;
+    private final boolean includingDefaults;
+    private final InitializerExpressionFactory sourceIef;
+
+    CopiedTableInitializerExpressionFactory(
+        boolean includingGenerated,
+        boolean includingDefaults,
+        InitializerExpressionFactory sourceIef) {
+      this.includingGenerated = includingGenerated;
+      this.includingDefaults = includingDefaults;
+      this.sourceIef = sourceIef;
+    }
+
+    @Override public ColumnStrategy generationStrategy(
+        RelOptTable table, int iColumn) {
+      final ColumnStrategy sourceStrategy = sourceIef.generationStrategy(table, iColumn);
+      if (includingGenerated
+          && (sourceStrategy == ColumnStrategy.STORED
+          || sourceStrategy == ColumnStrategy.VIRTUAL)) {
+        return sourceStrategy;
+      }
+      if (includingDefaults && sourceStrategy == ColumnStrategy.DEFAULT) {
+        return ColumnStrategy.DEFAULT;
+      }
+
+      return super.generationStrategy(table, iColumn);
+    }
+
+    @Override public RexNode newColumnDefaultValue(
+        RelOptTable table, int iColumn, InitializerContext context) {
+      if (includingDefaults || includingGenerated) {
+        return sourceIef.newColumnDefaultValue(table, iColumn, context);
+      } else {
+        return super.newColumnDefaultValue(table, iColumn, context);
+      }
+    }
   }
 
   /** Column definition. */

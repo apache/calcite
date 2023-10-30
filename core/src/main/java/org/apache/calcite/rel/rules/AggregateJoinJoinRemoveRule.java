@@ -128,8 +128,8 @@ public class AggregateJoinJoinRemoveRule
 
     int offset = bottomJoin.getRight().getRowType().getFieldCount();
     final RelBuilder relBuilder = call.builder();
-    RexNode condition = RexUtil.shift(topJoin.getCondition(),
-        leftBottomChildSize, -offset);
+    RexNode condition =
+        RexUtil.shift(topJoin.getCondition(), leftBottomChildSize, -offset);
     RelNode join = relBuilder.push(bottomJoin.getLeft())
         .push(topJoin.getRight())
         .join(topJoin.getJoinType(), condition)

@@ -40,7 +40,7 @@ import java.util.function.Predicate;
  * applied to a particular section of the tree.
  *
  * <p>The optimizer figures out which rules are applicable, then calls
- * {@link #onMatch} on each of them.</p>
+ * {@link #onMatch} on each of them.
  */
 public abstract class RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
@@ -237,10 +237,10 @@ public abstract class RelOptRule {
    * <p>Shorthand for <code>operand(clazz, some(...))</code>.
    *
    * <p>If you wish to match a relational expression that has no children
-   * (that is, a leaf node), write <code>operand(clazz, none())</code></p>.
+   * (that is, a leaf node), write <code>operand(clazz, none())</code>.
    *
    * <p>If you wish to match a relational expression that has any number of
-   * children, write <code>operand(clazz, any())</code></p>.
+   * children, write <code>operand(clazz, any())</code>.
    *
    * @param clazz Class of relational expression to match (must not be null)
    * @param first First operand
@@ -312,20 +312,20 @@ public abstract class RelOptRule {
    *
    * <p>This is useful when matching a relational expression which
    * can have a variable number of children. For example, the rule to
-   * eliminate empty children of a Union would have operands</p>
+   * eliminate empty children of a Union would have operands
    *
    * <blockquote>Operand(Union, true, Operand(Empty))</blockquote>
    *
-   * <p>and given the relational expressions</p>
+   * <p>and given the relational expressions
    *
    * <blockquote>Union(LogicalFilter, Empty, LogicalProject)</blockquote>
    *
-   * <p>would fire the rule with arguments</p>
+   * <p>would fire the rule with arguments
    *
    * <blockquote>{Union, Empty}</blockquote>
    *
    * <p>It is up to the rule to deduce the other children, or indeed the
-   * position of the matched child.</p>
+   * position of the matched child.
    *
    * @param first First child operand
    * @param rest  Remaining child operands (may be empty)
@@ -540,7 +540,7 @@ public abstract class RelOptRule {
    *
    * <p>Typically a rule would check that the nodes are valid matches, creates
    * a new expression, then calls back {@link RelOptRuleCall#transformTo} to
-   * register the expression.</p>
+   * register the expression.
    *
    * @param call Rule call
    * @see #matches(RelOptRuleCall)
@@ -588,8 +588,10 @@ public abstract class RelOptRule {
    * @return a relational expression with the desired traits; never null
    */
   public static RelNode convert(RelNode rel, RelTraitSet toTraits) {
-    RelOptPlanner planner = rel.getCluster().getPlanner();
+    return convert(rel.getCluster().getPlanner(), rel, toTraits);
+  }
 
+  public static RelNode convert(RelOptPlanner planner, RelNode rel, RelTraitSet toTraits) {
     RelTraitSet outTraits = rel.getTraitSet();
     for (int i = 0; i < toTraits.size(); i++) {
       RelTrait toTrait = toTraits.getTrait(i);
@@ -614,7 +616,10 @@ public abstract class RelOptRule {
    * @return a relational expression with the desired trait; never null
    */
   public static RelNode convert(RelNode rel, @Nullable RelTrait toTrait) {
-    RelOptPlanner planner = rel.getCluster().getPlanner();
+    return convert(rel.getCluster().getPlanner(), rel, toTrait);
+  }
+
+  public static RelNode convert(RelOptPlanner planner, RelNode rel, @Nullable RelTrait toTrait) {
     RelTraitSet outTraits = rel.getTraitSet();
     if (toTrait != null) {
       outTraits = outTraits.replace(toTrait);

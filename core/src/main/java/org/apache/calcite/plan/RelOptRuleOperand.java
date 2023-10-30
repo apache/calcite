@@ -34,11 +34,11 @@ import java.util.function.Predicate;
  * can be applied to a particular expression.
  *
  * <p>For example, the rule to pull a filter up from the left side of a join
- * takes operands: <code>Join(Filter, Any)</code>.</p>
+ * takes operands: <code>Join(Filter, Any)</code>.
  *
  * <p>Note that <code>children</code> means different things if it is empty or
  * it is <code>null</code>: <code>Join(Filter <b>()</b>, Any)</code> means
- * that, to match the rule, <code>Filter</code> must have no operands.</p>
+ * that, to match the rule, <code>Filter</code> must have no operands.
  */
 public class RelOptRuleOperand {
   //~ Instance fields --------------------------------------------------------
@@ -197,10 +197,10 @@ public class RelOptRuleOperand {
    *
    * <p>To facilitate IDE shows the operand description in the debugger,
    * returns the root operand description, but highlight current
-   * operand's matched class with '*' in the description.</p>
+   * operand's matched class with '*' in the description.
    *
    * <p>e.g. The following are examples of rule operand description for
-   * the operands that match with {@code LogicalFilter}.</p>
+   * the operands that match with {@code LogicalFilter}.
    *
    * <ul>
    * <li>SemiJoinRule:project: Project(Join(*RelNode*, Aggregate))</li>

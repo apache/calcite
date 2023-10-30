@@ -27,6 +27,8 @@ import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import static java.lang.Math.floorMod;
+
 /**
  * Time with time-zone literal.
  *
@@ -171,7 +173,7 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
   public static TimeWithTimeZoneString fromMillisOfDay(int i) {
     return new TimeWithTimeZoneString(
         DateTimeUtils.unixTimeToString(i) + " " + DateTimeUtils.UTC_ZONE.getID())
-            .withMillis((int) DateTimeUtils.floorMod(i, 1000));
+            .withMillis((int) floorMod(i, 1000L));
   }
 
   /** Converts this TimeWithTimeZoneString to a string, truncated or padded with

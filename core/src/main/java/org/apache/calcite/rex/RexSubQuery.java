@@ -26,7 +26,9 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -59,7 +61,7 @@ public class RexSubQuery extends RexCall {
    * If {@code comparison} is {@code >}
    * then {@code negated-comparison} is {@code <=}, and so forth.
    *
-   * <p>Also =SOME is rewritten into IN</p> */
+   * <p>Also =SOME is rewritten into IN */
   public static RexSubQuery some(RelNode rel, ImmutableList<RexNode> nodes,
       SqlQuantifyOperator op) {
     assert op.kind == SqlKind.SOME;
@@ -122,7 +124,9 @@ public class RexSubQuery extends RexCall {
   public static RexSubQuery array(RelNode rel) {
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     final RelDataType type =
-        typeFactory.createArrayType(rel.getRowType(), -1L);
+        typeFactory.createArrayType(
+            SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.ARRAY, rel.getRowType()),
+            -1L);
     return new RexSubQuery(type, SqlStdOperatorTable.ARRAY_QUERY,
         ImmutableList.of(), rel);
   }
@@ -131,7 +135,9 @@ public class RexSubQuery extends RexCall {
   public static RexSubQuery multiset(RelNode rel) {
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     final RelDataType type =
-        typeFactory.createMultisetType(rel.getRowType(), -1L);
+        typeFactory.createMultisetType(
+            SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.MULTISET, rel.getRowType()),
+            -1L);
     return new RexSubQuery(type, SqlStdOperatorTable.MULTISET_QUERY,
         ImmutableList.of(), rel);
   }
@@ -139,8 +145,14 @@ public class RexSubQuery extends RexCall {
   /** Creates a MAP sub-query. */
   public static RexSubQuery map(RelNode rel) {
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
+    final RelDataType rowType = rel.getRowType();
+    Preconditions.checkArgument(rowType.getFieldCount() == 2,
+        "MAP requires exactly two fields, got %s; row type %s",
+        rowType.getFieldCount(), rowType);
+    final List<RelDataTypeField> fieldList = rowType.getFieldList();
     final RelDataType type =
-        typeFactory.createMultisetType(rel.getRowType(), -1L);
+        typeFactory.createMapType(fieldList.get(0).getType(),
+            fieldList.get(1).getType());
     return new RexSubQuery(type, SqlStdOperatorTable.MAP_QUERY,
         ImmutableList.of(), rel);
   }

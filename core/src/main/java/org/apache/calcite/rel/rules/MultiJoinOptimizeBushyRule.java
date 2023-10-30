@@ -320,9 +320,9 @@ public class MultiJoinOptimizeBushyRule
   /** Returns the index within a list at which compares least according to a
    * comparator.
    *
-   * <p>In the case of a tie, returns the earliest such element.</p>
+   * <p>In the case of a tie, returns the earliest such element.
    *
-   * <p>If the list is empty, returns -1.</p>
+   * <p>If the list is empty, returns -1.
    */
   static <E> int minPos(List<E> list, Comparator<E> fn) {
     if (list.isEmpty()) {

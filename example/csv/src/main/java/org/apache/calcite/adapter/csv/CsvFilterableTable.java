@@ -18,11 +18,11 @@ package org.apache.calcite.adapter.csv;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.file.CsvEnumerator;
-import org.apache.calcite.adapter.file.CsvFieldType;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -57,7 +57,7 @@ public class CsvFilterableTable extends CsvTable
 
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters) {
     JavaTypeFactory typeFactory = root.getTypeFactory();
-    final List<CsvFieldType> fieldTypes = getFieldTypes(typeFactory);
+    final List<RelDataType> fieldTypes = getFieldTypes(typeFactory);
     final @Nullable String[] filterValues = new String[fieldTypes.size()];
     filters.removeIf(filter -> addFilter(filter, filterValues));
     final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());

@@ -18,6 +18,7 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.adapter.enumerable.EnumerableCorrelate;
 import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeUnion;
 import org.apache.calcite.adapter.enumerable.EnumerableNestedLoopJoin;
@@ -149,6 +150,11 @@ public class RelMdCollation
 
   public @Nullable ImmutableList<RelCollation> collations(TableScan scan,
       RelMetadataQuery mq) {
+    final BuiltInMetadata.Collation.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.Collation.Handler.class);
+    if (handler != null) {
+      return handler.collations(scan, mq);
+    }
     return copyOf(table(scan.getTable()));
   }
 
@@ -193,6 +199,11 @@ public class RelMdCollation
             join.getJoinType()));
   }
 
+  public @Nullable ImmutableList<RelCollation> collations(EnumerableLimit rel,
+      RelMetadataQuery mq) {
+    return mq.collations(rel.getInput());
+  }
+
   public @Nullable ImmutableList<RelCollation> collations(Sort sort,
       RelMetadataQuery mq) {
     return copyOf(
@@ -229,7 +240,7 @@ public class RelMdCollation
 
   public @Nullable ImmutableList<RelCollation> collations(HepRelVertex rel,
       RelMetadataQuery mq) {
-    return mq.collations(rel.getCurrentRel());
+    return mq.collations(rel.stripped());
   }
 
   public @Nullable ImmutableList<RelCollation> collations(RelSubset rel,
@@ -452,6 +463,7 @@ public class RelMdCollation
    *
    * <p>If the inputs are sorted on other keys <em>in addition to</em> the join
    * key, the result preserves those collations too.
+   *
    * @deprecated Use {@link #mergeJoin(RelMetadataQuery, RelNode, RelNode, ImmutableIntList, ImmutableIntList, JoinRelType)} */
   @Deprecated // to be removed before 2.0
   public static @Nullable List<RelCollation> mergeJoin(RelMetadataQuery mq,

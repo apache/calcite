@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelValidityChecker;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.TestUtil;
@@ -29,7 +30,6 @@ import com.google.common.collect.RangeSet;
 
 import org.apiguardian.api.API;
 import org.hamcrest.BaseMatcher;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -37,6 +37,7 @@ import org.hamcrest.TypeSafeMatcher;
 import org.hamcrest.core.Is;
 import org.hamcrest.core.StringContains;
 
+import java.nio.charset.Charset;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -48,12 +49,19 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+
 /**
  * Matchers for testing SQL queries.
  */
 public class Matchers {
 
   private static final Pattern PATTERN = Pattern.compile(", id = [0-9]+");
+
+  /** A small positive value. */
+  public static final double EPSILON = 1.0e-5;
 
   private Matchers() {}
 
@@ -131,15 +139,23 @@ public class Matchers {
   private static <E> Iterable<String> toStringList(Iterable<E> items) {
     return StreamSupport.stream(items.spliterator(), false)
         .map(Object::toString)
-        .collect(Util.toImmutableList());
+        .collect(toImmutableList());
   }
 
   /**
    * Creates a matcher that matches when the examined object is within
-   * {@code epsilon} of the specified <code>operand</code>.
+   * {@code epsilon} of the specified {@code value}.
    */
   public static <T extends Number> Matcher<T> within(T value, double epsilon) {
-    return new IsWithin<T>(value, epsilon);
+    return new IsWithin<>(value, epsilon);
+  }
+
+  /**
+   * Creates a matcher that matches when the examined object is within
+   * {@link #EPSILON} of the specified <code>operand</code>.
+   */
+  public static Matcher<Double> isAlmost(double value) {
+    return within(value, EPSILON);
   }
 
   /**
@@ -186,6 +202,22 @@ public class Matchers {
     return compose(Is.is(value), input -> input == null ? null : Util.toLinux(input));
   }
 
+  /** Matcher that matches a {@link RelNode} if the {@code RelNode} is valid
+   * per {@link RelValidityChecker}. */
+  public static Matcher<RelNode> relIsValid() {
+    return new TypeSafeMatcher<RelNode>() {
+      @Override public void describeTo(Description description) {
+        description.appendText("rel is valid");
+      }
+
+      @Override protected boolean matchesSafely(RelNode rel) {
+        RelValidityChecker checker = new RelValidityChecker();
+        checker.go(rel);
+        return checker.invalidCount() == 0;
+      }
+    };
+  }
+
   /**
    * Creates a Matcher that matches a {@link RelNode} if its string
    * representation, after converting Windows-style line endings ("\r\n")
@@ -198,6 +230,21 @@ public class Matchers {
     });
   }
 
+  /**
+   * Creates a Matcher that matches a {@link RelNode} if its field
+   * names, converting to a list, are equal to the given {@code value}.
+   */
+  public static Matcher<RelNode> hasFieldNames(String fieldNames) {
+    return new TypeSafeMatcher<RelNode>() {
+      @Override public void describeTo(Description description) {
+        description.appendText("has fields ").appendText(fieldNames);
+      }
+
+      @Override protected boolean matchesSafely(RelNode r) {
+        return r.getRowType().getFieldNames().toString().equals(fieldNames);
+      }
+    };
+  }
   /**
    * Creates a Matcher that matches a {@link RelNode} if its string
    * representation, after converting Windows-style line endings ("\r\n")
@@ -240,26 +287,29 @@ public class Matchers {
    * is equal to the given {@code value}.
    *
    * <p>This method is necessary because {@link RangeSet#toString()} changed
-   * behavior. Guava 19 - 28 used a unicode symbol;Guava 29 onwards uses "..".
+   * behavior. Guava 19 - 28 used a unicode symbol; Guava 29 onwards uses "..".
    */
-  @SuppressWarnings("BetaApi")
+  @SuppressWarnings({"BetaApi", "rawtypes"})
   public static Matcher<RangeSet> isRangeSet(final String value) {
-    return compose(Is.is(value), input -> {
-      // Change all '\u2025' (a unicode symbol denoting a range) to '..',
-      // consistent with Guava 29+.
-      return input.toString().replace("\u2025", "..");
-    });
+    return compose(Is.is(value), input -> sanitizeRangeSet(input.toString()));
+  }
+
+  /** Changes all '\u2025' (a unicode symbol denoting a range) to '..',
+   * consistent with Guava 29+. */
+  public static String sanitizeRangeSet(String string) {
+    return string.replace("\u2025", "..");
   }
 
   /**
    * Creates a {@link Matcher} that matches execution plan and trims {@code , id=123} node ids.
    * {@link RelNode#getId()} is not stable across runs, so this matcher enables to trim those.
+   *
    * @param value execpted execution plan
    * @return matcher
    */
   @API(since = "1.22", status = API.Status.EXPERIMENTAL)
   public static Matcher<String> containsWithoutNodeIds(String value) {
-    return compose(CoreMatchers.containsString(value), Matchers::trimNodeIds);
+    return compose(StringContains.containsString(value), Matchers::trimNodeIds);
   }
 
   /**
@@ -279,7 +329,7 @@ public class Matchers {
    * @see Util#toLinux(String)
    */
   public static Matcher<String> containsStringLinux(String value) {
-    return compose(CoreMatchers.containsString(value), Util::toLinux);
+    return compose(StringContains.containsString(value), Util::toLinux);
   }
 
   public static String trimNodeIds(String s) {
@@ -307,6 +357,50 @@ public class Matchers {
         description.appendText("is ").appendText(expected.toString());
       }
     };
+  }
+
+  /**
+   * Creates a matcher that matches if the examined value has a given name.
+   *
+   * @param charsetName Name of character set
+   *
+   * @see Charset#forName
+   */
+  public static Matcher<Charset> isCharset(String charsetName) {
+    return new TypeSafeMatcher<Charset>() {
+      @Override public void describeTo(Description description) {
+        description.appendText("is charset ").appendText(charsetName);
+      }
+
+      @Override protected boolean matchesSafely(Charset item) {
+        return item.name().equals(charsetName);
+      }
+    };
+  }
+
+  /**
+   * Matcher that succeeds for any collection that, when converted to strings
+   * and sorted on those strings, matches the given reference string.
+   *
+   * <p>Use it as an alternative to {@link Is#is} if items in your
+   * list might occur in any order.
+   *
+   * <p>For example:
+   *
+   * <pre>{@code
+   * List<Integer> ints = Arrays.asList(2, 500, 12);
+   * assertThat(ints, sortsAs("[12, 2, 500]");
+   * }</pre>
+   */
+  public static <T> Matcher<Iterable<T>> sortsAs(final String value) {
+    return compose(equalTo(value), item -> {
+      final List<String> strings = new ArrayList<>();
+      for (T t : item) {
+        strings.add(t.toString());
+      }
+      Collections.sort(strings);
+      return strings.toString();
+    });
   }
 
   /** Matcher that tests whether the numeric value is within a given difference

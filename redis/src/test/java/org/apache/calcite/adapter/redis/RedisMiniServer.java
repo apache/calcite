@@ -70,18 +70,18 @@ public class RedisMiniServer {
       jedis.del("csv_03");
       jedis.del("csv_04");
       jedis.del("csv_05");
-      //set string
+      // set string
       jedis.set("raw_01", "123");
       jedis.set("json_01", "{\"DEPTNO\":10,\"NAME\":\"Sales\"}");
       jedis.set("csv_01", "10:Sales");
-      //set list
+      // set list
       jedis.lpush("raw_02", "book1");
       jedis.lpush("raw_02", "book2");
       jedis.lpush("json_02", "{\"DEPTNO\":10,\"NAME\":\"Sales1\"}");
       jedis.lpush("json_02", "{\"DEPTNO\":20,\"NAME\":\"Sales2\"}");
       jedis.lpush("csv_02", "10:Sales");
       jedis.lpush("csv_02", "20:Sales");
-      //set Set
+      // set Set
       jedis.sadd("raw_03", "user1");
       jedis.sadd("raw_03", "user2");
       jedis.sadd("json_03", "{\"DEPTNO\":10,\"NAME\":\"Sales1\"}");
@@ -95,7 +95,7 @@ public class RedisMiniServer {
       jedis.zadd("json_04", 2, "{\"DEPTNO\":11,\"NAME\":\"Sales2\"}");
       jedis.zadd("csv_04", 1, "10:Sales");
       jedis.zadd("csv_04", 2, "20:Sales");
-      //set map
+      // set map
       Map<String, String> raw5 = new HashMap<>();
       raw5.put("stuA", "a1");
       raw5.put("stuB", "b2");

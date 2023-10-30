@@ -77,16 +77,16 @@ public abstract class JsonSchema {
    *
    * <p>If {@code false}, Calcite will go back to the schema each time it needs
    * metadata, for example, each time it needs a list of tables in order to
-   * validate a query against the schema.</p>
+   * validate a query against the schema.
    *
    * <p>If {@code true}, Calcite will cache the metadata the first time it reads
    * it. This can lead to better performance, especially if name-matching is
    * case-insensitive
-   * (see {@link org.apache.calcite.config.Lex#caseSensitive}).</p>
+   * (see {@link org.apache.calcite.config.Lex#caseSensitive}).
    *
    * <p>Tables, functions and sub-schemas explicitly created in a schema are
    * not affected by this caching mechanism. They always appear in the schema
-   * immediately, and are never flushed.</p>
+   * immediately, and are never flushed.
    */
   public final @Nullable Boolean cache;
 

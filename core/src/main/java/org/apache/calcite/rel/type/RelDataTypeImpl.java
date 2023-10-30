@@ -35,6 +35,7 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -46,7 +47,7 @@ import static java.util.Objects.requireNonNull;
  * {@link RelDataType}.
  *
  * <p>Identity is based upon the {@link #digest} field, which each derived class
- * should set during construction.</p>
+ * should set during construction.
  */
 public abstract class RelDataTypeImpl
     implements RelDataType, RelDataTypeFamily {
@@ -91,15 +92,23 @@ public abstract class RelDataTypeImpl
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public @Nullable RelDataTypeField getField(String fieldName, boolean caseSensitive,
-      boolean elideRecord) {
+  @Override public @Nullable RelDataTypeField getField(String fieldName,
+      boolean caseSensitive, boolean elideRecord) {
     if (fieldList == null) {
       throw new IllegalStateException("Trying to access field " + fieldName
           + " in a type with no fields: " + this);
     }
-    for (RelDataTypeField field : fieldList) {
-      if (Util.matches(caseSensitive, field.getName(), fieldName)) {
+    final Map<String, RelDataTypeField> fieldMap = getFieldMap();
+    if (caseSensitive && fieldMap != null) {
+      RelDataTypeField field = fieldMap.get(fieldName);
+      if (field != null) {
         return field;
+      }
+    } else {
+      for (RelDataTypeField field : fieldList) {
+        if (Util.matches(caseSensitive, field.getName(), fieldName)) {
+          return field;
+        }
       }
     }
     if (elideRecord) {
@@ -127,13 +136,32 @@ public abstract class RelDataTypeImpl
     }
 
     // a dynamic * field will match any field name.
-    for (RelDataTypeField field : fieldList) {
-      if (field.isDynamicStar()) {
-        // the requested field could be in the unresolved star
-        return field;
+    if (fieldMap != null) {
+      return fieldMap.get("");
+    } else {
+      for (RelDataTypeField field : fieldList) {
+        if (field.isDynamicStar()) {
+          // the requested field could be in the unresolved star
+          return field;
+        }
       }
     }
 
+    return null;
+  }
+
+  /** Returns a map from field names to fields.
+   *
+   * <p>Matching is case-sensitive.
+   *
+   * <p>If several fields have the same name, the map contains the first.
+   *
+   * <p>A {@link RelDataTypeField#isDynamicStar() dynamic star field} is indexed
+   * under its own name and "" (the empty string).
+   *
+   * <p>If the map is null, the type must do lookup the long way.
+   */
+  protected @Nullable Map<String, RelDataTypeField> getFieldMap() {
     return null;
   }
 
@@ -279,9 +307,7 @@ public abstract class RelDataTypeImpl
    * subclass constructor once the type is fully defined.
    */
   @SuppressWarnings("method.invocation.invalid")
-  protected void computeDigest(
-      @UnknownInitialization RelDataTypeImpl this
-  ) {
+  protected void computeDigest(@UnknownInitialization RelDataTypeImpl this) {
     StringBuilder sb = new StringBuilder();
     generateTypeString(sb, true);
     if (!isNullable()) {
@@ -332,7 +358,7 @@ public abstract class RelDataTypeImpl
    * that will create a type {@code typeName}.
    *
    * <p>For example, {@code proto(SqlTypeName.DATE), false}
-   * will create {@code DATE NOT NULL}.</p>
+   * will create {@code DATE NOT NULL}.
    *
    * @param typeName Type name
    * @param nullable Whether nullable
@@ -351,7 +377,7 @@ public abstract class RelDataTypeImpl
    * that will create a type {@code typeName(precision)}.
    *
    * <p>For example, {@code proto(SqlTypeName.VARCHAR, 100, false)}
-   * will create {@code VARCHAR(100) NOT NULL}.</p>
+   * will create {@code VARCHAR(100) NOT NULL}.
    *
    * @param typeName Type name
    * @param precision Precision
@@ -371,7 +397,7 @@ public abstract class RelDataTypeImpl
    * that will create a type {@code typeName(precision, scale)}.
    *
    * <p>For example, {@code proto(SqlTypeName.DECIMAL, 7, 2, false)}
-   * will create {@code DECIMAL(7, 2) NOT NULL}.</p>
+   * will create {@code DECIMAL(7, 2) NOT NULL}.
    *
    * @param typeName Type name
    * @param precision Precision

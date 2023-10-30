@@ -35,7 +35,7 @@ public class UncollectNode extends AbstractSingleNode<Uncollect> {
   @Override public void run() throws InterruptedException {
     Row row = null;
     while ((row = source.receive()) != null) {
-      for (Object value: row.getValues()) {
+      for (Object value : row.getValues()) {
         if (value == null) {
           throw new NullPointerException("NULL value for unnest.");
         }

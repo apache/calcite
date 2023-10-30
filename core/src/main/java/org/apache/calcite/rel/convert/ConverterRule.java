@@ -61,8 +61,9 @@ public abstract class ConverterRule
 
     // Most sub-classes are concerned with converting one convention to
     // another, and for them, the "out" field is a convenient short-cut.
-    this.out = outTrait instanceof Convention ? (Convention) outTrait
-        : castNonNull(null);
+    this.out =
+        outTrait instanceof Convention ? (Convention) outTrait
+            : castNonNull(null);
   }
 
   /**
@@ -157,7 +158,7 @@ public abstract class ConverterRule
    * of the input convention.
    *
    * <p>The union-to-java converter, for example, is not guaranteed, because
-   * it only works on unions.</p>
+   * it only works on unions.
    *
    * @return {@code true} if this rule can convert <em>any</em> relational
    *   expression

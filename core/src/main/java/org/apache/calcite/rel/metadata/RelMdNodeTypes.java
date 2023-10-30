@@ -125,6 +125,11 @@ public class RelMdNodeTypes
 
   public @Nullable Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(TableScan rel,
       RelMetadataQuery mq) {
+    final BuiltInMetadata.NodeTypes.Handler handler =
+        rel.getTable().unwrap(BuiltInMetadata.NodeTypes.Handler.class);
+    if (handler != null) {
+      return handler.getNodeTypes(rel, mq);
+    }
     return getNodeTypes(rel, TableScan.class, mq);
   }
 

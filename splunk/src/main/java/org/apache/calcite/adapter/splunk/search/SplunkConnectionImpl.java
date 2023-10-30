@@ -182,9 +182,10 @@ public class SplunkConnectionImpl implements SplunkConnection {
   }
 
   private static void parseResults(InputStream in, SearchResultListener srl) {
-    try (CSVReader r = new CSVReader(
-        new BufferedReader(
-            new InputStreamReader(in, StandardCharsets.UTF_8)))) {
+    try (CSVReader r =
+             new CSVReader(
+                 new BufferedReader(
+                     new InputStreamReader(in, StandardCharsets.UTF_8)))) {
       String[] header = r.readNext();
       if (header != null
           && header.length > 0
@@ -328,7 +329,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
    * results from a Splunk REST call.
    *
    * <p>The element type is either {@code String} or {@code String[]}, depending
-   * on the value of {@code source}.</p> */
+   * on the value of {@code source}. */
   public static class SplunkResultEnumerator implements Enumerator<Object> {
     private final CSVReader csvReader;
     private String[] fieldNames;

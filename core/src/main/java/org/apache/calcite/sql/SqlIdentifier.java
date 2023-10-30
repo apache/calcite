@@ -33,7 +33,8 @@ import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 /**
  * A <code>SqlIdentifier</code> is an identifier, possibly compound.
@@ -85,8 +86,9 @@ public class SqlIdentifier extends SqlNode {
     super(pos);
     this.names = ImmutableList.copyOf(names);
     this.collation = collation;
-    this.componentPositions = componentPositions == null ? null
-        : ImmutableList.copyOf(componentPositions);
+    this.componentPositions =
+        componentPositions == null ? null
+            : ImmutableList.copyOf(componentPositions);
     for (String name : names) {
       assert name != null;
     }
@@ -161,8 +163,9 @@ public class SqlIdentifier extends SqlNode {
    */
   public void setNames(List<String> names, @Nullable List<SqlParserPos> poses) {
     this.names = ImmutableList.copyOf(names);
-    this.componentPositions = poses == null ? null
-        : ImmutableList.copyOf(poses);
+    this.componentPositions =
+        poses == null ? null
+            : ImmutableList.copyOf(poses);
   }
 
   /** Returns an identifier that is the same as this except one modified name.
@@ -271,7 +274,7 @@ public class SqlIdentifier extends SqlNode {
     final SqlIdentifier id = this.plus("*", SqlParserPos.ZERO);
     return new SqlIdentifier(
         id.names.stream().map(s -> s.equals("*") ? "" : s)
-            .collect(Util.toImmutableList()),
+            .collect(toImmutableList()),
         null, id.pos, id.componentPositions);
   }
 
@@ -373,13 +376,12 @@ public class SqlIdentifier extends SqlNode {
         && componentPositions.get(i).isQuoted();
   }
 
-  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     // for "star" column, whether it's static or dynamic return not_monotonic directly.
     if (Util.last(names).equals("") || DynamicRecordType.isDynamicStarColName(Util.last(names))) {
       return SqlMonotonicity.NOT_MONOTONIC;
     }
 
-    Objects.requireNonNull(scope, "scope");
     // First check for builtin functions which don't have parentheses,
     // like "LOCALTIME".
     final SqlValidator validator = scope.getValidator();

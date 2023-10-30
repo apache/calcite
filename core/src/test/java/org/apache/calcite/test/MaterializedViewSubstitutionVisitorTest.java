@@ -34,6 +34,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.util.Pair;
+
+import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -42,16 +45,67 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Unit test for SubstutionVisitor.
+ * Unit test for {@link SubstitutionVisitor}.
  */
-public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterializedViewTest {
+public class MaterializedViewSubstitutionVisitorTest {
+  private static final HepProgram HEP_PROGRAM =
+      new HepProgramBuilder()
+          .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
+          .addRuleInstance(CoreRules.FILTER_MERGE)
+          .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
+          .addRuleInstance(CoreRules.JOIN_CONDITION_PUSH)
+          .addRuleInstance(CoreRules.FILTER_AGGREGATE_TRANSPOSE)
+          .addRuleInstance(CoreRules.PROJECT_MERGE)
+          .addRuleInstance(CoreRules.PROJECT_REMOVE)
+          .addRuleInstance(CoreRules.PROJECT_JOIN_TRANSPOSE)
+          .addRuleInstance(CoreRules.PROJECT_SET_OP_TRANSPOSE)
+          .addRuleInstance(CoreRules.AGGREGATE_PROJECT_PULL_UP_CONSTANTS)
+          .addRuleInstance(CoreRules.FILTER_TO_CALC)
+          .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+          .addRuleInstance(CoreRules.FILTER_CALC_MERGE)
+          .addRuleInstance(CoreRules.PROJECT_CALC_MERGE)
+          .addRuleInstance(CoreRules.CALC_MERGE)
+          .build();
+
+  public static final MaterializedViewTester TESTER =
+      new MaterializedViewTester() {
+        @Override protected List<RelNode> optimize(RelNode queryRel,
+            List<RelOptMaterialization> materializationList) {
+          RelOptMaterialization materialization = materializationList.get(0);
+          SubstitutionVisitor substitutionVisitor =
+              new SubstitutionVisitor(canonicalize(materialization.queryRel),
+                  canonicalize(queryRel));
+          return substitutionVisitor
+              .go(materialization.tableRel);
+        }
+
+        private RelNode canonicalize(RelNode rel) {
+          final HepPlanner hepPlanner = new HepPlanner(HEP_PROGRAM);
+          hepPlanner.setRoot(rel);
+          return hepPlanner.findBestExp();
+        }
+      };
+
+  /** Creates a fixture. */
+  protected MaterializedViewFixture fixture(String query) {
+    return MaterializedViewFixture.create(query, TESTER);
+  }
+
+  /** Creates a fixture with a given query. */
+  protected final MaterializedViewFixture sql(String materialize,
+      String query) {
+    return fixture(query)
+        .withMaterializations(ImmutableList.of(Pair.of(materialize, "MV0")));
+  }
 
   @Test void testFilter() {
     sql("select * from \"emps\" where \"deptno\" = 10",
@@ -122,11 +176,10 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
   @Test void testFilterQueryOnProjectView5() {
     sql("select \"deptno\" - 10 as \"x\", \"empid\" + 1 as ee, \"name\" from \"emps\"",
         "select \"name\", \"empid\" + 1 as e from \"emps\" where \"deptno\" - 10 = 2")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[2], "
             + "expr#4=[=($t0, $t3)], name=[$t2], E=[$t1], $condition=[$t4])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]]"))
+            + "  EnumerableTableScan(table=[[hr, MV0]]")
         .ok();
   }
 
@@ -181,12 +234,11 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql("select \"deptno\", \"empid\", \"name\" from \"emps\"\n"
             + "where \"deptno\" = 10 or \"deptno\" = 20 or \"empid\" < 160",
         "select \"empid\" + 1 as x, \"name\" from \"emps\" where \"deptno\" = 10")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t1, $t3)], expr#5=[10], "
             + "expr#6=[CAST($t0):INTEGER NOT NULL], expr#7=[=($t5, $t6)], X=[$t4], "
             + "name=[$t2], $condition=[$t7])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])"))
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -250,7 +302,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
    * has unsupported type being checked on query. */
   @Test void testFilterQueryOnFilterView10() {
     sql("select \"name\", \"deptno\" from \"emps\" where \"deptno\" > 10 "
-            + "and \"name\" = \'calcite\'",
+            + "and \"name\" = 'calcite'",
         "select \"name\", \"empid\" from \"emps\" where \"deptno\" > 30 "
             + "or \"empid\" > 10")
         .noMat();
@@ -488,12 +540,11 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql("select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s\n"
             + "from \"emps\" group by \"empid\", \"deptno\"",
         "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "LogicalCalc(expr#0..1=[{inputs}], expr#2=[1], "
             + "expr#3=[+($t1, $t2)], C=[$t3], deptno=[$t0])\n"
             + "  LogicalAggregate(group=[{1}], agg#0=[$SUM0($2)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -520,12 +571,11 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             + "from \"emps\" group by \"empid\", \"deptno\"",
         "select count(*) + 1 as c, \"deptno\"\n"
             + "from \"emps\" group by cube(\"empid\",\"deptno\")")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[1], "
             + "expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])\n"
             + "  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -533,12 +583,11 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql("select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s from \"emps\" "
             + "group by \"empid\", \"deptno\"",
         "select count(*) + 1 as c,  \"deptno\" from \"emps\" group by cube(\"empid\",\"deptno\")")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[1], "
             + "expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])\n"
             + "  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -556,12 +605,11 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql("select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s from \"emps\" "
             + "group by \"empid\", \"deptno\"",
         "select count(*) + 1 as c,  \"deptno\" from \"emps\" group by cube(\"deptno\", \"empid\")")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[1], "
             + "expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])\n"
             + "  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -570,12 +618,11 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             + "from \"emps\" group by \"empid\", \"deptno\"",
         "select count(*) + 1 as c,  \"deptno\"\n"
             + "from \"emps\" group by rollup(\"deptno\", \"empid\")")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[1], "
             + "expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])\n"
             + "  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {1}, {}]], agg#0=[$SUM0($2)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -584,12 +631,11 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             + "from \"emps\" group by \"salary\", \"empid\", \"deptno\"",
         "select count(*) + 1 as c,  \"deptno\"\n"
             + "from \"emps\" group by rollup(\"empid\", \"deptno\", \"salary\")")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "LogicalCalc(expr#0..3=[{inputs}], expr#4=[1], "
             + "expr#5=[+($t3, $t4)], C=[$t5], deptno=[$t2])\n"
             + "  LogicalAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {1, 2}, {1}, {}]], agg#0=[$SUM0($3)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -601,11 +647,10 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql("select \"empid\", \"deptno\", \"name\", count(*) from \"emps\"\n"
             + "group by \"empid\", \"deptno\", \"name\"",
         "select \"name\", \"empid\", count(*) from \"emps\" group by \"name\", \"empid\"")
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "LogicalCalc(expr#0..2=[{inputs}], name=[$t1], empid=[$t0], EXPR$2=[$t2])\n"
             + "  LogicalAggregate(group=[{0, 2}], EXPR$2=[$SUM0($3)])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -816,13 +861,12 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         + "union all select * from \"emps\" where \"empid\" < 200";
     String m = "select * from \"emps\" where \"empid\" < 500";
     sql(m, q)
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "LogicalUnion(all=[true])\n"
             + "  LogicalCalc(expr#0..4=[{inputs}], expr#5=[300], expr#6=[>($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
             + "    LogicalTableScan(table=[[hr, emps]])\n"
             + "  LogicalCalc(expr#0..4=[{inputs}], expr#5=[200], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
-            + "    EnumerableTableScan(table=[[hr, MV0]])"))
+            + "    EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -841,14 +885,13 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         + "join (select * from \"emps\" where \"empid\" < 200) using (\"empid\")";
     String m = "select * from \"emps\" where \"empid\" < 500";
     sql(m, q)
-        .withChecker(
-            resultContains(""
+        .checkingThatResultContains(""
             + "LogicalCalc(expr#0..9=[{inputs}], proj#0..4=[{exprs}], deptno0=[$t6], name0=[$t7], salary0=[$t8], commission0=[$t9])\n"
             + "  LogicalJoin(condition=[=($0, $5)], joinType=[inner])\n"
             + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[300], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
             + "      EnumerableTableScan(table=[[hr, MV0]])\n"
             + "    LogicalCalc(expr#0..4=[{inputs}], expr#5=[200], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
-            + "      EnumerableTableScan(table=[[hr, MV0]])"))
+            + "      EnumerableTableScan(table=[[hr, MV0]])")
         .ok();
   }
 
@@ -977,11 +1020,12 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     final String query = ""
         + "select count(distinct \"deptno\") as cnt\n"
         + "from \"emps\" where \"name\" = 'hello'";
-    sql(mv, query).withChecker(
-        resultContains(""
+    sql(mv, query)
+        .checkingThatResultContains(""
             + "LogicalCalc(expr#0..1=[{inputs}], expr#2=['hello':VARCHAR], expr#3=[CAST($t0)"
             + ":VARCHAR], expr#4=[=($t2, $t3)], CNT=[$t1], $condition=[$t4])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])")).ok();
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
   }
 
   @Test void testConstantFilterInAgg2() {
@@ -993,11 +1037,12 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         + "select \"deptno\", count(distinct \"commission\") as cnt\n"
         + "from \"emps\" where \"name\" = 'hello'\n"
         + "group by \"deptno\"";
-    sql(mv, query).withChecker(
-        resultContains(""
+    sql(mv, query)
+        .checkingThatResultContains(""
             + "LogicalCalc(expr#0..2=[{inputs}], expr#3=['hello':VARCHAR], expr#4=[CAST($t0)"
             + ":VARCHAR], expr#5=[=($t3, $t4)], deptno=[$t1], CNT=[$t2], $condition=[$t5])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])")).ok();
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
   }
 
   @Test void testConstantFilterInAgg3() {
@@ -1009,13 +1054,14 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         + "select \"deptno\", count(distinct \"commission\") as cnt\n"
         + "from \"emps\" where \"name\" = 'hello' and \"deptno\" = 1\n"
         + "group by \"deptno\"";
-    sql(mv, query).withChecker(
-        resultContains(""
+    sql(mv, query)
+        .checkingThatResultContains(""
             + "LogicalCalc(expr#0..2=[{inputs}], expr#3=['hello':VARCHAR], expr#4=[CAST($t0)"
             + ":VARCHAR], expr#5=[=($t3, $t4)], expr#6=[1], expr#7=[CAST($t1):INTEGER NOT NULL], "
             + "expr#8=[=($t6, $t7)], expr#9=[AND($t5, $t8)], deptno=[$t1], CNT=[$t2], "
             + "$condition=[$t9])\n"
-            + "  EnumerableTableScan(table=[[hr, MV0]])")).ok();
+            + "  EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
   }
 
   @Test void testConstantFilterInAgg4() {
@@ -1218,22 +1264,25 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
    * {@link org.apache.calcite.plan.SubstitutionVisitor#mayBeSatisfiable} and
    * {@link RexUtil#simplify}. */
   @Test void testSatisfiable() {
+    final SatisfiabilityFixture f = new SatisfiabilityFixture();
+    final RexBuilder rexBuilder = f.rexBuilder;
+
     // TRUE may be satisfiable
-    checkSatisfiable(rexBuilder.makeLiteral(true), "true");
+    f.checkSatisfiable(rexBuilder.makeLiteral(true), "true");
 
     // FALSE is not satisfiable
-    checkNotSatisfiable(rexBuilder.makeLiteral(false));
+    f.checkNotSatisfiable(rexBuilder.makeLiteral(false));
 
     // The expression "$0 = 1".
     final RexNode i0_eq_0 =
         rexBuilder.makeCall(
             SqlStdOperatorTable.EQUALS,
             rexBuilder.makeInputRef(
-                typeFactory.createType(int.class), 0),
+                f.typeFactory.createType(int.class), 0),
             rexBuilder.makeExactLiteral(BigDecimal.ZERO));
 
     // "$0 = 1" may be satisfiable
-    checkSatisfiable(i0_eq_0, "=($0, 0)");
+    f.checkSatisfiable(i0_eq_0, "=($0, 0)");
 
     // "$0 = 1 AND TRUE" may be satisfiable
     final RexNode e0 =
@@ -1241,7 +1290,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             SqlStdOperatorTable.AND,
             i0_eq_0,
             rexBuilder.makeLiteral(true));
-    checkSatisfiable(e0, "=($0, 0)");
+    f.checkSatisfiable(e0, "=($0, 0)");
 
     // "$0 = 1 AND FALSE" is not satisfiable
     final RexNode e1 =
@@ -1249,7 +1298,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             SqlStdOperatorTable.AND,
             i0_eq_0,
             rexBuilder.makeLiteral(false));
-    checkNotSatisfiable(e1);
+    f.checkNotSatisfiable(e1);
 
     // "$0 = 0 AND NOT $0 = 0" is not satisfiable
     final RexNode e2 =
@@ -1259,7 +1308,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             rexBuilder.makeCall(
                 SqlStdOperatorTable.NOT,
                 i0_eq_0));
-    checkNotSatisfiable(e2);
+    f.checkNotSatisfiable(e2);
 
     // "TRUE AND NOT $0 = 0" may be satisfiable. Can simplify.
     final RexNode e3 =
@@ -1269,14 +1318,14 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             rexBuilder.makeCall(
                 SqlStdOperatorTable.NOT,
                 i0_eq_0));
-    checkSatisfiable(e3, "<>($0, 0)");
+    f.checkSatisfiable(e3, "<>($0, 0)");
 
     // The expression "$1 = 1".
     final RexNode i1_eq_1 =
         rexBuilder.makeCall(
             SqlStdOperatorTable.EQUALS,
             rexBuilder.makeInputRef(
-                typeFactory.createType(int.class), 1),
+                f.typeFactory.createType(int.class), 1),
             rexBuilder.makeExactLiteral(BigDecimal.ONE));
 
     // "$0 = 0 AND $1 = 1 AND NOT $0 = 0" is not satisfiable
@@ -1289,7 +1338,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
                 i1_eq_1,
                 rexBuilder.makeCall(
                     SqlStdOperatorTable.NOT, i0_eq_0)));
-    checkNotSatisfiable(e4);
+    f.checkNotSatisfiable(e4);
 
     // "$0 = 0 AND NOT $1 = 1" may be satisfiable. Can't simplify.
     final RexNode e5 =
@@ -1299,7 +1348,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
             rexBuilder.makeCall(
                 SqlStdOperatorTable.NOT,
                 i1_eq_1));
-    checkSatisfiable(e5, "AND(=($0, 0), <>($1, 1))");
+    f.checkSatisfiable(e5, "AND(=($0, 0), <>($1, 1))");
 
     // "$0 = 0 AND NOT ($0 = 0 AND $1 = 1)" may be satisfiable. Can simplify.
     final RexNode e6 =
@@ -1312,7 +1361,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
                     SqlStdOperatorTable.AND,
                     i0_eq_0,
                     i1_eq_1)));
-    checkSatisfiable(e6, "AND(=($0, 0), <>($1, 1))");
+    f.checkSatisfiable(e6, "AND(=($0, 0), <>($1, 1))");
 
     // "$0 = 0 AND ($1 = 1 AND NOT ($0 = 0))" is not satisfiable.
     final RexNode e7 =
@@ -1325,22 +1374,22 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
                 rexBuilder.makeCall(
                     SqlStdOperatorTable.NOT,
                     i0_eq_0)));
-    checkNotSatisfiable(e7);
+    f.checkNotSatisfiable(e7);
 
     // The expression "$2".
     final RexInputRef i2 =
         rexBuilder.makeInputRef(
-            typeFactory.createType(boolean.class), 2);
+            f.typeFactory.createType(boolean.class), 2);
 
     // The expression "$3".
     final RexInputRef i3 =
         rexBuilder.makeInputRef(
-            typeFactory.createType(boolean.class), 3);
+            f.typeFactory.createType(boolean.class), 3);
 
     // The expression "$4".
     final RexInputRef i4 =
         rexBuilder.makeInputRef(
-            typeFactory.createType(boolean.class), 4);
+            f.typeFactory.createType(boolean.class), 4);
 
     // "$0 = 0 AND $2 AND $3 AND NOT ($2 AND $3 AND $4) AND NOT ($2 AND $4)" may
     // be satisfiable. Can't simplify.
@@ -1364,28 +1413,20 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
                     rexBuilder.makeCall(
                         SqlStdOperatorTable.NOT,
                         i4))));
-    checkSatisfiable(e8,
+    f.checkSatisfiable(e8,
         "AND(=($0, 0), $2, $3, OR(NOT($2), NOT($3), NOT($4)), NOT($4))");
   }
 
-  private void checkNotSatisfiable(RexNode e) {
-    assertFalse(SubstitutionVisitor.mayBeSatisfiable(e));
-    final RexNode simple = simplify.simplifyUnknownAsFalse(e);
-    assertFalse(RexLiteral.booleanValue(simple));
-  }
-
-  private void checkSatisfiable(RexNode e, String s) {
-    assertTrue(SubstitutionVisitor.mayBeSatisfiable(e));
-    final RexNode simple = simplify.simplifyUnknownAsFalse(e);
-    assertEquals(s, simple.toString());
-  }
-
   @Test void testSplitFilter() {
+    final SatisfiabilityFixture f = new SatisfiabilityFixture();
+    final RexBuilder rexBuilder = f.rexBuilder;
+    final RexSimplify simplify = f.simplify;
+
     final RexLiteral i1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
     final RexLiteral i2 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(2));
     final RexLiteral i3 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(3));
 
-    final RelDataType intType = typeFactory.createType(int.class);
+    final RelDataType intType = f.typeFactory.createType(int.class);
     final RexInputRef x = rexBuilder.makeInputRef(intType, 0); // $0
     final RexInputRef y = rexBuilder.makeInputRef(intType, 1); // $1
     final RexInputRef z = rexBuilder.makeInputRef(intType, 2); // $2
@@ -1437,9 +1478,11 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     //   target:    y = 2 or 1 = x
     // yields
     //   residue:   true
-    newFilter = SubstitutionVisitor.splitFilter(simplify,
-        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
-        rexBuilder.makeCall(SqlStdOperatorTable.OR, y_eq_2, x_eq_1_b));
+    newFilter =
+        SubstitutionVisitor.splitFilter(simplify,
+            rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
+            rexBuilder.makeCall(SqlStdOperatorTable.OR, y_eq_2, x_eq_1_b));
+    assertThat(newFilter, notNullValue());
     assertThat(newFilter.isAlwaysTrue(), equalTo(true));
 
     // Example 2.
@@ -1447,40 +1490,45 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     //   target:    x = 1 or z = 3
     // yields
     //   residue:   x = 1
-    newFilter = SubstitutionVisitor.splitFilter(simplify,
-        x_eq_1,
-        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, z_eq_3));
-    assertThat(newFilter.toString(), equalTo("=($0, 1)"));
+    newFilter =
+        SubstitutionVisitor.splitFilter(simplify, x_eq_1,
+            rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, z_eq_3));
+    assertThat(newFilter, notNullValue());
+    assertThat(newFilter, hasToString("=($0, 1)"));
 
     // 2b.
     //   condition: x = 1 or y = 2
     //   target:    x = 1 or y = 2 or z = 3
     // yields
     //   residue:   x = 1 or y = 2
-    newFilter = SubstitutionVisitor.splitFilter(simplify,
-        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
-        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2, z_eq_3));
-    assertThat(newFilter.toString(), equalTo("OR(=($0, 1), =($1, 2))"));
+    newFilter =
+        SubstitutionVisitor.splitFilter(simplify,
+            rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
+            rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2, z_eq_3));
+    assertThat(newFilter, notNullValue());
+    assertThat(newFilter, hasToString("OR(=($0, 1), =($1, 2))"));
 
     // 2c.
     //   condition: x = 1
     //   target:    x = 1 or y = 2 or z = 3
     // yields
     //   residue:   x = 1
-    newFilter = SubstitutionVisitor.splitFilter(simplify,
-        x_eq_1,
-        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2, z_eq_3));
-    assertThat(newFilter.toString(),
-        equalTo("=($0, 1)"));
+    newFilter =
+        SubstitutionVisitor.splitFilter(simplify, x_eq_1,
+            rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2, z_eq_3));
+    assertThat(newFilter, notNullValue());
+    assertThat(newFilter, hasToString("=($0, 1)"));
 
     // 2d.
     //   condition: x = 1 or y = 2
     //   target:    y = 2 or x = 1
     // yields
     //   residue:   true
-    newFilter = SubstitutionVisitor.splitFilter(simplify,
-        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
-        rexBuilder.makeCall(SqlStdOperatorTable.OR, y_eq_2, x_eq_1));
+    newFilter =
+        SubstitutionVisitor.splitFilter(simplify,
+            rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
+            rexBuilder.makeCall(SqlStdOperatorTable.OR, y_eq_2, x_eq_1));
+    assertThat(newFilter, notNullValue());
     assertThat(newFilter.isAlwaysTrue(), equalTo(true));
 
     // 2e.
@@ -1489,6 +1537,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     // yields
     //   residue:   true
     newFilter = SubstitutionVisitor.splitFilter(simplify, x_eq_1, x_eq_1_b);
+    assertThat(newFilter, notNullValue());
     assertThat(newFilter.isAlwaysTrue(), equalTo(true));
 
     // 2f.
@@ -1496,18 +1545,21 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     //   target:    x = 1
     // yields
     //   residue:   null
-    newFilter = SubstitutionVisitor.splitFilter(simplify,
-        rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
-        x_eq_1);
+    newFilter =
+        SubstitutionVisitor.splitFilter(simplify,
+            rexBuilder.makeCall(SqlStdOperatorTable.OR, x_eq_1, y_eq_2),
+            x_eq_1);
     assertNull(newFilter);
 
     // Example 3.
     // Condition [x = 1 and y = 2],
     // target [y = 2 and x = 1] yields
     // residue [true].
-    newFilter = SubstitutionVisitor.splitFilter(simplify,
-        rexBuilder.makeCall(SqlStdOperatorTable.AND, x_eq_1, y_eq_2),
-        rexBuilder.makeCall(SqlStdOperatorTable.AND, y_eq_2, x_eq_1));
+    newFilter =
+        SubstitutionVisitor.splitFilter(simplify,
+            rexBuilder.makeCall(SqlStdOperatorTable.AND, x_eq_1, y_eq_2),
+            rexBuilder.makeCall(SqlStdOperatorTable.AND, y_eq_2, x_eq_1));
+    assertThat(newFilter, notNullValue());
     assertThat(newFilter.isAlwaysTrue(), equalTo(true));
 
     // Example 4.
@@ -1515,19 +1567,21 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     //   target:    y = 2
     // yields
     //   residue:   x = 1
-    newFilter = SubstitutionVisitor.splitFilter(simplify,
-        rexBuilder.makeCall(SqlStdOperatorTable.AND, x_eq_1, y_eq_2),
-        y_eq_2);
-    assertThat(newFilter.toString(), equalTo("=($0, 1)"));
+    newFilter =
+        SubstitutionVisitor.splitFilter(simplify,
+            rexBuilder.makeCall(SqlStdOperatorTable.AND, x_eq_1, y_eq_2),
+            y_eq_2);
+    assertThat(newFilter, notNullValue());
+    assertThat(newFilter, hasToString("=($0, 1)"));
 
     // Example 5.
     //   condition: x = 1
     //   target:    x = 1 and y = 2
     // yields
     //   residue:   null
-    newFilter = SubstitutionVisitor.splitFilter(simplify,
-        x_eq_1,
-        rexBuilder.makeCall(SqlStdOperatorTable.AND, x_eq_1, y_eq_2));
+    newFilter =
+        SubstitutionVisitor.splitFilter(simplify, x_eq_1,
+            rexBuilder.makeCall(SqlStdOperatorTable.AND, x_eq_1, y_eq_2));
     assertNull(newFilter);
 
     // Example 6.
@@ -1535,9 +1589,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     //   target:    y = 2
     // yields
     //   residue:   null
-    newFilter = SubstitutionVisitor.splitFilter(simplify,
-        x_eq_1,
-        y_eq_2);
+    newFilter = SubstitutionVisitor.splitFilter(simplify, x_eq_1, y_eq_2);
     assertNull(newFilter);
 
     // Example 7.
@@ -1545,9 +1597,7 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     //   target:    x = 2
     // yields
     //   residue:   null
-    newFilter = SubstitutionVisitor.splitFilter(simplify,
-        x_eq_1,
-        x_eq_2);
+    newFilter = SubstitutionVisitor.splitFilter(simplify, x_eq_1, x_eq_2);
     assertNull(newFilter);
 
     // Example 8.
@@ -1555,9 +1605,9 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     //   target:    y + x > 2
     // yields
     //   residue:  true
-    newFilter = SubstitutionVisitor.splitFilter(simplify,
-        x_plus_y_gt,
-        y_plus_x_gt);
+    newFilter =
+        SubstitutionVisitor.splitFilter(simplify, x_plus_y_gt, y_plus_x_gt);
+    assertThat(newFilter, notNullValue());
     assertThat(newFilter.isAlwaysTrue(), equalTo(true));
 
     // Example 9.
@@ -1565,9 +1615,9 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     //   target:    x + x > 2
     // yields
     //   residue:  true
-    newFilter = SubstitutionVisitor.splitFilter(simplify,
-        x_plus_x_gt,
-        x_plus_x_gt);
+    newFilter =
+        SubstitutionVisitor.splitFilter(simplify, x_plus_x_gt, x_plus_x_gt);
+    assertThat(newFilter, notNullValue());
     assertThat(newFilter.isAlwaysTrue(), equalTo(true));
 
     // Example 10.
@@ -1575,9 +1625,9 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     //   target:    2 < y * x
     // yields
     //   residue:  true
-    newFilter = SubstitutionVisitor.splitFilter(simplify,
-        x_times_y_gt,
-        y_times_x_gt);
+    newFilter =
+        SubstitutionVisitor.splitFilter(simplify, x_times_y_gt, y_times_x_gt);
+    assertThat(newFilter, notNullValue());
     assertThat(newFilter.isAlwaysTrue(), equalTo(true));
   }
 
@@ -1749,9 +1799,10 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         + "from \"emps\"\n"
         + "where \"deptno\" > 100"
         + "group by \"name\"";
-    sql(mv, query).withChecker(
-        resultContains(""
-            + "EnumerableTableScan(table=[[hr, MV0]])")).ok();
+    sql(mv, query)
+        .checkingThatResultContains(""
+            + "EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
   }
 
   @Test void testRexPredicate1() {
@@ -1765,9 +1816,10 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
         + "from \"emps\"\n"
         + "where \"deptno\" > 100"
         + "group by \"name\"";
-    sql(mv, query).withChecker(
-        resultContains(""
-            + "EnumerableTableScan(table=[[hr, MV0]])")).ok();
+    sql(mv, query)
+        .checkingThatResultContains(""
+            + "EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
   }
 
   /** Test case for
@@ -1797,43 +1849,27 @@ public class MaterializedViewSubstitutionVisitorTest extends AbstractMaterialize
     sql(mv2, query2).ok();
   }
 
-  final JavaTypeFactoryImpl typeFactory =
-      new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-  private final RexBuilder rexBuilder = new RexBuilder(typeFactory);
-  private final RexSimplify simplify =
-      new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR)
-          .withParanoid(true);
+  /** Fixture for tests for whether expressions are satisfiable,
+   * specifically {@link SubstitutionVisitor#mayBeSatisfiable(RexNode)}. */
+  private static class SatisfiabilityFixture {
+    final JavaTypeFactoryImpl typeFactory =
+        new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    final RexSimplify simplify =
+        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR)
+            .withParanoid(true);
 
-  protected List<RelNode> optimize(TestConfig testConfig) {
-    RelNode queryRel = testConfig.queryRel;
-    RelOptMaterialization materialization = testConfig.materializations.get(0);
-    List<RelNode> substitutes =
-        new SubstitutionVisitor(canonicalize(materialization.queryRel), canonicalize(queryRel))
-            .go(materialization.tableRel);
-    return substitutes;
+    void checkNotSatisfiable(RexNode e) {
+      assertFalse(SubstitutionVisitor.mayBeSatisfiable(e));
+      final RexNode simple = simplify.simplifyUnknownAsFalse(e);
+      assertFalse(RexLiteral.booleanValue(simple));
+    }
+
+    void checkSatisfiable(RexNode e, String s) {
+      assertTrue(SubstitutionVisitor.mayBeSatisfiable(e));
+      final RexNode simple = simplify.simplifyUnknownAsFalse(e);
+      assertEquals(s, simple.toString());
+    }
   }
 
-  private RelNode canonicalize(RelNode rel) {
-    HepProgram program =
-        new HepProgramBuilder()
-            .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
-            .addRuleInstance(CoreRules.FILTER_MERGE)
-            .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
-            .addRuleInstance(CoreRules.JOIN_CONDITION_PUSH)
-            .addRuleInstance(CoreRules.FILTER_AGGREGATE_TRANSPOSE)
-            .addRuleInstance(CoreRules.PROJECT_MERGE)
-            .addRuleInstance(CoreRules.PROJECT_REMOVE)
-            .addRuleInstance(CoreRules.PROJECT_JOIN_TRANSPOSE)
-            .addRuleInstance(CoreRules.PROJECT_SET_OP_TRANSPOSE)
-            .addRuleInstance(CoreRules.AGGREGATE_PROJECT_PULL_UP_CONSTANTS)
-            .addRuleInstance(CoreRules.FILTER_TO_CALC)
-            .addRuleInstance(CoreRules.PROJECT_TO_CALC)
-            .addRuleInstance(CoreRules.FILTER_CALC_MERGE)
-            .addRuleInstance(CoreRules.PROJECT_CALC_MERGE)
-            .addRuleInstance(CoreRules.CALC_MERGE)
-            .build();
-    final HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(rel);
-    return hepPlanner.findBestExp();
-  }
 }

@@ -98,14 +98,14 @@ public class AggregateFilterTransposeRule
     final Aggregate newAggregate =
         aggregate.copy(aggregate.getTraitSet(), input,
             newGroupSet, null, aggregate.getAggCallList());
-    final Mappings.TargetMapping mapping = Mappings.target(
-        newGroupSet::indexOf,
-        input.getRowType().getFieldCount(),
-        newGroupSet.cardinality());
+    final Mappings.TargetMapping mapping =
+        Mappings.target(newGroupSet::indexOf,
+            input.getRowType().getFieldCount(),
+            newGroupSet.cardinality());
     final RexNode newCondition =
         RexUtil.apply(mapping, filter.getCondition());
-    final Filter newFilter = filter.copy(filter.getTraitSet(),
-        newAggregate, newCondition);
+    final Filter newFilter =
+        filter.copy(filter.getTraitSet(), newAggregate, newCondition);
     if (allColumnsInAggregate && aggregate.getGroupType() == Group.SIMPLE) {
       // Everything needed by the filter is returned by the aggregate.
       assert newGroupSet.equals(aggregate.getGroupSet());
@@ -147,7 +147,7 @@ public class AggregateFilterTransposeRule
         topAggCallList.add(
             AggregateCall.create(rollup, aggregateCall.isDistinct(),
                 aggregateCall.isApproximate(), aggregateCall.ignoreNulls(),
-                ImmutableList.of(i++), -1,
+                aggregateCall.rexList, ImmutableList.of(i++), -1,
                 aggregateCall.distinctKeys, aggregateCall.collation,
                 aggregateCall.type, aggregateCall.name));
       }

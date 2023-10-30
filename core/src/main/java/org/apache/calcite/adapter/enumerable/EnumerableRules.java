@@ -66,7 +66,7 @@ public class EnumerableRules {
       EnumerableBatchNestedLoopJoinRule.Config.DEFAULT.toRule();
 
   /** Rule that converts a
-   *  {@link org.apache.calcite.rel.logical.LogicalProject} to an
+   * {@link org.apache.calcite.rel.logical.LogicalProject} to an
    * {@link EnumerableProject}. */
   public static final EnumerableProjectRule ENUMERABLE_PROJECT_RULE =
       EnumerableProjectRule.DEFAULT_CONFIG.toRule(EnumerableProjectRule.class);
@@ -166,7 +166,7 @@ public class EnumerableRules {
       EnumerableProjectToCalcRule.Config.DEFAULT.toRule();
 
   /** Rule that converts a
-   *  {@link org.apache.calcite.rel.logical.LogicalTableScan} to
+   * {@link org.apache.calcite.rel.logical.LogicalTableScan} to
    * {@link EnumerableConvention enumerable calling convention}. */
   public static final EnumerableTableScanRule ENUMERABLE_TABLE_SCAN_RULE =
       EnumerableTableScanRule.DEFAULT_CONFIG
@@ -180,7 +180,7 @@ public class EnumerableRules {
           .toRule(EnumerableTableFunctionScanRule.class);
 
   /** Rule that converts a {@link LogicalMatch} to an
-   *  {@link EnumerableMatch}. */
+   * {@link EnumerableMatch}. */
   public static final EnumerableMatchRule ENUMERABLE_MATCH_RULE =
       EnumerableMatchRule.DEFAULT_CONFIG.toRule(EnumerableMatchRule.class);
 
@@ -203,30 +203,30 @@ public class EnumerableRules {
       EnumerableInterpreterRule.DEFAULT_CONFIG
           .toRule(EnumerableInterpreterRule.class);
 
-  public static final List<RelOptRule> ENUMERABLE_RULES = ImmutableList.of(
-      EnumerableRules.ENUMERABLE_JOIN_RULE,
-      EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
-      EnumerableRules.ENUMERABLE_CORRELATE_RULE,
-      EnumerableRules.ENUMERABLE_PROJECT_RULE,
-      EnumerableRules.ENUMERABLE_FILTER_RULE,
-      EnumerableRules.ENUMERABLE_CALC_RULE,
-      EnumerableRules.ENUMERABLE_AGGREGATE_RULE,
-      EnumerableRules.ENUMERABLE_SORT_RULE,
-      EnumerableRules.ENUMERABLE_LIMIT_RULE,
-      EnumerableRules.ENUMERABLE_COLLECT_RULE,
-      EnumerableRules.ENUMERABLE_UNCOLLECT_RULE,
-      EnumerableRules.ENUMERABLE_MERGE_UNION_RULE,
-      EnumerableRules.ENUMERABLE_UNION_RULE,
-      EnumerableRules.ENUMERABLE_REPEAT_UNION_RULE,
-      EnumerableRules.ENUMERABLE_TABLE_SPOOL_RULE,
-      EnumerableRules.ENUMERABLE_INTERSECT_RULE,
-      EnumerableRules.ENUMERABLE_MINUS_RULE,
-      EnumerableRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
-      EnumerableRules.ENUMERABLE_VALUES_RULE,
-      EnumerableRules.ENUMERABLE_WINDOW_RULE,
-      EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
-      EnumerableRules.ENUMERABLE_TABLE_FUNCTION_SCAN_RULE,
-      EnumerableRules.ENUMERABLE_MATCH_RULE);
+  public static final List<RelOptRule> ENUMERABLE_RULES =
+      ImmutableList.of(EnumerableRules.ENUMERABLE_JOIN_RULE,
+          EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
+          EnumerableRules.ENUMERABLE_CORRELATE_RULE,
+          EnumerableRules.ENUMERABLE_PROJECT_RULE,
+          EnumerableRules.ENUMERABLE_FILTER_RULE,
+          EnumerableRules.ENUMERABLE_CALC_RULE,
+          EnumerableRules.ENUMERABLE_AGGREGATE_RULE,
+          EnumerableRules.ENUMERABLE_SORT_RULE,
+          EnumerableRules.ENUMERABLE_LIMIT_RULE,
+          EnumerableRules.ENUMERABLE_COLLECT_RULE,
+          EnumerableRules.ENUMERABLE_UNCOLLECT_RULE,
+          EnumerableRules.ENUMERABLE_MERGE_UNION_RULE,
+          EnumerableRules.ENUMERABLE_UNION_RULE,
+          EnumerableRules.ENUMERABLE_REPEAT_UNION_RULE,
+          EnumerableRules.ENUMERABLE_TABLE_SPOOL_RULE,
+          EnumerableRules.ENUMERABLE_INTERSECT_RULE,
+          EnumerableRules.ENUMERABLE_MINUS_RULE,
+          EnumerableRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
+          EnumerableRules.ENUMERABLE_VALUES_RULE,
+          EnumerableRules.ENUMERABLE_WINDOW_RULE,
+          EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
+          EnumerableRules.ENUMERABLE_TABLE_FUNCTION_SCAN_RULE,
+          EnumerableRules.ENUMERABLE_MATCH_RULE);
 
   public static List<RelOptRule> rules() {
     return ENUMERABLE_RULES;

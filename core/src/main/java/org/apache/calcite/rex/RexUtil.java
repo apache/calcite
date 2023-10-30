@@ -63,11 +63,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
+
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static java.util.Objects.requireNonNull;
 
@@ -147,7 +150,7 @@ public class RexUtil {
       if (lhsType.equals(rhsType)) {
         castExps.add(rhsExp);
       } else {
-        castExps.add(rexBuilder.makeCast(lhsType, rhsExp));
+        castExps.add(rexBuilder.makeCast(lhsType, rhsExp, true, false));
       }
     }
     return castExps;
@@ -204,6 +207,20 @@ public class RexUtil {
       return ((RexLiteral) expr).getValue2() == null;
     case CAST:
       return isNull(((RexCall) expr).operands.get(0));
+    default:
+      return false;
+    }
+  }
+
+  /**
+   * Returns whether a node represents a {@link SqlTypeName#SYMBOL} literal.
+   */
+  public static boolean isSymbolLiteral(RexNode expr) {
+    switch (expr.getKind()) {
+    case LITERAL:
+      return ((RexLiteral) expr).getTypeName() == SqlTypeName.SYMBOL;
+    case CAST:
+      return isSymbolLiteral(((RexCall) expr).operands.get(0));
     default:
       return false;
     }
@@ -386,24 +403,27 @@ public class RexUtil {
   private static <C extends RexNode> void gatherConstraints(Class<C> clazz,
       RexNode predicate, Map<RexNode, C> map, Set<RexNode> excludeSet,
       RexBuilder rexBuilder) {
-    if (predicate.getKind() != SqlKind.EQUALS
-            && predicate.getKind() != SqlKind.IS_NULL) {
-      decompose(excludeSet, predicate);
-      return;
-    }
-    final List<RexNode> operands = ((RexCall) predicate).getOperands();
     final RexNode left;
     final RexNode right;
-    if (predicate.getKind() == SqlKind.EQUALS) {
-      left = operands.get(0);
-      right = operands.get(1);
-    } else { // is null
-      left = operands.get(0);
+    switch (predicate.getKind()) {
+    case EQUALS:
+    case IS_NOT_DISTINCT_FROM:
+      left = ((RexCall) predicate).getOperands().get(0);
+      right = ((RexCall) predicate).getOperands().get(1);
+      break;
+
+    case IS_NULL:
+      left = ((RexCall) predicate).getOperands().get(0);
       if (!left.getType().isNullable()) {
         // There's no sense in inferring $0=null when $0 is not nullable
         return;
       }
       right = rexBuilder.makeNullLiteral(left.getType());
+      break;
+
+    default:
+      decompose(excludeSet, predicate);
+      return;
     }
     // Note that literals are immutable too, and they can only be compared
     // through values.
@@ -471,8 +491,10 @@ public class RexUtil {
     final SqlTypeName name1 = type1.getSqlTypeName();
     final SqlTypeName name2 = type2.getSqlTypeName();
     final RelDataType type1Final = type1;
-    SqlTypeFamily family = requireNonNull(name1.getFamily(),
-        () -> "SqlTypeFamily is null for type " + type1Final + ", SqlTypeName " + name1);
+    SqlTypeFamily family =
+        requireNonNull(name1.getFamily(),
+            () -> "SqlTypeFamily is null for type " + type1Final
+                + ", SqlTypeName " + name1);
     if (family == name2.getFamily()) {
       switch (family) {
       case NUMERIC:
@@ -620,7 +642,7 @@ public class RexUtil {
               rexBuilder.makeCall(SqlStdOperatorTable.NOT_EQUALS, ref,
                   rexBuilder.makeLiteral(range.lowerEndpoint(),
                       type, true, true)))
-          .collect(Util.toImmutableList());
+          .collect(toImmutableList());
       orList.add(composeConjunction(rexBuilder, list));
     } else {
       final RangeSets.Consumer<C> consumer =
@@ -1138,8 +1160,9 @@ public class RexUtil {
       @Nullable List<? extends @Nullable String> names,
       SqlValidatorUtil.@Nullable Suggester suggester) {
     if (names != null && suggester != null) {
-      names = SqlValidatorUtil.uniquify(names, suggester,
-          typeFactory.getTypeSystem().isSchemaCaseSensitive());
+      names =
+          SqlValidatorUtil.uniquify(names, suggester,
+              typeFactory.getTypeSystem().isSchemaCaseSensitive());
     }
     final RelDataTypeFactory.Builder builder = typeFactory.builder();
     for (int i = 0; i < exprs.size(); i++) {
@@ -1583,7 +1606,7 @@ public class RexUtil {
    * would be considered "flat".
    *
    * <p>For example, {@code isFlat([w, AND[x, y], z, AND)} returns false;
-   * <p>{@code isFlat([w, x, y, z], AND)} returns true.</p>
+   * {@code isFlat([w, x, y, z], AND)} returns true.
    */
   private static boolean isFlat(
       List<? extends RexNode> exprs, final SqlOperator op) {
@@ -1625,6 +1648,7 @@ public class RexUtil {
    *
    * <p>The implementation of this method does not return false positives.
    * However, it is not complete.
+   *
    * @param node input node to verify if it represents a loss-less cast
    * @return true iff the node is a loss-less cast
    */
@@ -1646,6 +1670,7 @@ public class RexUtil {
    *
    * <p>The implementation of this method does not return false positives.
    * However, it is not complete.
+   *
    * @param source source type
    * @param target target type
    * @return true iff the conversion is a loss-less cast
@@ -1939,7 +1964,7 @@ public class RexUtil {
    * Simplifies a boolean expression,
    * using the default executor.
    *
-   * <p>In particular:</p>
+   * <p>In particular:
    * <ul>
    * <li>{@code simplify(x = 1 AND y = 2 AND NOT x = 1)}
    * returns {@code y = 2}</li>
@@ -2138,13 +2163,12 @@ public class RexUtil {
     case EQUALS:
       final RexCall call = (RexCall) e;
       if (call.getOperands().get(1) instanceof RexLiteral) {
-        notTerms = Util.filter(notTerms,
-            e2 -> {
+        notTerms =
+            Util.filter(notTerms, e2 -> {
               switch (e2.getKind()) {
               case EQUALS:
                 RexCall call2 = (RexCall) e2;
-                if (call2.getOperands().get(0)
-                    .equals(call.getOperands().get(0))
+                if (call2.getOperands().get(0).equals(call.getOperands().get(0))
                     && call2.getOperands().get(1) instanceof RexLiteral
                     && !call.getOperands().get(1)
                           .equals(call2.getOperands().get(1))) {
@@ -2265,11 +2289,13 @@ public class RexUtil {
           @Override public RexNode visitTableInputRef(RexTableInputRef inputRef) {
             if (tableMapping != null) {
               RexTableInputRef inputRefFinal = inputRef;
-              inputRef = RexTableInputRef.of(
-                  requireNonNull(tableMapping.get(inputRef.getTableRef()),
-                      () -> "tableMapping.get(...) for " + inputRefFinal.getTableRef()),
-                  inputRef.getIndex(),
-                  inputRef.getType());
+              inputRef =
+                  RexTableInputRef.of(
+                      requireNonNull(tableMapping.get(inputRef.getTableRef()),
+                          () -> "tableMapping.get(...) for "
+                              + inputRefFinal.getTableRef()),
+                      inputRef.getIndex(),
+                      inputRef.getType());
             }
             if (ec != null) {
               Set<RexTableInputRef> s = ec.get(inputRef);
@@ -2303,9 +2329,11 @@ public class RexUtil {
             }
             if (tableMapping != null) {
               RexTableInputRef inputRefFinal = inputRef;
-              inputRef = RexTableInputRef.of(
-                  requireNonNull(tableMapping.get(inputRef.getTableRef()),
-                      () -> "tableMapping.get(...) for " + inputRefFinal.getTableRef()),
+              inputRef =
+                  RexTableInputRef.of(
+                      requireNonNull(tableMapping.get(inputRef.getTableRef()),
+                          () -> "tableMapping.get(...) for "
+                              + inputRefFinal.getTableRef()),
                   inputRef.getIndex(),
                   inputRef.getType());
             }
@@ -2644,8 +2672,9 @@ public class RexUtil {
       return list;
     }
 
-    private static Map<RexNode, RexNode> commonFactors(List<RexNode> nodes) {
-      final Map<RexNode, RexNode> map = new HashMap<>();
+    private static LinkedHashMap<RexNode, RexNode> commonFactors(List<RexNode> nodes) {
+      // make sure the result is in deterministic order
+      final LinkedHashMap<RexNode, RexNode> map = new LinkedHashMap<>();
       int i = 0;
       for (RexNode node : nodes) {
         if (i++ == 0) {
@@ -2950,7 +2979,8 @@ public class RexUtil {
       if (simplifiedNode.getType().equals(call.getType())) {
         return simplifiedNode;
       }
-      return simplify.rexBuilder.makeCast(call.getType(), simplifiedNode, matchNullability);
+      return simplify.rexBuilder.makeCast(call.getType(), simplifiedNode,
+          matchNullability, false);
     }
   }
 

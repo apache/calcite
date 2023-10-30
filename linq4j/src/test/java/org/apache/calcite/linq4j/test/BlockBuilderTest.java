@@ -112,8 +112,9 @@ class BlockBuilderTest {
   }
 
   @Test void testRenameVariablesWithInitializer() {
-    BlockBuilder outer = appendBlockWithSameVariable(
-        Expressions.constant(7), Expressions.constant(8));
+    BlockBuilder outer =
+        appendBlockWithSameVariable(Expressions.constant(7),
+            Expressions.constant(8));
 
     assertEquals("{\n"
             + "  int x = 7;\n"
@@ -164,6 +165,7 @@ class BlockBuilderTest {
 
   /**
    * Class with generics to validate if {@link Expressions#call(Method, Expression...)} works.
+   *
    * @param <I> result type
    */
   static class Identity<I> implements Function<I, I> {

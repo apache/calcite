@@ -225,6 +225,15 @@ FROM `X`
     INNER JOIN `Y` ON `X`.`K` = `Y`.`K`]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinClauseToString">
+    <Resource name="formatted">
+      <![CDATA[SELECT `T`.`REGION_NAME`, `T0`.`O_TOTALPRICE`
+FROM (SELECT `C_CUSTKEY`, `REGION_NAME`
+        FROM `TPCH`.`OUT_TPCH_VW__CUSTOMER`) AS `T`
+    INNER JOIN (SELECT `O_CUSTKEY`, `O_TOTALPRICE`
+        FROM `TPCH`.`OUT_TPCH_VW__ORDERS`) AS `T0` ON `T`.`C_CUSTKEY` = `T0`.`O_CUSTKEY`]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinComma">
     <Resource name="formatted">
       <![CDATA[SELECT *

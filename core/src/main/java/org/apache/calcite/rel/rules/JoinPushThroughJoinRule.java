@@ -61,7 +61,7 @@ import java.util.List;
  * on p.product_class_id = pc.product_class_id</pre></blockquote>
  *
  * <p>Before the rule, one join has two conditions and the other has none
- * ({@code ON TRUE}). After the rule, each join has one condition.</p>
+ * ({@code ON TRUE}). After the rule, each join has one condition.
  */
 @Value.Enclosing
 public class JoinPushThroughJoinRule

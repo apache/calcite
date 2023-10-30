@@ -50,7 +50,7 @@ import java.util.Map;
  * <p>The are two abstract methods:
  * {@link #enumerator()} and {@link #iterator()}.
  * The derived class can implement each separately, or implement one in terms of
- * the other.</p>
+ * the other.
  *
  * @param <T> Element type
  */

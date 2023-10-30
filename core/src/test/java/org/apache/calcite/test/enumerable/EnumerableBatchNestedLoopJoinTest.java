@@ -41,7 +41,6 @@ class EnumerableBatchNestedLoopJoinTest {
 
   @Test void simpleInnerBatchJoinTestBuilder() {
     tester(false, new HrSchema())
-        .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
           planner.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
@@ -65,8 +64,7 @@ class EnumerableBatchNestedLoopJoinTest {
 
   @Test void simpleInnerBatchJoinTestSQL() {
     tester(false, new HrSchema())
-        .query(
-            "select e.name from emps e join depts d on d.deptno = e.deptno")
+        .query("select e.name from emps e join depts d on d.deptno = e.deptno")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
           planner.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
@@ -152,7 +150,6 @@ class EnumerableBatchNestedLoopJoinTest {
   }
   @Test void testSemiJoin() {
     tester(false, new HrSchemaBig())
-        .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
@@ -179,7 +176,6 @@ class EnumerableBatchNestedLoopJoinTest {
 
   @Test void testAntiJoin() {
     tester(false, new HrSchema())
-        .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
           planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);

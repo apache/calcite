@@ -23,6 +23,8 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -37,17 +39,24 @@ public class MockCatalogReaderDynamic extends MockCatalogReader {
   /**
    * Creates a MockCatalogReader.
    *
-   * <p>Caller must then call {@link #init} to populate with data.</p>
+   * <p>Caller must then call {@link #init} to populate with data;
+   * constructor is protected to encourage you to call {@link #create}.
    *
    * @param typeFactory   Type factory
    * @param caseSensitive case sensitivity
    */
-  public MockCatalogReaderDynamic(RelDataTypeFactory typeFactory,
+  protected MockCatalogReaderDynamic(RelDataTypeFactory typeFactory,
       boolean caseSensitive) {
     super(typeFactory, caseSensitive);
   }
 
-  @Override public MockCatalogReader init() {
+  /** Creates and initializes a MockCatalogReaderDynamic. */
+  public static @NonNull MockCatalogReaderDynamic create(
+      RelDataTypeFactory typeFactory, boolean caseSensitive) {
+    return new MockCatalogReaderDynamic(typeFactory, caseSensitive).init();
+  }
+
+  @Override public MockCatalogReaderDynamic init() {
     // Register "DYNAMIC" schema.
     MockSchema schema = new MockSchema("SALES");
     registerSchema(schema);
@@ -76,16 +85,21 @@ public class MockCatalogReaderDynamic extends MockCatalogReader {
     regionTable.addColumn("R_COMMENT", varcharType);
     registerTable(regionTable);
 
-    List<String> custModifiableViewNames = Arrays.asList(
-        schema.getCatalogName(), schema.getName(), "CUSTOMER_MODIFIABLEVIEW");
-    TableMacro custModifiableViewMacro = MockModifiableViewRelOptTable.viewMacro(rootSchema,
-        "select n_name from SALES.CUSTOMER", custModifiableViewNames.subList(0, 2),
-        Collections.singletonList(custModifiableViewNames.get(2)), true);
-    TranslatableTable empModifiableView = custModifiableViewMacro.apply(Collections.emptyList());
-    MockTable mockCustViewTable = MockRelViewTable.create(
-        (ViewTable) empModifiableView, this,
-        custModifiableViewNames.get(0), custModifiableViewNames.get(1),
-        custModifiableViewNames.get(2), false, 20, null);
+    List<String> custModifiableViewNames =
+        Arrays.asList(schema.getCatalogName(), schema.getName(),
+            "CUSTOMER_MODIFIABLEVIEW");
+    TableMacro custModifiableViewMacro =
+        MockModifiableViewRelOptTable.viewMacro(rootSchema,
+            "select n_name from SALES.CUSTOMER",
+            custModifiableViewNames.subList(0, 2),
+            Collections.singletonList(custModifiableViewNames.get(2)),
+            true);
+    TranslatableTable empModifiableView =
+        custModifiableViewMacro.apply(Collections.emptyList());
+    MockTable mockCustViewTable =
+        MockRelViewTable.create((ViewTable) empModifiableView, this,
+            custModifiableViewNames.get(0), custModifiableViewNames.get(1),
+            custModifiableViewNames.get(2), false, 20, null);
     registerTable(mockCustViewTable);
 
     // re-registers customer table to clear its row type after view registration

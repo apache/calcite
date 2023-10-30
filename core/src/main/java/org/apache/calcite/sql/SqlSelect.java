@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
@@ -41,6 +42,7 @@ public class SqlSelect extends SqlCall {
   public static final int FROM_OPERAND = 2;
   public static final int WHERE_OPERAND = 3;
   public static final int HAVING_OPERAND = 5;
+  public static final int QUALIFY_OPERAND = 7;
 
   SqlNodeList keywordList;
   SqlNodeList selectList;
@@ -49,6 +51,7 @@ public class SqlSelect extends SqlCall {
   @Nullable SqlNodeList groupBy;
   @Nullable SqlNode having;
   SqlNodeList windowDecls;
+  @Nullable SqlNode qualify;
   @Nullable SqlNodeList orderBy;
   @Nullable SqlNode offset;
   @Nullable SqlNode fetch;
@@ -64,6 +67,7 @@ public class SqlSelect extends SqlCall {
       @Nullable SqlNodeList groupBy,
       @Nullable SqlNode having,
       @Nullable SqlNodeList windowDecls,
+      @Nullable SqlNode qualify,
       @Nullable SqlNodeList orderBy,
       @Nullable SqlNode offset,
       @Nullable SqlNode fetch,
@@ -78,10 +82,29 @@ public class SqlSelect extends SqlCall {
     this.having = having;
     this.windowDecls = requireNonNull(windowDecls != null
         ? windowDecls : new SqlNodeList(pos));
+    this.qualify = qualify;
     this.orderBy = orderBy;
     this.offset = offset;
     this.fetch = fetch;
     this.hints = hints;
+  }
+
+  /** deprecated, without {@code qualify}. */
+  @Deprecated // to be removed before 2.0
+  public SqlSelect(SqlParserPos pos,
+      @Nullable SqlNodeList keywordList,
+      SqlNodeList selectList,
+      @Nullable SqlNode from,
+      @Nullable SqlNode where,
+      @Nullable SqlNodeList groupBy,
+      @Nullable SqlNode having,
+      @Nullable SqlNodeList windowDecls,
+      @Nullable SqlNodeList orderBy,
+      @Nullable SqlNode offset,
+      @Nullable SqlNode fetch,
+      @Nullable SqlNodeList hints) {
+    this(pos, keywordList, selectList, from, where, groupBy, having,
+        windowDecls, null, orderBy, offset, fetch, hints);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -97,7 +120,7 @@ public class SqlSelect extends SqlCall {
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywordList, selectList, from, where,
-        groupBy, having, windowDecls, orderBy, offset, fetch, hints);
+        groupBy, having, windowDecls, qualify, orderBy, offset, fetch, hints);
   }
 
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
@@ -124,12 +147,15 @@ public class SqlSelect extends SqlCall {
       windowDecls = requireNonNull((SqlNodeList) operand);
       break;
     case 7:
-      orderBy = (SqlNodeList) operand;
+      qualify = operand;
       break;
     case 8:
-      offset = operand;
+      orderBy = (SqlNodeList) operand;
       break;
     case 9:
+      offset = operand;
+      break;
+    case 10:
       fetch = operand;
       break;
     default:
@@ -202,6 +228,15 @@ public class SqlSelect extends SqlCall {
   }
 
   @Pure
+  public final @Nullable SqlNode getQualify() {
+    return qualify;
+  }
+
+  public void setQualify(@Nullable SqlNode qualify) {
+    this.qualify = qualify;
+  }
+
+  @Pure
   public final @Nullable SqlNodeList getOrderList() {
     return orderBy;
   }
@@ -249,7 +284,16 @@ public class SqlSelect extends SqlCall {
 
   // Override SqlCall, to introduce a sub-query frame.
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    if (!writer.inQuery()) {
+    if (!writer.inQuery()
+        || getFetch() != null
+            && (leftPrec > SqlInternalOperators.FETCH.getLeftPrec()
+                || rightPrec > SqlInternalOperators.FETCH.getLeftPrec())
+        || getOffset() != null
+            && (leftPrec > SqlInternalOperators.OFFSET.getLeftPrec()
+                || rightPrec > SqlInternalOperators.OFFSET.getLeftPrec())
+        || getOrderList() != null
+            && (leftPrec > SqlOrderBy.OPERATOR.getLeftPrec()
+                || rightPrec > SqlOrderBy.OPERATOR.getRightPrec())) {
       // If this SELECT is the topmost item in a sub-query, introduce a new
       // frame. (The topmost item in the sub-query might be a UNION or
       // ORDER. In this case, we don't need a wrapper frame.)

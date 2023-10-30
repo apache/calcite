@@ -28,8 +28,9 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -138,23 +139,23 @@ class TestUtilTest {
     final List<String> list =
         new ArrayList<>(Arrays.asList("a", "g", "b", "c", "e", "d"));
     final SortedSet<String> distance = TestUtil.outOfOrderItems(list);
-    assertThat(distance.toString(), is("[b, d]"));
+    assertThat(distance, hasToString("[b, d]"));
 
     list.add("f");
     final SortedSet<String> distance2 = TestUtil.outOfOrderItems(list);
-    assertThat(distance2.toString(), is("[b, d]"));
+    assertThat(distance2, hasToString("[b, d]"));
 
     list.add(1, "b");
     final SortedSet<String> distance3 = TestUtil.outOfOrderItems(list);
-    assertThat(distance3.toString(), is("[b, d]"));
+    assertThat(distance3, hasToString("[b, d]"));
 
     list.add(1, "c");
     final SortedSet<String> distance4 = TestUtil.outOfOrderItems(list);
-    assertThat(distance4.toString(), is("[b, d]"));
+    assertThat(distance4, hasToString("[b, d]"));
 
     list.add(0, "z");
     final SortedSet<String> distance5 = TestUtil.outOfOrderItems(list);
-    assertThat(distance5.toString(), is("[a, b, d]"));
+    assertThat(distance5, hasToString("[a, b, d]"));
   }
 
   private long totalDistance(ImmutableMap<String, IntPair> map) {

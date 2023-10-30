@@ -38,7 +38,6 @@ class EnumerableCalcTest {
   @Test void testCoalesceImplementation() {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new HrSchema()))
-        .query("?")
         .withRel(
             builder -> builder
                 .scan("s", "emps")
@@ -62,39 +61,47 @@ class EnumerableCalcTest {
    * Posix regex operators cannot be used within RelBuilder</a>.
    */
   @Test void testPosixRegexCaseSensitive() {
-    checkPosixRegex("E..c", SqlStdOperatorTable.POSIX_REGEX_CASE_SENSITIVE,
-        "empid=200; name=Eric");
-    checkPosixRegex("e..c", SqlStdOperatorTable.POSIX_REGEX_CASE_SENSITIVE, "");
+    checkPosixRegex("E..c", SqlStdOperatorTable.POSIX_REGEX_CASE_SENSITIVE)
+        .returnsUnordered("empid=200; name=Eric");
+    checkPosixRegex("e..c", SqlStdOperatorTable.POSIX_REGEX_CASE_SENSITIVE)
+        .returnsUnordered();
   }
 
   @Test void testPosixRegexCaseInsensitive() {
-    checkPosixRegex("E..c", SqlStdOperatorTable.POSIX_REGEX_CASE_INSENSITIVE,
-        "empid=200; name=Eric");
-    checkPosixRegex("e..c", SqlStdOperatorTable.POSIX_REGEX_CASE_INSENSITIVE,
-        "empid=200; name=Eric");
+    checkPosixRegex("E..c", SqlStdOperatorTable.POSIX_REGEX_CASE_INSENSITIVE)
+        .returnsUnordered("empid=200; name=Eric");
+    checkPosixRegex("e..c", SqlStdOperatorTable.POSIX_REGEX_CASE_INSENSITIVE)
+        .returnsUnordered("empid=200; name=Eric");
   }
 
   @Test void testNegatedPosixRegexCaseSensitive() {
-    checkPosixRegex("E..c", SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE,
-        "empid=100; name=Bill", "empid=110; name=Theodore", "empid=150; name=Sebastian");
-    checkPosixRegex("e..c", SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE,
-        "empid=100; name=Bill", "empid=110; name=Theodore", "empid=150; name=Sebastian", "empid=200; name=Eric");
+    checkPosixRegex("E..c", SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE)
+        .returnsUnordered("empid=100; name=Bill",
+            "empid=110; name=Theodore",
+            "empid=150; name=Sebastian");
+    checkPosixRegex("e..c", SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE)
+        .returnsUnordered("empid=100; name=Bill",
+            "empid=110; name=Theodore",
+            "empid=150; name=Sebastian",
+            "empid=200; name=Eric");
   }
 
   @Test void testNegatedPosixRegexCaseInsensitive() {
-    checkPosixRegex("E..c", SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_INSENSITIVE,
-        "empid=100; name=Bill", "empid=110; name=Theodore", "empid=150; name=Sebastian");
-    checkPosixRegex("e..c", SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_INSENSITIVE,
-        "empid=100; name=Bill", "empid=110; name=Theodore", "empid=150; name=Sebastian");
+    checkPosixRegex("E..c", SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_INSENSITIVE)
+        .returnsUnordered("empid=100; name=Bill",
+            "empid=110; name=Theodore",
+            "empid=150; name=Sebastian");
+    checkPosixRegex("e..c", SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_INSENSITIVE)
+        .returnsUnordered("empid=100; name=Bill",
+            "empid=110; name=Theodore",
+            "empid=150; name=Sebastian");
   }
 
-  private void checkPosixRegex(
+  private CalciteAssert.AssertQuery checkPosixRegex(
       String literalValue,
-      SqlOperator operator,
-      String... expectedResult) {
-    CalciteAssert.that()
+      SqlOperator operator) {
+    return CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new HrSchema()))
-        .query("?")
         .withRel(
             builder -> builder
                 .scan("s", "emps")
@@ -106,7 +113,6 @@ class EnumerableCalcTest {
                 .project(
                     builder.field("empid"),
                     builder.field("name"))
-                .build())
-        .returnsUnordered(expectedResult);
+                .build());
   }
 }

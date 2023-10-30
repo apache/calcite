@@ -40,7 +40,7 @@ import java.math.BigDecimal;
  * {@link org.apache.calcite.rel.core.Union},
  * {@link org.apache.calcite.rel.core.Aggregate}, etc.
  *
- * <p> Rewrite: (GB-Union All-GB)-GB-UDTF (on all attributes)
+ * <p>Rewrite: (GB-Union All-GB)-GB-UDTF (on all attributes)
  *
  * <h2>Example</h2>
  *

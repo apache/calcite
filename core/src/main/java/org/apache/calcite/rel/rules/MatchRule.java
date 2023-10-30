@@ -43,13 +43,14 @@ public class MatchRule extends RelRule<MatchRule.Config>
 
   @Override public void onMatch(RelOptRuleCall call) {
     final LogicalMatch oldRel = call.rel(0);
-    final RelNode match = LogicalMatch.create(oldRel.getCluster(),
-        oldRel.getTraitSet(), oldRel.getInput(), oldRel.getRowType(),
-        oldRel.getPattern(), oldRel.isStrictStart(), oldRel.isStrictEnd(),
-        oldRel.getPatternDefinitions(), oldRel.getMeasures(),
-        oldRel.getAfter(), oldRel.getSubsets(), oldRel.isAllRows(),
-        oldRel.getPartitionKeys(), oldRel.getOrderKeys(),
-        oldRel.getInterval());
+    final RelNode match =
+        LogicalMatch.create(oldRel.getCluster(), oldRel.getTraitSet(),
+            oldRel.getInput(), oldRel.getRowType(),
+            oldRel.getPattern(), oldRel.isStrictStart(), oldRel.isStrictEnd(),
+            oldRel.getPatternDefinitions(), oldRel.getMeasures(),
+            oldRel.getAfter(), oldRel.getSubsets(), oldRel.isAllRows(),
+            oldRel.getPartitionKeys(), oldRel.getOrderKeys(),
+            oldRel.getInterval());
     call.transformTo(match);
   }
 

@@ -196,6 +196,9 @@ public class ModelHandler {
     final Pair<@Nullable String, SchemaPlus> pair =
         Pair.of(null, connection.getRootSchema());
     schemaStack.push(pair);
+    for (JsonType rootType : jsonRoot.types) {
+      rootType.accept(this);
+    }
     for (JsonSchema schema : jsonRoot.schemas) {
       schema.accept(this);
     }
@@ -330,8 +333,9 @@ public class ModelHandler {
           JdbcSchema.create(parentSchema, jsonSchema.name, dataSource,
               jsonSchema.jdbcCatalog, jsonSchema.jdbcSchema);
     } else {
-      SqlDialectFactory factory = AvaticaUtils.instantiatePlugin(
-          SqlDialectFactory.class, jsonSchema.sqlDialectFactory);
+      SqlDialectFactory factory =
+          AvaticaUtils.instantiatePlugin(SqlDialectFactory.class,
+              jsonSchema.sqlDialectFactory);
       schema =
           JdbcSchema.create(parentSchema, jsonSchema.name, dataSource,
               factory, jsonSchema.jdbcCatalog, jsonSchema.jdbcSchema);
@@ -478,15 +482,16 @@ public class ModelHandler {
         } else {
           final RelDataTypeFactory.Builder builder = typeFactory.builder();
           for (JsonTypeAttribute jsonTypeAttribute : jsonType.attributes) {
-            final SqlTypeName typeName = requireNonNull(
-                SqlTypeName.get(jsonTypeAttribute.type),
-                () -> "SqlTypeName.get for " + jsonTypeAttribute.type);
+            final SqlTypeName typeName =
+                requireNonNull(SqlTypeName.get(jsonTypeAttribute.type),
+                    () -> "SqlTypeName.get for " + jsonTypeAttribute.type);
             RelDataType type = typeFactory.createSqlType(typeName);
             if (type == null) {
-              type = requireNonNull(currentSchema().getType(jsonTypeAttribute.type),
-                  () -> "type " + jsonTypeAttribute.type + " is not found in schema "
-                      + currentSchemaName())
-                  .apply(typeFactory);
+              type =
+                  requireNonNull(currentSchema().getType(jsonTypeAttribute.type),
+                      () -> "type " + jsonTypeAttribute.type
+                          + " is not found in schema " + currentSchemaName())
+                      .apply(typeFactory);
             }
             builder.add(jsonTypeAttribute.name, type);
           }

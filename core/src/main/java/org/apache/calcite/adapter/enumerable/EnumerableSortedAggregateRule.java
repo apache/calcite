@@ -56,9 +56,10 @@ class EnumerableSortedAggregateRule extends ConverterRule {
             RelCollations.of(
                 ImmutableIntList.copyOf(
             agg.getGroupSet().asList())));
-    final RelTraitSet selfTraits = inputTraits.replace(
-        RelCollations.of(
-        ImmutableIntList.identity(agg.getGroupSet().cardinality())));
+    final RelTraitSet selfTraits =
+        inputTraits.replace(
+            RelCollations.of(
+                ImmutableIntList.identity(agg.getGroupSet().cardinality())));
     return new EnumerableSortedAggregate(
         rel.getCluster(),
         selfTraits,

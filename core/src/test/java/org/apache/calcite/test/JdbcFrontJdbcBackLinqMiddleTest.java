@@ -111,7 +111,7 @@ class JdbcFrontJdbcBackLinqMiddleTest {
    * into input0.x = input1.x and ... input0.z = input1.z.
    *
    * <p>Currently, the query can be planned, but the plan is not efficient (uses
-   * cartesian product).</p>
+   * cartesian product).
    */
   @Disabled("non-deterministic on JDK 1.7 vs 1.8")
   @Test void testJoinTheta() {

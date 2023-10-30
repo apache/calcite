@@ -45,7 +45,7 @@ import java.util.Set;
  * provided that the join is a left join or right join and it computes no
  * aggregate functions or all the aggregate calls have distinct.
  *
- * <p>For instance,</p>
+ * <p>For instance,
  *
  * <blockquote>
  * <pre>select distinct s.product_id from
@@ -86,8 +86,9 @@ public class AggregateJoinRemoveRule
     boolean isLeftJoin = join.getJoinType() == JoinRelType.LEFT;
     int lower = isLeftJoin
         ? join.getLeft().getRowType().getFieldCount() : 0;
-    int upper = isLeftJoin ? join.getRowType().getFieldCount()
-        : join.getLeft().getRowType().getFieldCount();
+    int upper =
+        isLeftJoin ? join.getRowType().getFieldCount()
+            : join.getLeft().getRowType().getFieldCount();
 
     // Check whether the aggregate uses columns whose index is between
     // lower(included) and upper(excluded).
@@ -103,9 +104,10 @@ public class AggregateJoinRemoveRule
 
     RelNode node;
     if (isLeftJoin) {
-      node = aggregate.copy(aggregate.getTraitSet(), join.getLeft(),
-          aggregate.getGroupSet(), aggregate.getGroupSets(),
-          aggregate.getAggCallList());
+      node =
+          aggregate.copy(aggregate.getTraitSet(), join.getLeft(),
+              aggregate.getGroupSet(), aggregate.getGroupSets(),
+              aggregate.getAggCallList());
     } else {
       final Map<Integer, Integer> map = new HashMap<>();
       allFields.forEach(index -> map.put(index, index - upper));

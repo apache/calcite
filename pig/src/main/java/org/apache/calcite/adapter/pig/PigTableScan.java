@@ -62,8 +62,8 @@ public class PigTableScan extends TableScan implements PigRel {
   }
 
   private String getSchemaForPigStatement(Implementor implementor) {
-    final List<String> fieldNamesAndTypes = new ArrayList<>(
-        getTable().getRowType().getFieldList().size());
+    final List<String> fieldNamesAndTypes =
+        new ArrayList<>(getTable().getRowType().getFieldList().size());
     for (RelDataTypeField f : getTable().getRowType().getFieldList()) {
       fieldNamesAndTypes.add(getConcatenatedFieldNameAndTypeForPigSchema(implementor, f));
     }

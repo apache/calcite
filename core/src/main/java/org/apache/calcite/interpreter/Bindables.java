@@ -78,6 +78,7 @@ import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
@@ -386,6 +387,11 @@ public class Bindables {
       super(config);
     }
 
+    @Override public boolean matches(RelOptRuleCall call) {
+      final LogicalProject project = call.rel(0);
+      return project.getVariablesSet().isEmpty();
+    }
+
     @Override public RelNode convert(RelNode rel) {
       final LogicalProject project = (LogicalProject) rel;
       return new BindableProject(rel.getCluster(),
@@ -403,7 +409,7 @@ public class Bindables {
   public static class BindableProject extends Project implements BindableRel {
     public BindableProject(RelOptCluster cluster, RelTraitSet traitSet,
         RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
-      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
       assert getConvention() instanceof BindableConvention;
     }
 

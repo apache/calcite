@@ -64,6 +64,33 @@ class UnnestNamespace extends AbstractNamespace {
     return null;
   }
 
+  /**
+   * Given a field name from SelectScope, find the column in this
+   * UnnestNamespace it originates from.
+   *
+   * @param queryFieldName Name of column
+   * @return A SqlQualified if subfield comes from this unnest, null if not found
+   */
+  @Nullable SqlQualified getColumnUnnestedFrom(String queryFieldName) {
+    for (SqlNode operand : unnest.getOperandList()) {
+      // Ignore operands that are inline ARRAY[] literals
+      if (operand instanceof SqlIdentifier) {
+        final SqlIdentifier id = (SqlIdentifier) operand;
+        final SqlQualified qualified = this.scope.fullyQualify(id);
+        RelDataType dataType = this.scope.resolveColumn(qualified.suffix().get(0), id);
+        if (dataType != null) {
+          RelDataType repeatedEntryType = dataType.getComponentType();
+          if (repeatedEntryType != null
+              && repeatedEntryType.isStruct()
+              && repeatedEntryType.getFieldNames().contains(queryFieldName)) {
+            return qualified;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     // Validate the call and its arguments, and infer the return type.
     validator.validateCall(unnest, scope);

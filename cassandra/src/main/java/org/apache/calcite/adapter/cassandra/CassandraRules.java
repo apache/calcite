@@ -228,7 +228,7 @@ public class CassandraRules {
           scan.cassandraTable.getClusteringOrder());
     }
 
-    /** Deprecated in favor of {@link CassandraFilterRuleConfig}. **/
+    /** Deprecated in favor of {@link CassandraFilterRuleConfig}. */
     @Deprecated
     public interface Config extends CassandraFilterRuleConfig { }
 
@@ -273,8 +273,7 @@ public class CassandraRules {
           return false;
         }
       }
-
-      return true;
+      return project.getVariablesSet().isEmpty();
     }
 
     @Override public RelNode convert(RelNode rel) {
@@ -363,7 +362,7 @@ public class CassandraRules {
       call.transformTo(convert(sort, filter));
     }
 
-    /** Deprecated in favor of CassandraSortRuleConfig. **/
+    /** Deprecated in favor of CassandraSortRuleConfig. */
     @Deprecated
     public interface Config extends CassandraSortRuleConfig { }
 
@@ -418,7 +417,7 @@ public class CassandraRules {
       call.transformTo(convert(limit));
     }
 
-    /** Deprecated in favor of CassandraLimitRuleConfig. **/
+    /** Deprecated in favor of CassandraLimitRuleConfig. */
     @Deprecated
     public interface Config extends CassandraLimitRuleConfig { }
 

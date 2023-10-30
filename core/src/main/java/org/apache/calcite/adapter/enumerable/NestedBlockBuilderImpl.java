@@ -31,6 +31,7 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
 
   /**
    * Constructs nested block builders starting of a given code block.
+   *
    * @param block root code block
    */
   @SuppressWarnings("method.invocation.invalid")
@@ -41,6 +42,7 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
   /**
    * Starts nested code block. The resulting block can optimize expressions
    * and reuse already calculated values from the parent blocks.
+   *
    * @return new code block that can optimize expressions and reuse already
    * calculated values from the parent blocks.
    */
@@ -53,6 +55,7 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
   /**
    * Uses given block as the new code context.
    * The current block will be restored after {@link #exitBlock()} call.
+   *
    * @param block new code block
    * @see #exitBlock()
    */
@@ -69,6 +72,7 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
 
   /**
    * Leaves the current code block.
+   *
    * @see #nestBlock()
    */
   @Override public final void exitBlock() {

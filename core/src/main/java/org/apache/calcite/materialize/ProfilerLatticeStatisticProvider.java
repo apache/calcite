@@ -79,7 +79,7 @@ class ProfilerLatticeStatisticProvider implements LatticeStatisticProvider {
                 return (List<Comparable>) (List) Arrays.asList(values);
               });
       return profiler.profile(rows, columns, initialGroups);
-    })::get;
+    });
   }
 
   @Override public double cardinality(List<Lattice.Column> columns) {

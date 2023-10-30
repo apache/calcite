@@ -30,30 +30,30 @@ import java.util.Set;
  * <p>A schema can also contain sub-schemas, to any level of nesting. Most
  * providers have a limited number of levels; for example, most JDBC databases
  * have either one level ("schemas") or two levels ("database" and
- * "catalog").</p>
+ * "catalog").
  *
  * <p>There may be multiple overloaded functions with the same name but
  * different numbers or types of parameters.
  * For this reason, {@link #getFunctions} returns a list of all
  * members with the same name. Calcite will call
  * {@link Schemas#resolve(org.apache.calcite.rel.type.RelDataTypeFactory, String, java.util.Collection, java.util.List)}
- * to choose the appropriate one.</p>
+ * to choose the appropriate one.
  *
  * <p>The most common and important type of member is the one with no
  * arguments and a result type that is a collection of records. This is called a
  * <dfn>relation</dfn>. It is equivalent to a table in a relational
- * database.</p>
+ * database.
  *
- * <p>For example, the query</p>
+ * <p>For example, the query
  *
  * <blockquote>select * from sales.emps</blockquote>
  *
  * <p>is valid if "sales" is a registered
  * schema and "emps" is a member with zero parameters and a result type
- * of <code>Collection(Record(int: "empno", String: "name"))</code>.</p>
+ * of <code>Collection(Record(int: "empno", String: "name"))</code>.
  *
  * <p>A schema may be nested within another schema; see
- * {@link Schema#getSubSchema(String)}.</p>
+ * {@link Schema#getSubSchema(String)}.
  */
 public interface Schema {
   /**

@@ -275,7 +275,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    *
    * <p>NOTE: Renamed from {@code groupBy} to distinguish from
    * {@link #groupBy(org.apache.calcite.linq4j.tree.FunctionExpression, org.apache.calcite.linq4j.tree.FunctionExpression)},
-   * which has the same erasure.</p>
+   * which has the same erasure.
    */
   <TKey, TResult> Queryable<TResult> groupByK(
       FunctionExpression<Function1<TSource, TKey>> keySelector,
@@ -445,7 +445,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * out any elements in source that are not of type TResult.
    *
    * <p>NOTE: clazz parameter not present in C# LINQ; necessary because of
-   * Java type erasure.</p>
+   * Java type erasure.
    */
   @Override <TResult> Queryable<TResult> ofType(Class<TResult> clazz);
 
@@ -498,7 +498,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * form by incorporating the element's index.
    *
    * <p>NOTE: Renamed from {@code select} because had same erasure as
-   * {@link #select(org.apache.calcite.linq4j.tree.FunctionExpression)}.</p>
+   * {@link #select(org.apache.calcite.linq4j.tree.FunctionExpression)}.
    */
   <TResult> Queryable<TResult> selectN(
       FunctionExpression<Function2<TSource, Integer, TResult>> selector);
@@ -519,7 +519,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * projected form of that element.
    *
    * <p>NOTE: Renamed from {@code selectMany} because had same erasure as
-   * {@link #selectMany(org.apache.calcite.linq4j.tree.FunctionExpression)}</p>
+   * {@link #selectMany(org.apache.calcite.linq4j.tree.FunctionExpression)}.
    */
   <TResult> Queryable<TResult> selectManyN(
       FunctionExpression<Function2<TSource, Integer, Enumerable<TResult>>>

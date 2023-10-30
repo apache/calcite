@@ -238,6 +238,7 @@ public class PrecedenceClimbingParser {
 
     /**
      * Returns {@code o}.
+     *
      * @return o
      */
     public @Nullable Object o() {

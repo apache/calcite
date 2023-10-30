@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Project;
@@ -40,6 +41,11 @@ class EnumerableProjectRule extends ConverterRule {
   /** Creates an EnumerableProjectRule. */
   protected EnumerableProjectRule(Config config) {
     super(config);
+  }
+
+  @Override public boolean matches(RelOptRuleCall call) {
+    Project project = call.rel(0);
+    return project.getVariablesSet().isEmpty();
   }
 
   @Override public RelNode convert(RelNode rel) {

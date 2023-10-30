@@ -19,6 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.config.CharLiteralStyle;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -37,6 +38,8 @@ import org.apache.calcite.sql.type.AbstractSqlType;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.format.FormatModel;
+import org.apache.calcite.util.format.FormatModels;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
@@ -53,11 +56,12 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * <code>SqlDialect</code> encapsulates the differences between dialects of SQL.
@@ -206,16 +210,13 @@ public class SqlDialect {
    * @param context All the information necessary to create a dialect
    */
   public SqlDialect(Context context) {
-    this.nullCollation = Objects.requireNonNull(context.nullCollation());
-    this.dataTypeSystem = Objects.requireNonNull(context.dataTypeSystem());
-    this.databaseProduct =
-        Objects.requireNonNull(context.databaseProduct());
-    this.literalQuoteString =
-        Objects.requireNonNull(context.literalQuoteString());
-    this.literalEndQuoteString =
-        Objects.requireNonNull(context.literalQuoteString());
+    this.nullCollation = requireNonNull(context.nullCollation());
+    this.dataTypeSystem = requireNonNull(context.dataTypeSystem());
+    this.databaseProduct = requireNonNull(context.databaseProduct());
+    this.literalQuoteString = requireNonNull(context.literalQuoteString());
+    this.literalEndQuoteString = requireNonNull(context.literalQuoteString());
     this.literalEscapedQuote =
-        Objects.requireNonNull(context.literalEscapedQuoteString());
+        requireNonNull(context.literalEscapedQuoteString());
     String identifierQuoteString = context.identifierQuoteString();
     if (identifierQuoteString != null) {
       identifierQuoteString = identifierQuoteString.trim();
@@ -234,8 +235,8 @@ public class SqlDialect {
                 ? null
                 : this.identifierEndQuoteString + this.identifierEndQuoteString
             : context.identifierEscapedQuoteString();
-    this.unquotedCasing = Objects.requireNonNull(context.unquotedCasing());
-    this.quotedCasing = Objects.requireNonNull(context.quotedCasing());
+    this.unquotedCasing = requireNonNull(context.unquotedCasing());
+    this.quotedCasing = requireNonNull(context.quotedCasing());
     this.caseSensitive = context.caseSensitive();
   }
 
@@ -275,6 +276,8 @@ public class SqlDialect {
       return DatabaseProduct.DERBY;
     case "EXASOL":
       return DatabaseProduct.EXASOL;
+    case "FIREBOLT":
+      return DatabaseProduct.FIREBOLT;
     case "HIVE":
       return DatabaseProduct.HIVE;
     case "INGRES":
@@ -288,6 +291,7 @@ public class SqlDialect {
     case "PHOENIX":
       return DatabaseProduct.PHOENIX;
     case "PRESTO":
+    case "AWS.ATHENA":
       return DatabaseProduct.PRESTO;
     case "MYSQL (INFOBRIGHT)":
       return DatabaseProduct.INFOBRIGHT;
@@ -325,7 +329,8 @@ public class SqlDialect {
       return DatabaseProduct.H2;
     } else if (upperProductName.contains("VERTICA")) {
       return DatabaseProduct.VERTICA;
-    } else if (upperProductName.contains("GOOGLE BIGQUERY")) {
+    } else if (upperProductName.contains("GOOGLE BIGQUERY")
+        || upperProductName.contains("GOOGLE BIG QUERY")) {
       return DatabaseProduct.BIG_QUERY;
     } else {
       return DatabaseProduct.UNKNOWN;
@@ -474,8 +479,8 @@ public class SqlDialect {
     writer.sep((SqlKind.PLUS == sqlKind) ? "+" : "-");
     call.operand(1).unparse(writer, leftPrec, rightPrec);
     writer.endList(frame);
-    //Only two parameters are present normally
-    //Checking parameter count to prevent errors
+    // Only two parameters are present normally.
+    // Checking parameter count to prevent errors.
     if (call.getOperandList().size() > 2) {
       call.operand(2).unparse(writer, leftPrec, rightPrec);
     }
@@ -486,6 +491,10 @@ public class SqlDialect {
    * <code>INTERVAL '1 2:3:4' DAY(4) TO SECOND(4)</code>. */
   public void unparseSqlIntervalQualifier(SqlWriter writer,
       SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
+    if (qualifier.timeFrameName != null) {
+      SqlIntervalQualifier.asIdentifier(qualifier).unparse(writer, 0, 0);
+      return;
+    }
     final String start = qualifier.timeUnitRange.startUnit.name();
     final int fractionalSecondPrecision =
         qualifier.getFractionalSecondPrecision(typeSystem);
@@ -682,7 +691,7 @@ public class SqlDialect {
    * @return SQL timestamp literal
    */
   public String quoteTimestampLiteral(Timestamp timestamp) {
-    final SimpleDateFormat format = getDateFormatter("'TIMESTAMP' ''yyyy-MM-DD HH:mm:SS''");
+    final SimpleDateFormat format = getDateFormatter("'TIMESTAMP' ''yyyy-MM-dd HH:mm:ss''");
     return format.format(timestamp);
   }
 
@@ -712,6 +721,26 @@ public class SqlDialect {
     return true;
   }
 
+  /**
+   * Returns whether the dialect supports GROUP BY literals.
+   *
+   * <p>For instance, in {@link DatabaseProduct#REDSHIFT}, the following queries
+   * are illegal:
+   *
+   * <blockquote><pre>{@code
+   * select avg(salary)
+   * from emp
+   * group by true
+   *
+   * select avg(salary)
+   * from emp
+   * group by 'a', DATE '2022-01-01'
+   * }</pre></blockquote>
+   */
+  public boolean supportsGroupByLiteral() {
+    return true;
+  }
+
   public boolean supportsAggregateFunction(SqlKind kind) {
     switch (kind) {
     case COUNT:
@@ -723,6 +752,11 @@ public class SqlDialect {
     default:
       break;
     }
+    return false;
+  }
+
+  /** Returns whether this dialect supports APPROX_COUNT_DISTINCT functions. */
+  public boolean supportsApproxCountDistinct() {
     return false;
   }
 
@@ -817,9 +851,9 @@ public class SqlDialect {
   }
 
   /** Rewrite SINGLE_VALUE into expression based on database variants
-   *  E.g. HSQLDB, MYSQL, ORACLE, etc
+   * E.g. HSQLDB, MYSQL, ORACLE, etc.
    */
-  public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
+  public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
     LOGGER.debug("SINGLE_VALUE rewrite not supported for {}", databaseProduct);
     return aggCall;
   }
@@ -968,6 +1002,18 @@ public class SqlDialect {
       offset.unparse(writer, -1, -1);
       writer.endList(offsetFrame);
     }
+  }
+
+  /**
+   * Returns a description of the format string used by functions in this
+   * dialect.
+   *
+   * <p>Dialects may need to override this element mapping if they differ from
+   * <a href="https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Format-Models.html">
+   * Oracle's format elements</a>. By default, this returns {@link FormatModels#DEFAULT}.
+   */
+  public FormatModel getFormatModel() {
+    return FormatModels.DEFAULT;
   }
 
   /**
@@ -1133,7 +1179,8 @@ public class SqlDialect {
     return config.withQuotedCasing(getQuotedCasing())
         .withUnquotedCasing(getUnquotedCasing())
         .withCaseSensitive(isCaseSensitive())
-        .withConformance(getConformance());
+        .withConformance(getConformance())
+        .withCharLiteralStyles(ImmutableSet.of(CharLiteralStyle.STANDARD));
   }
 
   @Deprecated // to be removed before 2.0
@@ -1280,6 +1327,7 @@ public class SqlDialect {
     DB2("IBM DB2", null, NullCollation.HIGH),
     EXASOL("Exasol", "\"", NullCollation.LOW),
     FIREBIRD("Firebird", null, NullCollation.HIGH),
+    FIREBOLT("Firebolt", "\"", NullCollation.LOW),
     H2("H2", "\"", NullCollation.HIGH),
     HIVE("Apache Hive", null, NullCollation.LOW),
     INFORMIX("Informix", null, NullCollation.HIGH),
@@ -1321,8 +1369,8 @@ public class SqlDialect {
     @SuppressWarnings("argument.type.incompatible")
     DatabaseProduct(String databaseProductName, @Nullable String quoteString,
         NullCollation nullCollation) {
-      Objects.requireNonNull(databaseProductName, "databaseProductName");
-      Objects.requireNonNull(nullCollation, "nullCollation");
+      requireNonNull(databaseProductName, "databaseProductName");
+      requireNonNull(nullCollation, "nullCollation");
       // Note: below lambda accesses uninitialized DatabaseProduct.this, so it might be
       // worth refactoring
       dialect = Suppliers.memoize(() -> {
@@ -1336,7 +1384,7 @@ public class SqlDialect {
             .withDatabaseProductName(databaseProductName)
             .withIdentifierQuoteString(quoteString)
             .withNullCollation(nullCollation));
-      })::get;
+      });
     }
 
     /**
@@ -1425,7 +1473,7 @@ public class SqlDialect {
         SqlConformance conformance, NullCollation nullCollation,
         RelDataTypeSystem dataTypeSystem,
         JethroDataSqlDialect.JethroInfo jethroInfo) {
-      this.databaseProduct = Objects.requireNonNull(databaseProduct, "databaseProduct");
+      this.databaseProduct = requireNonNull(databaseProduct, "databaseProduct");
       this.databaseProductName = databaseProductName;
       this.databaseVersion = databaseVersion;
       this.databaseMajorVersion = databaseMajorVersion;
@@ -1434,13 +1482,13 @@ public class SqlDialect {
       this.literalEscapedQuoteString = literalEscapedQuoteString;
       this.identifierQuoteString = identifierQuoteString;
       this.identifierEscapedQuoteString = identifierEscapedQuoteString;
-      this.quotedCasing = Objects.requireNonNull(quotedCasing, "quotedCasing");
-      this.unquotedCasing = Objects.requireNonNull(unquotedCasing, "unquotedCasing");
+      this.quotedCasing = requireNonNull(quotedCasing, "quotedCasing");
+      this.unquotedCasing = requireNonNull(unquotedCasing, "unquotedCasing");
       this.caseSensitive = caseSensitive;
-      this.conformance = Objects.requireNonNull(conformance, "conformance");
-      this.nullCollation = Objects.requireNonNull(nullCollation, "nullCollation");
-      this.dataTypeSystem = Objects.requireNonNull(dataTypeSystem, "dataTypeSystem");
-      this.jethroInfo = Objects.requireNonNull(jethroInfo, "jethroInfo");
+      this.conformance = requireNonNull(conformance, "conformance");
+      this.nullCollation = requireNonNull(nullCollation, "nullCollation");
+      this.dataTypeSystem = requireNonNull(dataTypeSystem, "dataTypeSystem");
+      this.jethroInfo = requireNonNull(jethroInfo, "jethroInfo");
     }
 
     @Override public DatabaseProduct databaseProduct() {

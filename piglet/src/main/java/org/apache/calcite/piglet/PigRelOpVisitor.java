@@ -160,8 +160,9 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
       // If Pig schema is provided in the load command, convert it into
       // relational row type
       final RelDataType rowType = PigTypes.convertSchema(pigSchema);
-      pigRelOptTable = PigTable.createRelOptTable(builder.getRelOptSchema(),
-          rowType, Arrays.asList(tableNames));
+      pigRelOptTable =
+          PigTable.createRelOptTable(builder.getRelOptSchema(), rowType,
+              Arrays.asList(tableNames));
     }
     builder.scan(pigRelOptTable, tableNames);
     builder.register(load);
@@ -230,8 +231,9 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
       }
       RelDataType groupDataType =
           PigTypes.TYPE_FACTORY.createStructType(fieldTypes, fieldNames);
-      groupRex = builder.getRexBuilder().makeCall(
-          groupDataType, SqlStdOperatorTable.ROW, fieldRexes);
+      groupRex =
+          builder.getRexBuilder().makeCall(groupDataType,
+              SqlStdOperatorTable.ROW, fieldRexes);
     }
     List<RexNode> outputFields = new ArrayList<>();
     List<String> outputNames = new ArrayList<>();
@@ -309,8 +311,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     final ImmutableList<ImmutableBitSet> groupSets =
         (groupType == GroupType.CUBE)
             ? ImmutableList.copyOf(groupSet.powerSet()) : groupsetBuilder.build();
-    RelBuilder.GroupKey groupKey = builder.groupKey(groupSet,
-        (Iterable<ImmutableBitSet>) groupSets);
+    RelBuilder.GroupKey groupKey = builder.groupKey(groupSet, groupSets);
 
     // Finally, do COLLECT aggregate.
     builder.cogroup(ImmutableList.of(groupKey));
@@ -355,8 +356,10 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
       for (LogicalExpressionPlan pigKey : pigGroupKeys) {
         fieldRels.add(PigRelExVisitor.translatePigEx(builder, pigKey));
       }
-      final RexNode row = builder.getRexBuilder().makeCall(getGroupRowType(fieldRels, isCubeRollup),
-          SqlStdOperatorTable.ROW, getGroupRowOperands(fieldRels, isCubeRollup));
+      final RexNode row =
+          builder.getRexBuilder().makeCall(
+              getGroupRowType(fieldRels, isCubeRollup), SqlStdOperatorTable.ROW,
+              getGroupRowOperands(fieldRels, isCubeRollup));
       fieldRels.add(row);
       builder.project(fieldRels);
       builder.updateAlias(builder.getPig(originalRel), builder.getAlias(originalRel), false);

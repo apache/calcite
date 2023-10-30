@@ -22,17 +22,19 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.StructKind;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.util.Pair;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /** ColumnResolver implementation that resolves CompoundNameColumn by simulating
- *  Phoenix behaviors. */
+ * Phoenix behaviors. */
 final class CompoundNameColumnResolver implements MockCatalogReader.ColumnResolver {
   private final Map<String, Integer> nameMap = new HashMap<>();
   private final Map<String, Map<String, Integer>> groupMap = new HashMap<>();
@@ -94,26 +96,19 @@ final class CompoundNameColumnResolver implements MockCatalogReader.ColumnResolv
       }
       index = entry.getValue().get(columnName);
       if (index != null) {
-        ret.add(
-            new Pair<RelDataTypeField, List<String>>(
-                rowType.getFieldList().get(index), remainder));
+        ret.add(new Pair<>(rowType.getFieldList().get(index), remainder));
       }
     }
 
     if (ret.isEmpty() && names.size() == 1) {
       Map<String, Integer> subMap = groupMap.get(columnName);
       if (subMap != null) {
-        List<Map.Entry<String, Integer>> entries =
-            new ArrayList<>(subMap.entrySet());
-        entries.sort((o1, o2) -> o1.getValue() - o2.getValue());
+        PairList<String, Integer> entries = PairList.of(subMap);
+        entries.sort(Comparator.comparingInt(Map.Entry::getValue));
         ret.add(
-            new Pair<RelDataTypeField, List<String>>(
-                new RelDataTypeFieldImpl(
-                    columnName, -1,
-                    createStructType(
-                        rowType,
-                        typeFactory,
-                        entries)),
+            new Pair<>(
+                new RelDataTypeFieldImpl(columnName, -1,
+                    createStructType(rowType, typeFactory, entries)),
                 remainder));
       }
     }

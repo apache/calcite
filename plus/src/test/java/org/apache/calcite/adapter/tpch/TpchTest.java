@@ -36,7 +36,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /** Unit test for {@link org.apache.calcite.adapter.tpch.TpchSchema}.
  *
  * <p>Because the TPC-H data generator takes time and memory to instantiate,
- * tests only run as part of slow tests.</p>
+ * tests only run as part of slow tests.
  */
 class TpchTest {
   public static final boolean ENABLE = TestUtil.getJavaMajorVersion() >= 7;
@@ -63,8 +63,7 @@ class TpchTest {
       + "   ]\n"
       + "}";
 
-  static final List<String> QUERIES = ImmutableList.of(
-      // 01
+  private static final String[] QUERY_ARRAY = {
       "select\n"
           + "  l_returnflag,\n"
           + "  l_linestatus,\n"
@@ -749,7 +748,10 @@ class TpchTest {
           + "group by\n"
           + "  cntrycode\n"
           + "order by\n"
-          + "  cntrycode");
+          + "  cntrycode"};
+
+  static final List<String> QUERIES =
+      ImmutableList.copyOf(QUERY_ARRAY);
 
   @Disabled("it's wasting time")
   @Test void testRegion() {

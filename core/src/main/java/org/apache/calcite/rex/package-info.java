@@ -24,22 +24,21 @@
  * parse tree consisting of {@link org.apache.calcite.sql.SqlNode} objects into
  * a relational expression ({@link org.apache.calcite.rel.RelNode}). Several
  * kinds of nodes in this tree have row expressions
- * ({@link org.apache.calcite.rex.RexNode}).</p>
+ * ({@link org.apache.calcite.rex.RexNode}).
  *
  * <p>After the relational expression has been optimized, a
  * {@link org.apache.calcite.adapter.enumerable.JavaRelImplementor} converts it
  * into to a plan. If the plan is a Java parse tree, row-expressions are
- * translated into equivalent Java expressions.</p>
+ * translated into equivalent Java expressions.
  *
  * <h2>Expressions</h2>
  *
- *
  * <p>Every row-expression has a type. (Compare with
  * {@link org.apache.calcite.sql.SqlNode}, which is created before validation,
- * and therefore types may not be available.)</p>
+ * and therefore types may not be available.)
  *
  * <p>Every node in the parse tree is a {@link org.apache.calcite.rex.RexNode}.
- *     Sub-types are:</p>
+ *     Sub-types are:
  * <ul>
  *     <li>{@link org.apache.calcite.rex.RexLiteral} represents a boolean,
  *         numeric, string, or date constant, or the value <code>NULL</code>.
@@ -67,13 +66,13 @@
  * </ul>
  *
  * <p>Expressions are generally
- *     created using a {@link org.apache.calcite.rex.RexBuilder} factory.</p>
+ *     created using a {@link org.apache.calcite.rex.RexBuilder} factory.
  *
  * <h2>Related packages</h2>
  * <ul>
- *     <li>{@link org.apache.calcite.sql} SQL object model</li>
+ * <li>{@link org.apache.calcite.sql} SQL object model</li>
  *
- *     <li>{@link org.apache.calcite.plan} Core classes, including
+ * <li>{@link org.apache.calcite.plan} Core classes, including
  * {@link org.apache.calcite.rel.type.RelDataType} and
  * {@link org.apache.calcite.rel.type.RelDataTypeFactory}.</li>
  *

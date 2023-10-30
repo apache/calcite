@@ -32,7 +32,7 @@ import java.util.List;
  * A table that can be modified.
  *
  * <p>NOTE: The current API is inefficient and experimental. It will change
- * without notice.</p>
+ * without notice.
  *
  * @see ModifiableView
  */

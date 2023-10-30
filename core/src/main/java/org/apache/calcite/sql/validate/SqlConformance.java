@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.sql.fun.SqlLibrary;
 
 /**
@@ -155,6 +156,7 @@ public interface SqlConformance {
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#DEFAULT},
    * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#BIG_QUERY},
    * {@link SqlConformanceEnum#LENIENT},
    * {@link SqlConformanceEnum#MYSQL_5},
    * {@link SqlConformanceEnum#ORACLE_10},
@@ -255,6 +257,22 @@ public interface SqlConformance {
   boolean isMinusAllowed();
 
   /**
+   * Whether this dialect uses {@code $} (dollar) for indexing capturing groups
+   * in the replacement string of regular expression functions such as
+   * {@code REGEXP_REPLACE}. If false, the dialect uses {@code \\} (backslash)
+   * for indexing capturing groups.
+   *
+   * <p>For example, {@code REGEXP_REPLACE("abc", "a(.)c", "X\\1")} in BigQuery
+   * is equivalent to {@code REGEXP_REPLACE("abc", "a(.)c", "X$1")} in MySQL;
+   * both produce the result "Xb".
+   *
+   * <p>Among the built-in conformance levels, false in
+   * {@link SqlConformanceEnum#BIG_QUERY};
+   * true otherwise.
+   */
+  boolean isRegexReplaceCaptureGroupDollarIndexed();
+
+  /**
    * Whether {@code CROSS APPLY} and {@code OUTER APPLY} operators are allowed
    * in the parser.
    *
@@ -346,6 +364,7 @@ public interface SqlConformance {
 
   /**
    * Whether to allow SQL syntax "{@code ROW(expr1, expr2, expr3)}".
+   *
    * <p>The equivalent syntax in standard SQL is
    * "{@code (expr1, expr2, expr3)}".
    *
@@ -400,6 +419,24 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean isLimitStartCountAllowed();
+
+  /**
+   * Whether to allow the SQL syntax "{@code OFFSET start LIMIT count}"
+   * (that is, {@code OFFSET} before {@code LIMIT},
+   * in addition to {@code LIMIT} before {@code OFFSET}
+   * and {@code OFFSET} before {@code FETCH}).
+   *
+   * <p>The equivalent syntax in standard SQL is
+   * "{@code OFFSET start ROW FETCH FIRST count ROWS ONLY}".
+   *
+   * <p>Trino allows this behavior.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean isOffsetLimitAllowed();
 
   /**
    * Whether to allow geo-spatial extensions, including the GEOMETRY type.
@@ -505,6 +542,18 @@ public interface SqlConformance {
   boolean allowQualifyingCommonColumn();
 
   /**
+   * Whether {@code VALUE} is allowed as an alternative to {@code VALUES} in
+   * the parser.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#MYSQL_5};
+   * false otherwise.
+   */
+  boolean isValueAllowed();
+
+  /**
    * Controls the behavior of operators that are part of Standard SQL but
    * nevertheless have different behavior in different databases.
    *
@@ -529,4 +578,25 @@ public interface SqlConformance {
    * </ul>
    */
   SqlLibrary semantics();
+
+  /**
+   * Whether to allow lenient type coercions.
+   *
+   * <p>Coercions include:
+   * <ul>
+   *
+   * <li>Coercion of string literal to array literal. For example,
+   * {@code SELECT ARRAY[0,1,2] == '{0,1,2}'}
+   *
+   * <li>Casting {@code BOOLEAN} values to one of the following numeric types:
+   * {@code TINYINT}, {@code SMALLINT}, {@code INTEGER}, {@code BIGINT}.
+   *
+   * </ul>
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * false otherwise.
+   */
+  @Experimental
+  boolean allowLenientCoercion();
 }

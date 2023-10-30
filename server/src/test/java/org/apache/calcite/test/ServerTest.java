@@ -29,15 +29,18 @@ import org.apache.calcite.sql.ddl.SqlCreateFunction;
 import org.apache.calcite.sql.ddl.SqlCreateMaterializedView;
 import org.apache.calcite.sql.ddl.SqlCreateSchema;
 import org.apache.calcite.sql.ddl.SqlCreateTable;
+import org.apache.calcite.sql.ddl.SqlCreateTableLike;
 import org.apache.calcite.sql.ddl.SqlCreateType;
 import org.apache.calcite.sql.ddl.SqlCreateView;
 import org.apache.calcite.sql.ddl.SqlDropFunction;
 import org.apache.calcite.sql.ddl.SqlDropMaterializedView;
 import org.apache.calcite.sql.ddl.SqlDropSchema;
+import org.apache.calcite.sql.ddl.SqlTruncateTable;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -50,9 +53,9 @@ import java.util.List;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -93,6 +96,7 @@ class ServerTest {
     executor.execute((SqlNode) o, context);
     executor.execute((SqlCreateFunction) o, context);
     executor.execute((SqlCreateTable) o, context);
+    executor.execute((SqlCreateTableLike) o, context);
     executor.execute((SqlCreateSchema) o, context);
     executor.execute((SqlCreateMaterializedView) o, context);
     executor.execute((SqlCreateView) o, context);
@@ -102,6 +106,7 @@ class ServerTest {
     executor.execute((SqlDropMaterializedView) o, context);
     executor.execute((SqlDropFunction) o, context);
     executor.execute((SqlDropSchema) o, context);
+    executor.execute((SqlTruncateTable) o, context);
   }
 
   @Test void testStatement() throws Exception {
@@ -139,6 +144,57 @@ class ServerTest {
         s.execute("create or replace schema s");
         s.execute("create table s.t (i int not null)");
       }, "REPLACE must overwrite the existing schema");
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5905">[CALCITE-5905]
+   * Documentation for CREATE TYPE is incorrect</a>. */
+  @Test void testCreateTypeDocumentationExample() throws SQLException {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      boolean b = s.execute("CREATE TYPE address_typ AS (\n"
+          + "   street          VARCHAR(30),\n"
+          + "   city            VARCHAR(20),\n"
+          + "   state           CHAR(2),\n"
+          + "   postal_code     VARCHAR(6))");
+      assertThat(b, is(false));
+      b = s.execute("CREATE TYPE employee_typ AS (\n"
+          + "  employee_id       DECIMAL(6),\n"
+          + "  first_name        VARCHAR(20),\n"
+          + "  last_name         VARCHAR(25),\n"
+          + "  email             VARCHAR(25),\n"
+          + "  phone_number      VARCHAR(20),\n"
+          + "  hire_date         DATE,\n"
+          + "  job_id            VARCHAR(10),\n"
+          + "  salary            DECIMAL(8,2),\n"
+          + "  commission_pct    DECIMAL(2,2),\n"
+          + "  manager_id        DECIMAL(6),\n"
+          + "  department_id     DECIMAL(4),\n"
+          + "  address           address_typ)\n");
+      assertThat(b, is(false));
+      try (ResultSet r =
+               s.executeQuery("SELECT employee_typ(315, 'Francis', 'Logan', 'FLOGAN',\n"
+                   + "    '555.777.2222', DATE '2004-05-01', 'SA_MAN', 11000, .15, 101, 110,\n"
+                   + "     address_typ('376 Mission', 'San Francisco', 'CA', '94222'))")) {
+        assertThat(r.next(), is(true));
+        Struct obj = r.getObject(1, Struct.class);
+        Object[] data = obj.getAttributes();
+        assertThat(data[0], is(315));
+        assertThat(data[1], is("Francis"));
+        assertThat(data[2], is("Logan"));
+        assertThat(data[3], is("FLOGAN"));
+        assertThat(data[4], is("555.777.2222"));
+        assertThat(data[5], is(java.sql.Date.valueOf("2004-05-01")));
+        assertThat(data[6], is("SA_MAN"));
+        assertThat(data[7], is(11000));
+        assertThat(data[8], is(new BigDecimal(".15")));
+        assertThat(data[9], is(101));
+        assertThat(data[10], is(110));
+        Struct address = (Struct) data[11];
+        assertArrayEquals(address.getAttributes(),
+            new Object[] { "376 Mission", "San Francisco", "CA", "94222" });
+      }
     }
   }
 
@@ -220,6 +276,177 @@ class ServerTest {
         s.execute("create or replace table t2 (i int not null)");
         s.executeUpdate("insert into t2 values (1)");
       }, "REPLACE must recreate the table, leaving only one column");
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6022">[CALCITE-6022]
+   * Support "CREATE TABLE ... LIKE" DDL in server module</a>. */
+  @Test void testCreateTableLike() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      s.execute("create table t (i int not null)");
+      s.execute("create table t2 like t");
+      int x = s.executeUpdate("insert into t2 values 1");
+      assertThat(x, is(1));
+      x = s.executeUpdate("insert into t2 values 3");
+      assertThat(x, is(1));
+      try (ResultSet r = s.executeQuery("select sum(i) from t2")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getInt(1), is(4));
+        assertThat(r.next(), is(false));
+      }
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6022">[CALCITE-6022]
+   * Support "CREATE TABLE ... LIKE" DDL in server module</a>. */
+  @Test void testCreateTableLikeWithStoredGeneratedColumn() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      s.execute("create table t (\n"
+          + " h int not null,\n"
+          + " i int,\n"
+          + " j int as (i + 1) stored,\n"
+          + " k int default -1)\n");
+      s.execute("create table t2 like t including defaults including generated");
+
+      int x = s.executeUpdate("insert into t2 (h, i) values (3, 4)");
+      assertThat(x, is(1));
+
+      final String sql1 = "explain plan for\n"
+          + "insert into t2 (h, i) values (3, 4)";
+      try (ResultSet r = s.executeQuery(sql1)) {
+        assertThat(r.next(), is(true));
+        final String plan = ""
+            + "EnumerableTableModify(table=[[T2]], operation=[INSERT], flattened=[false])\n"
+            + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], expr#4=[-1], proj#0..1=[{exprs}], J=[$t3], K=[$t4])\n"
+            + "    EnumerableValues(tuples=[[{ 3, 4 }]])\n";
+        assertThat(r.getString(1), isLinux(plan));
+        assertThat(r.next(), is(false));
+      }
+
+      try (ResultSet r = s.executeQuery("select * from t2")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getInt("H"), is(3));
+        assertThat(r.wasNull(), is(false));
+        assertThat(r.getInt("I"), is(4));
+        assertThat(r.getInt("J"), is(5)); // j = i + 1
+        assertThat(r.getInt("K"), is(-1)); // k = -1 (default)
+        assertThat(r.next(), is(false));
+      }
+
+      SQLException e =
+          assertThrows(
+              SQLException.class, () -> s.executeUpdate("insert into t2 values (3, 4, 5, 6)"));
+      assertThat(e.getMessage(), containsString("Cannot INSERT into generated column 'J'"));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6022">[CALCITE-6022]
+   * Support "CREATE TABLE ... LIKE" DDL in server module</a>. */
+  @Test void testCreateTableLikeWithVirtualGeneratedColumn() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      s.execute("create table t (\n"
+          + " h int not null,\n"
+          + " i int,\n"
+          + " j int as (i + 1) virtual)\n");
+      s.execute("create table t2 like t including defaults including generated");
+
+      int x = s.executeUpdate("insert into t2 (h, i) values (3, 4)");
+      assertThat(x, is(1));
+
+      final String sql1 = "explain plan for\n"
+          + "insert into t (h, i) values (3, 4)";
+      try (ResultSet r = s.executeQuery(sql1)) {
+        final String sql2 = "explain plan for\n"
+            + "insert into t2 (h, i) values (3, 4)";
+        assertThat(r.next(), is(true));
+        final String plan = r.getString(1);
+        assertThat(r.next(), is(false));
+
+        ResultSet r2 = s.executeQuery(sql2);
+        assertThat(r2.next(), is(true));
+        assertEquals(plan, r2.getString(1).replace("T2", "T"));
+        assertThat(r2.next(), is(false));
+      }
+
+      try (ResultSet r = s.executeQuery("select * from t2")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getInt("H"), is(3));
+        assertThat(r.wasNull(), is(false));
+        assertThat(r.getInt("I"), is(4));
+        assertThat(r.getInt("J"), is(5)); // j = i + 1
+        assertThat(r.next(), is(false));
+      }
+
+      SQLException e =
+          assertThrows(
+              SQLException.class, () -> s.executeUpdate("insert into t2 values (3, 4, 5)"));
+      assertThat(e.getMessage(), containsString("Cannot INSERT into generated column 'J'"));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6022">[CALCITE-6022]
+   * Support "CREATE TABLE ... LIKE" DDL in server module</a>. */
+  @Test void testCreateTableLikeWithoutLikeOptions() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      s.execute("create table t (\n"
+          + " h int not null,\n"
+          + " i int,\n"
+          + " j int as (i + 1) stored,\n"
+          + " k int default -1)");
+      // In table t2, only copy the column and type information from t,
+      // excluding generated expression and default expression
+      s.execute("create table t2 like t");
+
+      int x = s.executeUpdate("insert into t2 (h, i) values (3, 4)");
+      assertThat(x, is(1));
+
+      final String sql1 = "explain plan for\n"
+          + "insert into t2 (h, i) values (3, 4)";
+      try (ResultSet r = s.executeQuery(sql1)) {
+        assertThat(r.next(), is(true));
+        final String plan = ""
+            + "EnumerableTableModify(table=[[T2]], operation=[INSERT], flattened=[false])\n"
+            + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[null:INTEGER], proj#0..2=[{exprs}], K=[$t2])\n"
+            + "    EnumerableValues(tuples=[[{ 3, 4 }]])\n";
+        assertThat(r.getString(1), isLinux(plan));
+        assertThat(r.next(), is(false));
+      }
+
+      try (ResultSet r = s.executeQuery("select * from t2")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getInt("H"), is(3));
+        assertThat(r.wasNull(), is(false));
+        assertThat(r.getInt("I"), is(4));
+        assertThat(r.getInt("J"), is(0)); // excluding generated column
+        assertThat(r.wasNull(), is(true));
+        assertThat(r.getInt("K"), is(0)); // excluding default column
+        assertThat(r.wasNull(), is(true));
+        assertThat(r.next(), is(false));
+      }
+
+      x = s.executeUpdate("insert into t2 values (3, 4, 5, 6)");
+      assertThat(x, is(1));
+    }
+  }
+
+  @Test void testTruncateTable() throws Exception {
+    try (Connection c = connect();
+        Statement s = c.createStatement()) {
+      final boolean b = s.execute("create table t (i int not null)");
+      assertThat(b, is(false));
+
+      final String errMsg =
+          assertThrows(SQLException.class,
+              () -> s.execute("truncate table t restart identity")).getMessage();
+      assertThat(errMsg, containsString("RESTART IDENTIFY is not supported"));
     }
   }
 
@@ -534,7 +761,7 @@ class ServerTest {
     }
   }
 
-  @Test public void testDropWithFullyQualifiedNameWhenSchemaDoesntExist() throws Exception {
+  @Test void testDropWithFullyQualifiedNameWhenSchemaDoesntExist() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {
       checkDropWithFullyQualifiedNameWhenSchemaDoesntExist(s, "schema", "Schema");

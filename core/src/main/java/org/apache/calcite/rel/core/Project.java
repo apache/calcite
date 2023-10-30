@@ -37,6 +37,7 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
@@ -45,6 +46,7 @@ import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
@@ -53,6 +55,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
@@ -70,6 +73,8 @@ public abstract class Project extends SingleRel implements Hintable {
 
   protected final ImmutableList<RelHint> hints;
 
+  protected final ImmutableSet<CorrelationId> variablesSet;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -81,6 +86,8 @@ public abstract class Project extends SingleRel implements Hintable {
    * @param input    Input relational expression
    * @param projects List of expressions for the input columns
    * @param rowType  Output row type
+   * @param variableSet Correlation variables set by this relational expression
+   *                    to be used by nested expressions
    */
   @SuppressWarnings("method.invocation.invalid")
   protected Project(
@@ -89,25 +96,38 @@ public abstract class Project extends SingleRel implements Hintable {
       List<RelHint> hints,
       RelNode input,
       List<? extends RexNode> projects,
-      RelDataType rowType) {
+      RelDataType rowType,
+      Set<CorrelationId> variableSet) {
     super(cluster, traits, input);
     assert rowType != null;
     this.exps = ImmutableList.copyOf(projects);
     this.hints = ImmutableList.copyOf(hints);
     this.rowType = rowType;
+    this.variablesSet = ImmutableSet.copyOf(variableSet);
     assert isValid(Litmus.THROW, null);
+  }
+
+  @Deprecated // to be removed before 2.0
+  protected Project(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      List<RelHint> hints,
+      RelNode input,
+      List<? extends RexNode> projects,
+      RelDataType rowType) {
+    this(cluster, traits, hints, input, projects, rowType, ImmutableSet.of());
   }
 
   @Deprecated // to be removed before 2.0
   protected Project(RelOptCluster cluster, RelTraitSet traits,
       RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
-    this(cluster, traits, ImmutableList.of(), input, projects, rowType);
+    this(cluster, traits, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
   }
 
   @Deprecated // to be removed before 2.0
   protected Project(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       List<? extends RexNode> projects, RelDataType rowType, int flags) {
-    this(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+    this(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of());
     Util.discard(flags);
   }
 
@@ -120,7 +140,12 @@ public abstract class Project extends SingleRel implements Hintable {
         ImmutableList.of(),
         input.getInput(),
         requireNonNull(input.getExpressionList("exprs"), "exprs"),
-        input.getRowType("exprs", "fields"));
+        input.getRowType("exprs", "fields"),
+        ImmutableSet.copyOf(
+            Util.transform(
+                Optional.ofNullable(input.getIntegerList("variablesSet"))
+                    .orElse(ImmutableList.of()),
+                id -> new CorrelationId(id))));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -189,6 +214,24 @@ public abstract class Project extends SingleRel implements Hintable {
    */
   public final List<Pair<RexNode, String>> getNamedProjects() {
     return Pair.zip(getProjects(), getRowType().getFieldNames());
+  }
+
+  /** Returns a list of project expressions, each of which is wrapped in a
+   * call to {@code AS} if its field name differs from the default.
+   *
+   * <p>This method has a similar effect to {@link #getNamedProjects()},
+   * but the single list is easier to manage.
+   *
+   * @see org.apache.calcite.tools.RelBuilder#alias(RexNode, String)
+   */
+  // TODO: move to RelBuilder?
+  // TODO: replace calls to getNamedProjects
+  public final List<RexNode> getAliasedProjects(RelBuilder b) {
+    final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
+    Pair.forEach(exps, getRowType().getFieldList(), (e, f) -> {
+      builder.add(b.alias(e, f.getName()));
+    });
+    return builder.build();
   }
 
   @Override public ImmutableList<RelHint> getHints() {
@@ -264,8 +307,13 @@ public abstract class Project extends SingleRel implements Hintable {
     return refs.size();
   }
 
+  @Override public Set<CorrelationId> getVariablesSet() {
+    return variablesSet;
+  }
+
   @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
+    pw.itemIf("variablesSet", variablesSet, !variablesSet.isEmpty());
     // Skip writing field names so the optimizer can reuse the projects that differ in
     // field names only
     if (pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES) {

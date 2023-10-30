@@ -103,12 +103,12 @@ public interface FrameworkConfig {
    *
    * <p>If the list is not null, the planner first de-registers any
    * existing {@link RelTraitDef}s, then registers the {@code RelTraitDef}s in
-   * this list.</p>
+   * this list.
    *
    * <p>The order of {@code RelTraitDef}s in the list matters if the
    * planner is VolcanoPlanner. The planner calls {@link RelTraitDef#convert} in
    * the order of this list. The most important trait comes first in the list,
-   * followed by the second most important one, etc.</p>
+   * followed by the second most important one, etc.
    */
   @Nullable ImmutableList<RelTraitDef> getTraitDefs();
 

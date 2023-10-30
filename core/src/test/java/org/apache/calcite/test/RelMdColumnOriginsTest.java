@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.util.Smalls;
 
 import com.google.common.collect.ImmutableMultiset;
 
@@ -43,7 +44,7 @@ class RelMdColumnOriginsTest {
         connection.unwrap(CalciteConnection.class);
 
     calciteConnection.getRootSchema().add("T1",
-        new TableInRootSchemaTest.SimpleTable());
+        new Smalls.SimpleTable());
     Statement statement = calciteConnection.createStatement();
     ResultSet resultSet =
         statement.executeQuery("SELECT TABLE1.ID, TABLE2.ID FROM "

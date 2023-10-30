@@ -76,6 +76,8 @@ public final class GeneratedMetadata_AllPredicatesHandler
       return provider0.getAllPredicates((org.apache.calcite.rel.core.Join) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Project) {
       return provider0.getAllPredicates((org.apache.calcite.rel.core.Project) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.Sample) {
+      return provider0.getAllPredicates((org.apache.calcite.rel.core.Sample) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.SetOp) {
       return provider0.getAllPredicates((org.apache.calcite.rel.core.SetOp) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Sort) {

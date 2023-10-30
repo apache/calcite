@@ -107,8 +107,8 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
 
   @Override public Enumerator<@Nullable Object[]> enumerator() {
     start();
-    final NodeInfo nodeInfo = requireNonNull(nodes.get(rootRel),
-        () -> "nodeInfo for " + rootRel);
+    final NodeInfo nodeInfo =
+        requireNonNull(nodes.get(rootRel), () -> "nodeInfo for " + rootRel);
     final Enumerator<Row> rows;
     if (nodeInfo.rowEnumerable != null) {
       rows = nodeInfo.rowEnumerable.enumerator();
@@ -359,9 +359,10 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
       if (!found) {
         if (p instanceof InterpretableRel) {
           InterpretableRel interpretableRel = (InterpretableRel) p;
-          node = interpretableRel.implement(
-              new InterpretableRel.InterpreterImplementor(this, null,
-                  DataContexts.EMPTY));
+          node =
+              interpretableRel.implement(
+                  new InterpretableRel.InterpreterImplementor(this, null,
+                      DataContexts.EMPTY));
         } else {
           // Probably need to add a visit(XxxRel) method to CoreCompiler.
           throw new AssertionError("interpreter: no implementation for "

@@ -20,10 +20,12 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SqlKind;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -38,9 +40,18 @@ public abstract class Union extends SetOp {
   protected Union(
       RelOptCluster cluster,
       RelTraitSet traits,
+      List<RelHint> hints,
       List<RelNode> inputs,
       boolean all) {
-    super(cluster, traits, inputs, SqlKind.UNION, all);
+    super(cluster, traits, hints, inputs, SqlKind.UNION, all);
+  }
+
+  protected Union(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      List<RelNode> inputs,
+      boolean all) {
+    super(cluster, traits, Collections.emptyList(), inputs, SqlKind.UNION, all);
   }
 
   /**

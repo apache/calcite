@@ -140,9 +140,9 @@ public class EnumerableBatchNestedLoopJoinRule
 
     call.transformTo(
         EnumerableBatchNestedLoopJoin.create(
-            convert(join.getLeft(), join.getLeft().getTraitSet()
+            convert(call.getPlanner(), join.getLeft(), join.getLeft().getTraitSet()
                 .replace(EnumerableConvention.INSTANCE)),
-            convert(right, right.getTraitSet()
+            convert(call.getPlanner(), right, right.getTraitSet()
                 .replace(EnumerableConvention.INSTANCE)),
             join.getCondition(),
             requiredColumns.build(),

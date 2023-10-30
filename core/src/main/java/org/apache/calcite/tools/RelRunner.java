@@ -29,15 +29,9 @@ import java.sql.SQLException;
  * @see RelRunners
  */
 public interface RelRunner {
-  /** Prepares a statement based on a relational expression. */
-  @Deprecated // to be removed before 1.28
-  PreparedStatement prepare(RelNode rel);
-
   /** Prepares a statement based on a relational expression.
    *
    * @param rel Relational expression
    * @throws SQLException on error */
-  default PreparedStatement prepareStatement(RelNode rel) throws SQLException {
-    return prepare(rel);
-  }
+  PreparedStatement prepareStatement(RelNode rel) throws SQLException;
 }

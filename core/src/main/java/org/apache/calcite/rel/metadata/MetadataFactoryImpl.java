@@ -35,7 +35,7 @@ import java.util.concurrent.ExecutionException;
  *
  * <p>The cache does not store metadata. It remembers which providers can
  * provide which kinds of metadata, for which kinds of relational
- * expressions.</p>
+ * expressions.
  *
  * @deprecated Use {@link RelMetadataQuery}.
  */

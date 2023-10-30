@@ -27,15 +27,16 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
 import java.util.Calendar;
 import java.util.Set;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasToString;
+import static org.hamcrest.core.IsInstanceOf.any;
 
 /** Unit tests for {@link DateRangeRules} algorithms. */
 class DateRangeRulesTest {
@@ -665,7 +666,7 @@ class DateRangeRulesTest {
             f.timestampLocalTzLiteral(TimestampString.fromCalendarFields(c))),
         "IST",
         is("AND(>=($9, 2010-02-01 17:00:00), <($9, 2010-02-01 18:00:00))"),
-        CoreMatchers.any(String.class));
+        any(String.class));
 
     c.clear();
     c.set(2010, Calendar.FEBRUARY, 1, 11, 00, 0);
@@ -674,7 +675,7 @@ class DateRangeRulesTest {
             f.timestampLiteral(TimestampString.fromCalendarFields(c))),
         "IST",
         is("AND(>=($9, 2010-02-01 11:00:00), <($9, 2010-02-01 12:00:00))"),
-        CoreMatchers.any(String.class));
+        any(String.class));
 
     c.clear();
     c.set(2010, Calendar.FEBRUARY, 1, 00, 00, 0);
@@ -682,7 +683,7 @@ class DateRangeRulesTest {
         f.eq(f.floorHour, f.dateLiteral(DateString.fromCalendarFields(c))),
         "IST",
         is("AND(>=($9, 2010-02-01 00:00:00), <($9, 2010-02-01 01:00:00))"),
-        CoreMatchers.any(String.class));
+        any(String.class));
   }
 
   private static Set<TimeUnitRange> set(TimeUnitRange... es) {
@@ -690,15 +691,15 @@ class DateRangeRulesTest {
   }
 
   private void checkDateRange(Fixture f, RexNode e, Matcher<String> matcher) {
-    checkDateRange(f, e, "UTC", matcher, CoreMatchers.any(String.class));
+    checkDateRange(f, e, "UTC", matcher, any(String.class));
   }
 
   private void checkDateRange(Fixture f, RexNode e, String timeZone,
       Matcher<String> matcher, Matcher<String> simplifyMatcher) {
     e = DateRangeRules.replaceTimeUnits(f.rexBuilder, e, timeZone);
-    assertThat(e.toString(), matcher);
+    assertThat(e, hasToString(matcher));
     final RexNode e2 = f.simplify.simplify(e);
-    assertThat(e2.toString(), simplifyMatcher);
+    assertThat(e2, hasToString(simplifyMatcher));
   }
 
   /** Common expressions across tests. */
@@ -723,44 +724,56 @@ class DateRangeRulesTest {
     private final RexNode ceilMinute;
 
     Fixture2() {
-      exYearTs = rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), ts));
-      exMonthTs = rexBuilder.makeCall(intRelDataType,
-          SqlStdOperatorTable.EXTRACT,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), ts));
-      exDayTs = rexBuilder.makeCall(intRelDataType,
-          SqlStdOperatorTable.EXTRACT,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), ts));
-      exYearD = rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), d));
-      exMonthD = rexBuilder.makeCall(intRelDataType,
-          SqlStdOperatorTable.EXTRACT,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), d));
-      exDayD = rexBuilder.makeCall(intRelDataType,
-          SqlStdOperatorTable.EXTRACT,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), d));
+      exYearTs =
+          rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), ts));
+      exMonthTs =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), ts));
+      exDayTs =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), ts));
+      exYearD =
+          rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), d));
+      exMonthD =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), d));
+      exDayD =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), d));
 
-      floorYear = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.YEAR)));
-      floorMonth = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MONTH)));
-      floorDay = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.DAY)));
-      floorHour = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.HOUR)));
-      floorMinute = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MINUTE)));
+      floorYear =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+              ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.YEAR)));
+      floorMonth =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+              ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MONTH)));
+      floorDay =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+              ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.DAY)));
+      floorHour =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+              ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.HOUR)));
+      floorMinute =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.FLOOR,
+              ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MINUTE)));
 
-      ceilYear = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.YEAR)));
-      ceilMonth = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MONTH)));
-      ceilDay = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.DAY)));
-      ceilHour = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.HOUR)));
-      ceilMinute = rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
-          ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MINUTE)));
+      ceilYear =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
+              ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.YEAR)));
+      ceilMonth =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
+              ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MONTH)));
+      ceilDay =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
+              ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.DAY)));
+      ceilHour =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
+              ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.HOUR)));
+      ceilMinute =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.CEIL,
+              ImmutableList.of(ts, rexBuilder.makeFlag(TimeUnitRange.MINUTE)));
     }
   }
 }

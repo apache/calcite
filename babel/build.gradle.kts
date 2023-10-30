@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import com.github.autostyle.gradle.AutostyleTask
+
 plugins {
     id("com.github.vlsi.ide")
     calcite.fmpp
@@ -29,7 +31,7 @@ dependencies {
 
     testImplementation("net.hydromatic:quidem")
     testImplementation("net.hydromatic:scott-data-hsqldb")
-    testImplementation("org.hsqldb:hsqldb")
+    testImplementation("org.hsqldb:hsqldb::jdk8")
     testImplementation("org.incava:java-diff")
     testImplementation(project(":testkit"))
 
@@ -37,7 +39,7 @@ dependencies {
 }
 
 val fmppMain by tasks.registering(org.apache.calcite.buildtools.fmpp.FmppTask::class) {
-    inputs.dir("src/main/codegen")
+    inputs.dir("src/main/codegen").withPathSensitivity(PathSensitivity.RELATIVE)
     config.set(file("src/main/codegen/config.fmpp"))
     templates.set(file("$rootDir/core/src/main/codegen/templates"))
 }
@@ -50,6 +52,15 @@ val javaCCMain by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCT
     }
     inputFile.from(parserFile)
     packageName.set("org.apache.calcite.sql.parser.babel")
+}
+
+tasks.withType<Checkstyle>().matching { it.name == "checkstyleMain" }
+    .configureEach {
+        mustRunAfter(javaCCMain)
+    }
+
+tasks.withType<AutostyleTask>().configureEach {
+    mustRunAfter(javaCCMain)
 }
 
 ide {

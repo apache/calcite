@@ -21,7 +21,8 @@ import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
 import com.mongodb.AuthenticationMechanism;
-import com.mongodb.MongoClientOptions;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
 
 import java.util.Map;
@@ -29,7 +30,7 @@ import java.util.Map;
 /**
  * Factory that creates a {@link MongoSchema}.
  *
- * <p>Allows a custom schema to be included in a model.json file.</p>
+ * <p>Allows a custom schema to be included in a model.json file.
  */
 public class MongoSchemaFactory implements SchemaFactory {
   // public constructor, per factory contract
@@ -42,16 +43,16 @@ public class MongoSchemaFactory implements SchemaFactory {
     final String database = (String) operand.get("database");
     final String authMechanismName = (String) operand.get("authMechanism");
 
-    final MongoClientOptions.Builder options = MongoClientOptions.builder();
+    final MongoClientSettings.Builder settings =
+        MongoClientSettings
+            .builder()
+            .applyConnectionString(new ConnectionString(host));
 
-    final MongoCredential credential;
     if (authMechanismName != null) {
-      credential = createCredential(operand);
-    } else {
-      credential = null;
+      settings.credential(createCredential(operand));
     }
 
-    return new MongoSchema(host, database, credential, options.build());
+    return new MongoSchema(settings.build(), database);
   }
 
   private static MongoCredential createCredential(Map<String, Object> map) {

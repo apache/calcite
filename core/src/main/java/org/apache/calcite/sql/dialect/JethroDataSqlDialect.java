@@ -38,8 +38,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlDialect</code> implementation for the JethroData database.
@@ -128,7 +129,7 @@ public class JethroDataSqlDialect extends SqlDialect {
     private final List<SqlTypeName> operandTypes;
 
     JethroSupportedFunction(String name, String operands) {
-      Objects.requireNonNull(name, "name"); // not currently used
+      requireNonNull(name, "name"); // not currently used
       final ImmutableList.Builder<SqlTypeName> b = ImmutableList.builder();
       for (String strType : operands.split(":")) {
         b.add(parse(strType));
@@ -205,12 +206,11 @@ public class JethroDataSqlDialect extends SqlDialect {
         final Multimap<String, JethroSupportedFunction> supportedFunctions =
             LinkedHashMultimap.create();
         while (functionsTupleSet.next()) {
-          String functionName = Objects.requireNonNull(
-              functionsTupleSet.getString(1),
-              "functionName");
-          String operandsType = Objects.requireNonNull(
-              functionsTupleSet.getString(3),
-              () -> "operands for " + functionName);
+          String functionName =
+              requireNonNull(functionsTupleSet.getString(1), "functionName");
+          String operandsType =
+              requireNonNull(functionsTupleSet.getString(3),
+                  () -> "operands for " + functionName);
           supportedFunctions.put(functionName,
               new JethroSupportedFunction(functionName, operandsType));
         }
@@ -227,8 +227,8 @@ public class JethroDataSqlDialect extends SqlDialect {
 
   /** Information about the capabilities of a Jethro database. */
   public static class JethroInfo {
-    public static final JethroInfo EMPTY = new JethroInfo(
-        ImmutableSetMultimap.of());
+    public static final JethroInfo EMPTY =
+        new JethroInfo(ImmutableSetMultimap.of());
 
     private final ImmutableSetMultimap<String, JethroSupportedFunction> supportedFunctions;
 

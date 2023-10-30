@@ -127,7 +127,7 @@ public class Like {
       return;
     }
     if (SQL_SIMILAR_SPECIALS.indexOf(escapeChar) >= 0) {
-      // The the escape character is a special character
+      // The escape character is a special character
       // SQL 2003 Part 2 Section 8.6 General Rule 3.b
       for (int i = 0; i < sqlPattern.length(); i++) {
         if (sqlPattern.charAt(i) == escapeChar) {
@@ -278,11 +278,9 @@ public class Like {
         case '[':
           javaPattern.append('[');
           insideCharacterEnumeration = true;
-          i = sqlSimilarRewriteCharEnumeration(
-              sqlPattern,
-              javaPattern,
-              i,
-              escapeChar);
+          i =
+              sqlSimilarRewriteCharEnumeration(sqlPattern, javaPattern,
+                  i, escapeChar);
           break;
         case ']':
           if (!insideCharacterEnumeration) {
@@ -312,16 +310,22 @@ public class Like {
     return javaPattern.toString();
   }
 
-  static java.util.regex.Pattern posixRegexToPattern(String regex, boolean caseSensitive) {
+  static java.util.regex.Pattern posixRegexToPattern(String regex,
+      boolean caseSensitive) {
+    int flags = caseSensitive ? 0 : java.util.regex.Pattern.CASE_INSENSITIVE;
+    return posixRegexToPattern(regex, flags);
+  }
+
+  static java.util.regex.Pattern posixRegexToPattern(String regex, int flags) {
     // Replace existing character classes with java equivalent ones
     String originalRegex = regex;
     String[] existingExpressions = Arrays.stream(POSIX_CHARACTER_CLASSES)
-        .filter(v -> originalRegex.contains(v.toLowerCase(Locale.ROOT))).toArray(String[]::new);
+        .filter(v -> originalRegex.contains(v.toLowerCase(Locale.ROOT)))
+        .toArray(String[]::new);
     for (String v : existingExpressions) {
       regex = regex.replace(v.toLowerCase(Locale.ROOT), "\\p{" + v + "}");
     }
 
-    int flags = caseSensitive ? 0 : java.util.regex.Pattern.CASE_INSENSITIVE;
     return java.util.regex.Pattern.compile(regex, flags);
   }
 }

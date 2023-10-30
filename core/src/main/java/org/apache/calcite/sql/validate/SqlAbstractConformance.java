@@ -101,6 +101,14 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.isLimitStartCountAllowed();
   }
 
+  @Override public boolean isOffsetLimitAllowed() {
+    return SqlConformanceEnum.DEFAULT.isOffsetLimitAllowed();
+  }
+
+  @Override public boolean isRegexReplaceCaptureGroupDollarIndexed() {
+    return SqlConformanceEnum.DEFAULT.isRegexReplaceCaptureGroupDollarIndexed();
+  }
+
   @Override public boolean isPercentRemainderAllowed() {
     return SqlConformanceEnum.DEFAULT.isPercentRemainderAllowed();
   }
@@ -129,8 +137,15 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowAliasUnnestItems();
   }
 
+  @Override public boolean isValueAllowed() {
+    return SqlConformanceEnum.DEFAULT.isValueAllowed();
+  }
+
   @Override public SqlLibrary semantics() {
     return SqlConformanceEnum.DEFAULT.semantics();
   }
 
+  @Override public boolean allowLenientCoercion() {
+    return SqlConformanceEnum.DEFAULT.allowLenientCoercion();
+  }
 }

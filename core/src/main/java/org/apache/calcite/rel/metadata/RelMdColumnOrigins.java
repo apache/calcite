@@ -25,10 +25,13 @@ import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
@@ -149,7 +152,7 @@ public class RelMdColumnOrigins
       }
     };
     final List<RexNode> projects = new ArrayList<>();
-    for (RexNode rex: rexShuttle.apply(rel.getProgram().getProjectList())) {
+    for (RexNode rex : rexShuttle.apply(rel.getProgram().getProjectList())) {
       projects.add(rex);
     }
     final RexNode rexNode = projects.get(iOutputColumn);
@@ -161,6 +164,16 @@ public class RelMdColumnOrigins
     // Anything else is a derivation, possibly from multiple columns.
     final Set<RelColumnOrigin> set = getMultipleColumns(rexNode, input, mq);
     return createDerivedColumnOrigins(set);
+  }
+
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(TableScan scan,
+      RelMetadataQuery mq, int iOutputColumn) {
+    final BuiltInMetadata.ColumnOrigin.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.ColumnOrigin.Handler.class);
+    if (handler != null) {
+      return handler.getColumnOrigins(scan, mq, iOutputColumn);
+    }
+    return getColumnOrigins((RelNode) scan, mq, iOutputColumn);
   }
 
   public @Nullable Set<RelColumnOrigin> getColumnOrigins(Filter rel,
@@ -179,6 +192,16 @@ public class RelMdColumnOrigins
   }
 
   public @Nullable Set<RelColumnOrigin> getColumnOrigins(Exchange rel,
+      RelMetadataQuery mq, int iOutputColumn) {
+    return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
+  }
+
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(Sample rel,
+      RelMetadataQuery mq, int iOutputColumn) {
+    return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
+  }
+
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(Snapshot rel,
       RelMetadataQuery mq, int iOutputColumn) {
     return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
   }

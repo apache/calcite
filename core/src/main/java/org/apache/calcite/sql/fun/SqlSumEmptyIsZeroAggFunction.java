@@ -71,7 +71,7 @@ public class SqlSumEmptyIsZeroAggFunction extends SqlAggFunction {
   }
 
   @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
-    if (clazz == SqlSplittableAggFunction.class) {
+    if (clazz.isInstance(SqlSplittableAggFunction.Sum0Splitter.INSTANCE)) {
       return clazz.cast(SqlSplittableAggFunction.Sum0Splitter.INSTANCE);
     }
     return super.unwrap(clazz);

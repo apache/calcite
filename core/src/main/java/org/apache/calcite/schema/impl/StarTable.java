@@ -50,11 +50,11 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  *
  * <p>Star tables do not occur in end-user queries. They are introduced by the
  * optimizer to help matching queries to materializations, and used only
- * during the planning process.</p>
+ * during the planning process.
  *
  * <p>When a materialization is defined, if it involves a join, it is converted
  * to a query on top of a star table. Queries that are candidates to map onto
- * the materialization are mapped onto the same star table.</p>
+ * the materialization are mapped onto the same star table.
  */
 public class StarTable extends AbstractTable implements TranslatableTable {
   public final Lattice lattice;

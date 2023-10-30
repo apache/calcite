@@ -18,7 +18,6 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
@@ -29,6 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -124,6 +124,7 @@ public class RelOptPredicateList {
 
   /**
    * Returns true if given predicate list is empty.
+   *
    * @param value input predicate list
    * @return true if all the predicates are empty or if the argument is null
    */
@@ -234,13 +235,13 @@ public class RelOptPredicateList {
       }
     }
     if (SqlKind.COMPARISON.contains(e.getKind())) {
-      // A comparison with a (non-null) literal, such as 'ref < 10', is not null if 'ref'
-      // is not null.
-      RexCall call = (RexCall) e;
-      if (call.getOperands().get(1) instanceof RexLiteral
-          && !((RexLiteral) call.getOperands().get(1)).isNull()) {
-        return isEffectivelyNotNull(call.getOperands().get(0));
+      List<RexNode> operands = ((RexCall) e).getOperands();
+      for (RexNode operand : operands) {
+        if (!isEffectivelyNotNull(operand)) {
+          return false;
+        }
       }
+      return true;
     }
     return false;
   }

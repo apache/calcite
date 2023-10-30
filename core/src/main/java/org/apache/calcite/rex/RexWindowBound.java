@@ -38,6 +38,7 @@ public abstract class RexWindowBound {
 
   /**
    * Returns if the bound is unbounded.
+   *
    * @return if the bound is unbounded
    */
   @Pure
@@ -49,6 +50,7 @@ public abstract class RexWindowBound {
 
   /**
    * Returns if the bound is PRECEDING.
+   *
    * @return if the bound is PRECEDING
    */
   public boolean isPreceding() {
@@ -57,6 +59,7 @@ public abstract class RexWindowBound {
 
   /**
    * Returns if the bound is FOLLOWING.
+   *
    * @return if the bound is FOLLOWING
    */
   public boolean isFollowing() {
@@ -65,6 +68,7 @@ public abstract class RexWindowBound {
 
   /**
    * Returns if the bound is CURRENT ROW.
+   *
    * @return if the bound is CURRENT ROW
    */
   @Pure

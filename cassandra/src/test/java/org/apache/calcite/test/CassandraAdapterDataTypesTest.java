@@ -30,7 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.cassandra} package related to data types.
@@ -195,8 +195,9 @@ class CassandraAdapterDataTypesTest {
 
   @Test void testCollectionsInnerValues() {
     // timestamp retrieval depends on the user timezone, we must compute the expected result
-    long v = Objects.requireNonNull(
-        TypeCodecs.TIMESTAMP.parse("'2015-05-03 13:30:54.234'")).toEpochMilli();
+    long v =
+        requireNonNull(TypeCodecs.TIMESTAMP.parse("'2015-05-03 13:30:54.234'"))
+            .toEpochMilli();
     String expectedTimestamp = DateTimeUtils.unixTimestampToString(v);
 
     CalciteAssert.that()

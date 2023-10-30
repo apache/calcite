@@ -232,7 +232,7 @@ class PigRelOpTest extends PigRelTestBase {
     final String sql = ""
         + "SELECT *\n"
         + "FROM scott.DEPT\n"
-        + "WHERE RAND() < 0.5";
+        + "WHERE RAND() < 5E-1";
     pig(script).assertRel(hasTree(plan))
         .assertSql(is(sql));
   }
@@ -479,14 +479,14 @@ class PigRelOpTest extends PigRelTestBase {
         + "HIREDATE, SAL, COMM, DEPTNO)) AS A\n"
         + "        FROM scott.EMP\n"
         + "        GROUP BY DEPTNO) AS $cor4,\n"
-        + "      LATERAL (SELECT COLLECT(ROW(ENAME, JOB, DEPTNO, SAL)) AS X\n"
-        + "        FROM (SELECT ENAME, JOB, DEPTNO, SAL\n"
+        + "      LATERAL (SELECT X\n"
+        + "        FROM (SELECT 'all' AS $f0, COLLECT(ROW(ENAME, JOB, DEPTNO, SAL)) AS X\n"
         + "            FROM UNNEST (SELECT $cor4.A AS $f0\n"
         + "                FROM (VALUES (0)) AS t (ZERO)) "
         + "AS t2 (EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO)\n"
         + "            WHERE JOB <> 'CLERK'\n"
-        + "            ORDER BY SAL) AS t5\n"
-        + "        GROUP BY 'all') AS t8) AS $cor5,\n"
+        + "            GROUP BY 'all'\n"
+        + "            ORDER BY SAL) AS t7) AS t8) AS $cor5,\n"
         + "  LATERAL UNNEST (SELECT $cor5.X AS $f0\n"
         + "    FROM (VALUES (0)) AS t (ZERO)) "
         + "AS t11 (ENAME, JOB, DEPTNO, SAL) AS t110\n"
@@ -977,7 +977,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "({20, ANALYST},2)\n"
         + "({10, MANAGER},1)\n"
         + "({null, CLERK},4)\n"
-        + "({null, null},14)\n"
+        + "(null,14)\n"
         + "({20, null},5)\n"
         + "({10, PRESIDENT},1)\n"
         + "({null, ANALYST},2)\n"
@@ -1028,7 +1028,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "({20, ANALYST},2)\n"
         + "({10, MANAGER},1)\n"
         + "({null, CLERK},4)\n"
-        + "({null, null},14)\n"
+        + "(null,14)\n"
         + "({10, PRESIDENT},1)\n"
         + "({null, ANALYST},2)\n"
         + "({null, SALESMAN},4)\n"
@@ -1362,7 +1362,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "BIGINT) AS $f1, CAST(SUM(SAL) AS DECIMAL(19, 0)) AS salSum\n"
         + "FROM scott.EMP\n"
         + "GROUP BY DEPTNO, MGR, HIREDATE\n"
-        + "ORDER BY CAST(SUM(SAL) AS DECIMAL(19, 0))";
+        + "ORDER BY 3";
     pig(script).assertResult(is(result))
         .assertSql(is(sql));
   }
@@ -1480,7 +1480,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "(19, 0)) AS salAvg\n"
         + "FROM scott.EMP\n"
         + "GROUP BY DEPTNO, MGR, HIREDATE\n"
-        + "ORDER BY CAST(SUM(SAL) AS DECIMAL(19, 0))";
+        + "ORDER BY 3";
     pig(script).assertRel(hasTree(plan))
         .assertOptimizedRel(hasTree(optimizedPlan))
         .assertResult(is(result))
@@ -1501,7 +1501,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "AS A\n"
         + "FROM scott.EMP\n"
         + "GROUP BY DEPTNO, MGR, HIREDATE\n"
-        + "ORDER BY CAST(SUM(SAL) AS DECIMAL(19, 0))";
+        + "ORDER BY 3";
     pig(script2).assertSql(is(sql2));
 
     final String script3 = ""
@@ -1551,7 +1551,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "COLLECT(COMM) AS comArray, CAST(SUM(SAL) AS DECIMAL(19, 0)) AS salSum\n"
         + "FROM scott.EMP\n"
         + "GROUP BY DEPTNO, MGR, HIREDATE\n"
-        + "ORDER BY CAST(SUM(SAL) AS DECIMAL(19, 0))";
+        + "ORDER BY 7";
     pig(script).assertRel(hasTree(plan))
         .assertOptimizedRel(hasTree(optimizedPlan))
         .assertSql(is(sql));
@@ -1610,7 +1610,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "    FROM scott.DEPT\n"
         + "    WHERE DEPTNO >= 20\n"
         + "    GROUP BY CAST(DEPTNO AS INTEGER)) AS t7 ON t4.DEPTNO = t7.DEPTNO\n"
-        + "ORDER BY CASE WHEN t4.DEPTNO IS NOT NULL THEN t4.DEPTNO ELSE t7.DEPTNO END";
+        + "ORDER BY 1";
     pig(script).assertRel(hasTree(plan))
         .assertResult(is(result))
         .assertSql(is(sql));

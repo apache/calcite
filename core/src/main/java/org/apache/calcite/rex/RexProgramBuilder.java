@@ -141,9 +141,10 @@ public class RexProgramBuilder {
     // Register the condition, if there is one.
     if (condition != null) {
       if (simplify != null) {
-        condition = simplify.simplify(
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE,
-                condition.accept(expander)));
+        condition =
+            simplify.simplify(
+                rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE,
+                    condition.accept(expander)));
         if (condition.isAlwaysTrue()) {
           condition = null;
         }
@@ -268,7 +269,7 @@ public class RexProgramBuilder {
    * Sets the condition of the program.
    *
    * <p>The expression must be specified in terms of the input fields. If
-   * not, call {@link #registerOutput(RexNode)} first.</p>
+   * not, call {@link #registerOutput(RexNode)} first.
    */
   public void addCondition(RexNode expr) {
     assert expr != null;
@@ -293,9 +294,9 @@ public class RexProgramBuilder {
   /**
    * Registers an expression in the list of common sub-expressions, and
    * returns a reference to that expression.
-
+   *
    * <p>The expression must be expressed in terms of the <em>inputs</em> of
-   * this program.</p>
+   * this program.
    */
   public RexLocalRef registerInput(RexNode expr) {
     final RexShuttle shuttle = new RegisterInputShuttle(true);
@@ -554,8 +555,8 @@ public class RexProgramBuilder {
       boolean simplify_) {
     RexSimplify simplify = null;
     if (simplify_) {
-      simplify = new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY,
-          RexUtil.EXECUTOR);
+      simplify =
+          new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR);
     }
     return new RexProgramBuilder(rexBuilder, inputRowType, exprList,
         projectList, condition, outputRowType, normalize, simplify);
@@ -738,7 +739,7 @@ public class RexProgramBuilder {
    *             6: ($2 = 6)  // c = 6
    * </pre></blockquote>
    *
-   * <p>Another example:</p>
+   * <p>Another example:
    *
    * <blockquote>
    * <pre>SELECT *
@@ -825,7 +826,7 @@ public class RexProgramBuilder {
   /**
    * Removes all project items.
    *
-   * <p>After calling this method, you may need to re-normalize.</p>
+   * <p>After calling this method, you may need to re-normalize.
    */
   public void clearProjects() {
     projectRefList.clear();
@@ -835,7 +836,7 @@ public class RexProgramBuilder {
   /**
    * Clears the condition.
    *
-   * <p>After calling this method, you may need to re-normalize.</p>
+   * <p>After calling this method, you may need to re-normalize.
    */
   public void clearCondition() {
     conditionRef = null;

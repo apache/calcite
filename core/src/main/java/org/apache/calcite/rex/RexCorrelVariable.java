@@ -29,7 +29,7 @@ import java.util.Objects;
  *
  * <p>Correlating variables are introduced when performing nested loop joins.
  * Each row is received from one side of the join, a correlating variable is
- * assigned a value, and the other side of the join is restarted.</p>
+ * assigned a value, and the other side of the join is restarted.
  */
 public class RexCorrelVariable extends RexVariable {
   public final CorrelationId id;

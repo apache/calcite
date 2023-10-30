@@ -38,7 +38,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>There are fields for the native class (e.g. <code>int</code>, also
  * known as {@link Integer#TYPE}) and the boxing class
- * (e.g. {@link Integer}).</p>
+ * (e.g. {@link Integer}).
  */
 public enum Primitive {
   BOOLEAN(Boolean.TYPE, Boolean.class, 1, false, false, null, null, true, -1),
@@ -364,6 +364,35 @@ public enum Primitive {
   public static List<Double> asList(double[] elements) {
     //noinspection unchecked
     return (List<Double>) asList((Object) elements);
+  }
+
+  /**
+   * Converts a number into a value of the type
+   * specified by this primitive.
+   *
+   * @param value  Value to convert.
+   * @return       The converted value, or null if the
+   *               conversion cannot be performed.
+   */
+  public @Nullable Object numberValue(Number value) {
+    switch (this) {
+    case BYTE:
+      return value.byteValue();
+    case CHAR:
+      return (char) value.intValue();
+    case SHORT:
+      return value.shortValue();
+    case INT:
+      return value.intValue();
+    case LONG:
+      return value.longValue();
+    case FLOAT:
+      return value.floatValue();
+    case DOUBLE:
+      return value.doubleValue();
+    default:
+      return null;
+    }
   }
 
   /**

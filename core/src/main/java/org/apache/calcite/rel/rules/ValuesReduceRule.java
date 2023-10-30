@@ -54,12 +54,12 @@ import static java.util.Objects.requireNonNull;
  * <p>Returns a simplified {@code Values}, perhaps containing zero tuples
  * if all rows are filtered away.
  *
- * <p>For example,</p>
+ * <p>For example,
  *
  * <blockquote><code>select a - b from (values (1, 2), (3, 5), (7, 11)) as t (a,
  * b) where a + b &gt; 4</code></blockquote>
  *
- * <p>becomes</p>
+ * <p>becomes
  *
  * <blockquote><code>select x from (values (-2), (-4))</code></blockquote>
  *
@@ -156,9 +156,9 @@ public class ValuesReduceRule
           ++k;
           RexNode e = projectExpr.accept(shuttle);
           if (RexLiteral.isNullLiteral(e)) {
-            e = rexBuilder.makeAbstractCast(
-                project.getRowType().getFieldList().get(k).getType(),
-                e);
+            RelDataType type =
+                project.getRowType().getFieldList().get(k).getType();
+            e = rexBuilder.makeAbstractCast(type, e, false);
           }
           reducibleExps.add(e);
         }

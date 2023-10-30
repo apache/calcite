@@ -26,12 +26,12 @@ import java.util.List;
  * Type of the cartesian product of two or more sets of records.
  *
  * <p>Its fields are those of its constituent records, but unlike a
- * {@link RelRecordType}, those fields' names are not necessarily distinct.</p>
+ * {@link RelRecordType}, those fields' names are not necessarily distinct.
  */
 public class RelCrossType extends RelDataTypeImpl {
   //~ Instance fields --------------------------------------------------------
 
-  public final ImmutableList<RelDataType> types;
+  private final ImmutableList<RelDataType> types;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -56,6 +56,15 @@ public class RelCrossType extends RelDataTypeImpl {
 
   @Override public boolean isStruct() {
     return false;
+  }
+
+  /**
+   * Returns the contained types.
+   *
+   * @return data types.
+   */
+  public List<RelDataType> getTypes() {
+    return types;
   }
 
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {

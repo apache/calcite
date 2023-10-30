@@ -54,6 +54,7 @@ public abstract class RelOptMaterializations {
    * Returns a list of RelNode transformed from all possible combination of
    * materialized view uses. Big queries will likely have more than one
    * transformed RelNode, e.g., (t1 group by c1) join (t2 group by c2).
+   *
    * @param rel               the original RelNode
    * @param materializations  the materialized view list
    * @return the list of transformed RelNode together with their corresponding
@@ -69,6 +70,7 @@ public abstract class RelOptMaterializations {
    * materialized view uses. Big queries will likely have more than one
    * transformed RelNode, e.g., (t1 group by c1) join (t2 group by c2).
    * In addition, you can add custom materialized view recognition rules.
+   *
    * @param rel               the original RelNode
    * @param materializations  the materialized view list
    * @param materializationRules the materialized view recognition rules
@@ -106,6 +108,7 @@ public abstract class RelOptMaterializations {
 
   /**
    * Returns a list of RelNode transformed from all possible lattice uses.
+   *
    * @param rel       the original RelNode
    * @param lattices  the lattice list
    * @return the list of transformed RelNode together with their corresponding
@@ -122,7 +125,7 @@ public abstract class RelOptMaterializations {
             Util.transform(queryTables, RelOptTable::getQualifiedName));
     // Remember leaf-join form of root so we convert at most once.
     final Supplier<RelNode> leafJoinRoot =
-        Suppliers.memoize(() -> RelOptMaterialization.toLeafJoinForm(rel))::get;
+        Suppliers.memoize(() -> RelOptMaterialization.toLeafJoinForm(rel));
     for (RelOptLattice lattice : lattices) {
       if (queryTableNames.contains(lattice.rootTable().getQualifiedName())) {
         RelNode rel2 = lattice.rewrite(leafJoinRoot.get());
@@ -192,8 +195,8 @@ public abstract class RelOptMaterializations {
     // First, if the materialization is in terms of a star table, rewrite
     // the query in terms of the star table.
     if (materialization.starRelOptTable != null) {
-      RelNode newRoot = RelOptMaterialization.tryUseStar(root,
-          materialization.starRelOptTable);
+      RelNode newRoot =
+          RelOptMaterialization.tryUseStar(root, materialization.starRelOptTable);
       if (newRoot != null) {
         root = newRoot;
       }
@@ -248,11 +251,10 @@ public abstract class RelOptMaterializations {
     if (relOptTables.size() != 0) {
       relOptSchema = relOptTables.get(0).getRelOptSchema();
     }
-    final RelBuilder relBuilder = RelFactories.LOGICAL_BUILDER.create(
-        relNode.getCluster(), relOptSchema);
+    final RelBuilder relBuilder =
+        RelFactories.LOGICAL_BUILDER.create(relNode.getCluster(), relOptSchema);
     final RelFieldTrimmer relFieldTrimmer = new RelFieldTrimmer(null, relBuilder);
-    final RelNode rel = relFieldTrimmer.trim(relNode);
-    return rel;
+    return relFieldTrimmer.trim(relNode);
   }
 
   /**

@@ -27,8 +27,9 @@ import com.google.common.collect.RangeSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Objects;
 import java.util.function.BiConsumer;
+
+import static java.util.Objects.requireNonNull;
 
 /** Set of values (or ranges) that are the target of a search.
  *
@@ -68,8 +69,6 @@ import java.util.function.BiConsumer;
 public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   public final RangeSet<C> rangeSet;
   public final RexUnknownAs nullAs;
-  @Deprecated // to be removed before 1.28
-  public final boolean containsNull;
   public final int pointCount;
 
   /** Returns FALSE for all null and not-null values.
@@ -116,9 +115,8 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
           "Sarg[=]", 7);
 
   private Sarg(ImmutableRangeSet<C> rangeSet, RexUnknownAs nullAs) {
-    this.rangeSet = Objects.requireNonNull(rangeSet, "rangeSet");
-    this.nullAs = Objects.requireNonNull(nullAs, "nullAs");
-    this.containsNull = nullAs == RexUnknownAs.TRUE;
+    this.rangeSet = requireNonNull(rangeSet, "rangeSet");
+    this.nullAs = requireNonNull(nullAs, "nullAs");
     this.pointCount = RangeSets.countPoints(rangeSet);
   }
 
@@ -227,8 +225,9 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
     return false;
   }
 
-  /** Returns whether this Sarg is a collection of 1 or more points (and perhaps
-   * an {@code IS NULL} if {@link #containsNull}).
+  /** Returns whether this Sarg is a collection of 1 or more
+   * points (and perhaps an {@code IS NULL} if
+   * {@code nullAs == RexUnknownAs.TRUE}).
    *
    * <p>Such sargs could be translated as {@code ref = value}
    * or {@code ref IN (value1, ...)}. */
@@ -237,7 +236,8 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   }
 
   /** Returns whether this Sarg, when negated, is a collection of 1 or more
-   * points (and perhaps an {@code IS NULL} if {@link #containsNull}).
+   * points (and perhaps an {@code IS NULL} if
+   * {@code nullAs == RexUnknownAs.TRUE}).
    *
    * <p>Such sargs could be translated as {@code ref <> value}
    * or {@code ref NOT IN (value1, ...)}. */

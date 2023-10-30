@@ -50,6 +50,7 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Equivalence;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -64,7 +65,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -80,8 +81,10 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   public final Map<String, Object> map;
   private final Map<String, RexToLixTranslator.InputGetter> corrVars =
       new HashMap<>();
-  private final IdentityHashMap<Object, ParameterExpression> stashedParameters =
-      new IdentityHashMap<>();
+  private static final Equivalence<Object> IDENTITY = Equivalence.identity();
+  // A combination of IdentityHashMap + LinkedHashMap to ensure deterministic order
+  private final Map<Equivalence.Wrapper<Object>, ParameterExpression> stashedParameters =
+      new LinkedHashMap<>();
 
   @SuppressWarnings("methodref.receiver.bound.invalid")
   protected final Function1<String, RexToLixTranslator.InputGetter> allCorrelateVariables =
@@ -123,8 +126,10 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         Expression e = null;
         for (Statement statement : result.block.statements) {
           if (statement instanceof GotoStatement) {
-            e = bb.append("v",
-                requireNonNull(((GotoStatement) statement).expression, "expression"));
+            final GotoStatement gotoStatement = (GotoStatement) statement;
+            e =
+                bb.append("v",
+                    requireNonNull(gotoStatement.expression, "expression"));
           } else {
             bb.add(statement);
           }
@@ -134,8 +139,9 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
               Expressions.return_(null,
                   Expressions.call(null, BuiltInMethod.SLICE0.method, e)));
         }
-        result = new EnumerableRel.Result(bb.toBlock(), result.physType,
-            JavaRowFormat.SCALAR);
+        result =
+            new EnumerableRel.Result(bb.toBlock(), result.physType,
+                JavaRowFormat.SCALAR);
       }
       break;
     default:
@@ -157,14 +163,11 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
                         Expressions.constant(input.name)),
                     input.type)));
 
-    final BlockStatement block = Expressions.block(
-        Iterables.concat(
-            stashed,
-            result.block.statements));
+    final BlockStatement block =
+        Expressions.block(
+            Iterables.concat(stashed, result.block.statements));
     memberDeclarations.add(
-        Expressions.methodDecl(
-            Modifier.PUBLIC,
-            Enumerable.class,
+        Expressions.methodDecl(Modifier.PUBLIC, Enumerable.class,
             BuiltInMethod.BINDABLE_BIND.method.getName(),
             Expressions.list(DataContext.ROOT),
             block));
@@ -330,10 +333,10 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         final Method method = (field.nullable()
             ? BuiltInMethod.COMPARE_NULLS_LAST
             : BuiltInMethod.COMPARE).method;
-        compareCall = Expressions.call(method.getDeclaringClass(),
-            method.getName(),
-            Expressions.field(thisParameter, field),
-            Expressions.field(thatParameter, field));
+        compareCall =
+            Expressions.call(method.getDeclaringClass(), method.getName(),
+                Expressions.field(thisParameter, field),
+                Expressions.field(thatParameter, field));
       } catch (RuntimeException e) {
         if (e.getCause() instanceof NoSuchMethodException) {
           // Just ignore the field in compareTo
@@ -439,7 +442,8 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         || input instanceof Double) {
       return Expressions.constant(input, clazz);
     }
-    ParameterExpression cached = stashedParameters.get(input);
+    final Equivalence.Wrapper<Object> key = IDENTITY.wrap(input);
+    ParameterExpression cached = stashedParameters.get(key);
     if (cached != null) {
       return cached;
     }
@@ -448,7 +452,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     final String name = "v" + map.size() + "stashed";
     final ParameterExpression x = Expressions.variable(clazz, name);
     map.put(name, input);
-    stashedParameters.put(input, x);
+    stashedParameters.put(key, x);
     return x;
   }
 

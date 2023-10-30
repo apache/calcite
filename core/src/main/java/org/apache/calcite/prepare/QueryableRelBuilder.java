@@ -49,6 +49,7 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
@@ -69,17 +70,17 @@ import static java.util.Objects.requireNonNull;
  * <p>Each of the methods that implements a {@code Replayer} method creates
  * a tree of {@code RelNode}s equivalent to the arguments, and calls
  * {@link #setRel} to assign the root of that tree to the {@link #rel} member
- * variable.</p>
+ * variable.
  *
  * <p>To comply with the {@link org.apache.calcite.linq4j.QueryableFactory}
  * interface, which is after all a factory, each method returns a dummy result
  * such as {@code null} or {@code 0}.
  * The caller will not use the result.
  * The real effect of the method is to
- * call {@link #setRel} with a {@code RelNode}.</p>
+ * call {@link #setRel} with a {@code RelNode}.
  *
  * <p>NOTE: Many methods currently throw {@link UnsupportedOperationException}.
- * These method need to be implemented.</p>
+ * These method need to be implemented.
  *
  * @param <T> Element type
  */
@@ -549,7 +550,8 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     RelNode child = toRel(source);
     List<RexNode> nodes = translator.toRexList(selector, child);
     setRel(
-        LogicalProject.create(child, ImmutableList.of(), nodes, (List<String>)  null));
+        LogicalProject.create(child, ImmutableList.of(), nodes, (List<String>)  null,
+            ImmutableSet.of()));
     return castNonNull(null);
   }
 

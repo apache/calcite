@@ -40,6 +40,9 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+
 import org.immutables.value.Value;
 
 import java.util.ArrayList;
@@ -145,12 +148,13 @@ public class GeodeRules {
           return false;
         }
       }
-
-      return true;
+      return project.getVariablesSet().isEmpty();
     }
 
     @Override public RelNode convert(RelNode rel) {
       final LogicalProject project = (LogicalProject) rel;
+      Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
+          "GeodeProject does now allow variables");
       final RelTraitSet traitSet =
           project.getTraitSet().replace(getOutConvention());
       return new GeodeProject(
@@ -220,9 +224,10 @@ public class GeodeRules {
           .replace(GeodeRel.CONVENTION)
           .replace(sort.getCollation());
 
-      GeodeSort geodeSort = new GeodeSort(sort.getCluster(), traitSet,
-          convert(sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
-          sort.getCollation(), sort.fetch);
+      GeodeSort geodeSort =
+          new GeodeSort(sort.getCluster(), traitSet,
+              convert(call.getPlanner(), sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
+              sort.getCollation(), sort.fetch);
 
       call.transformTo(geodeSort);
     }
@@ -310,10 +315,7 @@ public class GeodeRules {
 
     private static boolean isBooleanColumnReference(RexNode node, List<String> fieldNames) {
       // FIXME Ignore casts for rel and assume they aren't really necessary
-      if (node.isA(SqlKind.CAST)) {
-        node = ((RexCall) node).getOperands().get(0);
-      }
-      if (node.isA(SqlKind.NOT)) {
+      while (node.isA(ImmutableList.of(SqlKind.NOT, SqlKind.CAST, SqlKind.IS_NOT_NULL))) {
         node = ((RexCall) node).getOperands().get(0);
       }
       if (node.isA(SqlKind.INPUT_REF)) {

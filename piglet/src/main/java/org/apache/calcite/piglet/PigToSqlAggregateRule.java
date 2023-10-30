@@ -34,7 +34,6 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ImmutableBitSet;
 
 import org.immutables.value.Value;
 
@@ -208,8 +207,9 @@ public class PigToSqlAggregateRule
     }
     // If grouping aggregate is needed, project the whole ROW
     if (needGroupingCol) {
-      final RexNode row = relBuilder.getRexBuilder().makeCall(relBuilder.peek().getRowType(),
-          SqlStdOperatorTable.ROW, relBuilder.fields());
+      final RexNode row =
+          relBuilder.getRexBuilder().makeCall(relBuilder.peek().getRowType(),
+              SqlStdOperatorTable.ROW, relBuilder.fields());
       newBottomProjects.add(row);
     }
     final int groupCount = oldAgg.getGroupCount() + (needGroupingCol ? 1 : 0);
@@ -258,8 +258,7 @@ public class PigToSqlAggregateRule
     // Step 2 build new Aggregate
     // Copy the group key
     final RelBuilder.GroupKey groupKey =
-        relBuilder.groupKey(oldAgg.getGroupSet(),
-            (Iterable<ImmutableBitSet>) oldAgg.groupSets);
+        relBuilder.groupKey(oldAgg.getGroupSet(), oldAgg.groupSets);
     // The construct the agg call list
     final List<RelBuilder.AggCall> aggCalls = new ArrayList<>();
     if (needGroupingCol) {

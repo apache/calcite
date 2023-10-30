@@ -129,7 +129,9 @@ class MongoEnumerator implements Enumerator<Object> {
     if (clazz.isInstance(o)) {
       return o;
     }
-    if (o instanceof Date && primitive != null) {
+    if (o instanceof Date && clazz == Long.class) {
+      o = ((Date) o).getTime();
+    } else if (o instanceof Date && primitive != null) {
       o = ((Date) o).getTime() / DateTimeUtils.MILLIS_PER_DAY;
     }
     if (o instanceof Number && primitive != null) {

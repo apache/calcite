@@ -97,10 +97,12 @@ public final class FunctionExpression<F extends Function<?>>
     if (dynamicFunction == null) {
       final Invokable x = compile();
 
-      ClassLoader classLoader = requireNonNull(requireNonNull(getClass().getClassLoader()));
+      ClassLoader classLoader = requireNonNull(getClass().getClassLoader());
       //noinspection unchecked
-      dynamicFunction = (F) Proxy.newProxyInstance(classLoader,
-          new Class[]{Types.toClass(type)}, (proxy, method, args) -> x.dynamicInvoke(args));
+      dynamicFunction =
+          (F) Proxy.newProxyInstance(classLoader,
+              new Class[]{Types.toClass(type)},
+              (proxy, method, args) -> x.dynamicInvoke(args));
     }
     return dynamicFunction;
   }
