@@ -4059,7 +4059,7 @@ public class RelBuilder {
    * @throws IllegalArgumentException if the {@link CorrelationId} is used by left side or if the a
    *   {@link CorrelationId} is present and the {@link JoinRelType} is FULL or RIGHT.
    */
-  private static boolean checkIfCorrelated(Set<CorrelationId> variablesSet,
+  private boolean checkIfCorrelated(Set<CorrelationId> variablesSet,
       JoinRelType joinType, RelNode leftRel, RelNode rightRel) {
     if (variablesSet.isEmpty()) {
       return false;
