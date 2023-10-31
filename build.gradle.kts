@@ -339,6 +339,7 @@ allprojects {
         configurations {
             "implementation" {
                 exclude(group = "org.jetbrains", module = "annotations")
+                exclude(group = "org.bouncycastle", module = "bcprov-jdk15on")
             }
         }
     }

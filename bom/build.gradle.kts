@@ -119,8 +119,6 @@ dependencies {
         apiv("org.apache.pig:pigunit", "pig")
         apiv("org.apache.spark:spark-core_2.10", "spark")
         apiv("org.apiguardian:apiguardian-api")
-        apiv("org.bouncycastle:bcpkix-jdk15on", "bouncycastle")
-        apiv("org.bouncycastle:bcprov-jdk15on", "bouncycastle")
         apiv("net.bytebuddy:byte-buddy")
         apiv("org.cassandraunit:cassandra-unit")
         apiv("org.codehaus.janino:commons-compiler", "janino")
