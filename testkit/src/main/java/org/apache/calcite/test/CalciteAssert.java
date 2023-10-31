@@ -679,6 +679,16 @@ public class CalciteAssert {
       Connection connection,
       String sql,
       boolean materializationsEnabled,
+      final Consumer<RelNode> convertChecker,
+      final Consumer<RelNode> substitutionChecker) {
+    assertPrepare(connection, sql, materializationsEnabled, ImmutableList.of(),
+        convertChecker, substitutionChecker);
+  }
+
+  static void assertPrepare(
+      Connection connection,
+      String sql,
+      boolean materializationsEnabled,
       List<Pair<Hook, Consumer>> hooks,
       final Consumer<RelNode> convertChecker,
       final Consumer<RelNode> substitutionChecker) {
