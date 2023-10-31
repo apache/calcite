@@ -22,6 +22,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.AbstractList;
@@ -367,28 +369,68 @@ public enum Primitive {
   }
 
   /**
-   * Converts a number into a value of the type
-   * specified by this primitive.
+   * Check if a value after rounding falls within a specified range.
+   *
+   * @param value  Value to compare.
+   * @param min    Minimum value allowed.
+   * @param max    Maximum value allowed.
+   */
+  static void checkRoundedRange(Number value, double min, double max) {
+    double dbl = value.doubleValue();
+    // The equivalent of DOWN rounding for BigDecimal
+    dbl = dbl > 0 ? Math.floor(dbl) : Math.ceil(dbl);
+    if (dbl < min || dbl > max) {
+      throw new ArithmeticException("Value " + value + " out of range");
+    }
+  }
+
+  /**
+   * Converts a number into a value of the type specified by this primitive
+   * using the SQL CAST rules.  If the value conversion causes loss of significant digits,
+   * an exception is thrown.
    *
    * @param value  Value to convert.
-   * @return       The converted value, or null if the
-   *               conversion cannot be performed.
+   * @return       The converted value, or null if the type of the result is not a number.
    */
   public @Nullable Object numberValue(Number value) {
     switch (this) {
     case BYTE:
+      checkRoundedRange(value, Byte.MIN_VALUE, Byte.MAX_VALUE);
       return value.byteValue();
     case CHAR:
+      // No overflow checks for char values.
+      // For example, Postgres has this behavior.
       return (char) value.intValue();
     case SHORT:
+      checkRoundedRange(value, Short.MIN_VALUE, Short.MAX_VALUE);
       return value.shortValue();
     case INT:
+      checkRoundedRange(value, Integer.MIN_VALUE, Integer.MAX_VALUE);
       return value.intValue();
     case LONG:
-      return value.longValue();
+      if (value instanceof Byte
+          || value instanceof Short
+          || value instanceof Integer
+          || value instanceof Long) {
+        return value.longValue();
+      }
+      if (value instanceof Float
+          || value instanceof Double) {
+        // The value Long.MAX_VALUE cannot be represented exactly as a double,
+        // so we cannot use checkRoundedRange.
+        BigDecimal decimal = BigDecimal.valueOf(value.doubleValue())
+            // Round to an integer
+            .setScale(0, RoundingMode.DOWN);
+        // longValueExact will throw ArithmeticException if out of range
+        return decimal.longValueExact();
+      }
+      throw new AssertionError("Unexpected Number type "
+          + value.getClass().getSimpleName());
     case FLOAT:
+      // out of range values will be represented as infinities
       return value.floatValue();
     case DOUBLE:
+      // out of range values will be represented as infinities
       return value.doubleValue();
     default:
       return null;

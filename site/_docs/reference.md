@@ -1470,7 +1470,7 @@ Algorithms for implicit conversion are subject to change across Calcite releases
 
 | Operator syntax                         | Description
 |:----------------------------------------| :----------
-| CAST(value AS type)                     | Converts a value to a given type
+| CAST(value AS type)                     | Converts a value to a given type. Casts between integer types truncate towards 0
 | CONVERT(string, charSet1, charSet2)     | Converts *string* from *charSet1* to *charSet2*
 | CONVERT(value USING transcodingName)    | Alter *value* from one base character set to *transcodingName*
 | TRANSLATE(value USING transcodingName)  | Alter *value* from one base character set to *transcodingName*

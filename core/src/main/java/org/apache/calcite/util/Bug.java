@@ -56,14 +56,6 @@ public abstract class Bug {
 
   public static final boolean DT785_FIXED = false;
 
-  // jhyde
-
-  /**
-   * Whether <a href="http://issues.eigenbase.org/browse/FNL-3">issue
-   * Fnl-3</a> is fixed.
-   */
-  public static final boolean FNL3_FIXED = false;
-
   /**
    * Whether <a href="http://issues.eigenbase.org/browse/FRG-327">issue
    * FRG-327: AssertionError while translating IN list that contains null</a>
