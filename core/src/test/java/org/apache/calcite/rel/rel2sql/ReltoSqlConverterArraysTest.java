@@ -165,7 +165,7 @@ class RelToSqlConverterArraysTest {
 
   private RelToSqlConverterTest.Sql sql(String sql) {
     return new RelToSqlConverterTest.Sql(ROOT_SCHEMA, sql,
-        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT,
+        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
         UnaryOperator.identity(), null, ImmutableList.of());
   }
 
