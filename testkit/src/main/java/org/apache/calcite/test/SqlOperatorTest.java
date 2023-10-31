@@ -624,7 +624,7 @@ public class SqlOperatorTest {
         f.checkCastFails(numeric.minOverflowNumericString,
             type, LITERAL_OUT_OF_RANGE_MESSAGE, false, castType);
       } else {
-        if (Bug.CALCITE_2539_FIXED) {
+        if (numeric != Numeric.DECIMAL5_2 || Bug.CALCITE_2539_FIXED) {
           f.checkCastFails(numeric.maxOverflowNumericString,
               type, OUT_OF_RANGE_MESSAGE, true, castType);
           f.checkCastFails(numeric.minOverflowNumericString,
@@ -921,35 +921,36 @@ public class SqlOperatorTest {
 
     f.checkScalar("cast(1.25 as int)", 1, "INTEGER NOT NULL");
     f.checkScalar("cast(1.25E0 as int)", 1, "INTEGER NOT NULL");
+    // Calcite's simplifier uses BigDecimal.intValue(), which rounds down
+    f.checkScalar("cast(1.5 as int)", 1, "INTEGER NOT NULL");
+    f.checkScalar("cast(5E-1 as int)", 0, "INTEGER NOT NULL");
+    f.checkScalar("cast(1.75 as int)", 1, "INTEGER NOT NULL");
+    f.checkScalar("cast(1.75E0 as int)", 1, "INTEGER NOT NULL");
+
+    f.checkScalar("cast(-1.25 as int)", -1, "INTEGER NOT NULL");
+    f.checkScalar("cast(-1.25E0 as int)", -1, "INTEGER NOT NULL");
+    f.checkScalar("cast(-1.5 as int)", -1, "INTEGER NOT NULL");
+    f.checkScalar("cast(-5E-1 as int)", 0, "INTEGER NOT NULL");
+    f.checkScalar("cast(-1.75 as int)", -1, "INTEGER NOT NULL");
+    f.checkScalar("cast(-1.75E0 as int)", -1, "INTEGER NOT NULL");
+
+    f.checkScalar("cast(1.23454 as int)", 1, "INTEGER NOT NULL");
+    f.checkScalar("cast(1.23454E0 as int)", 1, "INTEGER NOT NULL");
+    f.checkScalar("cast(1.23455 as int)", 1, "INTEGER NOT NULL");
+    f.checkScalar("cast(5E-5 as int)", 0, "INTEGER NOT NULL");
+    f.checkScalar("cast(1.99995 as int)", 1, "INTEGER NOT NULL");
+    f.checkScalar("cast(1.99995E0 as int)", 1, "INTEGER NOT NULL");
+
+    f.checkScalar("cast(-1.23454 as int)", -1, "INTEGER NOT NULL");
+    f.checkScalar("cast(-1.23454E0 as int)", -1, "INTEGER NOT NULL");
+    f.checkScalar("cast(-1.23455 as int)", -1, "INTEGER NOT NULL");
+    f.checkScalar("cast(-5E-5 as int)", 0, "INTEGER NOT NULL");
+    f.checkScalar("cast(-1.99995 as int)", -1, "INTEGER NOT NULL");
+    f.checkScalar("cast(-1.99995E0 as int)", -1, "INTEGER NOT NULL");
+
     if (!f.brokenTestsEnabled()) {
       return;
     }
-    f.checkFails("cast(1.5 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(5E-1 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(1.75 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(1.75E0 as int)", OUT_OF_RANGE_MESSAGE, true);
-
-    f.checkFails("cast(-1.25 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(-1.25E0 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(-1.5 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(-5E-1 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(-1.75 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(-1.75E0 as int)", OUT_OF_RANGE_MESSAGE, true);
-
-    f.checkFails("cast(1.23454 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(1.23454E0 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(1.23455 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(5E-5 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(1.99995 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(1.99995E0 as int)", OUT_OF_RANGE_MESSAGE, true);
-
-    f.checkFails("cast(-1.23454 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(-1.23454E0 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(-1.23455 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(-5E-5 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(-1.99995 as int)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast(-1.99995E0 as int)", OUT_OF_RANGE_MESSAGE, true);
-
     // 9.99 round to 10.0, should give out of range error
     f.checkFails("cast(9.99 as decimal(2,1))", OUT_OF_RANGE_MESSAGE,
         true);
@@ -962,13 +963,10 @@ public class SqlOperatorTest {
 
     f.checkScalar("cast( cast(1.25 as double) as integer)", 1, "INTEGER NOT NULL");
     f.checkScalar("cast( cast(-1.25 as double) as integer)", -1, "INTEGER NOT NULL");
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
-    f.checkFails("cast( cast(1.75 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast( cast(-1.75 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast( cast(1.5 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
-    f.checkFails("cast( cast(-1.5 as double) as integer)", OUT_OF_RANGE_MESSAGE, true);
+    f.checkScalar("cast( cast(1.75 as double) as integer)", 1, "INTEGER NOT NULL");
+    f.checkScalar("cast( cast(-1.75 as double) as integer)", -1, "INTEGER NOT NULL");
+    f.checkScalar("cast( cast(1.5 as double) as integer)", 1, "INTEGER NOT NULL");
+    f.checkScalar("cast( cast(-1.5 as double) as integer)", -1, "INTEGER NOT NULL");
   }
 
   @ParameterizedTest
@@ -1124,15 +1122,24 @@ public class SqlOperatorTest {
     // generate Java constants that throw when the class is loaded, thus
     // ExceptionInInitializerError.
     f.checkScalarExact("cast('15' as integer)", "INTEGER NOT NULL", "15");
-    if (Bug.CALCITE_2539_FIXED) {
-      f.checkFails("cast('15.4' as integer)", "xxx", true);
-      f.checkFails("cast('15.6' as integer)", "xxx", true);
-      f.checkFails("cast('ue' as boolean)", "xxx", true);
-      f.checkFails("cast('' as boolean)", "xxx", true);
-      f.checkFails("cast('' as integer)", "xxx", true);
-      f.checkFails("cast('' as real)", "xxx", true);
-      f.checkFails("cast('' as double)", "xxx", true);
-      f.checkFails("cast('' as smallint)", "xxx", true);
+    if (castType == CastType.CAST) { // Safe casts should not fail
+      f.checkFails("cast('15.4' as integer)", "Number has wrong format.*", true);
+      f.checkFails("cast('15.6' as integer)", "Number has wrong format.*", true);
+      f.checkFails("cast('ue' as boolean)", "Invalid character for cast.*", true);
+      f.checkFails("cast('' as boolean)", "Invalid character for cast.*", true);
+      f.checkFails("cast('' as integer)", "Number has wrong format.*", true);
+      f.checkFails("cast('' as real)", "Number has wrong format.*", true);
+      f.checkFails("cast('' as double)", "Number has wrong format.*", true);
+      f.checkFails("cast('' as smallint)", "Number has wrong format.*", true);
+    } else {
+      f.checkNull("cast('15.4' as integer)");
+      f.checkNull("cast('15.6' as integer)");
+      f.checkNull("cast('ue' as boolean)");
+      f.checkNull("cast('' as boolean)");
+      f.checkNull("cast('' as integer)");
+      f.checkNull("cast('' as real)");
+      f.checkNull("cast('' as double)");
+      f.checkNull("cast('' as smallint)");
     }
   }
 
@@ -1458,7 +1465,7 @@ public class SqlOperatorTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4861">[CALCITE-4861]
    * Optimization of chained CAST calls leads to unexpected behavior</a>. */
-  @Test @Disabled("CALCITE-5990") void testChainedCast() {
+  @Test void testChainedCast() {
     final SqlOperatorFixture f = fixture();
     f.checkFails("CAST(CAST(CAST(123456 AS TINYINT) AS INT) AS BIGINT)",
         ".*Value 123456 out of range", true);
@@ -13191,10 +13198,7 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.checkAggFails("bit_and(x)",
         new String[]{"CAST(x'0201' AS VARBINARY)", "CAST(x'02' AS VARBINARY)"},
-        "Error while executing SQL"
-            +  " \"SELECT bit_and\\(x\\)"
-            +  " FROM \\(SELECT CAST\\(x'0201' AS VARBINARY\\) AS x FROM \\(VALUES \\(1\\)\\)"
-            + " UNION ALL SELECT CAST\\(x'02' AS VARBINARY\\) AS x FROM \\(VALUES \\(1\\)\\)\\)\":"
+        "Error while executing SQL .*"
             + " Different length for bitwise operands: the first: 2, the second: 1",
         true);
   }
@@ -13300,9 +13304,6 @@ public class SqlOperatorTest {
   @Test void testLiteralAtLimit() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
     final List<RelDataType> types =
         SqlTests.getTypes(f.getFactory().getTypeFactory());
     for (RelDataType type : types) {

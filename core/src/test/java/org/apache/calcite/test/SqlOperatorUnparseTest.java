@@ -80,7 +80,7 @@ public class SqlOperatorUnparseTest extends CalciteSqlOperatorTest {
     String rewrite(String sql) throws SqlParseException {
       final SqlParser parser = factory.createParser(sql);
       final SqlNode sqlNode = parser.parseStmt();
-      return sqlNode.toSqlString(c -> c).getSql();
+      return sqlNode.toSqlString(c -> c.withClauseStartsLine(false)).getSql();
     }
 
     @Override public void forEachQuery(
@@ -97,11 +97,6 @@ public class SqlOperatorUnparseTest extends CalciteSqlOperatorTest {
         throw new RuntimeException(e);
       }
     }
-  }
-
-  @Override @Disabled("Runtime error message differs after parsing and unparsing")
-  void testBitAndFuncRuntimeFails() {
-    super.testContainsSubstrFunc();
   }
 
   // Every test that is Disabled below corresponds to a bug.

@@ -299,6 +299,10 @@ public abstract class SqlTests {
       }
     } else {
       actualMessage = ex.getMessage();
+      if (ex instanceof NumberFormatException) {
+        // The message from NumberFormatException is not very usable
+        actualMessage = "Number has wrong format " + actualMessage;
+      }
       if (actualMessage != null) {
         java.util.regex.Matcher matcher =
             LINE_COL_TWICE_PATTERN.matcher(actualMessage);
