@@ -128,15 +128,15 @@
   githubId: stoty
   org: Cloudera
   role: Committer
-- name: James R. Taylor
-  apacheId: jamestaylor
-  githubId: JamesRTaylor
-  org: Salesforce
-  role: PMC
 - name: Jacques Nadeau
   apacheId: jacques
   githubId: jacques-n
   org: Dremio
+  role: PMC
+- name: James R. Taylor
+  apacheId: jamestaylor
+  githubId: JamesRTaylor
+  org: Salesforce
   role: PMC
 - name: Jess Balint
   apacheId: jbalint
@@ -153,6 +153,11 @@
   githubId: jiajunbernoulli
   org: ByteDance
   role: Committer
+- name: Jin Xing
+  apacheId: jinxing
+  githubId: jinxing64
+  org: Ant Financial
+  role: Committer
 - name: Jinfeng Ni
   apacheId: jni
   githubId: jinfengni
@@ -162,11 +167,6 @@
   apacheId: jingzhang
   githubId: beyond1920
   org: Kuaishou
-  role: Committer
-- name: Jin Xing
-  apacheId: jinxing
-  githubId: jinxing64
-  org: Ant Financial
   role: Committer
 - name: John Pullokkaran
   apacheId: jpullokk
@@ -222,6 +222,11 @@
   org: Rochester Institute of Technology
   role: PMC
   homepage: https://michael.mior.ca/
+- name: Mihai Budiu
+  apacheId: mbudiu
+  githubId: mihaibudiu
+  org: Feldera.com
+  role: Committer
 - name: Milinda Pathirage
   apacheId: milinda
   githubId: milinda
@@ -319,15 +324,15 @@
   githubId: vineetgarg02
   org: Cloudera
   role: Committer
-- name: Vladimir Sitnikov
-  apacheId: vladimirsitnikov
-  githubId: vlsi
-  org: NetCracker
-  role: PMC
 - name: Vladimir Ozerov
   apacheId: vozerov
   githubId: devozerov
   org: Querify Labs
+  role: PMC
+- name: Vladimir Sitnikov
+  apacheId: vladimirsitnikov
+  githubId: vlsi
+  org: NetCracker
   role: PMC
 - name: Volodymyr Vysotskyi
   apacheId: volodymyr
@@ -381,10 +386,5 @@
   apacheId: kgyrtkirk
   githubId: kgyrtkirk
   org: Hortonworks
-  role: Committer
-- name: Mihai Budiu
-  apacheId: mbudiu
-  githubId: mihaibudiu
-  org: Feldera.com
   role: Committer
 # End contributors.yml
