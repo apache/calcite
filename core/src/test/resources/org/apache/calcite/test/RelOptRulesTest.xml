@@ -12390,6 +12390,32 @@ LogicalProject(COL1=[SUM(100) OVER (PARTITION BY $7, $5 ORDER BY $5)], COL2=[SUM
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testReduceConstantsWithMultipleOrderByWindow">
+    <Resource name="sql">
+      <![CDATA[select col1, col2
+from (
+  select empno,
+    sum(100) over (order by deptno, empno range between current row and unbounded following) as col1,
+    sum(100) over (partition by sal, deptno order by deptno, empno range between unbounded preceding and unbounded following) as col2
+  from emp where sal = 5000)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(COL1=[SUM(100) OVER (ORDER BY $7, $0 RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)], COL2=[SUM(100) OVER (PARTITION BY $5, $7 ORDER BY $7, $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalFilter(condition=[=($5, 5000)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject($0=[$3], $1=[$4])
+  LogicalWindow(window#0=[window(order by [2, 0] range between CURRENT ROW and UNBOUNDED FOLLOWING aggs [SUM($3)])], window#1=[window(partition {2} order by [2, 0] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [SUM($3)])])
+    LogicalProject(EMPNO=[$0], SAL=[$5], DEPTNO=[$7])
+      LogicalFilter(condition=[=($5, 5000)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testReduceDecimal">
     <Resource name="sql">
       <![CDATA[select ename from emp where sal > cast (100.0 as decimal(4, 1))]]>

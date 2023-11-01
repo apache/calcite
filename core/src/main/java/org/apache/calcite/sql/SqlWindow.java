@@ -610,7 +610,9 @@ public class SqlWindow extends SqlCall {
       // SQL03 7.10 Rule 11a
       if (orderList.size() > 0) {
         // if order by is a compound list then range not allowed
-        if (orderList.size() > 1 && !isRows()) {
+        if (orderList.size() > 1
+            && !isRows()
+            && !onlySymbolBounds(lowerBound, upperBound)) {
           throw validator.newValidationError(isRows,
               RESOURCE.compoundOrderByProhibitsRange());
         }
@@ -625,7 +627,9 @@ public class SqlWindow extends SqlCall {
         // requires an ORDER BY clause if frame is logical(RANGE)
         // We relax this requirement if the table appears to be
         // sorted already
-        if (!isRows() && !SqlValidatorUtil.containsMonotonic(scope)) {
+        if (!onlySymbolBounds(lowerBound, upperBound)
+            && !isRows()
+            && !SqlValidatorUtil.containsMonotonic(scope)) {
           throw validator.newValidationError(this,
               RESOURCE.overMissingOrderBy());
         }
@@ -658,6 +662,12 @@ public class SqlWindow extends SqlCall {
       throw validator.newValidationError(castNonNull(allowPartial),
           RESOURCE.cannotUseDisallowPartialWithRange());
     }
+  }
+
+  private boolean onlySymbolBounds(@Nullable SqlNode lowerBound, @Nullable SqlNode upperBound) {
+    return lowerBound != null && upperBound != null
+        && (isCurrentRow(lowerBound) || isUnboundedPreceding(lowerBound))
+        && (isCurrentRow(upperBound) || isUnboundedFollowing(upperBound));
   }
 
   private static void validateFrameBoundary(

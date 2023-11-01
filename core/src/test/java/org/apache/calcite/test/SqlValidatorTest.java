@@ -3251,6 +3251,40 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "rows 2 preceding )").ok();
     winExp2("sum(sal) over (order by deptno range 2.0 preceding)").ok();
 
+    // compound order by with literal bounds
+    winExp2("sum(sal) over "
+            + "(order by sal,deptno "
+            + "range between current row and unbounded following)").ok();
+    winExp2("sum(sal) over "
+            + "(order by sal,deptno "
+            + "range between current row and current row)").ok();
+    winExp2("sum(sal) over "
+            + "(order by sal,deptno "
+            + "range between unbounded preceding and current row)").ok();
+    winExp2("sum(sal) over "
+            + "(order by sal,deptno "
+            + "range between unbounded preceding and unbounded following)").ok();
+
+    // Range without order by with only literal bounds
+    winExp2("sum(sal) over "
+        + "(partition by sal,deptno "
+        + "range between unbounded preceding and unbounded following)").ok();
+
+    // RANGE with non-difference type order by and literal bounds
+    winExp2("sum(sal) over "
+        + "(order by ename "
+        + "range between unbounded preceding and current row)").ok();
+
+    // Range without order by with only preceding / following should fail
+    winExp2("sum(sal) over "
+        + "^(partition by sal "
+        + "range between 3 preceding and unbounded following)^")
+        .fails("Window specification must contain an ORDER BY clause");
+    winExp2("sum(sal) over "
+        + "^(partition by sal "
+        + "range between current row and 3 following)^")
+        .fails("Window specification must contain an ORDER BY clause");
+
     // Failure mode tests
     winExp2("sum(sal) over (order by deptno "
         + "rows between ^UNBOUNDED FOLLOWING^ and unbounded preceding)")
