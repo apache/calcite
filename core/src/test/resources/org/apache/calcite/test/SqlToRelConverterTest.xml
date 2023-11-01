@@ -7529,4 +7529,21 @@ LogicalProject(EXPR$0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAliasUnnestArrayPlanWithCorrelateFilter">
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], E=[$5], EMPNO=[$6.EMPNO])
+  LogicalJoin(condition=[=($0, 1)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    Uncollect
+      LogicalProject(ADMINS=[$cor0.ADMINS], EMPLOYEES=[$cor0.EMPLOYEES])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+        <Resource name="sql">
+            <![CDATA[select d.deptno, e, k.empno
+from dept_nested_expanded as d CROSS JOIN
+ UNNEST(d.admins, d.employees) as t(e, k) where d.deptno = 1]]>
+        </Resource>
+    </TestCase>
 </Root>

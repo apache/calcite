@@ -99,8 +99,8 @@ public class SqlSpecialOperator extends SqlOperator {
     SqlOperator op(int i);
     SqlParserPos pos(int i);
     boolean isOp(int i);
-    @Nullable SqlNode node(int i);
-    void replaceSublist(int start, int end, @Nullable SqlNode e);
+    SqlNode node(int i);
+    void replaceSublist(int start, int end, SqlNode e);
 
     /** Creates a parser whose token sequence is a copy of a subset of this
      * token sequence. */

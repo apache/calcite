@@ -983,7 +983,8 @@ public class RelToSqlConverter extends SqlImplementor
                   sort2,
                   ImmutableList.of(),
                   project.getProjects(),
-                  project.getRowType());
+                  project.getRowType(),
+                  project.getVariablesSet());
           return visit(project2);
         }
       }

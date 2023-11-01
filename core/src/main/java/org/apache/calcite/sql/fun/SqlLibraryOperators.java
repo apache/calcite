@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
@@ -785,6 +786,16 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
+
+  /** The case-insensitive variant of the LIKE operator. */
+  @LibraryOperator(libraries = {POSTGRESQL, SNOWFLAKE})
+  public static final SqlSpecialOperator ILIKE =
+      new SqlLikeOperator("ILIKE", SqlKind.LIKE, false, false);
+
+  /** The case-insensitive variant of the NOT LIKE operator. */
+  @LibraryOperator(libraries = {POSTGRESQL, SNOWFLAKE})
+  public static final SqlSpecialOperator NOT_ILIKE =
+      new SqlLikeOperator("NOT ILIKE", SqlKind.LIKE, true, false);
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
@@ -1888,6 +1899,18 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SNOWFLAKE, ORACLE, TERADATA})
   public static final SqlAggFunction MEDIAN =
       new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction REGEXP_COUNT =
+      new SqlFunction("REGEXP_COUNT", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null, OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction ARRAY_LENGTH =
+      new SqlFunction("ARRAY_LENGTH", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null, OperandTypes.ARRAY, SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction JSON_OBJECT =
