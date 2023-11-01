@@ -4016,6 +4016,22 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testReduceConstantsWithMultipleOrderByWindow() {
+    final String sql = "select col1, col2\n"
+        + "from (\n"
+        + "  select empno,\n"
+        + "    sum(100) over (order by deptno, empno range between current row and unbounded following) as col1,\n"
+        + "    sum(100) over (partition by sal, deptno order by deptno, empno range between unbounded preceding and unbounded following) as col2\n"
+        + "  from emp where sal = 5000)";
+
+    sql(sql)
+        .withRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_WINDOW_TRANSPOSE,
+            CoreRules.WINDOW_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
   @Test void testEmptyFilterProjectUnion() {
     // Plan should be same as for
     // select * from (values (30, 3)) as t(x, y)");

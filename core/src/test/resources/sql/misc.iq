@@ -2618,4 +2618,22 @@ SELECT
 
 !ok
 
+!use post
+
+# [CALCITE-5863] Incorrect validation with range and multiple order by columns
+SELECT sum("salary")
+OVER (ORDER BY "salary", "deptno" RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)
+FROM "hr"."emps";
++---------+
+| EXPR$0  |
++---------+
+| 11500.0 |
+| 21500.0 |
+| 29500.0 |
+| 36500.0 |
++---------+
+(4 rows)
+
+!ok
+
 # End misc.iq
