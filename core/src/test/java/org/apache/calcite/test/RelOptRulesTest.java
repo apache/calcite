@@ -4615,7 +4615,7 @@ class RelOptRulesTest extends RelOptTestBase {
       final RelDataType type = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
 
       RelNode left = b
-          .values(new String[]{"x", "y"}, 1, 2).build();
+          .values(new String[]{"x", "y"}, 1, 2, 2, 1).build();
       RexNode ref = rexBuilder.makeInputRef(left, 0);
       RexLiteral literal1 = rexBuilder.makeLiteral(1, type);
       RexLiteral literal2 = rexBuilder.makeLiteral(2, type);

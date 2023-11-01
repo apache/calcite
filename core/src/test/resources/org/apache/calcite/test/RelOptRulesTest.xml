@@ -11729,7 +11729,7 @@ LogicalProject(QX=[CAST(CASE(=($0, 1), 1, 2)):INTEGER])
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject($f0=[CAST(CASE(=(MOD($0, 2:BIGINT), 1), <($0, 2:BIGINT), =(MOD($0, 3:BIGINT), 2), <($0, 1:BIGINT), <($0, 3:BIGINT))):BOOLEAN])
-  LogicalValues(tuples=[[{ 1, 2 }]])
+  LogicalValues(tuples=[[{ 1, 2 }, { 2, 1 }]])
 ]]>
     </Resource>
   </TestCase>

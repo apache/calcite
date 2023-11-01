@@ -3835,11 +3835,10 @@ LogicalProject(DEPTNO=[$9], SAL=[$7])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalJoin(condition=[true], joinType=[left])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-      LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
-        LogicalProject(EXPR$0=[>($0, 0)])
-          LogicalAggregate(group=[{}], agg#0=[AVG($0)])
-            LogicalProject(SAL=[$5])
-              LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EXPR$0=[>($0, 0)])
+        LogicalAggregate(group=[{}], agg#0=[AVG($0)])
+          LogicalProject(SAL=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
