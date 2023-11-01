@@ -1141,6 +1141,76 @@ public class RelMetadataTest {
         .assertThatAreColumnsUnique(bitSetOf(0, 1), is(false));
   }
 
+  @Test void testColumnUniquenessForLimit1() {
+    final String sql = ""
+                       + "select *\n"
+                       + "from emp\n"
+                       + "limit 1";
+    sql(sql)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(), is(true))
+        .assertThatUniqueKeysAre(bitSetOf());
+  }
+
+  @Test void testColumnUniquenessForJoinOnLimit1() {
+    final String sql = ""
+                       + "select *\n"
+                       + "from emp A\n"
+                       + "join (\n"
+                       + "  select * from emp\n"
+                       + "  limit 1) B\n"
+                       + "on A.empno = B.empno";
+    sql(sql)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(9), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(10), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(), is(true))
+        .assertThatUniqueKeysAre(bitSetOf());
+  }
+
+  @Test void testColumnUniquenessForJoinOnAggregation() {
+    final String sql = ""
+                       + "select *\n"
+                       + "from emp A\n"
+                       + "join (\n"
+                       + "  select max(empno) AS maxno from emp) B\n"
+                       + "on A.empno = B.maxno";
+    sql(sql)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(9), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1, 9), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(), is(true))
+        .assertThatUniqueKeysAre(bitSetOf());
+  }
+
+  @Test void testColumnUniquenessForConstantKey() {
+    final String sql = ""
+        + "select *\n"
+        + "from emp A\n"
+        + "where empno = 1010";
+    sql(sql)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(), is(true))
+        .assertThatUniqueKeysAre(bitSetOf());
+  }
+
+  @Test void testColumnUniquenessForCorrelatedSubquery() {
+    final String sql = ""
+        + "select *\n"
+        + "from emp A\n"
+        + "where empno = (\n"
+        + "  select max(empno) from emp)";
+    sql(sql)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(), is(true))
+        .assertThatUniqueKeysAre(bitSetOf());
+  }
+
   @Test void testColumnUniquenessForAggregateWithConstantColumns() {
     final String sql = ""
         + "select deptno, ename, sum(sal)\n"
@@ -1148,7 +1218,11 @@ public class RelMetadataTest {
         + "where deptno=1010\n"
         + "group by deptno, ename";
     sql(sql)
-        .assertThatAreColumnsUnique(bitSetOf(1), is(true));
+        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(0), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(), is(false))
+        .assertThatUniqueKeysAre(bitSetOf(1));
   }
 
   @Test void testColumnUniquenessForExchangeWithConstantColumns() {
@@ -1208,6 +1282,32 @@ public class RelMetadataTest {
   @Test void testGroupBy() {
     sql("select deptno, count(*), sum(sal) from emp group by deptno")
         .assertThatUniqueKeysAre(bitSetOf(0));
+  }
+
+  /**
+   * The group by columns constitute a key, and the keys of the relation we are
+   * aggregating over are retained.
+   */
+  @Test void testGroupByNonKey() {
+    sql("select sal, max(deptno), max(empno) from emp group by sal")
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(2), is(true))
+        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(2));
+  }
+
+  @Test void testNoGroupBy() {
+    sql("select max(sal), count(*) from emp")
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(true))
+        .assertThatUniqueKeysAre(bitSetOf());
+  }
+
+  @Test void testGroupByNothing() {
+    sql("select max(sal), count(*) from emp group by ()")
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(true))
+        .assertThatUniqueKeysAre(bitSetOf());
   }
 
   @Test void testGroupingSets() {
@@ -1274,6 +1374,65 @@ public class RelMetadataTest {
     sql("select value1 from s.composite_keys_table")
         .withCatalogReaderFactory(factory)
         .assertThatUniqueKeysAre();
+
+    // One key set to constant
+    sql("select key1, key2, value1 from s.composite_keys_table t\n"
+        + "where t.key2 = 'constant'")
+        .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatUniqueKeysAre(bitSetOf(0));
+
+    // One key set to a value from correlated subquery
+    sql("select * from s.composite_keys_table where key2 = ("
+        + "select max(key2) from s.composite_keys_table)")
+        .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatUniqueKeysAre(bitSetOf(0));
+
+    // One key set to table-wide aggregation in join expression
+    sql("select * from s.composite_keys_table t1\n"
+        + "inner join (\n"
+        + "  select max(key2) max_key2 from s.composite_keys_table) t2\n"
+        + "on t1.key2 = t2.max_key2")
+        .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatUniqueKeysAre(bitSetOf(0));
+
+    // One key set to single value by limit in join expression
+    sql("select * from s.composite_keys_table t1\n"
+        + "inner join (\n"
+        + "  select * from s.composite_keys_table limit 1) t2\n"
+        + "on t1.key2 = t2.key2")
+        .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatUniqueKeysAre(bitSetOf(0));
+
+    // One key set to single constant by select in join expression
+    sql("select * from s.composite_keys_table t1\n"
+        + "inner join (\n"
+        + "  select CAST('constant' AS VARCHAR) c) t2\n"
+        + "on t1.key2 = t2.c")
+        .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatUniqueKeysAre(bitSetOf(0));
+
+    // One key set joined with single-row constant
+    sql("select * from s.composite_keys_table t1\n"
+        + "inner join (\n"
+        + "values (CAST('constant' AS VARCHAR))) as t2 (c)\n"
+        + "on t1.key2 = t2.c")
+        .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatUniqueKeysAre(bitSetOf(0));
+
+    // One key set joined with multi-row constant
+    sql("select * from s.composite_keys_table t1\n"
+        + "inner join (\n"
+        + "values (CAST('constant' AS VARCHAR)),(CAST('constant' AS VARCHAR))) as t2 (c)\n"
+        + "on t1.key2 = t2.c")
+        .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(false))
+        .assertThatUniqueKeysAre();
   }
 
   private static ImmutableBitSet bitSetOf(int... bits) {
@@ -1302,7 +1461,7 @@ public class RelMetadataTest {
     sql("select a1.empno, a2.empno\n"
         + "from emp a1 join emp a2 on (a1.empno=a2.empno)")
         .convertingProjectAsCalc()
-        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(1), bitSetOf(0, 1));
+        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(1));
   }
 
   @Test void calcMultipleColumnsAreUniqueCalc3() {
@@ -1310,8 +1469,7 @@ public class RelMetadataTest {
         + " from emp a1 join emp a2\n"
         + " on (a1.empno=a2.empno)")
         .convertingProjectAsCalc()
-        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(0, 1), bitSetOf(0, 1, 2),
-            bitSetOf(0, 2), bitSetOf(1), bitSetOf(1, 2), bitSetOf(2));
+        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(1), bitSetOf(1, 2), bitSetOf(2));
   }
 
   @Test void calcColumnsAreNonUniqueCalc() {

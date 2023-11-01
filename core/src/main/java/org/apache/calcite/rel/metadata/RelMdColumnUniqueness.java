@@ -22,6 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Exchange;
@@ -44,12 +45,14 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -67,6 +70,9 @@ public class RelMdColumnUniqueness
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
           new RelMdColumnUniqueness(), BuiltInMetadata.ColumnUniqueness.Handler.class);
+  static final Set<SqlKind> PASSTHROUGH_AGGREGATIONS =
+      ImmutableSet.of(SqlKind.MIN, SqlKind.MAX, SqlKind.FIRST_VALUE, SqlKind.LAST_VALUE,
+          SqlKind.ANY_VALUE);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -151,6 +157,10 @@ public class RelMdColumnUniqueness
 
   public @Nullable Boolean areColumnsUnique(Sort rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
+    Double maxRowCount = mq.getMaxRowCount(rel);
+    if (maxRowCount != null && maxRowCount <= 1.0d) {
+      return true;
+    }
     columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     return mq.areColumnsUnique(rel.getInput(), columns, ignoreNulls);
   }
@@ -266,11 +276,6 @@ public class RelMdColumnUniqueness
       }
     }
 
-    // If no columns can affect uniqueness, then return unknown
-    if (childColumns.cardinality() == 0) {
-      return null;
-    }
-
     return mq.areColumnsUnique(rel.getInput(), childColumns.build(),
         ignoreNulls);
   }
@@ -278,9 +283,6 @@ public class RelMdColumnUniqueness
   public @Nullable Boolean areColumnsUnique(Join rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
     columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
-    if (columns.cardinality() == 0) {
-      return false;
-    }
 
     final RelNode left = rel.getLeft();
     final RelNode right = rel.getRight();
@@ -290,19 +292,31 @@ public class RelMdColumnUniqueness
       return mq.areColumnsUnique(left, columns, ignoreNulls);
     }
 
+    final int leftColumnCount = rel.getLeft().getRowType().getFieldCount();
     // Divide up the input column mask into column masks for the left and
     // right sides of the join
     final Pair<ImmutableBitSet, ImmutableBitSet> leftAndRightColumns =
-        splitLeftAndRightColumns(rel.getLeft().getRowType().getFieldCount(),
-            columns);
-    final ImmutableBitSet leftColumns = leftAndRightColumns.left;
-    final ImmutableBitSet rightColumns = leftAndRightColumns.right;
+        splitLeftAndRightColumns(leftColumnCount, columns);
+    ImmutableBitSet leftColumns = leftAndRightColumns.left;
+    ImmutableBitSet rightColumns = leftAndRightColumns.right;
 
     // for FULL OUTER JOIN if columns contain column from both inputs it is not
     // guaranteed that the result will be unique
     if (!ignoreNulls && rel.getJoinType() == JoinRelType.FULL
         && leftColumns.cardinality() > 0 && rightColumns.cardinality() > 0) {
       return false;
+    }
+
+    final JoinInfo joinInfo = rel.analyzeCondition();
+
+    // Joining with a singleton constrains the keys on the other table
+    final Double rightMaxRowCount = mq.getMaxRowCount(right);
+    if (rightMaxRowCount != null && rightMaxRowCount <= 1.0) {
+      leftColumns = leftColumns.union(joinInfo.leftSet());
+    }
+    final Double leftMaxRowCount = mq.getMaxRowCount(left);
+    if (leftMaxRowCount != null && leftMaxRowCount <= 1.0) {
+      rightColumns = rightColumns.union(joinInfo.rightSet());
     }
 
     // If the original column mask contains columns from both the left and
@@ -325,7 +339,6 @@ public class RelMdColumnUniqueness
     // the columns are unique for the entire join if they're unique for
     // the corresponding join input, provided that input is not null
     // generating.
-    final JoinInfo joinInfo = rel.analyzeCondition();
     if (leftColumns.cardinality() > 0) {
       if (rel.getJoinType().generatesNullsOnLeft()) {
         return false;
@@ -348,11 +361,15 @@ public class RelMdColumnUniqueness
       return leftJoinColsUnique && rightUnique;
     }
 
-    throw new AssertionError();
+    return false;
   }
 
   public @Nullable Boolean areColumnsUnique(Aggregate rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
+    Double maxRowCount = mq.getMaxRowCount(rel);
+    if (maxRowCount != null && maxRowCount <= 1.0d) {
+      return true;
+    }
     if (Aggregate.isSimple(rel) || ignoreNulls) {
       columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
       // group by keys form a unique key
@@ -362,6 +379,25 @@ public class RelMdColumnUniqueness
         return true;
       } else if (!Aggregate.isSimple(rel)) {
         return false;
+      }
+
+      if (Aggregate.isSimple(rel)) {
+        // If an input's unique column value is returned (passed through) by an aggregation
+        // function, then the result of the function is also unique.
+        Set<ImmutableBitSet> inputUniqueKeys = mq.getUniqueKeys(rel.getInput(), ignoreNulls);
+        if (inputUniqueKeys != null) {
+          List<AggregateCall> aggCallList = rel.getAggCallList();
+          for (int aggIndex = 0; aggIndex < aggCallList.size(); aggIndex++) {
+            AggregateCall call = aggCallList.get(aggIndex);
+            if (PASSTHROUGH_AGGREGATIONS.contains(call.getAggregation().getKind())) {
+              Integer inputIndex = call.getArgList().get(0);
+              if (inputUniqueKeys.contains(ImmutableBitSet.of(inputIndex))
+                  && columns.contains(ImmutableBitSet.of(aggIndex + rel.getGroupCount()))) {
+                return true;
+              }
+            }
+          }
+        }
       }
 
       final ImmutableBitSet commonKeys = columns.intersect(groupKey);
@@ -380,10 +416,10 @@ public class RelMdColumnUniqueness
 
   public Boolean areColumnsUnique(Values rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
-    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     if (rel.tuples.size() < 2) {
       return true;
     }
+    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     final Set<List<Comparable>> set = new HashSet<>();
     final List<Comparable> values = new ArrayList<>(columns.cardinality());
     for (ImmutableList<RexLiteral> tuple : rel.tuples) {
@@ -478,17 +514,12 @@ public class RelMdColumnUniqueness
       ImmutableBitSet checkingColumns, RelNode rel, RelMetadataQuery mq) {
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(rel);
     if (!RelOptPredicateList.isEmpty(predicates)) {
-      final Set<Integer> constantIndexes = new HashSet<>();
-      predicates.constantMap.keySet().forEach(rex -> {
-        if (rex instanceof RexInputRef) {
-          constantIndexes.add(((RexInputRef) rex).getIndex());
-        }
-      });
-      if (!constantIndexes.isEmpty()) {
-        return checkingColumns.union(ImmutableBitSet.of(constantIndexes));
+      ImmutableBitSet invariantIndexes = predicates.getInvariantColumnSet();
+      if (!invariantIndexes.isEmpty()) {
+        return checkingColumns.union(ImmutableBitSet.of(invariantIndexes));
       }
     }
-    // If no constant columns deduced, return the original "checkingColumns".
+    // If no invariant columns deduced, return the original "checkingColumns".
     return checkingColumns;
   }
 }

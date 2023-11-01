@@ -88,6 +88,8 @@ public final class GeneratedMetadata_PredicatesHandler
       return provider0.getPredicates((org.apache.calcite.rel.core.TableScan) r, mq);
     } else if (r instanceof org.apache.calcite.rel.core.Union) {
       return provider0.getPredicates((org.apache.calcite.rel.core.Union) r, mq);
+    } else if (r instanceof org.apache.calcite.rel.core.Values) {
+      return provider0.getPredicates((org.apache.calcite.rel.core.Values) r, mq);
     } else if (r instanceof org.apache.calcite.rel.RelNode) {
       return provider0.getPredicates((org.apache.calcite.rel.RelNode) r, mq);
     } else {

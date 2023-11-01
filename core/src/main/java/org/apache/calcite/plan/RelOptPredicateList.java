@@ -18,9 +18,12 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -244,5 +247,37 @@ public class RelOptPredicateList {
       return true;
     }
     return false;
+  }
+
+  /** Return the set of columns that are set to a constant or scalar. */
+  public ImmutableBitSet getInvariantColumnSet() {
+    ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+    constantMap.keySet()
+        .stream()
+        .filter(RexInputRef.class::isInstance)
+        .map(RexInputRef.class::cast)
+        .map(RexSlot::getIndex)
+        .forEach(builder::set);
+
+    pulledUpPredicates.forEach(rex -> {
+      if (rex.getKind() == SqlKind.EQUALS
+          || rex.getKind() == SqlKind.IS_NOT_DISTINCT_FROM) {
+        List<RexNode> ops = ((RexCall) rex).getOperands();
+        RexNode op0 = ops.get(0);
+        RexNode op1 = ops.get(1);
+        if (op0 instanceof RexInputRef
+            && (op1.getKind() == SqlKind.LITERAL
+            || op1.getKind() == SqlKind.SCALAR_QUERY)) {
+          builder.set(((RexInputRef) op0).getIndex());
+        }
+        if (op1 instanceof RexInputRef
+            && (op0.getKind() == SqlKind.LITERAL
+            || op0.getKind() == SqlKind.SCALAR_QUERY)) {
+          builder.set(((RexInputRef) op1).getIndex());
+        }
+      }
+    });
+
+    return builder.build();
   }
 }

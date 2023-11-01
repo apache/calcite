@@ -83,13 +83,18 @@ public abstract class BuiltInMetadata {
      * represented as an {@link org.apache.calcite.util.ImmutableBitSet}, where
      * each bit position represents a 0-based output column ordinal.
      *
+     * <p>Note that a key plus other columns is still unique. Therefore a table
+     * with all columns unique has a unique key consisting of the empty set.
+     * This is the case with all single-row tables.
+     *
      * <p>Nulls can be ignored if the relational expression has filtered out
      * null values.
      *
      * @param ignoreNulls if true, ignore null values when determining
      *                    whether the keys are unique
      * @return set of keys, or null if this information cannot be determined
-     * (whereas empty set indicates definitely no keys at all)
+     * (whereas empty set indicates definitely no keys at all, and a set
+     * containing the empty set implies every column is unique)
      */
     @Nullable Set<ImmutableBitSet> getUniqueKeys(boolean ignoreNulls);
 

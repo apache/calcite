@@ -17,9 +17,11 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Filter;
@@ -32,23 +34,31 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.apache.calcite.rel.metadata.RelMdColumnUniqueness.PASSTHROUGH_AGGREGATIONS;
 
 import static java.util.Objects.requireNonNull;
 
@@ -74,11 +84,30 @@ public class RelMdUniqueKeys
 
   public @Nullable Set<ImmutableBitSet> getUniqueKeys(Filter rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
-    return mq.getUniqueKeys(rel.getInput(), ignoreNulls);
+    Set<ImmutableBitSet> uniqueKeys = mq.getUniqueKeys(rel.getInput(), ignoreNulls);
+    if (uniqueKeys == null) {
+      return null;
+    }
+    // Remove constant columns from each key
+    RelOptPredicateList predicates = mq.getPulledUpPredicates(rel);
+    if (RelOptPredicateList.isEmpty(predicates)) {
+      return uniqueKeys;
+    } else {
+      ImmutableBitSet invariantColumns = predicates.getInvariantColumnSet();
+      return uniqueKeys.stream()
+          .map(key -> key.rebuild()
+              .removeAll(invariantColumns)
+              .build())
+          .collect(Collectors.toSet());
+    }
   }
 
   public @Nullable Set<ImmutableBitSet> getUniqueKeys(Sort rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
+    Double maxRowCount = mq.getMaxRowCount(rel);
+    if (maxRowCount != null && maxRowCount <= 1.0d) {
+      return ImmutableSet.of(ImmutableBitSet.of());
+    }
     return mq.getUniqueKeys(rel.getInput(), ignoreNulls);
   }
 
@@ -234,7 +263,11 @@ public class RelMdUniqueKeys
         && rightUnique
         && (leftSet != null)
         && !rel.getJoinType().generatesNullsOnLeft()) {
-      retSet.addAll(leftSet);
+      ImmutableBitSet leftInvariants =
+          getInvariantJoinKeys(joinInfo.leftKeys, joinInfo.rightKeys, right, mq);
+      leftSet.stream()
+          .map(set -> set.except(leftInvariants))
+          .forEach(retSet::add);
     }
 
     // same as above except left and right are reversed
@@ -242,26 +275,89 @@ public class RelMdUniqueKeys
         && leftUnique
         && (rightSet != null)
         && !rel.getJoinType().generatesNullsOnRight()) {
-      retSet.addAll(rightSet);
+      ImmutableBitSet rightInvariants =
+          getInvariantJoinKeys(joinInfo.rightKeys, joinInfo.leftKeys, left, mq);
+      rightSet.stream()
+          .map(set -> set.except(rightInvariants))
+          .forEach(retSet::add);
     }
 
-    return retSet;
+    // Remove sets that are supersets of other sets
+    final Set<ImmutableBitSet> reducedSet = new HashSet<>();
+    for (ImmutableBitSet bigger : retSet) {
+      if (retSet.stream()
+          .filter(smaller -> !bigger.equals(smaller))
+          .noneMatch(bigger::contains)) {
+        reducedSet.add(bigger);
+      }
+    }
+
+    return reducedSet;
+  }
+
+  /**
+   * Return the keys that are invariant by virtue of equality with an invariant
+   * (constant or scalar result) on the other side of a join.
+   */
+  private ImmutableBitSet getInvariantJoinKeys(ImmutableIntList keys, ImmutableIntList otherKeys,
+      RelNode otherRel, RelMetadataQuery mq) {
+    Double maxRowCount = mq.getMaxRowCount(otherRel);
+    ImmutableBitSet otherInvariants;
+    if (maxRowCount != null && maxRowCount <= 1.0d) {
+      // In a single row solution, every column is invariant
+      int size = otherRel.getRowType().getFieldList().size();
+      otherInvariants = ImmutableBitSet.range(size);
+    } else {
+      otherInvariants = mq.getPulledUpPredicates(otherRel).getInvariantColumnSet();
+    }
+    ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+    for (int i = 0; i < keys.size(); i++) {
+      if (otherInvariants.get(otherKeys.get(i))) {
+        builder.set(keys.get(i));
+      }
+    }
+    return builder.build();
   }
 
   public Set<ImmutableBitSet> getUniqueKeys(Aggregate rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     if (Aggregate.isSimple(rel)) {
       final ImmutableBitSet groupKeys = rel.getGroupSet();
-      final Set<ImmutableBitSet> inputUniqueKeys = mq
-          .getUniqueKeys(rel.getInput(), ignoreNulls);
+      RelOptPredicateList pulledUpPredicates = mq.getPulledUpPredicates(rel);
+      ImmutableBitSet reducedGroupKeys =
+          groupKeys.except(pulledUpPredicates.getInvariantColumnSet());
+
+      final Set<ImmutableBitSet> preciseUniqueKeys;
+      final Set<ImmutableBitSet> inputUniqueKeys =
+          mq.getUniqueKeys(rel.getInput(), ignoreNulls);
       if (inputUniqueKeys == null) {
-        return ImmutableSet.of(groupKeys);
+        preciseUniqueKeys = ImmutableSet.of(reducedGroupKeys);
+      } else {
+        // Try to find more precise unique keys.
+        Set<ImmutableBitSet> keysInGroupBy = inputUniqueKeys.stream()
+            .filter(reducedGroupKeys::contains).collect(Collectors.toSet());
+        preciseUniqueKeys = keysInGroupBy.isEmpty()
+            ? ImmutableSet.of(reducedGroupKeys)
+            : keysInGroupBy;
       }
 
-      // Try to find more precise unique keys.
-      final Set<ImmutableBitSet> preciseUniqueKeys = inputUniqueKeys.stream()
-          .filter(groupKeys::contains).collect(Collectors.toSet());
-      return preciseUniqueKeys.isEmpty() ? ImmutableSet.of(groupKeys) : preciseUniqueKeys;
+      // If an input's unique column value is returned (passed through) by an aggregation
+      // function, then the result of the function is also unique.
+      ImmutableSet.Builder<ImmutableBitSet> keysBuilder = ImmutableSet.builder();
+      if (inputUniqueKeys != null) {
+        List<AggregateCall> aggCallList = rel.getAggCallList();
+        for (int aggIndex = 0; aggIndex < aggCallList.size(); aggIndex++) {
+          AggregateCall call = aggCallList.get(aggIndex);
+          if (PASSTHROUGH_AGGREGATIONS.contains(call.getAggregation().getKind())) {
+            Integer inputIndex = call.getArgList().get(0);
+            if (inputUniqueKeys.contains(ImmutableBitSet.of(inputIndex))) {
+              keysBuilder.add(ImmutableBitSet.of(aggIndex + rel.getGroupCount()));
+            }
+          }
+        }
+      }
+
+      return Sets.union(preciseUniqueKeys, keysBuilder.build());
     } else if (ignoreNulls) {
       // group by keys form a unique key
       return ImmutableSet.of(rel.getGroupSet());
@@ -338,6 +434,34 @@ public class RelMdUniqueKeys
       assert rel.getTable().isKey(key);
     }
     return ImmutableSet.copyOf(keys);
+  }
+
+  public @Nullable Set<ImmutableBitSet> getUniqueKeys(Values rel, RelMetadataQuery mq,
+      boolean ignoreNulls) {
+    ImmutableList<ImmutableList<RexLiteral>> tuples = rel.tuples;
+    if (tuples.size() <= 1) {
+      return ImmutableSet.of(ImmutableBitSet.of());
+    }
+    // Identify the single-column keys - a subset of all composite keys
+    List<Set<RexLiteral>> ranges = new ArrayList<>();
+    int rowSize = tuples.get(0).size();
+    for (int i = 0; i < rowSize; i++) {
+      ranges.add(new HashSet<>());
+    }
+    for (ImmutableList<RexLiteral> tuple : tuples) {
+      for (int i = 0; i < rowSize; i++) {
+        ranges.get(i).add(tuple.get(i));
+      }
+    }
+
+    ImmutableSet.Builder<ImmutableBitSet> keySetBuilder = ImmutableSet.builder();
+    for (int i = 0; i < ranges.size(); i++) {
+      final Set<RexLiteral> range = ranges.get(i);
+      if (range.size() == tuples.size()) {
+        keySetBuilder.add(ImmutableBitSet.of(i));
+      }
+    }
+    return keySetBuilder.build();
   }
 
   // Catch-all rule when none of the others apply.
