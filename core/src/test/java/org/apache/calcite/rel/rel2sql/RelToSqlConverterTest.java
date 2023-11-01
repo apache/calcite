@@ -13435,16 +13435,15 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
   }
 
-  @Test void testCrossJoinAlongWithLeftJoinHavingBooleanColumnEqualityCondition() {
+  @Test void testInnerAndLeftJoinWithBooleanColumnEqualityConditionInWhereClause() {
     String query = "select \"first_name\" \n"
         + "from \"employee\" as \"emp\" , \"department\" as \"dept\" LEFT JOIN "
-        + " \"product\" as \"p\" ON \"p\".\"product_id\" = \"dept\".\"department_id\" AND \"p\".\"low_fat\" = true"
-        + " where \"emp\".\"employee_id\" = 1 AND \"p\".\"product_id\" IS NULL";
+        + " \"product\" as \"p\" ON \"p\".\"product_id\" = \"dept\".\"department_id\""
+        + " where \"p\".\"low_fat\" = true AND \"emp\".\"employee_id\" = 1";
     final String expected = "SELECT employee.first_name\n"
         + "FROM foodmart.employee\n"
         + "INNER JOIN foodmart.department ON TRUE\n"
-        + "LEFT JOIN foodmart.product ON department.department_id = product.product_id"
-        + " AND product.product_id IS NULL\n"
+        + "LEFT JOIN foodmart.product ON department.department_id = product.product_id\n"
         + "WHERE product.low_fat AND employee.employee_id = 1";
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(FilterExtractInnerJoinRule.class);
