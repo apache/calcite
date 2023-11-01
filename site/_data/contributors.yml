@@ -205,6 +205,12 @@
   githubId: laurentgo
   org: Dremio
   role: PMC
+- name: Lei Shen
+  apacheId: lakeshen
+  githubId: LakeShen
+  pronouns: he/him
+  org:
+  role: Committer
 - name: Liya Fan
   apacheId: liyafan
   githubId: liyafan82
