@@ -265,19 +265,20 @@ public class RelOptPredicateList {
         List<RexNode> ops = ((RexCall) rex).getOperands();
         RexNode op0 = ops.get(0);
         RexNode op1 = ops.get(1);
-        if (op0 instanceof RexInputRef
-            && (op1.getKind() == SqlKind.LITERAL
-            || op1.getKind() == SqlKind.SCALAR_QUERY)) {
-          builder.set(((RexInputRef) op0).getIndex());
-        }
-        if (op1 instanceof RexInputRef
-            && (op0.getKind() == SqlKind.LITERAL
-            || op0.getKind() == SqlKind.SCALAR_QUERY)) {
-          builder.set(((RexInputRef) op1).getIndex());
-        }
+        addInputRefIfOtherInvariant(builder, op0, op1);
+        addInputRefIfOtherInvariant(builder, op1, op0);
       }
     });
 
     return builder.build();
+  }
+
+  private void addInputRefIfOtherInvariant(ImmutableBitSet.Builder builder, RexNode inputRef,
+      RexNode invariant) {
+    if (inputRef instanceof RexInputRef
+        && (invariant.getKind() == SqlKind.LITERAL
+        || invariant.getKind() == SqlKind.SCALAR_QUERY)) {
+      builder.set(((RexInputRef) inputRef).getIndex());
+    }
   }
 }

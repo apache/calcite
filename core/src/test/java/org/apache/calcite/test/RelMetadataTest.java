@@ -1143,9 +1143,9 @@ public class RelMetadataTest {
 
   @Test void testColumnUniquenessForLimit1() {
     final String sql = ""
-                       + "select *\n"
-                       + "from emp\n"
-                       + "limit 1";
+        + "select *\n"
+        + "from emp\n"
+        + "limit 1";
     sql(sql)
         .assertThatAreColumnsUnique(bitSetOf(0), is(true))
         .assertThatAreColumnsUnique(bitSetOf(1), is(true))
@@ -1155,12 +1155,12 @@ public class RelMetadataTest {
 
   @Test void testColumnUniquenessForJoinOnLimit1() {
     final String sql = ""
-                       + "select *\n"
-                       + "from emp A\n"
-                       + "join (\n"
-                       + "  select * from emp\n"
-                       + "  limit 1) B\n"
-                       + "on A.empno = B.empno";
+        + "select *\n"
+        + "from emp A\n"
+        + "join (\n"
+        + "  select * from emp\n"
+        + "  limit 1) B\n"
+        + "on A.empno = B.empno";
     sql(sql)
         .assertThatAreColumnsUnique(bitSetOf(0), is(true))
         .assertThatAreColumnsUnique(bitSetOf(1), is(true))
@@ -1172,11 +1172,11 @@ public class RelMetadataTest {
 
   @Test void testColumnUniquenessForJoinOnAggregation() {
     final String sql = ""
-                       + "select *\n"
-                       + "from emp A\n"
-                       + "join (\n"
-                       + "  select max(empno) AS maxno from emp) B\n"
-                       + "on A.empno = B.maxno";
+        + "select *\n"
+        + "from emp A\n"
+        + "join (\n"
+        + "  select max(empno) AS maxno from emp) B\n"
+        + "on A.empno = B.maxno";
     sql(sql)
         .assertThatAreColumnsUnique(bitSetOf(0), is(true))
         .assertThatAreColumnsUnique(bitSetOf(9), is(true))

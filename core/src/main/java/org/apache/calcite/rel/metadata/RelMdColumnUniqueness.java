@@ -382,21 +382,9 @@ public class RelMdColumnUniqueness
       }
 
       if (Aggregate.isSimple(rel)) {
-        // If an input's unique column value is returned (passed through) by an aggregation
-        // function, then the result of the function is also unique.
         Set<ImmutableBitSet> inputUniqueKeys = mq.getUniqueKeys(rel.getInput(), ignoreNulls);
-        if (inputUniqueKeys != null) {
-          List<AggregateCall> aggCallList = rel.getAggCallList();
-          for (int aggIndex = 0; aggIndex < aggCallList.size(); aggIndex++) {
-            AggregateCall call = aggCallList.get(aggIndex);
-            if (PASSTHROUGH_AGGREGATIONS.contains(call.getAggregation().getKind())) {
-              Integer inputIndex = call.getArgList().get(0);
-              if (inputUniqueKeys.contains(ImmutableBitSet.of(inputIndex))
-                  && columns.contains(ImmutableBitSet.of(aggIndex + rel.getGroupCount()))) {
-                return true;
-              }
-            }
-          }
+        if (inputUniqueKeys != null && columnsContainUniqueAgg(columns, rel, inputUniqueKeys)) {
+          return true;
         }
       }
 
@@ -412,6 +400,30 @@ public class RelMdColumnUniqueness
       return mq.areColumnsUnique(rel.getInput(), targetColumns.build(), ignoreNulls);
     }
     return null;
+  }
+
+  /**
+   * If an input's unique column value is returned (passed through) by an aggregation function, then
+   * the result of the function is also unique.
+   *
+   * @param columns         the columns to test for uniqueness
+   * @param rel             the Aggregate {@link RelNode}
+   * @param inputUniqueKeys the set of unique key sets of the Aggregate input (child RelNode)
+   *
+   * @return whether the input columns are unique by containing a unique aggregated column
+   */
+  private boolean columnsContainUniqueAgg(ImmutableBitSet columns, Aggregate rel,
+      Set<ImmutableBitSet> inputUniqueKeys) {
+    List<AggregateCall> aggCallList = rel.getAggCallList();
+    for (int aggIndex = 0; aggIndex < aggCallList.size(); aggIndex++) {
+      AggregateCall call = aggCallList.get(aggIndex);
+      if (PASSTHROUGH_AGGREGATIONS.contains(call.getAggregation().getKind())
+          && inputUniqueKeys.contains(ImmutableBitSet.of(call.getArgList().get(0)))
+          && columns.contains(ImmutableBitSet.of(aggIndex + rel.getGroupCount()))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public Boolean areColumnsUnique(Values rel, RelMetadataQuery mq,
