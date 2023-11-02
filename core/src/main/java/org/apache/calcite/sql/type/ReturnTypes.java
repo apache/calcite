@@ -591,7 +591,7 @@ public abstract class ReturnTypes {
   };
 
   /**
-   * Returns the element type of a ARRAY or MULTISET.
+   * Returns the element type of an ARRAY or MULTISET.
    *
    * <p>For example, given <code>INTEGER ARRAY or MULTISET ARRAY</code>, returns
    * <code>INTEGER</code>.

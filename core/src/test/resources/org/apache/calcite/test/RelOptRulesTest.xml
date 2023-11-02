@@ -1286,6 +1286,23 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[OR(AND(IS NOT NULL($5), <>($2, 0)), AND(<($3
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testArrayToString">
+    <Resource name="sql">
+      <![CDATA[select array_to_string(array['1','2','3','4',NULL,'6'], ',', NULL)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[ARRAY_TO_STRING(ARRAY('1', '2', '3', '4', null:CHAR(1), '6'), ',', null:NULL)])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[null:VARCHAR])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testBitAndReuseDistinctAttrWithMixedOptionality">
     <Resource name="sql">
       <![CDATA[select sum(distinct deptno), count(distinct deptno), bit_and(deptno) from emp]]>
