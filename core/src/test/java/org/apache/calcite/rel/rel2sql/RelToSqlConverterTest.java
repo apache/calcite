@@ -13504,4 +13504,21 @@ class RelToSqlConverterTest {
     final String expectedSFQuery = "SELECT ZEROIFNULL(5) AS \"$f0\"\nFROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
   }
+
+  @Test void testInnerAndLeftJoinWithBooleanColumnEqualityConditionInWhereClause() {
+    String query = "select \"first_name\" \n"
+        + "from \"employee\" as \"emp\" , \"department\" as \"dept\" LEFT JOIN "
+        + " \"product\" as \"p\" ON \"p\".\"product_id\" = \"dept\".\"department_id\""
+        + " where \"p\".\"low_fat\" = true AND \"emp\".\"employee_id\" = 1";
+    final String expected = "SELECT employee.first_name\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.department ON TRUE\n"
+        + "LEFT JOIN foodmart.product ON department.department_id = product.product_id\n"
+        + "WHERE product.low_fat AND employee.employee_id = 1";
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expected);
+  }
 }
