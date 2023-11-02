@@ -996,6 +996,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case TIMES:
       unparseExpressionIntervalCall(call.operand(1), writer, leftPrec, rightPrec);
       break;
+    case DIVIDE:
+      unparseDivideIntervalCall(call.operand(1), writer, leftPrec, rightPrec);
+      break;
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call.operand(1), leftPrec, rightPrec);
       break;
@@ -1046,6 +1049,26 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.print(literalValue.getIntervalQualifier().toString());
     }
   }
+
+  private void unparseDivideIntervalCall(
+      SqlBasicCall call, SqlWriter writer, int leftPrec, int rightPrec) {
+    SqlLiteral intervalLiteral;
+    SqlNode divisor;
+    intervalLiteral = modifiedSqlIntervalLiteral(call.operand(0));
+    divisor = call.operand(1);
+    SqlIntervalLiteral.IntervalValue literalValue =
+        (SqlIntervalLiteral.IntervalValue) intervalLiteral.getValue();
+    writer.sep("INTERVAL");
+    SqlWriter.Frame castCall = writer.startFunCall("CAST");
+    writer.sep(literalValue.toString());
+    writer.sep("/");
+    divisor.unparse(writer, leftPrec, rightPrec);
+    writer.sep("AS", true);
+    writer.literal("INT64");
+    writer.endFunCall(castCall);
+    writer.print(literalValue.getIntervalQualifier().toString());
+  }
+
 
   /**
    * Return the SqlLiteral from the SqlBasicCall.
