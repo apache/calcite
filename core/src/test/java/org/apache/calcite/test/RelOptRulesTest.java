@@ -225,7 +225,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
    * Type inference for sql functions REPEAT, SPACE, XML_TRANSFORM,
    * and XML_EXTRACT is incorrect</a>. */
   @Test void testRepeat() {
@@ -246,7 +247,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
    * Type inference for sql functions REPEAT, SPACE, XML_TRANSFORM,
    * and XML_EXTRACT is incorrect</a>. */
   @Test void testReplace() {
@@ -263,7 +265,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5989">[CALCITE-5989]
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5989">[CALCITE-5989]
    * Type inference for RPAD and LPAD functions (BIGQUERY) is incorrect</a>. */
   @Test void testRpad() {
     HepProgramBuilder builder = new HepProgramBuilder();
@@ -283,7 +286,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5989">[CALCITE-5989]
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5989">[CALCITE-5989]
    * Type inference for RPAD and LPAD functions (BIGQUERY) is incorrect</a>. */
   @Test void testLpad() {
     HepProgramBuilder builder = new HepProgramBuilder();
@@ -303,7 +307,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5971">[CALCITE-5971]
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5971">[CALCITE-5971]
    * Add the RelRule to rewrite the bernoulli sample as Filter</a>. */
   @Test void testSampleToFilter() {
     final String sql = "select deptno from emp tablesample bernoulli(50)";
@@ -313,7 +318,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5971">[CALCITE-5971]
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5971">[CALCITE-5971]
    * Add the RelRule to rewrite the bernoulli sample as Filter</a>. */
   @Test void testSampleToFilterWithSeed() {
     final String sql = "select deptno from emp tablesample bernoulli(50) REPEATABLE(10)";
@@ -323,7 +329,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5813">[CALCITE-5813]
    * Type inference for sql functions REPEAT, SPACE, XML_TRANSFORM,
    * and XML_EXTRACT is incorrect</a>. */
   @Test void testSpace() {
@@ -2035,6 +2042,21 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5884">[CALCITE-5884]
+   * ARRAY_TO_STRING function should return NULL if its 'nullValue' argument is NULL</a>. */
+  @Test void testArrayToString() {
+    final String sql = "select array_to_string(array['1','2','3','4',NULL,'6'], ',', NULL)";
+    // We expect the result to be NULL, since array_to_string returns NULL if
+    // any argument is NULL.
+    sql(sql).withFactory(
+        t -> t.withOperatorTable(
+            opTab -> SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                SqlLibrary.STANDARD, SqlLibrary.BIG_QUERY))) // for array_to_string function
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1558">[CALCITE-1558]
    * AggregateExpandDistinctAggregatesRule gets field mapping wrong if groupKey
    * is used in aggregate function</a>. */
@@ -2733,7 +2755,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5073">[CALCITE-5073]
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5073">[CALCITE-5073]
    * JoinConditionPushRule cannot infer 'LHS.C1 = LHS.C2' from
    * 'LHS.C1 = RHS.C1 AND LHS.C2 = RHS.C1'</a>.
    */
@@ -2750,7 +2773,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5073">[CALCITE-5073]
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5073">[CALCITE-5073]
    * JoinConditionPushRule cannot infer 'LHS.C1 = LHS.C2' from
    * 'LHS.C1 = RHS.C1 AND LHS.C2 = RHS.C1'</a>.
    */
@@ -5483,7 +5507,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5861">
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5861">
    * [CALCITE-5861] ReduceExpressionsRule rules should constant-fold
    * expressions in window bounds</a>.
    */
@@ -5682,7 +5707,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
    * AssertionError during constant reduction of SPLIT expression that returns NULL</a>. */
   @Test public void testSplitNull() {
     final String query = "select split('1|2|3', NULL)";
@@ -5695,7 +5721,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
    * AssertionError during constant reduction of SPLIT expression that returns NULL</a>. */
   @Test public void testSplitNull1() {
     final String query = "select split(NULL, '|')";
@@ -5708,7 +5735,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5879">
    * AssertionError during constant reduction of SPLIT expression that returns NULL</a>. */
   @Test public void testSplitNull2() {
     final String query = "select split(NULL, NULL)";
@@ -5721,7 +5749,8 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5882">
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5882">
    * [CALCITE-5882] Compile-time evaluation of SPLIT function returns incorrect result</a>. */
   @Test public void testSplit() {
     final String query = "select split('1|2|3', '|')";

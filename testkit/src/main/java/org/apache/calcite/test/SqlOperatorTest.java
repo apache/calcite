@@ -6600,6 +6600,7 @@ public class SqlOperatorTest {
     f.checkScalar("array_to_string(array['', ''], '-')", "-", "VARCHAR NOT NULL");
     f.checkNull("array_to_string(null, '-')");
     f.checkNull("array_to_string(array['a', 'b', null], null)");
+    f.checkNull("array_to_string(array['1','2','3'], ',', null)");
     f.checkFails("^array_to_string(array[1, 2, 3], '-', ' ')^",
         "Cannot apply 'ARRAY_TO_STRING' to arguments of type 'ARRAY_TO_STRING"
             + "\\(<INTEGER ARRAY>, <CHAR\\(1\\)>, <CHAR\\(1\\)>\\)'\\. Supported form\\(s\\):"
