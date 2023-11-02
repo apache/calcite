@@ -267,6 +267,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {ORACLE, BIG_QUERY})
+  public static final SqlFunction USING = new SqlFunction("USING", SqlKind.USING,
+      ReturnTypes.LEAST_RESTRICTIVE.andThen(
+          SqlTypeTransforms.TO_NULLABLE), null,
+      OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
+
   /** The "GREATEST(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction GREATEST =
