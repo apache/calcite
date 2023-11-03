@@ -4236,6 +4236,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).trim(true).ok();
   }
 
+  @Test void testAliasUnnestArrayPlanWithCorrelateFilter() {
+    final String sql = "select d.deptno, e, k.empno\n"
+        + "from dept_nested_expanded as d CROSS JOIN\n"
+        + " UNNEST(d.admins, d.employees) as t(e, k) where d.deptno = 1";
+    sql(sql).conformance(SqlConformanceEnum.PRESTO).ok();
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *

@@ -69,7 +69,6 @@ public class SqlBetweenOperator extends SqlInfixOperator {
    * Ordinal of the 'lower' operand.
    */
   public static final int LOWER_OPERAND = 1;
-
   /**
    * Ordinal of the 'upper' operand.
    */

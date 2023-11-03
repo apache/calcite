@@ -36,6 +36,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUpdate;
@@ -655,7 +656,7 @@ public interface SqlValidator {
       List<RelDataType> argTypes);
 
   /**
-   * Handles a call to a function which cannot be resolved. Returns a an
+   * Handles a call to a function which cannot be resolved. Returns an
    * appropriately descriptive error, which caller must throw.
    *
    * @param call               Call
@@ -665,7 +666,7 @@ public interface SqlValidator {
    * @param argNames           Names of arguments, or null if call by position
    */
   CalciteException handleUnresolvedFunction(SqlCall call,
-      SqlFunction unresolvedFunction, List<RelDataType> argTypes,
+      SqlOperator unresolvedFunction, List<RelDataType> argTypes,
       @Nullable List<String> argNames);
 
   /**

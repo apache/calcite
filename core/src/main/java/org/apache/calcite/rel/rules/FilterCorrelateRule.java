@@ -19,20 +19,33 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.hep.HepRelVertex;
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Correlate;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.Uncollect;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.apache.commons.lang3.tuple.ImmutableTriple;
+import org.apache.commons.lang3.tuple.Triple;
+
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.Stack;
 
 /**
  * Planner rule that pushes a {@link Filter} above a {@link Correlate} into the
@@ -121,6 +134,24 @@ public class FilterCorrelateRule
         RexUtil.fixUp(rexBuilder, aboveFilters,
             RelOptUtil.getFieldTypeList(relBuilder.peek().getRowType())));
 
+    if (! (corr.getRight() instanceof RelSubset
+        || corr.getLeft() instanceof RelSubset)) {
+      HepRelVertex rightHepRelVertex = (HepRelVertex) corr.getRight();
+      HepRelVertex leftHepRelVertex = (HepRelVertex) corr.getLeft();
+      if (!(rightHepRelVertex.getCurrentRel() instanceof LogicalCorrelate
+          || leftHepRelVertex.getCurrentRel() instanceof LogicalCorrelate)
+          && (rightHepRelVertex.getCurrentRel() instanceof Uncollect
+          || leftHepRelVertex.getCurrentRel() instanceof Uncollect)) {
+        Stack<Triple<RelNode, Integer, JoinRelType>> stackForTableScanWithEndColumnIndex =
+            new Stack<>();
+        List<RexNode> filterToModify = RelOptUtil.conjunctions(filter.getCondition());
+        populateStackWithEndIndexesForTables(corr,
+            stackForTableScanWithEndColumnIndex, filterToModify);
+        RelNode uncollectRelWithWhere = moveConditionsFromWhereClauseToJoinOnClause(filterToModify,
+            stackForTableScanWithEndColumnIndex, relBuilder, corr);
+        relBuilder.push(uncollectRelWithWhere);
+      }
+    }
     call.transformTo(relBuilder.build());
   }
 
@@ -142,4 +173,44 @@ public class FilterCorrelateRule
           .as(Config.class);
     }
   }
+
+
+  private RelNode moveConditionsFromWhereClauseToJoinOnClause(List<RexNode> allConditions,
+      Stack<Triple<RelNode, Integer, JoinRelType>> stack, RelBuilder builder, Correlate correlate) {
+    Triple<RelNode, Integer, JoinRelType> leftEntry = stack.pop();
+    Triple<RelNode, Integer, JoinRelType> rightEntry;
+    RelNode left = leftEntry.getLeft();
+    Set<CorrelationId> data = new LinkedHashSet<>();
+    data.add(correlate.getCorrelationId());
+
+    while (!stack.isEmpty()) {
+      rightEntry = stack.pop();
+      left = LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
+          allConditions.get(0), data, rightEntry.getRight());
+      return builder.push(left).build();
+    }
+    return builder.push(left)
+        .filter(builder.and(allConditions))
+        .build();
+  }
+
+  private void populateStackWithEndIndexesForTables(
+      Correlate join,
+      Stack<Triple<RelNode, Integer,
+      JoinRelType>> stack,
+      List<RexNode> joinConditions) {
+    RelNode left = ((HepRelVertex) join.getLeft()).getCurrentRel();
+    RelNode right = ((HepRelVertex) join.getRight()).getCurrentRel();
+    int leftTableColumnSize = join.getLeft().getRowType().getFieldCount();
+    int rightTableColumnSize = join.getRight().getRowType().getFieldCount();
+    stack.push(
+        new ImmutableTriple<>(right, leftTableColumnSize + rightTableColumnSize - 1,
+            join.getJoinType()));
+    if (left instanceof Correlate) {
+      populateStackWithEndIndexesForTables((Correlate) left, stack, joinConditions);
+    } else {
+      stack.push(new ImmutableTriple<>(left, leftTableColumnSize - 1, join.getJoinType()));
+    }
+  }
+
 }

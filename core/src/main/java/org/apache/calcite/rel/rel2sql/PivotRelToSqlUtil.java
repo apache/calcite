@@ -38,6 +38,7 @@ import java.util.Set;
 
 public class PivotRelToSqlUtil {
   SqlParserPos pos;
+  String pivotTableAlias = "";
 
   PivotRelToSqlUtil(SqlParserPos pos) {
     this.pos = pos;
@@ -74,8 +75,14 @@ public class PivotRelToSqlUtil {
       SqlImplementor.Builder builder, SqlNode query, SqlNodeList aggList,
       SqlNodeList axesNodeList, SqlNodeList inColumnList) {
     SqlPivot sqlPivot = new SqlPivot(pos, query, axesNodeList, aggList, inColumnList);
+    SqlNode sqlTableAlias = sqlPivot;
+    if (pivotTableAlias.length() > 0) {
+      sqlTableAlias = SqlStdOperatorTable.AS.createCall(
+          pos, sqlPivot,
+          new SqlIdentifier(pivotTableAlias, pos));
+    }
     SqlNode select = new SqlSelect(
-        SqlParserPos.ZERO, null, null, sqlPivot,
+        SqlParserPos.ZERO, null, null, sqlTableAlias,
         builder.select.getWhere(), null,
         builder.select.getHaving(), null, builder.select.getOrderList(),
         null, null, SqlNodeList.EMPTY
@@ -87,19 +94,27 @@ public class PivotRelToSqlUtil {
     SqlNodeList inColumnList = new SqlNodeList(pos);
     for (AggregateCall aggCall : e.getAggCallList()) {
       String columnName1 = e.getRowType().getFieldList().get(aggCall.filterArg).getKey();
-      if (columnName1.contains("_null")) {
-        columnName1 = columnName1.replace("_null", "")
+      String[] inValues = columnName1.split("'");
+      String tableInValueAliases = inValues[2];
+      if (tableInValueAliases.contains("null")) {
+        tableInValueAliases = tableInValueAliases.replace("_null", "")
+            .replace("-null", "")
             .replace("'", "");
       }
-      String[] columnNameAndAlias = columnName1.split("_");
+      String[] columnNameAndAlias = tableInValueAliases.split("-");
       SqlNode inListColumnNode;
       if (columnNameAndAlias.length == 1) {
-        inListColumnNode = SqlLiteral.createCharString(columnNameAndAlias[0], pos);
+        inListColumnNode = SqlLiteral.createCharString(inValues[1], pos);
       } else {
-        inListColumnNode = SqlStdOperatorTable.AS.createCall(
-            pos, SqlLiteral.createCharString(
-                columnNameAndAlias[0], pos),
-            new SqlIdentifier(columnNameAndAlias[1], pos));
+        pivotTableAlias = columnNameAndAlias[1];
+        if (columnNameAndAlias.length == 2) {
+          inListColumnNode = SqlLiteral.createCharString(inValues[1], pos);
+        } else {
+          inListColumnNode = SqlStdOperatorTable.AS.createCall(
+              pos, SqlLiteral.createCharString(
+                  inValues[1], pos),
+              new SqlIdentifier(columnNameAndAlias[2], pos));
+        }
       }
       inColumnList.add(inListColumnNode);
     }
@@ -126,7 +141,7 @@ public class PivotRelToSqlUtil {
   private SqlNodeList getAggSqlNodes(Aggregate e, List<SqlNode> selectColumnList) {
     final Set<SqlNode> selectList = new HashSet<>();
     for (int i = 0; i < e.getAggCallList().size(); i++) {
-      int fieldIndex = e.getAggCallList().get(i).filterArg - (i + 1);
+      int fieldIndex = e.getAggCallList().get(i).filterArg - (i + 2);
       if (fieldIndex < 0) {
         continue;
       }

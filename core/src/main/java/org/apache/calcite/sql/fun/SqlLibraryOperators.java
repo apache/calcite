@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
@@ -265,6 +266,12 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.ARG0_NULLABLE_VARYING, null,
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE, BIG_QUERY})
+  public static final SqlFunction USING = new SqlFunction("USING", SqlKind.USING,
+      ReturnTypes.LEAST_RESTRICTIVE.andThen(
+          SqlTypeTransforms.TO_NULLABLE), null,
+      OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
 
   /** The "GREATEST(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE})
@@ -779,6 +786,16 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
+
+  /** The case-insensitive variant of the LIKE operator. */
+  @LibraryOperator(libraries = {POSTGRESQL, SNOWFLAKE})
+  public static final SqlSpecialOperator ILIKE =
+      new SqlLikeOperator("ILIKE", SqlKind.LIKE, false, false);
+
+  /** The case-insensitive variant of the NOT LIKE operator. */
+  @LibraryOperator(libraries = {POSTGRESQL, SNOWFLAKE})
+  public static final SqlSpecialOperator NOT_ILIKE =
+      new SqlLikeOperator("NOT ILIKE", SqlKind.LIKE, true, false);
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
@@ -1558,6 +1575,40 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTEGER,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction HASH =
+      new SqlFunction(
+          "HASH",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DECIMAL,
+          null,
+          OperandTypes.ONE_OR_MORE,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction SHA2 =
+      new SqlFunction(
+          "SHA2",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
+                  // Second operand optional (operand index 0, 1)
+              number -> number == 1),
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction SHA256 =
+      new SqlFunction("SHA256",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.explicit(SqlTypeName.VARCHAR)
+              .andThen(SqlTypeTransforms.TO_NULLABLE),
+          null,
+          OperandTypes.or(OperandTypes.STRING_INTEGER,
+              OperandTypes.BINARY_INTEGER),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction HASHROW =
       new SqlFunction(
@@ -1567,6 +1618,22 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.ONE_OR_MORE,
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction HASH_AGG =
+      SqlBasicAggFunction
+          .create("HASH_AGG", SqlKind.HASH_AGG, ReturnTypes.BIGINT,
+              OperandTypes.VARIADIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC)
+          .withDistinct(Optionality.OPTIONAL);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlAggFunction BIT_XOR =
+      SqlBasicAggFunction
+          .create("BIT_XOR", SqlKind.BIT_XOR, ReturnTypes.BIGINT,
+              OperandTypes.INTEGER)
+          .withFunctionType(SqlFunctionCategory.NUMERIC)
+          .withDistinct(Optionality.OPTIONAL);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FARM_FINGERPRINT =
@@ -1833,6 +1900,18 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction MEDIAN =
       new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction REGEXP_COUNT =
+      new SqlFunction("REGEXP_COUNT", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null, OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction ARRAY_LENGTH =
+      new SqlFunction("ARRAY_LENGTH", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null, OperandTypes.ARRAY, SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction JSON_OBJECT =
       new SqlFunction("JSON_OBJECT",
@@ -1873,4 +1952,12 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction QUANTILE =
       new SqlQuantileFunction(SqlKind.QUANTILE, ReturnTypes.INTEGER);
+
+  @LibraryOperator(libraries = {SNOWFLAKE, TERADATA})
+  public static final SqlFunction ZEROIFNULL =
+      new SqlFunction("ZEROIFNULL",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0, null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.NUMERIC);
 }
