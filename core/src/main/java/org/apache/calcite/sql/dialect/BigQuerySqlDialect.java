@@ -1050,6 +1050,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
+  /**
+   * Unparse the SqlBasic call and write INTERVAL with expression. Below are the examples:
+   * Example 1: Input: INTERVAL 7000 SECONDS / 1000
+   * It will write this as: INTERVAL CAST(CEIL(7000 / 1000) AS INT64) SECOND
+   * @param call : INTERVAL 7000 SECONDS / 1000
+   * @param writer : Target SqlWriter to write the call
+   * @param leftPrec :  Indicate left precision
+   * @param rightPrec : Indicate right precision
+   */
   private void unparseDivideIntervalCall(
       SqlBasicCall call, SqlWriter writer, int leftPrec, int rightPrec) {
     SqlLiteral intervalLiteral;
@@ -1060,9 +1069,11 @@ public class BigQuerySqlDialect extends SqlDialect {
         (SqlIntervalLiteral.IntervalValue) intervalLiteral.getValue();
     writer.sep("INTERVAL");
     SqlWriter.Frame castCall = writer.startFunCall("CAST");
+    SqlWriter.Frame ceil = writer.startFunCall("CEIL");
     writer.sep(literalValue.toString());
     writer.sep("/");
     divisor.unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(ceil);
     writer.sep("AS", true);
     writer.literal("INT64");
     writer.endFunCall(castCall);
