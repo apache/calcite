@@ -1066,7 +1066,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.sep("AS", true);
     writer.literal("INT64");
     writer.endFunCall(castCall);
-    writer.print(literalValue.getIntervalQualifier().toString());
+    writer.print(literalValue.getIntervalQualifier().timeUnitRange.toString());
   }
 
 
