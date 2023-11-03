@@ -138,6 +138,7 @@ import static org.apache.calcite.avatica.util.TimeUnit.WEEK;
 import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_MOD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MONTH;
@@ -13520,5 +13521,25 @@ class RelToSqlConverterTest {
     HepPlanner hepPlanner = new HepPlanner(builder.build());
     RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
     sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expected);
+  }
+
+  @Test public void testDateAddWithMilliSecondsInterval() {
+    final RelBuilder builder = relBuilder();
+    final RexNode intervalMillisecondsRex =
+        builder.getRexBuilder().makeIntervalLiteral(new BigDecimal("70000000"),
+        new SqlIntervalQualifier(TimeUnit.SECOND, TimeUnit.SECOND, SqlParserPos.ZERO));
+    final RexNode divideIntervalRex = builder.call(SqlStdOperatorTable.DIVIDE,
+        intervalMillisecondsRex,
+        builder.literal(1000));
+    final RexNode dateAddRexWithAlias = builder.alias(
+        builder.call(DATE_ADD, builder.call(CURRENT_DATE), divideIntervalRex
+    ), "add_interval_millis");
+    final RelNode root = builder
+        .scan("EMP")
+        .project(dateAddRexWithAlias)
+        .build();
+    final String expectedBQSql = "SELECT DATE_ADD(CURRENT_DATE, INTERVAL CAST(CEIL(70000 / 1000) "
+        + "AS INT64) SECOND) AS add_interval_millis\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 }
