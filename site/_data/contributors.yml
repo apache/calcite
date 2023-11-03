@@ -282,6 +282,12 @@
   githubId: amaliujia
   org: Google
   role: Committer
+- name: Runkang He
+  apacheId: herunkang
+  githubId: herunkang2018
+  pronouns: he/him
+  org: ByteDance
+  role: Committer
 - name: Sergey Nuyanzin
   apacheId: snuyanzin
   githubId: snuyanzin
