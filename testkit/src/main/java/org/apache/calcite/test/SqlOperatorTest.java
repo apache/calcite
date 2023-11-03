@@ -10499,6 +10499,27 @@ public class SqlOperatorTest {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6091">[CALCITE-6091]
+   * Char that in array or map is truncated in CASE WHEN statement</a>.
+   */
+  @Test void testTruncatedCharInCaseWhen() {
+    final SqlOperatorFixture fixture = fixture().withLibrary(SqlLibrary.SPARK);
+    fixture.check("select case "
+            + "when true then array('abc') "
+            + "when false then array('d') "
+            + "end as c",
+        "CHAR(3) NOT NULL ARRAY",
+        "[abc]");
+    fixture.check("select case "
+            + "when true then map['foo', 3, 'bar', 7] "
+            + "when false then map['f', 3, 'b', 7] "
+            + "end as c",
+        "(CHAR(3) NOT NULL, INTEGER NOT NULL) MAP",
+        "{foo=3, bar=7}");
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4999">[CALCITE-4999]
    * ARRAY, MULTISET functions should return an collection of scalars
    * if a sub-query returns 1 column</a>.

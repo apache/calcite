@@ -262,15 +262,21 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       final List<RelDataType> types, SqlTypeName sqlTypeName) {
     assert sqlTypeName == SqlTypeName.ARRAY || sqlTypeName == SqlTypeName.MULTISET;
     boolean isNullable = false;
+    final List<RelDataType> notNullTypes = new ArrayList<>();
     for (RelDataType type : types) {
+      if (SqlTypeUtil.isNull(type)) {
+        isNullable = true;
+        continue;
+      }
       if (type.getComponentType() == null) {
         return null;
       }
+      notNullTypes.add(type);
       isNullable |= type.isNullable();
     }
     final RelDataType type =
         leastRestrictive(
-            Util.transform(types,
+            Util.transform(notNullTypes,
                 t -> t instanceof ArraySqlType
                     ? ((ArraySqlType) t).getComponentType()
                     : ((MultisetSqlType) t).getComponentType()));
@@ -286,21 +292,27 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       final List<RelDataType> types, SqlTypeName sqlTypeName) {
     assert sqlTypeName == SqlTypeName.MAP;
     boolean isNullable = false;
+    final List<RelDataType> notNullTypes = new ArrayList<>();
     for (RelDataType type : types) {
+      if (SqlTypeUtil.isNull(type)) {
+        isNullable = true;
+        continue;
+      }
       if (!(type instanceof MapSqlType)) {
         return null;
       }
+      notNullTypes.add(type);
       isNullable |= type.isNullable();
     }
     final RelDataType keyType =
         leastRestrictive(
-            Util.transform(types, t -> ((MapSqlType) t).getKeyType()));
+            Util.transform(notNullTypes, t -> ((MapSqlType) t).getKeyType()));
     if (keyType == null) {
       return null;
     }
     final RelDataType valueType =
         leastRestrictive(
-            Util.transform(types, t -> ((MapSqlType) t).getValueType()));
+            Util.transform(notNullTypes, t -> ((MapSqlType) t).getValueType()));
     if (valueType == null) {
       return null;
     }
