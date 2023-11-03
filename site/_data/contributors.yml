@@ -118,6 +118,12 @@
   githubId: hsyuan
   org: Alibaba
   role: PMC
+- name: Hongyu Guo
+  apacheId: guohongyu
+  githubId: macroguo-ghy
+  pronouns: he/him
+  org: Tencent
+  role: Committer
 - name: Hongze Zhang
   apacheId: hongze
   githubId: zhztheplayer
