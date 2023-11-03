@@ -76,6 +76,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -182,6 +183,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
 import static org.apache.calcite.util.Util.isNumericLiteral;
@@ -583,6 +585,21 @@ public class BigQuerySqlDialect extends SqlDialect {
         (Locale.ROOT, "%s%s%s", "HH24:MI:SS.S(", precision, ")"), pos);
     SqlCall formattedCall = FORMAT_TIME.createCall(pos, timeFormat, castedTimeNode);
     return CAST.createCall(pos, formattedCall, timeWithoutPrecision);
+  }
+
+  @Override public SqlNode getNumericLiteral(RexLiteral literal, SqlParserPos pos) {
+    BigDecimal value = literal.getValueAs(BigDecimal.class);
+    if (literal.getType().getSqlTypeName() == SqlTypeName.DECIMAL) {
+      if (value.scale() > literal.getType().getScale()) {
+        SqlNode numericNode = getCastSpec(literal.getType());
+        SqlNode castNode = CAST.createCall(pos,
+            SqlLiteral.createExactNumeric(value.toPlainString(), pos), numericNode);
+        return ROUND.createCall(pos, castNode,
+            SqlLiteral.createExactNumeric(
+                requireNonNull(literal.getType().getScale()).toString(), pos));
+      }
+    }
+    return super.getNumericLiteral(literal, pos);
   }
 
   @Override public SqlNode getTimestampLiteral(
