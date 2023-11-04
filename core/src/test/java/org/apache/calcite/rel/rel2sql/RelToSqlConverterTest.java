@@ -2108,6 +2108,22 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6088">[CALCITE-6088]
+   * SqlItemOperator fails in RelToSqlConverter</a>. */
+  @Test void testSqlItemOperator() {
+    sql("SELECT foo[0].\"EXPR$1\" FROM (SELECT ARRAY[ROW('a', 'b')] AS foo)")
+        .ok("SELECT \"ARRAY[ROW('a', 'b')][0]\".\"EXPR$1\"\n"
+            + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
+    sql("SELECT foo['k'].\"EXPR$1\" FROM (SELECT MAP['k', ROW('a', 'b')] AS foo)")
+        .ok("SELECT \"MAP['k', ROW('a', 'b')]['k']\".\"EXPR$1\"\n"
+            + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
+    sql("select\"books\"[0].\"title\" from \"authors\"")
+        .schema(CalciteAssert.SchemaSpec.BOOKSTORE)
+        .ok("SELECT \"`books`[0]\".\"title\"\n"
+            + "FROM \"bookstore\".\"authors\"");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3282">[CALCITE-3282]
    * HiveSqlDialect unparse Interger type as Int in order
    * to be compatible with Hive1.x</a>. */
