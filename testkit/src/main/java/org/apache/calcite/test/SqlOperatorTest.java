@@ -10500,7 +10500,7 @@ public class SqlOperatorTest {
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6091">[CALCITE-6091]
-   * Char that in array or map is truncated in CASE WHEN statement</a>.
+   * Char that in array or map is truncated if CASE WHEN statement contains null</a>.
    */
   @Test void testTruncatedCharInCaseWhen() {
     final SqlOperatorFixture fixture = fixture().withLibrary(SqlLibrary.SPARK);
