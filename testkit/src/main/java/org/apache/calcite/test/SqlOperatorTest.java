@@ -10507,12 +10507,14 @@ public class SqlOperatorTest {
     fixture.check("select case "
             + "when true then array('abc') "
             + "when false then array('d') "
+            + "else null "
             + "end as c",
         "CHAR(3) NOT NULL ARRAY",
         "[abc]");
     fixture.check("select case "
             + "when true then map['foo', 3, 'bar', 7] "
             + "when false then map['f', 3, 'b', 7] "
+            + "else null "
             + "end as c",
         "(CHAR(3) NOT NULL, INTEGER NOT NULL) MAP",
         "{foo=3, bar=7}");
