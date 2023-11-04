@@ -668,6 +668,7 @@ public abstract class SqlImplementor {
               .field(lastAccess.getField().getIndex());
           break;
         case ROW:
+        case ITEM:
           final SqlNode expr = toSql(program, referencedExpr);
           sqlIdentifier = new SqlIdentifier(expr.toString(), POS);
           break;
