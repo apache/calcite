@@ -1064,13 +1064,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       SqlBasicCall call, SqlWriter writer, int leftPrec, int rightPrec) {
     SqlLiteral intervalLiteral;
     intervalLiteral = modifiedSqlIntervalLiteral(call.operand(0));
-    if(intervalLiteral.getTypeName() == SqlTypeName.INTERVAL_SECOND)
-    {
+    if (intervalLiteral.getTypeName() == SqlTypeName.INTERVAL_SECOND) {
       unparseIntervalMillis(call, writer, leftPrec, rightPrec, intervalLiteral);
     }
   }
 
-  private static void unparseIntervalMillis(SqlBasicCall call, SqlWriter writer, int leftPrec, int rightPrec, SqlLiteral intervalLiteral) {
+  private static void unparseIntervalMillis(SqlBasicCall call, SqlWriter writer, int leftPrec,
+      int rightPrec, SqlLiteral intervalLiteral) {
     SqlNode divisor = call.operand(1);
     SqlIntervalLiteral.IntervalValue literalValue =
         (SqlIntervalLiteral.IntervalValue) intervalLiteral.getValue();
