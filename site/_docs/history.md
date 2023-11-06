@@ -186,8 +186,6 @@ other software versions as specified in gradle.properties.
  Remove `ORDER BY ... LIMIT n` when input has at most one row, n >= 1, and there is no `OFFSET` clause
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6022">CALCITE-6022</a>]
  Support `CREATE TABLE ... LIKE DDL` in server module
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6050">CALCITE-6050</a>]
- Add interface `ImmutablePairList`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6031">CALCITE-6031</a>]
  Add the planner rule that pushes `Filter` past `Sample`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4189">CALCITE-4189</a>]
@@ -247,7 +245,7 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6052">CALCITE-6052</a>]
  `SqlImplementor` writes `REAL`, `FLOAT`, or `DOUBLE` literals as `DECIMAL` literals
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6041">CALCITE-6041</a>]
- `MAP` sub-query gives NullPointerException
+ `MAP` sub-query gives `NullPointerException`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6037">CALCITE-6037</a>]
  The function category of `ARRAY`/`EXTRACT_VALUE`/`XML_TRANSFORM`/`EXTRACT_XML`/`EXISTSNODE` is incorrect
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6024">CALCITE-6024</a>]
@@ -262,8 +260,8 @@ other software versions as specified in gradle.properties.
  `DATE_PART` is not handled by the `RexToLixTranslator`
 * Following [<a href="https://issues.apache.org/jira/browse/CALCITE-5570">CALCITE-5570</a>]
  Support nested map type for `SqlDataTypeSpec`
-* Add various lint checks
-* Code style: lint
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6050">CALCITE-6050</a>]
+  Add interface `ImmutablePairList`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5950">CALCITE-5950</a>]
  `DEFAULT` expression is ignored during `INSERT`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6006">CALCITE-6006</a>]
@@ -305,7 +303,7 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5732">CALCITE-5732</a>]
  `EnumerableHashJoin` and `EnumerableMergeJoin` on composite key return rows matching condition `NULL = NULL`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5967">CALCITE-5967</a>]
- UnsupportedOperationException while implementing a call that requires a special collator
+ `UnsupportedOperationException` while implementing a call that requires a special collator
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5952">CALCITE-5952</a>]
  `SemiJoinJoinTransposeRule` should check if JoinType supports pushing predicates into its inputs
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5953">CALCITE-5953</a>]
@@ -324,7 +322,6 @@ other software versions as specified in gradle.properties.
  Reset `PERCENTILE_CONT`/`PERCENTILE_DISC` to reserved keywords
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5946">CALCITE-5946</a>]
  `TimeString` should allow fractional seconds ending in zero
-* In `Puffin`, allow an action to test whether it is looking at the last line of a source
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5906">CALCITE-5906</a>]
  JDBC adapter should generate `TABLESAMPLE`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5895">CALCITE-5895</a>]
@@ -344,15 +341,15 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5882">CALCITE-5882</a>]
  Compile-time evaluation of `SPLIT` function returns incorrect result
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5879">CALCITE-5879</a>]
- AssertionError during constant reduction of `SPLIT` expression that returns null
+ `AssertionError` during constant reduction of `SPLIT` expression that returns null
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5875">CALCITE-5875</a>]
  Remove unnecessary null checks in Redis adapter
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5859">CALCITE-5859</a>]
- Compile-time evaluation of `LEFT(NULL, n)` should not throw RuntimeException
+ Compile-time evaluation of `LEFT(NULL, n)` should not throw `RuntimeException`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5837">CALCITE-5837</a>]
- `RexUtil#pullFactors` output's order should be deterministic even when the RexNode kind is `OR`
+ `RexUtil#pullFactors` output's order should be deterministic even when the `RexNode` kind is `OR`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5877">CALCITE-5877</a>]
- AssertionError during `MOD` operation if result scale is greater than maximum numeric scale
+ `AssertionError` during `MOD` operation if result scale is greater than maximum numeric scale
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5841">CALCITE-5841</a>]
  Improve singleton implementation for `ChinookAvaticaServer` in calcite-plus
 * Following [<a href="https://issues.apache.org/jira/browse/CALCITE-5688">CALCITE-5688</a>]
@@ -362,21 +359,22 @@ other software versions as specified in gradle.properties.
 {: #build-1-36-0}
 
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5921">CALCITE-5921</a>]
- `SqlOperatorFixture.checkFails` and `checkAggFails` don't check runtime failure (follow-up)
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-5921">CALCITE-5921</a>]
  `SqlOperatorFixture.checkFails` and `checkAggFails` don't check runtime failure
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5923">CALCITE-5923</a>]
  `SqlOperatorTest` using `safeParameters` are not using overridable fixture
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6014">CALCITE-6014</a>]
  Create a `SqlOperatorFixture` that parses, unparses, and then parses again before executing
-* [MINOR] Incorrect test fixture used by `SqlOperatorTest.testLeastFunc`
+* Incorrect test fixture used by `SqlOperatorTest.testLeastFunc`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5980">CALCITE-5980</a>]
  QuidemTests are not effectively executed on Windows
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5615">CALCITE-5615</a>]
  Run SQL Logic Test suite using Calcite's HSQLDB JDBC adapter
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5909">CALCITE-5909</a>]
  `SqlParserTest.testNoUnintendedNewReservedKeywords` fails in IDE while passes in command line
-* [MINOR] Refactor `RelDataTypeSystemTest` to use test fixture
+* Refactor `RelDataTypeSystemTest` to use test fixture
+* Add various lint checks
+* Code style: lint
+* In `Puffin`, allow an action to test whether it is looking at the last line of a source
 
 #### Web site and documentation
 {: #site-1-36-0}
@@ -391,7 +389,7 @@ other software versions as specified in gradle.properties.
  `ARRAY_TO_STRING` function should return `NULL` if its `nullValue` argument is `NULL`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6075">CALCITE-6075</a>]
  Site: Cloning source code from GitHub using git protocol fails
-* [MINOR] Add example for `MAP` type in reference docs
+* Add example for `MAP` type in reference docs
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6033">CALCITE-6033</a>]
  Correct broken links on adapter page
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6017">CALCITE-6017</a>]
@@ -400,7 +398,7 @@ other software versions as specified in gradle.properties.
  Documentation for `CREATE TYPE` is incorrect
 * Remove mentions of binary distribution from README
 * Update broken link in `RelMetadataProvider` Javadoc
-* Minor: the parameter names of `SqlTypeMappingRules.Builder#add` are misleading
+* The parameter names of `SqlTypeMappingRules.Builder#add` are misleading
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.35.0">1.35.0</a> / 2023-07-26
 {: #v1-35-0}
