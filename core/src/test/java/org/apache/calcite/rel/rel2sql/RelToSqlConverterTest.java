@@ -13532,13 +13532,15 @@ class RelToSqlConverterTest {
         intervalMillisecondsRex,
         builder.literal(1000));
     final RexNode dateAddRexWithAlias = builder.alias(
-        builder.call(DATE_ADD, builder.cast(builder.call(CURRENT_DATE), SqlTypeName.TIMESTAMP), divideIntervalRex
+        builder.call(DATE_ADD, builder.cast(builder.call(CURRENT_DATE), SqlTypeName.TIMESTAMP),
+            divideIntervalRex
     ), "add_interval_millis");
     final RelNode root = builder
         .scan("EMP")
         .project(dateAddRexWithAlias)
         .build();
-    final String expectedBQSql = "SELECT DATE_ADD(CAST(CURRENT_DATE AS DATETIME), INTERVAL CAST(70000000 / 1000 "
+    final String expectedBQSql = "SELECT DATE_ADD(CAST(CURRENT_DATE AS DATETIME), "
+        + "INTERVAL CAST(70000000 / 1000 "
         + "AS INT64) SECOND) AS add_interval_millis\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
