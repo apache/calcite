@@ -76,6 +76,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -1062,14 +1063,23 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseDivideIntervalCall(
       SqlBasicCall call, SqlWriter writer, int leftPrec, int rightPrec) {
     SqlLiteral intervalLiteral;
-    SqlNode divisor;
     intervalLiteral = modifiedSqlIntervalLiteral(call.operand(0));
-    divisor = call.operand(1);
+    if(intervalLiteral.getTypeName() == SqlTypeName.INTERVAL_SECOND)
+    {
+      unparseIntervalMillis(call, writer, leftPrec, rightPrec, intervalLiteral);
+    }
+  }
+
+  private static void unparseIntervalMillis(SqlBasicCall call, SqlWriter writer, int leftPrec, int rightPrec, SqlLiteral intervalLiteral) {
+    SqlNode divisor = call.operand(1);
     SqlIntervalLiteral.IntervalValue literalValue =
         (SqlIntervalLiteral.IntervalValue) intervalLiteral.getValue();
+    BigDecimal multiplier = literalValue.getIntervalQualifier().timeUnitRange.startUnit.multiplier;
+    BigDecimal updatedLiteralValue = new BigDecimal(literalValue.getIntervalLiteral())
+        .multiply(new BigDecimal(multiplier.toString()));
     writer.sep("INTERVAL");
     SqlWriter.Frame castCall = writer.startFunCall("CAST");
-    writer.sep(literalValue.toString());
+    writer.sep(updatedLiteralValue.toString());
     writer.sep("/");
     divisor.unparse(writer, leftPrec, rightPrec);
     writer.sep("AS", true);
@@ -1077,7 +1087,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(castCall);
     writer.print(literalValue.getIntervalQualifier().timeUnitRange.toString());
   }
-
 
   /**
    * Return the SqlLiteral from the SqlBasicCall.
