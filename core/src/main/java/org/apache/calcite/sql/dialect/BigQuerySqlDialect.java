@@ -2191,7 +2191,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     return this.getCastSpec(type);
   }
 
-  private String getDataTypeBasedOnPrecision(int precision, int scale)  {
+  public static String getDataTypeBasedOnPrecision(int precision, int scale)  {
     if (scale > 0) {
       return scale <= 9 ? precision - scale <= 29 ? "NUMERIC" : "BIGNUMERIC" : "BIGNUMERIC";
     } else {
