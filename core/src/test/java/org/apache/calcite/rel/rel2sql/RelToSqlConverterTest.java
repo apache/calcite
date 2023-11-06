@@ -13538,7 +13538,7 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(dateAddRexWithAlias)
         .build();
-    final String expectedBQSql = "SELECT DATE_ADD(CURRENT_DATE, INTERVAL CAST(CEIL(70000 / 1000) "
+    final String expectedBQSql = "SELECT DATE_ADD(CURRENT_DATE, INTERVAL CAST(70000 / 1000 "
         + "AS INT64) SECOND) AS add_interval_millis\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }

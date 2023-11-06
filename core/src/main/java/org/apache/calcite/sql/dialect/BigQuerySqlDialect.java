@@ -1069,11 +1069,9 @@ public class BigQuerySqlDialect extends SqlDialect {
         (SqlIntervalLiteral.IntervalValue) intervalLiteral.getValue();
     writer.sep("INTERVAL");
     SqlWriter.Frame castCall = writer.startFunCall("CAST");
-    SqlWriter.Frame ceil = writer.startFunCall("CEIL");
     writer.sep(literalValue.toString());
     writer.sep("/");
     divisor.unparse(writer, leftPrec, rightPrec);
-    writer.endFunCall(ceil);
     writer.sep("AS", true);
     writer.literal("INT64");
     writer.endFunCall(castCall);
