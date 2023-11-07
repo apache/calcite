@@ -1234,8 +1234,11 @@ public class SqlOperatorTest {
     } else {
       f.checkNull("cast('nottime' as TIME)");
     }
-    f.checkScalar("cast('1241241' as TIME)", "72:40:12", "TIME(0) NOT NULL");
-    f.checkScalar("cast('12:54:78' as TIME)", "12:55:18", "TIME(0) NOT NULL");
+
+    if (Bug.CALCITE_6092_FIXED) {
+      f.checkFails("cast('1241241' as TIME)", "Invalid TIME value, '1241241'", true);
+      f.checkFails("cast('12:54:78' as TIME)", "Invalid TIME value, '12:54:78'", true);
+    }
     f.checkScalar("cast('12:34:5' as TIME)", "12:34:05", "TIME(0) NOT NULL");
     f.checkScalar("cast('12:3:45' as TIME)", "12:03:45", "TIME(0) NOT NULL");
     f.checkScalar("cast('1:23:45' as TIME)", "01:23:45", "TIME(0) NOT NULL");
