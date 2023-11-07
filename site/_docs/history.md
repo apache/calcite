@@ -71,8 +71,6 @@ This release comes 3 months after [1.35.0](#v1-35-0),
 contains contributions from 30 contributors, and resolves 125 issues.
 
 Among other new features, it's worth highlighting the adding of 30 new SQL functions in various libraries such as BigQuery and Spark, many improvements hardening `TABLESAMPLE` , and also the following features:
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-5615">CALCITE-5615</a>]
- Run SQL Logic Test suite using Calcite's HSQLDB JDBC adapter
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-129">CALCITE-129</a>]
  Support recursive `WITH` queries
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6022">CALCITE-6022</a>]
@@ -82,7 +80,9 @@ Among other new features, it's worth highlighting the adding of 30 new SQL funct
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5184">CALCITE-5184</a>]
  Support `LIMIT start, ALL` in MySQL conformance, equivalent to `OFFSET start`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5889">CALCITE-5889</a>]
- Add the RelRule that converts `Minus` into `UNION ALL..GROUP BY...WHERE`
+ Add a `RelRule` that converts `Minus` into `UNION ALL..GROUP BY...WHERE`
+
+In addition to new features, it's also worth highlighting the integrating of <a href="https://issues.apache.org/jira/browse/CALCITE-5615">SQL Logic Test suite</a>
 
 Contributors to this release:
 Benchao Li (release manager),
@@ -197,7 +197,7 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5962">CALCITE-5962</a>]
  Support parse Spark-style syntax `LEFT ANTI JOIN` in Babel parser
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5940">CALCITE-5940</a>]
- Add the Rule to merge `Limit`
+ Add a `RelRule` to merge `Limit`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5971">CALCITE-5971</a>]
  Add `SampleToFilterRule` to rewrite bernoulli `Sample` to `Filter`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5994">CALCITE-5994</a>]
@@ -205,7 +205,7 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5836">CALCITE-5836</a>]
  Implement Rel2Sql for `MERGE`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5889">CALCITE-5889</a>]
- Add the RelRule that converts `Minus` into `UNION ALL..GROUP BY...WHERE`
+ Add a `RelRule` that converts `Minus` into `UNION ALL..GROUP BY...WHERE`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5944">CALCITE-5944</a>]
  Add metadata for `Sample`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5941">CALCITE-5941</a>]
