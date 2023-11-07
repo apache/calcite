@@ -251,6 +251,9 @@ public class RexBuilder {
 
   /**
    * Creates a call with a list of arguments and a predetermined type.
+   *
+   * @param pos should be different from ZERO if the call can
+   *            fail at runtime.
    */
   public RexNode makeCall(
       SqlParserPos pos,
@@ -272,6 +275,9 @@ public class RexBuilder {
 
   /**
    * Creates a call with an array of arguments.
+   *
+   * @param pos should be different from ZERO if the call can
+   *            fail at runtime.
    *
    * <p>If you already know the return type of the call, then
    * {@link #makeCall(SqlParserPos, RelDataType, SqlOperator, List)}
@@ -299,6 +305,9 @@ public class RexBuilder {
 
   /**
    * Creates a call with a list of arguments.
+   *
+   * @param pos should be different from ZERO if the call can
+   *            fail at runtime.
    *
    * <p>Equivalent to
    * <code>makeCall(pos, op, exprList.toArray(new RexNode[exprList.size()]))</code>.
@@ -587,6 +596,14 @@ public class RexBuilder {
     return makeCast(SqlParserPos.ZERO, type, exp, false, false);
   }
 
+  @Deprecated // to be removed before 2.0
+  public RexNode makeCast(
+      RelDataType type,
+      RexNode exp,
+      boolean matchNullability) {
+    return makeCast(type, exp, matchNullability, false);
+  }
+
   /**
    * Creates a call to the CAST operator, expanding if possible, and optionally
    * also preserving nullability, and optionally in safe mode.
@@ -618,7 +635,7 @@ public class RexBuilder {
    * other than a {@link RexCall} to the CAST operator, such as a
    * {@link RexLiteral}.
    *
-   * @paran pos  Parser position
+   * @param pos  Parser position
    * @param type Type to cast to
    * @param exp  Expression being cast
    * @param matchNullability Whether to ensure the result has the same
@@ -880,6 +897,11 @@ public class RexBuilder {
     RelDataType bigintType = typeFactory.createSqlType(SqlTypeName.BIGINT);
     return makeReinterpretCast(pos,
         matchNullability(bigintType, node), node, makeLiteral(false));
+  }
+
+  @Deprecated // to be removed before 2.0
+  public RexNode makeAbstractCast(RelDataType type, RexNode exp) {
+    return makeAbstractCast(type, exp, false);
   }
 
   /**

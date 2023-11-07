@@ -151,7 +151,6 @@ public class RexUtil {
       if (lhsType.equals(rhsType)) {
         castExps.add(rhsExp);
       } else {
-        // TODO: can this overflow?
         castExps.add(rexBuilder.makeCast(lhsType, rhsExp, true, false));
       }
     }
@@ -1932,6 +1931,21 @@ public class RexUtil {
   @Deprecated // use e1.equals(e2)
   public static boolean eq(RexNode e1, RexNode e2) {
     return e1 == e2 || e1.toString().equals(e2.toString());
+  }
+
+  /** Simplifies a boolean expression, always preserving its type and its
+   * nullability.
+   *
+   * <p>This is useful if you are simplifying expressions in a
+   * {@link Project}.
+   *
+   * @deprecated Use {@link RexSimplify#simplifyPreservingType(RexNode)},
+   * which allows you to specify an {@link RexExecutor}. */
+  @Deprecated // to be removed before 2.0
+  public static RexNode simplifyPreservingType(RexBuilder rexBuilder,
+      RexNode e) {
+    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, EXECUTOR)
+        .simplifyPreservingType(e);
   }
 
   /**

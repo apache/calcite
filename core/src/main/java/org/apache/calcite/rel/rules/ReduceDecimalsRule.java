@@ -651,7 +651,6 @@ public class ReduceDecimalsRule
         RexNode thenClause,
         RexNode elseClause) {
       return builder.makeCall(
-          SqlParserPos.ZERO,
           SqlStdOperatorTable.CASE,
           condition,
           thenClause,

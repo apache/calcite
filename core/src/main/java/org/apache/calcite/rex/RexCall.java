@@ -57,9 +57,11 @@ public class RexCall extends RexNode {
 
   //~ Instance fields --------------------------------------------------------
 
-  /** If the calls which can produce runtime errors we carry
-   * the source position so we can give good runtime error messages/
-   * For calls that are always safe this may be ZERO. */
+  /** In the calls which can produce runtime errors we carry
+   * the source position, so the backend can produce runtime error messages
+   * pointing to the original source position.
+   * For calls that are can never generate runtime failures, this field may
+   * be ZERO.  Note that some optimizations may "lost" position information. */
   public final SqlParserPos pos;
   public final SqlOperator op;
   public final ImmutableList<RexNode> operands;

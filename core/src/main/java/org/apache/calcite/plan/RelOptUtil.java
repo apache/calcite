@@ -586,6 +586,50 @@ public abstract class RelOptUtil {
   }
 
   @Deprecated // to be removed before 2.0
+  public static RelNode createExistsPlan(
+      RelOptCluster cluster,
+      RelNode seekRel,
+      @Nullable List<RexNode> conditions,
+      @Nullable RexLiteral extraExpr,
+      @Nullable String extraName) {
+    assert extraExpr == null || extraName != null;
+    RelNode ret = seekRel;
+
+    if ((conditions != null) && (conditions.size() > 0)) {
+      RexNode conditionExp =
+          RexUtil.composeConjunction(
+              cluster.getRexBuilder(), conditions, true);
+
+      if (conditionExp != null) {
+        final RelFactories.FilterFactory factory =
+            RelFactories.DEFAULT_FILTER_FACTORY;
+        ret = factory.createFilter(ret, conditionExp, ImmutableSet.of());
+      }
+    }
+
+    if (extraExpr != null) {
+      RexBuilder rexBuilder = cluster.getRexBuilder();
+
+      assert extraExpr == rexBuilder.makeLiteral(true);
+
+      // this should only be called for the exists case
+      // first stick an Agg on top of the sub-query
+      // agg does not like no agg functions so just pretend it is
+      // doing a min(TRUE)
+
+      final RelBuilder relBuilder =
+          RelFactories.LOGICAL_BUILDER.create(cluster, null);
+      ret = relBuilder.push(ret)
+          .project(extraExpr)
+          .aggregate(relBuilder.groupKey(),
+              relBuilder.min(relBuilder.field(0)).as(extraName))
+          .build();
+    }
+
+    return ret;
+  }
+
+  @Deprecated // to be removed before 2.0
   public static Exists createExistsPlan(
       RelNode seekRel,
       SubQueryType subQueryType,
@@ -1345,7 +1389,6 @@ public abstract class RelOptUtil {
 
             if (leftKeyType != targetKeyType) {
               leftKey =
-                  // TODO: could this overflow?
                   rexBuilder.makeCast(targetKeyType, leftKey);
             }
 

@@ -3928,7 +3928,6 @@ public class SqlToRelConverter {
       if (node == null) {
         node = rexBuilder.makeNullLiteral(field.getType());
       }
-      // TOOD: can this cast fail?
       projects.add(rexBuilder.ensureType(SqlParserPos.ZERO, field.getType(), node, false),
           field.getName());
     }

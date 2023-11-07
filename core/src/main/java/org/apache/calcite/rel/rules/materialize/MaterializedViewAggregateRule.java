@@ -323,7 +323,6 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       RelDataTypeField field = unionInputQuery.getRowType().getFieldList().get(i);
       exprList.add(
           rexBuilder.ensureType(
-              // TODO: can this cast fail?
               SqlParserPos.ZERO,
               field.getType(),
               rexBuilder.makeInputRef(relBuilder.peek(), i),
