@@ -1694,6 +1694,7 @@ public class LoptOptimizeJoinRule
           projExpr = mappedInput;
         } else {
           projExpr =
+              // TODO: could this overflow?
               rexBuilder.makeCast(
                   newFields.get(i).getType(),
                   mappedInput);

@@ -33,6 +33,7 @@ import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.immutables.value.Value;
@@ -153,7 +154,7 @@ public class PigToSqlAggregateRule
           newOperands.add(operand.accept(this));
         }
       }
-      return builder.makeCall(call.type, call.op, newOperands);
+      return builder.makeCall(call.getParserPosition(), call.type, call.op, newOperands);
     }
 
     @Override public RexNode visitInputRef(RexInputRef inputRef) {
@@ -275,7 +276,7 @@ public class PigToSqlAggregateRule
         if (aggOperands.size() == 1) {
           // Project single column
           aggCalls.add(
-              relBuilder.aggregateCall(SqlStdOperatorTable.COLLECT,
+              relBuilder.aggregateCall(SqlParserPos.ZERO, SqlStdOperatorTable.COLLECT,
                   aggOperands));
         } else {
           // Project more than one column, need to construct a record (ROW)
@@ -290,7 +291,7 @@ public class PigToSqlAggregateRule
       } else {
         final SqlAggFunction udf =
             PigRelUdfConverter.getSqlAggFuncForPigUdf(rexCall);
-        aggCalls.add(relBuilder.aggregateCall(udf, aggOperands));
+        aggCalls.add(relBuilder.aggregateCall(SqlParserPos.ZERO, udf, aggOperands));
       }
     }
     relBuilder.aggregate(groupKey, aggCalls);

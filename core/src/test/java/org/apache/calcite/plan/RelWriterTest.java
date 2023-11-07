@@ -543,11 +543,11 @@ class RelWriterTest {
                   ImmutableBitSet.of(0),
                   null,
                   ImmutableList.of(
-                      AggregateCall.create(SqlStdOperatorTable.COUNT,
+                      AggregateCall.create(SqlParserPos.ZERO, SqlStdOperatorTable.COUNT,
                           true, false, false, ImmutableList.of(),
                           ImmutableList.of(1), -1, null,
                           RelCollations.EMPTY, bigIntType, "c"),
-                      AggregateCall.create(SqlStdOperatorTable.COUNT,
+                      AggregateCall.create(SqlParserPos.ZERO, SqlStdOperatorTable.COUNT,
                           false, false, false, ImmutableList.of(),
                           ImmutableList.of(), -1, null,
                           RelCollations.EMPTY, bigIntType, "d")));

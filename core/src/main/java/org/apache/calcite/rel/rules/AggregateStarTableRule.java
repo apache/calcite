@@ -214,7 +214,7 @@ public class AggregateStarTableRule
       if (roll == null) {
         break tryRoll;
       }
-      return AggregateCall.create(roll, false, call.isApproximate(),
+      return AggregateCall.create(call.getParserPosition(), roll, false, call.isApproximate(),
           call.ignoreNulls(), call.rexList, ImmutableList.of(offset + i), -1,
           call.distinctKeys, call.collation,
           groupCount, relBuilder.peek(), null, call.name);
@@ -231,7 +231,7 @@ public class AggregateStarTableRule
         }
         newArgs.add(z);
       }
-      return AggregateCall.create(aggregation, false,
+      return AggregateCall.create(call.getParserPosition(), aggregation, false,
           call.isApproximate(), call.ignoreNulls(), call.rexList,
           newArgs, -1, call.distinctKeys, call.collation,
           groupCount, relBuilder.peek(), null, call.name);

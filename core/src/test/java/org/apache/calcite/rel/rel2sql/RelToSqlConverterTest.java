@@ -66,6 +66,7 @@ import org.apache.calcite.sql.dialect.PrestoSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
@@ -636,7 +637,7 @@ class RelToSqlConverterTest {
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
                 ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             b.count(false, "C"),
-            b.sum(false, "S", b.field("SAL")))
+            b.sum(SqlParserPos.ZERO, false, "S", b.field("SAL")))
         .filter(b.equals(b.field("JOB"), b.literal("DEVELOP")))
         .project(b.field("JOB"))
         .build();
@@ -660,7 +661,7 @@ class RelToSqlConverterTest {
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
                 ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             b.count(false, "C"),
-            b.sum(false, "S", b.field("SAL")))
+            b.sum(SqlParserPos.ZERO, false, "S", b.field("SAL")))
         .filter(
             b.call(SqlStdOperatorTable.GREATER_THAN, b.field("C"),
                 b.literal(10)))
@@ -693,7 +694,7 @@ class RelToSqlConverterTest {
                     ImmutableBitSet.of(0),
                     ImmutableBitSet.of())),
             b.count(false, "C"),
-            b.sum(false, "S", b.field("SAL")))
+            b.sum(SqlParserPos.ZERO, false, "S", b.field("SAL")))
         .filter(
             b.or(
                 b.greaterThan(b.field("C"), b.literal(10)),
@@ -724,7 +725,7 @@ class RelToSqlConverterTest {
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
                 ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             b.count(false, "C"),
-            b.sum(false, "S", b.field("SAL")))
+            b.sum(SqlParserPos.ZERO, false, "S", b.field("SAL")))
         .project(b.field("JOB"))
         .build();
     final String expectedSql = "SELECT \"JOB\"\n"
@@ -744,7 +745,7 @@ class RelToSqlConverterTest {
             b.groupKey(ImmutableBitSet.of(0, 1, 2),
                 ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             b.count(false, "C"),
-            b.sum(false, "S", b.field("SAL")))
+            b.sum(SqlParserPos.ZERO, false, "S", b.field("SAL")))
         .sort(b.field("C"))
         .build();
     final String expectedSql = "SELECT \"EMPNO\", \"ENAME\", \"JOB\","
@@ -767,7 +768,7 @@ class RelToSqlConverterTest {
                     ImmutableBitSet.of(0),
                     ImmutableBitSet.of())),
             b.count(false, "C"),
-            b.sum(false, "S", b.field("SAL")))
+            b.sum(SqlParserPos.ZERO, false, "S", b.field("SAL")))
         .filter(
             b.lessThan(
                 b.call(SqlStdOperatorTable.GROUP_ID, b.field("EMPNO")),

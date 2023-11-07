@@ -49,6 +49,7 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
@@ -322,6 +323,8 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       RelDataTypeField field = unionInputQuery.getRowType().getFieldList().get(i);
       exprList.add(
           rexBuilder.ensureType(
+              // TODO: can this cast fail?
+              SqlParserPos.ZERO,
               field.getType(),
               rexBuilder.makeInputRef(relBuilder.peek(), i),
               true));
@@ -347,7 +350,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
           rexBuilder.makeInputRef(relBuilder.peek(),
               aggregate.getGroupCount() + i);
       aggregateCalls.add(
-          relBuilder.aggregateCall(rollupAgg, operand)
+          relBuilder.aggregateCall(aggCall.getParserPosition(), rollupAgg, operand)
               .distinct(aggCall.isDistinct())
               .approximate(aggCall.isApproximate())
               .as(aggCall.name));
@@ -605,7 +608,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
             queryAggregate.getGroupCount() + aggregateCalls.size());
         final RexInputRef operand = rexBuilder.makeInputRef(input, k);
         aggregateCalls.add(
-            relBuilder.aggregateCall(rollupAgg, operand)
+            relBuilder.aggregateCall(queryAggCall.getParserPosition(), rollupAgg, operand)
                 .approximate(queryAggCall.isApproximate())
                 .distinct(queryAggCall.isDistinct())
                 .as(queryAggCall.name));

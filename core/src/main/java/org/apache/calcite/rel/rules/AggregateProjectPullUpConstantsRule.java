@@ -160,6 +160,7 @@ public class AggregateProjectPullUpConstantsRule
           RelDataType originalType =
               aggregate.getRowType().getFieldList().get(projects.size()).getType();
           if (!originalType.equals(rexNode.getType())) {
+            // TODO: Can this overflow?
             expr = rexBuilder.makeCast(originalType, rexNode, true, false);
           } else {
             expr = rexNode;

@@ -35,6 +35,7 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -150,6 +151,7 @@ public class RexUtil {
       if (lhsType.equals(rhsType)) {
         castExps.add(rhsExp);
       } else {
+        // TODO: can this overflow?
         castExps.add(rexBuilder.makeCast(lhsType, rhsExp, true, false));
       }
     }
@@ -1580,7 +1582,7 @@ public class RexUtil {
       final SqlOperator op = call.getOperator();
       final List<RexNode> flattenedOperands = flatten(call.getOperands(), op);
       if (!isFlat(call.getOperands(), op)) {
-        return rexBuilder.makeCall(call.getType(), op, flattenedOperands);
+        return rexBuilder.makeCall(call.getParserPosition(), call.getType(), op, flattenedOperands);
       }
     }
     return node;
@@ -1932,21 +1934,6 @@ public class RexUtil {
     return e1 == e2 || e1.toString().equals(e2.toString());
   }
 
-  /** Simplifies a boolean expression, always preserving its type and its
-   * nullability.
-   *
-   * <p>This is useful if you are simplifying expressions in a
-   * {@link Project}.
-   *
-   * @deprecated Use {@link RexSimplify#simplifyPreservingType(RexNode)},
-   * which allows you to specify an {@link RexExecutor}. */
-  @Deprecated // to be removed before 2.0
-  public static RexNode simplifyPreservingType(RexBuilder rexBuilder,
-      RexNode e) {
-    return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, EXECUTOR)
-        .simplifyPreservingType(e);
-  }
-
   /**
    * Simplifies a boolean expression, leaving UNKNOWN values as UNKNOWN, and
    * using the default executor.
@@ -2022,8 +2009,7 @@ public class RexUtil {
   }
 
   private static RexNode addNot(RexNode e) {
-    return new RexCall(e.getType(), SqlStdOperatorTable.NOT,
-        ImmutableList.of(e));
+    return new RexCall(e.getType(), SqlStdOperatorTable.NOT, ImmutableList.of(e));
   }
 
   @API(since = "1.27.0", status = API.Status.EXPERIMENTAL)
@@ -2100,7 +2086,7 @@ public class RexUtil {
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN_OR_EQUAL:
       final SqlOperator op = op(call.getKind().negateNullSafe());
-      return rexBuilder.makeCall(op, call.getOperands());
+      return rexBuilder.makeCall(call.getParserPosition(), op, call.getOperands());
     default:
       break;
     }
@@ -2116,7 +2102,7 @@ public class RexUtil {
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN_OR_EQUAL:
       final SqlOperator op = requireNonNull(call.getOperator().reverse());
-      return rexBuilder.makeCall(op, Lists.reverse(call.getOperands()));
+      return rexBuilder.makeCall(call.getParserPosition(), op, Lists.reverse(call.getOperands()));
     default:
       return null;
     }
@@ -2979,7 +2965,7 @@ public class RexUtil {
       if (simplifiedNode.getType().equals(call.getType())) {
         return simplifiedNode;
       }
-      return simplify.rexBuilder.makeCast(call.getType(), simplifiedNode,
+      return simplify.rexBuilder.makeCast(call.getParserPosition(), call.getType(), simplifiedNode,
           matchNullability, false);
     }
   }
@@ -3055,8 +3041,8 @@ public class RexUtil {
       list.add(rexBuilder.makeCall(SqlStdOperatorTable.AND, nodes));
     }
 
-    private RexNode op(SqlOperator op, C value) {
-      return rexBuilder.makeCall(op, ref,
+    private RexNode op(SqlParserPos pos, SqlOperator op, C value) {
+      return rexBuilder.makeCall(pos, op, ref,
           rexBuilder.makeLiteral(value, type, true, true));
     }
 
@@ -3065,43 +3051,43 @@ public class RexUtil {
     }
 
     @Override public void atLeast(C lower) {
-      list.add(op(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower));
+      list.add(op(SqlParserPos.ZERO, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower));
     }
 
     @Override public void atMost(C upper) {
-      list.add(op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
+      list.add(op(SqlParserPos.ZERO, SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
     }
 
     @Override public void greaterThan(C lower) {
-      list.add(op(SqlStdOperatorTable.GREATER_THAN, lower));
+      list.add(op(SqlParserPos.ZERO, SqlStdOperatorTable.GREATER_THAN, lower));
     }
 
     @Override public void lessThan(C upper) {
-      list.add(op(SqlStdOperatorTable.LESS_THAN, upper));
+      list.add(op(SqlParserPos.ZERO, SqlStdOperatorTable.LESS_THAN, upper));
     }
 
     @Override public void singleton(C value) {
-      list.add(op(SqlStdOperatorTable.EQUALS, value));
+      list.add(op(SqlParserPos.ZERO, SqlStdOperatorTable.EQUALS, value));
     }
 
     @Override public void closed(C lower, C upper) {
-      addAnd(op(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower),
-          op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
+      addAnd(op(SqlParserPos.ZERO, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower),
+          op(SqlParserPos.ZERO, SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
     }
 
     @Override public void closedOpen(C lower, C upper) {
-      addAnd(op(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower),
-          op(SqlStdOperatorTable.LESS_THAN, upper));
+      addAnd(op(SqlParserPos.ZERO, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower),
+          op(SqlParserPos.ZERO, SqlStdOperatorTable.LESS_THAN, upper));
     }
 
     @Override public void openClosed(C lower, C upper) {
-      addAnd(op(SqlStdOperatorTable.GREATER_THAN, lower),
-          op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
+      addAnd(op(SqlParserPos.ZERO, SqlStdOperatorTable.GREATER_THAN, lower),
+          op(SqlParserPos.ZERO, SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
     }
 
     @Override public void open(C lower, C upper) {
-      addAnd(op(SqlStdOperatorTable.GREATER_THAN, lower),
-          op(SqlStdOperatorTable.LESS_THAN, upper));
+      addAnd(op(SqlParserPos.ZERO, SqlStdOperatorTable.GREATER_THAN, lower),
+          op(SqlParserPos.ZERO, SqlStdOperatorTable.LESS_THAN, upper));
     }
   }
 

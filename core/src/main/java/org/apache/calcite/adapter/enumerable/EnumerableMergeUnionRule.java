@@ -125,6 +125,7 @@ public class EnumerableMergeUnionRule extends RelRule<EnumerableMergeUnionRule.C
           RexNode node = fields.get(i);
           if (fieldsRequiringCast.get(i)) {
             final RelDataType targetType = unionFieldList.get(i).getType();
+            // TODO: can this cast fail?
             node = builder.getRexBuilder().makeCast(targetType, node);
           }
           projFields.add(node);
