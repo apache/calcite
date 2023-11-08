@@ -76,6 +76,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -936,34 +937,35 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseRegexSubstr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlCall extractCall;
-    extractCall = makeRegexpSubstrSqlCall(call);
-    REGEXP_SUBSTR.unparse(writer, extractCall, leftPrec, rightPrec);
+    List<SqlNode> modifiedOperands = modifyRegexpSubstrOperands(call);
+    SqlWriter.Frame substrFrame = writer.startFunCall(call.getOperator().getName());
+    for (SqlNode operand: modifiedOperands) {
+      writer.sep(",");
+      if (operand instanceof SqlCharStringLiteral) {
+        unparseRegexLiteral(writer, operand);
+      } else {
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+    }
+    writer.endFunCall(substrFrame);
   }
 
-  private SqlCall makeRegexpSubstrSqlCall(SqlCall call) {
-    if (call.operandCount() == 5 || call.operand(1).toString().contains("\\")) {
+  private List<SqlNode> modifyRegexpSubstrOperands(SqlCall call) {
+    if (call.operandCount() == 5) {
       SqlCharStringLiteral regexNode = makeRegexNode(call);
       call.setOperand(1, regexNode);
+      return call.getOperandList().subList(0, 4);
     }
-    SqlNode[] extractNodeOperands;
-    if (call.operandCount() == 5) {
-      extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1),
-          call.operand(2), call.operand(3)};
-    } else {
-      extractNodeOperands = call.getOperandList().toArray(new SqlNode[0]);
-    }
-    return new SqlBasicCall(REGEXP_SUBSTR, extractNodeOperands, SqlParserPos.ZERO);
+    return call.getOperandList();
   }
 
   private SqlCharStringLiteral makeRegexNode(SqlCall call) {
-    String regexLiteral = call.operand(1).toString();
-    regexLiteral = regexLiteral.substring(1, regexLiteral.length() - 1);
+    String regexLiteral = ((SqlCharStringLiteral) call.operand(1)).toValue();
+    assert regexLiteral != null;
     if (call.operandCount() == 5 && call.operand(4).toString().equals("'i'")) {
       regexLiteral = "(?i)".concat(regexLiteral);
     }
-    return SqlLiteral.createCharString(regexLiteral,
-        call.operand(1).getParserPosition());
+    return SqlLiteral.createCharString(regexLiteral, call.operand(1).getParserPosition());
   }
 
   /**
@@ -994,6 +996,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case TIMES:
       unparseExpressionIntervalCall(call.operand(1), writer, leftPrec, rightPrec);
+      break;
+    case DIVIDE:
+      unparseDivideIntervalCall(call.operand(1), writer, leftPrec, rightPrec);
       break;
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call.operand(1), leftPrec, rightPrec);
@@ -1044,6 +1049,43 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.print(literalValue.getIntervalQualifier().toString());
     }
+  }
+
+  /**
+   * Unparse the SqlBasic call and write INTERVAL with expression. Below are the examples:
+   * Example 1: Input: INTERVAL 7000 SECONDS / 1000
+   * It will write this as: INTERVAL CAST(7000 / 1000 AS INT64) SECOND
+   * @param call : INTERVAL 7000 SECONDS / 1000
+   * @param writer : Target SqlWriter to write the call
+   * @param leftPrec :  Indicate left precision
+   * @param rightPrec : Indicate right precision
+   */
+  private void unparseDivideIntervalCall(
+      SqlBasicCall call, SqlWriter writer, int leftPrec, int rightPrec) {
+    SqlLiteral intervalLiteral;
+    intervalLiteral = modifiedSqlIntervalLiteral(call.operand(0));
+    if (intervalLiteral.getTypeName() == SqlTypeName.INTERVAL_SECOND) {
+      unparseIntervalMillis(call, writer, leftPrec, rightPrec, intervalLiteral);
+    }
+  }
+
+  private static void unparseIntervalMillis(SqlBasicCall call, SqlWriter writer, int leftPrec,
+      int rightPrec, SqlLiteral intervalLiteral) {
+    SqlNode divisor = call.operand(1);
+    SqlIntervalLiteral.IntervalValue literalValue =
+        (SqlIntervalLiteral.IntervalValue) intervalLiteral.getValue();
+    BigDecimal multiplier = literalValue.getIntervalQualifier().timeUnitRange.startUnit.multiplier;
+    BigDecimal updatedLiteralValue = new BigDecimal(literalValue.getIntervalLiteral())
+        .multiply(new BigDecimal(multiplier.toString()));
+    writer.sep("INTERVAL");
+    SqlWriter.Frame castCall = writer.startFunCall("CAST");
+    writer.sep(updatedLiteralValue.toString());
+    writer.sep("/");
+    divisor.unparse(writer, leftPrec, rightPrec);
+    writer.sep("AS", true);
+    writer.literal("INT64");
+    writer.endFunCall(castCall);
+    writer.print(literalValue.getIntervalQualifier().timeUnitRange.toString());
   }
 
   /**
@@ -2149,7 +2191,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     return this.getCastSpec(type);
   }
 
-  private String getDataTypeBasedOnPrecision(int precision, int scale)  {
+  public static String getDataTypeBasedOnPrecision(int precision, int scale)  {
     if (scale > 0) {
       return scale <= 9 ? precision - scale <= 29 ? "NUMERIC" : "BIGNUMERIC" : "BIGNUMERIC";
     } else {

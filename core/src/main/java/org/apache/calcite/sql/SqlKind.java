@@ -335,6 +335,9 @@ public enum SqlKind {
   /** {@code IS NOT DISTINCT FROM} operator. */
   IS_NOT_DISTINCT_FROM,
 
+  /** {@code USING} condition operator. */
+  USING,
+
   /** {@code SEARCH} operator. (Analogous to scalar {@code IN}, used only in
    * RexNode, not SqlNode.) */
   SEARCH,
@@ -436,6 +439,9 @@ public enum SqlKind {
 
   /** {@code MEDIAN} function. */
   MEDIAN,
+
+  /** {@code HASH_AGG} function. */
+  HASH_AGG,
 
   // prefix operators
 

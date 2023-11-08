@@ -186,8 +186,9 @@ public class FilterExtractInnerJoinRule
     return conditions.stream()
         .filter(
             condition ->
-                ((RexCall) condition).operands.stream().noneMatch(
-                    operand -> operand instanceof RexLiteral)
+                !(condition instanceof RexInputRef)
+                    && ((RexCall) condition).operands.stream().noneMatch(
+                      operand -> operand instanceof RexLiteral)
                     && isConditionPartOfCurrentJoin((RexCall) condition, endIndex)
         )
         .collect(Collectors.toList());
