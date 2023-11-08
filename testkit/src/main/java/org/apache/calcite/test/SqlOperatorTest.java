@@ -13357,6 +13357,17 @@ public class SqlOperatorTest {
     f.checkAgg("bool_and(x)", values4, isNullValue());
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6094">
+   * Linq4j.ConstantExpression.write crashes on special FP values</a>. */
+  @Test void testInfinityExpression() {
+    final SqlOperatorFixture f = fixture();
+    f.check("SELECT CAST(10e70 AS REAL)", "REAL NOT NULL", "Infinity");
+    f.check("SELECT CAST(-10e70 AS REAL)", "REAL NOT NULL", "-Infinity");
+    // I could not write a test that generates NaN and triggers this issue.
+    // I could not write tests with double that trigger this issue.
+  }
+
   @Test void testBoolOrFunc() {
     final SqlOperatorFixture f = fixture();
     // not in standard dialect
