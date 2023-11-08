@@ -107,7 +107,7 @@ val getLicenses by tasks.registering(GatherLicenseTask::class) {
     addDependency(":normalize:3.0.2", SpdxLicense.MIT)
     // Gridism: A simple, responsive, and handy CSS grid by @cobyism
     // https://github.com/cobyism/gridism
-    addDependency(":gridsim:", SpdxLicense.MIT)
+    addDependency("cobyism:gridism:", SpdxLicense.MIT)
 }
 
 val license by tasks.registering(Apache2LicenseRenderer::class) {
