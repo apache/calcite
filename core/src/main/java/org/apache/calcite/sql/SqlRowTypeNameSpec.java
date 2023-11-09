@@ -110,7 +110,8 @@ public class SqlRowTypeNameSpec extends SqlTypeNameSpec {
         litmus.withMessageArgs("{} != {}", this, node))) {
       return litmus.fail("{} != {}", this, node);
     }
-    if (!this.fieldTypes.equals(that.fieldTypes)) {
+    if (!SqlNode.equalDeep(this.fieldTypes, that.fieldTypes,
+        litmus.withMessageArgs("{} != {}", this, node))) {
       return litmus.fail("{} != {}", this, node);
     }
     return litmus.succeed();
