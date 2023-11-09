@@ -593,12 +593,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     int typeScale = type.getScale();
     if (type.getSqlTypeName() == SqlTypeName.DECIMAL
         && value.scale() > typeScale) {
-        SqlNode numericNode = getCastSpec(type);
-        SqlNode castNode = CAST.createCall(pos,
-            SqlLiteral.createExactNumeric(value.toPlainString(), pos), numericNode);
-        return ROUND.createCall(pos, castNode,
-            SqlLiteral.createExactNumeric(
-                requireNonNull(typeScale).toString(), pos));
+      SqlNode numericNode = getCastSpec(type);
+      SqlNode castNode = CAST.createCall(pos,
+          SqlLiteral.createExactNumeric(value.toPlainString(), pos), numericNode);
+      return ROUND.createCall(pos, castNode,
+          SqlLiteral.createExactNumeric(
+              requireNonNull(typeScale).toString(), pos));
     }
     return super.getNumericLiteral(literal, pos);
   }
