@@ -12995,11 +12995,12 @@ class RelToSqlConverterTest {
 
   @Test void testBQCastToDecimalForLiteral() {
     final String query = "select \"employee_id\",\n"
-        + " cast('1234.67' as DECIMAL(10,1)), cast(1234.6 as DECIMAL)\n"
+        + " cast('1234.67' as DECIMAL(10,1)), cast(1234.6 as DECIMAL),\n"
+        + " cast('1234.67' as DECIMAL(10,4))\n"
         + "from \"salary\"";
     final String expected = "SELECT employee_id, "
         + "ROUND(CAST(1234.67 AS NUMERIC), 1), ROUND(CAST"
-        + "(1234.6 AS NUMERIC), 0)\n"
+        + "(1234.6 AS NUMERIC), 0), 1234.67\n"
         + "FROM foodmart.salary";
     sql(query).withBigQuery().ok(expected);
   }
