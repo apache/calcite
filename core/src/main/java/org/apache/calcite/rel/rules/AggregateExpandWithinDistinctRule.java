@@ -345,9 +345,12 @@ public class AggregateExpandWithinDistinctRule
     final Registrar registrar = new Registrar();
     Ord.forEach(aggCallList, (c, i) -> {
       if (c.distinctKeys == null) {
+        RelBuilder.AggCall aggCall =
+            b.aggregateCall(c.getAggregation(), b.fields(c.getArgList()));
         registrar.registerAgg(i,
-            b.aggregateCall(c.getAggregation(),
-                b.fields(c.getArgList())));
+            c.hasFilter()
+                ? aggCall.filter(b.field(c.filterArg))
+                : aggCall);
       } else {
         for (int inputIdx : c.getArgList()) {
           registrar.register(inputIdx, c.filterArg);
