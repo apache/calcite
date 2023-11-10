@@ -18,6 +18,7 @@ package org.apache.calcite.sql.test;
 
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -484,6 +485,29 @@ class SqlPrettyWriterTest {
         .withWriter(w -> w.withUpdateSetListNewline(false)
             .withClauseStartsLine(false))
         .check();
+  }
+
+  @Test void testInsert() {
+    sql("insert into t1 select * from t2")
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6102">[CALCITE-6102]
+   * SqlWriter in SqlInsert's unparse start a list but does not end it</a>. */
+  @Test void testSqlWithBodyIsSqlInsert() throws SqlParseException {
+    final String withSql = "with tmp as (select * from t1) select 1";
+    final String insertSql = "insert into t2 select * from tmp";
+    final String expectedSql = "WITH `TMP` AS (SELECT *\n"
+        + "FROM `T1`) INSERT INTO `T2`\n"
+        + "SELECT *\n"
+        + "FROM `TMP`";
+    final SqlNode sqlInsert = SqlParser.create(insertSql).parseStmt();
+    final SqlNode sqlNode = SqlParser.create(withSql).parseQuery();
+    assertThat(sqlNode, instanceOf(SqlWith.class));
+    final SqlWith sqlWith = (SqlWith) sqlNode;
+    sqlWith.setOperand(1, sqlInsert);
+    assertThat(sqlWith, hasToString(isLinux(expectedSql)));
   }
 
   public static void main(String[] args) throws SqlParseException {

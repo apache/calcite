@@ -225,6 +225,13 @@ FROM `X`
     INNER JOIN `Y` ON `X`.`K` = `Y`.`K`]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInsert">
+    <Resource name="formatted">
+      <![CDATA[INSERT INTO `T1`
+SELECT *
+    FROM `T2`]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinClauseToString">
     <Resource name="formatted">
       <![CDATA[SELECT `T`.`REGION_NAME`, `T0`.`O_TOTALPRICE`
