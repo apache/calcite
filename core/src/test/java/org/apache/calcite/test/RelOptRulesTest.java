@@ -2263,6 +2263,26 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withProgram(program).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5846">[CALCITE-5846]
+   * Preserve FILTER clause for non-distinct aggregate calls with
+   * AggregateExpandWithinDistinctRule</a>.
+   *
+   * <p>Tests {@link AggregateExpandWithinDistinctRule} with a non-distinct aggregate with a FILTER
+   * clause and a distinct aggregate in the same query. */
+  @Test void testWithinDistinctPreservesNonDistinctAggFilters() {
+    final String sql = "SELECT deptno,\n"
+        + " SUM(sal) FILTER (WHERE sal > 1000),\n"
+        + " SUM(sal) WITHIN DISTINCT (job)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
+        .build();
+    sql(sql).withProgram(program).check();
+  }
+
   /** Tests {@link AggregateExpandWithinDistinctRule}. Includes multiple
    * different filters for the aggregate calls, and all aggregate calls have the
    * same distinct keys, so there is no need to filter based on

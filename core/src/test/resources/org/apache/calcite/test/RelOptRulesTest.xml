@@ -16306,6 +16306,33 @@ LogicalProject(DEPTNO=[$0], $f1=[CAST($1):INTEGER NOT NULL], $f2=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testWithinDistinctPreservesNonDistinctAggFilters">
+    <Resource name="sql">
+      <![CDATA[SELECT deptno,
+ SUM(sal) FILTER (WHERE sal > 1000),
+ SUM(sal) WITHIN DISTINCT (job)
+FROM emp
+GROUP BY deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1) FILTER $2], EXPR$2=[SUM($1) WITHIN DISTINCT ($3)])
+  LogicalProject(DEPTNO=[$7], SAL=[$5], $f2=[>($5, 1000)], JOB=[$2])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[CASE(=($2, 0), null:INTEGER, $1)], EXPR$2=[$3])
+  LogicalProject(DEPTNO=[$0], $f1=[CAST($1):INTEGER NOT NULL], $f2=[CAST($2):BIGINT NOT NULL], $f3=[$3])
+    LogicalAggregate(group=[{0}], agg#0=[MIN($1) FILTER $4], agg#1=[MIN($2) FILTER $4], agg#2=[$SUM0($3) FILTER $5])
+      LogicalProject(DEPTNO=[$0], $f2=[$2], $f3=[$3], $f4=[$4], $f7=[=($6, 1)], $f8=[AND(=($6, 0), $THROW_UNLESS(OR(<>($6, 0), =($4, $5)), 'more than one distinct value in agg UNIQUE_VALUE'))])
+        LogicalAggregate(group=[{0, 3}], groups=[[{0, 3}, {0}]], agg#0=[$SUM0($1) FILTER $2], agg#1=[COUNT() FILTER $2], agg#2=[MIN($1)], agg#3=[MAX($1)], agg#4=[GROUPING($0, $3)])
+          LogicalProject(DEPTNO=[$7], SAL=[$5], $f2=[>($5, 1000)], JOB=[$2])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testWithinDistinctUniformDistinctKeys">
     <Resource name="sql">
       <![CDATA[SELECT deptno,
