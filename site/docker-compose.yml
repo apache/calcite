@@ -29,7 +29,7 @@ services:
     volumes:
       - .:/srv/jekyll
   generate-javadoc:
-    image: openjdk:17
+    image: eclipse-temurin:19
     working_dir: /usr/src/calcite
     command: sh -c "./gradlew javadocAggregate; rm -rf site/target/javadocAggregate; mkdir -p site/target; mv build/docs/javadocAggregate site/target"
     volumes:
