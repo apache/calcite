@@ -675,16 +675,18 @@ asfGitSourceUsername=
 asfGitSourcePassword=
 {% endhighlight %}
 
-Note: Both `asfNexusUsername` and `asfSvnUsername` are your apache id with `asfNexusPassword` and
+Note:
+* Both `asfNexusUsername` and `asfSvnUsername` are your apache id with `asfNexusPassword` and
 `asfSvnPassword` are corresponding password.
+* Git source account can be configured to either Gitbox (the default) or Github. For Gitbox, `asfGitSourceUsername`
+is your apache id, and `asfGitSourcePassword` is the corresponding password. For Github, `asfGitSourceUsername`
+is your GitHub id while `asfGitSourcePassword` is not your GitHub password, you need to generate it in
+https://github.com/settings/tokens choosing `Personal access tokens`.
 
 When
 [asflike-release-environment](https://github.com/vlsi/asflike-release-environment)
 is used, the credentials are taken from
 `asfTest...` (e.g. `asfTestNexusUsername=test`)
-
-Note: `asfGitSourceUsername` is your GitHub id while `asfGitSourcePassword` is not your GitHub password.
-You need to generate it in https://github.com/settings/tokens choosing `Personal access tokens`.
 
 Note: if you want to use `gpg-agent`, you need to pass some more properties:
 
@@ -806,6 +808,7 @@ git clean -xn
 ./gradlew prepareVote -Prc=0
 
 # Push release candidate to ASF servers
+# If you prefer to use Github account, change pushRepositoryProvider to GITHUB
 ./gradlew prepareVote -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
 
@@ -927,12 +930,6 @@ thread to discuss.
 Julian
 {% endhighlight %}
 
-Use the [Apache URL shortener](https://s.apache.org) to generate
-shortened URLs for the vote proposal and result emails. Examples:
-[s.apache.org/calcite-1.2-vote](https://s.apache.org/calcite-1.2-vote) and
-[s.apache.org/calcite-1.2-result](https://s.apache.org/calcite-1.2-result).
-
-
 ## Publishing a release
 
 After a successful release vote, we need to push the release
@@ -948,6 +945,7 @@ Remember that UTC date changes at 4 pm Pacific time.
 ./gradlew publishDist -Prc=0
 
 # Publish the release to ASF servers
+# If you prefer to use Github account, change pushRepositoryProvider to GITHUB
 ./gradlew publishDist -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
 
@@ -955,6 +953,15 @@ If for whatever reason the `publishDist` task fails
 (e.g. [failed to release nexus repository](https://github.com/vlsi/vlsi-release-plugins/issues/64),
 it is still possible to perform the publishing tasks manually. Ask for help in the dev list if
 you are not sure what needs to be done.
+
+If the `releaseRepository` task prints something like:
+{% highlight text%}
+> Task :releaseRepository
+Initialized stagingRepositoryId orgapachecalcite-1219 for repository nexus
+GET request failed. 404: Not Found, body: [errors:[[id:*, msg:No such repository: orgapachecalcite-1219]]]
+Requested operation was executed successfully in attempt 83 (maximum allowed 601)
+{% endhighlight %}
+it's most likely that the repository has been successfully released, you can check it in [ASF Nexus](https://repository.apache.org/).
 
 Svnpubsub will publish to the
 [release repo](https://dist.apache.org/repos/dist/release/calcite) and propagate to the
@@ -983,7 +990,9 @@ Add a release announcement by copying
 [site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md),
 and adapt the release date in `history.md` if necessary. Preview the changes locally, by following the
 instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md), and then commit and push
-the changes to the `main` branch.
+the changes to the `main` branch. Please note that due to [CALCITE-5584](https://issues.apache.org/jira/browse/CALCITE-5584),
+the commit should be pushed to Github as the last commit, do not chain it with "Prepare for next development iteration"
+commit.
 
 Ensure that all changes to the website (news, release notes, javadoc) are correctly displayed.
 
