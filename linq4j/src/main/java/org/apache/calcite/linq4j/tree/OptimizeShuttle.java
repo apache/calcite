@@ -85,11 +85,15 @@ public class OptimizeShuttle extends Shuttle {
       Expression expression0,
       Expression expression1,
       Expression expression2) {
-    expression1 = skipNullCast(expression1);
-    expression2 = skipNullCast(expression2);
-    ternary =
-        new TernaryExpression(ternary.getNodeType(), ternary.getType(),
-            expression0, expression1, expression2);
+    Expression tmpExpression1 = skipNullCast(expression1);
+    Expression tmpExpression2 = skipNullCast(expression2);
+    if (tmpExpression1 != expression1 || tmpExpression2 != expression2) {
+      expression1 = tmpExpression1;
+      expression2 = tmpExpression2;
+      ternary =
+          new TernaryExpression(ternary.getNodeType(), ternary.getType(),
+              expression0, expression1, expression2);
+    }
     switch (ternary.getNodeType()) {
     case Conditional:
       Boolean always = always(expression0);

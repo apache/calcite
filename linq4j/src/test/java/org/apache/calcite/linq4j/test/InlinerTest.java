@@ -17,6 +17,7 @@
 package org.apache.calcite.linq4j.test;
 
 import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.CatchBlock;
 import org.apache.calcite.linq4j.tree.DeclarationStatement;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -35,7 +36,10 @@ import static org.apache.calcite.linq4j.test.BlockBuilderBase.TRUE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -150,6 +154,32 @@ class InlinerTest {
                 Expressions.parameter(int.class, "c")));
     builder.add(Expressions.return_(null, v));
     assertThat(Expressions.toString(builder.toBlock()), is(s));
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6109">[CALCITE-6109]
+   * OptimizeShuttle should not create new instances of TernaryExpression
+   * if it does not do any optimization</a>.
+   */
+  @Test void testInlineTernaryNonOptimized() {
+    Statement originStatement =
+        Expressions.return_(null,
+            Expressions.makeTernary(ExpressionType.Conditional,
+                Expressions.makeBinary(ExpressionType.NotEqual,
+                    Expressions.parameter(int.class, "a"),
+                    Expressions.constant(1)),
+                Expressions.parameter(int.class, "b"),
+                Expressions.parameter(int.class, "c")));
+    b.add(originStatement);
+    BlockStatement block = b.toBlock();
+    assertThat(block.statements, hasSize(1));
+    // Because there is no optimization, the statement must be the same object.
+    assertThat(block.statements.get(0), sameInstance(originStatement));
+    String expected = "{\n"
+        + "  return a != 1 ? b : c;\n"
+        + "}\n";
+    assertThat(b.toBlock(), hasToString(expected));
   }
 
   @Test void testAssignInConditionMultipleUsageNonOptimized() {
