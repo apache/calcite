@@ -33,6 +33,19 @@ public class TestApp {
     // Load Calcite jdbc driver
     Class.forName("org.apache.calcite.jdbc.Driver");
 
+
+    //		 check Table -> outputs by schemaPattern
+//		 "MONGOA": departments, employees, "MONGOB": DEPARTMENTS2, EMPLOYEES2, null: COLUMNS, TABLES
+//		Connection connection3 = DriverManager.getConnection("jdbc:calcite:model=" + absolutePath);
+//		DatabaseMetaData metaData3 = connection3.getMetaData();
+//		ResultSet tables3 = metaData3.getTables(null, null, null, null);
+//		System.out.println("TABLE-NAME");
+//		while (tables3.next()) {
+//			String tableName = tables3.getString("TABLE_NAME");
+//			System.out.println(tableName);
+//		}
+
+
     // Make a calcite connection of which model is "model-mongo.json"
     // and Execute queries
     System.out.println("-------------SCAN--------------");
@@ -93,3 +106,21 @@ public class TestApp {
 }
 
 // select * from EMPLOYEES2 limit 2
+// select * from EMPLOYEES2 where SALARY < 5000
+// select * from EMPLOYEES2 WHERE EMP_NO IN (20, 30)
+
+// X
+// select * from EMPLOYEES2 WHERE FIRST_NAME LIKE "%inn"
+// select * from EMPLOYEES2 WHERE FIRST_NAME LIKE FIRST_NAME
+// select * from EMPLOYEES2 WHERE FIRST_NAME IN ("John", "Jane")
+// select * from EMPLOYEES2 WHERE EMP_NO LIKE 10
+
+// select * from DEPARTMENTS2 WHERE DEPT_NO IN (10, 20)
+// select * from DEPARTMENTS2 WHERE DEPT_NAME="Sales"
+
+// DEBUG WITH THIS!
+//select * from DEPARTMENTS2 WHERE DEPT_NO LIKE 10
+// select * from EMPLOYEES2 where FIRST_NAME like '%n%'
+// select * from EMPLOYEES2 where LAST_NAME like '%oe'
+// select * from DEPARTMENTS2 where DEPT_NAME like '%es'
+// select * from DEPARTMENTS2 where DEPT_NAME like 'Sales'
