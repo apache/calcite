@@ -509,7 +509,7 @@ public class BigQuerySqlDialect extends SqlDialect {
           if (call.op.kind == SqlKind.MINUS) {
             return SqlLibraryOperators.TIMESTAMP_SUB;
           }
-          return PLUS;
+          return SqlLibraryOperators.DATETIME_ADD;
         case INTERVAL_DAY_MINUTE:
           if (call.op.kind == SqlKind.MINUS) {
             return MINUS;
