@@ -2115,8 +2115,7 @@ public abstract class SqlImplementor {
       // has any projection with Analytical function used then new SELECT wrap is not required.
       if (dialect.supportsQualifyClause() && rel instanceof Filter
           && rel.getInput(0) instanceof Project
-          && relToSqlUtils.isAnalyticalFunctionPresentInProjection((Project) rel.getInput(0))
-          && !relToSqlUtils.hasAnalyticalFunctionInFilter((Filter) rel)) {
+          && relToSqlUtils.isAnalyticalFunctionPresentInProjection((Project) rel.getInput(0))) {
         if (maxClause == Clause.SELECT) {
           return false;
         }

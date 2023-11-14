@@ -58,7 +58,7 @@ public class RelToSqlUtils {
     if (rel instanceof Project) {
       return (((Project) rel).getProjects().size() - 1) >= rexOperandIndex
           && (((Project) rel).getProjects().get(rexOperandIndex) instanceof RexOver
-          || isRexOverPresentInRexCall(((Project) rel).getProjects().get(rexOperandIndex)));
+          || isAnalyticalRex(((Project) rel).getProjects().get(rexOperandIndex)));
     } else {
       if (rel.getInputs().size() > 0) {
         return isOperandAnalyticalInFollowingProject(rel.getInput(0), rexOperandIndex);
@@ -99,6 +99,12 @@ public class RelToSqlUtils {
     for (RexNode currentRex : projectRel.getProjects()) {
       if (currentRex instanceof RexOver) {
         return true;
+      } else if (currentRex instanceof RexCall) {
+        for (RexNode operand : ((RexCall) currentRex).getOperands()) {
+          if (isAnalyticalRex(operand)) {
+            return true;
+          }
+        }
       }
     }
     return false;
