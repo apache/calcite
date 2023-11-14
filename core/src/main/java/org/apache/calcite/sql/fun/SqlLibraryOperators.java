@@ -956,7 +956,9 @@ public abstract class SqlLibraryOperators {
               // DATETIME(timestampLtz, timeZone)
               OperandTypes.sequence(
                   "DATETIME(TIMESTAMP WITH LOCAL TIME ZONE, VARCHAR)",
-                  OperandTypes.TIMESTAMP_LTZ, OperandTypes.CHARACTER)),
+                  OperandTypes.TIMESTAMP_LTZ, OperandTypes.CHARACTER),
+              // DATETIME(timestamp) -- This is a no-op.
+              OperandTypes.TIMESTAMP_NTZ),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIME" function. It has the following overloads:
@@ -1011,7 +1013,9 @@ public abstract class SqlLibraryOperators {
               OperandTypes.TIMESTAMP_NTZ,
               // TIMESTAMP(timestamp, timeZone)
               OperandTypes.sequence("TIMESTAMP(TIMESTAMP, VARCHAR)",
-                  OperandTypes.TIMESTAMP_NTZ, OperandTypes.CHARACTER)),
+                  OperandTypes.TIMESTAMP_NTZ, OperandTypes.CHARACTER),
+              // TIMESTAMP(timestampLtz) -- This is a no-op.
+              OperandTypes.TIMESTAMP_LTZ),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "CURRENT_DATETIME([timezone])" function. */

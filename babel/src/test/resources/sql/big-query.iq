@@ -2728,6 +2728,18 @@ SELECT TIMESTAMP(DATE "2008-12-25") AS timestamp_date;
 
 !ok
 
+# This tests the no-op TIMESTAMP and DATETIME functions.
+select TIMESTAMP(TIMESTAMP "2008-01-01 01:03:05") as ts,
+       DATETIME(DATETIME "2008-01-01 01:03:05") as dt;
++---------------------+---------------------+
+| ts                  | dt                  |
++---------------------+---------------------+
+| 2008-01-01 01:03:05 | 2008-01-01 01:03:05 |
++---------------------+---------------------+
+(1 row)
+
+!ok
+
 # All these timestamps should be equal.
 # This tests the BQ timestamp literal string formatter
 # (optional 'T', optional leading zeros, optional offset with conversion).
