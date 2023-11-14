@@ -2251,6 +2251,19 @@ class RelToSqlConverterTest {
         .ok(expectedBqFormatDatetime);
   }
 
+  /**
+   * Test that the type of a SAFE_CAST rex call is converted to an argument of the SQL call.
+   * See <a href="https://issues.apache.org/jira/browse/CALCITE-6117">[CALCITE-6117]</a>.
+   */
+  @Test void testBigQuerySafeCast() {
+    final String query = "select safe_cast(\"product_name\" as date) "
+        + "from \"foodmart\".\"product\"";
+    final String expected = "SELECT SAFE_CAST(\"product_name\" AS DATE)\n"
+        + "FROM \"foodmart\".\"product\"";
+
+    sql(query).withLibrary(SqlLibrary.BIG_QUERY).ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3220">[CALCITE-3220]
    * HiveSqlDialect should transform the SQL-standard TRIM function to TRIM,
