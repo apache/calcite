@@ -392,20 +392,8 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** Visits a Filter; called by {@link #dispatch} via reflection. */
   public Result visit(Filter e) {
-    RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
     final RelNode input = e.getInput();
-    if (dialect.supportsQualifyClause() && relToSqlUtils.hasAnalyticalFunctionInFilter(e)
-        && !(input instanceof LogicalJoin)) {
-      // need to keep where clause as is if input rel of the filter rel is a LogicalJoin
-      // ignoreClauses will always be true because in case of false, new select wrap gets applied
-      // with this current Qualify filter e. So, the input query won't remain as it is.
-      final Result x = visitInput(e, 0, isAnon(), true,
-          ImmutableSet.of(Clause.QUALIFY));
-      parseCorrelTable(e, x);
-      final Builder builder = x.builder(e);
-      builder.setQualify(builder.context.toSql(null, e.getCondition()));
-      return builder.result();
-    } else if (input instanceof Aggregate) {
+    if (input instanceof Aggregate) {
       final Aggregate aggregate = (Aggregate) input;
       final boolean ignoreClauses = aggregate.getInput() instanceof Project;
       final Result x = visitInput(e, 0, isAnon(), ignoreClauses,
@@ -420,7 +408,15 @@ public class RelToSqlConverter extends SqlImplementor
       final Builder builder = x.builder(e);
       SqlNode filterNode = builder.context.toSql(null, e.getCondition());
       UnpivotRelToSqlUtil unpivotRelToSqlUtil = new UnpivotRelToSqlUtil();
-      if (dialect.supportsUnpivot()
+      if (dialect.supportsQualifyClause() && SqlUtil.containsAnalytical(filterNode)
+          && !(input instanceof LogicalJoin)) {
+        final Result result = visitInput(e, 0, isAnon(), true,
+            ImmutableSet.of(Clause.QUALIFY));
+        parseCorrelTable(e, result);
+        final Builder qualifyBuilder = result.builder(e);
+        qualifyBuilder.setQualify(builder.context.toSql(null, e.getCondition()));
+        return qualifyBuilder.result();
+      } else if (dialect.supportsUnpivot()
           && unpivotRelToSqlUtil.isRelEquivalentToUnpivotExpansionWithExcludeNulls
                 (filterNode, x.node)) {
         SqlNode sqlUnpivot = createUnpivotSqlNodeWithExcludeNulls((SqlSelect) x.node);

@@ -1209,6 +1209,16 @@ public abstract class SqlUtil {
     return containsCall(node, callPredicate);
   }
 
+  /**
+   * Returns whether an AST tree contains a call to an window function.
+   * @param node AST tree
+   */
+  public static boolean containsAnalytical(SqlNode node) {
+    final Predicate<SqlCall> callPredicate = call ->
+        call.getOperator().kind == SqlKind.OVER;
+    return containsCall(node, callPredicate);
+  }
+
   /** Returns whether an AST tree contains a call that matches a given
    * predicate. */
   private static boolean containsCall(SqlNode node,

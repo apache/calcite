@@ -11427,6 +11427,60 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
+  @Test public void testQualify() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.MAX, builder.field(0));
+    RelDataType type = aggregateFunRexNode.getType();
+    RexFieldCollation orderKeys = new RexFieldCollation(
+        builder.field("HIREDATE"),
+        ImmutableSet.of());
+    final RexNode analyticalFunCall = builder.getRexBuilder().makeOver(type,
+        SqlStdOperatorTable.MAX,
+        ImmutableList.of(builder.field(0)), ImmutableList.of(), ImmutableList.of(orderKeys),
+        RexWindowBounds.UNBOUNDED_PRECEDING,
+        RexWindowBounds.UNBOUNDED_FOLLOWING,
+        true, true, false, false, false);
+    final RexNode equalsNode =
+        builder.getRexBuilder().makeCall(EQUALS, analyticalFunCall, builder.literal(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(equalsNode)
+        .project(builder.field(1))
+        .build();
+    final String expectedSparkQuery = "SELECT ENAME\n"
+        + "FROM scott.EMP\n"
+        + "QUALIFY (MAX(EMPNO) OVER (ORDER BY HIREDATE IS NULL, HIREDATE ROWS BETWEEN UNBOUNDED "
+        + "PRECEDING AND UNBOUNDED FOLLOWING)) = 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testQualifyWithAlias() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.MAX, builder.field(0));
+    RelDataType type = aggregateFunRexNode.getType();
+    RexFieldCollation orderKeys = new RexFieldCollation(
+        builder.field("HIREDATE"),
+        ImmutableSet.of());
+    final RexNode analyticalFunCall = builder.getRexBuilder().makeOver(type,
+        SqlStdOperatorTable.MAX,
+        ImmutableList.of(builder.field(0)), ImmutableList.of(), ImmutableList.of(orderKeys),
+        RexWindowBounds.UNBOUNDED_PRECEDING,
+        RexWindowBounds.UNBOUNDED_FOLLOWING,
+        true, true, false, false, false);
+    final RexNode aliasNode = builder.alias(analyticalFunCall, "qua");
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.field(1), aliasNode)
+        .filter(builder.getRexBuilder().makeCall(EQUALS, builder.field("qua"), builder.literal(1)))
+        .build();
+    final String expectedSparkQuery = "SELECT *\n"
+        + "FROM (SELECT ENAME, MAX(EMPNO) OVER (ORDER BY HIREDATE IS NULL, HIREDATE ROWS BETWEEN "
+        + "UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS qua\n"
+        + "FROM scott.EMP) AS t\n"
+        + "WHERE qua = 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
+  }
+
   @Test void testForSparkRound() {
     final String query = "select round(123.41445, 2)";
     final String expected = "SELECT ROUND(123.41445, 2)";
@@ -13445,11 +13499,11 @@ class RelToSqlConverterTest {
         .build();
 
     final String expectedBiqQuery = "SELECT DEPTNO\n"
+        + "FROM (SELECT DEPTNO, CAST(FLOOR(((RANK() OVER (ORDER BY 23)) - 1) * 5 / (COUNT(*) OVER "
+        + "(ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))) AS INT64) AS quantile\n"
         + "FROM scott.EMP\n"
-        + "WHERE EMPNO NOT BETWEEN 1 AND 3\n"
-        + "QUALIFY CAST(FLOOR(((RANK() OVER (ORDER BY 23)) - 1) * 5 / "
-        + "(COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))) AS INT64) "
-        + "= 1";
+        + "WHERE EMPNO NOT BETWEEN 1 AND 3) AS t0\n"
+        + "WHERE quantile = 1";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
