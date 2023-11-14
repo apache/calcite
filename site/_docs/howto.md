@@ -675,16 +675,18 @@ asfGitSourceUsername=
 asfGitSourcePassword=
 {% endhighlight %}
 
-Note: Both `asfNexusUsername` and `asfSvnUsername` are your apache id with `asfNexusPassword` and
+Note:
+* Both `asfNexusUsername` and `asfSvnUsername` are your apache id with `asfNexusPassword` and
 `asfSvnPassword` are corresponding password.
+* Git source account can be configured to either Gitbox (the default) or Github. For Gitbox, `asfGitSourceUsername`
+is your apache id, and `asfGitSourcePassword` is the corresponding password. For Github, `asfGitSourceUsername`
+is your GitHub id while `asfGitSourcePassword` is not your GitHub password, you need to generate it in
+https://github.com/settings/tokens choosing `Personal access tokens`.
 
 When
 [asflike-release-environment](https://github.com/vlsi/asflike-release-environment)
 is used, the credentials are taken from
 `asfTest...` (e.g. `asfTestNexusUsername=test`)
-
-Note: `asfGitSourceUsername` is your GitHub id while `asfGitSourcePassword` is not your GitHub password.
-You need to generate it in https://github.com/settings/tokens choosing `Personal access tokens`.
 
 Note: if you want to use `gpg-agent`, you need to pass some more properties:
 
@@ -806,7 +808,8 @@ git clean -xn
 ./gradlew prepareVote -Prc=0
 
 # Push release candidate to ASF servers
-./gradlew prepareVote -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITHUB
+# If you prefer to use Github account, change pushRepositoryProvider to GITHUB
+./gradlew prepareVote -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
 
 #### Troubleshooting
@@ -942,7 +945,8 @@ Remember that UTC date changes at 4 pm Pacific time.
 ./gradlew publishDist -Prc=0
 
 # Publish the release to ASF servers
-./gradlew publishDist -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITHUB
+# If you prefer to use Github account, change pushRepositoryProvider to GITHUB
+./gradlew publishDist -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
 
 If for whatever reason the `publishDist` task fails
