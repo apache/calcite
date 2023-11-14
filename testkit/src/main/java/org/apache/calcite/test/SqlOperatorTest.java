@@ -1466,6 +1466,26 @@ public class SqlOperatorTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6095">
+   * [CALCITE-6095] Arithmetic expression with VARBINARY value causes AssertionFailure</a>.
+   */
+  @Test public void testVarbitArithmetic() {
+    SqlOperatorFixture f = fixture();
+    String error = "Cannot apply '\\+' to arguments of type .*\\."
+        + " Supported form\\(s\\): '<NUMERIC> \\+ <NUMERIC>'\n"
+        + "'<DATETIME_INTERVAL> \\+ <DATETIME_INTERVAL>'\n"
+        + "'<DATETIME> \\+ <DATETIME_INTERVAL>'\n"
+        + "'<DATETIME_INTERVAL> \\+ <DATETIME>'";
+    f.checkFails("SELECT ^x'31' + 0^", error, false);
+    f.checkFails("SELECT ^x'31' + x'31'^", error, false);
+    f.checkFails("SELECT ^0 + x'31'^", error, false);
+    f.checkFails("SELECT ^'a' + x'31'^", error, false);
+    f.checkFails("SELECT ^0.0 + x'31'^", error, false);
+    f.checkFails("SELECT ^0e0 + x'31'^", error, false);
+    f.checkFails("SELECT ^DATE '2000-01-01' + x'31'^", error, false);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4861">[CALCITE-4861]
    * Optimization of chained CAST calls leads to unexpected behavior</a>. */
   @Test void testChainedCast() {

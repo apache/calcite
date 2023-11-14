@@ -289,6 +289,16 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return false;
     }
 
+    // No casts to binary except from strings
+    if (SqlTypeUtil.isBinary(fromType) && !SqlTypeUtil.isString(toType)) {
+      return false;
+    }
+
+    // No casts from binary except to strings
+    if (SqlTypeUtil.isBinary(toType) && !SqlTypeUtil.isString(fromType)) {
+      return false;
+    }
+
     // Implicit type coercion does not handle nullability.
     if (SqlTypeUtil.equalSansNullability(factory, fromType, toType)) {
       return false;
