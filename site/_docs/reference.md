@@ -2654,7 +2654,7 @@ BigQuery's type system uses confusingly different names for types and functions:
 | p | expr :: type                                   | Casts *expr* to *type*
 | m | expr1 <=> expr2                                | Whether two values are equal, treating null values as the same, and it's similar to `IS NOT DISTINCT FROM`
 | * | ACOSH(numeric)                                 | Returns the inverse hyperbolic cosine of *numeric*
-| s | ARRAY(expr [, expr ]*)                         | Construct an array in Apache Spark
+| s | ARRAY(expr [, expr ]*)                         | Construct an array in Apache Spark. The function allows users to use `ARRAY()` to create an empty array
 | s | ARRAY_APPEND(array, element)                   | Appends an *element* to the end of the *array* and returns the result. Type of *element* should be similar to type of the elements of the *array*. If the *array* is null, the function will return null. If an *element* that is null, the null *element* will be added to the end of the *array*
 | s | ARRAY_COMPACT(array)                           | Removes null values from the *array*
 | b | ARRAY_CONCAT(array [, array ]*)                | Concatenates one or more arrays. If any input argument is `NULL` the function returns `NULL`
