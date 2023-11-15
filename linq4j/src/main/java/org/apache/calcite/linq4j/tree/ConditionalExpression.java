@@ -32,7 +32,6 @@ import java.util.Objects;
  * {c0, e0, c1, e1, ..., c<sub>n-1</sub>, e<sub>n-1</sub>}
  * represents
  * "if (c0) e0 else if (c1) e1 ... else if (c<sub>n-1</sub>) e<sub>n-1</sub>".
- * </p>
  */
 public class ConditionalExpression extends AbstractNode {
   final List<Node> expressionList;

@@ -44,8 +44,8 @@ public class IndexExpression extends Expression {
   @Override public Expression accept(Shuttle shuttle) {
     shuttle = shuttle.preVisit(this);
     Expression array = this.array.accept(shuttle);
-    List<Expression> indexExpressions = Expressions.acceptExpressions(
-        this.indexExpressions, shuttle);
+    List<Expression> indexExpressions =
+        Expressions.acceptExpressions(this.indexExpressions, shuttle);
     return shuttle.visit(this, array, indexExpressions);
   }
 

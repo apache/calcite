@@ -19,7 +19,7 @@ package org.apache.calcite.linq4j.tree;
 import static java.util.Objects.requireNonNull;
 
 /**
- * <p>Helper methods concerning {@link BlockStatement}s.</p>
+ * Helper methods concerning {@link BlockStatement}s.
  *
  * @see BlockBuilder
  */

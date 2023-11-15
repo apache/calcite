@@ -26,7 +26,7 @@ import java.util.Objects;
  * Represents a constructor call.
  *
  * <p>If {@link #memberDeclarations} is not null (even if empty) represents
- * an anonymous class.</p>
+ * an anonymous class.
  */
 public class NewExpression extends Expression {
   @SuppressWarnings("HidingField")
@@ -46,8 +46,8 @@ public class NewExpression extends Expression {
 
   @Override public Expression accept(Shuttle shuttle) {
     shuttle = shuttle.preVisit(this);
-    final List<Expression> arguments = Expressions.acceptExpressions(
-        this.arguments, shuttle);
+    final List<Expression> arguments =
+        Expressions.acceptExpressions(this.arguments, shuttle);
     final List<MemberDeclaration> memberDeclarations =
         this.memberDeclarations == null
             ? null
@@ -99,8 +99,8 @@ public class NewExpression extends Expression {
   @Override public int hashCode() {
     int result = hash;
     if (result == 0) {
-      result = Objects.hash(nodeType, super.type, type, arguments,
-          memberDeclarations);
+      result =
+          Objects.hash(nodeType, super.type, type, arguments, memberDeclarations);
       if (result == 0) {
         result = 1;
       }
