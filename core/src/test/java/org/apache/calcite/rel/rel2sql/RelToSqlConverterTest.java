@@ -13020,7 +13020,7 @@ class RelToSqlConverterTest {
         .build();
 
     final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA-BIGQUERY-SPARK-ORACLE' ,"
-        + " r'[^-]+') [OFFSET ( 1 ) ] AS aa";
+        + " r'[^-]+') [SAFE_OFFSET ( 1 ) ] AS aa";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
@@ -13036,7 +13036,7 @@ class RelToSqlConverterTest {
         .build();
 
     final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA BIGQUERY-SPARK/ORACLE' ,"
-        + " r'[^ -/]+') [OFFSET ( 1 ) ] AS aa";
+        + " r'[^ -/]+') [SAFE_OFFSET ( 1 ) ] AS aa";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
@@ -13052,7 +13052,7 @@ class RelToSqlConverterTest {
         .build();
 
     final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA BIGQUERY-SPARK/ORACLE' , "
-        + "NULL) [OFFSET ( 1 ) ] AS aa";
+        + "NULL) [SAFE_OFFSET ( 1 ) ] AS aa";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
@@ -13070,7 +13070,7 @@ class RelToSqlConverterTest {
         .build();
 
     final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA BIGQUERY SPARK ORACLE' , "
-        + "r'[^ ]+') [OFFSET ( STRPOS('ABC', 'B') -1 ) ] AS aa";
+        + "r'[^ ]+') [SAFE_OFFSET ( STRPOS('ABC', 'B') -1 ) ] AS aa";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
@@ -13090,7 +13090,7 @@ class RelToSqlConverterTest {
         .build();
 
     final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA-BIGQUERY-SPARK-ORACLE' , "
-        + "r'[^-]+') [OFFSET ( LENGTH('dm-R') -1 ) ] AS aa";
+        + "r'[^-]+') [SAFE_OFFSET ( LENGTH('dm-R') -1 ) ] AS aa";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
