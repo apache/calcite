@@ -40,5 +40,6 @@ public interface AggResultContext extends NestedBlockBuilder, AggResetContext {
    * cast to the appropriate type. */
   Expression keyField(int i);
 
+  /** Returns the aggregate call. */
   AggregateCall call();
 }

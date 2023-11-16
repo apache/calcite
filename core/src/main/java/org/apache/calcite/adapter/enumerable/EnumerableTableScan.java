@@ -119,8 +119,9 @@ public class EnumerableTableScan
 
   /** Returns whether EnumerableTableScan can generate code to handle a
    * particular variant of the Table SPI.
+   *
    * @deprecated remove before Calcite 2.0
-   **/
+   */
   @Deprecated
   public static boolean canHandle(Table table) {
     if (table instanceof TransientTable) {
@@ -135,8 +136,7 @@ public class EnumerableTableScan
   }
 
   /** Returns whether EnumerableTableScan can generate code to handle a
-   * particular variant of the Table SPI.
-   **/
+   * particular variant of the Table SPI. */
   public static boolean canHandle(RelOptTable relOptTable) {
     Table table = relOptTable.unwrap(Table.class);
     if (table != null && !canHandle(table)) {
@@ -266,8 +266,9 @@ public class EnumerableTableScan
     switch (relFieldType.getSqlTypeName()) {
     case ARRAY:
     case MULTISET:
-      final RelDataType fieldType = requireNonNull(relFieldType.getComponentType(),
-          () -> "relFieldType.getComponentType() for " + relFieldType);
+      final RelDataType fieldType =
+          requireNonNull(relFieldType.getComponentType(),
+              () -> "relFieldType.getComponentType() for " + relFieldType);
       if (fieldType.isStruct()) {
         // We can't represent a multiset or array as a List<Employee>, because
         // the consumer does not know the element type.
@@ -275,10 +276,10 @@ public class EnumerableTableScan
         // We need to convert to a List<List>.
         final JavaTypeFactory typeFactory =
                 (JavaTypeFactory) getCluster().getTypeFactory();
-        final PhysType elementPhysType = PhysTypeImpl.of(
-                typeFactory, fieldType, JavaRowFormat.CUSTOM);
+        final PhysType elementPhysType =
+            PhysTypeImpl.of(typeFactory, fieldType, JavaRowFormat.CUSTOM);
         final MethodCallExpression e2 =
-                Expressions.call(BuiltInMethod.AS_ENUMERABLE2.method, e);
+            Expressions.call(BuiltInMethod.AS_ENUMERABLE2.method, e);
         final Expression e3 = elementPhysType.convertTo(e2, JavaRowFormat.LIST);
         return Expressions.call(e3, BuiltInMethod.ENUMERABLE_TO_LIST.method);
       } else {

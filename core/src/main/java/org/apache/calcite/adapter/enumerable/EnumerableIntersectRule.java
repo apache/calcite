@@ -23,9 +23,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 
 /**
- * Rule to convert a
- * {@link org.apache.calcite.rel.logical.LogicalIntersect} to an
- * {@link EnumerableIntersect}.
+ * Rule to convert a {@link LogicalIntersect} to an {@link EnumerableIntersect}.
+ * You may provide a custom config to convert other nodes that extend {@link Intersect}.
  *
  * @see EnumerableRules#ENUMERABLE_INTERSECT_RULE
  */

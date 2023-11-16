@@ -26,8 +26,8 @@ import org.apache.calcite.util.Util;
 import java.util.List;
 
 /**
- * Rule to convert an {@link org.apache.calcite.rel.logical.LogicalUnion} to an
- * {@link EnumerableUnion}.
+ * Rule to convert an {@link LogicalUnion} to an {@link EnumerableUnion}.
+ * You may provide a custom config to convert other nodes that extend {@link Union}.
  *
  * @see EnumerableRules#ENUMERABLE_UNION_RULE
  */

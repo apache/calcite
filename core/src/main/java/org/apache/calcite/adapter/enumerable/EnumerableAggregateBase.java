@@ -129,8 +129,8 @@ public abstract class EnumerableAggregateBase extends Aggregate {
       Expression accumulatorInitializer, boolean hasOrderedCall,
       ParameterExpression lambdaFactory) {
     if (hasOrderedCall) {
-      ParameterExpression pe = Expressions.parameter(List.class,
-          builder.newName("lazyAccumulators"));
+      ParameterExpression pe =
+          Expressions.parameter(List.class, builder.newName("lazyAccumulators"));
       builder.add(
           Expressions.declare(0, pe, Expressions.new_(LinkedList.class)));
 
@@ -164,8 +164,8 @@ public abstract class EnumerableAggregateBase extends Aggregate {
                   accumulatorInitializer, pe)));
     } else {
       // when hasOrderedCall == false
-      ParameterExpression pe = Expressions.parameter(List.class,
-          builder.newName("accumulatorAdders"));
+      ParameterExpression pe =
+          Expressions.parameter(List.class, builder.newName("accumulatorAdders"));
       builder.add(
           Expressions.declare(0, pe, Expressions.new_(LinkedList.class)));
 
@@ -285,11 +285,13 @@ public abstract class EnumerableAggregateBase extends Aggregate {
             }
           };
 
-      agg.implementor.implementAdd(requireNonNull(agg.context, "agg.context"), addContext);
+      agg.implementor.implementAdd(requireNonNull(agg.context, "agg.context"),
+          addContext);
       builder2.add(accExpr);
-      agg.accumulatorAdder = builder.append("accumulatorAdder",
-          Expressions.lambda(Function2.class, builder2.toBlock(), accExpr,
-              inParameter));
+      agg.accumulatorAdder =
+          builder.append("accumulatorAdder",
+              Expressions.lambda(Function2.class, builder2.toBlock(), accExpr,
+                  inParameter));
     }
   }
 

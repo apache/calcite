@@ -172,6 +172,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    * @param typeFactory Type factory
    * @param conformance SQL conformance
    * @param list List of statements, populated with declarations
+   * @param staticList List of member declarations
    * @param outputPhysType Output type, or null
    * @param root Root expression
    * @param inputGetter Generates expressions for inputs

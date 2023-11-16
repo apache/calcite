@@ -23,8 +23,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalRepeatUnion;
 
 /**
- * Rule to convert a {@link LogicalRepeatUnion} into an
- * {@link EnumerableRepeatUnion}.
+ * Rule to convert a {@link LogicalRepeatUnion} into an {@link EnumerableRepeatUnion}.
+ * You may provide a custom config to convert other nodes that extend {@link RepeatUnion}.
  *
  * @see EnumerableRules#ENUMERABLE_REPEAT_UNION_RULE
  */

@@ -31,6 +31,7 @@ import java.util.List;
 public interface AggContext {
   /**
    * Returns the aggregation being implemented.
+   *
    * @return aggregation being implemented.
    */
   SqlAggFunction aggregation();
@@ -47,6 +48,7 @@ public interface AggContext {
 
   /**
    * Returns the return type of the aggregate as {@link java.lang.reflect.Type}.
+   *
    * @return return type of the aggregate as {@link java.lang.reflect.Type}
    */
   Type returnType();

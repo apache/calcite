@@ -112,7 +112,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     /** Constant. Contains only one value.
      *
      * <p>We can't store 0-bit values in
-     * an array: we'd have no way of knowing how many there were.</p>
+     * an array: we'd have no way of knowing how many there were.
      *
      * @see Constant
      */
@@ -156,7 +156,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
      * values with many duplicates is a win; a column of mostly distinct
      * {@code short} values is likely a loss. The other win is if there are
      * null values; otherwise the best option would be an
-     * {@link #OBJECT_ARRAY}.</p>
+     * {@link #OBJECT_ARRAY}.
      *
      * @see PrimitiveDictionary
      */
@@ -180,7 +180,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
      * occur very commonly are held in an 'exceptions' array and are
      * recognized by their high offsets. Other strings are created on demand
      * (this reduces the number of objects that need to be created during
-     * deserialization from cache.</p>
+     * deserialization from cache.
      *
      * @see StringDictionary
      */

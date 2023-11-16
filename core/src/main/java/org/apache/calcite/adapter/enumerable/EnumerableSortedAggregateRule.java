@@ -28,8 +28,8 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Rule to convert a {@link LogicalAggregate}
- * to an {@link EnumerableSortedAggregate}.
+ * Rule to convert a {@link LogicalAggregate} to an {@link EnumerableSortedAggregate}.
+ * You may provide a custom config to convert other nodes that extend {@link Aggregate}.
  *
  * @see EnumerableRules#ENUMERABLE_SORTED_AGGREGATE_RULE
  */
@@ -56,9 +56,10 @@ class EnumerableSortedAggregateRule extends ConverterRule {
             RelCollations.of(
                 ImmutableIntList.copyOf(
             agg.getGroupSet().asList())));
-    final RelTraitSet selfTraits = inputTraits.replace(
-        RelCollations.of(
-        ImmutableIntList.identity(agg.getGroupSet().cardinality())));
+    final RelTraitSet selfTraits =
+        inputTraits.replace(
+            RelCollations.of(
+                ImmutableIntList.identity(agg.getGroupSet().cardinality())));
     return new EnumerableSortedAggregate(
         rel.getCluster(),
         selfTraits,

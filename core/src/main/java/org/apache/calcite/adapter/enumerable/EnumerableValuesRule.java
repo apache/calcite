@@ -21,10 +21,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalValues;
 
-/** Planner rule that converts a
- * {@link org.apache.calcite.rel.logical.LogicalValues}
- * relational expression
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
+/** Planner rule that converts a {@link LogicalValues} to an {@link EnumerableValues}.
+ * You may provide a custom config to convert other nodes that extend {@link Values}.
  *
  * @see EnumerableRules#ENUMERABLE_VALUES_RULE */
 public class EnumerableValuesRule extends ConverterRule {
