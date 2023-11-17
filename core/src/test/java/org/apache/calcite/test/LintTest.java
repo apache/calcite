@@ -32,6 +32,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -405,6 +406,39 @@ class LintTest {
             Comparator.comparing(c -> c.name, String.CASE_INSENSITIVE_ORDER));
     if (contributor != null) {
       fail("contributor '" + contributor.name + "' is out of order");
+    }
+  }
+
+  /** Ensures that the {@code .mailmap} file is sorted. */
+  @Test void testMailmapFile() {
+    final List<File> files = TestUnsafe.getTextFiles();
+    final File contributorsFile =
+        getOnlyElement(
+            filter(files, f -> f.getName().equals(".mailmap")));
+    final List<String> lines = new ArrayList<>();
+    forEachLineIn(contributorsFile, line -> {
+      if (!line.startsWith("#")) {
+        lines.add(line);
+      }
+    });
+    String line = firstOutOfOrder(lines, String.CASE_INSENSITIVE_ORDER);
+    if (line != null) {
+      fail("line '" + line + "' is out of order");
+    }
+  }
+
+  /** Performs an action for each line in a file. */
+  private static void forEachLineIn(File file, Consumer<String> consumer) {
+    try (BufferedReader r = Util.reader(file)) {
+      for (;;) {
+        String line = r.readLine();
+        if (line == null) {
+          break;
+        }
+        consumer.accept(line);
+      }
+    } catch (IOException e) {
+      throw Util.throwAsRuntime(e);
     }
   }
 

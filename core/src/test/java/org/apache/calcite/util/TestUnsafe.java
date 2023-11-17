@@ -156,7 +156,8 @@ public abstract class TestUnsafe {
   /** Returns a list of text files in git. */
   public static List<File> getTextFiles() {
     return getGitFiles("*.bat", "*.cmd", "*.csv", "*.fmpp", "*.ftl",
-        "*.iq", "*.java", "*.json", "*.jj", "*.kt", "*.kts", "*.md",
+        "*.iq", "*.java", "*.json", "*.jj",
+        "*.kt", "*.kts", ".mailmap", "*.md",
         "*.properties", "*.sh", "*.sql", "*.txt", "*.xml", "*.yaml",
         "*.yml");
   }

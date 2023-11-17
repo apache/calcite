@@ -1,0 +1,148 @@
+# Git mail map; see 'git help mailmap' for details.
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+Abhishek Dasgupta <abhishekdasgupta005@gmail.com>
+Adam Kennedy <adamkennedybackup@gmail.com>
+Alan Jin <jinlantao@gmail.com>
+Ali Mansour <Ali.MANSOUR@murex.com>
+Amir Gajst <amir.gajst@sisense.com>
+Botong Huang <botong.huang@alibaba-inc.com>
+Cancai Cai <77189278+caicancai@users.noreply.github.com>
+Charbel Yazbeck <cyazbeck@murex.com>
+Chen Kai <chk19940609@gmail.com>
+Chunhui Shi <cshi@maprtech.com>
+Chunwei Lei <chunwei.lcw@alibaba-inc.com>
+Chunwei Lei <chunwei.leii@gmail.com>
+Chunwei Lei <chunweilcw@163.com>
+Daniel Henneberger <git@danielhenneberger.com>
+Daniel Henneberger <me@danielhenneberger.com>
+Danny Chan <yuzhao.cyz@alibaba-inc.com>
+Danny Chan <yuzhao.cyz@gmail.com>
+Darion Yaphet <darion.yaphet@gmail.com>
+David Handermann <exceptionfactory@apache.org>
+Dhirenda Gautam <dhirenda.gautam@datametica.com>
+Divyanshu Srivastava <divyanshu.s@datametica.com>
+Dmitry Sysolyatin <dm.sysolyatin@gmail.com>
+Dmitry Sysolyatin <dmsysolyatin@gmail.com>
+Drew Schmitt <dasch@google.com>
+Dylan Adams <dylan.adams@gmail.com>
+Evgeniy Stanilovskiy <eugen.stan@netdava.com> # aka Eugen Stan, Evgeny Stanilovsky
+Evgeniy Stanilovskiy <stanilovsky@gmail.com>
+Feng Guo <guofeng.my@bytedance.com>
+Feng Zhu <fengzhu@apache.org> # DonnyZone at github
+Feng Zhu <fenzhu@ebay.com>
+Feng Zhu <wellfengzhu@gmail.com>
+Feng Zhu <wellfengzhu@tencent.com>
+Godfrey He <godfreyhe@163.com>
+Hequn Cheng <chenghequn@gmail.com>
+Hong Shen (沈洪) <yuling.sh@alipay.com>
+Hongyu Guo <macroguo@tencent.com>
+Hongze Zhang <hongzezhang@tencent.com>
+Hsuan-Yi Chu <hsuanyichu@apache.org>
+Ian Bertolacci <ian.bertolacci@workday.com>
+Jacky Lau <jackylau@apache.org> # aka Yong Liu
+Jacky Lau <yongen.ly@alibaba-inc.com>
+Jacky Woo <wuchienchao@qq.com>
+Jacky Yin <jacky.yin@eoitek.com>
+James Kim <james.kim@dremio.com>
+Janhui Dong <dongjianhui03@meituan.com>
+Jark Wu (云邪) <wuchong.wc@alibaba-inc.com>
+Jasmin Trada <jasmin.trada@dremio.com>
+Jay Narale <jay.narale@dremio.com>
+Jeffery Zhang (张俭) <zj48271@ly.com>
+Jerin John <jerinjohn@google.com>
+Jiajun Xie <jiajunbernoulli@foxmail.com> # aka Jake Xie, Jiajin Bernoulli
+Jiasen Sheng <angelzouxin@gmail.com>
+Jin Xing <jinxing.corey@gmail.com>
+Jin Xing <jx158167@antfin.com> # aka jx158167
+Joey Moore <jhugomoore@google.com>
+Johannes Schulte <johannes.schulte@gmail.com>
+Julian Feinauer <j.feinauer@pragmaticminds.de>
+Julian Hyde <jhyde@apache.org>
+Julian Hyde <jhyde@hydromatic.net>
+Julian Hyde <julian.hyde@looker.com>
+Julian Hyde <julianhyde@gmail.com>
+Kevin Liew <kliew@apache.org>
+Kevin Liew <kliewkliew@users.noreply.github.com>
+Khawla Mouhoubi <mouhoubi.khawla@gmail.com>
+Konstantin Orlov <korlov@gridgain.com>
+Krisztian Kasa <kasakrisz2@gmail.com>
+Lei Shen <shenlang@zbyte-inc.com>
+LeoWangLZ <wanglongzhong2006@163.com> # aka Rheet Wong?
+Liao Xintao <chiyou@taobao.com>
+Lincoln Lee <lincoln.lil@alibaba-inc.com>
+Liya Fan <fan_li_ya@foxmail.com>
+Louis Kang <louiskuang@google.com> # aka LM Kang
+Maryann Xue <maryann.xue@gmail.com>
+Maryann Xue <wei.xue@intel.com>
+Min Dai <daimin@outlook.com>
+Mingcan Wang <jiefei30@126.com>
+Mou Wu <wumou.4wei@outlook.com>
+Mou Wu <wumou.wm@alibaba-inc.com>
+Nick Riasanovsky <nick@bodo.ai> # aka Nicholas J Riasanovsky
+Nishant Bangarwa <nishant.monu51@gmail.com>
+Pavel Gubin <pavel@contiamo.com>
+Pawel Ruchaj <pawel+gitlab@profimedia.co.uk>
+Peng Wang <foxpengwang@tencent.com>
+pengzhiwei <pengzhiwei2015@icloud.com>
+Praveen Kumar <praveen@dremio.com>
+Qi Yu (余启) <yuqi5@xiaomi.com>
+Qianjin Xu <x1q1j1@163.com>
+Rafay Qureshi <qureshi.rafay@gmail.com>
+Ruben Quesada Lopez <rubenql@gmail.com>
+Rui Wang <amaliujia@163.com>
+Runkang He (何润康) <herunkang.runking@bytedance.com>
+Runkang He (何润康) <hrunker@gmail.com>
+Sandeep Chada <44845836+chadasa@users.noreply.github.com>
+Sergei Tsvetkov <9326077@gmail.com>
+Sergey Nuyanzin <snuyanzin@gmail.com>
+Shikha Somani <shikha.somani@servicesource.com>
+Shradha Ambekar <Shradha_Ambekar@intuit.com>
+Shuming Li <ming.moriarty@gmail.com>
+Shuo Cheng <shuo.cs@alibaba-inc.com>
+Slim Bouguerra <slim.bouguerra@gmail.com>
+Stamatis Zampetakis <15013153+zabetak@users.noreply.github.com>
+Stamatis Zampetakis <zabetak@gmail.com>
+Taras Ledkov <tledkov@gridgain.com>
+Ted Xu (少杰) <shaojie@alibaba-inc.com>
+Venki Korukanti <venki.korukanti@gmail.com>
+Venki Korukanti <venki@dremio.com>
+Vladimir Ozerov <ppozerov@gmail.com>
+Vova Vysotskyi <vvovyk@gmail.com>
+Wang Yanlin <1989yanlinwang@163.com>
+Wang Yanlin <yanzhi.wyl@antfin.com>
+Weijie Wu <wuweijie@apache.org>
+Wenhui Tang <wenhui_tang@yeah.net>
+Wenrui Meng <wenrui@singleorigin.tech>
+Xiaogang Zhou <zhouxiaogang@shizhuang-inc.com>
+Xiong Duan <nobigogle@gmail.com>
+Xu ZhaoHui <953396112@qq.com> # aka dz, xzh
+Xurenhe <xurenhe19910131@gmail.com> # aka wojustme
+Yanjing Wang <hannerwang@tencent.com>
+Yeong Wei <laiyw@persistent.my>
+Yingyu Wang <yingyu.w@gmail.com>
+Yingyu Wang <yingyuwang@users.noreply.github.com>
+Yiqun Zhang <guiyanakuang@gmail.com>
+Zhe Hu <iluffzhe@163.com>
+Zhen Wang <awang@marinsoftware.com>
+Zhen Wang <zinking3@gmail.com>
+Zhengqiang Duan <duanzhengqiang@apache.org>
+Zhiqiang He <absolute005@qq.com>
+Zhiqiang He <zhiqianghe@apache.org>
+Zhong Yu <yuzhong.yz@alibaba-inc.com>
+Zou Dan <zoudan@bytedance.com>
+Zuozhi Wang <zuozhi.wzz@alibaba-inc.com>

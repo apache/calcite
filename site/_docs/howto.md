@@ -756,15 +756,16 @@ Before you start:
   a fix version assigned (most likely the version we are
   just about to release)
 
-Generate a list of contributors by running the following (changing the
-date literal to the date of the previous release):
+Generate a list of contributors:
 ```
+# Commits since 1.35
+range=calcite-1.35.0..HEAD
 # distinct authors
-./sqlsh "select distinct author from git_commits where author_timestamp > DATE '2021-06-03' order by 1"
+git log --abbrev-commit --pretty=format:'%aN,' $range | sort -u
 # most prolific authors
-./sqlsh "select author, count(*) from git_commits where commit_timestamp > DATE '2021-06-03' group by author order by 2"
-# number of commits, distinct authors, and JIRA cases
-./sqlsh "select count(*) as c, count(distinct author) as a, count(*) filter (where message like '%CALCITE-%') as j from git_commits where commit_timestamp > DATE '2021-06-03' order by 1"
+git log --abbrev-commit --pretty=format:'%aN' $range | sort | uniq -c | sort -nr
+# number of JIRA cases
+git log --abbrev-commit --pretty=format:'%f' $range | awk -F- '$1 == "CALCITE" {print $2}' | sort -u | wc
 ```
 
 Smoke-test `sqlline` with Spatial and Oracle function tables:
