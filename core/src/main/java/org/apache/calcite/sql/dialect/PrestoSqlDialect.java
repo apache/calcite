@@ -64,6 +64,10 @@ public class PrestoSqlDialect extends SqlDialect {
     return true;
   }
 
+  @Override public boolean supportsTimestampPrecision() {
+    return false;
+  }
+
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     unparseUsingLimit(writer, offset, fetch);

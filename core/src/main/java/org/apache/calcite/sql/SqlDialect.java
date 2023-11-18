@@ -760,6 +760,13 @@ public class SqlDialect {
     return false;
   }
 
+  /**
+   * Returns whether this dialect supports TIMESTAMP with precision.
+   */
+  public boolean supportsTimestampPrecision() {
+    return true;
+  }
+
   /** Returns whether this dialect supports the use of FILTER clauses for
    * aggregate functions. e.g. {@code COUNT(*) FILTER (WHERE a = 2)}. */
   public boolean supportsAggregateFunctionFilter() {
@@ -838,6 +845,13 @@ public class SqlDialect {
       case VARCHAR:
         // if needed, adjust varchar length to max length supported by the system
         maxPrecision = getTypeSystem().getMaxPrecision(type.getSqlTypeName());
+        break;
+      case TIMESTAMP:
+        if (!supportsTimestampPrecision()) {
+          return new SqlDataTypeSpec(
+              new SqlBasicTypeNameSpec(type.getSqlTypeName(), SqlParserPos.ZERO),
+              SqlParserPos.ZERO);
+        }
         break;
       default:
         break;
