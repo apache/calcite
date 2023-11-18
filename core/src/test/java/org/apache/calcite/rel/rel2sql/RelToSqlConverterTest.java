@@ -2415,6 +2415,23 @@ class RelToSqlConverterTest {
         .withRedshift().ok(expectedRedshift);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6121">[CALCITE-6121]
+   * Invalid unparse for TIMESTAMP with SparkSqlDialect</a>. */
+  @Test void testCastToTimestampWithoutPrecision() {
+    final String query = "select  * from \"employee\" where  \"hire_date\" - "
+        + "INTERVAL '19800' SECOND(5) > cast(\"hire_date\" as TIMESTAMP(0))";
+    final String expectedSpark = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE (hire_date - INTERVAL '19800' SECOND(5)) > CAST(hire_date AS TIMESTAMP)";
+    final String expectedPresto = "SELECT *\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE (\"hire_date\" - INTERVAL '19800' SECOND) > CAST(\"hire_date\" AS TIMESTAMP)";
+    sql(query)
+        .withSpark().ok(expectedSpark)
+        .withPresto().ok(expectedPresto);
+  }
+
   @Test void testExasolCastToTimestamp() {
     final String query = "select  * from \"employee\" where  \"hire_date\" - "
         + "INTERVAL '19800' SECOND(5) > cast(\"hire_date\" as TIMESTAMP(0))";
