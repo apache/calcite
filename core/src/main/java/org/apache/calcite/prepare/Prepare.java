@@ -293,12 +293,10 @@ public abstract class Prepare {
       root = root.withRel(decorrelate(sqlToRelConverter, sqlQuery, root.rel));
     }
 
-    if (configHolder.get().isTrimUnusedFields()) {
-      // Trim unused fields.
-      root = trimUnusedFields(root);
+    // Trim unused fields.
+    root = trimUnusedFields(root);
 
-      Hook.TRIMMED.run(root.rel);
-    }
+    Hook.TRIMMED.run(root.rel);
 
     // Display physical plan after decorrelation.
     if (sqlExplain != null) {
