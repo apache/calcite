@@ -77,7 +77,7 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
    * @param sqlConsumer Called when each SQL statement is generated
    */
   public QuerySqlStatisticProvider(Consumer<String> sqlConsumer) {
-    this.sqlConsumer = requireNonNull(sqlConsumer);
+    this.sqlConsumer = requireNonNull(sqlConsumer, "sqlConsumer");
   }
 
   @Override public double tableCardinality(RelOptTable table) {

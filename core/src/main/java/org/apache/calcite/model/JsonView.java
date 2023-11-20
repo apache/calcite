@@ -91,7 +91,7 @@ public class JsonView extends JsonTable {
   @JsonCreator
   public JsonView(
       @JsonProperty(value = "name", required = true) String name,
-      @JsonProperty("steram") JsonStream stream,
+      @JsonProperty("stream") JsonStream stream,
       @JsonProperty(value = "sql", required = true) Object sql,
       @JsonProperty("path") @Nullable List<String> path,
       @JsonProperty("modifiable") @Nullable Boolean modifiable) {

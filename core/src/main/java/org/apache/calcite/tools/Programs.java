@@ -331,8 +331,9 @@ public class Programs {
         List<RelOptMaterialization> materializations,
         List<RelOptLattice> lattices) {
       for (Program program : programs) {
-        rel = program.run(
-            planner, rel, requiredOutputTraits, materializations, lattices);
+        rel =
+            program.run(planner, rel, requiredOutputTraits, materializations,
+                lattices);
       }
       return rel;
     }

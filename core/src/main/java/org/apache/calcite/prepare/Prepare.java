@@ -99,7 +99,7 @@ public abstract class Prepare {
   protected @MonotonicNonNull RelDataType parameterRowType;
 
   // temporary. for testing.
-  public static final TryThreadLocal<@Nullable Boolean> THREAD_TRIM =
+  public static final TryThreadLocal<Boolean> THREAD_TRIM =
       TryThreadLocal.of(false);
 
   /** Temporary, until
@@ -109,13 +109,12 @@ public abstract class Prepare {
    * <p>The default is false, meaning do not expand queries during sql-to-rel,
    * but a few tests override and set it to true. After CALCITE-1045
    * is fixed, remove those overrides and use false everywhere. */
-  public static final TryThreadLocal<@Nullable Boolean> THREAD_EXPAND =
+  public static final TryThreadLocal<Boolean> THREAD_EXPAND =
       TryThreadLocal.of(false);
 
   protected Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {
-    assert context != null;
-    this.context = context;
+    this.context = requireNonNull(context, "context");
     this.catalogReader = catalogReader;
     this.resultConvention = resultConvention;
   }
@@ -169,10 +168,11 @@ public abstract class Prepare {
     final RelTraitSet desiredTraits = getDesiredRootTraitSet(root);
 
     final Program program = getProgram();
-    final RelNode rootRel4 = program.run(
-        planner, root.rel, desiredTraits, materializationList, latticeList);
+    final RelNode rootRel4 =
+        program.run(planner, root.rel, desiredTraits, materializationList,
+            latticeList);
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Plan after physical tweaks: {}",
+      LOGGER.debug("Plan after physical tweaks:\n{}",
           RelOptUtil.toString(rootRel4, SqlExplainLevel.ALL_ATTRIBUTES));
     }
 
@@ -183,7 +183,7 @@ public abstract class Prepare {
     // Allow a test to override the default program.
     final Holder<@Nullable Program> holder = Holder.of(null);
     Hook.PROGRAM.run(holder);
-    Program holderValue = holder.get();
+    @Nullable Program holderValue = holder.get();
     if (holderValue != null) {
       return holderValue;
     }
@@ -582,11 +582,11 @@ public abstract class Prepare {
         RelNode rootRel,
         TableModify.@Nullable Operation tableModOp,
         boolean isDml) {
-      this.rowType = requireNonNull(rowType);
-      this.parameterRowType = requireNonNull(parameterRowType);
-      this.fieldOrigins = requireNonNull(fieldOrigins);
+      this.rowType = requireNonNull(rowType, "rowType");
+      this.parameterRowType = requireNonNull(parameterRowType, "parameterRowType");
+      this.fieldOrigins = requireNonNull(fieldOrigins, "fieldOrigins");
       this.collations = ImmutableList.copyOf(collations);
-      this.rootRel = requireNonNull(rootRel);
+      this.rootRel = requireNonNull(rootRel, "rootRel");
       this.tableModOp = tableModOp;
       this.isDml = isDml;
     }

@@ -46,7 +46,7 @@ class ProfilerLatticeStatisticProvider implements LatticeStatisticProvider {
 
   /** Creates a ProfilerLatticeStatisticProvider. */
   private ProfilerLatticeStatisticProvider(Lattice lattice) {
-    Objects.requireNonNull(lattice);
+    Objects.requireNonNull(lattice, "lattice");
     this.profile = Suppliers.memoize(() -> {
       final ProfilerImpl profiler =
           ProfilerImpl.builder()

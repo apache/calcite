@@ -46,15 +46,20 @@ public class JoinNode implements Node {
     this.leftSource = compiler.source(rel, 0);
     this.rightSource = compiler.source(rel, 1);
     this.sink = compiler.sink(rel);
-    this.condition = compiler.compile(ImmutableList.of(rel.getCondition()),
-        compiler.combinedRowType(rel.getInputs()));
+    this.condition =
+        compiler.compile(ImmutableList.of(rel.getCondition()),
+            compiler.combinedRowType(rel.getInputs()));
     this.rel = rel;
     this.context = compiler.createContext();
 
   }
 
-  @Override public void run() throws InterruptedException {
+  @Override public void close() {
+    leftSource.close();
+    rightSource.close();
+  }
 
+  @Override public void run() throws InterruptedException {
     final int fieldCount = rel.getLeft().getRowType().getFieldCount()
         + rel.getRight().getRowType().getFieldCount();
     context.values = new Object[fieldCount];

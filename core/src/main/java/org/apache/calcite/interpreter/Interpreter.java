@@ -87,7 +87,7 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
 
   /** Creates an Interpreter. */
   public Interpreter(DataContext dataContext, RelNode rootRel) {
-    this.dataContext = requireNonNull(dataContext);
+    this.dataContext = requireNonNull(dataContext, "dataContext");
     final RelNode rel = optimize(rootRel);
     final CompilerImpl compiler =
         new Nodes.CoreCompiler(this, rootRel.getCluster());
@@ -114,8 +114,8 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
 
   @Override public Enumerator<@Nullable Object[]> enumerator() {
     start();
-    final NodeInfo nodeInfo = requireNonNull(nodes.get(rootRel),
-        () -> "nodeInfo for " + rootRel);
+    final NodeInfo nodeInfo =
+        requireNonNull(nodes.get(rootRel), () -> "nodeInfo for " + rootRel);
     final Enumerator<Row> rows;
     if (nodeInfo.rowEnumerable != null) {
       rows = nodeInfo.rowEnumerable.enumerator();
@@ -270,6 +270,14 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
       this.rel = rel;
       this.rowEnumerable = rowEnumerable;
     }
+
+    void close() {
+      if (node != null) {
+        final Node n = node;
+        node = null;
+        n.close();
+      }
+    }
   }
 
   /**
@@ -280,7 +288,7 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
     private final Enumerator<Row> enumerator;
 
     EnumeratorSource(final Enumerator<Row> enumerator) {
-      this.enumerator = requireNonNull(enumerator);
+      this.enumerator = requireNonNull(enumerator, "enumerator");
     }
 
     @Override public @Nullable Row receive() {

@@ -126,13 +126,13 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
 
     // public Object execute(Context)
     final BlockBuilder builder = new BlockBuilder();
-    final Expression values_ = builder.append("values",
-        Expressions.newArrayBounds(Object.class, 1,
-            Expressions.constant(1)));
+    final Expression values_ =
+        builder.append("values",
+            Expressions.newArrayBounds(Object.class, 1,
+                Expressions.constant(1)));
     builder.add(
         Expressions.statement(
-            Expressions.call(
-                Expressions.parameter(Scalar.class, "this"),
+            Expressions.call(Expressions.parameter(Scalar.class, "this"),
                 BuiltInMethod.SCALAR_EXECUTE2.method, context_, values_)));
     builder.add(
         Expressions.return_(null,
