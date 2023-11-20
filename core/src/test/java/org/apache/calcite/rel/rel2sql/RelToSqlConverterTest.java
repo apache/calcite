@@ -7008,8 +7008,8 @@ class RelToSqlConverterTest {
         .project(plusCall)
         .build();
 
-    final String expectedBigQuery = "SELECT TIMESTAMP '2022-02-18 08:23:45' + "
-        + "INTERVAL 1 MICROSECOND AS `$f0`";
+    final String expectedBigQuery = "SELECT DATETIME_ADD(TIMESTAMP '2022-02-18 08:23:45', "
+        + "INTERVAL 1 MICROSECOND) AS `$f0`";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
