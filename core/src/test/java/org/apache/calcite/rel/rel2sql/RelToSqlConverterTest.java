@@ -13557,13 +13557,13 @@ class RelToSqlConverterTest {
         builder.literal(1000));
     final RexNode datetimeAddRex =
         builder.call(PLUS, builder.call(CURRENT_TIMESTAMP_WITH_TIME_ZONE),
-            divideIntervalRex );
+            divideIntervalRex);
     final RelNode root = builder
         .scan("EMP")
         .project(datetimeAddRex)
         .build();
     final String expectedBQSql = "SELECT DATETIME_ADD(CURRENT_TIMESTAMP(), INTERVAL CAST(70000000 "
-                                +"/ 1000 AS INT64) SECOND) AS `$f0`\nFROM scott.EMP";
+        + "/ 1000 AS INT64) SECOND) AS `$f0`\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 }
