@@ -2852,7 +2852,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
       }
 
-      // If this is an aggregating query, the SELECT list and HAVING
+      // If this is an aggregate query, the SELECT list and HAVING
       // clause use a different scope, where you can only reference
       // columns which are in the GROUP BY clause.
       SqlValidatorScope aggScope = selectScope;
@@ -2888,7 +2888,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         registerSubQueries(orderScope, orderList);
 
         if (!isAggregate(select)) {
-          // Since this is not an aggregating query,
+          // Since this is not an aggregate query,
           // there cannot be any aggregates in the ORDER BY clause.
           SqlNode agg = aggFinder.findAgg(orderList);
           if (agg != null) {
@@ -4826,10 +4826,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
-    // Unless 'naked measures' are enabled, a non-aggregating query cannot
-    // reference measure columns. (An aggregating query can use them as
+    // Unless 'naked measures' are enabled, a non-aggregate query cannot
+    // reference measure columns. (An aggregate query can use them as
     // argument to the AGGREGATE function.)
-    if (!config.nakedMeasures()
+    if (!config.nakedMeasuresInNonAggregateQuery()
         && !(scope instanceof AggregatingScope)
         && scope.isMeasureRef(expr)) {
       throw newValidationError(expr,
