@@ -2866,7 +2866,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("OVER clause is necessary for window functions");
 
     // With [CALCITE-1340], the validator would see RANK without OVER,
-    // mistakenly think this is an aggregating query, and wrongly complain
+    // mistakenly think this is an aggregate query, and wrongly complain
     // about the PARTITION BY: "Expression 'DEPTNO' is not being grouped"
     winSql("select cume_dist() over w , ^rank()^\n"
         + "from emp\n"
@@ -3874,8 +3874,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     SqlValidatorFixture f =
         fixture().withExtendedCatalog()
             .withOperatorTable(operatorTableFor(SqlLibrary.CALCITE));
-    SqlValidatorFixture f2 =
-        f.withValidatorConfig(c -> c.withNakedMeasures(false));
+
+    SqlValidatorFixture fNakedInsideOnly =
+        f.withValidatorConfig(c ->
+            c.withNakedMeasuresInAggregateQuery(true)
+                .withNakedMeasuresInNonAggregateQuery(false));
+    SqlValidatorFixture fNakedOutsideOnly =
+        f.withValidatorConfig(c ->
+            c.withNakedMeasuresInNonAggregateQuery(true)
+                .withNakedMeasuresInAggregateQuery(false));
+    SqlValidatorFixture fNoNakedMeasures =
+        f.withValidatorConfig(c ->
+            c.withNakedMeasuresInNonAggregateQuery(false)
+                .withNakedMeasuresInAggregateQuery(false));
 
     final String measureIllegal =
         "Measure expressions can only occur within AGGREGATE function";
@@ -3890,28 +3901,36 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
 
     // Same SQL is invalid if naked measures are not enabled
-    f2.withSql(sql0).fails(measureIllegal);
+    fNoNakedMeasures.withSql(sql0).fails(measureIllegal);
+    fNakedOutsideOnly.withSql(sql0).fails(measureIllegal);
+    fNakedInsideOnly.withSql(sql0).isAggregate(is(true)).ok();
 
     // Similarly, with alias
     final String sql1b = "select deptno, ^count_plus_100^ as x\n"
         + "from empm\n"
         + "group by deptno";
     f.withSql(sql1b).isAggregate(is(true)).ok();
-    f2.withSql(sql1b).fails(measureIllegal);
+    fNoNakedMeasures.withSql(sql1b).fails(measureIllegal);
+    fNakedOutsideOnly.withSql(sql1b).fails(measureIllegal);
+    fNakedInsideOnly.withSql(sql1b).isAggregate(is(true)).ok();
 
     // Similarly, in an expression
     final String sql1c = "select deptno, deptno + ^count_plus_100^ * 2 as x\n"
         + "from empm\n"
         + "group by deptno";
     f.withSql(sql1c).isAggregate(is(true)).ok();
-    f2.withSql(sql1c).fails(measureIllegal);
+    fNoNakedMeasures.withSql(sql1c).fails(measureIllegal);
+    fNakedOutsideOnly.withSql(sql1c).fails(measureIllegal);
+    fNakedInsideOnly.withSql(sql1c).isAggregate(is(true)).ok();
 
     // Similarly, for a query that is an aggregate query because of another
     // aggregate function.
     final String sql1 = "select count(*), ^count_plus_100^\n"
         + "from empm";
     f.withSql(sql1).isAggregate(is(true)).ok();
-    f2.withSql(sql1).fails(measureIllegal);
+    fNoNakedMeasures.withSql(sql1).fails(measureIllegal);
+    fNakedInsideOnly.withSql(sql1).isAggregate(is(true)).ok();
+    fNakedOutsideOnly.withSql(sql1).fails(measureIllegal);
 
     // A measure in a non-aggregate query.
     // Using a measure should not make it an aggregate query.
@@ -3924,7 +3943,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "MEASURE<INTEGER NOT NULL> NOT NULL COUNT_PLUS_100, "
             + "VARCHAR(20) NOT NULL ENAME) NOT NULL")
         .isAggregate(is(false));
-    f2.withSql(sql2).fails(measureIllegal2);
+    fNoNakedMeasures.withSql(sql2).fails(measureIllegal2);
+    fNakedInsideOnly.withSql(sql2).fails(measureIllegal2);
+    fNakedOutsideOnly.withSql(sql2).isAggregate(is(false)).ok();
 
     // as above, wrapping the measure in AGGREGATE
     final String sql3 = "select deptno, aggregate(count_plus_100) as x, ename\n"
