@@ -34,7 +34,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -430,10 +429,9 @@ class LintTest {
 
   /** Performs an action for each line in a file. */
   private static void forEachLineIn(File file, Consumer<String> consumer) {
-    try (FileReader r = new FileReader(file);
-         BufferedReader br = new BufferedReader(r)) {
+    try (BufferedReader r = Util.reader(file)) {
       for (;;) {
-        String line = br.readLine();
+        String line = r.readLine();
         if (line == null) {
           break;
         }
