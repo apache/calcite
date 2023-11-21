@@ -393,7 +393,9 @@ public class RelToSqlConverter extends SqlImplementor
   /** Visits a Filter; called by {@link #dispatch} via reflection. */
   public Result visit(Filter e) {
     final RelNode input = e.getInput();
-    if (input instanceof Aggregate) {
+    RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
+    if (input instanceof Aggregate
+        && !relToSqlUtils.hasAnalyticalFunctionInFilter(e)) {
       final Aggregate aggregate = (Aggregate) input;
       final boolean ignoreClauses = aggregate.getInput() instanceof Project;
       final Result x = visitInput(e, 0, isAnon(), ignoreClauses,

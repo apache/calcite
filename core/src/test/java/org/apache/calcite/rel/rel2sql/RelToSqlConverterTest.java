@@ -46,6 +46,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexFieldCollation;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
@@ -11441,13 +11442,14 @@ class RelToSqlConverterTest {
         RexWindowBounds.UNBOUNDED_FOLLOWING,
         true, true, false, false, false);
     final RexNode equalsNode =
-        builder.getRexBuilder().makeCall(EQUALS, analyticalFunCall, builder.literal(1));
+        builder.getRexBuilder().makeCall(EQUALS,
+            new RexInputRef(1, analyticalFunCall.getType()), builder.literal(1));
     final RelNode root = builder
-        .scan("EMP")
+        .project(builder.field("HIREDATE"), builder.alias(analyticalFunCall, "EXPR$"))
         .filter(equalsNode)
-        .project(builder.field(1))
+        .project(builder.field("HIREDATE"))
         .build();
-    final String expectedSparkQuery = "SELECT ENAME\n"
+    final String expectedSparkQuery = "SELECT HIREDATE\n"
         + "FROM scott.EMP\n"
         + "QUALIFY (MAX(EMPNO) OVER (ORDER BY HIREDATE IS NULL, HIREDATE ROWS BETWEEN UNBOUNDED "
         + "PRECEDING AND UNBOUNDED FOLLOWING)) = 1";

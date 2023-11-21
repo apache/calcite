@@ -25,7 +25,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -69,29 +68,14 @@ public class RelToSqlUtils {
 
   /** Returns whether an Analytical Function is present in filter condition. */
   protected boolean hasAnalyticalFunctionInFilter(Filter rel) {
-    Integer rexOperandIndex = null;
     RexNode filterCondition = rel.getCondition();
+    boolean hasRexOver = false;
     if (filterCondition instanceof RexCall) {
       for (RexNode conditionRex : ((RexCall) filterCondition).getOperands()) {
-        if (conditionRex instanceof  RexLiteral) {
-          continue;
-        }
-
-        List<RexNode> inputRefRexList = new ArrayList<>();
-        List<RexNode> rexOperandList =
-            getOperandsOfTypeRexInputRefFromRexNode(conditionRex, inputRefRexList);
-
-        for (RexNode rexOperand : rexOperandList) {
-          if (rexOperand instanceof RexInputRef) {
-            rexOperandIndex = ((RexInputRef) rexOperand).getIndex();
-            if (isOperandAnalyticalInFollowingProject(rel, rexOperandIndex)) {
-              return true;
-            }
-          }
-        }
+        hasRexOver = isAnalyticalRex(conditionRex);
       }
     }
-    return false;
+    return hasRexOver;
   }
 
   /** Returns whether any Analytical Function (RexOver) is present in projection. */
