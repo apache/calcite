@@ -93,7 +93,7 @@ import static java.util.Objects.requireNonNull;
  * Implementation of JDBC connection
  * in the Calcite engine.
  *
- * <p>Abstract to allow newer versions of JDBC to add methods.</p>
+ * <p>Abstract to allow newer versions of JDBC to add methods.
  */
 abstract class CalciteConnectionImpl
     extends AvaticaConnection
@@ -110,7 +110,7 @@ abstract class CalciteConnectionImpl
   /**
    * Creates a CalciteConnectionImpl.
    *
-   * <p>Not public; method is called only from the driver.</p>
+   * <p>Not public; method is called only from the driver.
    *
    * @param driver Driver
    * @param factory Factory for JDBC objects
@@ -509,7 +509,7 @@ abstract class CalciteConnectionImpl
     private final CalciteSchema rootSchema;
 
     ContextImpl(CalciteConnectionImpl connection) {
-      this.connection = requireNonNull(connection);
+      this.connection = requireNonNull(connection, "connection");
       long now = System.currentTimeMillis();
       SchemaVersion schemaVersion = new LongSchemaVersion(now);
       this.mutableRootSchema = connection.rootSchema;
@@ -601,7 +601,7 @@ abstract class CalciteConnectionImpl
     private final AtomicBoolean cancelFlag = new AtomicBoolean();
 
     CalciteServerStatementImpl(CalciteConnectionImpl connection) {
-      this.connection = requireNonNull(connection);
+      this.connection = requireNonNull(connection, "connection");
     }
 
     @Override public Context createPrepareContext() {
