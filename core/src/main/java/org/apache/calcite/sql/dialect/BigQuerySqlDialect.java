@@ -1782,7 +1782,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseStrtok(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     unparseRegexpExtractAllForStrtok(writer, call, leftPrec, rightPrec);
-    writer.print("[SAFE_OFFSET ( ");
+    writer.print("[OFFSET ( ");
     unparseStrtokOffsetValue(writer, leftPrec, rightPrec, call.operand(2));
     writer.print(") ]");
   }
