@@ -13496,6 +13496,19 @@ class RelToSqlConverterTest {
     assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
+  @Test void testDateTimeFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateTimeNode = builder.call(SqlLibraryOperators.DATETIME,
+        builder.literal("2008-08-21 07:23:54"), builder.literal("US/Mountain"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateTimeNode, "converted_value"))
+        .build();
+    final String expectedBQ =
+        "SELECT DATETIME('2008-08-21 07:23:54', 'US/Mountain') AS converted_value\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
   @Test public void testZEROIFNULL() {
     final RelBuilder builder = relBuilder();
     final RexNode zeroIfNullRexNode = builder.call(SqlLibraryOperators.ZEROIFNULL,
