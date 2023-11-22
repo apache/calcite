@@ -161,6 +161,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rel.rules.AggregateRemoveRule.canFlattenStatic;
 import static org.apache.calcite.sql.SqlKind.UNION;
 import static org.apache.calcite.util.Static.RESOURCE;
+import static org.apache.calcite.util.Util.first;
 
 import static java.util.Objects.requireNonNull;
 
@@ -204,7 +205,7 @@ public class RelBuilder {
     final RexExecutor executor =
         context.maybeUnwrap(RexExecutor.class)
             .orElse(
-                Util.first(cluster.getPlanner().getExecutor(),
+                first(cluster.getPlanner().getExecutor(),
                     RexUtil.EXECUTOR));
     final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
     this.simplifier =
@@ -3323,7 +3324,11 @@ public class RelBuilder {
     return builder.build();
   }
 
-  /** Creates a limit without a sort. */
+  /** Creates a limit and/or offset without a sort.
+   *
+   * @param offset Number of rows to skip; non-positive means don't skip any
+   * @param fetch Maximum number of rows to fetch; negative means no limit
+   */
   public RelBuilder limit(int offset, int fetch) {
     return sortLimit(offset, fetch, ImmutableList.of());
   }
@@ -3434,11 +3439,16 @@ public class RelBuilder {
       RelNode top = peek();
       if (top instanceof Sort) {
         final Sort sort2 = (Sort) top;
-        if (sort2.offset == null && sort2.fetch == null) {
+        if ((offsetNode == null || sort2.offset == null)
+            && (fetchNode == null || sort2.fetch == null)) {
+          // We're not trying to replace something that's already set - an
+          // offset in a sort that already has an offset, or a fetch in a sort
+          // that already has a fetch - and so we can merge them.
           replaceTop(sort2.getInput());
           final RelNode sort =
               struct.sortFactory.createSort(peek(), sort2.collation,
-                  offsetNode, fetchNode);
+                  first(offsetNode, sort2.offset),
+                  first(fetchNode, sort2.fetch));
           replaceTop(sort);
           return this;
         }
@@ -3482,7 +3492,7 @@ public class RelBuilder {
     switch (node.getKind()) {
     case INPUT_REF:
       return new RelFieldCollation(((RexInputRef) node).getIndex(), direction,
-          Util.first(nullDirection, direction.defaultNullDirection()));
+          first(nullDirection, direction.defaultNullDirection()));
     case DESCENDING:
       return collation(((RexCall) node).getOperands().get(0),
           RelFieldCollation.Direction.DESCENDING,
@@ -3497,7 +3507,7 @@ public class RelBuilder {
       final int fieldIndex = extraNodes.size();
       extraNodes.add(node);
       return new RelFieldCollation(fieldIndex, direction,
-          Util.first(nullDirection, direction.defaultNullDirection()));
+          first(nullDirection, direction.defaultNullDirection()));
     }
   }
 

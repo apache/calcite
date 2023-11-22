@@ -3672,6 +3672,51 @@ public class RelBuilderTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6128">[CALCITE-6128]
+   * RelBuilder.sortLimit should compose offset and fetch</a>. */
+  @Test void testSortOffsetLimit() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   ORDER BY deptno OFFSET 2 LIMIT 3
+
+    // Case 1. Set sort+offset, then set fetch.
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .sortLimit(2, -1, b.field("DEPTNO")) // ORDER BY deptno OFFSET 2
+            .limit(-1, 3) // LIMIT 3
+            .build();
+    final String expected = ""
+        + "LogicalSort(sort0=[$7], dir0=[ASC], offset=[2], fetch=[3])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withSimplifyLimit(true))),
+        hasTree(expected));
+
+    // Case 2. Set sort, then offset, then fetch. Same effect as case 1.
+    final Function<RelBuilder, RelNode> f2 = b ->
+        b.scan("EMP")
+            .sort(b.field("DEPTNO")) // ORDER BY deptno
+            .limit(2, -1) // OFFSET 2
+            .limit(-1, 3) // LIMIT 3
+            .build();
+    assertThat(f2.apply(createBuilder()), hasTree(expected));
+    assertThat(f2.apply(createBuilder(c -> c.withSimplifyLimit(true))),
+        hasTree(expected));
+
+    // Case 3. Set sort, then fetch, then offset. Same effect as case 1 & 2.
+    final Function<RelBuilder, RelNode> f3 = b ->
+        b.scan("EMP")
+            .sort(b.field("DEPTNO")) // ORDER BY deptno
+            .limit(-1, 3) // LIMIT 3
+            .limit(2, -1) // OFFSET 2
+            .build();
+    assertThat(f3.apply(createBuilder()), hasTree(expected));
+    assertThat(f3.apply(createBuilder(c -> c.withSimplifyLimit(true))),
+        hasTree(expected));
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1610">[CALCITE-1610]
    * RelBuilder sort-combining optimization treats aliases incorrectly</a>. */
   @Test void testSortOverProjectSort() {
