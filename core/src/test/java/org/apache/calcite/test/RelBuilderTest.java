@@ -3679,6 +3679,8 @@ public class RelBuilderTest {
     //   SELECT *
     //   FROM emp
     //   ORDER BY deptno OFFSET 2 LIMIT 3
+
+    // Case 1. Set sort+offset, then set fetch.
     final Function<RelBuilder, RelNode> f = b ->
         b.scan("EMP")
             .sortLimit(2, -1, b.field("DEPTNO")) // ORDER BY deptno OFFSET 2
@@ -3691,6 +3693,7 @@ public class RelBuilderTest {
     assertThat(f.apply(createBuilder(c -> c.withSimplifyLimit(true))),
         hasTree(expected));
 
+    // Case 2. Set sort, then offset, then fetch. Same effect as case 1.
     final Function<RelBuilder, RelNode> f2 = b ->
         b.scan("EMP")
             .sort(b.field("DEPTNO")) // ORDER BY deptno
@@ -3701,6 +3704,7 @@ public class RelBuilderTest {
     assertThat(f2.apply(createBuilder(c -> c.withSimplifyLimit(true))),
         hasTree(expected));
 
+    // Case 3. Set sort, then fetch, then offset. Same effect as case 1 & 2.
     final Function<RelBuilder, RelNode> f3 = b ->
         b.scan("EMP")
             .sort(b.field("DEPTNO")) // ORDER BY deptno
