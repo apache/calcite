@@ -25,9 +25,8 @@ import org.apache.calcite.schema.ModifiableTable;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/** Planner rule that converts a
- * {@link org.apache.calcite.rel.logical.LogicalTableModify} to
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
+/** Planner rule that converts a {@link LogicalTableModify} to an {@link EnumerableTableModify}.
+ * You may provide a custom config to convert other nodes that extend {@link TableModify}.
  *
  * @see EnumerableRules#ENUMERABLE_TABLE_MODIFICATION_RULE */
 public class EnumerableTableModifyRule extends ConverterRule {

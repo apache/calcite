@@ -68,9 +68,9 @@ public class JdbcCatalogSchema extends AbstractSchema {
   /** Creates a JdbcCatalogSchema. */
   public JdbcCatalogSchema(DataSource dataSource, SqlDialect dialect,
       JdbcConvention convention, String catalog) {
-    this.dataSource = requireNonNull(dataSource);
-    this.dialect = requireNonNull(dialect);
-    this.convention = requireNonNull(convention);
+    this.dataSource = requireNonNull(dataSource, "dataSource");
+    this.dialect = requireNonNull(dialect, "dialect");
+    this.convention = requireNonNull(convention, "convention");
     this.catalog = catalog;
   }
 
@@ -111,9 +111,9 @@ public class JdbcCatalogSchema extends AbstractSchema {
              connection.getMetaData().getSchemas(catalog, null)) {
       defaultSchemaName = connection.getSchema();
       while (resultSet.next()) {
-        final String schemaName = requireNonNull(
-            resultSet.getString(1),
-            () -> "got null schemaName from the database");
+        final String schemaName =
+            requireNonNull(resultSet.getString(1),
+                "got null schemaName from the database");
         builder.put(schemaName,
             new JdbcSchema(dataSource, dialect, convention, catalog, schemaName));
       }

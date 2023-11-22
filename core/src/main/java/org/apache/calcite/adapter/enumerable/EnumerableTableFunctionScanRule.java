@@ -22,9 +22,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 
-/** Planner rule that converts a
- * {@link org.apache.calcite.rel.logical.LogicalTableFunctionScan} to
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
+/** Rule to convert a {@link LogicalTableFunctionScan} to an {@link EnumerableTableFunctionScan}.
+ * You may provide a custom config to convert other nodes that extend {@link TableFunctionScan}.
  *
  * @see EnumerableRules#ENUMERABLE_TABLE_FUNCTION_SCAN_RULE */
 public class EnumerableTableFunctionScanRule extends ConverterRule {

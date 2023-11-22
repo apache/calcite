@@ -22,8 +22,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalProject;
 
 /**
- * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalProject} to an
- * {@link EnumerableProject}.
+ * Rule to convert a {@link LogicalProject} to an {@link EnumerableProject}.
+ * You may provide a custom config to convert other nodes that extend {@link Project}.
  *
  * @see EnumerableRules#ENUMERABLE_PROJECT_RULE
  */

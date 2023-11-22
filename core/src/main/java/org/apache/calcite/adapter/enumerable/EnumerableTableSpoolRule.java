@@ -23,8 +23,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalTableSpool;
 
 /**
- * Rule to convert a {@link LogicalTableSpool} into an
- * {@link EnumerableTableSpool}.
+ * Rule to convert a {@link LogicalTableSpool} into an {@link EnumerableTableSpool}.
+ * You may provide a custom config to convert other nodes that extend {@link TableSpool}.
  *
  * <p>NOTE: The current API is experimental and subject to change without
  * notice.

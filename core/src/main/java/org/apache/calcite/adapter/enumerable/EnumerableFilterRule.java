@@ -22,8 +22,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalFilter;
 
 /**
- * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalFilter} to an
- * {@link EnumerableFilter}.
+ * Rule to convert a {@link LogicalFilter} to an {@link EnumerableFilter}.
+ * You may provide a custom config to convert other nodes that extend {@link Filter}.
  *
  * @see EnumerableRules#ENUMERABLE_FILTER_RULE
  */

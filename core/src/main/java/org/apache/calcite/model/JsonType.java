@@ -29,7 +29,8 @@ import static java.util.Objects.requireNonNull;
 /**
  * Type schema element.
  *
- * <p>Occurs within {@link JsonMapSchema#tables}.
+ * <p>Occurs within {@link JsonMapSchema#types},
+ * {@link JsonRoot#types}.
  *
  * @see JsonRoot Description of schema elements
  */

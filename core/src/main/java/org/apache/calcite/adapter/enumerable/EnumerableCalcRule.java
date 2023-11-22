@@ -23,8 +23,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalCalc;
 
 /**
- * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalCalc} to an
- * {@link EnumerableCalc}.
+ * Rule to convert a {@link LogicalCalc} to an {@link EnumerableCalc}.
+ * You may provide a custom config to convert other nodes that extend {@link Calc}.
  *
  * @see EnumerableRules#ENUMERABLE_CALC_RULE
  */

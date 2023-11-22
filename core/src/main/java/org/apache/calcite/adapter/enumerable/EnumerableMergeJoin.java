@@ -149,42 +149,66 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
 
   /**
    * Pass collations through can have three cases:
-   * 1. If sort keys are equal to either left join keys, or right join keys,
+   *
+   * <p>1. If sort keys are equal to either left join keys, or right join keys,
    * collations can be pushed to both join sides with correct mappings.
    * For example, for the query
-   *    select * from foo join bar on foo.a=bar.b order by foo.a desc
-   * after traits pass through it will be equivalent to
+   *
+   * <blockquote><pre>{@code
+   *    select * from foo join bar
+   *        on foo.a=bar.b
+   *    order by foo.a desc
+   * }</pre></blockquote>
+   *
+   * <p>after traits pass through it will be equivalent to
+   *
+   * <blockquote><pre>{@code
    *    select * from
    *        (select * from foo order by foo.a desc)
    *        join
    *        (select * from bar order by bar.b desc)
+   * }</pre></blockquote>
    *
-   * 2. If sort keys are sub-set of either left join keys, or right join keys,
-   * collations have to be extended to cover all joins keys before passing through,
-   * because merge join requires all join keys are sorted.
+   * <p>2. If sort keys are sub-set of either left join keys, or right join
+   * keys, collations have to be extended to cover all joins keys before
+   * passing through, because merge join requires all join keys are sorted.
    * For example, for the query
+   *
+   * <blockquote><pre>{@code
    *    select * from foo join bar
    *        on foo.a=bar.b and foo.c=bar.d
-   *        order by foo.a desc
-   * after traits pass through it will be equivalent to
+   *    order by foo.a desc
+   * }</pre></blockquote>
+   *
+   * <p>after traits pass through it will be equivalent to
+   *
+   * <blockquote><pre>{@code
    *    select * from
    *        (select * from foo order by foo.a desc, foo.c)
    *        join
    *        (select * from bar order by bar.b desc, bar.d)
+   * }</pre></blockquote>
    *
-   * 3. If sort keys are super-set of either left join keys, or right join keys,
-   * but not both, collations can be completely passed to the join key whose join
-   * keys match the prefix of collations. Meanwhile, partial mapped collations can
-   * be passed to another join side to make sure join keys are sorted.
-   * For example, for the query
+   * <p>3. If sort keys are super-set of either left join keys, or right join
+   * keys, but not both, collations can be completely passed to the join key
+   * whose join keys match the prefix of collations. Meanwhile, partial mapped
+   * collations can be passed to another join side to make sure join keys are
+   * sorted. For example, for the query
+
+   * <blockquote><pre>{@code
    *    select * from foo join bar
    *        on foo.a=bar.b and foo.c=bar.d
    *        order by foo.a desc, foo.c desc, foo.e
-   * after traits pass through it will be equivalent to
+   * }</pre></blockquote>
+   *
+   * <p>after traits pass through it will be equivalent to
+   *
+   * <blockquote><pre>{@code
    *    select * from
    *        (select * from foo order by foo.a desc, foo.c desc, foo.e)
    *        join
    *        (select * from bar order by bar.b desc, bar.d desc)
+   * }</pre></blockquote>
    */
   @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
@@ -284,8 +308,8 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
 
     ImmutableIntList sourceKeys = childId == 0 ? joinInfo.leftKeys : joinInfo.rightKeys;
     ImmutableBitSet keySet = ImmutableBitSet.of(sourceKeys);
-    ImmutableBitSet childCollationKeys = ImmutableBitSet.of(
-        RelCollations.ordinals(collation));
+    ImmutableBitSet childCollationKeys =
+        ImmutableBitSet.of(RelCollations.ordinals(collation));
     if (!childCollationKeys.equals(keySet)) {
       return null;
     }
@@ -323,9 +347,10 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
       keyMap.put(sourceKeys.get(i), targetKeys.get(i));
     }
 
-    Mappings.TargetMapping mapping = Mappings.target(keyMap,
-        (left2Right ? left : right).getRowType().getFieldCount(),
-        (left2Right ? right : left).getRowType().getFieldCount());
+    Mappings.TargetMapping mapping =
+        Mappings.target(keyMap,
+            (left2Right ? left : right).getRowType().getFieldCount(),
+            (left2Right ? right : left).getRowType().getFieldCount());
     return mapping;
   }
 
@@ -353,9 +378,10 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
    *    on foo.a = bar.a and foo.c=bar.c
    *    order by bar.a, bar.c, bar.b;
    *
-   * The collation [bar.a, bar.c, bar.b] can be pushed down to bar. However, only
-   * [a, c] can be pushed down to foo. This function will help create [a, c] for foo by removing
-   * b from the required collation, because b is not defined on join keys.
+   * <p>The collation [bar.a, bar.c, bar.b] can be pushed down to bar. However,
+   * only [a, c] can be pushed down to foo. This function will help create [a,
+   * c] for foo by removing b from the required collation, because b is not
+   * defined on join keys.
    *
    * @param collation collation defined on the JOIN
    * @param joinKeys  the join keys
@@ -427,9 +453,11 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     for (Pair<Integer, Integer> pair : Pair.zip(joinInfo.leftKeys, joinInfo.rightKeys)) {
       RelDataType leftType = left.getRowType().getFieldList().get(pair.left).getType();
       RelDataType rightType = right.getRowType().getFieldList().get(pair.right).getType();
-      final RelDataType keyType = requireNonNull(
-          typeFactory.leastRestrictive(ImmutableList.of(leftType, rightType)),
-          () -> "leastRestrictive returns null for " + leftType + " and " + rightType);
+      final RelDataType keyType =
+          requireNonNull(
+              typeFactory.leastRestrictive(ImmutableList.of(leftType, rightType)),
+              () -> "leastRestrictive returns null for " + leftType
+                  + " and " + rightType);
       final Type keyClass = typeFactory.getJavaClass(keyType);
       leftExpressions.add(
           EnumUtils.convert(
@@ -440,11 +468,14 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     }
     Expression predicate = Expressions.constant(null);
     if (!joinInfo.nonEquiConditions.isEmpty()) {
-      final RexNode nonEquiCondition = RexUtil.composeConjunction(
-          getCluster().getRexBuilder(), joinInfo.nonEquiConditions, true);
+      final RexNode nonEquiCondition =
+          RexUtil.composeConjunction(getCluster().getRexBuilder(),
+              joinInfo.nonEquiConditions, true);
       if (nonEquiCondition != null) {
-        predicate = EnumUtils.generatePredicate(implementor, getCluster().getRexBuilder(),
-            left, right, leftResult.physType, rightResult.physType, nonEquiCondition);
+        predicate =
+            EnumUtils.generatePredicate(implementor,
+                getCluster().getRexBuilder(), left, right, leftResult.physType,
+                rightResult.physType, nonEquiCondition);
       }
     }
     final PhysType leftKeyPhysType =

@@ -78,13 +78,14 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
     }
 
     RelTraitSet inputTraits = getInput().getTraitSet();
-    RelCollation collation = requireNonNull(required.getCollation(),
-        () -> "collation trait is null, required traits are " + required);
+    RelCollation collation =
+        requireNonNull(required.getCollation(),
+            () -> "collation trait is null, required traits are " + required);
     ImmutableBitSet requiredKeys = ImmutableBitSet.of(RelCollations.ordinals(collation));
     ImmutableBitSet groupKeys = ImmutableBitSet.range(groupSet.cardinality());
 
-    Mappings.TargetMapping mapping = Mappings.source(groupSet.toList(),
-        input.getRowType().getFieldCount());
+    Mappings.TargetMapping mapping =
+        Mappings.source(groupSet.toList(), input.getRowType().getFieldCount());
 
     if (requiredKeys.equals(groupKeys)) {
       RelCollation inputCollation = RexUtil.apply(mapping, collation);
@@ -147,8 +148,8 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
     final List<Expression> initExpressions = new ArrayList<>();
     final BlockBuilder initBlock = new BlockBuilder();
 
-    final List<Type> aggStateTypes = createAggStateTypes(
-        initExpressions, initBlock, aggs, typeFactory);
+    final List<Type> aggStateTypes =
+        createAggStateTypes(initExpressions, initBlock, aggs, typeFactory);
 
     final PhysType accPhysType =
         PhysTypeImpl.of(typeFactory,
@@ -208,21 +209,20 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
 
     final Expression keySelector_ =
         builder.append("keySelector",
-            inputPhysType.generateSelector(parameter,
-                groupSet.asList(),
+            inputPhysType.generateSelector(parameter, groupSet.asList(),
                 keyPhysType.getFormat()));
     // Generate the appropriate key Comparator. In the case of NULL values
     // in group keys, the comparator must be able to support NULL values by giving a
     // consistent sort ordering.
-    final Expression comparator = keyPhysType.generateComparator(
-        requireNonNull(getTraitSet().getCollation(),
-            () -> "getTraitSet().getCollation() is null, current traits are " + getTraitSet()));
+    final Expression comparator =
+        keyPhysType.generateComparator(
+            requireNonNull(getTraitSet().getCollation(),
+                () -> "getTraitSet().getCollation() is null; traits are "
+                    + getTraitSet()));
 
     final Expression resultSelector_ =
         builder.append("resultSelector",
-            Expressions.lambda(Function2.class,
-                resultBlock.toBlock(),
-                key_,
+            Expressions.lambda(Function2.class, resultBlock.toBlock(), key_,
                 acc_));
 
     builder.add(
@@ -236,8 +236,7 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
                         BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_ADDER.method),
                     Expressions.call(lambdaFactory,
                         BuiltInMethod.AGG_LAMBDA_FACTORY_ACC_RESULT_SELECTOR.method,
-                        resultSelector_), comparator)
-                    )));
+                        resultSelector_), comparator))));
 
     return implementor.result(physType, builder.toBlock());
   }

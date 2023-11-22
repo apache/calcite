@@ -141,11 +141,11 @@ public class ReflectiveSchema
           // This enables to keep the same Statistics.of below
           referentialConstraints = ImmutableList.of();
         }
-        table.statistic = Statistics.of(
-            ImmutableList.copyOf(
-                Iterables.concat(
-                    referentialConstraints,
-                    Collections.singleton(rc))));
+        table.statistic =
+            Statistics.of(
+                ImmutableList.copyOf(
+                    Iterables.concat(referentialConstraints,
+                        Collections.singleton(rc))));
       }
     }
     return tableMap;
@@ -362,8 +362,8 @@ public class ReflectiveSchema
 
     @Override public TranslatableTable apply(final List<? extends @Nullable Object> arguments) {
       try {
-        final Object o = requireNonNull(
-            method.invoke(schema.getTarget(), arguments.toArray()),
+        final Object o = method.invoke(schema.getTarget(), arguments.toArray());
+        requireNonNull(o,
             () -> "method " + method + " returned null for arguments " + arguments);
         return (TranslatableTable) o;
       } catch (IllegalAccessException | InvocationTargetException e) {
@@ -400,9 +400,9 @@ public class ReflectiveSchema
 
     @Override public Expression getExpression(SchemaPlus schema,
         String tableName, Class clazz) {
-      ReflectiveSchema reflectiveSchema = requireNonNull(
-          schema.unwrap(ReflectiveSchema.class),
-          () -> "schema.unwrap(ReflectiveSchema.class) for " + schema);
+      ReflectiveSchema reflectiveSchema =
+          requireNonNull(schema.unwrap(ReflectiveSchema.class),
+              () -> "schema.unwrap(ReflectiveSchema.class) for " + schema);
       return Expressions.field(
           reflectiveSchema.getTargetExpression(
               schema.getParentSchema(), schema.getName()), field);

@@ -270,8 +270,8 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
 
   @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
-    final List<RexNode> exps = Util.transform(program.getProjectList(),
-        program::expandLocalRef);
+    final List<RexNode> exps =
+        Util.transform(program.getProjectList(), program::expandLocalRef);
 
     return EnumerableTraitsUtils.passThroughTraitsForProject(required, exps,
         input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
@@ -279,8 +279,8 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
 
   @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
-    final List<RexNode> exps = Util.transform(program.getProjectList(),
-        program::expandLocalRef);
+    final List<RexNode> exps =
+        Util.transform(program.getProjectList(), program::expandLocalRef);
 
     return EnumerableTraitsUtils.deriveTraitsForProject(childTraits, childId, exps,
         input.getRowType(), input.getCluster().getTypeFactory(), traitSet);

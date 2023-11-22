@@ -38,8 +38,9 @@ import java.util.Arrays;
 import java.util.List;
 
 /** Planner rule that converts a
- * {@link org.apache.calcite.rel.logical.LogicalJoin} relational expression
+ * {@link LogicalJoin} relational expression
  * {@link EnumerableConvention enumerable calling convention}.
+ * You may provide a custom config to convert other nodes that extend {@link Join}.
  *
  * @see EnumerableJoinRule
  * @see EnumerableRules#ENUMERABLE_MERGE_JOIN_RULE

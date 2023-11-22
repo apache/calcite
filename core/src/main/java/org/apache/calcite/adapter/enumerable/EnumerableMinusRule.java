@@ -23,8 +23,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalMinus;
 
 /**
- * Rule to convert an {@link org.apache.calcite.rel.logical.LogicalMinus} to an
- * {@link EnumerableMinus}.
+ * Rule to convert an {@link LogicalMinus} to an {@link EnumerableMinus}.
+ * You may provide a custom config to convert other nodes that extend {@link Minus}.
  *
  * @see EnumerableRules#ENUMERABLE_MINUS_RULE
  */

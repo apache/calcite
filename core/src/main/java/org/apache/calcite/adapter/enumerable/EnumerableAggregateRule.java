@@ -26,8 +26,8 @@ import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalAggregate}
- * to an {@link EnumerableAggregate}.
+ * Rule to convert a {@link LogicalAggregate} to an {@link EnumerableAggregate}.
+ * You may provide a custom config to convert other nodes that extend {@link Aggregate}.
  *
  * @see EnumerableRules#ENUMERABLE_AGGREGATE_RULE
  */

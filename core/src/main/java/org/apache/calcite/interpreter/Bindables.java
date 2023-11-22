@@ -215,8 +215,8 @@ public class Bindables {
         RelOptTable table, ImmutableList<RexNode> filters,
         ImmutableIntList projects) {
       super(cluster, traitSet, ImmutableList.of(), table);
-      this.filters = Objects.requireNonNull(filters);
-      this.projects = Objects.requireNonNull(projects);
+      this.filters = Objects.requireNonNull(filters, "filters");
+      this.projects = Objects.requireNonNull(projects, "projects");
       Preconditions.checkArgument(canHandle(table));
     }
 

@@ -22,8 +22,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalMatch;
 
 /**
- * Rule to convert a {@link LogicalMatch} to an
- * {@link EnumerableMatch}.
+ * Rule to convert a {@link LogicalMatch} to an {@link EnumerableMatch}.
+ * You may provide a custom config to convert other nodes that extend {@link Match}.
  *
  * @see EnumerableRules#ENUMERABLE_MATCH_RULE
  */

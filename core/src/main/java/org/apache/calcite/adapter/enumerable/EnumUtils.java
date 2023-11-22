@@ -533,10 +533,11 @@ public class EnumUtils {
           // Try to call "toString()" method
           // E.g. from "Integer" to "String"
           // Generate "x == null ? null : x.toString()"
-          result = Expressions.condition(
-              Expressions.equal(operand, RexImpTable.NULL_EXPR),
-              RexImpTable.NULL_EXPR,
-              Expressions.call(operand, "toString"));
+          result =
+              Expressions.condition(
+                  Expressions.equal(operand, RexImpTable.NULL_EXPR),
+                  RexImpTable.NULL_EXPR,
+                  Expressions.call(operand, "toString"));
         } catch (RuntimeException e) {
           // For some special cases, e.g., "BuiltInMethod.LESSER",
           // its return type is generic ("Comparable"), which contains
@@ -725,7 +726,7 @@ public class EnumUtils {
     return null;
   }
 
-  /** Transforms a JoinRelType to Linq4j JoinType. **/
+  /** Transforms a JoinRelType to Linq4j JoinType. */
   static JoinType toLinq4jJoinType(JoinRelType joinRelType) {
     switch (joinRelType) {
     case INNER:
@@ -747,7 +748,7 @@ public class EnumUtils {
         "Unable to convert " + joinRelType + " to Linq4j JoinType");
   }
 
-  /** Returns a predicate expression based on a join condition. **/
+  /** Returns a predicate expression based on a join condition. */
   static Expression generatePredicate(
       EnumerableRelImplementor implementor,
       RexBuilder rexBuilder,
@@ -786,7 +787,8 @@ public class EnumUtils {
    * Generates a window selector which appends attribute of the window based on
    * the parameters.
    *
-   * Note that it only works for batch scenario. E.g. all data is known and there is no late data.
+   * <p>Note that it only works for batch scenario. E.g. all data is known and
+   * there is no late data.
    */
   static Expression tumblingWindowSelector(
       PhysType inputPhysType,
@@ -813,31 +815,24 @@ public class EnumUtils {
     // Find the fixed window for a timestamp given a window size and an offset, and return the
     // window start.
     // wmColExprToLong - (wmColExprToLong + windowSizeMillis - offsetMillis) % windowSizeMillis
-    Expression windowStartExpr = Expressions.subtract(
-        wmColExprToLong,
-        Expressions.modulo(
-            Expressions.add(
-                wmColExprToLong,
-            Expressions.subtract(
-                windowSizeExpr,
-                offsetExpr
-            )),
+    Expression windowStartExpr =
+        Expressions.subtract(wmColExprToLong,
+            Expressions.modulo(
+                Expressions.add(wmColExprToLong,
+                    Expressions.subtract(windowSizeExpr, offsetExpr)),
             windowSizeExpr));
 
     expressions.add(windowStartExpr);
 
     // The window end equals to the window start plus window size.
     // windowStartMillis + sizeMillis
-    Expression windowEndExpr = Expressions.add(
-        windowStartExpr,
-        windowSizeExpr);
+    Expression windowEndExpr =
+        Expressions.add(windowStartExpr, windowSizeExpr);
 
     expressions.add(windowEndExpr);
 
-    return Expressions.lambda(
-        Function1.class,
-        outputPhysType.record(expressions),
-        parameter);
+    return Expressions.lambda(Function1.class,
+        outputPhysType.record(expressions), parameter);
   }
 
   /**
@@ -923,10 +918,11 @@ public class EnumUtils {
       for (@Nullable Object[] element : elements) {
         SortedMultiMap<Pair<Long, Long>, @Nullable Object[]> session =
             sessionKeyMap.computeIfAbsent(element[indexOfKeyColumn], k -> new SortedMultiMap<>());
-        Object watermark = requireNonNull(element[indexOfWatermarkedColumn],
-            "element[indexOfWatermarkedColumn]");
-        Pair<Long, Long> initWindow = computeInitWindow(
-            SqlFunctions.toLong(watermark), gap);
+        Object watermark =
+            requireNonNull(element[indexOfWatermarkedColumn],
+                "element[indexOfWatermarkedColumn]");
+        Pair<Long, Long> initWindow =
+            computeInitWindow(SqlFunctions.toLong(watermark), gap);
         session.putMulti(initWindow, element);
       }
 

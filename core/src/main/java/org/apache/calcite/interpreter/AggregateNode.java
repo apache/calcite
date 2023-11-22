@@ -345,8 +345,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
 
     @Override public void send(Row row) {
-      @Nullable Object[] sendValues = requireNonNull(def.sendContext.values,
-          "def.sendContext.values");
+      @Nullable Object[] sendValues =
+          requireNonNull(def.sendContext.values, "def.sendContext.values");
       System.arraycopy(row.getValues(), 0, sendValues, 0,
           def.rowLength);
       System.arraycopy(this.values, 0, sendValues, def.rowLength,
@@ -525,6 +525,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
   /** Common implementation of comparison aggregate methods over numeric
    * values as a user-defined aggregate.
+   *
    * @param <T> The numeric type
    */
   public static class NumericComparison<T> {
@@ -674,6 +675,29 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
+  /** Implementation of {@code MAX} function to calculate the maximum of
+   * {@code boolean} values as a user-defined aggregate.
+   */
+  public static class MaxBoolean {
+    public MaxBoolean() { }
+
+    public Boolean init() {
+      return Boolean.FALSE;
+    }
+
+    public Boolean add(Boolean accumulator, Boolean value) {
+      return accumulator || value;
+    }
+
+    public Boolean merge(Boolean accumulator0, Boolean accumulator1) {
+      return add(accumulator0, accumulator1);
+    }
+
+    public Boolean result(Boolean accumulator) {
+      return accumulator;
+    }
+  }
+
   /** Accumulator factory based on a user-defined aggregate function. */
   private static class UdaAccumulatorFactory implements AccumulatorFactory {
     final AggregateFunctionImpl aggFunction;
@@ -746,8 +770,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       }
       final @Nullable Object[] args = {value};
       try {
-        AggregateFunctionImpl aggFunction = requireNonNull(factory.aggFunction,
-            "factory.aggFunction");
+        AggregateFunctionImpl aggFunction =
+            requireNonNull(factory.aggFunction, "factory.aggFunction");
         return requireNonNull(aggFunction.resultMethod, "aggFunction.resultMethod")
             .invoke(factory.instance, args);
       } catch (IllegalAccessException | InvocationTargetException e) {
