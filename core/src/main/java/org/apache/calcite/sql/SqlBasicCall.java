@@ -67,8 +67,13 @@ public class SqlBasicCall extends SqlCall {
     operands[i] = operand;
   }
 
+  /** Sets the operator (or function) that is being called.
+   *
+   * <p>This method is used by the validator to set a more refined version of
+   * the same operator (for instance, a version where overloading has been
+   * resolved); use with care. */
   public void setOperator(SqlOperator operator) {
-    this.operator = Objects.requireNonNull(operator);
+    this.operator = Objects.requireNonNull(operator, "operator");
   }
 
   @Override public SqlOperator getOperator() {
