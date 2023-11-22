@@ -352,8 +352,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       RelNode rel,
       ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
-    // We don't know how to trim this kind of relational expression, so give
-    // it back intact.
+    // We don't know how to trim this kind of relational expression
     Util.discard(fieldsUsed);
     return result(rel,
         Mappings.createIdentity(rel.getRowType().getFieldCount()));
