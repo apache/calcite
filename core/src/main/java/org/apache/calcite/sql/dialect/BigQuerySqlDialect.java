@@ -465,6 +465,10 @@ public class BigQuerySqlDialect extends SqlDialect {
         case INTERVAL_HOUR_SECOND:
         case INTERVAL_HOUR_MINUTE:
         case INTERVAL_DAY_HOUR:
+          if (call.op.kind == SqlKind.MINUS) {
+            return MINUS;
+          }
+          return PLUS;
         case INTERVAL_DAY:
         case INTERVAL_MONTH:
         case INTERVAL_YEAR:
@@ -489,7 +493,7 @@ public class BigQuerySqlDialect extends SqlDialect {
           if (call.op.kind == SqlKind.MINUS) {
             return SqlLibraryOperators.DATETIME_SUB;
           }
-          return PLUS;
+          return SqlLibraryOperators.DATETIME_ADD;
         }
       case TIMESTAMP_WITH_TIME_ZONE:
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
@@ -499,17 +503,13 @@ public class BigQuerySqlDialect extends SqlDialect {
         case INTERVAL_DAY_HOUR:
         case INTERVAL_MINUTE_SECOND:
         case INTERVAL_HOUR_MINUTE:
-          if (call.op.kind == SqlKind.MINUS) {
-            return SqlLibraryOperators.TIMESTAMP_SUB;
-          }
-          return PLUS;
         case INTERVAL_MINUTE:
         case INTERVAL_SECOND:
         case INTERVAL_HOUR:
           if (call.op.kind == SqlKind.MINUS) {
             return SqlLibraryOperators.TIMESTAMP_SUB;
           }
-          return SqlLibraryOperators.DATETIME_ADD;
+          return PLUS;
         case INTERVAL_DAY_MINUTE:
           if (call.op.kind == SqlKind.MINUS) {
             return MINUS;
