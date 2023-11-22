@@ -410,8 +410,8 @@ public class RelToSqlConverter extends SqlImplementor
       final Builder builder = x.builder(e);
       SqlNode filterNode = builder.context.toSql(null, e.getCondition());
       UnpivotRelToSqlUtil unpivotRelToSqlUtil = new UnpivotRelToSqlUtil();
-      if (dialect.supportsQualifyClause() && SqlUtil.containsAnalytical(filterNode)
-          && !(input instanceof LogicalJoin)) {
+      if (dialect.supportsQualifyClause()
+          && SqlUtil.containsAnalytical(filterNode)) {
         final Result result = visitInput(e, 0, isAnon(), true,
             ImmutableSet.of(Clause.QUALIFY));
         parseCorrelTable(e, result);

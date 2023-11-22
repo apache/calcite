@@ -2115,19 +2115,10 @@ public abstract class SqlImplementor {
       // has any projection with Analytical function used then new SELECT wrap is not required.
       if (dialect.supportsQualifyClause() && rel instanceof Filter
           && rel.getInput(0) instanceof Project
-          && relToSqlUtils.isAnalyticalFunctionPresentInProjection((Project) rel.getInput(0))
-          && !(relInput.getInput(0) instanceof Aggregate)) {
+          && relToSqlUtils.isAnalyticalFunctionPresentInProjection((Project) rel.getInput(0))) {
         if (maxClause == Clause.SELECT) {
           return false;
         }
-      }
-
-      if (rel instanceof Project
-          && clauses.contains(Clause.QUALIFY)
-          && dialect.supportsQualifyClause()
-          && relInput.getInput(0) instanceof Aggregate) {
-        return !areAllNamedInputFieldsProjected(((Project) rel).getProjects(), rel.getRowType(),
-            rel.getRowType());
       }
 
       if (rel instanceof Project && relInput instanceof Sort) {

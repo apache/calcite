@@ -69,13 +69,16 @@ public class RelToSqlUtils {
   /** Returns whether an Analytical Function is present in filter condition. */
   protected boolean hasAnalyticalFunctionInFilter(Filter rel) {
     RexNode filterCondition = rel.getCondition();
-    boolean hasRexOver = false;
-    if (filterCondition instanceof RexCall) {
-      for (RexNode conditionRex : ((RexCall) filterCondition).getOperands()) {
-        hasRexOver = isAnalyticalRex(conditionRex);
+    if (filterCondition instanceof RexOver) {
+      return true;
+    } else if (filterCondition instanceof RexCall) {
+      for (RexNode operand : ((RexCall) filterCondition).getOperands()) {
+        if (isAnalyticalRex(operand)) {
+          return true;
+        }
       }
     }
-    return hasRexOver;
+    return false;
   }
 
   /** Returns whether any Analytical Function (RexOver) is present in projection. */
