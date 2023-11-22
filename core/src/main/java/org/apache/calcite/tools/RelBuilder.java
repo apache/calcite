@@ -161,9 +161,9 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rel.rules.AggregateRemoveRule.canFlattenStatic;
 import static org.apache.calcite.sql.SqlKind.UNION;
 import static org.apache.calcite.util.Static.RESOURCE;
+import static org.apache.calcite.util.Util.first;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.calcite.util.Util.first;
 
 /**
  * Builder for relational expressions.
