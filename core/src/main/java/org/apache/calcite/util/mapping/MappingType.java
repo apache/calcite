@@ -19,7 +19,7 @@ package org.apache.calcite.util.mapping;
 /**
  * Describes the type of a mapping, from the most general
  * {@link #MULTI_FUNCTION} (every element in the source and target domain can
- * participate in many mappings) to the most retricted {@link #BIJECTION} (every
+ * participate in many mappings) to the most restricted {@link #BIJECTION} (every
  * element in the source and target domain must be paired with precisely one
  * element in the other domain).
  *
@@ -92,7 +92,7 @@ public enum MappingType {
    * An inverse function has a source for every target, but a source might
    * have 0, 1 or more targets.
    *
-   * <p>Obeys the constaints {@link MappingType#isMandatorySource()},
+   * <p>Obeys the constraints {@link MappingType#isMandatorySource()},
    * {@link MappingType#isSingleSource()}.
    *
    * <p>Similar types:

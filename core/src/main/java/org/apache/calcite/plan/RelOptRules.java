@@ -47,8 +47,7 @@ public class RelOptRules {
   /** Calc rule set; public so that {@link org.apache.calcite.tools.Programs} can
    * use it. */
   public static final ImmutableList<RelOptRule> CALC_RULES =
-      ImmutableList.of(
-          Bindables.FROM_NONE_RULE,
+      ImmutableList.of(Bindables.FROM_NONE_RULE,
           EnumerableRules.ENUMERABLE_CALC_RULE,
           EnumerableRules.ENUMERABLE_FILTER_TO_CALC_RULE,
           EnumerableRules.ENUMERABLE_PROJECT_TO_CALC_RULE,
@@ -130,23 +129,23 @@ public class RelOptRules {
       CoreRules.CALC_REMOVE,
       CoreRules.SORT_REMOVE);
 
-  static final List<RelOptRule> CONSTANT_REDUCTION_RULES = ImmutableList.of(
-      CoreRules.PROJECT_REDUCE_EXPRESSIONS,
-      CoreRules.FILTER_REDUCE_EXPRESSIONS,
-      CoreRules.CALC_REDUCE_EXPRESSIONS,
-      CoreRules.WINDOW_REDUCE_EXPRESSIONS,
-      CoreRules.JOIN_REDUCE_EXPRESSIONS,
-      CoreRules.FILTER_VALUES_MERGE,
-      CoreRules.PROJECT_FILTER_VALUES_MERGE,
-      CoreRules.PROJECT_VALUES_MERGE,
-      CoreRules.AGGREGATE_VALUES);
+  static final List<RelOptRule> CONSTANT_REDUCTION_RULES =
+      ImmutableList.of(CoreRules.PROJECT_REDUCE_EXPRESSIONS,
+          CoreRules.FILTER_REDUCE_EXPRESSIONS,
+          CoreRules.CALC_REDUCE_EXPRESSIONS,
+          CoreRules.WINDOW_REDUCE_EXPRESSIONS,
+          CoreRules.JOIN_REDUCE_EXPRESSIONS,
+          CoreRules.FILTER_VALUES_MERGE,
+          CoreRules.PROJECT_FILTER_VALUES_MERGE,
+          CoreRules.PROJECT_VALUES_MERGE,
+          CoreRules.AGGREGATE_VALUES);
 
-  public static final List<RelOptRule> MATERIALIZATION_RULES = ImmutableList.of(
-      MaterializedViewRules.FILTER_SCAN,
-      MaterializedViewRules.PROJECT_FILTER,
-      MaterializedViewRules.FILTER,
-      MaterializedViewRules.PROJECT_JOIN,
-      MaterializedViewRules.JOIN,
-      MaterializedViewRules.PROJECT_AGGREGATE,
-      MaterializedViewRules.AGGREGATE);
+  public static final List<RelOptRule> MATERIALIZATION_RULES =
+      ImmutableList.of(MaterializedViewRules.FILTER_SCAN,
+          MaterializedViewRules.PROJECT_FILTER,
+          MaterializedViewRules.FILTER,
+          MaterializedViewRules.PROJECT_JOIN,
+          MaterializedViewRules.JOIN,
+          MaterializedViewRules.PROJECT_AGGREGATE,
+          MaterializedViewRules.AGGREGATE);
 }

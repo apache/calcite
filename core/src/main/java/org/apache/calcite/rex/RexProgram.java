@@ -109,7 +109,7 @@ public class RexProgram {
    * Creates a program.
    *
    * <p>The expressions must be valid: they must not contain common expressions,
-   * forward references, or non-trivial aggregates.</p>
+   * forward references, or non-trivial aggregates.
    *
    * @param inputRowType  Input row type
    * @param exprs         Common expressions
@@ -245,10 +245,10 @@ public class RexProgram {
    * In this case, the input is mainly from the output json string of {@link RelJsonWriter}
    */
   public static RexProgram create(RelInput input) {
-    final List<RexNode> exprs = requireNonNull(input.getExpressionList("exprs"), "exprs");
-    final List<RexNode> projectRexNodes = requireNonNull(
-        input.getExpressionList("projects"),
-        "projects");
+    final List<RexNode> exprs =
+        requireNonNull(input.getExpressionList("exprs"), "exprs");
+    final List<RexNode> projectRexNodes =
+        requireNonNull(input.getExpressionList("projects"), "projects");
     final List<RexLocalRef> projects = new ArrayList<>(projectRexNodes.size());
     for (RexNode rexNode: projectRexNodes) {
       projects.add((RexLocalRef) rexNode);
@@ -517,7 +517,7 @@ public class RexProgram {
    *
    * <p>Like {@link RexUtil#isNull(RexNode)}, null literals are null, and
    * casts of null literals are null. But this method also regards references
-   * to null expressions as null.</p>
+   * to null expressions as null.
    *
    * @param expr Expression
    * @return Whether expression always evaluates to null

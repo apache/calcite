@@ -52,7 +52,7 @@ import static java.util.Objects.requireNonNull;
  * using the expression which has the lowest cost.
  *
  * <p>All of the expressions in an <code>RelSet</code> have the same calling
- * convention.</p>
+ * convention.
  */
 class RelSet {
   //~ Static fields/initializers ---------------------------------------------
@@ -178,8 +178,8 @@ class RelSet {
   public RelSubset add(RelNode rel) {
     assert equivalentSet == null : "adding to a dead set";
     final RelTraitSet traitSet = rel.getTraitSet().simplify();
-    final RelSubset subset = getOrCreateSubset(
-        rel.getCluster(), traitSet, rel.isEnforcer());
+    final RelSubset subset =
+        getOrCreateSubset(rel.getCluster(), traitSet, rel.isEnforcer());
     subset.add(rel);
     return subset;
   }
@@ -192,9 +192,10 @@ class RelSet {
   void addConverters(RelSubset subset, boolean required,
       boolean useAbstractConverter) {
     RelOptCluster cluster = subset.getCluster();
-    List<RelSubset> others = subsets.stream().filter(
-        n -> required ? n.isDelivered() : n.isRequired())
-        .collect(Collectors.toList());
+    List<RelSubset> others =
+        subsets.stream()
+            .filter(n -> required ? n.isDelivered() : n.isRequired())
+            .collect(Collectors.toList());
 
     for (RelSubset other : others) {
       assert other.getTraitSet().size() == subset.getTraitSet().size();
@@ -242,12 +243,11 @@ class RelSet {
       if (needsConverter) {
         final RelNode enforcer;
         if (useAbstractConverter) {
-          enforcer = new AbstractConverter(
-              cluster, from, null, to.getTraitSet());
+          enforcer = new AbstractConverter(cluster, from, null, to.getTraitSet());
         } else {
-          Convention convention = requireNonNull(
-              subset.getConvention(),
-              () -> "convention is null for " + subset);
+          Convention convention =
+              requireNonNull(subset.getConvention(),
+                  () -> "convention is null for " + subset);
           enforcer = convention.enforce(from, to.getTraitSet());
         }
 

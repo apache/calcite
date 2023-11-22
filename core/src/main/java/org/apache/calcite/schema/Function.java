@@ -23,11 +23,11 @@ import java.util.List;
  *
  * <p>The application may occur at compile time (for a macro) or at run time
  * (for a regular function). The result may be a relation, and so might any of
- * the parameters.</p>
+ * the parameters.
  *
  * <p>Functions are registered in a {@link Schema}, and may be queried by name
  * ({@link Schema#getFunctions(String)}) then overloads resolved based on
- * parameter types.</p>
+ * parameter types.
  *
  * @see TableMacro
  * @see ScalarFunction

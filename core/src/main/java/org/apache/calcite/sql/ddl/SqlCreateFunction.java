@@ -51,9 +51,9 @@ public class SqlCreateFunction extends SqlCreate {
       boolean ifNotExists, SqlIdentifier name,
       SqlNode className, SqlNodeList usingList) {
     super(OPERATOR, pos, replace, ifNotExists);
-    this.name = Objects.requireNonNull(name);
+    this.name = Objects.requireNonNull(name, "name");
     this.className = className;
-    this.usingList = Objects.requireNonNull(usingList);
+    this.usingList = Objects.requireNonNull(usingList, "usingList");
     Preconditions.checkArgument(usingList.size() % 2 == 0);
   }
 

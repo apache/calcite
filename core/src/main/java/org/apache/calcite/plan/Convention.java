@@ -30,9 +30,9 @@ public interface Convention extends RelTrait {
    * convention. It is not implementable, and has to be transformed to
    * something else in order to be implemented.
    *
-   * <p>Relational expressions generally start off in this form.</p>
+   * <p>Relational expressions generally start off in this form.
    *
-   * <p>Such expressions always have infinite cost.</p>
+   * <p>Such expressions always have infinite cost.
    */
   Convention NONE = new Impl("NONE", RelNode.class);
 

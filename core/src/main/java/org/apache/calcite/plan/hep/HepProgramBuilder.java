@@ -244,7 +244,7 @@ public class HepProgramBuilder {
    * (initialized to the defaults every time the subprogram is executed) and
    * any changes it makes to those settings do not affect the parent program.
    *
-   * @param program subprogram to execute
+   * @param program subProgram to execute
    */
   public HepProgramBuilder addSubprogram(HepProgram program) {
     assert group == null;

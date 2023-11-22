@@ -170,7 +170,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * Converts two lists into a list of {@link Pair}s.
    *
    * <p>The length of the combined list is the lesser of the lengths of the
-   * source lists. But typically the source lists will be the same length.</p>
+   * source lists. But typically the source lists will be the same length.
    *
    * @param ks     Left list
    * @param vs     Right list
@@ -198,7 +198,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * Converts two iterables into an iterable of {@link Pair}s.
    *
    * <p>The resulting iterator ends whenever the first of the input iterators
-   * ends. But typically the source iterators will be the same length.</p>
+   * ends. But typically the source iterators will be the same length.
    *
    * @param ks Left iterable
    * @param vs Right iterable
@@ -220,7 +220,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    *
    * <p>The length of the combined list is the lesser of the lengths of the
    * source arrays. But typically the source arrays will be the same
-   * length.</p>
+   * length.
    *
    * @param ks Left array
    * @param vs Right array
@@ -336,7 +336,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
   /**
    * Returns an iterator that iterates over (i, i + 1) pairs in an iterable.
    *
-   * <p>For example, {@code adjacents([3, 5, 7])} returns [(3, 5), (5, 7)].</p>
+   * <p>For example, {@code adjacents([3, 5, 7])} returns [(3, 5), (5, 7)].
    *
    * @param iterable Source collection
    * @param <T> Element type
@@ -356,7 +356,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * Returns an iterator that iterates over (0, i) pairs in an iterable for
    * i &gt; 0.
    *
-   * <p>For example, {@code firstAnd([3, 5, 7])} returns [(3, 5), (3, 7)].</p>
+   * <p>For example, {@code firstAnd([3, 5, 7])} returns [(3, 5), (3, 7)].
    *
    * @param iterable Source collection
    * @param <T> Element type
@@ -382,7 +382,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
     private final E first;
 
     FirstAndIterator(Iterator<? extends E> iterator, E first) {
-      this.iterator = Objects.requireNonNull(iterator);
+      this.iterator = Objects.requireNonNull(iterator, "iterator");
       this.first = first;
     }
 
@@ -409,8 +409,8 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
 
     ZipIterator(Iterator<? extends L> leftIterator,
         Iterator<? extends R> rightIterator) {
-      this.leftIterator = Objects.requireNonNull(leftIterator);
-      this.rightIterator = Objects.requireNonNull(rightIterator);
+      this.leftIterator = Objects.requireNonNull(leftIterator, "leftIterator");
+      this.rightIterator = Objects.requireNonNull(rightIterator, "rightIterator");
     }
 
     @Override public boolean hasNext() {
@@ -437,7 +437,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
     E previous;
 
     AdjacentIterator(Iterator<? extends E> iterator) {
-      this.iterator = Objects.requireNonNull(iterator);
+      this.iterator = Objects.requireNonNull(iterator, "iterator");
       this.first = iterator.next();
       previous = first;
     }
@@ -500,8 +500,8 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
     private final List<V> vs;
 
     MutableZipList(List<K> ks, List<V> vs) {
-      this.ks = Objects.requireNonNull(ks);
-      this.vs = Objects.requireNonNull(vs);
+      this.ks = Objects.requireNonNull(ks, "ks");
+      this.vs = Objects.requireNonNull(vs, "vs");
     }
 
     @Override public Pair<K, V> get(int index) {

@@ -97,7 +97,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       @Nullable Function<Class, Expression> expressionFunction,
       @Nullable Double rowCount) {
     this.schema = schema;
-    this.rowType = requireNonNull(rowType);
+    this.rowType = requireNonNull(rowType, "rowType");
     this.names = ImmutableList.copyOf(names);
     this.table = table; // may be null
     this.expressionFunction = expressionFunction; // may be null

@@ -125,7 +125,7 @@ public class RangeSets {
   public static <C extends Comparable<C>> boolean isPoint(Range<C> range) {
     return range.hasLowerBound()
         && range.hasUpperBound()
-        && range.lowerEndpoint().equals(range.upperEndpoint())
+        && range.lowerEndpoint().compareTo(range.upperEndpoint()) == 0
         && !range.isEmpty();
   }
 
@@ -179,6 +179,10 @@ public class RangeSets {
         if (range.upperBoundType() == BoundType.OPEN) {
           return handler.closedOpen(lower, upper);
         } else {
+          // We use .equals rather than .compareTo, because if the endpoints
+          // are not equal the range could not have been created using
+          // Range.singleton. (If they are equal, we cannot distinguish
+          // between closed(v, v) but assume singleton(v).)
           if (lower.equals(upper)) {
             return handler.singleton(lower);
           } else {
@@ -245,6 +249,10 @@ public class RangeSets {
         if (range.upperBoundType() == BoundType.OPEN) {
           consumer.closedOpen(lower, upper);
         } else {
+          // We use .equals rather than .compareTo, because if the endpoints
+          // are not equal the range could not have been created using
+          // Range.singleton. (If they are equal, we cannot distinguish
+          // between closed(v, v) but assume singleton(v).)
           if (lower.equals(upper)) {
             consumer.singleton(lower);
           } else {

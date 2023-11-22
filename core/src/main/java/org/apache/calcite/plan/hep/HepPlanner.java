@@ -152,7 +152,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       @Nullable Function2<RelNode, RelNode, Void> onCopyHook,
       RelOptCostFactory costFactory) {
     super(costFactory, context);
-    this.mainProgram = program;
+    this.mainProgram = requireNonNull(program, "program");
     this.onCopyHook = Util.first(onCopyHook, Functions.ignore2());
     this.noDag = noDag;
   }

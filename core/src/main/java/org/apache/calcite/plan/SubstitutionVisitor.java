@@ -95,10 +95,10 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>The call {@code new SubstitutionVisitor(target, query).go(replacement))}
  * will return {@code query} with every occurrence of {@code target} replaced
- * by {@code replacement}.</p>
+ * by {@code replacement}.
  *
  * <p>The following example shows how {@code SubstitutionVisitor} can be used
- * for materialized view recognition.</p>
+ * for materialized view recognition.
  *
  * <ul>
  * <li>query = SELECT a, c FROM t WHERE x = 5 AND b = 4</li>
@@ -108,10 +108,10 @@ import static java.util.Objects.requireNonNull;
  * </ul>
  *
  * <p>Note that {@code result} uses the materialized view table {@code mv} and a
- * simplified condition {@code b = 4}.</p>
+ * simplified condition {@code b = 4}.
  *
  * <p>Uses a bottom-up matching algorithm. Nodes do not need to be identical.
- * At each level, returns the residue.</p>
+ * At each level, returns the residue.
  *
  * <p>The inputs must only include the core relational operators:
  * {@link org.apache.calcite.rel.core.TableScan},
@@ -121,7 +121,7 @@ import static java.util.Objects.requireNonNull;
  * {@link org.apache.calcite.rel.core.Join},
  * {@link org.apache.calcite.rel.core.Union},
  * {@link org.apache.calcite.rel.core.Intersect},
- * {@link org.apache.calcite.rel.core.Aggregate}.</p>
+ * {@link org.apache.calcite.rel.core.Aggregate}.
  */
 public class SubstitutionVisitor {
   private static final boolean DEBUG = CalciteSystemProperty.DEBUG.value();
@@ -232,17 +232,17 @@ public class SubstitutionVisitor {
    * <p>If condition is stronger than target, returns the residue.
    * If it is equal to target, returns the expression that evaluates to
    * the constant {@code true}. If it is weaker than target, returns
-   * {@code null}.</p>
+   * {@code null}.
    *
-   * <p>The terms satisfy the relation</p>
+   * <p>The terms satisfy the relation
    *
    * <blockquote>
    * <pre>{@code condition = target AND residue}</pre>
    * </blockquote>
    *
-   * <p>and {@code residue} must be as weak as possible.</p>
+   * <p>and {@code residue} must be as weak as possible.
    *
-   * <p>Example #1: condition stronger than target</p>
+   * <p>Example #1: condition stronger than target
    * <ul>
    * <li>condition: x = 1 AND y = 2</li>
    * <li>target: x = 1</li>
@@ -251,24 +251,24 @@ public class SubstitutionVisitor {
    *
    * <p>Note that residue {@code x > 0 AND y = 2} would also satisfy the
    * relation {@code condition = target AND residue} but is stronger than
-   * necessary, so we prefer {@code y = 2}.</p>
+   * necessary, so we prefer {@code y = 2}.
    *
    * <p>Example #2: target weaker than condition (valid, but not currently
-   * implemented)</p>
+   * implemented)
    * <ul>
    * <li>condition: x = 1</li>
    * <li>target: x = 1 OR z = 3</li>
    * <li>residue: x = 1</li>
    * </ul>
    *
-   * <p>Example #3: condition and target are equivalent</p>
+   * <p>Example #3: condition and target are equivalent
    * <ul>
    * <li>condition: x = 1 AND y = 2</li>
    * <li>target: y = 2 AND x = 1</li>
    * <li>residue: TRUE</li>
    * </ul>
    *
-   * <p>Example #4: condition weaker than target</p>
+   * <p>Example #4: condition weaker than target
    * <ul>
    * <li>condition: x = 1</li>
    * <li>target: x = 1 AND y = 2</li>
@@ -279,7 +279,7 @@ public class SubstitutionVisitor {
    * whether {@code condition AND NOT target} can ever evaluate to
    * true, and therefore is a form of the NP-complete
    * <a href="http://en.wikipedia.org/wiki/Satisfiability">Satisfiability</a>
-   * problem.</p>
+   * problem.
    */
   @VisibleForTesting
   public static @Nullable RexNode splitFilter(final RexSimplify simplify,
@@ -304,10 +304,11 @@ public class SubstitutionVisitor {
 
     RexNode x = andNot(rexBuilder, target2, condition2);
     if (mayBeSatisfiable(x)) {
-      RexNode x2 = RexUtil.composeConjunction(rexBuilder,
-          ImmutableList.of(condition2, target2));
-      RexNode r = canonizeNode(rexBuilder,
-          simplify.simplifyUnknownAsFalse(x2));
+      RexNode x2 =
+          RexUtil.composeConjunction(rexBuilder,
+              ImmutableList.of(condition2, target2));
+      RexNode r =
+          canonizeNode(rexBuilder, simplify.simplifyUnknownAsFalse(x2));
       if (!r.isAlwaysFalse() && isEquivalent(condition2, r)) {
         List<RexNode> conjs = RelOptUtil.conjunctions(r);
         for (RexNode e : RelOptUtil.conjunctions(target2)) {
@@ -407,10 +408,10 @@ public class SubstitutionVisitor {
     //  e: x = 1 AND y = 2 AND z = 3 AND NOT (x = 1 AND y = 2)
     //  disjunctions: {x = 1, y = 2, z = 3}
     //  notDisjunctions: {x = 1 AND y = 2}
-    final Set<String> conditionDisjunctions = new HashSet<>(
-        RexUtil.strings(RelOptUtil.conjunctions(condition)));
-    final Set<String> targetDisjunctions = new HashSet<>(
-        RexUtil.strings(RelOptUtil.conjunctions(target)));
+    final Set<String> conditionDisjunctions =
+        new HashSet<>(RexUtil.strings(RelOptUtil.conjunctions(condition)));
+    final Set<String> targetDisjunctions =
+        new HashSet<>(RexUtil.strings(RelOptUtil.conjunctions(target)));
     if (conditionDisjunctions.equals(targetDisjunctions)) {
       return true;
     }
@@ -422,7 +423,7 @@ public class SubstitutionVisitor {
    *
    * <p>This method may give false positives. For instance, it will say
    * that {@code x = 5 AND x > 10} is satisfiable, because at present it
-   * cannot prove that it is not.</p>
+   * cannot prove that it is not.
    */
   public static boolean mayBeSatisfiable(RexNode e) {
     // Example:
@@ -602,8 +603,8 @@ public class SubstitutionVisitor {
                   // Meanwhile we stop matching the descendants and jump
                   // to the next subtree in pre-order traversal.
                   if (!target.equals(replacement)) {
-                    Replacement r = replace(
-                        query.getInput(), target, replacement.clone());
+                    Replacement r =
+                        replace(query.getInput(), target, replacement.clone());
                     assert r != null
                         : rule + "should have returned a result containing the target.";
                     attempted.add(r);
@@ -858,7 +859,7 @@ public class SubstitutionVisitor {
    * against a target relational expression.
    *
    * <p>The rule declares the query and target types; this allows the
-   * engine to fire only a few rules in a given context.</p>
+   * engine to fire only a few rules in a given context.
    */
   protected abstract static class UnifyRule {
     protected final int slotCount;
@@ -873,12 +874,12 @@ public class SubstitutionVisitor {
     }
 
     /**
-     * <p>Applies this rule to a particular node in a query. The goal is
+     * Applies this rule to a particular node in a query. The goal is
      * to convert {@code query} into {@code target}. Before the rule is
      * invoked, Calcite has made sure that query's children are equivalent
      * to target's children.
      *
-     * <p>There are 3 possible outcomes:</p>
+     * <p>There are 3 possible outcomes:
      *
      * <ul>
      *
@@ -894,7 +895,7 @@ public class SubstitutionVisitor {
      * </ul>
      *
      * <p>REVIEW: Is possible that we match query PLUS one or more of its
-     * ancestors?</p>
+     * ancestors?
      *
      * @param call Input parameters
      */
@@ -935,10 +936,10 @@ public class SubstitutionVisitor {
 
     public UnifyRuleCall(UnifyRule rule, MutableRel query, MutableRel target,
         ImmutableList<MutableRel> slots) {
-      this.rule = requireNonNull(rule);
-      this.query = requireNonNull(query);
-      this.target = requireNonNull(target);
-      this.slots = requireNonNull(slots);
+      this.rule = requireNonNull(rule, "rule");
+      this.query = requireNonNull(query, "query");
+      this.target = requireNonNull(target, "target");
+      this.slots = requireNonNull(slots, "slots");
     }
 
     public UnifyResult result(MutableRel result) {
@@ -1046,7 +1047,7 @@ public class SubstitutionVisitor {
    *
    * <p>Matches scans to the same table, because these will be
    * {@link MutableScan}s with the same
-   * {@link org.apache.calcite.rel.core.TableScan} instance.</p>
+   * {@link org.apache.calcite.rel.core.TableScan} instance.
    */
   private static class TrivialRule extends AbstractUnifyRule {
     private static final TrivialRule INSTANCE = new TrivialRule();
@@ -1103,8 +1104,9 @@ public class SubstitutionVisitor {
       if (RexUtil.isIdentity(compenProjs, target.rowType)) {
         return call.result(target);
       } else {
-        RexProgram compenRexProgram = RexProgram.create(
-            target.rowType, compenProjs, null, query.rowType, rexBuilder);
+        RexProgram compenRexProgram =
+            RexProgram.create(target.rowType, compenProjs, null, query.rowType,
+                rexBuilder);
         MutableCalc compenCalc = MutableCalc.of(target, compenRexProgram);
         return tryMergeParentCalcAndGenResult(call, compenCalc);
       }
@@ -1169,9 +1171,9 @@ public class SubstitutionVisitor {
             && RexUtil.isIdentity(compenProjs, target.rowType)) {
           return call.result(target);
         } else {
-          final RexProgram compenRexProgram = RexProgram.create(
-              target.rowType, compenProjs, compenCond,
-              query.rowType, rexBuilder);
+          final RexProgram compenRexProgram =
+              RexProgram.create(target.rowType, compenProjs, compenCond,
+                  query.rowType, rexBuilder);
           final MutableCalc compenCalc = MutableCalc.of(target, compenRexProgram);
           return tryMergeParentCalcAndGenResult(call, compenCalc);
         }
@@ -1210,9 +1212,7 @@ public class SubstitutionVisitor {
 
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
-      // Try pulling up MutableCalc only when:
-      // 1. it's inner join.
-      // 2. it's outer join but no filtering condition from MutableCalc.
+      // Check whether is same join type.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
@@ -1256,9 +1256,9 @@ public class SubstitutionVisitor {
                 new RexInputRef(newIdx, query.rowType.getFieldList().get(i).getType()));
           }
         }
-        final RexProgram compenRexProgram = RexProgram.create(
-            target.rowType, compenProjs, compenCond,
-            query.rowType, rexBuilder);
+        final RexProgram compenRexProgram =
+            RexProgram.create(target.rowType, compenProjs, compenCond,
+                query.rowType, rexBuilder);
         final MutableCalc compenCalc = MutableCalc.of(target, compenRexProgram);
         return tryMergeParentCalcAndGenResult(call, compenCalc);
       }
@@ -1296,9 +1296,7 @@ public class SubstitutionVisitor {
 
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
-      // Try pulling up MutableCalc only when:
-      // 1. it's inner join.
-      // 2. it's outer join but no filtering condition from MutableCalc.
+      // Check whether is same join type.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
@@ -1339,14 +1337,15 @@ public class SubstitutionVisitor {
             compenProjs.add(
                 new RexInputRef(i, query.rowType.getFieldList().get(i).getType()));
           } else {
-            final RexNode shifted = RexUtil.shift(qInput1Projs.get(i - fieldCnt(qInput0)),
-                qInput0.rowType.getFieldCount());
+            final RexNode shifted =
+                RexUtil.shift(qInput1Projs.get(i - fieldCnt(qInput0)),
+                    qInput0.rowType.getFieldCount());
             compenProjs.add(shifted);
           }
         }
-        final RexProgram compensatingRexProgram = RexProgram.create(
-            target.rowType, compenProjs, compenCond,
-            query.rowType, rexBuilder);
+        final RexProgram compensatingRexProgram =
+            RexProgram.create(target.rowType, compenProjs, compenCond,
+                query.rowType, rexBuilder);
         final MutableCalc compenCalc = MutableCalc.of(target, compensatingRexProgram);
         return tryMergeParentCalcAndGenResult(call, compenCalc);
       }
@@ -1387,9 +1386,7 @@ public class SubstitutionVisitor {
 
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
-      // Try pulling up MutableCalc only when:
-      // 1. it's inner join.
-      // 2. it's outer join but no filtering condition from MutableCalc.
+      // Check whether is same join type.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
@@ -1423,22 +1420,24 @@ public class SubstitutionVisitor {
       if (splitted != null && splitted.isAlwaysTrue()) {
         final RexNode qInput1CondShifted =
             RexUtil.shift(qInput1Cond, fieldCnt(qInput0.getInput()));
-        final RexNode compenCond = RexUtil.composeConjunction(rexBuilder,
-            ImmutableList.of(qInput0Cond, qInput1CondShifted));
+        final RexNode compenCond =
+            RexUtil.composeConjunction(rexBuilder,
+                ImmutableList.of(qInput0Cond, qInput1CondShifted));
 
         final List<RexNode> compenProjs = new ArrayList<>();
         for (int i = 0; i < query.rowType.getFieldCount(); i++) {
           if (i < fieldCnt(qInput0)) {
             compenProjs.add(qInput0Projs.get(i));
           } else {
-            RexNode shifted = RexUtil.shift(qInput1Projs.get(i - fieldCnt(qInput0)),
-                fieldCnt(qInput0.getInput()));
+            RexNode shifted =
+                RexUtil.shift(qInput1Projs.get(i - fieldCnt(qInput0)),
+                    fieldCnt(qInput0.getInput()));
             compenProjs.add(shifted);
           }
         }
-        final RexProgram compensatingRexProgram = RexProgram.create(
-            target.rowType, compenProjs, compenCond,
-            query.rowType, rexBuilder);
+        final RexProgram compensatingRexProgram =
+            RexProgram.create(target.rowType, compenProjs, compenCond,
+                query.rowType, rexBuilder);
         final MutableCalc compensatingCalc =
             MutableCalc.of(target, compensatingRexProgram);
         return tryMergeParentCalcAndGenResult(call, compensatingCalc);
@@ -1502,10 +1501,10 @@ public class SubstitutionVisitor {
       final MutableAggregate aggregate2 =
           permute(query, qInput.getInput(), inverseMapping);
 
-      final Mappings.TargetMapping mappingForQueryCond = Mappings.target(
-          target.groupSet::indexOf,
-          target.getInput().rowType.getFieldCount(),
-          target.groupSet.cardinality());
+      final Mappings.TargetMapping mappingForQueryCond =
+          Mappings.target(target.groupSet::indexOf,
+              target.getInput().rowType.getFieldCount(),
+              target.groupSet.cardinality());
       final RexNode targetCond = RexUtil.apply(mappingForQueryCond, qInputCond);
 
       final MutableRel unifiedAggregate =
@@ -1529,9 +1528,9 @@ public class SubstitutionVisitor {
         }
         final List<RexNode> compenProjs =
             MutableRels.createProjectExprs(unifiedAggregate, posList);
-        final RexProgram compensatingRexProgram = RexProgram.create(
-            unifiedAggregate.rowType, compenProjs, null,
-            query.rowType, rexBuilder);
+        final RexProgram compensatingRexProgram =
+            RexProgram.create(unifiedAggregate.rowType, compenProjs, null,
+                query.rowType, rexBuilder);
         final MutableCalc compenCalc =
             MutableCalc.of(unifiedAggregate, compensatingRexProgram);
         if (unifiedAggregate instanceof MutableCalc) {
@@ -1713,8 +1712,9 @@ public class SubstitutionVisitor {
         final Pair<RexNode, List<RexNode>> queryInputExplained =
             explainCalc(queryInputs.get(i));
         // Matching fails when filtering conditions are not equal or projects are not equal.
-        RexNode residue = splitFilter(call.getSimplify(), queryInputExplained0.left,
-            queryInputExplained.left);
+        RexNode residue =
+            splitFilter(call.getSimplify(), queryInputExplained0.left,
+                queryInputExplained.left);
         if (residue == null || !residue.isAlwaysTrue()) {
           return null;
         }
@@ -1726,11 +1726,11 @@ public class SubstitutionVisitor {
         }
       }
 
-      List<RexNode> projectExprs = MutableRels.createProjects(target,
-          queryInputExplained0.right);
-      final RexProgram compenRexProgram = RexProgram.create(
-          target.rowType, projectExprs, queryInputExplained0.left,
-          query.rowType, rexBuilder);
+      List<RexNode> projectExprs =
+          MutableRels.createProjects(target, queryInputExplained0.right);
+      final RexProgram compenRexProgram =
+          RexProgram.create(target.rowType, projectExprs,
+              queryInputExplained0.left, query.rowType, rexBuilder);
       final MutableCalc compenCalc = MutableCalc.of(target, compenRexProgram);
       return tryMergeParentCalcAndGenResult(call, compenCalc);
     }
@@ -1782,8 +1782,9 @@ public class SubstitutionVisitor {
       UnifyRuleCall call, MutableRel child) {
     final MutableRel parent = call.query.getParent();
     if (child instanceof MutableCalc && parent instanceof MutableCalc) {
-      final MutableCalc mergedCalc = mergeCalc(call.getCluster().getRexBuilder(),
-          (MutableCalc) parent, (MutableCalc) child);
+      final MutableCalc mergedCalc =
+          mergeCalc(call.getCluster().getRexBuilder(), (MutableCalc) parent,
+              (MutableCalc) child);
       if (mergedCalc != null) {
         // Note that property of stopTrying in the result is false
         // and this query node deserves further matching iterations.
@@ -1936,8 +1937,9 @@ public class SubstitutionVisitor {
       final ImmutableBitSet groupSet = query.groupSet.permute(map);
       ImmutableList<ImmutableBitSet> groupSets = null;
       if (query.getGroupType() != Aggregate.Group.SIMPLE) {
-        groupSets = ImmutableBitSet.ORDERING.immutableSortedCopy(
-            ImmutableBitSet.permute(query.groupSets, map));
+        groupSets =
+            ImmutableBitSet.ORDERING.immutableSortedCopy(
+                ImmutableBitSet.permute(query.groupSets, map));
       }
       final List<AggregateCall> aggregateCalls = new ArrayList<>();
       for (AggregateCall aggregateCall : query.aggCalls) {
@@ -1975,16 +1977,17 @@ public class SubstitutionVisitor {
                 aggregateCall.name));
       }
       if (targetCond != null && !targetCond.isAlwaysTrue()) {
-        RexProgram compenRexProgram = RexProgram.create(
-            target.rowType, rexBuilder.identityProjects(target.rowType),
-            targetCond, target.rowType, rexBuilder);
+        RexProgram compenRexProgram =
+            RexProgram.create(target.rowType,
+                rexBuilder.identityProjects(target.rowType),
+                targetCond, target.rowType, rexBuilder);
 
-        result = MutableAggregate.of(
-            MutableCalc.of(target, compenRexProgram),
-            groupSet, groupSets, aggregateCalls);
+        result =
+            MutableAggregate.of(MutableCalc.of(target, compenRexProgram),
+                groupSet, groupSets, aggregateCalls);
       } else {
-        result = MutableAggregate.of(
-            target, groupSet, groupSets, aggregateCalls);
+        result =
+            MutableAggregate.of(target, groupSet, groupSets, aggregateCalls);
       }
     } else {
       return null;

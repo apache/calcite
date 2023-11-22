@@ -74,16 +74,16 @@ import static java.util.Objects.requireNonNull;
  * Constant value in a row-expression.
  *
  * <p>There are several methods for creating literals in {@link RexBuilder}:
- * {@link RexBuilder#makeLiteral(boolean)} and so forth.</p>
+ * {@link RexBuilder#makeLiteral(boolean)} and so forth.
  *
  * <p>How is the value stored? In that respect, the class is somewhat of a black
  * box. There is a {@link #getValue} method which returns the value as an
  * object, but the type of that value is implementation detail, and it is best
  * that your code does not depend upon that knowledge. It is better to use
  * task-oriented methods such as {@link #getValue2} and
- * {@link #toJavaString}.</p>
+ * {@link #toJavaString}.
  *
- * <p>The allowable types and combinations are:</p>
+ * <p>The allowable types and combinations are:
  *
  * <table>
  * <caption>Allowable types for RexLiteral instances</caption>
@@ -227,8 +227,8 @@ public class RexLiteral extends RexNode {
       RelDataType type,
       SqlTypeName typeName) {
     this.value = value;
-    this.type = requireNonNull(type);
-    this.typeName = requireNonNull(typeName);
+    this.type = requireNonNull(type, "type");
+    this.typeName = requireNonNull(typeName, "typeName");
     Preconditions.checkArgument(valueMatchesType(value, typeName, true));
     Preconditions.checkArgument((value == null) == type.isNullable());
     Preconditions.checkArgument(typeName != SqlTypeName.ANY);
@@ -299,8 +299,7 @@ public class RexLiteral extends RexNode {
    */
   @RequiresNonNull("type")
   RexDigestIncludeType digestIncludesType(
-      @UnknownInitialization RexLiteral this
-  ) {
+      @UnknownInitialization RexLiteral this) {
     return shouldIncludeType(value, type);
   }
 
@@ -397,7 +396,10 @@ public class RexLiteral extends RexNode {
     }
   }
 
-  /** Returns the strict literal type for a given type. */
+  /**
+   * Returns the strict literal type for a given type. The rules should keep
+   * sync with what {@link RexBuilder#makeLiteral} defines.
+   */
   public static SqlTypeName strictTypeName(RelDataType type) {
     final SqlTypeName typeName = type.getSqlTypeName();
     switch (typeName) {

@@ -45,7 +45,7 @@ import java.util.List;
  *
  * <p>If an abstract converter cannot be satisfied immediately (because the
  * source subset is abstract), the set is flagged, so this converter will be
- * expanded as soon as a non-abstract relexp is added to the set.</p>
+ * expanded as soon as a non-abstract relexp is added to the set.
  */
 public class AbstractConverter extends ConverterImpl {
   //~ Constructors -----------------------------------------------------------

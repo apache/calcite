@@ -34,7 +34,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  * Collection of hooks that can be set by observers and are executed at various
  * parts of the query preparation process.
  *
- * <p>For testing and debugging rather than for end-users.</p>
+ * <p>For testing and debugging rather than for end-users.
  */
 public enum Hook {
   /** Called to get the current time. Use this to return a predictable time
@@ -116,7 +116,7 @@ public enum Hook {
   /** Adds a handler for this Hook.
    *
    * <p>Returns a {@link Hook.Closeable} so that you can use the following
-   * try-finally pattern to prevent leaks:</p>
+   * try-finally pattern to prevent leaks:
    *
    * <blockquote><pre>
    *     final Hook.Closeable closeable = Hook.FOO.add(HANDLER);
@@ -126,6 +126,7 @@ public enum Hook {
    *         closeable.close();
    *     }</pre>
    * </blockquote>
+   *
    * @deprecated this installs a global hook (cross-thread), so it might have greater impact
    *     than expected. Use with caution. Prefer thread-local hooks.
    * @see #addThread(Consumer)

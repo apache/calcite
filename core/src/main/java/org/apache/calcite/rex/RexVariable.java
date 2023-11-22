@@ -34,9 +34,9 @@ public abstract class RexVariable extends RexNode {
   protected RexVariable(
       String name,
       RelDataType type) {
-    this.name = Objects.requireNonNull(name);
-    this.digest = Objects.requireNonNull(name);
-    this.type = Objects.requireNonNull(type);
+    this.name = Objects.requireNonNull(name, "name");
+    this.digest = Objects.requireNonNull(name, "name");
+    this.type = Objects.requireNonNull(type, "type");
   }
 
   //~ Methods ----------------------------------------------------------------
