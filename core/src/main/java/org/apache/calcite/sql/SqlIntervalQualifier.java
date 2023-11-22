@@ -583,7 +583,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * Validates an INTERVAL literal against a QUARTER interval qualifier.
    *
    * @throws org.apache.calcite.runtime.CalciteContextException if the interval
-   *                                                            value is illegal
+   * value is illegal
    */
   private int[] evaluateIntervalLiteralAsQuarter(
       RelDataTypeSystem typeSystem, int sign,
@@ -592,6 +592,7 @@ public class SqlIntervalQualifier extends SqlNode {
       SqlParserPos pos) {
     BigDecimal quarter;
 
+    // validate as QUARTER(startPrecision), e.g. 'MM'
     String intervalPattern = "(\\d+)";
 
     Matcher m = Pattern.compile(intervalPattern).matcher(value);
@@ -617,7 +618,7 @@ public class SqlIntervalQualifier extends SqlNode {
    * Validates an INTERVAL literal against a WEEK interval qualifier.
    *
    * @throws org.apache.calcite.runtime.CalciteContextException if the interval
-   *                                                            value is illegal
+   * value is illegal
    */
   private int[] evaluateIntervalLiteralAsWeek(
       RelDataTypeSystem typeSystem, int sign,
@@ -626,7 +627,7 @@ public class SqlIntervalQualifier extends SqlNode {
       SqlParserPos pos) {
     BigDecimal week;
 
-    // validate as WEEK(startPrecision), e.g. 'WW'
+    // validate as WEEK(startPrecision), e.g. 'MM'
     String intervalPattern = "(\\d+)";
 
     Matcher m = Pattern.compile(intervalPattern).matcher(value);
