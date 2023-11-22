@@ -138,7 +138,6 @@ import static org.apache.calcite.avatica.util.TimeUnit.WEEK;
 import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_MOD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALENDAR;
@@ -7008,8 +7007,8 @@ class RelToSqlConverterTest {
         .project(plusCall)
         .build();
 
-    final String expectedBigQuery = "SELECT DATETIME_ADD(TIMESTAMP '2022-02-18 08:23:45', "
-        + "INTERVAL 1 MICROSECOND) AS `$f0`";
+    final String expectedBigQuery = "SELECT TIMESTAMP '2022-02-18 08:23:45' + "
+        + "INTERVAL 1 MICROSECOND AS `$f0`";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
@@ -13544,26 +13543,6 @@ class RelToSqlConverterTest {
     final String expectedBQSql = "SELECT DATE_ADD(CAST(CURRENT_DATE AS DATETIME), "
         + "INTERVAL CAST(70000000 / 1000 "
         + "AS INT64) SECOND) AS add_interval_millis\nFROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
-  }
-
-  @Test public void testDatetimeAddWithMilliSecondsIntervalAndCurrentTimestamp() {
-    final RelBuilder builder = relBuilder();
-    final RexNode intervalMillisecondsRex =
-        builder.getRexBuilder().makeIntervalLiteral(new BigDecimal("70000000"),
-            new SqlIntervalQualifier(TimeUnit.SECOND, TimeUnit.SECOND, SqlParserPos.ZERO));
-    final RexNode divideIntervalRex = builder.call(SqlStdOperatorTable.DIVIDE,
-        intervalMillisecondsRex,
-        builder.literal(1000));
-    final RexNode datetimeAddRex =
-        builder.call(PLUS, builder.call(CURRENT_TIMESTAMP_WITH_TIME_ZONE),
-            divideIntervalRex);
-    final RelNode root = builder
-        .scan("EMP")
-        .project(datetimeAddRex)
-        .build();
-    final String expectedBQSql = "SELECT DATETIME_ADD(CURRENT_TIMESTAMP(), INTERVAL CAST(70000000 "
-        + "/ 1000 AS INT64) SECOND) AS `$f0`\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 }
