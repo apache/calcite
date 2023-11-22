@@ -3323,7 +3323,11 @@ public class RelBuilder {
     return builder.build();
   }
 
-  /** Creates a limit without a sort. */
+  /** Creates a limit and/or offset without a sort.
+   *
+   * @param offset Number of rows to skip; non-positive means don't skip any
+   * @param fetch Maximum number of rows to fetch; negative means no limit
+   */
   public RelBuilder limit(int offset, int fetch) {
     return sortLimit(offset, fetch, ImmutableList.of());
   }
