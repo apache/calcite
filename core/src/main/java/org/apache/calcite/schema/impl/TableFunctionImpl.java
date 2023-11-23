@@ -122,8 +122,8 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
         new ReflectiveCallNotNullImplementor(method) {
           @Override public Expression implement(RexToLixTranslator translator,
               RexCall call, List<Expression> translatedOperands) {
-            Expression expr = super.implement(translator, call,
-                translatedOperands);
+            Expression expr =
+                super.implement(translator, call, translatedOperands);
             final Class<?> returnType = method.getReturnType();
             if (QueryableTable.class.isAssignableFrom(returnType)) {
               Expression queryable = Expressions.call(
