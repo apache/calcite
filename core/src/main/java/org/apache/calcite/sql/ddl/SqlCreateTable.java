@@ -47,7 +47,7 @@ public class SqlCreateTable extends SqlCreate {
   protected SqlCreateTable(SqlParserPos pos, boolean replace, boolean ifNotExists,
       SqlIdentifier name, @Nullable SqlNodeList columnList, @Nullable SqlNode query) {
     super(OPERATOR, pos, replace, ifNotExists);
-    this.name = Objects.requireNonNull(name);
+    this.name = Objects.requireNonNull(name, "name");
     this.columnList = columnList; // may be null
     this.query = query; // for "CREATE TABLE ... AS query"; may be null
   }

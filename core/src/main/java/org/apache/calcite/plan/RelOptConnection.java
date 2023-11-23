@@ -20,7 +20,7 @@ package org.apache.calcite.plan;
  * The planner's view of a connection to a database.
  *
  * <p>A connection contains a {@link RelOptSchema}, via which the query planner
- * can access {@link RelOptTable} objects.</p>
+ * can access {@link RelOptTable} objects.
  */
 public interface RelOptConnection {
   /**

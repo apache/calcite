@@ -47,7 +47,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * </ol>
  *
  * <p>Otherwise, a new instance of RelTraitDef must be constructed and
- * registered with each new planner instantiated.</p>
+ * registered with each new planner instantiated.
  *
  * @param <T> Trait that this trait definition is based upon
  */

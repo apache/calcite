@@ -50,7 +50,7 @@ import static java.util.Objects.requireNonNull;
  * <p>It's not often necessary to sub-class this class. The smarts should be in
  * the operator, rather than the call. Any extra information about the call can
  * often be encoded as extra arguments. (These don't need to be hidden, because
- * no one is going to be generating source code from this tree.)</p>
+ * no one is going to be generating source code from this tree.)
  */
 public class RexCall extends RexNode {
 

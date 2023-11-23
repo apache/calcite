@@ -29,7 +29,7 @@ import java.lang.reflect.UndeclaredThrowableException;
  *
  * <p>It is useful when you are prototyping code. You can rapidly create a
  * prototype class which implements the important methods in an interface, then
- * implement other methods as they are called.</p>
+ * implement other methods as they are called.
  *
  * @see DelegatingInvocationHandler
  */

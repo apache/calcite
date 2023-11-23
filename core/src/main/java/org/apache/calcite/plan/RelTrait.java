@@ -35,7 +35,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * new RelTrait instances are generated at runtime (e.g. based on state external
  * to the planner), you must implement {@link #hashCode()} and
  * {@link #equals(Object)} for proper {@link RelTraitDef#canonize canonization}
- * of your RelTrait objects.</p>
+ * of your RelTrait objects.
  */
 public interface RelTrait {
   //~ Methods ----------------------------------------------------------------

@@ -422,9 +422,10 @@ public abstract class RelOptUtil {
         || ((Hintable) originalRel).getHints().size() == 0) {
       return equiv;
     }
-    final RelShuttle shuttle = new SubTreeHintPropagateShuttle(
-        originalRel.getCluster().getHintStrategies(),
-        ((Hintable) originalRel).getHints());
+    final RelShuttle shuttle =
+        new SubTreeHintPropagateShuttle(
+            originalRel.getCluster().getHintStrategies(),
+            ((Hintable) originalRel).getHints());
     return equiv.accept(shuttle);
   }
 
@@ -472,6 +473,10 @@ public abstract class RelOptUtil {
    * or {@code newRel} directly if one of them are not {@link Hintable}
    */
   public static RelNode copyRelHints(RelNode originalRel, RelNode newRel, boolean filterHints) {
+    if (originalRel == newRel && !filterHints) {
+      return originalRel;
+    }
+
     if (originalRel instanceof Hintable
         && newRel instanceof Hintable
         && ((Hintable) originalRel).getHints().size() > 0) {
@@ -887,18 +892,15 @@ public abstract class RelOptUtil {
       // No need to create another project node if the rel
       // is already a project.
       final Project project = (Project) rel;
-      castExps = RexUtil.generateCastExpressions(
-          rexBuilder,
-          castRowType,
-          ((Project) rel).getProjects());
+      castExps =
+          RexUtil.generateCastExpressions(rexBuilder, castRowType,
+              ((Project) rel).getProjects());
       input = rel.getInput(0);
       hints = project.getHints();
       correlationVariables = project.getVariablesSet();
     } else {
-      castExps = RexUtil.generateCastExpressions(
-          rexBuilder,
-          castRowType,
-          rowType);
+      castExps =
+          RexUtil.generateCastExpressions(rexBuilder, castRowType, rowType);
       input = rel;
       correlationVariables = ImmutableSet.of();
     }

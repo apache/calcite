@@ -57,7 +57,7 @@ class Dumpers {
    *
    * <p>Thus, every relational expression and rule invocation that affected
    * the final outcome is described in the provenance. This can be useful
-   * when finding the root cause of "mistakes" in a query plan.</p>
+   * when finding the root cause of "mistakes" in a query plan.
    *
    * @param provenanceMap The provenance map
    * @param root Root relational expression in a tree
@@ -178,8 +178,9 @@ class Dumpers {
     }
     pw.println("digraph G {");
     pw.println("\troot [style=filled,label=\"Root\"];");
-    PartiallyOrderedSet<RelSubset> subsetPoset = new PartiallyOrderedSet<>(
-        (e1, e2) -> e1.getTraitSet().satisfies(e2.getTraitSet()));
+    PartiallyOrderedSet<RelSubset> subsetPoset =
+        new PartiallyOrderedSet<>(
+            (e1, e2) -> e1.getTraitSet().satisfies(e2.getTraitSet()));
     Set<RelSubset> nonEmptySubsets = new HashSet<>();
     for (RelSet set : ordering.immutableSortedCopy(planner.allSets)) {
       pw.print("\tsubgraph cluster");

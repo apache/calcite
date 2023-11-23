@@ -24,12 +24,12 @@ import java.util.RandomAccess;
  * A view onto an array that cannot be modified by the client.
  *
  * <p>Since the array is not copied, modifications to the array will be
- * reflected in the list.</p>
+ * reflected in the list.
  *
- * <p>Null elements are allowed.</p>
+ * <p>Null elements are allowed.
  *
  * <p>Quick and low-memory, like {@link java.util.Arrays#asList(Object[])}, but
- * unmodifiable.</p>
+ * unmodifiable.
  *
  * @param <E> Element type
  */
@@ -39,7 +39,7 @@ public class UnmodifiableArrayList<E>
   private final E[] elements;
 
   private UnmodifiableArrayList(E[] elements) {
-    this.elements = Objects.requireNonNull(elements);
+    this.elements = Objects.requireNonNull(elements, "elements");
   }
 
   public static <E> UnmodifiableArrayList<E> of(E... elements) {

@@ -66,7 +66,7 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
    * hyphen). For example, "1,2,3-20,-7,-10-15,12".
    *
    * <p>Inclusions and exclusions are performed in the order that they are
-   * seen. For example, "1-10,-2-9,3-7,-4-6"</p> does contain 3, because it is
+   * seen. For example, "1-10,-2-9,3-7,-4-6" does contain 3, because it is
    * included by "1-10", excluded by "-2-9" and last included by "3-7". But it
    * does not include 4.
    *

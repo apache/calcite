@@ -28,7 +28,7 @@ import java.util.List;
 /**
  * Statistics about a {@link Table}.
  *
- * <p>Each of the methods may return {@code null} meaning "not known".</p>
+ * <p>Each of the methods may return {@code null} meaning "not known".
  *
  * @see Statistics
  */

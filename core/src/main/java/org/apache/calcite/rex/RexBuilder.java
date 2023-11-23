@@ -77,10 +77,12 @@ import java.util.Objects;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Factory for row expressions.
  *
- * <p>Some common literal values (NULL, TRUE, FALSE, 0, 1, '') are cached.</p>
+ * <p>Some common literal values (NULL, TRUE, FALSE, 0, 1, '') are cached.
  */
 public class RexBuilder {
   /**
@@ -176,7 +178,7 @@ public class RexBuilder {
    * SQL), use your session's case-sensitivity setting.
    * Only hard-code {@code true} if you are sure that the field name is
    * internally generated.
-   * Hard-coding {@code false} is almost certainly wrong.</p>
+   * Hard-coding {@code false} is almost certainly wrong.
    *
    * @param expr      Expression yielding a record
    * @param fieldName Name of field in record
@@ -257,7 +259,7 @@ public class RexBuilder {
    *
    * <p>If you already know the return type of the call, then
    * {@link #makeCall(org.apache.calcite.rel.type.RelDataType, org.apache.calcite.sql.SqlOperator, java.util.List)}
-   * is preferred.</p>
+   * is preferred.
    */
   public RexNode makeCall(
       SqlOperator op,
@@ -297,7 +299,7 @@ public class RexBuilder {
    * Creates a reference to an aggregate call, checking for repeated calls.
    *
    * <p>Argument types help to optimize for repeated aggregates.
-   * For instance count(42) is equivalent to count(*).</p>
+   * For instance count(42) is equivalent to count(*).
    *
    * @param aggCall aggregate call to be added
    * @param groupCount number of groups in the aggregate relation
@@ -391,8 +393,8 @@ public class RexBuilder {
             lowerBound,
             upperBound,
             rows);
-    final RexOver over = new RexOver(type, operator, exprs, window,
-        distinct, ignoreNulls);
+    final RexOver over =
+        new RexOver(type, operator, exprs, window, distinct, ignoreNulls);
     RexNode result = over;
 
     // This should be correct but need time to go over test results.
@@ -691,10 +693,10 @@ public class RexBuilder {
   }
 
   private RexNode makeCastBooleanToExact(RelDataType toType, RexNode exp) {
-    final RexNode casted = makeCall(SqlStdOperatorTable.CASE,
-        exp,
-        makeExactLiteral(BigDecimal.ONE, toType),
-        makeZeroLiteral(toType));
+    final RexNode casted =
+        makeCall(SqlStdOperatorTable.CASE, exp,
+            makeExactLiteral(BigDecimal.ONE, toType),
+            makeZeroLiteral(toType));
     if (!exp.getType().isNullable()) {
       return casted;
     }
@@ -709,8 +711,8 @@ public class RexBuilder {
     final TimeUnit baseUnit = baseUnit(exp.getType().getSqlTypeName());
     final BigDecimal multiplier = baseUnit.multiplier;
     final BigDecimal divider = endUnit.multiplier;
-    RexNode value = multiplyDivide(decodeIntervalOrDecimal(exp),
-        multiplier, divider);
+    RexNode value =
+        multiplyDivide(decodeIntervalOrDecimal(exp), multiplier, divider);
     return ensureType(toType, value, false);
   }
 
@@ -964,10 +966,9 @@ public class RexBuilder {
         Charset charset = type.getCharset();
         assert charset != null : "type.getCharset() must not be null";
         assert type.getCollation() != null : "type.getCollation() must not be null";
-        o = new NlsString(
-            nlsString.getValue(),
-            charset.name(),
-            type.getCollation());
+        o =
+            new NlsString(nlsString.getValue(), charset.name(),
+                type.getCollation());
       }
       break;
     case TIME:
@@ -1091,7 +1092,7 @@ public class RexBuilder {
    * Creates a search argument literal.
    */
   public RexLiteral makeSearchArgumentLiteral(Sarg s, RelDataType type) {
-    return makeLiteral(Objects.requireNonNull(s), type, SqlTypeName.SARG);
+    return makeLiteral(requireNonNull(s, "s"), type, SqlTypeName.SARG);
   }
 
   /**
@@ -1200,7 +1201,8 @@ public class RexBuilder {
    * Creates a Date literal.
    */
   public RexLiteral makeDateLiteral(DateString date) {
-    return makeLiteral(Objects.requireNonNull(date),
+    return makeLiteral(
+        requireNonNull(date, "date"),
         typeFactory.createSqlType(SqlTypeName.DATE), SqlTypeName.DATE);
   }
 
@@ -1215,7 +1217,8 @@ public class RexBuilder {
    * Creates a Time literal.
    */
   public RexLiteral makeTimeLiteral(TimeString time, int precision) {
-    return makeLiteral(Objects.requireNonNull(time),
+    return makeLiteral(
+        requireNonNull(time, "time"),
         typeFactory.createSqlType(SqlTypeName.TIME, precision),
         SqlTypeName.TIME);
   }
@@ -1226,7 +1229,8 @@ public class RexBuilder {
   public RexLiteral makeTimeWithLocalTimeZoneLiteral(
       TimeString time,
       int precision) {
-    return makeLiteral(Objects.requireNonNull(time),
+    return makeLiteral(
+        requireNonNull(time, "time"),
         typeFactory.createSqlType(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE, precision),
         SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
   }
@@ -1244,7 +1248,8 @@ public class RexBuilder {
    */
   public RexLiteral makeTimestampLiteral(TimestampString timestamp,
       int precision) {
-    return makeLiteral(Objects.requireNonNull(timestamp),
+    return makeLiteral(
+        requireNonNull(timestamp, "timestamp"),
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP, precision),
         SqlTypeName.TIMESTAMP);
   }
@@ -1255,7 +1260,8 @@ public class RexBuilder {
   public RexLiteral makeTimestampWithLocalTimeZoneLiteral(
       TimestampString timestamp,
       int precision) {
-    return makeLiteral(Objects.requireNonNull(timestamp),
+    return makeLiteral(
+        requireNonNull(timestamp, "timestamp"),
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, precision),
         SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
   }
@@ -1448,7 +1454,7 @@ public class RexBuilder {
   /**
    * Creates a literal of the default value for the given type.
    *
-   * <p>This value is:</p>
+   * <p>This value is:
    *
    * <ul>
    * <li>0 for numeric types;

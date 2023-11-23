@@ -94,7 +94,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    */
   protected AbstractRelOptPlanner(RelOptCostFactory costFactory,
       @Nullable Context context) {
-    this.costFactory = Objects.requireNonNull(costFactory);
+    this.costFactory = Objects.requireNonNull(costFactory, "costFactory");
     if (context == null) {
       context = Contexts.empty();
     }

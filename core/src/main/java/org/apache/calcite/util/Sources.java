@@ -167,13 +167,13 @@ public abstract class Sources {
     private final boolean urlGenerated;
 
     private FileSource(URL url) {
-      this.url = Objects.requireNonNull(url);
+      this.url = Objects.requireNonNull(url, "url");
       this.file = urlToFile(url);
       this.urlGenerated = false;
     }
 
     private FileSource(File file) {
-      this.file = Objects.requireNonNull(file);
+      this.file = Objects.requireNonNull(file, "file");
       this.url = fileToUrl(file);
       this.urlGenerated = true;
     }
@@ -327,7 +327,8 @@ public abstract class Sources {
       if (isFile(parent)) {
         if (isFile(this)
             && fileNonNull().getPath().startsWith(parent.file().getPath())) {
-          String rest = fileNonNull().getPath().substring(parent.file().getPath().length());
+          String rest =
+              fileNonNull().getPath().substring(parent.file().getPath().length());
           if (rest.startsWith(File.separator)) {
             return Sources.file(null, rest.substring(File.separator.length()));
           }
@@ -335,8 +336,9 @@ public abstract class Sources {
         return this;
       } else {
         if (!isFile(this)) {
-          String rest = Sources.trimOrNull(url.toExternalForm(),
-              parent.url().toExternalForm());
+          String rest =
+              Sources.trimOrNull(url.toExternalForm(),
+                  parent.url().toExternalForm());
           if (rest != null
               && rest.startsWith("/")) {
             return Sources.file(null, rest.substring(1));

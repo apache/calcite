@@ -150,10 +150,10 @@ public final class Schemas {
       String tableName, Class clazz) {
     final MethodCallExpression expression;
     if (Table.class.isAssignableFrom(clazz)) {
-      expression = Expressions.call(
-          expression(schema),
-          BuiltInMethod.SCHEMA_GET_TABLE.method,
-          Expressions.constant(tableName));
+      expression =
+          Expressions.call(expression(schema),
+              BuiltInMethod.SCHEMA_GET_TABLE.method,
+              Expressions.constant(tableName));
       if (ScannableTable.class.isAssignableFrom(clazz)) {
         return Expressions.call(
             BuiltInMethod.SCHEMAS_ENUMERABLE_SCANNABLE.method,
@@ -173,14 +173,43 @@ public final class Schemas {
             DataContext.ROOT);
       }
     } else {
-      expression = Expressions.call(
-          BuiltInMethod.SCHEMAS_QUERYABLE.method,
-          DataContext.ROOT,
-          expression(schema),
-          Expressions.constant(elementType),
-          Expressions.constant(tableName));
+      expression =
+          Expressions.call(BuiltInMethod.SCHEMAS_QUERYABLE.method,
+              DataContext.ROOT,
+              expression(schema),
+              Expressions.constant(elementType),
+              Expressions.constant(tableName));
     }
     return EnumUtils.convert(expression, clazz);
+  }
+
+  /**
+   * Generates an expression with which table can be referenced in
+   * generated code.
+   *
+   * @param schema    Schema
+   * @param tableName Table name (unique within schema)
+   * @param table     Table to be referenced
+   * @param clazz     Class that provides specific methods for accessing table data.
+   *                  It may differ from the {@code table} class; for example {@code clazz} may be
+   *                  {@code MongoTable.MongoQueryable}, though {@code table} is {@code MongoTable}
+   */
+  public static Expression getTableExpression(SchemaPlus schema, String tableName,
+      Table table, Class<?> clazz) {
+    if (table instanceof QueryableTable) {
+      QueryableTable queryableTable = (QueryableTable) table;
+      return queryableTable.getExpression(schema, tableName, clazz);
+    } else if (table instanceof ScannableTable
+        || table instanceof FilterableTable
+        || table instanceof ProjectableFilterableTable) {
+      return tableExpression(schema, Object[].class, tableName,
+          table.getClass());
+    } else if (table instanceof StreamableTable) {
+      return getTableExpression(schema, tableName,
+          ((StreamableTable) table).stream(), clazz);
+    } else {
+      throw new UnsupportedOperationException();
+    }
   }
 
   public static DataContext createDataContext(
@@ -464,7 +493,7 @@ public final class Schemas {
     final List<CalciteSchema.LatticeEntry> list = getLatticeEntries(schema);
     return Util.transform(list, entry -> {
       final CalciteSchema.TableEntry starTable =
-          requireNonNull(entry).getStarTable();
+          requireNonNull(entry, "entry").getStarTable();
       assert starTable.getTable().getJdbcTableType()
           == Schema.TableType.STAR;
       return entry.getStarTable();
@@ -517,7 +546,7 @@ public final class Schemas {
 
   /** Generates a table name that is unique within the given schema. */
   public static String uniqueTableName(CalciteSchema schema, String base) {
-    String t = requireNonNull(base);
+    String t = requireNonNull(base, "base");
     for (int x = 0; schema.getTable(t, true) != null; x++) {
       t = base + x;
     }

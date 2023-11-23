@@ -43,8 +43,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Checks whether one condition logically implies another.
@@ -71,9 +72,9 @@ public class RexImplicationChecker {
       RexBuilder builder,
       RexExecutor executor,
       RelDataType rowType) {
-    this.builder = Objects.requireNonNull(builder);
-    this.executor = Objects.requireNonNull(executor);
-    this.rowType = Objects.requireNonNull(rowType);
+    this.builder = requireNonNull(builder, "builder");
+    this.executor = requireNonNull(executor, "executor");
+    this.rowType = requireNonNull(rowType, "rowType");
   }
 
   /**

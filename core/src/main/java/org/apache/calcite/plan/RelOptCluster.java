@@ -87,8 +87,8 @@ public class RelOptCluster {
       Map<String, RelNode> mapCorrelToRel) {
     this.nextCorrel = nextCorrel;
     this.mapCorrelToRel = mapCorrelToRel;
-    this.planner = Objects.requireNonNull(planner);
-    this.typeFactory = Objects.requireNonNull(typeFactory);
+    this.planner = Objects.requireNonNull(planner, "planner");
+    this.typeFactory = Objects.requireNonNull(typeFactory, "typeFactory");
     this.rexBuilder = rexBuilder;
     this.originalExpression = rexBuilder.makeLiteral("?");
 
@@ -220,7 +220,7 @@ public class RelOptCluster {
    * @param hintStrategies The specified hint strategies to override the default one(empty)
    */
   public void setHintStrategies(HintStrategyTable hintStrategies) {
-    Objects.requireNonNull(hintStrategies);
+    Objects.requireNonNull(hintStrategies, "hintStrategies");
     this.hintStrategies = hintStrategies;
   }
 

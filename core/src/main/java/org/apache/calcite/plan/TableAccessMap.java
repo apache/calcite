@@ -35,6 +35,10 @@ import java.util.Set;
 /**
  * <code>TableAccessMap</code> represents the tables accessed by a query plan,
  * with READ/WRITE information.
+ *
+ * @deprecated As of 1.30.0, if you need to know how tables in a plan are accessed you are
+ * encouraged to implement your own logic (using a RelNode visitor or other). The class is not used
+ * anywhere in the project and remains untested thus it is deprecated.
  */
 public class TableAccessMap {
   //~ Enums ------------------------------------------------------------------

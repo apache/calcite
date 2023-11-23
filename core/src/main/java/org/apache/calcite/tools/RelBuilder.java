@@ -683,7 +683,24 @@ public class RelBuilder {
     return in(arg, ImmutableList.copyOf(ranges));
   }
 
-  /** Creates an IN. */
+  /** Creates an IN predicate with a list of values.
+   *
+   * <p>For example,
+   *
+   * <pre>{@code
+   * b.scan("Emps")
+   *     .filter(
+   *         b.in(b.field("deptno"),
+   *             Arrays.asList(b.literal(10), b.literal(20))))
+   * }</pre>
+   *
+   * <p>is equivalent to the SQL
+   *
+   * <pre>{@code
+   * SELECT *
+   * FROM Emps
+   * WHERE deptno IN (10, 20)
+   * }</pre> */
   public RexNode in(RexNode arg, Iterable<? extends RexNode> ranges) {
     return getRexBuilder().makeIn(arg, ImmutableList.copyOf(ranges));
   }

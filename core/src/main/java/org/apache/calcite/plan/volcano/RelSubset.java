@@ -159,7 +159,7 @@ public class RelSubset extends AbstractRelNode {
    * Computes the best {@link RelNode} in this subset.
    *
    * <p>Only necessary when a subset is created in a set that has subsets that
-   * subsume it. Rationale:</p>
+   * subsume it. Rationale:
    *
    * <ol>
    * <li>If the are no subsuming subsets, the subset is initially empty.</li>
@@ -172,8 +172,7 @@ public class RelSubset extends AbstractRelNode {
   private void computeBestCost(
       @UnderInitialization RelSubset this,
       RelOptCluster cluster,
-      RelOptPlanner planner
-  ) {
+      RelOptPlanner planner) {
     bestCost = planner.getCostFactory().makeInfiniteCost();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     @SuppressWarnings("method.invocation.invalid")
