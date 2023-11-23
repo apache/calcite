@@ -3275,6 +3275,17 @@ class RelToSqlConverterTest {
         .ok(expectedMysql);
   }
 
+  @Test void testCastToVarcharForSpark() {
+    String query = "select cast(\"product_id\" as varchar), "
+        + "cast(\"product_id\" as varchar(10)) from \"product\"";
+    final String expectedSparkSql = "SELECT CAST(product_id AS STRING), "
+        + "CAST(product_id AS VARCHAR(10))\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
+  }
+
   @Test void testSelectQueryWithLimitClauseWithoutOrder() {
     String query = "select \"product_id\" from \"product\" limit 100 offset 10";
     final String expected = "SELECT \"product_id\"\n"
