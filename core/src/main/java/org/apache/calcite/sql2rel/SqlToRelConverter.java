@@ -820,12 +820,12 @@ public class SqlToRelConverter {
     }
 
     assert rel != null : "rel must not be null, root = " + bb.root;
-    // Usual case: all of the expressions in the SELECT clause are
-    // different.
+    // Usual case: all expressions in the SELECT clause are different.
     final ImmutableBitSet groupSet =
         ImmutableBitSet.range(rel.getRowType().getFieldCount());
-    rel = createAggregate(bb, groupSet, ImmutableList.of(groupSet),
-        ImmutableList.of());
+    rel =
+        createAggregate(bb, groupSet, ImmutableList.of(groupSet),
+            ImmutableList.of());
 
     bb.setRoot(
         rel,
@@ -969,9 +969,9 @@ public class SqlToRelConverter {
                   thenOperand);
           thenOperands.add(pushDownNotForIn(scope, reg(scope, not)));
         }
-        SqlNode elseOperand = requireNonNull(
-            caseNode.getElseOperand(),
-            "getElseOperand for " + caseNode);
+        SqlNode elseOperand =
+            requireNonNull(caseNode.getElseOperand(),
+                "getElseOperand for " + caseNode);
         if (!SqlUtil.isNull(elseOperand)) {
           // "not(unknown)" is "unknown", so no need to simplify
           final SqlCall not =
@@ -1075,8 +1075,9 @@ public class SqlToRelConverter {
     if (p != null) {
       assert p.r instanceof Filter;
       Filter f = (Filter) p.r;
-      r = LogicalFilter.create(f.getInput(), f.getCondition(),
-          ImmutableSet.of(p.id));
+      r =
+          LogicalFilter.create(f.getInput(), f.getCondition(),
+              ImmutableSet.of(p.id));
     } else {
       r = filter;
     }
@@ -1257,11 +1258,11 @@ public class SqlToRelConverter {
       //
       // If there is no correlation, the expression is replaced with a
       // boolean indicating whether the sub-query returned 0 or >= 1 row.
-      call = (SqlBasicCall) subQuery.node;
-      query = call.operand(0);
       if (!config.isExpand()) {
         return;
       }
+      call = (SqlBasicCall) subQuery.node;
+      query = call.operand(0);
       final SqlValidatorScope seekScope =
           (query instanceof SqlSelect)
               ? validator().getSelectScope((SqlSelect) query)

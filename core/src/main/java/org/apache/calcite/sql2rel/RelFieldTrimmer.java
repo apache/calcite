@@ -305,8 +305,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   protected TrimResult result(RelNode r, final Mapping mapping) {
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
     for (final CorrelationId correlation : r.getVariablesSet()) {
-      r = r.accept(
-          new CorrelationReferenceFinder() {
+      r =
+          r.accept(new CorrelationReferenceFinder() {
             @Override protected RexNode handle(RexFieldAccess fieldAccess) {
               final RexCorrelVariable v =
                   (RexCorrelVariable) fieldAccess.getReferenceExpr();
@@ -1168,9 +1168,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     LogicalTableFunctionScan newTabFun = tabFun;
     if (!tabFun.getInputs().equals(newInputs)) {
-      newTabFun = tabFun.copy(tabFun.getTraitSet(), newInputs,
-          tabFun.getCall(), tabFun.getElementType(), tabFun.getRowType(),
-          tabFun.getColumnMappings());
+      newTabFun =
+          tabFun.copy(tabFun.getTraitSet(), newInputs, tabFun.getCall(),
+              tabFun.getElementType(), tabFun.getRowType(),
+              tabFun.getColumnMappings());
     }
     assert newTabFun.getClass() == tabFun.getClass();
 
