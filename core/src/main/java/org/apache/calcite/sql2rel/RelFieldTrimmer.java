@@ -869,9 +869,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         relBuilder.antiJoin(newConditionExpr);
       }
       Mapping inputMapping = inputMappings.get(0);
-      mapping = Mappings.create(MappingType.INVERSE_SURJECTION,
-          join.getRowType().getFieldCount(),
-          newSystemFieldCount + inputMapping.getTargetCount());
+      mapping =
+          Mappings.create(MappingType.INVERSE_SURJECTION,
+              join.getRowType().getFieldCount(),
+              newSystemFieldCount + inputMapping.getTargetCount());
       for (int i = 0; i < newSystemFieldCount; ++i) {
         mapping.set(i, i);
       }
@@ -1077,10 +1078,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     if (newAggCallList.isEmpty() && newGroupSet.isEmpty()) {
       // Add a dummy call if all the column fields have been trimmed
-      mapping = Mappings.create(
-          MappingType.INVERSE_SURJECTION,
-          mapping.getSourceCount(),
-          1);
+      mapping =
+          Mappings.create(MappingType.INVERSE_SURJECTION,
+              mapping.getSourceCount(), 1);
       newAggCallList.add(relBuilder.count(false, "DUMMY"));
     }
 
