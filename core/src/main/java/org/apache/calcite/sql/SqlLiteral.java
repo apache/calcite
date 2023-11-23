@@ -61,11 +61,11 @@ import static java.util.Objects.requireNonNull;
  * object, but the type of that value is implementation detail, and it is best
  * that your code does not depend upon that knowledge. It is better to use
  * task-oriented methods such as {@link #toSqlString(SqlDialect)} and
- * {@link #toValue}.</p>
+ * {@link #toValue}.
  *
  * <p>If you really need to access the value directly, you should switch on the
  * value of the {@link #typeName} field, rather than making assumptions about
- * the runtime type of the {@link #value}.</p>
+ * the runtime type of the {@link #value}.
  *
  * <p>The allowable types and combinations are:
  *
@@ -73,7 +73,7 @@ import static java.util.Objects.requireNonNull;
  * <caption>Allowable types for SqlLiteral</caption>
  * <tr>
  * <th>TypeName</th>
- * <th>Meaing</th>
+ * <th>Meaning</th>
  * <th>Value type</th>
  * </tr>
  * <tr>
@@ -519,6 +519,7 @@ public class SqlLiteral extends SqlNode {
   /**
    * Converts a chained string literals into regular literals; returns regular
    * literals unchanged.
+   *
    * @throws IllegalArgumentException if {@code node} is not a string literal
    * and cannot be unchained.
    */
@@ -727,7 +728,7 @@ public class SqlLiteral extends SqlNode {
 
   @Deprecated // to be removed before 2.0
   public String getStringValue() {
-    return ((NlsString) requireNonNull(value)).getValue();
+    return ((NlsString) requireNonNull(value, "value")).getValue();
   }
 
   @Override public void unparse(
@@ -766,11 +767,11 @@ public class SqlLiteral extends SqlNode {
       ret = typeFactory.createTypeWithNullability(ret, null == value);
       return ret;
     case BINARY:
-      bitString = (BitString) requireNonNull(value);
+      bitString = (BitString) requireNonNull(value, "value");
       int bitCount = bitString.getBitCount();
       return typeFactory.createSqlType(SqlTypeName.BINARY, bitCount / 8);
     case CHAR:
-      NlsString string = (NlsString) requireNonNull(value);
+      NlsString string = (NlsString) requireNonNull(value, "value");
       Charset charset = string.getCharset();
       if (null == charset) {
         charset = typeFactory.getDefaultCharset();
@@ -856,6 +857,7 @@ public class SqlLiteral extends SqlNode {
       SqlParserPos pos) {
     return new SqlTimestampWithTimezoneLiteral(ts, precision, pos);
   }
+
   @Deprecated // to be removed before 2.0
   public static SqlTimeLiteral createTime(
       Calendar calendar,

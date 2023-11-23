@@ -309,5 +309,4 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return null;
     }
   }
-
 }
