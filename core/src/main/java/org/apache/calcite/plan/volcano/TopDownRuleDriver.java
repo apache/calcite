@@ -233,11 +233,11 @@ class TopDownRuleDriver implements RuleDriver {
         }
       }
       if (optimizingGroup == null) {
+        tasks.push(new ApplyRules(node, subset, false));
         return;
       }
       Task task = getOptimizeInputTask(node, optimizingGroup);
       if (task != null) {
-        tasks.push(new ApplyRules(node, subset, false));
         tasks.push(task);
       }
     } else {
