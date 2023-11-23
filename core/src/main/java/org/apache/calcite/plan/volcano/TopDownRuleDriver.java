@@ -26,7 +26,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
