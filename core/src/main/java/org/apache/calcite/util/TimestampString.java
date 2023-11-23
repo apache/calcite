@@ -47,7 +47,7 @@ public class TimestampString implements Comparable<TimestampString> {
   }
 
   /** Creates a TimestampString for year, month, day, hour, minute, second,
-   *  millisecond values. */
+   * millisecond values. */
   public TimestampString(int year, int month, int day, int h, int m, int s) {
     this(DateTimeStringUtils.ymdhms(new StringBuilder(), year, month, day, h, m, s).toString());
   }
@@ -57,7 +57,8 @@ public class TimestampString implements Comparable<TimestampString> {
    *
    * <p>For example,
    * {@code new TimestampString(1970, 1, 1, 2, 3, 4).withMillis(56)}
-   * yields {@code TIMESTAMP '1970-01-01 02:03:04.056'}. */
+   *
+   * @throws IllegalArgumentException if millis is outside the allowed range */
   public TimestampString withMillis(int millis) {
     Preconditions.checkArgument(millis >= 0 && millis < 1000);
     return withFraction(DateTimeStringUtils.pad(3, millis));
@@ -68,7 +69,9 @@ public class TimestampString implements Comparable<TimestampString> {
    *
    * <p>For example,
    * {@code new TimestampString(1970, 1, 1, 2, 3, 4).withNanos(56789)}
-   * yields {@code TIMESTAMP '1970-01-01 02:03:04.000056789'}. */
+   * yields {@code TIMESTAMP '1970-01-01 02:03:04.000056789'}.
+   *
+   * @throws IllegalArgumentException if nanos is outside the allowed range */
   public TimestampString withNanos(int nanos) {
     Preconditions.checkArgument(nanos >= 0 && nanos < 1000000000);
     return withFraction(DateTimeStringUtils.pad(9, nanos));
@@ -127,6 +130,10 @@ public class TimestampString implements Comparable<TimestampString> {
         .withMillis(calendar.get(Calendar.MILLISECOND));
   }
 
+  /** Returns this value rounded to {@code precision} decimal digits after the
+   * point.
+   *
+   * <p>Uses rounding mode {@link java.math.RoundingMode#DOWN}. */
   public TimestampString round(int precision) {
     Preconditions.checkArgument(precision >= 0);
     int targetLength = 20 + precision;

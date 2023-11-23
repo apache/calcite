@@ -67,7 +67,7 @@ public abstract class Sources {
    * or text file. Useful when data is already in memory or can't be directly read from
    * a file or url.
    *
-   * @param source generic "re-redable" source of characters
+   * @param source generic "re-readable" source of characters
    * @return {@code Source} delegate for {@code CharSource} (can't be null)
    * @throws NullPointerException when {@code source} is null
    */

@@ -76,8 +76,10 @@ public class TimeString implements Comparable<TimeString> {
    * of milliseconds. Nukes the value set via {@link #withNanos}.
    *
    * <p>For example,
-   * {@code new TimeString(1970, 1, 1, 2, 3, 4).withMillis(56)}
-   * yields {@code TIME '1970-01-01 02:03:04.056'}. */
+   * {@code new TimeString(2, 3, 4).withMillis(56)}
+   * yields {@code TIME '02:03:04.056'}.
+   *
+   * @throws IllegalArgumentException if millis is outside the allowed range */
   public TimeString withMillis(int millis) {
     Preconditions.checkArgument(millis >= 0 && millis < 1000);
     return withFraction(DateTimeStringUtils.pad(3, millis));
@@ -87,8 +89,10 @@ public class TimeString implements Comparable<TimeString> {
    * of nanoseconds. Nukes the value set via {@link #withMillis(int)}.
    *
    * <p>For example,
-   * {@code new TimeString(1970, 1, 1, 2, 3, 4).withNanos(56789)}
-   * yields {@code TIME '1970-01-01 02:03:04.000056789'}. */
+   * {@code new TimeString(2, 3, 4).withNanos(56789)}
+   * yields {@code TIME '02:03:04.000056789'}.
+   *
+   * @throws IllegalArgumentException if nanos is outside the allowed range */
   public TimeString withNanos(int nanos) {
     Preconditions.checkArgument(nanos >= 0 && nanos < 1000000000);
     return withFraction(DateTimeStringUtils.pad(9, nanos));
@@ -99,8 +103,8 @@ public class TimeString implements Comparable<TimeString> {
    * Trailing zeros are stripped.
    *
    * <p>For example,
-   * {@code new TimeString(1970, 1, 1, 2, 3, 4).withFraction("00506000")}
-   * yields {@code TIME '1970-01-01 02:03:04.00506'}. */
+   * {@code new TimeString(2, 3, 4).withFraction("00506000")}
+   * yields {@code TIME '02:03:04.00506'}. */
   public TimeString withFraction(String fraction) {
     String v = this.v;
     int i = v.indexOf('.');
