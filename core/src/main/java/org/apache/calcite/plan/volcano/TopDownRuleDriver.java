@@ -26,6 +26,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -233,6 +234,7 @@ class TopDownRuleDriver implements RuleDriver {
         }
       }
       if (optimizingGroup == null) {
+        tasks.push(new ApplyRules(node, subset, false));
         return;
       }
       Task task = getOptimizeInputTask(node, optimizingGroup);
