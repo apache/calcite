@@ -37,6 +37,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
@@ -48,7 +49,6 @@ import com.google.common.collect.Lists;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
 
@@ -129,21 +129,21 @@ public class TableScanNode implements Node {
     final Type elementType = queryableTable.getElementType();
     SchemaPlus schema = root.getRootSchema();
     for (String name : Util.skipLast(relOptTable.getQualifiedName())) {
-      requireNonNull(schema, () -> "schema is null while resolving " + name + " for table"
-          + relOptTable.getQualifiedName());
+      requireNonNull(schema, () ->
+          "schema is null while resolving " + name + " for table"
+              + relOptTable.getQualifiedName());
       schema = schema.getSubSchema(name);
     }
     final Enumerable<Row> rowEnumerable;
     if (elementType instanceof Class) {
       //noinspection unchecked
-      final Queryable<Object> queryable = Schemas.queryable(root,
-          (Class) elementType,
-          relOptTable.getQualifiedName());
+      final Queryable<Object> queryable =
+          Schemas.queryable(root, (Class) elementType,
+              relOptTable.getQualifiedName());
       ImmutableList.Builder<Field> fieldBuilder = ImmutableList.builder();
       Class type = (Class) elementType;
       for (Field field : type.getFields()) {
-        if (Modifier.isPublic(field.getModifiers())
-            && !Modifier.isStatic(field.getModifiers())) {
+        if (ReflectUtil.isPublic(field) && !ReflectUtil.isStatic(field)) {
           fieldBuilder.add(field);
         }
       }
@@ -255,8 +255,9 @@ public class TableScanNode implements Node {
         filter2 = filter;
         inputRowType = rel.getRowType();
       } else {
-        final Mapping mapping = Mappings.target(acceptedProjects,
-            rel.getTable().getRowType().getFieldCount());
+        final Mapping mapping =
+            Mappings.target(acceptedProjects,
+                rel.getTable().getRowType().getFieldCount());
         filter2 = RexUtil.apply(mapping, filter);
         final RelDataTypeFactory.Builder builder =
             rel.getCluster().getTypeFactory().builder();
