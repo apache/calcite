@@ -1722,9 +1722,15 @@ class RelToSqlConverterTest {
             + "FROM foodmart.product\n"
             + "GROUP BY product_id\n"
             + "HAVING gross_weight < 200) AS t1";
+    final String expectedSpark = "SELECT product_id + 1, " + alias + "\n"
+        + "FROM (SELECT product_id, SUM(gross_weight) " + alias + "\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_id\n"
+        + "HAVING " + alias + " < 200) t1";
     sql(query)
         .withPostgresql().ok(expectedPostgresql)
         .withMysql().ok(expectedMysql)
+        .withSpark().ok(expectedSpark)
         .withBigQuery().ok(expectedBigQuery);
   }
 
