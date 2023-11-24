@@ -597,6 +597,15 @@ public abstract class SqlLibraryOperators {
         ReturnTypes.INTEGER, null,
         OperandTypes.ANY, SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME =
+      new SqlFunction("DATETIME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP,
+          null,
+          OperandTypes.ANY_ANY,
+          SqlFunctionCategory.TIMEDATE);
+
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
   @LibraryOperator(libraries = {MYSQL})
