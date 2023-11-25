@@ -4311,7 +4311,7 @@ public class DruidAdapterIT {
         "SELECT CAST(COUNT(*) + SUM(\"store_sales\") as VARCHAR) || '_' || CAST(SUM(\"store_cost\") "
             + "AS VARCHAR) FROM " + FOODMART_TABLE;
     sql(sql, FOODMART)
-        .returnsOrdered("EXPR$0=652067.1299999986_225627.2336000002")
+        .returnsOrdered("EXPR$0=652067.13_225627.23359999998")
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/"
             + "2992-01-10T00:00:00.000Z]], projects=[[$90, $91]], groups=[{}], aggs=[[COUNT(), "

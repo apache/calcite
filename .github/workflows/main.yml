@@ -437,7 +437,7 @@ jobs:
     - name: 'Checkout Druid dataset'
       uses: actions/checkout@v3
       with:
-        repository: zabetak/calcite-druid-dataset
+        repository: JiajunBernoulli/calcite-druid-dataset
         fetch-depth: 1
         path: druid-dataset
     - name: 'Start Druid containers'
