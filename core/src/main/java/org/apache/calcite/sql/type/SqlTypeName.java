@@ -338,7 +338,7 @@ public enum SqlTypeName {
    * true</code>, because the VARCHAR type allows a precision parameter, as in
    * <code>VARCHAR(10)</code>.</li>
    * <li><code>Varchar.allowsPrecScale(true, true)</code> returns <code>
-   * true</code>, because the VARCHAR type does not allow a precision and a
+   * false</code>, because the VARCHAR type does not allow a precision and a
    * scale parameter, as in <code>VARCHAR(10, 4)</code>.</li>
    * <li><code>allowsPrecScale(false, true)</code> returns <code>false</code>
    * for every type.</li>
