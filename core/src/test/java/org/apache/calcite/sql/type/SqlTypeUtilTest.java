@@ -76,6 +76,8 @@ class SqlTypeUtilTest {
         is(true));
     assertThat(areSameFamily(ImmutableList.of(bigIntAndFloat, bigIntAndFloat)),
         is(true));
+    assertThat(areSameFamily(ImmutableList.of(floatAndBigInt, bigIntAndFloat)),
+        is(true));
     assertThat(areSameFamily(ImmutableList.of(floatAndBigInt, floatAndBigInt)),
         is(true));
   }
