@@ -2292,14 +2292,14 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.DIVIDE, VmName.EXPAND);
     f.checkScalarExact("10 / 5", "INTEGER NOT NULL", "2");
     f.checkScalarExact("-10 / 5", "INTEGER NOT NULL", "-2");
-    f.checkScalarExact("-10 / 5.0", "DECIMAL(17, 6) NOT NULL", "-2");
+    f.checkScalarExact("-10 / 5.0", "DECIMAL(17, 6) NOT NULL", "-2.000000");
     f.checkScalarApprox(" cast(10.0 as double) / 5", "DOUBLE NOT NULL",
         isExactly(2));
     f.checkScalarApprox(" cast(10.0 as real) / 4", "REAL NOT NULL",
         isExactly("2.5"));
     f.checkScalarApprox(" 6.0 / cast(10.0 as real) ", "DOUBLE NOT NULL",
         isExactly("0.6"));
-    f.checkScalarExact("10.0 / 5.0", "DECIMAL(9, 6) NOT NULL", "2");
+    f.checkScalarExact("10.0 / 5.0", "DECIMAL(9, 6) NOT NULL", "2.00000");
     if (DECIMAL) {
       f.checkScalarExact("1.0 / 3.0", "DECIMAL(8, 6) NOT NULL", "0.333333");
       f.checkScalarExact("100.1 / 0.0001", "DECIMAL(14, 7) NOT NULL",
@@ -2308,7 +2308,6 @@ public class SqlOperatorTest {
           "10010000000.00000000");
     }
     f.checkNull("1e1 / cast(null as float)");
-
     f.checkScalarExact("100.1 / 0.00000000000000001", "DECIMAL(19, 0) NOT NULL",
         "1.001E+19");
   }
