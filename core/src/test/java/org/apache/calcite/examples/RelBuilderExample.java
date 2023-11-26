@@ -66,7 +66,7 @@ public class RelBuilderExample {
     case 4:
       return example4(builder);
     default:
-      throw new AssertionError("unknown example " + i);
+      throw new AssertionError("unknown example" + i);
     }
   }
 
