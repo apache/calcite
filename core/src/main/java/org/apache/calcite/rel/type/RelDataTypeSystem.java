@@ -191,7 +191,7 @@ public interface RelDataTypeSystem {
    * <li>Let d be the number of whole digits in the result</li>
    * <li>Then the result type is a decimal with:
    *   <ul>
-   *   <li>p = p1 + p2)</li>
+   *   <li>p = p1 + p2</li>
    *   <li>s = s1 + s2</li>
    *   </ul>
    * </li>
