@@ -98,6 +98,11 @@ class FilteratorTest {
     for (int i : Util.filter(Arrays.asList(numbers), Integer.class)) {
       result.add(i);
     }
-    assertEquals("[1, 2, 4]", result.toString());
+    final Filterator<Integer> filterator =
+        new Filterator<Integer>(result.iterator(), Integer.class);
+    assertEquals(1, filterator.next());
+    assertEquals(2, filterator.next());
+    assertEquals(4, filterator.next());
+    assertFalse(filterator.hasNext());
   }
 }
