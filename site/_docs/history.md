@@ -108,13 +108,13 @@ Runkang He,
 Tanner Clary,
 Thomas Rebele,
 Tim Nieradzik,
+Wang Zhao,
 Wegdan Ghazi,
 Wenrui Meng,
 Xiaogang Zhou,
 ZhangJian He,
 Zhengqiang Duan,
-Zoltan Haindrich,
-zoovwang.
+Zoltan Haindrich.
 
 #### Breaking Changes
 {: #breaking-1-36-0}
