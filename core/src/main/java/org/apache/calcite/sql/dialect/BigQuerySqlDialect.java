@@ -1187,8 +1187,10 @@ public class BigQuerySqlDialect extends SqlDialect {
           ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
           .getValue()
           : call.operand(0).toString();
+      String finalDateFormat = dateFormt.replaceAll("S\\(\\d\\)",
+          SqlDateTimeFormat.MILLISECONDS_5.value);
       SqlCall formtCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
-          createDateTimeFormatSqlCharLiteral(dateFormt), call.operand(1));
+          createDateTimeFormatSqlCharLiteral(finalDateFormat), call.operand(1));
       super.unparseCall(writer, formtCall, leftPrec, rightPrec);
       break;
     case "FORMAT_TIME":
