@@ -556,8 +556,8 @@ public class RelMdPredicates
         if (literal != null) {
           predicates.add(
               rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
-              rexBuilder.makeInputRef(literal.getType(), i),
-              literal));
+                  rexBuilder.makeInputRef(literal.getType(), i),
+                  literal));
         }
       }
       return RelOptPredicateList.of(rexBuilder, predicates);

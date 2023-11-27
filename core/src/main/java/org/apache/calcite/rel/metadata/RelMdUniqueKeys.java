@@ -43,6 +43,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -59,6 +60,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.rel.metadata.RelMdColumnUniqueness.PASSTHROUGH_AGGREGATIONS;
+import static org.apache.calcite.rel.metadata.RelMdColumnUniqueness.getConstantColumnSet;
 
 import static java.util.Objects.requireNonNull;
 
@@ -93,11 +95,9 @@ public class RelMdUniqueKeys
     if (RelOptPredicateList.isEmpty(predicates)) {
       return uniqueKeys;
     } else {
-      ImmutableBitSet invariantColumns = predicates.getInvariantColumnSet();
+      ImmutableBitSet constantColumns = getConstantColumnSet(predicates);
       return uniqueKeys.stream()
-          .map(key -> key.rebuild()
-              .removeAll(invariantColumns)
-              .build())
+          .map(key -> key.except(constantColumns))
           .collect(Collectors.toSet());
     }
   }
@@ -263,10 +263,10 @@ public class RelMdUniqueKeys
         && rightUnique
         && (leftSet != null)
         && !rel.getJoinType().generatesNullsOnLeft()) {
-      ImmutableBitSet leftInvariants =
-          getInvariantJoinKeys(joinInfo.leftKeys, joinInfo.rightKeys, right, mq);
+      ImmutableBitSet leftConstants =
+          getConstantJoinKeys(joinInfo.leftKeys, joinInfo.rightKeys, right, mq);
       leftSet.stream()
-          .map(set -> set.except(leftInvariants))
+          .map(set -> set.except(leftConstants))
           .forEach(retSet::add);
     }
 
@@ -275,10 +275,10 @@ public class RelMdUniqueKeys
         && leftUnique
         && (rightSet != null)
         && !rel.getJoinType().generatesNullsOnRight()) {
-      ImmutableBitSet rightInvariants =
-          getInvariantJoinKeys(joinInfo.rightKeys, joinInfo.leftKeys, left, mq);
+      ImmutableBitSet rightConstants =
+          getConstantJoinKeys(joinInfo.rightKeys, joinInfo.leftKeys, left, mq);
       rightSet.stream()
-          .map(set -> set.except(rightInvariants))
+          .map(set -> set.except(rightConstants))
           .forEach(retSet::add);
     }
 
@@ -296,23 +296,23 @@ public class RelMdUniqueKeys
   }
 
   /**
-   * Return the keys that are invariant by virtue of equality with an invariant
-   * (constant or scalar result) on the other side of a join.
+   * Return the keys that are constant by virtue of equality with a constant
+   * (literal or scalar query result) on the other side of a join.
    */
-  private ImmutableBitSet getInvariantJoinKeys(ImmutableIntList keys, ImmutableIntList otherKeys,
+  private ImmutableBitSet getConstantJoinKeys(ImmutableIntList keys, ImmutableIntList otherKeys,
       RelNode otherRel, RelMetadataQuery mq) {
     Double maxRowCount = mq.getMaxRowCount(otherRel);
-    ImmutableBitSet otherInvariants;
+    ImmutableBitSet otherConstants;
     if (maxRowCount != null && maxRowCount <= 1.0d) {
-      // In a single row solution, every column is invariant
+      // In a single row solution, every column is constant
       int size = otherRel.getRowType().getFieldList().size();
-      otherInvariants = ImmutableBitSet.range(size);
+      otherConstants = ImmutableBitSet.range(size);
     } else {
-      otherInvariants = mq.getPulledUpPredicates(otherRel).getInvariantColumnSet();
+      otherConstants = getConstantColumnSet(mq.getPulledUpPredicates(otherRel));
     }
     ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
     for (int i = 0; i < keys.size(); i++) {
-      if (otherInvariants.get(otherKeys.get(i))) {
+      if (otherConstants.get(otherKeys.get(i))) {
         builder.set(keys.get(i));
       }
     }
@@ -325,7 +325,7 @@ public class RelMdUniqueKeys
       final ImmutableBitSet groupKeys = rel.getGroupSet();
       RelOptPredicateList pulledUpPredicates = mq.getPulledUpPredicates(rel);
       ImmutableBitSet reducedGroupKeys =
-          groupKeys.except(pulledUpPredicates.getInvariantColumnSet());
+          groupKeys.except(getConstantColumnSet(pulledUpPredicates));
 
       final Set<ImmutableBitSet> preciseUniqueKeys;
       final Set<ImmutableBitSet> inputUniqueKeys =
@@ -334,30 +334,23 @@ public class RelMdUniqueKeys
         preciseUniqueKeys = ImmutableSet.of(reducedGroupKeys);
       } else {
         // Try to find more precise unique keys.
-        Set<ImmutableBitSet> keysInGroupBy = inputUniqueKeys.stream()
+        final Set<ImmutableBitSet> keysInGroupBy = inputUniqueKeys.stream()
             .filter(reducedGroupKeys::contains).collect(Collectors.toSet());
         preciseUniqueKeys = keysInGroupBy.isEmpty()
             ? ImmutableSet.of(reducedGroupKeys)
             : keysInGroupBy;
       }
 
-      // If an input's unique column value is returned (passed through) by an aggregation
-      // function, then the result of the function is also unique.
-      ImmutableSet.Builder<ImmutableBitSet> keysBuilder = ImmutableSet.builder();
+      // If an input's unique column(s) value is returned (passed through) by an aggregation
+      // function, then the result of the function(s) is also unique.
+      final ImmutableSet.Builder<ImmutableBitSet> keysBuilder = ImmutableSet.builder();
       if (inputUniqueKeys != null) {
-        List<AggregateCall> aggCallList = rel.getAggCallList();
-        for (int aggIndex = 0; aggIndex < aggCallList.size(); aggIndex++) {
-          AggregateCall call = aggCallList.get(aggIndex);
-          if (PASSTHROUGH_AGGREGATIONS.contains(call.getAggregation().getKind())) {
-            Integer inputIndex = call.getArgList().get(0);
-            if (inputUniqueKeys.contains(ImmutableBitSet.of(inputIndex))) {
-              keysBuilder.add(ImmutableBitSet.of(aggIndex + rel.getGroupCount()));
-            }
-          }
+        for (ImmutableBitSet inputKey : inputUniqueKeys) {
+          keysBuilder.addAll(getPassedThroughCols(inputKey, rel));
         }
       }
 
-      return Sets.union(preciseUniqueKeys, keysBuilder.build());
+      return filterSupersets(Sets.union(preciseUniqueKeys, keysBuilder.build()));
     } else if (ignoreNulls) {
       // group by keys form a unique key
       return ImmutableSet.of(rel.getGroupSet());
@@ -366,6 +359,69 @@ public class RelMdUniqueKeys
       // keys do not form a unique key.
       return ImmutableSet.of();
     }
+  }
+
+  /**
+   * Returns the subset of the supplied keys that are not a superset of any of the other keys.
+   * Given {@code {0},{1},{1,2}}, returns {@code {0},{1}}
+   */
+  private Set<ImmutableBitSet> filterSupersets(Set<ImmutableBitSet> uniqueKeys) {
+    Set<ImmutableBitSet> minimalKeys = new HashSet<>();
+    outer:
+    for (ImmutableBitSet candidateKey : uniqueKeys) {
+      for (ImmutableBitSet possibleSubset : uniqueKeys) {
+        if (!candidateKey.equals(possibleSubset) && candidateKey.contains(possibleSubset)) {
+          continue outer;
+        }
+      }
+      minimalKeys.add(candidateKey);
+    }
+    return minimalKeys;
+  }
+
+  /**
+   * Given a set of columns in the input of an Aggregate rel, returns the set of mappings from the
+   * input columns to the output of the aggregations. A mapping for a particular column exists if
+   * it is part of a simple group by and/or it is "passed through" unmodified by a
+   * {@link RelMdColumnUniqueness#PASSTHROUGH_AGGREGATIONS pass-through aggregation function}.
+   */
+  private Set<ImmutableBitSet> getPassedThroughCols(ImmutableBitSet inputColumns, Aggregate rel) {
+    Preconditions.checkArgument(Aggregate.isSimple(rel));
+    Set<ImmutableBitSet> conbinations = new HashSet<>();
+    conbinations.add(ImmutableBitSet.of());
+    for (Integer inputColumn : inputColumns.asSet()) {
+      final ImmutableBitSet passedThroughCols = getPassedThroughCols(inputColumn, rel);
+      final Set<ImmutableBitSet> crossProduct = new HashSet<>();
+      for (ImmutableBitSet set : conbinations) {
+        for (Integer passedThroughCol : passedThroughCols) {
+          crossProduct.add(set.rebuild().set(passedThroughCol).build());
+        }
+      }
+      conbinations = crossProduct;
+    }
+    return conbinations;
+  }
+
+  /**
+   * Given a column in the input of an Aggregate rel, returns the mappings from the input column to
+   * the output of the aggregations. A mapping for the column exists if it is part of a simple
+   * group by and/or it is "passed through" unmodified by a
+   * {@link RelMdColumnUniqueness#PASSTHROUGH_AGGREGATIONS pass-through aggregation function}.
+   */
+  private ImmutableBitSet getPassedThroughCols(Integer inputColumn, Aggregate rel) {
+    final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+    if (rel.getGroupSet().get(inputColumn)) {
+      builder.set(inputColumn);
+    }
+    final int aggCallsOffset = rel.getGroupSet().length();
+    for (int i = 0, size = rel.getAggCallList().size(); i < size; i++) {
+      AggregateCall call = rel.getAggCallList().get(i);
+      if (PASSTHROUGH_AGGREGATIONS.contains(call.getAggregation().getKind())
+          && call.getArgList().get(0).equals(inputColumn)) {
+        builder.set(i + aggCallsOffset);
+      }
+    }
+    return builder.build();
   }
 
   public Set<ImmutableBitSet> getUniqueKeys(Union rel, RelMetadataQuery mq,

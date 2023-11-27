@@ -1211,6 +1211,24 @@ public class RelMetadataTest {
         .assertThatUniqueKeysAre(bitSetOf());
   }
 
+  @Test void testColumnUniquenessForSubqueryWithCorrelatingVars() {
+    final String sql = ""
+        + "select empno, deptno, slacker\n"
+        + "from emp A\n"
+        + "where empno = (\n"
+        + "  select max(empno)\n"
+        + "  from emp B\n"
+        + "  where A.deptno = B.deptno\n"
+        + ")";
+    sql(sql)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        // This requires drilling into the subquery
+//        .assertThatAreColumnsUnique(bitSetOf(1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(2), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(), is(false))
+        .assertThatUniqueKeysAre(bitSetOf(0));
+  }
+
   @Test void testColumnUniquenessForAggregateWithConstantColumns() {
     final String sql = ""
         + "select deptno, ename, sum(sal)\n"
@@ -1296,6 +1314,29 @@ public class RelMetadataTest {
         .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(2));
   }
 
+// TODO: Enable when CALCITE-6126 fixed
+/*
+  @Test void testOverByNonKey() {
+    sql("select sal,\n"
+        + "max(deptno) over (partition BY sal rows between 2 preceding and 0 following) maxDept,\n"
+        + "max(empno) over (partition BY sal rows between 2 preceding and 0 following) maxEmp\n"
+        + "from emp")
+        .assertThatAreColumnsUnique(bitSetOf(0), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(2), is(false))
+        .assertThatUniqueKeysAre();
+  }
+*/
+
+// TODO: Enable when CALCITE-6126 fixed
+/*
+  @Test void testOverNoPartitioning() {
+    sql("select max(empno) over (rows between 2 preceding and 0 following) maxEmp from emp")
+        .assertThatAreColumnsUnique(bitSetOf(0), is(false))
+        .assertThatUniqueKeysAre();
+  }
+*/
+
   @Test void testNoGroupBy() {
     sql("select max(sal), count(*) from emp")
         .assertThatAreColumnsUnique(bitSetOf(0), is(true))
@@ -1358,6 +1399,11 @@ public class RelMetadataTest {
     // all columns, contain composite keys
     sql("select * from s.composite_keys_table")
         .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(2), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(0, 1, 2), is(true))
         .assertThatUniqueKeysAre(bitSetOf(0, 1));
 
     // only contain composite keys
@@ -1433,6 +1479,114 @@ public class RelMetadataTest {
         .withCatalogReaderFactory(factory)
         .assertThatAreColumnsUnique(bitSetOf(0), is(false))
         .assertThatUniqueKeysAre();
+  }
+
+  @Test void testCompositeKeysAggregationUniqueKeys() {
+    SqlTestFactory.CatalogReaderFactory factory = (typeFactory, caseSensitive) -> {
+      CompositeKeysCatalogReader catalogReader =
+          new CompositeKeysCatalogReader(typeFactory, false);
+      catalogReader.init();
+      return catalogReader;
+    };
+
+    // both keys in passthrough functions, no group by (single row)
+    sql("select any_value(key1), any_value(key2) from s.composite_keys_table")
+        .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(true))
+        .assertThatUniqueKeysAre(bitSetOf());
+
+    // one key in mutating function, no group by (single row)
+    sql("select min(key1), avg(key2) from s.composite_keys_table")
+        .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(true))
+        .assertThatUniqueKeysAre(bitSetOf());
+
+    // both keys in passthrough functions, group by non-key
+    sql("select value1, min(key1), max(key2) from s.composite_keys_table group by value1")
+        .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(2), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1, 2), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(0, 1, 2), is(true))
+        .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(1, 2));
+
+    // keys passed through multiple functions, group by non-key
+    sql("select min(key1), max(key1), avg(key1), min(key2), max(key2), avg(key2), value1\n"
+        + "from s.composite_keys_table group by value1")
+        .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(2), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(3), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(4), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(5), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(6), is(true)) // group by
+        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(0, 2), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(0, 3), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(0, 4), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(0, 5), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(0, 6), is(true)) // group by
+        .assertThatAreColumnsUnique(bitSetOf(1, 2), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(1, 3), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1, 4), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1, 5), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(1, 6), is(true)) // group by
+        .assertThatAreColumnsUnique(bitSetOf(2, 3), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(2, 4), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(2, 5), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(2, 6), is(true)) // group by
+        .assertThatAreColumnsUnique(bitSetOf(3, 4), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(3, 5), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(3, 6), is(true)) // group by
+        .assertThatAreColumnsUnique(bitSetOf(4, 5), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(4, 6), is(true)) // group by
+        .assertThatAreColumnsUnique(bitSetOf(5, 6), is(true)) // group by
+        .assertThatAreColumnsUnique(bitSetOf(0, 1, 2, 3), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1, 3, 4, 5), is(true))
+        .assertThatUniqueKeysAre(bitSetOf(0, 3), bitSetOf(0, 4), bitSetOf(1, 3), bitSetOf(1, 4),
+            bitSetOf(6));
+
+    // one key in mutating function, group by non-key
+    sql("select value1, min(key1), count(key2) from s.composite_keys_table group by value1")
+        .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(2), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(true))
+        .assertThatAreColumnsUnique(bitSetOf(1, 2), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(0, 1, 2), is(true))
+        .assertThatUniqueKeysAre(bitSetOf(0));
+
+    // one key part of group by, one in passthrough function
+    sql("select key1, min(key2), value1 from s.composite_keys_table group by key1, value1")
+        .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(2), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(true)) // passthroughs
+        .assertThatAreColumnsUnique(bitSetOf(0, 2), is(true)) // group bys
+        .assertThatAreColumnsUnique(bitSetOf(1, 2), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(0, 1, 2), is(true))
+        .assertThatUniqueKeysAre(bitSetOf(0, 1), bitSetOf(0, 2));
+
+    // one key part of group by, one in mutating function
+    sql("select key1, value1, count(key2) from s.composite_keys_table group by key1, value1")
+        .withCatalogReaderFactory(factory)
+        .assertThatAreColumnsUnique(bitSetOf(0), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(1), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(2), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(0, 1), is(true)) // group bys
+        .assertThatAreColumnsUnique(bitSetOf(0, 2), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(1, 2), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(0, 1, 2), is(true))
+        .assertThatUniqueKeysAre(bitSetOf(0, 1));
   }
 
   private static ImmutableBitSet bitSetOf(int... bits) {
