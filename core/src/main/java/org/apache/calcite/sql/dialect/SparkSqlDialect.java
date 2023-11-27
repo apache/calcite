@@ -910,6 +910,11 @@ public class SparkSqlDialect extends SqlDialect {
     if (type instanceof BasicSqlType) {
       final SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {
+      case VARCHAR:
+        if (type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED) {
+          return createSqlDataTypeSpecByName("STRING", typeName);
+        }
+        break;
       case INTEGER:
         return createSqlDataTypeSpecByName("INT", typeName);
       case TIME:
