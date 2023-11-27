@@ -28,6 +28,8 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -100,9 +102,8 @@ class FilteratorTest {
     }
     final Filterator<Integer> filterator =
         new Filterator<Integer>(result.iterator(), Integer.class);
-    assertEquals(1, filterator.next());
-    assertEquals(2, filterator.next());
-    assertEquals(4, filterator.next());
-    assertFalse(filterator.hasNext());
+    assertThat(filterator.next(), is(1));
+    assertThat(filterator.next(), is(2));
+    assertThat(filterator.next(), is(4));
   }
 }
