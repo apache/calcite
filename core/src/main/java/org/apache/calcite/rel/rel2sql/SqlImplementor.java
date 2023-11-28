@@ -2215,6 +2215,11 @@ public abstract class SqlImplementor {
           // Avoid losing the distinct attribute of inner aggregate.
           return !hasNestedAgg || Aggregate.isNotGrandTotal(agg);
         }
+        if (relInput instanceof LogicalProject
+            && relInput.getInput(0) instanceof LogicalProject
+            && clauses.contains(Clause.QUALIFY)) {
+          return true;
+        }
       }
 
       if (rel instanceof Project
