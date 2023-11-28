@@ -545,8 +545,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction REGEXP_EXTRACT_ALL = new SqlFunction("REGEXP_EXTRACT_ALL",
       SqlKind.OTHER_FUNCTION,
-      ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
-        SqlTypeTransforms.TO_NULLABLE),
+      ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_ARRAY),
       null, OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
 
