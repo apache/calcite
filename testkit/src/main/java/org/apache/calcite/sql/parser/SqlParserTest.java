@@ -784,6 +784,12 @@ public class SqlParserTest {
         .fails("(?s)Encountered \"\\*\" at .*");
   }
 
+  @Test void testPercentile() {
+    sql("SELECT percentile(x, .5) within group (order by 3) from t")
+        .ok("SELECT `PERCENTILE`(`X`, 0.5) WITHIN GROUP (ORDER BY 3)\n"
+            + "FROM `T`");
+  }
+
   @Test void testPercentileCont() {
     sql("select percentile_cont(.5) within group (order by 3) from t")
         .ok("SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY 3)\n"
