@@ -84,8 +84,11 @@ public abstract class BuiltInMetadata {
      * each bit position represents a 0-based output column ordinal.
      *
      * <p>Note that a unique key plus other columns is still unique.
-     * Conversely, all columns are unique in a table with a unique key
-     * consisting of the empty set, as is the case for all single-row tables.
+     * Therefore, all columns are unique in a table with a unique key
+     * consisting of the empty set, as is the case for zero-row and
+     * single-row tables. The converse is not true: a table with all
+     * columns unique does necessary have the empty set as a key -
+     * that is never true with multi-row tables.
      *
      * <p>Nulls can be ignored if the relational expression has filtered out
      * null values.

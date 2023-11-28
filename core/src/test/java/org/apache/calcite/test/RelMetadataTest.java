@@ -1314,6 +1314,16 @@ public class RelMetadataTest {
         .assertThatUniqueKeysAre(bitSetOf(0), bitSetOf(2));
   }
 
+  /**
+   * All columns are unique. Should not include () because there are multiple rows.
+   */
+  @Test void testGroupByNonKeyNoAggs() {
+    sql("select sal from emp group by sal")
+        .assertThatAreColumnsUnique(bitSetOf(), is(false))
+        .assertThatAreColumnsUnique(bitSetOf(0), is(true))
+        .assertThatUniqueKeysAre(bitSetOf(0));
+  }
+
 // TODO: Enable when CALCITE-6126 fixed
 /*
   @Test void testOverByNonKey() {
