@@ -537,6 +537,9 @@ public class RelMdPredicates
 
   /**
    * Infers predicates for a Values.
+   *
+   * <p>The predicates on {@code T (x, y, z)} with rows
+   * {@code (1, 2, null), (1, 2, null), (5, 2, null)} are {@code 'y = 2'} and {@code 'z is null'}.
    */
   public RelOptPredicateList getPredicates(Values values, RelMetadataQuery mq) {
     ImmutableList<ImmutableList<RexLiteral>> tuples = values.tuples;

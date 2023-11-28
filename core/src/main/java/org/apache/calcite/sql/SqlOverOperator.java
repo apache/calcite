@@ -115,7 +115,6 @@ public class SqlOverOperator extends SqlBinaryOperator {
 
     // Copied from validateOperands
     validator.setValidatedNodeType(call, ret);
-    // TODO: Should the type of the agg change just because it is an OVER operand?
     validator.setValidatedNodeType(agg, ret);
     return ret;
   }

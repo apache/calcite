@@ -42,14 +42,13 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
-import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -80,8 +79,8 @@ public class RelMdColumnUniqueness
           new RelMdColumnUniqueness(), BuiltInMetadata.ColumnUniqueness.Handler.class);
 
   /**
-   * If a row has a unique column, then an aggregation that returns a value from that column is
-   * also unique. These are the aggregations that do that. Note that this quality is not
+   * The set of aggregate functions A such that if x is unique then A(x) will also be unique.
+   * An aggregate function with this property is called 'passthrough'. This quality is not
    * guaranteed in the presence of an OVER clause. NOTE: if a multi-argument function is added,
    * methods that use this Set must be enhanced to select the appropriate column to pass through.
    */
@@ -535,13 +534,13 @@ public class RelMdColumnUniqueness
   }
 
   /**
-   * Return the set of columns that are set to a constant literal or a scalar query (as
+   * Returns the set of columns that are set to a constant literal or a scalar query (as
    * in a correlated subquery). Examples of constants are {@code x} in the following:
    * <pre>SELECT x FROM table WHERE x = 5</pre>
    * and
    * <pre>SELECT x, y FROM table WHERE x = (SELECT MAX(x) FROM table)</pre>
-   * <p/>
-   * NOTE: Subqueries that reference correlating variables are not considered constant:
+   *
+   * <p>NOTE: Subqueries that reference correlating variables are not considered constant:
    * <pre>SELECT x, y FROM table A WHERE x = (SELECT MAX(x) FROM table B WHERE A.y = B.y)</pre>
    */
   static ImmutableBitSet getConstantColumnSet(RelOptPredicateList relOptPredicateList) {
@@ -581,21 +580,17 @@ public class RelMdColumnUniqueness
    */
   private static boolean isConstantScalarQuery(RexNode rexNode) {
     if (rexNode.getKind() == SqlKind.SCALAR_QUERY) {
-      MutableBoolean hasCorrelatedVars = new MutableBoolean(false);
+      MutableBoolean hasCorrelatingVars = new MutableBoolean(false);
       ((RexSubQuery) rexNode).rel.accept(new RelShuttleImpl() {
         @Override public RelNode visit(final LogicalFilter filter) {
-          filter.getCondition().accept(new RexShuttle() {
-            @Override public RexNode visitFieldAccess(final RexFieldAccess fieldAccess) {
-              if (fieldAccess.getReferenceExpr().getKind() == SqlKind.CORREL_VARIABLE) {
-                hasCorrelatedVars.setTrue();
-              }
-              return super.visitFieldAccess(fieldAccess);
-            }
-          });
+          if (RexUtil.containsCorrelation(filter.getCondition())) {
+            hasCorrelatingVars.setTrue();
+            return filter;
+          }
           return super.visit(filter);
         }
       });
-      return hasCorrelatedVars.isFalse();
+      return hasCorrelatingVars.isFalse();
     }
     return false;
   }
