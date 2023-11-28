@@ -1354,13 +1354,31 @@ public class BigQuerySqlDialect extends SqlDialect {
       unParseInStr(writer, call, leftPrec, rightPrec);
       break;
     case "TIMESTAMP_SECONDS":
-      castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_SECONDS);
+      if (call.operandCount() == 1) {
+        castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_SECONDS);
+      } else {
+        SqlCall timestampSecondsCall = TIMESTAMP_SECONDS.createCall(SqlParserPos.ZERO,
+            new SqlNode[] { call.operand(0) });
+        TIMESTAMP_SECONDS.unparse(writer, timestampSecondsCall, leftPrec, rightPrec);
+      }
       break;
     case "TIMESTAMP_MILLIS":
-      castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_MILLIS);
+      if (call.operandCount() == 1) {
+        castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_MILLIS);
+      } else {
+        SqlCall timeStampMillisCall = TIMESTAMP_MILLIS.createCall(SqlParserPos.ZERO,
+            new SqlNode[] { call.operand(0) });
+        TIMESTAMP_MILLIS.unparse(writer, timeStampMillisCall, leftPrec, rightPrec);
+      }
       break;
     case "TIMESTAMP_MICROS":
-      castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_MICROS);
+      if (call.operandCount() == 1) {
+        castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_MICROS);
+      } else {
+        SqlCall timeStampMicroCall = TIMESTAMP_MICROS.createCall(SqlParserPos.ZERO,
+            new SqlNode[] { call.operand(0) });
+        TIMESTAMP_MICROS.unparse(writer, timeStampMicroCall, leftPrec, rightPrec);
+      }
       break;
     case "UNIX_SECONDS":
       castOperandToTimestamp(writer, call, leftPrec, rightPrec, UNIX_SECONDS);

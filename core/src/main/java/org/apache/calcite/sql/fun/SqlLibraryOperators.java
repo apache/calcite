@@ -959,7 +959,8 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_SECONDS =
       new SqlFunction("TIMESTAMP_SECONDS", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE, null, OperandTypes.INTEGER,
+          ReturnTypes.TIMESTAMP_NULLABLE, null,
+          OperandTypes.or(OperandTypes.INTEGER_BOOLEAN, OperandTypes.INTEGER),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_MILLIS(bigint)" function; returns a TIMESTAMP value
@@ -967,7 +968,8 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_MILLIS =
       new SqlFunction("TIMESTAMP_MILLIS", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE, null, OperandTypes.INTEGER,
+          ReturnTypes.TIMESTAMP_NULLABLE, null,
+          OperandTypes.or(OperandTypes.INTEGER_BOOLEAN, OperandTypes.INTEGER),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_MICROS(bigint)" function; returns a TIMESTAMP value
@@ -975,7 +977,8 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_MICROS =
       new SqlFunction("TIMESTAMP_MICROS", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE, null, OperandTypes.INTEGER,
+          ReturnTypes.TIMESTAMP_NULLABLE, null,
+          OperandTypes.or(OperandTypes.INTEGER_BOOLEAN, OperandTypes.INTEGER),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "UNIX_SECONDS(bigint)" function; returns the number of seconds
