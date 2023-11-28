@@ -784,6 +784,13 @@ public class SqlParserTest {
         .fails("(?s)Encountered \"\\*\" at .*");
   }
 
+
+  @Test void testPercentile() {
+    sql("SELECT percentile(x, .5) within group (order by 3) from t")
+        .ok("SELECT `PERCENTILE`(`X`, 0.5) WITHIN GROUP (ORDER BY 3)\n"
+            + "FROM `T`");
+  }
+
   @Test void testPercentileCont() {
     sql("select percentile_cont(.5) within group (order by 3) from t")
         .ok("SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY 3)\n"
@@ -794,6 +801,13 @@ public class SqlParserTest {
     sql("select percentile_disc(.5) within group (order by 3) from t")
         .ok("SELECT PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY 3)\n"
             + "FROM `T`");
+  }
+
+  @Test void testPercentileBigQuery() {
+    sql("select percentile(x, .5) over() from unnest(array[1,2,3,4]) as x")
+        .withDialect(BIG_QUERY)
+        .ok("SELECT (percentile(x, 0.5) OVER ())\n"
+            + "FROM UNNEST((ARRAY[1, 2, 3, 4])) AS x");
   }
 
   /** Tests BigQuery's variant of PERCENTILE_CONT, which uses OVER rather than
