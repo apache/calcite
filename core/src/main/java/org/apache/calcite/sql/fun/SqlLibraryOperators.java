@@ -928,6 +928,17 @@ public abstract class SqlLibraryOperators {
               OperandTypes.STRING_STRING),
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TRY_TO_TIME =
+      new SqlFunction("TRY_TO_TIME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIME_NULLABLE,
+          null,
+          OperandTypes.or(
+              OperandTypes.STRING,
+              OperandTypes.STRING_STRING),
+          SqlFunctionCategory.TIMEDATE);
+
   /**Same as {@link #TO_DATE}, except ,if the conversion cannot be performed,
    * it returns a NULL value instead of raising an error.
    * Here second and third operands are optional
