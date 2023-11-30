@@ -12748,6 +12748,28 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(snowflakeSql));
   }
 
+  @Test public void testTryToTimeFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode tryToTimeNode = builder.call(SqlLibraryOperators.TRY_TO_TIME,
+        builder.literal("01:02:03"));
+    final RexNode tryToTimeNodeWithFormat = builder.call(SqlLibraryOperators.TRY_TO_TIME,
+        builder.literal("01:02:03"), builder.literal("HH24:MI:SS"));
+    final RexNode tryToTimeNodeWithInvalidFormat = builder.call(SqlLibraryOperators.TRY_TO_TIME,
+        builder.literal("invalid"), builder.literal("HH24:MI:SS"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(tryToTimeNode, "time_value"),
+            tryToTimeNodeWithFormat, tryToTimeNodeWithInvalidFormat)
+        .build();
+
+    final String snowflakeSql =
+        "SELECT TRY_TO_TIME('01:02:03') AS \"time_value\", TRY_TO_TIME('01:02:03', "
+           +  "'HH24:MI:SS') AS \"$f1\", TRY_TO_TIME('invalid', 'HH24:MI:SS') AS \"$f2\"\n"
+           + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(snowflakeSql));
+  }
+
   @Test public void testCountSetWithLiteralParameter() {
     RelBuilder builder = relBuilder();
     final RexNode bitCountRexNode = builder.call(SqlLibraryOperators.BIT_COUNT,
@@ -13623,5 +13645,21 @@ class RelToSqlConverterTest {
     final String expectedBQSql = "SELECT DATETIME_ADD(CURRENT_TIMESTAMP(), INTERVAL CAST(70000000 "
         + "/ 1000 AS INT64) SECOND) AS `$f0`\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testRegexpExtractAllFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpExtractNode = builder.call(SqlLibraryOperators.REGEXP_EXTRACT_ALL,
+        builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("[^-]+"));
+    final RexNode arrayAccess = builder.call(SAFE_OFFSET, regexpExtractNode, builder.literal(2));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(arrayAccess, "ss"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "REGEXP_EXTRACT_ALL('TERADATA-BIGQUERY-SPARK-ORACLE', '[^-]+')[SAFE_OFFSET(2)] AS ss";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 }
