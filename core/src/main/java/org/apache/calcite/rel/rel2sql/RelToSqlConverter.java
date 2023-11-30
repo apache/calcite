@@ -405,18 +405,18 @@ public class RelToSqlConverter extends SqlImplementor
       builder.setHaving(builder.context.toSql(null, e.getCondition()));
       return builder.result();
     } else {
-      final Result x = visitInput(e, 0, Clause.WHERE);
+      Result x = visitInput(e, 0, Clause.WHERE);
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
       SqlNode filterNode = builder.context.toSql(null, e.getCondition());
       UnpivotRelToSqlUtil unpivotRelToSqlUtil = new UnpivotRelToSqlUtil();
       if (dialect.supportsQualifyClause()
           && SqlUtil.containsAnalytical(filterNode)) {
-        final Result result = visitInput(e, 0, isAnon(), true,
+        x = visitInput(e, 0, isAnon(), true,
             ImmutableSet.of(Clause.QUALIFY));
-        parseCorrelTable(e, result);
-        final Builder qualifyBuilder = result.builder(e);
-        qualifyBuilder.setQualify(builder.context.toSql(null, e.getCondition()));
+        parseCorrelTable(e, x);
+        final Builder qualifyBuilder = x.builder(e);
+        qualifyBuilder.setQualify(qualifyBuilder.context.toSql(null, e.getCondition()));
         return qualifyBuilder.result();
       } else if (dialect.supportsUnpivot()
           && unpivotRelToSqlUtil.isRelEquivalentToUnpivotExpansionWithExcludeNulls

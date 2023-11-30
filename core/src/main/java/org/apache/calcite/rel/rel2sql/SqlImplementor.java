@@ -1793,8 +1793,7 @@ public abstract class SqlImplementor {
       Map<String, RelDataType> newAliases = null;
       final SqlNodeList selectList = select.getSelectList();
       if (selectList != null) {
-        final boolean aliasRef = expectedClauses.contains(Clause.HAVING)
-            && dialect.getConformance().isHavingAlias() || keepColumnAlias;
+        final boolean aliasRef = isAliasRefNeeded(keepColumnAlias, rel);
         newContext = new Context(dialect, selectList.size()) {
           @Override public SqlImplementor implementor() {
             return SqlImplementor.this;
@@ -1892,6 +1891,18 @@ public abstract class SqlImplementor {
       }
       return new Builder(rel, clauseList, select, newContext, isAnon(),
           needNew && !aliases.containsKey(neededAlias) ? newAliases : aliases);
+    }
+
+    private boolean isAliasRefNeeded(boolean keepColumnAlias, RelNode rel) {
+      if (expectedClauses.contains(Clause.HAVING)
+          && dialect.getConformance().isHavingAlias() || keepColumnAlias) {
+        return true;
+      }
+      if (expectedClauses.contains(Clause.QUALIFY)
+          && rel.getInput(0) instanceof Aggregate) {
+        return true;
+      }
+      return false;
     }
 
     private boolean hasAnalyticalFunctionInAggregate(Aggregate rel) {
