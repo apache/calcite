@@ -734,7 +734,12 @@ public abstract class SqlImplementor {
           final Context correlAliasContext = getAliasContext(variable);
           final RexFieldAccess lastAccess = accesses.pollLast();
           assert lastAccess != null;
-          sqlFieldAccess.add(correlAliasContext.field(lastAccess.getField().getIndex()));
+          SqlNode node = correlAliasContext.field(lastAccess.getField().getIndex());
+          if (!isNodeMatching(node, lastAccess)) {
+            SqlNode newNode = getSqlNodeByName(correlAliasContext, lastAccess);
+            node = newNode != null ? newNode : node;
+          }
+          sqlFieldAccess.add(node);
           break;
         case ROW:
           final SqlNode expr = toSql(program, referencedExpr);
@@ -864,6 +869,17 @@ public abstract class SqlImplementor {
 
         return callToSql(program, (RexCall) rex, false);
       }
+    }
+
+    private SqlNode getSqlNodeByName(Context correlAliasContext, RexFieldAccess lastAccess) {
+      SqlNode node = null;
+      for (SqlNode sqlNode : correlAliasContext.fieldList()) {
+        if (sqlNode instanceof SqlIdentifier
+            && sqlNode.toString().split("\\.")[1].equals(lastAccess.getField().getName())) {
+          node = sqlNode;
+        }
+      }
+      return node;
     }
 
     private SqlNode callToSql(@Nullable RexProgram program, RexCall rex, boolean not) {
@@ -1408,6 +1424,21 @@ public abstract class SqlImplementor {
             op(SqlStdOperatorTable.LESS_THAN, upper));
       }
     }
+  }
+
+  private static boolean isNodeMatching(SqlNode node, RexFieldAccess lastAccess) {
+    boolean qualified = node.toString().split("\\.").length > 1;
+    boolean match;
+    if (qualified) {
+      match = isNameMatch(lastAccess, node.toString().split("\\.")[1]);
+    } else {
+      match = isNameMatch(lastAccess, node.toString());
+    }
+    return match;
+  }
+
+  private static boolean isNameMatch(RexFieldAccess lastAccess, String name) {
+    return lastAccess.getField().getName().equals(name);
   }
 
   /** Converts a {@link RexLiteral} in the context of a {@link RexProgram}
