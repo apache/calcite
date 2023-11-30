@@ -13634,4 +13634,33 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test public void testEdit_DistanceFunctionWithTwoArgs() {
+    final RelBuilder builder = relBuilder();
+    final RexNode editDistanceRex = builder.call(SqlLibraryOperators.EDIT_DISTANCE,
+        builder.literal("abc"), builder.literal("xyz"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(editDistanceRex)
+        .build();
+    final String expectedBQQuery = "SELECT EDIT_DISTANCE('abc', 'xyz') AS `$f0`\n" +
+        "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQQuery));
+  }
+
+  @Test
+  public void testEdit_DistanceFunctionWithThreeArgs() {
+    final RelBuilder builder = relBuilder();
+    final RexNode editDistanceRex = builder.call(SqlLibraryOperators.EDIT_DISTANCE,
+        builder.literal("abc"), builder.literal("xyz"),
+        builder.literal(2));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(editDistanceRex)
+        .build();
+    final String expectedBQQuery = "SELECT EDIT_DISTANCE('abc', 'xyz', max_distance => 2) AS " +
+        "`$f0`\n" +
+        "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQQuery));
+  }
 }

@@ -1398,6 +1398,13 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "SHIFTRIGHT":
       unparseShiftLeftAndShiftRight(writer, call, false);
       break;
+    case "EDIT_DISTANCE":
+      if (call.operandCount() == 3) {
+        unparseEditDistanceForThreeArgs(writer, call, leftPrec, rightPrec);
+      } else {
+        call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+      }
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -2316,5 +2323,17 @@ public class BigQuerySqlDialect extends SqlDialect {
         ? "r'[^" + ((SqlCharStringLiteral) secondOperand).toValue() + "]+'"
         : secondOperand.toString();
     writer.print(pattern);
+  }
+
+  private void unparseEditDistanceForThreeArgs(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame editDistanceFunctionFrame = writer.startFunCall("EDIT_DISTANCE");
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    writer.print("max_distance => ");
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(editDistanceFunctionFrame);
   }
 }
