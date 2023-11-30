@@ -786,8 +786,8 @@ public class SqlParserTest {
 
 
   @Test void testPercentile() {
-    sql("SELECT percentile(x, .5) within group (order by 3) from t")
-        .ok("SELECT `PERCENTILE`(`X`, 0.5) WITHIN GROUP (ORDER BY 3)\n"
+    sql("SELECT percentile_rank(x, .5) within group (order by 3) from t")
+        .ok("SELECT `PERCENTILE_RANK`(`X`, 0.5) WITHIN GROUP (ORDER BY 3)\n"
             + "FROM `T`");
   }
 
@@ -804,9 +804,9 @@ public class SqlParserTest {
   }
 
   @Test void testPercentileBigQuery() {
-    sql("select percentile(x, .5) over() from unnest(array[1,2,3,4]) as x")
+    sql("select percentile_rank(x, .5) over() from unnest(array[1,2,3,4]) as x")
         .withDialect(BIG_QUERY)
-        .ok("SELECT (percentile(x, 0.5) OVER ())\n"
+        .ok("SELECT (percentile_rank(x, 0.5) OVER ())\n"
             + "FROM UNNEST((ARRAY[1, 2, 3, 4])) AS x");
   }
 
