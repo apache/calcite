@@ -1183,15 +1183,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       super.unparseCall(writer, formatCall, leftPrec, rightPrec);
       break;
     case "PARSE_TIMESTAMP_WITH_TIMEZONE":
-      String dateFormt = call.operand(0) instanceof SqlCharStringLiteral
-          ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
-          .getValue()
-          : call.operand(0).toString();
-      String finalDateFormat = dateFormt.replaceAll("S\\(\\d\\)",
-          SqlDateTimeFormat.MILLISECONDS_5.value);
-      SqlCall formtCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
-          createDateTimeFormatSqlCharLiteral(finalDateFormat), call.operand(1));
-      super.unparseCall(writer, formtCall, leftPrec, rightPrec);
+      unparseParseTimestampWithTimeZone(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_TIME":
       unparseFormatCall(writer, call, leftPrec, rightPrec);
@@ -1354,31 +1346,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       unParseInStr(writer, call, leftPrec, rightPrec);
       break;
     case "TIMESTAMP_SECONDS":
-      if (call.operandCount() == 1) {
-        castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_SECONDS);
-      } else {
-        SqlCall timestampSecondsCall = TIMESTAMP_SECONDS.createCall(SqlParserPos.ZERO,
-            new SqlNode[] { call.operand(0) });
-        TIMESTAMP_SECONDS.unparse(writer, timestampSecondsCall, leftPrec, rightPrec);
-      }
+      unParseTimestampSeconds(writer, call, leftPrec, rightPrec, TIMESTAMP_SECONDS);
       break;
     case "TIMESTAMP_MILLIS":
-      if (call.operandCount() == 1) {
-        castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_MILLIS);
-      } else {
-        SqlCall timeStampMillisCall = TIMESTAMP_MILLIS.createCall(SqlParserPos.ZERO,
-            new SqlNode[] { call.operand(0) });
-        TIMESTAMP_MILLIS.unparse(writer, timeStampMillisCall, leftPrec, rightPrec);
-      }
+      unParseTimestampSeconds(writer, call, leftPrec, rightPrec, TIMESTAMP_MILLIS);
       break;
     case "TIMESTAMP_MICROS":
-      if (call.operandCount() == 1) {
-        castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_MICROS);
-      } else {
-        SqlCall timeStampMicroCall = TIMESTAMP_MICROS.createCall(SqlParserPos.ZERO,
-            new SqlNode[] { call.operand(0) });
-        TIMESTAMP_MICROS.unparse(writer, timeStampMicroCall, leftPrec, rightPrec);
-      }
+      unParseTimestampSeconds(writer, call, leftPrec, rightPrec, TIMESTAMP_MICROS);
       break;
     case "UNIX_SECONDS":
       castOperandToTimestamp(writer, call, leftPrec, rightPrec, UNIX_SECONDS);
@@ -1701,6 +1675,17 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(arrayLengthFrame);
   }
 
+  private void unParseTimestampSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
+      SqlFunction sqlFunction) {
+    if (call.operandCount() == 1) {
+      castAsDatetime(writer, call, leftPrec, rightPrec, sqlFunction);
+    } else {
+      SqlCall timestampSecondsCall = sqlFunction.createCall(SqlParserPos.ZERO,
+          new SqlNode[] { call.operand(0) });
+      sqlFunction.unparse(writer, timestampSecondsCall, leftPrec, rightPrec);
+    }
+  }
+
   private void unparseRegexpExtract(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     int indexOfRegexOperand = 1;
@@ -1833,6 +1818,18 @@ public class BigQuerySqlDialect extends SqlDialect {
             .unparse(writer, leftPrec, rightPrec);
     writer.print("SECOND");
     writer.endFunCall(timestampAdd);
+  }
+
+  private void unparseParseTimestampWithTimeZone(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    String dateFormatValue = call.operand(0) instanceof SqlCharStringLiteral
+        ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
+        .getValue()
+        : call.operand(0).toString();
+    dateFormatValue = dateFormatValue.replaceAll("S\\(\\d\\)",
+        SqlDateTimeFormat.MILLISECONDS_5.value);
+    SqlCall formtCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
+        createDateTimeFormatSqlCharLiteral(dateFormatValue), call.operand(1));
+    super.unparseCall(writer, formtCall, leftPrec, rightPrec);
   }
 
   private String getFunName(SqlCall call) {
