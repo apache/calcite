@@ -72,6 +72,8 @@ import java.util.function.Predicate;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
+import static org.apache.calcite.rel.type.RelDataType.PRECISION_NOT_SPECIFIED;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -1697,7 +1699,8 @@ public class RexUtil {
       if (source.getScale() != -1 && source.getScale() != 0) {
         sourceLength += source.getScale() + 1; // include decimal mark
       }
-      return target.getPrecision() >= sourceLength;
+      final int targetPrecision = target.getPrecision();
+      return targetPrecision == PRECISION_NOT_SPECIFIED || targetPrecision >= sourceLength;
     }
     // Return FALSE by default
     return false;

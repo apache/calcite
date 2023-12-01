@@ -2130,7 +2130,7 @@ class RelToSqlConverterTest {
   @Test void testHiveCastAsInt() {
     String query = "select cast( cast(\"employee_id\" as varchar) as int) "
         + "from \"foodmart\".\"reserve_employee\" ";
-    final String expected = "SELECT CAST(CAST(employee_id AS VARCHAR) AS INT)\n"
+    final String expected = "SELECT employee_id\n"
         + "FROM foodmart.reserve_employee";
     sql(query).withHive().ok(expected);
   }
@@ -2151,17 +2151,17 @@ class RelToSqlConverterTest {
             + "cast(cast(\"employee_id\" as varchar) as time), "
             + "cast(cast(\"employee_id\" as varchar) as boolean) "
             + "from \"foodmart\".\"reserve_employee\" ";
-    final String expected = "SELECT CAST(CAST(employee_id AS STRING) AS INT64), "
-            + "CAST(CAST(employee_id AS STRING) AS INT64), "
-            + "CAST(CAST(employee_id AS STRING) AS INT64), "
-            + "CAST(CAST(employee_id AS STRING) AS INT64), "
-            + "CAST(CAST(employee_id AS STRING) AS FLOAT64), "
-            + "CAST(CAST(employee_id AS STRING) AS STRING), "
+    final String expected = "SELECT CAST(employee_id AS INT64), "
+            + "CAST(employee_id AS INT64), "
+            + "CAST(employee_id AS INT64), "
+            + "employee_id, "
+            + "CAST(employee_id AS FLOAT64), "
+            + "CAST(employee_id AS STRING), "
             + "CAST(CAST(employee_id AS STRING) AS BYTES), "
             + "CAST(CAST(employee_id AS STRING) AS BYTES), "
-            + "CAST(CAST(employee_id AS STRING) AS TIMESTAMP), "
-            + "CAST(CAST(employee_id AS STRING) AS FLOAT64), "
-            + "CAST(CAST(employee_id AS STRING) AS NUMERIC), "
+            + "CAST(employee_id AS TIMESTAMP), "
+            + "CAST(employee_id AS FLOAT64), "
+            + "CAST(employee_id AS NUMERIC), "
             + "CAST(CAST(employee_id AS STRING) AS DATE), "
             + "CAST(CAST(employee_id AS STRING) AS TIME), "
             + "CAST(CAST(employee_id AS STRING) AS BOOL)\n"
