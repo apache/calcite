@@ -1700,7 +1700,7 @@ public class RexUtil {
         sourceLength += source.getScale() + 1; // include decimal mark
       }
       final int targetPrecision = target.getPrecision();
-      return targetPrecision == PRECISION_NOT_SPECIFIED || target.getPrecision() >= sourceLength;
+      return targetPrecision == PRECISION_NOT_SPECIFIED || targetPrecision >= sourceLength;
     }
     // Return FALSE by default
     return false;
