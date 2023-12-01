@@ -13658,9 +13658,9 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(editDistanceRex)
         .build();
-    final String expectedBQQuery = "SELECT EDIT_DISTANCE('abc', 'xyz', max_distance => 2) AS " +
+    final String expectedBqQuery = "SELECT EDIT_DISTANCE('abc', 'xyz', max_distance => 2) AS " +
         "`$f0`\n" +
         "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQQuery));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
   }
 }

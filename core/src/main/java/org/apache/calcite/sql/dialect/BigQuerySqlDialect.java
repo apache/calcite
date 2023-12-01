@@ -2328,12 +2328,11 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseEditDistanceForThreeArgs(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame editDistanceFunctionFrame = writer.startFunCall("EDIT_DISTANCE");
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.print(",");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
-    writer.print(",");
-    writer.print("max_distance => ");
-    call.operand(2).unparse(writer, leftPrec, rightPrec);
+    for (int i = 0; i < 3; i++) {
+      writer.print((i > 0) ? "," : "");
+      writer.print((i == 2) ? "max_distance => " : "");
+      call.operand(i).unparse(writer, leftPrec, rightPrec);
+    }
     writer.endFunCall(editDistanceFunctionFrame);
   }
 }
