@@ -2265,6 +2265,75 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6150">[CALCITE-6150]
+   * JDBC adapter for ClickHouse generates incorrect SQL for certain units in
+   * the EXTRACT function</a>. Also tests other units in other dialects. */
+  @Test void testExtract() {
+    final String sql = "SELECT\n"
+        + "EXTRACT(YEAR FROM DATE '2023-12-01'),\n"
+        + "EXTRACT(QUARTER FROM DATE '2023-12-01'),\n"
+        + "EXTRACT(MONTH FROM DATE '2023-12-01'),\n"
+        + "EXTRACT(WEEK FROM DATE '2023-12-01'),\n"
+        + "EXTRACT(DOY FROM DATE '2023-12-01'),\n"
+        + "EXTRACT(DAY FROM DATE '2023-12-01'),\n"
+        + "EXTRACT(DOW FROM DATE '2023-12-01'),\n"
+        + "EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'),\n"
+        + "EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'),\n"
+        + "EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')";
+    final String expectedClickHouse = "SELECT "
+        + "EXTRACT(YEAR FROM toDate('2023-12-01')), "
+        + "EXTRACT(QUARTER FROM toDate('2023-12-01')), "
+        + "EXTRACT(MONTH FROM toDate('2023-12-01')), "
+        + "toWeek(toDate('2023-12-01')), "
+        + "DAYOFYEAR(toDate('2023-12-01')), "
+        + "EXTRACT(DAY FROM toDate('2023-12-01')), "
+        + "DAYOFWEEK(toDate('2023-12-01')), "
+        + "EXTRACT(HOUR FROM toDateTime('2023-12-01 00:00:00')), "
+        + "EXTRACT(MINUTE FROM toDateTime('2023-12-01 00:00:00')), "
+        + "EXTRACT(SECOND FROM toDateTime('2023-12-01 00:00:00'))";
+    final String expectedHive = "SELECT "
+        + "EXTRACT(YEAR FROM DATE '2023-12-01'), "
+        + "EXTRACT(QUARTER FROM DATE '2023-12-01'), "
+        + "EXTRACT(MONTH FROM DATE '2023-12-01'), "
+        + "EXTRACT(WEEK FROM DATE '2023-12-01'), "
+        + "EXTRACT(DOY FROM DATE '2023-12-01'), "
+        + "EXTRACT(DAY FROM DATE '2023-12-01'), "
+        + "EXTRACT(DOW FROM DATE '2023-12-01'), "
+        + "EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'), "
+        + "EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'), "
+        + "EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')";
+    final String expectedPostgresql = "SELECT "
+        + "EXTRACT(YEAR FROM DATE '2023-12-01'), "
+        + "EXTRACT(QUARTER FROM DATE '2023-12-01'), "
+        + "EXTRACT(MONTH FROM DATE '2023-12-01'), "
+        + "EXTRACT(WEEK FROM DATE '2023-12-01'), "
+        + "EXTRACT(DOY FROM DATE '2023-12-01'), "
+        + "EXTRACT(DAY FROM DATE '2023-12-01'), "
+        + "EXTRACT(DOW FROM DATE '2023-12-01'), "
+        + "EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'), "
+        + "EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'), "
+        + "EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    final String expectedHsqldb = "SELECT "
+        + "EXTRACT(YEAR FROM DATE '2023-12-01'), "
+        + "EXTRACT(QUARTER FROM DATE '2023-12-01'), "
+        + "EXTRACT(MONTH FROM DATE '2023-12-01'), "
+        + "EXTRACT(WEEK FROM DATE '2023-12-01'), "
+        + "EXTRACT(DOY FROM DATE '2023-12-01'), "
+        + "EXTRACT(DAY FROM DATE '2023-12-01'), "
+        + "EXTRACT(DOW FROM DATE '2023-12-01'), "
+        + "EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'), "
+        + "EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'), "
+        + "EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')\n"
+        + "FROM (VALUES (0)) AS t (ZERO)";
+    sql(sql)
+        .withClickHouse().ok(expectedClickHouse)
+        .withHive().ok(expectedHive)
+        .withPostgresql().ok(expectedPostgresql)
+        .withHsqldb().ok(expectedHsqldb);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3220">[CALCITE-3220]
    * HiveSqlDialect should transform the SQL-standard TRIM function to TRIM,
    * LTRIM or RTRIM</a>,
