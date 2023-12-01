@@ -872,14 +872,17 @@ public abstract class SqlImplementor {
     }
 
     private SqlNode getSqlNodeByName(Context correlAliasContext, RexFieldAccess lastAccess) {
-      SqlNode node = null;
       for (SqlNode sqlNode : correlAliasContext.fieldList()) {
-        if (sqlNode instanceof SqlIdentifier
-            && sqlNode.toString().split("\\.")[1].equals(lastAccess.getField().getName())) {
-          node = sqlNode;
+        if (isMatching(lastAccess, sqlNode)) {
+          return sqlNode;
         }
       }
-      return node;
+      return null;
+    }
+
+    private static boolean isMatching(RexFieldAccess lastAccess, SqlNode sqlNode) {
+      return sqlNode instanceof SqlIdentifier
+          && sqlNode.toString().split("\\.")[1].equals(lastAccess.getField().getName());
     }
 
     private SqlNode callToSql(@Nullable RexProgram program, RexCall rex, boolean not) {
@@ -1428,13 +1431,8 @@ public abstract class SqlImplementor {
 
   private static boolean isNodeMatching(SqlNode node, RexFieldAccess lastAccess) {
     boolean qualified = node.toString().split("\\.").length > 1;
-    boolean match;
-    if (qualified) {
-      match = isNameMatch(lastAccess, node.toString().split("\\.")[1]);
-    } else {
-      match = isNameMatch(lastAccess, node.toString());
-    }
-    return match;
+    return qualified ? isNameMatch(lastAccess, node.toString().split("\\.")[1])
+        : isNameMatch(lastAccess, node.toString());
   }
 
   private static boolean isNameMatch(RexFieldAccess lastAccess, String name) {
