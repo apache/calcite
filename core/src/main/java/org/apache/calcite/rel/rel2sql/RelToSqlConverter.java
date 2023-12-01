@@ -392,10 +392,20 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** Visits a Filter; called by {@link #dispatch} via reflection. */
   public Result visit(Filter e) {
-    final RelNode input = e.getInput();
     RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
-    if (input instanceof Aggregate
-        && !relToSqlUtils.hasAnalyticalFunctionInFilter(e)) {
+    final RelNode input = e.getInput();
+    if (dialect.supportsQualifyClause()
+        && relToSqlUtils.hasAnalyticalFunctionInFilter(e, input)) {
+      // need to keep where clause as is if input rel of the filter rel is a LogicalJoin
+      // ignoreClauses will always be true because in case of false, new select wrap gets applied
+      // with this current Qualify filter e. So, the input query won't remain as it is.
+      final Result x = visitInput(e, 0, isAnon(), true,
+          ImmutableSet.of(Clause.QUALIFY));
+      parseCorrelTable(e, x);
+      final Builder builder = x.builder(e);
+      builder.setQualify(builder.context.toSql(null, e.getCondition()));
+      return builder.result();
+    } else if (input instanceof Aggregate) {
       final Aggregate aggregate = (Aggregate) input;
       final boolean ignoreClauses = aggregate.getInput() instanceof Project;
       final Result x = visitInput(e, 0, isAnon(), ignoreClauses,
@@ -405,26 +415,18 @@ public class RelToSqlConverter extends SqlImplementor
       builder.setHaving(builder.context.toSql(null, e.getCondition()));
       return builder.result();
     } else {
-      Result x = visitInput(e, 0, Clause.WHERE);
+      final Result x = visitInput(e, 0, Clause.WHERE);
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
       SqlNode filterNode = builder.context.toSql(null, e.getCondition());
       UnpivotRelToSqlUtil unpivotRelToSqlUtil = new UnpivotRelToSqlUtil();
-      if (dialect.supportsQualifyClause()
-          && SqlUtil.containsAnalytical(filterNode)) {
-        x = visitInput(e, 0, isAnon(), true,
-            ImmutableSet.of(Clause.QUALIFY));
-        parseCorrelTable(e, x);
-        final Builder qualifyBuilder = x.builder(e);
-        qualifyBuilder.setQualify(qualifyBuilder.context.toSql(null, e.getCondition()));
-        return qualifyBuilder.result();
-      } else if (dialect.supportsUnpivot()
+      if (dialect.supportsUnpivot()
           && unpivotRelToSqlUtil.isRelEquivalentToUnpivotExpansionWithExcludeNulls
-                (filterNode, x.node)) {
+          (filterNode, x.node)) {
         SqlNode sqlUnpivot = createUnpivotSqlNodeWithExcludeNulls((SqlSelect) x.node);
         SqlNode select = new SqlSelect(
-              SqlParserPos.ZERO, null, null, sqlUnpivot,
-              null, null, null, null, null, null, null, SqlNodeList.EMPTY);
+            SqlParserPos.ZERO, null, null, sqlUnpivot,
+            null, null, null, null, null, null, null, SqlNodeList.EMPTY);
         return result(select, ImmutableList.of(Clause.SELECT), e, null);
       } else {
         builder.setWhere(filterNode);
