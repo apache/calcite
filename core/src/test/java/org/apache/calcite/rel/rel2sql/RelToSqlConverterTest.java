@@ -7453,6 +7453,23 @@ class RelToSqlConverterTest {
     sql(query).withSpark().withLibrary(SqlLibrary.SPARK).ok(expectedSql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6150">[CALCITE-6150]
+   * Clickhouse does not support certain EXTRACT Unit syntax.</a>. */
+  @Test void testClickhouseSpecialExtract() {
+    final String sql1 = "SELECT EXTRACT(DOW FROM Date '2023-12-01')";
+    final String expected1 = "SELECT DAYOFWEEK(toDate('2023-12-01'))";
+    sql(sql1).withClickHouse().ok(expected1);
+
+    final String sql2 = "SELECT EXTRACT(DOY FROM Date '2023-12-01')";
+    final String expected2 = "SELECT DAYOFYEAR(toDate('2023-12-01'))";
+    sql(sql2).withClickHouse().ok(expected2);
+
+    final String sql3 = "SELECT EXTRACT(WEEK FROM Date '2023-12-01')";
+    final String expected3 = "SELECT toWeek(toDate('2023-12-01'))";
+    sql(sql3).withClickHouse().ok(expected3);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;

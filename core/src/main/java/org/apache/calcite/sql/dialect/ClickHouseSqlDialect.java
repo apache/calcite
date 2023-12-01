@@ -175,6 +175,29 @@ public class ClickHouseSqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
+    case EXTRACT:
+      SqlLiteral node = call.operand(0);
+      TimeUnitRange unit = node.getValueAs(TimeUnitRange.class);
+      String funName;
+      switch (unit){
+      case DOW:
+        funName = "DAYOFWEEK";
+        break;
+      case DOY:
+        funName = "DAYOFYEAR";
+        break;
+      case WEEK:
+        funName = "toWeek";
+        break;
+      default:
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+        return;
+      }
+      writer.print(funName);
+      final SqlWriter.Frame frame = writer.startList("(", ")");
+      call.operand(1).unparse(writer, 0, 0);
+      writer.endList(frame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
