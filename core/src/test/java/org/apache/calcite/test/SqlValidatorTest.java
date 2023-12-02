@@ -828,18 +828,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testCharsetMismatch() {
     wholeExpr("''=_UTF16''")
-        .fails("Cannot apply .* to the two different charsets ISO-8859-1 and "
-            + "UTF-16LE");
+        .fails("Cannot apply .* to strings with different charsets 'ISO-8859-1' and "
+            + "'UTF-16LE'");
     wholeExpr("''<>_UTF16''")
-        .fails("(?s).*Cannot apply .* to the two different charsets.*");
+        .fails("(?s).*Cannot apply .* to strings with different charsets.*");
     wholeExpr("''>_UTF16''")
-        .fails("(?s).*Cannot apply .* to the two different charsets.*");
+        .fails("(?s).*Cannot apply .* to strings with different charsets.*");
     wholeExpr("''<_UTF16''")
-        .fails("(?s).*Cannot apply .* to the two different charsets.*");
+        .fails("(?s).*Cannot apply .* to strings with different charsets.*");
     wholeExpr("''<=_UTF16''")
-        .fails("(?s).*Cannot apply .* to the two different charsets.*");
+        .fails("(?s).*Cannot apply .* to strings with different charsets.*");
     wholeExpr("''>=_UTF16''")
-        .fails("(?s).*Cannot apply .* to the two different charsets.*");
+        .fails("(?s).*Cannot apply .* to strings with different charsets.*");
     wholeExpr("''||_UTF16''")
         .fails(ANY);
     wholeExpr("'a'||'b'||_UTF16'c'")
