@@ -6827,6 +6827,30 @@ public class JdbcTest {
             "Cannot apply = to the two different charsets ISO-8859-1 and UTF-16LE");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6146">[CALCITE-6146]
+   * Target charset should be used when comparing two strings through
+   * CONVERT/TRANSLATE function during validation</a>. */
+  @Test void testStringComparisonWithConvertFunc() {
+    CalciteAssert.AssertThat with = CalciteAssert.hr();
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+        + "where convert(\"name\" using GBK)=_GBK'Eric'")
+        .returns("name=Eric; empid=200\n");
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+        + "where _BIG5'Eric'=translate(\"name\" using BIG5)")
+        .returns("name=Eric; empid=200\n");
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+        + "where convert(convert(\"name\" using GBK) using BIG5)=_BIG5'Eric'")
+        .returns("name=Eric; empid=200\n");
+
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+        + "where convert(\"name\", UTF8, GBK)=_GBK'Sebastian'")
+        .returns("name=Sebastian; empid=150\n");
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+        + "where _BIG5'Sebastian'=convert(\"name\", UTF8, BIG5)")
+        .returns("name=Sebastian; empid=150\n");
+  }
+
   /** Tests metadata for the MySQL lexical scheme. */
   @Test void testLexMySQL() throws Exception {
     CalciteAssert.that()
