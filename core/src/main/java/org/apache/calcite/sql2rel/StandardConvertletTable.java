@@ -1992,26 +1992,12 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       //  => timestamp + interval
       // "timestamp" may be of type TIMESTAMP or TIMESTAMP WITH LOCAL TIME ZONE.
       final RexBuilder rexBuilder = cx.getRexBuilder();
-      SqlIntervalQualifier qualifier;
-      final RexNode op1;
-      final RexNode op2;
-      switch (call.operandCount()) {
-      case 2:
-        // BigQuery-style 'TIMESTAMP_ADD(timestamp, interval)'
-        final SqlBasicCall operandCall = call.operand(1);
-        qualifier  = operandCall.operand(1);
-        op1 = cx.convertExpression(operandCall.operand(0));
-        op2 = cx.convertExpression(call.operand(0));
-        break;
-      default:
-        // JDBC-style 'TIMESTAMPADD(unit, count, timestamp)'
-        qualifier = call.operand(0);
-        op1 = cx.convertExpression(call.operand(1));
-        op2 = cx.convertExpression(call.operand(2));
-      }
+      SqlIntervalQualifier qualifier = call.operand(0);
 
       final TimeFrame timeFrame = cx.getValidator().validateTimeFrame(qualifier);
       final TimeUnit unit = first(timeFrame.unit(), TimeUnit.EPOCH);
+      final RexNode op1 = cx.convertExpression(call.operand(1));
+      final RexNode op2 = cx.convertExpression(call.operand(2));
       final RelDataType type = cx.getValidator().getValidatedNodeType(call);
       if (unit == TimeUnit.EPOCH && qualifier.timeFrameName != null) {
         // Custom time frames have a different path. They are kept as names,

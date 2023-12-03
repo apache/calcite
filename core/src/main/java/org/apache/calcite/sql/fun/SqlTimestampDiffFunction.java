@@ -60,32 +60,23 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 class SqlTimestampDiffFunction extends SqlFunction {
   private static RelDataType inferReturnType2(SqlOperatorBinding opBinding) {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    final TimeUnit timeUnit;
-    final RelDataType type1;
-    final RelDataType type2;
-    if (opBinding.isOperandTimeFrame(0)) {
-      timeUnit = opBinding.getOperandLiteralValue(0, TimeUnit.class);
-      type1 = opBinding.getOperandType(1);
-      type2 = opBinding.getOperandType(2);
-    } else {
-      type1 = opBinding.getOperandType(0);
-      type2 = opBinding.getOperandType(1);
-      timeUnit = opBinding.getOperandLiteralValue(2, TimeUnit.class);
-    }
+    TimeUnit timeUnit = opBinding.getOperandLiteralValue(0, TimeUnit.class);
     SqlTypeName sqlTypeName =
         timeUnit == TimeUnit.NANOSECOND
             ? SqlTypeName.BIGINT
             : SqlTypeName.INTEGER;
     return typeFactory.createTypeWithNullability(
         typeFactory.createSqlType(sqlTypeName),
-        type1.isNullable()
-            || type2.isNullable());
+        opBinding.getOperandType(1).isNullable()
+            || opBinding.getOperandType(2).isNullable());
   }
 
   /** Creates a SqlTimestampDiffFunction. */
-  SqlTimestampDiffFunction(String name, SqlOperandTypeChecker operandTypeChecker) {
+  SqlTimestampDiffFunction(String name) {
     super(name, SqlKind.TIMESTAMP_DIFF,
-        SqlTimestampDiffFunction::inferReturnType2, null, operandTypeChecker,
+        SqlTimestampDiffFunction::inferReturnType2, null,
+        OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATETIME,
+            SqlTypeFamily.DATETIME),
         SqlFunctionCategory.TIMEDATE);
   }
 
