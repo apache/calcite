@@ -6842,6 +6842,11 @@ public class JdbcTest {
     with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
         + "where convert(convert(\"name\" using GBK) using BIG5)=_BIG5'Eric'")
         .returns("name=Eric; empid=200\n");
+    // the charset of char(5) is ISO-8859-1 preserved in Collate
+    with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
+        + "where cast(convert(\"name\" using GBK) as char(5))=_BIG5'Eric'")
+        .throws_(
+            "Cannot apply = to the two different charsets ISO-8859-1 and Big5");
 
     with.query("select \"name\", \"empid\" from \"hr\".\"emps\"\n"
         + "where convert(\"name\", UTF8, GBK)=_GBK'Sebastian'")
