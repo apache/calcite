@@ -549,6 +549,11 @@ public class RexProgram {
     return ref.accept(new ExpansionShuttle(exprs));
   }
 
+  /** Expands a list of expressions that may contain {@link RexLocalRef}s. */
+  public List<RexNode> expandList(List<? extends RexNode> nodes) {
+    return new ExpansionShuttle(exprs).visitList(nodes);
+  }
+
   /** Splits this program into a list of project expressions and a list of
    * filter expressions.
    *
