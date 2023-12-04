@@ -1827,9 +1827,9 @@ public class BigQuerySqlDialect extends SqlDialect {
         : call.operand(0).toString();
     dateFormatValue = dateFormatValue.replaceAll("S\\(\\d\\)",
         SqlDateTimeFormat.MILLISECONDS_5.value);
-    SqlCall formtCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
+    SqlCall formatCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
         createDateTimeFormatSqlCharLiteral(dateFormatValue), call.operand(1));
-    super.unparseCall(writer, formtCall, leftPrec, rightPrec);
+    super.unparseCall(writer, formatCall, leftPrec, rightPrec);
   }
 
   private String getFunName(SqlCall call) {
