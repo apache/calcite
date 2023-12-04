@@ -36,7 +36,7 @@ import static java.util.Objects.requireNonNull;
 public abstract class RelToSqlConverterUtil {
 
   /**
-   * For usage of TRIM, LTRIM and RTRIM in Hive, see,
+   * For usage of TRIM, LTRIM and RTRIM in Hive, see
    * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF">Hive UDF usage</a>.
    */
   public static void unparseHiveTrim(
@@ -45,8 +45,9 @@ public abstract class RelToSqlConverterUtil {
       int leftPrec,
       int rightPrec) {
     final SqlLiteral valueToTrim = call.operand(1);
-    String value = requireNonNull(valueToTrim.toValue(),
-        () -> "call.operand(1).toValue() for call " + call);
+    String value =
+        requireNonNull(valueToTrim.toValue(),
+            () -> "call.operand(1).toValue() for call " + call);
     if (value.matches("\\s+")) {
       unparseTrimWithSpace(writer, call, leftPrec, rightPrec);
     } else {
@@ -128,8 +129,9 @@ public abstract class RelToSqlConverterUtil {
    * @return the regex pattern of the character to be trimmed
    */
   public static SqlCharStringLiteral createRegexPatternLiteral(SqlNode call, SqlLiteral trimFlag) {
-    final String regexPattern = requireNonNull(((SqlCharStringLiteral) call).toValue(),
-        () -> "null value for SqlNode " + call);
+    final String regexPattern =
+        requireNonNull(((SqlCharStringLiteral) call).toValue(),
+            () -> "null value for SqlNode " + call);
     String escaped = escapeSpecialChar(regexPattern);
     final StringBuilder builder = new StringBuilder();
     switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {

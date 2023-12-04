@@ -73,7 +73,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
    * Whether a relational expression may possess more than one instance of
    * this trait simultaneously.
    *
-   * <p>A subset has only one instance of a trait.</p>
+   * <p>A subset has only one instance of a trait.
    */
   public boolean multiple() {
     return false;

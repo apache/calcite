@@ -51,6 +51,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.util.ReflectUtil.isStatic;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -76,7 +78,7 @@ public class JavaTypeFactoryImpl
   @Override public RelDataType createStructType(Class type) {
     final List<RelDataTypeField> list = new ArrayList<>();
     for (Field field : type.getFields()) {
-      if (!Modifier.isStatic(field.getModifiers())) {
+      if (!isStatic(field)) {
         // FIXME: watch out for recursion
         final Type fieldType = fieldType(field);
         list.add(

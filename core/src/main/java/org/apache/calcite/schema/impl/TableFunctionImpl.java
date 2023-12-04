@@ -40,11 +40,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -81,7 +81,7 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
 
   /** Creates a {@link TableFunctionImpl} from a method. */
   public static @Nullable TableFunction create(final Method method) {
-    if (!Modifier.isStatic(method.getModifiers())) {
+    if (!isStatic(method)) {
       Class clazz = method.getDeclaringClass();
       if (!classHasPublicZeroArgsConstructor(clazz)) {
         throw RESOURCE.requireDefaultConstructor(clazz.getName()).ex();
@@ -122,8 +122,8 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
         new ReflectiveCallNotNullImplementor(method) {
           @Override public Expression implement(RexToLixTranslator translator,
               RexCall call, List<Expression> translatedOperands) {
-            Expression expr = super.implement(translator, call,
-                translatedOperands);
+            Expression expr =
+                super.implement(translator, call, translatedOperands);
             final Class<?> returnType = method.getReturnType();
             if (QueryableTable.class.isAssignableFrom(returnType)) {
               Expression queryable = Expressions.call(
@@ -147,7 +147,7 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
   private Table apply(List<? extends @Nullable Object> arguments) {
     try {
       Object o = null;
-      if (!Modifier.isStatic(method.getModifiers())) {
+      if (!isStatic(method)) {
         final Constructor<?> constructor =
             method.getDeclaringClass().getConstructor();
         o = constructor.newInstance();

@@ -20,7 +20,7 @@ package org.apache.calcite.plan;
  * RelOptSamplingParameters represents the parameters necessary to produce a
  * sample of a relation.
  *
- * <p>It's parameters are derived from the SQL 2003 TABLESAMPLE clause.
+ * <p>Its parameters are derived from the SQL 2003 TABLESAMPLE clause.
  */
 public class RelOptSamplingParameters {
   //~ Instance fields --------------------------------------------------------
@@ -48,7 +48,7 @@ public class RelOptSamplingParameters {
   /**
    * Indicates whether Bernoulli or system sampling should be performed.
    * Bernoulli sampling requires the decision whether to include each row in
-   * the the sample to be independent across rows. System sampling allows
+   * the sample to be independent across rows. System sampling allows
    * implementation-dependent behavior.
    *
    * @return true if Bernoulli sampling is configured, false for system

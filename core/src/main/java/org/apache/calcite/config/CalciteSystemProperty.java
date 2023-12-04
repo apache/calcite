@@ -35,7 +35,7 @@ import java.util.stream.Stream;
 /**
  * A Calcite specific system property that is used to configure various aspects of the framework.
  *
- * <p>Calcite system properties must always be in the "calcite" root namespace.</p>
+ * <p>Calcite system properties must always be in the "calcite" root namespace.
  *
  * @param <T> the type of the property value
  */
@@ -44,7 +44,7 @@ public final class CalciteSystemProperty<T> {
    * Holds all system properties related with the Calcite.
    *
    * <p>Deprecated <code>"saffron.properties"</code> (in namespaces"saffron" and "net.sf.saffron")
-   * are also kept here but under "calcite" namespace.</p>
+   * are also kept here but under "calcite" namespace.
    */
   private static final Properties PROPERTIES = loadProperties();
 
@@ -54,7 +54,7 @@ public final class CalciteSystemProperty<T> {
    * <p>When debug mode is activated significantly more information is gathered and printed to
    * STDOUT. It is most commonly used to print and identify problems in generated java code. Debug
    * mode is also used to perform more verifications at runtime, which are not performed during
-   * normal execution.</p>
+   * normal execution.
    */
   public static final CalciteSystemProperty<Boolean> DEBUG =
       booleanProperty("calcite.debug", false);
@@ -97,28 +97,29 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Boolean> ENABLE_STREAM =
       booleanProperty("calcite.enable.stream", true);
 
-  /**
-   * Whether RexNode digest should be normalized (e.g. call operands ordered).
-   * <p>Normalization helps to treat $0=$1 and $1=$0 expressions equal, thus it saves efforts
-   * on planning.</p> */
+  /** Whether RexNode digest should be normalized (e.g. call operands ordered).
+   *
+   * <p>Normalization helps to treat $0=$1 and $1=$0 expressions equal, thus it
+   * saves efforts on planning. */
   public static final CalciteSystemProperty<Boolean> ENABLE_REX_DIGEST_NORMALIZE =
       booleanProperty("calcite.enable.rexnode.digest.normalize", true);
 
   /**
-   *  Whether to follow the SQL standard strictly.
+   * Whether to follow the SQL standard strictly.
    */
   public static final CalciteSystemProperty<Boolean> STRICT =
       booleanProperty("calcite.strict.sql", false);
 
   /**
-   * Whether to include a GraphViz representation when dumping the state of the Volcano planner.
+   * Whether to include a GraphViz representation when dumping the state of the
+   * Volcano planner.
    */
   public static final CalciteSystemProperty<Boolean> DUMP_GRAPHVIZ =
       booleanProperty("calcite.volcano.dump.graphviz", true);
 
   /**
-   * Whether to include <code>RelSet</code> information when dumping the state of the Volcano
-   * planner.
+   * Whether to include <code>RelSet</code> information when dumping the state
+   * of the Volcano planner.
    */
   public static final CalciteSystemProperty<Boolean> DUMP_SETS =
       booleanProperty("calcite.volcano.dump.sets", true);
@@ -128,7 +129,7 @@ public final class CalciteSystemProperty<T> {
    * by {@link CalciteConnectionProperty#TOPDOWN_OPT}.
    *
    * <p>Note: Enabling top-down optimization will automatically disable
-   * the use of AbstractConverter and related rules.</p>
+   * the use of AbstractConverter and related rules.
    */
   public static final CalciteSystemProperty<Boolean> TOPDOWN_OPT =
       booleanProperty("calcite.planner.topdown.opt", false);
@@ -275,7 +276,7 @@ public final class CalciteSystemProperty<T> {
    * The name of the default national character set.
    *
    * <p>It is used with the N'string' construct in
-   * {@link org.apache.calcite.sql.SqlLiteral#SqlLiteral}
+   * {@link org.apache.calcite.sql.SqlLiteral}
    * and may be different from the {@link #DEFAULT_CHARSET}.
    */
   // TODO review zabetak:
@@ -287,7 +288,7 @@ public final class CalciteSystemProperty<T> {
    * The name of the default collation.
    *
    * <p>It is used in {@link org.apache.calcite.sql.SqlCollation} and
-   * {@link org.apache.calcite.sql.SqlLiteral#SqlLiteral}.
+   * {@link org.apache.calcite.sql.SqlLiteral}.
    */
   // TODO review zabetak:
   // What happens if a wrong value is specified?
@@ -300,7 +301,7 @@ public final class CalciteSystemProperty<T> {
    * tertiary, identical.
    *
    * <p>It is used in {@link org.apache.calcite.sql.SqlCollation} and
-   * {@link org.apache.calcite.sql.SqlLiteral#SqlLiteral}.</p>
+   * {@link org.apache.calcite.sql.SqlLiteral}.
    */
   // TODO review zabetak:
   // What happens if a wrong value is specified?
@@ -310,43 +311,46 @@ public final class CalciteSystemProperty<T> {
   /**
    * The maximum size of the cache of metadata handlers.
    *
-   * <p>A typical value is the number of queries being concurrently prepared multiplied by the
-   * number of types of metadata.</p>
+   * <p>A typical value is the number of queries being concurrently prepared
+   * multiplied by the number of types of metadata.
    *
-   * <p>If the value is less than 0, there is no limit.</p>
+   * <p>If the value is less than 0, there is no limit.
    */
   public static final CalciteSystemProperty<Integer> METADATA_HANDLER_CACHE_MAXIMUM_SIZE =
       intProperty("calcite.metadata.handler.cache.maximum.size", 1000);
 
   /**
-   * The maximum size of the cache used for storing Bindable objects, instantiated via
-   * dynamically generated Java classes.
+   * The maximum size of the cache used for storing Bindable objects,
+   * instantiated via dynamically generated Java classes.
    *
-   * <p>The default value is 0.</p>
+   * <p>The default value is 0.
    *
-   * <p>The property can take any value between [0, {@link Integer#MAX_VALUE}] inclusive. If the
-   * value is not valid (or not specified) then the default value is used.</p>
+   * <p>The property can take any value between [0, {@link Integer#MAX_VALUE}]
+   * inclusive. If the value is not valid (or not specified) then the default
+   * value is used.
    *
-   * <p>The cached objects may be quite big so it is suggested to use a rather small cache size
-   * (e.g., 1000). For the most common use cases a number close to 1000 should be enough to
-   * alleviate the performance penalty of compiling and loading classes.</p>
+   * <p>The cached objects may be quite big so it is suggested to use a rather
+   * small cache size (e.g., 1000). For the most common use cases a number close
+   * to 1000 should be enough to alleviate the performance penalty of compiling
+   * and loading classes.
    *
-   * <p>Setting this property to 0 disables the cache.</p>
+   * <p>Setting this property to 0 disables the cache.
    */
   public static final CalciteSystemProperty<Integer> BINDABLE_CACHE_MAX_SIZE =
       intProperty("calcite.bindable.cache.maxSize", 0, v -> v >= 0 && v <= Integer.MAX_VALUE);
 
   /**
-   * The concurrency level of the cache used for storing Bindable objects, instantiated via
-   * dynamically generated Java classes.
+   * The concurrency level of the cache used for storing Bindable objects,
+   * instantiated via dynamically generated Java classes.
    *
-   * <p>The default value is 1.</p>
+   * <p>The default value is 1.
    *
-   * <p>The property can take any value between [1, {@link Integer#MAX_VALUE}] inclusive. If the
-   * value is not valid (or not specified) then the default value is used.</p>
+   * <p>The property can take any value between [1, {@link Integer#MAX_VALUE}]
+   * inclusive. If the value is not valid (or not specified) then the default
+   * value is used.
    *
-   * <p>This property has no effect if the cache is disabled (i.e., {@link #BINDABLE_CACHE_MAX_SIZE}
-   * set to 0.</p>
+   * <p>This property has no effect if the cache is disabled (i.e.,
+   * {@link #BINDABLE_CACHE_MAX_SIZE} set to 0.
    */
   public static final CalciteSystemProperty<Integer> BINDABLE_CACHE_CONCURRENCY_LEVEL =
       intProperty("calcite.bindable.cache.concurrencyLevel", 1,

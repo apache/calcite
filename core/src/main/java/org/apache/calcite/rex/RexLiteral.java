@@ -443,7 +443,8 @@ public class RexLiteral extends RexNode {
   }
 
   /**
-   * Computes if data type can be omitted from the digset.
+   * Computes if data type can be omitted from the digest.
+   *
    * <p>For instance, {@code 1:BIGINT} has to keep data type while {@code 1:INT}
    * should be represented as just {@code 1}.
    *
@@ -613,7 +614,7 @@ public class RexLiteral extends RexNode {
    * Appends the specified value in the provided destination as a Java string. The value must be
    * consistent with the type, as per {@link #valueMatchesType}.
    *
-   * <p>Typical return values:</p>
+   * <p>Typical return values:
    *
    * <ul>
    * <li>true</li>
@@ -849,9 +850,9 @@ public class RexLiteral extends RexNode {
       final Comparable v;
       switch (typeName) {
       case DATE:
-        final Calendar cal = DateTimeUtils.parseDateFormat(literal,
-            new SimpleDateFormat(format, Locale.ROOT),
-            tz);
+        final Calendar cal =
+            DateTimeUtils.parseDateFormat(literal,
+                new SimpleDateFormat(format, Locale.ROOT), tz);
         if (cal == null) {
           throw new AssertionError("fromJdbcString: invalid date/time value '"
               + literal + "'");

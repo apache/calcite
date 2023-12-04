@@ -68,10 +68,10 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -117,6 +117,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collector;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.util.ReflectUtil.isStatic;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Miscellaneous utility functions.
@@ -124,6 +127,7 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
 public class Util {
 
   private static final int QUICK_DISTINCT = 15;
+  private static final Pattern UNDERSCORE = Pattern.compile("_+");
 
   private Util() {}
 
@@ -135,7 +139,7 @@ public class Util {
    * <p>In general, you should not use this in expected results of tests.
    * Expected results should be the expected result on Linux (or Mac OS) using
    * '\n'. Apply {@link Util#toLinux(String)} to Windows actual results, if
-   * necessary, to make them look like Linux actual.</p>
+   * necessary, to make them look like Linux actual.
    */
   public static final String LINE_SEPARATOR =
       System.getProperty("line.separator");
@@ -375,6 +379,15 @@ public class Util {
   }
 
   /**
+   * Computes <code>nlog(m)</code> using the natural logarithm (or <code>
+   * n</code> if <code>m &lt; {@link Math#E}</code>, so the result is never
+   * negative.
+   */
+  public static double nLogM(double n, double m) {
+    return (m < Math.E) ? n : (n * Math.log(m));
+  }
+
+  /**
    * Prints an object using reflection. We can handle <code>null</code>;
    * arrays of objects and primitive values; for regular objects, we print all
    * public fields.
@@ -469,7 +482,7 @@ public class Util {
       Field[] fields = clazz.getFields();
       int printed = 0;
       for (Field field : fields) {
-        if (Modifier.isStatic(field.getModifiers())) {
+        if (isStatic(field)) {
           continue;
         }
         if (printed++ > 0) {
@@ -500,7 +513,7 @@ public class Util {
    * prints <code>"x\"y"</code>.
    *
    * <p>The appendable where the value is printed must not incur I/O operations. This method is
-   * not meant to be used for writing the values to permanent storage.</p>
+   * not meant to be used for writing the values to permanent storage.
    *
    * @throws IllegalStateException if the print to the specified appendable fails due to I/O
    */
@@ -681,16 +694,16 @@ public class Util {
    *
    * <p>The mapping is one-to-one (that is, distinct strings will produce
    * distinct java identifiers). The mapping is also reversible, but the
-   * inverse mapping is not implemented.</p>
+   * inverse mapping is not implemented.
    *
    * <p>A valid Java identifier must start with a Unicode letter, underscore,
    * or dollar sign ($). The other characters, if any, can be a Unicode
-   * letter, underscore, dollar sign, or digit.</p>
+   * letter, underscore, dollar sign, or digit.
    *
    * <p>This method uses an algorithm similar to URL encoding. Valid
    * characters are unchanged; invalid characters are converted to an
    * underscore followed by the hex code of the character; and underscores are
-   * doubled.</p>
+   * doubled.
    *
    * <p>Examples:
    *
@@ -739,6 +752,7 @@ public class Util {
 
   /**
    * Returns true when input string is a valid Java identifier.
+   *
    * @param s input string
    * @return true when input string is a valid Java identifier
    */
@@ -784,7 +798,7 @@ public class Util {
    * Returns whether s == null or if s.length() == 0.
    */
   public static boolean isNullOrEmpty(@Nullable String s) {
-    return (null == s) || (s.length() == 0);
+    return s == null || s.isEmpty();
   }
 
   /**
@@ -919,7 +933,7 @@ public class Util {
    * but we don't require Guava version 20 yet. */
   public static void throwIfUnchecked(Throwable throwable) {
     Bug.upgrade("Remove when minimum Guava version is 20");
-    Objects.requireNonNull(throwable);
+    requireNonNull(throwable, "throwable");
     if (throwable instanceof RuntimeException) {
       throw (RuntimeException) throwable;
     }
@@ -931,8 +945,10 @@ public class Util {
   /**
    * This method rethrows input throwable as is (if its unchecked) or
    * wraps it with {@link RuntimeException} and throws.
-   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where {@code throw} statement
-   * is needed so Java compiler knows the execution stops at that line.</p>
+   *
+   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where
+   * {@code throw} statement is needed so Java compiler knows the execution
+   * stops at that line.
    *
    * @param throwable input throwable
    * @return the method never returns, it always throws an unchecked exception
@@ -944,10 +960,12 @@ public class Util {
   }
 
   /**
-   * This method rethrows input throwable as is (if its unchecked) with an extra message or
-   * wraps it with {@link RuntimeException} and throws.
-   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where {@code throw} statement
-   * is needed so Java compiler knows the execution stops at that line.</p>
+   * This method rethrows input throwable as is (if its unchecked) with an extra
+   * message or wraps it with {@link RuntimeException} and throws.
+   *
+   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where
+   * {@code throw} statement is needed so Java compiler knows the execution
+   * stops at that line.
    *
    * @param throwable input throwable
    * @return the method never returns, it always throws an unchecked exception
@@ -962,6 +980,9 @@ public class Util {
       throwable.addSuppressed(new Throwable(message));
       throw (Error) throwable;
     }
+    if (throwable instanceof IOException) {
+      return new UncheckedIOException(message, (IOException) throwable);
+    }
     throw new RuntimeException(message, throwable);
   }
 
@@ -974,11 +995,15 @@ public class Util {
     if (e instanceof RuntimeException) {
       return (RuntimeException) e;
     }
+    if (e instanceof IOException) {
+      return new UncheckedIOException((IOException) e);
+    }
     return new RuntimeException(e);
   }
 
   /**
    * Returns cause of the given throwable if it is non-null or the throwable itself.
+   *
    * @param throwable input throwable
    * @return cause of the given throwable if it is non-null or the throwable itself
    */
@@ -1440,21 +1465,19 @@ public class Util {
    * time
    * <li>The second offset is how many hours changed during DST. Default=1
    * <li>'start' and 'end' are the dates when DST goes into (and out of)
-   *     effect.<br>
-   *     <br>
-   *     They can each be one of three forms:
+   *     effect. They can each be one of three forms:
    *
-   *     <ol>
-   *     <li>Mm.w.d {month=1-12, week=1-5 (5 is always last), day=0-6}
-   *     <li>Jn {n=1-365 Feb29 is never counted}
-   *     <li>n {n=0-365 Feb29 is counted in leap years}
-   *     </ol>
+   * <ol>
+   * <li>Mm.w.d {month=1-12, week=1-5 (5 is always last), day=0-6}
+   * <li>Jn {n=1-365 Feb29 is never counted}
+   * <li>n {n=0-365 Feb29 is counted in leap years}
+   * </ol>
    * </li>
    *
    * <li>'time' has the same format as 'offset', and defaults to 02:00:00.</li>
    * </ul>
    *
-   * <p>For example:</p>
+   * <p>For example:
    *
    * <ul>
    * <li>"PST-8PDT01:00:00,M4.1.0/02:00:00,M10.1.0/02:00:00"; or more tersely
@@ -1549,9 +1572,9 @@ public class Util {
   }
 
   private static int groupAsInt(Matcher matcher, int index) {
-    String value = Objects.requireNonNull(
-        matcher.group(index),
-        () -> "no group for index " + index + ", matcher " + matcher);
+    String value =
+        requireNonNull(matcher.group(index),
+            () -> "no group for index " + index + ", matcher " + matcher);
     return Integer.parseInt(value);
   }
 
@@ -1781,11 +1804,12 @@ public class Util {
    * <p>The returned object is an {@link Iterable},
    * which makes it ideal for use with the 'foreach' construct. For example,
    *
-   * <blockquote><code>List&lt;Number&gt; numbers = Arrays.asList(1, 2, 3.14,
-   * 4, null, 6E23);<br>
-   * for (int myInt : filter(numbers, Integer.class)) {<br>
-   * &nbsp;&nbsp;&nbsp;&nbsp;print(i);<br>
-   * }</code></blockquote>
+   * <blockquote><pre>{@code
+   *   List<Number> numbers = Arrays.asList(1, 2, 3.14, 4, null, 6E23);
+   *   for (int myInt : filter(numbers, Integer.class)) {
+   *     print(i);
+   *   }
+   * }</pre></blockquote>
    *
    * <p>will print 1, 2, 4.
    *
@@ -1979,11 +2003,11 @@ public class Util {
    * starting at element {@code k}.
    *
    * <p>It is OK if the list is empty or its size is not a multiple of
-   * {@code n}.</p>
+   * {@code n}.
    *
    * <p>For instance, {@code quotientList(list, 2, 0)} returns the even
    * elements of a list, and {@code quotientList(list, 2, 1)} returns the odd
-   * elements. Those lists are the same length only if list has even size.</p>
+   * elements. Those lists are the same length only if list has even size.
    */
   public static <E> List<E> quotientList(
       final List<E> list, final int n, final int k) {
@@ -2009,7 +2033,6 @@ public class Util {
    * [ (e<sub>0</sub>, e<sub>1</sub>),
    * (e<sub>2</sub>, e<sub>3</sub>), ... ]. */
   public static <E> List<Pair<E, E>> pairs(final List<E> list) {
-    //noinspection unchecked
     return Pair.zip(quotientList(list, 2, 0),
         quotientList(list, 2, 1));
   }
@@ -2195,6 +2218,49 @@ public class Util {
     return -1;
   }
 
+  /**
+   * Returns whether the elements of {@code list} are definitely distinct
+   * and not null, working quickly and sometimes giving false negatives for
+   * large lists.
+   *
+   * <p>A return of true means that the list is distinct (true positive);
+   * a return of false means either that list is not distinct (true negative)
+   * or that the list is large and distinct (false negative).
+   * (If the list is large, a hash map would be required to do an accurate
+   * job, and this method does its best quickly.)
+   */
+  public static <E> boolean isDefinitelyDistinctAndNonNull(
+      List<? extends @Nullable E> list) {
+    final int size = list.size();
+    // An empty list is distinct.
+    if (size == 0) {
+      return true;
+    }
+    // Make sure that element zero is not null.
+    if (list.get(0) == null) {
+      return false;
+    }
+    if (size < QUICK_DISTINCT) {
+      // For smaller lists, avoid the overhead of creating a set. Threshold
+      // determined empirically using UtilTest.testIsDistinctBenchmark.
+      for (int i = 1; i < size; i++) {
+        final E e = list.get(i);
+        if (e == null) {
+          return false;
+        }
+        for (int j = i - 1; j >= 0; j--) {
+          final E e1 = list.get(j);
+          if (e.equals(e1)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+    // Too expensive to check.
+    return false;
+  }
+
   /** Converts a list into a list with unique elements.
    *
    * <p>The order is preserved; the second and subsequent occurrences are
@@ -2350,7 +2416,7 @@ public class Util {
   /** Converts a number into human-readable form, with 3 digits and a "K", "M"
    * or "G" multiplier for thousands, millions or billions.
    *
-   * <p>Examples: -2, 0, 1, 999, 1.00K, 1.99K, 3.45M, 4.56B.</p>
+   * <p>Examples: -2, 0, 1, 999, 1.00K, 1.99K, 3.45M, 4.56B.
    */
   public static String human(double d) {
     if (d == 0d) {

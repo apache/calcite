@@ -847,8 +847,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
       assert newInput != null;
 
       if (!joinedInputs.contains(newInput)) {
-        final List<Integer> positions = requireNonNull(mapNewInputToOutputs.get(newInput),
-            () -> "mapNewInputToOutputs.get(" + newInput + ")");
+        final List<Integer> positions =
+            requireNonNull(mapNewInputToOutputs.get(newInput),
+                () -> "mapNewInputToOutputs.get(" + newInput + ")");
 
         RelNode distinct = relBuilder.push(newInput)
             .project(relBuilder.fields(positions))
@@ -882,10 +883,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
       final RelNode newInput = frame.r;
       assert newInput != null;
 
-      final List<Integer> newLocalOutputs = requireNonNull(mapNewInputToOutputs.get(newInput),
-          () -> "mapNewInputToOutputs.get(" + newInput + ")");
+      final List<Integer> newLocalOutputs =
+          requireNonNull(mapNewInputToOutputs.get(newInput),
+              () -> "mapNewInputToOutputs.get(" + newInput + ")");
 
-      final int newLocalOutput = frame.oldToNewOutputs.get(corRef.field);
+      final int newLocalOutput = requireNonNull(frame.oldToNewOutputs.get(corRef.field));
 
       // newOutput is the index of the corVar in the referenced
       // position list plus the offset of referenced position list of
@@ -916,8 +918,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   private RelNode getCorRel(CorRef corVar) {
-    final RelNode r = requireNonNull(cm.mapCorToCorRel.get(corVar.corr),
-        () -> "cm.mapCorToCorRel.get(" + corVar.corr + ")");
+    final RelNode r =
+        requireNonNull(cm.mapCorToCorRel.get(corVar.corr),
+            () -> "cm.mapCorToCorRel.get(" + corVar.corr + ")");
     return requireNonNull(r.getInput(0),
         () -> "r.getInput(0) is null for " + r);
   }
@@ -1247,7 +1250,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // Right input positions are shifted by newLeftFieldCount.
     for (int i = 0; i < oldRightFieldCount; i++) {
       mapOldToNewOutputs.put(i + oldLeftFieldCount,
-          rightFrame.oldToNewOutputs.get(i) + newLeftFieldCount);
+          requireNonNull(rightFrame.oldToNewOutputs.get(i)) + newLeftFieldCount);
     }
 
     final RexNode condition =
@@ -1314,7 +1317,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // Right input positions are shifted by newLeftFieldCount.
     for (int i = 0; i < oldRightFieldCount; i++) {
       mapOldToNewOutputs.put(i + oldLeftFieldCount,
-          rightFrame.oldToNewOutputs.get(i) + newLeftFieldCount);
+          requireNonNull(rightFrame.oldToNewOutputs.get(i)) + newLeftFieldCount);
     }
 
     final NavigableMap<CorDef, Integer> corDefOutputs =
@@ -1347,8 +1350,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
         oldInput = oldInput0;
         break;
       }
-      RelNode newInput = requireNonNull(map.get(oldInput0),
-          () -> "map.get(oldInput0) for " + oldInput0).r;
+      RelNode newInput =
+          requireNonNull(map.get(oldInput0),
+              () -> "map.get(oldInput0) for " + oldInput0).r;
       newOrdinal += newInput.getRowType().getFieldCount();
       oldOrdinal -= n;
     }
@@ -1365,7 +1369,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     int newLocalOrdinal = oldLocalOrdinal;
 
     if (!frame.oldToNewOutputs.isEmpty()) {
-      newLocalOrdinal = frame.oldToNewOutputs.get(oldLocalOrdinal);
+      newLocalOrdinal = requireNonNull(frame.oldToNewOutputs.get(oldLocalOrdinal));
     }
 
     newOrdinal += newLocalOrdinal;
@@ -1616,9 +1620,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     private DecorrelateRexShuttle(RelNode currentRel,
         Map<RelNode, Frame> map, CorelMap cm) {
-      this.currentRel = requireNonNull(currentRel);
-      this.map = requireNonNull(map);
-      this.cm = requireNonNull(cm);
+      this.currentRel = requireNonNull(currentRel, "currentRel");
+      this.map = requireNonNull(map, "map");
+      this.cm = requireNonNull(cm, "cm");
     }
 
     @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
@@ -1782,7 +1786,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     @Override public RexNode visitLiteral(RexLiteral literal) {
       // Use nullIndicator to decide whether to project null.
-      // Do nothing if the literal is null.
+      // Do nothing if the literal is null or symbol.
       if (!RexUtil.isNull(literal)
           && projectPulledAboveLeftCorrelator
           && (nullIndicator != null)) {
@@ -1846,10 +1850,34 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   /**
-   * Rule to remove single_value rel. For cases like
+   * Rule to remove an Aggregate with SINGLE_VALUE. For cases like:
    *
-   * <blockquote>AggRel single_value proj/filter/agg/ join on unique LHS key
-   * AggRel single group</blockquote>
+   * <pre>{@code
+   * Aggregate(SINGLE_VALUE)
+   *   Project(single expression)
+   *     Aggregate
+   * }</pre>
+   *
+   * <p>For instance, the following subtree from TPCH query 17:
+   *
+   * <pre>{@code
+   * LogicalAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
+   *   LogicalProject(EXPR$0=[*(0.2:DECIMAL(2, 1), $0)])
+   *     LogicalAggregate(group=[{}], agg#0=[AVG($0)])
+   *       LogicalProject(L_QUANTITY=[$4])
+   *         LogicalFilter(condition=[=($1, $cor0.P_PARTKEY)])
+   *           LogicalTableScan(table=[[TPCH_01, LINEITEM]])
+   * }</pre>
+   *
+   * <p>will be converted into:
+   *
+   * <pre>{@code
+   * LogicalProject($f0=[*(0.2:DECIMAL(2, 1), $0)])
+   *   LogicalAggregate(group=[{}], agg#0=[AVG($0)])
+   *     LogicalProject(L_QUANTITY=[$4])
+   *       LogicalFilter(condition=[=($1, $cor0.P_PARTKEY)])
+   *         LogicalTableScan(table=[[TPCH_01, LINEITEM]])
+   * }</pre>
    */
   public static final class RemoveSingleAggregateRule
       extends RelRule<RemoveSingleAggregateRule.Config> {
@@ -1872,7 +1900,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
       Project project = call.rel(1);
       Aggregate aggregate = call.rel(2);
 
-      // check singleAggRel is single_value agg
+      // check the top aggregate is a single value agg function
       if (!singleAggregate.getGroupSet().isEmpty()
           || (singleAggregate.getAggCallList().size() != 1)
           || !(singleAggregate.getAggCallList().get(0).getAggregation()
@@ -1893,8 +1921,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         return;
       }
 
-      // singleAggRel produces a nullable type, so create the new
-      // projection that casts proj expr to a nullable type.
+      // ensure we keep the same type after removing the SINGLE_VALUE Aggregate
       final RelBuilder relBuilder = call.builder();
       final RelDataType type =
           relBuilder.getTypeFactory()
@@ -2968,7 +2995,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     Frame(RelNode oldRel, RelNode r, NavigableMap<CorDef, Integer> corDefOutputs,
         Map<Integer, Integer> oldToNewOutputs) {
-      this.r = requireNonNull(r);
+      this.r = requireNonNull(r, "r");
       this.corDefOutputs = ImmutableSortedMap.copyOf(corDefOutputs);
       this.oldToNewOutputs = ImmutableSortedMap.copyOf(oldToNewOutputs);
       assert allLessThan(this.corDefOutputs.values(),
