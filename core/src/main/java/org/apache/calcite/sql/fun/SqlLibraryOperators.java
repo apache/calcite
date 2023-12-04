@@ -545,8 +545,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction REGEXP_EXTRACT_ALL = new SqlFunction("REGEXP_EXTRACT_ALL",
       SqlKind.OTHER_FUNCTION,
-      ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
-        SqlTypeTransforms.TO_NULLABLE),
+      ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_ARRAY),
       null, OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
 
@@ -597,6 +596,15 @@ public abstract class SqlLibraryOperators {
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.INTEGER, null,
         OperandTypes.ANY, SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME =
+      new SqlFunction("DATETIME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP,
+          null,
+          OperandTypes.ANY_ANY,
+          SqlFunctionCategory.TIMEDATE);
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
@@ -914,6 +922,17 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("TRY_TO_TIMESTAMP",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP_NULLABLE,
+          null,
+          OperandTypes.or(
+              OperandTypes.STRING,
+              OperandTypes.STRING_STRING),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TRY_TO_TIME =
+      new SqlFunction("TRY_TO_TIME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIME_NULLABLE,
           null,
           OperandTypes.or(
               OperandTypes.STRING,

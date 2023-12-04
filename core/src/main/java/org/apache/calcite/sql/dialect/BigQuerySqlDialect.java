@@ -503,13 +503,17 @@ public class BigQuerySqlDialect extends SqlDialect {
         case INTERVAL_DAY_HOUR:
         case INTERVAL_MINUTE_SECOND:
         case INTERVAL_HOUR_MINUTE:
+          if (call.op.kind == SqlKind.MINUS) {
+            return SqlLibraryOperators.TIMESTAMP_SUB;
+          }
+          return PLUS;
         case INTERVAL_MINUTE:
         case INTERVAL_SECOND:
         case INTERVAL_HOUR:
           if (call.op.kind == SqlKind.MINUS) {
             return SqlLibraryOperators.TIMESTAMP_SUB;
           }
-          return PLUS;
+          return SqlLibraryOperators.DATETIME_ADD;
         case INTERVAL_DAY_MINUTE:
           if (call.op.kind == SqlKind.MINUS) {
             return MINUS;
@@ -2108,6 +2112,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       case DATE:
         return createSqlDataTypeSpecByName("DATE", typeName);
       case TIME:
+      case TIME_WITH_LOCAL_TIME_ZONE:
         return createSqlDataTypeSpecByName("TIME", typeName);
       case TIMESTAMP:
         return createSqlDataTypeSpecByName("DATETIME", typeName);
