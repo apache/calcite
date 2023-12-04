@@ -882,7 +882,7 @@ public class SqlIntervalQualifier extends SqlNode {
     final int fractionalSecondPrecision =
         getFractionalSecondPrecision(typeSystem);
     String intervalPatternWithFracSec =
-        "(\\d+) (\\d{1,2}):(\\d{1,2}):(\\d{1,2})\\.(\\d{1,"
+        "(\\d+) (\\d{1,2}):(\\d{1,2}):(\\d{1,2})\\.(\\d{0,"
         + fractionalSecondPrecision + "})";
     String intervalPatternWithoutFracSec =
         "(\\d+) (\\d{1,2}):(\\d{1,2}):(\\d{1,2})";
@@ -1034,7 +1034,7 @@ public class SqlIntervalQualifier extends SqlNode {
     final int fractionalSecondPrecision =
         getFractionalSecondPrecision(typeSystem);
     String intervalPatternWithFracSec =
-        "(\\d+):(\\d{1,2}):(\\d{1,2})\\.(\\d{1,"
+        "(\\d+):(\\d{1,2}):(\\d{1,2})\\.(\\d{0,"
         + fractionalSecondPrecision + "})";
     String intervalPatternWithoutFracSec =
         "(\\d+):(\\d{1,2}):(\\d{1,2})";
@@ -1142,7 +1142,7 @@ public class SqlIntervalQualifier extends SqlNode {
     final int fractionalSecondPrecision =
         getFractionalSecondPrecision(typeSystem);
     String intervalPatternWithFracSec =
-        "(\\d+):(\\d{1,2})\\.(\\d{1," + fractionalSecondPrecision + "})";
+        "(\\d+):(\\d{1,2})\\.(\\d{0," + fractionalSecondPrecision + "})";
     String intervalPatternWithoutFracSec =
         "(\\d+):(\\d{1,2})";
 
@@ -1211,7 +1211,7 @@ public class SqlIntervalQualifier extends SqlNode {
     final int fractionalSecondPrecision =
         getFractionalSecondPrecision(typeSystem);
     String intervalPatternWithFracSec =
-        "(\\d+)\\.(\\d{1," + fractionalSecondPrecision + "})";
+        "(\\d+)\\.(\\d{0," + fractionalSecondPrecision + "})";
     String intervalPatternWithoutFracSec =
         "(\\d+)";
 

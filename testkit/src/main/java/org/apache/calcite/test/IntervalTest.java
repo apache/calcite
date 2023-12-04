@@ -1477,9 +1477,6 @@ public class IntervalTest {
     f.expr("INTERVAL '0 0:0:0' ^DAY(0) TO SECOND^")
         .fails("Interval leading field precision '0' out of range for "
             + "INTERVAL DAY\\(0\\) TO SECOND");
-    f.expr("INTERVAL '0 0:0:0' ^DAY TO SECOND(0)^")
-        .fails("Interval fractional second precision '0' out of range for "
-            + "INTERVAL DAY TO SECOND\\(0\\)");
   }
 
   /**
@@ -1706,9 +1703,6 @@ public class IntervalTest {
     f.expr("INTERVAL '0:0:0' ^HOUR(0) TO SECOND^")
         .fails("Interval leading field precision '0' out of range for "
             + "INTERVAL HOUR\\(0\\) TO SECOND");
-    f.expr("INTERVAL '0:0:0' ^HOUR TO SECOND(0)^")
-        .fails("Interval fractional second precision '0' out of range for "
-            + "INTERVAL HOUR TO SECOND\\(0\\)");
   }
 
   /**
@@ -1850,9 +1844,6 @@ public class IntervalTest {
     f.expr("INTERVAL '0:0' ^MINUTE(0) TO SECOND^")
         .fails("Interval leading field precision '0' out of range for"
             + " INTERVAL MINUTE\\(0\\) TO SECOND");
-    f.expr("INTERVAL '0:0' ^MINUTE TO SECOND(0)^")
-        .fails("Interval fractional second precision '0' out of range for"
-            + " INTERVAL MINUTE TO SECOND\\(0\\)");
   }
 
   /**
@@ -1927,9 +1918,6 @@ public class IntervalTest {
     f.expr("INTERVAL '0' ^SECOND(0)^")
         .fails("Interval leading field precision '0' out of range for"
             + " INTERVAL SECOND\\(0\\)");
-    f.expr("INTERVAL '0' ^SECOND(1, 0)^")
-        .fails("Interval fractional second precision '0' out of range for"
-            + " INTERVAL SECOND\\(1, 0\\)");
   }
 
   public void subTestMisc() {
