@@ -56,8 +56,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational operator that eliminates
@@ -124,6 +125,11 @@ public abstract class Aggregate extends SingleRel implements Hintable {
    * For a simple {@code GROUP BY}, {@code groupSets} is a singleton list
    * containing {@code groupSet}.
    *
+   * <p>It is allowed for {@code groupSet} to contain bits that are not in any
+   * of the {@code groupSets}, even this does not correspond to valid SQL. See
+   * discussion in
+   * {@link org.apache.calcite.tools.RelBuilder#groupKey(ImmutableBitSet, Iterable)}.
+   *
    * <p>If {@code GROUP BY} is not specified,
    * or equivalently if {@code GROUP BY ()} is specified,
    * {@code groupSet} will be the empty set,
@@ -155,7 +161,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     super(cluster, traitSet, input);
     this.hints = ImmutableList.copyOf(hints);
     this.aggCalls = ImmutableList.copyOf(aggCalls);
-    this.groupSet = Objects.requireNonNull(groupSet);
+    this.groupSet = requireNonNull(groupSet, "groupSet");
     if (groupSets == null) {
       this.groupSets = ImmutableList.of(groupSet);
     } else {
@@ -315,7 +321,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
   /**
    * Returns the list of grouping sets computed by this Aggregate.
    *
-   * @return List of all grouping sets; null for just {@code groupSet}
+   * @return List of all grouping sets
    */
   public ImmutableList<ImmutableBitSet> getGroupSets() {
     return groupSets;
