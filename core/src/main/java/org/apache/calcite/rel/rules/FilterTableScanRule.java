@@ -114,8 +114,8 @@ public class FilterTableScanRule
       projects = scan.identity();
     }
 
-    final Mapping mapping = Mappings.target(projects,
-        scan.getTable().getRowType().getFieldCount());
+    final Mapping mapping =
+        Mappings.target(projects, scan.getTable().getRowType().getFieldCount());
     filters.add(
         RexUtil.apply(mapping.inverse(), filter.getCondition()));
 

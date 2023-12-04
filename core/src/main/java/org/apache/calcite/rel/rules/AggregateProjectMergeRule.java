@@ -88,6 +88,7 @@ public class AggregateProjectMergeRule
 
   public static @Nullable RelNode apply(RelOptRuleCall call, Aggregate aggregate,
       Project project) {
+    // Find all fields which we need to be straightforward field projections.
     final Set<Integer> interestingFields = RelOptUtil.getAllFields(aggregate);
 
     // Build the map from old to new; abort if any entry is not a

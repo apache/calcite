@@ -462,7 +462,7 @@ public class CoreRules {
       ProjectMultiJoinMergeRule.Config.DEFAULT.toRule();
 
   /** Rule that, given a {@link Project} node that merely returns its input,
-   *  converts the node into its input. */
+   * converts the node into its input. */
   public static final ProjectRemoveRule PROJECT_REMOVE =
       ProjectRemoveRule.Config.DEFAULT.toRule();
 

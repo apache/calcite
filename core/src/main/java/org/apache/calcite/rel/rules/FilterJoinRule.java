@@ -405,7 +405,9 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     boolean apply(Join join, JoinRelType joinType, RexNode exp);
   }
 
-  /** Rule configuration. */
+  /**
+   * Rule configuration.
+   */
   public interface Config extends RelRule.Config {
     /** Whether to try to strengthen join-type, default false. */
     @ImmutableBeans.Property
