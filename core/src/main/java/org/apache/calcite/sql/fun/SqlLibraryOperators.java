@@ -1985,7 +1985,8 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("EDIT_DISTANCE",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER_NULLABLE, null,
-          OperandTypes.family(ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
                   SqlTypeFamily.INTEGER),
               number -> number == 2),
           SqlFunctionCategory.NUMERIC);

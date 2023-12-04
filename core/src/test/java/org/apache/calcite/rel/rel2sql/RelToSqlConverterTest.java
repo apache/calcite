@@ -13635,7 +13635,7 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testEdit_DistanceFunctionWithTwoArgs() {
+  @Test public void testEditDistanceFunctionWithTwoArgs() {
     final RelBuilder builder = relBuilder();
     final RexNode editDistanceRex = builder.call(SqlLibraryOperators.EDIT_DISTANCE,
         builder.literal("abc"), builder.literal("xyz"));
@@ -13643,13 +13643,12 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(editDistanceRex)
         .build();
-    final String expectedBQQuery = "SELECT EDIT_DISTANCE('abc', 'xyz') AS `$f0`\n" +
-        "FROM scott.EMP";
+    final String expectedBQQuery = "SELECT EDIT_DISTANCE('abc', 'xyz') AS `$f0`"
+        + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQQuery));
   }
 
-  @Test
-  public void testEdit_DistanceFunctionWithThreeArgs() {
+  @Test public void testEditDistanceFunctionWithThreeArgs() {
     final RelBuilder builder = relBuilder();
     final RexNode editDistanceRex = builder.call(SqlLibraryOperators.EDIT_DISTANCE,
         builder.literal("abc"), builder.literal("xyz"),
@@ -13658,9 +13657,8 @@ class RelToSqlConverterTest {
         .scan("EMP")
         .project(editDistanceRex)
         .build();
-    final String expectedBqQuery = "SELECT EDIT_DISTANCE('abc', 'xyz', max_distance => 2) AS " +
-        "`$f0`\n" +
-        "FROM scott.EMP";
+    final String expectedBqQuery = "SELECT EDIT_DISTANCE('abc', 'xyz', max_distance => 2) AS `$f0`"
+        + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
   }
 }
