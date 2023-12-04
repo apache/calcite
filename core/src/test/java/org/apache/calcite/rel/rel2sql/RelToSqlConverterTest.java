@@ -13617,16 +13617,4 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
-//  @Test public void () {
-//    final String query = "SELECT\n"
-//        + " PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY \"product_id\")\n"
-//        + "FROM \"product\"";
-//    final String expectedSql = "SELECT PERCENTILE_CONT(0.25) WITHIN GROUP "
-//        + "(ORDER BY \"product_id\")\n"
-//        + "FROM \"foodmart\".\"product\"";
-//
-//    sql(query)
-//        .ok(expectedSql);
-//
-//  }
 }
