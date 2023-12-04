@@ -7455,19 +7455,40 @@ class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6150">[CALCITE-6150]
-   * Clickhouse does not support certain EXTRACT Unit syntax.</a>. */
-  @Test void testClickhouseSpecialExtract() {
-    final String sql1 = "SELECT EXTRACT(DOW FROM Date '2023-12-01')";
-    final String expected1 = "SELECT DAYOFWEEK(toDate('2023-12-01'))";
-    sql(sql1).withClickHouse().ok(expected1);
-
-    final String sql2 = "SELECT EXTRACT(DOY FROM Date '2023-12-01')";
-    final String expected2 = "SELECT DAYOFYEAR(toDate('2023-12-01'))";
-    sql(sql2).withClickHouse().ok(expected2);
-
-    final String sql3 = "SELECT EXTRACT(WEEK FROM Date '2023-12-01')";
-    final String expected3 = "SELECT toWeek(toDate('2023-12-01'))";
-    sql(sql3).withClickHouse().ok(expected3);
+   * Generate dialect-specific SQL for EXTRACT operator.</a>. */
+  @Test void testExtract() {
+    final String sql = "SELECT\n" +
+        "EXTRACT(YEAR FROM DATE '2023-12-01'), EXTRACT(QUARTER FROM DATE '2023-12-01'), EXTRACT(MONTH FROM DATE '2023-12-01'),\n" +
+        "EXTRACT(WEEK FROM DATE '2023-12-01'), EXTRACT(DOY FROM DATE '2023-12-01'), EXTRACT(DAY FROM DATE '2023-12-01'),\n" +
+        "EXTRACT(DOW FROM DATE '2023-12-01'), EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'),\n" +
+        "EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'), EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')";
+    final String expectedClickHouse = "SELECT " +
+        "EXTRACT(YEAR FROM toDate('2023-12-01')), EXTRACT(QUARTER FROM toDate('2023-12-01')), EXTRACT(MONTH FROM toDate('2023-12-01')), " +
+        "toWeek(toDate('2023-12-01')), DAYOFYEAR(toDate('2023-12-01')), EXTRACT(DAY FROM toDate('2023-12-01')), " +
+        "DAYOFWEEK(toDate('2023-12-01')), EXTRACT(HOUR FROM toDateTime('2023-12-01 00:00:00')), " +
+        "EXTRACT(MINUTE FROM toDateTime('2023-12-01 00:00:00')), EXTRACT(SECOND FROM toDateTime('2023-12-01 00:00:00'))";
+    final String expectedHive = "SELECT " +
+        "EXTRACT(YEAR FROM DATE '2023-12-01'), EXTRACT(QUARTER FROM DATE '2023-12-01'), EXTRACT(MONTH FROM DATE '2023-12-01'), " +
+        "EXTRACT(WEEK FROM DATE '2023-12-01'), EXTRACT(DOY FROM DATE '2023-12-01'), EXTRACT(DAY FROM DATE '2023-12-01'), " +
+        "EXTRACT(DOW FROM DATE '2023-12-01'), EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'), " +
+        "EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'), EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')";
+    final String expectedPostgresql = "SELECT " +
+        "EXTRACT(YEAR FROM DATE '2023-12-01'), EXTRACT(QUARTER FROM DATE '2023-12-01'), EXTRACT(MONTH FROM DATE '2023-12-01'), " +
+        "EXTRACT(WEEK FROM DATE '2023-12-01'), EXTRACT(DOY FROM DATE '2023-12-01'), EXTRACT(DAY FROM DATE '2023-12-01'), " +
+        "EXTRACT(DOW FROM DATE '2023-12-01'), EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'), " +
+        "EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'), EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')\n" +
+        "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    final String expectedHsqldb = "SELECT " +
+        "EXTRACT(YEAR FROM DATE '2023-12-01'), EXTRACT(QUARTER FROM DATE '2023-12-01'), EXTRACT(MONTH FROM DATE '2023-12-01'), " +
+        "EXTRACT(WEEK FROM DATE '2023-12-01'), EXTRACT(DOY FROM DATE '2023-12-01'), EXTRACT(DAY FROM DATE '2023-12-01'), " +
+        "EXTRACT(DOW FROM DATE '2023-12-01'), EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'), " +
+        "EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'), EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')\n" +
+        "FROM (VALUES (0)) AS t (ZERO)";
+    sql(sql)
+        .withClickHouse().ok(expectedClickHouse)
+        .withHive().ok(expectedHive)
+        .withPostgresql().ok(expectedPostgresql)
+        .withHsqldb().ok(expectedHsqldb);
   }
 
   /** Fluid interface to run tests. */

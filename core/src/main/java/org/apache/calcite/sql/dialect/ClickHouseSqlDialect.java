@@ -179,7 +179,7 @@ public class ClickHouseSqlDialect extends SqlDialect {
       SqlLiteral node = call.operand(0);
       TimeUnitRange unit = node.getValueAs(TimeUnitRange.class);
       String funName;
-      switch (unit){
+      switch (unit) {
       case DOW:
         funName = "DAYOFWEEK";
         break;
