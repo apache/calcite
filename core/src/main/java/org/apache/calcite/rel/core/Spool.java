@@ -73,8 +73,8 @@ public abstract class Spool extends SingleRel {
   protected Spool(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       Type readType, Type writeType) {
     super(cluster, traitSet, input);
-    this.readType = Objects.requireNonNull(readType);
-    this.writeType = Objects.requireNonNull(writeType);
+    this.readType = Objects.requireNonNull(readType, "readType");
+    this.writeType = Objects.requireNonNull(writeType, "writeType");
   }
 
   @Override public final RelNode copy(RelTraitSet traitSet,
