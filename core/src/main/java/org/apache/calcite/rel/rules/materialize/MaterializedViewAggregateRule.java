@@ -186,9 +186,10 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
         ImmutableBitSet.range(
             aggregateViewNode.getInput().getRowType().getFieldCount(),
             aggregateViewNode.getInput().getRowType().getFieldCount() + offset));
-    final Aggregate newViewNode = aggregateViewNode.copy(
-        aggregateViewNode.getTraitSet(), relBuilder.build(),
-        groupSet.build(), null, aggregateViewNode.getAggCallList());
+    final Aggregate newViewNode =
+        aggregateViewNode.copy(aggregateViewNode.getTraitSet(),
+            relBuilder.build(), groupSet.build(), null,
+            aggregateViewNode.getAggCallList());
 
     relBuilder.push(newViewNode);
     List<RexNode> nodes = new ArrayList<>();
@@ -196,11 +197,11 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     if (topViewProject != null) {
       // Insert existing expressions (and shift aggregation arguments),
       // then append rest of columns
-      Mappings.TargetMapping shiftMapping = Mappings.createShiftMapping(
-          newViewNode.getRowType().getFieldCount(),
-          0, 0, aggregateViewNode.getGroupCount(),
-          newViewNode.getGroupCount(), aggregateViewNode.getGroupCount(),
-          aggregateViewNode.getAggCallList().size());
+      Mappings.TargetMapping shiftMapping =
+          Mappings.createShiftMapping(newViewNode.getRowType().getFieldCount(),
+              0, 0, aggregateViewNode.getGroupCount(),
+              newViewNode.getGroupCount(), aggregateViewNode.getGroupCount(),
+              aggregateViewNode.getAggCallList().size());
       for (int i = 0; i < topViewProject.getProjects().size(); i++) {
         nodes.add(
             topViewProject.getProjects().get(i).accept(
@@ -268,9 +269,10 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     // are contained in the query.
     List<RexNode> queryExprs = extractReferences(rexBuilder, target);
     if (!compensationColumnsEquiPred.isAlwaysTrue()) {
-      RexNode newCompensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
-          target, target, queryExprs, queryToViewTableMapping, queryEC, false,
-          compensationColumnsEquiPred);
+      RexNode newCompensationColumnsEquiPred =
+          rewriteExpression(rexBuilder, mq, target, target, queryExprs,
+              queryToViewTableMapping, queryEC, false,
+              compensationColumnsEquiPred);
       if (newCompensationColumnsEquiPred == null) {
         // Skip it
         return null;
@@ -279,19 +281,21 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     }
     // For the rest, we use the query equivalence classes
     if (!otherCompensationPred.isAlwaysTrue()) {
-      RexNode newOtherCompensationPred = rewriteExpression(rexBuilder, mq,
-          target, target, queryExprs, queryToViewTableMapping, viewEC, true,
-          otherCompensationPred);
+      RexNode newOtherCompensationPred =
+          rewriteExpression(rexBuilder, mq, target, target, queryExprs,
+              queryToViewTableMapping, viewEC, true,
+              otherCompensationPred);
       if (newOtherCompensationPred == null) {
         // Skip it
         return null;
       }
       otherCompensationPred = newOtherCompensationPred;
     }
-    final RexNode queryCompensationPred = RexUtil.not(
-        RexUtil.composeConjunction(rexBuilder,
-            ImmutableList.of(compensationColumnsEquiPred,
-                otherCompensationPred)));
+    final RexNode queryCompensationPred =
+        RexUtil.not(
+            RexUtil.composeConjunction(rexBuilder,
+                ImmutableList.of(compensationColumnsEquiPred,
+                    otherCompensationPred)));
 
     // Generate query rewriting.
     RelNode rewrittenPlan = relBuilder

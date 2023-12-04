@@ -33,13 +33,13 @@ import org.apache.calcite.util.Pair;
 
 /**
  * Planner rule that merges a
- * {@link org.apache.calcite.rel.logical.LogicalProject} and a
- * {@link org.apache.calcite.rel.logical.LogicalCalc}.
+ * {@link org.apache.calcite.rel.core.Project} and a
+ * {@link org.apache.calcite.rel.core.Calc}.
  *
- * <p>The resulting {@link org.apache.calcite.rel.logical.LogicalCalc} has the
+ * <p>The resulting {@link org.apache.calcite.rel.core.Calc} has the
  * same project list as the original
- * {@link org.apache.calcite.rel.logical.LogicalProject}, but expressed in terms
- * of the original {@link org.apache.calcite.rel.logical.LogicalCalc}'s inputs.
+ * {@link org.apache.calcite.rel.core.Project}, but expressed in terms
+ * of the original {@link org.apache.calcite.rel.core.Calc}'s inputs.
  *
  * @see FilterCalcMergeRule
  * @see CoreRules#PROJECT_CALC_MERGE
@@ -67,9 +67,7 @@ public class ProjectCalcMergeRule
 
     // Don't merge a project which contains windowed aggregates onto a
     // calc. That would effectively be pushing a windowed aggregate down
-    // through a filter. Transform the project into an identical calc,
-    // which we'll have chance to merge later, after the over is
-    // expanded.
+    // through a filter.
     final RelOptCluster cluster = project.getCluster();
     RexProgram program =
         RexProgram.create(

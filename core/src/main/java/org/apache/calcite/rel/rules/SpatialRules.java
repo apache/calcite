@@ -205,9 +205,9 @@ public abstract class SpatialRules {
         op1 = within.operands.get(1);
         final Geometries.Geom g1 = constantGeom(op1);
         if (RexUtil.isLiteral(within.operands.get(2), true)) {
-          final Number distance = requireNonNull(
-              (Number) value(within.operands.get(2)),
-              () -> "distance for " + within);
+          final Number distance =
+              requireNonNull((Number) value(within.operands.get(2)),
+                  () -> "distance for " + within);
           switch (Double.compare(distance.doubleValue(), 0D)) {
           case -1: // negative distance
             return ImmutableList.of(builder.getRexBuilder().makeLiteral(false));
