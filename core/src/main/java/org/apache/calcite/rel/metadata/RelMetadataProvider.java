@@ -31,7 +31,7 @@ import java.lang.reflect.Method;
  * such as {@link RelMetadataQuery}.
  *
  * <p>For background and motivation, see <a
- * href="http://wiki.eigenbase.org/RelationalExpressionMetadata">wiki</a>.
+ * href="http://www.hydromatic.net/wiki/RelationalExpressionMetadata">wiki</a>.
  *
  * <p>If your provider is not a singleton, we recommend that you implement
  * {@link Object#equals(Object)} and {@link Object#hashCode()} methods. This
@@ -45,9 +45,9 @@ public interface RelMetadataProvider {
    * of relational expression.
    *
    * <p>The object returned is a function. It can be applied to a relational
-   * expression of the given type to create a metadata object.</p>
+   * expression of the given type to create a metadata object.
    *
-   * <p>For example, you might call</p>
+   * <p>For example, you might call
    *
    * <blockquote><pre>
    * RelMetadataProvider provider;
