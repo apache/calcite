@@ -168,6 +168,7 @@ public abstract class Window extends SingleRel {
 
   /**
    * Returns constants that are additional inputs of current relation.
+   *
    * @return constants that are additional inputs of current relation
    */
   public List<RexLiteral> getConstants() {
@@ -234,11 +235,11 @@ public abstract class Window extends SingleRel {
         RexWindowBound upperBound,
         RelCollation orderKeys,
         List<RexWinAggCall> aggCalls) {
-      this.keys = Objects.requireNonNull(keys);
+      this.keys = Objects.requireNonNull(keys, "keys");
       this.isRows = isRows;
-      this.lowerBound = Objects.requireNonNull(lowerBound);
-      this.upperBound = Objects.requireNonNull(upperBound);
-      this.orderKeys = Objects.requireNonNull(orderKeys);
+      this.lowerBound = Objects.requireNonNull(lowerBound, "lowerBound");
+      this.upperBound = Objects.requireNonNull(upperBound, "upperBound");
+      this.orderKeys = Objects.requireNonNull(orderKeys, "orderKeys");
       this.aggCalls = ImmutableList.copyOf(aggCalls);
       this.digest = computeString();
     }
@@ -312,6 +313,7 @@ public abstract class Window extends SingleRel {
      * Returns if the window is guaranteed to have rows.
      * This is useful to refine data type of window aggregates.
      * For instance sum(non-nullable) over (empty window) is NULL.
+     *
      * @return true when the window is non-empty
      * @see org.apache.calcite.sql.SqlWindow#isAlwaysNonEmpty()
      * @see org.apache.calcite.sql.SqlOperatorBinding#getGroupCount()

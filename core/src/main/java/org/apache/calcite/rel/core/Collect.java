@@ -34,12 +34,13 @@ import static java.util.Objects.requireNonNull;
 /**
  * A relational expression that collapses multiple rows into one.
  *
- * <p>Rules:</p>
+ * <p>Rules:
  *
  * <ul>
- * <li>{@code net.sf.farrago.fennel.rel.FarragoMultisetSplitterRule}
+ * <li>{@link org.apache.calcite.rel.rules.SubQueryRemoveRule}
  * creates a Collect from a call to
- * {@link org.apache.calcite.sql.fun.SqlMultisetValueConstructor} or to
+ * {@link org.apache.calcite.sql.fun.SqlArrayQueryConstructor},
+ * {@link org.apache.calcite.sql.fun.SqlMapQueryConstructor}, or
  * {@link org.apache.calcite.sql.fun.SqlMultisetQueryConstructor}.</li>
  * </ul>
  */
@@ -105,11 +106,11 @@ public class Collect extends SingleRel {
   }
 
   /**
-   * Derives the output type of a collect relational expression.
+   * Derives the output row type of a Collect relational expression.
    *
    * @param rel       relational expression
    * @param fieldName name of sole output field
-   * @return output type of a collect relational expression
+   * @return output row type of a Collect relational expression
    */
   public static RelDataType deriveCollectRowType(
       SingleRel rel,
