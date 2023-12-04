@@ -143,6 +143,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select interval mgr hour as h from emp").ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6115">[CALCITE-6115]
+   * Interval type specifier with zero fractional second precision does not pass validation</a>.
+   */
+  @Test void testIntervalSecondNoFractionalPart() {
+    sql("select interval '1' second(1,0) as h from emp").ok();
+  }
+
   @Test void testAliasList() {
     final String sql = "select a + b from (\n"
         + "  select deptno, 1 as uno, name from dept\n"

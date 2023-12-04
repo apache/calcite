@@ -3315,6 +3315,17 @@ LogicalProject(EXPR$0=[*($0, 13:INTERVAL YEAR TO MONTH)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testIntervalSecondNoFractionalPart">
+    <Resource name="sql">
+      <![CDATA[select interval '1' second(1,0) as h from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(H=[1000:INTERVAL SECOND(1, 0)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testIsDistinctFrom">
     <Resource name="plan">
       <![CDATA[

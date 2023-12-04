@@ -137,7 +137,7 @@ public enum SqlTypeName {
   public static final int DEFAULT_INTERVAL_START_PRECISION = 2;
   public static final int DEFAULT_INTERVAL_FRACTIONAL_SECOND_PRECISION = 6;
   public static final int MIN_INTERVAL_START_PRECISION = 1;
-  public static final int MIN_INTERVAL_FRACTIONAL_SECOND_PRECISION = 1;
+  public static final int MIN_INTERVAL_FRACTIONAL_SECOND_PRECISION = 0;
   public static final int MAX_INTERVAL_START_PRECISION = 10;
   public static final int MAX_INTERVAL_FRACTIONAL_SECOND_PRECISION = 9;
 

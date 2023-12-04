@@ -2275,7 +2275,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       assertThat(typeName.getMinPrecision(), is(1));
       assertThat(typeSystem.getMaxPrecision(typeName), is(10));
       assertThat(typeSystem.getDefaultPrecision(typeName), is(2));
-      assertThat(typeName.getMinScale(), is(1));
+      assertThat(typeName.getMinScale(), is(0));
       assertThat(typeSystem.getMaxScale(typeName), is(9));
       assertThat(typeName.getDefaultScale(), is(6));
     }
@@ -2333,6 +2333,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("INTERVAL HOUR NOT NULL");
     sql("select interval emp.mgr hour as h from emp")
         .columnType("INTERVAL HOUR");
+    expr("interval '1' second(1, 0)")
+        .columnType("INTERVAL SECOND(1, 0) NOT NULL");
   }
 
   @Test void testIntervalOperators() {
