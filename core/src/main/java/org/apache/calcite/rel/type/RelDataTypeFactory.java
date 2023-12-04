@@ -212,7 +212,7 @@ public interface RelDataTypeFactory {
   /**
    * Creates a SQL type that represents the "unknown" type.
    * It is only equal to itself, and is distinct from the NULL type.
-
+   *
    * @return unknown type
    */
   RelDataType createUnknownType();
@@ -560,8 +560,9 @@ public interface RelDataTypeFactory {
      * Makes sure that field names are unique.
      */
     public Builder uniquify() {
-      final List<String> uniqueNames = SqlValidatorUtil.uniquify(names,
-          typeFactory.getTypeSystem().isSchemaCaseSensitive());
+      final List<String> uniqueNames =
+          SqlValidatorUtil.uniquify(names,
+              typeFactory.getTypeSystem().isSchemaCaseSensitive());
       if (uniqueNames != names) {
         names.clear();
         names.addAll(uniqueNames);

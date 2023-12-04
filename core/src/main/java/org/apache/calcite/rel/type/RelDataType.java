@@ -92,7 +92,7 @@ public interface RelDataType {
   /**
    * Looks up a field by name.
    *
-   * <p>NOTE: Be careful choosing the value of {@code caseSensitive}:</p>
+   * <p>NOTE: Be careful choosing the value of {@code caseSensitive}:
    * <ul>
    * <li>If the field name was supplied by an end-user (e.g. as a column alias
    * in SQL), use your session's case-sensitivity setting.</li>
@@ -173,7 +173,7 @@ public interface RelDataType {
    * for an INTEGER type.
    *
    * <p>Returns {@link #PRECISION_NOT_SPECIFIED} (-1) if precision is not
-   * applicable for this type.</p>
+   * applicable for this type.
    *
    * @return number of decimal digits for exact numeric types; number of
    * decimal digits in mantissa for approximate numeric types; number of
