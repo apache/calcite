@@ -1979,4 +1979,14 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.ARG0, null,
           OperandTypes.family(SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
+  public static final SqlFunction EDIT_DISTANCE =
+      new SqlFunction("EDIT_DISTANCE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+                  SqlTypeFamily.INTEGER),
+              number -> number == 2),
+          SqlFunctionCategory.NUMERIC);
 }
