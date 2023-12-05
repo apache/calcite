@@ -340,6 +340,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       case FLOAT:
       case DOUBLE:
         return createSqlDataTypeSpecByName("FLOAT64", typeName);
+      case REAL:
+        return createSqlDataTypeSpecByName("FLOAT32", typeName);
       case DECIMAL:
         return createSqlDataTypeSpecByName("NUMERIC", typeName);
       case BOOLEAN:

@@ -99,6 +99,7 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.BIGINT);
     rule.add(SqlTypeName.DECIMAL);
     rule.add(SqlTypeName.FLOAT);
+    rule.add(SqlTypeName.DOUBLE);
     rules.add(SqlTypeName.FLOAT, rule);
 
     // REAL (32 bit floating point) is assignable from...
@@ -109,6 +110,7 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.BIGINT);
     rule.add(SqlTypeName.DECIMAL);
     rule.add(SqlTypeName.FLOAT);
+    rule.add(SqlTypeName.DOUBLE);
     rule.add(SqlTypeName.REAL);
     rules.add(SqlTypeName.REAL, rule);
 
@@ -204,6 +206,7 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.BIGINT);
     rule.add(SqlTypeName.DECIMAL);
     rule.add(SqlTypeName.FLOAT);
+    rule.add(SqlTypeName.DOUBLE);
     rule.add(SqlTypeName.REAL);
     rule.add(SqlTypeName.TIME);
     rule.add(SqlTypeName.DATE);

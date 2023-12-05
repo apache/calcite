@@ -406,6 +406,7 @@ public class RexLiteral extends RexNode {
       return SqlTypeName.DECIMAL;
     case REAL:
     case FLOAT:
+    case DOUBLE:
       return SqlTypeName.DOUBLE;
     case VARBINARY:
       return SqlTypeName.BINARY;
@@ -653,6 +654,7 @@ public class RexLiteral extends RexNode {
       sb.append(value.toString());
       break;
     case DOUBLE:
+    case FLOAT:
       assert value instanceof BigDecimal;
       sb.append(Util.toScientificNotation((BigDecimal) value));
       break;
@@ -806,6 +808,8 @@ public class RexLiteral extends RexNode {
       return new RexLiteral(b, type, typeName);
     case DECIMAL:
     case DOUBLE:
+    case REAL:
+    case FLOAT:
       BigDecimal d = new BigDecimal(literal);
       return new RexLiteral(d, type, typeName);
     case BINARY:

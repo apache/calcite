@@ -88,8 +88,9 @@ public class ClickHouseSqlDialect extends SqlDialect {
         return createSqlDataTypeSpecByName("Int32", typeName);
       case BIGINT:
         return createSqlDataTypeSpecByName("Int64", typeName);
-      case FLOAT:
+      case REAL:
         return createSqlDataTypeSpecByName("Float32", typeName);
+      case FLOAT:
       case DOUBLE:
         return createSqlDataTypeSpecByName("Float64", typeName);
       case DATE:

@@ -491,24 +491,6 @@ public abstract class SqlTypeUtil {
     return typeName == SqlTypeName.DECIMAL;
   }
 
-  /** Returns whether a type is DOUBLE. */
-  public static boolean isDouble(RelDataType type) {
-    SqlTypeName typeName = type.getSqlTypeName();
-    if (typeName == null) {
-      return false;
-    }
-    return typeName == SqlTypeName.DOUBLE;
-  }
-
-  /** Returns whether a type is BIGINT. */
-  public static boolean isBigint(RelDataType type) {
-    SqlTypeName typeName = type.getSqlTypeName();
-    if (typeName == null) {
-      return false;
-    }
-    return typeName == SqlTypeName.BIGINT;
-  }
-
   /** Returns whether a type is numeric with exact precision. */
   public static boolean isExactNumeric(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
