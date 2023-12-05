@@ -806,6 +806,12 @@ public enum SqlKind {
   /** {@code SUBSTR} function (PostgreSQL semantics). */
   SUBSTR_POSTGRESQL,
 
+  /** {@code ENDS_WITH} function. */
+  ENDS_WITH,
+
+  /** {@code STARTS_WITH} function. */
+  STARTS_WITH,
+
   /** Call to a function using JDBC function syntax. */
   JDBC_FN,
 

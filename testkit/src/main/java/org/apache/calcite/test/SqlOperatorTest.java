@@ -4982,7 +4982,7 @@ public class SqlOperatorTest {
       f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3)");
       f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3, 'i')");
     };
-    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.ORACLE, SqlLibrary.BIG_QUERY), consumer);
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.ORACLE), consumer);
 
     // Tests for double-backslash indexed capturing groups for regexp_replace in BQ
     final SqlOperatorFixture f1 =
@@ -8898,51 +8898,106 @@ public class SqlOperatorTest {
   }
 
   @Test void testStartsWithFunction() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.STARTS_WITH);
-    f.checkBoolean("starts_with('12345', '123')", true);
-    f.checkBoolean("starts_with('12345', '1243')", false);
-    f.checkBoolean("starts_with(x'11', x'11')", true);
-    f.checkBoolean("starts_with(x'112211', x'33')", false);
-    f.checkFails("^starts_with('aabbcc', x'aa')^",
-        "Cannot apply 'STARTS_WITH' to arguments of type "
-            + "'STARTS_WITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-            + "form\\(s\\): 'STARTS_WITH\\(<STRING>, <STRING>\\)'",
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.STARTS_WITH);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkBoolean("starts_with('12345', '123')", true);
+      f.checkBoolean("starts_with('12345', '1243')", false);
+      f.checkBoolean("starts_with(x'11', x'11')", true);
+      f.checkBoolean("starts_with(x'112211', x'33')", false);
+      f.checkFails("^starts_with('aabbcc', x'aa')^",
+          "Cannot apply 'STARTS_WITH' to arguments of type "
+              + "'STARTS_WITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
+              + "form\\(s\\): 'STARTS_WITH\\(<STRING>, <STRING>\\)'",
+          false);
+      f.checkNull("starts_with(null, null)");
+      f.checkNull("starts_with('12345', null)");
+      f.checkNull("starts_with(null, '123')");
+      f.checkBoolean("starts_with('', '123')", false);
+      f.checkBoolean("starts_with('', '')", true);
+      f.checkNull("starts_with(x'aa', null)");
+      f.checkNull("starts_with(null, x'aa')");
+      f.checkBoolean("starts_with(x'1234', x'')", true);
+      f.checkBoolean("starts_with(x'', x'123456')", false);
+      f.checkBoolean("starts_with(x'', x'')", true);
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL), consumer);
+  }
+
+  /** Tests for Snowflake's {@code STARTSWITH} function. */
+  @Test void testSnowflakeStartsWithFunction() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.SNOWFLAKE);
+    f.setFor(SqlLibraryOperators.STARTSWITH);
+    f.checkBoolean("startswith('12345', '123')", true);
+    f.checkBoolean("startswith('12345', '1243')", false);
+    f.checkBoolean("startswith(x'11', x'11')", true);
+    f.checkBoolean("startswith(x'112211', x'33')", false);
+    f.checkFails("^startswith('aabbcc', x'aa')^",
+        "Cannot apply 'STARTSWITH' to arguments of type "
+            + "'STARTSWITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
+            + "form\\(s\\): 'STARTSWITH\\(<STRING>, <STRING>\\)'",
         false);
-    f.checkNull("starts_with(null, null)");
-    f.checkNull("starts_with('12345', null)");
-    f.checkNull("starts_with(null, '123')");
-    f.checkBoolean("starts_with('', '123')", false);
-    f.checkBoolean("starts_with('', '')", true);
-    f.checkNull("starts_with(x'aa', null)");
-    f.checkNull("starts_with(null, x'aa')");
-    f.checkBoolean("starts_with(x'1234', x'')", true);
-    f.checkBoolean("starts_with(x'', x'123456')", false);
-    f.checkBoolean("starts_with(x'', x'')", true);
+    f.checkNull("startswith(null, null)");
+    f.checkNull("startswith('12345', null)");
+    f.checkNull("startswith(null, '123')");
+    f.checkBoolean("startswith('', '123')", false);
+    f.checkBoolean("startswith('', '')", true);
+    f.checkNull("startswith(x'aa', null)");
+    f.checkNull("startswith(null, x'aa')");
+    f.checkBoolean("startswith(x'1234', x'')", true);
+    f.checkBoolean("startswith(x'', x'123456')", false);
+    f.checkBoolean("startswith(x'', x'')", true);
   }
 
   @Test void testEndsWithFunction() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ENDS_WITH);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkBoolean("ends_with('12345', '345')", true);
+      f.checkBoolean("ends_with('12345', '123')", false);
+      f.checkBoolean("ends_with(x'11', x'11')", true);
+      f.checkBoolean("ends_with(x'112211', x'33')", false);
+      f.checkFails("^ends_with('aabbcc', x'aa')^",
+          "Cannot apply 'ENDS_WITH' to arguments of type "
+              + "'ENDS_WITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
+              + "form\\(s\\): 'ENDS_WITH\\(<STRING>, <STRING>\\)'",
+          false);
+      f.checkNull("ends_with(null, null)");
+      f.checkNull("ends_with('12345', null)");
+      f.checkNull("ends_with(null, '123')");
+      f.checkBoolean("ends_with('', '123')", false);
+      f.checkBoolean("ends_with('', '')", true);
+      f.checkNull("ends_with(x'aa', null)");
+      f.checkNull("ends_with(null, x'aa')");
+      f.checkBoolean("ends_with(x'1234', x'')", true);
+      f.checkBoolean("ends_with(x'', x'123456')", false);
+      f.checkBoolean("ends_with(x'', x'')", true);
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL), consumer);
+  }
+
+  @Test void testSnowflakeEndsWithFunction() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.SNOWFLAKE);
     f.setFor(SqlLibraryOperators.ENDS_WITH);
-    f.checkBoolean("ends_with('12345', '345')", true);
-    f.checkBoolean("ends_with('12345', '123')", false);
-    f.checkBoolean("ends_with(x'11', x'11')", true);
-    f.checkBoolean("ends_with(x'112211', x'33')", false);
-    f.checkFails("^ends_with('aabbcc', x'aa')^",
-        "Cannot apply 'ENDS_WITH' to arguments of type "
-            + "'ENDS_WITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-            + "form\\(s\\): 'ENDS_WITH\\(<STRING>, <STRING>\\)'",
+    f.checkBoolean("endswith('12345', '345')", true);
+    f.checkBoolean("endswith('12345', '123')", false);
+    f.checkBoolean("endswith(x'11', x'11')", true);
+    f.checkBoolean("endswith(x'112211', x'33')", false);
+    f.checkFails("^endswith('aabbcc', x'aa')^",
+        "Cannot apply 'ENDSWITH' to arguments of type "
+            + "'ENDSWITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
+            + "form\\(s\\): 'ENDSWITH\\(<STRING>, <STRING>\\)'",
         false);
-    f.checkNull("ends_with(null, null)");
-    f.checkNull("ends_with('12345', null)");
-    f.checkNull("ends_with(null, '123')");
-    f.checkBoolean("ends_with('', '123')", false);
-    f.checkBoolean("ends_with('', '')", true);
-    f.checkNull("ends_with(x'aa', null)");
-    f.checkNull("ends_with(null, x'aa')");
-    f.checkBoolean("ends_with(x'1234', x'')", true);
-    f.checkBoolean("ends_with(x'', x'123456')", false);
-    f.checkBoolean("ends_with(x'', x'')", true);
+    f.checkNull("endswith(null, null)");
+    f.checkNull("endswith('12345', null)");
+    f.checkNull("endswith(null, '123')");
+    f.checkBoolean("endswith('', '123')", false);
+    f.checkBoolean("endswith('', '')", true);
+    f.checkNull("endswith(x'aa', null)");
+    f.checkNull("endswith(null, x'aa')");
+    f.checkBoolean("endswith(x'1234', x'')", true);
+    f.checkBoolean("endswith(x'', x'123456')", false);
+    f.checkBoolean("endswith(x'', x'')", true);
   }
 
   /** Tests the {@code SPLIT} operator. */

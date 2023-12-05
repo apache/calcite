@@ -2629,6 +2629,7 @@ The 'C' (compatibility) column contains value:
 * '*' for all libraries,
 * 'b' for Google BigQuery ('fun=bigquery' in the connect string),
 * 'c' for Apache Calcite ('fun=calcite' in the connect string),
+* 'f' for Snowflake ('fun=snowflake' in the connect string),
 * 'h' for Apache Hive ('fun=hive' in the connect string),
 * 'm' for MySQL ('fun=mysql' in the connect string),
 * 'q' for Microsoft SQL Server ('fun=mssql' in the connect string),
@@ -2728,7 +2729,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | b | DATE_TRUNC(date, timeUnit)                     | Truncates *date* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
-| b | ENDS_WITH(string1, string2)                    | Returns whether *string2* is a suffix of *string1*
+| f | ENDSWITH(string1, string2)                     | Returns whether *string2* is a suffix of *string1*
+| b p | ENDS_WITH(string1, string2)                  | Equivalent to `ENDSWITH(string1, string2)`
 | o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the XML fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
 | o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
@@ -2825,7 +2827,8 @@ BigQuery's type system uses confusingly different names for types and functions:
 | s | SOUNDEX(string)                                | Returns the phonetic representation of *string*; return original *string* if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
 | b | SPLIT(string [, delimiter ])                   | Returns the string array of *string* split at *delimiter* (if omitted, default is comma).  If the *string* is empty it returns an empty array, otherwise, if the *delimiter* is empty, it returns an array containing the original *string*.
-| b | STARTS_WITH(string1, string2)                  | Returns whether *string2* is a prefix of *string1*
+| f | STARTSWITH(string1, string2)                   | Returns whether *string2* is a prefix of *string1*
+| b p | STARTS_WITH(string1, string2)                | Equivalent to `STARTSWITH(string1, string2)`
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
 | b p | STRPOS(string, substring)                    | Equivalent to `POSITION(substring IN string)`
 | b m o p | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set

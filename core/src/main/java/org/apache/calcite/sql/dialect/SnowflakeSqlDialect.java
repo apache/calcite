@@ -17,7 +17,11 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.parser.SqlParserPos;
 
 /**
  * A <code>SqlDialect</code> implementation for the Snowflake database.
@@ -34,6 +38,24 @@ public class SnowflakeSqlDialect extends SqlDialect {
   /** Creates a SnowflakeSqlDialect. */
   public SnowflakeSqlDialect(Context context) {
     super(context);
+  }
+
+  @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
+      final int rightPrec) {
+    switch (call.getKind()) {
+    case ENDS_WITH:
+      SqlCall endsWithCall = SqlLibraryOperators.ENDSWITH
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, endsWithCall, leftPrec, rightPrec);
+      break;
+    case STARTS_WITH:
+      SqlCall startsWithCall = SqlLibraryOperators.STARTSWITH
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, startsWithCall, leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
   }
 
   @Override public boolean supportsApproxCountDistinct() {

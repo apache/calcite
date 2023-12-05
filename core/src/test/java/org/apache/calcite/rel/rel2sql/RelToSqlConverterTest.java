@@ -6662,6 +6662,40 @@ class RelToSqlConverterTest {
     sql(sql).withMysql().ok(expectedMysql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6156">[CALCITE-6156]
+   * Add ENDSWITH, STARTSWITH functions (enabled in Postgres, Snowflake libraries)</a>. */
+  @Test void testSnowflakeStartsWith() {
+    final String query = "select startswith(\"brand_name\", 'a')\n"
+        + "from \"product\"";
+    final String expectedBigQuery = "SELECT STARTS_WITH(brand_name, 'a')\n"
+        + "FROM foodmart.product";
+    final String expectedPostgres = "SELECT STARTS_WITH(\"brand_name\", 'a')\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedSnowflake = "SELECT STARTSWITH(\"brand_name\", 'a')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withBigQuery().ok(expectedBigQuery);
+    sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withPostgresql().ok(expectedPostgres);
+    sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withSnowflake().ok(expectedSnowflake);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6156">[CALCITE-6156]
+   * Add ENDSWITH, STARTSWITH functions (enabled in Postgres, Snowflake libraries)</a>. */
+  @Test void testSnowflakeEndsWith() {
+    final String query = "select endswith(\"brand_name\", 'a')\n"
+        + "from \"product\"";
+    final String expectedBigQuery = "SELECT ENDS_WITH(brand_name, 'a')\n"
+        + "FROM foodmart.product";
+    final String expectedPostgres = "SELECT ENDS_WITH(\"brand_name\", 'a')\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedSnowflake = "SELECT ENDSWITH(\"brand_name\", 'a')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withBigQuery().ok(expectedBigQuery);
+    sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withPostgresql().ok(expectedPostgres);
+    sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withSnowflake().ok(expectedSnowflake);
+  }
+
   @Test void testSubstringInSpark() {
     final String query = "select substring(\"brand_name\" from 2) "
         + "from \"product\"\n";

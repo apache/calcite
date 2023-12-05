@@ -71,6 +71,8 @@ public enum SqlLibrary {
   /** A collection of operators that are in PostgreSQL but not in standard
    * SQL. */
   POSTGRESQL("p", "postgresql"),
+  /** A collection of operators that are in Snowflake but not in standard SQL. */
+  SNOWFLAKE("f", "snowflake"),
   /** A collection of operators that are in Apache Spark but not in standard
    * SQL. */
   SPARK("s", "spark");
@@ -97,7 +99,7 @@ public enum SqlLibrary {
     switch (this) {
     case ALL:
       return ImmutableList.of(BIG_QUERY, CALCITE, HIVE, MSSQL, MYSQL, ORACLE,
-          POSTGRESQL, SPARK);
+          POSTGRESQL, SNOWFLAKE, SPARK);
     default:
       return ImmutableList.of();
     }
