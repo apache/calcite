@@ -2075,7 +2075,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>MICROSECOND(timestamp '2008-9-23 01:23:45.1234')</code> returns <code>
    * 123400</code>
    */
-  public static final SqlDatePartFunction MICROSESECOND =
+  public static final SqlDatePartFunction MICROSECOND =
       new SqlDatePartFunction("MICROSECOND", TimeUnit.MICROSECOND);
 
   public static final SqlFunction LAST_DAY =
