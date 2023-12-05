@@ -10125,9 +10125,9 @@ class RelToSqlConverterTest {
             builder.alias(unixMicrosRexNode, "TM"),
             builder.alias(unixMillisRexNode, "TMI"))
         .build();
-    final String expectedBiqQuery = "SELECT TIMESTAMP_SECONDS(HIREDATE) AS TS, " +
-        "TIMESTAMP_MICROS(HIREDATE) AS TM, " +
-        "TIMESTAMP_MILLIS(HIREDATE) AS TMI\nFROM scott.EMP";
+    final String expectedBiqQuery = "SELECT TIMESTAMP_SECONDS(HIREDATE) AS TS, "
+        + "TIMESTAMP_MICROS(HIREDATE) AS TM, "
+        + "TIMESTAMP_MILLIS(HIREDATE) AS TMI\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 

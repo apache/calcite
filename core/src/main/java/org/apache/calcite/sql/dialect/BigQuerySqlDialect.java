@@ -1820,7 +1820,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(timestampAdd);
   }
 
-  private void unparseParseTimestampWithTimeZone(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  private void unparseParseTimestampWithTimeZone(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
     String dateFormatValue = call.operand(0) instanceof SqlCharStringLiteral
         ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
         .getValue()
