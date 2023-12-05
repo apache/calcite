@@ -1174,6 +1174,9 @@ public enum SqlKind {
   /** {@code DROP TABLE} DDL statement. */
   DROP_TABLE,
 
+  /** {@code TRUNCATE TABLE} DDL statement. */
+  TRUNCATE_TABLE,
+
   /** {@code CREATE VIEW} DDL statement. */
   CREATE_VIEW,
 
