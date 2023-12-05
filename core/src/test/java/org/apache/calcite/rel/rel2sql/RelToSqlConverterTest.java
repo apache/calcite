@@ -13577,6 +13577,41 @@ class RelToSqlConverterTest {
     sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expected);
   }
 
+  @Test void testCorrelatedQueryHavingCorrelatedVariableLookedUpInWrongTable() {
+    RelBuilder builder = foodmartRelBuilder();
+    RelNode subQueryForCorrelatedVariableLookUp = builder.scan("employee")
+        .project(builder.field("employee_id"),  builder.field("department_id"))
+        .build();
+    builder.push(subQueryForCorrelatedVariableLookUp);
+    CorrelationId correlationId = builder.getCluster().createCorrel();
+    RelDataType relDataType = builder.peek().getRowType();
+    RexNode correlVariable = builder.getRexBuilder().makeCorrel(relDataType, correlationId);
+    int departmentIdIndex = builder.field("department_id").getIndex();
+    builder.build();
+
+    //outer query Rel building
+    builder.scan("employee");
+    RelNode whereClauseSubQuery = builder
+        .scan("department")
+        .filter(builder
+            .equals(
+                builder.field("department_id"),
+                builder.getRexBuilder().makeFieldAccess(correlVariable, departmentIdIndex)))
+        .project(builder.field("department_id"))
+        .build();
+    RelNode root = builder
+        .filter(
+            ImmutableSet.of(correlationId), builder.call(SqlStdOperatorTable.NOT,
+            RexSubQuery.exists(whereClauseSubQuery)))
+        .project(builder.field("department_id"))
+        .build();
+    final String expectedSql = "SELECT \"department_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE NOT EXISTS (SELECT \"department_id\"\n"
+        + "FROM \"foodmart\".\"department\"\nWHERE \"department_id\" = \"employee\".\"department_id\")";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testDateAddWithMilliSecondsInterval() {
     final RelBuilder builder = relBuilder();
     final RexNode intervalMillisecondsRex =
