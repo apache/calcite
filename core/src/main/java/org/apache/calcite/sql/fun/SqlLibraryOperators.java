@@ -67,6 +67,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.MSSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -360,17 +361,25 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
-  /** The "ENDS_WITH(value1, value2)" function (BigQuery). */
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction ENDS_WITH =
-      SqlBasicFunction.create("ENDS_WITH", ReturnTypes.BOOLEAN_NULLABLE,
-          OperandTypes.STRING_SAME_SAME, SqlFunctionCategory.STRING);
+  /** The "ENDS_WITH(value1, value2)" function (BigQuery, PostgreSQL). */
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
+  public static final SqlBasicFunction ENDS_WITH =
+      SqlBasicFunction.create(SqlKind.ENDS_WITH, ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.STRING_SAME_SAME);
 
-  /** The "STARTS_WITH(value1, value2)" function (BigQuery). */
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction STARTS_WITH =
-      SqlBasicFunction.create("STARTS_WITH", ReturnTypes.BOOLEAN_NULLABLE,
-          OperandTypes.STRING_SAME_SAME, SqlFunctionCategory.STRING);
+  /** The "ENDSWITH(value1, value2)" function (Snowflake). */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction ENDSWITH = ENDS_WITH.withName("ENDSWITH");
+
+  /** The "STARTS_WITH(value1, value2)" function (BigQuery, PostgreSQL). */
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
+  public static final SqlBasicFunction STARTS_WITH =
+      SqlBasicFunction.create(SqlKind.STARTS_WITH, ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.STRING_SAME_SAME);
+
+  /** The "STARTSWITH(value1, value2)" function (Snowflake). */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction STARTSWITH = STARTS_WITH.withName("STARTSWITH");
 
   /** BigQuery's "SUBSTR(string, position [, substringLength ])" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
