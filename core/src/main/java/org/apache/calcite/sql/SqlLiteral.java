@@ -199,6 +199,8 @@ public class SqlLiteral extends SqlNode {
       return value == null;
     case DECIMAL:
     case DOUBLE:
+    case FLOAT:
+    case REAL:
       return value instanceof BigDecimal;
     case DATE:
       return value instanceof DateString;

@@ -3330,6 +3330,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
 
     case DOUBLE:
+    case FLOAT:
+    case REAL:
       validateLiteralAsDouble(literal);
       break;
 

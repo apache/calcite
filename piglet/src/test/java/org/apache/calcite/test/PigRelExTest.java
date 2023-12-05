@@ -188,7 +188,7 @@ class PigRelExTest extends PigRelTestBase {
   @Test void testCast() {
     checkTranslation("(int) b", inTree("CAST($1):INTEGER"));
     checkTranslation("(long) a", inTree("CAST($0):BIGINT"));
-    checkTranslation("(float) b", inTree("CAST($1):FLOAT"));
+    checkTranslation("(float) b", inTree("CAST($1):REAL"));
     checkTranslation("(double) b", inTree("CAST($1):DOUBLE"));
     checkTranslation("(chararray) b", inTree("CAST($1):VARCHAR"));
     checkTranslation("(bytearray) b", inTree("CAST($1):BINARY"));
@@ -197,18 +197,18 @@ class PigRelExTest extends PigRelTestBase {
     checkTranslation("(bigdecimal) b", inTree("CAST($1):DECIMAL(19, 0)"));
     checkTranslation("(tuple()) b", inTree("CAST($1):(DynamicRecordRow[])"));
     checkTranslation("(tuple(int, float)) b",
-        inTree("CAST($1):RecordType(INTEGER $0, FLOAT $1)"));
+        inTree("CAST($1):RecordType(INTEGER $0, REAL $1)"));
     checkTranslation("(bag{}) b",
         inTree("CAST($1):(DynamicRecordRow[]) NOT NULL MULTISET"));
     checkTranslation("(bag{tuple(int)}) b",
         inTree("CAST($1):RecordType(INTEGER $0) MULTISET"));
     checkTranslation("(bag{tuple(int, float)}) b",
-        inTree("CAST($1):RecordType(INTEGER $0, FLOAT $1) MULTISET"));
+        inTree("CAST($1):RecordType(INTEGER $0, REAL $1) MULTISET"));
     checkTranslation("(map[]) b",
         inTree("CAST($1):(VARCHAR NOT NULL, BINARY(1) NOT NULL) MAP"));
     checkTranslation("(map[int]) b", inTree("CAST($1):(VARCHAR NOT NULL, INTEGER"));
     checkTranslation("(map[tuple(int, float)]) b",
-        inTree("CAST($1):(VARCHAR NOT NULL, RecordType(INTEGER val_0, FLOAT val_1)) MAP"));
+        inTree("CAST($1):(VARCHAR NOT NULL, RecordType(INTEGER val_0, REAL val_1)) MAP"));
   }
 
   @Test void testPigBuiltinFunctions() {

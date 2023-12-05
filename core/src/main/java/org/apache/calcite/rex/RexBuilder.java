@@ -595,6 +595,7 @@ public class RexBuilder {
           case INTEGER:
           case SMALLINT:
           case TINYINT:
+          case DOUBLE:
           case FLOAT:
           case REAL:
           case DECIMAL:
@@ -1783,13 +1784,13 @@ public class RexBuilder {
               o.getClass().getCanonicalName(),
               type.getSqlTypeName());
       return new BigDecimal(((Number) o).longValue());
-    case FLOAT:
+    case REAL:
       if (o instanceof BigDecimal) {
         return o;
       }
       return new BigDecimal(((Number) o).doubleValue(), MathContext.DECIMAL32)
           .stripTrailingZeros();
-    case REAL:
+    case FLOAT:
     case DOUBLE:
       if (o instanceof BigDecimal) {
         return o;

@@ -21,7 +21,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 /** Druid type. */
 public enum DruidType {
   LONG(SqlTypeName.BIGINT),
-  FLOAT(SqlTypeName.FLOAT),
+  FLOAT(SqlTypeName.REAL),
   DOUBLE(SqlTypeName.DOUBLE),
   STRING(SqlTypeName.VARCHAR),
   COMPLEX(SqlTypeName.OTHER),

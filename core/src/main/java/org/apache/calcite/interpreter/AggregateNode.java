@@ -218,10 +218,10 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     switch (call.getType().getSqlTypeName()) {
     case INTEGER:
       return max ? MaxInt.class : MinInt.class;
-    case FLOAT:
-      return max ? MaxFloat.class : MinFloat.class;
-    case DOUBLE:
     case REAL:
+      return max ? MaxFloat.class : MinFloat.class;
+    case FLOAT:
+    case DOUBLE:
       return max ? MaxDouble.class : MinDouble.class;
     case DECIMAL:
       return max ? MaxBigDecimal.class : MinBigDecimal.class;

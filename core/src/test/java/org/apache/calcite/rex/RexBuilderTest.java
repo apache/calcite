@@ -762,7 +762,7 @@ class RexBuilderTest {
     final RelDataTypeFactory typeFactory =
             new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
-    final RelDataType floatType = typeFactory.createSqlType(SqlTypeName.FLOAT);
+    final RelDataType floatType = typeFactory.createSqlType(SqlTypeName.REAL);
     RexNode left = rexBuilder.makeInputRef(floatType, 0);
     final RexNode literal1 = rexBuilder.makeLiteral(1.0f, floatType);
     final RexNode literal2 = rexBuilder.makeLiteral(2.0f, floatType);
