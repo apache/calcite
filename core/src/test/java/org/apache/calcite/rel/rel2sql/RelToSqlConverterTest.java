@@ -10111,6 +10111,26 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testTimestampFunctionsWithTwoOperands() {
+    final RelBuilder builder = relBuilder();
+    final RexNode unixSecondsRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_SECONDS,
+        builder.scan("EMP").field(4), builder.literal(true));
+    final RexNode unixMicrosRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_MICROS,
+        builder.scan("EMP").field(4), builder.literal(true));
+    final RexNode unixMillisRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_MILLIS,
+        builder.scan("EMP").field(4), builder.literal(true));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(unixSecondsRexNode, "TS"),
+            builder.alias(unixMicrosRexNode, "TM"),
+            builder.alias(unixMillisRexNode, "TMI"))
+        .build();
+    final String expectedBiqQuery = "SELECT TIMESTAMP_SECONDS(HIREDATE) AS TS, "
+        + "TIMESTAMP_MICROS(HIREDATE) AS TM, "
+        + "TIMESTAMP_MILLIS(HIREDATE) AS TMI\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testFormatTimestamp() {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
