@@ -10114,11 +10114,11 @@ class RelToSqlConverterTest {
   @Test public void testTimestampFunctionsWithTwoOperands() {
     final RelBuilder builder = relBuilder();
     final RexNode unixSecondsRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_SECONDS,
-        builder.scan("EMP").field(4), builder.literal(false));
+        builder.scan("EMP").field(4), builder.literal(true));
     final RexNode unixMicrosRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_MICROS,
-        builder.scan("EMP").field(4), builder.literal(false));
+        builder.scan("EMP").field(4), builder.literal(true));
     final RexNode unixMillisRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_MILLIS,
-        builder.scan("EMP").field(4), builder.literal(false));
+        builder.scan("EMP").field(4), builder.literal(true));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(unixSecondsRexNode, "TS"),
