@@ -1346,13 +1346,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       unParseInStr(writer, call, leftPrec, rightPrec);
       break;
     case "TIMESTAMP_SECONDS":
-      unParseTimestampSeconds(writer, call, leftPrec, rightPrec, TIMESTAMP_SECONDS);
+      unparseTimestampSeconds(writer, call, leftPrec, rightPrec, TIMESTAMP_SECONDS);
       break;
     case "TIMESTAMP_MILLIS":
-      unParseTimestampSeconds(writer, call, leftPrec, rightPrec, TIMESTAMP_MILLIS);
+      unparseTimestampSeconds(writer, call, leftPrec, rightPrec, TIMESTAMP_MILLIS);
       break;
     case "TIMESTAMP_MICROS":
-      unParseTimestampSeconds(writer, call, leftPrec, rightPrec, TIMESTAMP_MICROS);
+      unparseTimestampSeconds(writer, call, leftPrec, rightPrec, TIMESTAMP_MICROS);
       break;
     case "UNIX_SECONDS":
       castOperandToTimestamp(writer, call, leftPrec, rightPrec, UNIX_SECONDS);
@@ -1675,14 +1675,14 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(arrayLengthFrame);
   }
 
-  private void unParseTimestampSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
+  private void unparseTimestampSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
       SqlFunction sqlFunction) {
-    if (call.operandCount() == 1) {
-      castAsDatetime(writer, call, leftPrec, rightPrec, sqlFunction);
-    } else {
+    if (call.operandCount() == 2 && (((SqlLiteral)call.operand(1)).getValue() == Boolean.TRUE)) {
       SqlCall timestampSecondsCall = sqlFunction.createCall(SqlParserPos.ZERO,
           new SqlNode[] { call.operand(0) });
       sqlFunction.unparse(writer, timestampSecondsCall, leftPrec, rightPrec);
+    } else {
+      castAsDatetime(writer, call, leftPrec, rightPrec, sqlFunction);
     }
   }
 
