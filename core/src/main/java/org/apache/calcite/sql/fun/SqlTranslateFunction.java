@@ -34,7 +34,7 @@ import java.util.List;
 /**
  * Common base for the <code>TRANSLATE(USING)</code> and
  * <code>CONVERT(USING)</code> function, which is different from
- * {@link SqlLibraryOperators#TRANSLATE3}
+ * {@link SqlLibraryOperators#TRANSLATE3}.
  *
  * <p>The SQL syntax is
  *
