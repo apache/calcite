@@ -450,7 +450,8 @@ public abstract class ReflectUtil {
         Method method = map.get(key);
         if (method == null) {
           if (map.containsKey(key)) {
-            // We already looked for the method and found nothing.
+            // We should get again because it may be putted an object by another thread.
+            method = map.get(key);
           } else {
             method =
                 ReflectUtil.lookupVisitMethod(
