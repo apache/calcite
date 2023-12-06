@@ -1677,7 +1677,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseTimestampSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
       SqlFunction sqlFunction) {
-    if (call.operandCount() == 2 && (((SqlLiteral)call.operand(1)).getValue() == Boolean.TRUE)) {
+    if (call.operandCount() == 2 && (((SqlLiteral) call.operand(1)).getValue() == Boolean.TRUE)) {
       SqlCall timestampSecondsCall = sqlFunction.createCall(SqlParserPos.ZERO,
           new SqlNode[] { call.operand(0) });
       sqlFunction.unparse(writer, timestampSecondsCall, leftPrec, rightPrec);
