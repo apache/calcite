@@ -29,7 +29,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
-import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -44,11 +44,15 @@ import java.util.Objects;
  * Definition of the "SUBSTRING" builtin SQL function.
  */
 public class SqlSubstringFunction extends SqlFunction {
-  /** Type checker for 3 argument calls. Put the STRING_INTEGER_INTEGER checker
-   * first because almost every other type can be coerced to STRING. */
-  private static final SqlSingleOperandTypeChecker CHECKER3 =
-      OperandTypes.STRING_INTEGER_INTEGER
-          .or(OperandTypes.STRING_STRING_STRING);
+  /** Type checker for 3 argument calls. */
+  private static final SqlOperandTypeChecker CHECKER3 =
+      OperandTypes.sequence("<CHARACTER> <INTEGER> <INTEGER>",
+          OperandTypes.STRING,
+          OperandTypes.typeName(SqlTypeName.INTEGER),
+          OperandTypes.typeName(SqlTypeName.INTEGER));
+      // The variant of substring(string FROM regexp FOR regexp)
+      // is not implemented.
+          // .or(OperandTypes.STRING_STRING_STRING);
 
   //~ Constructors -----------------------------------------------------------
 

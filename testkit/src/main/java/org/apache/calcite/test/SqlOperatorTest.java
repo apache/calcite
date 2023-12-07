@@ -3298,6 +3298,25 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.DESC, VM_EXPAND);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5811">[CALCITE-5811]
+   * Error messages produced for constant out-of-bounds arguments are confusing</a>.
+   */
+  @Test void testIndexOutOfBounds() {
+    final SqlOperatorFixture f = fixture();
+    f.checkFails("^substring('abc' from 2 for 2147483650)^",
+        "Cannot apply 'SUBSTRING' to arguments of type "
+            + "'SUBSTRING\\(<CHAR\\(3\\)> FROM <INTEGER> FOR <BIGINT>\\)'\\. "
+            + "Supported form\\(s\\): 'SUBSTRING\\(<CHAR> FROM <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<CHAR> FROM <INTEGER> FOR <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<VARCHAR> FROM <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<VARCHAR> FROM <INTEGER> FOR <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<BINARY> FROM <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<BINARY> FROM <INTEGER> FOR <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<VARBINARY> FROM <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<VARBINARY> FROM <INTEGER> FOR <INTEGER>\\)'", false);
+  }
+
   @Test void testIsNotNullOperator() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.IS_NOT_NULL, VmName.EXPAND);
