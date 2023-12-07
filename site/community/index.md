@@ -226,6 +226,7 @@ If you have something interesting to share with the community drop us an email o
 consider creating a pull request on GitHub. If you just finished a cool project using Calcite
 consider writing a short article about it for our [news section]({{ site.baseurl }}/news/index.html).
 
+* <a href="https://www.feldera.com/blog/calcite-irs/">Calcite program representations</a> (Mihai Budiu, October 2023)
 * <a href="https://datalore.jetbrains.com/view/notebook/JYTVfn90xYSmv6U5f2NIQR">Building a new Calcite frontend (GraphQL)</a> (Gavin Ray, 2022)
 * <a href="https://github.com/ieugen/calcite-clj">Write Calcite adapters in Clojure</a> (Ioan Eugen Stan, 2022)
 * <a href="https://www.querifylabs.com/blog/cross-product-suppression-in-join-order-planning">Cross-Product Suppression in Join Order Planning</a> (Vladimir Ozerov, 2021)
