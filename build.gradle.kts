@@ -735,7 +735,7 @@ allprojects {
         }
 
         val testClasses by configurations.creating {
-            extendsFrom(configurations["testRuntime"])
+            extendsFrom(configurations["testRuntimeOnly"])
         }
 
         val archives by configurations.getting

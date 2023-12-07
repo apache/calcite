@@ -54,6 +54,7 @@ dependencies {
         apiv("com.alibaba.database:innodb-java-reader")
         apiv("com.beust:jcommander")
         apiv("org.checkerframework:checker-qual", "checkerframework")
+        apiv("org.checkerframework:checker", "checkerframework")
         apiv("com.datastax.cassandra:cassandra-driver-core")
         apiv("com.esri.geometry:esri-geometry-api")
         apiv("com.fasterxml.jackson.core:jackson-databind")
