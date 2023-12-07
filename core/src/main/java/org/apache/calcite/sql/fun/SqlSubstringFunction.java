@@ -22,7 +22,6 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
@@ -37,7 +36,6 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -49,7 +47,7 @@ public class SqlSubstringFunction extends SqlFunction {
   private static final SqlSingleOperandTypeChecker CHECKER3 =
       OperandTypes.STRING_INTEGER_INTEGER;
           // Not yet implemented
-          // .or(OperandTypes.STRING_STRING_STRING)
+          // .or(OperandTypes.STRING_STRING_STRING);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -110,17 +108,16 @@ public class SqlSubstringFunction extends SqlFunction {
     case 3:
       if (!CHECKER3
           .checkOperandTypes(callBinding, throwOnFailure)) {
+        if (throwOnFailure) {
+          throw callBinding.newValidationSignatureError();
+        }
         return false;
       }
-      // Reset the operands because they may be coerced during
-      // implicit type coercion.
-      final List<SqlNode> operands = callBinding.getCall().getOperandList();
       final RelDataType t1 = callBinding.getOperandType(1);
       final RelDataType t2 = callBinding.getOperandType(2);
-      if (SqlTypeUtil.inCharFamily(t1)) {
-        if (!SqlTypeUtil.isCharTypeComparable(callBinding, operands,
-            throwOnFailure)) {
-          return false;
+      if (!(SqlTypeUtil.isIntType(t1) || SqlTypeUtil.isNull(t1))) {
+        if (throwOnFailure) {
+          throw callBinding.newValidationSignatureError();
         }
       }
       if (!SqlTypeUtil.inSameFamilyOrNull(t1, t2)) {
