@@ -1239,7 +1239,8 @@ public abstract class SqlLibraryOperators {
       ReturnTypes.ARG0
           .andThen(SqlTypeTransforms.TO_ARRAY),
       null,
-      OperandTypes.STRING_STRING,
+      OperandTypes.or(OperandTypes.STRING_STRING_INTEGER,
+          OperandTypes.STRING_STRING),
       SqlFunctionCategory.STRING);
 
   /** The "TO_VARCHAR(numeric, string)" function; casts string
