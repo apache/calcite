@@ -17,43 +17,28 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
-import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Objects;
 
 /**
  * Definition of the "SUBSTRING" builtin SQL function.
  */
 public class SqlSubstringFunction extends SqlFunction {
-  /** Type checker for 3 argument calls. */
-  private static final SqlOperandTypeChecker CHECKER3 =
-      OperandTypes.sequence("<CHARACTER> <INTEGER> <INTEGER>",
-          OperandTypes.STRING,
-          OperandTypes.typeName(SqlTypeName.INTEGER),
-          OperandTypes.typeName(SqlTypeName.INTEGER));
-      // The variant of substring(string FROM regexp FOR regexp)
-      // is not implemented.
-          // .or(OperandTypes.STRING_STRING_STRING);
-
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -108,31 +93,16 @@ public class SqlSubstringFunction extends SqlFunction {
     default:
       throw new AssertionError();
     case 2:
-      return OperandTypes.STRING_NUMERIC
+      return OperandTypes.sequence("<CHARACTER> <INTEGER>",
+          OperandTypes.STRING,
+          OperandTypes.typeName(SqlTypeName.INTEGER))
           .checkOperandTypes(callBinding, throwOnFailure);
     case 3:
-      if (!CHECKER3
-          .checkOperandTypes(callBinding, throwOnFailure)) {
-        return false;
-      }
-      // Reset the operands because they may be coerced during
-      // implicit type coercion.
-      final List<SqlNode> operands = callBinding.getCall().getOperandList();
-      final RelDataType t1 = callBinding.getOperandType(1);
-      final RelDataType t2 = callBinding.getOperandType(2);
-      if (SqlTypeUtil.inCharFamily(t1)) {
-        if (!SqlTypeUtil.isCharTypeComparable(callBinding, operands,
-            throwOnFailure)) {
-          return false;
-        }
-      }
-      if (!SqlTypeUtil.inSameFamilyOrNull(t1, t2)) {
-        if (throwOnFailure) {
-          throw callBinding.newValidationSignatureError();
-        }
-        return false;
-      }
-      return true;
+      return OperandTypes.sequence("<CHARACTER> <INTEGER> <INTEGER>",
+          OperandTypes.STRING,
+          OperandTypes.typeName(SqlTypeName.INTEGER),
+          OperandTypes.typeName(SqlTypeName.INTEGER))
+          .checkOperandTypes(callBinding, throwOnFailure);
     }
   }
 

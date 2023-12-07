@@ -3315,6 +3315,17 @@ public class SqlOperatorTest {
             + "'SUBSTRING\\(<BINARY> FROM <INTEGER> FOR <INTEGER>\\)'\n"
             + "'SUBSTRING\\(<VARBINARY> FROM <INTEGER>\\)'\n"
             + "'SUBSTRING\\(<VARBINARY> FROM <INTEGER> FOR <INTEGER>\\)'", false);
+    f.checkFails("^substring('abc' from 2147483650)^",
+        "Cannot apply 'SUBSTRING' to arguments of type "
+            + "'SUBSTRING\\(<CHAR\\(3\\)> FROM <BIGINT>\\)'\\. Supported form\\(s\\): "
+            + "'SUBSTRING\\(<CHAR> FROM <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<CHAR> FROM <INTEGER> FOR <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<VARCHAR> FROM <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<VARCHAR> FROM <INTEGER> FOR <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<BINARY> FROM <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<BINARY> FROM <INTEGER> FOR <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<VARBINARY> FROM <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<VARBINARY> FROM <INTEGER> FOR <INTEGER>\\)'", false);
   }
 
   @Test void testIsNotNullOperator() {
@@ -9015,6 +9026,7 @@ public class SqlOperatorTest {
         "aabb", "VARBINARY(3) NOT NULL");
     f.checkString("substring('abc' from 2 for 2147483646)",
         "bc", "VARCHAR(3) NOT NULL");
+    f.checkNull("substring('abc' from NULL)");
 
     switch (f.conformance().semantics()) {
     case BIG_QUERY:
