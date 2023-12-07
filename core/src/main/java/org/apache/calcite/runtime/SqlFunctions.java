@@ -986,6 +986,26 @@ public class SqlFunctions {
     return c.substring(s0);
   }
 
+  // Clamp very large long values to integer values.
+  // Used by the substring functions.
+  // Java strings do not support long indexes anyway,
+  // so this is most likely a safe approximation.
+  // But if a string has more than 2^31 characters
+  // the result of calling String.substring will be wrong anyway.
+  static int clamp(long s) {
+    if (s < Integer.MIN_VALUE) {
+      return Integer.MIN_VALUE;
+    }
+    if (s > Integer.MAX_VALUE) {
+      return Integer.MAX_VALUE;
+    }
+    return (int) s;
+  }
+
+  public static String substring(String c, long s) {
+    return substring(c, clamp(s));
+  }
+
   /** SQL SUBSTRING(string FROM ... FOR ...) function. */
   public static String substring(String c, int s, int l) {
     int lc = c.length();
@@ -1001,6 +1021,18 @@ public class SqlFunctions {
     final long e0 = Math.min(e - 1, (long) lc);
     // We know that e0 cannot exceed Integer.MAX_VALUE, since it's smaller than lc
     return c.substring(s0, (int) e0);
+  }
+
+  public static String substring(String c, int s, long l) {
+    return substring(c, s, clamp(l));
+  }
+
+  public static String substring(String c, long s, int l) {
+    return substring(c, clamp(s), l);
+  }
+
+  public static String substring(String c, long s, long l) {
+    return substring(c, clamp(s), clamp(l));
   }
 
   /** SQL SUBSTRING(binary FROM ...) function for binary. */

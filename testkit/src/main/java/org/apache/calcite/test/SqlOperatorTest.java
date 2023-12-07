@@ -8979,6 +8979,33 @@ public class SqlOperatorTest {
             + "requires extra delimiter argument", false);
   }
 
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5811">[CALCITE-5811]
+   * Error messages produced for constant out-of-bounds arguments are confusing</a>. */
+  @Test void testIndexOutOfBounds() {
+    final SqlOperatorFixture f = fixture();
+    f.checkScalar("substring('abc' from 2 for 2147483650)",
+        "bc", "VARCHAR(3) NOT NULL");
+    f.checkScalar("substring('abc' from 2147483650)",
+        "", "VARCHAR(3) NOT NULL");
+    f.checkScalar("substring('abc' from 2147483650 for 2147483650)",
+        "", "VARCHAR(3) NOT NULL");
+    f.checkScalar("substring('abc' from 2147483650 for 2)",
+        "", "VARCHAR(3) NOT NULL");
+    f.checkFails("^substring('abc' from 2 for 2147483650.0)^",
+        "Cannot apply 'SUBSTRING' to arguments of type "
+            + "'SUBSTRING\\(<CHAR\\(3\\)> FROM <INTEGER> FOR <DECIMAL\\(11, 1\\)>\\)'\\. "
+            + "Supported form\\(s\\): 'SUBSTRING\\(<CHAR> FROM <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<CHAR> FROM <INTEGER> FOR <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<VARCHAR> FROM <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<VARCHAR> FROM <INTEGER> FOR <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<BINARY> FROM <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<BINARY> FROM <INTEGER> FOR <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<VARBINARY> FROM <INTEGER>\\)'\n"
+            + "'SUBSTRING\\(<VARBINARY> FROM <INTEGER> FOR <INTEGER>\\)'", false);
+  }
+
   /** Tests the {@code SUBSTRING} operator. Many test cases that used to be
    * have been moved to {@link SubFunChecker#assertSubFunReturns}, and are
    * called for both {@code SUBSTRING} and {@code SUBSTR}. */

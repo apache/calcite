@@ -47,8 +47,9 @@ public class SqlSubstringFunction extends SqlFunction {
   /** Type checker for 3 argument calls. Put the STRING_INTEGER_INTEGER checker
    * first because almost every other type can be coerced to STRING. */
   private static final SqlSingleOperandTypeChecker CHECKER3 =
-      OperandTypes.STRING_INTEGER_INTEGER
-          .or(OperandTypes.STRING_STRING_STRING);
+      OperandTypes.STRING_INTEGER_INTEGER;
+          // Not yet implemented
+          // .or(OperandTypes.STRING_STRING_STRING)
 
   //~ Constructors -----------------------------------------------------------
 
