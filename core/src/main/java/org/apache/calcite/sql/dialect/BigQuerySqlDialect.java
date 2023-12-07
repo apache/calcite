@@ -1200,13 +1200,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       super.unparseCall(writer, formatCall, leftPrec, rightPrec);
       break;
     case "PARSE_TIMESTAMP_WITH_TIMEZONE":
-      String dateFormt = call.operand(0) instanceof SqlCharStringLiteral
-          ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
-          .getValue()
-          : call.operand(0).toString();
-      SqlCall formtCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
-          createDateTimeFormatSqlCharLiteral(dateFormt), call.operand(1));
-      super.unparseCall(writer, formtCall, leftPrec, rightPrec);
+      unparseParseTimestampWithTimeZone(writer, call, leftPrec, rightPrec);
       break;
     case "FORMAT_TIME":
       unparseFormatCall(writer, call, leftPrec, rightPrec);
@@ -1369,13 +1363,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       unParseInStr(writer, call, leftPrec, rightPrec);
       break;
     case "TIMESTAMP_SECONDS":
-      castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_SECONDS);
+      unparseTimestampSeconds(writer, call, leftPrec, rightPrec, TIMESTAMP_SECONDS);
       break;
     case "TIMESTAMP_MILLIS":
-      castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_MILLIS);
+      unparseTimestampSeconds(writer, call, leftPrec, rightPrec, TIMESTAMP_MILLIS);
       break;
     case "TIMESTAMP_MICROS":
-      castAsDatetime(writer, call, leftPrec, rightPrec, TIMESTAMP_MICROS);
+      unparseTimestampSeconds(writer, call, leftPrec, rightPrec, TIMESTAMP_MICROS);
       break;
     case "UNIX_SECONDS":
       castOperandToTimestamp(writer, call, leftPrec, rightPrec, UNIX_SECONDS);
@@ -1414,6 +1408,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case "SHIFTRIGHT":
       unparseShiftLeftAndShiftRight(writer, call, false);
+      break;
+    case "EDIT_DISTANCE":
+      if (call.operandCount() == 3) {
+        unparseEditDistanceForThreeArgs(writer, call, leftPrec, rightPrec);
+      } else {
+        call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+      }
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -1698,6 +1699,17 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(arrayLengthFrame);
   }
 
+  private void unparseTimestampSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
+      SqlFunction sqlFunction) {
+    if (call.operandCount() == 2 && (((SqlLiteral) call.operand(1)).getValue() == Boolean.TRUE)) {
+      SqlCall timestampSecondsCall = sqlFunction.createCall(SqlParserPos.ZERO,
+          new SqlNode[] { call.operand(0) });
+      sqlFunction.unparse(writer, timestampSecondsCall, leftPrec, rightPrec);
+    } else {
+      castAsDatetime(writer, call, leftPrec, rightPrec, sqlFunction);
+    }
+  }
+
   private void unparseRegexpExtract(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     int indexOfRegexOperand = 1;
@@ -1830,6 +1842,19 @@ public class BigQuerySqlDialect extends SqlDialect {
             .unparse(writer, leftPrec, rightPrec);
     writer.print("SECOND");
     writer.endFunCall(timestampAdd);
+  }
+
+  private void unparseParseTimestampWithTimeZone(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    String dateFormatValue = call.operand(0) instanceof SqlCharStringLiteral
+        ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
+        .getValue()
+        : call.operand(0).toString();
+    dateFormatValue = dateFormatValue.replaceAll("S\\(\\d\\)",
+        SqlDateTimeFormat.MILLISECONDS_5.value);
+    SqlCall formatCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
+        createDateTimeFormatSqlCharLiteral(dateFormatValue), call.operand(1));
+    super.unparseCall(writer, formatCall, leftPrec, rightPrec);
   }
 
   private String getFunName(SqlCall call) {
@@ -2129,6 +2154,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       case DATE:
         return createSqlDataTypeSpecByName("DATE", typeName);
       case TIME:
+      case TIME_WITH_LOCAL_TIME_ZONE:
         return createSqlDataTypeSpecByName("TIME", typeName);
       case TIMESTAMP:
         return createSqlDataTypeSpecByName("DATETIME", typeName);
@@ -2332,5 +2358,16 @@ public class BigQuerySqlDialect extends SqlDialect {
         ? "r'[^" + ((SqlCharStringLiteral) secondOperand).toValue() + "]+'"
         : secondOperand.toString();
     writer.print(pattern);
+  }
+
+  private void unparseEditDistanceForThreeArgs(SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame editDistanceFunctionFrame = writer.startFunCall("EDIT_DISTANCE");
+    for (int i = 0; i < 3; i++) {
+      writer.print((i > 0) ? "," : "");
+      writer.print((i == 2) ? "max_distance => " : "");
+      call.operand(i).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(editDistanceFunctionFrame);
   }
 }

@@ -545,8 +545,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction REGEXP_EXTRACT_ALL = new SqlFunction("REGEXP_EXTRACT_ALL",
       SqlKind.OTHER_FUNCTION,
-      ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
-        SqlTypeTransforms.TO_NULLABLE),
+      ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_ARRAY),
       null, OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
 
@@ -929,6 +928,17 @@ public abstract class SqlLibraryOperators {
               OperandTypes.STRING_STRING),
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TRY_TO_TIME =
+      new SqlFunction("TRY_TO_TIME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIME_NULLABLE,
+          null,
+          OperandTypes.or(
+              OperandTypes.STRING,
+              OperandTypes.STRING_STRING),
+          SqlFunctionCategory.TIMEDATE);
+
   /**Same as {@link #TO_DATE}, except ,if the conversion cannot be performed,
    * it returns a NULL value instead of raising an error.
    * Here second and third operands are optional
@@ -959,7 +969,8 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_SECONDS =
       new SqlFunction("TIMESTAMP_SECONDS", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE, null, OperandTypes.INTEGER,
+          ReturnTypes.TIMESTAMP_NULLABLE, null,
+          OperandTypes.or(OperandTypes.INTEGER_BOOLEAN, OperandTypes.INTEGER),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_MILLIS(bigint)" function; returns a TIMESTAMP value
@@ -967,7 +978,8 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_MILLIS =
       new SqlFunction("TIMESTAMP_MILLIS", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE, null, OperandTypes.INTEGER,
+          ReturnTypes.TIMESTAMP_NULLABLE, null,
+          OperandTypes.or(OperandTypes.INTEGER_BOOLEAN, OperandTypes.INTEGER),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_MICROS(bigint)" function; returns a TIMESTAMP value
@@ -975,7 +987,8 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_MICROS =
       new SqlFunction("TIMESTAMP_MICROS", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE, null, OperandTypes.INTEGER,
+          ReturnTypes.TIMESTAMP_NULLABLE, null,
+          OperandTypes.or(OperandTypes.INTEGER_BOOLEAN, OperandTypes.INTEGER),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "UNIX_SECONDS(bigint)" function; returns the number of seconds
@@ -1968,5 +1981,16 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0, null,
           OperandTypes.family(SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
+  public static final SqlFunction EDIT_DISTANCE =
+      new SqlFunction("EDIT_DISTANCE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+                  SqlTypeFamily.INTEGER),
+              number -> number == 2),
           SqlFunctionCategory.NUMERIC);
 }
