@@ -7120,6 +7120,21 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expectedBiqquery);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6149">[CALCITE-6149]
+   * Unparse for CAST Nullable with ClickHouseSqlDialect</a>. */
+  @Test void testCastToNullableInClickhouse() {
+    final String query = ""
+        + "SELECT CASE WHEN \"product_id\" IS NULL "
+        + "THEN CAST(\"product_id\" AS TINYINT) END, CAST(\"product_id\" AS TINYINT)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedSql = ""
+        + "SELECT CAST(NULL AS `Nullable(Int8)`), CAST(`product_id` AS `Int8`)\n"
+        + "FROM `foodmart`.`product`";
+
+    sql(query).withClickHouse().ok(expectedSql);
+  }
+
   @Test void testDialectQuoteStringLiteral() {
     dialects().forEach((dialect, databaseProduct) -> {
       assertThat(dialect.quoteStringLiteral(""), is("''"));
