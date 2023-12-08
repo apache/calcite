@@ -79,25 +79,25 @@ public class ClickHouseSqlDialect extends SqlDialect {
       SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {
       case VARCHAR:
-        return createSqlDataTypeSpecByName("String", typeName);
+        return createSqlDataTypeSpecByName("String", typeName, type.isNullable());
       case TINYINT:
-        return createSqlDataTypeSpecByName("Int8", typeName);
+        return createSqlDataTypeSpecByName("Int8", typeName, type.isNullable());
       case SMALLINT:
-        return createSqlDataTypeSpecByName("Int16", typeName);
+        return createSqlDataTypeSpecByName("Int16", typeName, type.isNullable());
       case INTEGER:
-        return createSqlDataTypeSpecByName("Int32", typeName);
+        return createSqlDataTypeSpecByName("Int32", typeName, type.isNullable());
       case BIGINT:
-        return createSqlDataTypeSpecByName("Int64", typeName);
+        return createSqlDataTypeSpecByName("Int64", typeName, type.isNullable());
       case REAL:
-        return createSqlDataTypeSpecByName("Float32", typeName);
+        return createSqlDataTypeSpecByName("Float32", typeName, type.isNullable());
       case FLOAT:
       case DOUBLE:
-        return createSqlDataTypeSpecByName("Float64", typeName);
+        return createSqlDataTypeSpecByName("Float64", typeName, type.isNullable());
       case DATE:
-        return createSqlDataTypeSpecByName("Date", typeName);
+        return createSqlDataTypeSpecByName("Date", typeName, type.isNullable());
       case TIMESTAMP:
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        return createSqlDataTypeSpecByName("DateTime", typeName);
+        return createSqlDataTypeSpecByName("DateTime", typeName, type.isNullable());
       default:
         break;
       }
@@ -107,11 +107,15 @@ public class ClickHouseSqlDialect extends SqlDialect {
   }
 
   private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
-      SqlTypeName typeName) {
+      SqlTypeName typeName, boolean isNullable) {
+    if (isNullable) {
+      typeAlias = "Nullable(" + typeAlias + ")";
+    }
+    String finalTypeAlias = typeAlias;
     SqlBasicTypeNameSpec spec = new SqlBasicTypeNameSpec(typeName, SqlParserPos.ZERO) {
       @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
         // unparse as an identifier to ensure that type names are cased correctly
-        writer.identifier(typeAlias, true);
+        writer.identifier(finalTypeAlias, true);
       }
     };
     return new SqlDataTypeSpec(spec, SqlParserPos.ZERO);
