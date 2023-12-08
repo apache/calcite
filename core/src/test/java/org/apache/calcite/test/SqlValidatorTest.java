@@ -1051,17 +1051,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testSubstringFails() {
+    String error = "(?s).*Cannot apply 'SUBSTRING' to arguments of type.*";
     wholeExpr("substring('a' from 1 for 'b')")
         .withTypeCoercion(false)
-        .fails("(?s).*Cannot apply 'SUBSTRING' to arguments of type.*");
-    expr("substring('a' from 1 for 'b')")
-        .columnType("VARCHAR(1) NOT NULL");
+        .fails(error);
     wholeExpr("substring(_UTF16'10' FROM '0' FOR '\\')")
-        .fails("(?s).* not comparable to each other.*");
+        .withTypeCoercion(false)
+        .fails(error);
     wholeExpr("substring('10' FROM _UTF16'0' FOR '\\')")
-        .fails("(?s).* not comparable to each other.*");
+        .withTypeCoercion(false)
+        .fails(error);
     wholeExpr("substring('10' FROM '0' FOR _UTF16'\\')")
-        .fails("(?s).* not comparable to each other.*");
+        .withTypeCoercion(false)
+        .fails(error);
   }
 
   @Test void testLikeAndSimilar() {
