@@ -18,11 +18,14 @@ import com.github.spotbugs.SpotBugsTask
 import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.dsl.configureEach
+//import com.github.vlsi.gradle.git.FindGitAttributes
+//import com.github.vlsi.gradle.git.dsl.gitignore
 import com.github.vlsi.gradle.properties.dsl.lastEditYear
 import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
-// import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
-// import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+//import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
+//import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+//import java.net.URI
 import net.ltgt.gradle.errorprone.errorprone
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
@@ -66,6 +69,7 @@ val lastEditYear by extra(lastEditYear())
 val enableSpotBugs = props.bool("spotbugs")
 val enableCheckerframework by props()
 val enableErrorprone by props()
+val enableDependencyAnalysis by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
 val skipJavadoc by props()
@@ -171,6 +175,7 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
     description = "Generates aggregate javadoc for all the artifacts"
 
     val sourceSets = subprojects
+        .filter { it.name != "bom" }
         .mapNotNull { it.extensions.findByType<SourceSetContainer>() }
         .flatMap { listOf(it.named("main"), it.named("test")) }
 
@@ -562,6 +567,7 @@ allprojects {
                     disable(
                         "ComplexBooleanConstant",
                         "EqualsGetClass",
+                        "EqualsHashCode", // verified in Checkstyle
                         "OperatorPrecedence",
                         "MutableConstantField",
                         "ReferenceEquality",
@@ -571,6 +577,7 @@ allprojects {
                     // Analyze issues, and enable the check
                     disable(
                         "BigDecimalEquals",
+                        "DoNotCallSuggester",
                         "StringSplitter"
                     )
                 }
@@ -665,6 +672,7 @@ allprojects {
                 passProperty("junit.jupiter.execution.timeout.default", "5 m")
                 passProperty("user.language", "TR")
                 passProperty("user.country", "tr")
+                passProperty("user.timezone", "UTC")
                 val props = System.getProperties()
                 for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
                     if (e.startsWith("calcite.") || e.startsWith("avatica.")) {
