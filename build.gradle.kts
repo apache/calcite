@@ -275,7 +275,9 @@ allprojects {
 
     plugins.withId("java-library") {
         dependencies {
+            "annotationProcessor"(platform(project(":bom")))
             "implementation"(platform(project(":bom")))
+            "testAnnotationProcessor"(platform(project(":bom")))
         }
     }
 

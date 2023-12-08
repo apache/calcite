@@ -154,5 +154,7 @@ dependencies {
         apiv("org.openjdk.jmh:jmh-generator-annprocess", "jmh")
         runtimev("xalan:xalan")
         runtimev("xerces:xercesImpl")
+        apiv("org.immutables:value-annotations", "immutables")
+        apiv("org.immutables:value", "immutables")
     }
 }
