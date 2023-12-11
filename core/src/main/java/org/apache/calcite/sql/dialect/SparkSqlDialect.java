@@ -62,7 +62,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import static org.apache.calcite.sql.SqlDateTimeFormat.*;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ADD_MONTHS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEDIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
@@ -84,6 +84,47 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
 import static org.apache.calcite.util.Util.isFormatSqlBasicCall;
 import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
+
+import static  org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_MONTH;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATED_NAME_OF_DAY;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.AMPM;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.ANTE_MERIDIAN_INDICATOR;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.ANTE_MERIDIAN_INDICATOR_WITH_DOT;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.DAYOFMONTH;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.DAYOFWEEK;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.DAYOFYEAR;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.DDMMYY;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.DDMMYYYY;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITYEAR;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFIVE;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFOUR;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONONE;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONSIX;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTHREE;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTWO;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.HOUR;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.HOUR_OF_DAY_12;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_4;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_5;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.MINUTE;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.MMDDYY;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.MMDDYYYY;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.MMYY;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.MONTHNAME;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.NAME_OF_DAY;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR_WITH_DOT;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.TIMEOFDAY;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.YYYYDDMM;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
 
 /**
  * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
