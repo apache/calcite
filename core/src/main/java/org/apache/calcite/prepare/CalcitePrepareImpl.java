@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.prepare;
 
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.enumerable.EnumerableCalc;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
@@ -72,6 +73,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
@@ -110,7 +112,6 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -128,6 +129,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -442,6 +444,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
     final VolcanoPlanner planner =
         new VolcanoPlanner(costFactory, externalContext);
+    planner.setExecutor(new RexExecutorImpl(DataContexts.EMPTY));
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     if (CalciteSystemProperty.ENABLE_COLLATION_TRAIT.value()) {
       planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
@@ -511,13 +514,40 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         throw new AssertionError("factory returned null planner");
       }
       try {
+        CalcitePreparingStmt preparingStmt =
+            getPreparingStmt(context, elementType, catalogReader, planner);
         return prepare2_(context, query, elementType, maxRowCount,
-            catalogReader, planner);
+            catalogReader, preparingStmt);
       } catch (RelOptPlanner.CannotPlanException e) {
         exception = e;
       }
     }
     throw exception;
+  }
+
+  /** Returns CalcitePreparingStmt
+   *
+   * <p>Override this function to return a custom {@link CalcitePreparingStmt} and
+   * {@link #createSqlValidator} to enable custom validation logic.
+   */
+  protected CalcitePreparingStmt getPreparingStmt(
+      Context context,
+      Type elementType,
+      CalciteCatalogReader catalogReader,
+      RelOptPlanner planner) {
+    final JavaTypeFactory typeFactory = context.getTypeFactory();
+    final EnumerableRel.Prefer prefer;
+    if (elementType == Object[].class) {
+      prefer = EnumerableRel.Prefer.ARRAY;
+    } else {
+      prefer = EnumerableRel.Prefer.CUSTOM;
+    }
+    final Convention resultConvention =
+        enableBindable ? BindableConvention.INSTANCE
+            : EnumerableConvention.INSTANCE;
+    return new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
+            context.getRootSchema(), prefer, createCluster(planner, new RexBuilder(typeFactory)),
+            resultConvention, createConvertletTable());
   }
 
   /** Quickly prepares a simple SQL statement, circumventing the usual
@@ -588,21 +618,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       Type elementType,
       long maxRowCount,
       CalciteCatalogReader catalogReader,
-      RelOptPlanner planner) {
+      CalcitePreparingStmt preparingStmt) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
-    final EnumerableRel.Prefer prefer;
-    if (elementType == Object[].class) {
-      prefer = EnumerableRel.Prefer.ARRAY;
-    } else {
-      prefer = EnumerableRel.Prefer.CUSTOM;
-    }
-    final Convention resultConvention =
-        enableBindable ? BindableConvention.INSTANCE
-            : EnumerableConvention.INSTANCE;
-    final CalcitePreparingStmt preparingStmt =
-        new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
-            context.getRootSchema(), prefer, createCluster(planner, new RexBuilder(typeFactory)),
-            resultConvention, createConvertletTable());
 
     final RelDataType x;
     final Prepare.PreparedResult preparedResult;
@@ -643,8 +660,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             Meta.StatementType.OTHER_DDL);
       }
 
-      final SqlValidator validator =
-          createSqlValidator(context, catalogReader);
+      final SqlValidator validator = preparingStmt.createSqlValidator(catalogReader);
 
       preparedResult =
           preparingStmt.prepareSql(sqlNode, Object.class, validator, true);
@@ -825,7 +841,15 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   }
 
   private static int getTypeOrdinal(RelDataType type) {
-    return type.getSqlTypeName().getJdbcOrdinal();
+    switch (type.getSqlTypeName()) {
+    case MEASURE:
+      // getMeasureElementType() for MEASURE types will never be null
+      final RelDataType measureElementType =
+          requireNonNull(null/*type.getMeasureElementType()*/, "measureElementType");
+      return measureElementType.getSqlTypeName().getJdbcOrdinal();
+    default:
+      return type.getSqlTypeName().getJdbcOrdinal();
+    }
   }
 
   private static String getClassName(@SuppressWarnings("unused") RelDataType type) {
@@ -854,6 +878,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     case MULTISET:
     case MAP:
     case ROW:
+    case MEASURE:
       return type.toString(); // e.g. "INTEGER ARRAY"
     case INTERVAL_YEAR_MONTH:
       return "INTERVAL_YEAR_TO_MONTH";
@@ -1017,7 +1042,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
               : RelCollations.EMPTY;
       RelRoot root =
           new RelRoot(rel, resultType, SqlKind.SELECT, fields, collation,
-              new ArrayList<>());
+              ImmutableList.of());
 
       if (timingTracer != null) {
         timingTracer.traceTime("end sql2rel");
