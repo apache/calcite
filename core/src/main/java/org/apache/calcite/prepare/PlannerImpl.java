@@ -36,7 +36,6 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
-import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
@@ -76,6 +75,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   private final @Nullable RelOptCostFactory costFactory;
   private final Context context;
   private final CalciteConnectionConfig connectionConfig;
+  private final RelDataTypeSystem typeSystem;
 
   /** Holds the trait definitions to be registered with planner. May be null. */
   private final @Nullable ImmutableList<RelTraitDef> traitDefs;
@@ -118,6 +118,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     this.executor = config.getExecutor();
     this.context = config.getContext();
     this.connectionConfig = connConfig(context, parserConfig);
+    this.typeSystem = config.getTypeSystem();
     reset();
   }
 
@@ -178,9 +179,6 @@ public class PlannerImpl implements Planner, ViewExpander {
     }
     ensure(State.STATE_1_RESET);
 
-    RelDataTypeSystem typeSystem =
-        connectionConfig.typeSystem(RelDataTypeSystem.class,
-            RelDataTypeSystem.DEFAULT);
     typeFactory = new JavaTypeFactoryImpl(typeSystem);
     RelOptPlanner planner = this.planner = new VolcanoPlanner(costFactory, context);
     RelOptUtil.registerDefaultRules(planner,
@@ -239,6 +237,15 @@ public class PlannerImpl implements Planner, ViewExpander {
     final RelDataType type =
         this.validator.getValidatedNodeType(validatedNode);
     return Pair.of(validatedNode, type);
+  }
+
+  public RelDataType getParameterRowType() {
+    if (state.ordinal() < State.STATE_4_VALIDATED.ordinal()) {
+      throw new RuntimeException("Need to call #validate() first");
+    }
+
+    return requireNonNull(validator, "validator")
+        .getParameterRowType(requireNonNull(validatedSqlNode, "validatedSqlNode"));
   }
 
   @SuppressWarnings("deprecation")
@@ -366,11 +373,12 @@ public class PlannerImpl implements Planner, ViewExpander {
     return requireNonNull(typeFactory, "typeFactory");
   }
 
+  @SuppressWarnings("deprecation")
   @Override public RelNode transform(int ruleSetIndex, RelTraitSet requiredOutputTraits,
       RelNode rel) {
     ensure(State.STATE_5_CONVERTED);
     rel.getCluster().setMetadataProvider(
-        new CachingRelMetadataProvider(
+        new org.apache.calcite.rel.metadata.CachingRelMetadataProvider(
             requireNonNull(rel.getCluster().getMetadataProvider(), "metadataProvider"),
             rel.getCluster().getPlanner()));
     Program program = programs.get(ruleSetIndex);

@@ -26,6 +26,7 @@ import org.apache.calcite.avatica.Handler;
 import org.apache.calcite.avatica.HandlerImpl;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.UnregisteredDriver;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.model.JsonSchema;
@@ -45,6 +46,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Supplier;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Calcite JDBC driver.
@@ -52,18 +56,59 @@ import java.util.Properties;
 public class Driver extends UnregisteredDriver {
   public static final String CONNECT_STRING_PREFIX = "jdbc:calcite:";
 
-  final Function0<CalcitePrepare> prepareFactory;
+  protected final @Nullable Supplier<CalcitePrepare> prepareFactory;
 
   static {
     new Driver().register();
   }
 
-  @SuppressWarnings("method.invocation.invalid")
+  /** Creates a Driver. */
   public Driver() {
-    super();
-    this.prepareFactory = createPrepareFactory();
+    this(null);
   }
 
+  /** Creates a Driver with a factory for {@code CalcitePrepare} objects;
+   * if the factory is null, the driver will call
+   * {@link #createPrepareFactory()}. */
+  protected Driver(@Nullable Supplier<CalcitePrepare> prepareFactory) {
+    this.prepareFactory = prepareFactory;
+  }
+
+  /** Creates a copy of this Driver with a new factory for creating
+   * {@link CalcitePrepare}.
+   *
+   * <p>Allows users of the Driver to change the factory without subclassing
+   * the Driver. But subclasses of the driver should override this method to
+   * create an instance of their subclass.
+   *
+   * @param prepareFactory Supplier of a {@code CalcitePrepare}
+   * @return Driver with the provided prepareFactory
+   */
+  public Driver withPrepareFactory(Supplier<CalcitePrepare> prepareFactory) {
+    requireNonNull(prepareFactory, "prepareFactory");
+    if (this.prepareFactory == prepareFactory) {
+      return this;
+    }
+    return new Driver(prepareFactory);
+  }
+
+  /** Creates a {@link CalcitePrepare} to be used to prepare a statement for
+   * execution.
+   *
+   * <p>If you wish to use a custom prepare, either override this method or
+   * call {@link #withPrepareFactory(Supplier)}. */
+  public CalcitePrepare createPrepare() {
+    if (prepareFactory != null) {
+      return prepareFactory.get();
+    }
+    return createPrepareFactory().apply();
+  }
+
+  /** Returns a factory with which to create a {@link CalcitePrepare}.
+   *
+   * method will still work, but we prefer that you call
+   * {@link #withPrepareFactory(Supplier)}
+   * or override {@link #createPrepare()}. */
   protected Function0<CalcitePrepare> createPrepareFactory() {
     return CalcitePrepare.DEFAULT_FACTORY;
   }
@@ -165,6 +210,16 @@ public class Driver extends UnregisteredDriver {
   }
 
   @Override public Meta createMeta(AvaticaConnection connection) {
+    final CalciteConnectionConfig config =
+        (CalciteConnectionConfig) connection.config();
+    CalciteMetaTableFactory metaTableFactory =
+        config.metaTableFactory(CalciteMetaTableFactory.class,
+            CalciteMetaTableFactoryImpl.INSTANCE);
+    CalciteMetaColumnFactory metaColumnFactory =
+        config.metaColumnFactory(CalciteMetaColumnFactory.class,
+            CalciteMetaColumnFactoryImpl.INSTANCE);
+//    return CalciteMetaImpl.create((CalciteConnectionImpl) connection,
+//            metaTableFactory, metaColumnFactory);
     return new CalciteMetaImpl((CalciteConnectionImpl) connection);
   }
 

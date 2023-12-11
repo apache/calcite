@@ -473,6 +473,10 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       throw new UnsupportedOperationException();
     }
 
+    @Override public boolean removeTable(String name) {
+      throw new UnsupportedOperationException();
+    }
+
     @Override public void add(String name,
         org.apache.calcite.schema.Function function) {
       throw new UnsupportedOperationException();
