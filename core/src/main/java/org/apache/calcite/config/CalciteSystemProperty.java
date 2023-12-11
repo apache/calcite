@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.config;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -30,6 +29,10 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.stream.Stream;
+
+import static com.google.common.base.MoreObjects.firstNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A Calcite specific system property that is used to configure various aspects of the framework.
@@ -195,8 +198,13 @@ public final class CalciteSystemProperty<T> {
             "../../calcite-test-dataset"
         };
         for (String s : dirs) {
-          if (new File(s).exists() && new File(s, "vm").exists()) {
-            return s;
+          try {
+            if (new File(s).exists() && new File(s, "vm").exists()) {
+              return s;
+            }
+          } catch (SecurityException ignore) {
+            // Ignore SecurityException on purpose because if
+            // we can't get to the file we fall through.
           }
         }
         return ".";
@@ -242,6 +250,26 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.test.redis", true);
 
   /**
+   * Whether to use
+   * <a href="https://www.testcontainers.org/">Docker containers</a> in tests.
+   *
+   * <p>If the property is set to <code>true</code>, affected tests will attempt
+   * to start Docker containers; when Docker is not available tests fallback to
+   * other execution modes and if it's not possible they are skipped entirely.
+   *
+   * <p>If the property is set to <code>false</code>, Docker containers are not
+   * used at all and affected tests either fallback to other execution modes or
+   * skipped entirely.
+   *
+   * <p>Users can override the default behavior to force non-Dockerized
+   * execution even when Docker is installed on the machine; this can be useful
+   * for replicating an issue that appears only in non-docker test mode or for
+   * running tests both with and without containers in CI.
+   */
+  public static final CalciteSystemProperty<Boolean> TEST_WITH_DOCKER_CONTAINER =
+      booleanProperty("calcite.test.docker", true);
+
+  /**
    * A list of ids designating the queries
    * (from query.json in new.hydromatic:foodmart-queries:0.4.1)
    * that should be run as part of FoodmartTest.
@@ -251,7 +279,7 @@ public final class CalciteSystemProperty<T> {
   // calcite.test.foodmart.queries.ids. Moreover, I am not in favor of using system properties for
   // parameterized tests.
   public static final CalciteSystemProperty<@Nullable String> TEST_FOODMART_QUERY_IDS =
-      new CalciteSystemProperty<>("calcite.ids", Function.identity());
+      new CalciteSystemProperty<>("calcite.ids", Function.<@Nullable String>identity());
 
   /**
    * Whether the optimizer will consider adding converters of infinite cost in
@@ -336,7 +364,7 @@ public final class CalciteSystemProperty<T> {
    * <p>Setting this property to 0 disables the cache.
    */
   public static final CalciteSystemProperty<Integer> BINDABLE_CACHE_MAX_SIZE =
-      intProperty("calcite.bindable.cache.maxSize", 0, v -> v >= 0 && v <= Integer.MAX_VALUE);
+      intProperty("calcite.bindable.cache.maxSize", 0, v -> v >= 0);
 
   /**
    * The concurrency level of the cache used for storing Bindable objects,
@@ -352,15 +380,44 @@ public final class CalciteSystemProperty<T> {
    * {@link #BINDABLE_CACHE_MAX_SIZE} set to 0.
    */
   public static final CalciteSystemProperty<Integer> BINDABLE_CACHE_CONCURRENCY_LEVEL =
-      intProperty("calcite.bindable.cache.concurrencyLevel", 1,
-          v -> v >= 1 && v <= Integer.MAX_VALUE);
+      intProperty("calcite.bindable.cache.concurrencyLevel", 1, v -> v >= 1);
+
+  /**
+   * The maximum number of items in a function-level cache.
+   *
+   * <p>A few SQL functions have expensive processing that, if its results are
+   * cached, can be reused by future calls to the function. One such function
+   * is {@code RLIKE}, whose arguments are a regular expression and a string.
+   * The regular expression needs to be compiled to a
+   * {@link java.util.regex.Pattern}. Compilation is expensive, and within a
+   * particular query, the arguments are often the same string, or a small
+   * number of distinct strings, so caching makes sense.
+   *
+   * <p>Therefore, functions such as {@code RLIKE}, {@code SIMILAR TO},
+   * {@code PARSE_URL}, {@code PARSE_TIMESTAMP}, {@code FORMAT_DATE} have a
+   * function-level cache. The cache is created in the code generated for the
+   * query, at the call site of the function, and expires when the query has
+   * finished executing. Such caches do not need time-based expiration, but
+   * we need to cap the size of the cache to deal with scenarios such as a
+   * billion-row table where every row has a distinct regular expression.
+   *
+   * <p>Because of how Calcite generates and executes code in Enumerable
+   * convention, each function object is used from a single thread. Therefore,
+   * non thread-safe objects such as {@link java.text.DateFormat} can be safely
+   * cached.
+   *
+   * <p>The value of this parameter limits the size of every function-level
+   * cache in Calcite. The default value is 1,000.
+   */
+  public static final CalciteSystemProperty<Integer> FUNCTION_LEVEL_CACHE_MAX_SIZE =
+      intProperty("calcite.function.cache.maxSize", 0, v -> v >= 0);
 
   private static CalciteSystemProperty<Boolean> booleanProperty(String key,
       boolean defaultValue) {
     // Note that "" -> true (convenient for command-lines flags like '-Dflag')
     return new CalciteSystemProperty<>(key,
         v -> v == null ? defaultValue
-            : "".equals(v) || Boolean.parseBoolean(v));
+            : v.isEmpty() || Boolean.parseBoolean(v));
   }
 
   private static CalciteSystemProperty<Integer> intProperty(String key, int defaultValue) {
@@ -412,11 +469,12 @@ public final class CalciteSystemProperty<T> {
 
   private static Properties loadProperties() {
     Properties saffronProperties = new Properties();
-    ClassLoader classLoader = MoreObjects.firstNonNull(
-        Thread.currentThread().getContextClassLoader(),
-        CalciteSystemProperty.class.getClassLoader());
+    ClassLoader classLoader =
+        firstNonNull(Thread.currentThread().getContextClassLoader(),
+            CalciteSystemProperty.class.getClassLoader());
     // Read properties from the file "saffron.properties", if it exists in classpath
-    try (InputStream stream = classLoader.getResourceAsStream("saffron.properties")) {
+    try (InputStream stream = requireNonNull(classLoader, "classLoader")
+        .getResourceAsStream("saffron.properties")) {
       if (stream != null) {
         saffronProperties.load(stream);
       }

@@ -216,6 +216,12 @@ public abstract class Bug {
    * MILLISECOND and MICROSECOND units in INTERVAL literal</a> is fixed. */
   public static final boolean CALCITE_5422_FIXED = false;
 
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6092">[CALCITE-6092]
+   * Invalid test cases in CAST String to Time</a> is fixed.
+   * Fix to be available with Avatica 1.24.0 [CALCITE-6053] */
+  public static final boolean CALCITE_6092_FIXED = false;
+
   /**
    * Use this to flag temporary code.
    */
@@ -248,8 +254,8 @@ public abstract class Bug {
    * instead using a {@link Deprecated} annotation followed by a comment such as
    * "to be removed before 2.0".
    */
+  @SuppressWarnings("unused")
   public static boolean upgrade(String remark) {
-    Util.discard(remark);
     return false;
   }
 }

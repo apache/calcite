@@ -25,25 +25,10 @@ import org.slf4j.helpers.MessageFormatter;
 public interface Litmus {
   /** Implementation of {@link org.apache.calcite.util.Litmus} that throws
    * an {@link java.lang.AssertionError} on failure. */
-  Litmus THROW = new Litmus() {
-    @Override public boolean fail(@Nullable String message, @Nullable Object... args) {
-      final String s = message == null
-          ? null : MessageFormatter.arrayFormat(message, args).getMessage();
-      throw new AssertionError(s);
-    }
-
-    @Override public boolean succeed() {
-      return true;
-    }
-
-    @Override public boolean check(boolean condition, @Nullable String message,
-        @Nullable Object... args) {
-      if (condition) {
-        return succeed();
-      } else {
-        return fail(message, args);
-      }
-    }
+  Litmus THROW = (message, args) -> {
+    final String s = message == null
+        ? null : MessageFormatter.arrayFormat(message, args).getMessage();
+    throw new AssertionError(s);
   };
 
   /** Implementation of {@link org.apache.calcite.util.Litmus} that returns
@@ -53,13 +38,15 @@ public interface Litmus {
       return false;
     }
 
-    @Override public boolean succeed() {
-      return true;
-    }
-
     @Override public boolean check(boolean condition, @Nullable String message,
         @Nullable Object... args) {
       return condition;
+    }
+
+    @Override public Litmus withMessageArgs(@Nullable String message,
+        @Nullable Object... args) {
+      // IGNORE never throws, so don't bother remembering message and args.
+      return this;
     }
   };
 
@@ -71,7 +58,9 @@ public interface Litmus {
   boolean fail(@Nullable String message, @Nullable Object... args);
 
   /** Called when test succeeds. Returns true. */
-  boolean succeed();
+  default boolean succeed() {
+    return true;
+  }
 
   /** Checks a condition.
    *
@@ -79,5 +68,19 @@ public interface Litmus {
    * if the condition is false, calls {@link #fail},
    * converting {@code info} into a string message.
    */
-  boolean check(boolean condition, @Nullable String message, @Nullable Object... args);
+  default boolean check(boolean condition, @Nullable String message,
+      @Nullable Object... args) {
+    if (condition) {
+      return succeed();
+    } else {
+      return fail(message, args);
+    }
+  }
+
+  /** Creates a Litmus that, if it fails, will use the given arguments. */
+  default Litmus withMessageArgs(@Nullable String message,
+      @Nullable Object... args) {
+    final Litmus delegate = this;
+    return (message1, args1) -> delegate.fail(message, args);
+  }
 }

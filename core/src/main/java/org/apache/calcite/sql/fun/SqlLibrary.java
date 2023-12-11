@@ -24,10 +24,13 @@ import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A library is a collection of SQL functions and operators.
@@ -47,12 +50,20 @@ public enum SqlLibrary {
   STANDARD("", "standard"),
   /** Geospatial operators. */
   SPATIAL("s", "spatial"),
+  /** A collection of operators that could be used in all libraries;
+   * does not include STANDARD and SPATIAL. */
+  ALL("*", "all"),
   /** A collection of operators that are in Google BigQuery but not in standard
    * SQL. */
   BIG_QUERY("b", "bigquery"),
+  /** Calcite-specific extensions. */
+  CALCITE("c", "calcite"),
   /** A collection of operators that are in Apache Hive but not in standard
    * SQL. */
   HIVE("h", "hive"),
+  /** A collection of operators that are in Microsoft SQL Server (MSSql) but not
+   * in standard SQL. */
+  MSSQL("q", "mssql"),
   /** A collection of operators that are in MySQL but not in standard SQL. */
   MYSQL("m", "mysql"),
   /** A collection of operators that are in Oracle but not in standard SQL. */
@@ -63,14 +74,18 @@ public enum SqlLibrary {
   /** A collection of operators that are in Apache Spark but not in standard
    * SQL. */
   SPARK("s", "spark"),
-  /** A collection of operators that are in Teradata but not in standard SQL. */
+  /** A collection of operators that are in Teradata but not in standard
+   * SQL. */
   TERADATA("t", "teradata"),
-  /** A collection of operators that are in Snowflake but not in standard SQL. */
+  /** A collection of operators that are in Snowflake but not in standard
+   * SQL. */
   SNOWFLAKE("sf", "snowflake"),
-  /** A collection of operators that are in MSSQL but not in standard SQL. */
-  MSSQL("mssql", "mssql"),
-  /** A collection of operators that are in NETEZZA but not in standard SQL. */
+  /** A collection of operators that are in NETEZZA but not in standard
+   * SQL. */
   NETEZZA("NETEZZA", "netezza");
+
+  /** Map from {@link Enum#name() name} and {@link #fun} to library. */
+  public static final Map<String, SqlLibrary> MAP;
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;
@@ -80,10 +95,21 @@ public enum SqlLibrary {
   public final String fun;
 
   SqlLibrary(String abbrev, String fun) {
-    this.abbrev = Objects.requireNonNull(abbrev);
-    this.fun = Objects.requireNonNull(fun);
+    this.abbrev = requireNonNull(abbrev, "abbrev");
+    this.fun = requireNonNull(fun, "fun");
     Preconditions.checkArgument(
         fun.equals(name().toLowerCase(Locale.ROOT).replace("_", "")));
+  }
+
+  @SuppressWarnings("SwitchStatementWithTooFewBranches")
+  public List<SqlLibrary> children() {
+    switch (this) {
+    case ALL:
+      return ImmutableList.of(BIG_QUERY, CALCITE, HIVE, MSSQL, MYSQL, ORACLE,
+          POSTGRESQL, SPARK);
+    default:
+      return ImmutableList.of();
+    }
   }
 
   /** Looks up a value.
@@ -96,15 +122,54 @@ public enum SqlLibrary {
   /** Parses a comma-separated string such as "standard,oracle". */
   public static List<SqlLibrary> parse(String libraryNameList) {
     final ImmutableList.Builder<SqlLibrary> list = ImmutableList.builder();
-    for (String libraryName : libraryNameList.split(",")) {
-      SqlLibrary library = Objects.requireNonNull(
-          SqlLibrary.of(libraryName), () -> "library does not exist: " + libraryName);
-      list.add(library);
+    if (!libraryNameList.isEmpty()) {
+      for (String libraryName : libraryNameList.split(",")) {
+        @Nullable SqlLibrary library = SqlLibrary.of(libraryName);
+        if (library == null) {
+          throw new IllegalArgumentException("unknown library '" + libraryName
+              + "'");
+        }
+        list.add(library);
+      }
     }
     return list.build();
   }
 
-  public static final Map<String, SqlLibrary> MAP;
+  /** Expands libraries in place.
+   *
+   * <p>Preserves order, and ensures that no library occurs more than once. */
+  public static List<SqlLibrary> expand(
+      Iterable<? extends SqlLibrary> libraries) {
+    // LinkedHashSet ensures that libraries are added only once, and order is
+    // preserved.
+    final Set<SqlLibrary> set = new LinkedHashSet<>();
+    libraries.forEach(library -> addExpansion(set, library));
+    return ImmutableList.copyOf(set);
+  }
+
+  private static void addExpansion(Set<SqlLibrary> set, SqlLibrary library) {
+    if (set.add(library)) {
+      library.children().forEach(subLibrary -> addExpansion(set, subLibrary));
+    }
+  }
+
+  /** Expands libraries in place. If any library is a child of 'all', ensures
+   * that 'all' is in the list. */
+  public static List<SqlLibrary> expandUp(
+      Iterable<? extends SqlLibrary> libraries) {
+    // LinkedHashSet ensures that libraries are added only once, and order is
+    // preserved.
+    final Set<SqlLibrary> set = new LinkedHashSet<>();
+    libraries.forEach(library -> addParent(set, library));
+    return ImmutableList.copyOf(set);
+  }
+
+  private static void addParent(Set<SqlLibrary> set, SqlLibrary library) {
+    if (ALL.children().contains(library)) {
+      set.add(ALL);
+    }
+    set.add(library);
+  }
 
   static {
     final ImmutableMap.Builder<String, SqlLibrary> builder =
