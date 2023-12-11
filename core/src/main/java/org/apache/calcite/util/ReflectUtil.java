@@ -436,7 +436,7 @@ public abstract class ReflectUtil {
             Collections.emptyList());
       }
 
-      @Override public @Nullable Method lookupVisitMethod(
+      @Override public synchronized @Nullable Method lookupVisitMethod(
           Class<? extends R> visitorClass,
           Class<? extends E> visiteeClass,
           String visitMethodName,
@@ -450,8 +450,7 @@ public abstract class ReflectUtil {
         Method method = map.get(key);
         if (method == null) {
           if (map.containsKey(key)) {
-            // We should get again because it may be putted an object by another thread.
-            method = map.get(key);
+            // We already looked for the method and found nothing.
           } else {
             method =
                 ReflectUtil.lookupVisitMethod(
