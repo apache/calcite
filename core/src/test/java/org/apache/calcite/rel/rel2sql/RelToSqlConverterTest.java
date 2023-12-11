@@ -9954,7 +9954,8 @@ class RelToSqlConverterTest {
   @Test public void testExtractIsoweekWithCurrentDate() {
     final RelBuilder builder = relBuilder();
     final RexNode extractIsoweekRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
-        builder.literal(TimeUnitRange.ISOWEEK), builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP));
+        builder.literal(TimeUnitRange.ISOWEEK),
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(extractIsoweekRexNode, "isoweek"))
