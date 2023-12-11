@@ -9941,6 +9941,20 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testExtractIsoweekWithCurrentDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode extractEpochRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
+        builder.literal(TimeUnitRange.ISOWEEK), builder.call(SqlStdOperatorTable.CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(extractEpochRexNode, "EE"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT EXTRACT(ISOWEEK FROM CURRENT_DATE) AS EE\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testExtractMillennium() {
     String query = "SELECT EXTRACT(MILLENNIUM FROM DATE '2008-08-29')";
     final String expectedBQ = "SELECT CAST(SUBSTR(CAST("
