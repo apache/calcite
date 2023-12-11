@@ -9943,14 +9943,14 @@ class RelToSqlConverterTest {
 
   @Test public void testExtractIsoweekWithCurrentDate() {
     final RelBuilder builder = relBuilder();
-    final RexNode extractEpochRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
-        builder.literal(TimeUnitRange.ISOWEEK), builder.call(SqlStdOperatorTable.CURRENT_DATE));
+    final RexNode extractIsoweekRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
+        builder.literal(TimeUnitRange.ISOWEEK), builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(extractEpochRexNode, "EE"))
+        .project(builder.alias(extractIsoweekRexNode, "isoweek"))
         .build();
 
-    final String expectedBiqQuery = "SELECT EXTRACT(ISOWEEK FROM CURRENT_DATE) AS EE\n"
+    final String expectedBiqQuery = "SELECT EXTRACT(ISOWEEK FROM CURRENT_DATETIME()) AS isoweek\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
