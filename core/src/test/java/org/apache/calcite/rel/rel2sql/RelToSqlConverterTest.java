@@ -9879,6 +9879,16 @@ class RelToSqlConverterTest {
         .ok(expectedBQ);
   }
 
+  @Test public void testExtractMicrosecond() {
+    String query = "SELECT MICROSECOND(TIMESTAMP '1999-06-23 10:30:47.123')";
+    final String expectedBQ = "SELECT EXTRACT(MICROSECOND FROM "
+        + "CAST('1999-06-23 10:30:47.123' AS DATETIME))";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQ);
+  }
+
   @Test public void testExtractEpoch() {
     String query = "SELECT EXTRACT(EPOCH FROM DATE '2008-08-29')";
     final String expectedBQ = "SELECT UNIX_SECONDS(CAST(DATE '2008-08-29' AS TIMESTAMP))";
