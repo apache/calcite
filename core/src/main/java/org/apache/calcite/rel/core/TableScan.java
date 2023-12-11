@@ -44,6 +44,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -68,7 +69,7 @@ public abstract class TableScan
   protected TableScan(RelOptCluster cluster, RelTraitSet traitSet,
       List<RelHint> hints, RelOptTable table) {
     super(cluster, traitSet);
-    this.table = table;
+    this.table = Objects.requireNonNull(table, "table");
     RelOptSchema relOptSchema = table.getRelOptSchema();
     if (relOptSchema != null) {
       cluster.getPlanner().registerSchema(relOptSchema);
@@ -136,7 +137,7 @@ public abstract class TableScan
    * {@link RelBuilder#project(Iterable)} method.
    *
    * <p>Sub-classes, representing table types that have these capabilities,
-   * should override.</p>
+   * should override.
    *
    * @param fieldsUsed  Bitmap of the fields desired by the consumer
    * @param extraFields Extra fields, not advertised in the table's row-type,

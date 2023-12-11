@@ -70,6 +70,8 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * <code>SqlDialect</code> encapsulates the differences between dialects of SQL.
  *
@@ -79,10 +81,10 @@ import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
  * <p>To add a new {@link SqlDialect} sub-class, extends this class to hold 2 public final
  * static member:
  * <ul>
- * <li>DEFAULT_CONTEXT: a default {@link Context} instance, which can be used to customize
- * or extending the dialect if the DEFAULT instance does not meet the requests</li>
- * <li>DEFAULT: the default {@link SqlDialect} instance with context properties defined with
- * <code>DEFAULT_CONTEXT</code></li>
+ *   <li>DEFAULT_CONTEXT: a default {@link Context} instance, which can be used to customize
+ *   or extending the dialect if the DEFAULT instance does not meet the requests</li>
+ *   <li>DEFAULT: the default {@link SqlDialect} instance with context properties defined with
+ *   <code>DEFAULT_CONTEXT</code></li>
  * </ul>
  */
 public class SqlDialect {
@@ -91,14 +93,10 @@ public class SqlDialect {
   protected static final Logger LOGGER =
       LoggerFactory.getLogger(SqlDialect.class);
 
-  /**
-   * Empty context.
-   */
+  /** Empty context. */
   public static final Context EMPTY_CONTEXT = emptyContext();
 
-  /**
-   * Built-in scalar functions and operators common for every dialect.
-   */
+  /** Built-in scalar functions and operators common for every dialect. */
   protected static final Set<SqlOperator> BUILT_IN_OPERATORS_LIST =
       ImmutableSet.<SqlOperator>builder()
           .add(SqlStdOperatorTable.ABS)
@@ -172,7 +170,7 @@ public class SqlDialect {
   private final Casing unquotedCasing;
   private final Casing quotedCasing;
   private final boolean caseSensitive;
-  private final SqlConformance conformance;
+  private SqlConformance conformance;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -229,17 +227,13 @@ public class SqlDialect {
    * @param context All the information necessary to create a dialect
    */
   public SqlDialect(Context context) {
-    this.conformance = Objects.requireNonNull(context.conformance());
-    this.nullCollation = Objects.requireNonNull(context.nullCollation());
-    this.dataTypeSystem = Objects.requireNonNull(context.dataTypeSystem());
-    this.databaseProduct =
-        Objects.requireNonNull(context.databaseProduct());
-    this.literalQuoteString =
-        Objects.requireNonNull(context.literalQuoteString());
-    this.literalEndQuoteString =
-        Objects.requireNonNull(context.literalQuoteString());
+    this.nullCollation = requireNonNull(context.nullCollation());
+    this.dataTypeSystem = requireNonNull(context.dataTypeSystem());
+    this.databaseProduct = requireNonNull(context.databaseProduct());
+    this.literalQuoteString = requireNonNull(context.literalQuoteString());
+    this.literalEndQuoteString = requireNonNull(context.literalQuoteString());
     this.literalEscapedQuote =
-        Objects.requireNonNull(context.literalEscapedQuoteString());
+        requireNonNull(context.literalEscapedQuoteString());
     String identifierQuoteString = context.identifierQuoteString();
     if (identifierQuoteString != null) {
       identifierQuoteString = identifierQuoteString.trim();
@@ -515,8 +509,8 @@ public class SqlDialect {
     writer.sep((SqlKind.PLUS == sqlKind) ? "+" : "-");
     call.operand(1).unparse(writer, leftPrec, rightPrec);
     writer.endList(frame);
-    //Only two parameters are present normally
-    //Checking parameter count to prevent errors
+    // Only two parameters are present normally.
+    // Checking parameter count to prevent errors.
     if (call.getOperandList().size() > 2) {
       call.operand(2).unparse(writer, leftPrec, rightPrec);
     }
@@ -564,7 +558,7 @@ public class SqlDialect {
         writer.keyword("TO");
         final String end = qualifier.timeUnitRange.endUnit.name();
         if ((TimeUnit.SECOND == qualifier.timeUnitRange.endUnit)
-                && (!qualifier.useDefaultFractionalSecondPrecision())) {
+                && !qualifier.useDefaultFractionalSecondPrecision()) {
           final SqlWriter.Frame frame = writer.startFunCall(end);
           writer.print(fractionalSecondPrecision);
           writer.endList(frame);
@@ -873,17 +867,13 @@ public class SqlDialect {
     return true;
   }
 
-  /**
-   * Returns whether this dialect supports the use of FILTER clauses for aggregate functions. e.g.
-   * {@code COUNT(*) FILTER (WHERE a = 2)}.
-   */
+  /** Returns whether this dialect supports the use of FILTER clauses for
+   * aggregate functions. e.g. {@code COUNT(*) FILTER (WHERE a = 2)}. */
   public boolean supportsAggregateFunctionFilter() {
     return true;
   }
 
-  /**
-   * Returns whether this dialect supports window functions (OVER clause).
-   */
+  /** Returns whether this dialect supports window functions (OVER clause). */
   public boolean supportsWindowFunctions() {
     return true;
   }
@@ -999,8 +989,8 @@ public class SqlDialect {
    * @param node The SqlNode representing the expression
    * @param nullsFirst Whether nulls should come first
    * @param desc Whether the sort direction is
-   * {@link org.apache.calcite.rel.RelFieldCollation.Direction#DESCENDING} or
-   * {@link org.apache.calcite.rel.RelFieldCollation.Direction#STRICTLY_DESCENDING}
+   * {@link RelFieldCollation.Direction#DESCENDING} or
+   * {@link RelFieldCollation.Direction#STRICTLY_DESCENDING}
    * @return A SqlNode for null direction emulation or <code>null</code> if not required
    */
   public @Nullable SqlNode emulateNullDirection(SqlNode node, boolean nullsFirst,
@@ -1076,14 +1066,13 @@ public class SqlDialect {
    *
    * @param writer Writer
    * @param offset Number of rows to skip before emitting, or null
-   * @param fetch  Number of rows to fetch, or null
+   * @param fetch Number of rows to fetch, or null
    */
   public void unparseTopN(SqlWriter writer, @Nullable SqlNode offset, @Nullable SqlNode fetch) {
   }
 
-  /**
-   * Unparses offset/fetch using ANSI standard "OFFSET offset ROWS FETCH NEXT fetch ROWS ONLY"
-   * syntax. */
+  /** Unparses offset/fetch using ANSI standard "OFFSET offset ROWS FETCH NEXT
+   * fetch ROWS ONLY" syntax. */
   protected static void unparseFetchUsingAnsi(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     Preconditions.checkArgument(fetch != null || offset != null);
@@ -1216,7 +1205,7 @@ public class SqlDialect {
   }
 
   /**
-   * Return whether this dialect requires Column names in the INSERT clause of MERGE statements.
+   * Returns whether this dialect support the specified type of join.
    */
   public boolean requiresColumnsInMergeInsertClause() {
     throw new UnsupportedOperationException();
@@ -1264,8 +1253,9 @@ public class SqlDialect {
    * Returns whether the dialect supports implicit type coercion.
    *
    * <p>Most of the sql dialects support implicit type coercion, so we make this method
-   * default return true. For instance, "cast('10' as integer) &gt; 5" can be simplified to "'10'
-   * &gt; 5" if the dialect supports implicit type coercion for VARCHAR and INTEGER comparison.
+   * default return true. For instance, "cast('10' as integer) &gt; 5"
+   * can be simplified to "'10' &gt; 5" if the dialect supports implicit type coercion
+   * for VARCHAR and INTEGER comparison.
    *
    * <p>For sql dialect that does not support implicit type coercion, such as the BigQuery,
    * we can not convert '10' into INT64 implicitly.
@@ -1323,14 +1313,15 @@ public class SqlDialect {
    * but currently include the following:
    *
    * <ul>
-   * <li>{@link #getQuoting()}
-   * <li>{@link #getQuotedCasing()}
-   * <li>{@link #getUnquotedCasing()}
-   * <li>{@link #isCaseSensitive()}
-   * <li>{@link #getConformance()}
+   *   <li>{@link #getQuoting()}
+   *   <li>{@link #getQuotedCasing()}
+   *   <li>{@link #getUnquotedCasing()}
+   *   <li>{@link #isCaseSensitive()}
+   *   <li>{@link #getConformance()}
    * </ul>
    *
    * @param config Parser configuration builder
+   *
    * @return The configuration builder
    */
   public SqlParser.Config configureParser(SqlParser.Config config) {
@@ -1351,8 +1342,7 @@ public class SqlDialect {
       configureParser(configBuilder.build()));
   }
 
-  /**
-   * Returns the {@link SqlConformance} that matches this dialect.
+  /** Returns the {@link SqlConformance} that matches this dialect.
    *
    * <p>The base implementation returns its best guess, based upon
    * {@link #databaseProduct}; sub-classes may override. */
@@ -1595,7 +1585,9 @@ public class SqlDialect {
     ORACLE("Oracle", "\"", NullCollation.HIGH),
     DERBY("Apache Derby", null, NullCollation.HIGH),
     DB2("IBM DB2", null, NullCollation.HIGH),
+    EXASOL("Exasol", "\"", NullCollation.LOW),
     FIREBIRD("Firebird", null, NullCollation.HIGH),
+    FIREBOLT("Firebolt", "\"", NullCollation.LOW),
     H2("H2", "\"", NullCollation.HIGH),
     HIVE("Apache Hive", null, NullCollation.LOW),
     INFORMIX("Informix", null, NullCollation.HIGH),
@@ -1637,8 +1629,8 @@ public class SqlDialect {
     @SuppressWarnings("argument.type.incompatible")
     DatabaseProduct(String databaseProductName, String quoteString,
         NullCollation nullCollation) {
-      Objects.requireNonNull(databaseProductName);
-      Objects.requireNonNull(nullCollation);
+      requireNonNull(databaseProductName, "databaseProductName");
+      requireNonNull(nullCollation, "nullCollation");
       // Note: below lambda accesses uninitialized DatabaseProduct.this, so it might be
       // worth refactoring
       dialect = Suppliers.memoize(() -> {
@@ -1736,7 +1728,7 @@ public class SqlDialect {
         SqlConformance conformance, NullCollation nullCollation,
         RelDataTypeSystem dataTypeSystem,
         JethroDataSqlDialect.JethroInfo jethroInfo) {
-      this.databaseProduct = Objects.requireNonNull(databaseProduct);
+      this.databaseProduct = requireNonNull(databaseProduct, "databaseProduct");
       this.databaseProductName = databaseProductName;
       this.databaseVersion = databaseVersion;
       this.databaseMajorVersion = databaseMajorVersion;
@@ -1744,13 +1736,13 @@ public class SqlDialect {
       this.literalQuoteString = literalQuoteString;
       this.literalEscapedQuoteString = literalEscapedQuoteString;
       this.identifierQuoteString = identifierQuoteString;
-      this.quotedCasing = Objects.requireNonNull(quotedCasing);
-      this.unquotedCasing = Objects.requireNonNull(unquotedCasing);
+      this.quotedCasing = requireNonNull(quotedCasing, "quotedCasing");
+      this.unquotedCasing = requireNonNull(unquotedCasing, "unquotedCasing");
       this.caseSensitive = caseSensitive;
-      this.conformance = Objects.requireNonNull(conformance);
-      this.nullCollation = Objects.requireNonNull(nullCollation);
-      this.dataTypeSystem = Objects.requireNonNull(dataTypeSystem);
-      this.jethroInfo = Objects.requireNonNull(jethroInfo);
+      this.conformance = requireNonNull(conformance, "conformance");
+      this.nullCollation = requireNonNull(nullCollation, "nullCollation");
+      this.dataTypeSystem = requireNonNull(dataTypeSystem, "dataTypeSystem");
+      this.jethroInfo = requireNonNull(jethroInfo, "jethroInfo");
     }
 
     @Override public DatabaseProduct databaseProduct() {

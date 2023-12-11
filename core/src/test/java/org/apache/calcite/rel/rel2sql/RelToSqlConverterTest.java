@@ -1722,9 +1722,15 @@ class RelToSqlConverterTest {
             + "FROM foodmart.product\n"
             + "GROUP BY product_id\n"
             + "HAVING gross_weight < 200) AS t1";
+    final String expectedSpark = "SELECT product_id + 1, " + alias + "\n"
+        + "FROM (SELECT product_id, SUM(gross_weight) " + alias + "\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_id\n"
+        + "HAVING " + alias + " < 200) t1";
     sql(query)
         .withPostgresql().ok(expectedPostgresql)
         .withMysql().ok(expectedMysql)
+        .withSpark().ok(expectedSpark)
         .withBigQuery().ok(expectedBigQuery);
   }
 
@@ -3267,6 +3273,17 @@ class RelToSqlConverterTest {
         .ok(expectedClickHouse)
         .withMysql()
         .ok(expectedMysql);
+  }
+
+  @Test void testCastToVarcharForSpark() {
+    String query = "select cast(\"product_id\" as varchar), "
+        + "cast(\"product_id\" as varchar(10)) from \"product\"";
+    final String expectedSparkSql = "SELECT CAST(product_id AS STRING), "
+        + "CAST(product_id AS VARCHAR(10))\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
   }
 
   @Test void testSelectQueryWithLimitClauseWithoutOrder() {
@@ -12702,6 +12719,28 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(snowflakeSql));
   }
 
+  @Test public void testTryToTimeFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode tryToTimeNode = builder.call(SqlLibraryOperators.TRY_TO_TIME,
+        builder.literal("01:02:03"));
+    final RexNode tryToTimeNodeWithFormat = builder.call(SqlLibraryOperators.TRY_TO_TIME,
+        builder.literal("01:02:03"), builder.literal("HH24:MI:SS"));
+    final RexNode tryToTimeNodeWithInvalidFormat = builder.call(SqlLibraryOperators.TRY_TO_TIME,
+        builder.literal("invalid"), builder.literal("HH24:MI:SS"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(tryToTimeNode, "time_value"),
+            tryToTimeNodeWithFormat, tryToTimeNodeWithInvalidFormat)
+        .build();
+
+    final String snowflakeSql =
+        "SELECT TRY_TO_TIME('01:02:03') AS \"time_value\", TRY_TO_TIME('01:02:03', "
+           +  "'HH24:MI:SS') AS \"$f1\", TRY_TO_TIME('invalid', 'HH24:MI:SS') AS \"$f2\"\n"
+           + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(snowflakeSql));
+  }
+
   @Test public void testCountSetWithLiteralParameter() {
     RelBuilder builder = relBuilder();
     final RexNode bitCountRexNode = builder.call(SqlLibraryOperators.BIT_COUNT,
@@ -13496,6 +13535,19 @@ class RelToSqlConverterTest {
     assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
+  @Test void testDateTimeFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateTimeNode = builder.call(SqlLibraryOperators.DATETIME,
+        builder.literal("2008-08-21 07:23:54"), builder.literal("US/Mountain"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateTimeNode, "converted_value"))
+        .build();
+    final String expectedBQ =
+        "SELECT DATETIME('2008-08-21 07:23:54', 'US/Mountain') AS converted_value\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
   @Test public void testZEROIFNULL() {
     final RelBuilder builder = relBuilder();
     final RexNode zeroIfNullRexNode = builder.call(SqlLibraryOperators.ZEROIFNULL,
@@ -13565,5 +13617,21 @@ class RelToSqlConverterTest {
     final String expectedBQSql = "SELECT DATETIME_ADD(CURRENT_TIMESTAMP(), INTERVAL CAST(70000000 "
         + "/ 1000 AS INT64) SECOND) AS `$f0`\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testRegexpExtractAllFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpExtractNode = builder.call(SqlLibraryOperators.REGEXP_EXTRACT_ALL,
+        builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("[^-]+"));
+    final RexNode arrayAccess = builder.call(SAFE_OFFSET, regexpExtractNode, builder.literal(2));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(arrayAccess, "ss"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "REGEXP_EXTRACT_ALL('TERADATA-BIGQUERY-SPARK-ORACLE', '[^-]+')[SAFE_OFFSET(2)] AS ss";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 }

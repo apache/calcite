@@ -460,10 +460,10 @@ public abstract class AbstractRelNode implements RelNode {
   /**
    * A writer object used exclusively for computing the digest of a RelNode.
    *
-   * <p>The writer is meant to be used only for computing a single digest and then thrown away.
-   * After calling {@link #done(RelNode)} the writer should be used only to obtain the computed
-   * {@link #digest}. Any other action is prohibited.</p>
-   *
+   * <p>The writer is meant to be used only for computing a single digest and
+   * then thrown away.  After calling {@link #done(RelNode)} the writer should
+   * be used only to obtain the computed {@link #digest}. Any other action is
+   * prohibited.
    */
   private static final class RelDigestWriter implements RelWriter {
 

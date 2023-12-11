@@ -162,7 +162,7 @@ public abstract class Sort extends SingleRel {
    * <code>the_year, the_month</code> because of a known monotonicity
    * constraint among the columns. {@code getCollation} would return
    * <code>[time_id]</code> and {@code collations} would return
-   * <code>[ [time_id], [the_year, the_month] ]</code>.</p>
+   * <code>[ [time_id], [the_year, the_month] ]</code>.
    */
   public RelCollation getCollation() {
     return collation;
@@ -173,7 +173,7 @@ public abstract class Sort extends SingleRel {
     //noinspection StaticPseudoFunctionalStyleMethod
     return Util.transform(collation.getFieldCollations(), field ->
         getCluster().getRexBuilder().makeInputRef(input,
-            Objects.requireNonNull(field).getFieldIndex()));
+            Objects.requireNonNull(field, "field").getFieldIndex()));
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {

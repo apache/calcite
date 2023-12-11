@@ -62,9 +62,9 @@ public abstract class SqlOperatorBinding {
    * GROUP BY deptno, gender", returns 2.
    *
    * <p>Returns 0 if the query is implicitly "GROUP BY ()" because of an
-   * aggregate expression. For example, "SELECT sum(sal) FROM emp".</p>
+   * aggregate expression. For example, "SELECT sum(sal) FROM emp".
    *
-   * <p>Returns -1 if the query is not an aggregate query.</p>
+   * <p>Returns -1 if the query is not an aggregate query.
    */
   public int getGroupCount() {
     return -1;
@@ -149,6 +149,7 @@ public abstract class SqlOperatorBinding {
     throw new UnsupportedOperationException();
   }
 
+
   @Deprecated // to be removed before 2.0
   public @Nullable Comparable getOperandLiteralValue(int ordinal) {
     return getOperandLiteralValue(ordinal, Comparable.class);
@@ -182,6 +183,12 @@ public abstract class SqlOperatorBinding {
   /** Returns the number of bound operands. */
   public abstract int getOperandCount();
 
+  /** Returns the number of pre-operands.
+   * Zero except for a few aggregate functions. */
+  public int getPreOperandCount() {
+    return 0;
+  }
+
   /**
    * Gets the type of a bound operand.
    *
@@ -198,6 +205,14 @@ public abstract class SqlOperatorBinding {
    */
   public SqlMonotonicity getOperandMonotonicity(int ordinal) {
     return SqlMonotonicity.NOT_MONOTONIC;
+  }
+
+
+  /**
+   * Returns the collation type.
+   */
+  public RelDataType getCollationType() {
+    throw new UnsupportedOperationException();
   }
 
   /**

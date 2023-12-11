@@ -24,7 +24,7 @@ package org.apache.calcite.rel;
  * {@link RelNode} when given parameters it cannot accept. For example,
  * {@code EnumerableJoinRel} can only implement equi-joins, so its constructor
  * throws {@code InvalidRelException} when given the condition
- * {@code input0.x - input1.y = 2}.</p>
+ * {@code input0.x - input1.y = 2}.
  *
  * <p>Because the exception is checked (i.e. extends {@link Exception} but not
  * {@link RuntimeException}), constructors that throw this exception will
@@ -32,11 +32,11 @@ package org.apache.calcite.rel;
  * those relational expressions will need to handle it. Usually a rule will
  * not take the exception personally, and will fail to match. The burden of
  * checking is removed from the rule, which means less code for the author of
- * the rule to maintain.</p>
+ * the rule to maintain.
  *
  * <p>The caller that receives an {@code InvalidRelException} (typically a rule
  * attempting to create a relational expression) should log it at
- * the DEBUG level.</p>
+ * the DEBUG level.
  */
 public class InvalidRelException extends Exception {
   /**

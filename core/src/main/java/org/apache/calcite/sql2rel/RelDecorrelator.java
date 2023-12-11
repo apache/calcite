@@ -1896,9 +1896,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
-      Aggregate singleAggregate = call.rel(0);
-      Project project = call.rel(1);
-      Aggregate aggregate = call.rel(2);
+      final Aggregate singleAggregate = call.rel(0);
+      final Project project = call.rel(1);
+      final Aggregate aggregate = call.rel(2);
 
       // check the top aggregate is a single value agg function
       if (!singleAggregate.getGroupSet().isEmpty()
@@ -1908,10 +1908,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
         return;
       }
 
-      // check projRel only projects one expression
-      // check this project only projects one expression, i.e. scalar
-      // sub-queries.
-      List<RexNode> projExprs = project.getProjects();
+      // check the project only projects one expression, i.e. scalar sub-queries.
+      final List<RexNode> projExprs = project.getProjects();
       if (projExprs.size() != 1) {
         return;
       }

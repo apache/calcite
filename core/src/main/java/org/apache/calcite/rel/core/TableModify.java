@@ -124,8 +124,8 @@ public abstract class TableModify extends SingleRel {
     this.updateColumnList = updateColumnList;
     this.sourceExpressionList = sourceExpressionList;
     if (operation == Operation.UPDATE) {
-      requireNonNull(updateColumnList);
-      requireNonNull(sourceExpressionList);
+      requireNonNull(updateColumnList, "updateColumnList");
+      requireNonNull(sourceExpressionList, "sourceExpressionList");
       Preconditions.checkArgument(sourceExpressionList.size()
           == updateColumnList.size());
     } else {

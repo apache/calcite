@@ -208,10 +208,7 @@ public class AggregateReduceFunctionsRule
 
     // pass through group key
     for (int i = 0; i < groupCount; ++i) {
-      projList.add(
-          rexBuilder.makeInputRef(
-              getFieldType(oldAggRel, i),
-              i));
+      projList.add(rexBuilder.makeInputRef(oldAggRel, i));
     }
 
     // List of input expressions. If a particular aggregate needs more, it
@@ -221,7 +218,7 @@ public class AggregateReduceFunctionsRule
     relBuilder.push(oldAggRel.getInput());
     final List<RexNode> inputExprs = new ArrayList<>(relBuilder.fields());
 
-    // create new agg function calls and rest of project list together
+    // create new aggregate function calls and rest of project list together
     for (AggregateCall oldCall : oldCalls) {
       projList.add(
           reduceAgg(
@@ -238,7 +235,8 @@ public class AggregateReduceFunctionsRule
     }
     newAggregateRel(relBuilder, oldAggRel, newCalls);
     newCalcRel(relBuilder, oldAggRel.getRowType(), projList);
-    ruleCall.transformTo(relBuilder.build());
+    final RelNode build = relBuilder.build();
+    ruleCall.transformTo(build);
   }
 
   private RexNode reduceAgg(
@@ -411,8 +409,9 @@ public class AggregateReduceFunctionsRule
             ImmutableList.of(avgInputType));
 
     final RelDataTypeFactory typeFactory = oldAggRel.getCluster().getTypeFactory();
-    final RelDataType avgType = typeFactory.createTypeWithNullability(
-        oldCall.getType(), numeratorRef.getType().isNullable());
+    final RelDataType avgType =
+        typeFactory.createTypeWithNullability(oldCall.getType(),
+            numeratorRef.getType().isNullable());
     numeratorRef = rexBuilder.ensureType(avgType, numeratorRef, true);
     final RexNode divideRef =
         rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, numeratorRef, denominatorRef);

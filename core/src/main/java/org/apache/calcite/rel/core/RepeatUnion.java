@@ -40,7 +40,7 @@ import java.util.List;
  *
  * <li>Evaluate the right input (i.e., iterative relational expression) over and
  *   over until it produces no more results (or until an optional maximum number
- *   of iterations is reached).  For UNION (but not UNION ALL), discard
+ *   of iterations is reached). For UNION (but not UNION ALL), discard
  *   duplicated results.
  * </ul>
  *

@@ -584,8 +584,8 @@ public abstract class SqlOperator {
 
     final List<SqlNode> args = constructOperandList(validator, call, null);
 
-    final List<RelDataType> argTypes = constructArgTypeList(validator, scope,
-        call, args, false);
+    final List<RelDataType> argTypes =
+        constructArgTypeList(validator, scope, call, args, false);
 
     // Always disable type coercion for builtin operator operands,
     // they are handled by the TypeCoercion specifically.
@@ -776,7 +776,7 @@ public abstract class SqlOperator {
    * <p>Similar to {@link #checkOperandCount}, but some operators may have
    * different valid operands in {@link SqlNode} and {@code RexNode} formats
    * (some examples are CAST and AND), and this method throws internal errors,
-   * not user errors.</p>
+   * not user errors.
    */
   public boolean validRexOperands(int count, Litmus litmus) {
     return true;
@@ -830,11 +830,11 @@ public abstract class SqlOperator {
    * <dfn>window functions</dfn>.
    * Every aggregate function (e.g. SUM) is also a window function.
    * There are window functions that are not aggregate functions, e.g. RANK,
-   * NTILE, LEAD, FIRST_VALUE.</p>
+   * NTILE, LEAD, FIRST_VALUE.
    *
    * <p>Collectively, aggregate and window functions are called <dfn>analytic
    * functions</dfn>. Despite its name, this method returns true for every
-   * analytic function.</p>
+   * analytic function.
    *
    * @see #requiresOrder()
    *
@@ -868,7 +868,7 @@ public abstract class SqlOperator {
    *
    * <p>Per SQL:2011, 2, 6.10: "If &lt;ntile function&gt;, &lt;lead or lag
    * function&gt;, RANK or DENSE_RANK is specified, then the window ordering
-   * clause shall be present."</p>
+   * clause shall be present."
    *
    * @see #isAggregator()
    */
@@ -965,8 +965,29 @@ public abstract class SqlOperator {
    * {@code SqlStdOperatorTable.NOT_LIKE}, and vice versa.
    *
    * <p>By default, returns {@code null}, which means there is no inverse
-   * operator. */
+   * operator.
+   *
+   * @see #reverse */
   public @Nullable SqlOperator not() {
+    return null;
+  }
+
+  /** Returns the operator that has the same effect as this operator
+   * if its arguments are reversed.
+   *
+   * <p>For example, {@code SqlStdOperatorTable.GREATER_THAN.reverse()} returns
+   * {@code SqlStdOperatorTable.LESS_THAN}, and vice versa,
+   * because {@code a > b} is equivalent to {@code b < a}.
+   *
+   * <p>{@code SqlStdOperatorTable.EQUALS.reverse()} returns itself.
+   *
+   * <p>By default, returns {@code null}, which means there is no inverse
+   * operator.
+   *
+   * @see SqlOperator#not()
+   * @see SqlKind#reverse()
+   */
+  public @Nullable SqlOperator reverse() {
     return null;
   }
 

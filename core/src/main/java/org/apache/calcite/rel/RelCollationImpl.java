@@ -121,8 +121,9 @@ public class RelCollationImpl implements RelCollation {
   /**
    * Applies mapping to a given collation.
    *
-   * If mapping destroys the collation prefix, this method returns an empty collation.
-   * Examples of applying mappings to collation [0, 1]:
+   * <p>If mapping destroys the collation prefix, this method returns an empty
+   * collation.  Examples of applying mappings to collation [0, 1]:
+   *
    * <ul>
    *   <li>mapping(0, 1) =&gt; [0, 1]</li>
    *   <li>mapping(1, 0) =&gt; [1, 0]</li>

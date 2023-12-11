@@ -41,9 +41,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * <p>For example, if we have the following sub-query:
  *
- * <blockquote><pre>
- * (select X.x1, Y.y1 from X, Y
- *  where X.x2 = Y.y2 and X.x3 = 1 and Y.y3 = 2)</pre></blockquote>
+ * <blockquote><pre>{@code
+ *   (select X.x1, Y.y1
+ *    from X, Y
+ *    where X.x2 = Y.y2 and X.x3 = 1 and Y.y3 = 2)}</pre></blockquote>
  *
  * <p>The {@link MultiJoin} associated with (X, Y) associates x1 with X and
  * y1 with Y. Although x3 and y3 need to be read due to the filters, they are

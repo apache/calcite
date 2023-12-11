@@ -441,6 +441,7 @@ public class RelMdCollation
    *
    * <p>If the inputs are sorted on other keys <em>in addition to</em> the join
    * key, the result preserves those collations too.
+   *
    * @deprecated Use {@link #mergeJoin(RelMetadataQuery, RelNode, RelNode, ImmutableIntList, ImmutableIntList, JoinRelType)} */
   @Deprecated // to be removed before 2.0
   public static @Nullable List<RelCollation> mergeJoin(RelMetadataQuery mq,

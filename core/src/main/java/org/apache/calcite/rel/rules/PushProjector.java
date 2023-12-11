@@ -67,7 +67,7 @@ import static java.util.Objects.requireNonNull;
  * <p>Sometimes an expression needs to be split before it can be pushed down.
  * To flag that an expression cannot be split, specify a rule that it must be
  * <dfn>preserved</dfn>. Such an expression will be pushed down intact to one
- * of the inputs, or not pushed down at all.</p>
+ * of the inputs, or not pushed down at all.
  */
 public class PushProjector {
   //~ Instance fields --------------------------------------------------------
@@ -216,7 +216,7 @@ public class PushProjector {
     this.origFilter = origFilter;
     this.childRel = childRel;
     this.preserveExprCondition = preserveExprCondition;
-    this.relBuilder = requireNonNull(relBuilder);
+    this.relBuilder = requireNonNull(relBuilder, "relBuilder");
     if (origProj == null) {
       origProjExprs = ImmutableList.of();
     } else {

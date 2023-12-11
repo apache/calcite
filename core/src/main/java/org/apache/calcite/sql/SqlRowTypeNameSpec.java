@@ -66,8 +66,8 @@ public class SqlRowTypeNameSpec extends SqlTypeNameSpec {
       List<SqlIdentifier> fieldNames,
       List<SqlDataTypeSpec> fieldTypes) {
     super(new SqlIdentifier(SqlTypeName.ROW.getName(), pos), pos);
-    Objects.requireNonNull(fieldNames);
-    Objects.requireNonNull(fieldTypes);
+    Objects.requireNonNull(fieldNames, "fieldNames");
+    Objects.requireNonNull(fieldTypes, "fieldTypes");
     assert fieldNames.size() > 0; // there must be at least one field.
     this.fieldNames = fieldNames;
     this.fieldTypes = fieldTypes;

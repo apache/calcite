@@ -21,14 +21,14 @@ import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 /**
  * Specification of a SQL sample.
  *
- * <p>For example, the query</p>
+ * <p>For example, the query
  *
  * <blockquote>
  * <pre>SELECT *
  * FROM emp TABLESAMPLE SUBSTITUTE('medium')</pre>
  * </blockquote>
  *
- * <p>declares a sample which is created using {@link #createNamed}.</p>
+ * <p>declares a sample which is created using {@link #createNamed}.
  *
  * <p>A sample is not a {@link SqlNode}. To include it in a parse tree, wrap it
  * as a literal, viz:

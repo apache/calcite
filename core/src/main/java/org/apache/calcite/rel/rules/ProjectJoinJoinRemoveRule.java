@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
  * on a {@link org.apache.calcite.rel.core.Join} and removes the left input
  * of the join provided that the left input is also a left join if possible.
  *
- * <p>For instance,</p>
+ * <p>For instance,
  *
  * <blockquote>
  * <pre>select s.product_id, pc.product_id
@@ -124,12 +124,13 @@ public class ProjectJoinJoinRemoveRule
     int offset = bottomJoin.getRight().getRowType().getFieldCount();
     final RelBuilder relBuilder = call.builder();
 
-    final RexNode condition = RexUtil.shift(topJoin.getCondition(),
-        leftBottomChildSize, -offset);
-    final RelNode join = relBuilder.push(bottomJoin.getLeft())
-        .push(topJoin.getRight())
-        .join(topJoin.getJoinType(), condition)
-        .build();
+    final RexNode condition =
+        RexUtil.shift(topJoin.getCondition(), leftBottomChildSize, -offset);
+    final RelNode join =
+        relBuilder.push(bottomJoin.getLeft())
+            .push(topJoin.getRight())
+            .join(topJoin.getJoinType(), condition)
+            .build();
 
     final List<RexNode> newExprs = project.getProjects().stream()
         .map(expr -> RexUtil.shift(expr, leftBottomChildSize, -offset))

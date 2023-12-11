@@ -73,4 +73,5 @@ public class TableScanRule extends RelRule<RelRule.Config>
       return new TableScanRule(this);
     }
   }
+
 }

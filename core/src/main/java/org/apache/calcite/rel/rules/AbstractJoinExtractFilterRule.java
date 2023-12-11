@@ -36,7 +36,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * the <code>FennelCartesianJoinRule</code> applicable.
  *
  * <p>The constructor is parameterized to allow any sub-class of
- * {@link org.apache.calcite.rel.core.Join}.</p>
+ * {@link org.apache.calcite.rel.core.Join}.
  */
 public abstract class AbstractJoinExtractFilterRule
     extends RelRule<AbstractJoinExtractFilterRule.Config>

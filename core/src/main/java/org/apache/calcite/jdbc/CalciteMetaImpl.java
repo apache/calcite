@@ -84,6 +84,94 @@ import static java.util.Objects.requireNonNull;
 public class CalciteMetaImpl extends MetaImpl {
   static final Driver DRIVER = new Driver();
 
+
+  /** The columns returned by {@link DatabaseMetaData#getCatalogs()}. */
+  public static final List<String> CATALOG_COLUMNS =
+      ImmutableList.of("TABLE_CAT");
+
+  /** Column names returned by {@link DatabaseMetaData#getColumns}. */
+  public static final List<String> COLUMN_COLUMNS =
+      ImmutableList.of("TABLE_CAT",
+          "TABLE_SCHEM",
+          "TABLE_NAME",
+          "COLUMN_NAME",
+          "DATA_TYPE",
+          "TYPE_NAME",
+          "COLUMN_SIZE",
+          "BUFFER_LENGTH",
+          "DECIMAL_DIGITS",
+          "NUM_PREC_RADIX",
+          "NULLABLE",
+          "REMARKS",
+          "COLUMN_DEF",
+          "SQL_DATA_TYPE",
+          "SQL_DATETIME_SUB",
+          "CHAR_OCTET_LENGTH",
+          "ORDINAL_POSITION",
+          "IS_NULLABLE",
+          "SCOPE_CATALOG",
+          "SCOPE_SCHEMA",
+          "SCOPE_TABLE",
+          "SOURCE_DATA_TYPE",
+          "IS_AUTOINCREMENT",
+          "IS_GENERATEDCOLUMN");
+
+  /** The columns returned by {@link DatabaseMetaData#getFunctions}. */
+  public static final List<String> FUNCTION_COLUMNS =
+      ImmutableList.of("FUNCTION_CAT",
+          "FUNCTION_SCHEM",
+          "FUNCTION_NAME",
+          "REMARKS",
+          "FUNCTION_TYPE",
+          "SPECIFIC_NAME");
+
+  /** The columns returned by {@link DatabaseMetaData#getSchemas()}. */
+  public static final List<String> SCHEMA_COLUMNS =
+      ImmutableList.of("TABLE_SCHEM",
+          "TABLE_CATALOG");
+
+  /** The columns returned by {@link DatabaseMetaData#getTables}. */
+  public static final List<String> TABLE_COLUMNS =
+      ImmutableList.of("TABLE_CAT",
+          "TABLE_SCHEM",
+          "TABLE_NAME",
+          "TABLE_TYPE",
+          "REMARKS",
+          "TYPE_CAT",
+          "TYPE_SCHEM",
+          "TYPE_NAME",
+          "SELF_REFERENCING_COL_NAME",
+          "REF_GENERATION");
+
+  /** The columns returned by {@link DatabaseMetaData#getTableTypes()}. */
+  public static final List<String> TABLE_TYPE_COLUMNS =
+      ImmutableList.of("TABLE_TYPE");
+
+  /** The columns returned by {@link DatabaseMetaData#getTypeInfo()}. */
+  public static final List<String> TYPE_INFO_COLUMNS =
+      ImmutableList.of("TYPE_NAME",
+          "DATA_TYPE",
+          "PRECISION",
+          "LITERAL_PREFIX",
+          "LITERAL_SUFFIX",
+          "CREATE_PARAMS",
+          "NULLABLE",
+          "CASE_SENSITIVE",
+          "SEARCHABLE",
+          "UNSIGNED_ATTRIBUTE",
+          "FIXED_PREC_SCALE",
+          "AUTO_INCREMENT",
+          "LOCAL_TYPE_NAME",
+          "MINIMUM_SCALE",
+          "MAXIMUM_SCALE",
+          "SQL_DATA_TYPE",
+          "SQL_DATETIME_SUB",
+          "NUM_PREC_RADIX");
+
+  /** Creates a CalciteMetaImpl.
+   *
+   */
+  // to be removed before 2.0
   public CalciteMetaImpl(CalciteConnectionImpl connection) {
     super(connection);
     this.connProps
@@ -748,8 +836,36 @@ public class CalciteMetaImpl extends MetaImpl {
   }
 
   /** Metadata describing a Calcite table. */
-  private static class CalciteMetaTable extends MetaTable {
+  public static class CalciteMetaTable extends MetaTable {
     private final Table calciteTable;
+
+    /** Column names returned by {@link DatabaseMetaData#getColumns}. */
+    public static final List<String> COLUMN_COLUMNS =
+            ImmutableList.of("TABLE_CAT",
+                    "TABLE_SCHEM",
+                    "TABLE_NAME",
+                    "COLUMN_NAME",
+                    "DATA_TYPE",
+                    "TYPE_NAME",
+                    "COLUMN_SIZE",
+                    "BUFFER_LENGTH",
+                    "DECIMAL_DIGITS",
+                    "NUM_PREC_RADIX",
+                    "NULLABLE",
+                    "REMARKS",
+                    "COLUMN_DEF",
+                    "SQL_DATA_TYPE",
+                    "SQL_DATETIME_SUB",
+                    "CHAR_OCTET_LENGTH",
+                    "ORDINAL_POSITION",
+                    "IS_NULLABLE",
+                    "SCOPE_CATALOG",
+                    "SCOPE_SCHEMA",
+                    "SCOPE_TABLE",
+                    "SOURCE_DATA_TYPE",
+                    "IS_AUTOINCREMENT",
+                    "IS_GENERATEDCOLUMN");
+
 
     CalciteMetaTable(Table calciteTable, String tableCat,
         String tableSchem, String tableName) {

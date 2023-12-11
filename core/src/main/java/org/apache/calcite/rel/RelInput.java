@@ -64,12 +64,14 @@ public interface RelInput {
   @Nullable Object get(String tag);
 
   /**
-   * Returns a {@code string} value. Throws if wrong type.
+   * Returns a {@code string} value.
+   * Throws if wrong type, returns null if not present.
    */
   @Nullable String getString(String tag);
 
   /**
-   * Returns a {@code float} value. Throws if not present or wrong type.
+   * Returns a {@code float} value.
+   * Throws if not present or wrong type.
    */
   float getFloat(String tag);
 

@@ -122,6 +122,7 @@ public final class LogicalProject extends Project {
 
   /**
    * Creates a LogicalProject.
+   *
    * @deprecated Use {@link #create(RelNode, List, List, List, Set)} instead
    */
   @Deprecated // to be removed before 2.0
@@ -145,6 +146,7 @@ public final class LogicalProject extends Project {
 
   /**
    * Creates a LogicalProject, specifying row type rather than field names.
+   *
    * @deprecated Use {@link #create(RelNode, List, List, RelDataType, Set)} instead
    */
   @Deprecated // to be removed before 2.0
