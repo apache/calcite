@@ -2070,7 +2070,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlDatePartFunction("SECOND", TimeUnit.SECOND);
 
   /**
-   * The SQL <code>MICROSECOND</code> operator. Returns the Second
+   * The SQL <code>MICROSECOND</code> operator. Returns the Microsecond
    * from a DATETIME  E.g.<br>
    * <code>MICROSECOND(timestamp '2008-9-23 01:23:45.1234')</code> returns <code>
    * 123400</code>
