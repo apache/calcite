@@ -19,7 +19,6 @@ package org.apache.calcite.interpreter;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.core.TableScan;
@@ -199,8 +198,6 @@ public class TableScanNode implements Node {
       } else {
         projectInts = projects.toIntArray();
       }
-      final Enumerable<@Nullable Object[]> enumerable1 =
-          pfTable.scan(root, mutableFilters, projectInts);
       for (RexNode filter : mutableFilters) {
         if (!filters.contains(filter)) {
           throw RESOURCE.filterableTableInventedFilter(filter.toString())
@@ -226,6 +223,8 @@ public class TableScanNode implements Node {
           continue;
         }
       }
+      final Enumerable<@Nullable Object[]> enumerable1 =
+          pfTable.scan(root, mutableFilters, projectInts);
       final Enumerable<Row> rowEnumerable = Enumerables.toRow(enumerable1);
       final ImmutableIntList rejectedProjects;
       if (originalProjects == null || originalProjects.equals(projects)) {
@@ -278,16 +277,14 @@ public class TableScanNode implements Node {
       });
     }
     if (rejectedProjects != null) {
-      enumerable = enumerable.select(
-          new Function1<Row, Row>() {
-            final @Nullable Object[] values = new Object[rejectedProjects.size()];
-            @Override public Row apply(Row row) {
-              final @Nullable Object[] inValues = row.getValues();
-              for (int i = 0; i < rejectedProjects.size(); i++) {
-                values[i] = inValues[rejectedProjects.get(i)];
-              }
-              return Row.asCopy(values);
+      final @Nullable Object[] values = new Object[rejectedProjects.size()];
+      enumerable =
+          enumerable.select(row -> {
+            final @Nullable Object[] inValues = row.getValues();
+            for (int i = 0; i < rejectedProjects.size(); i++) {
+              values[i] = inValues[rejectedProjects.get(i)];
             }
+            return Row.asCopy(values);
           });
     }
     return new TableScanNode(compiler, rel, enumerable);

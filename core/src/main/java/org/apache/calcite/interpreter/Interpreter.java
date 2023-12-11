@@ -17,6 +17,7 @@
 package org.apache.calcite.interpreter;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -34,11 +35,7 @@ import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitDispatcher;
@@ -56,7 +53,6 @@ import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.math.BigDecimal;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,11 +60,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -147,116 +140,7 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
   }
 
   @Override public void close() {
-  }
-
-  /** Not used. */
-  @SuppressWarnings("unused")
-  private static class FooCompiler implements ScalarCompiler {
-    @Override public Scalar compile(List<RexNode> nodes, RelDataType inputRowType) {
-      final RexNode node = nodes.get(0);
-      if (node instanceof RexCall) {
-        final RexCall call = (RexCall) node;
-        final Scalar argScalar = compile(call.getOperands(), inputRowType);
-        return new Scalar() {
-          final Object[] args = new Object[call.getOperands().size()];
-
-          @Override public void execute(final Context context, @Nullable Object[] results) {
-            results[0] = execute(context);
-          }
-
-          @Override public @Nullable Object execute(Context context) {
-            Comparable o0;
-            Comparable o1;
-            switch (call.getKind()) {
-            case LESS_THAN:
-            case LESS_THAN_OR_EQUAL:
-            case GREATER_THAN:
-            case GREATER_THAN_OR_EQUAL:
-            case EQUALS:
-            case NOT_EQUALS:
-              argScalar.execute(context, args);
-              o0 = (Comparable) args[0];
-              if (o0 == null) {
-                return null;
-              }
-              o1 = (Comparable) args[1];
-              if (o1 == null) {
-                return null;
-              }
-              if (o0 instanceof BigDecimal) {
-                if (o1 instanceof Double || o1 instanceof Float) {
-                  o1 = new BigDecimal(((Number) o1).doubleValue());
-                } else {
-                  o1 = new BigDecimal(((Number) o1).longValue());
-                }
-              }
-              if (o1 instanceof BigDecimal) {
-                if (o0 instanceof Double || o0 instanceof Float) {
-                  o0 = new BigDecimal(((Number) o0).doubleValue());
-                } else {
-                  o0 = new BigDecimal(((Number) o0).longValue());
-                }
-              }
-              final int c = o0.compareTo(o1);
-              switch (call.getKind()) {
-              case LESS_THAN:
-                return c < 0;
-              case LESS_THAN_OR_EQUAL:
-                return c <= 0;
-              case GREATER_THAN:
-                return c > 0;
-              case GREATER_THAN_OR_EQUAL:
-                return c >= 0;
-              case EQUALS:
-                return c == 0;
-              case NOT_EQUALS:
-                return c != 0;
-              default:
-                throw new AssertionError("unknown expression " + call);
-              }
-            default:
-              if (call.getOperator() == SqlStdOperatorTable.UPPER) {
-                argScalar.execute(context, args);
-                String s0 = (String) args[0];
-                if (s0 == null) {
-                  return null;
-                }
-                return s0.toUpperCase(Locale.ROOT);
-              }
-              if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
-                argScalar.execute(context, args);
-                String s0 = (String) args[0];
-                Number i1 = (Number) args[1];
-                Number i2 = (Number) args[2];
-                if (s0 == null || i1 == null || i2 == null) {
-                  return null;
-                }
-                return s0.substring(i1.intValue() - 1,
-                    i1.intValue() - 1 + i2.intValue());
-              }
-              throw new AssertionError("unknown expression " + call);
-            }
-          }
-        };
-      }
-      return new Scalar() {
-        @Override public void execute(Context context, @Nullable Object[] results) {
-          results[0] = execute(context);
-        }
-
-        @Override public @Nullable Object execute(Context context) {
-          switch (node.getKind()) {
-          case LITERAL:
-            return ((RexLiteral) node).getValueAs(Comparable.class);
-          case INPUT_REF:
-            @Nullable Object[] values = requireNonNull(context.values, "context.values");
-            return values[((RexInputRef) node).getIndex()];
-          default:
-            throw new RuntimeException("unknown expression type " + node);
-          }
-        }
-      };
-    }
+    nodes.values().forEach(NodeInfo::close);
   }
 
   /** Information about a node registered in the data flow graph. */
@@ -475,10 +359,10 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
       if (!found) {
         if (p instanceof InterpretableRel) {
           InterpretableRel interpretableRel = (InterpretableRel) p;
-          // TODO: analyze if null is permissible argument for dataContext
-          node = interpretableRel.implement(
-              new InterpretableRel.InterpreterImplementor(this, null,
-                  castNonNull(null)));
+          node =
+              interpretableRel.implement(
+                  new InterpretableRel.InterpreterImplementor(this, null,
+                      DataContexts.EMPTY));
         } else {
           // Probably need to add a visit(XxxRel) method to CoreCompiler.
           throw new AssertionError("interpreter: no implementation for "
@@ -513,8 +397,7 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
     }
 
     private JavaTypeFactory getTypeFactory() {
-      return requireNonNull(interpreter.dataContext.getTypeFactory(),
-          () -> "no typeFactory in dataContext");
+      return interpreter.dataContext.getTypeFactory();
     }
 
     @Override public RelDataType combinedRowType(List<RelNode> inputs) {

@@ -92,7 +92,7 @@ public class JoinNode implements Node {
       // send un-match rows for full join on right source
       List<Row> empty = new ArrayList<>();
       // TODO: CALCITE-4308, JointNode in Interpreter might fail with NPE for FULL join
-      for (Row row: requireNonNull(innerRows, "innerRows")) {
+      for (Row row : requireNonNull(innerRows, "innerRows")) {
         if (matchRowSet.contains(row)) {
           continue;
         }
@@ -109,7 +109,7 @@ public class JoinNode implements Node {
     boolean outerRowOnLeft = joinRelType != JoinRelType.RIGHT;
     copyToContext(outerRow, outerRowOnLeft);
     List<Row> matchInnerRows = new ArrayList<>();
-    for (Row innerRow: innerRows) {
+    for (Row innerRow : innerRows) {
       copyToContext(innerRow, !outerRowOnLeft);
       final Boolean execute = (Boolean) condition.execute(context);
       if (execute != null && execute) {
@@ -135,7 +135,7 @@ public class JoinNode implements Node {
         boolean outerRowOnLeft = joinRelType != JoinRelType.RIGHT;
         copyToContext(outerRow, outerRowOnLeft);
         requireNonNull(context.values, "context.values");
-        for (Row row: matchInnerRows) {
+        for (Row row : matchInnerRows) {
           copyToContext(row, !outerRowOnLeft);
           sink.send(Row.asCopy(context.values));
         }
