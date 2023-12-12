@@ -185,12 +185,11 @@ public class Frameworks {
       }
       // Connect via a Driver instance. Don't use DriverManager because driver
       // auto-loading can get broken by shading and jar-repacking.
-      //  DriverManager.getConnection("jdbc:calcite:", info);
-      final CalciteServerStatement statement;
-      try (Connection connection = DRIVER_SUPPLIER.get().connect("jdbc:calcite:", info)) {
-        statement = connection.createStatement()
-            .unwrap(CalciteServerStatement.class);
-      }
+      Connection connection =
+          DRIVER_SUPPLIER.get().connect("jdbc:calcite:", info);
+      final CalciteServerStatement statement =
+          connection.createStatement()
+              .unwrap(CalciteServerStatement.class);
       return new CalcitePrepareImpl().perform(statement, config, action);
     } catch (Exception e) {
       throw new RuntimeException(e);
