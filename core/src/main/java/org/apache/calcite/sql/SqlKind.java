@@ -1179,6 +1179,9 @@ public enum SqlKind {
   /** {@code CREATE TABLE} DDL statement. */
   CREATE_TABLE,
 
+  /** {@code CREATE TABLE LIKE} DDL statement. */
+  CREATE_TABLE_LIKE,
+
   /** {@code ALTER TABLE} DDL statement. */
   ALTER_TABLE,
 
