@@ -10537,6 +10537,29 @@ public class SqlOperatorTest {
         "[null, foo]", "CHAR(3) ARRAY NOT NULL");
     f2.checkScalar("array(null)",
         "[null]", "NULL ARRAY NOT NULL");
+    // check complex type
+    f2.checkScalar("array(row(1))", "[{1}]",
+        "RecordType(INTEGER NOT NULL EXPR$0) NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array(row(1, null))", "[{1, null}]",
+        "RecordType(INTEGER NOT NULL EXPR$0, NULL EXPR$1) NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array(row(null, 1))", "[{null, 1}]",
+        "RecordType(NULL EXPR$0, INTEGER NOT NULL EXPR$1) NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array(row(1, 2))", "[{1, 2}]",
+        "RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) NOT NULL ARRAY NOT NULL");
+    f2.checkFails("^array(row(1, 2), null)^",
+        "Parameters must be of the same type", false);
+    f2.checkFails("^array(null, row(1, 2))^",
+        "Parameters must be of the same type", false);
+    f2.checkScalar("array(row(1, null), row(2, null))", "[{1, null}, {2, null}]",
+        "RecordType(INTEGER NOT NULL EXPR$0, NULL EXPR$1) NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array(row(null, 1), row(null, 2))", "[{null, 1}, {null, 2}]",
+        "RecordType(NULL EXPR$0, INTEGER NOT NULL EXPR$1) NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array(row(1, null), row(null, 2))", "[{1, null}, {null, 2}]",
+        "RecordType(INTEGER EXPR$0, INTEGER EXPR$1) NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array(row(null, 1), row(2, null))", "[{null, 1}, {2, null}]",
+        "RecordType(INTEGER EXPR$0, INTEGER EXPR$1) NOT NULL ARRAY NOT NULL");
+    f2.checkScalar("array(row(1, 2), row(3, 4))", "[{1, 2}, {3, 4}]",
+        "RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) NOT NULL ARRAY NOT NULL");
     // calcite default cast char type will fill extra spaces
     f2.checkScalar("array(1, 2, 'Hi')",
         "[1 , 2 , Hi]", "CHAR(2) NOT NULL ARRAY NOT NULL");
