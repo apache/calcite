@@ -12310,6 +12310,21 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedSparkQuery));
   }
 
+  @Test public void testToCharInSpark() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode toCharNode = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+        builder.literal("MONTH"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(toCharNode)
+        .build();
+    final String expectedSparkQuery = "SELECT DATE_FORMAT(CURRENT_TIMESTAMP, 'MMMM') $f0\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
+
   @Test public void testToDateforOracle() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode oracleToDateCall = builder.call(SqlLibraryOperators.ORACLE_TO_DATE,
