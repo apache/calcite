@@ -145,6 +145,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALEND
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MONTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.QUARTERNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUE;
@@ -13715,5 +13716,23 @@ class RelToSqlConverterTest {
     final String expectedBqQuery = "SELECT EDIT_DISTANCE('abc', 'xyz', max_distance => 2) AS `$f0`"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testSplitFunctionWithIndex() {
+    final RelBuilder builder = relBuilder();
+    RexNode split = builder.call(SqlLibraryOperators.SPLIT,
+        builder.literal("123@Domain|Example"), builder.literal("@"));
+
+    RexNode splitAccess = builder.call(OFFSET, split, builder.literal(2));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(splitAccess, "Result"))
+        .build();
+
+    final String expectedBigQuery = "SELECT SPLIT('123@Domain|Example', '@')[OFFSET(2)] "
+        + "AS Result\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
   }
 }
