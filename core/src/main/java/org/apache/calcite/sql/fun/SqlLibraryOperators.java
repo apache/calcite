@@ -1061,22 +1061,28 @@ public abstract class SqlLibraryOperators {
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
     final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
 
-    // only numeric & character types check
+    // only numeric & character types check, this is a special spark array case
+    // the form like ARRAY(1, 2, '3') will return ["1", "2", "3"]
     boolean hasNumeric = false;
     boolean hasCharacter = false;
     boolean hasOthers = false;
     for (RelDataType type : operandTypes) {
       SqlTypeFamily family = type.getSqlTypeName().getFamily();
-      requireNonNull(family, "array element type family");
+      // some types such as Row, the family is null, fallback to normal inferred type logic
+      if (family == null) {
+        hasOthers = true;
+        break;
+      }
+      // skip it because we allow NULL literal
+      if (SqlTypeUtil.isNull(type)) {
+        continue;
+      }
       switch (family) {
       case NUMERIC:
         hasNumeric = true;
         break;
       case CHARACTER:
         hasCharacter = true;
-        break;
-      case NULL:
-        // skip it becase we allow null
         break;
       default:
         hasOthers = true;
@@ -1113,7 +1119,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction ARRAY =
       SqlBasicFunction.create("ARRAY",
           SqlLibraryOperators::arrayReturnType,
-          OperandTypes.SAME_VARIADIC,
+          OperandTypes.ARRAY_FUNCTION,
           SqlFunctionCategory.SYSTEM);
 
   private static RelDataType mapReturnType(SqlOperatorBinding opBinding) {
