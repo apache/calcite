@@ -19,17 +19,15 @@ package org.apache.calcite.rel.rel2sql;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
-import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexVisitorImpl;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Utility class for rel2sql package.
@@ -56,30 +54,18 @@ public class RelToSqlUtils {
     return false;
   }
 
-//  /** Returns whether an Analytical Function is present in filter condition. */
-//  protected boolean hasAnalyticalFunctionInFilter(Filter rel, RelNode input) {
-//    RexNode filterCondition = rel.getCondition();
-//    if (filterCondition instanceof RexOver) {
-//      return true;
-//    } else if (filterCondition instanceof RexCall) {
-//      for (RexNode operand : ((RexCall) filterCondition).getOperands()) {
-//        if (operand instanceof RexLiteral) {
-//          continue;
-//        } else if (isAnalyticalRex(operand)) {
-//          return true;
-//        } else if (operand instanceof RexInputRef) {
-//          return isInputRefIndexContainsRexOver(rel, input);
-//        }
-//      }
-//    }
-//    return false;
-//  }
-
   /** Returns whether an Analytical Function is present in filter condition. */
   protected boolean hasAnalyticalFunctionInFilter(Filter rel, RelNode input) {
     AnalyticalFunFinder analyticalFunFinder = new AnalyticalFunFinder(true, input);
     rel.getCondition().accept(analyticalFunFinder);
     return analyticalFunFinder.isRexOverPresentList.contains(true);
+  }
+
+  protected boolean hasAnalyticalFunctionInJoin(RelNode input) {
+    if (input instanceof LogicalJoin && input.getInput(0) instanceof Project) {
+      return isAnalyticalFunctionPresentInProjection((Project) input.getInput(0));
+    }
+    return false;
   }
 
   /* Returns whether any Analytical Function (RexOver) is present in projection.*/
@@ -107,25 +93,6 @@ public class RelToSqlUtils {
           return true;
         }
       }
-    }
-    return false;
-  }
-
-  private Set<Integer> rexInputRefCollector(Filter filter) {
-    Set<Integer> inputRefSet = new HashSet<>();
-    filter.getCondition().accept(new RexShuttle() {
-      @Override public RexNode visitInputRef(RexInputRef inputRef) {
-        inputRefSet.add(inputRef.getIndex());
-        return super.visitInputRef(inputRef);
-      }
-    });
-    return inputRefSet;
-  }
-
-  private boolean isInputRefIndexContainsRexOver(Filter filter, RelNode input) {
-    Set<Integer> possibleOverClauses = rexInputRefCollector(filter);
-    for (int index : possibleOverClauses) {
-      return isOperandAnalyticalInFollowingProject(input, index);
     }
     return false;
   }
