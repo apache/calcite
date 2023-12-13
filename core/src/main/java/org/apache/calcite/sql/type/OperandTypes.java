@@ -239,6 +239,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker NUMERIC_NUMERIC =
       family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC);
 
+  public static final SqlSingleOperandTypeChecker INTEGER_BOOLEAN =
+      family(SqlTypeFamily.INTEGER, SqlTypeFamily.BOOLEAN);
+
   public static final SqlSingleOperandTypeChecker DATE_DATE =
       family(SqlTypeFamily.DATE, SqlTypeFamily.DATE);
 

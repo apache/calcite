@@ -734,7 +734,12 @@ public abstract class SqlImplementor {
           final Context correlAliasContext = getAliasContext(variable);
           final RexFieldAccess lastAccess = accesses.pollLast();
           assert lastAccess != null;
-          sqlFieldAccess.add(correlAliasContext.field(lastAccess.getField().getIndex()));
+          SqlNode node = correlAliasContext.field(lastAccess.getField().getIndex());
+          if (!isNodeMatching(node, lastAccess)) {
+            SqlNode newNode = getSqlNodeByName(correlAliasContext, lastAccess);
+            node = newNode != null ? newNode : node;
+          }
+          sqlFieldAccess.add(node);
           break;
         case ROW:
           final SqlNode expr = toSql(program, referencedExpr);
@@ -864,6 +869,20 @@ public abstract class SqlImplementor {
 
         return callToSql(program, (RexCall) rex, false);
       }
+    }
+
+    private SqlNode getSqlNodeByName(Context correlAliasContext, RexFieldAccess lastAccess) {
+      for (SqlNode sqlNode : correlAliasContext.fieldList()) {
+        if (isMatching(lastAccess, sqlNode)) {
+          return sqlNode;
+        }
+      }
+      return null;
+    }
+
+    private static boolean isMatching(RexFieldAccess lastAccess, SqlNode sqlNode) {
+      return sqlNode instanceof SqlIdentifier
+          && sqlNode.toString().split("\\.")[1].equals(lastAccess.getField().getName());
     }
 
     private SqlNode callToSql(@Nullable RexProgram program, RexCall rex, boolean not) {
@@ -1410,6 +1429,16 @@ public abstract class SqlImplementor {
     }
   }
 
+  private static boolean isNodeMatching(SqlNode node, RexFieldAccess lastAccess) {
+    boolean qualified = node.toString().split("\\.").length > 1;
+    return qualified ? isNameMatch(lastAccess, node.toString().split("\\.")[1])
+        : isNameMatch(lastAccess, node.toString());
+  }
+
+  private static boolean isNameMatch(RexFieldAccess lastAccess, String name) {
+    return lastAccess.getField().getName().equals(name);
+  }
+
   /** Converts a {@link RexLiteral} in the context of a {@link RexProgram}
    * to a {@link SqlNode}. */
   public static SqlNode toSql(
@@ -1465,8 +1494,7 @@ public abstract class SqlImplementor {
       return SqlLiteral.createCharString((String) castNonNull(literal.getValue2()), POS);
     case NUMERIC:
     case EXACT_NUMERIC:
-      return SqlLiteral.createExactNumeric(
-          castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
+      return dialect.getNumericLiteral(literal, POS);
     case APPROXIMATE_NUMERIC:
       return SqlLiteral.createApproxNumeric(
           castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);

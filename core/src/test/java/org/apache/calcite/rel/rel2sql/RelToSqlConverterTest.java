@@ -9879,6 +9879,16 @@ class RelToSqlConverterTest {
         .ok(expectedBQ);
   }
 
+  @Test public void testExtractMicrosecond() {
+    String query = "SELECT MICROSECOND(TIMESTAMP '1999-06-23 10:30:47.123')";
+    final String expectedBQ = "SELECT EXTRACT(MICROSECOND FROM "
+        + "CAST('1999-06-23 10:30:47.123' AS DATETIME))";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQ);
+  }
+
   @Test public void testExtractEpoch() {
     String query = "SELECT EXTRACT(EPOCH FROM DATE '2008-08-29')";
     final String expectedBQ = "SELECT UNIX_SECONDS(CAST(DATE '2008-08-29' AS TIMESTAMP))";
@@ -9938,6 +9948,21 @@ class RelToSqlConverterTest {
     final String expectedBiqQuery = "SELECT UNIX_SECONDS() AS EE\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testExtractIsoweekWithCurrentDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode extractIsoweekRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
+        builder.literal(TimeUnitRange.ISOWEEK),
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(extractIsoweekRexNode, "isoweek"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT EXTRACT(ISOWEEK FROM CURRENT_DATETIME()) AS isoweek\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
@@ -10108,6 +10133,26 @@ class RelToSqlConverterTest {
         + "CAST(TIMESTAMP_MICROS(HIREDATE) AS DATETIME) AS TM, CAST(TIMESTAMP_MILLIS(HIREDATE) AS "
         + "DATETIME) AS TMI\n"
         + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testTimestampFunctionsWithTwoOperands() {
+    final RelBuilder builder = relBuilder();
+    final RexNode unixSecondsRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_SECONDS,
+        builder.scan("EMP").field(4), builder.literal(true));
+    final RexNode unixMicrosRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_MICROS,
+        builder.scan("EMP").field(4), builder.literal(true));
+    final RexNode unixMillisRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_MILLIS,
+        builder.scan("EMP").field(4), builder.literal(true));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(unixSecondsRexNode, "TS"),
+            builder.alias(unixMicrosRexNode, "TM"),
+            builder.alias(unixMillisRexNode, "TMI"))
+        .build();
+    final String expectedBiqQuery = "SELECT TIMESTAMP_SECONDS(HIREDATE) AS TS, "
+        + "TIMESTAMP_MICROS(HIREDATE) AS TM, "
+        + "TIMESTAMP_MILLIS(HIREDATE) AS TMI\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
@@ -13034,6 +13079,18 @@ class RelToSqlConverterTest {
     sql(query).withBigQuery().ok(expected);
   }
 
+  @Test void testBQCastToDecimalForLiteral() {
+    final String query = "select \"employee_id\",\n"
+        + " cast('1234.67' as DECIMAL(10,1)), cast(1234.6 as DECIMAL),\n"
+        + " cast('1234.67' as DECIMAL(10,4))\n"
+        + "from \"salary\"";
+    final String expected = "SELECT employee_id, "
+        + "ROUND(CAST(1234.67 AS NUMERIC), 1), ROUND(CAST"
+        + "(1234.6 AS NUMERIC), 0), 1234.67\n"
+        + "FROM foodmart.salary";
+    sql(query).withBigQuery().ok(expected);
+  }
+
   @Test public void testQuoteInStringLiterals() {
     final RelBuilder builder = relBuilder();
     final RexNode literal = builder.literal("Datam\"etica");
@@ -13577,6 +13634,41 @@ class RelToSqlConverterTest {
     sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expected);
   }
 
+  @Test void testCorrelatedQueryHavingCorrelatedVariableLookedUpInWrongTable() {
+    RelBuilder builder = foodmartRelBuilder();
+    RelNode subQueryForCorrelatedVariableLookUp = builder.scan("employee")
+        .project(builder.field("employee_id"),  builder.field("department_id"))
+        .build();
+    builder.push(subQueryForCorrelatedVariableLookUp);
+    CorrelationId correlationId = builder.getCluster().createCorrel();
+    RelDataType relDataType = builder.peek().getRowType();
+    RexNode correlVariable = builder.getRexBuilder().makeCorrel(relDataType, correlationId);
+    int departmentIdIndex = builder.field("department_id").getIndex();
+    builder.build();
+
+    //outer query Rel building
+    builder.scan("employee");
+    RelNode whereClauseSubQuery = builder
+        .scan("department")
+        .filter(builder
+            .equals(
+                builder.field("department_id"),
+                builder.getRexBuilder().makeFieldAccess(correlVariable, departmentIdIndex)))
+        .project(builder.field("department_id"))
+        .build();
+    RelNode root = builder
+        .filter(
+            ImmutableSet.of(correlationId), builder.call(SqlStdOperatorTable.NOT,
+            RexSubQuery.exists(whereClauseSubQuery)))
+        .project(builder.field("department_id"))
+        .build();
+    final String expectedSql = "SELECT \"department_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE NOT EXISTS (SELECT \"department_id\"\n"
+        + "FROM \"foodmart\".\"department\"\nWHERE \"department_id\" = \"employee\".\"department_id\")";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testDateAddWithMilliSecondsInterval() {
     final RelBuilder builder = relBuilder();
     final RexNode intervalMillisecondsRex =
@@ -13633,5 +13725,32 @@ class RelToSqlConverterTest {
         + "REGEXP_EXTRACT_ALL('TERADATA-BIGQUERY-SPARK-ORACLE', '[^-]+')[SAFE_OFFSET(2)] AS ss";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testEditDistanceFunctionWithTwoArgs() {
+    final RelBuilder builder = relBuilder();
+    final RexNode editDistanceRex = builder.call(SqlLibraryOperators.EDIT_DISTANCE,
+        builder.literal("abc"), builder.literal("xyz"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(editDistanceRex)
+        .build();
+    final String expectedBQQuery = "SELECT EDIT_DISTANCE('abc', 'xyz') AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQQuery));
+  }
+
+  @Test public void testEditDistanceFunctionWithThreeArgs() {
+    final RelBuilder builder = relBuilder();
+    final RexNode editDistanceRex = builder.call(SqlLibraryOperators.EDIT_DISTANCE,
+        builder.literal("abc"), builder.literal("xyz"),
+        builder.literal(2));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(editDistanceRex)
+        .build();
+    final String expectedBqQuery = "SELECT EDIT_DISTANCE('abc', 'xyz', max_distance => 2) AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
   }
 }
