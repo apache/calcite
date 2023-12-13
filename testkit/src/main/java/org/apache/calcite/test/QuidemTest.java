@@ -306,6 +306,12 @@ public abstract class QuidemTest {
             .with(CalciteAssert.Config.REGULAR)
             .with(CalciteAssert.SchemaSpec.POST)
             .connect();
+      case "sparkfunc":
+        return CalciteAssert.that()
+            .with(CalciteConnectionProperty.FUN, "spark")
+            .with(CalciteAssert.Config.REGULAR)
+            .with(CalciteAssert.SchemaSpec.POST)
+            .connect();
       case "oraclefunc":
         return CalciteAssert.that()
             .with(CalciteConnectionProperty.FUN, "oracle")

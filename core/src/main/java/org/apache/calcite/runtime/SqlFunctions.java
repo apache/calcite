@@ -32,6 +32,7 @@ import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
+import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.TimeFrame;
 import org.apache.calcite.rel.type.TimeFrameSet;
@@ -5401,6 +5402,22 @@ public class SqlFunctions {
         : Comparator.nullsLast(Comparator.reverseOrder());
     list.sort(comparator);
     return list;
+  }
+
+  /** Support the EXISTS(list, function1) function. */
+  public static @Nullable Boolean exists(List list, Function1<Object, Boolean> function1) {
+    return nullableExists(list, function1);
+  }
+
+  /** Support the EXISTS(list, predicate1) function. */
+  public static Boolean exists(List list, Predicate1 predicate1) {
+    for (Object element : list) {
+      boolean ret = predicate1.apply(element);
+      if (ret) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Support the MAP_CONCAT function. */

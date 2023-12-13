@@ -6903,6 +6903,78 @@ public class SqlOperatorTest {
             + "'SORT_ARRAY\\(<ARRAY>, <BOOLEAN>\\)'", false);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6116">[CALCITE-6116]
+   * Add EXISTS function (enabled in Spark library)</a>. */
+  @Test void testExistsFunc() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.EXISTS)
+        .withLibrary(SqlLibrary.SPARK);
+    // wrong return type in function
+    f.withValidatorConfig(t -> t.withTypeCoercionEnabled(false))
+        .checkFails("^\"EXISTS\"(array[1, 2, 3], x -> x + 1)^",
+            "Cannot apply 'EXISTS' to arguments of type "
+                + "'EXISTS\\(<INTEGER ARRAY>, <FUNCTION\\(INTEGER\\) -> INTEGER>\\)'. "
+                + "Supported form\\(s\\): "
+                + "EXISTS\\(<ARRAY>, <FUNCTION\\(ARRAY_ELEMENT_TYPE\\)->BOOLEAN>\\)",
+            false);
+
+    // bad number of arguments
+    f.checkFails("^\"EXISTS\"(array[1, 2, 3])^",
+        "Invalid number of arguments to function 'EXISTS'\\. Was expecting 2 arguments",
+        false);
+    f.checkFails("^\"EXISTS\"(array[1, 2, 3], x -> x > 2, x -> x > 2)^",
+        "Invalid number of arguments to function 'EXISTS'\\. Was expecting 2 arguments",
+        false);
+
+    // function should not be null
+    f.checkFails("^\"EXISTS\"(array[1, 2, 3], null)^",
+        "Cannot apply 'EXISTS' to arguments of type 'EXISTS\\(<INTEGER ARRAY>, <NULL>\\)'. "
+            + "Supported form\\(s\\): "
+            + "EXISTS\\(<ARRAY>, <FUNCTION\\(ARRAY_ELEMENT_TYPE\\)->BOOLEAN>\\)",
+        false);
+
+    // bad type
+    f.checkFails("^\"EXISTS\"(1, x -> x > 2)^",
+        "Cannot apply 'EXISTS' to arguments of type 'EXISTS\\(<INTEGER>, "
+            + "<FUNCTION\\(ANY\\) -> BOOLEAN>\\)'. "
+            + "Supported form\\(s\\): "
+            + "EXISTS\\(<ARRAY>, <FUNCTION\\(ARRAY_ELEMENT_TYPE\\)->BOOLEAN>\\)",
+        false);
+    f.checkFails("^\"EXISTS\"(array[1, 2, 3], 1)^",
+        "Cannot apply 'EXISTS' to arguments of type 'EXISTS\\(<INTEGER ARRAY>, <INTEGER>\\)'. "
+            + "Supported form\\(s\\): "
+            + "EXISTS\\(<ARRAY>, <FUNCTION\\(ARRAY_ELEMENT_TYPE\\)->BOOLEAN>\\)",
+        false);
+
+    // simple expression
+    f.checkScalar("\"EXISTS\"(array[1, 2, 3], x -> x > 2)", true, "BOOLEAN");
+    f.checkScalar("\"EXISTS\"(array[1, 2, 3], x -> x > 3)", false, "BOOLEAN");
+    f.checkScalar("\"EXISTS\"(array[1, 2, 3], x -> false)", false, "BOOLEAN");
+    f.checkScalar("\"EXISTS\"(array[1, 2, 3], x -> true)", true, "BOOLEAN");
+
+    // empty array
+    f.checkScalar("\"EXISTS\"(array(), x -> true)", false, "BOOLEAN");
+    f.checkScalar("\"EXISTS\"(array(), x -> false)", false, "BOOLEAN");
+    f.checkScalar("\"EXISTS\"(array(), x -> cast(x as int) = 1)", false, "BOOLEAN");
+
+    // complex expression
+    f.checkScalar("\"EXISTS\"(array[-1, 2, 3], y -> abs(y) = 1)", true, "BOOLEAN");
+    f.checkScalar("\"EXISTS\"(array[-1, 2, 3], y -> abs(y) = 4)", false, "BOOLEAN");
+    f.checkScalar("\"EXISTS\"(array[1, 2, 3], x -> x > 2 and x < 4)", true, "BOOLEAN");
+
+    // complex array
+    f.checkScalar("\"EXISTS\"(array[array[1, 2], array[3, 4]], x -> x[1] = 1)", true, "BOOLEAN");
+    f.checkScalar("\"EXISTS\"(array[array[1, 2], array[3, 4]], x -> x[1] = 5)", false, "BOOLEAN");
+
+    // test for null
+    f.checkScalar("\"EXISTS\"(array[null, 3], x -> x > 2 or x < 4)", true, "BOOLEAN");
+    f.checkScalar("\"EXISTS\"(array[null, 3], x -> x is null)", true, "BOOLEAN");
+    f.checkNull("\"EXISTS\"(array[null, 3], x -> cast(null as boolean))");
+    f.checkNull("\"EXISTS\"(array[null, 3], x -> x = null)");
+    f.checkNull("\"EXISTS\"(cast(null as integer array), x -> x > 2)");
+  }
+
   /** Tests {@code MAP_CONCAT} function from Spark. */
   @Test void testMapConcatFunc() {
     // 1. check with std map constructor, map[k, v ...]

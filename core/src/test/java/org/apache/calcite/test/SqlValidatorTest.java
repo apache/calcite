@@ -6696,7 +6696,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1)").ok();
     s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> y)").ok();
     s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> char_length(x) + 1)").ok();
-    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> null)").ok();
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> cast(null as integer))").ok();
     s.withSql("select HIGHER_ORDER_FUNCTION2(1, () -> 0.1)").ok();
     s.withSql("select emp.deptno, HIGHER_ORDER_FUNCTION(1, (x, deptno) -> deptno) from emp").ok();
     s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> char_length(x) + 1)")

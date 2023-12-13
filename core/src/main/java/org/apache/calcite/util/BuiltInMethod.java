@@ -773,6 +773,7 @@ public enum BuiltInMethod {
   ARRAY_REVERSE(SqlFunctions.class, "reverse", List.class),
   ARRAYS_OVERLAP(SqlFunctions.class, "arraysOverlap", List.class, List.class),
   ARRAYS_ZIP(SqlFunctions.class, "arraysZip", List.class, List.class),
+  EXISTS(SqlFunctions.class, "exists", List.class, Function1.class),
   SORT_ARRAY(SqlFunctions.class, "sortArray", List.class, boolean.class),
   MAP(SqlFunctions.class, "map", Object[].class),
   MAP_CONCAT(SqlFunctions.class, "mapConcat", Map[].class),
