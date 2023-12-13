@@ -199,6 +199,7 @@ public class HiveSqlDialect extends SqlDialect {
     if (emulateNullDirection) {
       return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
     }
+
     return null;
   }
 
@@ -337,6 +338,10 @@ public class HiveSqlDialect extends SqlDialect {
   }
 
   @Override public boolean supportsGroupByWithCube() {
+    return true;
+  }
+
+  @Override public boolean supportsApproxCountDistinct() {
     return true;
   }
 

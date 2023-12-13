@@ -1035,8 +1035,20 @@ public enum SqlKind {
   /** The {@code ARRAY_CONCAT_AGG} aggregate function. */
   ARRAY_CONCAT_AGG,
 
+  /** The {@code GROUP_CONCAT} aggregate function. */
+  GROUP_CONCAT,
+
   /** The {@code COLLECT} aggregate function. */
   COLLECT,
+
+  /** The {@code MODE} aggregate function. */
+  MODE,
+
+  /** The {@code ARG_MAX} aggregate function. */
+  ARG_MAX,
+
+  /** The {@code ARG_MIN} aggregate function. */
+  ARG_MIN,
 
   /** The {@code PERCENTILE_CONT} aggregate function. */
   PERCENTILE_CONT,
@@ -1052,6 +1064,9 @@ public enum SqlKind {
 
   /** The {@code SINGLE_VALUE} aggregate function. */
   SINGLE_VALUE,
+
+  /** The {@code AGGREGATE} aggregate function. */
+  AGGREGATE_FN,
 
   /** The {@code BIT_AND} aggregate function. */
   BIT_AND,

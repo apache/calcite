@@ -50,7 +50,7 @@ import java.util.regex.Pattern;
  * A SqlDialect implementation for the Firebolt database.
  */
 public class FireboltSqlDialect extends SqlDialect {
-  public static final Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
       .withDatabaseProduct(DatabaseProduct.FIREBOLT)
       .withIdentifierQuoteString("\"")
       .withNullCollation(NullCollation.LOW);
