@@ -1193,6 +1193,14 @@ public abstract class SqlLibraryOperators {
           SqlLibraryOperators::arrayAppendPrependReturnType,
           OperandTypes.ARRAY_ELEMENT);
 
+  /** The "EXISTS(array, lambda)" function (Spark); returns whether a predicate holds
+   * for one or more elements in the array. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction EXISTS =
+      SqlBasicFunction.create("EXISTS",
+          ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.EXISTS);
+
   @SuppressWarnings("argument.type.incompatible")
   private static RelDataType arrayCompactReturnType(SqlOperatorBinding opBinding) {
     final RelDataType arrayType = opBinding.collectOperandTypes().get(0);

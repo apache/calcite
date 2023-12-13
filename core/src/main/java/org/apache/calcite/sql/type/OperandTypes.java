@@ -115,7 +115,7 @@ public abstract class OperandTypes {
    */
   public static SqlSingleOperandTypeChecker function(SqlTypeFamily returnTypeFamily,
       SqlTypeFamily... paramTypeFamilies) {
-    return new LambdaOperandTypeChecker(
+    return new LambdaFamilyOperandTypeChecker(
         returnTypeFamily, ImmutableList.copyOf(paramTypeFamilies));
   }
 
@@ -126,7 +126,7 @@ public abstract class OperandTypes {
    */
   public static SqlSingleOperandTypeChecker function(SqlTypeFamily returnTypeFamily,
       List<SqlTypeFamily> paramTypeFamilies) {
-    return new LambdaOperandTypeChecker(returnTypeFamily, paramTypeFamilies);
+    return new LambdaFamilyOperandTypeChecker(returnTypeFamily, paramTypeFamilies);
   }
 
   /**
@@ -1135,6 +1135,39 @@ public abstract class OperandTypes {
         }
       };
 
+  public static final SqlOperandTypeChecker EXISTS =
+      new SqlOperandTypeChecker() {
+        @Override public boolean checkOperandTypes(
+            SqlCallBinding callBinding,
+            boolean throwOnFailure) {
+          // The first operand must be an array type
+          ARRAY.checkSingleOperandType(callBinding, callBinding.operand(0), 0, throwOnFailure);
+          final RelDataType arrayType =
+              SqlTypeUtil.deriveType(callBinding, callBinding.operand(0));
+          final RelDataType componentType =
+              requireNonNull(arrayType.getComponentType(), "componentType");
+
+          // The second operand is a function(array_element_type)->boolean type
+          LambdaRelOperandTypeChecker lambdaChecker =
+              new LambdaRelOperandTypeChecker(
+                  SqlTypeFamily.BOOLEAN,
+                  ImmutableList.of(componentType));
+          return lambdaChecker.checkSingleOperandType(
+              callBinding,
+              callBinding.operand(1),
+              1,
+              throwOnFailure);
+        }
+
+        @Override public SqlOperandCountRange getOperandCountRange() {
+          return SqlOperandCountRanges.of(2);
+        }
+
+        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+          return "EXISTS(<ARRAY>, <FUNCTION(ARRAY_ELEMENT_TYPE)->BOOLEAN>)";
+        }
+      };
+
   /**
    * Checker for record just has one field.
    */
@@ -1442,18 +1475,17 @@ public abstract class OperandTypes {
 
   /**
    * Operand type-checking strategy where the type of the operand is a lambda
-   * expression with a given return type and argument types.
+   * expression with a given return type and argument {@link SqlTypeFamily}s.
    */
-  private static class LambdaOperandTypeChecker
-      implements SqlSingleOperandTypeChecker {
+  private static class LambdaFamilyOperandTypeChecker
+      extends LambdaOperandTypeChecker {
 
-    private final SqlTypeFamily returnTypeFamily;
     private final List<SqlTypeFamily> argFamilies;
 
-    LambdaOperandTypeChecker(
+    LambdaFamilyOperandTypeChecker(
         SqlTypeFamily returnTypeFamily,
         List<SqlTypeFamily> argFamilies) {
-      this.returnTypeFamily = requireNonNull(returnTypeFamily, "returnTypeFamily");
+      super(returnTypeFamily);
       this.argFamilies = ImmutableList.copyOf(argFamilies);
     }
 
@@ -1481,40 +1513,125 @@ public abstract class OperandTypes {
       }
 
       final SqlLambda lambdaExpr = (SqlLambda) operand;
-      if (lambdaExpr.getParameters().isEmpty()
-          || argFamilies.stream().allMatch(f -> f == SqlTypeFamily.ANY)
-          || returnTypeFamily == SqlTypeFamily.ANY) {
-        return true;
+      if (SqlUtil.isNullLiteral(lambdaExpr.getExpression(), false)) {
+        checkNull(callBinding, lambdaExpr, throwOnFailure);
       }
 
-      if (SqlUtil.isNullLiteral(lambdaExpr.getExpression(), false)) {
-        if (callBinding.isTypeCoercionEnabled()) {
-          return true;
+      final SqlValidator validator = callBinding.getValidator();
+      if (!lambdaExpr.getParameters().isEmpty()
+          && !argFamilies.stream().allMatch(f -> f == SqlTypeFamily.ANY)) {
+        // Replace the parameter types in the lambda expression.
+        final SqlLambdaScope scope =
+            (SqlLambdaScope) validator.getLambdaScope(lambdaExpr);
+        for (int i = 0; i < argFamilies.size(); i++) {
+          final SqlNode param = lambdaExpr.getParameters().get(i);
+          final RelDataType type =
+              argFamilies.get(i).getDefaultConcreteType(callBinding.getTypeFactory());
+          if (type != null) {
+            scope.getParameterTypes().put(param.toString(), type);
+          }
         }
+        lambdaExpr.accept(new TypeRemover(validator));
+        // Given the new relDataType, re-validate the lambda expression.
+        validator.validateLambda(lambdaExpr);
+      }
 
+      return checkReturnType(validator, callBinding, lambdaExpr, throwOnFailure);
+    }
+  }
+
+  /**
+   * Operand type-checking strategy where the type of the operand is a lambda
+   * expression with a given return type and argument {@link RelDataType}s.
+   */
+  private static class LambdaRelOperandTypeChecker
+      extends LambdaOperandTypeChecker {
+    private final List<RelDataType> argTypes;
+
+    LambdaRelOperandTypeChecker(
+        SqlTypeFamily returnTypeFamily,
+        List<RelDataType> argTypes) {
+      super(returnTypeFamily);
+      this.argTypes = argTypes;
+    }
+
+    @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+      ImmutableList.Builder<SqlTypeFamily> builder = ImmutableList.builder();
+      argTypes.stream()
+          .map(t -> requireNonNull(t.getSqlTypeName().getFamily()))
+          .forEach(builder::add);
+      builder.add(returnTypeFamily);
+
+      return SqlUtil.getAliasedSignature(op, opName, builder.build());
+    }
+
+    @Override public boolean checkSingleOperandType(SqlCallBinding callBinding, SqlNode operand,
+        int iFormalOperand,
+        boolean throwOnFailure) {
+      if (!(operand instanceof SqlLambda)
+          || ((SqlLambda) operand).getParameters().size() != argTypes.size()) {
         if (throwOnFailure) {
-          throw callBinding.getValidator().newValidationError(lambdaExpr.getExpression(),
-              RESOURCE.nullIllegal());
+          throw callBinding.newValidationSignatureError();
         }
         return false;
+      }
+
+      final SqlLambda lambdaExpr = (SqlLambda) operand;
+      if (SqlUtil.isNullLiteral(lambdaExpr.getExpression(), false)) {
+        checkNull(callBinding, lambdaExpr, throwOnFailure);
       }
 
       // Replace the parameter types in the lambda expression.
       final SqlValidator validator = callBinding.getValidator();
       final SqlLambdaScope scope =
           (SqlLambdaScope) validator.getLambdaScope(lambdaExpr);
-      for (int i = 0; i < argFamilies.size(); i++) {
+      for (int i = 0; i < argTypes.size(); i++) {
         final SqlNode param = lambdaExpr.getParameters().get(i);
-        final RelDataType type =
-            argFamilies.get(i).getDefaultConcreteType(callBinding.getTypeFactory());
+        final RelDataType type = argTypes.get(i);
         if (type != null) {
           scope.getParameterTypes().put(param.toString(), type);
         }
       }
       lambdaExpr.accept(new TypeRemover(validator));
-
       // Given the new relDataType, re-validate the lambda expression.
       validator.validateLambda(lambdaExpr);
+
+      return checkReturnType(validator, callBinding, lambdaExpr, throwOnFailure);
+    }
+  }
+
+  /**
+   * Abstract base class for type-checking strategies involving lambda expressions.
+   * This class provides common functionality for checking the type of lambda expression.
+   */
+  private abstract static class LambdaOperandTypeChecker
+      implements SqlSingleOperandTypeChecker {
+    protected final SqlTypeFamily returnTypeFamily;
+
+    LambdaOperandTypeChecker(SqlTypeFamily returnTypeFamily) {
+      this.returnTypeFamily = requireNonNull(returnTypeFamily, "returnTypeFamily");
+    }
+
+    protected boolean checkNull(
+        SqlCallBinding callBinding,
+        SqlLambda lambdaExpr,
+        boolean throwOnFailure) {
+      if (callBinding.isTypeCoercionEnabled()) {
+        return true;
+      }
+
+      if (throwOnFailure) {
+        throw callBinding.getValidator().newValidationError(lambdaExpr.getExpression(),
+            RESOURCE.nullIllegal());
+      }
+      return false;
+    }
+
+    protected boolean checkReturnType(
+        SqlValidator validator,
+        SqlCallBinding callBinding,
+        SqlLambda lambdaExpr,
+        boolean throwOnFailure) {
       final RelDataType newType = validator.getValidatedNodeType(lambdaExpr);
       assert newType instanceof FunctionSqlType;
       final SqlTypeName returnTypeName =
@@ -1533,14 +1650,14 @@ public abstract class OperandTypes {
     /**
      * Visitor that removes the relDataType of a sqlNode and its children in the
      * validator. Now this visitor is only used for removing the relDataType
-     * in {@code LambdaOperandTypeChecker}. Since lambda expressions
-     * will be validated for the second time based on the given parameter type,
+     * when we check lambda operand. Since lambda expressions will be
+     * validated for the second time based on the given parameter type,
      * the type cached during the first validation must be cleared.
      */
-    private static class TypeRemover extends SqlBasicVisitor<Void> {
+    protected static class TypeRemover extends SqlBasicVisitor<Void> {
       private final SqlValidator validator;
 
-      TypeRemover(SqlValidator validator) {
+      protected TypeRemover(SqlValidator validator) {
         this.validator = validator;
       }
 
@@ -1553,7 +1670,6 @@ public abstract class OperandTypes {
         validator.removeValidatedNodeType(call);
         return super.visit(call);
       }
-
     }
   }
 }

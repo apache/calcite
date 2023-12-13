@@ -1979,6 +1979,17 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testExistsFunctionInSpark">
+    <Resource name="sql">
+      <![CDATA[select "EXISTS"(array(1,2,3), x -> false)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[EXISTS(ARRAY(1, 2, 3), (X) -> false)])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testExplicitTable">
     <Resource name="sql">
       <![CDATA[table emp]]>

@@ -7430,7 +7430,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"";
     sql(sql3).ok(expected3);
 
-    final String sql4 = "select higher_order_function2(1, () -> null)";
+    final String sql4 = "select higher_order_function2(1, () -> cast(null as integer))";
     final String expected4 = "SELECT HIGHER_ORDER_FUNCTION2("
         + "1, () -> NULL)\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(sql4).ok(expected4);
@@ -7450,6 +7450,43 @@ class RelToSqlConverterTest {
         + "1, (\"Y\", \"X\") -> \"X\" + CHAR_LENGTH(\"Y\") + 1)\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(sql6).ok(expected6);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6116">[CALCITE-6116]
+   * Add EXISTS function (enabled in Spark library)</a>. */
+  @Test void testExistsFunctionInSpark() {
+    final String sql = "select \"EXISTS\"(array[1,2,3], x -> x > 2)";
+    final String expected = "SELECT EXISTS(ARRAY[1, 2, 3], \"X\" -> \"X\" > 2)\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql)
+        .withLibrary(SqlLibrary.SPARK)
+        .ok(expected);
+
+    final String sql2 = "select \"EXISTS\"(array[1,2,3], (x) -> false)";
+    final String expected2 = "SELECT EXISTS(ARRAY[1, 2, 3], \"X\" -> FALSE)\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql2)
+        .withLibrary(SqlLibrary.SPARK)
+        .ok(expected2);
+
+    // empty array
+    final String sql3 = "select \"EXISTS\"(array(), (x) -> false)";
+    final String expected3 = "SELECT EXISTS(ARRAY(), \"X\" -> FALSE)\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql3)
+        .withLibrary(SqlLibrary.SPARK)
+        .ok(expected3);
+
+    final String sql4 = "select \"EXISTS\"('string', (x) -> false)";
+    final String error4 = "org.apache.calcite.runtime.CalciteContextException: "
+        + "From line 1, column 8 to line 1, column 39: "
+        + "Cannot apply 'EXISTS' to arguments of type "
+        + "'EXISTS(<CHAR(6)>, <FUNCTION(ANY) -> BOOLEAN>)'. "
+        + "Supported form(s): EXISTS(<ARRAY>, <FUNCTION(ARRAY_ELEMENT_TYPE)->BOOLEAN>)";
+    sql(sql4)
+        .withLibrary(SqlLibrary.SPARK)
+        .throws_(error4);
   }
 
   /** Test case for

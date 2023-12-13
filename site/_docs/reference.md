@@ -2651,6 +2651,9 @@ BigQuery's type system uses confusingly different names for types and functions:
   function, return a Calcite `TIMESTAMP WITH LOCAL TIME ZONE`;
 * Similarly, `DATETIME(string)` returns a Calcite `TIMESTAMP`.
 
+In the following:
+* *func* is a lambda argument.
+
 | C | Operator syntax                                | Description
 |:- |:-----------------------------------------------|:-----------
 | p | expr :: type                                   | Casts *expr* to *type*
@@ -2731,8 +2734,9 @@ BigQuery's type system uses confusingly different names for types and functions:
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
 | f | ENDSWITH(string1, string2)                     | Returns whether *string2* is a suffix of *string1*
 | b p | ENDS_WITH(string1, string2)                  | Equivalent to `ENDSWITH(string1, string2)`
-| o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the XML fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
+| s | EXISTS(array, func)                            | Returns whether a predicate *func* holds for one or more elements in the *array*
 | o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
+| o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the XML fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
 | h s | FACTORIAL(integer)                           | Returns the factorial of *integer*, the range of *integer* is [0, 20]. Otherwise, returns NULL
 | h s | FIND_IN_SET(matchStr, textStr)               | Returns the index (1-based) of the given *matchStr* in the comma-delimited *textStr*. Returns 0, if the given *matchStr* is not found or if the *matchStr* contains a comma. For example, FIND_IN_SET('bc', 'a,bc,def') returns 2
@@ -3138,6 +3142,8 @@ parameters:
 Higher-order functions are not included in the SQL standard, so all the functions will be listed in the
 [Dialect-specific OperatorsPermalink]({{ site.baseurl }}/docs/reference.html#dialect-specific-operators)
 as well.
+
+Examples of functions with a lambda argument are *EXISTS*.
 
 ## User-defined functions
 
