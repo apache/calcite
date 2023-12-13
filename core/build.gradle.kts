@@ -56,6 +56,7 @@ dependencies {
     implementation("net.hydromatic:aggdesigner-algorithm")
     implementation("org.apache.commons:commons-dbcp2")
     implementation("org.apache.commons:commons-lang3")
+    implementation("org.checkerframework:checker")
     implementation("org.checkerframework:checker-qual")
     implementation("commons-io:commons-io")
     implementation("org.codehaus.janino:commons-compiler")
@@ -80,6 +81,10 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
     testRuntimeOnly("org.slf4j:slf4j-log4j12")
+    annotationProcessor("org.immutables:value")
+    compileOnly("org.immutables:value-annotations")
+    testAnnotationProcessor("org.immutables:value")
+    testCompileOnly("org.immutables:value-annotations")
 }
 
 // There are users that reuse/extend test code (e.g. Apache Felix)

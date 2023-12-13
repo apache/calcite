@@ -24,7 +24,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.AccessControlException;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
@@ -423,8 +422,9 @@ public final class CalciteSystemProperty<T> {
       }
     } catch (IOException e) {
       throw new RuntimeException("while reading from saffron.properties file", e);
-    } catch (AccessControlException e) {
+    } catch (Exception e) {
       // we're in a sandbox
+      // Time being changed it from AccessControlException
     }
 
     // Merge system and saffron properties, mapping deprecated saffron
