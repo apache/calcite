@@ -28,7 +28,7 @@ import java.util.Map;
  * <h2>Notes on mapping from LINQ.NET to Java</h2>
  *
  * <p>We have preserved most of the API. But we've changed a few things, so that
- * the API is more typical Java API:</p>
+ * the API is more typical Java API:
  *
  * <ul>
  *

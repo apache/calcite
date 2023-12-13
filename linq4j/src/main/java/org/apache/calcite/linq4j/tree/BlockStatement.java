@@ -43,8 +43,7 @@ public class BlockStatement extends Statement {
 
   private boolean distinctVariables(
       @UnderInitialization(BlockStatement.class) BlockStatement this,
-      boolean fail
-  ) {
+      boolean fail) {
     Set<String> names = new HashSet<>();
     for (Statement statement : statements) {
       if (statement instanceof DeclarationStatement) {
@@ -60,8 +59,8 @@ public class BlockStatement extends Statement {
 
   @Override public BlockStatement accept(Shuttle shuttle) {
     shuttle = shuttle.preVisit(this);
-    List<Statement> newStatements = Expressions.acceptStatements(statements,
-        shuttle);
+    List<Statement> newStatements =
+        Expressions.acceptStatements(statements, shuttle);
     return shuttle.visit(this, newStatements);
   }
 
