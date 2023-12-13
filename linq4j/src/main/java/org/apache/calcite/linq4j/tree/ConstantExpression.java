@@ -206,6 +206,7 @@ public class ConstantExpression extends Expression {
           "(\n", ",\n", ")");
       return writer;
     }
+
     return writer.append(value);
   }
 

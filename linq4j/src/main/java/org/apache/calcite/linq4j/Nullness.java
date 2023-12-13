@@ -45,7 +45,8 @@ public class Nullness {
    *
    * @param <T>     the type of the reference
    * @param ref     a reference of @Nullable type, that is non-null at run time
-   * @return the argument, casted to have the type qualifier @NonNull
+   *
+   * @return the argument, cast to have the type qualifier @NonNull
    */
   @Pure
   public static @EnsuresNonNull("#1")

@@ -34,9 +34,9 @@ public class ForEachStatement extends Statement {
   public ForEachStatement(ParameterExpression parameter, Expression iterable,
       Statement body) {
     super(ExpressionType.ForEach, Void.TYPE);
-    this.parameter = Objects.requireNonNull(parameter);
-    this.iterable = Objects.requireNonNull(iterable);
-    this.body = Objects.requireNonNull(body); // may be empty block, not null
+    this.parameter = Objects.requireNonNull(parameter, "parameter");
+    this.iterable = Objects.requireNonNull(iterable, "iterable");
+    this.body = Objects.requireNonNull(body, "body"); // may be empty block, not null
   }
 
   @Override public ForEachStatement accept(Shuttle shuttle) {
