@@ -274,6 +274,38 @@ class CsvTest {
 
   @ParameterizedTest
   @MethodSource("explainFormats")
+  void testPushDownProjectAggregateWithAvg(String format) throws SQLException {
+    String expected = null;
+    String extra = null;
+    switch (format) {
+    case "dot":
+      expected = "PLAN=digraph {\n"
+          + "\"EnumerableAggregate\\ngroup = {0}\\nagg#0 = $SUM0($1)\\nagg#1 = COUNT($1)\\n\" -> "
+          + "\"EnumerableCalc\\nexpr#0..2 = {inputs}\\nexpr#3 = 0\\nexpr#4 = =($t2, $t3)\\nexpr#5 ="
+          + " null:INTEGE\\nR\\nexpr#6 = CASE($t4, $\\nt5, $t1)\\n...\" [label=\"0\"]\n"
+          + "\"CsvTableScan\\ntable = [SALES, EMPS\\n]\\nfields = [3, 2]\\n\" -> "
+          + "\"EnumerableAggregate\\ngroup = {0}\\nagg#0 = $SUM0($1)\\nagg#1 = COUNT($1)\\n\" "
+          + "[label=\"0\"]\n"
+          + "}\n";
+      extra = " as dot ";
+      break;
+    case "text":
+      expected = "PLAN="
+          + "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[0], expr#4=[=($t2, $t3)], "
+          + "expr#5=[null:INTEGER], expr#6=[CASE($t4, $t5, $t1)], expr#7=[/($t6, $t2)], "
+          + "expr#8=[CAST($t7):INTEGER], EXPR$0=[$t8])\n"
+          + "  EnumerableAggregate(group=[{0}], agg#0=[$SUM0($1)], agg#1=[COUNT($1)])\n"
+          + "    CsvTableScan(table=[[SALES, EMPS]], fields=[[3, 2]])\n";
+      extra = "";
+      break;
+    }
+    final String sql = "explain plan " + extra + "for\n"
+        + "select avg(deptno) from EMPS group by gender";
+    sql("smart", sql).returns(expected).ok();
+  }
+
+  @ParameterizedTest
+  @MethodSource("explainFormats")
   void testPushDownProjectAggregateWithFilter(String format) throws SQLException {
     String expected = null;
     String extra = null;
