@@ -7543,7 +7543,8 @@ class RelToSqlConverterTest {
     String query = "SELECT ntile(2)\n"
         + "OVER(order BY \"product_id\") AS abc\n"
         + "FROM \"product\"";
-    final String expectedBQ = "SELECT NTILE(2) OVER (ORDER BY product_id IS NULL, product_id) "
+    final String expectedBQ = "SELECT NTILE(2) OVER (ORDER BY product_id IS NULL, product_id "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) "
         + "AS ABC\n"
         + "FROM foodmart.product";
     sql(query)

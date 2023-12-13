@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.util.Util;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
@@ -50,7 +51,7 @@ public abstract class SqlTypeTransforms {
       (opBinding, typeToTransform) ->
           SqlTypeUtil.makeNullableIfOperandsAre(opBinding.getTypeFactory(),
               opBinding.collectOperandTypes(),
-              requireNonNull(typeToTransform));
+              requireNonNull(typeToTransform, "typeToTransform"));
 
   /**
    * Parameter type-inference transform strategy where a derived type is
@@ -70,7 +71,7 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform TO_NOT_NULLABLE =
       (opBinding, typeToTransform) ->
           opBinding.getTypeFactory().createTypeWithNullability(
-              requireNonNull(typeToTransform), false);
+              requireNonNull(typeToTransform, "typeToTransform"), false);
 
   /**
    * Parameter type-inference transform strategy where a derived type is
@@ -79,7 +80,7 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform FORCE_NULLABLE =
       (opBinding, typeToTransform) ->
           opBinding.getTypeFactory().createTypeWithNullability(
-              requireNonNull(typeToTransform), true);
+              requireNonNull(typeToTransform, "typeToTransform"), true);
 
   /**
    * Type-inference strategy whereby the result is NOT NULL if any of
@@ -92,6 +93,41 @@ public abstract class SqlTypeTransforms {
             return opBinding.getTypeFactory()
                 .createTypeWithNullability(typeToTransform, false);
           }
+        }
+        return typeToTransform;
+      };
+
+  /**
+   * Parameter type-inference transform strategy where a derived type is
+   * transformed into the same type, but nullable if and only if the type
+   * of a call's operand #0 (0-based) is nullable.
+   */
+  public static final SqlTypeTransform ARG0_NULLABLE =
+      (opBinding, typeToTransform) -> {
+        RelDataType arg0 = opBinding.getOperandType(0);
+        if (arg0.isNullable()) {
+          return opBinding.getTypeFactory()
+              .createTypeWithNullability(typeToTransform, true);
+        }
+        return typeToTransform;
+      };
+
+  /**
+   * Parameter type-inference transform strategy where a derived type is
+   * transformed into the same type but nullable if any of element of a calls operands is
+   * nullable.
+   */
+  public static final SqlTypeTransform COLLECTION_ELEMENT_TYPE_NULLABLE =
+      (opBinding, typeToTransform) -> {
+        final List<RelDataType> argComponentTypes = new ArrayList<>();
+        for (RelDataType arrayType : opBinding.collectOperandTypes()) {
+          final RelDataType componentType = requireNonNull(arrayType.getComponentType());
+          argComponentTypes.add(componentType);
+        }
+
+        if (argComponentTypes.stream().anyMatch(RelDataType::isNullable)) {
+          return opBinding.getTypeFactory()
+              .createTypeWithNullability(typeToTransform, true);
         }
         return typeToTransform;
       };
@@ -145,6 +181,8 @@ public abstract class SqlTypeTransforms {
             return SqlTypeName.ANY;
           case NULL:
             return SqlTypeName.NULL;
+          case UNKNOWN:
+            return SqlTypeName.UNKNOWN;
           default:
             throw Util.unexpected(sqlTypeName);
           }
@@ -153,9 +191,10 @@ public abstract class SqlTypeTransforms {
 
   /**
    * Parameter type-inference transform strategy where a derived type must be
-   * a multiset type and the returned type is the multiset's element type.
+   * a multiset or array type and the returned type is element type.
    *
    * @see MultisetSqlType#getComponentType
+   * @see ArraySqlType#getComponentType
    */
   public static final SqlTypeTransform TO_MULTISET_ELEMENT_TYPE =
       (opBinding, typeToTransform) -> requireNonNull(
@@ -174,7 +213,7 @@ public abstract class SqlTypeTransforms {
 
   /**
    * Parameter type-inference transform strategy that wraps a given type
-   * in a array.
+   * in an array.
    *
    * @see org.apache.calcite.rel.type.RelDataTypeFactory#createArrayType(RelDataType, long)
    */
@@ -193,4 +232,5 @@ public abstract class SqlTypeTransforms {
         assert fields.size() == 1;
         return fields.get(0).getType();
       };
+
 }

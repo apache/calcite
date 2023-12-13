@@ -201,6 +201,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return SqlTypeName.INTERVAL_TYPES;
     case GEO:
       return ImmutableList.of(SqlTypeName.GEOMETRY);
+//      return SqlTypeName.GEOMETRY_TYPES;
     case MULTISET:
       return ImmutableList.of(SqlTypeName.MULTISET);
     case ARRAY:

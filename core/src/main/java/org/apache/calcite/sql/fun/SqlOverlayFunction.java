@@ -32,9 +32,8 @@ public class SqlOverlayFunction extends SqlFunction {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final SqlOperandTypeChecker OTC_CUSTOM =
-      OperandTypes.or(
-          OperandTypes.STRING_STRING_INTEGER,
-          OperandTypes.STRING_STRING_INTEGER_INTEGER);
+      OperandTypes.STRING_STRING_INTEGER
+          .or(OperandTypes.STRING_STRING_INTEGER_INTEGER);
 
   //~ Constructors -----------------------------------------------------------
 
