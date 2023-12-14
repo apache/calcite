@@ -1271,6 +1271,8 @@ public enum SqlKind {
    */
   CONCAT,
 
+  WITH_ITEM_TABLE_REF,
+
   /**
    * format standard function.
    */
