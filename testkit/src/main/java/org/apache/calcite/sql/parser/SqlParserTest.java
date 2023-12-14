@@ -7140,7 +7140,6 @@ public class SqlParserTest {
 
   @Test void testParensInFrom() {
     // UNNEST may not occur within parentheses.
-    // FIXME should fail at "unnest"
     sql("select *from (^unnest(x)^)")
         .fails("Expected query or join");
 
