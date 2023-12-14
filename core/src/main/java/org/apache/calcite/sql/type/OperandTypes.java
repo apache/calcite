@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableIntList;
@@ -559,6 +560,9 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker MAP =
       family(SqlTypeFamily.MAP);
+
+  public static final SqlOperandTypeChecker ARRAY_FUNCTION =
+      new ArrayFunctionOperandTypeChecker();
 
   public static final SqlOperandTypeChecker ARRAY_ELEMENT =
       new ArrayElementOperandTypeChecker();
@@ -1222,6 +1226,64 @@ public abstract class OperandTypes {
     @Override public String getAllowedSignatures(SqlOperator op, String opName) {
       return SqlUtil.getAliasedSignature(op, opName,
           ImmutableList.of("ARRAY<RECORDTYPE(TWO FIELDS)>"));
+    }
+  }
+
+  /**
+   * Operand type-checking strategy for a ARRAY function, it allows empty array.
+   *
+   * <p> The reason it overrides SameOperandTypeChecker#checkOperandTypesImpl is that it needs
+   * to handle the scenario where row/struct type and NULL exist simultaneously in array.
+   * This scenario need be supported, but will be rejected by the current checkOperandTypesImpl.
+   */
+  private static class ArrayFunctionOperandTypeChecker
+      extends SameOperandTypeChecker {
+
+    ArrayFunctionOperandTypeChecker() {
+      // The args of array are non-fixed, so we set to -1 here. then operandCount
+      // can dynamically set according to the number of input args.
+      // details please see SameOperandTypeChecker#getOperandList.
+      super(-1);
+    }
+
+    @Override protected boolean checkOperandTypesImpl(
+        SqlOperatorBinding operatorBinding,
+        boolean throwOnFailure,
+        @Nullable SqlCallBinding callBinding) {
+      if (throwOnFailure && callBinding == null) {
+        throw new IllegalArgumentException(
+            "callBinding must be non-null in case throwOnFailure=true");
+      }
+      int nOperandsActual = nOperands;
+      if (nOperandsActual == -1) {
+        nOperandsActual = operatorBinding.getOperandCount();
+      }
+      RelDataType[] types = new RelDataType[nOperandsActual];
+      final List<Integer> operandList =
+          getOperandList(operatorBinding.getOperandCount());
+      for (int i : operandList) {
+        types[i] = operatorBinding.getOperandType(i);
+      }
+      int prev = -1;
+      for (int i : operandList) {
+        if (prev >= 0) {
+          // we replace SqlTypeUtil.isComparable with SqlTypeUtil.leastRestrictiveForComparison
+          // to handle struct type and NULL constant.
+          // details please see: https://issues.apache.org/jira/browse/CALCITE-6163
+          RelDataType type =
+              SqlTypeUtil.leastRestrictiveForComparison(operatorBinding.getTypeFactory(),
+                  types[i], types[prev]);
+          if (type == null) {
+            if (!throwOnFailure) {
+              return false;
+            }
+            throw requireNonNull(callBinding, "callBinding").newValidationError(
+                RESOURCE.needSameTypeParameter());
+          }
+        }
+        prev = i;
+      }
+      return true;
     }
   }
 

@@ -1119,7 +1119,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction ARRAY =
       SqlBasicFunction.create("ARRAY",
           SqlLibraryOperators::arrayReturnType,
-          OperandTypes.SAME_VARIADIC,
+          OperandTypes.ARRAY_FUNCTION,
           SqlFunctionCategory.SYSTEM);
 
   private static RelDataType mapReturnType(SqlOperatorBinding opBinding) {
