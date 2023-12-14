@@ -85,6 +85,8 @@ public interface CalciteResource {
   @BaseMessage("ORDER BY unexpected")
   ExInst<CalciteException> illegalOrderBy();
 
+  @BaseMessage("Expected query or join")
+  ExInst<CalciteException> expectedQueryOrJoinExpression();
   @BaseMessage("Illegal binary string {0}")
   ExInst<CalciteException> illegalBinaryString(String a0);
 

@@ -27,7 +27,7 @@ import java.util.List;
 /** Scope providing the objects that are available after evaluating an item
  * in a WITH clause.
  *
- * <p>For example, in
+ * <p>For example, in</p>
  *
  * <blockquote>{@code WITH t1 AS (q1) t2 AS (q2) q3}</blockquote>
  *

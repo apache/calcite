@@ -39,6 +39,14 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
     Preconditions.checkArgument(this.precision >= 0);
   }
 
+  SqlTimestampLiteral(TimestampString ts, int precision,
+                      SqlTypeName typeName, SqlParserPos pos) {
+    super(ts, false, typeName, precision, pos);
+    Preconditions.checkArgument(this.precision >= 0);
+    Preconditions.checkArgument(typeName == SqlTypeName.TIMESTAMP
+            || typeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   @Override public SqlTimestampLiteral clone(SqlParserPos pos) {
