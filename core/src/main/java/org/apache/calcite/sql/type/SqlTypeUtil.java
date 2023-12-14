@@ -158,6 +158,7 @@ public abstract class SqlTypeUtil {
 
   /**
    * Derives type of the call via its binding.
+   *
    * @param binding binding to derive the type from
    * @return datatype of the call
    */
@@ -168,6 +169,7 @@ public abstract class SqlTypeUtil {
 
   /**
    * Derives type of the given call under given binding.
+   *
    * @param binding binding to derive the type from
    * @param node node type to derive
    * @return datatype of the given node
@@ -180,6 +182,7 @@ public abstract class SqlTypeUtil {
 
   /**
    * Derives types for the list of nodes.
+   *
    * @param binding binding to derive the type from
    * @param nodes the list of nodes to derive types from
    * @return the list of types of the given nodes
@@ -795,7 +798,8 @@ public abstract class SqlTypeUtil {
   }
 
   /**
-   * Compares two types and returns true if fromType can be cast to toType.
+   * Compares two types and returns whether {@code fromType} can be cast to
+   * {@code toType}, using either coercion or assignment.
    *
    * <p>REVIEW jvs 17-Dec-2004: the coerce param below shouldn't really be
    * necessary. We're using it as a hack because
@@ -808,7 +812,7 @@ public abstract class SqlTypeUtil {
    * @param coerce   if true, the SQL rules for CAST are used; if false, the
    *                 rules are similar to Java; e.g. you can't assign short x =
    *                 (int) y, and you can't assign int x = (String) z.
-   * @return true iff cast is legal
+   * @return whether cast is legal
    */
   public static boolean canCastFrom(
       RelDataType toType,
