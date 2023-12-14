@@ -37,7 +37,7 @@ import java.util.List;
 * User-defined scalar function.
  *
  * <p>Created by the validator, after resolving a function call to a function
- * defined in a Calcite schema.</p>
+ * defined in a Calcite schema.
 */
 public class SqlUserDefinedFunction extends SqlFunction {
   public final Function function;
@@ -84,6 +84,7 @@ public class SqlUserDefinedFunction extends SqlFunction {
 
   /**
    * Returns function that implements given operator call.
+   *
    * @return function that implements given operator call
    */
   public Function getFunction() {

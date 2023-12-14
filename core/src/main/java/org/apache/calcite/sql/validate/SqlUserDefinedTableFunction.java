@@ -69,6 +69,7 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction
 
   /**
    * Returns function that implements given operator call.
+   *
    * @return function that implements given operator call
    */
   @Override public TableFunction getFunction() {
