@@ -1387,30 +1387,30 @@ public class SqlParserTest {
 
   @Test void testRowValueExpression() {
     final String expected0 = "INSERT INTO \"EMPS\"\n"
-            + "VALUES (ROW(1, 'Fred')),\n"
-            + "(ROW(2, 'Eric'))";
+          + "VALUES (ROW(1, 'Fred')),\n"
+          + "(ROW(2, 'Eric'))";
     String sql = "insert into emps values (1,'Fred'),(2, 'Eric')";
     sql(sql)
         .withDialect(CALCITE)
         .ok(expected0);
 
     final String expected1 = "INSERT INTO `emps`\n"
-            + "VALUES (1, 'Fred'),\n"
-            + "(2, 'Eric')";
+          + "VALUES (1, 'Fred'),\n"
+          + "(2, 'Eric')";
     sql(sql)
         .withDialect(MYSQL)
         .ok(expected1);
 
     final String expected2 = "INSERT INTO \"EMPS\"\n"
-            + "VALUES (1, 'Fred'),\n"
-            + "(2, 'Eric')";
+          + "VALUES (1, 'Fred'),\n"
+          + "(2, 'Eric')";
     sql(sql)
         .withDialect(ORACLE)
         .ok(expected2);
 
     final String expected3 = "INSERT INTO [EMPS]\n"
-            + "VALUES (1, 'Fred'),\n"
-            + "(2, 'Eric')";
+          + "VALUES (1, 'Fred'),\n"
+          + "(2, 'Eric')";
     sql(sql)
         .withDialect(MSSQL)
         .ok(expected3);
@@ -6119,9 +6119,9 @@ public class SqlParserTest {
             + "FROM (VALUES (ROW(1))) AS `X`\n"
             + "ORDER BY `X`))");
     sql("SELECT array(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")
-      .fails("(?s)Incorrect syntax near the keyword 'SELECT' at.*");
+        .fails("(?s)Incorrect syntax near the keyword 'SELECT' at.*");
     sql("SELECT array(1, ^SELECT^ x FROM (VALUES(1)) x)")
-      .fails("(?s)Incorrect syntax near the keyword 'SELECT'.*");
+        .fails("(?s)Incorrect syntax near the keyword 'SELECT'.*");
   }
 
   @Test void testCastAsCollectionType() {
@@ -9222,8 +9222,8 @@ public class SqlParserTest {
       return "[" + v.ordinal
           + ":"
           + (typeName == SqlTypeName.UNKNOWN
-              ? ((SqlUnknownLiteral) literal).tag
-              : typeName.getName())
+            ? ((SqlUnknownLiteral) literal).tag
+            : typeName.getName())
           + ":" + literal.toValue()
           + "]";
     } else {
