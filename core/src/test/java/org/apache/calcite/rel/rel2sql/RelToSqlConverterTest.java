@@ -13753,4 +13753,18 @@ class RelToSqlConverterTest {
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
   }
+
+  @Test public void testFromTimezoneFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode fromTimezoneNode = builder.call(SqlLibraryOperators.FROM_TZ,
+        builder.literal("2008-08-21 07:23:54"), builder.literal("America/Los_Angeles"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(fromTimezoneNode, "Datetime"))
+        .build();
+    final String expectedBqQuery =
+        "SELECT FROM_TZ('2008-08-21 07:23:54', 'America/Los_Angeles') AS Datetime\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
 }

@@ -1993,4 +1993,15 @@ public abstract class SqlLibraryOperators {
                   SqlTypeFamily.INTEGER),
               number -> number == 2),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction FROM_TZ =
+      new SqlFunction("FROM_TZ",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.STRING),
+              number -> number == 2),
+          SqlFunctionCategory.TIMEDATE);
 }
