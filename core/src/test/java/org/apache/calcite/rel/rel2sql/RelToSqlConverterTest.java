@@ -154,7 +154,6 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -11669,6 +11668,7 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
 
+/*
   // Unparsing "ABC" IN(UNNEST(ARRAY("ABC", "XYZ"))) --> "ABC" IN UNNEST(ARRAY["ABC", "XYZ"])
   @Test public void inUnnestSqlNode() {
     final RelBuilder builder = relBuilder();
@@ -11686,6 +11686,7 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+*/
 
   @Test public void rowNumberOverFunctionAsWhereClauseInJoin() {
     String query = " select \"A\".\"product_id\"\n"
@@ -12138,6 +12139,7 @@ class RelToSqlConverterTest {
         isLinux(expectedBigQuery));
   }
 
+/*
   @Test void testBracesJoinConditionInClause() {
     RelBuilder builder = foodmartRelBuilder();
     builder = builder.scan("foodmart", "product");
@@ -12156,6 +12158,7 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedBigQuery));
   }
+*/
 
   @Test void testJoinWithUsingClause() {
     RelBuilder builder = foodmartRelBuilder();

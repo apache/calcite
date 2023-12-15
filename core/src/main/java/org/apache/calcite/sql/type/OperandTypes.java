@@ -58,6 +58,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * @see org.apache.calcite.sql.type.InferTypes
  */
 public abstract class OperandTypes {
+
   private OperandTypes() {
   }
 
