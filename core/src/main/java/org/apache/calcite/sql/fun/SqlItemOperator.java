@@ -179,7 +179,7 @@ public class SqlItemOperator extends SqlSpecialOperator {
         throw new AssertionError("Unsupported field identifier type: '"
             + indexType + "'");
       }
-      if (fieldType != null && operandType.isNullable()) {
+      if (operandType.isNullable()) {
         fieldType = typeFactory.createTypeWithNullability(fieldType, true);
       }
       return fieldType;

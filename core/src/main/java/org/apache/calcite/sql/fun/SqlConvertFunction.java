@@ -127,9 +127,8 @@ public class SqlConvertFunction extends SqlFunction {
     if (!SqlTypeUtil.inCharFamily(t)) {
       if (throwOnFailure) {
         throw callBinding.newValidationError(
-            RESOURCE.unknownIdentifier(t.getFullTypeString()));
-//        RESOURCE.unsupportedTypeInConvertFunc(t.getFullTypeString(),
-//                "CONVERT", "CHARACTER"));
+            RESOURCE.unsupportedTypeInConvertFunc(t.getFullTypeString(),
+                "CONVERT", "CHARACTER"));
       }
       return false;
     }

@@ -25,6 +25,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -33,6 +35,8 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -474,6 +478,22 @@ public abstract class OperandTypes {
    */
   public static final SqlOperandTypeChecker SAME_VARIADIC =
       new SameOperandTypeChecker(-1);
+
+  /**
+   * Operand type-checking strategy where a given list of operands must all
+   * have the same type.
+   */
+  public static SqlSingleOperandTypeChecker same(int operandCount,
+      int... ordinals) {
+    final ImmutableIntList ordinalList = ImmutableIntList.of(ordinals);
+    checkArgument(ordinalList.size() >= 2);
+    checkArgument(Util.isDistinct(ordinalList));
+    return new SameOperandTypeChecker(operandCount) {
+      @Override protected List<Integer> getOperandList(int operandCount) {
+        return ordinalList;
+      }
+    };
+  }
 
   /**
    * Operand type-checking strategy where operand types must allow ordered

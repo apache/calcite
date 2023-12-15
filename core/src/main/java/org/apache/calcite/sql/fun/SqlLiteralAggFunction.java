@@ -44,7 +44,8 @@ public class SqlLiteralAggFunction {
 
   public static final SqlBasicAggFunction INSTANCE =
       SqlBasicAggFunction.create(SqlKind.LITERAL_AGG,
-              SqlLiteralAggFunction::inferReturnType, OperandTypes.NILADIC);
+              SqlLiteralAggFunction::inferReturnType, OperandTypes.NILADIC)
+          .withStatic(SqlLiteralAggFunction::constant);
 
   /** Implements {@link org.apache.calcite.sql.type.SqlReturnTypeInference}. */
   private static RelDataType inferReturnType(SqlOperatorBinding opBinding) {
