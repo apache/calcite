@@ -1231,10 +1231,6 @@ public abstract class OperandTypes {
 
   /**
    * Operand type-checking strategy for a ARRAY function, it allows empty array.
-   *
-   * <p> The reason it overrides SameOperandTypeChecker#checkOperandTypesImpl is that it needs
-   * to handle the scenario where row/struct type and NULL exist simultaneously in array.
-   * This scenario need be supported, but will be rejected by the current checkOperandTypesImpl.
    */
   private static class ArrayFunctionOperandTypeChecker
       extends SameOperandTypeChecker {
@@ -1264,15 +1260,14 @@ public abstract class OperandTypes {
       for (int i : operandList) {
         types[i] = operatorBinding.getOperandType(i);
       }
-      int prev = -1;
       for (int i : operandList) {
-        if (prev >= 0) {
+        if (i > 0) {
           // we replace SqlTypeUtil.isComparable with SqlTypeUtil.leastRestrictiveForComparison
           // to handle struct type and NULL constant.
           // details please see: https://issues.apache.org/jira/browse/CALCITE-6163
           RelDataType type =
               SqlTypeUtil.leastRestrictiveForComparison(operatorBinding.getTypeFactory(),
-                  types[i], types[prev]);
+                  types[i], types[i - 1]);
           if (type == null) {
             if (!throwOnFailure) {
               return false;
@@ -1281,7 +1276,6 @@ public abstract class OperandTypes {
                 RESOURCE.needSameTypeParameter());
           }
         }
-        prev = i;
       }
       return true;
     }
