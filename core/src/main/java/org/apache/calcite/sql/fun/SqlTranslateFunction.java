@@ -34,11 +34,12 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import java.util.List;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 /**
- * Common base for the <code>TRANSLATE(USING)</code> and
+ * Common base for the <code>TRANSLATE(USING)</code> and.
  * <code>CONVERT(USING)</code> function, which is different from
  * {@link SqlLibraryOperators#TRANSLATE3} and
- * {@link SqlLibraryOperators}.
  *
  * <p>The SQL syntax is
  *
@@ -85,11 +86,11 @@ public class SqlTranslateFunction extends SqlConvertFunction {
       return true;
     }
     if (!SqlTypeUtil.inCharFamily(t)) {
-//      if (throwOnFailure) {
-//        throw callBinding.newValidationError(
-//            RESOURCE.unsupportedTypeInConvertFunc(t.getFullTypeString(),
-//                "TRANSLATE", "CHARACTER"));
-//      }
+      if (throwOnFailure) {
+        throw callBinding.newValidationError(
+            RESOURCE.unsupportedTypeInConvertFunc(t.getFullTypeString(),
+                "TRANSLATE", "CHARACTER"));
+      }
       return false;
     }
     return true;
