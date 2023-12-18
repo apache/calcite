@@ -7533,7 +7533,7 @@ LogicalProject(EXPR$0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
         <Resource name="plan">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], E=[$5], EMPNO=[$6.EMPNO])
-  LogicalJoin(condition=[=($0, 1)], joinType=[inner])
+  LogicalJoin(condition=[=($0, 1)], joinType=[inner], variablesSet=[[$cor0]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
     Uncollect
       LogicalProject(ADMINS=[$cor0.ADMINS], EMPLOYEES=[$cor0.EMPLOYEES])

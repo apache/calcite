@@ -46,7 +46,6 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.math.IntMath;
 
@@ -57,6 +56,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -103,7 +104,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
    * before 2.0. */
   @Experimental
   public static void checkIndicator(boolean indicator) {
-    Preconditions.checkArgument(!indicator,
+    checkArgument(!indicator,
         "indicator is no longer supported; use GROUPING function instead");
   }
 
@@ -174,7 +175,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     assert groupSet.length() <= input.getRowType().getFieldCount();
     for (AggregateCall aggCall : aggCalls) {
       assert typeMatchesInferred(aggCall, Litmus.THROW);
-      Preconditions.checkArgument(aggCall.filterArg < 0
+      checkArgument(aggCall.filterArg < 0
           || isPredicate(input, aggCall.filterArg),
           "filter must be BOOLEAN NOT NULL");
     }

@@ -215,6 +215,7 @@ public abstract class Join extends BiRel implements Hintable {
     return super.explainTerms(pw)
         .item("condition", condition)
         .item("joinType", joinType.lowerName)
+        .itemIf("variablesSet", variablesSet, !variablesSet.isEmpty())
         .itemIf(
             "systemFields",
             getSystemFieldList(),
