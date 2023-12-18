@@ -33,7 +33,7 @@ public class CacheUtil {
   public static Object[] generateRange(String description, int min, int max) {
     return IntStream.range(min, max)
         .mapToObj(i -> description + "(" + i + ")")
-        .map(DescriptiveCacheKey::new)
+        .map(org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey::new)
         .toArray();
   }
 
@@ -41,7 +41,7 @@ public class CacheUtil {
   public static <E extends Enum<E>> Object[] generateEnum(String description, E[] values) {
     return java.util.Arrays.stream(values)
         .map(e -> description + "(" + e + ")")
-        .map(DescriptiveCacheKey::new)
+        .map(org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey::new)
         .toArray();
   }
 }

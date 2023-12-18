@@ -59,6 +59,7 @@ public interface RelMetadataProvider {
    * Double d = selectivity.selectivity(predicate);
    * </pre></blockquote>
    *
+   *
    * @param relClass Type of relational expression
    * @param metadataClass Type of metadata
    * @return Function that will field a metadata instance; or null if this
