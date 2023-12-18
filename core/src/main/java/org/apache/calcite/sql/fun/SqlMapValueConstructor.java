@@ -37,13 +37,15 @@ import static java.util.Objects.requireNonNull;
  * Definition of the MAP constructor,
  * <code>MAP [&lt;key&gt;, &lt;value&gt;, ...]</code>.
  *
- * <p>This is an extension to standard SQL.</p>
+ * <p>This is an extension to standard SQL.
  */
 public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
   public SqlMapValueConstructor() {
-    super("MAP", SqlKind.MAP_VALUE_CONSTRUCTOR);
+    // no need to deduce NULL operand type
+    super("MAP", SqlKind.MAP_VALUE_CONSTRUCTOR, null);
   }
 
+  @SuppressWarnings("argument.type.incompatible")
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     Pair<@Nullable RelDataType, @Nullable RelDataType> type =
         getComponentTypes(

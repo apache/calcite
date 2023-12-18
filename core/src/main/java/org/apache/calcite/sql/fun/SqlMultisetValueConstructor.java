@@ -28,6 +28,7 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -42,7 +43,7 @@ import static java.util.Objects.requireNonNull;
  * Definition of the SQL:2003 standard MULTISET constructor, <code>MULTISET
  * [&lt;expr&gt;, ...]</code>.
  *
- * <p>Derived classes construct other kinds of collections.</p>
+ * <p>Derived classes construct other kinds of collections.
  *
  * @see SqlMultisetQueryConstructor
  */
@@ -54,12 +55,18 @@ public class SqlMultisetValueConstructor extends SqlSpecialOperator {
   }
 
   protected SqlMultisetValueConstructor(String name, SqlKind kind) {
+    this(name, kind, InferTypes.FIRST_KNOWN);
+  }
+
+  protected SqlMultisetValueConstructor(
+      String name, SqlKind kind,
+      @Nullable SqlOperandTypeInference operandTypeInference) {
     super(
         name,
         kind, MDX_PRECEDENCE,
         false,
         ReturnTypes.ARG0,
-        InferTypes.FIRST_KNOWN,
+        operandTypeInference,
         OperandTypes.VARIADIC);
   }
 

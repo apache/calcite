@@ -44,8 +44,8 @@ import static java.util.Objects.requireNonNull;
  *
  * <blockquote>
  * <pre><code>
- * CompositeOperandsTypeChecking newCompositeRule =
- *     new CompositeOperandsTypeChecking(Composition.OR,
+ * CompositeOperandTypeChecker newCompositeRule =
+ *     new CompositeOperandTypeChecker(Composition.OR,
  *         new SqlOperandTypeChecker[]{stringRule, numericRule});
  * </code></pre>
  * </blockquote>
@@ -54,8 +54,8 @@ import static java.util.Objects.requireNonNull;
  *
  * <blockquote>
  * <pre><code>
- * CompositeOperandsTypeChecking newCompositeRule =
- *     new CompositeOperandsTypeChecking(Composition.AND,
+ * CompositeOperandTypeChecker newCompositeRule =
+ *     new CompositeOperandTypeChecker(Composition.AND,
  *         new SqlOperandTypeChecker[]{numericRule, literalRule});
  * </code></pre>
  * </blockquote>
@@ -65,8 +65,8 @@ import static java.util.Objects.requireNonNull;
  *
  * <blockquote>
  * <pre><code>
- * CompositeOperandsTypeChecking newCompositeRule =
- *     new CompositeOperandsTypeChecking(Composition.SEQUENCE,
+ * CompositeOperandTypeChecker newCompositeRule =
+ *     new CompositeOperandTypeChecker(Composition.SEQUENCE,
  *         new SqlOperandTypeChecker[]{stringRule, numericRule});
  * </code></pre>
  * </blockquote>

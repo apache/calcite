@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlNode;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -67,6 +68,10 @@ class FieldNamespace extends AbstractNamespace {
           rowType,
           name);
     }
+    return null;
+  }
+
+  public @Nullable RelDataTypeField field(String name) {
     return null;
   }
 

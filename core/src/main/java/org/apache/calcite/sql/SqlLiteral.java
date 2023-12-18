@@ -851,6 +851,15 @@ public class SqlLiteral extends SqlNode {
     return new SqlTimestampLiteral(ts, precision, false, pos);
   }
 
+  /** Creates a TIMESTAMP or TIMESTAMP WITH LOCAL TIME ZONE literal. */
+  public static SqlTimestampLiteral createTimestamp(
+          SqlTypeName typeName,
+          TimestampString ts,
+          int precision,
+          SqlParserPos pos) {
+    return new SqlTimestampLiteral(ts, precision, typeName, pos);
+  }
+
   public static SqlTimestampWithTimezoneLiteral createTimestampWithTimeZone(
       TimestampWithTimeZoneString ts,
       int precision,

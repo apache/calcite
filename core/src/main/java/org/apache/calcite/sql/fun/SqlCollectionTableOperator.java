@@ -39,7 +39,7 @@ public class SqlCollectionTableOperator extends SqlFunctionalOperator {
 
   public SqlCollectionTableOperator(String name, SqlModality modality) {
     super(name, SqlKind.COLLECTION_TABLE, 200, true, ReturnTypes.ARG0, null,
-            OperandTypes.CURSOR);
+        OperandTypes.CURSOR);
     this.modality = modality;
     this.aliasName = null;
   }

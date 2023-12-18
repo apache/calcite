@@ -19,6 +19,7 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -33,12 +34,12 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
@@ -80,11 +81,8 @@ public abstract class SqlLibraryOperators {
    * because Redshift does not have its own library. */
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction CONVERT_TIMEZONE =
-      new SqlFunction("CONVERT_TIMEZONE",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.DATE_NULLABLE,
-          null,
-          OperandTypes.CHARACTER_CHARACTER_DATETIME,
+      SqlBasicFunction.create("CONVERT_TIMEZONE",
+          ReturnTypes.DATE_NULLABLE, OperandTypes.CHARACTER_CHARACTER_DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
   /**
@@ -123,33 +121,24 @@ public abstract class SqlLibraryOperators {
   /** The "DECODE(v, v1, result1, [v2, result2, ...], resultN)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction DECODE =
-      new SqlFunction("DECODE", SqlKind.DECODE, DECODE_RETURN_TYPE, null,
-          OperandTypes.VARIADIC, SqlFunctionCategory.SYSTEM);
+      SqlBasicFunction.create(SqlKind.DECODE, DECODE_RETURN_TYPE,
+          OperandTypes.VARIADIC);
 
   /** The "IF(condition, thenValue, elseValue)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK, SNOWFLAKE})
   public static final SqlFunction IF =
       new SqlFunction("IF", SqlKind.IF, SqlLibraryOperators::inferIfReturnType,
           null,
-          OperandTypes.and(
-              OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY,
-                  SqlTypeFamily.ANY),
-              // Arguments 1 and 2 must have same type
-              new SameOperandTypeChecker(3) {
-                @Override protected List<Integer>
-                getOperandList(int operandCount) {
-                  return ImmutableList.of(1, 2);
-                }
-              }),
+          OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY,
+              SqlTypeFamily.ANY)
+              .and(
+                  // Arguments 1 and 2 must have same type
+                  OperandTypes.same(3, 1, 2)),
           SqlFunctionCategory.SYSTEM) {
-        /***
-         * Commenting this part as we create RexCall using this function
-         */
-
-//        @Override public boolean validRexOperands(int count, Litmus litmus) {
-//          // IF is translated to RexNode by expanding to CASE.
-//          return litmus.fail("not a rex operator");
-//        }
+        @Override public boolean validRexOperands(int count, Litmus litmus) {
+          // IF is translated to RexNode by expanding to CASE.
+          return litmus.fail("not a rex operator");
+        }
       };
 
   /** Infers the return type of {@code IF(b, x, y)},
@@ -162,19 +151,19 @@ public abstract class SqlLibraryOperators {
 
   /** The "NVL(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE, HIVE, SPARK})
-  public static final SqlFunction NVL =
-      new SqlFunction("NVL", SqlKind.NVL,
-        ReturnTypes.LEAST_RESTRICTIVE
-          .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
-        null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
+  public static final SqlBasicFunction NVL =
+      SqlBasicFunction.create(SqlKind.NVL,
+          ReturnTypes.LEAST_RESTRICTIVE
+              .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
+          OperandTypes.SAME_SAME);
 
   /** The "IFNULL(value, value)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, SPARK, SNOWFLAKE})
-  public static final SqlFunction IFNULL =
-      new SqlFunction("IFNULL", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
-              SqlTypeTransforms.TO_NULLABLE_ALL),
-          null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
+  public static final SqlFunction IFNULL =  NVL.withName("IFNULL");
+//      new SqlFunction("IFNULL", SqlKind.OTHER_FUNCTION,
+//          ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
+//              SqlTypeTransforms.TO_NULLABLE_ALL),
+//          null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
 
   /** The "ISNULL(value, value)" function. */
   @LibraryOperator(libraries = {MSSQL})
@@ -469,6 +458,24 @@ public abstract class SqlLibraryOperators {
               OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING))
           .withFunctionType(SqlFunctionCategory.SYSTEM)
           .withSyntax(SqlSyntax.ORDERED_FUNCTION);
+
+  /** The "GROUP_CONCAT([DISTINCT] expr [, ...] [ORDER BY ...] [SEPARATOR sep])"
+   * aggregate function, MySQL's equivalent of
+   * {@link SqlStdOperatorTable#LISTAGG}.
+   *
+   * <p>{@code GROUP_CONCAT(v ORDER BY x, y SEPARATOR s)} is implemented by
+   * rewriting to {@code LISTAGG(v, s) WITHIN GROUP (ORDER BY x, y)}. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlAggFunction GROUP_CONCAT =
+      SqlBasicAggFunction
+          .create(SqlKind.GROUP_CONCAT,
+              ReturnTypes.andThen(ReturnTypes::stripOrderBy,
+                  ReturnTypes.ARG0_NULLABLE),
+              OperandTypes.STRING.or(OperandTypes.STRING_STRING))
+          .withFunctionType(SqlFunctionCategory.SYSTEM)
+          .withAllowsNullTreatment(false)
+          .withSyntax(SqlSyntax.ORDERED_FUNCTION);
+
 
   /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
   @LibraryOperator(libraries = {BIG_QUERY})
@@ -804,6 +811,16 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {POSTGRESQL, SNOWFLAKE})
   public static final SqlSpecialOperator NOT_ILIKE =
       new SqlLikeOperator("NOT ILIKE", SqlKind.LIKE, true, false);
+
+  /** The regex variant of the LIKE operator. */
+  @LibraryOperator(libraries = {SPARK, HIVE})
+  public static final SqlSpecialOperator RLIKE =
+      new SqlLikeOperator("RLIKE", SqlKind.RLIKE, false, true);
+
+  /** The regex variant of the NOT LIKE operator. */
+  @LibraryOperator(libraries = {SPARK, HIVE})
+  public static final SqlSpecialOperator NOT_RLIKE =
+      new SqlLikeOperator("NOT RLIKE", SqlKind.RLIKE, true, true);
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */

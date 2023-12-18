@@ -77,7 +77,7 @@ public class IdentifierNamespace extends AbstractNamespace {
     super(validator, enclosingNode);
     this.id = id;
     this.extendList = extendList;
-    this.parentScope = Objects.requireNonNull(parentScope);
+    this.parentScope = Objects.requireNonNull(parentScope, "parentScope");
   }
 
   IdentifierNamespace(SqlValidatorImpl validator, SqlNode node,
@@ -158,8 +158,9 @@ public class IdentifierNamespace extends AbstractNamespace {
           // If previousResolve is null, we matched nothing case-sensitive and
           // everything case-insensitive, so the mismatch must have been at
           // position 0.
-          final int i = previousResolve == null ? 0
-              : previousResolve.path.stepCount();
+          final int i =
+              previousResolve == null ? 0
+                  : previousResolve.path.stepCount();
           final int offset = resolve.path.stepCount()
               + resolve.remainingNames.size() - names.size();
           final List<String> prefix =
@@ -234,7 +235,7 @@ public class IdentifierNamespace extends AbstractNamespace {
           resolvedNamespace.getMonotonicity(fieldName);
       if (monotonicity != null && monotonicity != SqlMonotonicity.NOT_MONOTONIC) {
         builder.add(
-            Pair.of((SqlNode) new SqlIdentifier(fieldName, SqlParserPos.ZERO),
+            Pair.of(new SqlIdentifier(fieldName, SqlParserPos.ZERO),
                 monotonicity));
       }
     }

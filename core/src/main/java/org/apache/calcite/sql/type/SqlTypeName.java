@@ -217,6 +217,12 @@ public enum SqlTypeName {
       Sets.immutableEnumSet(
           Iterables.concat(YEAR_INTERVAL_TYPES, DAY_INTERVAL_TYPES));
 
+  /** The possible types of a time frame argument to a function such as
+   * {@code TIMESTAMP_DIFF}. */
+  public static final Set<SqlTypeName> TIME_FRAME_TYPES =
+      Sets.immutableEnumSet(
+          Iterables.concat(INTERVAL_TYPES, ImmutableList.of(SYMBOL)));
+
   private static final Map<Integer, SqlTypeName> JDBC_TYPE_TO_NAME =
       ImmutableMap.<Integer, SqlTypeName>builder()
           .put(Types.TINYINT, TINYINT)
@@ -299,6 +305,14 @@ public enum SqlTypeName {
     return VALUES_MAP.get(name);
   }
 
+  /** Returns the SqlTypeName value whose name or
+   * matches the given name, or throws {@link IllegalArgumentException}; never
+   * returns null. */
+  public static SqlTypeName lookup(String tag) {
+    String tag2 = tag.replace(' ', '_');
+    return valueOf(tag2);
+  }
+
   public boolean allowsNoPrecNoScale() {
     return (signatures & PrecScale.NO_NO) != 0;
   }
@@ -325,7 +339,7 @@ public enum SqlTypeName {
    * true</code>, because the VARCHAR type allows a precision parameter, as in
    * <code>VARCHAR(10)</code>.</li>
    * <li><code>Varchar.allowsPrecScale(true, true)</code> returns <code>
-   * true</code>, because the VARCHAR type does not allow a precision and a
+   * false</code>, because the VARCHAR type does not allow a precision and a
    * scale parameter, as in <code>VARCHAR(10, 4)</code>.</li>
    * <li><code>allowsPrecScale(false, true)</code> returns <code>false</code>
    * for every type.</li>

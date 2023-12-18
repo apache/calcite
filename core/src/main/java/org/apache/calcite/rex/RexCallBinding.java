@@ -62,16 +62,25 @@ public class RexCallBinding extends SqlOperatorBinding {
   public static RexCallBinding create(RelDataTypeFactory typeFactory,
       RexCall call,
       List<RelCollation> inputCollations) {
+    return create(typeFactory, call, null, inputCollations);
+  }
+
+  /** Creates a binding of the appropriate type, optionally with a program. */
+  public static RexCallBinding create(RelDataTypeFactory typeFactory,
+      RexCall call, @Nullable RexProgram program,
+      List<RelCollation> inputCollations) {
+    final List<RexNode> operands =
+        program != null ? program.expandList(call.getOperands())
+            : call.getOperands();
     switch (call.getKind()) {
     case CAST:
     case SAFE_CAST:
       return new RexCastCallBinding(typeFactory, call.getOperator(),
-          call.getOperands(), call.getType(), inputCollations);
+          operands, call.getType(), inputCollations);
     default:
-      break;
+      return new RexCallBinding(typeFactory, call.getOperator(),
+          operands, inputCollations);
     }
-    return new RexCallBinding(typeFactory, call.getOperator(),
-        call.getOperands(), inputCollations);
   }
 
   //~ Methods ----------------------------------------------------------------

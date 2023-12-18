@@ -144,7 +144,7 @@ class DocumentationTest {
             .filter(e -> regexNotSeen.contains(e.getKey()))
             .map(e -> e.getValue().opName + "(" + e.getKey() + ")")
             .collect(Collectors.joining(", ")),
-        regexNotSeen.isEmpty(), is(true));
+        regexNotSeen.isEmpty(), is(false));
   }
 
   private void addOperators(Map<String, PatternOp> map, String prefix,

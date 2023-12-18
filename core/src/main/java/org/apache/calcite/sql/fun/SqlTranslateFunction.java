@@ -19,11 +19,14 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -31,10 +34,12 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import java.util.List;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 /**
- * Common base for the <code>TRANSLATE(USING)</code> and
+ * Common base for the <code>TRANSLATE(USING)</code> and.
  * <code>CONVERT(USING)</code> function, which is different from
- * {@link SqlLibraryOperators#TRANSLATE3}.
+ * {@link SqlLibraryOperators#TRANSLATE3} and
  *
  * <p>The SQL syntax is
  *
@@ -52,7 +57,8 @@ public class SqlTranslateFunction extends SqlConvertFunction {
   //~ Constructors -----------------------------------------------------------
 
   protected SqlTranslateFunction(String name) {
-    super(name);
+    super(name, SqlKind.TRANSLATE, ReturnTypes.ARG0, null, null,
+        SqlFunctionCategory.STRING);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -80,11 +86,11 @@ public class SqlTranslateFunction extends SqlConvertFunction {
       return true;
     }
     if (!SqlTypeUtil.inCharFamily(t)) {
-//      if (throwOnFailure) {
-//        throw callBinding.newValidationError(
-//            RESOURCE.unsupportedTypeInConvertFunc(t.getFullTypeString(),
-//                "TRANSLATE", "CHARACTER"));
-//      }
+      if (throwOnFailure) {
+        throw callBinding.newValidationError(
+            RESOURCE.unsupportedTypeInConvertFunc(t.getFullTypeString(),
+                "TRANSLATE", "CHARACTER"));
+      }
       return false;
     }
     return true;
