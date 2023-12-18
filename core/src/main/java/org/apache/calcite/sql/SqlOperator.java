@@ -585,7 +585,6 @@ public abstract class SqlOperator {
       RelDataType nodeType = validator.deriveType(scope, operand);
       assert nodeType != null;
     }
-
     final List<SqlNode> args = constructOperandList(validator, call, null);
 
     final List<RelDataType> argTypes =
@@ -814,6 +813,9 @@ public abstract class SqlOperator {
     return getAllowedSignatures(name);
   }
 
+  public final String getAllowedSignaturesUsingValidator(SqlValidator validator) {
+    return getAllowedSignaturesUsingValidator(name, validator);
+  }
   /**
    * Returns a string describing the expected operand types of a call, e.g.
    * "SUBSTRING(VARCHAR, INTEGER, INTEGER)" where the name (SUBSTRING in this
@@ -823,8 +825,16 @@ public abstract class SqlOperator {
     requireNonNull(operandTypeChecker,
         "If you see this, assign operandTypeChecker a value "
         + "or override this function");
+    // is validator available here?
     return operandTypeChecker.getAllowedSignatures(this, opNameToUse)
         .trim();
+  }
+
+  public String getAllowedSignaturesUsingValidator(String opNameToUse, SqlValidator validator) {
+    requireNonNull(operandTypeChecker,
+        "If you see this, assign operandTypeChecker a value "
+            + "or override this function");
+    return operandTypeChecker.getAllowedSignaturesUsingValidator(this, opNameToUse, validator);
   }
 
   public @Nullable SqlOperandTypeInference getOperandTypeInference() {

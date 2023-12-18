@@ -38,6 +38,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.apache.calcite.sql.validate.SqlValidator;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.BagFactory;
@@ -217,6 +218,11 @@ public class PigRelSqlUdfs {
       }
 
       @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+        return opName + "(...)";
+      }
+
+      @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+          SqlValidator validator) {
         return opName + "(...)";
       }
 

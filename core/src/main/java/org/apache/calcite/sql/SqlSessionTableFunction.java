@@ -79,5 +79,11 @@ public class SqlSessionTableFunction extends SqlWindowTableFunction {
       return opName + "(TABLE table_name, DESCRIPTOR(timecol), "
           + "DESCRIPTOR(key) optional, datetime interval)";
     }
+
+    @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+        SqlValidator validator) {
+      return opName + "(TABLE table_name, DESCRIPTOR(timecol), "
+          + "DESCRIPTOR(key) optional, datetime interval)";
+    }
   }
 }

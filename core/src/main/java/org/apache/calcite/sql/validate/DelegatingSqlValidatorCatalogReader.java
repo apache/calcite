@@ -16,6 +16,12 @@
  */
 package org.apache.calcite.sql.validate;
 
+import com.google.common.collect.BiMap;
+
+import com.google.common.collect.HashBiMap;
+
+import org.apache.calcite.jdbc.CalciteSchema.TypeEntry;
+import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlIdentifier;
 
@@ -31,6 +37,7 @@ import java.util.List;
 public abstract class DelegatingSqlValidatorCatalogReader
     implements SqlValidatorCatalogReader {
   protected final SqlValidatorCatalogReader catalogReader;
+  final BiMap<TypeEntry, String> aliasTypeMap;
 
   /**
    * Creates a DelegatingSqlValidatorCatalogReader.
@@ -40,6 +47,8 @@ public abstract class DelegatingSqlValidatorCatalogReader
   protected DelegatingSqlValidatorCatalogReader(
       SqlValidatorCatalogReader catalogReader) {
     this.catalogReader = catalogReader;
+    this.aliasTypeMap = HashBiMap.create();
+    CalciteCatalogReader.populateAliasTypeMap(this.aliasTypeMap, catalogReader.getRootSchema());
   }
 
   @Override public @Nullable SqlValidatorTable getTable(List<String> names) {
@@ -60,5 +69,9 @@ public abstract class DelegatingSqlValidatorCatalogReader
 
   @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
     return catalogReader.unwrap(aClass);
+  }
+
+  @Override public BiMap<TypeEntry, String> getAliasTypeMap() {
+    return catalogReader.getAliasTypeMap();
   }
 }

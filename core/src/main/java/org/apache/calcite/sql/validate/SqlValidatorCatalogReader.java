@@ -16,8 +16,11 @@
  */
 package org.apache.calcite.sql.validate;
 
+import com.google.common.collect.BiMap;
+
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.CalciteSchema.TypeEntry;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.schema.Wrapper;
@@ -117,4 +120,6 @@ public interface SqlValidatorCatalogReader extends Wrapper {
 
   /** Returns Config settings. */
   CalciteConnectionConfig getConfig();
+
+  BiMap<TypeEntry, String> getAliasTypeMap();
 }

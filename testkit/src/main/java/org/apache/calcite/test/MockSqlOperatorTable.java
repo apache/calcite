@@ -271,7 +271,12 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
 
       @Override public String getAllowedSignatures(SqlOperator op, String opName) {
         return "Score(TABLE table_name)";
-      };
+      }
+
+      @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+          SqlValidator validator) {
+        return "Score(TABLE table_name)";
+      }
     }
   }
 
@@ -358,6 +363,11 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       @Override public String getAllowedSignatures(SqlOperator op, String opName) {
         return "TopN(TABLE table_name, BIGINT rows)";
       }
+
+      @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+          SqlValidator validator) {
+        return "TopN(TABLE table_name, BIGINT rows)";
+      }
     }
   }
 
@@ -425,6 +435,11 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       }
 
       @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+        return "SIMILARITY(TABLE table_name, TABLE table_name)";
+      }
+
+      @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+          SqlValidator validator) {
         return "SIMILARITY(TABLE table_name, TABLE table_name)";
       }
     }

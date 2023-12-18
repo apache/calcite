@@ -37,6 +37,8 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import java.util.Arrays;
 
+import org.apache.calcite.sql.validate.SqlValidator;
+
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
 
@@ -142,6 +144,11 @@ public class SqlItemOperator extends SqlSpecialOperator {
     }
   }
 
+  @Override public String getAllowedSignaturesUsingValidator(String name, SqlValidator validator) {
+    return "<ARRAY>[<INTEGER>]\n"
+        + "<MAP>[<ANY>]\n"
+        + "<ROW>[<CHARACTER>|<INTEGER>]";
+  }
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     final RelDataType operandType = opBinding.getOperandType(0);

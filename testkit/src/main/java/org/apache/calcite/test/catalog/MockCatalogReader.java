@@ -16,11 +16,16 @@
  */
 package org.apache.calcite.test.catalog;
 
+import com.google.common.collect.BiMap;
+
+import com.google.common.collect.HashBiMap;
+
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.CalciteSchema.TypeEntry;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
@@ -117,6 +122,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
   static final List<String> PREFIX = ImmutableList.of(DEFAULT_SCHEMA);
   private static final Schema DUMMY_SCHEMA = new AbstractSchema();
 
+  static BiMap<TypeEntry, String> aliasTypeMap = HashBiMap.create();
   /**
    * Creates a MockCatalogReader.
    *

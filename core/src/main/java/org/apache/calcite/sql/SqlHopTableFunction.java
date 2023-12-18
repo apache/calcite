@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.validate.SqlValidator;
+
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -58,6 +60,12 @@ public class SqlHopTableFunction extends SqlWindowTableFunction {
     }
 
     @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+      return opName + "(TABLE table_name, DESCRIPTOR(timecol), "
+          + "datetime interval, datetime interval[, datetime interval])";
+    }
+
+    @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+        SqlValidator validator) {
       return opName + "(TABLE table_name, DESCRIPTOR(timecol), "
           + "datetime interval, datetime interval[, datetime interval])";
     }

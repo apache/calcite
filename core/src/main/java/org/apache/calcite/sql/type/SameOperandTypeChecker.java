@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -125,6 +126,15 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
   }
 
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+    final String typeName = getTypeName();
+    return SqlUtil.getAliasedSignature(op, opName,
+        nOperands == -1
+            ? ImmutableList.of(typeName, typeName, "...")
+            : Collections.nCopies(nOperands, typeName));
+  }
+
+  @Override public String getAllowedSignaturesUsingValidator(SqlOperator op, String opName,
+      SqlValidator validator) {
     final String typeName = getTypeName();
     return SqlUtil.getAliasedSignature(op, opName,
         nOperands == -1
