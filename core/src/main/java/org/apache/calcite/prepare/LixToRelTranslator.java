@@ -97,7 +97,7 @@ class LixToRelTranslator {
   public RelNode translate(Expression expression) {
     if (expression instanceof MethodCallExpression) {
       final MethodCallExpression call = (MethodCallExpression) expression;
-      BuiltInMethod method = BuiltInMethod.MAP.get(call.method);
+      BuiltInMethod method = BuiltInMethod.FUNCTIONS_MAPS.get(call.method);
       if (method == null) {
         throw new UnsupportedOperationException(
             "unknown method " + call.method);

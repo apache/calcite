@@ -78,11 +78,9 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
     ImmutableBitSet union = ImmutableBitSet.of();
 
-    if (rel.getGroupSets() != null) {
-      for (ImmutableBitSet group : rel.getGroupSets()) {
-        union = union.union(group);
-        groups.add(new Grouping(group));
-      }
+    for (ImmutableBitSet group : rel.getGroupSets()) {
+      union = union.union(group);
+      groups.add(new Grouping(group));
     }
 
     this.unionGroups = union;
@@ -267,6 +265,41 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
+  private static Class<?> maxMinClass(AggregateCall call) {
+    boolean max = call.getAggregation() == SqlStdOperatorTable.MAX;
+    switch (call.getType().getSqlTypeName()) {
+    case INTEGER:
+      return max ? MaxInt.class : MinInt.class;
+    case FLOAT:
+      return max ? MaxFloat.class : MinFloat.class;
+    case DOUBLE:
+    case REAL:
+      return max ? MaxDouble.class : MinDouble.class;
+    case DECIMAL:
+      return max ? MaxBigDecimal.class : MinBigDecimal.class;
+    case BOOLEAN:
+      return max ? MaxBoolean.class : MinBoolean.class;
+    default:
+      return max ? MaxLong.class : MinLong.class;
+    }
+  }
+
+  private static Class<?> sumClass(AggregateCall call) {
+    switch (call.type.getSqlTypeName()) {
+    case DOUBLE:
+    case REAL:
+    case FLOAT:
+      return DoubleSum.class;
+    case DECIMAL:
+      return BigDecimalSum.class;
+    case INTEGER:
+      return IntSum.class;
+    case BIGINT:
+    default:
+      return LongSum.class;
+    }
+  }
+
   private static AggregateFunctionImpl getAggFunction(Class<?> clazz) {
     return requireNonNull(
         AggregateFunctionImpl.create(clazz),
@@ -298,6 +331,22 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
     @Override public Object end() {
       return cnt;
+    }
+  }
+
+  /** Accumulator for calls to the LITERAL_AGG function. */
+  private static class LiteralAccumulator implements Accumulator {
+    private final @Nullable Object value;
+
+    LiteralAccumulator(@Nullable Object value) {
+      this.value = value;
+    }
+
+    @Override public void send(Row row) {
+    }
+
+    @Override public @Nullable Object end() {
+      return value;
     }
   }
 
@@ -614,7 +663,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
 
     public Boolean add(Boolean accumulator, Boolean value) {
-      return accumulator.compareTo(value) < 0 ? accumulator : value;
+      return accumulator && value;
     }
 
     public Boolean merge(Boolean accumulator0, Boolean accumulator1) {

@@ -35,6 +35,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -171,6 +172,8 @@ public class Puffin {
     /** Returns whether the current line matches {@code regex}. */
     boolean matches(String regex);
 
+    Matcher matcher(String regex);
+
     /** Returns the text of the current line. */
     String line();
 
@@ -248,12 +251,12 @@ public class Puffin {
       return fnr;
     }
 
-    @Override public String filename() {
-      return source().toString();
-    }
-
     @Override public boolean isLast() {
       return last;
+    }
+
+    @Override public String filename() {
+      return source().toString();
     }
 
     @Override public Source source() {
@@ -272,8 +275,12 @@ public class Puffin {
       return line.endsWith(suffix);
     }
 
+    @Override public Matcher matcher(String regex) {
+      return pattern(regex).matcher(line);
+    }
+
     @Override public boolean matches(String regex) {
-      return pattern(regex).matcher(line).matches();
+      return matcher(regex).matches();
     }
 
     @Override public String line() {

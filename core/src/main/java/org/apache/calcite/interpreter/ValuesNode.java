@@ -53,8 +53,8 @@ public class ValuesNode implements Node {
     scalar.execute(context, values);
     final ImmutableList.Builder<Row> rows = ImmutableList.builder();
     Object[] subValues = new Object[fieldCount];
-    for (int i = 0; i < values.length; i += fieldCount) {
-      System.arraycopy(values, i, subValues, 0, fieldCount);
+    for (int r = 0, n = tuples.size(); r < n; ++r) {
+      System.arraycopy(values, r * fieldCount, subValues, 0, fieldCount);
       rows.add(Row.asCopy(subValues));
     }
     return rows.build();

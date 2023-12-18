@@ -675,7 +675,7 @@ public enum BuiltInMethod {
   @SuppressWarnings("ImmutableEnumChecker")
   public final Field field;
 
-  public static final ImmutableMap<Method, BuiltInMethod> MAP;
+  public static final ImmutableMap<Method, BuiltInMethod> FUNCTIONS_MAPS;
 
   static {
     final ImmutableMap.Builder<Method, BuiltInMethod> builder =
@@ -685,7 +685,7 @@ public enum BuiltInMethod {
         builder.put(value.method, value);
       }
     }
-    MAP = builder.build();
+    FUNCTIONS_MAPS = builder.build();
   }
 
   BuiltInMethod(@Nullable Method method, @Nullable Constructor constructor, @Nullable Field field) {

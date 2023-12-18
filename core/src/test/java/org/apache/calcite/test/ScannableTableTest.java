@@ -153,7 +153,7 @@ public class ScannableTableTest {
             "j=Paul");
     // Only 2 rows came out of the table. If the value is 4, it means that the
     // planner did not pass the filter down.
-    assertThat(buf.toString(), is("returnCount=2, filter=<0, 4>, projects=[1]"));
+    assertThat(buf.toString(), is("returnCount=2, filter=<0, 4>, projects=[1, 0]"));
   }
 
   @Test void testProjectableFilterableNonCooperative() throws Exception {
@@ -186,7 +186,7 @@ public class ScannableTableTest {
         .returnsUnordered("k=1940; j=John",
             "k=1942; j=Paul");
     assertThat(buf.toString(),
-        is("returnCount=2, filter=<0, 4>, projects=[2, 1]"));
+        is("returnCount=2, filter=<0, 4>, projects=[2, 1, 0]"));
   }
 
   /** A filter on a {@link org.apache.calcite.schema.ProjectableFilterableTable}

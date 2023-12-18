@@ -1217,10 +1217,7 @@ public class ImmutableBitSet
 
     /** Sets all bits in a given list of {@code int}s. */
     public Builder addAll(ImmutableIntList integers) {
-      //noinspection ForLoopReplaceableByForEach
-      for (int i = 0; i < integers.size(); i++) {
-        set(integers.get(i));
-      }
+      integers.forEachInt(this::set);
       return this;
     }
 

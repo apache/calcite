@@ -17,6 +17,7 @@
 package org.apache.calcite.jdbc;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;
@@ -38,11 +39,11 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -84,6 +85,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -101,7 +103,7 @@ abstract class CalciteConnectionImpl
   public final JavaTypeFactory typeFactory;
 
   final CalciteSchema rootSchema;
-  final Function0<CalcitePrepare> prepareFactory;
+  final Supplier<CalcitePrepare> prepareFactory;
   final CalciteServer server = new CalciteServerImpl();
 
   // must be package-protected
@@ -124,7 +126,7 @@ abstract class CalciteConnectionImpl
       @Nullable JavaTypeFactory typeFactory) {
     super(driver, factory, url, info);
     CalciteConnectionConfig cfg = new CalciteConnectionConfigImpl(info);
-    this.prepareFactory = driver.prepareFactory;
+    this.prepareFactory = driver::createPrepare;
     if (typeFactory != null) {
       this.typeFactory = typeFactory;
     } else {
@@ -222,8 +224,10 @@ abstract class CalciteConnectionImpl
       server.getStatement(calcitePreparedStatement.handle).setSignature(signature);
       return calcitePreparedStatement;
     } catch (Exception e) {
-      throw Helper.INSTANCE.createException(
-          "Error while preparing statement [" + query.sql + "]", e);
+      String message = query.rel == null
+          ? "Error while preparing statement [" + query.sql + "]"
+          : "Error while preparing plan [" + RelOptUtil.toString(query.rel) + "]";
+      throw Helper.INSTANCE.createException(message, e);
     }
   }
 
@@ -232,7 +236,7 @@ abstract class CalciteConnectionImpl
       CalcitePrepare.Context prepareContext, long maxRowCount) {
     CalcitePrepare.Dummy.push(prepareContext);
     try {
-      final CalcitePrepare prepare = prepareFactory.apply();
+      final CalcitePrepare prepare = prepareFactory.get();
       return prepare.prepareSql(prepareContext, query, Object[].class,
           maxRowCount);
     } finally {
@@ -284,18 +288,23 @@ abstract class CalciteConnectionImpl
       CalciteStatement statement = (CalciteStatement) createStatement();
       CalcitePrepare.CalciteSignature<T> signature =
           statement.prepare(queryable);
-      return enumerable(statement.handle, signature).enumerator();
+      return enumerable(statement.handle, signature, null).enumerator();
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
   }
 
   public <T> Enumerable<T> enumerable(Meta.StatementHandle handle,
-      CalcitePrepare.CalciteSignature<T> signature) throws SQLException {
+      CalcitePrepare.CalciteSignature<T> signature,
+      @Nullable List<TypedValue> parameterValues0) throws SQLException {
     Map<String, Object> map = new LinkedHashMap<>();
     AvaticaStatement statement = lookupStatement(handle);
-    final List<TypedValue> parameterValues =
-        TROJAN.getParameterValues(statement);
+    final List<TypedValue> parameterValues;
+    if (parameterValues0 == null || parameterValues0.isEmpty()) {
+      parameterValues = TROJAN.getParameterValues(statement);
+    } else {
+      parameterValues = parameterValues0;
+    }
 
     if (MetaImpl.checkParameterValueHasNull(parameterValues)) {
       throw new SQLException("exception while executing query: unbound parameter");
@@ -323,7 +332,7 @@ abstract class CalciteConnectionImpl
   public DataContext createDataContext(Map<String, Object> parameterValues,
       @Nullable CalciteSchema rootSchema) {
     if (config().spark()) {
-      return new SlimDataContext();
+      return DataContexts.EMPTY;
     }
     return new DataContextImpl(this, parameterValues, rootSchema);
   }

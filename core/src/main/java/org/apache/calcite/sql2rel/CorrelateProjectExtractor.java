@@ -51,7 +51,7 @@ import java.util.Set;
 
 /**
  * A visitor for relational expressions that extracts a
- * {@link Project}, with a "simple" computation over
+ * {@link org.apache.calcite.rel.core.Project}, with a "simple" computation over
  * the correlated variables, from the right side of a correlation
  * ({@link org.apache.calcite.rel.core.Correlate}) and places it on the left
  * side.

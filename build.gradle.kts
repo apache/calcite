@@ -18,14 +18,14 @@ import com.github.spotbugs.SpotBugsTask
 import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.dsl.configureEach
-//import com.github.vlsi.gradle.git.FindGitAttributes
-//import com.github.vlsi.gradle.git.dsl.gitignore
+// import com.github.vlsi.gradle.git.FindGitAttributes
+// import com.github.vlsi.gradle.git.dsl.gitignore
 import com.github.vlsi.gradle.properties.dsl.lastEditYear
 import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
-//import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
-//import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
-//import java.net.URI
+// import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
+// import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+// import java.net.URI
 import net.ltgt.gradle.errorprone.errorprone
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat

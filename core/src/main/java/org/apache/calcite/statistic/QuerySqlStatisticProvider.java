@@ -126,8 +126,7 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
           relBuilder.push(fromTable.toRel(toRelContext))
               .filter(fromColumns.stream()
                   .map(column ->
-                      relBuilder.call(SqlStdOperatorTable.IS_NOT_NULL,
-                          relBuilder.field(column)))
+                      relBuilder.isNotNull(relBuilder.field(column)))
                   .collect(Collectors.toList()))
               .project(relBuilder.fields(fromColumns))
               .push(toTable.toRel(toRelContext))
