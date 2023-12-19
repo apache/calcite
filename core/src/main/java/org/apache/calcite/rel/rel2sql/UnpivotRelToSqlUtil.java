@@ -363,7 +363,7 @@ public class UnpivotRelToSqlUtil {
       LogicalValues logicalValuesRel,
       SqlImplementor.Builder builder) {
     SqlNodeList valueSqlNodeList = new SqlNodeList(POS);
-    for (ImmutableList<RexLiteral> value : logicalValuesRel.tuples.asList()) {
+    for (ImmutableList<RexLiteral> value : logicalValuesRel.tuples) {
       SqlNode valueSqlNode = builder.context.toSql(null, value.get(0));
       valueSqlNodeList.add(valueSqlNode);
     }

@@ -895,24 +895,6 @@ public class JdbcTest {
     connection.close();
   }
 
-  /** Tests driver's implementation of {@link DatabaseMetaData#getPrimaryKeys}.
-   * It is empty but it should still have column definitions. */
-  @Test void testMetaDataPrimaryKeys()
-      throws ClassNotFoundException, SQLException {
-    Connection connection = CalciteAssert
-        .that(CalciteAssert.Config.REGULAR).connect();
-    DatabaseMetaData metaData = connection.getMetaData();
-    ResultSet resultSet = metaData.getPrimaryKeys(null, null, null);
-    assertFalse(resultSet.next()); // catalog never contains primary keys
-    ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
-    assertEquals(6, resultSetMetaData.getColumnCount());
-    assertEquals("TABLE_CAT", resultSetMetaData.getColumnName(1));
-    assertEquals(java.sql.Types.VARCHAR, resultSetMetaData.getColumnType(1));
-    assertEquals("PK_NAME", resultSetMetaData.getColumnName(6));
-    resultSet.close();
-    connection.close();
-  }
-
   /** Unit test for
    * {@link org.apache.calcite.jdbc.CalciteMetaImpl#likeToRegex(org.apache.calcite.avatica.Meta.Pat)}. */
   @Test void testLikeToRegex() {

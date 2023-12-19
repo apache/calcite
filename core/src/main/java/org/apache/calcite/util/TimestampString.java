@@ -182,7 +182,7 @@ public class TimestampString implements Comparable<TimestampString> {
    * the epoch. */
   public static TimestampString fromMillisSinceEpoch(long millis) {
     return new TimestampString(DateTimeUtils.unixTimestampToString(millis))
-        .withMillis((int) DateTimeUtils.floorMod(millis, 1000));
+        .withMillis((int) Math.floorMod(millis, 1000L));
   }
 
   public Calendar toCalendar() {

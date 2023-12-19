@@ -24,5 +24,4 @@ dependencies {
     implementation("org.slf4j:slf4j-api")
 
     testImplementation(project(":core", "testClasses"))
-    testRuntimeOnly("org.slf4j:slf4j-log4j12")
 }

@@ -171,7 +171,7 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
   public static TimeWithTimeZoneString fromMillisOfDay(int i) {
     return new TimeWithTimeZoneString(
         DateTimeUtils.unixTimeToString(i) + " " + DateTimeUtils.UTC_ZONE.getID())
-            .withMillis((int) DateTimeUtils.floorMod(i, 1000));
+            .withMillis((int) Math.floorMod(i, 1000));
   }
 
   /** Converts this TimeWithTimeZoneString to a string, truncated or padded with
