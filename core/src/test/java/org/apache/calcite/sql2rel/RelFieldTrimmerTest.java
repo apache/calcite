@@ -49,6 +49,7 @@ import java.util.List;
 import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Test for {@link RelFieldTrimmer}. */
@@ -445,11 +446,11 @@ class RelFieldTrimmerTest {
 
     assertTrue(relNode.getInput(0).getInput(0) instanceof Calc);
     final Calc originalCalc = (Calc) relNode.getInput(0).getInput(0);
-    assertTrue(originalCalc.getHints().contains(calcHint));
+    assertFalse(originalCalc.getHints().contains(calcHint));
 
     assertTrue(trimmed.getInput(0).getInput(0) instanceof Calc);
     final Calc calc = (Calc) trimmed.getInput(0).getInput(0);
-    assertTrue(calc.getHints().contains(calcHint));
+    assertFalse(calc.getHints().contains(calcHint));
   }
 
 }

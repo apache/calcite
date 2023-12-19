@@ -576,6 +576,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
    * context of a {@link org.apache.calcite.rel.logical.LogicalAggregate}.
    */
   public static class AggCallBinding extends SqlOperatorBinding {
+    private final List<RelDataType> preOperands;
     private final List<RelDataType> operands;
     private final int groupCount;
     private final boolean filter;
@@ -585,22 +586,32 @@ public abstract class Aggregate extends SingleRel implements Hintable {
      *
      * @param typeFactory  Type factory
      * @param aggFunction  Aggregate function
+     * @param preOperands  Data types of pre-operands
      * @param operands     Data types of operands
      * @param groupCount   Number of columns in the GROUP BY clause
      * @param filter       Whether the aggregate function has a FILTER clause
      */
     public AggCallBinding(RelDataTypeFactory typeFactory,
-        SqlAggFunction aggFunction, List<RelDataType> operands, int groupCount,
+        SqlAggFunction aggFunction, List<RelDataType> preOperands,
+        List<RelDataType> operands, int groupCount,
         boolean filter) {
       super(typeFactory, aggFunction);
-      this.operands = operands;
+      this.preOperands = requireNonNull(preOperands, "preOperands");
+      this.operands =
+          requireNonNull(operands,
+              "operands of aggregate call should not be null");
       this.groupCount = groupCount;
       this.filter = filter;
-      assert operands != null
-          : "operands of aggregate call should not be null";
-      assert groupCount >= 0
-          : "number of group by columns should be greater than zero in "
-          + "aggregate call. Got " + groupCount;
+      checkArgument(groupCount >= 0,
+          "number of group by columns should be greater than zero in "
+              + "aggregate call. Got %s", groupCount);
+    }
+
+    public AggCallBinding(RelDataTypeFactory typeFactory,
+        SqlAggFunction aggFunction, List<RelDataType> operands, int groupCount,
+        boolean filter) {
+      this(typeFactory, aggFunction, ImmutableList.of(), operands, groupCount,
+          filter);
     }
 
     @Override public int getGroupCount() {
@@ -611,17 +622,40 @@ public abstract class Aggregate extends SingleRel implements Hintable {
       return filter;
     }
 
+    @Override public int getPreOperandCount() {
+      return preOperands.size();
+    }
+
     @Override public int getOperandCount() {
-      return operands.size();
+      return preOperands.size() + operands.size();
     }
 
     @Override public RelDataType getOperandType(int ordinal) {
-      return operands.get(ordinal);
+      return ordinal < preOperands.size()
+          ? preOperands.get(ordinal)
+          : operands.get(ordinal - preOperands.size());
     }
 
     @Override public CalciteException newError(
         Resources.ExInst<SqlValidatorException> e) {
       return SqlUtil.newContextException(SqlParserPos.ZERO, e);
+    }
+  }
+
+  /** Used for PERCENTILE_DISC return type inference. */
+  public static class PercentileDiscAggCallBinding extends AggCallBinding {
+    private final RelDataType collationType;
+
+    PercentileDiscAggCallBinding(RelDataTypeFactory typeFactory, SqlAggFunction aggFunction,
+        List<RelDataType> operands, RelDataType collationType, int groupCount,
+        boolean filter) {
+      super(typeFactory, aggFunction, operands, groupCount, filter);
+      assert aggFunction.isPercentile();
+      this.collationType = collationType;
+    }
+
+    @Override public RelDataType getCollationType() {
+      return collationType;
     }
   }
 }
