@@ -61,13 +61,13 @@ public class SqlDdlNodes {
         query);
   }
 
-  /** Creates a CREATE TABLE LIKE. */
-  public static SqlCreateTableLike createTableLike(SqlParserPos pos, boolean replace,
-      boolean ifNotExists, SqlIdentifier name, SqlIdentifier sourceTable,
-      SqlNodeList including, SqlNodeList excluding) {
-    return new SqlCreateTableLike(pos, replace, ifNotExists, name,
-        sourceTable, including, excluding);
-  }
+//  /** Creates a CREATE TABLE LIKE. */
+//  public static SqlCreateTableLike createTableLike(SqlParserPos pos, boolean replace,
+//      boolean ifNotExists, SqlIdentifier name, SqlIdentifier sourceTable,
+//      SqlNodeList including, SqlNodeList excluding) {
+//    return new SqlCreateTableLike(pos, replace, ifNotExists, name,
+//        sourceTable, including, excluding);
+//  }
 
   /** Creates a CREATE VIEW. */
   public static SqlCreateView createView(SqlParserPos pos, boolean replace,
