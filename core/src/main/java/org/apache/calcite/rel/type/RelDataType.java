@@ -140,6 +140,15 @@ public interface RelDataType {
   @Nullable RelDataType getValueType();
 
   /**
+   * Gets the element type if this type is a measure, otherwise null.
+   *
+   * @return canonical type descriptor for the value used in the measure
+   */
+  default @Nullable RelDataType getMeasureElementType() {
+    return null;
+  }
+
+  /**
    * Gets this type's character set, or null if this type cannot carry a
    * character set or has no character set defined.
    *

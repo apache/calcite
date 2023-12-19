@@ -191,7 +191,7 @@ public interface RelDataTypeSystem {
    * <li>Let d be the number of whole digits in the result</li>
    * <li>Then the result type is a decimal with:
    *   <ul>
-   *   <li>p = p1 + p2)</li>
+   *   <li>p = p1 + p2</li>
    *   <li>s = s1 + s2</li>
    *   </ul>
    * </li>
@@ -379,9 +379,7 @@ public interface RelDataTypeSystem {
           return type2;
         }
 
-        int scale = Math.max(s1, s2);
-        assert scale <= getMaxNumericScale();
-
+        int scale = Math.min(Math.max(s1, s2), getMaxNumericScale());
         int precision = Math.min(p1 - s1, p2 - s2) + Math.max(s1, s2);
         precision = Math.min(precision, getMaxNumericPrecision());
         assert precision > 0;
