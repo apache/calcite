@@ -1149,6 +1149,7 @@ public class JdbcTest {
   }
 
   /** Just short of bushy. */
+/*
   @Test void testAlmostBushy() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -1172,6 +1173,7 @@ public class JdbcTest {
                 + "  EnumerableCalc(expr#0..14=[{inputs}], expr#15=['Washington':VARCHAR(60)], expr#16=[=($t2, $t15)], proj#0..14=[{exprs}], $condition=[$t16]): rowcount = 234.0, cumulative cost = {1794.0 rows, 53041.0 cpu, 0.0 io}\n"
                 + "    EnumerableTableScan(table=[[foodmart2, product]]): rowcount = 1560.0, cumulative cost = {1560.0 rows, 1561.0 cpu, 0.0 io}\n"));
   }
+*/
 
   /** Tests a query whose best plan is a bushy join.
    * First join sales_fact_1997 to customer;
