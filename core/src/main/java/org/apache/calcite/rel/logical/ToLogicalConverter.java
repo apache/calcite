@@ -40,7 +40,6 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.Collections;
 
@@ -63,8 +62,7 @@ public class ToLogicalConverter extends RelShuttleImpl {
       final Aggregate agg = (Aggregate) relNode;
       return relBuilder.push(visit(agg.getInput()))
           .aggregate(
-              relBuilder.groupKey(agg.getGroupSet(),
-                  (Iterable<ImmutableBitSet>) agg.groupSets),
+              relBuilder.groupKey(agg.getGroupSet(), agg.groupSets),
               agg.getAggCallList())
           .build();
     }

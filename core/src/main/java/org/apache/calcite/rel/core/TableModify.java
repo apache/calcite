@@ -129,17 +129,11 @@ public abstract class TableModify extends SingleRel {
       Preconditions.checkArgument(sourceExpressionList.size()
           == updateColumnList.size());
     } else {
-      /***
-       * Commenting this part as merge can also have the null updateColumnList
-       * in case if the merge statement has no matching condition
-       */
-
-//      if (operation == Operation.MERGE) {
-//        requireNonNull(updateColumnList);
-//      }
-//      else {
-//        Preconditions.checkArgument(updateColumnList == null);
-//      }
+      if (operation == Operation.MERGE) {
+        requireNonNull(updateColumnList, "updateColumnList");
+      } else {
+        Preconditions.checkArgument(updateColumnList == null);
+      }
       Preconditions.checkArgument(sourceExpressionList == null);
     }
     RelOptSchema relOptSchema = table.getRelOptSchema();

@@ -25,6 +25,7 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SqlKind;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -50,7 +51,7 @@ public abstract class Union extends SetOp {
       RelTraitSet traits,
       List<RelNode> inputs,
       boolean all) {
-    super(cluster, traits, inputs, SqlKind.UNION, all);
+    super(cluster, traits, Collections.emptyList(), inputs, SqlKind.UNION, all);
   }
 
   /**
