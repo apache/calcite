@@ -19,9 +19,11 @@ package org.apache.calcite.sql;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.config.CharLiteralStyle;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
@@ -41,10 +43,13 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.format.FormatModel;
+import org.apache.calcite.util.format.FormatModels;
 
 import org.apache.commons.lang.StringUtils;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 
@@ -65,7 +70,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
@@ -290,6 +294,10 @@ public class SqlDialect {
       return DatabaseProduct.CLICKHOUSE;
     case "DBMS:CLOUDSCAPE":
       return DatabaseProduct.DERBY;
+    case "EXASOL":
+      return DatabaseProduct.EXASOL;
+    case "FIREBOLT":
+      return DatabaseProduct.FIREBOLT;
     case "HIVE":
       return DatabaseProduct.HIVE;
     case "INGRES":
@@ -303,6 +311,7 @@ public class SqlDialect {
     case "PHOENIX":
       return DatabaseProduct.PHOENIX;
     case "PRESTO":
+    case "AWS.ATHENA":
       return DatabaseProduct.PRESTO;
     case "MYSQL (INFOBRIGHT)":
       return DatabaseProduct.INFOBRIGHT;
@@ -340,7 +349,8 @@ public class SqlDialect {
       return DatabaseProduct.H2;
     } else if (upperProductName.contains("VERTICA")) {
       return DatabaseProduct.VERTICA;
-    } else if (upperProductName.contains("GOOGLE BIGQUERY")) {
+    } else if (upperProductName.contains("GOOGLE BIGQUERY")
+        || upperProductName.contains("GOOGLE BIG QUERY")) {
       return DatabaseProduct.BIG_QUERY;
     } else {
       return DatabaseProduct.UNKNOWN;
@@ -438,7 +448,7 @@ public class SqlDialect {
    * @param charsetName Character set name, e.g. "utf16", or null
    * @param val String value
    */
-  public void quoteStringLiteral(StringBuilder buf, String charsetName,
+  public void quoteStringLiteral(StringBuilder buf, @Nullable String charsetName,
       String val) {
     if (containsNonAscii(val) && charsetName == null) {
       quoteStringLiteralUnicode(buf, val);
@@ -587,6 +597,11 @@ public class SqlDialect {
         RelDataTypeSystem.DEFAULT);
   }
 
+  /** Converts table scan hints. The default implementation suppresses all hints. */
+  public void unparseTableScanHints(SqlWriter writer,
+      SqlNodeList hints, int leftPrec, int rightPrec) {
+  }
+
   protected void unparseDateMod(SqlWriter writer, SqlCall call,
                                  int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall("MOD");
@@ -677,11 +692,11 @@ public class SqlDialect {
    * <code>can't{tab}run\</code> becomes <code>u'can''t\0009run\\'</code>.
    */
   public void quoteStringLiteralUnicode(StringBuilder buf, String val) {
-    buf.append("'");
+    buf.append("u&'");
     for (int i = 0; i < val.length(); i++) {
       char c = val.charAt(i);
       if (c < 32 || c >= 128) {
-        buf.append("\\u");
+        buf.append('\\');
         buf.append(HEXITS[(c >> 12) & 0xf]);
         buf.append(HEXITS[(c >> 8) & 0xf]);
         buf.append(HEXITS[(c >> 4) & 0xf]);
@@ -812,7 +827,7 @@ public class SqlDialect {
    * @return SQL timestamp literal
    */
   public String quoteTimestampLiteral(Timestamp timestamp) {
-    final SimpleDateFormat format = getDateFormatter("'TIMESTAMP' ''yyyy-MM-DD HH:mm:SS''");
+    final SimpleDateFormat format = getDateFormatter("'TIMESTAMP' ''yyyy-MM-dd HH:mm:ss''");
     return format.format(timestamp);
   }
 
@@ -842,6 +857,26 @@ public class SqlDialect {
     return true;
   }
 
+  /**
+   * Returns whether the dialect supports GROUP BY literals.
+   *
+   * <p>For instance, in {@link DatabaseProduct#REDSHIFT}, the following queries
+   * are illegal:
+   *
+   * <blockquote><pre>{@code
+   * select avg(salary)
+   * from emp
+   * group by true
+   *
+   * select avg(salary)
+   * from emp
+   * group by 'a', DATE '2022-01-01'
+   * }</pre></blockquote>
+   */
+  public boolean supportsGroupByLiteral() {
+    return true;
+  }
+
   public boolean supportsAggregateFunction(SqlKind kind) {
     switch (kind) {
     case COUNT:
@@ -857,6 +892,18 @@ public class SqlDialect {
   }
 
   public boolean supportAggInGroupByClause() {
+    return true;
+  }
+
+  /** Returns whether this dialect supports APPROX_COUNT_DISTINCT functions. */
+  public boolean supportsApproxCountDistinct() {
+    return false;
+  }
+
+  /**
+   * Returns whether this dialect supports TIMESTAMP with precision.
+   */
+  public boolean supportsTimestampPrecision() {
     return true;
   }
 
@@ -927,24 +974,34 @@ public class SqlDialect {
     return true;
   }
 
-  /**
-   * Returns SqlNode for type in "cast(column as type)", which might be different between databases
-   * by type name, precision etc.
-   *
-   * <p>If this method returns null, the cast will be omitted. In the default
-   * implementation, this is the case for the NULL type, and therefore {@code CAST(NULL AS
-   * <nulltype>)} is rendered as {@code NULL}.
-   */
+ /** Returns SqlNode for type in "cast(column as type)", which might be
+  * different between databases by type name, precision etc.
+  *
+  * <p>If this method returns null, the cast will be omitted. In the default
+  * implementation, this is the case for the NULL type, and therefore
+  * {@code CAST(NULL AS <nulltype>)} is rendered as {@code NULL}. */
   public @Nullable SqlNode getCastSpec(RelDataType type) {
     int maxPrecision = -1;
+    int maxScale = -1;
     if (type instanceof AbstractSqlType) {
       //System.out.println("type.getSqlTypeName() = " + type.getSqlTypeName().getName());
       switch (type.getSqlTypeName()) {
       case NULL:
         return null;
+      case DECIMAL:
+        maxScale = getTypeSystem().getMaxScale(type.getSqlTypeName());
+        // fall through
+      case CHAR:
       case VARCHAR:
         // if needed, adjust varchar length to max length supported by the system
         maxPrecision = getTypeSystem().getMaxPrecision(type.getSqlTypeName());
+        break;
+      case TIMESTAMP:
+        if (!supportsTimestampPrecision()) {
+          return new SqlDataTypeSpec(
+              new SqlBasicTypeNameSpec(type.getSqlTypeName(), SqlParserPos.ZERO),
+              SqlParserPos.ZERO);
+        }
         break;
       default:
         break;
@@ -959,6 +1016,14 @@ public class SqlDialect {
 
   public @Nullable SqlNode getCastSpecWithPrecisionAndScale(RelDataType type) {
     return this.getCastSpec(type);
+  }
+
+  /** Rewrite SINGLE_VALUE into expression based on database variants
+   * E.g. HSQLDB, MYSQL, ORACLE, etc.
+   */
+  public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
+    LOGGER.debug("SINGLE_VALUE rewrite not supported for {}", databaseProduct);
+    return aggCall;
   }
 
   public SqlNode getCastCall(SqlKind sqlKind, SqlNode operandToCast,
@@ -1136,6 +1201,18 @@ public class SqlDialect {
   }
 
   /**
+   * Returns a description of the format string used by functions in this
+   * dialect.
+   *
+   * <p>Dialects may need to override this element mapping if they differ from
+   * <a href="https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Format-Models.html">
+   * Oracle's format elements</a>. By default, this returns {@link FormatModels#DEFAULT}.
+   */
+  public FormatModel getFormatModel() {
+    return FormatModels.DEFAULT;
+  }
+
+  /**
    * Returns whether the dialect supports nested aggregations, for instance
    * {@code SELECT SUM(SUM(1)) }.
    */
@@ -1214,6 +1291,10 @@ public class SqlDialect {
   /**
    * Returns whether this dialect support the specified type of join.
    */
+  public boolean supportsJoinType(JoinRelType joinType) {
+    return true;
+  }
+
   public boolean requiresColumnsInMergeInsertClause() {
     throw new UnsupportedOperationException();
   }
@@ -1337,16 +1418,17 @@ public class SqlDialect {
       config = config.withQuoting(quoting);
     }
     return config.withQuotedCasing(getQuotedCasing())
-      .withUnquotedCasing(getUnquotedCasing())
-      .withCaseSensitive(isCaseSensitive())
-      .withConformance(getConformance());
+        .withUnquotedCasing(getUnquotedCasing())
+        .withCaseSensitive(isCaseSensitive())
+        .withConformance(getConformance())
+        .withCharLiteralStyles(ImmutableSet.of(CharLiteralStyle.STANDARD));
   }
 
   @Deprecated // to be removed before 2.0
   public SqlParser.ConfigBuilder configureParser(
       SqlParser.ConfigBuilder configBuilder) {
     return SqlParser.configBuilder(
-      configureParser(configBuilder.build()));
+        configureParser(configBuilder.build()));
   }
 
   /** Returns the {@link SqlConformance} that matches this dialect.
@@ -1634,7 +1716,7 @@ public class SqlDialect {
     private final Supplier<SqlDialect> dialect;
 
     @SuppressWarnings("argument.type.incompatible")
-    DatabaseProduct(String databaseProductName, String quoteString,
+    DatabaseProduct(String databaseProductName, @Nullable String quoteString,
         NullCollation nullCollation) {
       requireNonNull(databaseProductName, "databaseProductName");
       requireNonNull(nullCollation, "nullCollation");
@@ -1651,7 +1733,7 @@ public class SqlDialect {
             .withDatabaseProductName(databaseProductName)
             .withIdentifierQuoteString(quoteString)
             .withNullCollation(nullCollation));
-      })::get;
+      });
     }
 
     /**

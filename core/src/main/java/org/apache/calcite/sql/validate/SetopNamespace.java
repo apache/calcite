@@ -102,9 +102,9 @@ public class SetopNamespace extends AbstractNamespace {
     case UNION:
     case INTERSECT:
     case EXCEPT:
-      final SqlValidatorScope scope = requireNonNull(
-          validator.scopes.get(call),
-          () -> "scope for " + call);
+      final SqlValidatorScope scope =
+          requireNonNull(validator.scopes.get(call),
+              () -> "scope for " + call);
       for (SqlNode operand : call.getOperandList()) {
         if (!operand.isA(SqlKind.QUERY)) {
           throw validator.newValidationError(operand,

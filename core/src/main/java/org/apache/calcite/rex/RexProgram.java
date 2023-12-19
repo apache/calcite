@@ -250,7 +250,7 @@ public class RexProgram {
     final List<RexNode> projectRexNodes =
         requireNonNull(input.getExpressionList("projects"), "projects");
     final List<RexLocalRef> projects = new ArrayList<>(projectRexNodes.size());
-    for (RexNode rexNode: projectRexNodes) {
+    for (RexNode rexNode : projectRexNodes) {
       projects.add((RexLocalRef) rexNode);
     }
     final RelDataType inputType = input.getRowType("inputRowType");

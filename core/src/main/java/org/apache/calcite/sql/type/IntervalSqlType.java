@@ -49,8 +49,8 @@ public class IntervalSqlType extends AbstractSqlType {
       SqlIntervalQualifier intervalQualifier,
       boolean isNullable) {
     super(intervalQualifier.typeName(), isNullable, null);
-    this.typeSystem = Objects.requireNonNull(typeSystem);
-    this.intervalQualifier = Objects.requireNonNull(intervalQualifier);
+    this.typeSystem = Objects.requireNonNull(typeSystem, "typeSystem");
+    this.intervalQualifier = Objects.requireNonNull(intervalQualifier, "intervalQualifier");
     computeDigest();
   }
 
@@ -139,10 +139,6 @@ public class IntervalSqlType extends AbstractSqlType {
 
   @Override public int getPrecision() {
     return intervalQualifier.getStartPrecision(typeSystem);
-  }
-
-  @Override public int getMaxNumericPrecision() {
-    return PRECISION_NOT_SPECIFIED;
   }
 
   @Override public int getScale() {

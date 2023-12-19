@@ -36,7 +36,7 @@ public class SqlIdentifierMoniker implements SqlMoniker {
    * Creates an SqlIdentifierMoniker.
    */
   public SqlIdentifierMoniker(SqlIdentifier id) {
-    this.id = Objects.requireNonNull(id);
+    this.id = Objects.requireNonNull(id, "id");
   }
 
   //~ Methods ----------------------------------------------------------------

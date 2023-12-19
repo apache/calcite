@@ -305,7 +305,6 @@ public class RexBuilder {
    * @param groupCount number of groups in the aggregate relation
    * @param aggCalls destination list of aggregate calls
    * @param aggCallMapping the dictionary of already added calls
-   * @param isNullable Whether input field i is nullable
    *
    * @return Rex expression for the given aggregate call
    */

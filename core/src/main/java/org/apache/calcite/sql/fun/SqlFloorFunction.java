@@ -28,27 +28,47 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 import com.google.common.base.Preconditions;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Definition of the "FLOOR" and "CEIL" built-in SQL functions.
  */
 public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
   //~ Constructors -----------------------------------------------------------
-
+  private SqlFloorFunction(String name, SqlKind kind,
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      SqlFunctionCategory funcType) {
+    super(name, kind, returnTypeInference, operandTypeInference, operandTypeChecker, funcType);
+  }
   public SqlFloorFunction(SqlKind kind) {
     super(kind.name(), kind, ReturnTypes.ARG0_OR_EXACT_NO_SCALE, null,
-        OperandTypes.or(OperandTypes.NUMERIC_OR_INTERVAL,
-            OperandTypes.sequence(
-                "'" + kind + "(<DATE> TO <TIME_UNIT>)'\n"
-                + "'" + kind + "(<TIME> TO <TIME_UNIT>)'\n"
-                + "'" + kind + "(<TIMESTAMP> TO <TIME_UNIT>)'",
+        OperandTypes.NUMERIC_OR_INTERVAL.or(
+            OperandTypes.sequence("'" + kind + "(<DATE> TO <TIME_UNIT>)'\n"
+                    + "'" + kind + "(<TIME> TO <TIME_UNIT>)'\n"
+                    + "'" + kind + "(<TIMESTAMP> TO <TIME_UNIT>)'",
                 OperandTypes.DATETIME,
                 OperandTypes.ANY)),
         SqlFunctionCategory.NUMERIC);
     Preconditions.checkArgument(kind == SqlKind.FLOOR || kind == SqlKind.CEIL);
+  }
+
+  public SqlFloorFunction withName(String name) {
+    return new SqlFloorFunction(name, getKind(), getReturnTypeInference(),
+        getOperandTypeInference(), getOperandTypeChecker(), getFunctionType());
+  }
+
+  public SqlFloorFunction withReturnTypeInference(SqlReturnTypeInference returnTypeInference) {
+    return new SqlFloorFunction(getName(), getKind(), returnTypeInference,
+        getOperandTypeInference(), getOperandTypeChecker(), getFunctionType());
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -98,9 +118,10 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
    */
   public static void unparseDatetimeFunction(SqlWriter writer, SqlCall call,
       String funName, Boolean datetimeFirst) {
-    SqlFunction func = new SqlFunction(funName, SqlKind.OTHER_FUNCTION,
-        ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
-        SqlFunctionCategory.STRING);
+    SqlFunction func =
+        new SqlFunction(funName, SqlKind.OTHER_FUNCTION,
+            ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
+            SqlFunctionCategory.STRING);
 
     SqlCall call1;
     if (datetimeFirst) {

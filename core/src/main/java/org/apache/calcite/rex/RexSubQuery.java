@@ -97,10 +97,20 @@ public class RexSubQuery extends RexCall {
         ImmutableList.of(), rel);
   }
 
+  /** Creates an UNIQUE sub-query. */
+  public static RexSubQuery unique(RelNode rel) {
+    final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    return new RexSubQuery(type, SqlStdOperatorTable.UNIQUE,
+        ImmutableList.of(), rel);
+  }
+
   /** Creates a scalar sub-query. */
   public static RexSubQuery scalar(RelNode rel) {
     final List<RelDataTypeField> fieldList = rel.getRowType().getFieldList();
-    assert fieldList.size() == 1;
+    if (fieldList.size() != 1) {
+      throw new IllegalArgumentException();
+    }
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     final RelDataType type =
         typeFactory.createTypeWithNullability(fieldList.get(0).getType(), true);

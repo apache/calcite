@@ -72,12 +72,4 @@ public class ArrayElementOperandTypeChecker implements SqlOperandTypeChecker {
   @Override public String getAllowedSignatures(SqlOperator op, String opName) {
     return "<ARRAY> " + opName + " <ARRAY>";
   }
-
-  @Override public Consistency getConsistency() {
-    return null;
-  }
-
-  @Override public boolean isOptional(int i) {
-    return false;
-  }
 }

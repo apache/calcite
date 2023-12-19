@@ -32,7 +32,7 @@ public class SqlJsonKeysFunction extends SqlFunction {
     super("JSON_KEYS", SqlKind.OTHER_FUNCTION,
         ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
         null,
-        OperandTypes.or(OperandTypes.ANY,
+        OperandTypes.ANY.or(
             OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER)),
         SqlFunctionCategory.SYSTEM);
   }

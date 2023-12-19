@@ -88,6 +88,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
     super(context);
   }
 
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
+
   private static Map<SqlDateTimeFormat, String> dateTimeFormatMap =
       new HashMap() {{
         put(E3, ABBREVIATED_NAME_OF_DAY.value);

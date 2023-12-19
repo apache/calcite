@@ -46,7 +46,7 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
         kind,
         ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
-        OperandTypes.or(OperandTypes.INTEGER, OperandTypes.BINARY),
+        OperandTypes.INTEGER.or(OperandTypes.BINARY),
         SqlFunctionCategory.NUMERIC,
         false,
         false,
@@ -57,7 +57,7 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
   }
 
   @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
-    if (clazz == SqlSplittableAggFunction.class) {
+    if (clazz.isInstance(SqlSplittableAggFunction.SelfSplitter.INSTANCE)) {
       return clazz.cast(SqlSplittableAggFunction.SelfSplitter.INSTANCE);
     }
     return super.unwrap(clazz);

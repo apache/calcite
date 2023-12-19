@@ -24,13 +24,13 @@ import org.apache.calcite.sql.SqlSelect;
  * Represents the name-resolution context for expressions in an GROUP BY clause.
  *
  * <p>In some dialects of SQL, the GROUP BY clause can reference column aliases
- * in the SELECT clause. For example, the query</p>
+ * in the SELECT clause. For example, the query
  *
  * <blockquote><code>SELECT empno AS x<br>
  * FROM emp<br>
  * GROUP BY x</code></blockquote>
  *
- * <p>is valid.</p>
+ * <p>is valid.
  */
 public class GroupByScope extends DelegatingScope {
   //~ Instance fields --------------------------------------------------------

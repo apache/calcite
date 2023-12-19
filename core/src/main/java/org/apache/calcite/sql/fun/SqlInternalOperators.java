@@ -20,11 +20,14 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlInternalOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.Litmus;
@@ -103,6 +106,11 @@ public abstract class SqlInternalOperators {
           return litmus.succeed();
         }
       };
+
+  /** Separator expression inside GROUP_CONCAT, e.g. '{@code SEPARATOR ','}'. */
+  public static final SqlOperator SEPARATOR =
+      new SqlInternalOperator("SEPARATOR", SqlKind.SEPARATOR, 20, false,
+          ReturnTypes.ARG0, InferTypes.RETURN_TYPE, OperandTypes.ANY);
 
   /** All implementations of {@code SUBSTRING} and {@code SUBSTR} map onto
    * this. */

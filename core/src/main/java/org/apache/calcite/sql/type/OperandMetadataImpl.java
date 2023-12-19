@@ -49,7 +49,7 @@ public class OperandMetadataImpl extends FamilyOperandTypeChecker
       Function<RelDataTypeFactory, List<RelDataType>> paramTypesFactory,
       IntFunction<String> paramNameFn, Predicate<Integer> optional) {
     super(families, optional);
-    this.paramTypesFactory = Objects.requireNonNull(paramTypesFactory);
+    this.paramTypesFactory = Objects.requireNonNull(paramTypesFactory, "paramTypesFactory");
     this.paramNameFn = paramNameFn;
   }
 

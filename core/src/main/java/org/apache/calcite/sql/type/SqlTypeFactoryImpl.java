@@ -93,7 +93,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   }
 
   @Override public RelDataType createUnknownType() {
-    return canonize(new UnknownSqlType(this));
+    return createSqlType(SqlTypeName.UNKNOWN);
   }
 
   @Override public RelDataType createMultisetType(

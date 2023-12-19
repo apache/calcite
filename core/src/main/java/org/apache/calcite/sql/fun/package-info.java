@@ -25,6 +25,6 @@
  * function; if other custom code is needed for an operator, it should be
  * implemented in a top-level class within this package instead.  Operators
  * which are not row-level (e.g. select and join) should be defined in package
- * {@link org.apache.calcite.sql} instead.</p>
+ * {@link org.apache.calcite.sql} instead.
  */
 package org.apache.calcite.sql.fun;
