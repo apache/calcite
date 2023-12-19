@@ -42,64 +42,67 @@ public class OsQueryTableUtil {
 
   public static List<Object[]> getSystemInfo() {
     final List<Object[]> list = new ArrayList<>();
-    Object[] objects = new Object[18];
-    objects[0] = OshiUtil.getOs().getNetworkParams().getHostName();
-    objects[1] = OshiUtil.getSystem().getSerialNumber();
-    objects[2] = OshiUtil.getProcessor().getProcessorIdentifier().getMicroarchitecture();
-    objects[3] = OshiUtil.getProcessor().getProcessorIdentifier().getVendor();
-    objects[4] = OshiUtil.getProcessor().getProcessorIdentifier().getModel();
-    objects[5] = OshiUtil.getProcessor().getPhysicalProcessorCount();
-    objects[6] = OshiUtil.getProcessor().getLogicalProcessorCount();
-    objects[7] = OshiUtil.getProcessor().getPhysicalPackageCount();
-    objects[8] = OshiUtil.getMemory().getTotal();
-    objects[9] = OshiUtil.getHardware().getComputerSystem().getFirmware().getManufacturer();
-    objects[10] = OshiUtil.getHardware().getComputerSystem().getModel();
-    objects[11] = OshiUtil.getHardware().getComputerSystem().getFirmware().getVersion();
-    objects[12] = OshiUtil.getHardware().getComputerSystem().getSerialNumber();
-    objects[13] = OshiUtil.getHardware().getComputerSystem().getBaseboard().getManufacturer();
-    objects[14] = OshiUtil.getHardware().getComputerSystem().getBaseboard().getModel();
-    objects[15] = OshiUtil.getHardware().getComputerSystem().getBaseboard().getVersion();
-    objects[16] = OshiUtil.getHardware().getComputerSystem().getBaseboard().getSerialNumber();
-    objects[17] = OshiUtil.getOs().getNetworkParams().getDomainName();
+    Object[] objects = {
+        OshiUtil.getOs().getNetworkParams().getHostName(),
+        OshiUtil.getSystem().getSerialNumber(),
+        OshiUtil.getProcessor().getProcessorIdentifier().getMicroarchitecture(),
+        OshiUtil.getProcessor().getProcessorIdentifier().getVendor(),
+        OshiUtil.getProcessor().getProcessorIdentifier().getModel(),
+        OshiUtil.getProcessor().getPhysicalProcessorCount(),
+        OshiUtil.getProcessor().getLogicalProcessorCount(),
+        OshiUtil.getProcessor().getPhysicalPackageCount(),
+        OshiUtil.getMemory().getTotal(),
+        OshiUtil.getHardware().getComputerSystem().getFirmware().getManufacturer(),
+        OshiUtil.getHardware().getComputerSystem().getModel(),
+        OshiUtil.getHardware().getComputerSystem().getFirmware().getVersion(),
+        OshiUtil.getHardware().getComputerSystem().getSerialNumber(),
+        OshiUtil.getHardware().getComputerSystem().getBaseboard().getManufacturer(),
+        OshiUtil.getHardware().getComputerSystem().getBaseboard().getModel(),
+        OshiUtil.getHardware().getComputerSystem().getBaseboard().getVersion(),
+        OshiUtil.getHardware().getComputerSystem().getBaseboard().getSerialNumber(),
+        OshiUtil.getOs().getNetworkParams().getDomainName()
+    };
     list.add(objects);
     return list;
   }
 
   public static List<Object[]> getJavaInfo() {
     final List<Object[]> list = new ArrayList<>();
-    final Object[] objects = new Object[18];
     final Properties props = System.getProperties();
-    objects[0] = props.getProperty("java.version");
-    objects[1] = props.getProperty("java.vendor");
-    objects[2] = props.getProperty("java.vendor.url");
-    objects[3] = props.getProperty("java.home");
-    objects[4] = props.getProperty("java.vm.specification.version");
-    objects[5] = props.getProperty("java.vm.specification.vendor");
-    objects[6] = props.getProperty("java.vm.specification.name");
-    objects[7] = props.getProperty("java.vm.version");
-    objects[8] = props.getProperty("java.vm.vendor");
-    objects[9] = props.getProperty("java.vm.name");
-    objects[10] = props.getProperty("java.specification.version");
-    objects[11] = props.getProperty("java.specification.vender");
-    objects[12] = props.getProperty("java.specification.name");
-    objects[13] = props.getProperty("java.class.version");
-    objects[14] = props.getProperty("java.class.path");
-    objects[15] = props.getProperty("java.io.tmpdir");
-    objects[16] = props.getProperty("java.ext.dirs");
-    objects[17] = props.getProperty("java.library.path");
+    final Object[] objects = {
+        props.getProperty("java.version"),
+        props.getProperty("java.vendor"),
+        props.getProperty("java.vendor.url"),
+        props.getProperty("java.home"),
+        props.getProperty("java.vm.specification.version"),
+        props.getProperty("java.vm.specification.vendor"),
+        props.getProperty("java.vm.specification.name"),
+        props.getProperty("java.vm.version"),
+        props.getProperty("java.vm.vendor"),
+        props.getProperty("java.vm.name"),
+        props.getProperty("java.specification.version"),
+        props.getProperty("java.specification.vender"),
+        props.getProperty("java.specification.name"),
+        props.getProperty("java.class.version"),
+        props.getProperty("java.class.path"),
+        props.getProperty("java.io.tmpdir"),
+        props.getProperty("java.ext.dirs"),
+        props.getProperty("java.library.path")
+    };
     list.add(objects);
     return list;
   }
 
   public static List<Object[]> getOsVersionInfo() {
     final List<Object[]> list = new ArrayList<>();
-    final Object[] objects = new Object[5];
     OperatingSystem os = OshiUtil.getOs();
-    objects[0] = os.getVersionInfo().toString();
-    objects[1] = os.getVersionInfo().getCodeName();
-    objects[2] = os.getVersionInfo().getBuildNumber();
-    objects[3] = os.getVersionInfo().getCodeName();
-    objects[4] = os.getSystemBootTime();
+    final Object[] objects = {
+        os.getVersionInfo().toString(),
+        os.getVersionInfo().getCodeName(),
+        os.getVersionInfo().getBuildNumber(),
+        os.getVersionInfo().getCodeName(),
+        os.getSystemBootTime()
+    };
     list.add(objects);
     return list;
   }
@@ -109,17 +112,16 @@ public class OsQueryTableUtil {
     VirtualMemory virtualMemory = memory.getVirtualMemory();
 
     final List<Object[]> list = new ArrayList<>();
-    final Object[] objects = new Object[8];
-    objects[0] = getNetFileSizeDescription(memory.getTotal());
-    objects[1] = getNetFileSizeDescription(memory.getAvailable());
-    objects[2] = getNetFileSizeDescription(memory.getTotal() - memory.getAvailable());
-    objects[3] = getNetFileSizeDescription(virtualMemory.getSwapTotal());
-    objects[4] = getNetFileSizeDescription(virtualMemory.getSwapUsed());
-    objects[5] =
-        getNetFileSizeDescription(virtualMemory.getSwapTotal() - virtualMemory.getSwapUsed());
-    objects[6] = getNetFileSizeDescription(virtualMemory.getSwapPagesIn());
-    objects[7] = getNetFileSizeDescription(virtualMemory.getSwapPagesOut());
-
+    final Object[] objects = {
+        getNetFileSizeDescription(memory.getTotal()),
+        getNetFileSizeDescription(memory.getAvailable()),
+        getNetFileSizeDescription(memory.getTotal() - memory.getAvailable()),
+        getNetFileSizeDescription(virtualMemory.getSwapTotal()),
+        getNetFileSizeDescription(virtualMemory.getSwapUsed()),
+        getNetFileSizeDescription(virtualMemory.getSwapTotal() - virtualMemory.getSwapUsed()),
+        getNetFileSizeDescription(virtualMemory.getSwapPagesIn()),
+        getNetFileSizeDescription(virtualMemory.getSwapPagesOut())
+    };
     list.add(objects);
     return list;
   }
@@ -127,16 +129,17 @@ public class OsQueryTableUtil {
   public static List<Object[]> getCpuInfo() {
     final List<Object[]> list = new ArrayList<>();
     CentralProcessor processor = OshiUtil.getProcessor();
-    Object[] objects = new Object[9];
-    objects[0] = processor.getProcessorIdentifier().getProcessorID();
-    objects[1] = processor.getProcessorIdentifier().getModel();
-    objects[2] = processor.getProcessorIdentifier().getMicroarchitecture();
-    objects[3] = processor.getPhysicalProcessorCount();
-    objects[4] = processor.getLogicalProcessorCount();
-    objects[5] = processor.getProcessorIdentifier().isCpu64bit() ? 64 : 32;
-    objects[6] = processor.getMaxFreq();
-    objects[7] = processor.getPhysicalPackageCount();
-    objects[8] = processor.getSystemCpuLoad(1000L);
+    Object[] objects = {
+        processor.getProcessorIdentifier().getProcessorID(),
+        processor.getProcessorIdentifier().getModel(),
+        processor.getProcessorIdentifier().getMicroarchitecture(),
+        processor.getPhysicalProcessorCount(),
+        processor.getLogicalProcessorCount(),
+        processor.getProcessorIdentifier().isCpu64bit() ? 64 : 32,
+        processor.getMaxFreq(),
+        processor.getPhysicalPackageCount(),
+        processor.getSystemCpuLoad(1000L)
+    };
     list.add(objects);
     return list;
   }
@@ -144,15 +147,16 @@ public class OsQueryTableUtil {
   public static List<Object[]> getCpuTimeInfo() {
     final List<Object[]> list = new ArrayList<>();
     CpuTicks cpuTicks = OshiUtil.getCpuInfo().getTicks();
-    Object[] objects = new Object[8];
-    objects[0] = cpuTicks.getIdle();
-    objects[1] = cpuTicks.getNice();
-    objects[2] = cpuTicks.getIrq();
-    objects[3] = cpuTicks.getSoftIrq();
-    objects[4] = cpuTicks.getSteal();
-    objects[5] = cpuTicks.getcSys();
-    objects[6] = cpuTicks.getUser();
-    objects[7] = cpuTicks.getIoWait();
+    Object[] objects = {
+        cpuTicks.getIdle(),
+        cpuTicks.getNice(),
+        cpuTicks.getIrq(),
+        cpuTicks.getSoftIrq(),
+        cpuTicks.getSteal(),
+        cpuTicks.getcSys(),
+        cpuTicks.getUser(),
+        cpuTicks.getIoWait()
+    };
     list.add(objects);
     return list;
   }
@@ -161,13 +165,13 @@ public class OsQueryTableUtil {
     final List<Object[]> list = new ArrayList<>();
     List<NetworkIF> networkIFList = OshiUtil.getNetworkIFs();
     for (NetworkIF intf : networkIFList) {
-      Object[] objects = new Object[5];
-      objects[0] = intf.getName();
-      objects[1] = getIPAddressesString(intf.getIPv4addr());
-      objects[2] = getIPAddressesString(intf.getIPv6addr());
-      objects[3] = intf.getMacaddr();
-      objects[4] =
-          intf.getIfOperStatus().toString().contains("UNKNOWN") ? "" : intf.getIfOperStatus();
+      Object[] objects = {
+          intf.getName(),
+          getIPAddressesString(intf.getIPv4addr()),
+          getIPAddressesString(intf.getIPv6addr()),
+          intf.getMacaddr(),
+          intf.getIfOperStatus().toString().contains("UNKNOWN") ? "" : intf.getIfOperStatus()
+      };
       list.add(objects);
     }
     return list;
@@ -177,20 +181,21 @@ public class OsQueryTableUtil {
     final List<Object[]> list = new ArrayList<>();
     List<NetworkIF> networkIFList = OshiUtil.getNetworkIFs();
     for (NetworkIF intf : networkIFList) {
-      Object[] objects = new Object[13];
-      objects[0] = intf.getName();
-      objects[1] = intf.getMacaddr();
-      objects[2] = intf.queryNetworkInterface().isVirtual();
-      objects[3] = intf.getMTU();
-      objects[4] = intf.getSpeed();
-      objects[5] = intf.getPacketsRecv();
-      objects[6] = intf.getPacketsSent();
-      objects[7] = intf.getBytesRecv();
-      objects[8] = intf.getBytesSent();
-      objects[9] = intf.getInErrors();
-      objects[10] = intf.getOutErrors();
-      objects[11] = intf.getInDrops();
-      objects[12] = intf.getCollisions();
+      Object[] objects = {
+          intf.getName(),
+          intf.getMacaddr(),
+          intf.queryNetworkInterface().isVirtual(),
+          intf.getMTU(),
+          intf.getSpeed(),
+          intf.getPacketsRecv(),
+          intf.getPacketsSent(),
+          intf.getBytesRecv(),
+          intf.getBytesSent(),
+          intf.getInErrors(),
+          intf.getOutErrors(),
+          intf.getInDrops(),
+          intf.getCollisions()
+      };
       list.add(objects);
     }
     return list;
@@ -201,15 +206,16 @@ public class OsQueryTableUtil {
     FileSystem fileSystem = OshiUtil.getOs().getFileSystem();
     List<OSFileStore> fileStores = fileSystem.getFileStores();
     for (OSFileStore fileStore : fileStores) {
-      Object[] objects = new Object[8];
-      objects[0] = fileStore.getName();
-      objects[1] = fileStore.getName();
-      objects[2] = getNetFileSizeDescription(fileStore.getTotalSpace());
-      objects[3] = getNetFileSizeDescription(fileStore.getUsableSpace());
-      objects[4] = getNetFileSizeDescription(fileStore.getFreeSpace());
-      objects[5] = getNetFileSizeDescription(fileStore.getTotalInodes());
-      objects[6] = getNetFileSizeDescription(fileStore.getFreeInodes());
-      objects[7] = fileStore.getMount();
+      Object[] objects = {
+          fileStore.getName(),
+          fileStore.getName(),
+          getNetFileSizeDescription(fileStore.getTotalSpace()),
+          getNetFileSizeDescription(fileStore.getUsableSpace()),
+          getNetFileSizeDescription(fileStore.getFreeSpace()),
+          getNetFileSizeDescription(fileStore.getTotalInodes()),
+          getNetFileSizeDescription(fileStore.getFreeInodes()),
+          fileStore.getMount()
+      };
       list.add(objects);
     }
     return list;

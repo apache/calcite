@@ -390,7 +390,7 @@ class OsAdapterTest {
 
   static CalciteAssert.AssertQuery sql(String sql) {
     return CalciteAssert.that()
-        .withModel(SqlShell.model)
+        .withModel(SqlShell.MODEL)
         .with(CalciteConnectionProperty.LEX, Lex.JAVA)
         .with(CalciteConnectionProperty.CONFORMANCE, SqlConformanceEnum.LENIENT)
         .query(sql);

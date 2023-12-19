@@ -47,7 +47,7 @@ import java.util.Set;
  * against Calcite's OS adapter.
  */
 public class SqlShell {
-  static String model = model();
+  static final String MODEL = model();
 
   private final List<String> args;
   @SuppressWarnings("unused")
@@ -62,10 +62,6 @@ public class SqlShell {
     this.in = Objects.requireNonNull(in, "in");
     this.out = Objects.requireNonNull(out, "out");
     this.err = Objects.requireNonNull(err, "err");
-  }
-
-  public static void setModel(String newModel) {
-    model = newModel;
   }
 
   private static String model() {
@@ -138,7 +134,7 @@ public class SqlShell {
 
   void run() throws SQLException {
     final String url = "jdbc:calcite:lex=JAVA;conformance=LENIENT"
-        + ";model=inline:" + model;
+        + ";model=inline:" + MODEL;
     final String help = "Usage: sqlsh [OPTION]... SQL\n"
         + "Execute a SQL command\n"
         + "\n"
@@ -188,7 +184,7 @@ public class SqlShell {
   }
 
 
-  static void addView(StringBuilder b, String name, String sql) {
+  private static void addView(StringBuilder b, String name, String sql) {
     if (!name.equals("du")) { // we know that "du" is the first
       b.append("}, {\n");
     }
@@ -202,7 +198,7 @@ public class SqlShell {
         .append("\"\n");
   }
 
-  static void addFunction(StringBuilder b, String name, Class c) {
+  private static void addFunction(StringBuilder b, String name, Class c) {
     if (!name.equals("du")) { // we know that "du" is the first
       b.append("}, {\n");
     }
