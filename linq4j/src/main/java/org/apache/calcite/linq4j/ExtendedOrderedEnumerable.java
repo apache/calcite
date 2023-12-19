@@ -37,7 +37,7 @@ public interface ExtendedOrderedEnumerable<T> extends Enumerable<T> {
    * {@link #thenByDescending(org.apache.calcite.linq4j.function.Function1, java.util.Comparator) thenByDescending},
    * depending on whether descending is true or false. They both perform a
    * subordinate ordering of an already sorted sequence of type
-   * {@link OrderedEnumerable}.</p>
+   * {@link OrderedEnumerable}.
    */
   <TKey> OrderedEnumerable<T> createOrderedEnumerable(
       Function1<T, TKey> keySelector, Comparator<TKey> comparator,

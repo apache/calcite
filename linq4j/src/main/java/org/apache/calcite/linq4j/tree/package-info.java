@@ -23,6 +23,6 @@
  * {@link org.apache.calcite.linq4j.Queryable} interface. The system attempts
  * to understand the intent of the query and reorganize it for
  * efficiency; for example, it may attempt to push down filters to the
- * source SQL system.</p>
+ * source SQL system.
  */
 package org.apache.calcite.linq4j.tree;

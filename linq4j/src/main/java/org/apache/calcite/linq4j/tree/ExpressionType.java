@@ -18,9 +18,7 @@ package org.apache.calcite.linq4j.tree;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * <p>Analogous to LINQ's System.Linq.Expressions.ExpressionType.</p>
- */
+/** Analogous to LINQ's System.Linq.Expressions.ExpressionType. */
 public enum ExpressionType {
 
   // Operator precedence and associativity is as follows.
