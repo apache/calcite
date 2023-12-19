@@ -35,7 +35,8 @@ import java.util.concurrent.ExecutionException;
  *
  * <p>The cache does not store metadata. It remembers which providers can
  * provide which kinds of metadata, for which kinds of relational
- * expressions.</p>
+ * expressions.
+ *
  */
 public class MetadataFactoryImpl implements MetadataFactory {
   @SuppressWarnings("unchecked")
