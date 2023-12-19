@@ -11859,6 +11859,42 @@ public class SqlOperatorTest {
     f.checkNull("time_sub(CAST(NULL AS TIME), interval 5 minute)");
   }
 
+  @Test void testDateAdd() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.DATE_ADD);
+    f0.checkFails("^date_add(date '2008-12-25', "
+            + "interval 5 day)^",
+        "No match found for function signature "
+            + "DATE_ADD\\(<DATE>, <INTERVAL_DAY_TIME>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkScalar("date_add(date '2016-02-22', interval 2 day)",
+        "2016-02-24",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '2016-02-17', interval 1 week)",
+        "2016-02-24",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '2016-02-10', interval 2 weeks)",
+        "2016-02-24",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '2020-10-17', interval 0 week)",
+        "2020-10-17",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '2016-11-24', interval 3 month)",
+        "2017-02-24",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '2015-11-24', interval 1 quarter)",
+        "2016-02-24",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '2015-08-24', interval 2 quarters)",
+        "2016-02-24",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '2011-02-24', interval 5 year)",
+        "2016-02-24",
+        "DATE NOT NULL");
+    f.checkNull("date_add(CAST(NULL AS DATE), interval 5 day)");
+  }
+
   @Test void testDateSub() {
     final SqlOperatorFixture f0 = fixture()
         .setFor(SqlLibraryOperators.DATE_SUB);
@@ -11948,6 +11984,25 @@ public class SqlOperatorTest {
     f.checkFails("datediff(^\"MONTH\"^, '2019-09-14',  '2019-09-15')",
         "(?s)Column 'MONTH' not found in any table",
         false);
+    final SqlOperatorFixture f0 = f.withLibrary(SqlLibrary.BIG_QUERY);
+    f0.checkScalar("date_diff(DATE '2010-07-07', DATE '2008-12-25', DAY)",
+        "559",
+        "INTEGER NOT NULL");
+    f0.checkScalar("date_diff(DATE '2010-07-14', DATE '2010-07-07', WEEK)",
+        "1",
+        "INTEGER NOT NULL");
+    f0.checkScalar("date_diff(DATE '2011-12-14', DATE '2011-07-14', MONTH)",
+        "5",
+        "INTEGER NOT NULL");
+    f0.checkScalar("date_diff(DATE '2011-10-14', DATE '2011-07-14', QUARTER)",
+        "1",
+        "INTEGER NOT NULL");
+    f0.checkScalar("date_diff(DATE '2021-07-14', DATE '2011-07-14', YEAR)",
+        "10",
+        "INTEGER NOT NULL");
+    f0.checkNull("date_diff(CAST(NULL AS DATE), CAST(NULL AS DATE), DAY)");
+    f0.checkNull("date_diff(DATE '2008-12-25', CAST(NULL AS DATE), DAY)");
+    f0.checkNull("date_diff(CAST(NULL AS DATE), DATE '2008-12-25', DAY)");
   }
 
   /** Tests BigQuery's {@code TIME_ADD}, which adds an interval to a time

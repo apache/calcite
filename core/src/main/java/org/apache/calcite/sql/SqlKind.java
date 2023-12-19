@@ -442,7 +442,7 @@ public enum SqlKind {
   /** {@code LEAST} function (Oracle). */
   LEAST,
 
-  /** {@code DATE_DIFF} function (BigQuery Semantics). */
+  /** {@code DATE_ADD} function (BigQuery Semantics). */
   DATE_ADD,
 
   /** {@code DATE_TRUNC} function (BigQuery). */
