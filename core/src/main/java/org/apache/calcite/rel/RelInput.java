@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -74,6 +75,12 @@ public interface RelInput {
    * Throws if not present or wrong type.
    */
   float getFloat(String tag);
+
+  /**
+   * Returns a {@code BigDecimal} value.
+   * Throws if not present or wrong type.
+   */
+  BigDecimal getBigDecimal(String tag);
 
   /**
    * Returns an enum value. Throws if not a valid member.

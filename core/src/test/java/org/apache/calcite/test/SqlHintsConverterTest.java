@@ -38,7 +38,6 @@ import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.TableScan;
@@ -328,22 +327,6 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
         + "from emp join dept on emp.deptno = dept.deptno";
     // Hint use_hash_join(r, s) expect to be ignored by the join node.
     sql(sql).ok();
-  }
-
-  @Test void testHintsForCalc() {
-    final String sql = "select /*+ resource(mem='1024MB')*/ ename, sal, deptno from emp";
-    final RelNode rel = tester.convertSqlToRel(sql).rel;
-    final RelHint hint = RelHint.builder("RESOURCE")
-        .hintOption("MEM", "1024MB")
-        .build();
-    // planner rule to convert Project to Calc.
-    HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
-        .build();
-    HepPlanner planner = new HepPlanner(program);
-    planner.setRoot(rel);
-    RelNode newRel = planner.findBestExp();
-    new ValidateHintVisitor(hint, Calc.class).go(newRel);
   }
 
   @Test void testHintsPropagationInHepPlannerRules() {

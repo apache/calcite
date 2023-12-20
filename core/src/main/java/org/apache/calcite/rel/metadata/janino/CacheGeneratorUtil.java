@@ -199,7 +199,7 @@ class CacheGeneratorUtil {
         buff.append("    key = ")
             .append(
                 (method.getParameterCount() < 6
-                    ? FlatLists.class
+                    ? org.apache.calcite.runtime.FlatLists.class
                     : ImmutableList.class).getName())
             .append(".of(");
         appendKeyName(buff, methodIndex);

@@ -454,6 +454,7 @@ public class CalciteAssert {
     };
   }
 
+
   public static Consumer<ResultSet> checkMaskedResultContains(
       final String expected) {
     return s -> {

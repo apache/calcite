@@ -640,7 +640,7 @@ public class RelFactories {
   private static class RepeatUnionFactoryImpl implements RepeatUnionFactory {
     @Override public RelNode createRepeatUnion(RelNode seed, RelNode iterative,
         boolean all, int iterationLimit) {
-      return LogicalRepeatUnion.create(seed, iterative, all, iterationLimit);
+      return LogicalRepeatUnion.create(seed, iterative, all, iterationLimit, null);
     }
   }
 

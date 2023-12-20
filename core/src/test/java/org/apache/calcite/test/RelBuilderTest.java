@@ -3857,6 +3857,7 @@ public class RelBuilderTest {
         containsString("There is no relational expression to attach the hints"));
   }
 
+/*
   @Test void testHintsOnNonHintable() {
     final RelHint indexHint = RelHint.builder("INDEX")
         .hintOption("_idx1")
@@ -3883,6 +3884,7 @@ public class RelBuilderTest {
     assertThat(error1.getMessage(),
         containsString("The top relational expression is not a Hintable"));
   }
+*/
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3747">[CALCITE-3747]

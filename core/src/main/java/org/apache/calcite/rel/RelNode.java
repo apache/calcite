@@ -152,9 +152,6 @@ public interface RelNode extends RelOptNode, Cloneable {
    * expression but also used and therefore not available to parents of this
    * relational expression.
    *
-   * <p>Note: only {@link org.apache.calcite.rel.core.Correlate} should set
-   * variables.
-   *
    * @return Names of variables which are set in this relational
    *   expression
    */
@@ -419,6 +416,16 @@ public interface RelNode extends RelOptNode, Cloneable {
    * this node's children
    */
   RelNode accept(RexShuttle shuttle);
+
+  /** Returns whether a field is nullable. */
+  default boolean fieldIsNullable(int i) {
+    return getRowType().getFieldList().get(i).getType().isNullable();
+  }
+
+  /** Returns this node without any wrapper added by the planner. */
+  default RelNode stripped() {
+    return this;
+  }
 
   /** Context of a relational expression, for purposes of checking validity. */
   interface Context {
