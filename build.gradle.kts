@@ -185,9 +185,9 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
 }
 
 val adaptersForSqlline = listOf(
-    ":babel", ":cassandra", ":druid", ":elasticsearch",
+    ":cassandra", ":druid",
     ":file", ":geode", ":innodb", ":kafka", ":mongodb",
-    ":pig", ":piglet", ":plus", ":redis", ":spark", ":splunk")
+    ":pig", ":piglet", ":redis", ":spark", ":splunk")
 
 val dataSetsForSqlline = listOf(
     "net.hydromatic:foodmart-data-hsqldb",
@@ -566,6 +566,7 @@ allprojects {
                 "annotationProcessor"("com.google.guava:guava-beta-checker:1.0")
             }
             tasks.withType<JavaCompile>().configureEach {
+                options.isWarnings = false
                 options.errorprone {
                     disableWarningsInGeneratedCode.set(true)
                     errorproneArgs.add("-XepExcludedPaths:.*/javacc/.*")

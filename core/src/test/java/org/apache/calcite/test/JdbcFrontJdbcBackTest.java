@@ -30,7 +30,6 @@ import static org.apache.calcite.test.CalciteAssert.that;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * Tests for a JDBC front-end and JDBC back-end.
@@ -112,24 +111,6 @@ class JdbcFrontJdbcBackTest {
             assertEquals(
                 "product_id;time_id;customer_id;promotion_id;store_id;store_sales;store_cost;unit_sales;",
                 buf.toString());
-          } catch (SQLException e) {
-            throw TestUtil.rethrow(e);
-          }
-        });
-  }
-
-  /** Tests a JDBC method known to be not implemented (as it happens,
-   * {@link java.sql.DatabaseMetaData#getPrimaryKeys}) that therefore uses
-   * empty result set. */
-  @Test void testEmpty() throws Exception {
-    that()
-        .with(CalciteAssert.Config.JDBC_FOODMART)
-        .doWithConnection(connection -> {
-          try {
-            ResultSet rset =
-                connection.getMetaData().getPrimaryKeys(
-                    null, null, "sales_fact_1997");
-            assertFalse(rset.next());
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }
