@@ -26,5 +26,4 @@ dependencies {
 
     testImplementation(project(":core", "testClasses"))
     testImplementation("com.fasterxml.jackson.core:jackson-databind")
-    testRuntimeOnly("org.slf4j:slf4j-log4j12")
 }

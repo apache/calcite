@@ -32,5 +32,4 @@ dependencies {
     testImplementation(project(":core", "testClasses"))
     testImplementation("com.github.kstyrc:embedded-redis")
     testImplementation("org.mockito:mockito-core")
-    testRuntimeOnly("org.slf4j:slf4j-log4j12")
 }

@@ -19,6 +19,9 @@ pluginManagement {
         fun String.v() = extra["$this.version"].toString()
         fun PluginDependenciesSpec.idv(id: String, key: String = id) = id(id) version key.v()
 
+        idv("com.gradle.enterprise")
+        idv("com.gradle.common-custom-user-data-gradle-plugin")
+        idv("com.autonomousapps.dependency-analysis")
         idv("org.checkerframework")
         idv("com.github.autostyle")
         idv("com.github.johnrengelman.shadow")
@@ -26,10 +29,11 @@ pluginManagement {
         idv("com.github.vlsi.crlf", "com.github.vlsi.vlsi-release-plugins")
         idv("com.github.vlsi.gradle-extensions", "com.github.vlsi.vlsi-release-plugins")
         idv("com.github.vlsi.ide", "com.github.vlsi.vlsi-release-plugins")
+        idv("com.github.vlsi.jandex", "com.github.vlsi.vlsi-release-plugins")
         idv("com.github.vlsi.license-gather", "com.github.vlsi.vlsi-release-plugins")
         idv("com.github.vlsi.stage-vote-release", "com.github.vlsi.vlsi-release-plugins")
         idv("com.google.protobuf")
-        // idv("de.thetaphi.forbiddenapis")
+        idv("de.thetaphi.forbiddenapis")
         idv("me.champeau.gradle.jmh")
         idv("net.ltgt.errorprone")
         idv("org.jetbrains.gradle.plugin.idea-ext")
@@ -37,10 +41,16 @@ pluginManagement {
         idv("org.owasp.dependencycheck")
         kotlin("jvm") version "kotlin".v()
     }
+    if (extra.has("enableMavenLocal") && extra["enableMavenLocal"].toString().ifBlank { "true" }.toBoolean()) {
+        repositories {
+            mavenLocal()
+            gradlePluginPortal()
+        }
+    }
 }
 
 plugins {
-    `gradle-enterprise`
+    id("com.gradle.enterprise")
 }
 
 // This is the name of a current project
@@ -50,11 +60,9 @@ rootProject.name = "calcite"
 include(
     "bom",
     "release",
-    "babel",
     "cassandra",
     "core",
     "druid",
-    "elasticsearch",
     "example:csv",
     "example:function",
     "file",
@@ -65,9 +73,7 @@ include(
     "mongodb",
     "pig",
     "piglet",
-    "plus",
     "redis",
-    "server",
     "spark",
     "splunk",
     "ubenchmark"
