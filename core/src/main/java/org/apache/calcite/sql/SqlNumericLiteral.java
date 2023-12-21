@@ -120,7 +120,7 @@ public class SqlNumericLiteral extends SqlLiteral {
       return typeFactory.createSqlType(
           SqlTypeName.DECIMAL,
           requireNonNull(prec, "prec"),
-          scale);
+          scaleValue);
     }
 
     // else we have a FLOAT, REAL or DOUBLE.  make them all DOUBLE for
