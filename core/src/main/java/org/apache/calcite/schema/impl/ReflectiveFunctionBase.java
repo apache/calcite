@@ -19,6 +19,7 @@ package org.apache.calcite.schema.impl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.Function;
+import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.util.ReflectUtil;
 
@@ -72,6 +73,25 @@ public abstract class ReflectiveFunctionBase implements Function {
   static boolean classHasPublicZeroArgsConstructor(Class<?> clazz) {
     for (Constructor<?> constructor : clazz.getConstructors()) {
       if (constructor.getParameterCount() == 0 && isPublic(constructor)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns whether a class has a public constructor with one argument
+   * of type {@link FunctionContext}.
+   *
+   * @param clazz Class to verify
+   * @return whether class has a public constructor with one FunctionContext
+   * argument
+   */
+  static boolean classHasPublicFunctionContextConstructor(Class<?> clazz) {
+    for (Constructor<?> constructor : clazz.getConstructors()) {
+      if (constructor.getParameterCount() == 1
+          && constructor.getParameterTypes()[0] == FunctionContext.class
+          && isPublic(constructor)) {
         return true;
       }
     }

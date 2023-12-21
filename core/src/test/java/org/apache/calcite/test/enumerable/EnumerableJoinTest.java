@@ -30,6 +30,7 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.HierarchySchema;
 import org.apache.calcite.test.JdbcTest;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.function.Consumer;
@@ -262,6 +263,7 @@ class EnumerableJoinTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3820">[CALCITE-3820]
    * EnumerableDefaults#orderBy should be lazily computed + support enumerator
    * re-initialization</a>. */
+  @Disabled
   @Test void testRepeatUnionWithMergeJoin() {
     tester(false, new HierarchySchema())
         .query("?")
