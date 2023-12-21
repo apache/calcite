@@ -45,6 +45,7 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
+import org.apache.calcite.sql.fun.LibraryOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -3298,20 +3299,6 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.DESC, VM_EXPAND);
   }
 
-  @Test void testIsNotNullOperator() {
-    final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.IS_NOT_NULL, VmName.EXPAND);
-    f.checkBoolean("true is not null", true);
-    f.checkBoolean("cast(null as boolean) is not null", false);
-  }
-
-  @Test void testIsNullOperator() {
-    final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.IS_NULL, VmName.EXPAND);
-    f.checkBoolean("true is null", false);
-    f.checkBoolean("cast(null as boolean) is null", true);
-  }
-
   @Test void testIsNotTrueOperator() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.IS_NOT_TRUE, VmName.EXPAND);
@@ -3349,28 +3336,51 @@ public class SqlOperatorTest {
     f.checkBoolean("cast(null as boolean) is false", false);
   }
 
+  @Test void testIsNotNullOperator() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.IS_NOT_NULL, VmName.EXPAND);
+    checkIsNotNull(f, SqlStdOperatorTable.IS_NOT_NULL);
+  }
+
   @Test void testIsNotUnknownOperator() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.IS_NOT_UNKNOWN, VM_EXPAND);
-    f.checkBoolean("false is not unknown", true);
-    f.checkBoolean("true is not unknown", true);
-    f.checkBoolean("cast(null as boolean) is not unknown", false);
-    f.checkBoolean("unknown is not unknown", false);
     f.checkFails("^'abc' IS NOT UNKNOWN^",
         "(?s).*Cannot apply 'IS NOT UNKNOWN'.*",
         false);
+    checkIsNotNull(f, SqlStdOperatorTable.IS_NOT_UNKNOWN);
+  }
+
+  /** Tests the {@code IS NOT NULL} and {@code IS NOT UNKNOWN} operators. */
+  void checkIsNotNull(SqlOperatorFixture f, SqlOperator operator) {
+    final String fn = operator.getName();
+    f.checkBoolean("false " + fn, true);
+    f.checkBoolean("true " + fn, true);
+    f.checkBoolean("cast(null as boolean) " + fn, false);
+    f.checkBoolean("unknown " + fn, false);
+  }
+
+  @Test void testIsNullOperator() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.IS_NULL, VmName.EXPAND);
+    checkIsNull(f, SqlStdOperatorTable.IS_NULL);
   }
 
   @Test void testIsUnknownOperator() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.IS_UNKNOWN, VM_EXPAND);
-    f.checkBoolean("false is unknown", false);
-    f.checkBoolean("true is unknown", false);
-    f.checkBoolean("cast(null as boolean) is unknown", true);
-    f.checkBoolean("unknown is unknown", true);
+    f.setFor(SqlStdOperatorTable.IS_UNKNOWN, VmName.EXPAND);
     f.checkFails("0 = 1 AND ^2 IS UNKNOWN^ AND 3 > 4",
         "(?s).*Cannot apply 'IS UNKNOWN'.*",
         false);
+    checkIsNull(f, SqlStdOperatorTable.IS_UNKNOWN);
+  }
+
+  /** Tests the {@code IS NULL} and {@code IS UNKNOWN} operators. */
+  void checkIsNull(SqlOperatorFixture f, SqlOperator operator) {
+    final String fn = operator.getName();
+    f.checkBoolean("false " + fn, false);
+    f.checkBoolean("true " + fn, false);
+    f.checkBoolean("cast(null as boolean) " + fn, true);
   }
 
   @Test void testIsASetOperator() {
@@ -4102,6 +4112,7 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.CHAR_LENGTH, VmName.EXPAND);
     f.checkScalarExact("char_length('abc')", 3);
     f.checkNull("char_length(cast(null as varchar(1)))");
+    checkCharLength(f, FunctionAlias.of(SqlStdOperatorTable.CHAR_LENGTH));
   }
 
   @Test void testCharacterLengthFunc() {
@@ -4109,40 +4120,38 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.CHARACTER_LENGTH, VmName.EXPAND);
     f.checkScalarExact("CHARACTER_LENGTH('abc')", 3);
     f.checkNull("CHARACTER_LENGTH(cast(null as varchar(1)))");
+    checkCharLength(f, FunctionAlias.of(SqlStdOperatorTable.CHARACTER_LENGTH));
   }
 
-  /** Tests {@code LEN} function from Snowflake. {@code LEN} is a
-  * Snowflake-specific alias for {@code CHAR_LENGTH}. */
   @Test void testLenFunc() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.LEN);
     f0.checkFails("^len('hello')^",
         "No match found for function signature LEN\\(<CHARACTER>\\)",
         false);
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SNOWFLAKE);
-    f.checkScalar("len('hello')", "5", "INTEGER NOT NULL");
-    f.checkScalar("len('')", "0", "INTEGER NOT NULL");
-    f.checkScalar("len(CAST('x' as CHAR(3)))", "3", "INTEGER NOT NULL");
-    f.checkScalar("len(CAST('x' as VARCHAR(4)))", "1", "INTEGER NOT NULL");
-    f.checkNull("len(CAST(NULL as CHAR(5)))");
+    checkCharLength(f0, FunctionAlias.of(SqlLibraryOperators.LEN));
   }
 
-  /** Tests {@code LENGTH} function from Big Query/Snowflake. {@code LENGTH} is a
-  * BQ/Snowflake-specific alias for {@code CHAR_LENGTH}. */
   @Test void testLengthFunc() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.LENGTH);
     f0.checkFails("^length('hello')^",
         "No match found for function signature LENGTH\\(<CHARACTER>\\)",
         false);
+    checkCharLength(f0, FunctionAlias.of(SqlLibraryOperators.LENGTH));
+  }
 
+  /** Common tests for {@code CHAR_LENGTH}, {@code CHARACTER_LENGTH}, {@code LEN},
+   * and {@code LENGTH} functions. */
+  void checkCharLength(SqlOperatorFixture f0, FunctionAlias functionAlias) {
+    final SqlFunction function = functionAlias.function;
+    final String fn = function.getName();
     final Consumer<SqlOperatorFixture> consumer = f -> {
-      f.checkScalar("length('hello')", "5", "INTEGER NOT NULL");
-      f.checkScalar("length('')", "0", "INTEGER NOT NULL");
-      f.checkScalar("length(CAST('x' as CHAR(3)))", "3", "INTEGER NOT NULL");
-      f.checkScalar("length(CAST('x' as VARCHAR(4)))", "1", "INTEGER NOT NULL");
-      f.checkNull("length(CAST(NULL as CHAR(5)))");
+      f.checkScalarExact(fn + "('abc')", 3);
+      f.checkNull(fn + "(cast(null as varchar(1)))");
+      f.checkScalar(fn + "('')", "0", "INTEGER NOT NULL");
+      f.checkScalar(fn + "(CAST('x' as CHAR(3)))", "3", "INTEGER NOT NULL");
+      f.checkScalar(fn + "(CAST('x' as VARCHAR(4)))", "1", "INTEGER NOT NULL");
     };
-
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.SNOWFLAKE), consumer);
+    f0.forEachLibrary(functionAlias.libraries, consumer);
   }
 
   @Test void testOctetLengthFunc() {
@@ -4880,36 +4889,6 @@ public class SqlOperatorTest {
     f.checkNull("regexp_contains(cast(null as varchar), cast(null as varchar))");
   }
 
-  @Test void testRegexpExtractFunc() {
-    final SqlOperatorFixture f =
-        fixture().setFor(SqlLibraryOperators.REGEXP_EXTRACT).withLibrary(SqlLibrary.BIG_QUERY);
-
-    f.checkString("regexp_extract('abc def ghi', 'def')", "def", "VARCHAR NOT NULL");
-    f.checkString("regexp_extract('abcadcaecghi', 'a.c', 1, 3)", "aec", "VARCHAR NOT NULL");
-    f.checkString("regexp_extract('abcadcaecghi', 'abc(a.c)')", "adc", "VARCHAR NOT NULL");
-    f.checkString("regexp_extract('55as56664as422', '\\d{3}')", "566", "VARCHAR NOT NULL");
-    f.checkString("regexp_extract('abcadcabcaecghi', 'c(a.c)', 4)", "abc", "VARCHAR NOT NULL");
-    f.checkString("regexp_extract('abcadcabcaecghi', 'a.c(a.c)', 1, 2)", "aec", "VARCHAR NOT NULL");
-    f.checkString("regexp_extract('a9cadca5c4aecghi', 'a[0-9]c', 6)", "a5c", "VARCHAR NOT NULL");
-    f.checkString("regexp_extract('a9cadca5ca4cecghi', 'a[0-9]c', 1, 3)", "a4c", "VARCHAR NOT "
-        + "NULL");
-
-    f.checkNull("regexp_extract('abc def ghi', 'asd')");
-    f.checkNull("regexp_extract('abc def ghi', 'abc', 25)");
-    f.checkNull("regexp_extract('abc def ghi', 'abc', 1, 4)");
-    f.checkNull("regexp_extract('abc def ghi', cast(null as varchar))");
-    f.checkNull("regexp_extract(cast(null as varchar), 'abc')");
-    f.checkNull("regexp_extract(cast(null as varchar), cast(null as varchar))");
-    f.checkNull("regexp_extract('abc def ghi', 'abc', cast(null as integer))");
-    f.checkNull("regexp_extract('abc def ghi', 'abc', 1, cast(null as integer))");
-
-    f.checkQuery("select regexp_extract('abc def ghi', 'abc')");
-    f.checkQuery("select regexp_extract('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
-    f.checkQuery("select regexp_extract('55as56664as422', '\\d{10}')");
-    f.checkQuery("select regexp_extract('abcadcabcaecghi', 'c(a.c)', 4)");
-    f.checkQuery("select regexp_extract('a9cadca5c4aecghi', 'a[0-9]c', 1, 3)");
-  }
-
   @Test void testRegexpExtractAllFunc() {
     final SqlOperatorFixture f =
         fixture().setFor(SqlLibraryOperators.REGEXP_EXTRACT_ALL).withLibrary(SqlLibrary.BIG_QUERY);
@@ -5029,27 +5008,49 @@ public class SqlOperatorTest {
         "VARCHAR NOT NULL");
   }
 
+  @Test void testRegexpExtractFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.REGEXP_EXTRACT, VmName.EXPAND);
+    checkRegexpExtract(f, FunctionAlias.of(SqlLibraryOperators.REGEXP_EXTRACT));
+  }
+
   @Test void testRegexpSubstrFunc() {
-    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.REGEXP_SUBSTR)
-        .withLibrary(SqlLibrary.BIG_QUERY);
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.REGEXP_SUBSTR, VmName.EXPAND);
+    checkRegexpExtract(f, FunctionAlias.of(SqlLibraryOperators.REGEXP_SUBSTR));
+  }
 
-    f.checkString("regexp_substr('abc def ghi', 'ghi')", "ghi",
-        "VARCHAR NOT NULL");
-    f.checkString("regexp_substr('abcadcaecghi', 'a.c', 1, 2)", "adc",
-        "VARCHAR NOT NULL");
-    f.checkString("regexp_substr('abcadcabcaecghi', 'abc(a.c)', 1, 2)", "aec",
-        "VARCHAR NOT NULL");
-    f.checkString("regexp_substr('55as56664as422', '\\d{3}')", "566",
-        "VARCHAR NOT NULL");
+  /** Tests the {@code REGEXP_EXTRACT} and {@code REGEXP_SUBSTR} operators. */
+  void checkRegexpExtract(SqlOperatorFixture f0, FunctionAlias functionAlias) {
+    final SqlFunction function = functionAlias.function;
+    final String fn = function.getName();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString(fn + "('abc def ghi', 'def')", "def", "VARCHAR NOT NULL");
+      f.checkString(fn + "('abcadcaecghi', 'a.c', 1, 3)", "aec", "VARCHAR NOT NULL");
+      f.checkString(fn + "('abcadcaecghi', 'abc(a.c)')", "adc", "VARCHAR NOT NULL");
+      f.checkString(fn + "('55as56664as422', '\\d{3}')", "566", "VARCHAR NOT NULL");
+      f.checkString(fn + "('abcadcabcaecghi', 'c(a.c)', 4)", "abc", "VARCHAR NOT NULL");
+      f.checkString(fn + "('abcadcabcaecghi', 'a.c(a.c)', 1, 2)", "aec", "VARCHAR NOT NULL");
+      f.checkString(fn + "('a9cadca5c4aecghi', 'a[0-9]c', 6)", "a5c", "VARCHAR NOT NULL");
+      f.checkString(fn + "('a9cadca5ca4cecghi', 'a[0-9]c', 1, 3)", "a4c", "VARCHAR NOT "
+          + "NULL");
 
-    f.checkNull("regexp_substr('abc def ghi', 'bqi')");
-    f.checkNull("regexp_substr('abc def ghi', cast(null as varchar))");
-    f.checkNull("regexp_substr(cast(null as varchar), 'bqi')");
-    f.checkNull("regexp_substr(cast(null as varchar), cast(null as varchar))");
+      f.checkNull(fn + "('abc def ghi', 'asd')");
+      f.checkNull(fn + "('abc def ghi', 'abc', 25)");
+      f.checkNull(fn + "('abc def ghi', 'abc', 1, 4)");
+      f.checkNull(fn + "('abc def ghi', cast(null as varchar))");
+      f.checkNull(fn + "(cast(null as varchar), 'abc')");
+      f.checkNull(fn + "(cast(null as varchar), cast(null as varchar))");
+      f.checkNull(fn + "('abc def ghi', 'abc', cast(null as integer))");
+      f.checkNull(fn + "('abc def ghi', 'abc', 1, cast(null as integer))");
 
-    f.checkQuery("select regexp_substr('abcdefghi', 'abc')");
-    f.checkQuery("select regexp_substr('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
-    f.checkQuery("select regexp_substr('55as56664as422', '\\d{10}')");
+      f.checkQuery("select " + fn + "('abc def ghi', 'abc')");
+      f.checkQuery("select " + fn + "('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
+      f.checkQuery("select " + fn + "('55as56664as422', '\\d{10}')");
+      f.checkQuery("select " + fn + "('abcadcabcaecghi', 'c(a.c)', 4)");
+      f.checkQuery("select " + fn + "('a9cadca5c4aecghi', 'a[0-9]c', 1, 3)");
+    };
+    f0.forEachLibrary(list(functionAlias.libraries), consumer);
   }
 
   @Test void testJsonExists() {
@@ -8989,107 +8990,84 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
-  @Test void testStartsWithFunction() {
-    final SqlOperatorFixture f0 = fixture();
-    f0.setFor(SqlLibraryOperators.STARTS_WITH);
+  @Test void testSnowflakeStartsWithFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.STARTSWITH, VmName.EXPAND);
+    checkStartsWith(f, FunctionAlias.of(SqlLibraryOperators.STARTSWITH));
+  }
+
+  @Test void testStartsWithFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.STARTS_WITH, VmName.EXPAND);
+    checkStartsWith(f, FunctionAlias.of(SqlLibraryOperators.STARTS_WITH));
+  }
+
+  /** Tests the {@code STARTS_WITH} and {@code STARTSWITH} operators. */
+  void checkStartsWith(SqlOperatorFixture f0, FunctionAlias functionAlias) {
+    final SqlFunction function = functionAlias.function;
+    final String fn = function.getName();
     final Consumer<SqlOperatorFixture> consumer = f -> {
-      f.checkBoolean("starts_with('12345', '123')", true);
-      f.checkBoolean("starts_with('12345', '1243')", false);
-      f.checkBoolean("starts_with(x'11', x'11')", true);
-      f.checkBoolean("starts_with(x'112211', x'33')", false);
-      f.checkFails("^starts_with('aabbcc', x'aa')^",
-          "Cannot apply 'STARTS_WITH' to arguments of type "
-              + "'STARTS_WITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-              + "form\\(s\\): 'STARTS_WITH\\(<STRING>, <STRING>\\)'",
+      f.checkBoolean(fn + "('12345', '123')", true);
+      f.checkBoolean(fn + "('12345', '1243')", false);
+      f.checkBoolean(fn + "(x'11', x'11')", true);
+      f.checkBoolean(fn + "(x'112211', x'33')", false);
+      f.checkFails("^" + fn + "('aabbcc', x'aa')^",
+          "Cannot apply '" + fn + "' to arguments of type "
+              + "'" + fn + "\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
+              + "form\\(s\\): '" + fn + "\\(<STRING>, <STRING>\\)'",
           false);
-      f.checkNull("starts_with(null, null)");
-      f.checkNull("starts_with('12345', null)");
-      f.checkNull("starts_with(null, '123')");
-      f.checkBoolean("starts_with('', '123')", false);
-      f.checkBoolean("starts_with('', '')", true);
-      f.checkNull("starts_with(x'aa', null)");
-      f.checkNull("starts_with(null, x'aa')");
-      f.checkBoolean("starts_with(x'1234', x'')", true);
-      f.checkBoolean("starts_with(x'', x'123456')", false);
-      f.checkBoolean("starts_with(x'', x'')", true);
+      f.checkNull(fn + "(null, null)");
+      f.checkNull(fn + "('12345', null)");
+      f.checkNull(fn + "(null, '123')");
+      f.checkBoolean(fn + "('', '123')", false);
+      f.checkBoolean(fn + "('', '')", true);
+      f.checkNull(fn + "(x'aa', null)");
+      f.checkNull(fn + "(null, x'aa')");
+      f.checkBoolean(fn + "(x'1234', x'')", true);
+      f.checkBoolean(fn + "(x'', x'123456')", false);
+      f.checkBoolean(fn + "(x'', x'')", true);
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL), consumer);
+    f0.forEachLibrary(list(functionAlias.libraries), consumer);
   }
 
-  /** Tests for Snowflake's {@code STARTSWITH} function. */
-  @Test void testSnowflakeStartsWithFunction() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.SNOWFLAKE);
-    f.setFor(SqlLibraryOperators.STARTSWITH);
-    f.checkBoolean("startswith('12345', '123')", true);
-    f.checkBoolean("startswith('12345', '1243')", false);
-    f.checkBoolean("startswith(x'11', x'11')", true);
-    f.checkBoolean("startswith(x'112211', x'33')", false);
-    f.checkFails("^startswith('aabbcc', x'aa')^",
-        "Cannot apply 'STARTSWITH' to arguments of type "
-            + "'STARTSWITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-            + "form\\(s\\): 'STARTSWITH\\(<STRING>, <STRING>\\)'",
-        false);
-    f.checkNull("startswith(null, null)");
-    f.checkNull("startswith('12345', null)");
-    f.checkNull("startswith(null, '123')");
-    f.checkBoolean("startswith('', '123')", false);
-    f.checkBoolean("startswith('', '')", true);
-    f.checkNull("startswith(x'aa', null)");
-    f.checkNull("startswith(null, x'aa')");
-    f.checkBoolean("startswith(x'1234', x'')", true);
-    f.checkBoolean("startswith(x'', x'123456')", false);
-    f.checkBoolean("startswith(x'', x'')", true);
+  @Test void testSnowflakeEndsWithFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.ENDSWITH, VmName.EXPAND);
+    checkEndsWith(f, FunctionAlias.of(SqlLibraryOperators.ENDSWITH));
   }
 
-  @Test void testEndsWithFunction() {
-    final SqlOperatorFixture f0 = fixture();
-    f0.setFor(SqlLibraryOperators.ENDS_WITH);
+  @Test void testEndsWithFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.ENDS_WITH, VmName.EXPAND);
+    checkEndsWith(f, FunctionAlias.of(SqlLibraryOperators.ENDS_WITH));
+  }
+
+  /** Tests the {@code ENDS_WITH} and {@code ENDSWITH} operators. */
+  void checkEndsWith(SqlOperatorFixture f0, FunctionAlias functionAlias) {
+    final SqlFunction function = functionAlias.function;
+    final String fn = function.getName();
     final Consumer<SqlOperatorFixture> consumer = f -> {
-      f.checkBoolean("ends_with('12345', '345')", true);
-      f.checkBoolean("ends_with('12345', '123')", false);
-      f.checkBoolean("ends_with(x'11', x'11')", true);
-      f.checkBoolean("ends_with(x'112211', x'33')", false);
-      f.checkFails("^ends_with('aabbcc', x'aa')^",
-          "Cannot apply 'ENDS_WITH' to arguments of type "
-              + "'ENDS_WITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-              + "form\\(s\\): 'ENDS_WITH\\(<STRING>, <STRING>\\)'",
+      f.checkBoolean(fn + "('12345', '345')", true);
+      f.checkBoolean(fn + "('12345', '123')", false);
+      f.checkBoolean(fn + "(x'11', x'11')", true);
+      f.checkBoolean(fn + "(x'112211', x'33')", false);
+      f.checkFails("^" + fn + "('aabbcc', x'aa')^",
+          "Cannot apply '" + fn + "' to arguments of type "
+              + "'" + fn + "\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
+              + "form\\(s\\): '" + fn + "\\(<STRING>, <STRING>\\)'",
           false);
-      f.checkNull("ends_with(null, null)");
-      f.checkNull("ends_with('12345', null)");
-      f.checkNull("ends_with(null, '123')");
-      f.checkBoolean("ends_with('', '123')", false);
-      f.checkBoolean("ends_with('', '')", true);
-      f.checkNull("ends_with(x'aa', null)");
-      f.checkNull("ends_with(null, x'aa')");
-      f.checkBoolean("ends_with(x'1234', x'')", true);
-      f.checkBoolean("ends_with(x'', x'123456')", false);
-      f.checkBoolean("ends_with(x'', x'')", true);
+      f.checkNull(fn + "(null, null)");
+      f.checkNull(fn + "('12345', null)");
+      f.checkNull(fn + "(null, '123')");
+      f.checkBoolean(fn + "('', '123')", false);
+      f.checkBoolean(fn + "('', '')", true);
+      f.checkNull(fn + "(x'aa', null)");
+      f.checkNull(fn + "(null, x'aa')");
+      f.checkBoolean(fn + "(x'1234', x'')", true);
+      f.checkBoolean(fn + "(x'', x'123456')", false);
+      f.checkBoolean(fn + "(x'', x'')", true);
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL), consumer);
-  }
-
-  @Test void testSnowflakeEndsWithFunction() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.SNOWFLAKE);
-    f.setFor(SqlLibraryOperators.ENDS_WITH);
-    f.checkBoolean("endswith('12345', '345')", true);
-    f.checkBoolean("endswith('12345', '123')", false);
-    f.checkBoolean("endswith(x'11', x'11')", true);
-    f.checkBoolean("endswith(x'112211', x'33')", false);
-    f.checkFails("^endswith('aabbcc', x'aa')^",
-        "Cannot apply 'ENDSWITH' to arguments of type "
-            + "'ENDSWITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-            + "form\\(s\\): 'ENDSWITH\\(<STRING>, <STRING>\\)'",
-        false);
-    f.checkNull("endswith(null, null)");
-    f.checkNull("endswith('12345', null)");
-    f.checkNull("endswith(null, '123')");
-    f.checkBoolean("endswith('', '123')", false);
-    f.checkBoolean("endswith('', '')", true);
-    f.checkNull("endswith(x'aa', null)");
-    f.checkNull("endswith(null, x'aa')");
-    f.checkBoolean("endswith(x'1234', x'')", true);
-    f.checkBoolean("endswith(x'', x'123456')", false);
-    f.checkBoolean("endswith(x'', x'')", true);
+    f0.forEachLibrary(list(functionAlias.libraries), consumer);
   }
 
   /** Tests the {@code SPLIT} operator. */
@@ -9647,24 +9625,18 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
-  @Test void testNvlFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.NVL, VmName.EXPAND)
-        .withLibrary(SqlLibrary.ORACLE);
-    f.checkScalar("nvl(1, 2)", "1", "INTEGER NOT NULL");
-    f.checkFails("^nvl(1, true)^", "Parameters must be of the same type",
-        false);
-    f.checkScalar("nvl(true, false)", true, "BOOLEAN NOT NULL");
-    f.checkScalar("nvl(false, true)", false, "BOOLEAN NOT NULL");
-    f.checkString("nvl('abc', 'de')", "abc", "CHAR(3) NOT NULL");
-    f.checkString("nvl('abc', 'defg')", "abc ", "CHAR(4) NOT NULL");
-    f.checkString("nvl('abc', CAST(NULL AS VARCHAR(20)))", "abc",
-        "VARCHAR(20) NOT NULL");
-    f.checkString("nvl(CAST(NULL AS VARCHAR(20)), 'abc')", "abc",
-        "VARCHAR(20) NOT NULL");
-    f.checkNull("nvl(CAST(NULL AS VARCHAR(6)), cast(NULL AS VARCHAR(4)))");
+  @Test void testIfNullFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.IFNULL, VmName.EXPAND);
+    checkNvl(f, FunctionAlias.of(SqlLibraryOperators.IFNULL));
+  }
 
-    final SqlOperatorFixture f12 = f.forOracle(SqlConformanceEnum.ORACLE_12);
+  @Test void testNvlFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.NVL, VmName.EXPAND);
+    final SqlOperatorFixture f12 = f
+        .withLibrary(SqlLibrary.ORACLE)
+        .forOracle(SqlConformanceEnum.ORACLE_12);
     f12.checkString("nvl('abc', 'de')", "abc", "VARCHAR(3) NOT NULL");
     f12.checkString("nvl('abc', 'defg')", "abc", "VARCHAR(4) NOT NULL");
     f12.checkString("nvl('abc', CAST(NULL AS VARCHAR(20)))", "abc",
@@ -9672,31 +9644,28 @@ public class SqlOperatorTest {
     f12.checkString("nvl(CAST(NULL AS VARCHAR(20)), 'abc')", "abc",
         "VARCHAR(20) NOT NULL");
     f12.checkNull("nvl(CAST(NULL AS VARCHAR(6)), cast(NULL AS VARCHAR(4)))");
+    checkNvl(f, FunctionAlias.of(SqlLibraryOperators.NVL));
   }
 
-  /** Tests {@code IFNULL}, which is a synonym for {@code NVL}, and is related to
-   * {@code COALESCE} but requires precisely two arguments. */
-  @Test void testIfnullFunc() {
-    final SqlOperatorFixture f = fixture()
-        .withLibrary(SqlLibrary.BIG_QUERY)
-        .setFor(SqlLibraryOperators.IFNULL, VM_EXPAND);
-
-    f.checkString("ifnull('a','b')", "a", "CHAR(1) NOT NULL");
-    f.checkString("ifnull(null,'b')", "b", "CHAR(1) NOT NULL");
-    f.checkScalar("ifnull(4,3)", 4, "INTEGER NOT NULL");
-    f.checkScalar("ifnull(null, 4)", 4, "INTEGER NOT NULL");
-    f.enableTypeCoercion(false)
-        .checkFails("1 + ifnull('a', 1) + 2",
-            "Cannot infer return type for IFNULL; operand types: \\[CHAR\\(1\\), INTEGER\\]",
-            false);
-    f.checkType("1 + ifnull(1, null) + 2",
-        "INTEGER NOT NULL");
-    f.checkFails("^ifnull(1,2,3)^",
-        "Invalid number of arguments to function 'IFNULL'. Was expecting 2 arguments",
-        false);
-    f.checkFails("^ifnull(1)^",
-        "Invalid number of arguments to function 'IFNULL'. Was expecting 2 arguments",
-        false);
+  /** Tests the {@code NVL} and {@code IFNULL} operators. */
+  void checkNvl(SqlOperatorFixture f0, FunctionAlias functionAlias) {
+    final SqlFunction function = functionAlias.function;
+    final String fn = function.getName();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar(fn + "(1, 2)", "1", "INTEGER NOT NULL");
+      f.checkFails("^" + fn + "(1, true)^",
+                   "Parameters must be of the same type", false);
+      f.checkScalar(fn + "(true, false)", true, "BOOLEAN NOT NULL");
+      f.checkScalar(fn + "(false, true)", false, "BOOLEAN NOT NULL");
+      f.checkString(fn + "('abc', 'de')", "abc", "CHAR(3) NOT NULL");
+      f.checkString(fn + "('abc', 'defg')", "abc ", "CHAR(4) NOT NULL");
+      f.checkString(fn + "('abc', CAST(NULL AS VARCHAR(20)))", "abc",
+                    "VARCHAR(20) NOT NULL");
+      f.checkString(fn + "(CAST(NULL AS VARCHAR(20)), 'abc')", "abc",
+                    "VARCHAR(20) NOT NULL");
+      f.checkNull(fn + "(CAST(NULL AS VARCHAR(6)), cast(NULL AS VARCHAR(4)))");
+    };
+    f0.forEachLibrary(list(functionAlias.libraries), consumer);
   }
 
   @Test void testDecodeFunc() {
@@ -14053,6 +14022,50 @@ public class SqlOperatorTest {
           .replace("$1", values[1])
           .replace("$2", values[2])
           .replace("$3", values[3]);
+    }
+  }
+
+  /** Contains alias data to re-use tests for aliased operators. */
+  static class FunctionAlias {
+    final SqlFunction function;
+    final List<SqlLibrary> libraries;
+
+    private FunctionAlias(SqlFunction function, List<SqlLibrary> libraries) {
+      this.function = function;
+      this.libraries = libraries;
+    }
+
+    static FunctionAlias of(SqlFunction function) {
+      Field field =
+          lookupField(function.getName(), SqlStdOperatorTable.class,
+              SqlLibraryOperators.class);
+      List<SqlLibrary> libraries = new ArrayList<SqlLibrary>();
+      LibraryOperator libraryOperator = field.getAnnotation(LibraryOperator.class);
+      if (libraryOperator == null) {
+        libraries.add(SqlLibrary.STANDARD);
+      } else {
+        libraries.addAll(Arrays.asList(libraryOperator.libraries()));
+      }
+      return new FunctionAlias(function, libraries);
+    }
+
+    @SuppressWarnings("rawtypes")
+    static Field lookupField(String name, Class... classes) {
+      for (Class aClass : classes) {
+        try {
+          return aClass.getField(name);
+        } catch (NoSuchFieldException e) {
+          // ignore, and try the next class
+        }
+      }
+      throw new AssertionError("field " + name
+          + " not found in classes" + Arrays.toString(classes));
+    }
+
+    // Used for test naming while running tests in IDE
+    @Override public String toString() {
+      return "function=" + function
+          + ", libraries=" + libraries;
     }
   }
 }
