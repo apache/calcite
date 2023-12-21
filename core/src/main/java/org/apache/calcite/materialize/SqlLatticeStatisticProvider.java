@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.materialize;
 
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.schema.ScannableTable;
-import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -67,8 +67,8 @@ class SqlLatticeStatisticProvider implements LatticeStatisticProvider {
     final @Nullable Object[] values =
         Iterables.getOnlyElement(
             ((ScannableTable) table).scan(
-            Schemas.createDataContext(MaterializedViewTable.MATERIALIZATION_CONNECTION,
-                lattice.rootSchema.plus())));
+                DataContexts.of(MaterializedViewTable.MATERIALIZATION_CONNECTION,
+                    lattice.rootSchema.plus())));
     Number value = (Number) values[0];
     requireNonNull(value, () -> "count(*) produced null in " + sql);
     return value.doubleValue();

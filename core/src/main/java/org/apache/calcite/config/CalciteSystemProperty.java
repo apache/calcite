@@ -480,9 +480,9 @@ public final class CalciteSystemProperty<T> {
       }
     } catch (IOException e) {
       throw new RuntimeException("while reading from saffron.properties file", e);
-    } catch (Exception e) {
-      // we're in a sandbox
-      // Time being changed it from AccessControlException
+    } catch (SecurityException ignore) {
+      // Ignore SecurityException on purpose because if
+      // we can't get to the file we fall through.
     }
 
     // Merge system and saffron properties, mapping deprecated saffron
