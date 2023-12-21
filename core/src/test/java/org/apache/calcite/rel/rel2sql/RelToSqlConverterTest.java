@@ -98,6 +98,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -7600,6 +7601,35 @@ class RelToSqlConverterTest {
 
     sql(query).withSpark().withLibrary(SqlLibrary.SPARK).ok(expectedSql);
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5892">[CALCITE-5892]
+   * SnowflakeSqlDialect doesn't provide custom unparseSqlIntervalLiteral support </a>.
+   *
+   * <p>Calcite's Snowflake dialect should ensure the SQL literal
+   * places the qualifier inside the string literal and not as a keyword.
+   */
+  @Test void testSnowflakeInterval() {
+    // TODO: Support millisecond, microsecond, and nanosecond in parsing
+    String[] qualifiers = {"YEAR", "MONTH", "DAY", "HOUR", "MINUTE", "SECOND"};
+    for (String qualifier: qualifiers) {
+      checkSnowflakeIntevalLiteral(1, qualifier);
+    }
+  }
+
+  private void checkSnowflakeIntevalLiteral(int count, String qualifier) {
+    String original = String.format(Locale.ROOT, "INTERVAL '%d' %s", count, qualifier);
+    String expected = String.format(Locale.ROOT, "INTERVAL '%d %s'", count, qualifier);
+    checkSnowflakeIntevalLiteral2(original, expected);
+  }
+
+  private void checkSnowflakeIntevalLiteral2(String expression, String expected) {
+    String expectedSnowflakedb = "SELECT *\n"
+        + "FROM (VALUES (" + expected + ")) AS \"t\" (\"EXPR$0\")";
+    sql("VALUES " + expression)
+        .withSnowflake().ok(expectedSnowflakedb);
+  }
+
 
   /** Fluid interface to run tests. */
   static class Sql {
