@@ -50,7 +50,7 @@
   githubId: libenchao
   pronouns: he/him
   org: ByteDance
-  role: PMC
+  role: PMC Chair
 - name: Bertil Chapuis
   apacheId: bchapuis
   githubId: bchapuis
@@ -313,7 +313,7 @@
   githubId: zabetak
   pronouns: he/him
   org: Cloudera
-  role: PMC Chair
+  role: PMC
   homepage: https://people.apache.org/~zabetak/
 - name: Steven Noels
   apacheId: stevenn
