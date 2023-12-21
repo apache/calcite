@@ -36,7 +36,6 @@ import org.slf4j.Logger;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -114,6 +113,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       this.ruleAttemptsListener = new RuleAttemptsListener();
       addListener(this.ruleAttemptsListener);
     }
+    addListener(new RuleEventLogger());
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -322,12 +322,6 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       return;
     }
 
-    if (LOGGER.isDebugEnabled()) {
-      // Leave this wrapped in a conditional to prevent unnecessarily calling Arrays.toString(...)
-      LOGGER.debug("call#{}: Apply rule [{}] to {}",
-          ruleCall.id, ruleCall.getRule(), Arrays.toString(ruleCall.rels));
-    }
-
     if (listener != null) {
       RelOptListener.RuleAttemptedEvent event =
           new RelOptListener.RuleAttemptedEvent(
@@ -363,11 +357,6 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       RelOptRuleCall ruleCall,
       RelNode newRel,
       boolean before) {
-    if (before && LOGGER.isDebugEnabled()) {
-      LOGGER.debug("call#{}: Rule {} arguments {} produced {}",
-          ruleCall.id, ruleCall.getRule(), Arrays.toString(ruleCall.rels), newRel);
-    }
-
     if (listener != null) {
       RelOptListener.RuleProductionEvent event =
           new RelOptListener.RuleProductionEvent(

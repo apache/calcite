@@ -22,7 +22,6 @@ import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
 import org.apache.calcite.rel.metadata.MetadataFactory;
-import org.apache.calcite.rel.metadata.MetadataFactoryImpl;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.metadata.RelMetadataQueryBase;
@@ -56,6 +55,7 @@ public class RelOptCluster {
   private RexNode originalExpression;
   private final RexBuilder rexBuilder;
   private RelMetadataProvider metadataProvider;
+  @SuppressWarnings("deprecation")
   private MetadataFactory metadataFactory;
   private @Nullable HintStrategyTable hintStrategies;
   private final RelTraitSet emptyTraitSet;
@@ -67,7 +67,7 @@ public class RelOptCluster {
   /**
    * Creates a cluster.
    */
-  @Deprecated // to be removed before 2.0
+  @SuppressWarnings("deprecation")
   RelOptCluster(
       RelOptQuery query,
       RelOptPlanner planner,
@@ -146,11 +146,13 @@ public class RelOptCluster {
    * @param metadataProvider custom provider
    */
   @EnsuresNonNull({"this.metadataProvider", "this.metadataFactory"})
+  @SuppressWarnings("deprecation")
   public void setMetadataProvider(
       @UnknownInitialization RelOptCluster this,
       RelMetadataProvider metadataProvider) {
     this.metadataProvider = metadataProvider;
-    this.metadataFactory = new MetadataFactoryImpl(metadataProvider);
+    this.metadataFactory =
+        new org.apache.calcite.rel.metadata.MetadataFactoryImpl(metadataProvider);
     // Wrap the metadata provider as a JaninoRelMetadataProvider
     // and set it to the ThreadLocal,
     // JaninoRelMetadataProvider is required by the RelMetadataQuery.
@@ -158,6 +160,11 @@ public class RelOptCluster {
         .set(JaninoRelMetadataProvider.of(metadataProvider));
   }
 
+  /**
+   * Returns a {@link MetadataFactory}.
+   *
+   */
+  @SuppressWarnings("deprecation")
   public MetadataFactory getMetadataFactory() {
     return metadataFactory;
   }
