@@ -70,6 +70,8 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.ToNumberUtils;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.format.FormatModel;
+import org.apache.calcite.util.format.FormatModels;
 import org.apache.calcite.util.interval.BigQueryDateTimestampInterval;
 
 import com.google.common.collect.ImmutableList;
@@ -182,7 +184,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
@@ -201,6 +202,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       .withLiteralQuoteString("'")
       .withLiteralEscapedQuoteString("\\'")
       .withIdentifierQuoteString("`")
+//    .withIdentifierEscapedQuoteString("\\`")
       .withNullCollation(NullCollation.LOW)
       .withUnquotedCasing(Casing.UNCHANGED)
       .withQuotedCasing(Casing.UNCHANGED)
@@ -227,20 +229,17 @@ public class BigQuerySqlDialect extends SqlDialect {
               "UNBOUNDED", "UNION", "UNNEST", "USING", "WHEN", "WHERE",
               "WINDOW", "WITH", "WITHIN", "CURRENT_TIMESTAMP"));
 
-  /**
-   * An unquoted BigQuery identifier must start with a letter and be followed
-   * by zero or more letters, digits or _.
-   */
+  /** An unquoted BigQuery identifier must start with a letter and be followed
+   * by zero or more letters, digits or _. */
   private static final Pattern IDENTIFIER_REGEX =
       Pattern.compile("[A-Za-z][A-Za-z0-9_]*");
 
   private static final String TEMP_REGEX = "\\s?°([CcFf])";
 
   private static final Pattern FLOAT_REGEX =
-      Pattern.compile("[\"|'][+\\-]?([0-9]*[.])[0-9]+[\"|']");
-  /**
-   * Creates a BigQuerySqlDialect.
-   */
+            Pattern.compile("[\"|'][+\\-]?([0-9]*[.])[0-9]+[\"|']");
+
+  /** Creates a BigQuerySqlDialect. */
   public BigQuerySqlDialect(SqlDialect.Context context) {
     super(context);
   }
@@ -358,6 +357,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return super.supportsImplicitTypeCoercion(call)
         && RexUtil.isLiteral(call.getOperands().get(0), false)
         && !SqlTypeUtil.isNumeric(call.type);
+  }
+
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
   }
 
   @Override public boolean supportsNestedAggregations() {
@@ -619,13 +622,35 @@ public class BigQuerySqlDialect extends SqlDialect {
       final int rightPrec) {
     switch (call.getKind()) {
     case POSITION:
-      final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      if (3 == call.operandCount()) {
-        throw new RuntimeException("3rd operand Not Supported for Function STRPOS in Big Query");
+      final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+      switch (call.operandCount()) {
+      case 2:
+        writer.sep(",");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        break;
+      case 3:
+        writer.sep(",");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+        break;
+      case 4:
+        writer.sep(",");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(3).unparse(writer, leftPrec, rightPrec);
+        break;
+      default:
+        throw new RuntimeException("BigQuery does not support " + call.operandCount()
+            + " operands in the position function");
       }
       writer.endFunCall(frame);
       break;
@@ -786,6 +811,10 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseOver(writer, call, leftPrec, rightPrec);
       break;
     case ITEM:
+      if (call.getOperator().getName().equals("ITEM")) {
+        throw new RuntimeException("BigQuery requires an array subscript operator"
+            + " to index an array");
+      }
       unparseItem(writer, call, leftPrec);
       break;
     default:
@@ -833,15 +862,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     } else {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
-  }
-
-  private void unparseItem(SqlWriter writer, SqlCall call, final int leftPrec) {
-    call.operand(0).unparse(writer, leftPrec, 0);
-    final SqlWriter.Frame frame = writer.startList("[", "]");
-    final SqlWriter.Frame funcFrame = writer.startFunCall(call.getOperator().getName());
-    call.operand(1).unparse(writer, 0, 0);
-    writer.endFunCall(funcFrame);
-    writer.endList(frame);
   }
 
   private boolean isFirstOperandPercentileCont(SqlCall call) {
@@ -1945,7 +1965,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   /**
    * For usage of TRIM, LTRIM and RTRIM in BQ see
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#trim">
-   *  BQ Trim Function</a>.
+   * BQ Trim Function</a>.
    */
   private static void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
@@ -1976,6 +1996,20 @@ public class BigQuerySqlDialect extends SqlDialect {
       call.operand(1).unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(trimFrame);
+  }
+
+  /** When indexing an array in BigQuery, an array subscript operator must
+   * surround the desired index. For the standard ITEM operator used by other
+   * dialects in Calcite, ITEM is not included in the unparsing. This helper
+   * ensures that the operator is preserved when being unparsed. */
+  private static void unparseItem(SqlWriter writer, SqlCall call, int leftPrec) {
+    String operatorName = call.getOperator().getName();
+    call.operand(0).unparse(writer, leftPrec, 0);
+    final SqlWriter.Frame frame = writer.startList("[", "]");
+    final SqlWriter.Frame subscriptFrame = writer.startFunCall(operatorName);
+    call.operand(1).unparse(writer, 0, 0);
+    writer.endFunCall(subscriptFrame);
+    writer.endList(frame);
   }
 
   private static TimeUnit validate(TimeUnit timeUnit) {
@@ -2108,7 +2142,14 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
     return false;
   }
-
+  /**
+   * {@inheritDoc}
+   *
+   * @see FormatModels#BIG_QUERY
+  */
+  @Override public FormatModel getFormatModel() {
+    return FormatModels.BIG_QUERY;
+  }
   /**
    * {@inheritDoc}
    *
@@ -2142,12 +2183,12 @@ public class BigQuerySqlDialect extends SqlDialect {
       case DOUBLE:
         return createSqlDataTypeSpecByName("FLOAT64", typeName);
       case DECIMAL:
-        return createSqlDataTypeSpecBasedOnPreScale(type);
+        return createSqlDataTypeSpecByName("NUMERIC", typeName);
       case BOOLEAN:
         return createSqlDataTypeSpecByName("BOOL", typeName);
       case CHAR:
       case VARCHAR:
-        return createSqlDataTypeSpecByName("STRING", type);
+        return createSqlDataTypeSpecByName("STRING", typeName);
       case BINARY:
       case VARBINARY:
         return createSqlDataTypeSpecByName("BYTES", typeName);
@@ -2248,8 +2289,8 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
       SqlTypeName typeName) {
-    SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
-        typeAlias, typeName, SqlParserPos.ZERO);
+    SqlAlienSystemTypeNameSpec typeNameSpec =
+        new SqlAlienSystemTypeNameSpec(typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
   }
 

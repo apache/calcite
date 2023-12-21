@@ -119,11 +119,11 @@ public class HiveSqlDialect extends SqlDialect {
     // See https://issues.apache.org/jira/browse/HIVE-12994.
     emulateNullDirection = (context.databaseMajorVersion() < 2)
         || (context.databaseMajorVersion() == 2
-        && context.databaseMinorVersion() < 1);
+            && context.databaseMinorVersion() < 1);
 
     isHiveLowerVersion = (context.databaseMajorVersion() < 2)
-        || (context.databaseMajorVersion() == 2
-        && context.databaseMinorVersion() < 1);
+            || (context.databaseMajorVersion() == 2
+            && context.databaseMinorVersion() < 1);
   }
 
   private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
@@ -158,10 +158,6 @@ public class HiveSqlDialect extends SqlDialect {
     }};
 
   @Override protected boolean allowsAs() {
-    return false;
-  }
-
-  @Override public boolean supportsNestedAggregations() {
     return false;
   }
 
@@ -343,6 +339,10 @@ public class HiveSqlDialect extends SqlDialect {
 
   @Override public boolean supportsApproxCountDistinct() {
     return true;
+  }
+
+  @Override public boolean supportsNestedAggregations() {
+    return false;
   }
 
   @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {

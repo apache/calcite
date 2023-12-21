@@ -39,6 +39,7 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -47,7 +48,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
 /**
  * SQL window specification.
  *
- * <p>For example, the query</p>
+ * <p>For example, the query
  *
  * <blockquote>
  * <pre>SELECT sum(a) OVER (w ROWS 3 PRECEDING)
@@ -57,7 +58,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * </blockquote>
  *
  * <p>declares windows w and w1, and uses a window in an OVER clause. It thus
- * contains 3 {@link SqlWindow} objects.</p>
+ * contains 3 {@link SqlWindow} objects.
  */
 public class SqlWindow extends SqlCall {
   /**
@@ -258,6 +259,11 @@ public class SqlWindow extends SqlCall {
     } else {
       return false;
     }
+    return isAlwaysNonEmpty(lower, upper);
+  }
+
+  public static boolean isAlwaysNonEmpty(RexWindowBound lower,
+      RexWindowBound upper) {
     final int lowerKey = lower.getOrderKey();
     final int upperKey = upper.getOrderKey();
     return lowerKey > -1 && lowerKey <= upperKey;
@@ -604,7 +610,9 @@ public class SqlWindow extends SqlCall {
       // SQL03 7.10 Rule 11a
       if (orderList.size() > 0) {
         // if order by is a compound list then range not allowed
-        if (orderList.size() > 1 && !isRows()) {
+        if (orderList.size() > 1
+            && !isRows()
+            && !onlySymbolBounds(lowerBound, upperBound)) {
           throw validator.newValidationError(isRows,
               RESOURCE.compoundOrderByProhibitsRange());
         }
@@ -619,7 +627,9 @@ public class SqlWindow extends SqlCall {
         // requires an ORDER BY clause if frame is logical(RANGE)
         // We relax this requirement if the table appears to be
         // sorted already
-        if (!isRows() && !SqlValidatorUtil.containsMonotonic(scope)) {
+        if (!onlySymbolBounds(lowerBound, upperBound)
+            && !isRows()
+            && !SqlValidatorUtil.containsMonotonic(scope)) {
           throw validator.newValidationError(this,
               RESOURCE.overMissingOrderBy());
         }
@@ -654,6 +664,12 @@ public class SqlWindow extends SqlCall {
     }
   }
 
+  private boolean onlySymbolBounds(@Nullable SqlNode lowerBound, @Nullable SqlNode upperBound) {
+    return lowerBound != null && upperBound != null
+        && (isCurrentRow(lowerBound) || isUnboundedPreceding(lowerBound))
+        && (isCurrentRow(upperBound) || isUnboundedFollowing(upperBound));
+  }
+
   private static void validateFrameBoundary(
       @Nullable SqlNode bound,
       boolean isRows,
@@ -686,7 +702,8 @@ public class SqlWindow extends SqlCall {
           final SqlNumericLiteral boundLiteral =
               (SqlNumericLiteral) boundVal;
           if (!boundLiteral.isExact()
-              || (boundLiteral.getScale() != null && boundLiteral.getScale() != 0)
+              || (boundLiteral.getScale() != null
+                && boundLiteral.getValueAs(BigDecimal.class).stripTrailingZeros().scale() > 0)
               || (0 > boundLiteral.longValue(true))) {
             // true == throw if not exact (we just tested that - right?)
             throw validator.newValidationError(boundVal,
