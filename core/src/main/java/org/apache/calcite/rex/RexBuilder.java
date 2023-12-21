@@ -699,21 +699,22 @@ public class RexBuilder {
 
     if (SqlTypeName.INT_TYPES.contains(sqlType)) {
       final BigDecimal decimalValue = (BigDecimal) value;
-      final int s = decimalValue.scale();
-      if (s != 0) {
+      try {
+        // Will throw if the value does not fit in a long
+        long l = decimalValue.longValueExact();
+        switch (sqlType) {
+        case TINYINT:
+          return l >= Byte.MIN_VALUE && l <= Byte.MAX_VALUE;
+        case SMALLINT:
+          return l >= Short.MIN_VALUE && l <= Short.MAX_VALUE;
+        case INTEGER:
+          return l >= Integer.MIN_VALUE && l <= Integer.MAX_VALUE;
+        case BIGINT:
+        default:
+          return true;
+        }
+      } catch (ArithmeticException ex) {
         return false;
-      }
-      long l = decimalValue.longValue();
-      switch (sqlType) {
-      case TINYINT:
-        return l >= Byte.MIN_VALUE && l <= Byte.MAX_VALUE;
-      case SMALLINT:
-        return l >= Short.MIN_VALUE && l <= Short.MAX_VALUE;
-      case INTEGER:
-        return l >= Integer.MIN_VALUE && l <= Integer.MAX_VALUE;
-      case BIGINT:
-      default:
-        return true;
       }
     }
 
