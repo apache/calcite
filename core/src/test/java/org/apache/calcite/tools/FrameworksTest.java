@@ -359,16 +359,16 @@ public class FrameworksTest {
             // everything works fine. JdbcValues is never instantiated in any
             // of the 3 queries.
             if (false) {
-              runner.prepare(values).executeQuery();
+              runner.prepareStatement(values).executeQuery();
             }
 
             final RelNode scan = builder.scan("JDBC_SCOTT", "EMP").build();
-            runner.prepare(scan).executeQuery();
+            runner.prepareStatement(scan).executeQuery();
             builder.clear();
 
             // running this after the scott query causes the exception
             RelRunner runner2 = connection.unwrap(RelRunner.class);
-            runner2.prepare(values).executeQuery();
+            runner2.prepareStatement(values).executeQuery();
           } catch (Exception e) {
             throw TestUtil.rethrow(e);
           }

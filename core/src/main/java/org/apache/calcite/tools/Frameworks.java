@@ -43,7 +43,6 @@ import org.apache.calcite.sql2rel.StandardConvertletTable;
 import org.apache.calcite.statistic.QuerySqlStatisticProvider;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
@@ -53,6 +52,7 @@ import java.sql.Connection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 /**
  * Tools for invoking Calcite functionality without initializing a container /
@@ -60,9 +60,7 @@ import java.util.Properties;
  */
 public class Frameworks {
 
-  /**
-   * Caches an instance of the JDBC driver.
-   */
+  /** Caches an instance of the JDBC driver. */
   private static final Supplier<Driver> DRIVER_SUPPLIER =
       Suppliers.memoize(Driver::new);
 

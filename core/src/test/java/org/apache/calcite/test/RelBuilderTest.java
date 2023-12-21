@@ -3629,7 +3629,7 @@ public class RelBuilderTest {
 
       int count = 0;
       try (PreparedStatement statement =
-               connection.unwrap(RelRunner.class).prepare(node);
+               connection.unwrap(RelRunner.class).prepareStatement(node);
            ResultSet resultSet = statement.executeQuery()) {
         while (resultSet.next()) {
           count++;

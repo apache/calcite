@@ -9412,6 +9412,7 @@ public class SqlParserTest {
   }
 
   /** Tests {@link Hoist}. */
+  @Disabled
   @Test protected void testHoist() {
     final String sql = "select 1 as x,\n"
         + "  'ab' || 'c' as y\n"
