@@ -65,6 +65,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -406,11 +407,28 @@ public class EnumUtils {
     if (toPrimitive != null) {
       if (fromPrimitive != null) {
         // E.g. from "float" to "double"
-        return Expressions.convert_(
+        if (toPrimitive == Primitive.BOOLEAN) {
+          return Expressions.convert_(
+              operand, toPrimitive.getPrimitiveClass());
+        }
+        return Expressions.convertChecked(
             operand, toPrimitive.getPrimitiveClass());
       }
-      if (fromNumber || fromBox == Primitive.CHAR) {
-        // Generate "x.shortValue()".
+      if (fromType == BigDecimal.class
+          && (toPrimitive == Primitive.INT
+          || toPrimitive == Primitive.CHAR
+          || toPrimitive == Primitive.SHORT
+          || toPrimitive == Primitive.LONG)) {
+        // Conversion from decimal to an exact type
+        ConstantExpression zero = Expressions.constant(0);
+        // Elsewhere Calcite uses this rounding mode implicitly, so we have to be consistent.
+        // E.g., this is the rounding mode used by BigDecimal.longValue().
+        Expression rounding = Expressions.constant(RoundingMode.DOWN);
+        // rounded = operand.setScale(0, RoundingMode.FLOOR);
+        Expression rounded = Expressions.call(operand, "setScale", zero, rounding);
+        // return rounded.to*ValueExact()
+        return Expressions.unboxExact(rounded, toPrimitive);
+      } else if (fromNumber || fromBox == Primitive.CHAR) {
         return Expressions.unbox(operand, toPrimitive);
       } else {
         // E.g. from "Object" to "short".
