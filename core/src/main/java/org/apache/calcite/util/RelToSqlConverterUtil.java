@@ -64,32 +64,6 @@ public abstract class RelToSqlConverterUtil {
   }
 
   /**
-   * This method will make regex pattern based on the TRIM flag.
-   *
-   * @param call     SqlCall contains the values that needs to be trimmed
-   * @param trimFlag It will contain the trimFlag either BOTH,LEADING or TRAILING
-   * @return It will return the regex pattern of the character to be trimmed.
-   */
-  public static SqlCharStringLiteral makeRegexNodeFromCall(SqlNode call, SqlLiteral trimFlag) {
-    String regexPattern = ((SqlCharStringLiteral) call).toValue();
-    regexPattern = escapeSpecialChar(regexPattern);
-    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
-    case LEADING:
-      regexPattern = "^(".concat(regexPattern).concat(")*");
-      break;
-    case TRAILING:
-      regexPattern = "(".concat(regexPattern).concat(")*$");
-      break;
-    default:
-      regexPattern = "^(".concat(regexPattern).concat(")*|(")
-        .concat(regexPattern).concat(")*$");
-      break;
-    }
-    return SqlLiteral.createCharString(regexPattern,
-      call.getParserPosition());
-  }
-
-  /**
    * Unparses TRIM function with value as space.
    *
    * <p>For example :
@@ -160,8 +134,9 @@ public abstract class RelToSqlConverterUtil {
    * @return escape character if any special character is present in the string
    */
   private static String escapeSpecialChar(String inputString) {
-    final String[] specialCharacters = {"\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
-        "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"};
+    final String[] specialCharacters =
+        {"\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
+            "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"};
 
     for (String specialCharacter : specialCharacters) {
       if (inputString.contains(specialCharacter)) {

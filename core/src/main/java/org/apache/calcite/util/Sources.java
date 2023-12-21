@@ -122,7 +122,7 @@ public abstract class Sources {
       throw unsupported();
     }
 
-    public Optional<File> fileOpt() {
+    @Override public Optional<File> fileOpt() {
       return Optional.empty();
     }
 
@@ -255,7 +255,7 @@ public abstract class Sources {
       return file;
     }
 
-    public Optional<File> fileOpt() {
+    @Override public Optional<File> fileOpt() {
       return Optional.ofNullable(file);
     }
 
