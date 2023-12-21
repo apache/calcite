@@ -102,6 +102,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -8897,56 +8898,42 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
-  @Test void testStartsWithFunction() {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("startsWithAliases")
+  void testStartsWithFunction2(AliasInfo aliasInfo) {
     final SqlOperatorFixture f0 = fixture();
-    f0.setFor(SqlLibraryOperators.STARTS_WITH);
+    final SqlFunction function = aliasInfo.function;
+    f0.setFor(function);
+    final String alias = aliasInfo.alias;
     final Consumer<SqlOperatorFixture> consumer = f -> {
-      f.checkBoolean("starts_with('12345', '123')", true);
-      f.checkBoolean("starts_with('12345', '1243')", false);
-      f.checkBoolean("starts_with(x'11', x'11')", true);
-      f.checkBoolean("starts_with(x'112211', x'33')", false);
-      f.checkFails("^starts_with('aabbcc', x'aa')^",
-          "Cannot apply 'STARTS_WITH' to arguments of type "
-              + "'STARTS_WITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-              + "form\\(s\\): 'STARTS_WITH\\(<STRING>, <STRING>\\)'",
+      f.checkBoolean(alias + "('12345', '123')", true);
+      f.checkBoolean(alias + "('12345', '1243')", false);
+      f.checkBoolean(alias + "(x'11', x'11')", true);
+      f.checkBoolean(alias + "(x'112211', x'33')", false);
+      f.checkFails("^" + alias + "('aabbcc', x'aa')^",
+          "Cannot apply '" + function.getName() + "' to arguments of type "
+              + "'" + function.getName() + "\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
+              + "form\\(s\\): '" + function.getName() + "\\(<STRING>, <STRING>\\)'",
           false);
-      f.checkNull("starts_with(null, null)");
-      f.checkNull("starts_with('12345', null)");
-      f.checkNull("starts_with(null, '123')");
-      f.checkBoolean("starts_with('', '123')", false);
-      f.checkBoolean("starts_with('', '')", true);
-      f.checkNull("starts_with(x'aa', null)");
-      f.checkNull("starts_with(null, x'aa')");
-      f.checkBoolean("starts_with(x'1234', x'')", true);
-      f.checkBoolean("starts_with(x'', x'123456')", false);
-      f.checkBoolean("starts_with(x'', x'')", true);
+      f.checkNull(alias + "(null, null)");
+      f.checkNull(alias + "('12345', null)");
+      f.checkNull(alias + "(null, '123')");
+      f.checkBoolean(alias + "('', '123')", false);
+      f.checkBoolean(alias + "('', '')", true);
+      f.checkNull(alias + "(x'aa', null)");
+      f.checkNull(alias + "(null, x'aa')");
+      f.checkBoolean(alias + "(x'1234', x'')", true);
+      f.checkBoolean(alias + "(x'', x'123456')", false);
+      f.checkBoolean(alias + "(x'', x'')", true);
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL), consumer);
+    f0.forEachLibrary(list(aliasInfo.libraries), consumer);
   }
 
-  /** Tests for Snowflake's {@code STARTSWITH} function. */
-  @Test void testSnowflakeStartsWithFunction() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.SNOWFLAKE);
-    f.setFor(SqlLibraryOperators.STARTSWITH);
-    f.checkBoolean("startswith('12345', '123')", true);
-    f.checkBoolean("startswith('12345', '1243')", false);
-    f.checkBoolean("startswith(x'11', x'11')", true);
-    f.checkBoolean("startswith(x'112211', x'33')", false);
-    f.checkFails("^startswith('aabbcc', x'aa')^",
-        "Cannot apply 'STARTSWITH' to arguments of type "
-            + "'STARTSWITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-            + "form\\(s\\): 'STARTSWITH\\(<STRING>, <STRING>\\)'",
-        false);
-    f.checkNull("startswith(null, null)");
-    f.checkNull("startswith('12345', null)");
-    f.checkNull("startswith(null, '123')");
-    f.checkBoolean("startswith('', '123')", false);
-    f.checkBoolean("startswith('', '')", true);
-    f.checkNull("startswith(x'aa', null)");
-    f.checkNull("startswith(null, x'aa')");
-    f.checkBoolean("startswith(x'1234', x'')", true);
-    f.checkBoolean("startswith(x'', x'123456')", false);
-    f.checkBoolean("startswith(x'', x'')", true);
+  static Stream<AliasInfo> startsWithAliases() {
+    return Stream.of(
+        AliasInfo.of(SqlLibraryOperators.STARTS_WITH, "starts_with", new SqlLibrary[] {SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL}),
+        AliasInfo.of(SqlLibraryOperators.STARTSWITH, "startswith", new SqlLibrary[]{SqlLibrary.SNOWFLAKE})
+    );
   }
 
   @Test void testEndsWithFunction() {
@@ -13685,6 +13672,31 @@ public class SqlOperatorTest {
       }
     }
   }
+
+  static class AliasInfo {
+    private final SqlFunction function;
+    private final String alias;
+    private final SqlLibrary[] libraries;
+
+    private  AliasInfo(SqlFunction function, String alias, SqlLibrary[] libraries) {
+      this.function = function;
+      this.alias = alias;
+      this.libraries = libraries;
+    }
+
+    public static AliasInfo of(SqlFunction function, String alias, SqlLibrary[] libraries) {
+      return new AliasInfo(function, alias, libraries);
+    }
+
+    // Used for test naming while running tests in IDE
+    @Override
+    public String toString() {
+      return "function=" + function +
+          ", alias='" + alias + '\'' +
+          ", libraries=" + Arrays.toString(libraries);
+    }
+  }
+
 
   private Throwable findMostDescriptiveCause(Throwable ex) {
     if (ex instanceof CalciteException
