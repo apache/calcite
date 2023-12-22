@@ -1009,7 +1009,7 @@ public class SqlDialect {
       String charSet = type.getCharset() != null && supportsCharSet()
           ? type.getCharset().name()
           : null;
-      return SqlTypeUtil.convertTypeToSpec(type, charSet, maxPrecision);
+      return SqlTypeUtil.convertTypeToSpec(type, charSet, maxPrecision, maxScale);
     }
     return SqlTypeUtil.convertTypeToSpec(type);
   }
