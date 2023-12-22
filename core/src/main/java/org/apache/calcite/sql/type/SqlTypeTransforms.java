@@ -205,7 +205,7 @@ public abstract class SqlTypeTransforms {
           typeToTransform.getComponentType(),
           () -> "componentType for " + typeToTransform + " in opBinding " + opBinding);
 
-    /**
+  /**
    * Parameter type-inference transform strategy that wraps a given type
    * in a multiset.
    *

@@ -135,6 +135,17 @@ public interface RelDataTypeFactory {
       RelDataType valueType);
 
   /**
+   * Creates a function type.
+   *
+   * @param parameterType type of parameters
+   * @param returnType type of lambda expression return type
+   * @return function type descriptor
+   */
+  RelDataType createFunctionSqlType(
+      RelDataType parameterType,
+      RelDataType returnType);
+
+  /**
    * Creates a measure type.
    *
    * @param valueType type of the values of the measure
