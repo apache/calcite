@@ -19,6 +19,7 @@ import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.ide.dsl.settings
 import com.github.vlsi.gradle.ide.dsl.taskTriggers
+import java.util.Locale
 
 plugins {
     kotlin("jvm")
@@ -114,7 +115,7 @@ tasks.jar {
     }
 }
 
-val generatedVersionDir = File(buildDir, "generated/sources/version")
+val generatedVersionDir = layout.buildDirectory.get().file("generated/sources/version").asFile
 val versionClass by tasks.registering(Sync::class) {
     val re = Regex("^(\\d+)\\.(\\d+).*")
 
@@ -272,7 +273,11 @@ val integTestAll by tasks.registering() {
 }
 
 for (db in listOf("h2", "mysql", "oracle", "postgresql")) {
-    val task = tasks.register("integTest" + db.capitalize(), Test::class) {
+    val task = tasks.register("integTest" + db.replaceFirstChar {
+        if (it.isLowerCase()) it.titlecase(
+            Locale.getDefault()
+        ) else it.toString()
+    }, Test::class) {
         group = LifecycleBasePlugin.VERIFICATION_GROUP
         description = "Executes integration JDBC tests with $db database"
         include("org/apache/calcite/test/JdbcAdapterTest.class")
@@ -280,7 +285,11 @@ for (db in listOf("h2", "mysql", "oracle", "postgresql")) {
         systemProperty("calcite.test.db", db)
         // Include the jars from the custom configuration to the classpath
         // otherwise the JDBC drivers for each DBMS will be missing
-        classpath = classpath + configurations.getAt("test" + db.capitalize())
+        classpath += configurations.getAt("test" + db.replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase(
+                Locale.getDefault()
+            ) else it.toString()
+        })
     }
     integTestAll {
         dependsOn(task)
