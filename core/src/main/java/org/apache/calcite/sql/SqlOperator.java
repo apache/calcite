@@ -47,6 +47,7 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.sql.type.SqlTypeUtil.isMeasure;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -482,10 +483,8 @@ public abstract class SqlOperator {
    * @param call      call to be validated
    * @return inferred type
    */
-  public final RelDataType validateOperands(
-      SqlValidator validator,
-      @Nullable SqlValidatorScope scope,
-      SqlCall call) {
+  public final RelDataType validateOperands(SqlValidator validator,
+      SqlValidatorScope scope, SqlCall call) {
     // Let subclasses know what's up.
     preValidateCall(validator, scope, call);
 
@@ -513,10 +512,8 @@ public abstract class SqlOperator {
    * @param scope     validation scope
    * @param call      the call being validated
    */
-  protected void preValidateCall(
-      SqlValidator validator,
-      @Nullable SqlValidatorScope scope,
-      SqlCall call) {
+  protected void preValidateCall(SqlValidator validator,
+      SqlValidatorScope scope, SqlCall call) {
   }
 
   /**
@@ -537,6 +534,11 @@ public abstract class SqlOperator {
         throw new IllegalArgumentException("Cannot infer return type for "
             + opBinding.getOperator() + "; operand types: "
             + opBinding.collectOperandTypes());
+      }
+
+      // MEASURE wrapper should be removed, e.g. MEASURE<DOUBLE> should just be DOUBLE
+      if (isMeasure(returnType) && returnType.getMeasureElementType() != null) {
+        returnType = Objects.requireNonNull(returnType.getMeasureElementType());
       }
 
       if (operandTypeInference != null
@@ -663,8 +665,9 @@ public abstract class SqlOperator {
     final SqlValidatorScope operandScope = scope.getOperandScope(call);
 
     final ImmutableList.Builder<RelDataType> argTypeBuilder =
-            ImmutableList.builder();
-    for (SqlNode operand : args) {
+        ImmutableList.builder();
+    for (int i = 0; i < args.size(); i++) {
+      SqlNode operand = args.get(i);
       RelDataType nodeType;
       // for row arguments that should be converted to ColumnList
       // types, set the nodeType to a ColumnList type but defer
@@ -673,14 +676,19 @@ public abstract class SqlOperator {
       if (operand.getKind() == SqlKind.ROW && convertRowArgToColumnList) {
         RelDataTypeFactory typeFactory = validator.getTypeFactory();
         nodeType = typeFactory.createSqlType(SqlTypeName.COLUMN_LIST);
-        ((SqlValidatorImpl) validator).setValidatedNodeType(operand, nodeType);
+        validator.setValidatedNodeType(operand, nodeType);
       } else {
-        nodeType = validator.deriveType(operandScope, operand);
+        nodeType = deriveOperandType(validator, operandScope, i, operand);
       }
       argTypeBuilder.add(nodeType);
     }
 
     return argTypeBuilder.build();
+  }
+
+  protected RelDataType deriveOperandType(SqlValidator validator,
+      SqlValidatorScope scope, int i, SqlNode operand) {
+    return validator.deriveType(scope, operand);
   }
 
   /**

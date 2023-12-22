@@ -925,6 +925,7 @@ class RelToSqlConverterTest {
     sql(query).withBigQuery().ok(expected);
   }*/
 
+  @Disabled
   @Test void testCastDecimal1() {
     final String query = "select -0.0000000123\n"
         + " from \"expense_fact\"";

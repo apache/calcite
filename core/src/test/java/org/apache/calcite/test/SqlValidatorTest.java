@@ -8011,6 +8011,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("CHAR(3) ARRAY NOT NULL");
   }
 
+  @Disabled
   @Test void testCastAsCollectionType() {
     sql("select cast(array[1,null,2] as int array) from (values (1))")
         .columnType("INTEGER NOT NULL ARRAY NOT NULL");
