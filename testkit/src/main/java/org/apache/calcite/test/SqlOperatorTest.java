@@ -45,6 +45,7 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
+import org.apache.calcite.sql.fun.LibraryOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -8897,56 +8898,37 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
-  @Test void testStartsWithFunction() {
+  /** Tests {@code STARTS_WITH} and {@code STARTSWITH} operators. */
+  @Test void testStartsWithFunction() throws NoSuchFieldException {
     final SqlOperatorFixture f0 = fixture();
-    f0.setFor(SqlLibraryOperators.STARTS_WITH);
-    final Consumer<SqlOperatorFixture> consumer = f -> {
-      f.checkBoolean("starts_with('12345', '123')", true);
-      f.checkBoolean("starts_with('12345', '1243')", false);
-      f.checkBoolean("starts_with(x'11', x'11')", true);
-      f.checkBoolean("starts_with(x'112211', x'33')", false);
-      f.checkFails("^starts_with('aabbcc', x'aa')^",
-          "Cannot apply 'STARTS_WITH' to arguments of type "
-              + "'STARTS_WITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-              + "form\\(s\\): 'STARTS_WITH\\(<STRING>, <STRING>\\)'",
-          false);
-      f.checkNull("starts_with(null, null)");
-      f.checkNull("starts_with('12345', null)");
-      f.checkNull("starts_with(null, '123')");
-      f.checkBoolean("starts_with('', '123')", false);
-      f.checkBoolean("starts_with('', '')", true);
-      f.checkNull("starts_with(x'aa', null)");
-      f.checkNull("starts_with(null, x'aa')");
-      f.checkBoolean("starts_with(x'1234', x'')", true);
-      f.checkBoolean("starts_with(x'', x'123456')", false);
-      f.checkBoolean("starts_with(x'', x'')", true);
-    };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL), consumer);
-  }
-
-  /** Tests for Snowflake's {@code STARTSWITH} function. */
-  @Test void testSnowflakeStartsWithFunction() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.SNOWFLAKE);
-    f.setFor(SqlLibraryOperators.STARTSWITH);
-    f.checkBoolean("startswith('12345', '123')", true);
-    f.checkBoolean("startswith('12345', '1243')", false);
-    f.checkBoolean("startswith(x'11', x'11')", true);
-    f.checkBoolean("startswith(x'112211', x'33')", false);
-    f.checkFails("^startswith('aabbcc', x'aa')^",
-        "Cannot apply 'STARTSWITH' to arguments of type "
-            + "'STARTSWITH\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-            + "form\\(s\\): 'STARTSWITH\\(<STRING>, <STRING>\\)'",
-        false);
-    f.checkNull("startswith(null, null)");
-    f.checkNull("startswith('12345', null)");
-    f.checkNull("startswith(null, '123')");
-    f.checkBoolean("startswith('', '123')", false);
-    f.checkBoolean("startswith('', '')", true);
-    f.checkNull("startswith(x'aa', null)");
-    f.checkNull("startswith(null, x'aa')");
-    f.checkBoolean("startswith(x'1234', x'')", true);
-    f.checkBoolean("startswith(x'', x'123456')", false);
-    f.checkBoolean("startswith(x'', x'')", true);
+    final List<SqlOperator> operators =
+        list(SqlLibraryOperators.STARTSWITH, SqlLibraryOperators.STARTS_WITH);
+    for (SqlOperator operator : operators) {
+      f0.setFor(operator);
+      String op = operator.getName();
+      final Consumer<SqlOperatorFixture> consumer = f -> {
+        f.checkBoolean(op + "('12345', '123')", true);
+        f.checkBoolean(op + "('12345', '1243')", false);
+        f.checkBoolean(op + "(x'11', x'11')", true);
+        f.checkBoolean(op + "(x'112211', x'33')", false);
+        f.checkFails("^" + op + "('aabbcc', x'aa')^",
+            "Cannot apply '" + op + "' to arguments of type "
+            + "'" + op + "\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
+            + "form\\(s\\): '" + op + "\\(<STRING>, <STRING>\\)'",
+            false);
+        f.checkNull(op + "(null, null)");
+        f.checkNull(op + "('12345', null)");
+        f.checkNull(op + "(null, '123')");
+        f.checkBoolean(op + "('', '123')", false);
+        f.checkBoolean(op + "('', '')", true);
+        f.checkNull(op + "(x'aa', null)");
+        f.checkNull(op + "(null, x'aa')");
+        f.checkBoolean(op + "(x'1234', x'')", true);
+        f.checkBoolean(op + "(x'', x'123456')", false);
+        f.checkBoolean(op + "(x'', x'')", true);
+      };
+      f0.forEachLibrary(getLibrariesForOperator(operator), consumer);
+    }
   }
 
   @Test void testEndsWithFunction() {
@@ -13713,6 +13695,16 @@ public class SqlOperatorTest {
       }
     }
     return values;
+  }
+
+
+  /**
+   * Returns a list of the SqlLibrary that support a given SqlOperator.
+   */
+  private List<SqlLibrary> getLibrariesForOperator(SqlOperator operator) throws NoSuchFieldException {
+    Field field = SqlLibraryOperators.class.getField(operator.getName());
+    LibraryOperator libraryOperator = field.getAnnotation(LibraryOperator.class);
+    return List.of(libraryOperator.libraries());
   }
 
   /**
