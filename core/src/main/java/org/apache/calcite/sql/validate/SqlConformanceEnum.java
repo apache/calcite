@@ -115,6 +115,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+
   @Override public boolean isGroupByAlias() {
     switch (this) {
     case BABEL:
@@ -236,6 +237,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     switch (this) {
     case LENIENT:
     case BABEL:
+    case BIG_QUERY:
     case MYSQL_5:
     case ORACLE_10:
     case ORACLE_12:
@@ -258,10 +260,20 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean isRegexReplaceCaptureGroupDollarIndexed() {
+    switch (this) {
+    case BIG_QUERY:
+      return false;
+    default:
+      return true;
+    }
+  }
+
   @Override public boolean isPercentRemainderAllowed() {
     switch (this) {
     case BABEL:
     case LENIENT:
+    case BIG_QUERY:
     case MYSQL_5:
     case PRESTO:
       return true;
@@ -333,6 +345,16 @@ public enum SqlConformanceEnum implements SqlConformance {
     case BABEL:
     case LENIENT:
     case MYSQL_5:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  @Override public boolean isOffsetLimitAllowed() {
+    switch (this) {
+    case BABEL:
+    case LENIENT:
       return true;
     default:
       return false;
@@ -432,6 +454,17 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean isValueAllowed() {
+    switch (this) {
+    case BABEL:
+    case LENIENT:
+    case MYSQL_5:
+      return true;
+    default:
+      return false;
+    }
+  }
+
   @Override public SqlLibrary semantics() {
     switch (this) {
     case BIG_QUERY:
@@ -446,12 +479,26 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
-
   @Override public boolean isDollarSupportedinAlias() {
     switch (this) {
     case ORACLE_10:
     case ORACLE_12:
     case DEFAULT:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  @Override public boolean allowLenientCoercion() {
+    /* This allows for the following:
+     - coercion from string to array
+     - coercion from boolean to integers
+     */
+    switch (this) {
+    case BABEL:
+    case BIG_QUERY:
+    case MYSQL_5:
       return true;
     default:
       return false;

@@ -74,8 +74,4 @@ class FieldNamespace extends AbstractNamespace {
   @Override public @Nullable RelDataTypeField field(String name) {
     return null;
   }
-
-  @Override public boolean fieldExists(String name) {
-    return false;
-  }
 }
