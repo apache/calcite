@@ -1817,6 +1817,48 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCrossJoinWithTimeStampSingleRowOnLeft">
+    <Resource name="sql">
+      <![CDATA[select e.empno, e.ename, c.* from (select 5, current_timestamp) c cross join emp e ]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$2], ENAME=[$3], EXPR$0=[$0], CURRENT_TIMESTAMP=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalProject(EXPR$0=[5], CURRENT_TIMESTAMP=[CURRENT_TIMESTAMP])
+      LogicalValues(tuples=[[{ 0 }]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$2], ENAME=[$3], EXPR$0=[$0], CURRENT_TIMESTAMP=[$1])
+  LogicalProject($f0=[5], $f1=[CURRENT_TIMESTAMP], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCrossJoinWithTimeStampSingleRowOnRight">
+    <Resource name="sql">
+      <![CDATA[select e.empno, e.ename, c.* from emp e cross join (select 5, current_timestamp) c]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], EXPR$0=[$9], CURRENT_TIMESTAMP=[$10])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EXPR$0=[5], CURRENT_TIMESTAMP=[CURRENT_TIMESTAMP])
+      LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], EXPR$0=[$9], CURRENT_TIMESTAMP=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[5], $f10=[CURRENT_TIMESTAMP])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCustomColumnResolvingInCorrelatedSubQuery">
     <Resource name="sql">
       <![CDATA[select *
@@ -4901,6 +4943,92 @@ LogicalValues(tuples=[[]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInnerJoinWithConstantRowOnLeft">
+    <Resource name="sql">
+      <![CDATA[select e.empno, e.ename, c.* from (select 5 as nm) c inner join emp e on e.empno = c.nm]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$1], ENAME=[$2], NM=[$0])
+  LogicalJoin(condition=[=($1, $0)], joinType=[inner])
+    LogicalValues(tuples=[[{ 5 }]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$1], ENAME=[$2], NM=[$0])
+  LogicalProject($f0=[5], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($0, 5)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInnerJoinWithConstantRowOnRight">
+    <Resource name="sql">
+      <![CDATA[select e.empno, e.ename, c.* from emp e inner join (select 5 as nm) c  on e.empno = c.nm]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], NM=[$9])
+  LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalValues(tuples=[[{ 5 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], NM=[$9])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[5])
+    LogicalFilter(condition=[=($0, 5)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInnerJoinWithTimeStampSingleRowOnLeft">
+    <Resource name="sql">
+      <![CDATA[select e.empno, e.ename, c.t from (select 7934 as ono, current_timestamp as t) c inner join emp e on e.empno=c.ono]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$2], ENAME=[$3], T=[$1])
+  LogicalJoin(condition=[=($2, $0)], joinType=[inner])
+    LogicalProject(ONO=[7934], T=[CURRENT_TIMESTAMP])
+      LogicalValues(tuples=[[{ 0 }]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$2], ENAME=[$3], T=[$1])
+  LogicalProject($f0=[7934], $f1=[CURRENT_TIMESTAMP], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalFilter(condition=[=($0, 7934)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInnerJoinWithTimeStampSingleRowOnRight">
+    <Resource name="sql">
+      <![CDATA[select e.empno, e.ename, c.t from emp e inner join (select 7934 as ono, current_timestamp as t) c on e.empno=c.ono]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], T=[$10])
+  LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ONO=[7934], T=[CURRENT_TIMESTAMP])
+      LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], T=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[7934], $f10=[CURRENT_TIMESTAMP])
+    LogicalFilter(condition=[=($0, 7934)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testIntersectToDistinct">
     <Resource name="sql">
       <![CDATA[select * from emp where deptno = 10
@@ -5880,6 +6008,46 @@ LogicalProject(DNAME=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinWithConstantRowOnLeft">
+    <Resource name="sql">
+      <![CDATA[select e.empno, e.ename, c.* from (select 5, 5) c cross join emp e]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$2], ENAME=[$3], EXPR$0=[$0], EXPR$1=[$1])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalValues(tuples=[[{ 5, 5 }]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$2], ENAME=[$3], EXPR$0=[$0], EXPR$1=[$1])
+  LogicalProject($f0=[5], $f1=[5], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinWithConstantRowOnRight">
+    <Resource name="sql">
+      <![CDATA[select e.empno, e.ename, c.* from emp e cross join (select 5, 5) c]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], EXPR$0=[$9], EXPR$1=[$10])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalValues(tuples=[[{ 5, 5 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], EXPR$0=[$9], EXPR$1=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[5], $f10=[5])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testLeftCorrelateWithBothEmpty1">
     <Resource name="planBefore">
       <![CDATA[
@@ -6077,6 +6245,47 @@ LogicalProject(EMPNO=[$0])
       <![CDATA[
 LogicalProject(EMPNO=[$0])
   LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLeftJoinWithConstantRowOnRight">
+    <Resource name="sql">
+      <![CDATA[select e.empno, e.ename, c.* from emp e left join (select 5 as nm) c  on e.empno = c.nm]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], NM=[$9])
+  LogicalJoin(condition=[=($0, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalValues(tuples=[[{ 5 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], NM=[$9])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[CASE(=($0, 5), 5, null:INTEGER)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testLeftJoinWithTimeStampSingleRowOnRight">
+    <Resource name="sql">
+      <![CDATA[select e.empno, e.ename, c.t from emp e left join (select 7934 as ono, current_timestamp as t) c   on e.empno = c.ono]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], T=[$10])
+  LogicalJoin(condition=[=($0, $9)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ONO=[7934], T=[CURRENT_TIMESTAMP])
+      LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], T=[$10])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[CASE(=($0, 7934), 7934, null:INTEGER)], $f10=[CASE(=($0, 7934), CURRENT_TIMESTAMP, null:TIMESTAMP(0))])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -13071,6 +13280,47 @@ LogicalProject(EMPNO=[$0])
       <![CDATA[
 LogicalProject(EMPNO=[$0])
   LogicalValues(tuples=[[]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testRightJoinWithConstantRowOnLeft">
+    <Resource name="sql">
+      <![CDATA[select e.empno, e.ename, c.* from (select 5 as nm) c right join emp e on e.empno = c.nm]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$1], ENAME=[$2], NM=[$0])
+  LogicalJoin(condition=[=($1, $0)], joinType=[right])
+    LogicalValues(tuples=[[{ 5 }]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$1], ENAME=[$2], NM=[$0])
+  LogicalProject($f0=[CASE(=($0, 5), 5, null:INTEGER)], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testRightJoinWithTimeStampSingleRowOnLeft">
+    <Resource name="sql">
+      <![CDATA[select e.empno, e.ename, c.t from (select 7934 as ono, current_timestamp as t) c right join emp e   on e.empno = c.ono]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EMPNO=[$2], ENAME=[$3], T=[$1])
+  LogicalJoin(condition=[=($2, $0)], joinType=[right])
+    LogicalProject(ONO=[7934], T=[CURRENT_TIMESTAMP])
+      LogicalValues(tuples=[[{ 0 }]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EMPNO=[$2], ENAME=[$3], T=[$1])
+  LogicalProject($f0=[CASE(=($0, 7934), 7934, null:INTEGER)], $f1=[CASE(=($0, 7934), CURRENT_TIMESTAMP, null:TIMESTAMP(0))], EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

@@ -494,16 +494,28 @@ EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
 # Uncorrelated
 with t (a, b) as (select * from (values (60, 'b')))
 select * from t where a in (select deptno from "scott".dept);
-EnumerableHashJoin(condition=[=($0, $2)], joinType=[semi])
-  EnumerableValues(tuples=[[{ 60, 'b' }]])
-  EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
-    EnumerableTableScan(table=[[scott, DEPT]])
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[60], expr#4=['b'], expr#5=[=($t3, $t0)], A=[$t3], B=[$t4], $condition=[$t5])
+  EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 +---+---+
 | A | B |
 +---+---+
 +---+---+
 (0 rows)
+
+!ok
+
+with t (a, b) as (select * from (values (30, 'b')))
+select * from t where a in (select deptno from "scott".dept);
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[30], expr#4=['b'], expr#5=[=($t3, $t0)], A=[$t3], B=[$t4], $condition=[$t5])
+  EnumerableTableScan(table=[[scott, DEPT]])
+!plan
++----+---+
+| A  | B |
++----+---+
+| 30 | b |
++----+---+
+(1 row)
 
 !ok
 
@@ -3509,11 +3521,8 @@ select (select (1, 2));
 
 !ok
 
-EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
-  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
-    EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], expr#3=[ROW($t1, $t2)], EXPR$0=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], expr#3=[ROW($t1, $t2)], expr#4=[CAST($t3):RecordType(INTEGER EXPR$0, INTEGER EXPR$1)], EXPR$0=[$t4])
+  EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 # Test case for correlated sub-query
