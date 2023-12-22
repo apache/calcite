@@ -433,6 +433,9 @@ public enum SqlKind {
   /** {@code CASE} expression. */
   CASE,
 
+  /** {@code LAMBDA} expression. */
+  LAMBDA,
+
   /** {@code INTERVAL} expression. */
   INTERVAL,
 

@@ -70,7 +70,7 @@ public class SqlDynamicParam extends SqlNode {
     validator.validateDynamicParam(this);
   }
 
-  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     return SqlMonotonicity.CONSTANT;
   }
 
