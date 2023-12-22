@@ -23,7 +23,6 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
@@ -45,19 +44,11 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
  * parameters and ordering. This is accounted for by passing in a
  * {@link SqlReturnTypeInference} which is passed in by
  * the standard {@link SqlStdOperatorTable#MINUS_DATE MINUS_DATE}
+ * and the library {@link SqlInternalOperators MINUS_DATE2}
  * operators at their respective initializations.
  */
 public class SqlDatetimeSubtractionOperator extends SqlSpecialOperator {
   //~ Constructors -----------------------------------------------------------
-  public SqlDatetimeSubtractionOperator() {
-    super(
-        "-",
-        SqlKind.MINUS,
-        40,
-        true,
-        ReturnTypes.ARG2_NULLABLE,
-        InferTypes.FIRST_KNOWN, OperandTypes.MINUS_DATE_OPERATOR);
-  }
 
   public SqlDatetimeSubtractionOperator(String name,
       SqlReturnTypeInference returnTypeInference) {
