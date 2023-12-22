@@ -16,11 +16,9 @@
  */
 package org.apache.calcite.sql.util;
 
-import org.apache.calcite.prepare.CalciteCatalogReader;
-import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.fun.SqlGeoFunctions;
+import org.apache.calcite.sql.SqlSpatialTypeOperatorTable;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -40,13 +38,8 @@ public class SqlOperatorTables {
   private SqlOperatorTables() {}
 
   private static final Supplier<SqlOperatorTable> SPATIAL =
-          Suppliers.memoize(SqlOperatorTables::createSpatial)::get;
+      Suppliers.memoize(SqlSpatialTypeOperatorTable::new);
 
-  private static SqlOperatorTable createSpatial() {
-    return CalciteCatalogReader.operatorTable(
-            GeoFunctions.class.getName(),
-            SqlGeoFunctions.class.getName());
-  }
   /** Returns the Spatial operator table, creating it if necessary. */
   public static SqlOperatorTable spatialInstance() {
     return SPATIAL.get();
@@ -66,14 +59,14 @@ public class SqlOperatorTables {
 
   @SuppressWarnings("StatementWithEmptyBody")
   private static void addFlattened(List<SqlOperatorTable> list,
-                                   SqlOperatorTable table) {
+      SqlOperatorTable table) {
     if (table instanceof ChainedSqlOperatorTable) {
       ChainedSqlOperatorTable chainedTable = (ChainedSqlOperatorTable) table;
       for (SqlOperatorTable table2 : chainedTable.tableList) {
         addFlattened(list, table2);
       }
     } else if (table instanceof ImmutableListSqlOperatorTable
-            && table.getOperatorList().isEmpty()) {
+        && table.getOperatorList().isEmpty()) {
       // Table is empty and will remain empty; don't add it.
     } else {
       list.add(table);
@@ -99,7 +92,7 @@ public class SqlOperatorTables {
   /** Subclass of {@link ListSqlOperatorTable} that is immutable.
    * Operators cannot be added or removed after creation. */
   private static class ImmutableListSqlOperatorTable
-          extends ListSqlOperatorTable {
+      extends ListSqlOperatorTable {
     ImmutableListSqlOperatorTable(Iterable<? extends SqlOperator> operators) {
       super(operators);
     }
@@ -131,25 +124,25 @@ public class SqlOperatorTables {
     /** Derives a value to be assigned to {@link #operators} from a given list
      * of operators. */
     protected static ImmutableMultimap<String, SqlOperator> buildIndex(
-            Iterable<? extends SqlOperator> operators) {
+        Iterable<? extends SqlOperator> operators) {
       final ImmutableMultimap.Builder<String, SqlOperator> map =
-              ImmutableMultimap.builder();
+          ImmutableMultimap.builder();
       operators.forEach(op ->
-              map.put(op.getName().toUpperCase(Locale.ROOT), op));
+          map.put(op.getName().toUpperCase(Locale.ROOT), op));
       return map.build();
     }
 
     /** Looks up operators, optionally matching case-sensitively. */
     protected void lookUpOperators(String name,
-                                   boolean caseSensitive, Consumer<SqlOperator> consumer) {
+        boolean caseSensitive, Consumer<SqlOperator> consumer) {
       final String upperName = name.toUpperCase(Locale.ROOT);
       if (caseSensitive) {
         operators.get(upperName)
-                .forEach(operator -> {
-                  if (operator.getName().equals(name)) {
-                    consumer.accept(operator);
-                  }
-                });
+            .forEach(operator -> {
+              if (operator.getName().equals(name)) {
+                consumer.accept(operator);
+              }
+            });
       } else {
         operators.get(upperName).forEach(consumer);
       }

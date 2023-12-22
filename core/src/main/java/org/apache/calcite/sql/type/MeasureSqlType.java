@@ -33,7 +33,7 @@ public class MeasureSqlType extends ApplySqlType {
     computeDigest();
   }
 
-  public RelDataType getMeasureElementType() {
+  @Override public RelDataType getMeasureElementType() {
     return types.get(0);
   }
 

@@ -148,7 +148,9 @@ public interface SqlValidatorNamespace {
    * @param name Field name
    * @return Whether field exists
    */
-  boolean fieldExists(String name);
+  default boolean fieldExists(String name) {
+    return field(name) != null;
+  }
 
   /**
    * Returns a field of a given name, or null.
