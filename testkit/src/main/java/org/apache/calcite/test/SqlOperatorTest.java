@@ -8898,13 +8898,14 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
   }
 
+  /** Tests the {@code STARTS_WITH} and {@code STARTSWITH} operator. */
   @ParameterizedTest(name = "{0}")
   @MethodSource("startsWithAliases")
-  void testStartsWithFunction2(AliasInfo aliasInfo) {
+  void testStartsWithFunction2(FunctionAlias functionAlias) {
     final SqlOperatorFixture f0 = fixture();
-    final SqlFunction function = aliasInfo.function;
+    final SqlFunction function = functionAlias.function;
     f0.setFor(function);
-    final String alias = aliasInfo.alias;
+    final String alias = functionAlias.alias;
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkBoolean(alias + "('12345', '123')", true);
       f.checkBoolean(alias + "('12345', '1243')", false);
@@ -8926,14 +8927,15 @@ public class SqlOperatorTest {
       f.checkBoolean(alias + "(x'', x'123456')", false);
       f.checkBoolean(alias + "(x'', x'')", true);
     };
-    f0.forEachLibrary(list(aliasInfo.libraries), consumer);
+    f0.forEachLibrary(list(functionAlias.libraries), consumer);
   }
 
-  static Stream<AliasInfo> startsWithAliases() {
+  static Stream<FunctionAlias> startsWithAliases() {
     return Stream.of(
-        AliasInfo.of(SqlLibraryOperators.STARTS_WITH, "starts_with", new SqlLibrary[] {SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL}),
-        AliasInfo.of(SqlLibraryOperators.STARTSWITH, "startswith", new SqlLibrary[]{SqlLibrary.SNOWFLAKE})
-    );
+        FunctionAlias.of(
+            SqlLibraryOperators.STARTS_WITH,
+            "starts_with", SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL),
+        FunctionAlias.of(SqlLibraryOperators.STARTSWITH, "startswith", SqlLibrary.SNOWFLAKE));
   }
 
   @Test void testEndsWithFunction() {
@@ -13673,31 +13675,6 @@ public class SqlOperatorTest {
     }
   }
 
-  static class AliasInfo {
-    private final SqlFunction function;
-    private final String alias;
-    private final SqlLibrary[] libraries;
-
-    private  AliasInfo(SqlFunction function, String alias, SqlLibrary[] libraries) {
-      this.function = function;
-      this.alias = alias;
-      this.libraries = libraries;
-    }
-
-    public static AliasInfo of(SqlFunction function, String alias, SqlLibrary[] libraries) {
-      return new AliasInfo(function, alias, libraries);
-    }
-
-    // Used for test naming while running tests in IDE
-    @Override
-    public String toString() {
-      return "function=" + function +
-          ", alias='" + alias + '\'' +
-          ", libraries=" + Arrays.toString(libraries);
-    }
-  }
-
-
   private Throwable findMostDescriptiveCause(Throwable ex) {
     if (ex instanceof CalciteException
         || ex instanceof CalciteContextException
@@ -13905,6 +13882,30 @@ public class SqlOperatorTest {
           .replace("$1", values[1])
           .replace("$2", values[2])
           .replace("$3", values[3]);
+    }
+  }
+
+  /** Contains alias data for parameterized tests. */
+  static class FunctionAlias {
+    private final SqlFunction function;
+    private final String alias;
+    private final Collection<SqlLibrary> libraries;
+
+    private FunctionAlias(SqlFunction function, String alias, SqlLibrary... libraries) {
+      this.function = function;
+      this.alias = alias;
+      this.libraries = ImmutableList.copyOf(Arrays.asList(libraries));
+    }
+
+    public static FunctionAlias of(SqlFunction function, String alias, SqlLibrary... libraries) {
+      return new FunctionAlias(function, alias, libraries);
+    }
+
+    // Used for test naming while running tests in IDE
+    @Override public String toString() {
+      return "function=" + function
+          + ", alias='" + alias + '\''
+          + ", libraries=" + libraries;
     }
   }
 }
