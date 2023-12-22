@@ -8906,38 +8906,35 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f0 = fixture();
     final SqlFunction function = functionAlias.function;
     f0.setFor(function);
+    final String alias = function.getName();
     final Consumer<SqlOperatorFixture> consumer = f -> {
-      f.checkBoolean(functionAlias.applyFor("('12345', '123')"), true);
-      f.checkBoolean(functionAlias.applyFor("('12345', '1243')"), false);
-      f.checkBoolean(functionAlias.applyFor("(x'11', x'11')"), true);
-      f.checkBoolean(functionAlias.applyFor("(x'112211', x'33')"), false);
+      f.checkBoolean(alias + "('12345', '123')", true);
+      f.checkBoolean(alias + "('12345', '1243')", false);
+      f.checkBoolean(alias + "(x'11', x'11')", true);
+      f.checkBoolean(alias + "(x'112211', x'33')", false);
       f.checkFails(
-          functionAlias.applyForTemplate(
-          "^" + FunctionAlias.FUNCTION_TEMPLATE + "('aabbcc', x'aa')^"),
-          functionAlias.applyForTemplate(
-              "Cannot apply '" + FunctionAlias.FUNCTION_TEMPLATE + "' to arguments of type "
-              + "'" + FunctionAlias.FUNCTION_TEMPLATE
-                  + "\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-              + "form\\(s\\): '" + FunctionAlias.FUNCTION_TEMPLATE + "\\(<STRING>, <STRING>\\)'"),
+          "^" + alias + "('aabbcc', x'aa')^",
+          alias + "Cannot apply '" + alias + "' to arguments of type "
+              + "'" + alias + "\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
+              + "form\\(s\\): '" + alias + "\\(<STRING>, <STRING>\\)'",
           false);
-      f.checkNull(functionAlias.applyFor("(null, null)"));
-      f.checkNull(functionAlias.applyFor("('12345', null)"));
-      f.checkNull(functionAlias.applyFor("(null, '123')"));
-      f.checkBoolean(functionAlias.applyFor("('', '123')"), false);
-      f.checkBoolean(functionAlias.applyFor("('', '')"), true);
-      f.checkNull(functionAlias.applyFor("(x'aa', null)"));
-      f.checkNull(functionAlias.applyFor("(null, x'aa')"));
-      f.checkBoolean(functionAlias.applyFor("(x'1234', x'')"), true);
-      f.checkBoolean(functionAlias.applyFor("(x'', x'123456')"), false);
-      f.checkBoolean(functionAlias.applyFor("(x'', x'')"), true);
+      f.checkNull(alias + "(null, null)");
+      f.checkNull(alias + "('12345', null)");
+      f.checkNull(alias + "(null, '123')");
+      f.checkBoolean(alias + "('', '123')", false);
+      f.checkBoolean(alias + "('', '')", true);
+      f.checkNull(alias + "(x'aa', null)");
+      f.checkNull(alias + "(null, x'aa')");
+      f.checkBoolean(alias + "(x'1234', x'')", true);
+      f.checkBoolean(alias + "(x'', x'123456')", false);
+      f.checkBoolean(alias + "(x'', x'')", true);
     };
     f0.forEachLibrary(list(functionAlias.libraries), consumer);
   }
 
   static Stream<FunctionAlias> startsWithAliases() throws NoSuchFieldException {
     return Stream.of(
-        FunctionAlias.of(
-            SqlLibraryOperators.STARTS_WITH),
+        FunctionAlias.of(SqlLibraryOperators.STARTS_WITH),
         FunctionAlias.of(SqlLibraryOperators.STARTSWITH));
   }
 
@@ -13903,14 +13900,6 @@ public class SqlOperatorTest {
 
     public static FunctionAlias of(SqlFunction function) throws NoSuchFieldException {
       return new FunctionAlias(function);
-    }
-
-    public String applyFor(String arg) {
-      return function.getName() + arg;
-    }
-
-    public String applyForTemplate(String arg) {
-      return arg.replace(FUNCTION_TEMPLATE, function.getName());
     }
 
     // Used for test naming while running tests in IDE
