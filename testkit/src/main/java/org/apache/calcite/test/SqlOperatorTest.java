@@ -8902,7 +8902,7 @@ public class SqlOperatorTest {
   /** Tests the {@code STARTS_WITH} and {@code STARTSWITH} operator. */
   @ParameterizedTest(name = "{0}")
   @MethodSource("startsWithAliases")
-  void testStartsWithFunction2(FunctionAlias functionAlias) {
+  void testStartsWithFunction(FunctionAlias functionAlias) {
     final SqlOperatorFixture f0 = fixture();
     final SqlFunction function = functionAlias.function;
     f0.setFor(function);
@@ -8912,11 +8912,10 @@ public class SqlOperatorTest {
       f.checkBoolean(alias + "('12345', '1243')", false);
       f.checkBoolean(alias + "(x'11', x'11')", true);
       f.checkBoolean(alias + "(x'112211', x'33')", false);
-      f.checkFails(
-          "^" + alias + "('aabbcc', x'aa')^",
-          alias + "Cannot apply '" + alias + "' to arguments of type "
-              + "'" + alias + "\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
-              + "form\\(s\\): '" + alias + "\\(<STRING>, <STRING>\\)'",
+      f.checkFails("^" + alias + "('aabbcc', x'aa')^",
+          "Cannot apply '" + function.getName() + "' to arguments of type "
+              + "'" + function.getName() + "\\(<CHAR\\(6\\)>, <BINARY\\(1\\)>\\)'\\. Supported "
+              + "form\\(s\\): '" + function.getName() + "\\(<STRING>, <STRING>\\)'",
           false);
       f.checkNull(alias + "(null, null)");
       f.checkNull(alias + "('12345', null)");
