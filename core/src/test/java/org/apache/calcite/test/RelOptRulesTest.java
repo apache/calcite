@@ -87,6 +87,7 @@ import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.PushProjector;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule.ProjectReduceExpressionsRule;
+import org.apache.calcite.rel.rules.SingleValuesOptimizationRules;
 import org.apache.calcite.rel.rules.SpatialRules;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
@@ -4174,6 +4175,109 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(
             PruneEmptyRules.EMPTY_TABLE_INSTANCE,
             PruneEmptyRules.PROJECT_INSTANCE)
+        .check();
+  }
+
+  @Test void testJoinWithConstantRowOnRight() {
+    final String sql = "select e.empno, e.ename, c.*"
+        + " from emp e cross join (select 5, 5) c";
+
+    sql(sql)
+        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE)
+        .check();
+  }
+
+  @Test void testJoinWithConstantRowOnLeft() {
+    final String sql = "select e.empno, e.ename, c.*"
+        + " from (select 5, 5) c cross join emp e";
+
+    sql(sql)
+        .withRule(SingleValuesOptimizationRules.JOIN_LEFT_INSTANCE)
+        .check();
+  }
+
+  @Test void testInnerJoinWithConstantRowOnLeft() {
+    final String sql = "select e.empno, e.ename, c.*"
+        + " from (select 5 as nm) c inner join emp e on e.empno = c.nm";
+
+    sql(sql)
+        .withRule(SingleValuesOptimizationRules.JOIN_LEFT_INSTANCE)
+        .check();
+  }
+
+  @Test void testInnerJoinWithConstantRowOnRight() {
+    final String sql = "select e.empno, e.ename, c.*"
+        + " from emp e inner join (select 5 as nm) c  on e.empno = c.nm";
+
+    sql(sql)
+        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE)
+        .check();
+  }
+
+  @Test void testRightJoinWithConstantRowOnLeft() {
+    final String sql = "select e.empno, e.ename, c.*"
+        + " from (select 5 as nm) c right join emp e on e.empno = c.nm";
+
+    sql(sql)
+        .withRule(SingleValuesOptimizationRules.JOIN_LEFT_INSTANCE)
+        .check();
+  }
+
+  @Test void testLeftJoinWithConstantRowOnRight() {
+    final String sql = "select e.empno, e.ename, c.*"
+        + " from emp e left join (select 5 as nm) c  on e.empno = c.nm";
+
+    sql(sql)
+        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE)
+        .check();
+  }
+
+  @Test void testInnerJoinWithTimeStampSingleRowOnRight() {
+    final String sql = "select e.empno, e.ename, c.t"
+        + " from emp e inner join (select 7934 as ono, current_timestamp as t) c on e.empno=c.ono";
+    sql(sql)
+        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_PROJECT_INSTANCE)
+        .check();
+  }
+
+  @Test void testLeftJoinWithTimeStampSingleRowOnRight() {
+    final String sql = "select e.empno, e.ename, c.t "
+        + "from emp e left join (select 7934 as ono, current_timestamp as t) c "
+        + "  on e.empno = c.ono";
+    sql(sql)
+        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_PROJECT_INSTANCE)
+        .check();
+  }
+
+  @Test void testCrossJoinWithTimeStampSingleRowOnRight() {
+    final String sql = "select e.empno, e.ename, c.*"
+        + " from emp e cross join (select 5, current_timestamp) c";
+    sql(sql)
+        .withRule(SingleValuesOptimizationRules.JOIN_RIGHT_PROJECT_INSTANCE)
+        .check();
+  }
+  @Test void testInnerJoinWithTimeStampSingleRowOnLeft() {
+    final String sql = "select e.empno, e.ename, c.t"
+        + " from (select 7934 as ono, current_timestamp as t) c inner join emp e on e.empno=c.ono";
+    sql(sql)
+        .withRule(SingleValuesOptimizationRules.JOIN_LEFT_PROJECT_INSTANCE)
+        .check();
+  }
+
+  @Test void testRightJoinWithTimeStampSingleRowOnLeft() {
+    final String sql = "select e.empno, e.ename, c.t "
+        + "from (select 7934 as ono, current_timestamp as t) c right join emp e "
+        + "  on e.empno = c.ono";
+    sql(sql)
+        .withRule(SingleValuesOptimizationRules.JOIN_LEFT_PROJECT_INSTANCE)
+        .check();
+  }
+
+  @Test void testCrossJoinWithTimeStampSingleRowOnLeft() {
+    final String sql = "select e.empno, e.ename, c.*"
+        + " from (select 5, current_timestamp) c cross join emp e ";
+    sql(sql)
+        .withRule(SingleValuesOptimizationRules.JOIN_LEFT_PROJECT_INSTANCE)
         .check();
   }
 

@@ -152,6 +152,10 @@ public abstract class Values extends AbstractRelNode implements Hintable {
     return !isEmpty(values);
   }
 
+  public static boolean isSingleValue(Values values) {
+    return values.tuples.size() == 1;
+  }
+
   public ImmutableList<ImmutableList<RexLiteral>> getTuples(RelInput input) {
     return input.getTuples("tuples");
   }
