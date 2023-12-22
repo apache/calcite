@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.rel.type.RelDataType;
@@ -199,6 +200,8 @@ public class SqlLiteral extends SqlNode {
       return value == null;
     case DECIMAL:
     case DOUBLE:
+    case FLOAT:
+    case REAL:
       return value instanceof BigDecimal;
     case DATE:
       return value instanceof DateString;
@@ -231,6 +234,8 @@ public class SqlLiteral extends SqlNode {
           || (value instanceof SqlSampleSpec);
     case MULTISET:
       return true;
+    case UNKNOWN:
+      return value instanceof String;
     case INTEGER: // not allowed -- use Decimal
     case VARCHAR: // not allowed -- use Char
     case VARBINARY: // not allowed -- use Binary
@@ -291,6 +296,7 @@ public class SqlLiteral extends SqlNode {
       return clazz.cast(NullSentinel.INSTANCE);
     }
     requireNonNull(value, "value");
+    final SqlIntervalQualifier qualifier;
     switch (typeName) {
     case CHAR:
       if (clazz == String.class) {
@@ -348,15 +354,18 @@ public class SqlLiteral extends SqlNode {
     case INTERVAL_MONTH:
       final SqlIntervalLiteral.IntervalValue valMonth =
           (SqlIntervalLiteral.IntervalValue) value;
+      qualifier = valMonth.getIntervalQualifier();
       if (clazz == Long.class) {
         return clazz.cast(valMonth.getSign()
             * SqlParserUtil.intervalToMonths(valMonth));
       } else if (clazz == BigDecimal.class) {
         return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
       } else if (clazz == TimeUnitRange.class) {
-        return clazz.cast(valMonth.getIntervalQualifier().timeUnitRange);
+        return clazz.cast(qualifier.timeUnitRange);
+      } else if (clazz == TimeUnit.class) {
+        return clazz.cast(qualifier.timeUnitRange.startUnit);
       } else if (clazz == SqlIntervalQualifier.class) {
-        return clazz.cast(valMonth.getIntervalQualifier());
+        return clazz.cast(qualifier);
       }
       break;
     case INTERVAL_DAY:
@@ -371,15 +380,18 @@ public class SqlLiteral extends SqlNode {
     case INTERVAL_SECOND:
       final SqlIntervalLiteral.IntervalValue valTime =
           (SqlIntervalLiteral.IntervalValue) value;
+      qualifier = valTime.getIntervalQualifier();
       if (clazz == Long.class) {
         return clazz.cast(valTime.getSign()
             * SqlParserUtil.intervalToMillis(valTime));
       } else if (clazz == BigDecimal.class) {
         return clazz.cast(BigDecimal.valueOf(getValueAs(Long.class)));
       } else if (clazz == TimeUnitRange.class) {
-        return clazz.cast(valTime.getIntervalQualifier().timeUnitRange);
+        return clazz.cast(qualifier.timeUnitRange);
+      } else if (clazz == TimeUnit.class) {
+        return clazz.cast(qualifier.timeUnitRange.startUnit);
       } else if (clazz == SqlIntervalQualifier.class) {
-        return clazz.cast(valTime.getIntervalQualifier());
+        return clazz.cast(qualifier);
       }
       break;
     default:
@@ -585,7 +597,7 @@ public class SqlLiteral extends SqlNode {
     return litmus.succeed();
   }
 
-  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     return SqlMonotonicity.CONSTANT;
   }
 
@@ -658,7 +670,7 @@ public class SqlLiteral extends SqlNode {
     switch (typeName) {
     case DECIMAL:
     case DOUBLE:
-      BigDecimal bd = (BigDecimal) requireNonNull(value);
+      BigDecimal bd = (BigDecimal) requireNonNull(value, "value");
       if (exact) {
         try {
           return bd.intValueExact();
@@ -686,7 +698,7 @@ public class SqlLiteral extends SqlNode {
     switch (typeName) {
     case DECIMAL:
     case DOUBLE:
-      BigDecimal bd = (BigDecimal) requireNonNull(value);
+      BigDecimal bd = (BigDecimal) requireNonNull(value, "value");
       if (exact) {
         try {
           return bd.longValueExact();
@@ -805,7 +817,7 @@ public class SqlLiteral extends SqlNode {
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
       SqlIntervalLiteral.IntervalValue intervalValue =
-          (SqlIntervalLiteral.IntervalValue) requireNonNull(value);
+          (SqlIntervalLiteral.IntervalValue) requireNonNull(value, "value");
       return typeFactory.createSqlIntervalType(
           intervalValue.getIntervalQualifier());
 
@@ -820,6 +832,28 @@ public class SqlLiteral extends SqlNode {
     default:
       throw Util.needToImplement(toString() + ", operand=" + value);
     }
+  }
+
+  /** Creates a literal whose type is unknown until validation time.
+   * The literal has a tag that looks like a type name, but the tag cannot be
+   * resolved until validation time, when we have the mapping from type aliases
+   * to types.
+   *
+   * <p>For example,
+   * <blockquote>{@code
+   * TIMESTAMP '1969-07-20 22:56:00'
+   * }</blockquote>
+   * calls {@code createUnknown("TIMESTAMP", "1969-07-20 22:56:00")}; at
+   * validate time, we may discover that "TIMESTAMP" maps to the type
+   * "TIMESTAMP WITH LOCAL TIME ZONE".
+   *
+   * @param tag Type name, e.g. "TIMESTAMP", "TIMESTAMP WITH LOCAL TIME ZONE"
+   * @param value String encoding of the value
+   * @param pos Parser position
+   */
+  public static SqlLiteral createUnknown(String tag, String value,
+      SqlParserPos pos) {
+    return new SqlUnknownLiteral(tag, value, pos);
   }
 
   @Deprecated // to be removed before 2.0
@@ -840,15 +874,15 @@ public class SqlLiteral extends SqlNode {
       Calendar calendar,
       int precision,
       SqlParserPos pos) {
-    return createTimestamp(TimestampString.fromCalendarFields(calendar),
-        precision, pos);
+    return createTimestamp(SqlTypeName.TIMESTAMP,
+        TimestampString.fromCalendarFields(calendar), precision, pos);
   }
 
   public static SqlTimestampLiteral createTimestamp(
       TimestampString ts,
       int precision,
       SqlParserPos pos) {
-    return new SqlTimestampLiteral(ts, precision, false, pos);
+    return createTimestamp(SqlTypeName.TIMESTAMP, ts, precision, pos);
   }
 
   /** Creates a TIMESTAMP or TIMESTAMP WITH LOCAL TIME ZONE literal. */
@@ -1029,7 +1063,7 @@ public class SqlLiteral extends SqlNode {
       return this;
     }
     assert SqlTypeUtil.inCharFamily(getTypeName());
-    NlsString ns = (NlsString) requireNonNull(value);
+    NlsString ns = (NlsString) requireNonNull(value, "value");
     String s = ns.getValue();
     StringBuilder sb = new StringBuilder();
     int n = s.length();
@@ -1063,10 +1097,7 @@ public class SqlLiteral extends SqlNode {
         sb.append(c);
       }
     }
-    ns = new NlsString(
-        sb.toString(),
-        ns.getCharsetName(),
-        ns.getCollation());
+    ns = new NlsString(sb.toString(), ns.getCharsetName(), ns.getCollation());
     return new SqlCharStringLiteral(ns, getParserPosition());
   }
 
