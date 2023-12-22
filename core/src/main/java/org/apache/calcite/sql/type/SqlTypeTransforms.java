@@ -200,11 +200,10 @@ public abstract class SqlTypeTransforms {
       (opBinding, typeToTransform) -> requireNonNull(
           typeToTransform.getComponentType(),
           () -> "componentType for " + typeToTransform + " in opBinding " + opBinding);
-
-    public static final SqlTypeTransform TO_MULTISET_ELEMENT_TYPE =
-            (opBinding, typeToTransform) -> requireNonNull(
-                    typeToTransform.getComponentType(),
-                    () -> "componentType for " + typeToTransform + " in opBinding " + opBinding);
+  public static final SqlTypeTransform TO_MULTISET_ELEMENT_TYPE =
+      (opBinding, typeToTransform) -> requireNonNull(
+          typeToTransform.getComponentType(),
+          () -> "componentType for " + typeToTransform + " in opBinding " + opBinding);
 
     /**
    * Parameter type-inference transform strategy that wraps a given type

@@ -129,6 +129,7 @@ public enum SqlTypeName {
    * do not flag it 'special' (internal). */
   GEOMETRY(PrecScale.NO_NO, false, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO),
   MEASURE(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
+  FUNCTION(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.FUNCTION),
   SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
   JSON(PrecScale.NO_NO | PrecScale.YES_NO, true, Types.OTHER, null);
 

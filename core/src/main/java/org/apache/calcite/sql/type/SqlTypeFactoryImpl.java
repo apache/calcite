@@ -192,10 +192,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         anyNullable = true;
       }
 
-      if (SqlTypeUtil.canCastFrom(type, resultType, false)) {
+      if (SqlTypeUtil.canCastFrom(type, resultType, mappingRule)) {
         resultType = type;
       } else {
-        if (!SqlTypeUtil.canCastFrom(resultType, type, false)) {
+        if (!SqlTypeUtil.canCastFrom(resultType, type, mappingRule)) {
           return null;
         }
       }
@@ -522,8 +522,6 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
           resultType = createSqlType(type.getSqlTypeName(), precision);
         }
       } else {
-        // TODO:  datetime precision details; for now we let
-        // leastRestrictiveByCast handle it
         return null;
       }
     }
