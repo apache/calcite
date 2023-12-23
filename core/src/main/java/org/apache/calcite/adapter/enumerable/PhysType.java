@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.rel.RelCollation;
@@ -49,6 +50,9 @@ public interface PhysType {
    * <p>For instance, when the java row type is {@code Object[]}, the java
    * field type is {@code Object} even if the field is not nullable. */
   Type getJavaFieldType(int field);
+
+  /** Returns the type factory. */
+  JavaTypeFactory getTypeFactory();
 
   /** Returns the physical type of a field. */
   PhysType field(int ordinal);
@@ -111,6 +115,24 @@ public interface PhysType {
    * }</pre></blockquote>
    */
   Expression generateAccessor(List<Integer> fields);
+
+  /** Similar to {@link #generateAccessor(List)}, but if one of the fields is <code>null</code>,
+   * it will return <code>null</code>.
+   *
+   * <p>For example:
+   *
+   * <blockquote><pre>
+   * new Function1&lt;Employee, Object[]&gt; {
+   *    public Object[] apply(Employee v1) {
+   *        return v1.&lt;fieldN&gt; == null
+   *            ? null
+   *            : v1.&lt;fieldM&gt; == null
+   *                ? null
+   *                : FlatLists.of(v1.&lt;fieldN&gt;, v1.&lt;fieldM&gt;);
+   *    }
+   * }</pre></blockquote>
+   */
+  Expression generateAccessorWithoutNulls(List<Integer> fields);
 
   /** Generates a selector for the given fields from an expression, with the
    * default row format. */
@@ -175,6 +197,12 @@ public interface PhysType {
    * whole element. */
   Expression generateComparator(
       RelCollation collation);
+
+  /** Similar to {@link #generateComparator(RelCollation)}, but with some specificities for
+   * MergeJoin algorithm: it will not consider two <code>null</code> values as equal.
+   *
+   */
+  Expression generateMergeJoinComparator(RelCollation collation);
 
   /** Returns a expression that yields a comparer, or null if this type
    * is comparable. */
