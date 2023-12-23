@@ -57,6 +57,8 @@ public interface RexBiVisitor<R, P> {
 
   R visitPatternFieldRef(RexPatternFieldRef ref, P arg);
 
+  R visitLambda(RexLambda lambda, P arg);
+
   /** Visits a list and writes the results to another list. */
   default void visitList(Iterable<? extends RexNode> exprs, P arg,
       List<R> out) {

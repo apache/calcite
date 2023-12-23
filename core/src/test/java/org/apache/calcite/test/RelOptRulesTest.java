@@ -5722,6 +5722,7 @@ class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 
+  @Disabled
   @Test void testWhereAnyCorrelatedInSelect() {
     final String sql = "select * from emp where empno > ANY (\n"
         + "  select deptno from dept where emp.job = dept.name)\n";

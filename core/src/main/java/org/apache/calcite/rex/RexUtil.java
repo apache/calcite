@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
@@ -30,7 +31,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
-import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -40,6 +40,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ControlFlowException;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.RangeSets;
@@ -62,13 +63,16 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
+import static org.apache.calcite.rel.type.RelDataType.PRECISION_NOT_SPECIFIED;
 
 import static java.util.Objects.requireNonNull;
 
@@ -79,7 +83,7 @@ public class RexUtil {
 
   /** Executor for a bit of constant reduction. The user can pass in another executor. */
   public static final RexExecutor EXECUTOR =
-      new RexExecutorImpl(Schemas.createDataContext(castNonNull(null), null));
+      new RexExecutorImpl(DataContexts.EMPTY);
 
   private RexUtil() {
   }
@@ -148,7 +152,7 @@ public class RexUtil {
       if (lhsType.equals(rhsType)) {
         castExps.add(rhsExp);
       } else {
-        castExps.add(rexBuilder.makeCast(lhsType, rhsExp));
+        castExps.add(rexBuilder.makeCast(lhsType, rhsExp, true, false));
       }
     }
     return castExps;
@@ -640,7 +644,7 @@ public class RexUtil {
               rexBuilder.makeCall(SqlStdOperatorTable.NOT_EQUALS, ref,
                   rexBuilder.makeLiteral(range.lowerEndpoint(),
                       type, true, true)))
-          .collect(Util.toImmutableList());
+          .collect(toImmutableList());
       orList.add(composeConjunction(rexBuilder, list));
     } else {
       final RangeSets.Consumer<C> consumer =
@@ -719,6 +723,14 @@ public class RexUtil {
     @Override public Boolean visitFieldAccess(RexFieldAccess fieldAccess) {
       // "<expr>.FIELD" is constant iff "<expr>" is constant.
       return fieldAccess.getReferenceExpr().accept(this);
+    }
+
+    @Override public Boolean visitLambda(RexLambda lambda) {
+      return false;
+    }
+
+    @Override public Boolean visitLambdaRef(RexLambdaRef lambdaRef) {
+      return false;
     }
   }
 
@@ -1652,7 +1664,8 @@ public class RexUtil {
       if (source.getScale() != -1 && source.getScale() != 0) {
         sourceLength += source.getScale() + 1; // include decimal mark
       }
-      return target.getPrecision() >= sourceLength;
+      final int targetPrecision = target.getPrecision();
+      return targetPrecision == PRECISION_NOT_SPECIFIED || targetPrecision >= sourceLength;
     }
     // Return FALSE by default
     return false;
@@ -2070,7 +2083,7 @@ public class RexUtil {
     case GREATER_THAN:
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN_OR_EQUAL:
-      final SqlOperator op = op(call.getKind().reverse());
+      final SqlOperator op = requireNonNull(call.getOperator().reverse());
       return rexBuilder.makeCall(op, Lists.reverse(call.getOperands()));
     default:
       return null;
@@ -2313,6 +2326,28 @@ public class RexUtil {
       }
     }.visitEach(nodes);
     return occurrences;
+  }
+
+  /**
+   * Given some expressions, gets the indices of the non-constant ones.
+   */
+  public static ImmutableBitSet getNonConstColumns(List<RexNode> expressions) {
+    ImmutableBitSet cols = ImmutableBitSet.range(0, expressions.size());
+    return getNonConstColumns(cols, expressions);
+  }
+
+  /**
+   * Given some expressions and columns, gets the indices of the non-constant ones.
+   */
+  public static ImmutableBitSet getNonConstColumns(
+      ImmutableBitSet columns, List<RexNode> expressions) {
+    ImmutableBitSet.Builder nonConstCols = ImmutableBitSet.builder();
+    for (int col : columns) {
+      if (!isLiteral(expressions.get(col), true)) {
+        nonConstCols.set(col);
+      }
+    }
+    return nonConstCols.build();
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -2605,8 +2640,9 @@ public class RexUtil {
       return list;
     }
 
-    private static Map<RexNode, RexNode> commonFactors(List<RexNode> nodes) {
-      final Map<RexNode, RexNode> map = new HashMap<>();
+    private static LinkedHashMap<RexNode, RexNode> commonFactors(List<RexNode> nodes) {
+      // make sure the result is in deterministic order
+      final LinkedHashMap<RexNode, RexNode> map = new LinkedHashMap<>();
       int i = 0;
       for (RexNode node : nodes) {
         if (i++ == 0) {

@@ -669,6 +669,12 @@ public enum SqlKind {
    */
   LOCAL_REF,
 
+  /** Reference to lambda expression parameter.
+   *
+   * <p>(Only used at the RexNode level.)
+   */
+  LAMBDA_REF,
+
   /**
    * Reference to correlation variable.
    *
