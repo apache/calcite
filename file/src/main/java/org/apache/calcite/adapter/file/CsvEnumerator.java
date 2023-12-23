@@ -29,9 +29,8 @@ import org.apache.calcite.util.trace.CalciteLogger;
 
 import org.apache.commons.lang3.time.FastDateFormat;
 
-import au.com.bytecode.opencsv.CSVReader;
-
 import com.google.common.annotations.VisibleForTesting;
+import com.opencsv.CSVReader;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.LoggerFactory;

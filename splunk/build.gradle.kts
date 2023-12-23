@@ -28,7 +28,7 @@ dependencies {
     api("org.apache.calcite.avatica:avatica-core")
     api("org.slf4j:slf4j-api")
 
-    implementation("net.sf.opencsv:opencsv")
+    implementation("com.opencsv:opencsv")
 
     testImplementation(project(":testkit"))
     testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")

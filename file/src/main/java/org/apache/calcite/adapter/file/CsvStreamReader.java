@@ -22,8 +22,9 @@ import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
 
-import au.com.bytecode.opencsv.CSVParser;
-import au.com.bytecode.opencsv.CSVReader;
+import com.opencsv.CSVParser;
+import com.opencsv.CSVParserBuilder;
+import com.opencsv.CSVReader;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -89,9 +90,13 @@ class CsvStreamReader extends CSVReader implements Closeable {
             .setBufferSize(4096)
             .get();
 
-    this.parser =
-        new CSVParser(separator, quoteChar, escape, strictQuotes,
-            ignoreLeadingWhiteSpace);
+    this.parser = new CSVParserBuilder()
+      .withSeparator(separator)
+      .withQuoteChar(quoteChar)
+      .withEscapeChar(escape)
+      .withStrictQuotes(strictQuotes)
+      .withIgnoreQuotations(ignoreLeadingWhiteSpace)
+      .build();
     this.skipLines = line;
     try {
       // wait for tailer to capture data
@@ -137,7 +142,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
    *
    * @throws IOException if bad things happen during the read
    */
-  private String getNextLine() throws IOException {
+  protected String getNextLine() throws IOException {
     return contentQueue.poll();
   }
 
