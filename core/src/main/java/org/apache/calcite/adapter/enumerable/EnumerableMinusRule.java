@@ -20,6 +20,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.logical.LogicalMinus;
 
 /**
@@ -41,7 +42,7 @@ class EnumerableMinusRule extends ConverterRule {
   }
 
   @Override public RelNode convert(RelNode rel) {
-    final LogicalMinus minus = (LogicalMinus) rel;
+    final Minus minus = (Minus) rel;
     final EnumerableConvention out = EnumerableConvention.INSTANCE;
     final RelTraitSet traitSet =
         rel.getTraitSet().replace(
