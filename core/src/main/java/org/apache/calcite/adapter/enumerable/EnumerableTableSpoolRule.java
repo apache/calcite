@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.TableSpool;
 import org.apache.calcite.rel.logical.LogicalTableSpool;
 
 /**
@@ -45,7 +46,7 @@ public class EnumerableTableSpoolRule extends ConverterRule {
   }
 
   @Override public RelNode convert(RelNode rel) {
-    LogicalTableSpool spool = (LogicalTableSpool) rel;
+    TableSpool spool = (TableSpool) rel;
     return EnumerableTableSpool.create(
         convert(spool.getInput(),
             spool.getInput().getTraitSet().replace(EnumerableConvention.INSTANCE)),

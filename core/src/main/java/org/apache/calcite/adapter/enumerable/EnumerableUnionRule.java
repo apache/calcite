@@ -20,6 +20,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.util.Util;
 
@@ -44,11 +45,11 @@ class EnumerableUnionRule extends ConverterRule {
   }
 
   @Override public RelNode convert(RelNode rel) {
-    final LogicalUnion union = (LogicalUnion) rel;
+    final Union union = (Union) rel;
     final EnumerableConvention out = EnumerableConvention.INSTANCE;
     final RelTraitSet traitSet = rel.getCluster().traitSet().replace(out);
-    final List<RelNode> newInputs = Util.transform(
-        union.getInputs(), n -> convert(n, traitSet));
+    final List<RelNode> newInputs =
+        Util.transform(union.getInputs(), n -> convert(n, traitSet));
     return new EnumerableUnion(rel.getCluster(), traitSet,
         newInputs, union.all);
   }
