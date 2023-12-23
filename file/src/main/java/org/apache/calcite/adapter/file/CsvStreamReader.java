@@ -25,6 +25,7 @@ import org.apache.commons.io.input.TailerListenerAdapter;
 import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
+import com.opencsv.ICSVParser;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -54,12 +55,12 @@ class CsvStreamReader extends CSVReader implements Closeable {
 
   CsvStreamReader(Source source) {
     this(source,
-        CSVParser.DEFAULT_SEPARATOR,
-        CSVParser.DEFAULT_QUOTE_CHARACTER,
-        CSVParser.DEFAULT_ESCAPE_CHARACTER,
+        ICSVParser.DEFAULT_SEPARATOR,
+        ICSVParser.DEFAULT_QUOTE_CHARACTER,
+        ICSVParser.DEFAULT_ESCAPE_CHARACTER,
         DEFAULT_SKIP_LINES,
-        CSVParser.DEFAULT_STRICT_QUOTES,
-        CSVParser.DEFAULT_IGNORE_LEADING_WHITESPACE);
+        ICSVParser.DEFAULT_STRICT_QUOTES,
+        ICSVParser.DEFAULT_IGNORE_LEADING_WHITESPACE);
   }
 
   /**
