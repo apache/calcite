@@ -12376,6 +12376,10 @@ public class SqlOperatorTest {
     f.checkScalar("FORMAT_DATE('The date is: %x', DATE '2008-12-25')",
         "The date is: 12/25/08",
         "VARCHAR(2000) NOT NULL");
+    f.checkNull("FORMAT_DATE('%x', CAST(NULL AS DATE))");
+    f.checkNull("FORMAT_DATE('%b-%d-%Y', CAST(NULL AS DATE))");
+    f.checkNull("FORMAT_DATE('%b %Y', CAST(NULL AS DATE))");
+    f.checkNull("FORMAT_DATE(NULL, CAST(NULL AS DATE))");
   }
 
   @Test void testFormatTimestamp() {
@@ -12439,6 +12443,10 @@ public class SqlOperatorTest {
     f.checkScalar("PARSE_DATE('%F', '2022-06-01')",
         "2022-06-01",
         "DATE NOT NULL");
+    f.checkNull("PARSE_DATE('%F', CAST(NULL AS DATE))");
+    f.checkNull("PARSE_DATE('%Y%m%d', CAST(NULL AS DATE))");
+    f.checkNull("PARSE_DATE('%x', CAST(NULL AS DATE))");
+    f.checkNull("PARSE_DATE(NULL, CAST(NULL AS DATE))");
   }
 
   @Test void testParseDatetime() {
@@ -12478,6 +12486,11 @@ public class SqlOperatorTest {
     f.checkScalar("PARSE_TIME('%I:%M:%S %p', '2:23:38 pm')",
         "14:23:38",
         "TIME(0) NOT NULL");
+    f.checkNull("PARSE_TIME('%I:%M:%S', CAST(NULL AS TIME))");
+    f.checkNull("PARSE_TIME('%T', CAST(NULL AS TIME))");
+    f.checkNull("PARSE_TIME('%H', CAST(NULL AS TIME))");
+    f.checkNull("PARSE_TIME('%I:%M:%S %p', CAST(NULL AS TIME))");
+    f.checkNull("PARSE_TIME(NULL, CAST(NULL AS TIME))");
   }
 
   @Test void testParseTimestamp() {
