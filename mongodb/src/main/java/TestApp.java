@@ -48,41 +48,41 @@ public class TestApp {
 
     // Make a calcite connection of which model is "model-mongo.json"
     // and Execute queries
-    System.out.println("-------------SCAN--------------");
+//    System.out.println("-------------SCAN--------------");
     Scanner sc = new Scanner(System.in);
     System.out.println("Please write a query statement.");
 
-    System.out.println("-------------READ INPUT QUERY--------------");
+//    System.out.println("-------------READ INPUT QUERY--------------");
     String query = sc.nextLine();
 
     while (!query.equals("q")) {
-      System.out.println("-------------CONNECTION WITH MODEL--------------");
+//      System.out.println("-------------CONNECTION WITH MODEL--------------");
       Connection connection = DriverManager.getConnection("jdbc:calcite:model=" + absolutePath);
 
-      System.out.println("-------------CONNECTION WITH CALCITE--------------");
+//      System.out.println("-------------CONNECTION WITH CALCITE--------------");
 
       try (
           CalciteConnection calciteConnection = (CalciteConnection) connection;
       ) {
-        System.out.println("-------------CREATE STATEMENT--------------");
+//        System.out.println("-------------CREATE STATEMENT--------------");
         Statement statement = calciteConnection.createStatement();
 
-        System.out.println("-------------EXECUTE QUERY--------------");
+//        System.out.println("-------------EXECUTE QUERY--------------");
         ResultSet rs = statement.executeQuery(query);
 
         // Get the metadata of the result set
-        System.out.println("-------------GET METADATA--------------");
+//        System.out.println("-------------GET METADATA--------------");
         ResultSetMetaData rsmd = rs.getMetaData();
 //				ResultSetMetaData rsmdRedis = rsRedis.getMetaData();
 
-        System.out.println("-------------CREATE COLUMNS ARRAY--------------");
+//        System.out.println("-------------CREATE COLUMNS ARRAY--------------");
         List<String> columns = new ArrayList<String>(rsmd.getColumnCount());
 
         // Add the column names of the result set to a list
-        System.out.println("\n=== Column names ===\n");
+//        System.out.println("\n=== Column names ===\n");
         for (int i = 1; i <= rsmd.getColumnCount(); i++) {
           // Print column names
-          System.out.println(rsmd.getColumnName(i));
+//          System.out.println(rsmd.getColumnName(i));
           columns.add(rsmd.getColumnName(i));
         }
 
@@ -105,6 +105,8 @@ public class TestApp {
   }
 }
 
+
+
 // select * from EMPLOYEES2 limit 2
 // select * from EMPLOYEES2 where SALARY < 5000
 // select * from EMPLOYEES2 WHERE EMP_NO IN (20, 30)
@@ -120,7 +122,12 @@ public class TestApp {
 
 // DEBUG WITH THIS!
 //select * from DEPARTMENTS2 WHERE DEPT_NO LIKE 10
-// select * from EMPLOYEES2 where FIRST_NAME like '%n%'
+// select * from EMPLOYEES2 where FIRST_NAME like '%n_'
 // select * from EMPLOYEES2 where LAST_NAME like '%oe'
+// select * from EMPLOYEES2 where LAST_NAME = 'Doe'
 // select * from DEPARTMENTS2 where DEPT_NAME like '%es'
 // select * from DEPARTMENTS2 where DEPT_NAME like 'Sales'
+
+
+// SELECT * FROM EMPLOYEES2 WHERE FIRST_NAME LIKE 'J%'
+// SELECT * FROM EMPLOYEES2 WHERE FIRST_NAME LIKE 'Viole_'

@@ -311,7 +311,6 @@ public class MongoFilter extends Filter implements MongoRel {
       case GREATER_THAN_OR_EQUAL:
         return translateBinary("$gte", "$lte", (RexCall) node);
       case LIKE:
-//        System.out.println("translateMatch2 안");
         return translateLike((RexCall) node);
 
       default:
