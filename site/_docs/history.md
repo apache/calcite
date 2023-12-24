@@ -1802,7 +1802,7 @@ and resolves 47 issues.
 
 This release upgrades
 <a href="https://issues.apache.org/jira/browse/CALCITE-4950">log4j2 to 2.17.0</a>
-to fix security vulnerabiities such as
+to fix security vulnerabilities such as
 <a href="http://cve.mitre.org/cgi-bin/cvename.cgi?name=2021-44228">CVE-2021-44228</a>
 and
 <a href="http://cve.mitre.org/cgi-bin/cvename.cgi?name=2021-45105">CVE-2021-45105</a>.
