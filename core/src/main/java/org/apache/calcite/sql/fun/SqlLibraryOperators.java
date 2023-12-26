@@ -1993,15 +1993,4 @@ public abstract class SqlLibraryOperators {
                   SqlTypeFamily.INTEGER),
               number -> number == 2),
           SqlFunctionCategory.NUMERIC);
-
-  @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction SPLIT_WITH_INDEX = new SqlFunction(
-      "SPLIT_WITH_INDEX",
-      SqlKind.OTHER_FUNCTION,
-      ReturnTypes.ARG0_NULLABLE_VARYING,
-      null,
-      OperandTypes.or(OperandTypes.STRING_STRING_INTEGER,
-          OperandTypes.NULL_STRING_INTEGER),
-      SqlFunctionCategory.STRING);
-
 }
