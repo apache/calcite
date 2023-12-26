@@ -274,8 +274,13 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction IFNULL = NVL.withName("IFNULL");
 
+  /** The "LEN(string)" function. */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction LEN =
+      SqlStdOperatorTable.CHAR_LENGTH.withName("LEN");
+
   /** The "LENGTH(string)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, SNOWFLAKE})
   public static final SqlFunction LENGTH =
       SqlStdOperatorTable.CHAR_LENGTH.withName("LENGTH");
 

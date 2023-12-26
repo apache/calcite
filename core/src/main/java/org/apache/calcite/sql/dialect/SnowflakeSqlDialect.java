@@ -43,6 +43,11 @@ public class SnowflakeSqlDialect extends SqlDialect {
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
       final int rightPrec) {
     switch (call.getKind()) {
+    case CHAR_LENGTH:
+      SqlCall lengthCall = SqlLibraryOperators.LENGTH
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, lengthCall, leftPrec, rightPrec);
+      break;
     case ENDS_WITH:
       SqlCall endsWithCall = SqlLibraryOperators.ENDSWITH
           .createCall(SqlParserPos.ZERO, call.getOperandList());
