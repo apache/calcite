@@ -201,6 +201,14 @@ public enum FormatElementEnum implements FormatElement {
       // TODO: how to support timezones?
     }
   },
+  W("W", "The week number of the month (Sunday as the first day of the week) as a decimal "
+      + "number (1-5)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      sb.append(String.format(Locale.ROOT, "%d", calendar.get(Calendar.WEEK_OF_MONTH)));
+    }
+  },
   WW("w", "The week number of the year (Sunday as the first day of the week) as a decimal "
       + "number (00-53)") {
     @Override public void format(StringBuilder sb, Date date) {
