@@ -3333,11 +3333,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   @Override public void validateLiteral(SqlLiteral literal) {
     switch (literal.getTypeName()) {
     case DECIMAL:
+      // Accept any decimal value that does not exceed the max
+      // precision of the type system.
       final RelDataTypeSystem typeSystem = getTypeFactory().getTypeSystem();
-      final int precision = typeSystem.getMaxNumericPrecision();
-      BigDecimal bd = literal.getValueAs(BigDecimal.class);
-      BigDecimal simpler = bd.stripTrailingZeros();
-      if (simpler.precision() > precision) {
+      final int maxPrecision = typeSystem.getMaxNumericPrecision();
+      final BigDecimal bd = literal.getValueAs(BigDecimal.class);
+      final BigDecimal noTrailingZeros = bd.stripTrailingZeros();
+      // If we don't strip trailing zeros we may reject values such as 1.000....0.
+      if (noTrailingZeros.precision() > maxPrecision) {
         throw newValidationError(literal,
             RESOURCE.numberLiteralOutOfRange(bd.toString()));
       }

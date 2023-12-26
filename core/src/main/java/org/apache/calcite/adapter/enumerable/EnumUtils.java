@@ -414,17 +414,13 @@ public class EnumUtils {
         return Expressions.convertChecked(
             operand, toPrimitive.getPrimitiveClass());
       }
-      if (fromType == BigDecimal.class
-          && (toPrimitive == Primitive.INT
-          || toPrimitive == Primitive.CHAR
-          || toPrimitive == Primitive.SHORT
-          || toPrimitive == Primitive.LONG)) {
+      if (fromType == BigDecimal.class && toPrimitive.isFixedNumeric()) {
         // Conversion from decimal to an exact type
         ConstantExpression zero = Expressions.constant(0);
         // Elsewhere Calcite uses this rounding mode implicitly, so we have to be consistent.
         // E.g., this is the rounding mode used by BigDecimal.longValue().
         Expression rounding = Expressions.constant(RoundingMode.DOWN);
-        // rounded = operand.setScale(0, RoundingMode.FLOOR);
+        // rounded = operand.setScale(0, RoundingMode.DOWN);
         Expression rounded = Expressions.call(operand, "setScale", zero, rounding);
         // return rounded.to*ValueExact()
         return Expressions.unboxExact(rounded, toPrimitive);
