@@ -1926,10 +1926,10 @@ public abstract class SqlImplementor {
           && dialect.getConformance().isHavingAlias() || keepColumnAlias) {
         return true;
       }
-//      if (expectedClauses.contains(Clause.QUALIFY)
-//          && rel.getInput(0) instanceof Aggregate) {
-//        return true;
-//      }
+      if (expectedClauses.contains(Clause.QUALIFY)
+          && rel.getInput(0) instanceof Aggregate) {
+        return true;
+      }
       return false;
     }
 
