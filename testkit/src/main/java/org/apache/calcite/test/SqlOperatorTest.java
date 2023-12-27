@@ -3591,6 +3591,9 @@ public class SqlOperatorTest {
   @Test void testLikeEscape() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.LIKE, VmName.EXPAND);
+    f.checkBoolean("'a\\c' like 'a#\\c' escape '#'", true);
+    f.checkBoolean("'a\\\\c' like 'a#\\c' escape '#'", false);
+    f.checkBoolean("'a\\c' like 'a#\\\\c' escape '#'", false);
     f.checkBoolean("'a_c' like 'a#_c' escape '#'", true);
     f.checkBoolean("'axc' like 'a#_c' escape '#'", false);
     f.checkBoolean("'a_c' like 'a\\_c' escape '\\'", true);
