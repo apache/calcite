@@ -56,6 +56,7 @@ dependencies {
     implementation("net.hydromatic:aggdesigner-algorithm")
     implementation("org.apache.commons:commons-dbcp2")
     implementation("org.apache.commons:commons-lang3")
+    implementation("org.apache.commons:commons-math3")
     implementation("org.checkerframework:checker")
     implementation("org.checkerframework:checker-qual")
     implementation("commons-io:commons-io")
