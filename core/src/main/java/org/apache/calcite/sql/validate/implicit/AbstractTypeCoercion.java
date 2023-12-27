@@ -478,8 +478,8 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     }
 
     if (null != resultType) {
-      resultType = factory.createTypeWithNullability(resultType,
-          type1.isNullable() || type2.isNullable());
+      resultType =
+          factory.createTypeWithNullability(resultType, type1.isNullable() || type2.isNullable());
     }
 
     return resultType;
