@@ -25,9 +25,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexVisitorImpl;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.calcite.util.Util;
 
 /**
  * Utility class for rel2sql package.
@@ -44,8 +42,7 @@ public class RelToSqlUtils {
       Integer rexOperandIndex) {
     if (rel instanceof Project) {
       return (((Project) rel).getProjects().size() - 1) >= rexOperandIndex
-          && (((Project) rel).getProjects().get(rexOperandIndex) instanceof RexOver
-          || isAnalyticalRex(((Project) rel).getProjects().get(rexOperandIndex)));
+          && isAnalyticalRex(((Project) rel).getProjects().get(rexOperandIndex));
     } else {
       if (rel.getInputs().size() > 0) {
         return isOperandAnalyticalInFollowingProject(rel.getInput(0), rexOperandIndex);
@@ -56,9 +53,12 @@ public class RelToSqlUtils {
 
   /** Returns whether an Analytical Function is present in filter condition. */
   protected boolean hasAnalyticalFunctionInFilter(Filter rel, RelNode input) {
-    AnalyticalFunFinder analyticalFunFinder = new AnalyticalFunFinder(true, input);
-    rel.getCondition().accept(analyticalFunFinder);
-    return analyticalFunFinder.isRexOverPresentList.contains(true);
+    try {
+      rel.getCondition().accept(new AnalyticalFunFinder(true, input));
+      return false;
+    } catch (Util.FoundOne e) {
+      return true;
+    }
   }
 
   protected boolean hasAnalyticalFunctionInJoin(RelNode input) {
@@ -99,31 +99,32 @@ public class RelToSqlUtils {
 
   /** Walks over an expression and determines whether it is RexOver.
    */
-  private static class AnalyticalFunFinder extends RexVisitorImpl<RexNode> {
+  private static class AnalyticalFunFinder extends RexVisitorImpl<Void> {
 
     private RelNode inputRel;
-    public List<Boolean> isRexOverPresentList = new ArrayList<>();
+
     protected AnalyticalFunFinder(boolean deep, RelNode input) {
       super(deep);
       this.inputRel = input;
     }
 
-    @Override public RexNode visitInputRef(RexInputRef inputRef) {
+    @Override public Void visitInputRef(RexInputRef inputRef) {
       int index = inputRef.getIndex();
-      isRexOverPresentList.add(isOperandAnalyticalInFollowingProject(inputRel, index));
-      return super.visitInputRef(inputRef);
+      if (isOperandAnalyticalInFollowingProject(inputRel, index)) {
+        throw Util.FoundOne.NULL;
+      }
+      return null;
     }
 
-    @Override public RexNode visitOver(RexOver over) {
-      isRexOverPresentList.add(true);
-      return super.visitOver(over);
+    @Override public Void visitOver(RexOver over) {
+       throw Util.FoundOne.NULL;
     }
 
-    @Override public RexNode visitCall(RexCall rexCall) {
+    @Override public Void visitCall(RexCall rexCall) {
       for (RexNode node : rexCall.getOperands()) {
         node.accept(this);
       }
-      return super.visitCall(rexCall);
+      return null;
     }
 
   }
