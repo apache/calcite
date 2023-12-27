@@ -74,6 +74,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -1341,17 +1344,21 @@ public class RexBuilder {
    * otherwise creates a disjunction, "arg = point0 OR arg = point1 OR ...". */
   public RexNode makeIn(RexNode arg, List<? extends RexNode> ranges) {
     if (areAssignable(arg, ranges)) {
-      final Sarg sarg = toSarg(Comparable.class, ranges, false);
+      final Sarg sarg = toSarg(Comparable.class, ranges, RexUnknownAs.UNKNOWN);
       if (sarg != null) {
-        final RexNode range0 = ranges.get(0);
-        return makeCall(SqlStdOperatorTable.SEARCH,
-            arg,
-            makeSearchArgumentLiteral(sarg, range0.getType()));
+        final List<RelDataType> types = ranges.stream()
+            .map(RexNode::getType)
+            .collect(Collectors.toList());
+        RelDataType sargType =
+            requireNonNull(typeFactory.leastRestrictive(types),
+                () -> "Can't find leastRestrictive type for SARG among " + types);
+        return makeCall(SqlStdOperatorTable.SEARCH, arg,
+            makeSearchArgumentLiteral(sarg, sargType));
       }
     }
     return RexUtil.composeDisjunction(this, ranges.stream()
         .map(r -> makeCall(SqlStdOperatorTable.EQUALS, arg, r))
-        .collect(Util.toImmutableList()));
+        .collect(toImmutableList()));
   }
 
   /** Returns whether and argument and bounds are have types that are
@@ -1380,11 +1387,15 @@ public class RexBuilder {
         && upperValue != null
         && areAssignable(arg, Arrays.asList(lower, upper))) {
       final Sarg sarg =
-          Sarg.of(false,
+          Sarg.of(RexUnknownAs.UNKNOWN,
               ImmutableRangeSet.<Comparable>of(
                   Range.closed(lowerValue, upperValue)));
+      List<RelDataType> types = ImmutableList.of(lower.getType(), upper.getType());
+      RelDataType sargType =
+          requireNonNull(typeFactory.leastRestrictive(types),
+              () -> "Can't find leastRestrictive type for SARG among " + types);
       return makeCall(SqlStdOperatorTable.SEARCH, arg,
-          makeSearchArgumentLiteral(sarg, lower.getType()));
+          makeSearchArgumentLiteral(sarg, sargType));
     }
     return makeCall(SqlStdOperatorTable.AND,
         makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, arg, lower),
@@ -1395,7 +1406,7 @@ public class RexBuilder {
    * not possible. */
   @SuppressWarnings({"BetaApi", "UnstableApiUsage"})
   private static <C extends Comparable<C>> @Nullable Sarg<C> toSarg(Class<C> clazz,
-      List<? extends RexNode> ranges, boolean containsNull) {
+      List<? extends RexNode> ranges, RexUnknownAs unknownAs) {
     if (ranges.isEmpty()) {
       // Cannot convert an empty list to a Sarg (by this interface, at least)
       // because we use the type of the first element.
@@ -1409,7 +1420,7 @@ public class RexBuilder {
       }
       rangeSet.add(Range.singleton(value));
     }
-    return Sarg.of(containsNull, rangeSet);
+    return Sarg.of(unknownAs, rangeSet);
   }
 
   private static <C extends Comparable<C>> @Nullable C toComparable(Class<C> clazz,
@@ -1698,11 +1709,12 @@ public class RexBuilder {
    * {@link org.apache.calcite.rex.RexLiteral#valueMatchesType}.
    *
    * <p>Returns null if and only if {@code o} is null. */
-  private static @PolyNull Object clean(@PolyNull Object o, RelDataType type) {
+  private @PolyNull Object clean(@PolyNull Object o, RelDataType type) {
     if (o == null) {
       return o;
-    } else if (type instanceof BasicSqlTypeWithFormat) {
-      return o;
+    }
+    if (o instanceof Sarg) {
+      return makeSearchArgumentLiteral((Sarg) o, type);
     }
     switch (type.getSqlTypeName()) {
     case TINYINT:
