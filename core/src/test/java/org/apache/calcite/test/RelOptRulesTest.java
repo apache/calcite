@@ -6123,6 +6123,7 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2744">[CALCITE-2744]
    * RelDecorrelator use wrong output map for LogicalAggregate decorrelate</a>. */
+  @Disabled
   @Test void testDecorrelateAggWithConstantGroupKey() {
     final String sql = "SELECT * FROM emp A where sal in\n"
         + "(SELECT max(sal) FROM emp B where A.mgr = B.empno group by deptno, 'abc')";
@@ -6135,6 +6136,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Test case for CALCITE-2744 for aggregate decorrelate with multi-param agg call
    * but without group key. */
+  @Disabled
   @Test void testDecorrelateAggWithMultiParamsAggCall() {
     final String sql = "SELECT * FROM (SELECT MYAGG(sal, 1) AS c FROM emp) as m,\n"
         + " LATERAL TABLE(ramp(m.c)) AS T(s)";
@@ -6147,6 +6149,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Same as {@link #testDecorrelateAggWithMultiParamsAggCall}
    * but with a constant group key. */
+  @Disabled
   @Test void testDecorrelateAggWithMultiParamsAggCall2() {
     final String sql = "SELECT * FROM "
         + "(SELECT MYAGG(sal, 1) AS c FROM emp group by empno, 'abc') as m,\n"

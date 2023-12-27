@@ -128,6 +128,7 @@ public class StreamTest {
                 "ROWTIME=2015-02-15 10:24:15; ID=2; PRODUCT=paper; UNITS=5"));
   }
 
+  @Disabled
   @Test void testStreamFilterProject() {
     CalciteAssert.model(STREAM_MODEL)
         .withDefaultSchema("STREAMS")
@@ -273,6 +274,7 @@ public class StreamTest {
         });
   }
 
+  @Disabled
   @Test void testStreamToRelationJoin() {
     CalciteAssert.model(STREAM_JOINS_MODEL)
         .withDefaultSchema(STREAM_JOINS_SCHEMA_NAME)

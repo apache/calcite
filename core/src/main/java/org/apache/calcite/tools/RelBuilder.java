@@ -69,6 +69,7 @@ import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -2830,7 +2831,11 @@ public class RelBuilder {
     return builder.build();
   }
 
-  /** Creates a limit without a sort. */
+  /** Creates a limit and/or offset without a sort.
+   *
+   * @param offset Number of rows to skip; non-positive means don't skip any
+   * @param fetch Maximum number of rows to fetch; negative means no limit
+   */
   public RelBuilder limit(int offset, int fetch) {
     return sortLimit(offset, fetch, ImmutableList.of());
   }
@@ -2898,12 +2903,37 @@ public class RelBuilder {
    */
   public RelBuilder sortLimit(int offset, int fetch,
       Iterable<? extends RexNode> nodes) {
-    final Registrar registrar = new Registrar(fields());
+    final @Nullable RexNode offsetNode = offset <= 0 ? null : literal(offset);
+    final @Nullable RexNode fetchNode = fetch < 0 ? null : literal(fetch);
+    return sortLimit(offsetNode, fetchNode, nodes);
+  }
+
+  /** Creates a {@link Sort} by a list of expressions, with limitNode and offsetNode.
+   *
+   * @param offsetNode RexLiteral means number of rows to skip is deterministic,
+   *                   RexDynamicParam means number of rows to skip is dynamic.
+   * @param fetchNode  RexLiteral means maximum number of rows to fetch is deterministic,
+   *                   RexDynamicParam mean maximum number is dynamic.
+   * @param nodes      Sort expressions
+   */
+  public RelBuilder sortLimit(@Nullable RexNode offsetNode, @Nullable RexNode fetchNode,
+      Iterable<? extends RexNode> nodes) {
+    if (offsetNode != null) {
+      if (!(offsetNode instanceof RexLiteral || offsetNode instanceof RexDynamicParam)) {
+        throw new IllegalArgumentException("OFFSET node must be RexLiteral or RexDynamicParam");
+      }
+    }
+    if (fetchNode != null) {
+      if (!(fetchNode instanceof RexLiteral || fetchNode instanceof RexDynamicParam)) {
+        throw new IllegalArgumentException("FETCH node must be RexLiteral or RexDynamicParam");
+      }
+    }
+
+    final Registrar registrar = new Registrar(fields(), ImmutableList.of());
     final List<RelFieldCollation> fieldCollations =
         registrar.registerFieldCollations(nodes);
-
-    final RexNode offsetNode = offset <= 0 ? null : literal(offset);
-    final RexNode fetchNode = fetch < 0 ? null : literal(fetch);
+    final int fetch = fetchNode instanceof RexLiteral
+        ? RexLiteral.intValue(fetchNode) : -1;
     if (offsetNode == null && fetch == 0 && config.simplifyLimit()) {
       return empty();
     }

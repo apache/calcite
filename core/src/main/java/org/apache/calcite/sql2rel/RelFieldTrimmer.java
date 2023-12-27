@@ -48,7 +48,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
-import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -265,7 +264,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     relBuilder.push(trimResult.left)
         .project(exprList, nameList);
     return result(relBuilder.build(),
-        Mappings.createIdentity(fieldList.size()));
+        Mappings.createIdentity(fieldList.size()), rel);
   }
 
   /**
@@ -358,8 +357,23 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       Set<RelDataTypeField> extraFields) {
     // We don't know how to trim this kind of relational expression
     Util.discard(fieldsUsed);
-    return result(rel,
-        Mappings.createIdentity(rel.getRowType().getFieldCount()));
+    if (rel.getInputs().isEmpty()) {
+      return result(rel, Mappings.createIdentity(rel.getRowType().getFieldCount()));
+    }
+
+    // We don't know how to trim this RelNode, but we can try to trim inside its inputs
+    List<RelNode> newInputs = new ArrayList<>(rel.getInputs().size());
+    for (RelNode input : rel.getInputs()) {
+      ImmutableBitSet inputFieldsUsed = ImmutableBitSet.range(input.getRowType().getFieldCount());
+      TrimResult trimResult = dispatchTrimFields(input, inputFieldsUsed, extraFields);
+      if (!trimResult.right.isIdentity()) {
+        throw new IllegalArgumentException("Expected identity mapping after processing RelNode "
+            + input + "; but got " + trimResult.right);
+      }
+      newInputs.add(trimResult.left);
+    }
+    RelNode newRel = rel.copy(rel.getTraitSet(), newInputs);
+    return result(newRel, Mappings.createIdentity(newRel.getRowType().getFieldCount()), rel);
   }
 
   /**
@@ -371,8 +385,12 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RexProgram rexProgram = calc.getProgram();
-    final List<RexNode> projs = Util.transform(rexProgram.getProjectList(),
-        rexProgram::expandLocalRef);
+    final List<RexNode> projs =
+        Util.transform(rexProgram.getProjectList(), rexProgram::expandLocalRef);
+
+    final RexNode conditionExpr =
+        rexProgram.getCondition() == null ? null
+            : rexProgram.expandLocalRef(rexProgram.getCondition());
 
     final RelDataType rowType = calc.getRowType();
     final int fieldCount = rowType.getFieldCount();
@@ -386,6 +404,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       if (fieldsUsed.get(ord.i)) {
         ord.e.accept(inputFinder);
       }
+    }
+    if (conditionExpr != null) {
+      conditionExpr.accept(inputFinder);
     }
     ImmutableBitSet inputFieldsUsed = inputFinder.build();
 
@@ -432,12 +453,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
     final RelNode newInputRelNode = relBuilder.push(newInput).build();
     RexNode newConditionExpr = null;
-    if (rexProgram.getCondition() != null) {
-      final List<RexNode> filter = Util.transform(
-          ImmutableList.of(
-              rexProgram.getCondition()), rexProgram::expandLocalRef);
-      assert filter.size() == 1;
-      final RexNode conditionExpr = filter.get(0);
+    if (conditionExpr != null) {
       newConditionExpr = conditionExpr.accept(shuttle);
     }
     final RexProgram newRexProgram =
@@ -646,20 +662,10 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       return result(sort, Mappings.createIdentity(fieldCount));
     }
 
-    // leave the Sort unchanged in case we have dynamic limits
-    if (sort.offset instanceof RexDynamicParam
-        || sort.fetch instanceof RexDynamicParam) {
-      return result(sort, inputMapping);
-    }
-
     relBuilder.push(newInput);
-    final int offset =
-        sort.offset == null ? 0 : RexLiteral.intValue(sort.offset);
-    final int fetch =
-        sort.fetch == null ? -1 : RexLiteral.intValue(sort.fetch);
     final ImmutableList<RexNode> fields =
         relBuilder.fields(RexUtil.apply(inputMapping, collation));
-    relBuilder.sortLimit(offset, fetch, fields);
+    relBuilder.sortLimit(sort.offset, sort.fetch, fields);
 
     // The result has the same mapping as the input gave us. Sometimes we
     // return fields that the consumer didn't ask for, because the filter
@@ -891,7 +897,6 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     default:
       relBuilder.join(join.getJoinType(), newConditionExpr);
     }
-    relBuilder.hints(join.getHints());
     return result(relBuilder.build(), mapping, join);
   }
 
@@ -1090,13 +1095,11 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       newAggCallList.add(relBuilder.count(false, "DUMMY"));
     }
 
-    final RelBuilder.GroupKey groupKey =
-        relBuilder.groupKey(newGroupSet,
-            (Iterable<ImmutableBitSet>) newGroupSets);
+    final RelBuilder.GroupKey groupKey = relBuilder.groupKey(newGroupSet, newGroupSets);
     relBuilder.aggregate(groupKey, newAggCallList);
 
-    final RelNode newAggregate = RelOptUtil.propagateRelHints(aggregate, relBuilder.build());
-    return result(newAggregate, mapping);
+    final RelNode newAggregate = relBuilder.build();
+    return result(newAggregate, mapping, aggregate);
   }
 
   /**
