@@ -22,7 +22,6 @@ import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
 
-import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.ICSVParser;
@@ -38,8 +37,6 @@ import java.util.Queue;
  * Extension to {@link CSVReader} that can read newly appended file content.
  */
 class CsvStreamReader extends CSVReader implements Closeable {
-  protected CSVParser parser;
-  protected int skipLines;
   protected Tailer tailer;
   protected Queue<String> contentQueue;
 
