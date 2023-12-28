@@ -3590,6 +3590,24 @@ public class RelBuilderTest {
     assertThat(root, hasTree("LogicalValues(tuples=[[]])\n"));
   }
 
+  @Test void testFilterWithoutSimplification() {
+    final RelBuilder builder = createBuilder(c -> c.withSimplify(false));
+    final RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.or(
+                    builder.literal(null),
+                    builder.and(
+                        builder.equals(builder.field(2), builder.literal(1)),
+                        builder.equals(builder.field(2), builder.literal(2))
+                    )))
+            .build();
+    final String expected = ""
+        + "LogicalFilter(condition=[OR(null:NULL, AND(=($2, 1), =($2, 2)))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
   @Test void testRelBuilderToString() {
     final RelBuilder builder = RelBuilder.create(config().build());
     builder.scan("EMP");
