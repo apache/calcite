@@ -51,6 +51,9 @@ public interface CalciteResource {
   @BaseMessage("APPLY operator is not allowed under the current SQL conformance level")
   ExInst<CalciteException> applyNotAllowed();
 
+  @BaseMessage("JSON path expression must be specified after the JSON value expression")
+  ExInst<CalciteException> jsonPathMustBeSpecified();
+
   @BaseMessage("VALUE is not allowed under the current SQL conformance level")
   ExInst<CalciteException> valueNotAllowed();
 

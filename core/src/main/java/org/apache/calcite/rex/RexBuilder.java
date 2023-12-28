@@ -39,7 +39,6 @@ import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
-import org.apache.calcite.sql.type.BasicSqlTypeWithFormat;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -404,26 +403,18 @@ public class RexBuilder {
     if (nullWhenCountZero) {
       final RelDataType bigintType =
           typeFactory.createSqlType(SqlTypeName.BIGINT);
-      result = makeCall(
-          SqlStdOperatorTable.CASE,
-          makeCall(
-              SqlStdOperatorTable.GREATER_THAN,
-              new RexOver(
-                  bigintType,
-                  SqlStdOperatorTable.COUNT,
-                  exprs,
-                  window,
-                  distinct,
-                  ignoreNulls),
-              makeLiteral(
-                  BigDecimal.ZERO,
-                  bigintType,
-                  SqlTypeName.DECIMAL)),
-          ensureType(type, // SUM0 is non-nullable, thus need a cast
-              new RexOver(typeFactory.createTypeWithNullability(type, false),
-                  operator, exprs, window, distinct, ignoreNulls),
-              false),
-          makeNullLiteral(type));
+      result =
+          makeCall(SqlStdOperatorTable.CASE,
+              makeCall(SqlStdOperatorTable.GREATER_THAN,
+                  new RexOver(bigintType, SqlStdOperatorTable.COUNT, exprs,
+                      window, distinct, ignoreNulls),
+                  makeLiteral(BigDecimal.ZERO, bigintType,
+                      SqlTypeName.DECIMAL)),
+              ensureType(type, // SUM0 is non-nullable, thus need a cast
+                  new RexOver(typeFactory.createTypeWithNullability(type, false),
+                      operator, exprs, window, distinct, ignoreNulls),
+                  false),
+              makeNullLiteral(type));
     }
     if (!allowPartial) {
       Preconditions.checkArgument(rows, "DISALLOW PARTIAL over RANGE");
@@ -469,6 +460,14 @@ public class RexBuilder {
       RexWindowBound lowerBound,
       RexWindowBound upperBound,
       boolean rows) {
+    if (lowerBound.isUnbounded() && lowerBound.isPreceding()
+        && upperBound.isUnbounded() && upperBound.isFollowing()) {
+      // RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+      //   is equivalent to
+      // ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+      //   but we prefer "RANGE"
+      rows = false;
+    }
     return new RexWindow(
         partitionKeys,
         orderKeys,
@@ -562,6 +561,12 @@ public class RexBuilder {
       RexLiteral literal = (RexLiteral) exp;
       Comparable value = literal.getValueAs(Comparable.class);
       SqlTypeName typeName = literal.getTypeName();
+
+      // Allow casting boolean literals to integer types.
+      if (exp.getType().getSqlTypeName() == SqlTypeName.BOOLEAN
+          && SqlTypeUtil.isExactNumeric(type)) {
+        return makeCastBooleanToExact(type, exp);
+      }
       if (canRemoveCastFromLiteral(type, value, typeName)) {
         switch (typeName) {
         case INTERVAL_YEAR:
@@ -584,6 +589,7 @@ public class RexBuilder {
           case INTEGER:
           case SMALLINT:
           case TINYINT:
+          case DOUBLE:
           case FLOAT:
           case REAL:
           case DECIMAL:
@@ -646,10 +652,10 @@ public class RexBuilder {
 
   boolean canRemoveCastFromLiteral(RelDataType toType, @Nullable Comparable value,
       SqlTypeName fromTypeName) {
-    final SqlTypeName sqlType = toType.getSqlTypeName();
-    if (toType instanceof BasicSqlTypeWithFormat) {
-      return false;
+    if (value == null) {
+      return true;
     }
+    final SqlTypeName sqlType = toType.getSqlTypeName();
     if (!RexLiteral.valueMatchesType(value, sqlType, false)) {
       return false;
     }
@@ -683,6 +689,26 @@ public class RexBuilder {
     if (toType.getSqlTypeName() == SqlTypeName.DECIMAL) {
       final BigDecimal decimalValue = (BigDecimal) value;
       return SqlTypeUtil.isValidDecimalValue(decimalValue, toType);
+    }
+
+    if (SqlTypeName.INT_TYPES.contains(sqlType)) {
+      final BigDecimal decimalValue = (BigDecimal) value;
+      final int s = decimalValue.scale();
+      if (s != 0) {
+        return false;
+      }
+      long l = decimalValue.longValue();
+      switch (sqlType) {
+      case TINYINT:
+        return l >= Byte.MIN_VALUE && l <= Byte.MAX_VALUE;
+      case SMALLINT:
+        return l >= Short.MIN_VALUE && l <= Short.MAX_VALUE;
+      case INTEGER:
+        return l >= Integer.MIN_VALUE && l <= Integer.MAX_VALUE;
+      case BIGINT:
+      default:
+        return true;
+      }
     }
 
     return true;
@@ -1509,7 +1535,7 @@ public class RexBuilder {
     case TIME_WITH_LOCAL_TIME_ZONE:
       return new TimeString(0, 0, 0);
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      return new TimestampString(0, 0, 0, 0, 0, 0);
+      return new TimestampString(0, 1, 1, 0, 0, 0);
     default:
       throw Util.unexpected(type.getSqlTypeName());
     }
@@ -1611,6 +1637,10 @@ public class RexBuilder {
     case INTEGER:
     case BIGINT:
     case DECIMAL:
+      if (value instanceof RexLiteral
+          && ((RexLiteral) value).getTypeName() == SqlTypeName.SARG) {
+        return (RexNode) value;
+      }
       return makeExactLiteral((BigDecimal) value, type);
     case FLOAT:
     case REAL:
@@ -1705,6 +1735,17 @@ public class RexBuilder {
     }
   }
 
+  /**
+   * Creates a lambda expression.
+   *
+   * @param expr expression of the lambda
+   * @param parameters parameters of the lambda
+   * @return RexNode representing the lambda
+   */
+  public RexNode makeLambdaCall(RexNode expr, List<RexLambdaRef> parameters) {
+    return new RexLambda(parameters, expr);
+  }
+
   /** Converts the type of a value to comply with
    * {@link org.apache.calcite.rex.RexLiteral#valueMatchesType}.
    *
@@ -1744,13 +1785,13 @@ public class RexBuilder {
               o.getClass().getCanonicalName(),
               type.getSqlTypeName());
       return new BigDecimal(((Number) o).longValue());
-    case FLOAT:
+    case REAL:
       if (o instanceof BigDecimal) {
         return o;
       }
       return new BigDecimal(((Number) o).doubleValue(), MathContext.DECIMAL32)
           .stripTrailingZeros();
-    case REAL:
+    case FLOAT:
     case DOUBLE:
       if (o instanceof BigDecimal) {
         return o;
