@@ -260,10 +260,6 @@ public abstract class RelDataTypeImpl
     return PRECISION_NOT_SPECIFIED;
   }
 
-  @Override public int getMaxNumericPrecision() {
-    return PRECISION_NOT_SPECIFIED;
-  }
-
   @Override public int getScale() {
     return SCALE_NOT_SPECIFIED;
   }

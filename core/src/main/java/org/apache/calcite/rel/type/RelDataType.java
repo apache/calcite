@@ -199,7 +199,9 @@ public interface RelDataType {
    *
    * @return nax number of digits of precision
    */
-  int getMaxNumericPrecision();
+  default int getMaxNumericPrecision() {
+    return PRECISION_NOT_SPECIFIED;
+  }
 
   /**
    * Gets the scale of this type. Returns {@link #SCALE_NOT_SPECIFIED} (-1) if
