@@ -36,7 +36,7 @@ import org.immutables.value.Value;
  *
  * <p>The rule does <em>NOT</em> fire if the child is a
  * {@link org.apache.calcite.rel.logical.LogicalFilter} or a
- * {@link org.apache.calcite.rel.logical.LogicalProject} (we assume they they
+ * {@link org.apache.calcite.rel.logical.LogicalProject} (we assume that they
  * will be converted using {@link FilterToCalcRule} or
  * {@link ProjectToCalcRule}) or a
  * {@link org.apache.calcite.rel.logical.LogicalCalc}. This
