@@ -25,13 +25,10 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import org.immutables.value.Value;
-
 /** Variant of {@link org.apache.calcite.rel.rules.FilterToCalcRule} for
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
  *
  * @see EnumerableRules#ENUMERABLE_FILTER_TO_CALC_RULE */
-@Value.Enclosing
 public class EnumerableFilterToCalcRule
     extends RelRule<EnumerableFilterToCalcRule.Config> {
   /** Creates an EnumerableFilterToCalcRule. */
@@ -63,7 +60,6 @@ public class EnumerableFilterToCalcRule
   }
 
   /** Rule configuration. */
-  @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT = EMPTY
         .withOperandSupplier(b ->

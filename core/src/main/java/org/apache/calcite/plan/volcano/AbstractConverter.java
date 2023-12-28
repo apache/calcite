@@ -31,7 +31,6 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.immutables.value.Value;
 
 import java.util.List;
 
@@ -46,9 +45,8 @@ import java.util.List;
  *
  * <p>If an abstract converter cannot be satisfied immediately (because the
  * source subset is abstract), the set is flagged, so this converter will be
- * expanded as soon as a non-abstract relexp is added to the set.
+ * expanded as soon as a non-abstract relexp is added to the set.</p>
  */
-@Value.Enclosing
 public class AbstractConverter extends ConverterImpl {
   //~ Constructors -----------------------------------------------------------
 
@@ -138,7 +136,6 @@ public class AbstractConverter extends ConverterImpl {
     }
 
     /** Rule configuration. */
-    @Value.Immutable
     public interface Config extends RelRule.Config {
       Config DEFAULT = EMPTY
           .withOperandSupplier(b ->

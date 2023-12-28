@@ -16,6 +16,8 @@
  */
 import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
+import com.github.vlsi.gradle.ide.dsl.settings
+import com.github.vlsi.gradle.ide.dsl.taskTriggers
 
 plugins {
     kotlin("jvm")
@@ -63,6 +65,10 @@ dependencies {
     implementation("org.codehaus.janino:commons-compiler")
     implementation("org.codehaus.janino:janino")
     implementation("org.slf4j:slf4j-api")
+    annotationProcessor("org.immutables:value")
+    compileOnly("org.immutables:value-annotations")
+    testAnnotationProcessor("org.immutables:value")
+    testCompileOnly("org.immutables:value-annotations")
 
     testH2("com.h2database:h2")
     testMysql("mysql:mysql-connector-java")
@@ -189,6 +195,52 @@ ide {
 
     generatedSource(javaCCMain, "main")
     generatedSource(javaCCTest, "test")
+}
+
+fun JavaCompile.configureAnnotationSet(sourceSet: SourceSet) {
+    source = sourceSet.java
+    classpath = sourceSet.compileClasspath
+    options.compilerArgs.add("-proc:only")
+    org.gradle.api.plugins.internal.JvmPluginsHelper.configureAnnotationProcessorPath(sourceSet, sourceSet.java, options, project)
+    destinationDirectory.set(temporaryDir)
+
+    // only if we aren't running java compilation, since doing twice fails (in some places)
+    onlyIf { !project.gradle.taskGraph.hasTask(sourceSet.getCompileTaskName("java")) }
+}
+
+val annotationProcessorMain by tasks.registering(JavaCompile::class) {
+    configureAnnotationSet(sourceSets.main.get())
+}
+
+val annotationProcessorTest by tasks.registering(JavaCompile::class) {
+    val kotlinTestCompile = tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>()
+        .getByName("compileTestKotlin")
+
+    dependsOn(javaCCTest, kotlinTestCompile)
+
+    configureAnnotationSet(sourceSets.test.get())
+    classpath += files(kotlinTestCompile.destinationDirectory.get())
+
+    // only if we aren't running compileJavaTest, since doing twice fails.
+    onlyIf { tasks.findByPath("compileTestJava")?.enabled != true }
+}
+
+ide {
+    // generate annotation processed files on project import/sync.
+    fun addSync(compile: TaskProvider<JavaCompile>) {
+        project.rootProject.configure<org.gradle.plugins.ide.idea.model.IdeaModel> {
+            project {
+                settings {
+                    taskTriggers {
+                        afterSync(compile.get())
+                    }
+                }
+            }
+        }
+    }
+
+    addSync(annotationProcessorMain)
+    addSync(annotationProcessorTest)
 }
 
 val integTestAll by tasks.registering() {
