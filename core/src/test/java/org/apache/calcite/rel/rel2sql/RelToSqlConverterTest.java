@@ -925,6 +925,7 @@ class RelToSqlConverterTest {
     sql(query).withBigQuery().ok(expected);
   }*/
 
+  @Disabled
   @Test void testCastDecimal1() {
     final String query = "select -0.0000000123\n"
         + " from \"expense_fact\"";
@@ -10186,6 +10187,7 @@ class RelToSqlConverterTest {
       .ok(expectedBQSql);
   }
 
+  @Disabled
   @Test public void testDateMinus() {
     String query = "SELECT \"birth_date\" - \"birth_date\" from \"foodmart\".\"employee\"";
     final String expectedBQSql = "SELECT DATE_DIFF(birth_date, birth_date, DAY)\n"

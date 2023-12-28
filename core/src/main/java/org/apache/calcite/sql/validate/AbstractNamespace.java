@@ -18,6 +18,7 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -29,8 +30,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Objects;
-
-import static org.checkerframework.checker.nullness.NullnessUtil.castNonNull;
 
 /**
  * Abstract implementation of {@link SqlValidatorNamespace}.
@@ -156,6 +155,11 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return validator.catalogReader.nameMatcher().field(rowType, name) != null;
   }
 
+  @Override public @Nullable RelDataTypeField field(String name) {
+    final RelDataType rowType = getRowType();
+    return validator.catalogReader.nameMatcher().field(rowType, name);
+  }
+
   @Override public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
     return ImmutableList.of();
   }
@@ -221,10 +225,9 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     }
     return validator.getTypeFactory().builder()
         .add(
-            castNonNull(
                 validator.deriveAlias(
                     Objects.requireNonNull(unnest, "unnest"),
-                    0)),
+                    0),
             type)
         .build();
   }

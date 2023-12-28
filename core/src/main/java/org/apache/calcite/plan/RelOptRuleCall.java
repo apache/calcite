@@ -201,13 +201,17 @@ public abstract class RelOptRuleCall {
    * @return true iff rule should be excluded
    */
   public boolean isRuleExcluded() {
-    if (!(rels[0] instanceof Hintable)) {
-      return false;
+    for (RelNode rel : rels) {
+      if (!(rel instanceof Hintable)) {
+        continue;
+      }
+      if (rel.getCluster()
+              .getHintStrategies()
+              .isRuleExcluded((Hintable) rel, rule)) {
+        return true;
+      }
     }
-
-    return rels[0].getCluster()
-        .getHintStrategies()
-        .isRuleExcluded((Hintable) rels[0], rule);
+    return false;
   }
 
   /**

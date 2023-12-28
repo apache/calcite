@@ -92,7 +92,7 @@ public class SqlSingleValueAggFunction extends SqlAggFunction {
     return Optionality.IGNORED;
   }
 
-  public SqlAggFunction getRollup() {
+  @Override public SqlAggFunction getRollup() {
     return this;
   }
 }

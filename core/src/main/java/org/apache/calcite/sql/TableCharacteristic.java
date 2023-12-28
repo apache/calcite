@@ -270,7 +270,7 @@ public class TableCharacteristic {
   }
 
   /** Creates a builder. */
-  public static Builder builder(Semantics semantics) {
+  public static TableCharacteristic.Builder builder(Semantics semantics) {
     return new Builder(semantics);
   }
 

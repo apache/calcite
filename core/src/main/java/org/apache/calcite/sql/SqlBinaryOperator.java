@@ -99,6 +99,32 @@ public class SqlBinaryOperator extends SqlOperator {
     return !getName().equals(".");
   }
 
+  @Override public @Nullable SqlOperator reverse() {
+    switch (kind) {
+    case EQUALS:
+    case NOT_EQUALS:
+    case IS_DISTINCT_FROM:
+    case IS_NOT_DISTINCT_FROM:
+    case OR:
+    case AND:
+    case PLUS:
+    case TIMES:
+      return this;
+
+    case GREATER_THAN:
+      return SqlStdOperatorTable.LESS_THAN;
+    case GREATER_THAN_OR_EQUAL:
+      return SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
+    case LESS_THAN:
+      return SqlStdOperatorTable.GREATER_THAN;
+    case LESS_THAN_OR_EQUAL:
+      return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
+
+    default:
+      return null;
+    }
+  }
+
   @Override protected RelDataType adjustType(
       SqlValidator validator,
       final SqlCall call,

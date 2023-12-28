@@ -16,14 +16,11 @@
  */
 package org.apache.calcite.util;
 
-import com.google.common.collect.ImmutableMap;
-
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
@@ -38,15 +35,6 @@ public interface Compatible {
   /** Same as {@code MethodHandles#privateLookupIn()}.
    * (On JDK 8, only {@link MethodHandles#lookup()} is available. */
   <T> MethodHandles.Lookup lookupPrivate(Class<T> clazz);
-
-  /** Same behavior as {@link ImmutableMap#copyOf},
-   * available from Guava 19.0. */
-  static <K, V> ImmutableMap<K, V> copyOf(
-      Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-    final ImmutableMap.Builder<K, V> b = ImmutableMap.builder();
-    entries.forEach(b::put);
-    return b.build();
-  }
 
   /** Creates the implementation of Compatible suitable for the
    * current environment. */

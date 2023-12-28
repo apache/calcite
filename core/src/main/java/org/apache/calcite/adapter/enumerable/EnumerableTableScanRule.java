@@ -20,6 +20,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.Table;
@@ -32,8 +33,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @see EnumerableRules#ENUMERABLE_TABLE_SCAN_RULE */
 public class EnumerableTableScanRule extends ConverterRule {
   /** Default configuration. */
-  public static final Config DEFAULT_CONFIG = Config.EMPTY
-      .as(Config.class)
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
       .withConversion(LogicalTableScan.class,
           r -> EnumerableTableScan.canHandle(r.getTable()),
           Convention.NONE, EnumerableConvention.INSTANCE,
@@ -45,7 +45,7 @@ public class EnumerableTableScanRule extends ConverterRule {
   }
 
   @Override public @Nullable RelNode convert(RelNode rel) {
-    LogicalTableScan scan = (LogicalTableScan) rel;
+    TableScan scan = (TableScan) rel;
     final RelOptTable relOptTable = scan.getTable();
     final Table table = relOptTable.unwrap(Table.class);
     // The QueryableTable can only be implemented as ENUMERABLE convention,

@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.logical.LogicalMatch;
 
 /**
@@ -40,7 +41,7 @@ public class EnumerableMatchRule extends ConverterRule {
   }
 
   @Override public RelNode convert(RelNode rel) {
-    final LogicalMatch match = (LogicalMatch) rel;
+    final Match match = (Match) rel;
     return EnumerableMatch.create(
         convert(match.getInput(),
             match.getInput().getTraitSet()

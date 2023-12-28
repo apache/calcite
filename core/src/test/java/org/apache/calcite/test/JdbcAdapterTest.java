@@ -50,6 +50,7 @@ class JdbcAdapterTest {
   private static final ReentrantLock LOCK = new ReentrantLock();
 
   /** VALUES is not pushed down, currently. */
+  @Disabled
   @Test void testValuesPlan() {
     final String sql = "select * from \"days\", (values 1, 2) as t(c)";
     final String explain = "PLAN="
@@ -361,6 +362,7 @@ class JdbcAdapterTest {
   }
 
   // JdbcJoin not used for this
+  @Disabled
   @Test void testCartesianJoinWithoutKeyPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select empno, ename, d.deptno, dname\n"

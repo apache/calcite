@@ -24,7 +24,6 @@ import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.util.Util;
 
 import org.apache.commons.io.IOUtils;
 
@@ -54,6 +53,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
+import static org.apache.calcite.util.Util.transform;
 
 /**
  * This is a tool to visualize the rule match process of a RelOptPlanner.
@@ -159,7 +162,7 @@ public class RuleMatchVisualizer implements RelOptListener {
    */
   private void updateInitialPlan(RelNode node) {
     if (node instanceof HepRelVertex) {
-//      updateInitialPlan(node.stripped());
+      updateInitialPlan(node.stripped());
       return;
     }
     this.registerRelNode(node);
@@ -173,9 +176,8 @@ public class RuleMatchVisualizer implements RelOptListener {
    * (Workaround for HepPlanner)
    */
   private static List<RelNode> getInputs(final RelNode node) {
-//    return transform(node.getInputs(), n ->
-//        n instanceof HepRelVertex ? n.stripped() : n);
-    return null;
+    return transform(node.getInputs(), n ->
+        n instanceof HepRelVertex ? n.stripped() : n);
   }
 
   @Override public void relChosen(RelChosenEvent event) {
@@ -354,7 +356,7 @@ public class RuleMatchVisualizer implements RelOptListener {
     List<String> matchedRels =
         Arrays.stream(ruleCall == null ? new RelNode[0] : ruleCall.rels)
             .map(RuleMatchVisualizer::key)
-            .collect(Util.toImmutableList());
+            .collect(toImmutableList());
     this.steps.add(new StepInfo(stepID, nextNodeUpdates, matchedRels));
   }
 

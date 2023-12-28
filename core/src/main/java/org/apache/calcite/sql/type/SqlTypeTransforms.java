@@ -196,6 +196,10 @@ public abstract class SqlTypeTransforms {
    * @see MultisetSqlType#getComponentType
    * @see ArraySqlType#getComponentType
    */
+  public static final SqlTypeTransform TO_COLLECTION_ELEMENT_TYPE =
+      (opBinding, typeToTransform) -> requireNonNull(
+          typeToTransform.getComponentType(),
+          () -> "componentType for " + typeToTransform + " in opBinding " + opBinding);
   public static final SqlTypeTransform TO_MULTISET_ELEMENT_TYPE =
       (opBinding, typeToTransform) -> requireNonNull(
           typeToTransform.getComponentType(),
@@ -212,6 +216,17 @@ public abstract class SqlTypeTransforms {
           opBinding.getTypeFactory().createMultisetType(typeToTransform, -1);
 
   /**
+   * Parameter type-inference transform strategy that wraps a given type in a multiset or
+   * wraps a field of the given type in a multiset if the given type is struct with one field.
+   * It is used when a multiset input is a sub-query.
+   */
+  public static final SqlTypeTransform TO_MULTISET_QUERY =
+      (opBinding, typeToTransform) ->
+          TO_MULTISET.transformType(opBinding,
+              SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.MULTISET,
+                  typeToTransform));
+
+  /**
    * Parameter type-inference transform strategy that wraps a given type
    * in an array.
    *
@@ -220,6 +235,108 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform TO_ARRAY =
       (opBinding, typeToTransform) ->
           opBinding.getTypeFactory().createArrayType(typeToTransform, -1);
+
+  /**
+   * Parameter type-inference transform strategy that wraps a given type in an array,
+   * but nullable if any of element of a calls operands is nullable.
+   */
+  public static final SqlTypeTransform TO_ARRAY_NULLABLE =
+      (opBinding, typeToTransform) ->
+          TO_NULLABLE.transformType(opBinding, TO_ARRAY.transformType(opBinding, typeToTransform));
+
+  /** Parameter type-inference transform that transforms {@code T} to
+   * {@code MEASURE<T>} for some type T. */
+  public static final SqlTypeTransform TO_MEASURE =
+      (opBinding, typeToTransform) ->
+          opBinding.getTypeFactory().createMeasureType(typeToTransform);
+
+  /** Parameter type-inference transform that transforms {@code MEASURE<T>} to
+   * {@code T} for some type T. Inverse of {@link #TO_MEASURE}. */
+  public static final SqlTypeTransform FROM_MEASURE =
+      (opBinding, typeToTransform) ->
+          ((MeasureSqlType) typeToTransform).types.get(0);
+
+  /**
+   * Parameter type-inference transform strategy that wraps a given type in an array or
+   * wraps a field of the given type in an array if the given type is struct with one field.
+   * It is used when an array input is a sub-query.
+   */
+  public static final SqlTypeTransform TO_ARRAY_QUERY =
+      (opBinding, typeToTransform) ->
+        TO_ARRAY.transformType(opBinding,
+            SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.ARRAY, typeToTransform));
+
+  /**
+   * Parameter type-inference transform strategy that converts a two-field
+   * record type to a MAP type.
+   *
+   * @see org.apache.calcite.rel.type.RelDataTypeFactory#createMapType
+   */
+  public static final SqlTypeTransform TO_MAP =
+      (opBinding, typeToTransform) ->
+          SqlTypeUtil.createMapTypeFromRecord(opBinding.getTypeFactory(),
+              typeToTransform);
+
+  /**
+   * Parameter type-inference transform strategy that converts a two-field
+   * record type to a MAP query type.
+   *
+   * @see org.apache.calcite.sql.fun.SqlMapQueryConstructor
+   */
+  public static final SqlTypeTransform TO_MAP_QUERY =
+      (opBinding, typeToTransform) ->
+          TO_MAP.transformType(opBinding,
+              SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.MAP, typeToTransform));
+
+  /**
+   * Parameter type-inference transform strategy that converts a type to a MAP type,
+   * which key and value type is same.
+   *
+   * @see org.apache.calcite.rel.type.RelDataTypeFactory#createMapType
+   */
+  public static final SqlTypeTransform IDENTITY_TO_MAP =
+      (opBinding, typeToTransform) ->
+          SqlTypeUtil.createMapType(opBinding.getTypeFactory(),
+              typeToTransform, typeToTransform, false);
+
+  /**
+   * Parameter type-inference transform strategy that converts a MAP type
+   * to a two-field record type.
+   *
+   * @see org.apache.calcite.rel.type.RelDataTypeFactory#createStructType
+   */
+  public static final SqlTypeTransform TO_ROW =
+      (opBinding, typeToTransform) ->
+          SqlTypeUtil.createRecordTypeFromMap(opBinding.getTypeFactory(),
+              typeToTransform);
+
+  /**
+   * Parameter type-inference transform strategy that converts a MAP type
+   * to a ARRAY type.
+   *
+   * @see org.apache.calcite.rel.type.RelDataTypeFactory#createArrayType
+   */
+  public static final SqlTypeTransform TO_MAP_KEYS =
+      (opBinding, typeToTransform) -> {
+        RelDataType keyType =
+            requireNonNull(typeToTransform.getKeyType(),
+                () -> "keyType for " + typeToTransform + " in opBinding " + opBinding);
+        return opBinding.getTypeFactory().createArrayType(keyType, -1);
+      };
+
+  /**
+   * Parameter type-inference transform strategy that converts a MAP type
+   * to a ARRAY type.
+   *
+   * @see org.apache.calcite.rel.type.RelDataTypeFactory#createArrayType
+   */
+  public static final SqlTypeTransform TO_MAP_VALUES =
+      (opBinding, typeToTransform) -> {
+        RelDataType keyType =
+            requireNonNull(typeToTransform.getValueType(),
+                () -> "valueType for " + typeToTransform + " in opBinding " + opBinding);
+        return opBinding.getTypeFactory().createArrayType(keyType, -1);
+      };
 
   /**
    * Parameter type-inference transform strategy where a derived type must be

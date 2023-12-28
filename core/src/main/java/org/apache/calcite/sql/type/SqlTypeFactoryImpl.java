@@ -121,6 +121,12 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
+  @Override public RelDataType createFunctionSqlType(
+      RelDataType parameterType,
+      RelDataType returnType) {
+    return canonize(new FunctionSqlType(parameterType, returnType));
+  }
+
   @Override public RelDataType createMeasureType(RelDataType valueType) {
     MeasureSqlType newType = MeasureSqlType.create(valueType);
     return canonize(newType);
@@ -192,10 +198,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         anyNullable = true;
       }
 
-      if (SqlTypeUtil.canCastFrom(type, resultType, false)) {
+      if (SqlTypeUtil.canCastFrom(type, resultType, mappingRule)) {
         resultType = type;
       } else {
-        if (!SqlTypeUtil.canCastFrom(resultType, type, false)) {
+        if (!SqlTypeUtil.canCastFrom(resultType, type, mappingRule)) {
           return null;
         }
       }
@@ -522,8 +528,6 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
           resultType = createSqlType(type.getSqlTypeName(), precision);
         }
       } else {
-        // TODO:  datetime precision details; for now we let
-        // leastRestrictiveByCast handle it
         return null;
       }
     }
@@ -587,18 +591,5 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
               false));
     }
     return type;
-  }
-
-  /** The unknown type. Similar to the NULL type, but is only equal to
-   * itself. */
-  private static class UnknownSqlType extends BasicSqlType {
-    UnknownSqlType(RelDataTypeFactory typeFactory) {
-      super(typeFactory.getTypeSystem(), SqlTypeName.NULL);
-    }
-
-    @Override protected void generateTypeString(StringBuilder sb,
-        boolean withDetail) {
-      sb.append("UNKNOWN");
-    }
   }
 }

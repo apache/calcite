@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
@@ -62,6 +63,7 @@ import java.util.function.Function;
  *
  * <p>Adjust {@link Config} to use a different parser or parsing options.
  */
+@Value.Enclosing
 public class Hoist {
   private final Config config;
 
@@ -118,9 +120,9 @@ public class Hoist {
   }
 
   /** Configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config {
     /** Returns the configuration for the SQL parser. */
-    @ImmutableBeans.Property
     SqlParser.Config parserConfig();
 
     /** Sets {@link #parserConfig()}. */

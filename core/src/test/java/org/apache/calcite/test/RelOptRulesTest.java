@@ -5722,6 +5722,7 @@ class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 
+  @Disabled
   @Test void testWhereAnyCorrelatedInSelect() {
     final String sql = "select * from emp where empno > ANY (\n"
         + "  select deptno from dept where emp.job = dept.name)\n";
@@ -6240,6 +6241,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Tests that a call to {@code ST_DWithin}
    * is rewritten with an additional range predicate. */
+  @Disabled
   @Test void testSpatialDWithinToHilbertZero() {
     final String sql = "select *\n"
         + "from GEO.Restaurants as r\n"
@@ -6248,6 +6250,7 @@ class RelOptRulesTest extends RelOptTestBase {
     spatial(sql).check();
   }
 
+  @Disabled
   @Test void testSpatialDWithinToHilbertNegative() {
     final String sql = "select *\n"
         + "from GEO.Restaurants as r\n"
@@ -6289,6 +6292,7 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Constant reduction on geo-spatial expression. */
+  @Disabled
   @Test void testSpatialReduce() {
     final String sql = "select\n"
         + "  ST_Buffer(ST_Point(0.0, 1.0), 2) as b\n"

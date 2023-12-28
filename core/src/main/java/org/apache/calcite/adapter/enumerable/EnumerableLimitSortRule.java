@@ -22,10 +22,13 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
 
+import org.immutables.value.Value;
+
 /**
  * Rule to convert an {@link EnumerableLimit} of on
  * {@link EnumerableSort} into an {@link EnumerableLimitSort}.
  */
+@Value.Enclosing
 public class EnumerableLimitSortRule extends RelRule<EnumerableLimitSortRule.Config> {
 
   /**
@@ -36,18 +39,19 @@ public class EnumerableLimitSortRule extends RelRule<EnumerableLimitSortRule.Con
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
-    final LogicalSort sort = call.rel(0);
+    final Sort sort = call.rel(0);
     RelNode input = sort.getInput();
-    final Sort o = EnumerableLimitSort.create(
-        convert(input, input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
-        sort.getCollation(),
-        sort.offset, sort.fetch
-    );
+    final Sort o =
+        EnumerableLimitSort.create(
+            convert(call.getPlanner(), input,
+                input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
+            sort.getCollation(), sort.offset, sort.fetch);
 
     call.transformTo(o);
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT = EMPTY.withOperandSupplier(
         b0 -> b0.operand(LogicalSort.class).predicate(sort -> sort.fetch != null).anyInputs())

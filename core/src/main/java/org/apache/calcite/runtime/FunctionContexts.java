@@ -45,15 +45,15 @@ public class FunctionContexts {
       this.argumentValues = argumentValues;
     }
 
-    public RelDataTypeFactory getTypeFactory() {
+    @Override public RelDataTypeFactory getTypeFactory() {
       return root.getTypeFactory();
     }
 
-    public int getParameterCount() {
+    @Override public int getParameterCount() {
       return argumentValues.length;
     }
 
-    public boolean isArgumentConstant(int ordinal) {
+    @Override public boolean isArgumentConstant(int ordinal) {
       return argumentValue(ordinal) != null;
     }
 

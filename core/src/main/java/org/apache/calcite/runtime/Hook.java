@@ -18,6 +18,7 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Util;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -165,7 +166,19 @@ public enum Hook {
   @Deprecated // to be removed before 2.0
   public <T, R> Closeable addThread(
       final com.google.common.base.Function<T, R> handler) {
-    return addThread((Consumer<T>) handler::apply);
+    return addThread(functionConsumer(handler));
+  }
+
+  /** Converts a Guava function into a JDK consumer. */
+  @SuppressWarnings("Guava")
+  private static <T, R> Consumer<T> functionConsumer(
+      com.google.common.base.Function<T, R> handler) {
+    return t -> {
+      // Squash ErrorProne warnings that the return of the function is not
+      // used.
+      R r = handler.apply(t);
+      Util.discard(r);
+    };
   }
 
   /** Removes a thread handler from this Hook. */

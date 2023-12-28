@@ -93,6 +93,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.IllformedLocaleException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -666,7 +667,7 @@ public class Util {
    * string reflects the current time.
    */
   @Deprecated // to be removed before 2.0
-  @SuppressWarnings("JdkObsolete")
+  @SuppressWarnings("JavaUtilDate")
   public static String getFileTimestamp() {
     SimpleDateFormat sdf =
         new SimpleDateFormat(FILE_TIMESTAMP_FORMAT, Locale.ROOT);
@@ -866,7 +867,7 @@ public class Util {
    * rather than constructing intermediate strings.
    *
    * @see org.apache.calcite.linq4j.function.Functions#generate */
-  public static <E> StringBuilder printList(StringBuilder sb, int elementCount,
+  public static StringBuilder printList(StringBuilder sb, int elementCount,
       ObjIntConsumer<StringBuilder> consumer) {
     if (elementCount == 0) {
       return sb.append("[]");
@@ -928,18 +929,10 @@ public class Util {
     return new AssertionError("Internal error: " + s, e);
   }
 
-  /** As {@link Throwables}{@code .throwIfUnchecked(Throwable)},
-   * which was introduced in Guava 20,
-   * but we don't require Guava version 20 yet. */
+  /** As {@link Throwables#throwIfUnchecked(Throwable)}. */
+  @Deprecated // to be removed before 2.0
   public static void throwIfUnchecked(Throwable throwable) {
-    Bug.upgrade("Remove when minimum Guava version is 20");
-    requireNonNull(throwable, "throwable");
-    if (throwable instanceof RuntimeException) {
-      throw (RuntimeException) throwable;
-    }
-    if (throwable instanceof Error) {
-      throw (Error) throwable;
-    }
+    Throwables.throwIfUnchecked(throwable);
   }
 
   /**
@@ -955,7 +948,7 @@ public class Util {
    */
   @API(since = "1.26", status = API.Status.EXPERIMENTAL)
   public static RuntimeException throwAsRuntime(Throwable throwable) {
-    throwIfUnchecked(throwable);
+    Throwables.throwIfUnchecked(throwable);
     throw new RuntimeException(throwable);
   }
 
@@ -1719,15 +1712,13 @@ public class Util {
    * @return Java locale object
    */
   public static Locale parseLocale(String localeString) {
-    String[] strings = localeString.split("_");
-    switch (strings.length) {
-    case 1:
-      return new Locale(strings[0]);
-    case 2:
-      return new Locale(strings[0], strings[1]);
-    case 3:
-      return new Locale(strings[0], strings[1], strings[2]);
-    default:
+    if (localeString.isEmpty()) {
+      return Locale.ROOT;
+    }
+    try {
+      return new Locale.Builder().setLanguageTag(
+          UNDERSCORE.matcher(localeString).replaceAll("-")).build();
+    } catch (IllformedLocaleException e) {
       throw new AssertionError("bad locale string '" + localeString + "'");
     }
   }
@@ -2011,20 +2002,7 @@ public class Util {
    */
   public static <E> List<E> quotientList(
       final List<E> list, final int n, final int k) {
-    if (n <= 0 || k < 0 || k >= n) {
-      throw new IllegalArgumentException(
-          "n must be positive; k must be between 0 and n - 1");
-    }
-    final int size = (list.size() + n - k - 1) / n;
-    return new AbstractList<E>() {
-      @Override public E get(int index) {
-        return list.get(index * n + k);
-      }
-
-      @Override public int size() {
-        return size;
-      }
-    };
+    return new QuotientList<>(list, n, k);
   }
 
   /** Given a list with N elements
@@ -2269,12 +2247,16 @@ public class Util {
    * <p>If the list is already unique it is returned unchanged. */
   public static <E> List<E> distinctList(List<E> list) {
     // If the list is small, check for duplicates using pairwise comparison.
-    if (list.size() < QUICK_DISTINCT && isDistinct(list)) {
-      return list;
-    }
-    // Lists that have all the same element are common. Avoiding creating a set.
-    if (allSameElement(list)) {
-      return ImmutableList.of(list.get(0));
+    if (list.size() < QUICK_DISTINCT) {
+      if (isDistinct(list)) {
+        return list;
+      }
+    } else {
+      // Lists that have all the same element are common. Avoiding creating a
+      // set.
+      if (allSameElement(list)) {
+        return ImmutableList.of(list.get(0));
+      }
     }
     return ImmutableList.copyOf(new LinkedHashSet<>(list));
   }
@@ -2496,7 +2478,7 @@ public class Util {
     };
   }
 
-  @SuppressWarnings("Guava")
+  @SuppressWarnings({"Guava", "UnnecessaryMethodReference"})
   @Deprecated
   public static <K, V> Map<K, V> asIndexMap(
       final Collection<V> values,
@@ -2623,22 +2605,9 @@ public class Util {
    * Returns a {@code Collector} that accumulates the input elements into a
    * Guava {@link ImmutableList} via a {@link ImmutableList.Builder}.
    *
-   * <p>It will be obsolete when we move to {@link Bug#upgrade Guava 28.0-jre}.
-   * Guava 21.0 introduced {@code ImmutableList.toImmutableList()}, but it had
-   * a {@link com.google.common.annotations.Beta} tag until 28.0-jre.
-   *
-   * <p>In {@link Bug#upgrade Guava 21.0}, change this method to call
-   * {@code ImmutableList.toImmutableList()}, ignoring the {@code @Beta} tag.
-   *
-   * @param <T> Type of the input elements
-   *
-   * @return a {@code Collector} that collects all the input elements into an
-   * {@link ImmutableList}, in encounter order
    */
-  public static <T> Collector<T, ImmutableList.Builder<T>, ImmutableList<T>>
-      toImmutableList() {
-    return Collector.of(ImmutableList::builder, ImmutableList.Builder::add, Util::combine,
-        ImmutableList.Builder::build);
+  public static <T> Collector<T, ?, ImmutableList<T>> toImmutableList() {
+    return ImmutableList./* do not simplify. */toImmutableList();
   }
 
   /** Combines a second immutable list builder into a first. */
@@ -2991,5 +2960,37 @@ public class Util {
   public static boolean isNumericLiteral(SqlNode node) {
     return node instanceof SqlNumericLiteral
         && ((SqlNumericLiteral) node).getTypeName().getFamily() == SqlTypeFamily.NUMERIC;
+  }
+
+  /** Implements {@link Util#quotientList(List, int, int)};
+   * an anonymous inner class would not be able to implement
+   * {@link RandomAccess}, which is essential for how this class is used.
+   *
+   * @param <E> Element type */
+  private static class QuotientList<E>
+      extends AbstractList<E> implements RandomAccess {
+    private final List<E> list;
+    private final int n;
+    private final int k;
+    private final int size;
+
+    QuotientList(List<E> list, int n, int k) {
+      if (k < 0 || n <= 0 || k >= n) {
+        throw new IllegalArgumentException(
+            "n must be positive; k must be between 0 and n - 1");
+      }
+      this.list = list;
+      this.n = n;
+      this.k = k;
+      this.size = (list.size() + n - k - 1) / n;
+    }
+
+    @Override public int size() {
+      return size;
+    }
+
+    @Override public E get(int index) {
+      return list.get(index * n + k);
+    }
   }
 }

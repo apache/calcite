@@ -67,12 +67,12 @@ public class SetopNamespace extends AbstractNamespace {
     }
     for (SqlNode operand : call.getOperandList()) {
       final SqlValidatorNamespace namespace =
-          requireNonNull(
-              validator.getNamespace(operand),
+          requireNonNull(validator.getNamespace(operand),
               () -> "namespace for " + operand);
-      monotonicity = combine(monotonicity,
-          namespace.getMonotonicity(
-              namespace.getRowType().getFieldNames().get(index)));
+      monotonicity =
+          combine(monotonicity,
+              namespace.getMonotonicity(
+                  namespace.getRowType().getFieldNames().get(index)));
     }
     return Util.first(monotonicity, SqlMonotonicity.NOT_MONOTONIC);
   }

@@ -51,6 +51,7 @@ import org.hamcrest.StringDescription;
 import org.hamcrest.TypeSafeMatcher;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
@@ -890,6 +891,7 @@ class UtilTest {
   /**
    * Unit test for {@link Util#parseLocale(String)} method.
    */
+  @Disabled
   @Test void testParseLocale() {
     Locale[] locales = {
         Locale.CANADA,

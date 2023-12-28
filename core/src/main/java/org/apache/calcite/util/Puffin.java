@@ -326,14 +326,14 @@ public class Puffin {
     @Override public G execute(Stream<? extends Source> sources,
         PrintWriter out) {
       final G globalState = globalStateFactory.get();
-//      final Source source0 = Sources.of("");
-//      final F fileState0 = fileStateFactory.apply(globalState);
-//      final ContextImpl<G, F> x0 =
-//          new ContextImpl<>(out, source0, patternCache, globalState,
-//              fileState0);
-//      beforeList.forEach(action -> action.accept(x0));
-//      sources.forEach(source -> execute(globalState, source, out));
-//      afterList.forEach(action -> action.accept(x0));
+      final Source source0 = Sources.of("");
+      final F fileState0 = fileStateFactory.apply(globalState);
+      final ContextImpl<G, F> x0 =
+          new ContextImpl<>(out, source0, patternCache, globalState,
+              fileState0);
+      beforeList.forEach(action -> action.accept(x0));
+      sources.forEach(source -> execute(globalState, source, out));
+      afterList.forEach(action -> action.accept(x0));
       return globalState;
     }
 

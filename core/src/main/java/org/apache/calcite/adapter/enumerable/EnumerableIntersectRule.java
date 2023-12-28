@@ -20,6 +20,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 
 /**
@@ -41,7 +42,7 @@ class EnumerableIntersectRule extends ConverterRule {
   }
 
   @Override public RelNode convert(RelNode rel) {
-    final LogicalIntersect intersect = (LogicalIntersect) rel;
+    final Intersect intersect = (Intersect) rel;
     final EnumerableConvention out = EnumerableConvention.INSTANCE;
     final RelTraitSet traitSet = intersect.getTraitSet().replace(out);
     return new EnumerableIntersect(rel.getCluster(), traitSet,

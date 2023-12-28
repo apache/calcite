@@ -845,7 +845,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     case MEASURE:
       // getMeasureElementType() for MEASURE types will never be null
       final RelDataType measureElementType =
-          requireNonNull(null/*type.getMeasureElementType()*/, "measureElementType");
+          requireNonNull(type.getMeasureElementType(), "measureElementType");
       return measureElementType.getSqlTypeName().getJdbcOrdinal();
     default:
       return type.getSqlTypeName().getJdbcOrdinal();

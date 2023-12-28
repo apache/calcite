@@ -74,9 +74,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
    */
   DelegatingScope(SqlValidatorScope parent) {
     super();
-    assert parent != null;
+    this.parent = requireNonNull(parent, "parent");
     this.validator = (SqlValidatorImpl) parent.getValidator();
-    this.parent = parent;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -94,12 +93,12 @@ public abstract class DelegatingScope implements SqlValidatorScope {
   }
 
   /** If a record type allows implicit references to fields, recursively looks
-   * into the fields. Otherwise returns immediately. */
+   * into the fields. Otherwise, returns immediately. */
   void resolveInNamespace(SqlValidatorNamespace ns, boolean nullable,
       List<String> names, SqlNameMatcher nameMatcher, Path path,
       Resolved resolved) {
     if (names.isEmpty()) {
-      resolved.found(ns, nullable, this, path, null);
+      resolved.found(ns, nullable, this, path, names);
       return;
     }
     final RelDataType rowType = ns.getRowType();
@@ -116,8 +115,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
             final List<String> remainder = entry.getValue();
             final SqlValidatorNamespace ns2 =
                 new FieldNamespace(validator, field.getType());
-            final Step path2 = path.plus(rowType, field.getIndex(),
-                field.getName(), StructKind.FULLY_QUALIFIED);
+            final Step path2 =
+                path.plus(rowType, field.getIndex(), field.getName(),
+                    StructKind.FULLY_QUALIFIED);
             resolveInNamespace(ns2, nullable, remainder, nameMatcher, path2,
                 resolved);
           }
@@ -128,11 +128,12 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       final String name = names.get(0);
       final RelDataTypeField field0 = nameMatcher.field(rowType, name);
       if (field0 != null) {
-        final SqlValidatorNamespace ns2 = requireNonNull(
-            ns.lookupChild(field0.getName()),
-            () -> "field " + field0.getName() + " is not found in " + ns);
-        final Step path2 = path.plus(rowType, field0.getIndex(),
-            field0.getName(), StructKind.FULLY_QUALIFIED);
+        final SqlValidatorNamespace ns2 =
+            requireNonNull(ns.lookupChild(field0.getName()),
+                () -> "field " + field0.getName() + " is not found in " + ns);
+        final Step path2 =
+            path.plus(rowType, field0.getIndex(),
+                field0.getName(), StructKind.FULLY_QUALIFIED);
         resolveInNamespace(ns2, nullable, names.subList(1, names.size()),
             nameMatcher, path2, resolved);
       } else {
@@ -141,11 +142,12 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           case PEEK_FIELDS:
           case PEEK_FIELDS_DEFAULT:
           case PEEK_FIELDS_NO_EXPAND:
-            final Step path2 = path.plus(rowType, field.getIndex(),
-                field.getName(), field.getType().getStructKind());
-            final SqlValidatorNamespace ns2 = requireNonNull(
-                ns.lookupChild(field.getName()),
-                () -> "field " + field.getName() + " is not found in " + ns);
+            final Step path2 =
+                path.plus(rowType, field.getIndex(),
+                    field.getName(), field.getType().getStructKind());
+            final SqlValidatorNamespace ns2 =
+                requireNonNull(ns.lookupChild(field.getName()),
+                    () -> "field " + field.getName() + " is not found in " + ns);
             resolveInNamespace(ns2, nullable, names, nameMatcher, path2,
                 resolved);
             break;
@@ -494,10 +496,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
               identifier, RESOURCE.columnNotFound(name));
         }
         final RelDataTypeField field0 =
-            requireNonNull(
-                step.rowType,
-                () -> "rowType of step " + step.name
-            ).getFieldList().get(step.i);
+            requireNonNull(step.rowType, () -> "rowType of step " + step.name)
+                .getFieldList().get(step.i);
         final String fieldName = field0.getName();
         switch (step.kind) {
         case PEEK_FIELDS:

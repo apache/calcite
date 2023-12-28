@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Pair;
 
@@ -89,6 +90,10 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
 
   @Override public boolean fieldExists(String name) {
     return namespace.fieldExists(name);
+  }
+
+  @Override public @Nullable RelDataTypeField field(String name) {
+    return namespace.field(name);
   }
 
   @Override public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {

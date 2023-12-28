@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexBuilder;
@@ -58,7 +59,7 @@ class EnumerableMergeJoinRule extends ConverterRule {
   }
 
   @Override public @Nullable RelNode convert(RelNode rel) {
-    LogicalJoin join = (LogicalJoin) rel;
+    Join join = (Join) rel;
     final JoinInfo info = join.analyzeCondition();
     if (!EnumerableMergeJoin.isMergeJoinSupported(join.getJoinType())) {
       // EnumerableMergeJoin only supports certain join types.
@@ -91,7 +92,6 @@ class EnumerableMergeJoinRule extends ConverterRule {
     final RelNode left = newInputs.get(0);
     final RelNode right = newInputs.get(1);
     final RelOptCluster cluster = join.getCluster();
-    RelNode newRel;
 
     RelTraitSet traitSet = join.getTraitSet()
         .replace(EnumerableConvention.INSTANCE);
@@ -110,13 +110,7 @@ class EnumerableMergeJoinRule extends ConverterRule {
       final RexNode nonEqui = RexUtil.composeConjunction(rexBuilder, info.nonEquiConditions);
       condition = RexUtil.composeConjunction(rexBuilder, Arrays.asList(equi, nonEqui));
     }
-    newRel = new EnumerableMergeJoin(cluster,
-        traitSet,
-        left,
-        right,
-        condition,
-        join.getVariablesSet(),
-        join.getJoinType());
-    return newRel;
+    return new EnumerableMergeJoin(cluster, traitSet, left, right, condition,
+        join.getVariablesSet(), join.getJoinType());
   }
 }

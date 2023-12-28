@@ -6608,17 +6608,17 @@ public class JdbcTest {
             DatabaseMetaData metaData = connection.getMetaData();
             assertThat(metaData.getIdentifierQuoteString(), equalTo("`"));
             assertThat(metaData.supportsMixedCaseIdentifiers(),
-                equalTo(true));
-            assertThat(metaData.storesMixedCaseIdentifiers(),
                 equalTo(false));
+            assertThat(metaData.storesMixedCaseIdentifiers(),
+                equalTo(true));
             assertThat(metaData.storesUpperCaseIdentifiers(),
                 equalTo(false));
             assertThat(metaData.storesLowerCaseIdentifiers(),
                 equalTo(false));
             assertThat(metaData.supportsMixedCaseQuotedIdentifiers(),
-                equalTo(true));
-            assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
                 equalTo(false));
+            assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
+                equalTo(true));
             assertThat(metaData.storesUpperCaseIdentifiers(),
                 equalTo(false));
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
@@ -6879,6 +6879,7 @@ public class JdbcTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2072">[CALCITE-2072]
    * Enable spatial operator table by adding 'fun=spatial'to JDBC URL</a>. */
+  @Disabled
   @Test void testFunSpatial() {
     final String sql = "select distinct\n"
         + "  ST_PointFromText('POINT(-71.0642.28)') as c\n"

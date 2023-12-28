@@ -22,10 +22,13 @@ import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /** Variant of {@link org.apache.calcite.rel.rules.ProjectToCalcRule} for
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
  *
  * @see EnumerableRules#ENUMERABLE_PROJECT_TO_CALC_RULE */
+@Value.Enclosing
 public class EnumerableProjectToCalcRule extends ProjectToCalcRule {
   /** Creates an EnumerableProjectToCalcRule. */
   protected EnumerableProjectToCalcRule(Config config) {
@@ -52,6 +55,8 @@ public class EnumerableProjectToCalcRule extends ProjectToCalcRule {
   }
 
   /** Rule configuration. */
+  @Value.Immutable
+  @SuppressWarnings("immutables")
   public interface Config extends ProjectToCalcRule.Config {
     Config DEFAULT = ProjectToCalcRule.Config.DEFAULT
         .withOperandSupplier(b ->

@@ -100,6 +100,8 @@ public class JdbcRules {
 
   static final RelFactories.ProjectFactory PROJECT_FACTORY =
       (input, hints, projects, fieldNames, variablesSet) -> {
+        Preconditions.checkArgument(variablesSet.isEmpty(),
+            "JdbcProject does not allow variables");
         final RelOptCluster cluster = input.getCluster();
         final RelDataType rowType =
             RexUtil.createStructType(cluster.getTypeFactory(), projects,
@@ -119,8 +121,9 @@ public class JdbcRules {
   static final RelFactories.JoinFactory JOIN_FACTORY =
       (left, right, hints, condition, variablesSet, joinType, semiJoinDone) -> {
         final RelOptCluster cluster = left.getCluster();
-        final RelTraitSet traitSet = cluster.traitSetOf(
-            requireNonNull(left.getConvention(), "left.getConvention()"));
+        final RelTraitSet traitSet =
+            cluster.traitSetOf(
+                requireNonNull(left.getConvention(), "left.getConvention()"));
         try {
           return new JdbcJoin(cluster, traitSet, left, right, condition,
               variablesSet, joinType);
@@ -337,6 +340,9 @@ public class JdbcRules {
     private static boolean canJoinOnCondition(RexNode node) {
       final List<RexNode> operands;
       switch (node.getKind()) {
+      case LITERAL:
+        // literal on a join condition would be TRUE or FALSE
+        return true;
       case AND:
       case OR:
         operands = ((RexCall) node).getOperands();

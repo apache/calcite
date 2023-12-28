@@ -451,7 +451,7 @@ public class ModelHandler {
   }
 
   private Pair<? extends @Nullable String, SchemaPlus> nameAndSchema() {
-    return requireNonNull(schemaStack.peek(), "schemaStack.peek()");
+    return schemaStack.getFirst();
   }
 
   private SchemaPlus currentSchema() {

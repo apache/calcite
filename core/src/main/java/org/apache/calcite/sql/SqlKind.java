@@ -433,6 +433,9 @@ public enum SqlKind {
   /** {@code CASE} expression. */
   CASE,
 
+  /** {@code LAMBDA} expression. */
+  LAMBDA,
+
   /** {@code INTERVAL} expression. */
   INTERVAL,
 
@@ -665,6 +668,12 @@ public enum SqlKind {
    * <p>(Only used at the RexNode level.)
    */
   LOCAL_REF,
+
+  /** Reference to lambda expression parameter.
+   *
+   * <p>(Only used at the RexNode level.)
+   */
+  LAMBDA_REF,
 
   /**
    * Reference to correlation variable.

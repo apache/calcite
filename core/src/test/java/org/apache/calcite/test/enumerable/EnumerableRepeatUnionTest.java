@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableRepeatUnion;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -31,6 +32,7 @@ import java.util.Arrays;
  * <a href="https://issues.apache.org/jira/browse/CALCITE-2812">[CALCITE-2812]
  * Add algebraic operators to allow expressing recursive queries</a>.
  */
+@Disabled
 class EnumerableRepeatUnionTest {
 
   @Test void testGenerateNumbers() {

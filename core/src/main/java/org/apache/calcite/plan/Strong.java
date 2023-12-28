@@ -17,6 +17,7 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -27,6 +28,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 import java.util.ArrayList;
@@ -68,6 +70,16 @@ public class Strong {
     return new Strong() {
       @Override public boolean isNull(RexInputRef ref) {
         return nullColumns.get(ref.getIndex());
+      }
+    };
+  }
+
+  /** Returns a checker that consults a set to find out whether particular
+   * field may be null. */
+  public static Strong of(final ImmutableSet<RexFieldAccess> nullFields) {
+    return new Strong() {
+      @Override public boolean isNull(RexFieldAccess ref) {
+        return nullFields.contains(ref);
       }
     };
   }
@@ -155,10 +167,34 @@ public class Strong {
     switch (node.getKind()) {
     // TODO Enrich with more possible cases?
     case IS_NOT_NULL:
-      return anyNull(((RexCall) node).getOperands());
+      return isNull(((RexCall) node).getOperands().get(0));
+    case OR:
+      return allNotTrue(((RexCall) node).getOperands());
+    case AND:
+      return anyNotTrue(((RexCall) node).getOperands());
     default:
       return isNull(node);
     }
+  }
+
+  /** Returns whether all expressions in a list are definitely not true. */
+  private boolean allNotTrue(List<RexNode> operands) {
+    for (RexNode operand : operands) {
+      if (!isNotTrue(operand)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Returns whether any expressions in a list are definitely not true. */
+  private boolean anyNotTrue(List<RexNode> operands) {
+    for (RexNode operand : operands) {
+      if (isNotTrue(operand)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Returns whether an expression is definitely null.
@@ -192,6 +228,8 @@ public class Strong {
       return allNull(ImmutableList.of(((RexCall) node).getOperands().get(0)));
     case INPUT_REF:
       return isNull((RexInputRef) node);
+    case FIELD_ACCESS:
+      return isNull((RexFieldAccess) node);
     case CASE:
       final RexCall caseCall = (RexCall) node;
       final List<RexNode> caseValues = new ArrayList<>();
@@ -208,6 +246,11 @@ public class Strong {
 
   /** Returns whether a given input is definitely null. */
   public boolean isNull(RexInputRef ref) {
+    return false;
+  }
+
+  /** Returns whether a given field is definitely null. */
+  public boolean isNull(RexFieldAccess ref) {
     return false;
   }
 

@@ -233,10 +233,18 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker INTEGER =
       family(SqlTypeFamily.INTEGER);
 
+  public static final SqlSingleOperandTypeChecker NUMERIC_OPTIONAL_NUMERIC =
+      family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          // Second operand optional (operand index 0, 1)
+          number -> number == 1);
+
   public static final SqlSingleOperandTypeChecker NUMERIC_OPTIONAL_INTEGER =
       family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER),
           // Second operand optional (operand index 0, 1)
           number -> number == 1);
+
+  public static final SqlSingleOperandTypeChecker NUMERIC_CHARACTER =
+      family(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER);
 
   public static final SqlSingleOperandTypeChecker NUMERIC_INTEGER =
       family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER);
@@ -259,6 +267,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker BINARY =
       family(SqlTypeFamily.BINARY);
 
+  public static final SqlSingleOperandTypeChecker BINARY_BINARY =
+      family(SqlTypeFamily.BINARY, SqlTypeFamily.BINARY);
+
   public static final SqlSingleOperandTypeChecker STRING =
       family(SqlTypeFamily.STRING);
 
@@ -266,7 +277,8 @@ public abstract class OperandTypes {
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING);
 
   public static final FamilyOperandTypeChecker STRING_OPTIONAL_STRING =
-      family(ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+      family(
+          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
           // Second operand optional (operand index 0, 1)
           number -> number == 1);
 
@@ -277,7 +289,9 @@ public abstract class OperandTypes {
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.BOOLEAN);
 
   public static final FamilyOperandTypeChecker STRING_STRING_OPTIONAL_STRING =
-      family(ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+      family(
+          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+              SqlTypeFamily.STRING),
           // Third operand optional (operand index 0, 1, 2)
           number -> number == 2);
 
@@ -295,11 +309,20 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker DATE =
       family(SqlTypeFamily.DATE);
 
+  public static final SqlSingleOperandTypeChecker TIME =
+      family(SqlTypeFamily.TIME);
+
   public static final SqlSingleOperandTypeChecker TIMESTAMP =
       family(SqlTypeFamily.TIMESTAMP);
 
+  public static final SqlSingleOperandTypeChecker DATE_OR_TIMESTAMP =
+      DATE.or(TIMESTAMP);
+
   public static final SqlSingleOperandTypeChecker INTERVAL =
       family(SqlTypeFamily.DATETIME_INTERVAL);
+
+  public static final SqlSingleOperandTypeChecker CHARACTER_CHARACTER =
+      family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER);
 
   public static final SqlSingleOperandTypeChecker CHARACTER_CHARACTER_DATETIME =
       family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME);
@@ -317,7 +340,7 @@ public abstract class OperandTypes {
       new PeriodOperandTypeChecker();
 
   public static final SqlSingleOperandTypeChecker PERIOD_OR_DATETIME =
-      or(PERIOD, DATETIME);
+      PERIOD.or(DATETIME);
 
   public static final FamilyOperandTypeChecker INTERVAL_INTERVAL =
       family(SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.DATETIME_INTERVAL);
@@ -328,21 +351,58 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker ARRAY =
       family(SqlTypeFamily.ARRAY);
 
+  public static final SqlSingleOperandTypeChecker ARRAY_ARRAY =
+      family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY);
+
   public static final SqlSingleOperandTypeChecker ARRAY_OR_MAP =
-      or(family(SqlTypeFamily.ARRAY),
-          family(SqlTypeFamily.MAP),
-          family(SqlTypeFamily.ANY));
+      OperandTypes.family(SqlTypeFamily.ARRAY)
+          .or(OperandTypes.family(SqlTypeFamily.MAP))
+          .or(OperandTypes.family(SqlTypeFamily.ANY));
+
+  public static final SqlOperandTypeChecker STRING_ARRAY_CHARACTER_OPTIONAL_CHARACTER =
+      new FamilyOperandTypeChecker(
+          ImmutableList.of(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER),
+          i -> i == 2) {
+        @SuppressWarnings("argument.type.incompatible")
+        @Override public boolean checkOperandTypes(
+            SqlCallBinding callBinding,
+            boolean throwOnFailure) {
+          if (!super.checkOperandTypes(callBinding, throwOnFailure)) {
+            return false;
+          }
+          RelDataType elementType = callBinding.getOperandType(0).getComponentType();
+          if (elementType == null || !SqlTypeUtil.isString(elementType)) {
+            if (throwOnFailure) {
+              throw callBinding.newValidationSignatureError();
+            }
+            return false;
+          }
+          return true;
+        }
+
+        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+          return opName + "(<STRING ARRAY>, <CHARACTER>[, <CHARACTER>])";
+        }
+      };
 
   /** Checks that returns whether a value is a multiset or an array.
    * Cf Java, where list and set are collections but a map is not. */
   public static final SqlSingleOperandTypeChecker COLLECTION =
-      or(family(SqlTypeFamily.MULTISET),
-          family(SqlTypeFamily.ARRAY));
+      family(SqlTypeFamily.MULTISET).or(family(SqlTypeFamily.ARRAY));
 
   public static final SqlSingleOperandTypeChecker COLLECTION_OR_MAP =
-      or(family(SqlTypeFamily.MULTISET),
-          family(SqlTypeFamily.ARRAY),
-          family(SqlTypeFamily.MAP));
+      family(SqlTypeFamily.MULTISET)
+          .or(family(SqlTypeFamily.ARRAY))
+          .or(family(SqlTypeFamily.MAP));
+
+  public static final SqlSingleOperandTypeChecker MAP =
+      family(SqlTypeFamily.MAP);
+
+  public static final SqlOperandTypeChecker ARRAY_ELEMENT =
+      new ArrayElementOperandTypeChecker();
+
+  public static final SqlOperandTypeChecker ARRAY_INSERT =
+      new ArrayInsertOperandTypeChecker();
 
   /**
    * Operand type-checking strategy where type must be a literal or NULL.
@@ -414,8 +474,8 @@ public abstract class OperandTypes {
       };
 
   /**
-   * Operand type-checking strategy type must be a numeric non-NULL
-   * literal in the range 0 and 1 inclusive.
+   * Operand type-checking strategy where type must be a numeric non-NULL
+   * literal in the range 0 to 1 inclusive.
    */
   public static final SqlSingleOperandTypeChecker UNIT_INTERVAL_NUMERIC_LITERAL =
       new FamilyOperandTypeChecker(ImmutableList.of(SqlTypeFamily.NUMERIC),
@@ -481,6 +541,17 @@ public abstract class OperandTypes {
       new SameOperandTypeChecker(-1);
 
   /**
+   * Operand type-checking strategy where any positive number of operands must all be
+   * in the same type family.
+   */
+  public static final SqlOperandTypeChecker AT_LEAST_ONE_SAME_VARIADIC =
+      new SameOperandTypeChecker(-1) {
+        @Override public SqlOperandCountRange getOperandCountRange() {
+          return SqlOperandCountRanges.from(1);
+        }
+      };
+
+  /**
    * Operand type-checking strategy where a given list of operands must all
    * have the same type.
    */
@@ -534,14 +605,14 @@ public abstract class OperandTypes {
    * same string type family.
    */
   public static final SqlSingleOperandTypeChecker STRING_SAME_SAME =
-      OperandTypes.and(STRING_STRING, SAME_SAME);
+      STRING_STRING.and(SAME_SAME);
 
   /**
    * Operand type-checking strategy where three operands must all be in the
    * same string type family.
    */
   public static final SqlSingleOperandTypeChecker STRING_SAME_SAME_SAME =
-      OperandTypes.and(STRING_STRING_STRING, SAME_SAME_SAME);
+      STRING_STRING_STRING.and(SAME_SAME_SAME);
 
   public static final SqlSingleOperandTypeChecker STRING_STRING_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
@@ -552,6 +623,17 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker STRING_STRING_INTEGER_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
+
+  public static final SqlSingleOperandTypeChecker STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER =
+      family(
+          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER,
+              SqlTypeFamily.INTEGER), i -> i == 2 || i == 3);
+
+  public static final SqlSingleOperandTypeChecker
+      STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER_OPTIONAL_INTEGER =
+      family(
+          ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER,
+              SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER), i -> i == 2 || i == 3 || i == 4);
 
   public static final SqlSingleOperandTypeChecker STRING_INTEGER =
       family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
@@ -568,19 +650,29 @@ public abstract class OperandTypes {
           ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER,
               SqlTypeFamily.INTEGER), i -> i == 2);
 
+  public static final SqlSingleOperandTypeChecker STRING_NUMERIC =
+      family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC);
+
+  public static final SqlSingleOperandTypeChecker STRING_NUMERIC_NUMERIC =
+      family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC);
+
   /** Operand type-checking strategy where the first operand is a character or
    * binary string (CHAR, VARCHAR, BINARY or VARBINARY), and the second operand
    * is INTEGER. */
   public static final SqlSingleOperandTypeChecker CBSTRING_INTEGER =
-      or(family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
-          family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER));
+      family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER)
+          .or(family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER));
 
   /**
    * Operand type-checking strategy where two operands must both be in the
    * same string type family and last type is INTEGER.
    */
   public static final SqlSingleOperandTypeChecker STRING_SAME_SAME_INTEGER =
-      OperandTypes.and(STRING_STRING_INTEGER, SAME_SAME_INTEGER);
+      STRING_STRING_INTEGER.and(SAME_SAME_INTEGER);
+
+  public static final SqlSingleOperandTypeChecker STRING_SAME_SAME_OR_ARRAY_SAME_SAME =
+      or(STRING_SAME_SAME,
+          and(OperandTypes.SAME_SAME, family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
 
   public static final SqlSingleOperandTypeChecker ANY =
       family(SqlTypeFamily.ANY);
@@ -593,6 +685,37 @@ public abstract class OperandTypes {
       family(SqlTypeFamily.IGNORE, SqlTypeFamily.ANY);
   public static final SqlSingleOperandTypeChecker ANY_NUMERIC =
       family(SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC);
+  public static final SqlSingleOperandTypeChecker ANY_NUMERIC_ANY =
+      family(SqlTypeFamily.ANY, SqlTypeFamily.NUMERIC, SqlTypeFamily.ANY);
+  public static final SqlSingleOperandTypeChecker ANY_STRING_STRING =
+      family(SqlTypeFamily.ANY, SqlTypeFamily.STRING, SqlTypeFamily.STRING);
+  public static final SqlSingleOperandTypeChecker ANY_STRING_OPTIONAL_STRING =
+      family(ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+          // Third operand optional (operand index 0, 1, 2)
+          number -> number == 2);
+
+  /**
+   * Operand type-checking strategy used by {@code ARG_MIN(value, comp)} and
+   * similar functions, where the first operand can have any type and the second
+   * must be comparable.
+   */
+  public static final SqlOperandTypeChecker ANY_COMPARABLE =
+      new SqlOperandTypeChecker() {
+        @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+            boolean throwOnFailure) {
+          getOperandCountRange().isValidCount(callBinding.getOperandCount());
+          RelDataType type = callBinding.getOperandType(1);
+          return type.getComparability() == RelDataTypeComparability.ALL;
+        }
+
+        @Override public SqlOperandCountRange getOperandCountRange() {
+          return SqlOperandCountRanges.of(2);
+        }
+
+        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+          return opName + "(<ANY>, <COMPARABLE_TYPE>)";
+        }
+  };
 
   public static final SqlSingleOperandTypeChecker CURSOR =
       family(SqlTypeFamily.CURSOR);
@@ -602,13 +725,28 @@ public abstract class OperandTypes {
    * nullable time interval.
    */
   public static final SqlSingleOperandTypeChecker INTERVAL_SAME_SAME =
-      OperandTypes.and(INTERVAL_INTERVAL, SAME_SAME);
+      INTERVAL_INTERVAL.and(SAME_SAME);
 
   public static final SqlSingleOperandTypeChecker NUMERIC_INTERVAL =
       family(SqlTypeFamily.NUMERIC, SqlTypeFamily.DATETIME_INTERVAL);
 
   public static final SqlSingleOperandTypeChecker INTERVAL_NUMERIC =
       family(SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.NUMERIC);
+
+  public static final SqlSingleOperandTypeChecker TIME_INTERVAL =
+      family(SqlTypeFamily.TIME, SqlTypeFamily.DATETIME_INTERVAL);
+
+  public static final SqlSingleOperandTypeChecker TIMESTAMP_INTERVAL =
+      family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATETIME_INTERVAL);
+
+  public static final SqlSingleOperandTypeChecker DATE_INTERVAL =
+      family(SqlTypeFamily.DATE, SqlTypeFamily.DATETIME_INTERVAL);
+
+  public static final SqlSingleOperandTypeChecker DATE_CHARACTER =
+      family(SqlTypeFamily.DATE, SqlTypeFamily.CHARACTER);
+
+  public static final SqlSingleOperandTypeChecker DATE_TIME =
+      family(SqlTypeFamily.DATE, SqlTypeFamily.TIME);
 
   public static final SqlSingleOperandTypeChecker DATETIME_INTERVAL =
       family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME_INTERVAL);
@@ -632,29 +770,33 @@ public abstract class OperandTypes {
       family(SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.DATETIME);
 
   public static final SqlSingleOperandTypeChecker INTERVALINTERVAL_INTERVALDATETIME =
-      OperandTypes.or(INTERVAL_SAME_SAME, INTERVAL_DATETIME);
+      INTERVAL_SAME_SAME.or(INTERVAL_DATETIME);
 
   // TODO: datetime+interval checking missing
   // TODO: interval+datetime checking missing
   public static final SqlSingleOperandTypeChecker PLUS_OPERATOR =
-      OperandTypes.or(NUMERIC_NUMERIC, INTERVAL_SAME_SAME, DATETIME_INTERVAL,
-          INTERVAL_DATETIME);
+      NUMERIC_NUMERIC
+          .or(INTERVAL_SAME_SAME)
+          .or(DATETIME_INTERVAL)
+          .or(INTERVAL_DATETIME);
 
   /**
    * Type-checking strategy for the "*" operator.
    */
   public static final SqlSingleOperandTypeChecker MULTIPLY_OPERATOR =
-      OperandTypes.or(NUMERIC_NUMERIC, INTERVAL_NUMERIC, NUMERIC_INTERVAL);
+      NUMERIC_NUMERIC
+          .or(INTERVAL_NUMERIC)
+          .or(NUMERIC_INTERVAL);
 
   /**
    * Type-checking strategy for the "/" operator.
    */
   public static final SqlSingleOperandTypeChecker DIVISION_OPERATOR =
-      OperandTypes.or(NUMERIC_NUMERIC, INTERVAL_NUMERIC);
+      NUMERIC_NUMERIC.or(INTERVAL_NUMERIC);
 
   public static final SqlSingleOperandTypeChecker MINUS_OPERATOR =
       // TODO:  compatibility check
-      OperandTypes.or(NUMERIC_NUMERIC, INTERVAL_SAME_SAME, DATETIME_INTERVAL, DATE_DATE);
+      NUMERIC_NUMERIC.or(INTERVAL_SAME_SAME).or(DATETIME_INTERVAL);
 
   public static final FamilyOperandTypeChecker MINUS_DATE_OPERATOR =
       new FamilyOperandTypeChecker(
@@ -669,13 +811,22 @@ public abstract class OperandTypes {
           }
           return SAME_SAME.checkOperandTypes(callBinding, throwOnFailure);
         }
+
+        @Override public boolean checkOperandTypesWithoutTypeCoercion(
+            final SqlCallBinding callBinding,
+            final boolean throwOnFailure) {
+          if (!super.checkOperandTypesWithoutTypeCoercion(callBinding, throwOnFailure)) {
+            return false;
+          }
+          return SAME_SAME.checkOperandTypes(callBinding, throwOnFailure);
+        }
       };
 
   public static final SqlSingleOperandTypeChecker NUMERIC_OR_INTERVAL =
-      OperandTypes.or(NUMERIC, INTERVAL);
+      NUMERIC.or(INTERVAL);
 
   public static final SqlSingleOperandTypeChecker NUMERIC_OR_STRING =
-      OperandTypes.or(NUMERIC, STRING);
+      NUMERIC.or(STRING);
 
   /** Checker that returns whether a value is a multiset of records or an
    * array of records.
@@ -690,7 +841,6 @@ public abstract class OperandTypes {
           return "UNNEST(<MULTISET>)";
         }
       };
-
 
   /**
    * Checker for record just has one field.
@@ -756,10 +906,10 @@ public abstract class OperandTypes {
   /** Checker that returns whether a value is a collection (multiset or array)
    * of scalar or record values. */
   public static final SqlSingleOperandTypeChecker SCALAR_OR_RECORD_COLLECTION =
-      OperandTypes.or(COLLECTION, RECORD_COLLECTION);
+      COLLECTION.or(RECORD_COLLECTION);
 
   public static final SqlSingleOperandTypeChecker SCALAR_OR_RECORD_COLLECTION_OR_MAP =
-      OperandTypes.or(COLLECTION_OR_MAP,
+      COLLECTION_OR_MAP.or(
           new RecordTypeWithOneFieldChecker(
               sqlTypeName ->
                   sqlTypeName != SqlTypeName.MULTISET

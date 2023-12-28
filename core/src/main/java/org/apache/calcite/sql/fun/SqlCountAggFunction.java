@@ -98,7 +98,7 @@ public class SqlCountAggFunction extends SqlAggFunction {
     return super.unwrap(clazz);
   }
 
-  public SqlAggFunction getRollup() {
+  @Override public SqlAggFunction getRollup() {
     return SqlStdOperatorTable.SUM0;
   }
 }

@@ -20,6 +20,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 
 /** Rule to convert a {@link LogicalTableFunctionScan} to an {@link EnumerableTableFunctionScan}.
@@ -28,8 +29,7 @@ import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
  * @see EnumerableRules#ENUMERABLE_TABLE_FUNCTION_SCAN_RULE */
 public class EnumerableTableFunctionScanRule extends ConverterRule {
   /** Default configuration. */
-  public static final Config DEFAULT_CONFIG = Config.EMPTY
-      .as(Config.class)
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
       .withConversion(LogicalTableFunctionScan.class, Convention.NONE,
           EnumerableConvention.INSTANCE, "EnumerableTableFunctionScanRule")
       .withRuleFactory(EnumerableTableFunctionScanRule::new);
@@ -42,7 +42,7 @@ public class EnumerableTableFunctionScanRule extends ConverterRule {
   @Override public RelNode convert(RelNode rel) {
     final RelTraitSet traitSet =
         rel.getTraitSet().replace(EnumerableConvention.INSTANCE);
-    LogicalTableFunctionScan scan = (LogicalTableFunctionScan) rel;
+    TableFunctionScan scan = (TableFunctionScan) rel;
     return new EnumerableTableFunctionScan(rel.getCluster(), traitSet,
         convertList(scan.getInputs(), traitSet.getTrait(0)),
         scan.getElementType(), scan.getRowType(),

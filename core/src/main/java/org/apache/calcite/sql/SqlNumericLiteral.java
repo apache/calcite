@@ -88,9 +88,9 @@ public class SqlNumericLiteral extends SqlLiteral {
   }
 
   @Override public String toValue() {
-    BigDecimal bd = getValueNonNull();
+    final BigDecimal bd = getValueNonNull();
     if (isExact) {
-      return getValueNonNull().toString();
+      return bd.toPlainString();
     }
     return Util.toScientificNotation(bd);
   }
@@ -117,7 +117,7 @@ public class SqlNumericLiteral extends SqlLiteral {
           scaleValue);
     }
 
-    // else we have a a float, real or double.  make them all double for
+    // else we have a FLOAT, REAL or DOUBLE.  make them all DOUBLE for
     // now.
     return typeFactory.createSqlType(SqlTypeName.DOUBLE);
   }

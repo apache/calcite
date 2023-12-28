@@ -51,7 +51,7 @@ public class RelRunners {
     rel = rel.accept(shuttle);
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
       final RelRunner runner = connection.unwrap(RelRunner.class);
-      return runner.prepare(rel);
+      return runner.prepareStatement(rel);
     } catch (SQLException e) {
       throw Util.throwAsRuntime(e);
     }

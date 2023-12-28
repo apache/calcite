@@ -81,6 +81,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.List;
 import java.util.Map;
@@ -91,6 +92,7 @@ import java.util.SortedSet;
 /**
  * Utilities pertaining to {@link BindableRel} and {@link BindableConvention}.
  */
+@Value.Enclosing
 public class Bindables {
   private Bindables() {}
 
@@ -189,6 +191,7 @@ public class Bindables {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
     public interface Config extends RelRule.Config {
       Config DEFAULT = EMPTY
           .withOperandSupplier(b ->
@@ -383,6 +386,11 @@ public class Bindables {
     /** Called from the Config. */
     protected BindableProjectRule(Config config) {
       super(config);
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      final LogicalProject project = call.rel(0);
+      return project.getVariablesSet().isEmpty();
     }
 
     @Override public RelNode convert(RelNode rel) {
