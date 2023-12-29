@@ -91,6 +91,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Pair;
@@ -2261,6 +2262,13 @@ public abstract class SqlImplementor {
         }
       }
 
+      if (rel instanceof LogicalProject
+          && relInput instanceof LogicalFilter
+          && clauses.contains(Clause.QUALIFY)
+          && hasFieldsUsedInFilterWhichIsNotUsedInFinalProjection((Project) rel)) {
+        return true;
+      }
+
       if (rel instanceof Project
           && clauses.contains(Clause.HAVING)
           && !hasAliasUsedInHavingClause()
@@ -2359,6 +2367,33 @@ public abstract class SqlImplementor {
               if (selectNode instanceof SqlBasicCall) {
                 if (grpCallIsAlias(grpCall, (SqlBasicCall) selectNode)
                     && !grpCallPresentInFinalProjection(grpCall, rel)) {
+                  return true;
+                }
+              }
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    boolean hasFieldsUsedInFilterWhichIsNotUsedInFinalProjection(Project project) {
+      final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+      List<SqlNode> qualifyColumnList = new ArrayList<>();
+      ((SqlSelect) node).getQualify().accept(new SqlBasicVisitor<SqlNode>() {
+            @Override public SqlNode visit(SqlIdentifier id) {
+              qualifyColumnList.add(id);
+              return id;
+            }
+      });
+      if (selectList != null && qualifyColumnList != null) {
+        for (SqlNode grpNode : qualifyColumnList) {
+          if (grpNode instanceof SqlIdentifier) {
+            String grpCall = ((SqlIdentifier) grpNode).names.get(0);
+            for (SqlNode selectNode : selectList.getList()) {
+              if (selectNode instanceof SqlBasicCall) {
+                if (grpCallIsAlias(grpCall, (SqlBasicCall) selectNode)
+                    && !grpCallPresentInFinalProjection(grpCall, project)) {
                   return true;
                 }
               }
