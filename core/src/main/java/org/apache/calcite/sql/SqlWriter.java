@@ -559,13 +559,13 @@ public interface SqlWriter {
    * consists of expressions separated by ",", and ends with a ")".
    *
    * <p>A select statement is also a kind of frame. The beginning and end are
-   * are empty strings, but it consists of a sequence of clauses. "SELECT",
+   * empty strings, but it consists of a sequence of clauses. "SELECT",
    * "FROM", "WHERE" are separators.
    *
    * <p>A frame is current between a call to one of the
    * {@link SqlWriter#startList} methods and the call to
-   * {@link SqlWriter#endList(Frame)}. If other code starts a frame in the mean
-   * time, the sub-frame is put onto a stack.
+   * {@link SqlWriter#endList(Frame)}. If other code starts a frame in the meantime,
+   * the sub-frame is put onto a stack.
    */
   interface Frame {
   }
