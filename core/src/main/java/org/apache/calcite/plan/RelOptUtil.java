@@ -939,6 +939,9 @@ public abstract class RelOptUtil {
       if (aggregateCall.filterArg >= 0) {
         allFields.add(aggregateCall.filterArg);
       }
+      if (aggregateCall.distinctKeys != null) {
+        allFields.addAll(aggregateCall.distinctKeys.asList());
+      }
       allFields.addAll(RelCollations.ordinals(aggregateCall.collation));
     }
     return allFields;
@@ -960,8 +963,8 @@ public abstract class RelOptUtil {
     for (int i = 0; i < aggCallCnt; i++) {
       aggCalls.add(
           AggregateCall.create(SqlStdOperatorTable.SINGLE_VALUE, false, false,
-              false, ImmutableList.of(i), -1, RelCollations.EMPTY, 0, rel, null,
-              null));
+              false, ImmutableList.of(), ImmutableList.of(i), -1,
+              null, RelCollations.EMPTY, 0, rel, null, null));
     }
 
     return LogicalAggregate.create(rel, ImmutableList.of(), ImmutableBitSet.of(),
@@ -1391,41 +1394,6 @@ public abstract class RelOptUtil {
               rightKey =
                   rexBuilder.makeCast(targetKeyType, rightKey);
             }
-          }
-        }
-      }
-
-      if ((rangeOp == null)
-          && ((leftKey == null) || (rightKey == null))) {
-        // no equality join keys found yet:
-        // try transforming the condition to
-        // equality "join" conditions, e.g.
-        //     f(LHS) > 0 ===> ( f(LHS) > 0 ) = TRUE,
-        // and make the RHS produce TRUE, but only if we're strictly
-        // looking for equi-joins
-        final ImmutableBitSet projRefs = InputFinder.bits(condition);
-        leftKey = null;
-        rightKey = null;
-
-        boolean foundInput = false;
-        for (int i = 0; i < inputs.size() && !foundInput; i++) {
-          if (inputsRange[i].contains(projRefs)) {
-            leftInput = i;
-            leftFields = inputs.get(leftInput).getRowType().getFieldList();
-
-            leftKey = condition.accept(
-                new RelOptUtil.RexInputConverter(
-                    rexBuilder,
-                    leftFields,
-                    leftFields,
-                    adjustments));
-
-            rightKey = rexBuilder.makeLiteral(true);
-
-            // effectively performing an equality comparison
-            kind = SqlKind.EQUALS;
-
-            foundInput = true;
           }
         }
       }
@@ -2919,6 +2887,7 @@ public abstract class RelOptUtil {
    *
    * {@link RelOptUtil#classifyFilters(RelNode, List, boolean, boolean, boolean, List, List, List)}
    */
+
   public static boolean classifyFilters(
       RelNode joinRel,
       List<RexNode> filters,

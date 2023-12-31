@@ -31,6 +31,8 @@ import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Pair;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that merges a
  * {@link org.apache.calcite.rel.core.Project} and a
@@ -44,6 +46,7 @@ import org.apache.calcite.util.Pair;
  * @see FilterCalcMergeRule
  * @see CoreRules#PROJECT_CALC_MERGE
  */
+@Value.Enclosing
 public class ProjectCalcMergeRule
     extends RelRule<ProjectCalcMergeRule.Config>
     implements TransformationRule {
@@ -77,8 +80,6 @@ public class ProjectCalcMergeRule
             project.getRowType(),
             cluster.getRexBuilder());
     if (RexOver.containsOver(program)) {
-      LogicalCalc projectAsCalc = LogicalCalc.create(calc, program);
-      call.transformTo(projectAsCalc);
       return;
     }
 
@@ -100,14 +101,15 @@ public class ProjectCalcMergeRule
             topProgram,
             bottomProgram,
             rexBuilder);
-    final LogicalCalc newCalc =
-        LogicalCalc.create(calc.getInput(), mergedProgram);
+    final Calc newCalc =
+        calc.copy(calc.getTraitSet(), calc.getInput(), mergedProgram);
     call.transformTo(newCalc);
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableProjectCalcMergeRule.Config.of()
         .withOperandFor(LogicalProject.class, LogicalCalc.class);
 
     @Override default ProjectCalcMergeRule toRule() {

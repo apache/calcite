@@ -40,6 +40,7 @@ public class EnumerableRules {
   public static final boolean BRIDGE_METHODS = true;
 
   private EnumerableRules() {
+    System.out.print("test");
   }
 
   /** Rule that converts a

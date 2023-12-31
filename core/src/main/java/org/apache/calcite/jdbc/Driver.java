@@ -218,9 +218,8 @@ public class Driver extends UnregisteredDriver {
     CalciteMetaColumnFactory metaColumnFactory =
         config.metaColumnFactory(CalciteMetaColumnFactory.class,
             CalciteMetaColumnFactoryImpl.INSTANCE);
-//    return CalciteMetaImpl.create((CalciteConnectionImpl) connection,
-//            metaTableFactory, metaColumnFactory);
-    return new CalciteMetaImpl((CalciteConnectionImpl) connection);
+    return CalciteMetaImpl.create((CalciteConnectionImpl) connection,
+        metaTableFactory, metaColumnFactory);
   }
 
   /** Creates an internal connection. */

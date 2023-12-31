@@ -41,6 +41,8 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.immutables.value.Value;
+
 import java.util.Map;
 import java.util.Objects;
 
@@ -51,6 +53,7 @@ import java.util.Objects;
  *
  * @see CoreRules#SORT_PROJECT_TRANSPOSE
  */
+@Value.Enclosing
 public class SortProjectTransposeRule
     extends RelRule<SortProjectTransposeRule.Config>
     implements TransformationRule {
@@ -166,8 +169,9 @@ public class SortProjectTransposeRule
     call.transformTo(newProject, equiv);
   }
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableSortProjectTransposeRule.Config.of()
         .withOperandFor(Sort.class, LogicalProject.class);
 
     @Override default SortProjectTransposeRule toRule() {

@@ -54,12 +54,15 @@ import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Suppliers;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
@@ -75,7 +78,9 @@ import static java.util.Objects.requireNonNull;
  */
 public class JdbcTable extends AbstractQueryableTable
     implements TranslatableTable, ScannableTable, ModifiableTable {
-  private @Nullable RelProtoDataType protoRowType;
+  @SuppressWarnings("methodref.receiver.bound.invalid")
+  private final Supplier<RelProtoDataType> protoRowTypeSupplier =
+      Suppliers.memoize(this::supplyProto);
   public final JdbcSchema jdbcSchema;
   public final String jdbcCatalogName;
   public final String jdbcSchemaName;
@@ -86,7 +91,7 @@ public class JdbcTable extends AbstractQueryableTable
       String jdbcSchemaName, String jdbcTableName,
       Schema.TableType jdbcTableType) {
     super(Object[].class);
-    this.jdbcSchema = requireNonNull(jdbcSchema);
+    this.jdbcSchema = requireNonNull(jdbcSchema, "jdbcSchema");
     this.jdbcCatalogName = jdbcCatalogName;
     this.jdbcSchemaName = jdbcSchemaName;
     this.jdbcTableName = requireNonNull(jdbcTableName, "jdbcTableName");
@@ -112,25 +117,25 @@ public class JdbcTable extends AbstractQueryableTable
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-    if (protoRowType == null) {
-      try {
-        protoRowType =
-            jdbcSchema.getRelDataType(
-                jdbcCatalogName,
-                jdbcSchemaName,
-                jdbcTableName);
-      } catch (SQLException e) {
-        throw new RuntimeException(
-            "Exception while reading definition of table '" + jdbcTableName
-                + "'", e);
-      }
+    return protoRowTypeSupplier.get().apply(typeFactory);
+  }
+
+  private RelProtoDataType supplyProto() {
+    try {
+      return jdbcSchema.getRelDataType(
+          jdbcCatalogName,
+          jdbcSchemaName,
+          jdbcTableName);
+    } catch (SQLException e) {
+      throw new RuntimeException(
+          "Exception while reading definition of table '" + jdbcTableName
+              + "'", e);
     }
-    return protoRowType.apply(typeFactory);
   }
 
   private List<Pair<ColumnMetaData.Rep, Integer>> fieldClasses(
       final JavaTypeFactory typeFactory) {
-    final RelDataType rowType = requireNonNull(protoRowType, "protoRowType").apply(typeFactory);
+    final RelDataType rowType = getRowType(typeFactory);
     return Util.transform(rowType.getFieldList(), f -> {
       final RelDataType type = f.getType();
       final Class clazz = (Class) typeFactory.getJavaClass(type);
@@ -145,7 +150,7 @@ public class JdbcTable extends AbstractQueryableTable
     final SqlNodeList selectList = SqlNodeList.SINGLETON_STAR;
     SqlSelect node =
         new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY, selectList,
-            tableName(), null, null, null, null, null, null, null, null);
+            tableName(), null, null, null, null, null, null, null, null, null);
     final SqlWriterConfig config = SqlPrettyWriter.config()
         .withAlwaysUseParentheses(true)
         .withDialect(jdbcSchema.dialect);
@@ -170,7 +175,7 @@ public class JdbcTable extends AbstractQueryableTable
 
   @Override public RelNode toRel(RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
-    return new JdbcTableScan(context.getCluster(), relOptTable, this,
+    return new JdbcTableScan(context.getCluster(), context.getTableHints(), relOptTable, this,
         jdbcSchema.convention);
   }
 
@@ -180,10 +185,10 @@ public class JdbcTable extends AbstractQueryableTable
   }
 
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-    JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+    JavaTypeFactory typeFactory = root.getTypeFactory();
     final SqlString sql = generateSql();
     return ResultSetEnumerable.of(jdbcSchema.getDataSource(), sql.getSql(),
-        JdbcUtils.ObjectArrayRowBuilder.factory(fieldClasses(typeFactory)));
+        JdbcUtils.rowBuilderFactory2(fieldClasses(typeFactory)));
   }
 
   @Override public @Nullable Collection getModifiableCollection() {
@@ -219,11 +224,12 @@ public class JdbcTable extends AbstractQueryableTable
       final JavaTypeFactory typeFactory =
           ((CalciteConnection) queryProvider).getTypeFactory();
       final SqlString sql = generateSql();
-      //noinspection unchecked
-      final Enumerable<T> enumerable = (Enumerable<T>) ResultSetEnumerable.of(
-          jdbcSchema.getDataSource(),
-          sql.getSql(),
-          JdbcUtils.ObjectArrayRowBuilder.factory(fieldClasses(typeFactory)));
+      final List<Pair<ColumnMetaData.Rep, Integer>> pairs =
+          fieldClasses(typeFactory);
+      @SuppressWarnings({"rawtypes", "unchecked"})
+      final Enumerable<T> enumerable =
+          (Enumerable) ResultSetEnumerable.of(jdbcSchema.getDataSource(),
+              sql.getSql(), JdbcUtils.rowBuilderFactory2(pairs));
       return enumerable.enumerator();
     }
   }

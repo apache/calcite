@@ -81,6 +81,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.List;
 import java.util.Map;
@@ -91,6 +92,7 @@ import java.util.SortedSet;
 /**
  * Utilities pertaining to {@link BindableRel} and {@link BindableConvention}.
  */
+@Value.Enclosing
 public class Bindables {
   private Bindables() {}
 
@@ -189,11 +191,11 @@ public class Bindables {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
     public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+      Config DEFAULT = ImmutableBindables.Config.of()
           .withOperandSupplier(b ->
-              b.operand(LogicalTableScan.class).noInputs())
-          .as(Config.class);
+              b.operand(LogicalTableScan.class).noInputs());
 
       @Override default BindableTableScanRule toRule() {
         return new BindableTableScanRule(this);
@@ -215,8 +217,8 @@ public class Bindables {
         RelOptTable table, ImmutableList<RexNode> filters,
         ImmutableIntList projects) {
       super(cluster, traitSet, ImmutableList.of(), table);
-      this.filters = Objects.requireNonNull(filters);
-      this.projects = Objects.requireNonNull(projects);
+      this.filters = Objects.requireNonNull(filters, "filters");
+      this.projects = Objects.requireNonNull(projects, "projects");
       Preconditions.checkArgument(canHandle(table));
     }
 
@@ -383,6 +385,11 @@ public class Bindables {
     /** Called from the Config. */
     protected BindableProjectRule(Config config) {
       super(config);
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      final LogicalProject project = call.rel(0);
+      return project.getVariablesSet().isEmpty();
     }
 
     @Override public RelNode convert(RelNode rel) {

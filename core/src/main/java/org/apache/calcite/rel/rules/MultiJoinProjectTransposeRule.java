@@ -25,6 +25,8 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * MultiJoinProjectTransposeRule implements the rule for pulling
  * {@link org.apache.calcite.rel.logical.LogicalProject}s that are on top of a
@@ -61,6 +63,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * @see CoreRules#MULTI_JOIN_LEFT_PROJECT
  * @see CoreRules#MULTI_JOIN_RIGHT_PROJECT
  */
+@Value.Enclosing
 public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
 
   /** Creates a MultiJoinProjectTransposeRule. */
@@ -72,9 +75,8 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
   public MultiJoinProjectTransposeRule(
       RelOptRuleOperand operand,
       String description) {
-    this(Config.DEFAULT.withDescription(description)
-        .withOperandSupplier(b -> b.exactly(operand))
-        .as(Config.class));
+    this(ImmutableMultiJoinProjectTransposeRule.Config.of().withDescription(description)
+        .withOperandSupplier(b -> b.exactly(operand)));
   }
 
   @Deprecated // to be removed before 2.0
@@ -82,10 +84,9 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
       RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory,
       String description) {
-    this(Config.DEFAULT.withDescription(description)
+    this(ImmutableMultiJoinProjectTransposeRule.Config.of().withDescription(description)
         .withRelBuilderFactory(relBuilderFactory)
-        .withOperandSupplier(b -> b.exactly(operand))
-        .as(Config.class));
+        .withOperandSupplier(b -> b.exactly(operand)));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -127,8 +128,10 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
   }
 
   /** Rule configuration. */
+  @Value.Immutable
+  @SuppressWarnings("immutables:subtype")
   public interface Config extends JoinProjectTransposeRule.Config {
-    Config BOTH_PROJECT = EMPTY
+    Config BOTH_PROJECT = ImmutableMultiJoinProjectTransposeRule.Config.of()
         .withOperandSupplier(b0 ->
             b0.operand(LogicalJoin.class).inputs(
                 b1 -> b1.operand(LogicalProject.class).oneInput(b2 ->
@@ -136,27 +139,25 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
                 b3 -> b3.operand(LogicalProject.class).oneInput(b4 ->
                     b4.operand(MultiJoin.class).anyInputs())))
         .withDescription(
-            "MultiJoinProjectTransposeRule: with two LogicalProject children")
-        .as(Config.class);
+            "MultiJoinProjectTransposeRule: with two LogicalProject children");
 
-    Config LEFT_PROJECT = EMPTY
+    Config LEFT_PROJECT = ImmutableMultiJoinProjectTransposeRule.Config.of()
         .withOperandSupplier(b0 ->
             b0.operand(LogicalJoin.class).inputs(b1 ->
                 b1.operand(LogicalProject.class).oneInput(b2 ->
                     b2.operand(MultiJoin.class).anyInputs())))
         .withDescription(
-            "MultiJoinProjectTransposeRule: with LogicalProject on left")
-        .as(Config.class);
+            "MultiJoinProjectTransposeRule: with LogicalProject on left");
 
-    Config RIGHT_PROJECT = EMPTY
+    Config RIGHT_PROJECT = ImmutableMultiJoinProjectTransposeRule.Config.of()
         .withOperandSupplier(b0 ->
             b0.operand(LogicalJoin.class).inputs(
                 b1 -> b1.operand(RelNode.class).anyInputs(),
                 b2 -> b2.operand(LogicalProject.class).oneInput(b3 ->
                     b3.operand(MultiJoin.class).anyInputs())))
         .withDescription(
-            "MultiJoinProjectTransposeRule: with LogicalProject on right")
-        .as(Config.class);
+            "MultiJoinProjectTransposeRule: with LogicalProject on right");
+
 
     @Override default MultiJoinProjectTransposeRule toRule() {
       return new MultiJoinProjectTransposeRule(this);

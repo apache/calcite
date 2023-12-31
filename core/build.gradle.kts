@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import com.github.autostyle.gradle.AutostyleTask
 import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.ide.dsl.settings
@@ -67,8 +68,10 @@ dependencies {
     implementation("org.slf4j:slf4j-api")
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
+    compileOnly("com.google.code.findbugs:jsr305")
     testAnnotationProcessor("org.immutables:value")
     testCompileOnly("org.immutables:value-annotations")
+    testCompileOnly("com.google.code.findbugs:jsr305")
 
     testH2("com.h2database:h2")
     testMysql("mysql:mysql-connector-java")
@@ -87,21 +90,11 @@ dependencies {
     testImplementation(kotlin("stdlib-jdk8"))
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
-    annotationProcessor("org.immutables:value")
-    compileOnly("org.immutables:value-annotations")
-    testAnnotationProcessor("org.immutables:value")
-    testCompileOnly("org.immutables:value-annotations")
-}
 
-// There are users that reuse/extend test code (e.g. Apache Felix)
-// So publish test jar to Nexus repository
-// TODO: remove when calcite-test-framework is extracted to a standalone artifact
-publishing {
-    publications {
-        named<MavenPublication>(project.name) {
-            artifact(tasks.testJar.get())
-        }
-    }
+    // proj4j-epsg must not be converted to 'implementation' due to its license
+    testRuntimeOnly("org.locationtech.proj4j:proj4j-epsg")
+
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }
 
 tasks.jar {
@@ -175,6 +168,11 @@ val javaCCMain by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCT
     packageName.set("org.apache.calcite.sql.parser.impl")
 }
 
+tasks.compileKotlin {
+    dependsOn(versionClass)
+    dependsOn(javaCCMain)
+}
+
 val fmppTest by tasks.registering(org.apache.calcite.buildtools.fmpp.FmppTask::class) {
     config.set(file("src/test/codegen/config.fmpp"))
     templates.set(file("src/main/codegen/templates"))
@@ -187,6 +185,22 @@ val javaCCTest by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCT
     }
     inputFile.from(parserFile)
     packageName.set("org.apache.calcite.sql.parser.parserextensiontesting")
+}
+
+tasks.compileTestKotlin {
+    dependsOn(javaCCTest)
+}
+
+tasks.withType<Checkstyle>().configureEach {
+    mustRunAfter(versionClass)
+    mustRunAfter(javaCCMain)
+    mustRunAfter(javaCCTest)
+}
+
+tasks.withType<AutostyleTask>().configureEach {
+    mustRunAfter(versionClass)
+    mustRunAfter(javaCCMain)
+    mustRunAfter(javaCCTest)
 }
 
 ide {
@@ -248,8 +262,6 @@ val integTestAll by tasks.registering() {
     description = "Executes integration JDBC tests for all DBs"
 }
 
-val coreTestClasses = sourceSets.main.get().output
-val coreClasses = sourceSets.main.get().output + coreTestClasses
 for (db in listOf("h2", "mysql", "oracle", "postgresql")) {
     val task = tasks.register("integTest" + db.capitalize(), Test::class) {
         group = LifecycleBasePlugin.VERIFICATION_GROUP
@@ -257,8 +269,9 @@ for (db in listOf("h2", "mysql", "oracle", "postgresql")) {
         include("org/apache/calcite/test/JdbcAdapterTest.class")
         include("org/apache/calcite/test/JdbcTest.class")
         systemProperty("calcite.test.db", db)
-        testClassesDirs = coreTestClasses.classesDirs
-        classpath = coreClasses + configurations.getAt("test" + db.capitalize())
+        // Include the jars from the custom configuration to the classpath
+        // otherwise the JDBC drivers for each DBMS will be missing
+        classpath = classpath + configurations.getAt("test" + db.capitalize())
     }
     integTestAll {
         dependsOn(task)

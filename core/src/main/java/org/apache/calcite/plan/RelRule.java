@@ -19,14 +19,15 @@ package org.apache.calcite.plan;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -126,40 +127,47 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
 
   /** Rule configuration. */
   public interface Config {
-    /** Empty configuration. */
-    RelRule.Config EMPTY = ImmutableBeans.create(Config.class)
-        .withRelBuilderFactory(RelFactories.LOGICAL_BUILDER)
-        .withOperandSupplier(b -> {
-          throw new IllegalArgumentException("Rules must have at least one "
-              + "operand. Call Config.withOperandSupplier to specify them.");
-        });
 
     /** Creates a rule that uses this configuration. Sub-class must override. */
     RelOptRule toRule();
 
     /** Casts this configuration to another type, usually a sub-class. */
     default <T extends Object> T as(Class<T> class_) {
-      return ImmutableBeans.copy(class_, this);
+      if (class_.isAssignableFrom(this.getClass())) {
+        return class_.cast(this);
+      } else {
+        throw new UnsupportedOperationException(
+            String.format(Locale.ROOT,
+                "The current config of type %s is not an instance of %s.",
+                this.getClass(),
+                class_));
+      }
     }
 
     /** The factory that is used to create a
      * {@link org.apache.calcite.tools.RelBuilder} during rule invocations. */
-    @ImmutableBeans.Property
-    RelBuilderFactory relBuilderFactory();
+    @Value.Default default RelBuilderFactory relBuilderFactory() {
+      return RelFactories.LOGICAL_BUILDER;
+    }
 
     /** Sets {@link #relBuilderFactory()}. */
     Config withRelBuilderFactory(RelBuilderFactory factory);
 
     /** Description of the rule instance. */
-    @ImmutableBeans.Property
+    // CALCITE-4831: remove the second nullable annotation once immutables/#1261 is fixed
     @Nullable String description();
 
     /** Sets {@link #description()}. */
     Config withDescription(@Nullable String description);
 
     /** Creates the operands for the rule instance. */
-    @ImmutableBeans.Property
-    OperandTransform operandSupplier();
+    @Value.Default default OperandTransform operandSupplier() {
+      return s -> {
+        throw new IllegalArgumentException("Rules must have at least one "
+            + "operand. Call Config.withOperandSupplier to specify them.");
+      };
+
+    }
 
     /** Sets {@link #operandSupplier()}. */
     Config withOperandSupplier(OperandTransform transform);

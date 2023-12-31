@@ -47,6 +47,8 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.TimeFrameSet;
+import org.apache.calcite.rel.type.TimeFrames;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
@@ -72,7 +74,6 @@ import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -181,15 +182,10 @@ abstract class CalciteConnectionImpl
 
   @Override public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface == RelRunner.class) {
-      return iface.cast((RelRunner) rel -> {
-        try {
-          return prepareStatement_(CalcitePrepare.Query.of(rel),
+      return iface.cast((RelRunner) rel ->
+          prepareStatement_(CalcitePrepare.Query.of(rel),
               ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
-              getHoldability());
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
-        }
-      });
+              getHoldability()));
     }
     return super.unwrap(iface);
   }
@@ -425,6 +421,9 @@ abstract class CalciteConnectionImpl
       Hook.CURRENT_TIME.run(timeHolder);
       final long time = timeHolder.get();
       final TimeZone timeZone = connection.getTimeZone();
+      final TimeFrameSet timeFrameSet =
+          connection.typeFactory.getTypeSystem()
+              .deriveTimeFrameSet(TimeFrames.CORE);
       final long localOffset = timeZone.getOffset(time);
       final long currentOffset = localOffset;
       final String user = "sa";
@@ -578,26 +577,6 @@ abstract class CalciteConnectionImpl
     @Override public CalcitePrepare.SparkHandler spark() {
       final boolean enable = config().spark();
       return CalcitePrepare.Dummy.getSparkHandler(enable);
-    }
-  }
-
-  /** Implementation of {@link DataContext} that has few variables and is
-   * {@link Serializable}. For Spark. */
-  private static class SlimDataContext implements DataContext, Serializable {
-    @Override public @Nullable SchemaPlus getRootSchema() {
-      return null;
-    }
-
-    @Override public @Nullable JavaTypeFactory getTypeFactory() {
-      return null;
-    }
-
-    @Override public @Nullable QueryProvider getQueryProvider() {
-      return null;
-    }
-
-    @Override public @Nullable Object get(String name) {
-      return null;
     }
   }
 

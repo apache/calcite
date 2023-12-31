@@ -96,6 +96,9 @@ public class Like {
             || (nextChar == escapeChar)) {
           javaPattern.append(nextChar);
           i++;
+        } else if (nextChar == '\\') {
+          javaPattern.append("\\\\");
+          i++;
         } else {
           throw invalidEscapeSequence(sqlPattern, i);
         }

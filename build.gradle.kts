@@ -185,8 +185,7 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
 }
 
 val adaptersForSqlline = listOf(
-    ":cassandra", ":druid",
-    ":file", ":geode", ":innodb", ":kafka", ":mongodb",
+    ":cassandra",
     ":pig", ":piglet", ":redis", ":splunk")
 
 val dataSetsForSqlline = listOf(
@@ -444,6 +443,11 @@ allprojects {
             sourceCompatibility = JavaVersion.VERSION_1_8
             targetCompatibility = JavaVersion.VERSION_1_8
         }
+        configure<JavaPluginExtension> {
+            consistentResolution {
+                useCompileClasspathVersions()
+            }
+        }
 
         repositories {
             if (enableMavenLocal) {
@@ -465,8 +469,9 @@ allprojects {
         if (!skipAutostyle) {
             autostyle {
                 java {
-                    paddedCell()
-                    filter.exclude(*javaccGeneratedPatterns + "**/test/java/*.java")
+                    filter.exclude(*javaccGeneratedPatterns +
+                            "**/test/java/*.java" +
+                            "**/RelRule.java" /** remove as part of CALCITE-4831 **/)
                     license()
                     if (!project.props.bool("junit4", default = false)) {
                         replace("junit5: Test", "org.junit.Test", "org.junit.jupiter.api.Test")

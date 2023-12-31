@@ -484,7 +484,11 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return true or false depending on whether the rows are unique, or
    * null if not enough information is available to make that determination
    */
-  public @Nullable Boolean areRowsUnique(RelNode rel) {
+  public @Nullable Boolean areRowsUnique(RelNode rel, boolean ignoreNulls) {
+    Double maxRowCount = this.getMaxRowCount(rel);
+    if (maxRowCount != null && maxRowCount <= 1D) {
+      return true;
+    }
     final ImmutableBitSet columns =
         ImmutableBitSet.range(rel.getRowType().getFieldCount());
     return areColumnsUnique(rel, columns, false);

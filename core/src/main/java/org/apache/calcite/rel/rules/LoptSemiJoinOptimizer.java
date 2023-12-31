@@ -583,9 +583,9 @@ public class LoptSemiJoinOptimizer {
       // already created for each factor so any chaining of filters will
       // be accounted for.
       if (bestDimIdx != -1) {
-        int bestDimIdxFinal = bestDimIdx;
-        LogicalJoin semiJoin = requireNonNull(possibleDimensions.get(bestDimIdxFinal),
-            () -> "possibleDimensions.get(" + bestDimIdxFinal + ") is null");
+        LogicalJoin semiJoin =
+            requireNonNull(possibleDimensions.get(bestDimIdx),
+                "possibleDimensions.get(bestDimIdx)");
         LogicalJoin chosenSemiJoin =
             LogicalJoin.create(factRel,
                 chosenSemiJoins[bestDimIdx],

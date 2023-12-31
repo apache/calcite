@@ -24,10 +24,13 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that combines two
  * {@link org.apache.calcite.rel.logical.LogicalFilter}s.
  */
+@Value.Enclosing
 public class FilterMergeRule extends RelRule<FilterMergeRule.Config>
     implements SubstitutionRule {
 
@@ -62,8 +65,9 @@ public class FilterMergeRule extends RelRule<FilterMergeRule.Config>
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableFilterMergeRule.Config.of()
         .withOperandFor(Filter.class);
 
     @Override default FilterMergeRule toRule() {
