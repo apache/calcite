@@ -64,6 +64,7 @@ include(
     "cassandra",
     "core",
     "druid",
+    "gremlin",
     "elasticsearch",
     "example:csv",
     "example:function",
