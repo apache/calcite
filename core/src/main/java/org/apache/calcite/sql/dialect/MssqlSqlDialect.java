@@ -22,6 +22,7 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDialect;
@@ -43,6 +44,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ToNumberUtils;
@@ -71,9 +73,8 @@ public class MssqlSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new MssqlSqlDialect(DEFAULT_CONTEXT);
 
   private static final SqlFunction MSSQL_SUBSTRING =
-      new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
-          SqlFunctionCategory.STRING);
+      SqlBasicFunction.create("SUBSTRING", ReturnTypes.ARG0_NULLABLE_VARYING,
+          OperandTypes.VARIADIC, SqlFunctionCategory.STRING);
 
   private static final List<String> DATEPART_CONVERTER_LIST = Arrays.asList(
       TimeUnit.MINUTE.name(),
@@ -137,21 +138,21 @@ public class MssqlSqlDialect extends SqlDialect {
 
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    if (!top) {
+    if (!top && offset != null) {
       super.unparseOffsetFetch(writer, offset, fetch);
     }
   }
 
   @Override public void unparseTopN(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    if (top) {
+    if (top || offset == null) {
       // Per Microsoft:
       //   "For backward compatibility, the parentheses are optional in SELECT
       //   statements. We recommend that you always use parentheses for TOP in
       //   SELECT statements. Doing so provides consistency with its required
       //   use in INSERT, UPDATE, MERGE, and DELETE statements."
       //
-      // Note that "fetch" is ignored.
+      // Note that "offset" is ignored.
       writer.keyword("TOP");
       writer.keyword("(");
       requireNonNull(fetch, "fetch");
@@ -388,7 +389,7 @@ public class MssqlSqlDialect extends SqlDialect {
     final SqlWriter.Frame frame = writer.startFunCall("DATEADD");
     SqlNode operand = call.operand(1);
     if (operand instanceof SqlIntervalLiteral) {
-      //There is no DATESUB method available, so change the sign.
+      // There is no DATESUB method available, so change the sign.
       unparseSqlIntervalLiteralMssql(
           writer, (SqlIntervalLiteral) operand, sqlKind == SqlKind.MINUS ? -1 : 1);
     } else {

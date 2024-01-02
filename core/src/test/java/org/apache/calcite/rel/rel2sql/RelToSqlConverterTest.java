@@ -1892,15 +1892,10 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM ' str ')\nFROM foodmart"
-        + ".reserve_employee";
     sql(query)
-        .withHive()
-        .ok(expected)
-        .withSpark()
-      .ok(expectedSpark)
-      .withBigQuery()
-        .ok(expected);
+        .withBigQuery().ok(expected)
+        .withHive().ok(expected)
+        .withSpark().ok(expected);
   }
 
   @Test void testHiveSparkAndBqTrimWithBoth() {
@@ -1908,15 +1903,10 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM ' str ')\n"
-        + "FROM foodmart.reserve_employee";
     sql(query)
-        .withHive()
-        .ok(expected)
-        .withSpark()
-      .ok(expectedSpark)
-      .withBigQuery()
-        .ok(expected);
+        .withBigQuery().ok(expected)
+        .withHive().ok(expected)
+        .withSpark().ok(expected);
   }
 
   @Test void testHiveSparkAndBqTrimWithLeading() {
@@ -1924,15 +1914,10 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT LTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(LEADING ' ' FROM ' str ')\nFROM foodmart"
-        + ".reserve_employee";
     sql(query)
-        .withHive()
-        .ok(expected)
-        .withSpark()
-      .ok(expectedSpark)
-      .withBigQuery()
-        .ok(expected);
+        .withBigQuery().ok(expected)
+        .withHive().ok(expected)
+        .withSpark().ok(expected);
   }
 
 
@@ -1941,15 +1926,10 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT RTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(TRAILING ' ' FROM ' str ')\nFROM foodmart"
-        + ".reserve_employee";
     sql(query)
-        .withHive()
-        .ok(expected)
-        .withSpark()
-      .ok(expectedSpark)
-      .withBigQuery()
-        .ok(expected);
+        .withBigQuery().ok(expected)
+        .withHive().ok(expected)
+        .withSpark().ok(expected);
   }
 
   /** Test case for
@@ -1963,8 +1943,7 @@ class RelToSqlConverterTest {
     final String expectedHS = "SELECT REGEXP_REPLACE('abcd', '^(a)*', '')\n"
         + "FROM foodmart.reserve_employee";
     sql(query)
-        .withBigQuery()
-        .ok(expected);
+        .withBigQuery().ok(expected);
   }
 
   /** Test case for
@@ -1976,13 +1955,9 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT REGEXP_REPLACE('abcd', '^(a)*', '')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(LEADING 'a' FROM 'abcd')\nFROM foodmart"
-        + ".reserve_employee";
     sql(query)
-        .withHive()
-        .ok(expected)
-        .withSpark()
-        .ok(expectedSpark);
+        .withHive().ok(expected)
+        .withSpark().ok(expected);
   }
 
   @Test void testBqTrimWithBothChar() {
@@ -2000,13 +1975,9 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT REGEXP_REPLACE('abcda', '^(a)*|(a)*$', '')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH 'a' FROM 'abcda')\n"
-        + "FROM foodmart.reserve_employee";
     sql(query)
-        .withHive()
-        .ok(expected)
-        .withSpark()
-        .ok(expectedSpark);
+        .withHive().ok(expected)
+        .withSpark().ok(expected);
   }
 
   @Test void testHiveBqTrimWithTailingChar() {
@@ -2026,13 +1997,11 @@ class RelToSqlConverterTest {
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM(\"full_name\")\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM full_name)\nFROM foodmart"
-        + ".reserve_employee";
     sql(query)
         .withHive()
         .ok(expected)
         .withSpark()
-        .ok(expectedSpark)
+        .ok(expected)
         .withBigQuery()
         .ok(expected)
         .withSnowflake()
@@ -2044,7 +2013,7 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(full_name)\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM full_name)\n"
+    final String expectedSpark = "SELECT TRIM(full_name)\n"
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM(\"full_name\")\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
@@ -2068,7 +2037,7 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT LTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(LEADING ' ' FROM ' str ')\nFROM foodmart"
+    final String expectedSpark = "SELECT LTRIM(' str ')\nFROM foodmart"
         + ".reserve_employee";
     final String expectedSnowFlake = "SELECT LTRIM(' str ')\n"
               + "FROM \"foodmart\".\"reserve_employee\"";
@@ -2092,7 +2061,7 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT RTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(TRAILING ' ' FROM ' str ')"
+    final String expectedSpark = "SELECT RTRIM(' str ')"
         + "\nFROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT RTRIM(' str ')\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
@@ -2116,7 +2085,7 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT LTRIM(first_name, 'A')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(LEADING 'A' FROM first_name)\nFROM foodmart"
+    final String expectedSpark = "SELECT REGEXP_REPLACE(first_name, '^(A)*', '')\nFROM foodmart"
         + ".reserve_employee";
     final String expectedHS = "SELECT REGEXP_REPLACE(first_name, '^(A)*', '')\n"
         + "FROM foodmart.reserve_employee";
@@ -2149,7 +2118,7 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT RTRIM('AABCAADCAA', 'A')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(TRAILING 'A' FROM 'AABCAADCAA')\nFROM foodmart"
+    final String expectedSpark = "SELECT REGEXP_REPLACE('AABCAADCAA', '(A)*$', '')\nFROM foodmart"
         + ".reserve_employee";
     final String expectedHS = "SELECT REGEXP_REPLACE('AABCAADCAA', '(A)*$', '')\n"
         + "FROM foodmart.reserve_employee";
@@ -2171,8 +2140,8 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM('AABCAADCAA', 'A')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH 'A' FROM 'AABCAADCAA')\nFROM foodmart"
-        + ".reserve_employee";
+    final String expectedSpark = "SELECT REGEXP_REPLACE('AABCAADCAA', '^(A)*|(A)*$', '')\n"
+        + "FROM foodmart.reserve_employee";
     final String expectedHS = "SELECT REGEXP_REPLACE('AABCAADCAA', '^(A)*|(A)*$', '')\n"
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM('AABCAADCAA', 'A')\n"
@@ -2196,8 +2165,9 @@ class RelToSqlConverterTest {
     final String expectedHS =
         "SELECT REGEXP_REPLACE('A$@*AABCA$@*AADCAA$@*', '^(A\\$\\@\\*)*', '')\n"
             + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(LEADING 'A$@*' FROM 'A$@*AABCA$@*AADCAA$@*')\nFROM"
-        + " foodmart.reserve_employee";
+    final String expectedSpark =
+        "SELECT REGEXP_REPLACE('A$@*AABCA$@*AADCAA$@*', '^(A\\$\\@\\*)*', '')\n"
+        + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT LTRIM('A$@*AABCA$@*AADCAA$@*', 'A$@*')\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
     sql(query)
@@ -2219,7 +2189,8 @@ class RelToSqlConverterTest {
     final String expectedHS =
         "SELECT REGEXP_REPLACE('$A@*AABC$@*AADCAA$A@*', '(\\$A\\@\\*)*$', '')\n"
             + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(TRAILING '$A@*' FROM '$A@*AABC$@*AADCAA$A@*')\n"
+    final String expectedSpark =
+        "SELECT REGEXP_REPLACE('$A@*AABC$@*AADCAA$A@*', '(\\$A\\@\\*)*$', '')\n"
             + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT RTRIM('$A@*AABC$@*AADCAA$A@*', '$A@*')\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
@@ -2244,7 +2215,8 @@ class RelToSqlConverterTest {
         "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
             + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
             + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH '$@*A' FROM '$@*AABC$@*AADCAA$@*A')\nFROM "
+    final String expectedSpark = "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A', '^"
+        + "(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\nFROM "
         + "foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM('$@*AABC$@*AADCAA$@*A', '$@*A')\n"
               + "FROM \"foodmart\".\"reserve_employee\"";
@@ -2267,7 +2239,7 @@ class RelToSqlConverterTest {
     final String expectedHS =
         "SELECT TRIM(SUBSTRING(full_name, 2, 3))\n"
             + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH ' ' FROM SUBSTRING(full_name, 2, 3))\n"
+    final String expectedSpark = "SELECT TRIM(SUBSTRING(full_name, 2, 3))\n"
         + "FROM foodmart.reserve_employee";
     final String expectedSnowFlake = "SELECT TRIM(SUBSTR(\"full_name\", 2, 3))\n"
         + "FROM \"foodmart\".\"reserve_employee\"";
@@ -2288,13 +2260,9 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT REGEXP_REPLACE('abcd', '(a)*$', '')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(TRAILING 'a' FROM 'abcd')\n"
-        + "FROM foodmart.reserve_employee";
     sql(query)
-        .withHive()
-        .ok(expected)
-        .withSpark()
-        .ok(expectedSpark);
+        .withHive().ok(expected)
+        .withSpark().ok(expected);
   }
 
   @Test void testBqTrimWithBothSpecialCharacter() {
@@ -2313,13 +2281,9 @@ class RelToSqlConverterTest {
     final String expected = "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
         + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
         + "FROM foodmart.reserve_employee";
-    final String expectedSpark = "SELECT TRIM(BOTH '$@*A' FROM '$@*AABC$@*AADCAA$@*A')\n"
-        + "FROM foodmart.reserve_employee";
     sql(query)
-        .withHive()
-        .ok(expected)
-        .withSpark()
-        .ok(expectedSpark);
+        .withHive().ok(expected)
+        .withSpark().ok(expected);
   }
 
   /** Test case for
@@ -3358,10 +3322,9 @@ class RelToSqlConverterTest {
     final String expectedMssql10 = "SELECT TOP (100) [product_id]\n"
         + "FROM [foodmart].[product]\n"
         + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
-    final String expectedMssql = "SELECT [product_id]\n"
+    final String expectedMssql = "SELECT TOP (100) [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]\n"
-        + "FETCH NEXT 100 ROWS ONLY";
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
     final String expectedSybase = "SELECT TOP (100) product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id";
@@ -6244,7 +6207,7 @@ class RelToSqlConverterTest {
         + "GROUP BY CUBE(\"product_id\", \"product_class_id\")";
     final String expectedInSpark = "SELECT COUNT(*)\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY product_id, product_class_id WITH CUBE";
+        + "GROUP BY CUBE(product_id, product_class_id)";
     final String expectedPresto = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY CUBE(\"product_id\", \"product_class_id\")";
@@ -6265,7 +6228,7 @@ class RelToSqlConverterTest {
         + "GROUP BY ROLLUP(\"product_id\", \"product_class_id\")";
     final String expectedInSpark = "SELECT COUNT(*)\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY product_id, product_class_id WITH ROLLUP";
+        + "GROUP BY ROLLUP(product_id, product_class_id)";
     final String expectedPresto = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_id\", \"product_class_id\")";
@@ -11106,7 +11069,7 @@ class RelToSqlConverterTest {
     final String expectedSql = "SELECT POSITION('a' IN 'Name') AS \"t\"\n"
         + "FROM \"scott\".\"EMP\"";
 
-    final String expectedSparkQuery = "SELECT POSITION('a' IN 'Name') t\nFROM scott.EMP";
+    final String expectedSparkQuery = "SELECT POSITION('a', 'Name') t\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));

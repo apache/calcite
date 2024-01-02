@@ -2399,11 +2399,11 @@ public class SqlParserTest {
         + "select * from dept) and false")
         .ok("SELECT *\n"
             + "FROM `EMP`\n"
-            + "WHERE ((`DEPTNO` IN ((SELECT `DEPTNO`\n"
+            + "WHERE ((`DEPTNO` IN (SELECT `DEPTNO`\n"
             + "FROM `DEPT`\n"
             + "UNION\n"
             + "SELECT *\n"
-            + "FROM `DEPT`)\n"
+            + "FROM `DEPT`\n"
             + "EXCEPT\n"
             + "SELECT *\n"
             + "FROM `DEPT`)) AND FALSE)");
@@ -2463,23 +2463,23 @@ public class SqlParserTest {
 
   @Test void testUnion() {
     sql("select * from a union select * from a")
-        .ok("(SELECT *\n"
+        .ok("SELECT *\n"
             + "FROM `A`\n"
             + "UNION\n"
             + "SELECT *\n"
-            + "FROM `A`)");
+            + "FROM `A`");
     sql("select * from a union all select * from a")
-        .ok("(SELECT *\n"
+        .ok("SELECT *\n"
             + "FROM `A`\n"
             + "UNION ALL\n"
             + "SELECT *\n"
-            + "FROM `A`)");
+            + "FROM `A`");
     sql("select * from a union distinct select * from a")
-        .ok("(SELECT *\n"
+        .ok("SELECT *\n"
             + "FROM `A`\n"
             + "UNION\n"
             + "SELECT *\n"
-            + "FROM `A`)");
+            + "FROM `A`");
   }
 
   @Test void testUnionOrder() {
@@ -2487,11 +2487,11 @@ public class SqlParserTest {
         + "union all "
         + "select x, y from u "
         + "order by 1 asc, 2 desc")
-        .ok("(SELECT `A`, `B`\n"
+        .ok("SELECT `A`, `B`\n"
             + "FROM `T`\n"
             + "UNION ALL\n"
             + "SELECT `X`, `Y`\n"
-            + "FROM `U`)\n"
+            + "FROM `U`\n"
             + "ORDER BY 1, 2 DESC");
   }
 
@@ -2529,23 +2529,23 @@ public class SqlParserTest {
 
   @Test void testExcept() {
     sql("select * from a except select * from a")
-        .ok("(SELECT *\n"
+        .ok("SELECT *\n"
             + "FROM `A`\n"
             + "EXCEPT\n"
             + "SELECT *\n"
-            + "FROM `A`)");
+            + "FROM `A`");
     sql("select * from a except all select * from a")
-        .ok("(SELECT *\n"
+        .ok("SELECT *\n"
             + "FROM `A`\n"
             + "EXCEPT ALL\n"
             + "SELECT *\n"
-            + "FROM `A`)");
+            + "FROM `A`");
     sql("select * from a except distinct select * from a")
-        .ok("(SELECT *\n"
+        .ok("SELECT *\n"
             + "FROM `A`\n"
             + "EXCEPT\n"
             + "SELECT *\n"
-            + "FROM `A`)");
+            + "FROM `A`");
   }
 
   /** Tests MINUS, which is equivalent to EXCEPT but only supported in some
@@ -2557,20 +2557,21 @@ public class SqlParserTest {
     sql(sql).fails(pattern);
 
     conformance = SqlConformanceEnum.ORACLE_10;
-    final String expected = "(SELECT `COL1`\n"
+
+    final String expected = "SELECT `COL1`\n"
         + "FROM `TABLE1`\n"
         + "EXCEPT\n"
         + "SELECT `COL1`\n"
-        + "FROM `TABLE2`)";
+        + "FROM `TABLE2`";
     sql(sql).ok(expected);
 
     final String sql2 =
         "select col1 from table1 MINUS ALL select col1 from table2";
-    final String expected2 = "(SELECT `COL1`\n"
+    final String expected2 = "SELECT `COL1`\n"
         + "FROM `TABLE1`\n"
         + "EXCEPT ALL\n"
         + "SELECT `COL1`\n"
-        + "FROM `TABLE2`)";
+        + "FROM `TABLE2`";
     sql(sql2).ok(expected2);
   }
 
@@ -2589,23 +2590,23 @@ public class SqlParserTest {
 
   @Test void testIntersect() {
     sql("select * from a intersect select * from a")
-        .ok("(SELECT *\n"
+        .ok("SELECT *\n"
             + "FROM `A`\n"
             + "INTERSECT\n"
             + "SELECT *\n"
-            + "FROM `A`)");
+            + "FROM `A`");
     sql("select * from a intersect all select * from a")
-        .ok("(SELECT *\n"
+        .ok("SELECT *\n"
             + "FROM `A`\n"
             + "INTERSECT ALL\n"
             + "SELECT *\n"
-            + "FROM `A`)");
+            + "FROM `A`");
     sql("select * from a intersect distinct select * from a")
-        .ok("(SELECT *\n"
+        .ok("SELECT *\n"
             + "FROM `A`\n"
             + "INTERSECT\n"
             + "SELECT *\n"
-            + "FROM `A`)");
+            + "FROM `A`");
   }
 
   @Test void testJoinCross() {
@@ -3041,12 +3042,12 @@ public class SqlParserTest {
 
   @Test void testOrderInternal() {
     sql("(select * from emp order by empno) union select * from emp")
-        .ok("((SELECT *\n"
+        .ok("(SELECT *\n"
             + "FROM `EMP`\n"
             + "ORDER BY `EMPNO`)\n"
             + "UNION\n"
             + "SELECT *\n"
-            + "FROM `EMP`)");
+            + "FROM `EMP`");
 
     sql("select * from (select * from t order by x, y) where a = b")
         .ok("SELECT *\n"
@@ -3429,26 +3430,26 @@ public class SqlParserTest {
         + "select * from e except "
         + "select * from f union "
         + "select * from g";
-    final String expected = "((((SELECT *\n"
+    final String expected = "SELECT *\n"
         + "FROM `A`\n"
         + "UNION\n"
-        + "((SELECT *\n"
+        + "SELECT *\n"
         + "FROM `B`\n"
         + "INTERSECT\n"
         + "SELECT *\n"
-        + "FROM `C`)\n"
+        + "FROM `C`\n"
         + "INTERSECT\n"
         + "SELECT *\n"
-        + "FROM `D`))\n"
+        + "FROM `D`\n"
         + "EXCEPT\n"
         + "SELECT *\n"
-        + "FROM `E`)\n"
+        + "FROM `E`\n"
         + "EXCEPT\n"
         + "SELECT *\n"
-        + "FROM `F`)\n"
+        + "FROM `F`\n"
         + "UNION\n"
         + "SELECT *\n"
-        + "FROM `G`)";
+        + "FROM `G`";
     sql(sql).ok(expected);
   }
 
@@ -3976,11 +3977,11 @@ public class SqlParserTest {
     sql("describe statement (select * from emps)").ok(expected0);
     final String expected2 = ""
         + "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
-        + "(SELECT `DEPTNO`\n"
+        + "SELECT `DEPTNO`\n"
         + "FROM `EMPS`\n"
         + "UNION\n"
         + "SELECT `DEPTNO`\n"
-        + "FROM `DEPTS`)";
+        + "FROM `DEPTS`";
     sql("describe select deptno from emps union select deptno from depts").ok(expected2);
     final String expected3 = ""
         + "EXPLAIN PLAN INCLUDING ATTRIBUTES WITH IMPLEMENTATION FOR\n"
@@ -4010,11 +4011,11 @@ public class SqlParserTest {
 
   @Test void testInsertUnion() {
     final String expected = "INSERT INTO `EMPS`\n"
-        + "(SELECT *\n"
+        + "SELECT *\n"
         + "FROM `EMPS1`\n"
         + "UNION\n"
         + "SELECT *\n"
-        + "FROM `EMPS2`)";
+        + "FROM `EMPS2`";
     sql("insert into emps select * from emps1 union select * from emps2")
         .ok(expected);
   }
