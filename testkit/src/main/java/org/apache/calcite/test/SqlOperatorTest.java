@@ -440,6 +440,10 @@ public class SqlOperatorTest {
         false);
     f.checkBoolean("x'0A00015A' not between x'0A0001A0' and x'0A0001B0'",
         true);
+    f.checkNull("cast(null as integer) not between -1 and 2");
+    f.checkNull("1 not between -1 and cast(null as integer)");
+    f.checkNull("1 not between cast(null as integer) and cast(null as integer)");
+    f.checkNull("1 not between cast(null as integer) and 1");
   }
 
   /** Generates parameters to test both regular and safe cast. */
@@ -1882,6 +1886,7 @@ public class SqlOperatorTest {
         "Cannot apply 'CHAR' to arguments of type 'CHAR\\(<DECIMAL\\(3, 1\\)>\\)'\\. "
             + "Supported form\\(s\\): 'CHAR\\(<INTEGER>\\)'",
         false);
+    f.checkNull("char(null)");
   }
 
   @Test void testChr() {
@@ -12247,6 +12252,7 @@ public class SqlOperatorTest {
     f.checkScalar("time_trunc(time '12:34:56', hour)",
         "12:00:00", "TIME(0) NOT NULL");
     f.checkNull("time_trunc(cast(null as time), second)");
+    f.checkNull("time_trunc(cast(null as time), minute)");
   }
 
   @Test void testTimestampTrunc() {
@@ -12309,6 +12315,7 @@ public class SqlOperatorTest {
             + "'TIMESTAMP_TRUNC\\(<TIME\\(0\\)>, <INTERVAL HOUR>\\)'\\. "
             + "Supported form\\(s\\): 'TIMESTAMP_TRUNC\\(<TIMESTAMP>, <DATETIME_INTERVAL>\\)'",
         false);
+    f.checkNull("timestamp_trunc(CAST(NULL AS TIMESTAMP), second)");
   }
 
   @Test void testDatetimeTrunc() {
@@ -12365,6 +12372,7 @@ public class SqlOperatorTest {
             + "'DATETIME_TRUNC\\(<TIME\\(0\\)>, <INTERVAL HOUR>\\)'\\. "
             + "Supported form\\(s\\): 'DATETIME_TRUNC\\(<TIMESTAMP>, <DATETIME_INTERVAL>\\)'",
         false);
+    f.checkNull("datetime_trunc(CAST(NULL AS TIMESTAMP), second)");
   }
 
   @Test void testDateTrunc() {
@@ -12419,6 +12427,7 @@ public class SqlOperatorTest {
     // The comment above for century applies to millennium too.
     f.checkScalar("date_trunc(date '2015-02-19', millennium)",
         "2001-01-01", "DATE NOT NULL");
+    f.checkNull("date_trunc(CAST(NULL AS DATE) , day)");
   }
 
   @Test void testFormatTime() {
@@ -12560,6 +12569,11 @@ public class SqlOperatorTest {
     f.checkScalar("PARSE_DATETIME('%A, %B %e, %Y', 'Wednesday, December 19, 2018')",
         "2018-12-19 00:00:00",
         "TIMESTAMP(0) NOT NULL");
+    f.checkNull("PARSE_DATETIME('%a %b %e %I:%M:%S %Y', CAST(NULL AS TIMESTAMP))");
+    f.checkNull("PARSE_DATETIME('%c', CAST(NULL AS TIMESTAMP))");
+    f.checkNull("PARSE_DATETIME('%Y-%m-%d %H:%M:%S', CAST(NULL AS TIMESTAMP))");
+    f.checkNull("PARSE_DATETIME('%m/%d/%Y %I:%M:%S %p', CAST(NULL AS TIMESTAMP))");
+    f.checkNull("PARSE_DATETIME(NULL, CAST(NULL AS TIMESTAMP))");
   }
 
   @Test void testParseTime() {
@@ -12598,6 +12612,8 @@ public class SqlOperatorTest {
     f.checkScalar("PARSE_TIMESTAMP('%c', 'Thu Dec 25 07:30:00 2008')",
         "2008-12-25 07:30:00",
         "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    f.checkNull("PARSE_TIME('%a %b %e %I:%M:%S %Y', CAST(NULL AS TIMESTAMP))");
+    f.checkNull("PARSE_TIMESTAMP(NULL, CAST(NULL AS TIMESTAMP))");
   }
 
   @Test void testDenseRankFunc() {
