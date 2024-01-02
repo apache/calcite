@@ -1384,6 +1384,10 @@ class JdbcAdapterTest {
     });
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4188">[CALCITE-4188]
+   * Support EnumerableBatchNestedLoopJoin for JDBC</a>. */
   @Test void testBatchNestedLoopJoinPlan() {
     final String sql = "SELECT *\n"
         + "FROM \"s\".\"emps\" A\n"

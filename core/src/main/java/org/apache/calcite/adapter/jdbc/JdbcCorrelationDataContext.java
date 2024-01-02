@@ -36,6 +36,7 @@ public class JdbcCorrelationDataContext implements DataContext {
     this.delegate = delegate;
     this.parameters = parameters;
   }
+
   @Override public @Nullable SchemaPlus getRootSchema() {
     return delegate.getRootSchema();
   }
