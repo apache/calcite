@@ -44,6 +44,16 @@ public abstract class AbstractJoinExtractFilterRule
     super(config);
   }
 
+//  @Deprecated // to be removed before 2.0
+//  protected AbstractJoinExtractFilterRule(RelOptRuleOperand operand,
+//      RelBuilderFactory relBuilderFactory, String description) {
+//    this(Config.EMPTY
+//        .withOperandSupplier(b -> b.exactly(operand))
+//        .withRelBuilderFactory(relBuilderFactory)
+//        .withDescription(description)
+//        .as(Config.class));
+//  }
+
   @Override public void onMatch(RelOptRuleCall call) {
     final Join join = call.rel(0);
 
