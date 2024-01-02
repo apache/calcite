@@ -205,6 +205,9 @@ public enum SqlKind {
   /** Item in WITH clause. */
   WITH_ITEM,
 
+  /** Represents a recursive CTE as a table ref. */
+  WITH_ITEM_TABLE_REF,
+
   /** Item expression. */
   ITEM,
 
@@ -472,7 +475,7 @@ public enum SqlKind {
   /** {@code LEAST} function (Oracle). */
   LEAST,
 
-  /** {@code DATE_DIFF} function (BigQuery Semantics). */
+  /** {@code DATE_ADD} function (BigQuery Semantics). */
   DATE_ADD,
 
   /** {@code DATE_TRUNC} function (BigQuery). */
@@ -817,6 +820,17 @@ public enum SqlKind {
   /** {@code MAP_KEYS} function (Spark semantics). */
   MAP_KEYS,
 
+  /** {@code MAP_VALUES} function (Spark semantics). */
+  MAP_VALUES,
+
+  /** {@code MAP_FROM_ARRAYS} function (Spark semantics). */
+  MAP_FROM_ARRAYS,
+
+  /** {@code MAP_FROM_ENTRIES} function (Spark semantics). */
+  MAP_FROM_ENTRIES,
+
+  /** {@code STR_TO_MAP} function (Spark semantics). */
+  STR_TO_MAP,
   /**
    * The "TO_NUMBER" function.
    */
@@ -830,6 +844,9 @@ public enum SqlKind {
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
 
+  /** {@code SOUNDEX} function (Spark semantics). */
+  SOUNDEX_SPARK,
+
   /** {@code SUBSTR} function (BigQuery semantics). */
   SUBSTR_BIG_QUERY,
 
@@ -841,6 +858,12 @@ public enum SqlKind {
 
   /** {@code SUBSTR} function (PostgreSQL semantics). */
   SUBSTR_POSTGRESQL,
+
+  /** {@code ENDS_WITH} function. */
+  ENDS_WITH,
+
+  /** {@code STARTS_WITH} function. */
+  STARTS_WITH,
 
   /** Call to a function using JDBC function syntax. */
   JDBC_FN,
@@ -898,6 +921,9 @@ public enum SqlKind {
   /** {@code CURSOR} constructor, for example, <code>SELECT * FROM
    * TABLE(udx(CURSOR(SELECT ...), x, y, z))</code>. */
   CURSOR,
+
+  /** {@code CONTAINS_SUBSTR} function (BigQuery semantics). */
+  CONTAINS_SUBSTR,
 
   // internal operators (evaluated in validator) 200-299
 
@@ -1280,8 +1306,6 @@ public enum SqlKind {
    */
   CONCAT,
 
-  WITH_ITEM_TABLE_REF,
-
   /**
    * format standard function.
    */
@@ -1310,9 +1334,10 @@ public enum SqlKind {
       EnumSet.of(COUNT, SUM, SUM0, MIN, MAX, LEAD, LAG, FIRST_VALUE,
           LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
-          FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
+          MODE, FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
           CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR,
-          LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG, COUNTIF,
+          LISTAGG, STRING_AGG, ARRAY_AGG, ARRAY_CONCAT_AGG, GROUP_CONCAT, COUNTIF,
+          PERCENTILE_CONT, PERCENTILE_DISC,
           INTERSECTION, ANY_VALUE);
 
   /**
@@ -1340,7 +1365,8 @@ public enum SqlKind {
   public static final EnumSet<SqlKind> DDL =
       EnumSet.of(COMMIT, ROLLBACK, ALTER_SESSION,
           CREATE_SCHEMA, CREATE_FOREIGN_SCHEMA, DROP_SCHEMA,
-          CREATE_TABLE, ALTER_TABLE, DROP_TABLE,
+          CREATE_TABLE, CREATE_TABLE_LIKE,
+          ALTER_TABLE, DROP_TABLE, TRUNCATE_TABLE,
           CREATE_FUNCTION, DROP_FUNCTION,
           CREATE_VIEW, ALTER_VIEW, DROP_VIEW,
           CREATE_MATERIALIZED_VIEW, ALTER_MATERIALIZED_VIEW,
@@ -1379,6 +1405,7 @@ public enum SqlKind {
    * {@link #OTHER_FUNCTION},
    * {@link #FORMAT},
    * {@link #CAST},
+   * {@link #CONVERT},
    * {@link #TRIM},
    * {@link #LITERAL_CHAIN},
    * {@link #JDBC_FN},
@@ -1393,18 +1420,19 @@ public enum SqlKind {
   public static final Set<SqlKind> EXPRESSION =
       EnumSet.complementOf(
           concat(
-              EnumSet.of(AS, ARGUMENT_ASSIGNMENT, DEFAULT,
+              EnumSet.of(AS, ARGUMENT_ASSIGNMENT, CONVERT, TRANSLATE, DEFAULT,
                   RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
-                  FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS,
+                  FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS, SEPARATOR,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
-                  SELECT, JOIN, OTHER_FUNCTION, POSITION, CHAR_LENGTH,
-                  CHARACTER_LENGTH, TRUNCATE, CAST, TRIM, FLOOR, CEIL,
-                  TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT, INTERVAL,
+                  SELECT, JOIN, OTHER_FUNCTION, POSITION, CAST, TRIM, FLOOR, CEIL,
+                  DATE_ADD, DATE_SUB, TIME_ADD, TIME_SUB,
+                  TIMESTAMP_ADD, TIMESTAMP_DIFF, TIMESTAMP_SUB,
+                  EXTRACT, INTERVAL,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
                   VALUES, WITH, WITH_ITEM, ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
-                  JSON_VALUE_EXPRESSION, UNNEST, FORMAT),
-              AGGREGATE, DML, DDL));
+                  JSON_VALUE_EXPRESSION, UNNEST),
+              SET_QUERY, AGGREGATE, DML, DDL));
 
   /**
    * Category of all SQL statement types.
@@ -1421,7 +1449,7 @@ public enum SqlKind {
    */
   public static final Set<SqlKind> FUNCTION =
       EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST,
-                 JDBC_FN, POSITION, REVERSE, CHAR_LENGTH, CHARACTER_LENGTH, TRUNCATE);
+                 JDBC_FN, POSITION, REVERSE, CONVERT, CHAR_LENGTH, CHARACTER_LENGTH, TRUNCATE);
 
   /**
    * Category of SqlAvgAggFunction.
@@ -1505,25 +1533,27 @@ public enum SqlKind {
   /**
    * Category of operators that do not depend on the argument order.
    *
-   * <p>For instance: {@link #AND}, {@link #OR}, {@link #EQUALS}, {@link #LEAST}</p>
-   * <p>Note: {@link #PLUS} does depend on the argument oder if argument types are different</p>
+   * <p>For instance: {@link #AND}, {@link #OR}, {@link #EQUALS},
+   * {@link #LEAST}.
+   *
+   * <p>Note: {@link #PLUS} does depend on the argument oder if argument types
+   * are different.
    */
   @API(since = "1.22", status = API.Status.EXPERIMENTAL)
   public static final Set<SqlKind> SYMMETRICAL =
-      EnumSet.of(
-          AND, OR, EQUALS, NOT_EQUALS,
+      EnumSet.of(AND, OR, EQUALS, NOT_EQUALS,
           IS_DISTINCT_FROM, IS_NOT_DISTINCT_FROM,
           GREATEST, LEAST);
 
   /**
-   * Category of operators that do not depend on the argument order if argument types are equal.
+   * Category of operators that do not depend on the argument order if argument
+   * types are equal.
    *
-   * <p>For instance: {@link #PLUS}, {@link #TIMES}</p>
+   * <p>For instance: {@link #PLUS}, {@link #TIMES}.
    */
   @API(since = "1.22", status = API.Status.EXPERIMENTAL)
   public static final Set<SqlKind> SYMMETRICAL_SAME_ARG_TYPE =
-      EnumSet.of(
-          PLUS, TIMES);
+      EnumSet.of(PLUS, TIMES);
 
   /**
    * Simple binary operators are those operators which expects operands from the same Domain.
@@ -1581,7 +1611,7 @@ public enum SqlKind {
    * <p>For {@link #IS_TRUE}, {@link #IS_FALSE}, {@link #IS_NOT_TRUE},
    * {@link #IS_NOT_FALSE}, nullable inputs need to be treated carefully.
    *
-   * <p>{@code NOT(IS_TRUE(null))} = {@code NOT(false)} = {@code true},
+   * <p>{@code NOT(IS_TRUE(null))} = {@code NOT false} = {@code true},
    * while {@code IS_FALSE(null)} = {@code false},
    * so {@code NOT(IS_TRUE(X))} should be {@code IS_NOT_TRUE(X)}.
    * On the other hand,

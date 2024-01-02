@@ -24,6 +24,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -47,6 +48,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.CastCallBuilder;
@@ -82,6 +84,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
+import static org.apache.calcite.util.RelToSqlConverterUtil.unparseHiveTrim;
 import static org.apache.calcite.util.Util.isFormatSqlBasicCall;
 import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
 
@@ -139,9 +142,8 @@ public class SparkSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new SparkSqlDialect(DEFAULT_CONTEXT);
 
   private static final SqlFunction SPARKSQL_SUBSTRING =
-      new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
-          SqlFunctionCategory.STRING);
+      SqlBasicFunction.create("SUBSTRING", ReturnTypes.ARG0_NULLABLE_VARYING,
+          OperandTypes.VARIADIC, SqlFunctionCategory.STRING);
 
   private static final String DEFAULT_DATE_FOR_TIME = "1970-01-01";
 
@@ -254,6 +256,27 @@ public class SparkSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsAggregateFunction(SqlKind kind) {
+    switch (kind) {
+    case AVG:
+    case COUNT:
+    case CUBE:
+    case SUM:
+    case SUM0:
+    case MIN:
+    case MAX:
+    case ROLLUP:
+      return true;
+    default:
+      break;
+    }
+    return false;
+  }
+
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
+
   @Override public boolean supportsGroupByWithCube() {
     return true;
   }
@@ -262,8 +285,11 @@ public class SparkSqlDialect extends SqlDialect {
     return true;
   }
 
-  @Override public void unparseOffsetFetch(
-      SqlWriter writer, @Nullable SqlNode offset,
+  @Override public boolean supportsTimestampPrecision() {
+    return false;
+  }
+
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
@@ -367,13 +393,18 @@ public class SparkSqlDialect extends SqlDialect {
         writer.endFunCall(extractFrame);
         break;
       case ARRAY_VALUE_CONSTRUCTOR:
-        writer.keyword(call.getOperator().getName());
-        final SqlWriter.Frame arrayFrame = writer.startList("(", ")");
+      case MAP_VALUE_CONSTRUCTOR:
+        final String keyword =
+            call.getKind() == SqlKind.ARRAY_VALUE_CONSTRUCTOR ? "array" : "map";
+
+        writer.keyword(keyword);
+
+        final SqlWriter.Frame frame = writer.startList("(", ")");
         for (SqlNode operand : call.getOperandList()) {
           writer.sep(",");
           operand.unparse(writer, leftPrec, rightPrec);
         }
-        writer.endList(arrayFrame);
+        writer.endList(frame);
         break;
       case DIVIDE_INTEGER:
         unparseDivideInteger(writer, call, leftPrec, rightPrec);
@@ -387,8 +418,9 @@ public class SparkSqlDialect extends SqlDialect {
         final SqlLiteral timeUnitNode = call.operand(1);
         final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
 
-        SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
-            timeUnitNode.getParserPosition());
+        SqlCall call2 =
+            SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
+                timeUnitNode.getParserPosition());
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
         break;
       case COALESCE:
@@ -396,6 +428,12 @@ public class SparkSqlDialect extends SqlDialect {
         break;
       case FORMAT:
         unparseFormat(writer, call, leftPrec, rightPrec);
+        break;
+      case TRIM:
+        unparseHiveTrim(writer, call, leftPrec, rightPrec);
+        break;
+      case POSITION:
+        SqlUtil.unparseFunctionSyntax(SqlStdOperatorTable.POSITION, writer, call, false);
         break;
       case TO_NUMBER:
         if (call.getOperandList().size() == 2 && Pattern.matches("^'[Xx]+'", call.operand(1)
@@ -742,7 +780,6 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     case "TO_HEX":
     case "REGEXP_INSTR":
-    case "REGEXP_REPLACE":
     case "STRTOK":
       unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
       return;
