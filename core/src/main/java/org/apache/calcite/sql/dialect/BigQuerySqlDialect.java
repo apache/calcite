@@ -355,8 +355,8 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override public boolean supportsImplicitTypeCoercion(RexCall call) {
     return super.supportsImplicitTypeCoercion(call)
-        && RexUtil.isLiteral(call.getOperands().get(0), false)
-        && !SqlTypeUtil.isNumeric(call.type);
+            && RexUtil.isLiteral(call.getOperands().get(0), false)
+            && !SqlTypeUtil.isNumeric(call.type);
   }
 
   @Override public boolean supportsApproxCountDistinct() {
@@ -1913,11 +1913,9 @@ public class BigQuerySqlDialect extends SqlDialect {
         .replace("%E.*S", "%E*S");
   }
 
-  /**
-   * BigQuery interval syntax: INTERVAL int64 time_unit.
-   */
-  @Override public void unparseSqlIntervalLiteral(
-    SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
+  /** BigQuery interval syntax: INTERVAL int64 time_unit. */
+  @Override public void unparseSqlIntervalLiteral(SqlWriter writer,
+      SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
     literal = modifiedSqlIntervalLiteral(literal);
     SqlIntervalLiteral.IntervalValue interval =
         literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
@@ -2146,12 +2144,12 @@ public class BigQuerySqlDialect extends SqlDialect {
    * {@inheritDoc}
    *
    * @see FormatModels#BIG_QUERY
-  */
+   */
   @Override public FormatModel getFormatModel() {
     return FormatModels.BIG_QUERY;
   }
-  /**
-   * {@inheritDoc}
+
+  /** {@inheritDoc}
    *
    * <p>BigQuery data type reference:
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types">
@@ -2182,6 +2180,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       case FLOAT:
       case DOUBLE:
         return createSqlDataTypeSpecByName("FLOAT64", typeName);
+      case REAL:
+        return createSqlDataTypeSpecByName("FLOAT32", typeName);
       case DECIMAL:
         return createSqlDataTypeSpecBasedOnPreScale(type);
       case BOOLEAN:

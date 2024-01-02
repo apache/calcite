@@ -189,6 +189,26 @@ public abstract class SqlLibraryOperators {
               .andThen(SqlTypeTransforms.TO_VARYING), null,
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
+  /** The "ENDS_WITH(value1, value2)" function (BigQuery, PostgreSQL). */
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
+  public static final SqlBasicFunction ENDS_WITH =
+      SqlBasicFunction.create(SqlKind.ENDS_WITH, ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.STRING_SAME_SAME);
+
+  /** The "ENDSWITH(value1, value2)" function (Snowflake). */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction ENDSWITH = ENDS_WITH.withName("ENDSWITH");
+
+  /** The "STARTS_WITH(value1, value2)" function (BigQuery, PostgreSQL). */
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
+  public static final SqlBasicFunction STARTS_WITH =
+      SqlBasicFunction.create(SqlKind.STARTS_WITH, ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.STRING_SAME_SAME);
+
+  /** The "STARTSWITH(value1, value2)" function (Snowflake). */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction STARTSWITH = STARTS_WITH.withName("STARTSWITH");
+
   /** BIG_QUERY's "SUBSTR(string, position [, substringLength ])" function. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction SUBSTR_BIG_QUERY =
