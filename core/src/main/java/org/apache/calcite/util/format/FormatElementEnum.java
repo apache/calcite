@@ -41,6 +41,13 @@ import static java.util.Objects.requireNonNull;
  * @see FormatModels#DEFAULT
  */
 public enum FormatElementEnum implements FormatElement {
+  CC("cc", "century (2 digits) (the twenty-first century starts on 2001-01-01)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      sb.append(String.format(Locale.ROOT, "%2d", calendar.get(Calendar.YEAR) / 100 + 1));
+    }
+  },
   D("F", "The weekday (Monday as the first day of the week) as a decimal number (1-7)") {
     @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
@@ -52,6 +59,12 @@ public enum FormatElementEnum implements FormatElement {
     @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
       sb.append(work.eeeeFormat.format(date));
+    }
+  },
+  day("eeee", "The full lower case day name") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Work work = Work.get();
+      sb.append(work.eeeeFormat.format(date).toLowerCase(Locale.ROOT));
     }
   },
   DD("dd", "The day of the month as a decimal number (01-31)") {
@@ -72,6 +85,12 @@ public enum FormatElementEnum implements FormatElement {
     @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
       sb.append(work.eeeFormat.format(date));
+    }
+  },
+  dy("eee", "The abbreviated lower weekday name") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Work work = Work.get();
+      sb.append(work.eeeFormat.format(date).toLowerCase(Locale.ROOT));
     }
   },
   FF1("S", "Fractional seconds to 1 digit") {
@@ -171,7 +190,7 @@ public enum FormatElementEnum implements FormatElement {
       sb.append(meridian);
     }
   },
-  Q("", "The quarter as a decimal number (1-4)") {
+  Q("Q", "The quarter as a decimal number (1-4)") {
     // TODO: Allow parsing of quarters.
     @Override public void toPattern(StringBuilder sb) throws UnsupportedOperationException {
       throw new UnsupportedOperationException("Cannot convert 'Q' FormatElement to Java pattern");

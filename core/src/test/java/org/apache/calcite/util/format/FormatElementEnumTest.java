@@ -35,6 +35,13 @@ class FormatElementEnumTest {
     assertThat(ts, hasToString("Tuesday"));
   }
 
+  @Test void testday() {
+    final String date = "2014-09-30T10:00:00Z";
+    StringBuilder ts = new StringBuilder();
+    FormatElementEnum.day.format(ts, Date.from(Instant.parse(date)));
+    assertThat(ts, hasToString("tuesday"));
+  }
+
   @Test void testD() {
     final String date = "2014-09-30T10:00:00Z";
     StringBuilder ts = new StringBuilder();
@@ -61,6 +68,13 @@ class FormatElementEnumTest {
     StringBuilder ts = new StringBuilder();
     FormatElementEnum.DY.format(ts, Date.from(Instant.parse(date)));
     assertThat(ts, hasToString("Tue"));
+  }
+
+  @Test void testdy() {
+    final String date = "2014-09-30T10:00:00Z";
+    StringBuilder ts = new StringBuilder();
+    FormatElementEnum.dy.format(ts, Date.from(Instant.parse(date)));
+    assertThat(ts, hasToString("tue"));
   }
 
   @Test void testFF1() {
@@ -173,5 +187,12 @@ class FormatElementEnumTest {
     StringBuilder ts = new StringBuilder();
     FormatElementEnum.YYYY.format(ts, Date.from(Instant.parse(date)));
     assertThat(ts, hasToString("2014"));
+  }
+
+  @Test void testCC() {
+    final String date = "2014-09-30T10:00:00Z";
+    StringBuilder ts = new StringBuilder();
+    FormatElementEnum.CC.format(ts, Date.from(Instant.parse(date)));
+    assertThat(ts, hasToString("21"));
   }
 }

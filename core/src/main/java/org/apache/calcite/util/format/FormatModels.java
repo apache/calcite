@@ -28,6 +28,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.util.format.FormatElementEnum.CC;
 import static org.apache.calcite.util.format.FormatElementEnum.D;
 import static org.apache.calcite.util.format.FormatElementEnum.DAY;
 import static org.apache.calcite.util.format.FormatElementEnum.DD;
@@ -55,6 +56,8 @@ import static org.apache.calcite.util.format.FormatElementEnum.W;
 import static org.apache.calcite.util.format.FormatElementEnum.WW;
 import static org.apache.calcite.util.format.FormatElementEnum.YY;
 import static org.apache.calcite.util.format.FormatElementEnum.YYYY;
+import static org.apache.calcite.util.format.FormatElementEnum.day;
+import static org.apache.calcite.util.format.FormatElementEnum.dy;
 
 import static java.util.Objects.requireNonNull;
 
@@ -137,12 +140,16 @@ public class FormatModels {
     map.put("%x",
         compositeElement("The date representation in MM/DD/YY format",
             MM, literalElement("/"), DD, literalElement("/"), YY));
+    map.put("%X",
+        compositeElement("The time representation in HH:MM:SS format",
+            HH24, literalElement(":"), MI, literalElement(":"), SS));
     map.put("%Y", YYYY);
     map.put("%y", YY);
     map.put("%Z", TZR);
     BIG_QUERY = create(map);
 
     map.clear();
+    map.put("CC", CC);
     map.put("HH12", HH12);
     map.put("HH24", HH24);
     map.put("MI", MI);
@@ -157,7 +164,9 @@ public class FormatModels {
     map.put("YYYY", YYYY);
     map.put("YY", YY);
     map.put("Day", DAY);
+    map.put("day", day);
     map.put("DY", DY);
+    map.put("dy", dy);
     map.put("Month", MONTH);
     map.put("Mon", MON);
     map.put("MM", MM);
