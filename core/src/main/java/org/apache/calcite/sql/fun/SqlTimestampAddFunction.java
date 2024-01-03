@@ -27,7 +27,10 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
+import static org.apache.calcite.util.Util.first;
 
 /**
  * The <code>TIMESTAMPADD</code> function, which adds an interval to a
@@ -100,6 +103,36 @@ public class SqlTimestampAddFunction extends SqlFunction {
     return typeFactory.createTypeWithNullability(type,
         operandType1.isNullable()
             || operandType2.isNullable());
+  }
+
+  static RelDataType deduceType(RelDataTypeFactory typeFactory,
+                                @Nullable TimeUnit timeUnit, RelDataType datetimeType) {
+    final TimeUnit timeUnit2 = first(timeUnit, TimeUnit.EPOCH);
+    SqlTypeName typeName = datetimeType.getSqlTypeName();
+    switch (timeUnit2) {
+    case HOUR:
+    case MINUTE:
+    case SECOND:
+    case MILLISECOND:
+    case NANOSECOND:
+    case MICROSECOND:
+      switch (timeUnit) {
+      case MILLISECOND:
+        return typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
+                MILLISECOND_PRECISION);
+      case MICROSECOND:
+        return typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
+                MICROSECOND_PRECISION);
+      default:
+        if (typeName == SqlTypeName.TIME) {
+          return typeFactory.createSqlType(SqlTypeName.TIME);
+        } else {
+          return typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
+        }
+      }
+    default:
+      return datetimeType;
+    }
   }
 
   /** Creates a SqlTimestampAddFunction. */

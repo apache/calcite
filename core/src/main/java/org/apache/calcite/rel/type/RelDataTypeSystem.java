@@ -191,7 +191,7 @@ public interface RelDataTypeSystem {
    * <li>Let d be the number of whole digits in the result</li>
    * <li>Then the result type is a decimal with:
    *   <ul>
-   *   <li>p = p1 + p2</li>
+   *   <li>p = p1 + p2)</li>
    *   <li>s = s1 + s2</li>
    *   </ul>
    * </li>
@@ -391,4 +391,21 @@ public interface RelDataTypeSystem {
     return null;
   }
 
+  /** Returns a list of supported time frames.
+   *
+   * <p>The validator calls this method with {@link TimeFrames#CORE} as an
+   * argument, and the default implementation of this method returns its input,
+   * and therefore {@link TimeFrames#CORE CORE} is the default time frame set.
+   *
+   * <p>If you wish to use a custom time frame set, create an instance of
+   * {@code RelDataTypeSystem} that overrides this method. Your method should
+   * call {@link TimeFrameSet#builder()}, will probably add all or most of the
+   * time frames in the {@code frameSet} argument, and then call
+   * {@link TimeFrameSet.Builder#build()}.
+   *
+   * @param frameSet Set of built-in time frames
+   */
+  default TimeFrameSet deriveTimeFrameSet(TimeFrameSet frameSet) {
+    return frameSet;
+  }
 }

@@ -20,6 +20,8 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.TimeFrame;
+import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
@@ -44,6 +46,7 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.type.SqlTypeCoercionRule;
+import org.apache.calcite.sql.type.SqlTypeMappingRule;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.sql.validate.implicit.TypeCoercionFactory;
 import org.apache.calcite.sql.validate.implicit.TypeCoercions;
@@ -52,6 +55,7 @@ import org.apache.calcite.util.ImmutableBeans;
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
+import org.immutables.value.Value;
 
 import java.util.List;
 import java.util.Map;
@@ -765,6 +769,13 @@ public interface SqlValidator {
   /** Get the type coercion instance. */
   TypeCoercion getTypeCoercion();
 
+  /** Returns the type mapping rule. */
+  default SqlTypeMappingRule getTypeMappingRule() {
+    return config().conformance().allowLenientCoercion()
+        ? SqlTypeCoercionRule.lenientInstance()
+        : SqlTypeCoercionRule.instance();
+  }
+
   /** Returns the config of the validator. */
   Config config();
 
@@ -777,6 +788,21 @@ public interface SqlValidator {
    */
   @API(status = API.Status.INTERNAL, since = "1.23")
   SqlValidator transform(UnaryOperator<SqlValidator.Config> transform);
+
+  /** Returns the set of allowed time frames. */
+  TimeFrameSet getTimeFrameSet();
+
+  /** Validates a time frame.
+   *
+   * <p>A time frame is either a built-in time frame based on a time unit such
+   * as {@link org.apache.calcite.avatica.util.TimeUnitRange#HOUR},
+   * or is a custom time frame represented by a name in
+   * {@link SqlIntervalQualifier#timeFrameName}. A custom time frame is
+   * validated against {@link #getTimeFrameSet()}.
+   *
+   * <p>Returns a time frame, or throws.
+   */
+  TimeFrame validateTimeFrame(SqlIntervalQualifier intervalQualifier);
 
   //~ Inner Class ------------------------------------------------------------
 
@@ -909,11 +935,18 @@ public interface SqlValidator {
 
     /** Returns the dialect of SQL (SQL:2003, etc.) this validator recognizes.
      * Default is {@link SqlConformanceEnum#DEFAULT}. */
+    @Value.Default default SqlConformance conformance() {
+      return SqlConformanceEnum.DEFAULT;
+    }
+
+    /** Returns the dialect of SQL (SQL:2003, etc.) this validator recognizes.
+     * Default is {@link SqlConformanceEnum#DEFAULT}. */
     @ImmutableBeans.Property
     @ImmutableBeans.EnumDefault("DEFAULT")
     SqlConformance sqlConformance();
 
     /** Sets up the sql conformance of the validator. */
     Config withSqlConformance(SqlConformance conformance);
+
   }
 }
