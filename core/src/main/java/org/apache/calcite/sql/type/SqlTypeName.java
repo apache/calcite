@@ -69,8 +69,8 @@ public enum SqlTypeName {
       SqlTypeFamily.TIME),
   TIMESTAMP(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.TIMESTAMP,
       SqlTypeFamily.TIMESTAMP),
-  TIMESTAMP_WITH_LOCAL_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
-      SqlTypeFamily.TIMESTAMP),
+  TIMESTAMP_WITH_LOCAL_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false,
+      Types.TIMESTAMP, SqlTypeFamily.TIMESTAMP),
   TIMESTAMP_WITH_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
       SqlTypeFamily.TIMESTAMP),
   INTERVAL_YEAR(PrecScale.NO_NO, false, Types.OTHER,
@@ -309,7 +309,7 @@ public enum SqlTypeName {
     return VALUES_MAP.get(name);
   }
 
-  /** Returns the SqlTypeName value whose name or
+  /** Returns the SqlTypeName value whose name or {@link #getSpaceName()}
    * matches the given name, or throws {@link IllegalArgumentException}; never
    * returns null. */
   public static SqlTypeName lookup(String tag) {
@@ -343,7 +343,7 @@ public enum SqlTypeName {
    * true</code>, because the VARCHAR type allows a precision parameter, as in
    * <code>VARCHAR(10)</code>.</li>
    * <li><code>Varchar.allowsPrecScale(true, true)</code> returns <code>
-   * false</code>, because the VARCHAR type does not allow a precision and a
+   * true</code>, because the VARCHAR type does not allow a precision and a
    * scale parameter, as in <code>VARCHAR(10, 4)</code>.</li>
    * <li><code>allowsPrecScale(false, true)</code> returns <code>false</code>
    * for every type.</li>
@@ -964,7 +964,7 @@ public enum SqlTypeName {
           ? TimeString.fromCalendarFields((Calendar) o)
           : (TimeString) o, 0 /* todo */, pos);
     case TIMESTAMP:
-      return SqlLiteral.createTimestamp(o instanceof Calendar
+      return SqlLiteral.createTimestamp(this, o instanceof Calendar
           ? TimestampString.fromCalendarFields((Calendar) o)
           : (TimestampString) o, 0 /* todo */, pos);
     default:
@@ -974,7 +974,13 @@ public enum SqlTypeName {
 
   /** Returns the name of this type. */
   public String getName() {
-    return toString();
+    return name();
+  }
+
+  /** Returns the name of this type, with underscores converted to spaces,
+   * for example "TIMESTAMP WITH LOCAL TIME ZONE", "DATE". */
+  public String getSpaceName() {
+    return name().replace('_', ' ');
   }
 
   /**

@@ -37,17 +37,16 @@ public class SqlPositionFunction extends SqlFunction {
   // as part of rtiDyadicStringSumPrecision
 
   private static final SqlOperandTypeChecker OTC_CUSTOM =
-      OperandTypes.or(OperandTypes.STRING_SAME_SAME,
-          OperandTypes.STRING_SAME_SAME_INTEGER);
+      OperandTypes.STRING_SAME_SAME
+          .or(OperandTypes.STRING_SAME_SAME_INTEGER)
+          .or(
+              OperandTypes.sequence("INSTR(<STRING>, <STRING>, <INTEGER>, <INTEGER>)",
+              OperandTypes.STRING, OperandTypes.STRING, OperandTypes.INTEGER,
+              OperandTypes.INTEGER));
 
-  public SqlPositionFunction() {
-    super(
-        "POSITION",
-        SqlKind.POSITION,
-        ReturnTypes.INTEGER_NULLABLE,
-        null,
-        OTC_CUSTOM,
-        SqlFunctionCategory.NUMERIC);
+  public SqlPositionFunction(String name) {
+    super(name, SqlKind.POSITION, ReturnTypes.INTEGER_NULLABLE, null,
+        OTC_CUSTOM, SqlFunctionCategory.NUMERIC);
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -20,6 +20,8 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.util.Static;
+import org.apache.calcite.util.Util;
 
 import java.util.function.Predicate;
 
@@ -41,12 +43,12 @@ public class IntervalOperandTypeChecker implements SqlSingleOperandTypeChecker {
       if (predicate.test(interval)) {
         return true;
       }
-//      if (throwOnFailure) {
-//        final String name =
-//            Util.first(interval.timeFrameName, interval.timeUnitRange.name());
-//        throw callBinding.getValidator().newValidationError(operand,
-//            Static.RESOURCE.invalidTimeFrame(name));
-//      }
+      if (throwOnFailure) {
+        final String name =
+            Util.first(interval.timeFrameName, interval.timeUnitRange.name());
+        throw callBinding.getValidator().newValidationError(operand,
+            Static.RESOURCE.invalidTimeFrame(name));
+      }
     }
     return false;
   }

@@ -248,6 +248,32 @@ public class SqlIntervalQualifier extends SqlNode {
     }
   }
 
+  /** Whether this is a DATE interval (including all week intervals). */
+  public boolean isDate() {
+    return DATE_UNITS.contains(timeUnitRange)
+        || timeFrameName != null && TSI_DATE_FRAMES.contains(timeFrameName)
+        || isWeek();
+  }
+
+  /** Whether this is a TIME interval. */
+  public boolean isTime() {
+    return TIME_UNITS.contains(timeUnitRange)
+        || timeFrameName != null && TSI_TIME_FRAMES.contains(timeFrameName);
+  }
+
+  /** Whether this is a TIMESTAMP interval (including all week intervals). */
+  public boolean isTimestamp() {
+    return isDate() || isTime();
+  }
+
+  /** Whether this qualifier represents {@code WEEK}, {@code ISOWEEK},
+   * or {@code WEEK(}<i>weekday</i>{@code )}
+   * (for <i>weekday</i> in {@code SUNDAY} .. {@code SATURDAY}). */
+  public boolean isWeek() {
+    return timeUnitRange == TimeUnitRange.WEEK
+        || timeFrameName != null && WEEK_FRAMES.contains(timeFrameName);
+  }
+
   @Override public void validate(
       SqlValidator validator,
       SqlValidatorScope scope) {
@@ -1270,11 +1296,11 @@ public class SqlIntervalQualifier extends SqlNode {
     case YEAR_TO_MONTH:
       return evaluateIntervalLiteralAsYearToMonth(typeSystem, sign, value,
           value0, pos);
-    case QUARTER:
-      return evaluateIntervalLiteralAsQuarter(typeSystem, sign, value, value0,
-          pos);
     case MONTH:
       return evaluateIntervalLiteralAsMonth(typeSystem, sign, value, value0,
+          pos);
+    case QUARTER:
+      return evaluateIntervalLiteralAsQuarter(typeSystem, sign, value, value0,
           pos);
     case WEEK:
       return evaluateIntervalLiteralAsWeek(typeSystem, sign, value, value0,

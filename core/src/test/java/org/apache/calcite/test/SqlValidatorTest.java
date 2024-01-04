@@ -3947,6 +3947,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "'<DECIMAL.4, 3.> / <INTERVAL DAY TO SECOND>'.*");
   }
 
+  // will be fixed in subsequent commits
   @Test void testTimestampAddAndDiff() {
     List<String> tsi = ImmutableList.<String>builder()
         .add("FRAC_SECOND")
@@ -3990,11 +3991,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("INTEGER");
 
     expr("timestampadd(^incorrect^, 1, current_timestamp)")
-        .fails("(?s).*Was expecting one of.*");
+        .fails("'INCORRECT' is not a valid time frame");
     expr("timestampdiff(^incorrect^, current_timestamp, current_timestamp)")
-        .fails("(?s).*Was expecting one of.*");
+        .fails("'INCORRECT' is not a valid time frame");
   }
 
+  // will be fixed in subsequent commits
   @Test void testTimestampAddNullInterval() {
     expr("timestampadd(SQL_TSI_SECOND, cast(NULL AS INTEGER),"
         + " current_timestamp)")

@@ -19,17 +19,25 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
+
+import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
+import java.util.Map;
+
 import static org.apache.calcite.util.Util.first;
 
 /**
@@ -60,53 +68,31 @@ import static org.apache.calcite.util.Util.first;
  */
 public class SqlTimestampAddFunction extends SqlFunction {
 
+  private static final Map<TimeUnit, Integer> FRAC_SECOND_PRECISION_MAP =
+      ImmutableMap.of(TimeUnit.MILLISECOND, 3,
+          TimeUnit.MICROSECOND, 6,
+          TimeUnit.NANOSECOND, 9);
+
   private static final int MILLISECOND_PRECISION = 3;
   private static final int MICROSECOND_PRECISION = 6;
 
   private static final SqlReturnTypeInference RETURN_TYPE_INFERENCE =
-      opBinding -> {
-        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-        return deduceType(typeFactory,
-            getOperandLiteralValueOrThrow(opBinding, 0, TimeUnit.class),
-            opBinding.getOperandType(1), opBinding.getOperandType(2));
-      };
+      opBinding ->
+          deduceType(opBinding.getTypeFactory(),
+              opBinding.getOperandLiteralValue(0, TimeUnit.class),
+              opBinding.getOperandType(2));
 
+   // to be removed before 2.0
   public static RelDataType deduceType(RelDataTypeFactory typeFactory,
-      TimeUnit timeUnit, RelDataType operandType1, RelDataType operandType2) {
-    final RelDataType type;
-    switch (timeUnit) {
-    case HOUR:
-    case MINUTE:
-    case SECOND:
-    case MILLISECOND:
-    case MICROSECOND:
-      switch (timeUnit) {
-      case MILLISECOND:
-        type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
-            MILLISECOND_PRECISION);
-        break;
-      case MICROSECOND:
-        type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP,
-            MICROSECOND_PRECISION);
-        break;
-      default:
-        if (operandType2.getSqlTypeName() == SqlTypeName.TIME) {
-          type = typeFactory.createSqlType(SqlTypeName.TIME);
-        } else {
-          type = typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
-        }
-      }
-      break;
-    default:
-      type = operandType2;
-    }
+      @Nullable TimeUnit timeUnit, RelDataType operandType1,
+      RelDataType operandType2) {
+    final RelDataType type = deduceType(typeFactory, timeUnit, operandType2);
     return typeFactory.createTypeWithNullability(type,
-        operandType1.isNullable()
-            || operandType2.isNullable());
+        operandType1.isNullable() || operandType2.isNullable());
   }
 
   static RelDataType deduceType(RelDataTypeFactory typeFactory,
-                                @Nullable TimeUnit timeUnit, RelDataType datetimeType) {
+      @Nullable TimeUnit timeUnit, RelDataType datetimeType) {
     final TimeUnit timeUnit2 = first(timeUnit, TimeUnit.EPOCH);
     SqlTypeName typeName = datetimeType.getSqlTypeName();
     switch (timeUnit2) {
@@ -135,9 +121,29 @@ public class SqlTimestampAddFunction extends SqlFunction {
     }
   }
 
+  @Override public void validateCall(SqlCall call, SqlValidator validator,
+      SqlValidatorScope scope, SqlValidatorScope operandScope) {
+    super.validateCall(call, validator, scope, operandScope);
+
+    // This is either a time unit or a time frame:
+    //
+    //  * In "TIMESTAMPADD(YEAR, 2, x)" operand 0 is a SqlIntervalQualifier
+    //    with startUnit = YEAR and timeFrameName = null.
+    //
+    //  * In "TIMESTAMPADD(MINUTE15, 2, x) operand 0 is a SqlIntervalQualifier
+    //    with startUnit = EPOCH and timeFrameName = 'MINUTE15'.
+    //
+    // If the latter, check that timeFrameName is valid.
+//    if (call.operand(0) instanceof SqlIntervalQualifier) {
+    validator.validateTimeFrame(
+              (SqlIntervalQualifier) call.getOperandList().get(0));
+//    }
+  }
+
   /** Creates a SqlTimestampAddFunction. */
-  SqlTimestampAddFunction() {
-    super("TIMESTAMPADD", SqlKind.TIMESTAMP_ADD, RETURN_TYPE_INFERENCE, null,
+  SqlTimestampAddFunction(String name) {
+    super(name, SqlKind.TIMESTAMP_ADD,
+        RETURN_TYPE_INFERENCE.andThen(SqlTypeTransforms.TO_NULLABLE), null,
         OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER,
             SqlTypeFamily.DATETIME),
         SqlFunctionCategory.TIMEDATE);
