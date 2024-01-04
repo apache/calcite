@@ -19,9 +19,12 @@ package org.apache.calcite.rel.rel2sql;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.plan.CTEDefinationTrait;
+import org.apache.calcite.plan.CTEScopeTrait;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
@@ -13727,4 +13730,42 @@ class RelToSqlConverterTest {
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
   }
+
+  @Test public void testCTEWithTraits() {
+    final RelBuilder builder = foodmartRelBuilder();
+
+    final RelNode rundate = builder.scan("employee")
+        .project(builder.field("first_name"), builder.field("last_name"),
+            builder.field("birth_date"))
+        .aggregate(builder.groupKey(0, 1, 2))
+        .build();
+
+    // add CTE definition trait
+    final CTEDefinationTrait cteTrait = new CTEDefinationTrait(true, "RUNDATE");
+    final RelTraitSet cteRelTraitSet = rundate.getTraitSet().plus(cteTrait);
+    final RelNode cteRelNodeWithRelTrait = rundate.copy(cteRelTraitSet, rundate.getInputs());
+
+    final RelNode innerSelect = builder
+        .push(cteRelNodeWithRelTrait)
+        .project(
+            builder.alias(
+                builder.field("first_name"),
+                "FNAME"
+            )).build();
+
+    // add CTE Scope trait
+    final CTEScopeTrait cteScopeTrait = new CTEScopeTrait(true);
+    final RelTraitSet cteScopeRelTraitSet = innerSelect.getTraitSet().plus(cteScopeTrait);
+    final RelNode cteScopeRelNodeWithRelTrait =
+        innerSelect.copy(cteScopeRelTraitSet, innerSelect.getInputs());
+
+    final String actualSql = toSql(cteScopeRelNodeWithRelTrait,
+        DatabaseProduct.BIG_QUERY.getDialect());
+
+    final String expectedSql = "WITH RUNDATE AS (SELECT first_name, last_name, birth_date\nFROM "
+                                + "foodmart.employee\nGROUP BY first_name, last_name, birth_date)"
+                                + " (SELECT first_name AS FNAME\nFROM RUNDATE)";
+    assertThat(actualSql, isLinux(expectedSql));
+  }
+
 }

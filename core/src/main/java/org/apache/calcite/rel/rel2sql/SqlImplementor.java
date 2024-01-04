@@ -18,9 +18,14 @@ package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.CTEDefinationTrait;
+import org.apache.calcite.plan.CTEDefinationTraitDef;
+import org.apache.calcite.plan.CTEScopeTrait;
+import org.apache.calcite.plan.CTEScopeTraitDef;
 import org.apache.calcite.plan.DistinctTrait;
 import org.apache.calcite.plan.DistinctTraitDef;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -83,6 +88,8 @@ import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWith;
+import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCaseOperator;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
@@ -626,13 +633,13 @@ public abstract class SqlImplementor {
   /** Wraps a node in a SELECT statement that has no clauses:
    *  "SELECT ... FROM (node)". */
   SqlSelect wrapSelect(SqlNode node) {
-    assert node instanceof SqlJoin
+    assert node instanceof SqlWith || node instanceof SqlWithItem || (node instanceof SqlJoin
         || node instanceof SqlIdentifier
         || node instanceof SqlMatchRecognize
         || node instanceof SqlCall
             && (((SqlCall) node).getOperator() instanceof SqlSetOperator
                 || ((SqlCall) node).getOperator() == SqlStdOperatorTable.AS
-                || ((SqlCall) node).getOperator() == SqlStdOperatorTable.VALUES)
+                || ((SqlCall) node).getOperator() == SqlStdOperatorTable.VALUES))
         : node;
     if (requiresAlias(node)) {
       node = as(node, "t");
@@ -2186,6 +2193,9 @@ public abstract class SqlImplementor {
       }
 
       if (rel instanceof Project && rel.getInput(0) instanceof Aggregate) {
+        if (isCTEScopeTrait(rel) || isCTEDefinationTrait(rel)) {
+          return false;
+        }
         if (dialect.getConformance().isGroupByAlias()
             && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)
             || !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {
@@ -2506,6 +2516,12 @@ public abstract class SqlImplementor {
       case MERGE:
         return maybeStrip(node);
       default:
+        if (node instanceof SqlWith) {
+          return maybeStrip((SqlWith) node);
+        }
+        if (node instanceof SqlWithItem) {
+          return maybeStrip((SqlWithItem) node);
+        }
         return maybeStrip(asSelect());
       }
     }
@@ -2618,7 +2634,13 @@ public abstract class SqlImplementor {
 
     public void setQualify(SqlNode node) {
       assert clauses.contains(Clause.QUALIFY);
-      select.setQualify(node);
+      if (select.getFrom() instanceof SqlWith) {
+        if (((SqlWith) select.getFrom()).body instanceof SqlSelect) {
+          ((SqlSelect) ((SqlWith) select.getFrom()).body).setQualify(node);
+        }
+      } else {
+        select.setQualify(node);
+      }
     }
 
     public void setOrderBy(SqlNodeList nodeList) {
@@ -2726,5 +2748,25 @@ public abstract class SqlImplementor {
     } else {
       return false;
     }
+  }
+
+  private boolean isCTEScopeTrait(RelNode rel) {
+    RelTrait relTrait = rel.getTraitSet().getTrait(CTEScopeTraitDef.instance);
+    if (relTrait != null && relTrait instanceof CTEScopeTrait) {
+      if (((CTEScopeTrait) relTrait).isCTEScope()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean isCTEDefinationTrait(RelNode rel) {
+    RelTrait relTrait = rel.getTraitSet().getTrait(CTEDefinationTraitDef.instance);
+    if (relTrait != null && relTrait instanceof CTEDefinationTrait) {
+      if (((CTEDefinationTrait) relTrait).isCTEDefination()) {
+        return true;
+      }
+    }
+    return false;
   }
 }
