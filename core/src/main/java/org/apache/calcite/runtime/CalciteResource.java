@@ -39,23 +39,23 @@ public interface CalciteResource {
   @BaseMessage("Percent remainder ''%'' is not allowed under the current SQL conformance level")
   ExInst<CalciteException> percentRemainderNotAllowed();
 
-  @BaseMessage("''LIMIT start, count'' is not allowed under the current SQL conformance level")
-  ExInst<CalciteException> limitStartCountNotAllowed();
-
   @BaseMessage("''LIMIT start, {0}'' is not allowed under the current SQL conformance level")
   ExInst<CalciteException> limitStartCountOrAllNotAllowed(String a0);
 
   @BaseMessage("''OFFSET start LIMIT count'' is not allowed under the current SQL conformance level")
   ExInst<CalciteException> offsetLimitNotAllowed();
 
+  @BaseMessage("''LIMIT start, count'' is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> limitStartCountNotAllowed();
+
   @BaseMessage("APPLY operator is not allowed under the current SQL conformance level")
   ExInst<CalciteException> applyNotAllowed();
 
-  @BaseMessage("JSON path expression must be specified after the JSON value expression")
-  ExInst<CalciteException> jsonPathMustBeSpecified();
-
   @BaseMessage("VALUE is not allowed under the current SQL conformance level")
   ExInst<CalciteException> valueNotAllowed();
+
+  @BaseMessage("JSON path expression must be specified after the JSON value expression")
+  ExInst<CalciteException> jsonPathMustBeSpecified();
 
   @BaseMessage("Illegal {0} literal ''{1}'': {2}")
   ExInst<CalciteException> illegalLiteral(String a0, String a1, String a2);
@@ -632,6 +632,9 @@ public interface CalciteResource {
 
   @BaseMessage("''{0}'' is not a valid time frame")
   ExInst<SqlValidatorException> invalidTimeFrame(String a0);
+
+  @BaseMessage("''{0}'' is not a valid datetime format")
+  ExInst<CalciteException> invalidDatetimeFormat(String a0);
 
   @BaseMessage("Cannot INSERT into generated column ''{0}''")
   ExInst<SqlValidatorException> insertIntoAlwaysGenerated(String a0);
