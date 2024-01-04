@@ -15,7 +15,10 @@
  * limitations under the License.
  */
 package org.apache.calcite.util;
+
 import com.google.common.io.CharSource;
+
+import net.hydromatic.foodmart.queries.FoodmartQuerySet;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -25,13 +28,17 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.io.Reader;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.apache.calcite.util.Sources.file;
@@ -40,7 +47,7 @@ import static org.apache.calcite.util.Sources.url;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasToString;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -116,6 +123,22 @@ class SourceTest {
     //        at java.base/sun.nio.fs.UnixPath.encode(UnixPath.java:145)
     assertEquals(absoluteFile.getAbsolutePath(), url.toURI().getSchemeSpecificPart(),
         () -> "Sources.of(Sources.of(file(" + path + ").absolutePath).url()).file().getPath()");
+  }
+
+  /**
+   * [CALCITE-5052] Resources created with the JAR protocol should also work.
+   * This will enable the Fixture test to work under Bazel.
+   */
+  @Test void testJarFileUrl() throws  MalformedURLException {
+    // mock jar file
+    final String jarPath = "jar:file:sources!/abcdef.txt";
+    final URL url = new URL(jarPath);
+    final Source source = of(url);
+    assertThat("No file retrieved for Sources.of(file " + jarPath + ")",
+        source.file(), notNullValue());
+    assertThat("Sources.of(file " + jarPath + ").url()).file().getPath()",
+        slashify(source.file().getPath()),
+        is("sources!/abcdef.txt"));
   }
 
   @Test void testAppendWithSpaces() {
