@@ -57,6 +57,7 @@ import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.Context;
 import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
@@ -12316,14 +12317,18 @@ class RelToSqlConverterTest {
   @Test public void testToCharInSpark() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode toCharNode = builder.call(SqlLibraryOperators.TO_CHAR,
+    final RexNode toCharNodeMonthFormat = builder.call(SqlLibraryOperators.TO_CHAR,
         builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
-        builder.literal("MONTH"));
+        builder.literal(SqlDateTimeFormat.MONTH_NAME.value));
+    final RexNode toCharNodeHourFormat = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+        builder.literal(SqlDateTimeFormat.HOUR_OF_DAY_12.value));
     final RelNode root = builder
         .scan("EMP")
-        .project(toCharNode)
+        .project(toCharNodeMonthFormat, builder.alias(toCharNodeHourFormat, "hour"))
         .build();
-    final String expectedSparkQuery = "SELECT DATE_FORMAT(CURRENT_TIMESTAMP, 'MMMM') $f0\n"
+    final String expectedSparkQuery = "SELECT DATE_FORMAT(CURRENT_TIMESTAMP, 'MMMM') $f0, "
+        + "DATE_FORMAT(CURRENT_TIMESTAMP, 'hh') hour\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
