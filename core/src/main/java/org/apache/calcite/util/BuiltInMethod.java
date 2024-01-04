@@ -136,6 +136,7 @@ import java.util.Objects;
 import java.util.TimeZone;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import javax.sql.DataSource;
 
@@ -285,6 +286,7 @@ public enum BuiltInMethod {
   ENUMERABLE_ENUMERATOR(Enumerable.class, "enumerator"),
   ENUMERABLE_FOREACH(Enumerable.class, "foreach", Function1.class),
   ITERABLE_FOR_EACH(Iterable.class, "forEach", Consumer.class),
+  FUNCTION_APPLY(Function.class, "apply", Object.class),
   PREDICATE_TEST(Predicate.class, "test", Object.class),
   BI_PREDICATE_TEST(BiPredicate.class, "test", Object.class, Object.class),
   CONSUMER_ACCEPT(Consumer.class, "accept", Object.class),
