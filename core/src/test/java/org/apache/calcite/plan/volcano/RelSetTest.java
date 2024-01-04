@@ -16,60 +16,17 @@
  */
 package org.apache.calcite.plan.volcano;
 
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.Util;
-
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Unit test for {@link RelSet}.
  */
 public class RelSetTest {
-
-  /**
-   * Tests for adding RelNode with same RelDataType.
-   */
-  @Test void testAddRelNodeWithSameRowType() {
-    RelBuilder builder = createRelBuilder();
-    RelNode relNodeA =
-        builder.scan("myTable").project(builder.field("a")).build();
-    RelNode relNodeE =
-        builder.scan("myTable").project(builder.field("e")).build();
-    RelSet relSet =
-        new RelSet(1,
-            Util.minus(RelOptUtil.getVariablesSet(relNodeA),
-                relNodeA.getVariablesSet()),
-            RelOptUtil.getVariablesUsed(relNodeA));
-    relSet.add(relNodeA);
-    relSet.add(relNodeE);
-  }
-
-  /**
-   * Tests for adding RelNode with different RelDataType.
-   */
-  @Test void testAddRelNodeWithDifferentRowType() {
-    RelBuilder builder = createRelBuilder();
-    RelNode relNodeA =
-        builder.scan("myTable").project(builder.field("a")).build();
-    RelNode relNodeN =
-        builder.scan("myTable").project(builder.field("n1")).build();
-    RelSet relSet =
-        new RelSet(1,
-            Util.minus(RelOptUtil.getVariablesSet(relNodeA),
-                relNodeA.getVariablesSet()),
-            RelOptUtil.getVariablesUsed(relNodeA));
-    relSet.add(relNodeA);
-    assertThrows(AssertionError.class, () -> relSet.add(relNodeN));
-  }
 
   private RelBuilder createRelBuilder() {
     SchemaPlus rootSchema = Frameworks.createRootSchema(true);

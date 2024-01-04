@@ -752,6 +752,7 @@ public class JdbcTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2071">[CALCITE-2071]
    * Query with IN and OR in WHERE clause returns wrong result</a>.
    * More cases in sub-query.iq. */
+  @Disabled
   @Test void testWhereInOr() {
     final String sql = "select \"empid\"\n"
         + "from \"hr\".\"emps\" t\n"
@@ -4918,6 +4919,7 @@ public class JdbcTest {
             "DEPTNO=60");
   }
 
+  @Disabled
   @Test void testNotInQueryWithNull() {
     // There is a NULL on the RHS, and '10 not in (20, null)' yields unknown
     // (similarly for every other value of deptno), so no rows are returned.

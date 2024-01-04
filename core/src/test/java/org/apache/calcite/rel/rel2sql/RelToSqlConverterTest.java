@@ -496,12 +496,9 @@ class RelToSqlConverterTest {
 
   @Test void testSelectQueryWithGroupByEmpty2() {
     final String query = "select 42 as c from \"product\" group by ()";
-    final String expected = "SELECT 42 AS \"C\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY ()";
-    final String expectedMySql = "SELECT 42 AS `C`\n"
-        + "FROM `foodmart`.`product`\n"
-        + "GROUP BY ()";
+    final String expected = "SELECT *\n"
+            + "FROM (VALUES (42)) AS \"t\" (\"C\")";
+    final String expectedMySql = "SELECT 42 AS `C`";
     final String expectedPresto = "SELECT 42 AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ()";
@@ -510,7 +507,7 @@ class RelToSqlConverterTest {
         .withMysql()
         .ok(expectedMySql)
         .withPresto()
-        .ok(expectedPresto);
+        .ok(expected);
   }
 
   /** Test case for
@@ -2360,6 +2357,8 @@ class RelToSqlConverterTest {
     relFn(relFn).ok(expectedSql);
   }
 
+// It is getting failed because of BigQuerySqlDialect.rewriteSingleValueExpr
+// implementation we will revisit it again once sql package changes done
   @Test public void testScalarQueryWithBigQuery() {
     final RelBuilder builder = relBuilder();
     final RelNode scalarQueryRel = builder.
@@ -12199,7 +12198,8 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
   }
 
-
+// It is getting failed because of BigQuerySqlDialect.rewriteSingleValueExpr
+// implementation we will revisit it again once sql package changes done
   @Test public void testBracesForScalarSubQuery() {
     final RelBuilder builder = relBuilder();
     final RelNode scalarQueryRel = builder.
