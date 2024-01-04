@@ -31,6 +31,9 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.UnaryOperator;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Callback for a relational expression to dump itself as JSON.
@@ -42,17 +45,30 @@ public class RelJsonWriter implements RelWriter {
 
   protected final JsonBuilder jsonBuilder;
   protected final RelJson relJson;
-  private final Map<RelNode, String> relIdMap = new IdentityHashMap<>();
+  private final IdentityHashMap<RelNode, String> relIdMap = new IdentityHashMap<>();
   protected final List<@Nullable Object> relList;
   private final List<Pair<String, @Nullable Object>> values = new ArrayList<>();
   private @Nullable String previousId;
 
   //~ Constructors -------------------------------------------------------------
 
+  /** Creates a RelJsonWriter with a private JsonBuilder. */
   public RelJsonWriter() {
-    jsonBuilder = new JsonBuilder();
-    relList = jsonBuilder.list();
-    relJson = new RelJson(jsonBuilder);
+    this(new JsonBuilder());
+  }
+
+  /** Creates a RelJsonWriter with a given JsonBuilder. */
+  public RelJsonWriter(JsonBuilder jsonBuilder) {
+    this(jsonBuilder, UnaryOperator.identity());
+  }
+
+  /** Creates a RelJsonWriter. */
+  public RelJsonWriter(JsonBuilder jsonBuilder,
+      UnaryOperator<RelJson> relJsonTransform) {
+    this.jsonBuilder = requireNonNull(jsonBuilder, "jsonBuilder");
+    relList = this.jsonBuilder.list();
+    relJson =
+        relJsonTransform.apply(RelJson.create().withJsonBuilder(jsonBuilder));
   }
 
   //~ Methods ------------------------------------------------------------------

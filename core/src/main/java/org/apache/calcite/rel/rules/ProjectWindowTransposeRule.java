@@ -39,6 +39,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,6 +51,7 @@ import java.util.List;
  *
  * @see CoreRules#PROJECT_WINDOW_TRANSPOSE
  */
+@Value.Enclosing
 public class ProjectWindowTransposeRule
     extends RelRule<ProjectWindowTransposeRule.Config>
     implements TransformationRule {
@@ -237,8 +240,9 @@ public class ProjectWindowTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableProjectWindowTransposeRule.Config.of()
         .withOperandFor(LogicalProject.class, LogicalWindow.class);
 
     @Override default ProjectWindowTransposeRule toRule() {

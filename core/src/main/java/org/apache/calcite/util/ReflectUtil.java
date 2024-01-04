@@ -436,7 +436,7 @@ public abstract class ReflectUtil {
             Collections.emptyList());
       }
 
-      @Override public @Nullable Method lookupVisitMethod(
+      @Override public synchronized @Nullable Method lookupVisitMethod(
           Class<? extends R> visitorClass,
           Class<? extends E> visiteeClass,
           String visitMethodName,

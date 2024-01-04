@@ -35,6 +35,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,6 +58,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @see CoreRules#AGGREGATE_PROJECT_MERGE
  */
+@Value.Enclosing
 public class AggregateProjectMergeRule
     extends RelRule<AggregateProjectMergeRule.Config>
     implements TransformationRule {
@@ -148,8 +150,9 @@ public class AggregateProjectMergeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableAggregateProjectMergeRule.Config.of()
         .withOperandFor(Aggregate.class, Project.class);
 
     @Override default AggregateProjectMergeRule toRule() {

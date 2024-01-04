@@ -31,6 +31,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -94,10 +95,10 @@ class TraitConversionTest {
    * to {@link RandomSingleRel} (physical convention, distribution random). */
   public static class RandomSingleTraitRule
       extends RelRule<RandomSingleTraitRule.Config> {
-    static final RandomSingleTraitRule INSTANCE = Config.EMPTY
+    static final RandomSingleTraitRule INSTANCE = ImmutableRandomSingleTraitRuleConfig.builder()
+        .build()
         .withOperandSupplier(b ->
             b.operand(NoneSingleRel.class).anyInputs())
-        .as(Config.class)
         .toRule();
 
     RandomSingleTraitRule(Config config) {
@@ -123,6 +124,8 @@ class TraitConversionTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(typeImmutable = "ImmutableRandomSingleTraitRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default RandomSingleTraitRule toRule() {
         return new RandomSingleTraitRule(this);
@@ -152,10 +155,10 @@ class TraitConversionTest {
    * {@link SingletonLeafRel} (physical convention, singleton distribution). */
   public static class SingleLeafTraitRule
       extends RelRule<SingleLeafTraitRule.Config> {
-    static final SingleLeafTraitRule INSTANCE = Config.EMPTY
+    static final SingleLeafTraitRule INSTANCE = ImmutableSingleLeafTraitRuleConfig.builder()
+        .build()
         .withOperandSupplier(b ->
             b.operand(NoneLeafRel.class).anyInputs())
-        .as(Config.class)
         .toRule();
 
     SingleLeafTraitRule(Config config) {
@@ -173,6 +176,8 @@ class TraitConversionTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(typeImmutable = "ImmutableSingleLeafTraitRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default SingleLeafTraitRule toRule() {
         return new SingleLeafTraitRule(this);

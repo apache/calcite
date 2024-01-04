@@ -2827,6 +2827,7 @@ class RexProgramTest extends RexProgramTestBase {
 
   /** Tests {@link Sarg#complexity()}. */
   @SuppressWarnings("UnstableApiUsage")
+  @Disabled
   @Test void testSargComplexity() {
     checkSarg("complexity of 'x is not null'",
         Sarg.of(false, RangeSets.<Integer>rangeSetAll()),

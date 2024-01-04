@@ -590,8 +590,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       return createSqlType(SqlTypeName.DECIMAL, 38, 0);
     case REAL:
       return createSqlType(SqlTypeName.DECIMAL, 14, 7);
-    case FLOAT:
-      return createSqlType(SqlTypeName.DECIMAL, 14, 7);
+    case FLOAT: // sic
     case DOUBLE:
       // the default max precision is 19, so this is actually DECIMAL(19, 15)
       // but derived system can override the max precision/scale.

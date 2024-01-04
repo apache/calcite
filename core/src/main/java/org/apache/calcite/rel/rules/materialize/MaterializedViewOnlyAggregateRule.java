@@ -24,7 +24,10 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /** Rule that matches Aggregate. */
+@Value.Enclosing
 public class MaterializedViewOnlyAggregateRule
     extends MaterializedViewAggregateRule<MaterializedViewOnlyAggregateRule.Config> {
 
@@ -69,18 +72,20 @@ public class MaterializedViewOnlyAggregateRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends MaterializedViewAggregateRule.Config {
     Config DEFAULT = create(RelFactories.LOGICAL_BUILDER);
 
     static Config create(RelBuilderFactory relBuilderFactory) {
-      return MaterializedViewAggregateRule.Config.create(relBuilderFactory)
+
+      return ImmutableMaterializedViewOnlyAggregateRule.Config.builder()
+          .withRelBuilderFactory(relBuilderFactory)
           .withOperandSupplier(b -> b.operand(Aggregate.class).anyInputs())
           .withDescription("MaterializedViewAggregateRule(Aggregate)")
-          .as(MaterializedViewRule.Config.class)
           .withGenerateUnionRewriting(true)
           .withUnionRewritingPullProgram(null)
           .withFastBailOut(false)
-          .as(MaterializedViewOnlyAggregateRule.Config.class);
+          .build();
     }
 
     @Override default MaterializedViewOnlyAggregateRule toRule() {

@@ -85,6 +85,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.Matcher;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -1170,7 +1171,8 @@ class PlannerTest {
   public static class MyProjectFilterRule
       extends RelRule<MyProjectFilterRule.Config> {
     static Config config(String description) {
-      return Config.EMPTY
+      return ImmutableMyProjectFilterRuleConfig.builder()
+          .build()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalProject.class).oneInput(b1 ->
                   b1.operand(LogicalFilter.class).anyInputs()))
@@ -1191,6 +1193,8 @@ class PlannerTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableMyProjectFilterRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default MyProjectFilterRule toRule() {
         return new MyProjectFilterRule(this);
@@ -1202,12 +1206,12 @@ class PlannerTest {
   public static class MyFilterProjectRule
       extends RelRule<MyFilterProjectRule.Config> {
     static Config config(String description) {
-      return Config.EMPTY
+      return ImmutableMyFilterProjectRuleConfig.builder()
           .withOperandSupplier(b0 ->
               b0.operand(LogicalFilter.class).oneInput(b1 ->
                   b1.operand(LogicalProject.class).anyInputs()))
           .withDescription(description)
-          .as(Config.class);
+          .build();
     }
 
     protected MyFilterProjectRule(Config config) {
@@ -1222,6 +1226,8 @@ class PlannerTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableMyFilterProjectRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default MyFilterProjectRule toRule() {
         return new MyFilterProjectRule(this);

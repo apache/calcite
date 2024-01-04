@@ -24,7 +24,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
-import org.apache.calcite.util.ImmutableBeans;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -69,8 +68,9 @@ public class Hoist {
 
   /** Creates a Config. */
   public static Config config() {
-    return ImmutableBeans.create(Config.class)
-        .withParserConfig(SqlParser.config());
+    return ImmutableHoist.Config.builder()
+        .withParserConfig(SqlParser.config())
+        .build();
   }
 
   /** Creates a Hoist. */

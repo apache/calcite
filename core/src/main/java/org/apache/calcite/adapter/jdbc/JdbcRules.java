@@ -24,6 +24,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
@@ -62,7 +63,6 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.schema.ModifiableTable;
-import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlOperator;
@@ -133,7 +133,7 @@ public class JdbcRules {
       };
 
   static final RelFactories.CorrelateFactory CORRELATE_FACTORY =
-      (left, right, correlationId, requiredColumns, joinType) -> {
+      (left, right, hints, correlationId, requiredColumns, joinType) -> {
         throw new UnsupportedOperationException("JdbcCorrelate");
       };
 
@@ -371,6 +371,12 @@ public class JdbcRules {
         return false;
       }
     }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      Join join = call.rel(0);
+      JoinRelType joinType = join.getJoinType();
+      return ((JdbcConvention) getOutConvention()).dialect.supportsJoinType(joinType);
+    }
   }
 
   /** Join operator implemented in JDBC convention. */
@@ -464,7 +470,9 @@ public class JdbcRules {
 
   /** Calc operator implemented in JDBC convention.
    *
-   * @see org.apache.calcite.rel.core.Calc */
+   * @see org.apache.calcite.rel.core.Calc
+   * */
+  @Deprecated // to be removed before 2.0
   public static class JdbcCalc extends SingleRel implements JdbcRel {
     private final RexProgram program;
 
@@ -542,6 +550,11 @@ public class JdbcRules {
         }
       }
       return false;
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      Project project = call.rel(0);
+      return project.getVariablesSet().isEmpty();
     }
 
     @Override public @Nullable RelNode convert(RelNode rel) {
@@ -699,8 +712,11 @@ public class JdbcRules {
 
   /** Returns whether this JDBC data source can implement a given aggregate
    * function. */
-  private static boolean canImplement(SqlAggFunction aggregation, SqlDialect sqlDialect) {
-    return sqlDialect.supportsAggregateFunction(aggregation.getKind());
+  private static boolean canImplement(AggregateCall aggregateCall,
+      SqlDialect sqlDialect) {
+    return sqlDialect.supportsAggregateFunction(
+        aggregateCall.getAggregation().getKind())
+        && aggregateCall.distinctKeys == null;
   }
 
   /** Aggregate operator implemented in JDBC convention. */
@@ -718,9 +734,9 @@ public class JdbcRules {
       assert this.groupSets.size() == 1 : "Grouping sets not supported";
       final SqlDialect dialect = ((JdbcConvention) getConvention()).dialect;
       for (AggregateCall aggCall : aggCalls) {
-        if (!canImplement(aggCall.getAggregation(), dialect)) {
+        if (!canImplement(aggCall, dialect)) {
           throw new InvalidRelException("cannot implement aggregate function "
-              + aggCall.getAggregation());
+              + aggCall);
         }
         if (aggCall.hasFilter() && !dialect.supportsAggregateFunctionFilter()) {
           throw new InvalidRelException("dialect does not support aggregate "

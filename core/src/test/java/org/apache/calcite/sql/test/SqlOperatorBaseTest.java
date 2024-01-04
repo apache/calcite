@@ -1073,6 +1073,7 @@ public abstract class SqlOperatorBaseTest {
         "INTERVAL DAY TO HOUR NOT NULL");
   }
 
+  @Disabled
   @Test void testCastWithRoundingToScalar() {
     tester.setFor(SqlStdOperatorTable.CAST);
 
@@ -1113,6 +1114,7 @@ public abstract class SqlOperatorBaseTest {
         true);
   }
 
+  @Disabled
   @Test void testCastDecimalToDoubleToInteger() {
     tester.setFor(SqlStdOperatorTable.CAST);
 

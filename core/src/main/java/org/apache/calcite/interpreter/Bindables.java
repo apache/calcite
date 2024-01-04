@@ -193,10 +193,9 @@ public class Bindables {
     /** Rule configuration. */
     @Value.Immutable
     public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+      Config DEFAULT = ImmutableBindables.Config.of()
           .withOperandSupplier(b ->
-              b.operand(LogicalTableScan.class).noInputs())
-          .as(Config.class);
+              b.operand(LogicalTableScan.class).noInputs());
 
       @Override default BindableTableScanRule toRule() {
         return new BindableTableScanRule(this);

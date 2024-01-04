@@ -53,9 +53,12 @@ public class EnumerableLimitSortRule extends RelRule<EnumerableLimitSortRule.Con
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.withOperandSupplier(
-        b0 -> b0.operand(LogicalSort.class).predicate(sort -> sort.fetch != null).anyInputs())
-        .as(Config.class);
+    Config DEFAULT =
+        ImmutableEnumerableLimitSortRule.Config.of()
+            .withOperandSupplier(b0 ->
+                b0.operand(LogicalSort.class)
+                    .predicate(sort -> sort.fetch != null)
+                    .anyInputs());
 
     @Override default EnumerableLimitSortRule toRule() {
       return new EnumerableLimitSortRule(this);

@@ -370,8 +370,9 @@ public abstract class Window extends SingleRel implements Hintable {
           final RexWinAggCall aggCall = aggCalls.get(index);
           final SqlAggFunction op = (SqlAggFunction) aggCall.getOperator();
           return AggregateCall.create(op, aggCall.distinct, false,
-              aggCall.ignoreNulls, getProjectOrdinals(aggCall.getOperands()),
-              -1, RelCollations.EMPTY,
+              aggCall.ignoreNulls, ImmutableList.of(),
+              getProjectOrdinals(aggCall.getOperands()),
+              -1, null, RelCollations.EMPTY,
               aggCall.getType(), fieldNames.get(aggCall.ordinal));
         }
       };

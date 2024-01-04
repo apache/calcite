@@ -66,9 +66,8 @@ public class EnumerableLimitRule
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(Sort.class).anyInputs())
-        .as(Config.class);
+    Config DEFAULT = ImmutableEnumerableLimitRule.Config.of()
+        .withOperandSupplier(b -> b.operand(Sort.class).anyInputs());
 
     @Override default EnumerableLimitRule toRule() {
       return new EnumerableLimitRule(this);

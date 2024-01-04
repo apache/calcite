@@ -30,7 +30,6 @@ import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -46,7 +45,7 @@ import java.util.stream.Collector;
  * {@link SqlCall call}, {@link SqlLiteral literal},
  * {@link SqlIdentifier identifier}, and so forth.
  */
-public abstract class SqlNode implements Cloneable, Serializable {
+public abstract class SqlNode implements Cloneable {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final @Nullable SqlNode[] EMPTY_ARRAY = new SqlNode[0];

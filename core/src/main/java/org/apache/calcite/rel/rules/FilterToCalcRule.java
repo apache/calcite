@@ -27,6 +27,8 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalFilter} to a
@@ -43,6 +45,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see CoreRules#FILTER_TO_CALC
  */
+@Value.Enclosing
 public class FilterToCalcRule
     extends RelRule<FilterToCalcRule.Config>
     implements TransformationRule {
@@ -78,11 +81,11 @@ public class FilterToCalcRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableFilterToCalcRule.Config.of()
         .withOperandSupplier(b ->
-            b.operand(LogicalFilter.class).anyInputs())
-        .as(Config.class);
+            b.operand(LogicalFilter.class).anyInputs());
 
     @Override default FilterToCalcRule toRule() {
       return new FilterToCalcRule(this);

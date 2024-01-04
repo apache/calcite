@@ -38,6 +38,7 @@ import org.apache.calcite.rex.RexNode;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -99,9 +100,9 @@ class CollationConversionTest {
   /** Converts a NoneSingleRel to RootSingleRel. */
   public static class SingleNodeRule
       extends RelRule<SingleNodeRule.Config> {
-    static final SingleNodeRule INSTANCE = Config.EMPTY
+    static final SingleNodeRule INSTANCE = ImmutableSingleNodeRuleConfig.builder()
         .withOperandSupplier(b -> b.operand(NoneSingleRel.class).anyInputs())
-        .as(Config.class)
+        .build()
         .toRule();
 
     protected SingleNodeRule(Config config) {
@@ -127,6 +128,8 @@ class CollationConversionTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableSingleNodeRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default SingleNodeRule toRule() {
         return new SingleNodeRule(this);
@@ -156,9 +159,9 @@ class CollationConversionTest {
    * (with physical convention). */
   public static class LeafTraitRule
       extends RelRule<LeafTraitRule.Config> {
-    static final LeafTraitRule INSTANCE = Config.EMPTY
+    static final LeafTraitRule INSTANCE = ImmutableLeafTraitRuleConfig.builder()
         .withOperandSupplier(b -> b.operand(NoneLeafRel.class).anyInputs())
-        .as(Config.class)
+        .build()
         .toRule();
 
     LeafTraitRule(Config config) {
@@ -175,6 +178,8 @@ class CollationConversionTest {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableLeafTraitRuleConfig")
     public interface Config extends RelRule.Config {
       @Override default LeafTraitRule toRule() {
         return new LeafTraitRule(this);
