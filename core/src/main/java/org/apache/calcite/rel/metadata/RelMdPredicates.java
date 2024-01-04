@@ -39,6 +39,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
@@ -667,6 +668,37 @@ public class RelMdPredicates
     }
 
     /**
+     * As RexPermuteInputsShuttle, with the modification that an RexInputRef is updated with
+     * the type found in the input fields (instead of keeping the original type).
+     * This is use when generating the Left/RightInferredPredicates, permitting different but
+     * compatible types for expressions which are moved around the tree (such as moving an
+     * expression to a location where an input type's nullability is different).
+     */
+    private class TypeChangingRexPermuteInputsShuttle
+        extends org.apache.calcite.rex.RexPermuteInputsShuttle {
+
+      TypeChangingRexPermuteInputsShuttle(Mappings.TargetMapping mapping, RelNode... inputs) {
+        super(mapping, inputs);
+      }
+
+      private boolean areCompatibleTypes(RelDataType t1, RelDataType t2) {
+        return t1.getSqlTypeName().getFamily().getTypeNames().contains(t2.getSqlTypeName());
+      }
+
+      @Override public RexNode visitInputRef(RexInputRef local) {
+        final int index = local.getIndex();
+        int target = mapping.getTarget(index);
+        final RelDataType newType = fields.get(target).getType();
+        assert areCompatibleTypes(local.getType(), newType)
+            : "Internal error in TypeChangingRexPermuteInputsShuttle: "
+                + "Original type of input ref and type found in fields are not compatible.";
+        return new RexInputRef(
+            target,
+            newType);
+      }
+    }
+
+    /**
      * The PullUp Strategy is sound but not complete.
      * <ol>
      * <li>We only pullUp inferred predicates for now. Pulling up existing
@@ -714,12 +746,12 @@ public class RelMdPredicates
           Mappings.createShiftMapping(nSysFields + nFieldsLeft + nFieldsRight,
               0, nSysFields + nFieldsLeft, nFieldsRight);
       final RexPermuteInputsShuttle rightPermute =
-          new RexPermuteInputsShuttle(rightMapping, joinRel);
+          new TypeChangingRexPermuteInputsShuttle(rightMapping, joinRel.getRight());
       Mappings.TargetMapping leftMapping =
           Mappings.createShiftMapping(nSysFields + nFieldsLeft, 0, nSysFields,
               nFieldsLeft);
       final RexPermuteInputsShuttle leftPermute =
-          new RexPermuteInputsShuttle(leftMapping, joinRel);
+          new TypeChangingRexPermuteInputsShuttle(leftMapping, joinRel.getLeft());
       final List<RexNode> leftInferredPredicates = new ArrayList<>();
       final List<RexNode> rightInferredPredicates = new ArrayList<>();
 
