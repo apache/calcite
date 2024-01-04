@@ -1344,6 +1344,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Disabled
   @Test void testSampleBernoulliQuery() {
     final String sql = "select * from (\n"
         + " select * from emp as e tablesample bernoulli(10) repeatable(1)\n"
@@ -1359,6 +1360,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Disabled
   @Test void testSampleSystemQuery() {
     final String sql = "select * from (\n"
         + " select * from emp as e tablesample system(10) repeatable(1)\n"

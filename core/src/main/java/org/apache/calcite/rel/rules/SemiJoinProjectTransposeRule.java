@@ -38,6 +38,8 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.immutables.value.Value;
+
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -54,6 +56,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @see org.apache.calcite.rel.rules.SemiJoinFilterTransposeRule
  */
+@Value.Enclosing
 public class SemiJoinProjectTransposeRule
     extends RelRule<SemiJoinProjectTransposeRule.Config>
     implements TransformationRule {
@@ -178,8 +181,9 @@ public class SemiJoinProjectTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableSemiJoinProjectTransposeRule.Config.of()
         .withOperandFor(LogicalJoin.class, LogicalProject.class);
 
     @Override default SemiJoinProjectTransposeRule toRule() {

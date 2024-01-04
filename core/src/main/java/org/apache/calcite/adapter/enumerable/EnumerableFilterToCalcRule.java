@@ -65,10 +65,9 @@ public class EnumerableFilterToCalcRule
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableEnumerableFilterToCalcRule.Config.of()
         .withOperandSupplier(b ->
-            b.operand(EnumerableFilter.class).anyInputs())
-        .as(Config.class);
+            b.operand(EnumerableFilter.class).anyInputs());
 
     @Override default EnumerableFilterToCalcRule toRule() {
       return new EnumerableFilterToCalcRule(this);

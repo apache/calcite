@@ -35,6 +35,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableMap;
@@ -56,6 +58,7 @@ import java.util.TreeMap;
  * reduced aggregate. If those constants are not used, another rule will remove
  * them from the project.
  */
+@Value.Enclosing
 public class AggregateProjectPullUpConstantsRule
     extends RelRule<AggregateProjectPullUpConstantsRule.Config>
     implements TransformationRule {
@@ -176,12 +179,20 @@ public class AggregateProjectPullUpConstantsRule
 
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(LogicalAggregate.class, LogicalProject.class);
+    Config DEFAULT = ImmutableAggregateProjectPullUpConstantsRule.Config.of();
 
     @Override default AggregateProjectPullUpConstantsRule toRule() {
       return new AggregateProjectPullUpConstantsRule(this);
+    }
+
+    @Override @Value.Default default OperandTransform operandSupplier() {
+      return b0 ->
+          b0.operand(LogicalAggregate.class)
+              .predicate(Aggregate::isSimple)
+              .oneInput(b1 ->
+                  b1.operand(LogicalProject.class).anyInputs());
     }
 
     /** Defines an operand tree for the given classes.

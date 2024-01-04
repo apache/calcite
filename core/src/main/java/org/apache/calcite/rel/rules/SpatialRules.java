@@ -41,6 +41,7 @@ import com.esri.core.geometry.Point;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -85,6 +86,7 @@ import static java.util.Objects.requireNonNull;
  * is still present, but is evaluated after the approximate predicate has
  * eliminated many potential matches.
  */
+@Value.Enclosing
 public abstract class SpatialRules {
 
   private SpatialRules() {}
@@ -315,8 +317,9 @@ public abstract class SpatialRules {
     }
 
     /** Rule configuration. */
+    @Value.Immutable
     public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+      Config DEFAULT = ImmutableSpatialRules.Config.of()
           .withOperandSupplier(b ->
               b.operand(Filter.class)
                   .predicate(f -> DWITHIN_FINDER.inFilter(f)

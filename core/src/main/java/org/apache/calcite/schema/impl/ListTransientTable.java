@@ -49,6 +49,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * {@link TransientTable} backed by a Java list. It will be automatically added to the
  * current schema when {@link #scan(DataContext)} method gets called.
@@ -90,6 +92,9 @@ public class ListTransientTable extends AbstractQueryableTable
   }
 
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+    // add the table into the schema, so that it is accessible by any potential operator
+    requireNonNull(root.getRootSchema(), "root.getRootSchema()")
+        .add(name, this);
 
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
 

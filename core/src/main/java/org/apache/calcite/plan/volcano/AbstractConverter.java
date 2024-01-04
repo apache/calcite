@@ -140,10 +140,9 @@ public class AbstractConverter extends ConverterImpl {
     /** Rule configuration. */
     @Value.Immutable
     public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
+      Config DEFAULT = ImmutableConverter.Config.of()
           .withOperandSupplier(b ->
-              b.operand(AbstractConverter.class).anyInputs())
-          .as(Config.class);
+              b.operand(AbstractConverter.class).anyInputs());
 
       @Override default ExpandConversionRule toRule() {
         return new ExpandConversionRule(this);

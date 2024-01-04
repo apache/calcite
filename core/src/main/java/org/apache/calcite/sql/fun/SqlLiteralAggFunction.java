@@ -27,6 +27,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -62,7 +63,6 @@ public class SqlLiteralAggFunction {
       ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
       AggregateCall aggregateCall) {
     // LITERAL_AGG[literal]() evaluates to "literal".
-//    return Iterables.getOnlyElement(aggregateCall.rexList);
-    return null;
+    return Iterables.getOnlyElement(aggregateCall.rexList);
   }
 }

@@ -35,6 +35,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,6 +68,7 @@ import java.util.Set;
  *
  * @see CoreRules#AGGREGATE_JOIN_JOIN_REMOVE
  */
+@Value.Enclosing
 public class AggregateJoinJoinRemoveRule
     extends RelRule<AggregateJoinJoinRemoveRule.Config>
     implements TransformationRule {
@@ -156,9 +159,9 @@ public class AggregateJoinJoinRemoveRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .as(Config.class)
+    Config DEFAULT = ImmutableAggregateJoinJoinRemoveRule.Config.of()
         .withOperandFor(LogicalAggregate.class, LogicalJoin.class);
 
     @Override default AggregateJoinJoinRemoveRule toRule() {

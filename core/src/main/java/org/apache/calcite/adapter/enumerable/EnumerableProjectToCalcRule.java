@@ -58,10 +58,9 @@ public class EnumerableProjectToCalcRule extends ProjectToCalcRule {
   @Value.Immutable
   @SuppressWarnings("immutables")
   public interface Config extends ProjectToCalcRule.Config {
-    Config DEFAULT = ProjectToCalcRule.Config.DEFAULT
+    Config DEFAULT = ImmutableEnumerableProjectToCalcRule.Config.of()
         .withOperandSupplier(b ->
-            b.operand(EnumerableProject.class).anyInputs())
-        .as(Config.class);
+            b.operand(EnumerableProject.class).anyInputs());
 
     @Override default EnumerableProjectToCalcRule toRule() {
       return new EnumerableProjectToCalcRule(this);

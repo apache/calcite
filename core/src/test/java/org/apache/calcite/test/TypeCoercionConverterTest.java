@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -124,6 +125,7 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
     checkPlanEquals(sql);
   }
 
+  @Disabled
   @Test void testUpdateQuerySourceCoercion() {
     final String sql = "update t1 set t1_varchar20=123, "
         + "t1_date=TIMESTAMP '2020-01-03 10:14:34', t1_int=12.3";

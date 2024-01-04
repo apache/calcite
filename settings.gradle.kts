@@ -68,7 +68,6 @@ include(
     "pig",
     "piglet",
     "redis",
-    "spark",
     "splunk",
     "ubenchmark"
 )

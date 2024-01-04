@@ -22,6 +22,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
@@ -282,6 +283,9 @@ public class JdbcToEnumerableConverter
               java.sql.Array.class);
       source = Expressions.call(BuiltInMethod.JDBC_ARRAY_TO_LIST.method, x);
       break;
+    case NULL:
+      source = RexImpTable.NULL_EXPR;
+      break;
     default:
       source =
           Expressions.call(resultSet_, jdbcGetMethod(primitive),
@@ -353,7 +357,7 @@ public class JdbcToEnumerableConverter
         new JdbcImplementor(dialect,
             (JavaTypeFactory) getCluster().getTypeFactory());
     final JdbcImplementor.Result result =
-        jdbcImplementor.visitInput(this, 0);
+        jdbcImplementor.visitRoot(this.getInput());
     return result.asStatement().toSqlString(dialect);
   }
 }

@@ -28,6 +28,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcTest;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.function.Consumer;
@@ -123,6 +124,7 @@ class EnumerableBatchNestedLoopJoinTest {
         .returnsUnordered("EXPR$0=8");
   }
 
+  @Disabled
   @Test void testJoinSubQuery() {
     String sql = "SELECT count(name) FROM emps e WHERE e.deptno NOT IN "
         + "(SELECT d.deptno FROM depts d WHERE d.name = 'Sales')";

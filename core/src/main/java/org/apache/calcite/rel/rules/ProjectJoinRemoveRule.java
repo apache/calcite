@@ -31,6 +31,8 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -53,6 +55,7 @@ import java.util.stream.Collectors;
  * <blockquote>
  * <pre>select s.product_id from sales as s</pre></blockquote>
  */
+@Value.Enclosing
 public class ProjectJoinRemoveRule
     extends RelRule<ProjectJoinRemoveRule.Config>
     implements SubstitutionRule {
@@ -83,7 +86,7 @@ public class ProjectJoinRemoveRule
 
     // Check whether the project uses columns whose index is between
     // lower(included) and upper(excluded).
-    for (RexNode expr: project.getProjects()) {
+    for (RexNode expr : project.getProjects()) {
       if (RelOptUtil.InputFinder.bits(expr).asList().stream().anyMatch(
           i -> i >= lower && i < upper)) {
         return;
@@ -125,8 +128,9 @@ public class ProjectJoinRemoveRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableProjectJoinRemoveRule.Config.of()
         .withOperandFor(LogicalProject.class, LogicalJoin.class);
 
     @Override default ProjectJoinRemoveRule toRule() {

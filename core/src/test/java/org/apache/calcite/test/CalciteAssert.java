@@ -2060,6 +2060,7 @@ public class CalciteAssert {
     JDBC_FOODMART_WITH_LATTICE("lattice"),
     GEO("GEO"),
     HR("hr"),
+    MY_DB("myDb"),
     JDBC_SCOTT("JDBC_SCOTT"),
     SCOTT("scott"),
     SCOTT_WITH_TEMPORAL("scott_temporal"),
